@@ -1,0 +1,50 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+float Func(float x, float t)
+{
+	return x * sin(x);
+}
+
+uniform float E;
+
+float Grad(float x, float t)
+{
+#if 1
+	return sin(x) + x * cos(x);
+#else
+	return (Func(x + E, t) - Func(x - E, t)) /(2 * E);
+#endif
+}
+
+uniform float4 OffsetAndScale;
+uniform float Time;
+uniform float HalfWidth;
+uniform float4 Color;
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float2 p = OffsetAndScale.xy + VSOutput.UVs *  OffsetAndScale.zw;
+
+	float f = Func(p.x, Time);
+	float df = Grad(p.x, Time);
+	float e = abs( p.y - f ) / sqrt( 1 + df * df );
+
+	if (e > HalfWidth)
+	{
+		OutColor = float4(0,0,0,0);
+	}
+	else
+	{
+		OutColor = Color;
+	}
+}
+
+
+
+

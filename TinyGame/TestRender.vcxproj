@@ -255,6 +255,7 @@
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
+    <ClCompile Include="TestRender\Stage\FluidRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\FractialStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />

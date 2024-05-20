@@ -463,8 +463,11 @@ namespace Render
 				SET_TRAGET_VALUE(6);
 				SET_TRAGET_VALUE(7);
 
-				for (int i = 8; i < ARRAY_SIZE(initializer.targetValues); ++i)
-					initializer.targetValues[i].setZero();
+				if constexpr (ARRAY_SIZE(initializer.targetValues) > 8)
+				{
+					for (int i = 8; i < ARRAY_SIZE(initializer.targetValues); ++i)
+						initializer.targetValues[i].setZero();
+				}
 			}
 #undef SET_TRAGET_VALUE
 			return initializer;

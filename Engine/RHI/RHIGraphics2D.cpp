@@ -415,21 +415,6 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	}
 }
 
-
-template< typename CharT >
-void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str)
-{
-	assert(mFont);
-
-	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
-	setBlendState(ESimpleBlendMode::Translucent);
-	setTextureState(&mFont->getTexture());
-	commitRenderState();
-	auto& element = mElementList.addText(mColorFont, Vector2(int(ox), int(oy)), *mFont, str);
-	setupElement(element);
-	setBlendState(prevMode);
-}
-
 template< typename CharT >
 void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charCount)
 {

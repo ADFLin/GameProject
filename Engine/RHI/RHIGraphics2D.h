@@ -231,9 +231,7 @@ public:
 private:
 
 	template< typename CharT >
-	void drawTextImpl(float ox, float oy, CharT const* str);
-	template< typename CharT >
-	void drawTextImpl(float ox, float oy, CharT const* str, int charCount);
+	void drawTextImpl(float ox, float oy, CharT const* str, int charCount = 0);
 
 	void setupCommittedRenderState();
 

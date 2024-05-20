@@ -244,6 +244,7 @@
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AgarStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />

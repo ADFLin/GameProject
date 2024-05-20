@@ -980,13 +980,9 @@ namespace Render
 					PROFILE_ENTRY("Text Vertices");
 					RenderBatchedElementList::TextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextPayload >(element);
 
-#if USE_NEW_LINE_IDNEX
 					int numChar = payload.verticesCount / 4;
 					FontVertex* pSrcVertices = payload.vertices;
-#else
-					int numChar = payload.vertices.size() / 4;
-					FontVertex* pSrcVertices = payload.vertices.data();
-#endif
+					
 					FetchedData data = fetchBuffer(4 * numChar, 6 * numChar);
 					int baseIndex = data.base;
 					TexVertex* pVertices = data.vertices;

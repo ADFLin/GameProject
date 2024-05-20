@@ -60,7 +60,11 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize)
 	QA_LOG("*******************");
 
 	IFont* font = IFont::LoadFile( DATA_DIR"Fragile Bombers.TTF" );
-	//IFont* font = IFont::loadFont("Bitwise");
+	if (font == nullptr)
+	{
+		font = IFont::LoadFile("Bitwise");
+	}
+	//IFont* font = IFont::LoadFile("Bitwise");
 	//IFont* font = NULL;
 	if (font)
 	{
@@ -202,10 +206,14 @@ void Game::render()
 	InlineString< 256 > str;
 	str.format("FPS = %.2f", mFPS);
 
-	mRenderSystem->drawText(
-		mFonts[0], 18, str,
-		Vec2i(getGame()->getScreenSize().x - 100, 30), Color4ub(255,255,25),
-		TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
+	IFont* font = getFont(0);
+	if(font)
+	{
+		mRenderSystem->drawText(
+			font, 18, str,
+			Vec2i(getGame()->getScreenSize().x - 100, 30), Color4ub(255, 255, 25),
+			TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
+	}
 
 	mGraphics2D->endRender();
 
@@ -252,6 +260,14 @@ void Game::addStage( GameStage* stage, bool removePrev )
 void Game::procWidgetEvent( int event , int id , QWidget* sender )
 {
 	mStageStack.back()->onWidgetEvent( event , id , sender );
+}
+
+IFont* Game::getFont(int idx)
+{
+	if (!mFonts.isValidIndex(idx))
+		return nullptr;
+
+	return mFonts[idx];
 }
 
 MsgReply Game::onMouse( MouseMsg const& msg )

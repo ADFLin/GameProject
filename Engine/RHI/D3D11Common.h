@@ -218,6 +218,10 @@ namespace Render
 
 		ResourceType* getResource() { return mResource; }
 
+		void setDebugName(char const* name) override
+		{
+			mResource->SetPrivateData(WKPDID_D3DDebugObjectName, FCString::Strlen(name), name);
+		}
 
 		void release()
 		{

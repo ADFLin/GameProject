@@ -114,7 +114,6 @@ struct TDynamicArrayData
 				if (oldSize)
 				{
 					FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)mStorage);
-
 				}
 				FMemory::Free(mStorage);
 			}

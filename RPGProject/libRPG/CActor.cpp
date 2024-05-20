@@ -812,14 +812,14 @@ void CActor::setMP( int val )
 float CActor::getAttackRange()
 {
 	if ( mAbilityProp )
-		mAbilityProp->getPropValue( PROP_AT_RANGE );
+		return mAbilityProp->getPropValue( PROP_AT_RANGE );
 	return gDefultAttackRange;
 }
 
 float CActor::getVisibleDistance()
 {
 	if ( mAbilityProp )
-		mAbilityProp->getPropValue( PROP_VIEW_DIST );
+		return mAbilityProp->getPropValue( PROP_VIEW_DIST );
 
 	return gDefultVisibleDistance;
 }

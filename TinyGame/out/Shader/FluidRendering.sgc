@@ -1,0 +1,146 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "ScreenVertexShader.sgc"
+
+struct ParticleData
+{
+	float3 pos;
+};
+DEFINE_STRUCTURED_BUFFER(ParticleData, Particles);
+
+struct BassPassOutputVS
+{
+	float2  pos     MEMBER_OUT(TEXCOORD0);
+};
+
+uniform float RenderRadius;
+#if SHADER_ENTRY(BasePassVS)
+
+VS_ENTRY_START(BasePassVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	//VS_INPUT(float2 IUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(BassPassOutputVS OutputVS, 0)
+	VS_OUTPUT(flat float3 OutPos, 1)
+	VS_INPUT_INSTANCEID
+VS_ENTRY_END(BasePassVS)
+{
+	float4 posView = mul(View.worldToView, float4(Particles[SvInstanceID].pos, 1.0) );
+
+	OutputVS.pos = InPos;
+	OutPos = posView.xyz;
+	SvPosition = mul(View.viewToClip, float4(posView.xyz + RenderRadius * float3(InPos, -1), 1));
+}
+
+
+#endif
+
+#if SHADER_ENTRY(BasePassPS)
+
+PS_ENTRY_START(BasePassPS)
+	PS_INPUT_STRUCT(BassPassOutputVS OutputVS, 0)
+	PS_INPUT(flat float3 InPos, 1)
+	PS_OUTPUT(float4 OutColor, 0)
+	PS_OUTPUT_DEPTH
+PS_ENTRY_END(BasePassPS)
+{
+	float r2 = dot(OutputVS.pos, OutputVS.pos);
+	if (r2 > 1.0)
+		discard;
+
+	float3 N;
+	N.xy = OutputVS.pos;
+	N.z = -sqrt(1.0 - r2);
+
+	float3 viewPos = InPos + N * RenderRadius;
+	float4 NDC = mul(View.viewToClip , float4(viewPos,1) );
+
+
+	float depth = viewPos.z;
+	//depth = NDC.z / NDC.w;
+	OutColor = float4(0.5 * N + 0.5,1);
+	OutColor = float4(depth, depth, depth, 1.0);
+	SvDepth = NDC.z / NDC.w;
+}
+
+#endif
+
+#if SHADER_ENTRY(FilterPS)
+
+uniform float FilterRadius;
+uniform float4 BlurParams;
+
+DEFINE_TEXTURE(Texture2D, DepthTexture)
+
+PS_ENTRY_START(FilterPS)
+	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(FilterPS)
+{
+	float depth = TEXTURE_SAMPLE(DepthTexture, OutputVS.UVs);
+	if (depth == 0)
+		discard;
+
+	float sum = 0;
+	float weightSum = 0;
+
+	for (float x = -FilterRadius; x <= FilterRadius; x += 1.0)
+	{
+		float sample = TEXTURE_SAMPLE(DepthTexture, OutputVS.UVs + x * BlurParams.xy).x;
+		
+		float r = x * BlurParams.z / 10;
+		float w = (sample == 0) ? 0 : exp(-r*r);
+
+		float r2 = (sample - depth) * BlurParams.w;
+		float g = exp(-r2 * r2);
+		//g = 1.0;
+
+		sum += sample * w * g;
+		weightSum += w * g;
+	}
+
+	if (weightSum > 0.0)
+	{
+		sum /= weightSum;
+	}
+
+	OutColor = float4( sum , sum , sum , 1.0f);
+	//OutColor = float4(1,1,0,1);
+}
+
+#endif
+
+
+#if SHADER_ENTRY(RenderPS)
+
+
+DEFINE_TEXTURE(Texture2D, DepthTexture)
+
+PS_ENTRY_START(RenderPS)
+	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+	PS_OUTPUT_DEPTH
+PS_ENTRY_END(RenderPS)
+{
+
+	float depth = TEXTURE_SAMPLE(DepthTexture, OutputVS.UVs);
+	if ( depth == 0)
+		discard;
+
+	float3 worldPos = StoreWorldPos(OutputVS.UVs, SceneDepthToNDCDepth(View.viewToClip, depth));
+
+	float3 dx = ddx(worldPos);
+	float3 dy = ddy(worldPos);
+	float3 N = normalize( cross(dx ,dy) );
+
+
+	float3 L = normalize(float3(-0.2,0.2,1));
+
+	float NoL = saturate(dot(N,L));
+
+
+	OutColor = float4(0.5 *N + 0.5, 1.0);
+	OutColor = float4(NoL, NoL, NoL, 1.0);
+	SvDepth = depth;
+}
+
+#endif

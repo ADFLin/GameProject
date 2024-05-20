@@ -60,6 +60,7 @@ struct GPU_ALIGN MaterialData
 template<typename T, typename Q>
 FORCEINLINE T AsValue(Q value)
 {
+	static_assert(sizeof(T) == sizeof(Q));
 	T* ptr = (T*)&value;
 	return *ptr;
 }

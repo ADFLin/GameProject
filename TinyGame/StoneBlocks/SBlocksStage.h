@@ -149,7 +149,7 @@ namespace SBlocks
 	public:
 		ERenderSystem getDefaultRenderSystem() override;
 		bool setupRenderResource(ERenderSystem systemName) override;
-		void preShutdownRenderSystem(bool bReInit = false) override;
+		void preShutdownRenderSystem(bool bReInit) override;
 
 
 		Tween::GroupTweener< float > mTweener;

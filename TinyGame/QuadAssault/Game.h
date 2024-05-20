@@ -33,7 +33,7 @@ public:
 	virtual void  stopPlay(){ mNeedEnd = true; }
 	virtual void  procWidgetEvent( int event , int id , QWidget* sender );
 
-	IFont*        getFont( int idx ){  return mFonts[idx]; }
+	IFont*        getFont( int idx );
 
 	virtual MsgReply onMouse( MouseMsg const& msg );
 	virtual MsgReply onKey( KeyMsg const& msg );

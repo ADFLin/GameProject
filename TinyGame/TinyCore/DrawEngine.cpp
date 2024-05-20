@@ -485,6 +485,10 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 	}
 	else
 	{
+		if (mSwapChain)
+		{
+			mSwapChain.release();
+		}
 		RenderUtility::ReleaseRHI();
 		mRHIGraphics->releaseRHI();
 		bRHIGraphicsInitialized = false;
@@ -498,7 +502,7 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 			bRHIShutdownDeferred = true;
 		}
 
-		if (mSystemName == ERenderSystem::D3D12)
+		if (mSystemName == ERenderSystem::D3D12 /*|| mSystemName == ERenderSystem::D3D11*/)
 		{
 			bReconsructWindow = true;
 		}

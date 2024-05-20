@@ -36,12 +36,21 @@ layout(std140) cbuffer ViewBlock
 uniform ViewParameters View;
 #endif
 
-float BufferDepthToSceneDepth(mat4 viewToClip , float depth)
+float BufferDepthToSceneDepth(float4x4 viewToClip , float depth)
 {
 #if COMPILER_HLSL
 	return viewToClip[2][3] / (BufferToNDCDepth(depth) + viewToClip[2][2]);
 #else
 	return viewToClip[3][2] / (BufferToNDCDepth(depth) + viewToClip[2][2]);
+#endif
+}
+
+float SceneDepthToNDCDepth(float4x4 viewToClip, float sceneDepth)
+{
+#if COMPILER_HLSL
+	return viewToClip[2][3] / sceneDepth - viewToClip[2][2];
+#else
+	return viewToClip[3][2] / sceneDepth - viewToClip[2][2];
 #endif
 }
 

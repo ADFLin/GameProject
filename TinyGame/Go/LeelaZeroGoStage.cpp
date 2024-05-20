@@ -981,12 +981,12 @@ namespace Go
 					}
 					else if( info.nodeVisited >= 10000 )
 					{
-						float fVisited = float(info.nodeVisited) / 1000; // 13265 -> 13.265
+						float fVisited = float(info.nodeVisited) / 1000; // 12345 -> 12.345
 						str.format("%gk", Math::Round(fVisited));
 					}
 					else if( info.nodeVisited >= 1000 )
 					{
-						float fVisited = float(info.nodeVisited) / 100; // 1265 -> 12.65
+						float fVisited = float(info.nodeVisited) / 100; // 1234 -> 12.34
 						str.format("%gk", Math::Round(fVisited) / 10.0);
 					}
 					else

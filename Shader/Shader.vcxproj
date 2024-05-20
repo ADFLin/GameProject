@@ -167,6 +167,7 @@
     <None Include="..\TinyGame\out\Shader\DoubleSim.sgc" />
     <None Include="..\TinyGame\out\Shader\EnvLightTextureGen.sgc" />
     <None Include="..\TinyGame\out\Shader\FFT.sgc" />
+    <None Include="..\TinyGame\out\Shader\FluidRendering.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\BumpMapTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Chess.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\ClipCoord.sgc" />
@@ -183,6 +184,7 @@
     <None Include="..\TinyGame\out\Shader\Game\Parallax.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PlanetSurface.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Plant.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Plot2DTemplate.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PointToRectOutline.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PongShader.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\RayTraceSDF.sgc" />

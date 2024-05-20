@@ -234,6 +234,10 @@
     <None Include="..\TinyGame\out\Shader\Game\SDFSceneTemplate.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\Plot2DTemplate.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\FluidRendering.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

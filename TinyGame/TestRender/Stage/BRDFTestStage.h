@@ -193,9 +193,6 @@ namespace Render
 		RHITexture2DRef mNormalTexture;
 		RHITexture2DRef mHDRImage;
 		RHITexture2DRef mRockTexture;
-
-		Mesh mSkyBox;
-
 		bool mbUseShaderBlit = false;
 
 
@@ -238,22 +235,6 @@ namespace Render
 
 		bool bEnableTonemap = true;
 		bool bShowIrradiance = false;
-
-		struct ESkyboxShow
-		{
-			enum 
-			{
-				Normal ,
-				Irradiance ,
-				Prefiltered_0,
-				Prefiltered_1,
-				Prefiltered_2,
-				Prefiltered_3,
-				Prefiltered_4,
-
-				Count ,
-			};
-		};
 		int SkyboxShowIndex = ESkyboxShow::Normal;
 
 		void onRender(float dFrame) override;

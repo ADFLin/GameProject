@@ -32,6 +32,7 @@ namespace Render
 
 
 	class StaticMesh;
+	class IBLResource;
 
 
 	bool LoadObjectMesh(StaticMesh& mesh , char const* path );
@@ -436,6 +437,7 @@ namespace Render
 
 		Mesh   mSimpleMeshs[SimpleMeshId::NumSimpleMesh];
 
+
 		void releaseRHIResource(bool bReInit = false);
 	};
 
@@ -529,9 +531,23 @@ namespace Render
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
 
-
 		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
+		struct ESkyboxShow
+		{
+			enum
+			{
+				Normal,
+				Irradiance,
+				Prefiltered_0,
+				Prefiltered_1,
+				Prefiltered_2,
+				Prefiltered_3,
+				Prefiltered_4,
 
+				Count,
+			};
+		};
+		void drawSkyBox(RHICommandList& commandList, ViewInfo& view, RHITexture2D& HDRImage, IBLResource& IBL, int skyboxShowIndex);
 	};
 
 }//namespace Render

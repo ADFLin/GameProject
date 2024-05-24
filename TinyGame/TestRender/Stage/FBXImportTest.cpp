@@ -177,32 +177,7 @@ namespace Render
 				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth | EClearBits::Stencil,
 					&LinearColor(0.2, 0.2, 0.2, 1), 1);
 
-				{
-					GPU_PROFILE("SkyBox");
-					RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
-
-					RHISetShaderProgram(commandList, mProgSkyBox->getRHI());
-					SET_SHADER_TEXTURE( commandList, *mProgSkyBox, Texture, *mHDRImage);
-					switch( SkyboxShowIndex )
-					{
-					case ESkyboxShow::Normal:
-						SET_SHADER_TEXTURE(commandList, *mProgSkyBox, CubeTexture, *mIBLResource.texture);
-						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
-						break;
-					case ESkyboxShow::Irradiance:
-						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.irradianceTexture);
-						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
-						break;
-					default:
-						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture, SHADER_PARAM(CubeTextureSampler),
-												TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
-						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
-					}
-
-					mView.setupShader(commandList, *mProgSkyBox);
-					mSkyBox.draw(commandList);
-				}
+				drawSkyBox(commandList, mView, *mHDRImage, mIBLResource, SkyboxShowIndex);
 
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());

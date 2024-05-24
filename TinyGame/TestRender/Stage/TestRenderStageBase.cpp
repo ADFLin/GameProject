@@ -3,9 +3,12 @@
 #include "RHI/RHIGraphics2D.h"
 #include "Renderer/MeshBuild.h"
 #include "Renderer/RenderTargetPool.h"
+#include "Renderer/IBLResource.h"
+
 #include "ConsoleSystem.h"
 
 #include "Asset.h"
+
 
 
 namespace Render
@@ -262,6 +265,34 @@ namespace Render
 			mProgSphere->setParameters(commandList, light.pos, radius, light.color);
 			mSimpleMeshs[SimpleMeshId::SpherePlane].draw(commandList);
 		}
+	}
+
+	void TestRenderStageBase::drawSkyBox(RHICommandList& commandList, ViewInfo& view, RHITexture2D& HDRImage, IBLResource& IBL, int skyboxShowIndex)
+	{
+		GPU_PROFILE("SkyBox");
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+
+		RHISetShaderProgram(commandList, mProgSkyBox->getRHI());
+		SET_SHADER_TEXTURE(commandList, *mProgSkyBox, Texture, HDRImage);
+		switch (skyboxShowIndex)
+		{
+		case ESkyboxShow::Normal:
+			SET_SHADER_TEXTURE(commandList, *mProgSkyBox, CubeTexture, *IBL.texture);
+			SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
+			break;
+		case ESkyboxShow::Irradiance:
+			mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), IBL.irradianceTexture);
+			SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
+			break;
+		default:
+			mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), IBL.perfilteredTexture, SHADER_PARAM(CubeTextureSampler),
+				TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
+			SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(skyboxShowIndex - ESkyboxShow::Prefiltered_0));
+		}
+
+		view.setupShader(commandList, *mProgSkyBox);
+		getMesh(SimpleMeshId::SkyBox).draw(commandList);
 	}
 
 }//namespace Render

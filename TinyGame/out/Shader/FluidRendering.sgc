@@ -1,6 +1,11 @@
 #include "Common.sgc"
 #include "ViewParam.sgc"
 #include "ScreenVertexShader.sgc"
+#include "LightingCommon.sgc"
+
+#ifndef DRAW_THICKNESS
+#define DRAW_THICKNESS 0
+#endif
 
 struct ParticleData
 {
@@ -40,7 +45,9 @@ PS_ENTRY_START(BasePassPS)
 	PS_INPUT_STRUCT(BassPassOutputVS OutputVS, 0)
 	PS_INPUT(flat float3 InPos, 1)
 	PS_OUTPUT(float4 OutColor, 0)
+#if !DRAW_THICKNESS
 	PS_OUTPUT_DEPTH
+#endif
 PS_ENTRY_END(BasePassPS)
 {
 	float r2 = dot(OutputVS.pos, OutputVS.pos);
@@ -50,16 +57,19 @@ PS_ENTRY_END(BasePassPS)
 	float3 N;
 	N.xy = OutputVS.pos;
 	N.z = -sqrt(1.0 - r2);
-
 	float3 viewPos = InPos + N * RenderRadius;
-	float4 NDC = mul(View.viewToClip , float4(viewPos,1) );
 
-
+#if DRAW_THICKNESS
+	float v = 0.0001;
+	OutColor = float4(v, v, v, 1);
+#else
+	float4 NDC = mul(View.viewToClip, float4(viewPos, 1));
 	float depth = viewPos.z;
 	//depth = NDC.z / NDC.w;
-	OutColor = float4(0.5 * N + 0.5,1);
+	OutColor = float4(0.5 * N + 0.5, 1);
 	OutColor = float4(depth, depth, depth, 1.0);
 	SvDepth = NDC.z / NDC.w;
+#endif
 }
 
 #endif
@@ -87,7 +97,7 @@ PS_ENTRY_END(FilterPS)
 	{
 		float sample = TEXTURE_SAMPLE(DepthTexture, OutputVS.UVs + x * BlurParams.xy).x;
 		
-		float r = x * BlurParams.z / 10;
+		float r = x * BlurParams.z;
 		float w = (sample == 0) ? 0 : exp(-r*r);
 
 		float r2 = (sample - depth) * BlurParams.w;
@@ -114,6 +124,7 @@ PS_ENTRY_END(FilterPS)
 
 
 DEFINE_TEXTURE(Texture2D, DepthTexture)
+DEFINE_TEXTURE(Texture2D, ThicknessTexture)
 
 PS_ENTRY_START(RenderPS)
 	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
@@ -126,6 +137,9 @@ PS_ENTRY_END(RenderPS)
 	if ( depth == 0)
 		discard;
 
+
+	float d = TEXTURE_SAMPLE(ThicknessTexture, OutputVS.UVs);
+
 	float3 worldPos = StoreWorldPos(OutputVS.UVs, SceneDepthToNDCDepth(View.viewToClip, depth));
 
 	float3 dx = ddx(worldPos);
@@ -134,12 +148,19 @@ PS_ENTRY_END(RenderPS)
 
 
 	float3 L = normalize(float3(-0.2,0.2,1));
+	float3 V = normalize(View.worldPos - worldPos);
+	float3 H = normalize(V + L);
+	float NoL = dot(N,L);
+	float NoV = dot(N,V);
+	float NoH = saturate(dot(N,H));
 
-	float NoL = saturate(dot(N,L));
+	float3 diffuse = ( NoL * 0.5 + 0.5 ).xxx;
+	float3 spec = F_Schlick2(0.2 * float3(1,1,1) , NoV);
 
+	float alpha = d;
 
 	OutColor = float4(0.5 *N + 0.5, 1.0);
-	OutColor = float4(NoL, NoL, NoL, 1.0);
+	OutColor = float4(0.3 * diffuse + spec , alpha);
 	SvDepth = depth;
 }
 

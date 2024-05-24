@@ -1,4 +1,7 @@
 #include "TestRenderStageBase.h"
+#include "RHI/RHIGraphics2D.h"
+#include "Renderer/IBLResource.h"
+#include "ProfileSystem.h"
 
 namespace Render
 {
@@ -15,13 +18,17 @@ namespace Render
 	{
 	public:
 		using BaseClass = GlobalShaderProgram;
+
 		DECLARE_SHADER_PROGRAM(FRBasePassProgram, Global);
-		
+
+		SHADER_PERMUTATION_TYPE_BOOL(DrawThinkness, SHADER_PARAM(DRAW_THICKNESS));
+		using PermutationDomain = TShaderPermutationDomain<DrawThinkness>;
+
 		static char const* GetShaderFileName()
 		{
 			return "Shader/FluidRendering";
 		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			static ShaderEntryInfo const entries[] =
 			{
@@ -36,6 +43,7 @@ namespace Render
 	{
 	public:
 		using BaseClass = GlobalShaderProgram;
+
 		DECLARE_SHADER_PROGRAM(FRFilterProgram, Global);
 
 		static char const* GetShaderFileName()
@@ -128,26 +136,47 @@ namespace Render
 			{
 				Vector2(-1,-1),
 				Vector2(-1, 1),
-				Vector2( 1, 1),
 				Vector2( 1,-1),
+				Vector2( 1, 1),
 			};
 
 			mQuadVertexBuffer = RHICreateVertexBuffer(sizeof(Vector2) , 4 , BCF_DefalutValue, vertices);
 			uint16 indices[] =
 			{
-				0,1,2,0,2,3
+				0,1,2,2,1,3
 			};
 			mQuadIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), false , BCF_DefalutValue, indices );
 
-			mProgBasePass = ShaderManager::Get().getGlobalShaderT<FRBasePassProgram>();
+			mProgDepthPass = ShaderManager::Get().getGlobalShaderT<FRBasePassProgram>();
+			
+			FRBasePassProgram::PermutationDomain pdVector;
+			pdVector.set<FRBasePassProgram::DrawThinkness>(true);
+			mProgThinknessPass = ShaderManager::Get().getGlobalShaderT<FRBasePassProgram>(pdVector);
+
+			
 			mProgFilter = ShaderManager::Get().getGlobalShaderT<FRFilterProgram>();
 			mProgRender = ShaderManager::Get().getGlobalShaderT<FRRenderProgram>();
 
 			mFrameBuffer = RHICreateFrameBuffer();
 
+#if 0
+			char const* HDRImagePath = "Texture/HDR/A.hdr";
+			{
+				TIME_SCOPE("HDR Texture");
+				VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/HDR/A.hdr", TextureLoadOption().HDR()));
+			}
+			{
+				TIME_SCOPE("IBL");
+				VERIFY_RETURN_FALSE(mBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
+			}
+#endif
+
+
 			return true;
 		}
-
+		IBLResourceBuilder mBuilder;
+		IBLResource mIBLResource;
+		RHITexture2DRef mHDRImage;
 
 		RHIBufferRef mQuadVertexBuffer;
 		RHIBufferRef mQuadIndexBuffer;
@@ -155,14 +184,15 @@ namespace Render
 		RHIFrameBufferRef mFrameBuffer;
 
 
-		FRBasePassProgram* mProgBasePass;
+		FRBasePassProgram* mProgDepthPass;
+		FRBasePassProgram* mProgThinknessPass;
 		FRFilterProgram*   mProgFilter;
 		FRRenderProgram*   mProgRender;
 
 		bool generateTestData()
 		{
-			float length = 10.0f / 100;
-			float numSample = 100;
+			int numSample = 200;
+			float length = 10.0f / numSample;
 
 			TArray< ParticleData > datas;
 			for (int i = 0; i < numSample; ++i)
@@ -171,7 +201,7 @@ namespace Render
 				{
 					float x = i * length;
 					float y = j * length;
-					float h = 1 + 0.5 * sin( x + y );
+					float h = 1 + 0.5 * sin( x + y ) * sin( y );
 
 					int nh = Math::FloorToInt( h / length );
 					for (int k = 0; k < nh; ++k)
@@ -206,8 +236,23 @@ namespace Render
 			PooledRenderTargetRef RTDepth;
 			PooledRenderTargetRef RTDepthBuffer;
 
+
+			auto DrawParticles  = [&]()
 			{
-				GPU_PROFILE("Fluid BasePass");
+				InputStreamInfo stream;
+				stream.buffer = mQuadVertexBuffer;
+				stream.offset = 0;
+				RHISetInputStream(commandList, &TRenderRT<RTVF_XY>::GetInputLayout(), &stream, 1);
+#if 0
+				RHISetIndexBuffer(commandList, mQuadIndexBuffer);
+				RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, mParticleBuffer.getElementNum());
+#else
+				RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleStrip, 0, 4, mParticleBuffer.getElementNum());
+#endif
+			};
+
+			{
+				GPU_PROFILE("Fluid Depth Pass");
 
 				RenderTargetDesc descDepth;
 				descDepth.format = ETexture::R32F;
@@ -224,23 +269,46 @@ namespace Render
 
 
 				RHISetFrameBuffer(commandList, mFrameBuffer);
+
+				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 				RHIClearRenderTargets(commandList, EClearBits::Color |EClearBits::Depth , &LinearColor(0,0,0,0) , 1 );
 
-				RHISetShaderProgram(commandList, mProgBasePass->getRHI());
-				SetStructuredStorageBuffer(commandList, *mProgBasePass, mParticleBuffer);
-				mView.setupShader(commandList, *mProgBasePass);
-				mProgBasePass->setParam(commandList, SHADER_PARAM(RenderRadius), mRenderRadius);
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
-				InputStreamInfo stream;
-				stream.buffer = mQuadVertexBuffer;
-				stream.offset = 0;
-				RHISetInputStream(commandList, &TRenderRT<RTVF_XY>::GetInputLayout(), &stream, 1);
-#if 1
-				RHISetIndexBuffer(commandList, mQuadIndexBuffer);
-				RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, mParticleBuffer.getElementNum());
-#else
-				RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleStrip, 0, 4, mParticleBuffer.getElementNum());
-#endif
+				RHISetShaderProgram(commandList, mProgDepthPass->getRHI());
+				SetStructuredStorageBuffer(commandList, *mProgDepthPass, mParticleBuffer);
+				mView.setupShader(commandList, *mProgDepthPass);
+				mProgDepthPass->setParam(commandList, SHADER_PARAM(RenderRadius), mRenderRadius);
+
+				DrawParticles();
+			}
+
+			PooledRenderTargetRef RTThickness;
+			{
+				GPU_PROFILE("Fluid Thinkness Pass");
+
+				RenderTargetDesc descThickness;
+				descThickness.format = ETexture::R32F;
+				descThickness.size = screenSize / 2;
+				descThickness.debugName = "Thickness";
+				RTThickness = GRenderTargetPool.fetchElement(descThickness);
+				mFrameBuffer->setTexture(0, *RTThickness->texture);
+				mFrameBuffer->removeDepth();
+
+				RHISetFrameBuffer(commandList, mFrameBuffer);
+				RHISetViewport(commandList, 0, 0, screenSize.x / 2 , screenSize.y / 2);
+				RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 0), 1);
+
+				RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::One , EBlend::One >::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+
+				RHISetShaderProgram(commandList, mProgThinknessPass->getRHI());
+				SetStructuredStorageBuffer(commandList, *mProgThinknessPass, mParticleBuffer);
+				mView.setupShader(commandList, *mProgThinknessPass);
+				mProgThinknessPass->setParam(commandList, SHADER_PARAM(RenderRadius), mRenderRadius);
+
+				DrawParticles();
 			}
 
 			PooledRenderTargetRef RTFilteredDepthY;
@@ -259,7 +327,11 @@ namespace Render
 					mFrameBuffer->removeDepth();
 
 					RHISetFrameBuffer(commandList, mFrameBuffer);
+					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 					RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 0), 1);
+
+					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+					RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 					RHISetShaderProgram(commandList, mProgFilter->getRHI());
 					mProgFilter->setTexture(commandList, SHADER_PARAM(DepthTexture), RTDepth->texture, SHADER_PARAM(DepthTextureSampler),
@@ -296,14 +368,23 @@ namespace Render
 
 
 			RHISetFrameBuffer(commandList, nullptr);
+			{
+
+				//drawSkyBox(commandList, mView, *mHDRImage, mIBLResource, ESkyboxShow::Normal);
+			}
 
 			{
 				GPU_PROFILE("Fluid Render");
+
+				RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<false>::GetRHI());
 
 				RHISetShaderProgram(commandList, mProgRender->getRHI());
 				mView.setupShader(commandList, *mProgRender);
 				mProgRender->setTexture(commandList, SHADER_PARAM(DepthTexture), RTFilteredDepth->texture, SHADER_PARAM(DepthTextureSampler),
 					TStaticSamplerState<>::GetRHI());
+				mProgRender->setTexture(commandList, SHADER_PARAM(ThicknessTexture), RTThickness->texture, SHADER_PARAM(ThicknessTextureSampler),
+					TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 
 				DrawUtility::ScreenRect(commandList);
 			}
@@ -316,6 +397,12 @@ namespace Render
 			RHIFlushCommand(commandList);
 
 			GTextureShowManager.registerRenderTarget(GRenderTargetPool);
+
+
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+			g.beginRender();
+			g.drawText( Vector2(20,20) , InlineString<>::Make("Particle Count = %d", mParticleBuffer.getElementNum()));
+			g.endRender();
 		}
 
 

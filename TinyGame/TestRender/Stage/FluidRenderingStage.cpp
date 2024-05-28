@@ -2,6 +2,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "Renderer/IBLResource.h"
 #include "ProfileSystem.h"
+#include <ppl.h>
 
 namespace Render
 {
@@ -107,10 +108,10 @@ namespace Render
 
 			auto frame = WidgetUtility::CreateDevFrame();
 			FWidgetProperty::Bind(frame->addSlider("Render Radius"), mRenderRadius, 0, 1);
-			FWidgetProperty::Bind(frame->addSlider("Filter Radius"), mFilterRadius, 1, 20);
+			FWidgetProperty::Bind(frame->addSlider("Filter Radius"), mFilterRadius, 1, 40);
 
 			FWidgetProperty::Bind(frame->addSlider("Blur Depth Falloff"), mBlurDepthFalloff, 0, 2);
-			FWidgetProperty::Bind(frame->addSlider("Blur Scale"), mBlurScale, 0, 0.5);
+			FWidgetProperty::Bind(frame->addSlider("Blur Scale"), mBlurScale, 0, 0.25);
 			return true;
 		}
 
@@ -191,29 +192,73 @@ namespace Render
 
 		bool generateTestData()
 		{
+			//TIME_SCOPE("GenerateTestData");
+
 			int numSample = 200;
 			float length = 10.0f / numSample;
 
 			TArray< ParticleData > datas;
-			for (int i = 0; i < numSample; ++i)
+			datas.reserve(100000);
+
+
+
+
 			{
-				for (int j = 0; j < numSample; ++j)
+
+				//TIME_SCOPE("SetupData");
+#if 1
+				for (int i = 0; i < numSample; ++i)
 				{
 					float x = i * length;
-					float y = j * length;
-					float h = 1 + 0.5 * sin( x + y ) * sin( y );
-
-					int nh = Math::FloorToInt( h / length );
-					for (int k = 0; k < nh; ++k)
+					for (int j = 0; j < numSample; ++j)
 					{
-						ParticleData data;
-						data.pos = Vector3(x, y, length * k);
-						datas.push_back(data);
+
+						float y = j * length;
+						float h = 1 + 0.5 * sin(x + y) * sin(y + mView.gameTime);
+
+						int nh = Math::FloorToInt(h / length);
+						for (int k = 0; k < nh; ++k)
+						{
+							ParticleData data;
+							data.pos = Vector3(x, y, length * k);
+							datas.push_back(data);
+						}
 					}
 				}
+#else
+				using namespace concurrency;
+				Mutex mutex;
+				parallel_for(0, numSample, [&](int i)
+				{
+					TArray< ParticleData > temp;
+					float x = i * length;
+					for (int j = 0; j < numSample; ++j)
+					{
+	
+						float y = j * length;
+						float h = 1 + 0.5 * sin(x + y + 2 * mView.gameTime) * sin(y + mView.gameTime);
+
+						int nh = Math::FloorToInt(h / length);
+						for (int k = 0; k < nh; ++k)
+						{
+							ParticleData data;
+							data.pos = Vector3(x, y, length * k);
+							temp.push_back(data);
+						}
+					}
+
+					{
+						Mutex::Locker locker(mutex);
+						datas.append(temp);
+					}
+				});
+#endif
 			}
-			VERIFY_RETURN_FALSE(mParticleBuffer.initializeResource(datas.size(), EStructuredBufferType::Buffer));
-			VERIFY_RETURN_FALSE(mParticleBuffer.updateBuffer(datas));
+			{
+				//TIME_SCOPE("UpdateBuffer");
+				VERIFY_RETURN_FALSE(mParticleBuffer.initializeResource(datas.size(), EStructuredBufferType::Buffer));
+				VERIFY_RETURN_FALSE(mParticleBuffer.updateBuffer(datas));
+			}
 			return true;
 		}
 
@@ -373,6 +418,9 @@ namespace Render
 				//drawSkyBox(commandList, mView, *mHDRImage, mIBLResource, ESkyboxShow::Normal);
 			}
 
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			DrawUtility::AixsLine(commandList, 10);
+
 			{
 				GPU_PROFILE("Fluid Render");
 
@@ -389,15 +437,8 @@ namespace Render
 				DrawUtility::ScreenRect(commandList);
 			}
 			
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
-			DrawUtility::AixsLine(commandList, 10);
-
-
-
 			RHIFlushCommand(commandList);
-
 			GTextureShowManager.registerRenderTarget(GRenderTargetPool);
-
 
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
@@ -407,6 +448,13 @@ namespace Render
 
 
 		TStructuredBuffer<ParticleData> mParticleBuffer;
+
+		void tick() override
+		{
+			BaseClass::tick();
+			generateTestData();
+		}
+
 	};
 
 

@@ -41,7 +41,7 @@ uniform mat4 ProjectShadowMatrix[8];
 #if PIXEL_SHADER
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
-//layout(early_fragment_tests) in;
+PS_EARLY_DEPTH_TEST
 #endif
 #if SHADER_ENTRY(ShowBoundPS)
 

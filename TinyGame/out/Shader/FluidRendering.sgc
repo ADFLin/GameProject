@@ -15,7 +15,7 @@ DEFINE_STRUCTURED_BUFFER(ParticleData, Particles);
 
 struct BassPassOutputVS
 {
-	float2  pos     MEMBER_OUT(TEXCOORD0);
+	float2  offset     MEMBER_OUT(TEXCOORD0);
 };
 
 uniform float RenderRadius;
@@ -29,11 +29,11 @@ VS_ENTRY_START(BasePassVS)
 	VS_INPUT_INSTANCEID
 VS_ENTRY_END(BasePassVS)
 {
-	float4 posView = mul(View.worldToView, float4(Particles[SvInstanceID].pos, 1.0) );
+	float3 posView = mul(View.worldToView, float4(Particles[SvInstanceID].pos, 1.0) ).xyz;
 
-	OutputVS.pos = InPos;
-	OutPos = posView.xyz;
-	SvPosition = mul(View.viewToClip, float4(posView.xyz + RenderRadius * float3(InPos, -1), 1));
+	OutputVS.offset = InPos;
+	OutPos = posView;
+	SvPosition = mul(View.viewToClip, float4(posView + RenderRadius * float3(InPos, -1), 1));
 }
 
 
@@ -41,21 +41,22 @@ VS_ENTRY_END(BasePassVS)
 
 #if SHADER_ENTRY(BasePassPS)
 
+//PS_EARLY_DEPTH_TEST
 PS_ENTRY_START(BasePassPS)
 	PS_INPUT_STRUCT(BassPassOutputVS OutputVS, 0)
 	PS_INPUT(flat float3 InPos, 1)
 	PS_OUTPUT(float4 OutColor, 0)
 #if !DRAW_THICKNESS
+	//out float SvDepth : SV_DepthGreaterEqual,
 	PS_OUTPUT_DEPTH
 #endif
 PS_ENTRY_END(BasePassPS)
 {
-	float r2 = dot(OutputVS.pos, OutputVS.pos);
-	if (r2 > 1.0)
-		discard;
+	float r2 = dot(OutputVS.offset, OutputVS.offset);
+	clip(1 - r2);
 
 	float3 N;
-	N.xy = OutputVS.pos;
+	N.xy = OutputVS.offset;
 	N.z = -sqrt(1.0 - r2);
 	float3 viewPos = InPos + N * RenderRadius;
 
@@ -66,7 +67,7 @@ PS_ENTRY_END(BasePassPS)
 	float4 NDC = mul(View.viewToClip, float4(viewPos, 1));
 	float depth = viewPos.z;
 	//depth = NDC.z / NDC.w;
-	OutColor = float4(0.5 * N + 0.5, 1);
+	//OutColor = float4(0.5 * N + 0.5, 1);
 	OutColor = float4(depth, depth, depth, 1.0);
 	SvDepth = NDC.z / NDC.w;
 #endif
@@ -126,6 +127,14 @@ PS_ENTRY_END(FilterPS)
 DEFINE_TEXTURE(Texture2D, DepthTexture)
 DEFINE_TEXTURE(Texture2D, ThicknessTexture)
 
+
+
+float3 GetViewPos(float2 uv)
+{
+	float depth = TEXTURE_SAMPLE(DepthTexture, uv);
+	return StoreViewPos(uv, SceneDepthToNDCDepth(View.viewToClip, depth));
+}
+
 PS_ENTRY_START(RenderPS)
 	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
@@ -137,15 +146,35 @@ PS_ENTRY_END(RenderPS)
 	if ( depth == 0)
 		discard;
 
+	uint2 texSize = TextureSize(DepthTexture);
+	float2 texelSize = 1.0 / texSize;
 
 	float d = TEXTURE_SAMPLE(ThicknessTexture, OutputVS.UVs);
-
 	float3 worldPos = StoreWorldPos(OutputVS.UVs, SceneDepthToNDCDepth(View.viewToClip, depth));
+
+#if 0
 
 	float3 dx = ddx(worldPos);
 	float3 dy = ddy(worldPos);
 	float3 N = normalize( cross(dx ,dy) );
+#else
 
+	float3 viewPos = StoreViewPos(OutputVS.UVs, SceneDepthToNDCDepth(View.viewToClip, depth));
+	float3 DDX = GetViewPos(OutputVS.UVs + float2(texelSize.x, 0)) - viewPos;
+	float3 DDX2 = viewPos - GetViewPos(OutputVS.UVs - float2(texelSize.x, 0));
+	if (abs(DDX.z) > abs(DDX2.z))
+	{
+		DDX = DDX2;
+	}
+	float3 DDY = GetViewPos(OutputVS.UVs + float2(0, texelSize.y)) - viewPos;
+	float3 DDY2 = viewPos - GetViewPos(OutputVS.UVs - float2(0, texelSize.y));
+	if (abs(DDY.z) > abs(DDY2.z))
+	{
+		DDY = DDY2;
+	}
+
+	float3 N = normalize( mul((float3x3)View.viewToWorld, cross(DDX, DDY)) );
+#endif
 
 	float3 L = normalize(float3(-0.2,0.2,1));
 	float3 V = normalize(View.worldPos - worldPos);
@@ -157,10 +186,12 @@ PS_ENTRY_END(RenderPS)
 	float3 diffuse = ( NoL * 0.5 + 0.5 ).xxx;
 	float3 spec = F_Schlick2(0.2 * float3(1,1,1) , NoV);
 
-	float alpha = d;
-
+	float alpha = 40 * d;
+	float3 Kd = float3(20,20,0.0001);
+	float3 c = exp(-Kd * d);
 	OutColor = float4(0.5 *N + 0.5, 1.0);
-	OutColor = float4(0.3 * diffuse + spec , alpha);
+	//OutColor = float4(worldPos, 1.0);
+	OutColor = float4(0.5 * c * diffuse + spec , alpha);
 	SvDepth = depth;
 }
 

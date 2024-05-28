@@ -956,11 +956,15 @@ namespace Render
 #if SYS_PLATFORM_WIN
 		if (desc.creationFlags & TCF_PlatformGraphicsCompatible)
 		{
-			d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
-			if (!bDepth)
+			if (format == DXGI_FORMAT_B8G8R8A8_UNORM)
 			{
-				d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+				d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
+				if (!bDepth)
+				{
+					d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+				}
 			}
+
 		}
 #endif
 		TArray< D3D11_SUBRESOURCE_DATA > initDataList;

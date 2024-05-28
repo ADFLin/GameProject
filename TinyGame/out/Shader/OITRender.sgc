@@ -84,7 +84,7 @@ layout(location = 0) in VertexOutputParamVSToPS InputPS;
 in OutputVSParam OutputVS;
 #endif //USE_MATERIAL
 
-layout(early_fragment_tests) in;
+PS_EARLY_DEPTH_TEST
 void BassPassPS()
 {
 #if USE_MATERIAL

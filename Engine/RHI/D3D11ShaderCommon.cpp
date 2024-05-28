@@ -405,7 +405,9 @@ namespace Render
 	{
 		if (!BaseClass::initialize(device, inByteCode))
 			return false;
+
 		byteCode.assign(inByteCode.data(), inByteCode.data() + inByteCode.size());
+		return true;
 	}
 
 	bool D3D11VertexShader::initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode)
@@ -414,6 +416,7 @@ namespace Render
 			return false;
 
 		byteCode = std::move(inByteCode);
+		return true;
 	}
 
 	bool D3D11ShaderProgram::getParameter(char const* name, ShaderParameter& outParam)

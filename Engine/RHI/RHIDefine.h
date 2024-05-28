@@ -72,8 +72,13 @@ namespace Render
 
 	struct FRHIZBuffer
 	{
+#if 1
 		static int constexpr FarPlane = 0;
 		static int constexpr NearPlane = 1;
+#else
+		static int constexpr FarPlane = 1;
+		static int constexpr NearPlane = 0;
+#endif
 		static bool constexpr IsInverted = FarPlane < NearPlane;
 	};
 

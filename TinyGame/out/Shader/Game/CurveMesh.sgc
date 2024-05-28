@@ -40,7 +40,7 @@ in OutputVSParam OutputVS;
 
 
 #if USE_OIT
-layout(early_fragment_tests) in;
+PS_EARLY_DEPTH_TEST
 #else
 layout(location = 0) out float4 OutColor;
 #endif

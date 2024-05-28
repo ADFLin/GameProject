@@ -2,7 +2,6 @@
 #define SHADER_COMPILING 0
 #endif
 
-
 #if SHADER_COMPILING
 
 #define layout( x )
@@ -19,6 +18,16 @@
 #define SV_GroupThreadID
 #define SV_DispatchThreadID
 #define SV_GroupIndex
+
+#define SV_Depth
+#define SV_DepthGreaterEqual
+#define SV_DepthLessEqual
+
+#define SV_Target0
+#define SV_Target1
+#define SV_Target2
+#define SV_Target3
+#define SV_Target4
 
 #define TEXCOORD0
 #define TEXCOORD1
@@ -108,6 +117,8 @@ void GroupMemoryBarrierWithGroupSync();
 #define PS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : SV_Target##LOC,
 #define PS_OUTPUT_DEPTH out float SvDepth : SV_Depth,
 #define PS_ENTRY_END(NAME)  in float4 SvPosition : SV_POSITION )
+
+#define PS_EARLY_DEPTH_TEST [earlydepthstencil]
 
 #endif //PIXEL_SHADER
 

@@ -220,7 +220,7 @@ namespace Render
 		float farDepth;
 		if (bAdjRHI)
 		{
-			if (FRHIZBuffer::IsInverted)
+			if constexpr (FRHIZBuffer::IsInverted)
 			{
 				nearDepth = 1.0;
 				farDepth = GRHIClipZMin;

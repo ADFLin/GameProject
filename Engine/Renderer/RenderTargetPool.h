@@ -19,7 +19,7 @@ namespace Render
 		IntVector2 size;
 		int numSamples;
 		ETexture::Format format;
-		TextureCreationFlags creationFlags;
+		TextureCreationFlags creationFlags = TCF_DefalutValue;
 
 		RenderTargetDesc()
 		{

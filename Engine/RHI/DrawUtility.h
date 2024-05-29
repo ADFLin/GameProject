@@ -269,6 +269,11 @@ namespace Render
 		{
 			return (int)TVertexElementOffset< VertexFormat , RTS_MAX >::Result;
 		}
+
+		FORCEINLINE static RHIInputLayout& GetInputLayout()
+		{
+			return TStaticRenderRTInputLayout<VertexFormat>::GetRHI();
+		}
 	};
 
 

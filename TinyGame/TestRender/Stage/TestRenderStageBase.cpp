@@ -130,7 +130,7 @@ namespace Render
 
 	void TestRenderStageBase::onEnd()
 	{
-		ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
+		IConsoleSystem::Get().unregisterCommandByName("ShowTexture");
 		BaseClass::onEnd();
 	}
 
@@ -270,6 +270,7 @@ namespace Render
 	void TestRenderStageBase::drawSkyBox(RHICommandList& commandList, ViewInfo& view, RHITexture2D& HDRImage, IBLResource& IBL, int skyboxShowIndex)
 	{
 		GPU_PROFILE("SkyBox");
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
@@ -286,7 +287,7 @@ namespace Render
 			SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
 			break;
 		default:
-			mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), IBL.perfilteredTexture, SHADER_PARAM(CubeTextureSampler),
+			mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), IBL.perfilteredTexture, SHADER_SAMPLER(CubeTexture),
 				TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
 			SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(skyboxShowIndex - ESkyboxShow::Prefiltered_0));
 		}

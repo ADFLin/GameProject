@@ -179,6 +179,7 @@
     <None Include="..\TinyGame\out\Shader\Game\Lighting2DShadow.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Mandelbrot.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\MarchingCubes.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Metaball.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\MVRender.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\NoiseTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Parallax.sgc" />
@@ -245,6 +246,7 @@
     <None Include="..\TinyGame\out\Shader\SimpleElement.sgc" />
     <None Include="..\TinyGame\out\Shader\SimplePipelineShader.sgc" />
     <None Include="..\TinyGame\out\Shader\SkyBox.sgc" />
+    <None Include="..\TinyGame\out\Shader\SphereCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\SplineCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\SSAO.sgc" />
     <None Include="..\TinyGame\out\Shader\Template\Test.sgc" />

@@ -267,7 +267,7 @@ namespace Render
 		return SharedBRDFTexture.isValid();
 	}
 
-	bool IBLResourceBuilder::initializeShaderProgram()
+	bool IBLResourceBuilder::initializeShader()
 	{
 		if (mEquirectangularToCubePS != nullptr)
 			return true;
@@ -408,16 +408,19 @@ namespace Render
 			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(face), level);
 			RHISetFrameBuffer(commandList, frameBuffer);
 			RHISetShaderProgram(commandList, updateShader.getRHI());
+
 			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(face)));
 			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(face)));
+
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);
+
 			RHISetFrameBuffer(commandList, nullptr);
 		}
 	}
 
 	template< class TFunc >
-	void IBLResourceBuilder::renderCubeTexture(RHICommandList& commandList, RHIFrameBufferRef& frameBuffer, RHITextureCube& cubeTexture, GlobalShader& shaderPS, int level, TFunc&& shaderSetup)
+	void RenderCubeTexture(RHICommandList& commandList, RHIFrameBufferRef& frameBuffer, RHITextureCube& cubeTexture, Shader& shaderPS, int level, TFunc&& shaderSetup)
 	{
 		int size = cubeTexture.getSize() >> level;
 
@@ -450,18 +453,14 @@ namespace Render
 
 	bool IBLResourceBuilder::buildIBLResource(RHITexture2D& envTexture, IBLResource& resource, IBLBuildSetting const& setting)
 	{
-		if (!initializeShaderProgram())
+		if (!initializeShader())
 			return false;
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-
-
 		RHIFrameBufferRef frameBuffer = RHICreateFrameBuffer();
 
-
-
 #if USE_SEPARATE_SHADER && 0
-		renderCubeTexture(commandList, frameBuffer, *resource.texture, *mEquirectangularToCubePS, 0, [&](RHICommandList& commandList)
+		RenderCubeTexture(commandList, frameBuffer, *resource.texture, *mEquirectangularToCubePS, 0, [&](RHICommandList& commandList)
 		{
 			mEquirectangularToCubePS->setTexture(commandList,
 				SHADER_PARAM(Texture), envTexture,
@@ -480,7 +479,7 @@ namespace Render
 
 #if USE_SEPARATE_SHADER && 0
 		//IrradianceTexture
-		renderCubeTexture(commandList, frameBuffer, *resource.irradianceTexture, *mIrradianceGenPS, 0, [&](RHICommandList& commandList)
+		RenderCubeTexture(commandList, frameBuffer, *resource.irradianceTexture, *mIrradianceGenPS, 0, [&](RHICommandList& commandList)
 		{
 			mIrradianceGenPS->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_SAMPLER(CubeTexture), TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 			mIrradianceGenPS->setParam(commandList, SHADER_PARAM(IrrianceSampleCount), setting.irradianceSampleCount[0], setting.irradianceSampleCount[1]);
@@ -498,7 +497,7 @@ namespace Render
 		for (int level = 0; level < IBLResource::NumPerFilteredLevel; ++level)
 		{
 #if USE_SEPARATE_SHADER && 0
-			renderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mPrefilteredGenPS, level, [&](RHICommandList& commandList)
+			RenderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mPrefilteredGenPS, level, [&](RHICommandList& commandList)
 			{
 				mPrefilteredGenPS->setParameters(commandList, level, *resource.texture, setting.prefilterSampleCount);
 			});

@@ -16,8 +16,15 @@ public:
 	{
 		return mSize;
 	}
-
-	constexpr const CharT *c_str() const
+	constexpr size_t length() const
+	{
+		return mSize;
+	}
+	constexpr const CharT* c_str() const
+	{
+		return mData;
+	}
+	constexpr const CharT* data() const
 	{
 		return mData;
 	}

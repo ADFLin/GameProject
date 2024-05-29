@@ -113,7 +113,7 @@ bool LevelEditStage::onInit()
 
 
 	{
-		auto& console = ConsoleSystem::Get();
+		auto& console = IConsoleSystem::Get();
 
 
 

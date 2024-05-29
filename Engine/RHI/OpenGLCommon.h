@@ -20,7 +20,7 @@ namespace Render
 {
 	bool VerifyOpenGLStatus();
 
-	template< class RMPolicy >
+	template< class TFactory >
 	class TOpenGLObject
 	{
 	public:
@@ -49,8 +49,8 @@ namespace Render
 		template< class ...Args >
 		bool fetchHandle(Args&& ...args)
 		{
-			if( !mHandle )
-				RMPolicy::Create(mHandle, std::forward<Args>(args)...);
+			if( mHandle == GL_NULL_HANDLE )
+				TFactory::Create(mHandle, std::forward<Args>(args)...);
 			return isValid();
 		}
 
@@ -58,7 +58,7 @@ namespace Render
 		bool fetchHandle()
 		{
 			if( !mHandle )
-				RMPolicy::Create(mHandle);
+				TFactory::Create(mHandle);
 			return isValid();
 		}
 
@@ -66,7 +66,7 @@ namespace Render
 		bool fetchHandle(P1 p1)
 		{
 			if( !mHandle )
-				RMPolicy::Create(mHandle, p1);
+				TFactory::Create(mHandle, p1);
 			return isValid();
 		}
 
@@ -76,12 +76,13 @@ namespace Render
 		{
 			if( mHandle )
 			{
-				RMPolicy::Destroy(mHandle);
+				TFactory::Destroy(mHandle);
+				mHandle = GL_NULL_HANDLE;
+
 				if (!VerifyOpenGLStatus())
 				{
 					return false;
 				}
-				mHandle = GL_NULL_HANDLE;
 			}
 			return true;
 		}
@@ -89,33 +90,35 @@ namespace Render
 		GLuint mHandle;
 	};
 
-	struct RMPTexture
+	namespace GLFactory
 	{
-		static void Create(GLuint& handle) { glGenTextures(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteTextures(1, &handle); }
-	};
+		struct Texture
+		{
+			static void Create(GLuint& handle) { glGenTextures(1, &handle); }
+			static void Destroy(GLuint& handle) { glDeleteTextures(1, &handle); }
+		};
 
+		struct RenderBuffer
+		{
+			static void Create(GLuint& handle) { glGenRenderbuffers(1, &handle); }
+			static void Destroy(GLuint& handle) { glDeleteRenderbuffers(1, &handle); }
+		};
 
-	struct RMPRenderBuffer
-	{
-		static void Create(GLuint& handle) { glGenRenderbuffers(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteRenderbuffers(1, &handle); }
-	};
+		struct Buffer
+		{
+			static void Create(GLuint& handle) { glCreateBuffers(1, &handle); }
+			static void Destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
+		};
 
-	
-	struct RMPBufferObject
-	{
-		static void Create(GLuint& handle) { glCreateBuffers(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
-	};
+		struct Sampler
+		{
+			static void Create(GLuint& handle) { glGenSamplers(1, &handle); }
+			static void Destroy(GLuint& handle) { glDeleteSamplers(1, &handle); }
+		};
 
-	struct RMPSamplerObject
-	{
-		static void Create(GLuint& handle) { glGenSamplers(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteSamplers(1, &handle); }
-	};
+	}
 
-	template< class RHIResourceType , class RMPolicy >
+	template< class RHIResourceType , class TFactory >
 	class TOpenGLResource : public  TRefcountResource< RHIResourceType > 
 	{
 	public:
@@ -135,7 +138,7 @@ namespace Render
 			}
 		}
 
-		TOpenGLObject< RMPolicy > mGLObject;
+		TOpenGLObject< TFactory > mGLObject;
 	};
 
 	template< class RHITextureType >
@@ -180,11 +183,11 @@ namespace Render
 	};
 
 	template< class RHITextureType >
-	class TOpengGLTexture : public TOpenGLResource< RHITextureType , RMPTexture >
+	class TOpengGLTexture : public TOpenGLResource< RHITextureType , GLFactory::Texture >
 	{
 	public:
 		TOpengGLTexture(TextureDesc const& desc)
-			:TOpenGLResource< RHITextureType, RMPTexture >()
+			:TOpenGLResource< RHITextureType, GLFactory::Texture >()
 		{
 			mDesc = desc;
 		}
@@ -308,7 +311,7 @@ namespace Render
 #define USE_DepthRenderBuffer 0
 
 #if USE_DepthRenderBuffer
-	class RHIDepthRenderBuffer : public TRHIResource< RMPRenderBuffer >
+	class RHIDepthRenderBuffer : public TRHIResource< GLFactory::RenderBuffer >
 	{
 	public:
 		bool create( int w , int h , ETexture::Format format );
@@ -320,13 +323,17 @@ namespace Render
 	typedef TRefCountPtr< RHIDepthRenderBuffer > RHIDepthRenderBufferRef;
 #endif
 
-	struct RMPFrameBuffer
+	namespace GLFactory
 	{
-		static void Create(GLuint& handle) { glGenFramebuffers(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteFramebuffers(1, &handle); }
-	};
+		struct FrameBuffer
+		{
+			static void Create(GLuint& handle) { glGenFramebuffers(1, &handle); }
+			static void Destroy(GLuint& handle) { glDeleteFramebuffers(1, &handle); }
+		};
+	}
 
-	class OpenGLFrameBuffer : public TOpenGLResource< RHIFrameBuffer , RMPFrameBuffer >
+
+	class OpenGLFrameBuffer : public TOpenGLResource< RHIFrameBuffer , GLFactory::FrameBuffer >
 	{
 	public:
 		OpenGLFrameBuffer();
@@ -378,7 +385,7 @@ namespace Render
 	};
 
 
-	class OpenGLBuffer : public TOpenGLResource< RHIBuffer , RMPBufferObject >
+	class OpenGLBuffer : public TOpenGLResource< RHIBuffer , GLFactory::Buffer >
 	{
 	public:
 
@@ -438,7 +445,7 @@ namespace Render
 		}
 	};
 
-	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, RMPSamplerObject >
+	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, GLFactory::Sampler >
 	{
 	public:
 		bool create(SamplerStateInitializer const& initializer);

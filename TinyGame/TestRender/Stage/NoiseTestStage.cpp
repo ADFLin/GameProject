@@ -569,7 +569,7 @@ namespace Render
 					auto& progGrass = (mbDrawInstaced) ? mProgGrassInstanced : mProgGrass;
 					RHISetShaderProgram(commandList, progGrass.getRHI());
 					mView.setupShader(commandList, progGrass);
-					progGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< ESampler::Trilinear > ::GetRHI());
+					progGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_SAMPLER(Texture) , TStaticSamplerState< ESampler::Trilinear > ::GetRHI());
 
 					Mesh& meshUsed = (mbUseOptMesh) ? mGrassMeshOpt : mGrassMesh;
 					if( mbDrawInstaced )

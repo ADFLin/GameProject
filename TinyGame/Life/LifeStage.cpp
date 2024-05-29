@@ -28,7 +28,7 @@ namespace Life
 			return false;
 		::Global::GUI().cleanupWidget();
 
-		auto& console = ConsoleSystem::Get();
+		auto& console = IConsoleSystem::Get();
 
 #define REGISTER_COM( NAME , FUNC , ... )\
 		console.registerCommand("Life."NAME, &TestStage::FUNC, this , ##__VA_ARGS__ )

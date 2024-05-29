@@ -5,8 +5,15 @@
 #include "StringParse.h"
 #include "Launch/CommandlLine.h"
 
+#include "InlineString.h"
+#include "Misc/CStringWrapper.h"
+#include "Core/StringConv.h"
+
 #include <cstdlib>
 #include <malloc.h>
+
+#include <map>
+#include <unordered_map>
 
 #define STRING_BUFFER_SIZE 256
 #define DATA_BUFFER_SIZE 1024
@@ -19,6 +26,123 @@ ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleAr
 
 }
 
+
+class ConsoleSystem : public IConsoleSystem
+{
+public:
+	ConsoleSystem();
+	~ConsoleSystem();
+
+	bool        initialize();
+	void        finalize();
+
+	bool        executeCommand(char const* inCmdText);
+	int         getAllCommandNames(char const* buffer[], int bufSize);
+	int         findCommandName(char const* includeStr, char const** findStr, int maxNum);
+	int         findCommandName2(char const* includeStr, char const** findStr, int maxNum);
+
+	void        unregisterCommand(ConsoleCommandBase* commond);
+	void        unregisterCommandByName(char const* name);
+	void        unregisterAllCommandsByObject(void* objectPtr);
+
+	ConsoleCommandBase* findCommand(char const* comName);
+
+
+	bool       insertCommand(ConsoleCommandBase* com);
+
+	template < class T >
+	auto* registerVar(char const* name, T* obj)
+	{
+		auto* command = new TVariableConsoleCommad<T>(name, obj);
+		if (!insertCommand(command))
+			return decltype(command)(nullptr);
+		return command;
+	}
+
+	template < class TFunc, class T >
+	auto* registerCommand(char const* name, TFunc func, T* obj, uint32 flags = 0)
+	{
+		auto* command = new TMemberFuncConsoleCommand<TFunc, T >(name, func, obj, flags);
+		if (!insertCommand(command))
+			return decltype(command)(nullptr);
+		return command;
+	}
+
+	template < class TFunc >
+	auto* registerCommand(char const* name, TFunc func, uint32 flags = 0)
+	{
+		auto* command = new TBaseFuncConsoleCommand<TFunc>(name, func, flags);
+		if (!insertCommand(command))
+			return decltype(command)(nullptr);
+		return command;
+	}
+
+	template < class TFunc >
+	void  visitAllVariables(TFunc&& visitFunc)
+	{
+		for (auto const& pair : mNameMap)
+		{
+			auto variable = pair.second->asVariable();
+			if (variable)
+			{
+				visitFunc(variable);
+			}
+		}
+	}
+
+
+	void  visitAllVariables(std::function<void(VariableConsoleCommadBase*)> func)
+	{
+		for (auto const& pair : mNameMap)
+		{
+			auto variable = pair.second->asVariable();
+			if (variable)
+			{
+				func(variable);
+			}
+		}
+	}
+protected:
+
+	void cleanupCommands();
+	static int const NumMaxParams = 16;
+	struct ExecuteContext
+	{
+		TArray<char> buffer;
+		ConsoleCommandBase* command;
+
+		char const* text;
+		char const* name;
+		char const* args[NumMaxParams];
+		int  numArgs;
+		int  numArgUsed;
+		bool parseText();
+
+		std::string errorMsg;
+	};
+
+	bool fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs);
+	bool executeCommandImpl(ExecuteContext& context);
+#if 0
+	using CommandMap = std::map< TCStringWrapper<char, true>, ConsoleCommandBase* >;
+#else
+	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase* >;
+#endif
+	CommandMap   mNameMap;
+	friend class ConsoleCommandBase;
+};
+
+
+#if CORE_SHARE_CODE
+
+IConsoleSystem& IConsoleSystem::Get()
+{
+	static ConsoleSystem sInstance;
+	return sInstance;
+}
+
+#endif //CORE_SHARE_CODE
+
 ConsoleSystem::ConsoleSystem()
 {
 
@@ -27,16 +151,6 @@ ConsoleSystem::ConsoleSystem()
 ConsoleSystem::~ConsoleSystem()
 {
 
-}
-
-
-#if CORE_SHARE_CODE
-
-
-ConsoleSystem& ConsoleSystem::Get()
-{
-	static ConsoleSystem sInstance;
-	return sInstance;
 }
 
 bool ConsoleSystem::initialize()
@@ -48,14 +162,8 @@ bool ConsoleSystem::initialize()
 void ConsoleSystem::finalize()
 {
 	mbInitialized = false;
-	for( CommandMap::iterator iter = mNameMap.begin();
-		iter != mNameMap.end(); ++iter )
-	{
-		delete iter->second;
-	}
-	mNameMap.clear();
+	cleanupCommands();
 }
-
 
 int ConsoleSystem::getAllCommandNames(char const* buffer[], int bufSize)
 {
@@ -123,8 +231,9 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 	CommandMap::iterator iter = mNameMap.find(name);
 	if( iter != mNameMap.end() )
 	{
+		ConsoleCommandBase* command = iter->second;
 		mNameMap.erase(iter);
-		delete iter->second;
+		delete command;
 	}
 }
 
@@ -180,8 +289,6 @@ ConsoleCommandBase* ConsoleSystem::findCommand(char const* str)
 		return nullptr;
 	return iter->second;
 }
-
-#endif //CORE_SHARE_CODE
 
 bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 {
@@ -273,6 +380,16 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 	context.command->execute(argData);
 
 	return true;
+}
+
+void ConsoleSystem::cleanupCommands()
+{
+	for (CommandMap::iterator iter = mNameMap.begin();
+		iter != mNameMap.end(); ++iter)
+	{
+		delete iter->second;
+	}
+	mNameMap.clear();
 }
 
 bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs)

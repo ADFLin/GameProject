@@ -185,7 +185,7 @@ namespace ODE
 				return false;
 			::Global::GUI().cleanupWidget();
 
-			ConsoleSystem::Get().registerCommand("ODE.UpdateCurve", &TestStage::updateCurve, this);
+			IConsoleSystem::Get().registerCommand("ODE.UpdateCurve", &TestStage::updateCurve, this);
 			updateCurve();
 			restart();
 			return true;

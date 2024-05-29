@@ -1,4 +1,4 @@
-#include "SoftwareRenderStage.h"
+#include "SoftwareRenderingStage.h"
 
 #include "ProfileSystem.h"
 
@@ -10,10 +10,9 @@
 #include "Image/ImageData.h"
 #include "SystemPlatform.h"
 
-REGISTER_STAGE_ENTRY("Software Renderer", SR::TestStage, EExecGroup::GraphicsTest, "Render");
-
 namespace SR
 {
+	REGISTER_STAGE_ENTRY("Software Renderering", TestStage, EExecGroup::GraphicsTest, "Render");
 
 	Texture simpleTexture;
 
@@ -212,8 +211,6 @@ namespace SR
 			color.lerpTo(outData, wInv, alpha_w);
 		}
 	};
-
-
 
 	VertexData PerspectiveLerp(VertexData const& v0, VertexData const& v1, float alpha)
 	{

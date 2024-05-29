@@ -1,0 +1,49 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "SphereCommon.sgc"
+#include "GeometryTestCommon.sgc"
+
+#ifndef DRAW_THICKNESS
+#define DRAW_THICKNESS 0
+#endif
+
+uniform float4 SpherePosAndRadius;
+
+#if SHADER_ENTRY(BasePassVS)
+
+VS_ENTRY_START(BasePassVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	VS_OUTPUT(float3 ClipPos, ATTRIBUTE_TEXCOORD)
+VS_ENTRY_END(BasePassVS)
+{
+	float3 spherePosView = mul(View.worldToView, float4(SpherePosAndRadius.xyz, 1.0)).xyz;
+	float4 range = GetSphereNDCRange(spherePosView, SpherePosAndRadius.w);
+
+	float3 posView = (spherePosView.z - SpherePosAndRadius.w ) * float3(range.xy + InPos * range.zw, 1);
+	float4 clipPos = mul(View.viewToClip, float4(posView, 1));
+	SvPosition = clipPos;
+	ClipPos = clipPos.xyz / clipPos.w;
+}
+#endif
+
+#if SHADER_ENTRY(BasePassPS)
+
+PS_ENTRY_START(BasePassPS)
+	PS_INPUT(float3 ClipPos, ATTRIBUTE_TEXCOORD)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(BasePassPS)
+{
+	float3 worldPos = NDCToWorldPos(float4(ClipPos.xyz,1));
+	float3 cameraDir = normalize(worldPos - View.worldPos);
+	float t;
+	if (RaySphereTest(View.worldPos, cameraDir, SpherePosAndRadius.xyz, SpherePosAndRadius.w, t) == 0)
+	{
+		discard;
+	}
+	float3 pos = View.worldPos + cameraDir * t;
+	float3 N = normalize(pos - SpherePosAndRadius.xyz);
+	OutColor = float4(0.5 * N + 0.5, 1);
+	//OutColor = float4(ClipPos.xy, 0, 1);
+}
+
+#endif

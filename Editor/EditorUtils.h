@@ -22,13 +22,9 @@ struct FImGuiConv
 
 struct FEditor
 {
-	static uint32 Hash(StringView const& str, uint32 mask = 0xffff)
+	static constexpr uint32 Hash(StringView const& str, uint32 mask = 0xffff)
 	{
 		return FNV1a::MakeStringHashIgnoreCase<uint32>(str.data(), str.length()) & mask;
-	}
-	static constexpr uint32 Hash(char const* str, uint32 mask = 0xffff)
-	{
-		return FNV1a::MakeStringHashIgnoreCase<uint32>(str) & mask;
 	}
 };
 

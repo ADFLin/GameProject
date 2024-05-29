@@ -36,13 +36,13 @@ namespace Render
 			 program.setParam(commandList, SHADER_PARAM(ProjectShadowOffset), shadowOffset);
 			 program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 1);
 			 texture = light->bCastShadow ? shadowTexture : GWhiteTexture2D.getResource();
-			 program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *texture, SHADER_PARAM(ShadowTexture2DSampler), sampler);
+			 program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *texture, SHADER_SAMPLER(ShadowTexture2D), sampler);
 			break;
 		case ELightType::Point:
 			program.setParam(commandList, SHADER_PARAM(ProjectShadowOffset), shadowOffset);
 			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 6);
 			texture = light->bCastShadow ? shadowTexture : GWhiteTextureCube.getResource();
-			program.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *texture, SHADER_PARAM(ShadowTexture2DSampler), sampler);
+			program.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *texture, SHADER_SAMPLER(ShadowTextureCube), sampler);
 			break;
 		case ELightType::Directional:
 			return;
@@ -50,7 +50,7 @@ namespace Render
 			texture = light->bCastShadow ? shadowTexture : GWhiteTextureCube.getResource();
 			program.setParam(commandList, SHADER_PARAM(NumCascade), numCascade);
 			program.setParam(commandList, SHADER_PARAM(CacadeDepth), cacadeDepth, numCascade);
-			program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *texture, SHADER_PARAM(ShadowTexture2DSampler), sampler);
+			program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *texture, SHADER_SAMPLER(ShadowTexture2D), sampler);
 			break;
 		}
 	}

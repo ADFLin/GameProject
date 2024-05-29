@@ -5,23 +5,19 @@
 #include "CoreShare.h"
 
 #include "FunctionTraits.h"
-#include "InlineString.h"
+
 #include "HashString.h"
 #include "TypeMemoryOp.h"
+#include "Template/ArrayView.h"
+#include "Meta/EnableIf.h"
+
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
-#include "Template/ArrayView.h"
-#include "Core/StringConv.h"
-#include "Meta/EnableIf.h"
-#include "Misc/CStringWrapper.h"
 
 #include <string>
-#include <map>
-#include <unordered_map>
-#include <typeindex>
 #include <functional>
-
+#include <typeindex>
 
 enum EConsoleVariableFlag
 {
@@ -315,103 +311,64 @@ struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 	}
 };
 
-class ConsoleSystem
+
+class IConsoleSystem
 {
 public:
-	ConsoleSystem();
-	~ConsoleSystem();
 
-	static CORE_API ConsoleSystem& Get();
+	static CORE_API IConsoleSystem& Get();
 
-	CORE_API bool        initialize();
-	CORE_API void        finalize();
+	virtual bool  initialize() = 0;
+	virtual void  finalize() = 0;
 
-	CORE_API bool        executeCommand(char const* inCmdText);
-	CORE_API int         getAllCommandNames(char const* buffer[], int bufSize);
-	CORE_API int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
-	CORE_API int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
-
-	CORE_API void        unregisterCommand( ConsoleCommandBase* commond );
-	CORE_API void        unregisterCommandByName( char const* name );
-	CORE_API void        unregisterAllCommandsByObject(void* objectPtr);
-
-	CORE_API ConsoleCommandBase* findCommand(char const* comName);
-
-
-	CORE_API bool       insertCommand(ConsoleCommandBase* com);
+	virtual bool  executeCommand(char const* inCmdText) = 0;
+	virtual int   getAllCommandNames(char const* buffer[], int bufSize) = 0;
+	virtual int   findCommandName(char const* includeStr, char const** findStr, int maxNum) = 0;
+	virtual int   findCommandName2(char const* includeStr, char const** findStr, int maxNum) = 0;
+	virtual void  unregisterCommand(ConsoleCommandBase* commond) = 0;
+	virtual void  unregisterCommandByName(char const* name) = 0;
+	virtual void  unregisterAllCommandsByObject(void* objectPtr) = 0;
+	virtual ConsoleCommandBase* findCommand(char const* comName) = 0;
+	virtual bool  insertCommand(ConsoleCommandBase* com) = 0;
 
 	bool isInitialized() const { return mbInitialized; }
 
+
+	virtual void  visitAllVariables(std::function<void(VariableConsoleCommadBase*)> func) = 0;
+
+
 	template < class T >
-	auto* registerVar( char const* name , T* obj )
+	auto* registerVar(char const* name, T* obj)
 	{
-		auto* command = new TVariableConsoleCommad<T>( name , obj );
+		auto* command = new TVariableConsoleCommad<T>(name, obj);
 		if (!insertCommand(command))
 			return decltype(command)(nullptr);
 		return command;
 	}
 
 	template < class TFunc, class T >
-	auto* registerCommand( char const* name , TFunc func , T* obj , uint32 flags = 0)
+	auto* registerCommand(char const* name, TFunc func, T* obj, uint32 flags = 0)
 	{
-		auto* command = new TMemberFuncConsoleCommand<TFunc, T >( name ,func , obj, flags);
+		auto* command = new TMemberFuncConsoleCommand<TFunc, T >(name, func, obj, flags);
 		if (!insertCommand(command))
 			return decltype(command)(nullptr);
 		return command;
 	}
 
 	template < class TFunc >
-	auto* registerCommand( char const* name , TFunc func, uint32 flags = 0)
+	auto* registerCommand(char const* name, TFunc func, uint32 flags = 0)
 	{
-		auto* command = new TBaseFuncConsoleCommand<TFunc>( name ,func, flags);
+		auto* command = new TBaseFuncConsoleCommand<TFunc>(name, func, flags);
 		if (!insertCommand(command))
 			return decltype(command)(nullptr);
 		return command;
-	}
-
-	template < class TFunc >
-	void  visitAllVariables(TFunc&& visitFunc)
-	{
-		for (auto const& pair : mNameMap)
-		{
-			auto variable = pair.second->asVariable();
-			if (variable)
-			{
-				visitFunc(variable);
-			}
-		}
 	}
 
 protected:
-
-	static int const NumMaxParams = 16;
-	struct ExecuteContext
-	{
-		TArray<char> buffer;
-		ConsoleCommandBase* command;
-
-		char const* text;
-		char const* name;
-		char const* args[NumMaxParams];
-		int  numArgs;
-		int  numArgUsed;
-		bool parseText();
-
-		std::string errorMsg;
-	};
-
-	bool fillArgumentData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs);
-	bool executeCommandImpl(ExecuteContext& context);
-#if 0
-	using CommandMap = std::map< TCStringWrapper<char, true> , ConsoleCommandBase* >;
-#else
-	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase* >;
-#endif
-	CommandMap   mNameMap;
 	bool         mbInitialized = false;
 
-	friend class ConsoleCommandBase;
 };
+
 
 template< class T >
 class TConsoleVariable
@@ -421,16 +378,16 @@ public:
 		:mValue(val)
 	{
 		auto command = new TVariableConsoleCommad<T>( name, &mValue, flags);
-		if (ConsoleSystem::Get().insertCommand(command))
+		if (IConsoleSystem::Get().insertCommand(command))
 		{
 			mCommand = command;
 		}
 	}
 	~TConsoleVariable()
 	{
-		if (mCommand && ConsoleSystem::Get().isInitialized())
+		if (mCommand && IConsoleSystem::Get().isInitialized())
 		{
-			ConsoleSystem::Get().unregisterCommand(mCommand);
+			IConsoleSystem::Get().unregisterCommand(mCommand);
 		}
 	}
 
@@ -452,16 +409,16 @@ public:
 		char const* name, uint32 flags = 0)
 	{
 		auto command = new TVariableConsoleDelegateCommad<T>(name, inGetValue, inSetValue, flags);
-		if (ConsoleSystem::Get().insertCommand(command))
+		if (IConsoleSystem::Get().insertCommand(command))
 		{
 			mCommand = command;
 		}
 	}
 	~TConsoleVariableDelegate()
 	{
-		if (mCommand && ConsoleSystem::Get().isInitialized())
+		if (mCommand && IConsoleSystem::Get().isInitialized())
 		{
-			ConsoleSystem::Get().unregisterCommand(mCommand);
+			IConsoleSystem::Get().unregisterCommand(mCommand);
 		}
 	}
 
@@ -476,16 +433,16 @@ public:
 		:mValueRef(val)
 	{
 		auto command = new TVariableConsoleCommad<T>(name, &mValueRef, flags);
-		if (ConsoleSystem::Get().insertCommand(command))
+		if (IConsoleSystem::Get().insertCommand(command))
 		{
 			mCommand = command;
 		}
 	}
 	~TConsoleVariableRef()
 	{
-		if (mCommand && ConsoleSystem::Get().isInitialized())
+		if (mCommand && IConsoleSystem::Get().isInitialized())
 		{
-			ConsoleSystem::Get().unregisterCommand(mCommand);
+			IConsoleSystem::Get().unregisterCommand(mCommand);
 		}
 	}
 
@@ -503,20 +460,20 @@ public:
 	template< class TFunc >
 	AutoConsoleCommand(char const* name, TFunc func)
 	{
-		mCommand = ConsoleSystem::Get().registerCommand(name, func);
+		mCommand = IConsoleSystem::Get().registerCommand(name, func);
 	}
 
 	template< class TFunc , class T >
 	AutoConsoleCommand(char const* name, TFunc func, T* object)
 	{
-		mCommand = ConsoleSystem::Get().registerCommand(name, func, object);
+		mCommand = IConsoleSystem::Get().registerCommand(name, func, object);
 	}
 
 	~AutoConsoleCommand()
 	{
-		if ( mCommand && ConsoleSystem::Get().isInitialized())
+		if ( mCommand && IConsoleSystem::Get().isInitialized())
 		{
-			ConsoleSystem::Get().unregisterCommand(mCommand);
+			IConsoleSystem::Get().unregisterCommand(mCommand);
 		}
 	}
 

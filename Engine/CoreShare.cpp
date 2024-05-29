@@ -13,12 +13,12 @@ void EngineInitialize()
 {
 	ModuleManager::Initialize();
 
-	ConsoleSystem::Get().initialize();
+	IConsoleSystem::Get().initialize();
 }
 
 void EngineFinalize()
 {
-	ConsoleSystem::Get().finalize();
+	IConsoleSystem::Get().finalize();
 
 	Render::MeshImporterRegistry::Get().cleanup();
 

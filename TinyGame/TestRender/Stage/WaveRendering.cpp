@@ -157,11 +157,11 @@ namespace Render
 		REFLECT_STRUCT_END()
 	};
 
-	class WaveRenderStage : public TestRenderStageBase
+	class WaveRenderingStage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
 	public:
-		WaveRenderStage() {}
+		WaveRenderingStage() {}
 
 		bool onInit() override
 		{
@@ -568,5 +568,5 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE_ENTRY("Wave Render", WaveRenderStage, EExecGroup::FeatureDev);
+	REGISTER_STAGE_ENTRY("Wave Rendering", WaveRenderingStage, EExecGroup::FeatureDev);
 }

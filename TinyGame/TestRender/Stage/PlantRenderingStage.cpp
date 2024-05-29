@@ -1,10 +1,10 @@
-#include "PlantRenderStage.h"
+#include "PlantRenderingStage.h"
 #include "Renderer/MeshUtility.h"
 
 namespace Render
 {
 
-	REGISTER_STAGE_ENTRY("Plant Render", PlantRenderStage, EExecGroup::FeatureDev, "Render");
+	REGISTER_STAGE_ENTRY("Plant Rendering", PlantRenderingStage, EExecGroup::FeatureDev, "Render");
 
 	IMPLEMENT_SHADER_PROGRAM(GenerateHeightProgram);
 	IMPLEMENT_SHADER_PROGRAM(RenderProgram);
@@ -25,7 +25,7 @@ namespace Render
 		return (x * k) / (x * k - x + 1);
 	}
 
-	bool PlantRenderStage::buildPlantMesh()
+	bool PlantRenderingStage::buildPlantMesh()
 	{
 		VERIFY_RETURN_FALSE(createMeshBaseData());
 		generatePlantHeight();
@@ -33,7 +33,7 @@ namespace Render
 		return true;
 	}
 
-	bool PlantRenderStage::createMeshBaseData()
+	bool PlantRenderingStage::createMeshBaseData()
 	{
 		VERIFY_RETURN_FALSE(FMeshBuild::OctSphere(mMeshData, mMesh.mInputLayoutDesc, 1.0, mSettings.meshLevel));
 		VERIFY_RETURN_FALSE(mMeshData.initializeRHI(mMesh));
@@ -41,7 +41,7 @@ namespace Render
 		return true;
 	}
 
-	bool PlantRenderStage::applyHeightToMesh()
+	bool PlantRenderingStage::applyHeightToMesh()
 	{
 		int numVertices = mMesh.getVertexCount();
 		float* pHeight = mMeshOffsetData.lock();
@@ -60,7 +60,7 @@ namespace Render
 		return true;
 	}
 
-	bool PlantRenderStage::generateCraterData()
+	bool PlantRenderingStage::generateCraterData()
 	{
 		VERIFY_RETURN_FALSE( mCraterData.initializeResource(mSettings.numCraters, EStructuredBufferType::Buffer) );
 		auto pData = mCraterData.lock();
@@ -85,7 +85,7 @@ namespace Render
 		return true;
 	}
 
-	void PlantRenderStage::generatePlantHeight()
+	void PlantRenderingStage::generatePlantHeight()
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -110,7 +110,7 @@ namespace Render
 
 	}
 
-	bool PlantRenderStage::setupRenderResource(ERenderSystem systemName)
+	bool PlantRenderingStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(mProgGenerateHeight = ShaderManager::Get().getGlobalShaderT<GenerateHeightProgram>());
 		VERIFY_RETURN_FALSE(mProgRender = ShaderManager::Get().getGlobalShaderT<RenderProgram>());
@@ -120,7 +120,7 @@ namespace Render
 		return true;
 	}
 
-	bool PlantRenderStage::onInit()
+	bool PlantRenderingStage::onInit()
 	{
 		if (!BaseClass::onInit())
 			return false;
@@ -188,7 +188,7 @@ namespace Render
 		return true;
 	}
 
-	void PlantRenderStage::onUpdate(long time)
+	void PlantRenderingStage::onUpdate(long time)
 	{
 		BaseClass::onUpdate(time);
 
@@ -218,7 +218,7 @@ namespace Render
 		updateFrame(frame);
 	}
 
-	void PlantRenderStage::onRender(float dFrame)
+	void PlantRenderingStage::onRender(float dFrame)
 	{
 		initializeRenderState();
 

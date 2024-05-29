@@ -23,7 +23,7 @@ public:
 		:mData(str), mNum(FCString::Strlen(str)){}
 
 	template< size_t N >
-	TStringView(CharT const (&str)[N])
+	constexpr TStringView(CharT const (&str)[N])
 		:mData(str), mNum(N - 1){}
 
 	TStringView(CharT const* str , size_t num )
@@ -56,11 +56,11 @@ public:
 	const_iterator begin() const { return mData; }
 	const_iterator end() const { return mData + mNum; }
 
-	CharT operator[](size_t idx) const { assert(idx < mNum); return mData[idx]; }
+	constexpr CharT operator[](size_t idx) const { assert(idx < mNum); return mData[idx]; }
 
-	CharT const* data() const { return mData; }
-	size_t   size() const { return mNum; }
-	size_t   length() const { return mNum; }
+	constexpr CharT const* data() const { return mData; }
+	constexpr size_t size() const { return mNum; }
+	constexpr size_t length() const { return mNum; }
 
 	void trimStart()
 	{

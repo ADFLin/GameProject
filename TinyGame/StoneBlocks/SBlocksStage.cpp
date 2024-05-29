@@ -41,7 +41,7 @@ namespace SBlocks
 			return true;
 		});
 
-		auto& console = ConsoleSystem::Get();
+		auto& console = IConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC , ... )\
 			console.registerCommand("SBlocks."NAME, &LevelStage::FUNC, this , ##__VA_ARGS__ )
 
@@ -492,7 +492,7 @@ namespace SBlocks
 			{
 				std::string cmd = "SBlocks.";
 				cmd += script[i];
-				ConsoleSystem::Get().executeCommand(cmd.c_str());
+				IConsoleSystem::Get().executeCommand(cmd.c_str());
 			}
 		}
 	}

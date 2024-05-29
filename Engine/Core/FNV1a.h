@@ -88,6 +88,19 @@ public:
 		}
 		return result;
 	}
+
+	template< class T >
+	static constexpr T MakeStringHash(char const* pValue, int num, T offsetBias = Table<T>::OffsetBias)
+	{
+		T result = offsetBias;
+		for (; num; --num)
+		{
+			result ^= uint8(*pValue);
+			result *= Table<T>::Prime;
+			++pValue;
+		}
+		return result;
+	}
 };
 
 

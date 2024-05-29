@@ -68,62 +68,6 @@ namespace Render
 		return 0;
 	}
 
-	bool D3D12HeapPoolChunkGrowable::initialize(uint inNumElements, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
-	{
-		if (!D3D12HeapPoolChunkBase::initialize(inNumElements, device, inType, flags))
-			return false;
-
-		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-		heapDesc.Type = inType;
-		heapDesc.NumDescriptors = inNumElements;
-		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
-		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(mResourceCopy.address())));
-		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart();
-		return true;
-	}
-
-	bool D3D12HeapPoolChunkGrowable::grow(uint numElementsNew, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
-	{
-		CHECK(numElementsNew > numElementsUasge);
-		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-		heapDesc.Type = inType;
-		heapDesc.NumDescriptors = numElementsNew;
-		heapDesc.Flags = flags;
-		TComPtr<ID3D12DescriptorHeap> newResource;
-		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(newResource.address())));
-		TComPtr<ID3D12DescriptorHeap> newResourceCopy;
-		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(newResourceCopy.address())));
-
-		device->CopyDescriptorsSimple(numElements, newResource->GetCPUDescriptorHandleForHeapStart(), mCachedCPUHandleCopy, inType);
-		device->CopyDescriptorsSimple(numElements, newResourceCopy->GetCPUDescriptorHandleForHeapStart(), mCachedCPUHandleCopy, inType);
-
-		resource.reset();
-		resource.initialize(newResource.detach());
-		cacheHandle();
-
-		mResourceCopy.reset();
-		mResourceCopy.initialize(newResourceCopy.detach());
-		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart();
-
-		numElements = numElementsNew;
-		mUsageMask.resize((numElementsNew + GroupSize - 1) / GroupSize, 0);
-		return true;
-	}
-
-	template< typename TFunc >
-	void D3D12HeapPoolChunkGrowable::initSlot(ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, uint slot, TFunc&& func)
-	{
-		uint offset = slot * elementSize;
-		D3D12_CPU_DESCRIPTOR_HANDLE handleCopy = mCachedCPUHandleCopy;
-		handleCopy.ptr += offset;
-		func(handleCopy);
-		D3D12_CPU_DESCRIPTOR_HANDLE handle = mCachedCPUHandle;
-		handle.ptr += offset;
-		device->CopyDescriptorsSimple(1, handle, handleCopy, inType);
-	}
-
 	D3D12DescriptorHeapPool& D3D12DescriptorHeapPool::Get()
 	{
 		static D3D12DescriptorHeapPool staticInstance;
@@ -244,27 +188,79 @@ namespace Render
 
 	bool D3D12DescHeapGrowable::initialize(uint size, ID3D12DeviceRHI* device)
 	{
-		return availableChunk.initialize(size, device, type, flags);
+		if (!D3D12HeapPoolChunkBase::initialize(size, device, type, flags))
+			return false;
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+		heapDesc.Type = type;
+		heapDesc.NumDescriptors = size;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(mResourceCopy.address())));
+		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart();
+		return true;
 	}
 
 	template< typename TFunc >
 	bool D3D12DescHeapGrowable::fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle, TFunc&& func)
 	{
-		if (!availableChunk.fetchFreeSlot(outHandle.chunkSlot))
+		if (!fetchFreeSlot(outHandle.chunkSlot))
 		{
-			uint newSize = Math::Max(availableChunk.numElements * 2, 4u);
-			if (!availableChunk.grow(newSize, device, type, flags))
+			uint newSize = Math::Max(numElements * 2, 4u);
+			if (!grow(newSize, device))
 				return false;
 
 			LogMsg("DescHeap Grow to %u", newSize);
-
-			if (!availableChunk.fetchFreeSlot(outHandle.chunkSlot))
+			if (!fetchFreeSlot(outHandle.chunkSlot))
 				return false;
 		}
 
-		outHandle.chunk = &availableChunk;
-		availableChunk.initSlot(device, type, outHandle.chunkSlot, std::forward<TFunc>(func));
+		outHandle.chunk = this;
+
+		uint offset = outHandle.chunkSlot * elementSize;
+		D3D12_CPU_DESCRIPTOR_HANDLE handleCopy = mCachedCPUHandleCopy;
+		handleCopy.ptr += offset;
+		func(handleCopy);
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = mCachedCPUHandle;
+		handle.ptr += offset;
+		device->CopyDescriptorsSimple(1, handle, handleCopy, type);
+
 		return true;
+	}
+
+	bool D3D12DescHeapGrowable::grow(uint numElementsNew, ID3D12DeviceRHI* device)
+	{
+		CHECK(numElementsNew > numElementsUasge);
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+		heapDesc.Type = type;
+		heapDesc.NumDescriptors = numElementsNew;
+		heapDesc.Flags = flags;
+		TComPtr<ID3D12DescriptorHeap> newResource;
+		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(newResource.address())));
+		TComPtr<ID3D12DescriptorHeap> newResourceCopy;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(newResourceCopy.address())));
+
+		device->CopyDescriptorsSimple(numElements, newResource->GetCPUDescriptorHandleForHeapStart(), mCachedCPUHandleCopy, type);
+		device->CopyDescriptorsSimple(numElements, newResourceCopy->GetCPUDescriptorHandleForHeapStart(), mCachedCPUHandleCopy, type);
+
+		resource.reset();
+		resource.initialize(newResource.detach());
+		cacheHandle();
+
+		mResourceCopy.reset();
+		mResourceCopy.initialize(newResourceCopy.detach());
+		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart();
+
+		numElements = numElementsNew;
+		mUsageMask.resize((numElementsNew + GroupSize - 1) / GroupSize, 0);
+		return true;
+	}
+
+	void D3D12DescHeapGrowable::release()
+	{
+		D3D12HeapPoolChunkBase::release();
+		mResourceCopy.reset();
 	}
 
 	bool D3D12DescHeapAllocator::fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle)

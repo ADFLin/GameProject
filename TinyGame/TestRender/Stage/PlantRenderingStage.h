@@ -69,7 +69,7 @@ namespace Render
 		}
 	};
 
-	class PlantRenderStage : public TestRenderStageBase
+	class PlantRenderingStage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
 	public:

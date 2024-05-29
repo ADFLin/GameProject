@@ -19,8 +19,11 @@ VS_ENTRY_END(MainVS)
 {
 	VSOutput.UVs = InUV;
 	float4 viewPos = mul( View.worldToView , float4(InPosition, 0));
-	SvPosition = mul( View.viewToClip , float4(viewPos.xyz, 1)).xyzz;
-
+#if USE_INVERSE_ZBUFFER
+	SvPosition = mul(View.viewToClip, float4(viewPos.xyz, 1));
+#else
+	SvPosition = mul(View.viewToClip, float4(viewPos.xyz, 1)).xyzz;
+#endif
 	//SvPosition = mul(View.worldToClip, float4(InPosition, 1));
 }
 
@@ -50,7 +53,6 @@ PS_ENTRY_END(MainPS)
 {
 	float3 color = GetEnvRadiance(VSOutput.UVs);
 	OutColor = float4(color, 1);
-	//OutColor = float4(color, 1);
 	//OutColor = float4(VSOutput.UVs, 1);
 }
 

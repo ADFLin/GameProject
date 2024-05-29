@@ -18,7 +18,7 @@ ConsolePanel::ConsolePanel()
 	mCommands.push_back("#CLASSIFY");
 
 	char const* commands[256];
-	int numCommands = ConsoleSystem::Get().getAllCommandNames(commands, ARRAY_SIZE(commands));
+	int numCommands = IConsoleSystem::Get().getAllCommandNames(commands, ARRAY_SIZE(commands));
 	for (int i = 0; i < numCommands; ++i)
 	{
 		mCommands.push_back(commands[i]);
@@ -232,7 +232,7 @@ void ConsolePanel::ExecCommand(const char* command_line)
 			AddLog("Unknown command: '%s'\n", command_line);
 		}
 	}
-	else if (!ConsoleSystem::Get().executeCommand(command_line))
+	else if (!IConsoleSystem::Get().executeCommand(command_line))
 	{
 		AddLog("Unknown command: '%s'\n", command_line);
 	}

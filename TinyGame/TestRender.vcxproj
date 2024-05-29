@@ -255,7 +255,6 @@
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
-    <ClCompile Include="TestRender\Stage\FluidRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\FractialStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
@@ -265,7 +264,7 @@
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ODETestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
-    <ClCompile Include="TestRender\Stage\PlantRenderStage.cpp" />
+    <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\RayTracingStage.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -275,16 +274,16 @@
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
     <ClCompile Include="TestRender\Stage\ShaderConductorTest.cpp" />
-    <ClCompile Include="TestRender\Stage\SoftwareRenderStage.cpp">
+    <ClCompile Include="TestRender\Stage\SoftwareRenderingStage.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
     </ClCompile>
-    <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\TemplateRenderingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp" />
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\WaveRender.cpp" />
+    <ClCompile Include="TestRender\Stage\WaveRendering.cpp" />
     <ClCompile Include="TestRender\TestRender.cpp" />
     <ClCompile Include="TestRender\TestRenderPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -302,10 +301,10 @@
     <ClInclude Include="TestRender\Stage\Lighting2DStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
-    <ClInclude Include="TestRender\Stage\PlantRenderStage.h" />
+    <ClInclude Include="TestRender\Stage\PlantRenderingStage.h" />
     <ClInclude Include="TestRender\Stage\RayTracingStage.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
-    <ClInclude Include="TestRender\Stage\SoftwareRenderStage.h" />
+    <ClInclude Include="TestRender\Stage\SoftwareRenderingStage.h" />
     <ClInclude Include="TestRender\Stage\TestRHIStage.h" />
     <ClInclude Include="TestRender\TestRenderPCH.h" />
   </ItemGroup>

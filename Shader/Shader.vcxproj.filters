@@ -238,6 +238,10 @@
       <Filter>Game</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\FluidRendering.sgc" />
+    <None Include="..\TinyGame\out\Shader\SphereCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Metaball.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

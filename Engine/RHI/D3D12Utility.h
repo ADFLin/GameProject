@@ -234,19 +234,6 @@ namespace Render
 		D3D12HeapPoolChunk* next = NoLinkPtr;
 	};
 
-	class D3D12HeapPoolChunkGrowable : public D3D12HeapPoolChunkBase
-	{
-	public:
-		bool initialize(uint inNumElements, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
-		bool grow(uint numElementsNew, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
-
-		template< typename TFunc >
-		void initSlot(ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, uint slot, TFunc&& func);
-
-		TComPtr< ID3D12DescriptorHeap > mResourceCopy;
-		D3D12_CPU_DESCRIPTOR_HANDLE     mCachedCPUHandleCopy;
-	};
-
 	class D3D12DescHeapAllocator
 	{
 	public:
@@ -266,11 +253,9 @@ namespace Render
 		void release();
 	};
 
-	class D3D12DescHeapGrowable
+	class D3D12DescHeapGrowable : public D3D12HeapPoolChunkBase
 	{
 	public:
-		D3D12HeapPoolChunkGrowable availableChunk;
-
 		D3D12_DESCRIPTOR_HEAP_TYPE type;
 		D3D12_DESCRIPTOR_HEAP_FLAGS flags;
 
@@ -279,10 +264,12 @@ namespace Render
 		template< typename TFunc >
 		bool fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle, TFunc&& func);
 
-		void release()
-		{
-			availableChunk.release();
-		}
+		bool grow(uint numElementsNew, ID3D12DeviceRHI* device);
+
+		void release();
+
+		TComPtr< ID3D12DescriptorHeap > mResourceCopy;
+		D3D12_CPU_DESCRIPTOR_HANDLE     mCachedCPUHandleCopy;
 	};
 
 	class D3D12DescriptorHeapPool

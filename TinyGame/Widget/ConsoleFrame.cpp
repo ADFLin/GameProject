@@ -96,12 +96,12 @@ MsgReply ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 			int numFound;
 			if (mNamespace.empty())
 			{
-				numFound = ConsoleSystem::Get().findCommandName2(getValue(), foundCmds, ARRAY_SIZE(foundCmds));
+				numFound = IConsoleSystem::Get().findCommandName2(getValue(), foundCmds, ARRAY_SIZE(foundCmds));
 			}
 			else
 			{
 				std::string findText = mNamespace + '.' + getValue();
-				numFound = ConsoleSystem::Get().findCommandName2(findText.c_str(), foundCmds, ARRAY_SIZE(foundCmds));
+				numFound = IConsoleSystem::Get().findCommandName2(findText.c_str(), foundCmds, ARRAY_SIZE(foundCmds));
 			}
 
 			if (numFound != 0)
@@ -210,12 +210,12 @@ bool ConsoleCmdTextCtrl::preSendEvent(int event)
 			bool cmdResult;
 			if (mNamespace.empty())
 			{
-				cmdResult = ConsoleSystem::Get().executeCommand(cmdText);
+				cmdResult = IConsoleSystem::Get().executeCommand(cmdText);
 			}
 			else
 			{
 				std::string cmd = mNamespace + '.' + getValue();
-				cmdResult = ConsoleSystem::Get().executeCommand(cmd.c_str());
+				cmdResult = IConsoleSystem::Get().executeCommand(cmd.c_str());
 			}
 			
 			if (mIndexHistoryUsed != INDEX_NONE && mHistoryCmds[mIndexHistoryUsed] == cmdText)

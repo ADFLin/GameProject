@@ -254,7 +254,7 @@ namespace CarTrain
 		mWorld.spawnAgents(mTrainData, mLevelData->spawnPoint);
 
 
-		auto& console = ConsoleSystem::Get();
+		auto& console = IConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC )\
 	console.registerCommand(NAME, &TestStage::FUNC, this);
 

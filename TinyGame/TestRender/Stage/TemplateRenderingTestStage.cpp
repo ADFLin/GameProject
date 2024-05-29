@@ -4,12 +4,11 @@
 namespace Render
 {
 
-
-	class TemplateRenderTestStage : public TestRenderStageBase
+	class TemplateRenderingTestStage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
 	public:
-		TemplateRenderTestStage() {}
+		TemplateRenderingTestStage() {}
 
 		bool onInit() override
 		{
@@ -110,6 +109,6 @@ namespace Render
 	protected:
 	};
 #if 0
-	REGISTER_STAGE_ENTRY("Template Render", TemplateRenderTestStage, EExecGroup::FeatureDev);
+	REGISTER_STAGE_ENTRY("Template Rendering", TemplateRenderTestStage, EExecGroup::FeatureDev);
 #endif
 }

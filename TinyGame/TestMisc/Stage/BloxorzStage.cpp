@@ -320,7 +320,7 @@ namespace Bloxorz
 
 	void TestStage::onEnd()
 	{
-		ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
+		IConsoleSystem::Get().unregisterCommandByName("ShowTexture");
 
 		BaseClass::onEnd();
 	}

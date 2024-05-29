@@ -50,6 +50,7 @@
 #include <iostream>
 #include "Launch/CommandlLine.h"
 #include <unordered_set>
+#include "Core/FNV1a.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
@@ -167,7 +168,7 @@ public:
 	static int Export(PropertySet& configs, char const* sectionGroup)
 	{
 		int result = 0;
-		ConsoleSystem::Get().visitAllVariables(
+		IConsoleSystem::Get().visitAllVariables(
 			[sectionGroup, &configs ,&result](VariableConsoleCommadBase* var)
 			{
 				if (var->getFlags() & CVF_CONFIG)
@@ -198,7 +199,7 @@ public:
 		configs.visitSection(sectionGroup,
 			[&configs, &inoutVarSet, &result](char const* key, KeyValue const& value)
 			{
-				auto com = ConsoleSystem::Get().findCommand(key);
+				auto com = IConsoleSystem::Get().findCommand(key);
 				if (com == nullptr)
 					return;
 				auto var = com->asVariable();
@@ -218,7 +219,7 @@ public:
 			}
 		);
 
-		ConsoleSystem::Get().visitAllVariables(
+		IConsoleSystem::Get().visitAllVariables(
 			[&configs, &inoutVarSet, &result](VariableConsoleCommadBase* var)
 			{
 				uint32 const Flags = CVF_CONFIG | CVF_SECTION_GROUP;
@@ -478,23 +479,44 @@ char const* GetBuildVersion()
 	struct BuildVersionBuilder
 	{
 		char dayOfTheWeek[32];
-		char mouth[32];
-		int date;
+		int month;
+		int day;
 		int hr;
 		int min;
 		int sec;
 		int year;
 
-		BuildVersionBuilder()
+		static constexpr uint32 HashValue(StringView str)
 		{
-			sscanf(__TIMESTAMP__, "%s %s %d %d:%d:%d %d", dayOfTheWeek, mouth, &date, &hr, &min, &sec, &year);
+			return FNV1a::MakeStringHash<uint32>(str.data(), str.length()) & 0x3f;
 		}
 
-		InlineString<> build()
+		BuildVersionBuilder()
 		{
-			return InlineString<>::Make(
-				"%d-%s-%d-%02d:%02d:%02d-%s",
-				year, mouth, date , hr , min , sec , 
+			char mouthStr[32];
+			sscanf(__TIMESTAMP__, "%s %s %d %d:%d:%d %d", dayOfTheWeek, mouthStr, &day, &hr, &min, &sec, &year);
+			switch (HashValue((char const*)mouthStr))
+			{
+			case HashValue("Jan"): month = 1; break;
+			case HashValue("Feb"): month = 2; break;
+			case HashValue("Mar"): month = 3; break;
+			case HashValue("Apr"): month = 4; break;
+			case HashValue("May"): month = 5; break;
+			case HashValue("Jun"): month = 6; break;
+			case HashValue("Jul"): month = 7; break;
+			case HashValue("Aug"): month = 8; break;
+			case HashValue("Sep"): month = 9; break;
+			case HashValue("Oct"): month = 10; break;
+			case HashValue("Nov"): month = 11; break;
+			case HashValue("Dec"): month = 12; break;
+			}
+		}
+
+		InlineString<32> build()
+		{
+			return InlineString<32>::Make(
+				"%d.%d.%d-%02d:%02d:%02d-%s",
+				year, month, day, hr , min , sec ,
 #if _DEBUG
 				"debug"
 #else
@@ -504,7 +526,7 @@ char const* GetBuildVersion()
 		}
 	};
 
-	static InlineString<> buildVersionCached = BuildVersionBuilder().build();
+	static InlineString<32> buildVersionCached = BuildVersionBuilder().build();
 	return buildVersionCached;
 }
 
@@ -561,20 +583,20 @@ void RunArrayTest()
 
 bool TinyGameApp::initializeGame()
 {
-	{
-		DateTime appStartTime = SystemPlatform::GetLocalTime();
+	DateTime appStartTime = SystemPlatform::GetLocalTime();
 
+	CreateConsole();
+	gLogPrinter.addDefaultChannels();
+	{
 		EDayOfWeek dayOfWeek = appStartTime.getDayOfWeek();
 		int year = appStartTime.getYear();
 		int month = appStartTime.getMonth();
 		int day = appStartTime.getDay();
 		int hour = appStartTime.getHour();
 		int min = appStartTime.getMinute();
+		int sec = appStartTime.getSecond();
+		LogMsg("App Start : %d.%d.%d-%02d:%02d:%02d", year, month, day, hour, min, sec);
 	}
-
-	CreateConsole();
-	gLogPrinter.addDefaultChannels();
-
 	LogMsg("Game Initialize");
 	TIME_SCOPE("Game Initialize");
 	
@@ -632,7 +654,7 @@ bool TinyGameApp::initializeGame()
 	std::unordered_set<VariableConsoleCommadBase*> cmdVarSet;
 	{
 		TIME_SCOPE("Console Initialize");
-		ConsoleSystem::Get().initialize();
+		IConsoleSystem::Get().initialize();
 		{
 			TIME_SCOPE("Import Config");
 			FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION, cmdVarSet);

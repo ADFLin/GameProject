@@ -305,7 +305,7 @@ namespace Life
 
 		void onEnd() override
 		{
-			auto& console = ConsoleSystem::Get();
+			auto& console = IConsoleSystem::Get();
 			console.unregisterAllCommandsByObject(this);
 
 			BaseClass::onEnd();

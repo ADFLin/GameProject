@@ -18,12 +18,8 @@
 #include "RHITraceScope.h"
 #endif
 
-
-
 namespace Render
 {
-
-
 	struct OpenGLDeviceState
 	{
 		OpenGLDeviceState()
@@ -61,11 +57,14 @@ namespace Render
 		}
 	};
 
-	struct RMPProgramPipeline
+	namespace GLFactory
 	{
-		static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteProgramPipelines(1, &handle); }
-	};
+		struct ProgramPipeline
+		{
+			static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
+			static void Destroy(GLuint& handle) { glDeleteProgramPipelines(1, &handle); }
+		};
+	}
 
 	class OpenGLShaderBoundState
 	{
@@ -87,7 +86,7 @@ namespace Render
 			return mGLObject.mHandle;
 		}
 
-		TOpenGLObject< RMPProgramPipeline > mGLObject;
+		TOpenGLObject< GLFactory::ProgramPipeline > mGLObject;
 	};
 
 	class OpenGLContext : public RHIContext

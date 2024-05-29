@@ -88,11 +88,10 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_SHADER_PARAM(parameterMap, IrradianceTexture);
-			BIND_SHADER_PARAM(parameterMap, PrefilteredTexture);
-			BIND_SHADER_PARAM(parameterMap, PreIntegratedBRDFTexture);
-			BIND_SHADER_PARAM(parameterMap, PrefilteredTextureSampler);
-			BIND_SHADER_PARAM(parameterMap, PreIntegratedBRDFTextureSampler);
+			BIND_TEXTURE_PARAM(parameterMap, PrefilteredTexture);
+			BIND_TEXTURE_PARAM(parameterMap, PreIntegratedBRDFTexture);
 		}
+
 		void setParameters(RHICommandList& commandList, ShaderProgram& shader, IBLResource& resource)
 		{
 			if (mParamIrradianceTexture.isBound())
@@ -111,10 +110,8 @@ namespace Render
 		}
 
 		DEFINE_SHADER_PARAM(IrradianceTexture);
-		DEFINE_SHADER_PARAM(PrefilteredTexture);
-		DEFINE_SHADER_PARAM(PreIntegratedBRDFTexture);
-		DEFINE_SHADER_PARAM(PrefilteredTextureSampler);
-		DEFINE_SHADER_PARAM(PreIntegratedBRDFTextureSampler);
+		DEFINE_TEXTURE_PARAM(PrefilteredTexture);
+		DEFINE_TEXTURE_PARAM(PreIntegratedBRDFTexture);
 	};
 
 	class IBLResourceBuilder
@@ -122,8 +119,10 @@ namespace Render
 	public:
 		bool loadOrBuildResource(DataCacheInterface& dataCache, char const* path, RHITexture2D& HDRImage, IBLResource& resource, IBLBuildSetting const& setting = IBLBuildSetting());
 		bool buildIBLResource(RHITexture2D& envTexture, IBLResource& resource, IBLBuildSetting const& setting);
-		bool initializeShaderProgram();
 		void releaseRHI();
+
+
+		bool initializeShader();
 
 		class ScreenVS* mScreenVS = nullptr;
 		class EquirectangularToCubePS* mEquirectangularToCubePS = nullptr;
@@ -135,9 +134,6 @@ namespace Render
 		class IrradianceGenProgram* mProgIrradianceGen = nullptr;
 		class PrefilteredGenProgram* mProgPrefilteredGen = nullptr;
 		class PreIntegrateBRDFGenProgram* mProgPreIntegrateBRDFGen = nullptr;
-
-		template< class TFunc >
-		void renderCubeTexture(RHICommandList& commandList, RHIFrameBufferRef& frameBuffer, RHITextureCube& cubeTexture, GlobalShader& shaderPS, int level, TFunc&& shaderSetup);
 	};
 
 

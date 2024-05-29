@@ -28,13 +28,9 @@ static InlineString<512> GMsg;
 
 namespace CPP
 {
-	static uint32 HashValue(StringView const& str)
+	static constexpr uint32 HashValue(StringView str)
 	{
-		return FNV1a::MakeHash<uint32>((uint8 const*)str.data(), str.length()) & 0xffff;
-	}
-	static constexpr uint32 HashValue(char const* str)
-	{
-		return FNV1a::MakeStringHash<uint32>(str) & 0xffff;
+		return FNV1a::MakeStringHash<uint32>(str.data(), str.length()) & 0xffff;
 	}
 
 	Preprocessor::Preprocessor()

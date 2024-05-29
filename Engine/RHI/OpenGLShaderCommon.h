@@ -9,13 +9,22 @@
 
 namespace Render
 {
-	struct RMPShader
+	namespace GLFactory
 	{
-		static void Create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
-		static void Destroy(GLuint& handle) { glDeleteShader(handle); }
-	};
+		struct Shader
+		{
+			static void Create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
+			static void Destroy(GLuint& handle) { glDeleteShader(handle); }
+		};
 
-	class OpenGLShaderObject : public TOpenGLObject< RMPShader >
+		struct ShaderProgram
+		{
+			static void Create(GLuint& handle) { handle = glCreateProgram(); }
+			static void Destroy(GLuint& handle) { glDeleteProgram(handle); }
+		};
+	}
+
+	class OpenGLShaderObject : public TOpenGLObject< GLFactory::Shader >
 	{
 	public:
 
@@ -41,13 +50,7 @@ namespace Render
 		static int GetLogInfo(GLuint handle, TArray<char>& outBuffer);
 	};
 
-	struct RMPShaderProgram
-	{
-		static void Create(GLuint& handle) { handle = glCreateProgram(); }
-		static void Destroy(GLuint& handle) { glDeleteProgram(handle); }
-	};
-
-	class OpenGLShader : public TOpenGLResource< RHIShader , RMPShaderProgram >
+	class OpenGLShader : public TOpenGLResource< RHIShader , GLFactory::ShaderProgram >
 	{
 	public:
 		bool create(EShader::Type type);
@@ -85,7 +88,7 @@ namespace Render
 	};
 
 
-	class OpenGLShaderProgram : public TOpenGLResource< RHIShaderProgram, RMPShaderProgram >
+	class OpenGLShaderProgram : public TOpenGLResource< RHIShaderProgram, GLFactory::ShaderProgram >
 	{
 	public:
 		bool    create();

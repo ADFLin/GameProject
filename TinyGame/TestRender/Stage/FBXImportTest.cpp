@@ -161,7 +161,6 @@ namespace Render
 #if 1
 			//RHISetFrameBuffer(commandList, nullptr);
 			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
-
 			RHISetShaderProgram(commandList, mClipCoordShader.getRHI());
 			DrawUtility::ScreenRect(commandList);
 			bitBltToBackBuffer(commandList, mSceneRenderTargets.getFrameTexture());

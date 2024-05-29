@@ -255,7 +255,7 @@ namespace Render
 
 	GlobalTextureShowManager::GlobalTextureShowManager()
 	{
-		ConsoleSystem::Get().registerCommand("ShowTexture", &GlobalTextureShowManager::handleShowTexture, this, CVF_ALLOW_IGNORE_ARGS);
+		IConsoleSystem::Get().registerCommand("ShowTexture", &GlobalTextureShowManager::handleShowTexture, this, CVF_ALLOW_IGNORE_ARGS);
 	}
 
 	void GlobalTextureShowManager::restoreRHI()

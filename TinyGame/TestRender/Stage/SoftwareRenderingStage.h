@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SoftwareRenderStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
-#define SoftwareRenderStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
+#ifndef SoftwareRenderingStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
+#define SoftwareRenderingStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
 
 #include "Stage/TestStageHeader.h"
 
@@ -666,7 +666,7 @@ namespace SR
 
 
 
-#endif // SoftwareRenderStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
+#endif // SoftwareRenderingStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
 
 
 

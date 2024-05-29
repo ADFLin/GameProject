@@ -19,7 +19,7 @@ namespace SBlocks
 {
 	void Editor::registerCommand()
 	{
-		auto& console = ConsoleSystem::Get();
+		auto& console = IConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC )\
 		console.registerCommand("SBlocks."##NAME, &Editor::FUNC, this)
 
@@ -45,7 +45,7 @@ namespace SBlocks
 
 	void Editor::unregisterCommand()
 	{
-		auto& console = ConsoleSystem::Get();
+		auto& console = IConsoleSystem::Get();
 		console.unregisterAllCommandsByObject(this);
 	}
 

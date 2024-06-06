@@ -192,6 +192,9 @@
     <ClCompile Include="RHI\Scene.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\RHIUtility.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RHI\RHITraceScope.h">
@@ -378,6 +381,9 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="RHI\RHIRaytracingTypes.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIUtility.h">
       <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>

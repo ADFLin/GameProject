@@ -17,6 +17,7 @@
 #include "StringParse.h"
 #include "MiscTestRegister.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/RHIUtility.h"
 #include "ProfileSystem.h"
 
 #include "boost/thread.hpp"

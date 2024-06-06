@@ -1,8 +1,11 @@
 #include "Material.h"
 
 #include "RHICommand.h"
+#include "RHIUtility.h"
+
 #include "ShaderManager.h"
 #include "FileSystem.h"
+
 
 namespace Render
 {

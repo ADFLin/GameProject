@@ -7,6 +7,8 @@
 #include "RHI/RHIGlobalResource.h"
 #include "RHI/RHICommand.h"
 
+class DataCacheInterface;
+
 namespace Render
 {
 	struct ImageBaseLightingData;

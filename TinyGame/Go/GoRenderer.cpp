@@ -6,11 +6,13 @@
 #include "RHI/RHIGraphics2D.h"
 
 #include "RHI/DrawUtility.h"
+#include "RHI/RHIUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/RHICommand.h"
 #include "RHI/SimpleRenderState.h"
 
 #include "ConsoleSystem.h"
+
 
 #define DRAW_TEXTURE 1
 

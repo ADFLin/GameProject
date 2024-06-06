@@ -2,6 +2,7 @@
 
 #include "RHI/Scene.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/RHIUtility.h"
 
 #include "Renderer/MeshBuild.h"
 
@@ -9,8 +10,8 @@
 #include "DataStreamBuffer.h"
 #include "ProfileSystem.h"
 
-
 #include "RHI/D3D11Command.h"
+
 
 namespace Render
 {

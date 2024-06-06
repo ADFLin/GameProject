@@ -2,10 +2,12 @@
 #include "CardDraw.h"
 
 #include "RHI/RHICommand.h"
+#include "RHI/RHIGraphics2D.h"
+#include "RHI/RHIUtility.h"
 
 #include "GameGUISystem.h"
-#include "RHI/RHIGraphics2D.h"
 #include "RenderDebug.h"
+
 
 namespace DouDizhu
 {

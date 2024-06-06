@@ -1,12 +1,13 @@
 #include "NoiseTestStage.h"
 
-
+#include "RHI/RHIUtility.h"
 #include "Renderer/MeshBuild.h"
 
 #include "Image/ImageData.h"
 #include "Math/GeometryAlgo2D.h"
 #include "DataStructure/Grid2D.h"
 #include "PerlinNoise.h"
+
 
 namespace Geom2D
 {

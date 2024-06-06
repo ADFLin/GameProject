@@ -1,6 +1,7 @@
 #include "BRDFTestStage.h"
 
 #include "TestRenderStageBase.h"
+#include "RHI/RHIUtility.h"
 #include "ProfileSystem.h"
 #include "Renderer/MeshImportor.h"
 

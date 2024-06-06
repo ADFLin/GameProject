@@ -5,6 +5,7 @@
 #include "SystemMessage.h"
 #include "EasingFunction.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/RHIUtility.h"
 #include "Image/ImageData.h"
 #include "InlineString.h"
 #include "FileSystem.h"

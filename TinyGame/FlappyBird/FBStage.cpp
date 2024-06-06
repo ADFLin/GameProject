@@ -12,6 +12,7 @@
 
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/RHIUtility.h"
 #include "Image/ImageData.h"
 #include "ConsoleSystem.h"
 

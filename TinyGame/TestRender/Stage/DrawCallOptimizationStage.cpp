@@ -6,6 +6,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/RHIUtility.h"
 
 #include "Renderer/MeshBuild.h"
 #include "Renderer/SimpleCamera.h"
@@ -16,6 +17,7 @@
 #include <memory>
 #include "GL/wglew.h"
 #include "GameRenderSetup.h"
+
 
 
 namespace Render

@@ -70,6 +70,7 @@
     <ClCompile Include="RHI\RHICommon.cpp" />
     <ClCompile Include="RHI\RHIGlobalResource.cpp" />
     <ClCompile Include="RHI\RHIGraphics2D.cpp" />
+    <ClCompile Include="RHI\RHIUtility.cpp" />
     <ClCompile Include="RHI\Scene.cpp" />
     <ClCompile Include="RHI\SceneObject.cpp" />
     <ClCompile Include="RHI\SceneRenderer.cpp" />
@@ -132,6 +133,7 @@
     <ClInclude Include="RHI\RHIRaytracingTypes.h" />
     <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />
+    <ClInclude Include="RHI\RHIUtility.h" />
     <ClInclude Include="RHI\Scene.h" />
     <ClInclude Include="RHI\SceneObject.h" />
     <ClInclude Include="RHI\SceneRenderer.h" />

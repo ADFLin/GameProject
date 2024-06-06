@@ -1,8 +1,8 @@
 #include "TestRenderStageBase.h"
 
 #include "RHI/RHICommand.h"
+#include "RHI/RHIUtility.h"
 #include "Renderer/MeshBuild.h"
-
 
 namespace Render
 {

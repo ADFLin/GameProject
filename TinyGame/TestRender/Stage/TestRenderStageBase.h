@@ -8,6 +8,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
+#include "RHI/RHIUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderCore.h"
 #include "RHI/Scene.h"

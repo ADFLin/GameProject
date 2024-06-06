@@ -14,9 +14,11 @@
 #include "RHI/ShaderProgram.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHIGlobalResource.h"
+#include "RHI/RHIUtility.h"
 
 #include "DrawEngine.h"
 #include "GameRenderSetup.h"
+
 
 //#TODO REMOVEME
 #pragma comment(lib , "vulkan-1.lib")

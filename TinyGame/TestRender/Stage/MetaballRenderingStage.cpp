@@ -127,15 +127,17 @@ namespace Render
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			initializeRenderState();
+			
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			DrawUtility::AixsLine(commandList, 20);
 
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-
 			RHISetShaderProgram(commandList, mProgMetaball->getRHI());
 			mView.setupShader(commandList, *mProgMetaball);
-			mProgMetaball->setParam(commandList, SHADER_PARAM(SpherePosAndRadius), Vector4(0,0,0, 10));
+			mProgMetaball->setParam(commandList, SHADER_PARAM(SpherePosAndRadius), Vector4(0,0,0,10));
 			InputStreamInfo stream;
 			stream.buffer = mQuadVertexBuffer;
 			stream.offset = 0;

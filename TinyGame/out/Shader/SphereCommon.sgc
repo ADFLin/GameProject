@@ -6,8 +6,8 @@ float2 GetSphereNDCRange(float viewPosX, float sceneDepth , float radius)
 	float r2 = radius * radius;
 	float divisor = 1.0 / (sceneDepth * sceneDepth - r2);
 	float center = viewPosX * sceneDepth * divisor;
-	float2 p = float2(viewPosX, sceneDepth);
-	float det = max(0.0 , dot(p,p) - r2);
+	float2 d = float2(viewPosX, sceneDepth);
+	float det = max(0.0 , dot(d,d) - r2);
 	float extent = radius * sqrt(det) * divisor;
 	return float2(center, extent);
 }

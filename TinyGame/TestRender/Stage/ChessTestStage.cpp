@@ -2,8 +2,8 @@
 
 #include "Chess/ChessCore.h"
 #include "RHI/RHICommand.h"
+#include "RHI/RHIUtility.h"
 
-#include <algorithm>
 #include "RHI/RHIGraphics2D.h"
 #include "GameRenderSetup.h"
 #include "Renderer/MeshImportor.h"
@@ -14,6 +14,7 @@
 
 #include "TestRenderStageBase.h"
 
+#include <algorithm>
 
 namespace Chess
 {

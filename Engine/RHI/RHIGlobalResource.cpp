@@ -1,12 +1,13 @@
 #include "RHIGlobalResource.h"
 
 #include "RHICommand.h"
+#include "RHIUtility.h"
+
 #include "Material.h"
 #include "ShaderManager.h"
 
 //#TODO: Remove Me
 #include "OpenGLCommon.h"
-
 
 
 namespace Render

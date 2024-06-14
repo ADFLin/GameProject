@@ -250,6 +250,9 @@
     <ClCompile Include="TestMisc\Stage\VectorGraphicRenderStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\RVOStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />

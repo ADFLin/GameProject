@@ -28,26 +28,29 @@ VS_ENTRY_END(BasePassVS)
 
 #if SHADER_ENTRY(BasePassPS)
 
+PS_EARLY_DEPTH_TEST
 PS_ENTRY_START(BasePassPS)
 	PS_INPUT(float3 ClipPos, ATTRIBUTE_TEXCOORD)
 	PS_OUTPUT(float4 OutColor, 0)
+	//out float SvDepth : SV_DepthFartherEqual,
 	PS_OUTPUT_DEPTH
 PS_ENTRY_END(BasePassPS)
 {
-	float3 worldPos = NDCToWorldPos(float4(ClipPos,1));
+	float3 worldPos = NDCToWorldPos(float4(ClipPos.xyz,1));
 	float3 cameraDir = normalize(worldPos - View.worldPos);
 	float t;
 	if (RaySphereTest(View.worldPos, cameraDir, SpherePosAndRadius.xyz, SpherePosAndRadius.w, t) == 0)
 	{
-		//OutColor = float4(1,1,1, 1);
+		//SvDepth = 1.0f;
 		discard;
 	}
 	float3 pos = View.worldPos + cameraDir * t;
 	float3 N = normalize(pos - SpherePosAndRadius.xyz);
-
-	float4 clipPos = mul(View.worldToClip, float4(pos, 1));
 	OutColor = float4(0.5 * N + 0.5, 1);
-	SvDepth = clipPos.z / clipPos.w;
+
+	float4 NDC = mul(View.translatedWorldToClip, float4(pos - View.worldPos, 1));
+
+	SvDepth = NDCToBufferDepth(NDC.z / NDC.w);
 	//OutColor = float4(ClipPos.xy, 0, 1);
 }
 

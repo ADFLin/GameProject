@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include "PlatformThread.h"
+#include "PropertySet.h"
 
 
 ExecutionRegisterCollection::ExecutionRegisterCollection()
@@ -122,6 +123,42 @@ void ExecutionEntryInfo::AddCategories(std::unordered_set< HashString >& inoutCa
 
 }
 
+void ExecutionEntryInfo::RecordHistory(ExecutionEntryInfo const& info)
+{
+	PropertySet& config = ::Global::GameConfig();
+	
+	char const* SectionName = "ExecHistory";
+	char const* EntryName = "Entry";
+
+	int maxEntry = config.getIntValue("MaxCount", SectionName, 10);
+	TArray< std::string > execHistroy;
+	config.getStringValues(EntryName, SectionName, execHistroy);
+
+	int index = execHistroy.findIndexPred([&info](std::string const& name)
+	{
+		return FCString::Compare(info.title, name.c_str()) == 0;
+	});
+
+	if (index != INDEX_NONE)
+	{
+		if (index != 0)
+		{
+			execHistroy.removeIndex(index);
+			execHistroy.insertAt(0, info.title);
+		}
+	}
+	else if (execHistroy.size() >= maxEntry)
+	{
+		execHistroy.pop_back();
+		execHistroy.insertAt(0, info.title);
+	}
+	else
+	{
+		execHistroy.insertAt(0, info.title);
+	}
+
+	config.setStringValues(EntryName, SectionName, execHistroy, true);
+}
 
 TINY_API IMiscTestCore* GTestCore = nullptr;
 bool FMiscTestUtil::IsTesting()

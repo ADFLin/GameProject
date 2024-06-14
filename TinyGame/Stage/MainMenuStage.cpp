@@ -187,38 +187,7 @@ bool MainMenuStage::onInit()
 void MainMenuStage::execEntry(ExecutionEntryInfo const& info)
 {
 	info.execFunc(*this);
-
-	char const* SectionName = "ExecHistory";
-	char const* EntryName = "Entry";
-
-	int maxEntry = ::Global::GameConfig().getIntValue("MaxCount", SectionName, 10);
-	TArray< std::string > execHistroy;
-	::Global::GameConfig().getStringValues(EntryName, SectionName, execHistroy);
-
-	int index = execHistroy.findIndexPred([&info](std::string const& name)
-	{
-		return FCString::Compare(info.title, name.c_str()) == 0;
-	});
-
-	if (index != INDEX_NONE)
-	{
-		if (index != 0)
-		{
-			execHistroy.removeIndex(index);
-			execHistroy.insertAt(0, info.title);
-		}
-	}
-	else if (execHistroy.size() >= maxEntry)
-	{
-		execHistroy.pop_back();
-		execHistroy.insertAt(0, info.title);
-	}
-	else
-	{
-		execHistroy.insertAt(0, info.title);
-	}
-
-	::Global::GameConfig().setStringValues(EntryName, SectionName, execHistroy, true);
+	ExecutionEntryInfo::RecordHistory(info);
 }
 
 

@@ -236,11 +236,15 @@ float NDCToBufferDepth(float ndcZ)
 	return ndcZ;
 }
 
-#if PIXEL_SHADER
 
-void WritePixelDepth(float NDCz)
-{
+#if USE_INVERSE_ZBUFFER
 
-}
+#define SV_DepthNearEqual     SV_DepthGreaterEqual
+#define SV_DepthFartherEqual  SV_DepthLessEqual
+
+#else
+
+#define SV_DepthFartherEqual  SV_DepthGreaterEqual
+#define SV_DepthNearEqual     SV_DepthLessEqual
 
 #endif

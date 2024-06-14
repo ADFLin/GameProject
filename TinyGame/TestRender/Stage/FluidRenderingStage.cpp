@@ -144,6 +144,15 @@ namespace Render
 #define FASTMATH Math
 #endif
 
+	struct FluidSimData
+	{
+
+
+
+
+
+	};
+
 
 	class FluidRenderingStage : public TestRenderStageBase
 	{

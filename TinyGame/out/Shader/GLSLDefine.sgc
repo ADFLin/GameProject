@@ -188,10 +188,6 @@ void WritePixelDepth(float NDCz)
 #endif
 }
 
-void WritePixelRawDepth(float value)
-{
-	gl_FragDepth = value;
-}
 #endif
 
 float4x4 Transform(float4x4 m1, float4x4 m2)

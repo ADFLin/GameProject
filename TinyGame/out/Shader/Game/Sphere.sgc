@@ -148,7 +148,7 @@ PS_ENTRY_END(MainPS)
 		discard;
 #else
 		float4 NDC = View.worldToClip * float4(View.worldPos + VSOutput.cameraOffset, 1.0);
-		WritePixelDepth(NDC.z / NDC.w);
+		SvDepth = NDCToBufferDepth(NDC.z / NDC.w);
 		//gl_FragColor = vec4( 0.5 * vd + 0.5 , 1.0 );
 		OutColor = float4(1.0, 1.0, 0, 1.0);
 		return;
@@ -164,7 +164,7 @@ PS_ENTRY_END(MainPS)
 
 	float4 NDC = mul( View.worldToClip , float4(inFS.worldPos, 1.0) );
 
-	SvDepth = NDC.z / NDC.w;
+	SvDepth = NDCToBufferDepth( NDC.z / NDC.w );
 
 	float3 color = CalcLighting( inFS );
 	OutColor = float4( color , 1 );

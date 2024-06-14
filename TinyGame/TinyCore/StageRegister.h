@@ -70,6 +70,7 @@ struct ExecutionEntryInfo
 	}
 	TINY_API static void ParseCategories(std::unordered_set< HashString >& inoutCategories, char const* categoryStr);
 	TINY_API static void AddCategories(std::unordered_set< HashString >& inoutCategories, EExecGroup group);
+	TINY_API static void RecordHistory(ExecutionEntryInfo const& info);
 };
 
 

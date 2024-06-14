@@ -191,6 +191,12 @@ bool MiscTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 			MyContext context;
 			context.manager = getManager();
 			mInfos[ui->getUserData()].func(context);
+
+			auto info = ExecutionRegisterCollection::Get().findExecutionByTitle(ui->cast<GButton>()->mTitle.c_str());
+			if ( info )
+			{
+				ExecutionEntryInfo::RecordHistory(*info);
+			}
 		}
 		return false;
 	}

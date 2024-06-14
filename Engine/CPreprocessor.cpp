@@ -712,7 +712,11 @@ namespace CPP
 		if (!mInput.tokenIdentifier(idName))
 			return false;
 
-		mMarcoSymbolMap.erase(HashString(idName, true));
+		HashString nameKey;
+		if (!HashString::Find(idName, true, nameKey))
+			return nullptr;
+
+		mMarcoSymbolMap.erase(nameKey);
 		return true;
 	}
 

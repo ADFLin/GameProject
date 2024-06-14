@@ -12,6 +12,7 @@ uniform sampler2DMS UnsolvedDepthTexture;
 
 PS_ENTRY_START(ResolveDepthPS)
 	PS_INPUT_STRUCT( VSOutputParameters VSOutput, 0 )
+	PS_OUTPUT_DEPTH
 PS_ENTRY_END(ResolveDepthPS)
 {
 #if COMPILER_HLSL
@@ -26,9 +27,10 @@ PS_ENTRY_END(ResolveDepthPS)
 		float Sample = texelFetch(UnsolvedDepthTexture, IntUV, SampleIndex).r;
 		ResolvedDepth = min(ResolvedDepth, Sample);
 	}
-
+	 
 #endif
-	WritePixelRawDepth(ResolvedDepth);
+
+	SvDepth = ResolvedDepth;
 #endif
 }
 

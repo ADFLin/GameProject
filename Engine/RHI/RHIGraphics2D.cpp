@@ -261,7 +261,7 @@ void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 }
 
 
-void RHIGraphics2D::drawLineStrip(Vector2 pos[], int num)
+void RHIGraphics2D::drawLineStrip(Vector2 const pos[], int num)
 {
 	setTextureState();
 	commitRenderState();

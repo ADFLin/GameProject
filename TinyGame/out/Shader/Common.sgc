@@ -1,18 +1,9 @@
 #pragma once
 
-#include "ShaderDefine.sgc"
-
-
-#if COMPILER_GLSL
-#define USE_RIGHT_HAND_COORD 0
+#ifndef USE_INVERSE_ZBUFFER
+#define USE_INVERSE_ZBUFFER 0
 #endif
-//#undef VECTOR_FUNCTION_LIST
-#undef DEFINE_FUNCTION_INNER
-#undef DEFINE_VECTOR_FUNCTION
 
-#ifndef USE_RIGHT_HAND_COORD
-#define USE_RIGHT_HAND_COORD 0
-#endif
 
 #ifndef USE_MATERIAL
 #define USE_MATERIAL 0
@@ -28,6 +19,15 @@
 #define SCENE_DEPTH_FACTOR (-1.0)
 #endif
 
-#ifndef USE_INVERSE_ZBUFFER
-#define USE_INVERSE_ZBUFFER 0
+#include "ShaderDefine.sgc"
+
+#if COMPILER_GLSL
+#define USE_RIGHT_HAND_COORD 0
+#endif
+//#undef VECTOR_FUNCTION_LIST
+#undef DEFINE_FUNCTION_INNER
+#undef DEFINE_VECTOR_FUNCTION
+
+#ifndef USE_RIGHT_HAND_COORD
+#define USE_RIGHT_HAND_COORD 0
 #endif

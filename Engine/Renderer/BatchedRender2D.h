@@ -675,10 +675,12 @@ namespace Render
 		{
 			T*  dataPtr = nullptr;
 			int usedCount = 0;
+			BufferCreationFlags creationflags;
 
 			bool initialize(int num, BufferCreationFlags flags)
 			{
 				VERIFY_RETURN_FALSE(buffer = RHICreateBuffer(sizeof(T), num, flags));
+				creationflags = flags;
 				return true;
 			}
 
@@ -695,6 +697,15 @@ namespace Render
 			}
 			T* fetch(int num)
 			{
+				if (num > buffer->getNumElements())
+				{
+					tryUnlock();
+					CHECK(usedCount == 0);
+					int newNumElements = 3 * buffer->getNumElements() / 2;
+					buffer = RHICreateBuffer(sizeof(T), newNumElements, creationflags);
+					if (!lock())
+						return nullptr;
+				}
 				CHECK(canFetch(num));
 				T* result = dataPtr + usedCount;
 				usedCount += num;

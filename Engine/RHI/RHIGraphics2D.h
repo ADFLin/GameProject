@@ -199,6 +199,14 @@ public:
 	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
 	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
+	template< typename CharT, typename ...Args >
+	void  drawTextF(Vector2 const& pos, CharT const* format, Args&& ...args)
+	{
+		TInlineString< 512, CharT > str;
+		str.format(format, std::forward<Args>(args)...);
+		drawText(pos, str.c_str());
+	}
+
 	void commitRenderState();
 	void restoreRenderState();
 

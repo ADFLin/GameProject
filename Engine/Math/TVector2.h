@@ -86,8 +86,7 @@ public:
 	bool     operator <= (TVector2 const& rhs) const { return x <= rhs.x && y <= rhs.y; }
 	bool     operator >= (TVector2 const& rhs) const { return rhs <= *this; }
 
-	friend TVector2 const operator * ( ScalarInputType s,TVector2 const& v){  return TVector2(s*v.x,s*v.y);	}
-
+	friend TVector2 const operator * (ScalarInputType s,TVector2 const& v){  return TVector2(s*v.x,s*v.y);	}
 	friend TVector2 Abs(TVector2 const& v)
 	{
 		return TVector2(std::abs(v.x), std::abs(v.y));

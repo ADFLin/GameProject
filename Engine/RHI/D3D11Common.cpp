@@ -299,7 +299,6 @@ namespace Render
 	{
 		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
-
 		mRenderTargetsState.colorResources[indexSlot] = &target;
 		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
 		mRenderTargetsState.numColorBuffers += 1;
@@ -312,7 +311,6 @@ namespace Render
 		CHECK(idx <= mRenderTargetsState.numColorBuffers);
 		if (idx == mRenderTargetsState.numColorBuffers)
 			mRenderTargetsState.numColorBuffers += 1;
-
 		mRenderTargetsState.colorResources[idx] = &target;
 		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
 		bStateDirty = true;
@@ -323,7 +321,6 @@ namespace Render
 		CHECK(idx <= mRenderTargetsState.numColorBuffers);
 		if (idx == mRenderTargetsState.numColorBuffers)
 			mRenderTargetsState.numColorBuffers += 1;
-
 		mRenderTargetsState.colorResources[idx] = &target;
 		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
 		bStateDirty = true;

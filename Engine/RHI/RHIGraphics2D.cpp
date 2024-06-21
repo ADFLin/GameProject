@@ -270,6 +270,14 @@ void RHIGraphics2D::drawLineStrip(Vector2 const pos[], int num)
 	setupElement(element);
 }
 
+void RHIGraphics2D::drawArcLine(Vector2 const& pos, float r, float startAngle, float sweepAngle)
+{
+	setTextureState();
+	commitRenderState();
+
+	auto& element = mElementList.addArcLine( mPaintArgs.penColor, pos, r, startAngle, sweepAngle, mPaintArgs.penWidth);
+	setupElement(element);
+}
 
 void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize)
 {

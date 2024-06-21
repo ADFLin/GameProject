@@ -118,6 +118,7 @@ public:
 	void  drawPixel(Vector2 const& p, Color3Type const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);
 	void  drawLineStrip(Vector2 const pos[], int num);
+	void  drawArcLine(Vector2 const& pos, float r, float startAngle, float sweepAngle);
 
 	void  drawRect(int left, int top, int right, int bottom);
 	void  drawRect(Vector2 const& pos, Vector2 const& size);

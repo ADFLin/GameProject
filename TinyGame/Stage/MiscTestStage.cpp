@@ -1079,16 +1079,26 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 	float angle = mAngle + mSpeed * dFrame * gDefaultTickTime;
 
 	RenderUtility::SetBrush(g, EColor::White);
+
+#if 0
 	g.pushXForm();
 	g.translateXForm(300, 300);
 	g.rotateXForm(angle);
 	g.translateXForm(-300, -300);
 	g.setSampler(TStaticSamplerState< ESampler::Trilinear , ESampler::Clamp , ESampler::Clamp >::GetRHI());
 	g.drawTexture(*mTexture, Vector2(0, 0), Vector2(600, 600));
+	g.popXForm();
+#endif
+	RenderUtility::SetPen(g, EColor::Red);
+	g.setPenWidth(5);
+	for( int i = 0; i < 4; ++i )
+	{
+		g.drawArcLine(Vector2(100, 100), 100, Math::DegToRad(45 + i * 90), Math::DegToRad(90));
+	}
+
 	g.endRender();
 
-	return;
-
+#if 0
 	g.setPen( Color3ub(255,0,0) );
 	g.enableBrush( false );
 	g.enablePen( true );
@@ -1106,6 +1116,7 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 
 	RenderUtility::SetFont( g , FONT_S8 );
 	g.drawText( Vec2i( 10 , 10 ) , "aa");
+#endif
 
 
 	g.endRender();

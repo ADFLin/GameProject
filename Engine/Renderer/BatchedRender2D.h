@@ -52,6 +52,8 @@ namespace Render
 		void buildRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius);
 		void buildPolygonLine(Vector2 v[], int numV, float lineWidth);
 
+		void buildArcLinePos(Vector2 const& center, float r, float startAngle, float sweepAngle);
+
 
 		RenderTransform2D  mTransform;
 		TArray< Vector2 >& mBuffer;
@@ -311,8 +313,10 @@ namespace Render
 			Color4Type color;
 			Vector2 center;
 			float radius;
-			float start;
-			float end;
+			float startAngle;
+			float sweepAngle;
+
+			int     width;
 		};
 
 		struct TextPayload
@@ -376,19 +380,7 @@ namespace Render
 		}
 
 
-		template< class TVector2 >
-		RenderBatchedElement& addArcLine(RenderTransform2D const& transform, Color4Type const& color, TVector2 const& center, float radius, float start, float end)
-		{
-			CHECK(numV >= 2);
-			TRenderBatchedElement<LineStripPayload>* element = addElement< ArcLinePlayload >();
-			element->type = RenderBatchedElement::ArcLine;
-			element->payload.color = color;
-			element->payload.center = center;
-			element->payload.radius = radius;
-			element->payload.start = start;
-			element->payload.end = end;
-			return *element;
-		}
+		RenderBatchedElement& addArcLine(Color4Type const& color, Vector2 const& center, float radius, float startAngle, float sweepAngle, int width);
 
 
 		RenderBatchedElement& addCircle( ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius);
@@ -631,6 +623,7 @@ namespace Render
 		void emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs);
 		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
 		void emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState);
+		void emitLineStrip(TArrayView< Vector2 const > posList, Color4Type const& color, int width);
 
 		struct RenderGroup
 		{

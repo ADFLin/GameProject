@@ -59,6 +59,20 @@ namespace RVO
 		TArray<Line> mCachedOrcaLines;
 
 
+		void drawDebug(RHIGraphics2D& g, Agent const& other)
+		{
+			const Vector2 relativePosition = other.pos - pos;
+			const Vector2 relativeVelocity = velocity - other.velocity;
+			const float distSq = relativePosition.length2();
+			const float combinedRadius = radius + other.radius;
+			const float combinedRadiusSq = combinedRadius * combinedRadius;
+
+
+
+
+		}
+
+
 
 		void computeNewVelocity2(float timeStep)
 		{
@@ -97,7 +111,7 @@ namespace RVO
 
 	float Det(Vector2 const& a, Vector2 const& b)
 	{
-		return a.x * b.y - a.y * b.x;
+		return a.cross(b);
 	}
 
 	bool LinearProgram1(TArray<Line> const& lines, std::size_t lineNo, float radius, const Vector2 &optVelocity, bool directionOpt, Vector2 &result)

@@ -264,6 +264,40 @@ namespace Render
 #endif
 	}
 
+	void ShapeVertexBuilder::buildArcLinePos(Vector2 const& center, float r, float startAngle, float sweepAngle)
+	{
+		int numSegment = Math::CeilToInt(float(GetCircleSemgmentNum(r)) * sweepAngle / ( 2 * Math::PI ) );
+
+		mBuffer.resize(numSegment + 1);
+		Vector2* pVertices = mBuffer.data();
+		auto EmitVertex = [&](Vector2 const& p)
+		{
+			*pVertices = mTransform.transformPosition(p);
+			++pVertices;
+		};
+
+		float theta = sweepAngle / float(numSegment);
+		Matrix2 rotation = Matrix2::Rotate(theta);
+
+		float s,c;
+		Math::SinCos(startAngle, s, c);
+		Vector2 offset = r * Vector2(c, s);
+
+		for (int i = 0; i < numSegment; ++i)
+		{
+			EmitVertex(center + offset);
+			//apply the rotation matrix
+			offset = rotation.leftMul(offset);
+		}
+
+		{
+			float s, c;
+			Math::SinCos(startAngle + sweepAngle, s, c);
+			Vector2 offset = r * Vector2(c, s);
+			EmitVertex(center + offset);
+		}
+	}
+
 	RenderBatchedElement& RenderBatchedElementList::addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max)
 	{
 		TRenderBatchedElement<RectPayload>* element = addElement< RectPayload >();
@@ -282,6 +316,19 @@ namespace Render
 		element->payload.pos = pos;
 		element->payload.rectSize = rectSize;
 		element->payload.circleRadius = circleRadius;
+		return *element;
+	}
+
+	RenderBatchedElement& RenderBatchedElementList::addArcLine(Color4Type const& color, Vector2 const& center, float radius, float startAngle, float sweepAngle, int width)
+	{
+		TRenderBatchedElement<ArcLinePlayload>* element = addElement< ArcLinePlayload >();
+		element->type = RenderBatchedElement::ArcLine;
+		element->payload.color = color;
+		element->payload.center = center;
+		element->payload.radius = radius;
+		element->payload.startAngle = startAngle;
+		element->payload.sweepAngle = sweepAngle;
+		element->payload.width = width;
 		return *element;
 	}
 
@@ -915,64 +962,17 @@ namespace Render
 			case RenderBatchedElement::LineStrip:
 				{
 					RenderBatchedElementList::LineStripPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::LineStripPayload >(element);
+					emitLineStrip( TArrayView< Vector2 const >( payload.posList , payload.posCount ) , payload.color , payload.width );
+				}
+				break;
+			case RenderBatchedElement::ArcLine:
+				{
+					RenderBatchedElementList::ArcLinePlayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ArcLinePlayload >(element);
 
-					int lineCount = payload.posCount - 1;
-
-					float halfWidth = 0.5 * float(payload.width);
-					Vector2 offset[4] =
-					{
-						Vector2(-halfWidth,-halfWidth) ,
-						Vector2(-halfWidth,halfWidth)  ,
-						Vector2(halfWidth,halfWidth),
-						Vector2(halfWidth,-halfWidth)
-					};
-#if USE_NEW_LINE_IDNEX
-					FetchedData data = fetchBuffer(3 * 2 * lineCount, 4 * 3 * lineCount);
-#else
-					FetchedData data = fetchBuffer(4 * 2 * lineCount, 4 * 6 * lineCount);
-#endif
-					int baseIndex = data.base;
-					TexVertex* pVertices = data.vertices;
-					uint32* pIndices = data.indices;
-
-					for (int i = 0; i < lineCount; ++i)
-					{
-						Vector2 positions[2];
-						positions[0] = payload.posList[i];
-						positions[1] = payload.posList[i + 1];
-#if USE_NEW_LINE_IDNEX
-						Vector2 dir = positions[1] - positions[0];
-						int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
-						int index1 = (index0 + 1) % 4;
-						int index2 = (index0 + 2) % 4;
-						int index3 = (index0 + 3) % 4;
-
-						pVertices[0] = { positions[0] + offset[index2] , payload.color };
-						pVertices[1] = { positions[0] + offset[index3] , payload.color };
-						pVertices[2] = { positions[0] + offset[index1] , payload.color };
-						pVertices[3] = { positions[1] + offset[index0] , payload.color };
-						pVertices[4] = { positions[1] + offset[index1] , payload.color };
-						pVertices[5] = { positions[1] + offset[index3] , payload.color };
-						pVertices += 6;
-
-						pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
-						pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
-						pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
-						baseIndex += 6;
-#else
-						for (int i = 0; i < 2; ++i)
-						{
-							pVertices[0] = { positions[i] + offset[0] , payload.color };
-							pVertices[1] = { positions[i] + offset[1] , payload.color };
-							pVertices[2] = { positions[i] + offset[2] , payload.color };
-							pVertices[3] = { positions[i] + offset[3] , payload.color };
-							pVertices += 4;
-						}
-
-						pIndices = FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
-						baseIndex += 8;
-#endif
-					}
+					ShapeVertexBuilder builder(mCachedPositionList);
+					builder.mTransform = element->transform;
+					builder.buildArcLinePos(payload.center, payload.radius, payload.startAngle, payload.sweepAngle);
+					emitLineStrip(mCachedPositionList, payload.color, payload.width);
 				}
 				break;
 			case RenderBatchedElement::Text:
@@ -1052,11 +1052,71 @@ namespace Render
 					}
 
 					FObjectManage::Release(payload.renderer, payload.manageMode);
-
 				}
 				break;
 
 			}
+		}
+	}
+
+	void BatchedRender::emitLineStrip(TArrayView< Vector2 const > posList, Color4Type const& color, int width)
+	{
+		int lineCount = posList.size() - 1;
+
+		float halfWidth = 0.5 * float(width);
+		Vector2 offset[4] =
+		{
+			Vector2(-halfWidth,-halfWidth) ,
+			Vector2(-halfWidth,halfWidth)  ,
+			Vector2(halfWidth,halfWidth),
+			Vector2(halfWidth,-halfWidth)
+		};
+#if USE_NEW_LINE_IDNEX
+		FetchedData data = fetchBuffer(3 * 2 * lineCount, 4 * 3 * lineCount);
+#else
+		FetchedData data = fetchBuffer(4 * 2 * lineCount, 4 * 6 * lineCount);
+#endif
+		int baseIndex = data.base;
+		TexVertex* pVertices = data.vertices;
+		uint32* pIndices = data.indices;
+
+		for (int i = 0; i < lineCount; ++i)
+		{
+			Vector2 positions[2];
+			positions[0] = posList[i];
+			positions[1] = posList[i + 1];
+#if USE_NEW_LINE_IDNEX
+			Vector2 dir = positions[1] - positions[0];
+			int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
+			int index1 = (index0 + 1) % 4;
+			int index2 = (index0 + 2) % 4;
+			int index3 = (index0 + 3) % 4;
+
+			pVertices[0] = { positions[0] + offset[index2] , color };
+			pVertices[1] = { positions[0] + offset[index3] , color };
+			pVertices[2] = { positions[0] + offset[index1] , color };
+			pVertices[3] = { positions[1] + offset[index0] , color };
+			pVertices[4] = { positions[1] + offset[index1] , color };
+			pVertices[5] = { positions[1] + offset[index3] , color };
+			pVertices += 6;
+
+			pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
+			pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
+			pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
+			baseIndex += 6;
+#else
+			for (int i = 0; i < 2; ++i)
+			{
+				pVertices[0] = { positions[i] + offset[0] , color };
+				pVertices[1] = { positions[i] + offset[1] , color };
+				pVertices[2] = { positions[i] + offset[2] , color };
+				pVertices[3] = { positions[i] + offset[3] , color };
+				pVertices += 4;
+			}
+
+			pIndices = FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
+			baseIndex += 8;
+#endif
 		}
 	}
 

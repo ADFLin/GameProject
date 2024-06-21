@@ -1617,44 +1617,44 @@ namespace Render
 
 		D3D12PipelineStateStream stateStream;
 
-		for (auto& shaderInfo : boundState->mShaders)
-		{
-			switch (shaderInfo.type)
-			{
-			case EShader::Vertex:
-				{
-					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>(shaderInfo.data->getByteCode());
-				}
-				break;
-			case EShader::Pixel:
-				{
-					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>(shaderInfo.data->getByteCode());
-				}
-				break;
-			case EShader::Geometry:
-				{
-					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS>(shaderInfo.data->getByteCode());
-				}
-				break;
-			case EShader::Hull:
-				{
-					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>(shaderInfo.data->getByteCode());
-				}
-				break;
-			case EShader::Domain:
-				{
-					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>(shaderInfo.data->getByteCode());
-				}
-				break;
-			}
-		}
-
 		if (renderState.inputLayout)
 		{
 			stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>(
 				static_cast<D3D12InputLayout*>(renderState.inputLayout)->getDesc());
 		}
 
+
+		for (auto& shaderInfo : boundState->mShaders)
+		{
+			switch (shaderInfo.type)
+			{
+			case EShader::Vertex:
+			{
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>(shaderInfo.data->getByteCode());
+			}
+			break;
+			case EShader::Pixel:
+			{
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>(shaderInfo.data->getByteCode());
+			}
+			break;
+			case EShader::Geometry:
+			{
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS>(shaderInfo.data->getByteCode());
+			}
+			break;
+			case EShader::Hull:
+			{
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>(shaderInfo.data->getByteCode());
+			}
+			break;
+			case EShader::Domain:
+			{
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>(shaderInfo.data->getByteCode());
+			}
+			break;
+			}
+		}
 
 		FPipelineStream::Add(stateStream, renderState);
 		FPipelineStream::Add(stateStream, renderTargetsState);
@@ -1810,6 +1810,26 @@ namespace Render
 
 		VERIFY_RETURN_FALSE( mVertexBufferUP.initialize() );
 		VERIFY_RETURN_FALSE( mIndexBufferUP.initialize() );
+
+
+		{
+			D3D12_INDIRECT_ARGUMENT_DESC args[1];
+			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+			D3D12_COMMAND_SIGNATURE_DESC desc;
+			desc.ByteStride = 36;
+			desc.NumArgumentDescs = ARRAY_SIZE(args);
+			desc.pArgumentDescs = args;
+			mDevice->CreateCommandSignature(&desc, NULL, IID_PPV_ARGS(&mDrawCmdSignature));
+		}
+		{
+			D3D12_INDIRECT_ARGUMENT_DESC args[1];
+			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+			D3D12_COMMAND_SIGNATURE_DESC desc;
+			desc.ByteStride = 36;
+			desc.NumArgumentDescs = ARRAY_SIZE(args);
+			desc.pArgumentDescs   = args;
+			mDevice->CreateCommandSignature(&desc, NULL, IID_PPV_ARGS(&mDrawIndexedCmdSignature));
+		}
 
 		mFrameIndex = 0;
 		mFrameDataList.resize(1);
@@ -2112,6 +2132,22 @@ namespace Render
 		return DetermitPrimitiveTopologyUP(primitive, num, pIndices,  MyBuffer(mIndexBufferUP, outIndexBufferView), outPrimitiveDetermited, outIndexNum);
 	}
 
+	void D3D12Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		auto& bufferImpl = *static_cast<D3D12Buffer*>(commandBuffer);
+		commitGraphicsPipelineState(type);
+		mGraphicsCmdList->ExecuteIndirect(mDrawCmdSignature, numCommand, bufferImpl.getResource(), offset, nullptr , 0);
+		postDrawPrimitive();
+	}
+
+	void D3D12Context::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		auto& bufferImpl = *static_cast<D3D12Buffer*>(commandBuffer);
+		commitGraphicsPipelineState(type);
+		mGraphicsCmdList->ExecuteIndirect(mDrawIndexedCmdSignature, numCommand, bufferImpl.getResource(), offset, nullptr, 0);
+		postDrawPrimitive();
+	}
+
 	void D3D12Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData)
 	{
 
@@ -2337,8 +2373,10 @@ namespace Render
 		{
 		case EResourceTransition::UAV:
 			return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+#if 0
 		case EResourceTransition::SRV:
 			return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+#endif
 		case EResourceTransition::RenderTarget:
 			return D3D12_RESOURCE_STATE_RENDER_TARGET;
 		}

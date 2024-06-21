@@ -865,16 +865,17 @@ namespace Render
 
 	enum BufferCreationFlags : uint32
 	{
-		BCF_None           = 0,
-		BCF_CreateSRV      = BIT(0),
-		BCF_CreateUAV      = BIT(1),
-		BCF_CpuAccessWrite = BIT(2),
-		BCF_UsageVertex    = BIT(3),
-		BCF_UsageIndex     = BIT(4),
-		BCF_UsageStage     = BIT(5),
-		BCF_UsageConst     = BIT(6),
-		BCF_Structured     = BIT(7),
-		BCF_CpuAccessRead  = BIT(8),
+		BCF_None             = 0,
+		BCF_CreateSRV        = BIT(0),
+		BCF_CreateUAV        = BIT(1),
+		BCF_CpuAccessWrite   = BIT(2),
+		BCF_UsageVertex      = BIT(3),
+		BCF_UsageIndex       = BIT(4),
+		BCF_UsageStage       = BIT(5),
+		BCF_UsageConst       = BIT(6),
+		BCF_Structured       = BIT(7),
+		BCF_DrawIndirectArgs = BIT(8),
+		BCF_CpuAccessRead    = BIT(9),
 
 		BCF_DefalutValue   = 0,
 	};

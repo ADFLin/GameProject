@@ -508,7 +508,10 @@ namespace Render
 			bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 			bufferDesc.StructureByteStride = desc.elementSize;
 		}
-
+		if (desc.creationFlags & BCF_DrawIndirectArgs)
+		{
+			bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+		}
 
 		if (desc.creationFlags & BCF_CpuAccessWrite)
 			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
@@ -1546,6 +1549,26 @@ namespace Render
 	void D3D11Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		commitGraphicsShaderState();
+		if (numCommand > 1)
+		{
+			int cmdOffset = offset;
+			for (int i = 0; i < numCommand; ++i)
+			{
+				if (commandStride == 0)
+				{
+					cmdOffset += commandBuffer->getElementSize();
+				}
+				else
+				{
+					cmdOffset += commandStride;
+				}
+				mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), cmdOffset);
+			}
+		}
+		else
+		{
+			mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
+		}
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		postDrawPrimitive();
 	}
@@ -1554,13 +1577,25 @@ namespace Render
 	{
 		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-		if (numCommand)
+		if (numCommand > 1)
 		{
-			mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
+			int cmdOffset = offset;
+			for(int i = 0 ; i < numCommand; ++i)
+			{
+				if (commandStride == 0)
+				{
+					cmdOffset += commandBuffer->getElementSize();
+				}
+				else
+				{
+					cmdOffset += commandStride;
+				}
+				mDeviceContext->DrawIndexedInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), cmdOffset);
+			}
 		}
 		else
 		{
-			//
+			mDeviceContext->DrawIndexedInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
 		}
 		postDrawPrimitive();
 	}

@@ -201,16 +201,9 @@ namespace Render
 			postDrawPrimitive();
 		}
 
-		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-		{
-			commitGraphicsPipelineState(type);
-			postDrawPrimitive();
-		}
-		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-		{
-			commitGraphicsPipelineState(type);
-			postDrawPrimitive();
-		}
+		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+
+		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 		{
 			commitGraphicsPipelineState(type);
@@ -438,6 +431,9 @@ namespace Render
 		RHIRasterizerStateRef   mRasterizerStatePending;
 		RHIDepthStencilStateRef mDepthStencilStatePending;
 		RHIBlendStateRef        mBlendStateStatePending;
+
+		TComPtr< ID3D12CommandSignature > mDrawCmdSignature;
+		TComPtr< ID3D12CommandSignature > mDrawIndexedCmdSignature;
 
 
 		static constexpr int MaxViewportCount = 8;

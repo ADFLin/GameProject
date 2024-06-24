@@ -844,7 +844,10 @@ namespace Render
 		{ 
 			return mColorTexture; 
 		}
-
+		virtual RHITexture2D* getDepthTexture() override
+		{
+			return mDepthTexture;
+		}
 		virtual void present(bool bVSync) override
 		{
 			mResource->Present(bVSync ? 1 : 0, 0);

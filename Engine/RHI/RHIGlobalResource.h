@@ -278,13 +278,13 @@ namespace Render
 	template 
 	<
 		bool bWriteDepth = true,
-		ECompareFunc DepthFun = ECompareFunc::DepthNear,
+		ECompareFunc DepthFunc = ECompareFunc::DepthNear,
 		bool bEnableStencilTest = false,
-		ECompareFunc StencilFun = ECompareFunc::Always,
+		ECompareFunc StencilFunc = ECompareFunc::Always,
 		EStencil StencilFailOp = EStencil::Keep,
 		EStencil ZFailOp = EStencil::Keep,
 		EStencil ZPassOp = EStencil::Keep,
-		ECompareFunc BackStencilFun = ECompareFunc::Always,
+		ECompareFunc BackStencilFunc = ECompareFunc::Always,
 		EStencil BackStencilFailOp = EStencil::Keep,
 		EStencil BackZFailOp = EStencil::Keep,
 		EStencil BackZPassOp = EStencil::Keep,
@@ -294,8 +294,8 @@ namespace Render
 	class TStaticDepthStencilSeparateState : public StaticRHIResourceT<
 		TStaticDepthStencilSeparateState
 		<
-			bWriteDepth, DepthFun, bEnableStencilTest, StencilFun, StencilFailOp,
-			ZFailOp, ZPassOp, BackStencilFun, BackStencilFailOp, BackZFailOp, BackZPassOp,
+			bWriteDepth, DepthFunc, bEnableStencilTest, StencilFunc, StencilFailOp,
+			ZFailOp, ZPassOp, BackStencilFunc, BackStencilFailOp, BackZFailOp, BackZPassOp,
 			StencilReadMask, StencilWriteMask 
 		>,
 		RHIDepthStencilState >
@@ -310,13 +310,13 @@ namespace Render
 		{
 			DepthStencilStateInitializer initializer;
 			initializer.bWriteDepth = bWriteDepth;
-			initializer.depthFunc = DepthFun;
+			initializer.depthFunc = DepthFunc;
 			initializer.bEnableStencilTest = bEnableStencilTest;
-			initializer.stencilFunc = StencilFun;
+			initializer.stencilFunc = StencilFunc;
 			initializer.stencilFailOp = StencilFailOp;
 			initializer.zFailOp = ZFailOp;
 			initializer.zPassOp = ZPassOp;
-			initializer.stencilFuncBack = BackStencilFun;
+			initializer.stencilFuncBack = BackStencilFunc;
 			initializer.stencilFailOpBack = BackStencilFailOp;
 			initializer.zFailOpBack = BackZFailOp;
 			initializer.zPassOpBack = BackZPassOp;

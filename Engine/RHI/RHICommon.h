@@ -913,6 +913,7 @@ namespace Render
 
 		virtual void resizeBuffer(int w, int h) = 0;
 		virtual RHITexture2D* getBackBufferTexture() = 0;
+		virtual RHITexture2D* getDepthTexture() = 0;
 		virtual void present(bool bVSync) = 0;
 	};
 

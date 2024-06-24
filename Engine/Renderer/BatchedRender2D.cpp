@@ -707,6 +707,7 @@ namespace Render
 	{
 		mCommandList = &commandList;
 		mProgramCur = nullptr;
+		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 		setupInputState(commandList);
 		CHECK(mGroups.size() == 0);
 	}
@@ -1028,11 +1029,13 @@ namespace Render
 
 					if (payload.renderer)
 					{
+						mbCustomState = true;
 						payload.renderer->render(*mCommandList, *element);
 						FObjectManage::Release(payload.renderer, payload.manageMode);
 					}
 					else
 					{
+						mbCustomState = false;
 						commitRenderState(*mCommandList, renderState);
 					}
 				}
@@ -1142,7 +1145,7 @@ namespace Render
 
 	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
 	{
-		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+		//RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 
 		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 		RHISetBlendState(commandList, GetBlendState(state.blendMode));
@@ -1163,7 +1166,9 @@ namespace Render
 
 	void BatchedRender::updateRenderState(RHICommandList& commandList, RenderState const& state)
 	{
-		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+		//RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+		if ( mbCustomState )
+			return;
 
 		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 		RHISetBlendState(commandList, GetBlendState(state.blendMode));

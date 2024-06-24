@@ -132,17 +132,17 @@ public:
 		Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
 	template< typename TCustomRenderer , typename ...TArgs >
-	TCustomRenderer*  drawCustom(TArgs&& ...args)
+	TCustomRenderer*  drawCustom(bool bChangeState, TArgs&& ...args)
 	{
 		commitRenderState();
 
 		void* ptr = mAllocator.alloc(sizeof(TCustomRenderer));
 		new (ptr) TCustomRenderer(std::forward<TArgs>(args)...);
-		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly);
+		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly, bChangeState);
+
 		setupElement(element);
 		return (TCustomRenderer*)ptr;
 	}
-
 
 	template< typename TFunc >
 	class TCustomFuncRenderer : public Render::ICustomElementRenderer
@@ -163,9 +163,33 @@ public:
 	{
 		commitRenderState();
 
-		void* ptr = mAllocator.alloc(sizeof(TCustomFuncRenderer<TFunc>));
-		new (ptr) TCustomFuncRenderer<TFunc>(std::forward<TFunc>(func));
+		using MyCustomRenderer = TCustomFuncRenderer<TFunc>;
+		void* ptr = mAllocator.alloc(sizeof(MyCustomRenderer));
+		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
 		auto& element = mElementList.addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly, bChangeState);
+		setupElement(element);
+	}
+
+	template< typename TFunc >
+	void  setCustomRenderState(TFunc&& func)
+	{
+		commitRenderState();
+
+		using MyCustomRenderer = TCustomFuncRenderer<TFunc>;
+		void* ptr = mAllocator.alloc(sizeof(MyCustomRenderer));
+		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
+
+		auto& element = mElementList.addCustomState(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly);
+		
+		setupElement(element);
+	}
+
+	void resetRenderState()
+	{
+		commitRenderState();
+
+		auto& element = mElementList.addCustomState(nullptr, Render::EObjectManageMode::None);
+
 		setupElement(element);
 	}
 

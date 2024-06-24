@@ -591,6 +591,10 @@ namespace Render
 		{
 			return nullptr;
 		}
+		virtual RHITexture2D* getDepthTexture() override
+		{
+			return nullptr;
+		}
 
 		virtual void present(bool bVSync) override
 		{

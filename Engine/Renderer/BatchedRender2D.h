@@ -741,6 +741,8 @@ namespace Render
 			operator RHIBuffer*() { return buffer; }
 		};
 
+		bool     mbCustomState = false;
+
 		int       mWidth;
 		int       mHeight;
 		Math::Matrix4   mBaseTransform;

@@ -455,6 +455,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		info.bCreateDepth = true;
 		info.depthFormat = ETexture::D32FS8;
 		info.textureCreationFlags = TCF_CreateSRV | TCF_PlatformGraphicsCompatible;
+		info.depthCreateionFlags = TCF_CreateSRV;
 		mSwapChain = RHICreateSwapChain(info);
 	}
 

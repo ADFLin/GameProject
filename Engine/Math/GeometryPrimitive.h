@@ -149,15 +149,75 @@ namespace Math
 
 	};
 
+	namespace EPlaneSide
+	{
+		enum Enum
+		{
+			Front = 1,
+			In = 0,
+			Back = -1,
+		};
+	}
 
-	//#MOVE
 	// N.dot( V ) + d = 0
-	class  Plane
+	//#MOVE
+	template< class VectorType >
+	class TPlane
 	{
 	public:
-		Plane() {}
+		TPlane() = default;
+		TPlane(TPlane const& rhs) = default;
+		TPlane& operator = (TPlane const& rhs) = default;
 
-		Plane(Vector3 const& v0, Vector3 const& v1, Vector3 const&  v2)
+		TPlane(VectorType const& n, float d)
+		{
+			mNormal = n;
+			mNormal.normalize();
+			mArgD = d;
+		}
+
+		TPlane(VectorType const& normal, VectorType const& pos)
+		{
+			mNormal = normal;
+			mNormal.normalize();
+			mArgD = -mNormal.dot(pos);
+		}
+
+		VectorType const& getNormal() const { return mNormal; }
+		float getArgD() const { return mArgD; }
+
+		float calcDistance(VectorType const& p) const
+		{
+			return mNormal.dot(p) + mArgD;
+		}
+
+		EPlaneSide::Enum testSide(VectorType const& p, float thinkness, float& dist)
+		{
+			dist = calcDistance(p);
+			if (dist > thinkness)
+				return EPlaneSide::Front;
+			else if (dist < -thinkness)
+				return EPlaneSide::Back;
+			return EPlaneSide::In;
+		}
+
+		EPlaneSide::Enum testSide(VectorType const& p, float thinkness)
+		{
+			float dist;
+			return testSide(p, thinkness);
+		}
+	protected:
+		VectorType mNormal;
+		float      mArgD;
+	};
+
+	class Plane : public TPlane<Vector3>
+	{
+	public:
+
+		using TPlane<Vector3>::TPlane;
+
+		Plane(Vector3 const& v0, Vector3 const& v1, Vector3 const& v2)
 		{
 			Vector3 d1 = v1 - v0;
 			Vector3 d2 = v2 - v0;
@@ -165,20 +225,6 @@ namespace Math
 			mNormal.normalize();
 
 			mArgD = -mNormal.dot(v0);
-		}
-
-		Plane(Vector3 const& normal, Vector3 const& pos)
-			:mNormal(normal)
-		{
-			mNormal.normalize();
-			mArgD = -mNormal.dot(pos);
-		}
-
-		Plane(Vector3 const& n, float d)
-			:mNormal(n)
-			,mArgD(d)
-		{
-			mNormal.normalize();
 		}
 
 		static Plane FromVector4(Vector4 const& v)
@@ -199,16 +245,19 @@ namespace Math
 			swap(mArgD, p.mArgD);
 		}
 #endif
-
-		float calcDistance(Vector3 const& p) const
-		{
-			return p.dot(mNormal) + mArgD;
-		}
-	private:
-		Vector3 mNormal;
-		float   mArgD;
 	};
 
+	class Plane2D : public TPlane<Vector2>
+	{
+	public:
+		using TPlane<Vector2>::TPlane;
+
+		static Plane2D FromPosition(Vector2 const& posA, Vector2 const& posB)
+		{
+			Vector2 offset = posB - posA;
+			return Plane2D(Vector2(offset.y, -offset.x), posA);
+		}
+	};
 
 	class BoundSphere
 	{

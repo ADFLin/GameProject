@@ -5,6 +5,7 @@
 #include "Math/Vector2.h"
 #include "Core/IntegerType.h"
 #include "DataStructure/Array.h"
+#include "Math/GeometryPrimitive.h"
 
 #include <algorithm>
 
@@ -38,26 +39,26 @@ namespace Bsp2D
 		//int mSolidType;
 	};
 
+
+	namespace EPlaneSide = ::Math::EPlaneSide;
 	enum Side
 	{
-		SIDE_FRONT = 1 ,
-		SIDE_IN    = 0 ,
-		SIDE_BACK  = -1,
+		SIDE_FRONT = EPlaneSide::Front,
+		SIDE_IN    = EPlaneSide::In,
+		SIDE_BACK  = EPlaneSide::Back,
 		SIDE_SPLIT = 2,
 	};
 
-	struct Plane
+	class Plane : public ::Math::Plane2D
 	{
-		Vector2 normal;
-		float d;
+	public:
+		using ::Math::Plane2D::Plane2D;
 
 		void  init( Vector2 const& v1 , Vector2 const& v2 );
-		float calcDistance( Vector2 const& p ){  return normal.dot( p ) + d;  }
 		bool  getIntersectPos( Vector2 const& v1 , Vector2 const& v2 , Vector2& out );
-		Side  testSide( Vector2 const& p , float& dist );
 		Side  testSegment( Vector2 const& v0 , Vector2 const& v1 );
 		Side  testSegment( Vector2 const v[2] ){  return testSegment( v[0] , v[1] );  }
-		Side  splice( Vector2 v[2] , Vector2 vSplit[2] );
+		Side  split( Vector2 v[2] , Vector2 vSplit[2] );
 	};
 
 

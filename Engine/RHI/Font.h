@@ -190,7 +190,6 @@ namespace Render
 		bool isValid() const { return !!mCharDataSet; }
 		void cleanup();
 
-		int   getVerticesCount(char const* str);
 		void  generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 		void  generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 
@@ -223,9 +222,6 @@ namespace Render
 		void generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize);
 		template< typename CharT, typename TAddQuad >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, TAddQuad& addQuad, Vector2* outBoundSize);
-
-		template< typename CharT >
-		int getCharCountT(CharT const* str);
 	
 	public:
 		CharDataSet* mCharDataSet;

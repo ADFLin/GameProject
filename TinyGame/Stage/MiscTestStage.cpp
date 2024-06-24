@@ -767,7 +767,7 @@ namespace Bsp2D
 			g.drawRect( pos[1] - offset , rectSize );
 
 			Vector2 v1 = ( edge.v[0] + edge.v[1] ) / 2;
-			Vector2 v2 = v1 + 0.8 * edge.plane.normal;
+			Vector2 v2 = v1 + 0.8 * edge.plane.getNormal();
 			RenderUtility::SetPen( g , EColor::Green );
 			renderer.drawLine( g , v1 , v2 , pos );
 		}
@@ -807,7 +807,7 @@ namespace Bsp2D
 				{
 					Tree::Edge& edge = mTree.mEdges[i];
 					Vector2 mid = ( edge.v[0] + edge.v[1] ) / 2;
-					drawLine( g , mid , mid + 0.5 * edge.plane.normal );
+					drawLine( g , mid , mid + 0.5 * edge.plane.getNormal() );
 				}
 			}
 		}
@@ -888,7 +888,7 @@ namespace Bsp2D
 
 			Tree::Edge& edge = mTree.getEdge( info.indexEdge );
 
-			float dotVal = outOffset.dot( edge.plane.normal );
+			float dotVal = outOffset.dot( edge.plane.getNormal());
 			if ( dotVal > 0 )
 				continue;
 
@@ -896,7 +896,7 @@ namespace Bsp2D
 			frac = info.frac;
 			assert( frac < 1.0f );
 			idxCol = i;
-			outOffset -= ( ( 1 - info.frac ) * ( dotVal ) ) * edge.plane.normal;
+			outOffset -= ( ( 1 - info.frac ) * ( dotVal ) ) * edge.plane.getNormal();
 		}
 
 
@@ -908,7 +908,7 @@ namespace Bsp2D
 
 			Plane plane;
 			plane.init( p1 , p2 );
-			float dotValue = plane.normal.dot( outOffset );
+			float dotValue = plane.getNormal().dot( outOffset );
 
 			if ( dotValue <= 0 )
 				continue;
@@ -1080,7 +1080,7 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 
 	RenderUtility::SetBrush(g, EColor::White);
 
-#if 0
+#if 1
 	g.pushXForm();
 	g.translateXForm(300, 300);
 	g.rotateXForm(angle);
@@ -1091,7 +1091,7 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 #endif
 	RenderUtility::SetPen(g, EColor::Red);
 	g.setPenWidth(5);
-	for( int i = 0; i < 4; ++i )
+	for( int i = 0; i < 1; ++i )
 	{
 		g.drawArcLine(Vector2(100, 100), 100, Math::DegToRad(45 + i * 90), Math::DegToRad(90));
 	}

@@ -447,13 +447,13 @@ namespace Render
 			*outCharCount = count;
 		}
 
-		result.x = std::max(result.x, xOffset);
+		result.x = Math::Max(result.x, xOffset);
 		result.y += lineMaxHeight;
 		return result;
 	}
 
 	template< typename CharT >
-	int FontDrawer::getCharCountT(CharT const* str)
+	int GetCharCountT(CharT const* str)
 	{
 		if (str == nullptr || *str == 0)
 			return 0;
@@ -475,12 +475,12 @@ namespace Render
 
 	int FontDrawer::getCharCount(wchar_t const* str)
 	{
-		return getCharCountT(str);
+		return GetCharCountT(str);
 	}
 
 	int FontDrawer::getCharCount(char const* str)
 	{
-		return getCharCountT(str);
+		return GetCharCountT(str);
 	}
 
 	Vector2 FontDrawer::calcTextExtent(wchar_t const* str, int* outCharCount)

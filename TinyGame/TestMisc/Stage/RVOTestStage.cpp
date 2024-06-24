@@ -4,6 +4,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"
 #include "RandomUtility.h"
+#include "Math/GeometryPrimitive.h"
 
 namespace RVO
 {
@@ -22,6 +23,14 @@ namespace RVO
 	};
 
 	float const RVO_EPSILON = 1e-6;
+
+
+	class Plane : public ::Math::Plane2D
+	{
+	public:
+
+
+	};
 
 	struct Line
 	{
@@ -46,7 +55,7 @@ namespace RVO
 		{
 			velocity = velocityNew;
 			pos += velocity * dt;
-			//trace.push_back(pos);
+			trace.push_back(pos);
 		}
 
 		void updatePrefVelocity(float dt)
@@ -54,6 +63,7 @@ namespace RVO
 			Vector2 dir = goal - pos;
 			float len = dir.normalize();
 			velocityPref = Math::Min( maxSpeed , len / dt ) * Math::GetNormal(dir);
+			//velocity = velocityPref;
 		}
 
 		Vector2 velocityPref;
@@ -118,7 +128,6 @@ namespace RVO
 		const float sqrtDiscriminant = Math::Sqrt(discriminant);
 		float tLeft = -dotProduct - sqrtDiscriminant;
 		float tRight = -dotProduct + sqrtDiscriminant;
-
 
 		for (std::size_t i = 0U; i < lineNo; ++i) 
 		{
@@ -725,11 +734,11 @@ namespace RVO
 		void restart()
 		{
 			mAgents.clear();
-#if 0
+#if 1
 			{
 				auto agent = std::make_unique<Agent>();
 				agent->pos = Vector2(100, 200);
-				agent->goal = Vector2(600, 200.01);
+				agent->goal = Vector2(600, 200);
 				agent->maxSpeed = 100;
 				agent->radius = 50;
 				mAgents.push_back(std::move(agent));
@@ -756,6 +765,7 @@ namespace RVO
 				agent->goal = center - radius * Vector2(c, s) + Vector2(0,0);
 				agent->maxSpeed = 50;
 				agent->radius = 15;
+				agent->timeHorizon = 0.5;
 				mAgents.push_back(std::move(agent));
 			}
 #endif
@@ -778,9 +788,14 @@ namespace RVO
 		void simulateStep()
 		{
 			float dt = float(gDefaultTickTime) / 1000;
+
 			for (auto& agent : mAgents)
 			{
 				agent->updatePrefVelocity(dt);
+			}
+
+			for (auto& agent : mAgents)
+			{
 				agent->computeNewVelocity(dt);
 			}
 

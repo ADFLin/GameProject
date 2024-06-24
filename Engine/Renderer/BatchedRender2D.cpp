@@ -264,10 +264,8 @@ namespace Render
 #endif
 	}
 
-	void ShapeVertexBuilder::buildArcLinePos(Vector2 const& center, float r, float startAngle, float sweepAngle)
+	void ShapeVertexBuilder::buildArcLinePos(Vector2 const& center, float r, float startAngle, float sweepAngle, int numSegment)
 	{
-		int numSegment = Math::CeilToInt(float(GetCircleSemgmentNum(r)) * sweepAngle / ( 2 * Math::PI ) );
-
 		mBuffer.resize(numSegment + 1);
 		Vector2* pVertices = mBuffer.data();
 		auto EmitVertex = [&](Vector2 const& p)
@@ -602,7 +600,7 @@ namespace Render
 	{
 		if (!mTexVertexBuffer.canFetch(size))
 		{
-			flushDrawCommand(false);
+			flushDrawCommand(true);
 		}
 
 		baseIndex = mTexVertexBuffer.usedCount;
@@ -614,7 +612,7 @@ namespace Render
 	{
 		if (!mIndexBuffer.canFetch(size))
 		{
-			flushDrawCommand(false);
+			flushDrawCommand(true);
 		}
 		return mIndexBuffer.fetch(size);
 	}
@@ -625,7 +623,7 @@ namespace Render
 		if (!mTexVertexBuffer.canFetch(vSize) ||
 			!mIndexBuffer.canFetch(iSize))
 		{
-			flushDrawCommand(false);
+			flushDrawCommand(true);
 		}
 		FetchedData data;
 		data.base = mTexVertexBuffer.usedCount;
@@ -731,7 +729,7 @@ namespace Render
 		updateRenderState(*mCommandList, renderState);
 		emitElements(elementList.mElements, renderState);
 		elementList.releaseElements();
-		flushDrawCommand(true);
+		flushDrawCommand(false);
 		elementList.mAllocator.clearFrame();
 #endif
 	}
@@ -764,11 +762,11 @@ namespace Render
 			group.indexCount = mIndexBuffer.usedCount - group.indexStart;
 		}
 
-		flushDrawCommand(true);
+		flushDrawCommand(false);
 		mGroups.clear();
 	}
 
-	void BatchedRender::flushDrawCommand(bool bEndRender, bool bForceUpdateState)
+	void BatchedRender::flushDrawCommand(bool bRelockBuffer, bool bForceUpdateState)
 	{
 		PROFILE_ENTRY("flushDrawCommand");
 
@@ -802,11 +800,7 @@ namespace Render
 		RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, 0, mIndexBuffer.usedCount);
 #endif
 
-		if (bEndRender)
-		{
-
-		}
-		else
+		if (bRelockBuffer)
 		{
 			mTexVertexBuffer.lock();
 			mIndexBuffer.lock();
@@ -971,8 +965,16 @@ namespace Render
 					RenderBatchedElementList::ArcLinePlayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ArcLinePlayload >(element);
 
 					ShapeVertexBuilder builder(mCachedPositionList);
+
+					int numSegment = Math::CeilToInt(float(GetCircleSemgmentNum(payload.radius)) * payload.sweepAngle / (2 * Math::PI));
+
+#if 1
+					builder.mTransform = RenderTransform2D::Scale(payload.radius) * RenderTransform2D(payload.startAngle, payload.center) * element->transform;
+					builder.buildArcLinePos(Vector2::Zero(), 1.0f, 0 , payload.sweepAngle, numSegment);
+#else
 					builder.mTransform = element->transform;
-					builder.buildArcLinePos(payload.center, payload.radius, payload.startAngle, payload.sweepAngle);
+					builder.buildArcLinePos(payload.center, payload.radius, payload.startAngle, payload.sweepAngle, numSegment);
+#endif
 					emitLineStrip(mCachedPositionList, payload.color, payload.width);
 				}
 				break;
@@ -1025,7 +1027,7 @@ namespace Render
 				{
 					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
-					flushDrawCommand(false, false);
+					flushDrawCommand(true, false);
 
 					if (payload.renderer)
 					{
@@ -1045,7 +1047,7 @@ namespace Render
 				{
 					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
-					flushDrawCommand(false, true);
+					flushDrawCommand(true, true);
 
 					payload.renderer->render(*mCommandList, *element);
 

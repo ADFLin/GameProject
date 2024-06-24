@@ -52,7 +52,7 @@ namespace Render
 		void buildRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius);
 		void buildPolygonLine(Vector2 v[], int numV, float lineWidth);
 
-		void buildArcLinePos(Vector2 const& center, float r, float startAngle, float sweepAngle);
+		void buildArcLinePos(Vector2 const& center, float r, float startAngle, float sweepAngle, int numSegment);
 
 
 		RenderTransform2D  mTransform;
@@ -661,7 +661,7 @@ namespace Render
 		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
 
-		void flushDrawCommand(bool bEndRender, bool bForceUpdateState = false);
+		void flushDrawCommand(bool bRelockBuffer, bool bForceUpdateState = false);
 
 		template< class T>
 		struct TBufferData
@@ -727,6 +727,7 @@ namespace Render
 				if (dataPtr)
 				{
 					RHIUnlockBuffer(buffer);
+					dataPtr = nullptr;
 				}
 			}
 

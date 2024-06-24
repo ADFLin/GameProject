@@ -55,6 +55,10 @@ namespace Render
 		void setPos(Vector2 const& pos) { P = pos; }
 
 		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
+		static RenderTransform2D Scale(float scale)
+		{
+			return RenderTransform2D(Vector2(scale,scale));
+		}
 		static RenderTransform2D Scale(Vector2 const& scale)
 		{
 			return RenderTransform2D(scale);

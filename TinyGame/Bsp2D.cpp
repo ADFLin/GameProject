@@ -8,23 +8,18 @@ namespace Bsp2D
 {
 	float const WallThin = 1e-3f;
 
-
 	void Plane::init( Vector2 const& v1 , Vector2 const& v2 )
 	{
-		Vector2 offset = v2 - v1;
-		float len = sqrt( offset.length2() );
-		normal.x = offset.y / len;
-		normal.y = -offset.x / len;
-		d = -normal.dot( v1 );
+		*this = static_cast<Plane const&>(FromPosition(v1, v2));
 	}
 
-	Side Plane::splice( Vector2 v[2] , Vector2 vSplit[2] )
+	Side Plane::split( Vector2 v[2] , Vector2 vSplit[2] )
 	{
+		EPlaneSide::Enum s0 = testSide(v[0], WallThin);
 		float dist;
-		Side s0 = testSide( v[0] , dist );
-		Side s1 = testSide( v[1] , dist );
+		EPlaneSide::Enum s1 = testSide(v[1], WallThin, dist);
 		if ( s0 + s1 != 0 )
-			return ( s0 ) ? ( s0 ) : s1;
+			return ( s0 ) ? Side( s0 ) : Side(s1);
 
 		if ( s0 == SIDE_IN )
 			return SIDE_IN;
@@ -32,7 +27,7 @@ namespace Bsp2D
 		Vector2 dir = v[0] - v[1];
 
 		//plane.normal( v[1] + dir * t ) + d = 0;
-		float t = - dist / normal.dot( dir );
+		float t = - dist / mNormal.dot( dir );
 		Vector2 p = v[1] + t * dir;
 
 		if ( s0 == SIDE_FRONT )
@@ -51,26 +46,16 @@ namespace Bsp2D
 		return SIDE_SPLIT;
 	}
 
-	Side Plane::testSide( Vector2 const& p , float& dist )
-	{
-		dist = calcDistance( p );
-		if ( dist > WallThin )
-			return SIDE_FRONT;
-		else if ( dist < -WallThin )
-			return SIDE_BACK;
-		return SIDE_IN;
-	}
-
 	Side Plane::testSegment( Vector2 const& v0 , Vector2 const& v1 )
 	{
 		float dist;
-		Side s0 = testSide( v0 , dist );
-		Side s1 = testSide( v1 , dist );
+		EPlaneSide::Enum s0 = testSide( v0 , dist );
+		EPlaneSide::Enum s1 = testSide( v1 , dist );
 
 		if ( s0 + s1 != 0 )
-			return ( s0 ) ? ( s0 ) : s1;
+			return ( s0 ) ? Side( s0 ) : Side(s1);
 
-		if ( s0 == SIDE_IN )
+		if ( s0 == EPlaneSide::In )
 			return SIDE_IN;
 
 		return SIDE_SPLIT;
@@ -194,7 +179,7 @@ namespace Bsp2D
 			Edge& edgeTest = mEdges[ idxTest ];
 
 			Vector2 vSplit[2];
-			switch ( plane.splice( edgeTest.v , vSplit ) )
+			switch ( plane.split( edgeTest.v , vSplit ) )
 			{
 			case SIDE_FRONT:
 			case SIDE_IN:
@@ -319,19 +304,19 @@ namespace Bsp2D
 			Edge& edge = mTree->getEdge( node->idxEdge );
 
 			float dist;
-			Side s0 = edge.plane.testSide( mStart , dist );
-			Side s1 = edge.plane.testSide( mEnd , dist );
+			EPlaneSide::Enum s0 = edge.plane.testSide( mStart , dist );
+			EPlaneSide::Enum s1 = edge.plane.testSide( mEnd , dist );
 
-			if ( s0 == SIDE_IN )
+			if ( s0 == EPlaneSide::In )
 			{
 				if ( solve_R( node->front ) )
 					return true;
-				if ( s1 == SIDE_BACK )
+				if ( s1 == EPlaneSide::Back )
 					return solve_R( node->back );
 			}
 			else if ( s0 == s1 )
 			{
-				if ( s0 == SIDE_FRONT )
+				if ( s0 == EPlaneSide::Front )
 				{
 					return solve_R( node->front );
 				}
@@ -342,7 +327,7 @@ namespace Bsp2D
 			}
 			else
 			{
-				if ( s0 == SIDE_FRONT )
+				if ( s0 == EPlaneSide::Front )
 				{
 					if ( solve_R( node->front ) )
 						return true;
@@ -406,10 +391,11 @@ namespace Bsp2D
 		for( int i = 0 , prev = 3 ; i < 4 ; prev = i++ )
 		{
 			Vector2 dir = v[ i ] - v[ prev ];
-			float dot = dir.dot( splane->plane.normal );
+			float dot = dir.dot( splane->plane.getNormal());
 			if ( abs( dot ) < FLOAT_EPSILON )
 				continue;
-			float t = ( v[i].dot( splane->plane.normal ) + splane->plane.d ) / dot;
+
+			float t = splane->plane.calcDistance(v[i]) / dot;
 			Vector2 p = v[i] + t * dir;
 		}
 	

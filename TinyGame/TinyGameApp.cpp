@@ -55,7 +55,8 @@
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
 
-int  GDevMsgLevel = -1;
+int    GDevMsgLevel = -1;
+int64  GRenderFrame = 0;
 
 namespace
 {
@@ -1182,6 +1183,8 @@ void TinyGameApp::render( float dframe )
 
 	if ( !drawEngine.beginFrame() )
 		return;
+
+	++GRenderFrame;
 
 	if ( CVarProfileGPU )
 		GpuProfiler::Get().beginFrame();

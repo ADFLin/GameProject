@@ -167,6 +167,7 @@ public:
 		void* ptr = mAllocator.alloc(sizeof(MyCustomRenderer));
 		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
 		auto& element = mElementList.addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly, bChangeState);
+
 		setupElement(element);
 	}
 

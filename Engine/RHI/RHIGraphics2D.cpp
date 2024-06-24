@@ -19,13 +19,6 @@ RHIGraphics2D::RHIGraphics2D()
 	:mAllocator(2048)
 	,mElementList(mAllocator)
 {
-
-	mPaintArgs.penWidth = 1;
-	mPaintArgs.bUseBrush = true;
-	mPaintArgs.bUsePen = true;
-	mPaintArgs.brushColor = Color4Type(0, 0, 0);
-	mPaintArgs.penColor = Color4Type(0, 0, 0);
-
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
 
@@ -131,6 +124,12 @@ void RHIGraphics2D::beginRender()
 	mCurTextureSize = Vector2(0, 0);
 	mXFormStack.clear();
 	mBatchedRender.beginRender(commandList);
+
+	mPaintArgs.penWidth = 1;
+	mPaintArgs.bUseBrush = true;
+	mPaintArgs.bUsePen = true;
+	mPaintArgs.brushColor = Color4Type(0, 0, 0);
+	mPaintArgs.penColor = Color4Type(0, 0, 0);
 
 	setupCommittedRenderState();
 }
@@ -527,7 +526,6 @@ void RHIGraphics2D::restoreRenderState()
 {
 	preModifyRenderState();
 	setupCommittedRenderState();
-	mBatchedRender.setupInputState(getCommandList());
 }
 
 void RHIGraphics2D::setPen(Color3Type const& color, int width)

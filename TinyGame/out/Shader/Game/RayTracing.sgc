@@ -1,7 +1,6 @@
 #include "Common.sgc"
 #include "ViewParam.sgc"
 #include "LightingCommon.sgc"
-#include "SignedDistanceFieldCommon.sgc"
 #include "ScreenVertexShader.sgc"
 #include "GeometryTestCommon.sgc"
 
@@ -234,7 +233,7 @@ RayCastResult TraverseBVH(int nodeIndex, Ray ray)
 	result.bHit = 0;
 	result.dist = 100000000;
 
-	int nodeStack[64];
+	int nodeStack[32];
 	int stackSize = 0;
 
 	nodeStack[0] = -1;
@@ -252,7 +251,11 @@ RayCastResult TraverseBVH(int nodeIndex, Ray ray)
 
 				for (int i = 0; i < numPrimitives; ++i)
 				{
+#if USE_TRIANGLE_INDEX_REORDER
+					int index = indexStart + 3 * i;
+#else
 					int index = TriangleIds[indexStart + i];
+#endif
 					RayCastResult castResult = RayTriangle(ray,
 						MeshVertices[index + 0],
 						MeshVertices[index + 1],
@@ -431,7 +434,7 @@ RayCastResult RayCast(float3 start, float3 dir)
 #else
 
 	int nodeIndex = 0;
-	int nodeStack[64];
+	int nodeStack[32];
 	int stackSize = 0;
 
 	nodeStack[0] = -1;

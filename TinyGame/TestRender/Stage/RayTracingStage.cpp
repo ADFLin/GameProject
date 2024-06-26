@@ -92,7 +92,11 @@ void RayTracingTestStage::onRender(float dFrame)
 		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mVertexBuffer);
 		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mMeshBuffer);
 		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mBVHNodeBuffer);
+#if USE_TRIANGLE_INDEX_REORDER	
+
+#else
 		SetStructuredStorageBuffer< PrimitiveIdData >(commandList, *mRayTracingPS, mTriangleIdBuffer);
+#endif
 		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *mRayTracingPS, mSceneBVHNodeBuffer);
 		SetStructuredStorageBuffer< ObjectIdData >(commandList, *mRayTracingPS, mObjectIdBuffer);
 
@@ -199,49 +203,32 @@ namespace RT
 
 #if USE_TRIANGLE_INDEX_REORDER
 		TArray< BVHNodeData > nodes;
+		int indexTriangleOffset = 0;
 #else
 		BVHTree meshBVH;
 #endif
 
-
-
-
-		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* OutData)
+		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData)
 		{
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
-			int numV = 0;
-			TArray< int > nodeStack;
-			nodeStack.push_back(0);
-			while (!nodeStack.empty())
+			MeshVertexData* pData = pOutData;
+			for( auto const& leaf : meshBVH.leaves)
 			{
-				BVHTree::Node& node = meshBVH.nodes[ nodeStack.back() ];
-				nodeStack.pop_back();
-
-				if (node.isLeaf())
+				for (int id : leaf.ids)
 				{
-					BVHTree::Leaf const& leaf = meshBVH.leaves[node.indexLeft];
-					for (int id : leaf.ids)
+					for (int n = 0; n < 3; ++n)
 					{
-						
-						for (int n = 0; n < 3; ++n)
-						{
-							MeshVertexData& vertex = OutData[numV];
-							vertex.pos = posReader[id + n];
-							vertex.normal = posReader[id + n];
-							++numV;
-						}
+						MeshVertexData& vertex = *(pData++);
+						int index = id + n;
+						vertex.pos = posReader[index];
+						vertex.normal = normalReader[index];
 					}
-				}
-				else
-				{
-					nodeStack.push_back(node.indexRight);
-					nodeStack.push_back(node.indexLeft);
 				}
 			}
 
-			return numV;
+			return pData - pOutData;
 		}
 
 		int buildMeshData(MeshImportData& meshData)
@@ -302,12 +289,17 @@ namespace RT
 				vertices.resize(vertexOffset + meshData.indices.size());
 
 #if USE_TRIANGLE_INDEX_REORDER
+				CHECK(meshBVH.checkLeafIndexOrder());
 				int numV = GenerateTriangleVertices(meshBVH, meshData, vertices.data() + vertexOffset);
 				CHECK(numV == numTriangles * 3);
+				int nodeIndex = nodes.size();
+				BVHNodeData::Generate(meshBVH, nodes, indexTriangleOffset);
+				indexTriangleOffset += 3 * numTriangles;
 #else
 				for (int i = 0; i < meshData.indices.size(); ++i)
 				{
 					int index = meshData.indices[i];
+					MeshVertexData& vertex = vertices[vertexOffset + i];
 					vertex.pos = posReader[index];
 					vertex.normal = normalReader[index];
 				}
@@ -317,7 +309,11 @@ namespace RT
 				mesh.numTriangles = numTriangles;
 				mesh.boundMin = meshBVH.nodes[indexRoot].bound.min;
 				mesh.boundMax = meshBVH.nodes[indexRoot].bound.max;
+#if USE_TRIANGLE_INDEX_REORDER
+				mesh.nodeIndex = nodeIndex;
+#else
 				mesh.nodeIndex = indexRoot;
+#endif
 				meshes.push_back(mesh);
 			}
 
@@ -337,8 +333,8 @@ namespace RT
 		{
 			{
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
 				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
 			}
 
@@ -746,7 +742,11 @@ void RayTracingTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	mVertexBuffer.releaseResource();
 	mMeshBuffer.releaseResource();
 	mBVHNodeBuffer.releaseResource();
+#if USE_TRIANGLE_INDEX_REORDER
+
+#else
 	mTriangleIdBuffer.releaseResource();
+#endif
 	mSceneBVHNodeBuffer.releaseResource();
 	mObjectBuffer.releaseResource();
 

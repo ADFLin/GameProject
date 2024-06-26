@@ -191,13 +191,31 @@ public:
 	};
 
 
-	bool checkLeadIndexOrder()
+	bool checkLeafIndexOrder()
 	{
 		int curIndex = 0;
+		TArray< int > nodeStack;
+		nodeStack.push_back(0);
+		while (!nodeStack.empty())
+		{
+			BVHTree::Node& node = nodes[nodeStack.back()];
+			nodeStack.pop_back();
 
+			if (node.isLeaf())
+			{
+				if (node.indexLeft != curIndex)
+					return false;
 
+				++curIndex;
+			}
+			else
+			{
+				nodeStack.push_back(node.indexRight);
+				nodeStack.push_back(node.indexLeft);
+			}
+		}
 
-
+		return true;
 	}
 	TArray<Node> nodes;
 	TArray<Leaf> leaves;
@@ -448,6 +466,7 @@ struct GPU_ALIGN BVHNodeData
 	static void Generate(BVHTree const& BVH, TArray< BVHNodeData >& nodes, TArray< int >& primitiveIds)
 	{
 		nodes.resize(BVH.nodes.size());
+
 		for (int i = 0; i < nodes.size(); ++i)
 		{
 			auto& node = nodes[i];
@@ -458,14 +477,37 @@ struct GPU_ALIGN BVHNodeData
 			if (nodeCopy.isLeaf())
 			{
 				auto const& leafCopy = BVH.leaves[nodeCopy.indexLeft];
-#if USE_TRIANGLE_INDEX_REORDER
-				node.left = primitiveIds.size();
-				node.right = -leafCopy.ids.size();
-#else
 				node.left = primitiveIds.size();
 				node.right = -leafCopy.ids.size();
 				primitiveIds.append(leafCopy.ids);
-#endif
+			}
+			else
+			{
+				node.left = nodeCopy.indexLeft;
+				node.right = nodeCopy.indexRight;
+			}
+		}
+	}
+
+	static void Generate(BVHTree const& BVH, TArray< BVHNodeData >& nodes, int indexOffset)
+	{
+		int indexNodeStart = nodes.size();
+		int curIndex = indexOffset;
+		nodes.resize(nodes.size() + BVH.nodes.size());
+
+		for (int i = 0; i < nodes.size(); ++i)
+		{
+			auto& node = nodes[indexNodeStart + i];
+			auto const& nodeCopy = BVH.nodes[i];
+			node.boundMin = nodeCopy.bound.min;
+			node.boundMax = nodeCopy.bound.max;
+
+			if (nodeCopy.isLeaf())
+			{
+				auto const& leafCopy = BVH.leaves[nodeCopy.indexLeft];
+				node.left  = curIndex;
+				node.right = -leafCopy.ids.size();
+				curIndex += 3 * leafCopy.ids.size();
 			}
 			else
 			{
@@ -518,7 +560,11 @@ namespace RT
 		TStructuredBuffer< MeshData > mMeshBuffer;
 		TStructuredBuffer< BVHNodeData > mBVHNodeBuffer;
 		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
+#if USE_TRIANGLE_INDEX_REORDER 
+
+#else
 		TStructuredBuffer< int32 > mTriangleIdBuffer;
+#endif
 		TStructuredBuffer< int32 > mObjectIdBuffer;
 		int mNumObjects;
 		PrimitivesCollection mDebugPrimitives;

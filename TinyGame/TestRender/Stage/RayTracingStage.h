@@ -8,6 +8,8 @@
 #include "ProfileSystem.h"
 #include "ReflectionCollect.h"
 
+#define USE_TRIANGLE_INDEX_REORDER 1
+
 using namespace Render;
 
 
@@ -19,6 +21,11 @@ public:
 	static char const* GetShaderFileName()
 	{
 		return "Shader/Game/RayTracing";
+	}
+
+	static void SetupShaderCompileOption(ShaderCompileOption& option) 
+	{
+		option.addDefine(SHADER_PARAM(USE_TRIANGLE_INDEX_REORDER), USE_TRIANGLE_INDEX_REORDER);
 	}
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
@@ -183,6 +190,15 @@ public:
 		TArray<int> ids;
 	};
 
+
+	bool checkLeadIndexOrder()
+	{
+		int curIndex = 0;
+
+
+
+
+	}
 	TArray<Node> nodes;
 	TArray<Leaf> leaves;
 
@@ -207,6 +223,7 @@ public:
 		};
 
 		SplitMethod splitMethod = SplitMethod::SAH;
+		int maxLevel = 32;
 		int maxLeafPrimitiveCount = 5;
 
 		struct BuildData
@@ -441,9 +458,14 @@ struct GPU_ALIGN BVHNodeData
 			if (nodeCopy.isLeaf())
 			{
 				auto const& leafCopy = BVH.leaves[nodeCopy.indexLeft];
+#if USE_TRIANGLE_INDEX_REORDER
+				node.left = primitiveIds.size();
+				node.right = -leafCopy.ids.size();
+#else
 				node.left = primitiveIds.size();
 				node.right = -leafCopy.ids.size();
 				primitiveIds.append(leafCopy.ids);
+#endif
 			}
 			else
 			{

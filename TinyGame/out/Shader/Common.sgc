@@ -4,7 +4,6 @@
 #define USE_INVERSE_ZBUFFER 0
 #endif
 
-
 #ifndef USE_MATERIAL
 #define USE_MATERIAL 0
 #endif
@@ -13,21 +12,25 @@
 #define USE_TESSELLATION 0
 #endif
 
+#include "ShaderDefine.sgc"
+
+#if COMPILER_GLSL
+#define USE_RIGHT_HAND_COORD 0
+#endif
+
+#ifndef USE_RIGHT_HAND_COORD
+#define USE_RIGHT_HAND_COORD 0
+#endif
+
 #if USE_RIGHT_HAND_COORD
 #define SCENE_DEPTH_FACTOR (1.0)
 #else
 #define SCENE_DEPTH_FACTOR (-1.0)
 #endif
 
-#include "ShaderDefine.sgc"
 
-#if COMPILER_GLSL
-#define USE_RIGHT_HAND_COORD 0
-#endif
 //#undef VECTOR_FUNCTION_LIST
 #undef DEFINE_FUNCTION_INNER
 #undef DEFINE_VECTOR_FUNCTION
 
-#ifndef USE_RIGHT_HAND_COORD
-#define USE_RIGHT_HAND_COORD 0
-#endif
+

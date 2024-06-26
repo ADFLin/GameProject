@@ -287,12 +287,32 @@ namespace Render
 	template< typename TStruct, typename TShader >
 	static void SetStructuredStorageBuffer(RHICommandList& commandList, TShader& shader, TStructuredBuffer<TStruct>& buffer)
 	{
+		if (!buffer.isValid())
+			return;
+		shader.setStructuredStorageBufferT< TStruct >(commandList, *buffer.getRHI());
+	}
+
+	template< typename TStruct, typename TShader , typename Q>
+	static void SetStructuredStorageBuffer(RHICommandList& commandList, TShader& shader, TStructuredBuffer<Q>& buffer)
+	{
+		if (!buffer.isValid())
+			return;
 		shader.setStructuredStorageBufferT< TStruct >(commandList, *buffer.getRHI());
 	}
 
 	template< typename TStruct, typename TShader >
 	static void SetStructuredUniformBuffer(RHICommandList& commandList, TShader& shader, TStructuredBuffer<TStruct>& buffer)
 	{
+		if (!buffer.isValid())
+			return;
+		shader.setStructuredUniformBufferT< TStruct >(commandList, *buffer.getRHI());
+	}
+
+	template< typename TStruct, typename TShader , typename Q >
+	static void SetStructuredUniformBuffer(RHICommandList& commandList, TShader& shader, TStructuredBuffer<Q>& buffer)
+	{
+		if (!buffer.isValid())
+			return;
 		shader.setStructuredUniformBufferT< TStruct >(commandList, *buffer.getRHI());
 	}
 

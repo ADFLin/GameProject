@@ -191,7 +191,7 @@ namespace Math
 			return mNormal.dot(p) + mArgD;
 		}
 
-		EPlaneSide::Enum testSide(VectorType const& p, float thinkness, float& dist)
+		EPlaneSide::Enum testSide(VectorType const& p, float thinkness, float& dist) const
 		{
 			dist = calcDistance(p);
 			if (dist > thinkness)
@@ -201,7 +201,7 @@ namespace Math
 			return EPlaneSide::In;
 		}
 
-		EPlaneSide::Enum testSide(VectorType const& p, float thinkness)
+		EPlaneSide::Enum testSide(VectorType const& p, float thinkness) const
 		{
 			float dist;
 			return testSide(p, thinkness);

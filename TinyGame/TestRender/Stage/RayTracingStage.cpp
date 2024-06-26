@@ -92,9 +92,9 @@ void RayTracingTestStage::onRender(float dFrame)
 		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mVertexBuffer);
 		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mMeshBuffer);
 		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mBVHNodeBuffer);
-		mRayTracingPS->setStructuredStorageBufferT< PrimitiveIdData >(commandList, *mTriangleIdBuffer.getRHI());
-		mRayTracingPS->setStructuredStorageBufferT< SceneBVHNodeData >(commandList, *mSceneBVHNodeBuffer.getRHI());
-		mRayTracingPS->setStructuredStorageBufferT< ObjectIdData >(commandList, *mObjectIdBuffer.getRHI());
+		SetStructuredStorageBuffer< PrimitiveIdData >(commandList, *mRayTracingPS, mTriangleIdBuffer);
+		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *mRayTracingPS, mSceneBVHNodeBuffer);
+		SetStructuredStorageBuffer< ObjectIdData >(commandList, *mRayTracingPS, mObjectIdBuffer);
 
 		mRayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mRayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
@@ -197,8 +197,52 @@ namespace RT
 		TArray< ObjectData> objects;
 		TArray< MaterialData > materials;
 
+#if USE_TRIANGLE_INDEX_REORDER
+		TArray< BVHNodeData > nodes;
+#else
 		BVHTree meshBVH;
+#endif
 
+
+
+
+		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* OutData)
+		{
+			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
+			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
+
+			int numV = 0;
+			TArray< int > nodeStack;
+			nodeStack.push_back(0);
+			while (!nodeStack.empty())
+			{
+				BVHTree::Node& node = meshBVH.nodes[ nodeStack.back() ];
+				nodeStack.pop_back();
+
+				if (node.isLeaf())
+				{
+					BVHTree::Leaf const& leaf = meshBVH.leaves[node.indexLeft];
+					for (int id : leaf.ids)
+					{
+						
+						for (int n = 0; n < 3; ++n)
+						{
+							MeshVertexData& vertex = OutData[numV];
+							vertex.pos = posReader[id + n];
+							vertex.normal = posReader[id + n];
+							++numV;
+						}
+					}
+				}
+				else
+				{
+					nodeStack.push_back(node.indexRight);
+					nodeStack.push_back(node.indexLeft);
+				}
+			}
+
+			return numV;
+		}
 
 		int buildMeshData(MeshImportData& meshData)
 		{
@@ -207,43 +251,42 @@ namespace RT
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
-			int vertexOffset = vertices.size();
-			vertices.resize(vertexOffset + meshData.indices.size());
-
-			for (int i = 0; i < meshData.indices.size(); ++i)
-			{
-				int index = meshData.indices[i];
-				MeshVertexData& vertex = vertices[vertexOffset + i];
-				vertex.pos = posReader[index];
-				vertex.normal = normalReader[index];
-			}
-
 			int numTriangles = meshData.indices.size() / 3;
+
+			int vertexOffset = vertices.size();
 
 			TArray< BVHTree::Primitive > primitives;
 			primitives.resize(numTriangles);
-			for (int i = 0; i < numTriangles; ++i)
+			for (int indexTriangle = 0; indexTriangle < numTriangles; ++indexTriangle)
 			{
-				auto& primitive = primitives[i];
+				auto& primitive = primitives[indexTriangle];
 				Math::TAABBox<Vector3> triBound;
 				triBound.invalidate();
 
+				int index = 3 * indexTriangle;
 				primitive.center = Vector3::Zero();
 				for (int n = 0; n < 3; ++n)
 				{
-					MeshVertexData& vertex = vertices[vertexOffset + 3 * i + n];
-					triBound.addPoint(vertex.pos);
-					primitive.center += vertex.pos;
+					Vector3 const& pos = posReader[3 * indexTriangle + n];
+					triBound.addPoint(pos);
+					primitive.center += pos;
 				}
-
-				primitive.id = vertexOffset + 3 * i;
+#if USE_TRIANGLE_INDEX_REORDER				
+				primitive.id = 3 * indexTriangle;
+#else
+				primitive.id = vertexOffset + 3 * indexTriangle;
+#endif
 				primitive.bound = triBound;
 				primitive.center /= 3.0f;
 			}
 
-
 			{
 				TIME_SCOPE("BuildBVH");
+
+#if USE_TRIANGLE_INDEX_REORDER
+				BVHTree meshBVH;
+#endif
+
 				BVHTree::Builder builder(meshBVH);
 				int indexRoot = builder.build(MakeConstView(primitives));
 
@@ -256,9 +299,22 @@ namespace RT
 					}
 				}
 
+				vertices.resize(vertexOffset + meshData.indices.size());
+
+#if USE_TRIANGLE_INDEX_REORDER
+				int numV = GenerateTriangleVertices(meshBVH, meshData, vertices.data() + vertexOffset);
+				CHECK(numV == numTriangles * 3);
+#else
+				for (int i = 0; i < meshData.indices.size(); ++i)
+				{
+					int index = meshData.indices[i];
+					vertex.pos = posReader[index];
+					vertex.normal = normalReader[index];
+				}
+#endif
 				MeshData mesh;
 				mesh.startIndex = vertexOffset;
-				mesh.numTriangles = meshData.indices.size() / 3;
+				mesh.numTriangles = numTriangles;
 				mesh.boundMin = meshBVH.nodes[indexRoot].bound.min;
 				mesh.boundMax = meshBVH.nodes[indexRoot].bound.max;
 				mesh.nodeIndex = indexRoot;
@@ -283,7 +339,9 @@ namespace RT
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
 			}
+
 			{
 				float L = 15;
 				const MaterialData mats[] =
@@ -332,6 +390,7 @@ namespace RT
 		{
 			TIME_SCOPE("BuildRHIResource");
 
+			if (meshes.size() > 0)
 			{
 				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(vertices.size(), EStructuredBufferType::Buffer));
 				mScene.mVertexBuffer.updateBuffer(vertices);
@@ -339,15 +398,22 @@ namespace RT
 				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(meshes.size(), EStructuredBufferType::Buffer));
 				mScene.mMeshBuffer.updateBuffer(meshes);
 
+
+#if USE_TRIANGLE_INDEX_REORDER
+
+
+#else
 				TArray< BVHNodeData > nodes;
 				TArray< int > primitiveIds;
 				BVHNodeData::Generate(meshBVH, nodes, primitiveIds);
 
+				VERIFY_RETURN_FALSE(mScene.mTriangleIdBuffer.initializeResource(primitiveIds.size(), EStructuredBufferType::Buffer));
+				mScene.mTriangleIdBuffer.updateBuffer(primitiveIds);
+#endif
+
 				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(nodes.size(), EStructuredBufferType::Buffer));
 				mScene.mBVHNodeBuffer.updateBuffer(nodes);
 
-				VERIFY_RETURN_FALSE(mScene.mTriangleIdBuffer.initializeResource(primitiveIds.size(), EStructuredBufferType::Buffer));
-				mScene.mTriangleIdBuffer.updateBuffer(primitiveIds);
 			}
 
 
@@ -417,6 +483,7 @@ namespace RT
 						}
 						break;
 					case OBJ_TRIANGLE_MESH:
+						if (meshes.isValidIndex(AsValue<int32>(object.meta.x)))
 						{
 							MeshData& mesh = meshes[AsValue<int32>(object.meta.x)];
 							float scale = object.meta.y;
@@ -514,6 +581,7 @@ namespace RT
 		virtual bool setup(ISceneBuilder& builder, char const* fileName) override
 		{
 			mBuilder = (SceneBuilderImpl*)&builder;
+#if 0
 			try
 			{
 				std::string path = GetFilePath(fileName);
@@ -525,6 +593,9 @@ namespace RT
 				LogMsg("Load Scene Fail!! : %s", e.what());
 				return false;
 			}
+#else
+			mBuilder->addDefaultObjects();
+#endif
 			return true;
 		}
 

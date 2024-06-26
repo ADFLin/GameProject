@@ -25,12 +25,7 @@ namespace RVO
 	float const RVO_EPSILON = 1e-6;
 
 
-	class Plane : public ::Math::Plane2D
-	{
-	public:
-
-
-	};
+	using Plane = ::Math::Plane2D;
 
 	struct Line
 	{
@@ -42,7 +37,7 @@ namespace RVO
 	{
 	public:
 		float radius;
-		float timeHorizon = 5.0;
+		float timeHorizon = 2.0;
 		float maxSpeed;
 
 		Vector2 pos;
@@ -723,6 +718,7 @@ namespace RVO
 				simulateStep();
 				return true;
 			});
+			FWidgetProperty::Bind(frame->addSlider("Time Horizon"), timeHorizon , 0.0f, 10.0f );
 			return true;
 		}
 
@@ -731,31 +727,40 @@ namespace RVO
 			BaseClass::onEnd();
 		}
 
+
+		bool bSimulating = true;
+		float timeHorizon = 0.5;
+
 		void restart()
 		{
 			mAgents.clear();
-#if 1
+
+
+			float maxSpeed = 100;
+#if 0
 			{
 				auto agent = std::make_unique<Agent>();
-				agent->pos = Vector2(100, 200);
-				agent->goal = Vector2(600, 200);
-				agent->maxSpeed = 100;
+				agent->pos = Vector2(100, 300.1);
+				agent->goal = Vector2(600, 300);
+				agent->maxSpeed = maxSpeed;
 				agent->radius = 50;
+				agent->timeHorizon = timeHorizon;
 				mAgents.push_back(std::move(agent));
 			}
 			{
 				auto agent = std::make_unique<Agent>();
-				agent->pos = Vector2(600, 200);
-				agent->goal = Vector2(100, 200);
-				agent->maxSpeed = 100;
+				agent->pos = Vector2(600, 300);
+				agent->goal = Vector2(100, 300);
+				agent->maxSpeed = maxSpeed;
 				agent->radius = 50;
+				agent->timeHorizon = timeHorizon;
 				mAgents.push_back(std::move(agent));
 			}
 #else
 
 			Vector2 center = 0.5 * Vector2(Global::GetScreenSize());
 			float radius = 200;
-			int num = 5;
+			int num = 3;
 			for (int i = 0; i < num; ++i)
 			{
 				auto agent = std::make_unique<Agent>();
@@ -763,9 +768,9 @@ namespace RVO
 				Math::SinCos(2 * Math::PI * i / num , s, c);
 				agent->pos = center + ( radius ) * Vector2(c, s) + 5 * Vector2(RandFloat(), RandFloat());
 				agent->goal = center - radius * Vector2(c, s) + Vector2(0,0);
-				agent->maxSpeed = 50;
+				agent->maxSpeed = maxSpeed;
 				agent->radius = 15;
-				agent->timeHorizon = 0.5;
+				agent->timeHorizon = timeHorizon;
 				mAgents.push_back(std::move(agent));
 			}
 #endif
@@ -782,8 +787,6 @@ namespace RVO
 			}
 		}
 
-
-		bool bSimulating = true;
 
 		void simulateStep()
 		{
@@ -836,22 +839,25 @@ namespace RVO
 			
 			g.beginRender();
 
-			RenderUtility::SetBrush(g, EColor::Yellow);
+			RenderUtility::SetPen(g, EColor::Black);
+			RenderUtility::SetBrush(g, EColor::Orange);
 			for (auto const& agent : mAgents)
 			{
-				RenderUtility::SetPen(g, EColor::Black);
 				g.drawCircle(agent->pos, agent->radius);
+			}
 
-				RenderUtility::SetPen(g, EColor::Red);
-
+			for (auto const& agent : mAgents)
+			{
 				if (agent->trace.size() > 2)
 				{
+					RenderUtility::SetPen(g, EColor::Blue);
 					g.drawLineStrip(agent->trace.data(), agent->trace.size());
 				}
 
-				RenderUtility::SetPen(g, EColor::Green);
+				RenderUtility::SetPen(g, EColor::Yellow);
+				g.setPenWidth(2);
 				g.drawLine(agent->pos, agent->pos + agent->velocity);
-
+				g.setPenWidth(1);
 			}
 
 			for(auto other : mAgents[0]->mAgentNeighbors)
@@ -863,22 +869,48 @@ namespace RVO
 			g.endRender();
 		}
 
-		void drawArea(RHIGraphics2D& g, Vector2 const& pos, Vector2 const& dir)
+		void drawArea(RHIGraphics2D& g, Plane const& plane)
 		{
-			auto TestSide = [](Vector2 const& p)-> int
+			using namespace Math;
+			EPlaneSide::Enum sides[4];
+			float dists[4];
+			Vector2 screenSize = ::Global::GetScreenSize();
+			Vector2 screenVertices[] =
 			{
-
-
+				Vector2(0,0),
+				Vector2(screenSize.x , 0),
+				screenSize,
+				Vector2(0, screenSize.y),
 			};
-			Vector2 vertices[5];
-			int nV= 0;
-			int prevSide = 0;
+
 			for (int i = 0; i < 4; ++i)
 			{
-
-
-
+				sides[i] = plane.testSide(screenVertices[i] , 0.01f, dists[i]);
 			}
+
+			Vector2 vertices[5];
+			int nV= 0;
+
+
+			EPlaneSide::Enum sidePrev = sides[3];
+			for (int i = 0; i < 4; ++i)
+			{
+				auto sideCur = sides[i];
+				if (sideCur != sidePrev && sideCur != 0)
+				{
+					Vector2 dir = screenVertices[i] - screenVertices[(i + 3)%4];
+					dir.normalize();
+					vertices[nV++] = screenVertices[i] - dir * (dists[i] / dir.dot(plane.getNormal()));
+				}
+
+				if (sideCur != EPlaneSide::Back)
+				{
+					vertices[nV++] = screenVertices[i];
+				}
+
+				sidePrev = sideCur;
+			}
+			g.drawPolygon(vertices, nV);
 		}
 
 		void drawDebug(RHIGraphics2D& g, Agent const& agent, Agent const& other)
@@ -888,7 +920,7 @@ namespace RVO
 			const float distSq = relativePosition.length2();
 			const float combinedRadius = agent.radius + other.radius;
 			const float combinedRadiusSq = combinedRadius * combinedRadius;
-
+			const float dist = Math::Sqrt(distSq);
 			float leg = Math::Sqrt(distSq - combinedRadiusSq);
 
 			float s = combinedRadius / distSq;
@@ -901,7 +933,7 @@ namespace RVO
 
 			Vector2 dirL = relativePosition * rotation;
 			Vector2 dirR = relativePosition * rotationInv;
-			float L = 1000 * Math::Sqrt(distSq) / c;
+			float L = 1000 * dist / c;
 			Vector2 rPos = agent.pos + other.velocity;
 			Vector2 areaV[4] =
 			{
@@ -930,9 +962,7 @@ namespace RVO
 			}
 			else
 			{
-
-
-
+				drawArea(g, Plane{ relativePosition , rPos + (1 - combinedRadius / dist) * relativePosition });
 			}
 
 			g.setCustomRenderState([](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
@@ -948,6 +978,16 @@ namespace RVO
 			g.drawRect(Vector2(0, 0), ::Global::GetScreenSize());
 
 			g.resetRenderState();
+
+
+
+			RenderUtility::SetBrush(g, EColor::Pink);
+			g.beginBlend(0.2f , ESimpleBlendMode::Translucent);
+			for( auto const& line : agent.mCachedOrcaLines )
+			{
+				drawArea(g, Plane{ Vector2(line.dir.y, line.dir.x) , agent.pos + line.point });
+			}
+			g.endBlend();
 			g.setBlendAlpha(1.0);
 			g.enablePen(true);
 		}

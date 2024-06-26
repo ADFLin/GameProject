@@ -5,6 +5,9 @@
 #include "ScreenVertexShader.sgc"
 #include "GeometryTestCommon.sgc"
 
+#ifndef USE_TRIANGLE_INDEX_REORDER
+#define USE_TRIANGLE_INDEX_REORDER 0
+#endif
 
 uint Hash(uint s)
 {

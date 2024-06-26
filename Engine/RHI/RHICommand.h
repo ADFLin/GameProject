@@ -438,6 +438,8 @@ namespace Render
 			mResource.release();
 		}
 
+		bool isValid() const { return mResource.isValid(); }
+
 		uint32 getElementNum() 
 		{
 			if (mResource)

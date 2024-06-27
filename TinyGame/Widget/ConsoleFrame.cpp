@@ -96,12 +96,12 @@ MsgReply ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 			int numFound;
 			if (mNamespace.empty())
 			{
-				numFound = IConsoleSystem::Get().findCommandName2(getValue(), foundCmds, ARRAY_SIZE(foundCmds));
+				numFound = IConsoleSystem::Get().findCommandName(getValue(), foundCmds, ARRAY_SIZE(foundCmds));
 			}
 			else
 			{
 				std::string findText = mNamespace + '.' + getValue();
-				numFound = IConsoleSystem::Get().findCommandName2(findText.c_str(), foundCmds, ARRAY_SIZE(foundCmds));
+				numFound = IConsoleSystem::Get().findCommandName(findText.c_str(), foundCmds, ARRAY_SIZE(foundCmds));
 			}
 
 			if (numFound != 0)

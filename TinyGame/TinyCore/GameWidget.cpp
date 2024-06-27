@@ -772,12 +772,22 @@ GSlider::GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* p
 void GSlider::renderValue( GWidget* widget )
 {
 	Vec2i pos = getWorldPos();
+	Vec2i size = getSize();
 	IGraphics2D& g = Global::GetIGraphics2D();
 
-	InlineString< 256 > str;
-	str.format( "%d" , getValue() );
-	RenderUtility::SetFont( g , FONT_S10 );
-	g.drawText( Vec2i( pos.x + getSize().x + 3 , pos.y ) , str );
+	if (onGetShowValue)
+	{
+		std::string value = onGetShowValue();
+		g.drawText(pos, size, value.c_str());
+	}
+	else
+	{
+		InlineString< 256 > str;
+		str.format("%d", getValue());
+		RenderUtility::SetFont(g, FONT_S10);
+		g.drawText(pos, size, str);
+
+	}
 }
 
 void GSlider::showValue()

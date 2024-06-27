@@ -363,12 +363,16 @@ public:
 	Vec2i getBaseButtonPos(){ return Vec2i( 2 , 2 ); }
 };
 
+
+using GetTextDelegate = std::function< std::string () >;
 class  GSlider : public GUI::SliderT< GSlider >
 {
 	using BaseClass = GUI::SliderT< GSlider >;
 public:
 	TINY_API GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* parent );
 	static Vec2i TipSize;
+
+	GetTextDelegate onGetShowValue;
 
 	void onScrollChange( int value ){ sendEvent( EVT_SLIDER_CHANGE ); }
 	TINY_API void showValue();

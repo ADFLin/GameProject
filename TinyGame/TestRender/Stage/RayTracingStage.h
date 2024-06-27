@@ -295,7 +295,7 @@ public:
 		};
 
 		SplitMethod splitMethod = SplitMethod::SAH;
-		int maxLevel = 32;
+		int maxDepth = 32;
 		int maxLeafPrimitiveCount = 5;
 
 		struct BuildData
@@ -310,7 +310,6 @@ public:
 				return (size.x >= size.z) ? 0 : 2;
 			return (size.y >= size.z) ? 1 : 2;
 		}
-
 
 		int  makeLeaf(TArrayView< BuildData >& dataList, int depth)
 		{

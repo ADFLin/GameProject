@@ -36,22 +36,24 @@ bool RayTracingTestStage::onInit()
 	choice->addItem("BoundingBox");
 	choice->addItem("Triangle");
 	choice->addItem("Mix");
-	FWidgetProperty::Bind(frame->addSlider("BoundBoxWarningCount", UI_ANY, false), mBoundBoxWarningCount, 0, 1000, [frame](int)
-	{
-		frame->refresh();
-	});
-	FWidgetProperty::Bind(frame->addText("", true) , mBoundBoxWarningCount); 
-	FWidgetProperty::Bind(frame->addSlider("TriangleWarningCount", UI_ANY, false), mTriangleWarningCount, 0, 500, [frame](int)
-	{
-		frame->refresh();
-	});
-	FWidgetProperty::Bind(frame->addText("", true), mTriangleWarningCount);
-	FWidgetProperty::Bind(frame->addSlider("DebugShowDepth", UI_ANY, false), mDebugShowDepth, 0, 32, [this,frame](int)
+	choice->setSelection((int)statsMode);
+
+	GSlider* slider;
+	slider = frame->addSlider("BoundBoxWarningCount", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mBoundBoxWarningCount); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mBoundBoxWarningCount, 0, 1000);
+	slider = frame->addSlider("TriangleWarningCount", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mTriangleWarningCount); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mTriangleWarningCount, 0, 500);
+	slider = frame->addSlider("DebugShowDepth", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mDebugShowDepth); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mDebugShowDepth, 0, 32, [this](int)
 	{
 		showNodeBound(mDebugShowDepth);
-		frame->refresh();
 	});
-	FWidgetProperty::Bind(frame->addText("", true), mDebugShowDepth);
 	Vector2 lookPos = Vector2(0, 0);
 	mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, 1), ::Global::GetScreenSize().x / 800.0f);
 	mScreenToWorld = mWorldToScreen.inverse();
@@ -299,18 +301,18 @@ namespace RT
 
 #if USE_TRIANGLE_INDEX_REORDER
 			BVHTree meshBVH;
-			int indexRoot;
 #endif
+			int indexRoot;
 			{
 				TIME_SCOPE("BuildBVH");
 				BVHTree::Builder builder(meshBVH);
 				indexRoot = builder.build(MakeConstView(primitives));
-				{
-					auto stats = meshBVH.calcStats();
-					LogMsg("Node Count : %u ,Leaf Count : %u", meshBVH.nodes.size(), meshBVH.leaves.size());
-					LogMsg("Leaf Depth : %d - %d  Mean-%g", stats.minDepth, stats.maxDepth, stats.meanDepth);
-					LogMsg("Leaf Tris : %d - %d  Mean-%g", stats.minCount, stats.maxCount, stats.meanCount);
-				}
+				
+				auto stats = meshBVH.calcStats();
+				LogMsg("Node Count : %u ,Leaf Count : %u", meshBVH.nodes.size(), meshBVH.leaves.size());
+				LogMsg("Leaf Depth : %d - %d  Mean-%g", stats.minDepth, stats.maxDepth, stats.meanDepth);
+				LogMsg("Leaf Tris : %d - %d  Mean-%g", stats.minCount, stats.maxCount, stats.meanCount);
+				
 			}
 
 			if (meshes.size() == 0)
@@ -325,7 +327,6 @@ namespace RT
 			CHECK(numV == numTriangles * 3);
 			int nodeIndex = nodes.size();
 			BVHNodeData::Generate(meshBVH, nodes, indexTriangleOffset);
-			indexTriangleOffset += 3 * numTriangles;
 #else
 			for (int i = 0; i < meshData.indices.size(); ++i)
 			{
@@ -344,6 +345,13 @@ namespace RT
 			mesh.nodeIndex = nodeIndex;
 #else
 			mesh.nodeIndex = indexRoot;
+#endif
+
+
+#if USE_TRIANGLE_INDEX_REORDER
+			indexTriangleOffset += 3 * numTriangles;
+#else
+
 #endif
 			meshes.push_back(mesh);
 			return meshes.size() - 1;

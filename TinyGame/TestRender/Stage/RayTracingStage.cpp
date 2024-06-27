@@ -31,11 +31,31 @@ bool RayTracingTestStage::onInit()
 
 	auto frame = WidgetUtility::CreateDevFrame();
 	frame->addCheckBox("Draw Debug", mbDrawDebug);
-
+	auto choice = frame->addChoice("Stats Mode", UI_StatsMode);
+	choice->addItem("None");
+	choice->addItem("BoundingBox");
+	choice->addItem("Triangle");
+	choice->addItem("Mix");
+	FWidgetProperty::Bind(frame->addSlider("BoundBoxWarningCount", UI_ANY, false), mBoundBoxWarningCount, 0, 1000, [frame](int)
+	{
+		frame->refresh();
+	});
+	FWidgetProperty::Bind(frame->addText("", true) , mBoundBoxWarningCount); 
+	FWidgetProperty::Bind(frame->addSlider("TriangleWarningCount", UI_ANY, false), mTriangleWarningCount, 0, 500, [frame](int)
+	{
+		frame->refresh();
+	});
+	FWidgetProperty::Bind(frame->addText("", true), mTriangleWarningCount);
+	FWidgetProperty::Bind(frame->addSlider("DebugShowDepth", UI_ANY, false), mDebugShowDepth, 0, 32, [this,frame](int)
+	{
+		showNodeBound(mDebugShowDepth);
+		frame->refresh();
+	});
+	FWidgetProperty::Bind(frame->addText("", true), mDebugShowDepth);
 	Vector2 lookPos = Vector2(0, 0);
 	mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, 1), ::Global::GetScreenSize().x / 800.0f);
 	mScreenToWorld = mWorldToScreen.inverse();
-	generatePath();
+	//generatePath();
 
 	restart();
 	return true;
@@ -80,28 +100,37 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
 	{
+		RayTracingPS* rayTracingPS = mRayTracingPSMap[statsMode == EStatsMode::None ? 0 : 1];
+
 		GPU_PROFILE("RayTracing");
 		GraphicsShaderStateDesc state;
 		state.vertex = mScreenVS->getRHI();
-		state.pixel = mRayTracingPS->getRHI();
+		state.pixel = rayTracingPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 
-		mView.setupShader(commandList, *mRayTracingPS);
-		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mMaterialBuffer);
-		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mObjectBuffer);
-		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mVertexBuffer);
-		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mMeshBuffer);
-		SetStructuredStorageBuffer(commandList, *mRayTracingPS, mBVHNodeBuffer);
+		if (statsMode != EStatsMode::None)
+		{
+			rayTracingPS->setParam(commandList, SHADER_PARAM(StatsMode), int(statsMode));
+			rayTracingPS->setParam(commandList, SHADER_PARAM(BoundBoxWarningCount), int(mBoundBoxWarningCount));
+			rayTracingPS->setParam(commandList, SHADER_PARAM(TriangleWarningCount), int(mTriangleWarningCount));
+		}
+
+		mView.setupShader(commandList, *rayTracingPS);
+		SetStructuredStorageBuffer(commandList, *rayTracingPS, mMaterialBuffer);
+		SetStructuredStorageBuffer(commandList, *rayTracingPS, mObjectBuffer);
+		SetStructuredStorageBuffer(commandList, *rayTracingPS, mVertexBuffer);
+		SetStructuredStorageBuffer(commandList, *rayTracingPS, mMeshBuffer);
+		SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVHNodeBuffer);
 #if USE_TRIANGLE_INDEX_REORDER	
 
 #else
-		SetStructuredStorageBuffer< PrimitiveIdData >(commandList, *mRayTracingPS, mTriangleIdBuffer);
+		SetStructuredStorageBuffer< PrimitiveIdData >(commandList, *rayTracingPS, mTriangleIdBuffer);
 #endif
-		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *mRayTracingPS, mSceneBVHNodeBuffer);
-		SetStructuredStorageBuffer< ObjectIdData >(commandList, *mRayTracingPS, mObjectIdBuffer);
+		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *rayTracingPS, mSceneBVHNodeBuffer);
+		SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
 
-		mRayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mRayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
+		rayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 
 		DrawUtility::ScreenRect(commandList);
 
@@ -127,6 +156,7 @@ void RayTracingTestStage::onRender(float dFrame)
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		g.beginRender();
 
+		if(0)
 		{
 			TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, true);
 			RenderUtility::SetPen(g, EColor::White);
@@ -210,6 +240,8 @@ namespace RT
 
 		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData)
 		{
+			CHECK(meshBVH.checkLeafIndexOrder());
+
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
@@ -247,76 +279,73 @@ namespace RT
 			for (int indexTriangle = 0; indexTriangle < numTriangles; ++indexTriangle)
 			{
 				auto& primitive = primitives[indexTriangle];
-				Math::TAABBox<Vector3> triBound;
-				triBound.invalidate();
+				primitive.bound.invalidate();
 
 				int index = 3 * indexTriangle;
 				primitive.center = Vector3::Zero();
 				for (int n = 0; n < 3; ++n)
 				{
-					Vector3 const& pos = posReader[3 * indexTriangle + n];
-					triBound.addPoint(pos);
+					Vector3 const& pos = posReader[index + n];
+					primitive.bound.addPoint(pos);
 					primitive.center += pos;
 				}
 #if USE_TRIANGLE_INDEX_REORDER				
-				primitive.id = 3 * indexTriangle;
+				primitive.id = index;
 #else
-				primitive.id = vertexOffset + 3 * indexTriangle;
+				primitive.id = index + vertexOffset;
 #endif
-				primitive.bound = triBound;
 				primitive.center /= 3.0f;
 			}
 
+#if USE_TRIANGLE_INDEX_REORDER
+			BVHTree meshBVH;
+			int indexRoot;
+#endif
 			{
 				TIME_SCOPE("BuildBVH");
-
-#if USE_TRIANGLE_INDEX_REORDER
-				BVHTree meshBVH;
-#endif
-
 				BVHTree::Builder builder(meshBVH);
-				int indexRoot = builder.build(MakeConstView(primitives));
-
-				if (meshes.size() == 0)
+				indexRoot = builder.build(MakeConstView(primitives));
 				{
-					for (int i = 0; i < meshBVH.nodes.size(); ++i)
-					{
-						auto const& node = meshBVH.nodes[i];
-						mScene.addDebugAABB(node.bound);
-					}
+					auto stats = meshBVH.calcStats();
+					LogMsg("Node Count : %u ,Leaf Count : %u", meshBVH.nodes.size(), meshBVH.leaves.size());
+					LogMsg("Leaf Depth : %d - %d  Mean-%g", stats.minDepth, stats.maxDepth, stats.meanDepth);
+					LogMsg("Leaf Tris : %d - %d  Mean-%g", stats.minCount, stats.maxCount, stats.meanCount);
 				}
-
-				vertices.resize(vertexOffset + meshData.indices.size());
-
-#if USE_TRIANGLE_INDEX_REORDER
-				CHECK(meshBVH.checkLeafIndexOrder());
-				int numV = GenerateTriangleVertices(meshBVH, meshData, vertices.data() + vertexOffset);
-				CHECK(numV == numTriangles * 3);
-				int nodeIndex = nodes.size();
-				BVHNodeData::Generate(meshBVH, nodes, indexTriangleOffset);
-				indexTriangleOffset += 3 * numTriangles;
-#else
-				for (int i = 0; i < meshData.indices.size(); ++i)
-				{
-					int index = meshData.indices[i];
-					MeshVertexData& vertex = vertices[vertexOffset + i];
-					vertex.pos = posReader[index];
-					vertex.normal = normalReader[index];
-				}
-#endif
-				MeshData mesh;
-				mesh.startIndex = vertexOffset;
-				mesh.numTriangles = numTriangles;
-				mesh.boundMin = meshBVH.nodes[indexRoot].bound.min;
-				mesh.boundMax = meshBVH.nodes[indexRoot].bound.max;
-#if USE_TRIANGLE_INDEX_REORDER
-				mesh.nodeIndex = nodeIndex;
-#else
-				mesh.nodeIndex = indexRoot;
-#endif
-				meshes.push_back(mesh);
 			}
 
+			if (meshes.size() == 0)
+			{
+				mScene.mDebugBVH = meshBVH;
+			}
+
+			vertices.resize(vertexOffset + meshData.indices.size());
+
+#if USE_TRIANGLE_INDEX_REORDER
+			int numV = GenerateTriangleVertices(meshBVH, meshData, vertices.data() + vertexOffset);
+			CHECK(numV == numTriangles * 3);
+			int nodeIndex = nodes.size();
+			BVHNodeData::Generate(meshBVH, nodes, indexTriangleOffset);
+			indexTriangleOffset += 3 * numTriangles;
+#else
+			for (int i = 0; i < meshData.indices.size(); ++i)
+			{
+				int index = meshData.indices[i];
+				MeshVertexData& vertex = vertices[vertexOffset + i];
+				vertex.pos = posReader[index];
+				vertex.normal = normalReader[index];
+			}
+#endif
+			MeshData mesh;
+			mesh.startIndex = vertexOffset;
+			mesh.numTriangles = numTriangles;
+			mesh.boundMin = meshBVH.nodes[indexRoot].bound.min;
+			mesh.boundMax = meshBVH.nodes[indexRoot].bound.max;
+#if USE_TRIANGLE_INDEX_REORDER
+			mesh.nodeIndex = nodeIndex;
+#else
+			mesh.nodeIndex = indexRoot;
+#endif
+			meshes.push_back(mesh);
 			return meshes.size() - 1;
 		}
 
@@ -332,10 +361,12 @@ namespace RT
 		bool addDefaultObjects()
 		{
 			{
+				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
+#if 0
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
+				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
+				VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
+#endif
 			}
 
 			{
@@ -362,6 +393,7 @@ namespace RT
 				float thickness = 0.1;
 				ObjectData objs[] =
 				{
+#if 0
 					FObject::Box(Vector3(lightLength,lightLength,thickness) ,0 ,Vector3(0, 0, 0.5 * (length - 2 * thickness) + hl)),
 
 					FObject::Box(Vector3(length,length,thickness) ,1 ,Vector3(0, 0, 0.5 * (length - thickness) + hl)),
@@ -375,6 +407,9 @@ namespace RT
 					//ObjectData::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
 					FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
 					FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
+#else
+					FObject::Mesh(0, 1, 1, Vector3(0,0,0)),
+#endif
 				};
 				objects.append(objs, objs + ARRAY_SIZE(objs));
 
@@ -703,10 +738,19 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 {
 	VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
 
-	ScreenVS::PermutationDomain permutationVector;
-	permutationVector.set<ScreenVS::UseTexCoord>(true);
-	VERIFY_RETURN_FALSE(mScreenVS = ::ShaderManager::Get().getGlobalShaderT<ScreenVS>(permutationVector));
-	VERIFY_RETURN_FALSE(mRayTracingPS = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>());
+	{
+		ScreenVS::PermutationDomain permutationVector;
+		permutationVector.set<ScreenVS::UseTexCoord>(true);
+		VERIFY_RETURN_FALSE(mScreenVS = ::ShaderManager::Get().getGlobalShaderT<ScreenVS>(permutationVector));
+	}
+
+	for (int i = 0; i < 2; ++i)
+	{
+		RayTracingPS::PermutationDomain permutationVector;
+		permutationVector.set<RayTracingPS::UseStatsMode>(i);
+		VERIFY_RETURN_FALSE(mRayTracingPSMap[i] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
+	}
+
 	VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());
 	mDebugPrimitives.initializeRHI();
 
@@ -735,7 +779,7 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 void RayTracingTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 {
 	mScreenVS = nullptr;
-	mRayTracingPS = nullptr;
+	std::fill_n( mRayTracingPSMap, ARRAY_SIZE(mRayTracingPSMap), nullptr);
 	mView.releaseRHIResource();
 	mMaterialBuffer.releaseResource();
 	mObjectBuffer.releaseResource();

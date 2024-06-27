@@ -21,7 +21,7 @@ namespace Math
 		void invalidate()
 		{
 			min = VectorType::Fill(std::numeric_limits<ScalarType>::max());
-			max = VectorType::Fill(std::numeric_limits<ScalarType>::min());
+			max = VectorType::Fill(std::numeric_limits<ScalarType>::lowest());
 		}
 
 		bool isIntersect(TAABBox const& rhs) const

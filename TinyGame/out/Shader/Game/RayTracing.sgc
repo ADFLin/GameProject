@@ -8,6 +8,22 @@
 #define USE_TRIANGLE_INDEX_REORDER 0
 #endif
 
+#ifndef STATS_MODE
+#define STATS_MODE 0
+#endif
+
+#if STATS_MODE
+struct Stats
+{
+	int boundingBoxCount;
+	int triangleCount;
+};
+
+uniform int StatsMode;
+uniform int BoundBoxWarningCount;
+uniform int TriangleWarningCount;
+#endif
+
 uint Hash(uint s)
 {
 	s ^= 2747636419u;
@@ -226,8 +242,22 @@ bool RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
 	return tNear <= tFar && tFar > 0;
 };
 
-
-RayCastResult TraverseBVH(int nodeIndex, Ray ray)
+float RayBoundingBoxDist(Ray ray, float3 boxMin, float3 boxMax)
+{
+	float3 invDir = 1 / ray.dir;
+	float3 tMin = (boxMin - ray.pos) * invDir;
+	float3 tMax = (boxMax - ray.pos) * invDir;
+	float3 t1 = min(tMin, tMax);
+	float3 t2 = max(tMin, tMax);
+	float tNear = max(max(t1.x, t1.y), t1.z);
+	float tFar = min(min(t2.x, t2.y), t2.z);
+	return tNear <= tFar && tFar > 0;
+};
+RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
+#if STATS_MODE
+	, inout Stats stats
+#endif
+)
 {
 	RayCastResult result;
 	result.bHit = 0;
@@ -235,13 +265,17 @@ RayCastResult TraverseBVH(int nodeIndex, Ray ray)
 
 	int nodeStack[32];
 	int stackSize = 0;
-
-	nodeStack[0] = -1;
+	
+	nodeStack[0] = rootNodeIndex;
 	++stackSize;
 
-	do
+	while (stackSize > 0)
 	{
+		int nodeIndex = nodeStack[--stackSize];
 		BVHNodeData node = BVHNodes[nodeIndex];
+#if STATS_MODE
+		stats.boundingBoxCount += 1;
+#endif
 		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
 		{
 			if (node.right < 0)
@@ -255,6 +289,9 @@ RayCastResult TraverseBVH(int nodeIndex, Ray ray)
 					int index = indexStart + 3 * i;
 #else
 					int index = TriangleIds[indexStart + i];
+#endif
+#if STATS_MODE
+					stats.triangleCount += 1;
 #endif
 					RayCastResult castResult = RayTriangle(ray,
 						MeshVertices[index + 0],
@@ -276,17 +313,15 @@ RayCastResult TraverseBVH(int nodeIndex, Ray ray)
 			}
 			else
 			{
-				nodeIndex = nodeIndex + 1;
-				nodeStack[stackSize] = node.right;
-				++stackSize;
-				continue;
+				int childLeftIndex = nodeIndex + 1;
+				int childRightIndex = node.right;
+
+				nodeStack[stackSize++] = childLeftIndex;
+				nodeStack[stackSize++] = childRightIndex;
 			}
 		}
 
-		--stackSize;
-		nodeIndex = nodeStack[stackSize];
 	}
-	while (nodeIndex >= 0);
 
 	return result;
 }
@@ -303,7 +338,11 @@ RayCastResult TraverseSceneBVH(Ray ray)
 }
 
 
-void RayObject(Ray ray , ObjectData object, inout  RayCastResult result)
+void RayObject(Ray ray , ObjectData object, inout  RayCastResult result
+#if STATS_MODE
+	, inout Stats stats
+#endif
+)
 {
 
 	switch (object.type)
@@ -376,7 +415,11 @@ void RayObject(Ray ray , ObjectData object, inout  RayCastResult result)
 				}
 			}
 #else
-			RayCastResult castResult = TraverseBVH(mesh.nodeIndex, rayLocal);
+			RayCastResult castResult = TraverseMeshBVH(mesh.nodeIndex, rayLocal
+#if STATS_MODE
+			,stats
+#endif
+			);
 			castResult.dist *= scale;
 			if (castResult.bHit && castResult.dist < result.dist)
 			{
@@ -415,7 +458,11 @@ void RayObject(Ray ray , ObjectData object, inout  RayCastResult result)
 }
 
 
-RayCastResult RayCast(float3 start, float3 dir)
+RayCastResult RayCast(float3 start, float3 dir
+#if STATS_MODE
+	, inout Stats stats
+#endif
+)
 {
 	RayCastResult result = (RayCastResult)0;
 	result.bHit = 0;
@@ -424,12 +471,16 @@ RayCastResult RayCast(float3 start, float3 dir)
 	Ray ray;
 	ray.pos = start;
 	ray.dir = dir;
-#if 0
+#if 1
 	for (int i = 0; i < NumObjects; ++i)
 	{
 		float dist;
 		ObjectData object = Objects[i];
-		RayObject(ray, object, result);
+		RayObject(ray, object, result
+#if STATS_MODE
+			, stats
+#endif
+		);
 	}
 #else
 
@@ -443,6 +494,9 @@ RayCastResult RayCast(float3 start, float3 dir)
 	do
 	{
 		BVHNodeData node = SceneBVHNodes[nodeIndex];
+#if STATS_MODE
+		stats.boundingBoxCount += 1;
+#endif
 		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
 		{
 			if (node.right < 0)
@@ -453,7 +507,11 @@ RayCastResult RayCast(float3 start, float3 dir)
 				for (int i = 0; i < numPrimitives; ++i)
 				{
 					int objectId = ObjectIds[indexStart + i];
-					RayObject(ray, Objects[objectId], result);
+					RayObject(ray, Objects[objectId], result
+#if STATS_MODE
+						, stats
+#endif
+					);
 				}
 			}
 			else
@@ -498,7 +556,7 @@ float3x3 TangentToWorldTransform(float3 tangentZ)
 #endif
 }
 
-#define MaxBounceCount 6
+#define MaxBounceCount 1
 
 
 float4 ImportanceSampleGGX(float2 E, float a2)
@@ -524,7 +582,11 @@ float4 ImportanceSampleGGX(float2 E, float a2)
 	return float4(H, PDF);
 }
 
-float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState)
+float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
+#if STATS_MODE
+	, inout Stats stats
+#endif
+)
 {
 	float3 incomingLight = float3(0,0,0);
 	float3 rayColor  = float3(1, 1, 1);
@@ -535,8 +597,12 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState)
 	LOOP
 	for (int i = 0; i < MaxBounceCount; ++i)
 	{
-		RayCastResult rayResult = RayCast(rayStart, rayDir);
-
+		RayCastResult rayResult = RayCast(rayStart, rayDir
+#if STATS_MODE
+			, stats
+#endif
+		);
+		 
 		if (rayResult.bHit)
 		{
 			float3 V = -rayDir;
@@ -602,7 +668,7 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState)
 				rayStart = rayResult.hitPos + 0.0001 * rayDir;
 			}
 
-#if 0
+#if 1
 			return 0.5 * N + 0.5;
 #endif
 		}
@@ -637,27 +703,56 @@ PS_ENTRY_END(MainPS)
 	return;
 #endif
 
-	
+#if STATS_MODE
+	Stats stats = (Stats)0;
+#endif
 
 #if 1
 	float4 rayOffset =  mul(View.clipToTranslatedWorld, float4(2 * VFLIP(VSOutput.UVs) - 1, 1, 1));
 	float3 rayDir = normalize(rayOffset.xyz);
 	float3 rayPos = View.worldPos;
 	float3 totalLighting = 0;
-	int NumRaysPerPixel = 6;
+	int NumRaysPerPixel = 1;
 	for (int index = 0; index < NumRaysPerPixel; ++index)
 	{
-		totalLighting += TraceLighting(rayPos, rayDir, randState);
+		totalLighting += TraceLighting(rayPos, rayDir, randState
+#if STATS_MODE
+			,stats
+#endif
+		);
 	}
 	//weight = 1;
 
 	float3 color = totalLighting / NumRaysPerPixel;
 #endif
 
+
+#if STATS_MODE
+
+	switch (StatsMode)
+	{
+	case 1:
+		{
+			float c = float(stats.boundingBoxCount) / BoundBoxWarningCount;
+			OutColor = (c > 1.0) ? float4(1, 0, 0, 1) : float4(c, c, c, 1);
+		}
+		break;
+	case 2:
+		{
+			float c = float(stats.triangleCount) / TriangleWarningCount;
+			OutColor = (c > 1.0) ? float4(1, 0, 0, 1) : float4(c, c, c, 1);
+		}
+		break;
+	case 3:
+		OutColor = float4(float(stats.boundingBoxCount) / BoundBoxWarningCount, 0, float(stats.triangleCount) / TriangleWarningCount, 1);
+		break;
+	}
+#else
 	//float3 color = float3(VSOutput.UVs, 0);
 	float weight = 1.0 / View.frameCount;
 	float3 oldColor = TEXTURE_SAMPLE(HistoryTexture, VSOutput.UVs).rgb;
 	OutColor = float4(lerp(oldColor, color, weight), 1);
+#endif
 }
 
 #endif //SHADER_ENTRY(MainPS)

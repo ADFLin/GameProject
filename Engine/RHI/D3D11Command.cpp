@@ -79,9 +79,15 @@ namespace Render
 		{
 			mDeviceContextImmdiate->End(mQueryDisjoint);
 
+			int count = 0;
 			while (mDeviceContextImmdiate->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE)
 			{
 				SystemPlatform::Sleep(0);
+#if 0
+				++count;
+				if ( count > 100000)
+					return false;
+#endif
 			}
 			D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
 			mDeviceContextImmdiate->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);

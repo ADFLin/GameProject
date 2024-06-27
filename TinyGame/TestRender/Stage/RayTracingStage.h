@@ -12,18 +12,31 @@
 
 using namespace Render;
 
+enum class EStatsMode
+{
+	None,
+	BoundingBox,
+	Triangle,
+	Mix,
+
+	COUNT,
+};
+
 
 class RayTracingPS : public GlobalShader
 {
 	using BaseClass = GlobalShader;
 	DECLARE_SHADER(RayTracingPS, Global);
 public:
+	SHADER_PERMUTATION_TYPE_BOOL(UseStatsMode, SHADER_PARAM(STATS_MODE))
+	using PermutationDomain = TShaderPermutationDomain<UseStatsMode>;
+
 	static char const* GetShaderFileName()
 	{
 		return "Shader/Game/RayTracing";
 	}
 
-	static void SetupShaderCompileOption(ShaderCompileOption& option) 
+	static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 	{
 		option.addDefine(SHADER_PARAM(USE_TRIANGLE_INDEX_REORDER), USE_TRIANGLE_INDEX_REORDER);
 	}
@@ -181,15 +194,56 @@ public:
 		BoundType bound;
 		int indexLeft;
 		int indexRight;
+		int depth;
 
 		bool isLeaf() const { return indexRight < 0; }
 	};
 
+
+	struct Stats
+	{
+		int minDepth;
+		int maxDepth;
+		float meanDepth;
+		int minCount;
+		int maxCount;
+		float meanCount;
+	};
+
 	struct Leaf
 	{
+		int depth;
 		TArray<int> ids;
 	};
 
+	Stats calcStats() const
+	{
+		Stats result{ MaxInt32,0,0,MaxInt32,0,0 };
+
+		int depthAcc = 0;
+		int countAcc = 0;
+		for (auto const& leaf : leaves)
+		{
+			if (leaf.depth > result.maxDepth)
+			  result.maxDepth = leaf.depth;
+			else if ( leaf.depth < result.minDepth )
+			  result.minDepth = leaf.depth;
+
+			depthAcc += leaf.depth;
+
+			int count = leaf.ids.size();
+			if (count > result.maxCount)
+				result.maxCount = count;
+			else if (count < result.minCount)
+				result.minCount = count;
+
+			countAcc += count;
+		}
+
+		result.meanDepth = float(depthAcc) / leaves.size();
+		result.meanCount = float(countAcc) / leaves.size();
+		return result;
+	}
 
 	bool checkLeafIndexOrder()
 	{
@@ -258,10 +312,11 @@ public:
 		}
 
 
-		int  makeLeaf(TArrayView< BuildData >& dataList)
+		int  makeLeaf(TArrayView< BuildData >& dataList, int depth)
 		{
 			Leaf leaf;
 			leaf.ids.resize(dataList.size());
+			leaf.depth = depth;
 			for (int i = 0; i < dataList.size(); ++i)
 			{
 				leaf.ids[i] = mPrimitives[dataList[i].index].id;
@@ -281,11 +336,11 @@ public:
 			{
 				dataList[i].index = i;
 			}
-			int rootId = buildNode_R(MakeView(dataList));
+			int rootId = buildNode_R(MakeView(dataList), 0);
 			return rootId;
 		}
 
-		int  buildNode_R(TArrayView< BuildData >& dataList)
+		int  buildNode_R(TArrayView< BuildData >& dataList, int depth)
 		{
 			BoundType bound;
 			bound = mPrimitives[dataList[0].index].bound;
@@ -294,10 +349,10 @@ public:
 				int index = dataList[i].index;
 				bound += mPrimitives[index].bound;
 			}
-			return buildNode_R(dataList, bound);
+			return buildNode_R(dataList, bound, depth);
 		}
 
-		int  buildNode_R(TArrayView< BuildData >& dataList, BoundType const& bound)
+		int  buildNode_R(TArrayView< BuildData >& dataList, BoundType const& bound, int depth)
 		{
 			int   minCount = -1;
 			int   minAxis;
@@ -404,9 +459,10 @@ public:
 			if (minCount == -1)
 			{
 				Node& node = mBVH.nodes[indexNode];
-				node.indexLeft = makeLeaf(dataList);
+				node.indexLeft = makeLeaf(dataList, depth);
 				node.indexRight = -1;
 				node.bound = bound;
+				node.depth = depth;
 			}
 			else
 			{
@@ -429,13 +485,13 @@ public:
 				int indexRight;
 				if (splitMethod == SplitMethod::NodeBlance)
 				{
-					indexLeft = buildNode_R(TArrayView<BuildData>(dataList.data(), minCount));
-					indexRight = buildNode_R(TArrayView<BuildData>(dataList.data() + minCount, dataList.size() - minCount));
+					indexLeft = buildNode_R(TArrayView<BuildData>(dataList.data(), minCount), depth + 1);
+					indexRight = buildNode_R(TArrayView<BuildData>(dataList.data() + minCount, dataList.size() - minCount), depth + 1);
 				}
 				else
 				{
-					indexLeft = buildNode_R(TArrayView<BuildData>(dataList.data(), minCount), minBounds[0]);
-					indexRight = buildNode_R(TArrayView<BuildData>(dataList.data() + minCount, dataList.size() - minCount), minBounds[1]);
+					indexLeft = buildNode_R(TArrayView<BuildData>(dataList.data(), minCount), minBounds[0], depth + 1);
+					indexRight = buildNode_R(TArrayView<BuildData>(dataList.data() + minCount, dataList.size() - minCount), minBounds[1], depth + 1);
 				}
 
 				CHECK(indexLeft == indexNode + 1);
@@ -443,6 +499,7 @@ public:
 				node.indexLeft = indexLeft;
 				node.indexRight = indexRight;
 				node.bound = bound;
+				node.depth = depth;
 			}
 			return indexNode;
 		}
@@ -531,6 +588,26 @@ namespace RT
 	{
 	public:
 
+
+		TStructuredBuffer< MaterialData > mMaterialBuffer;
+		TStructuredBuffer< ObjectData > mObjectBuffer;
+		TStructuredBuffer< MeshVertexData > mVertexBuffer;
+		TStructuredBuffer< MeshData > mMeshBuffer;
+		TStructuredBuffer< BVHNodeData > mBVHNodeBuffer;
+		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
+#if USE_TRIANGLE_INDEX_REORDER 
+
+#else
+		TStructuredBuffer< int32 > mTriangleIdBuffer;
+#endif
+		TStructuredBuffer< int32 > mObjectIdBuffer;
+		int mNumObjects;
+		PrimitivesCollection mDebugPrimitives;
+
+
+		BVHTree mDebugBVH;
+
+
 		void addDebugAABB(Math::TAABBox<Vector3> const& bound)
 		{
 			Vector3 posList[8];
@@ -554,20 +631,19 @@ namespace RT
 
 		}
 
-		TStructuredBuffer< MaterialData > mMaterialBuffer;
-		TStructuredBuffer< ObjectData > mObjectBuffer;
-		TStructuredBuffer< MeshVertexData > mVertexBuffer;
-		TStructuredBuffer< MeshData > mMeshBuffer;
-		TStructuredBuffer< BVHNodeData > mBVHNodeBuffer;
-		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
-#if USE_TRIANGLE_INDEX_REORDER 
 
-#else
-		TStructuredBuffer< int32 > mTriangleIdBuffer;
-#endif
-		TStructuredBuffer< int32 > mObjectIdBuffer;
-		int mNumObjects;
-		PrimitivesCollection mDebugPrimitives;
+		void showNodeBound(int depth)
+		{
+			mDebugPrimitives.clear();
+			for (int i = 0; i < mDebugBVH.nodes.size(); ++i)
+			{
+				auto const& node = mDebugBVH.nodes[i];
+				if (node.depth == depth)
+				{
+					addDebugAABB(node.bound);
+				}
+			}
+		}
 	};
 
 	class ISceneScript
@@ -584,13 +660,20 @@ namespace RT
 
 
 
-
 class RayTracingTestStage : public StageBase
 	                      , public IGameRenderSetup
 	                      , public RT::SceneData
 {
 	using BaseClass = StageBase;
 public:
+
+	enum
+	{
+		UI_StatsMode = BaseClass::NEXT_UI_ID,
+
+
+		NEXT_UI_ID,
+	};
 
 	ViewInfo      mView;
 	ViewFrustum   mViewFrustum;
@@ -601,6 +684,8 @@ public:
 	{
 
 	}
+
+
 
 	bool onInit() override;
 
@@ -668,7 +753,7 @@ public:
 	Vector3 mLastRoation;
 
 	bool mbDrawDebug = false;
-
+	int  mDebugShowDepth = 1;
 
 	void onRender(float dFrame) override;
 
@@ -700,6 +785,12 @@ public:
 	{
 		switch (id)
 		{
+		case UI_StatsMode:
+			{
+				statsMode = EStatsMode(ui->cast<GChoice>()->getSelection());
+
+			}
+			return true;
 		default:
 			break;
 		}
@@ -829,6 +920,13 @@ public:
 	FrameRenderTargets mSceneRenderTargets;
 
 	ScreenVS* mScreenVS = nullptr;
-	RayTracingPS* mRayTracingPS = nullptr;
+
+
+	EStatsMode statsMode = EStatsMode::None;
+	int mBoundBoxWarningCount = 50;
+	int mTriangleWarningCount = 50;
+
+	RayTracingPS* mRayTracingPSMap[2];
+
 };
 

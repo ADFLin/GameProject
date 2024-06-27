@@ -274,7 +274,7 @@ namespace Render
 			}
 			else
 			{
-				factor[i] = std::numeric_limits<float>::min();
+				factor[i] = std::numeric_limits<float>::lowest();
 			}
 		}
 

@@ -45,7 +45,13 @@ struct FWidgetProperty
 	template< class T >
 	static void Set(GTextCtrl* widget, T value)
 	{
-		return widget->setValue( FStringConv::From(value) );
+		widget->setValue( FStringConv::From(value) );
+	}
+
+	template< class T >
+	static void Set(GText* widget, T value)
+	{
+		widget->setText(FStringConv::From(value));
 	}
 
 	static void Bind(GSlider* widget, float& valueRef, float min, float max)
@@ -194,6 +200,17 @@ struct FWidgetProperty
 			return false;
 		};
 	}
+
+
+	template< class T >
+	static void Bind(GText* widget, T& valueRef)
+	{
+		FWidgetProperty::Set(widget, valueRef);
+		widget->onRefresh = [&valueRef](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GText>(), valueRef);
+		};
+	}
 };
 
 
@@ -205,10 +222,12 @@ public:
 	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
 	GCheckBox* addCheckBox(int id, char const* tile);
 	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
-	GSlider*   addSlider(int id = UI_ANY);
-	GSlider*   addSlider(char const* title, int id = UI_ANY);
+	GSlider*   addSlider(int id = UI_ANY, bool bUseBroder = true);
+	GSlider*   addSlider(char const* title, int id = UI_ANY, bool bUseBroder = true);
 	GTextCtrl* addTextCtrl(int id);
 	GTextCtrl* addTextCtrl(char const* title, int id = UI_ANY);
+	GChoice*   addChoice(int id = UI_ANY);
+	GChoice*   addChoice(char const* title, int id = UI_ANY);
 	GText*     addText(char const* pText, bool bUseBroder = false);
 
 	void addCheckBox(char const* text, bool& value)

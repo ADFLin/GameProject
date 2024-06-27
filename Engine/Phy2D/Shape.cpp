@@ -9,8 +9,8 @@ namespace Phy2D
 		{
 			aabb.min.x = std::numeric_limits< float >::max();
 			aabb.min.y = std::numeric_limits< float >::max();
-			aabb.max.x = std::numeric_limits< float >::min();
-			aabb.max.y = std::numeric_limits< float >::min();
+			aabb.max.x = std::numeric_limits< float >::lowest();
+			aabb.max.y = std::numeric_limits< float >::lowest();
 #if _DEBUG
 			count = 0;
 #endif

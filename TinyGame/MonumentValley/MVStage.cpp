@@ -1009,7 +1009,7 @@ namespace MV
 		}
 
 		int result = 0;
-		int maxZ = std::numeric_limits< int >::min();
+		int maxZ = std::numeric_limits< int >::lowest();
 		int idx = -1;
 		assert( parallaxOffset.z > 0 );
 		for( int i = 0 ; i < 3 ; ++i )

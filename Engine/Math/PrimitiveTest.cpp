@@ -76,7 +76,7 @@ namespace Math
 			}
 			else
 			{
-				factors[i] = std::numeric_limits<float>::min();
+				factors[i] = std::numeric_limits<float>::lowest();
 			}
 		}
 

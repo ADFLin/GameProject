@@ -74,20 +74,20 @@ GCheckBox* DevFrame::addCheckBox(char const* title, WidgetEventDelegate delegate
 	return addWidget<GCheckBox>(title, delegate);
 }
 
-GSlider* DevFrame::addSlider(int id)
+GSlider* DevFrame::addSlider(int id, bool bUseBroder)
 {
 	return addWidget<GSlider>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
 	{
 		GSlider* widget = new GSlider(id, widgetPos, widgetSize.x, true, this);
 		return widget;
-	});
+	}, bUseBroder);
 }
 
 
-GSlider* DevFrame::addSlider(char const* title, int id )
+GSlider* DevFrame::addSlider(char const* title, int id , bool bUseBroder)
 {
 	addText(title);
-	return addSlider(id);
+	return addSlider(id, bUseBroder);
 }
 
 GTextCtrl* DevFrame::addTextCtrl(int id)
@@ -103,6 +103,21 @@ GTextCtrl* DevFrame::addTextCtrl(char const* title, int id )
 {
 	addText(title);
 	return addTextCtrl(id);
+}
+
+GChoice* DevFrame::addChoice(int id)
+{
+	return addWidget<GChoice>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
+	{
+		GChoice* widget = new GChoice(id, widgetPos, widgetSize, this);
+		return widget;
+	});
+}
+
+GChoice* DevFrame::addChoice(char const* title, int id)
+{
+	addText(title);
+	return addChoice(id);
 }
 
 GText* DevFrame::addText(char const* pText, bool bUseBroder)

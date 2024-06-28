@@ -88,7 +88,7 @@ namespace Render
 		RHISystemInitParams()
 		{
 			numSamples = 1;
-			bVSyncEnable = true;
+			bVSyncEnable = false;
 			bDebugMode = false;
 			bMultithreadingSupported = false;
 		}
@@ -432,6 +432,14 @@ namespace Render
 				return false;
 			return true;
 		}
+
+		bool initializeResource(TArrayView<const T> const& data, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false)
+		{
+			if (!initializeResource(data.size(), type, bCPUAccessRead))
+				return false;
+			return updateBuffer(data);
+		}
+
 
 		void releaseResource()
 		{

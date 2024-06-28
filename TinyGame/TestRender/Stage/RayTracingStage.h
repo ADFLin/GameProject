@@ -18,7 +18,8 @@ enum class EStatsMode
 	BoundingBox,
 	Triangle,
 	Mix,
-
+	HitNoraml,
+	HitPos,
 	COUNT,
 };
 
@@ -271,6 +272,13 @@ public:
 
 		return true;
 	}
+
+	void clear()
+	{
+		nodes.clear();
+		leaves.clear();
+	}
+
 	TArray<Node> nodes;
 	TArray<Leaf> leaves;
 
@@ -545,13 +553,13 @@ struct GPU_ALIGN BVHNodeData
 		}
 	}
 
-	static void Generate(BVHTree const& BVH, TArray< BVHNodeData >& nodes, int indexOffset)
+	static void Generate(BVHTree const& BVH, TArray< BVHNodeData >& nodes, int indexTriangleStart)
 	{
 		int indexNodeStart = nodes.size();
-		int curIndex = indexOffset;
+		int indexTriangleCur = indexTriangleStart;
 		nodes.resize(nodes.size() + BVH.nodes.size());
 
-		for (int i = 0; i < nodes.size(); ++i)
+		for (int i = 0; i < BVH.nodes.size(); ++i)
 		{
 			auto& node = nodes[indexNodeStart + i];
 			auto const& nodeCopy = BVH.nodes[i];
@@ -561,14 +569,14 @@ struct GPU_ALIGN BVHNodeData
 			if (nodeCopy.isLeaf())
 			{
 				auto const& leafCopy = BVH.leaves[nodeCopy.indexLeft];
-				node.left  = curIndex;
+				node.left  = indexTriangleCur;
 				node.right = -leafCopy.ids.size();
-				curIndex += 3 * leafCopy.ids.size();
+				indexTriangleCur += 3 * leafCopy.ids.size();
 			}
 			else
 			{
-				node.left = nodeCopy.indexLeft;
-				node.right = nodeCopy.indexRight;
+				node.left = indexNodeStart + nodeCopy.indexLeft;
+				node.right = indexNodeStart + nodeCopy.indexRight;
 			}
 		}
 	}
@@ -922,7 +930,7 @@ public:
 
 
 	EStatsMode statsMode = EStatsMode::None;
-	int mBoundBoxWarningCount = 50;
+	int mBoundBoxWarningCount = 500;
 	int mTriangleWarningCount = 50;
 
 	RayTracingPS* mRayTracingPSMap[2];

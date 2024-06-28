@@ -9,6 +9,7 @@
 
 #include "HashString.h"
 #include "DataStructure/Array.h"
+#include "Template/ArrayView.h"
 
 #include <vector>
 #include <set>
@@ -16,8 +17,6 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
-
-
 
 #if CPP_COMPILER_MSVC
 struct CGlobalInputSteamable
@@ -291,6 +290,17 @@ public:
 
 	template<  class T, class A >
 	void write(TArray< T, A > const& value)
+	{
+		uint32 size = value.size();
+		this->write(size);
+		if (size)
+		{
+			this->writeSequence(value.data(), size);
+		}
+	}
+
+	template< class T >
+	void write(TArrayView< T const > const& value)
 	{
 		uint32 size = value.size();
 		this->write(size);

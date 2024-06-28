@@ -12,6 +12,11 @@
 #define STATS_MODE 0
 #endif
 
+#define MAX_TRACE_DIST 1.#INF
+
+#define MaxBounceCount 3
+#define NumRaysPerPixel 1
+
 #if STATS_MODE
 struct Stats
 {
@@ -251,8 +256,12 @@ float RayBoundingBoxDist(Ray ray, float3 boxMin, float3 boxMax)
 	float3 t2 = max(tMin, tMax);
 	float tNear = max(max(t1.x, t1.y), t1.z);
 	float tFar = min(min(t2.x, t2.y), t2.z);
-	return tNear <= tFar && tFar > 0;
+	bool bHit = tNear <= tFar && tFar > 0;
+	return bHit ? tNear : 1.#INF;
 };
+
+
+#define USE_DIST_CHILD_ORDERING 1
 RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 #if STATS_MODE
 	, inout Stats stats
@@ -261,7 +270,7 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 {
 	RayCastResult result;
 	result.bHit = 0;
-	result.dist = 100000000;
+	result.dist = MAX_TRACE_DIST;
 
 	int nodeStack[32];
 	int stackSize = 0;
@@ -273,10 +282,13 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 	{
 		int nodeIndex = nodeStack[--stackSize];
 		BVHNodeData node = BVHNodes[nodeIndex];
+
+#if USE_DIST_CHILD_ORDERING == 0
 #if STATS_MODE
 		stats.boundingBoxCount += 1;
 #endif
 		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
+#endif
 		{
 			if (node.right < 0)
 			{
@@ -310,14 +322,49 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 #endif
 					}
 				}
+
+#if 0
+				if (result.bHit)
+				{
+					break;
+				}
+#endif
 			}
 			else
 			{
-				int childLeftIndex = nodeIndex + 1;
-				int childRightIndex = node.right;
+				int indexChildLeft = nodeIndex + 1;
+				int indexChildRight = node.right;
 
-				nodeStack[stackSize++] = childLeftIndex;
-				nodeStack[stackSize++] = childRightIndex;
+#if USE_DIST_CHILD_ORDERING
+
+				BVHNodeData childLeft = BVHNodes[indexChildLeft];
+				BVHNodeData childRight = BVHNodes[indexChildRight];
+
+				float distLeft = RayBoundingBoxDist(ray, childLeft.boundMin, childLeft.boundMax);
+				float distRight = RayBoundingBoxDist(ray, childRight.boundMin, childRight.boundMax);
+#if STATS_MODE
+				stats.boundingBoxCount += 2;
+#endif
+
+				bool bNearestLeft = distLeft < distRight;
+				int indexChildNear = bNearestLeft ? indexChildLeft : indexChildRight;
+				int indexChildFar = bNearestLeft ? indexChildRight : indexChildLeft;
+				float distNear = bNearestLeft ? distLeft : distRight;
+				float distFar = bNearestLeft ? distRight : distLeft;
+
+				if (distFar < result.dist)
+				{
+					nodeStack[stackSize++] = indexChildFar;
+				}
+				if (distNear < result.dist)
+				{
+					nodeStack[stackSize++] = indexChildNear;
+				}
+
+#else
+				nodeStack[stackSize++] = indexChildLeft;
+				nodeStack[stackSize++] = indexChildRight;
+#endif
 			}
 		}
 
@@ -330,7 +377,7 @@ RayCastResult TraverseSceneBVH(Ray ray)
 {
 	RayCastResult result;
 	result.bHit = 0;
-	result.dist = 100000000;
+	result.dist = MAX_TRACE_DIST;
 
 
 
@@ -466,12 +513,12 @@ RayCastResult RayCast(float3 start, float3 dir
 {
 	RayCastResult result = (RayCastResult)0;
 	result.bHit = 0;
-	result.dist = 100000000;
+	result.dist = MAX_TRACE_DIST;
 
 	Ray ray;
 	ray.pos = start;
 	ray.dir = dir;
-#if 1
+#if 0
 	for (int i = 0; i < NumObjects; ++i)
 	{
 		float dist;
@@ -488,16 +535,19 @@ RayCastResult RayCast(float3 start, float3 dir
 	int nodeStack[32];
 	int stackSize = 0;
 
-	nodeStack[0] = -1;
+	nodeStack[0] = 0;
 	++stackSize;
 
-	do
+	while (stackSize > 0)
 	{
+		int nodeIndex = nodeStack[--stackSize];
 		BVHNodeData node = SceneBVHNodes[nodeIndex];
+#if USE_DIST_CHILD_ORDERING == 0
 #if STATS_MODE
 		stats.boundingBoxCount += 1;
 #endif
 		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
+#endif
 		{
 			if (node.right < 0)
 			{
@@ -516,17 +566,42 @@ RayCastResult RayCast(float3 start, float3 dir
 			}
 			else
 			{
-				nodeIndex = nodeIndex + 1;
-				nodeStack[stackSize] = node.right;
-				++stackSize;
-				continue;
+				int indexChildLeft = nodeIndex + 1;
+				int indexChildRight = node.right;
+
+#if USE_DIST_CHILD_ORDERING
+
+				BVHNodeData childLeft = SceneBVHNodes[indexChildLeft];
+				BVHNodeData childRight = SceneBVHNodes[indexChildRight];
+
+				float distLeft = RayBoundingBoxDist(ray, childLeft.boundMin, childLeft.boundMax);
+				float distRight = RayBoundingBoxDist(ray, childRight.boundMin, childRight.boundMax);
+#if STATS_MODE
+				stats.boundingBoxCount += 2;
+#endif
+
+				bool bNearestLeft = distLeft < distRight;
+				int indexChildNear = bNearestLeft ? indexChildLeft : indexChildRight;
+				int indexChildFar = bNearestLeft ? indexChildRight : indexChildLeft;
+				float distNear = bNearestLeft ? distLeft : distRight;
+				float distFar = bNearestLeft ? distRight : distLeft;
+
+				if (distFar < result.dist)
+				{
+					nodeStack[stackSize++] = indexChildFar;
+				}
+				if (distNear < result.dist)
+				{
+					nodeStack[stackSize++] = indexChildNear;
+				}
+
+#else
+				nodeStack[stackSize++] = indexChildLeft;
+				nodeStack[stackSize++] = indexChildRight;
+#endif
 			}
 		}
-
-		--stackSize;
-		nodeIndex = nodeStack[stackSize];
-
-	} while (nodeIndex >= 0);
+	}
 
 #endif
 
@@ -556,7 +631,6 @@ float3x3 TangentToWorldTransform(float3 tangentZ)
 #endif
 }
 
-#define MaxBounceCount 1
 
 
 float4 ImportanceSampleGGX(float2 E, float a2)
@@ -668,8 +742,11 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 				rayStart = rayResult.hitPos + 0.0001 * rayDir;
 			}
 
-#if 1
-			return 0.5 * N + 0.5;
+#if STATS_MODE
+			if ( StatsMode == 4)
+				return 0.5 * N + 0.5;
+			else if ( StatsMode == 5 )
+				return rayResult.hitPos;
 #endif
 		}
 		else
@@ -712,7 +789,7 @@ PS_ENTRY_END(MainPS)
 	float3 rayDir = normalize(rayOffset.xyz);
 	float3 rayPos = View.worldPos;
 	float3 totalLighting = 0;
-	int NumRaysPerPixel = 1;
+
 	for (int index = 0; index < NumRaysPerPixel; ++index)
 	{
 		totalLighting += TraceLighting(rayPos, rayDir, randState
@@ -728,7 +805,6 @@ PS_ENTRY_END(MainPS)
 
 
 #if STATS_MODE
-
 	switch (StatsMode)
 	{
 	case 1:
@@ -745,6 +821,9 @@ PS_ENTRY_END(MainPS)
 		break;
 	case 3:
 		OutColor = float4(float(stats.boundingBoxCount) / BoundBoxWarningCount, 0, float(stats.triangleCount) / TriangleWarningCount, 1);
+		break;
+	default:
+		OutColor = float4(color, 1);
 		break;
 	}
 #else

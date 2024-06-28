@@ -36,6 +36,8 @@ bool RayTracingTestStage::onInit()
 	choice->addItem("BoundingBox");
 	choice->addItem("Triangle");
 	choice->addItem("Mix");
+	choice->addItem("HitNoraml");
+	choice->addItem("HitPos");
 	choice->setSelection((int)statsMode);
 
 	GSlider* slider;
@@ -228,27 +230,23 @@ namespace RT
 		SceneData& mScene;
 
 		IMeshImporterPtr meshImporter;
-		TArray< MeshVertexData > vertices;
+		TArray< MeshVertexData > meshVertices;
 		TArray< MeshData > meshes;
 		TArray< ObjectData> objects;
 		TArray< MaterialData > materials;
-
-#if USE_TRIANGLE_INDEX_REORDER
-		TArray< BVHNodeData > nodes;
-		int indexTriangleOffset = 0;
-#else
 		BVHTree meshBVH;
+
+#if USE_TRIANGLE_INDEX_REORDER	
+		TArray< BVHNodeData > meshBVHNodes;
 #endif
 
 		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData)
 		{
-			CHECK(meshBVH.checkLeafIndexOrder());
-
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
 			MeshVertexData* pData = pOutData;
-			for( auto const& leaf : meshBVH.leaves)
+			for(auto const& leaf : meshBVH.leaves)
 			{
 				for (int id : leaf.ids)
 				{
@@ -265,7 +263,21 @@ namespace RT
 			return pData - pOutData;
 		}
 
-		int buildMeshData(MeshImportData& meshData)
+#if USE_TRIANGLE_INDEX_REORDER
+		struct BuildMeshResult
+		{
+			TArrayView< MeshVertexData const > vertices;
+			TArrayView< BVHNodeData const > nodes;
+			int nodeIndex;
+			int triangleIndex;
+		};
+#endif
+
+		int buildMeshData(MeshImportData& meshData
+#if USE_TRIANGLE_INDEX_REORDER
+			, BuildMeshResult& buildResult
+#endif
+		)
 		{
 			TIME_SCOPE("BuildMeshData");
 
@@ -274,7 +286,7 @@ namespace RT
 
 			int numTriangles = meshData.indices.size() / 3;
 
-			int vertexOffset = vertices.size();
+			int vertexOffset = meshVertices.size();
 
 			TArray< BVHTree::Primitive > primitives;
 			primitives.resize(numTriangles);
@@ -300,38 +312,40 @@ namespace RT
 			}
 
 #if USE_TRIANGLE_INDEX_REORDER
-			BVHTree meshBVH;
+			meshBVH.clear();
 #endif
-			int indexRoot;
-			{
-				TIME_SCOPE("BuildBVH");
-				BVHTree::Builder builder(meshBVH);
-				indexRoot = builder.build(MakeConstView(primitives));
-				
-				auto stats = meshBVH.calcStats();
-				LogMsg("Node Count : %u ,Leaf Count : %u", meshBVH.nodes.size(), meshBVH.leaves.size());
-				LogMsg("Leaf Depth : %d - %d  Mean-%g", stats.minDepth, stats.maxDepth, stats.meanDepth);
-				LogMsg("Leaf Tris : %d - %d  Mean-%g", stats.minCount, stats.maxCount, stats.meanCount);
-				
-			}
+			int indexLeafStart = meshBVH.leaves.size();
+			TIME_SCOPE("BuildBVH");
+			BVHTree::Builder builder(meshBVH);
+			int indexRoot = builder.build(MakeConstView(primitives));
+
+			auto stats = meshBVH.calcStats();
+			LogMsg("Node Count : %u ,Leaf Count : %u", meshBVH.nodes.size(), meshBVH.leaves.size());
+			LogMsg("Leaf Depth : %d - %d (%.2f)", stats.minDepth, stats.maxDepth, stats.meanDepth);
+			LogMsg("Leaf Tris : %d - %d (%.2f)", stats.minCount, stats.maxCount, stats.meanCount);
 
 			if (meshes.size() == 0)
 			{
 				mScene.mDebugBVH = meshBVH;
 			}
 
-			vertices.resize(vertexOffset + meshData.indices.size());
+			int indexTriangleStart = meshVertices.size();
+			meshVertices.resize(vertexOffset + 3 * numTriangles);
 
 #if USE_TRIANGLE_INDEX_REORDER
-			int numV = GenerateTriangleVertices(meshBVH, meshData, vertices.data() + vertexOffset);
+			int numV = GenerateTriangleVertices(meshBVH, meshData, meshVertices.data() + vertexOffset);
 			CHECK(numV == numTriangles * 3);
-			int nodeIndex = nodes.size();
-			BVHNodeData::Generate(meshBVH, nodes, indexTriangleOffset);
+			int nodeIndex = meshBVHNodes.size();
+			BVHNodeData::Generate(meshBVH, meshBVHNodes, indexTriangleStart);
+			buildResult.vertices = TArrayView<MeshVertexData const>(meshVertices.data() + vertexOffset , numV);
+			buildResult.nodes    = TArrayView<BVHNodeData const>(meshBVHNodes.data() + nodeIndex, meshBVH.nodes.size());
+			buildResult.nodeIndex = nodeIndex;
+			buildResult.triangleIndex = indexTriangleStart;
 #else
 			for (int i = 0; i < meshData.indices.size(); ++i)
 			{
 				int index = meshData.indices[i];
-				MeshVertexData& vertex = vertices[vertexOffset + i];
+				MeshVertexData& vertex = meshVertices[vertexOffset + i];
 				vertex.pos = posReader[index];
 				vertex.normal = normalReader[index];
 			}
@@ -346,33 +360,105 @@ namespace RT
 #else
 			mesh.nodeIndex = indexRoot;
 #endif
-
-
-#if USE_TRIANGLE_INDEX_REORDER
-			indexTriangleOffset += 3 * numTriangles;
-#else
-
-#endif
 			meshes.push_back(mesh);
 			return meshes.size() - 1;
 		}
 
 
+		static void FixOffset(TArray< BVHNodeData >& nodes, int nodeOffset, int triangleOffset)
+		{
+			for(BVHNodeData& node : nodes)
+			{
+				if (node.right < 0)
+				{
+					node.left += triangleOffset;
+				}
+				else
+				{
+					node.left += nodeOffset;
+					node.right += nodeOffset;
+				}
+			}
+		}
+
 		int loadMesh(char const* path)
 		{
 			TIME_SCOPE("LoadMesh");
+#if USE_TRIANGLE_INDEX_REORDER	
+
+			DataCacheKey cacheKey;
+			cacheKey.typeName = "MESH_BVH";
+			cacheKey.version = "1e987655-09dc-431a-bf73-116bc953dfe6";
+			cacheKey.keySuffix.add(path);
+			BuildMeshResult buildResult;
+
+			auto& dataCache = ::Global::DataCache();
+
+			{
+				TArray< MeshVertexData > vertices;
+				TArray< BVHNodeData > nodes;
+				int nodeIndex;
+				int triangleIndex;
+				auto LoadCache = [&](IStreamSerializer& serializer)-> bool
+				{
+					serializer >> vertices;
+					serializer >> nodes;
+					serializer >> nodeIndex;
+					serializer >> triangleIndex;
+					return true;
+				};
+				if (dataCache.loadDelegate(cacheKey, LoadCache))
+				{
+					FixOffset(nodes, (int)meshBVHNodes.size() - nodeIndex , (int)meshVertices.size() - triangleIndex);
+
+					nodeIndex = meshBVHNodes.size();
+					triangleIndex = meshVertices.size();
+					meshBVHNodes.append(nodes);
+					meshVertices.append(vertices);
+
+
+					MeshData mesh;
+					mesh.startIndex = triangleIndex;
+					mesh.numTriangles = vertices.size() / 3;
+					mesh.boundMin = meshBVHNodes[nodeIndex].boundMin;
+					mesh.boundMax = meshBVHNodes[nodeIndex].boundMax;
+					mesh.nodeIndex = nodeIndex;
+
+					meshes.push_back(mesh);
+					return meshes.size() - 1;
+				}
+			}
+			MeshImportData meshData;
+			VERIFY_RETURN_FALSE(meshImporter->importFromFile(path, meshData));
+
+			int resultId = buildMeshData(meshData, buildResult);
+			dataCache.saveDelegate(cacheKey, [&buildResult](IStreamSerializer& serializer)-> bool
+			{
+				serializer << buildResult.vertices;
+				serializer << buildResult.nodes;
+				serializer << buildResult.nodeIndex;
+				serializer << buildResult.triangleIndex;
+				return true;
+			});
+
+			return resultId;
+#else
 			MeshImportData meshData;
 			VERIFY_RETURN_FALSE(meshImporter->importFromFile(path, meshData));
 			return buildMeshData(meshData);
+#endif
 		}
 
 		bool addDefaultObjects()
 		{
 			{
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
 #if 0
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
+
+
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
 #endif
 			}
@@ -401,20 +487,20 @@ namespace RT
 				float thickness = 0.1;
 				ObjectData objs[] =
 				{
-#if 0
+#if 1
 					FObject::Box(Vector3(lightLength,lightLength,thickness) ,0 ,Vector3(0, 0, 0.5 * (length - 2 * thickness) + hl)),
 
-					FObject::Box(Vector3(length,length,thickness) ,1 ,Vector3(0, 0, 0.5 * (length - thickness) + hl)),
-					FObject::Box(Vector3(length,length,thickness) ,2 ,Vector3(0, 0, -0.5 * (length - thickness) + hl)),
-					FObject::Box(Vector3(length,thickness, length) ,3 ,Vector3(0, 0.5 * (length - thickness) ,hl)),
-					FObject::Box(Vector3(length,thickness, length) ,4 ,Vector3(0, -0.5 * (length - thickness) ,hl)),
-					FObject::Box(Vector3(thickness,length, length) ,5 ,Vector3(-0.5 * (length - thickness), 0 ,hl)),
+					FObject::Box(Vector3(length,length,thickness), 1, Vector3(0, 0, 0.5 * (length - thickness) + hl)),
+					FObject::Box(Vector3(length,length,thickness), 2, Vector3(0, 0, -0.5 * (length - thickness) + hl)),
+					FObject::Box(Vector3(length,thickness, length), 3, Vector3(0, 0.5 * (length - thickness) ,hl)),
+					FObject::Box(Vector3(length,thickness, length), 4, Vector3(0, -0.5 * (length - thickness) ,hl)),
+					FObject::Box(Vector3(thickness,length, length), 5, Vector3(-0.5 * (length - thickness), 0 ,hl)),
 
-					//FObject::Mesh(0, 1.2, 1, Vector3(0,0,-0.5 *length), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					FObject::Mesh(0, 1, 1, Vector3(0,0,0)),
-					//ObjectData::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
-					FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
+					//FObject::Mesh(0, 1.2, 1, Vector3(0,0,-0.5 *length + 2), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
+					FObject::Mesh(0, 0.04, 1, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
+					//FObject::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
+					//FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
+					//FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
 #else
 					FObject::Mesh(0, 1, 1, Vector3(0,0,0)),
 #endif
@@ -431,31 +517,21 @@ namespace RT
 
 			if (meshes.size() > 0)
 			{
-				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(vertices.size(), EStructuredBufferType::Buffer));
-				mScene.mVertexBuffer.updateBuffer(vertices);
-
-				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(meshes.size(), EStructuredBufferType::Buffer));
-				mScene.mMeshBuffer.updateBuffer(meshes);
+				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(MakeConstView(meshVertices), EStructuredBufferType::Buffer));
+				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(MakeConstView(meshes), EStructuredBufferType::Buffer));
 
 
 #if USE_TRIANGLE_INDEX_REORDER
-
-
+				
 #else
-				TArray< BVHNodeData > nodes;
+				TArray< BVHNodeData > meshBVHNodes;
 				TArray< int > primitiveIds;
-				BVHNodeData::Generate(meshBVH, nodes, primitiveIds);
+				BVHNodeData::Generate(meshBVH, meshBVHNodes, primitiveIds);
 
-				VERIFY_RETURN_FALSE(mScene.mTriangleIdBuffer.initializeResource(primitiveIds.size(), EStructuredBufferType::Buffer));
-				mScene.mTriangleIdBuffer.updateBuffer(primitiveIds);
+				VERIFY_RETURN_FALSE(mScene.mTriangleIdBuffer.initializeResource(MakeConstView(primitiveIds), EStructuredBufferType::Buffer));
 #endif
-
-				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(nodes.size(), EStructuredBufferType::Buffer));
-				mScene.mBVHNodeBuffer.updateBuffer(nodes);
-
+				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(MakeConstView(meshBVHNodes), EStructuredBufferType::Buffer));
 			}
-
-
 
 			{
 

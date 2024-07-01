@@ -878,9 +878,9 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 void TinyGameApp::handleGameIdle(long time)
 {
 	PROFILE_ENTRY("GameIdle");
-#if 0
+#if 1
 	if ( CVarLockFPS )
-		SystemPlatform::Sleep(time);
+		SystemPlatform::Sleep(3 * time / 4);
 	else
 		render( 0.0f );
 #else

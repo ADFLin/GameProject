@@ -314,6 +314,32 @@ struct FCString
 	}
 
 	template< typename CharT >
+	static CharT const* StrIStr(CharT const* str, CharT const* subStr)
+	{
+		for (CharT const * start = str; *start; start++)
+		{
+			/* find start of pattern in string */
+			for (; (*start && (ToLower(*start) != ToLower(*subStr))); start++)
+				;
+			if (!*start)
+				return 0;
+
+			CharT const *pptr = subStr;
+			CharT const *sptr = start;
+
+			while (ToLower(*sptr) == ToLower(*pptr))
+			{
+				sptr++;
+				pptr++;
+				/* if end of pattern then pattern was found */
+				if (!*pptr)
+					return start;
+			}
+		}
+		return nullptr;
+	}
+
+	template< typename CharT >
 	static CharT const* FindChar(CharT const* str, CharT c);
 
 	template< typename CharT >

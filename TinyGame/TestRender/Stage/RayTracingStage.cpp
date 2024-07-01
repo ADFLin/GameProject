@@ -9,6 +9,7 @@ namespace Chai = chaiscript;
 REGISTER_STAGE_ENTRY("Raytracing Test", RayTracingTestStage, EExecGroup::FeatureDev, "Render");
 
 IMPLEMENT_SHADER(RayTracingPS, EShader::Pixel, SHADER_ENTRY(MainPS));
+IMPLEMENT_SHADER(AccumulatePS, EShader::Pixel, SHADER_ENTRY(AccumulatePS));
 
 bool RayTracingTestStage::onInit()
 {
@@ -31,14 +32,23 @@ bool RayTracingTestStage::onInit()
 
 	auto frame = WidgetUtility::CreateDevFrame();
 	frame->addCheckBox("Draw Debug", mbDrawDebug);
-	auto choice = frame->addChoice("Stats Mode", UI_StatsMode);
-	choice->addItem("None");
-	choice->addItem("BoundingBox");
-	choice->addItem("Triangle");
-	choice->addItem("Mix");
-	choice->addItem("HitNoraml");
-	choice->addItem("HitPos");
-	choice->setSelection((int)statsMode);
+	auto choice = frame->addChoice("DebugDisplay Mode", UI_StatsMode);
+
+	char const* ModeTextList[] = 
+	{
+		"None",
+		"BoundingBox",
+		"Triangle",
+		"Mix",
+		"HitNoraml",
+		"HitPos",
+	};
+	static_assert(ARRAY_SIZE(ModeTextList) == (int)EDebugDsiplayMode::COUNT);
+	for (int i = 0; i < (int)EDebugDsiplayMode::COUNT; ++i)
+	{
+		choice->addItem(ModeTextList[i]);
+	}
+	choice->setSelection((int)mDebugDisplayMode);
 
 	GSlider* slider;
 	slider = frame->addSlider("BoundBoxWarningCount", UI_ANY);
@@ -73,11 +83,16 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHISetFrameBuffer(commandList, nullptr);
 	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1, FRHIZBuffer::FarPlane);
 
-	if (mCamera.getPos() != mLastPos || mCamera.getRotation().getEulerZYX() != mLastRoation)
+	bool bResetFrameCount = mCamera.getPos() != mLastPos || mCamera.getRotation().getEulerZYX() != mLastRoation;
+	if (bResetFrameCount)
 	{
 		mLastPos = mCamera.getPos();
 		mLastRoation = mCamera.getRotation().getEulerZYX();
 		mView.frameCount = 0;
+	}
+	else
+	{
+		mView.frameCount += 1;
 	}
 
 	Vec2i screenSize = ::Global::GetScreenSize();
@@ -95,7 +110,7 @@ void RayTracingTestStage::onRender(float dFrame)
 
 	mView.rectOffset = IntVector2(0, 0);
 	mView.rectSize = screenSize;
-	mView.frameCount += 1;
+
 
 	mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 
@@ -104,7 +119,7 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
 	{
-		RayTracingPS* rayTracingPS = mRayTracingPSMap[statsMode == EStatsMode::None ? 0 : 1];
+		RayTracingPS* rayTracingPS = mRayTracingPSMap[mDebugDisplayMode == EDebugDsiplayMode::None ? (bSplitAccumulate ? 2 : 0 ) : 1];
 
 		GPU_PROFILE("RayTracing");
 		GraphicsShaderStateDesc state;
@@ -112,9 +127,9 @@ void RayTracingTestStage::onRender(float dFrame)
 		state.pixel = rayTracingPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 
-		if (statsMode != EStatsMode::None)
+		if (mDebugDisplayMode != EDebugDsiplayMode::None)
 		{
-			rayTracingPS->setParam(commandList, SHADER_PARAM(StatsMode), int(statsMode));
+			rayTracingPS->setParam(commandList, SHADER_PARAM(DisplayMode), int(mDebugDisplayMode));
 			rayTracingPS->setParam(commandList, SHADER_PARAM(BoundBoxWarningCount), int(mBoundBoxWarningCount));
 			rayTracingPS->setParam(commandList, SHADER_PARAM(TriangleWarningCount), int(mTriangleWarningCount));
 		}
@@ -138,6 +153,20 @@ void RayTracingTestStage::onRender(float dFrame)
 
 		DrawUtility::ScreenRect(commandList);
 
+
+	}
+
+	if (mDebugDisplayMode == EDebugDsiplayMode::None && bSplitAccumulate)
+	{
+		GPU_PROFILE("Accumulate");
+
+		GraphicsShaderStateDesc state;
+		state.vertex = mScreenVS->getRHI();
+		state.pixel = mAccumulatePS->getRHI();
+		RHISetGraphicsShaderBoundState(commandList, state);
+
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mAccumulatePS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
+		DrawUtility::ScreenRect(commandList);
 
 	}
 
@@ -452,9 +481,9 @@ namespace RT
 		bool addDefaultObjects()
 		{
 			{
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
-#if 0
+				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
+#if 1
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
 
@@ -464,7 +493,7 @@ namespace RT
 			}
 
 			{
-				float L = 15;
+				float L = 55;
 				const MaterialData mats[] =
 				{
 					{ Color3f(0,0,0), 1.0, L * Color3f(1,1,1) ,0 },
@@ -831,9 +860,17 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 	for (int i = 0; i < 2; ++i)
 	{
 		RayTracingPS::PermutationDomain permutationVector;
-		permutationVector.set<RayTracingPS::UseStatsMode>(i);
+		permutationVector.set<RayTracingPS::UseDebugDisplay>(i);
 		VERIFY_RETURN_FALSE(mRayTracingPSMap[i] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
 	}
+
+	{
+		RayTracingPS::PermutationDomain permutationVector;
+		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
+		permutationVector.set<RayTracingPS::UseSplitAccumulate>(true);
+		VERIFY_RETURN_FALSE(mRayTracingPSMap[2] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
+	}
+	VERIFY_RETURN_FALSE(mAccumulatePS = ::ShaderManager::Get().getGlobalShaderT<AccumulatePS>());
 
 	VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());
 	mDebugPrimitives.initializeRHI();

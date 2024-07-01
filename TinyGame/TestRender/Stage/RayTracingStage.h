@@ -12,7 +12,7 @@
 
 using namespace Render;
 
-enum class EStatsMode
+enum class EDebugDsiplayMode
 {
 	None,
 	BoundingBox,
@@ -29,8 +29,9 @@ class RayTracingPS : public GlobalShader
 	using BaseClass = GlobalShader;
 	DECLARE_SHADER(RayTracingPS, Global);
 public:
-	SHADER_PERMUTATION_TYPE_BOOL(UseStatsMode, SHADER_PARAM(STATS_MODE))
-	using PermutationDomain = TShaderPermutationDomain<UseStatsMode>;
+	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
+	SHADER_PERMUTATION_TYPE_BOOL(UseSplitAccumulate, SHADER_PARAM(USE_SPLIT_ACCUMULATE));
+	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate>;
 
 	static char const* GetShaderFileName()
 	{
@@ -49,6 +50,34 @@ public:
 
 	DEFINE_TEXTURE_PARAM(HistoryTexture);
 };
+
+
+class AccumulatePS : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(RayTracingPS, Global);
+public:
+	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY))
+		using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay>;
+
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/RayTracing";
+	}
+
+	static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
+	{
+		option.addDefine(SHADER_PARAM(USE_TRIANGLE_INDEX_REORDER), USE_TRIANGLE_INDEX_REORDER);
+	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
+	}
+
+	DEFINE_TEXTURE_PARAM(HistoryTexture);
+};
+
 
 
 
@@ -794,7 +823,7 @@ public:
 		{
 		case UI_StatsMode:
 			{
-				statsMode = EStatsMode(ui->cast<GChoice>()->getSelection());
+				mDebugDisplayMode = EDebugDsiplayMode(ui->cast<GChoice>()->getSelection());
 
 			}
 			return true;
@@ -812,8 +841,14 @@ public:
 
 	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 	{
+#if 0
 		systemConfigs.screenWidth = 1024;
 		systemConfigs.screenHeight = 768;
+#else
+		systemConfigs.screenWidth = 1920;
+		systemConfigs.screenHeight = 1080;
+#endif
+		systemConfigs.bVSyncEnable = false;
 	}
 
 	bool setupRenderResource(ERenderSystem systemName) override;
@@ -927,13 +962,14 @@ public:
 	FrameRenderTargets mSceneRenderTargets;
 
 	ScreenVS* mScreenVS = nullptr;
+	RHIFrameBufferRef mFrameBuffer;
 
-
-	EStatsMode statsMode = EStatsMode::None;
+	EDebugDsiplayMode mDebugDisplayMode = EDebugDsiplayMode::None;
 	int mBoundBoxWarningCount = 500;
 	int mTriangleWarningCount = 50;
 
-	RayTracingPS* mRayTracingPSMap[2];
-
+	bool bSplitAccumulate = false;
+	RayTracingPS* mRayTracingPSMap[3];
+	AccumulatePS* mAccumulatePS;
 };
 

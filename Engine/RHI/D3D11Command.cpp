@@ -2603,7 +2603,7 @@ namespace Render
 	}
 
 	void ShaderConstDataBuffer::commit(ID3D11DeviceContext* context)
-	{
+	{ 
 		if (mUpdateDataSize)
 		{
 			context->UpdateSubresource(resource, 0, nullptr, &mDataBuffer[0], mUpdateDataSize, mUpdateDataSize);

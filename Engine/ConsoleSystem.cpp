@@ -207,7 +207,7 @@ int ConsoleSystem::findCommandName( char const* includeStr , char const** findSt
 	int findNum = 0;
 	for (auto& pair : mNameMap)
 	{
-		if (FCString::StrStr(pair.first, includeStr) != NULL)
+		if (FCString::StrIStr((char const*)pair.first, includeStr) != NULL)
 		{
 			findStr[ findNum ] = pair.first;
 			++findNum;

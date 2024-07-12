@@ -8,8 +8,6 @@
 #include "ProfileSystem.h"
 #include "ReflectionCollect.h"
 
-#define USE_TRIANGLE_INDEX_REORDER 1
-
 using namespace Render;
 
 enum class EDebugDsiplayMode
@@ -40,7 +38,7 @@ public:
 
 	static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 	{
-		option.addDefine(SHADER_PARAM(USE_TRIANGLE_INDEX_REORDER), USE_TRIANGLE_INDEX_REORDER);
+
 	}
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
@@ -67,7 +65,7 @@ public:
 
 	static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 	{
-		option.addDefine(SHADER_PARAM(USE_TRIANGLE_INDEX_REORDER), USE_TRIANGLE_INDEX_REORDER);
+
 	}
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
@@ -188,12 +186,10 @@ struct GPU_ALIGN MeshData
 {
 	DECLARE_BUFFER_STRUCT(Meshes);
 
-	Vector3 boundMin;
 	int32 startIndex;
-	Vector3 boundMax;
 	int32 numTriangles;
 	int32 nodeIndex;
-	int32 dummy[3];
+	int32 dummy;
 };
 
 
@@ -333,7 +329,7 @@ public:
 
 		SplitMethod splitMethod = SplitMethod::SAH;
 		int maxDepth = 32;
-		int maxLeafPrimitiveCount = 5;
+		int minSplitPrimitiveCount = 2;
 
 		struct BuildData
 		{
@@ -394,7 +390,7 @@ public:
 			int   minAxis;
 			BoundType minBounds[2];
 
-			if (dataList.size() > maxLeafPrimitiveCount)
+			if (dataList.size() >= minSplitPrimitiveCount)
 			{
 				Vector3 size = bound.getSize();
 
@@ -405,9 +401,7 @@ public:
 				}
 				else
 				{
-					float minScore = std::numeric_limits<float>::max();
 					constexpr int BucketCount = 16;
-
 					struct Bucket
 					{
 						BoundType bound;
@@ -420,7 +414,14 @@ public:
 						}
 					};
 
+					auto GetSurfaceArea = [](BoundType const& bound)
+					{
+						Vector3 size = bound.getSize();
+						return size.x * size.y + size.y * size.z + size.z * size.x;
+					};
 
+					float nodeScore = GetSurfaceArea(bound) * dataList.size();
+					float minScore = std::numeric_limits<float>::max();
 					for (int axis = 0; axis < 3; ++axis)
 					{
 						float axisSize = size[axis];
@@ -441,12 +442,6 @@ public:
 							buckets[indecBucket].count += 1;
 							buckets[indecBucket].bound += primitive.bound;
 						}
-
-						auto GetSurfaceArea = [](BoundType const& bound)
-						{
-							Vector3 size = bound.getSize();
-							return size.x * size.y + size.y * size.z + size.z * size.x;
-						};
 
 						int leftCount = 0;
 						BoundType leftBound;
@@ -485,6 +480,11 @@ public:
 								minBounds[1] = rightBound;
 							}
 						}
+					}
+
+					if (minScore >= nodeScore)
+					{
+						minCount = -1;
 					}
 				}
 			}
@@ -555,6 +555,11 @@ struct GPU_ALIGN BVHNodeData
 	int32 left;
 	Vector3 boundMax;
 	int32 right;
+
+	bool isLeaf() const
+	{
+		return right < 0;
+	}
 
 	static void Generate(BVHTree const& BVH, TArray< BVHNodeData >& nodes, TArray< int >& primitiveIds)
 	{
@@ -631,11 +636,6 @@ namespace RT
 		TStructuredBuffer< MeshData > mMeshBuffer;
 		TStructuredBuffer< BVHNodeData > mBVHNodeBuffer;
 		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
-#if USE_TRIANGLE_INDEX_REORDER 
-
-#else
-		TStructuredBuffer< int32 > mTriangleIdBuffer;
-#endif
 		TStructuredBuffer< int32 > mObjectIdBuffer;
 		int mNumObjects;
 		PrimitivesCollection mDebugPrimitives;

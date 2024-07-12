@@ -299,7 +299,7 @@ namespace Render
 		BufferDesc desc;
 		desc.elementSize = elementSize;
 		desc.numElements = numElements;
-		desc.creationFlags = creationFlags | BCF_UsageIndex;
+		desc.creationFlags = creationFlags;
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data)));
 	}
 

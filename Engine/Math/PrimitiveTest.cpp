@@ -121,28 +121,37 @@ namespace Math
 		// ( ld + vd * t ) ^ 2 = r^2 ; ld = pos - center
 		// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
 		Vector3 offset = pos - center;
-
 		float b = offset.dot(dirNormalized);
+#if 1
+		float radius2 = radius * radius;
+		// d = b * b - c = ( ld * vd )^2 - ld^2 + r^2
+		//   = r^2 - (ld - ( ld * vd ) vd)^2
+		float d = radius2 - (offset - b * dirNormalized).length2();
+#else
 		float c = offset.length2() - radius * radius;
 		float d = b * b - c;
+#endif
 
 		if (d < 0)
 		{
 			outT = (offset - b * dirNormalized).length();
 			return false;
 		}
-		outT = -b - sqrt(d);
+		outT = -b - Math::Sqrt(d);
 		return true;
 	}
 
 	bool LineSphereTest(Vector3 const& pos, Vector3 const& dirNormalized, Vector3 const& center, float radius, float outDistance[2])
 	{
-		Vector3 offset = center - pos;
-
+		Vector3 offset = pos - center;
 		float b = offset.dot(dirNormalized);
+#if 1
+		float radius2 = radius * radius;
+		float d = radius2 - (offset - b * dirNormalized).length2();
+#else
 		float c = offset.length2() - radius * radius;
-
 		float d = b * b - c;
+#endif
 		if (d < 0)
 			return false;
 

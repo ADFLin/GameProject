@@ -506,7 +506,7 @@ namespace Render
 		}
 		if (desc.creationFlags & BCF_UsageConst)
 		{
-			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			bufferDesc.BindFlags |= D3D11_BIND_CONSTANT_BUFFER;
 		}
 		if (desc.creationFlags & BCF_Structured)
 		{
@@ -938,6 +938,7 @@ namespace Render
 		if (desc.numSamples > 1 && !bDepth)
 		{
 			hr = mDevice->CheckMultisampleQualityLevels(format, desc.numSamples, &maxQuality);
+			maxQuality = D3D11_STANDARD_MULTISAMPLE_PATTERN;
 		}
 		d3dDesc.SampleDesc.Count = desc.numSamples;
 		d3dDesc.SampleDesc.Quality = maxQuality;
@@ -1958,6 +1959,36 @@ namespace Render
 		}
 	}
 
+
+	ID3D11Resource* GetTextureResource(RHITextureBase& texture)
+	{
+		switch (texture.getType())
+		{
+		case ETexture::Type1D:
+			return static_cast<D3D11Texture1D&>(texture).getResource();
+		case ETexture::Type2D:
+			return static_cast<D3D11Texture2D&>(texture).getResource();
+		case ETexture::Type3D:
+			return static_cast<D3D11Texture3D&>(texture).getResource();
+		case ETexture::TypeCube:
+			return static_cast<D3D11TextureCube&>(texture).getResource();
+#if 0
+		case ETexture::Type2DArray:
+			return static_cast<D3D11Texture2DArray&>(texture).getResource();
+#endif
+		}
+
+		NEVER_REACH("GetTextureResource");
+		return nullptr;
+	}
+
+	void D3D11Context::RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
+	{
+		ID3D11Resource* destResource = GetTextureResource(destTexture);
+		ID3D11Resource* srcResource = GetTextureResource(srcTexture);
+		mDeviceContext->ResolveSubresource(destResource, destSubIndex, srcResource, srcSubIndex, D3D11Translate::To(destTexture.getFormat()));
+	}
+
 	void D3D11Context::RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
 		int const MaxStreamNum = 16;
@@ -2162,7 +2193,6 @@ namespace Render
 
 		auto SetupShader = [this](EShader::Type type, RHIShader* shader)
 		{
-
 			auto BindShader = [this](EShader::Type type, D3D11ShaderData& shaderData)
 			{
 				if (mBoundedShaders[type].resource != shaderData.ptr)
@@ -2173,7 +2203,6 @@ namespace Render
 				}
 			};
 
-			D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
 			if (shader == nullptr)
 			{
 				if (mBoundedShaders[type].resource)
@@ -2586,7 +2615,7 @@ namespace Render
 #define ENSURE(EXPR) true
 #endif
 
-	void ShaderConstDataBuffer::updateValue(ShaderParameter const parameter, void const* value, int valueSize)
+	void ShaderConstDataBuffer::updateValue(ShaderParameter const& parameter, void const* value, int valueSize)
 	{
 		int idxDataEnd = parameter.offset + parameter.size;
 

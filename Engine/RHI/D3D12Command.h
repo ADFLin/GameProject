@@ -271,7 +271,7 @@ namespace Render
 		}
 		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
 
-
+		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 		void RHIFlushCommand();
 
 

@@ -4,10 +4,6 @@
 #include "ScreenVertexShader.sgc"
 #include "GeometryTestCommon.sgc"
 
-#ifndef USE_TRIANGLE_INDEX_REORDER
-#define USE_TRIANGLE_INDEX_REORDER 0
-#endif
-
 #ifndef USE_DEBUG_DISPLAY
 #define USE_DEBUG_DISPLAY 0
 #endif
@@ -128,12 +124,10 @@ struct MeshVertexData
 
 struct MeshData
 {
-	float3 boundMin;
 	int startIndex;
-	float3 boundMax;
 	int numTriangles;
 	int  nodeIndex;
-	int3 dummy;
+	int dummy;
 };
 
 struct BVHNodeData
@@ -150,7 +144,6 @@ DEFINE_STRUCTURED_BUFFER(ObjectData, Objects);
 DEFINE_STRUCTURED_BUFFER(MeshVertexData, MeshVertices);
 DEFINE_STRUCTURED_BUFFER(MeshData, Meshes);
 DEFINE_STRUCTURED_BUFFER(BVHNodeData, BVHNodes);
-DEFINE_STRUCTURED_BUFFER(int, TriangleIds);
 DEFINE_STRUCTURED_BUFFER(BVHNodeData, SceneBVHNodes);
 DEFINE_STRUCTURED_BUFFER(int, ObjectIds);
 
@@ -268,7 +261,7 @@ float RayBoundingBoxDist(Ray ray, float3 boxMin, float3 boxMax)
 	float tNear = max(max(t1.x, t1.y), t1.z);
 	float tFar = min(min(t2.x, t2.y), t2.z);
 	bool bHit = tNear <= tFar && tFar > 0;
-	return bHit ? tNear : 1.#INF;
+	return bHit ? tNear : MAX_TRACE_DIST;
 };
 
 
@@ -308,11 +301,8 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 
 				for (int i = 0; i < numPrimitives; ++i)
 				{
-#if USE_TRIANGLE_INDEX_REORDER
 					int index = indexStart + 3 * i;
-#else
-					int index = TriangleIds[indexStart + i];
-#endif
+
 #if USE_DEBUG_DISPLAY
 					stats.triangleCount += 1;
 #endif
@@ -645,13 +635,8 @@ float3x3 TangentToWorldTransform(float3 tangentZ)
 float4 ImportanceSampleGGX(float2 E, float a2)
 {
 	float phi = 2.0 * PI * E.x;
-#if 0
 	float cosTheta = sqrt((1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y));
 	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-#else
-	float cosTheta = sqrt((1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y));
-	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-#endif
 
 	// from spherical coordinates to cartesian coordinates
 	float3 H;

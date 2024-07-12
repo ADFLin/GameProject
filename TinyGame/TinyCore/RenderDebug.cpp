@@ -222,9 +222,10 @@ namespace Render
 	void TextureShowManager::handleShowTexture(char const* texName)
 	{
 		TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
-		if (texName)
+		HashString texNameKey;
+		if (texName && HashString::Find(texName, texNameKey))
 		{
-			auto iter = mTextureMap.find(texName);
+			auto iter = mTextureMap.find(texNameKey);
 			if (iter != mTextureMap.end())
 			{
 				textureFrame->handle = iter->second;
@@ -240,7 +241,7 @@ namespace Render
 		{
 			if (RT->desc.debugName != EName::None)
 			{
-				registerTexture(RT->desc.debugName, RT->texture);
+				registerTexture(RT->desc.debugName, RT->resolvedTexture);
 			}
 		}
 	}

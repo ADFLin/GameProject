@@ -140,11 +140,6 @@ void RayTracingTestStage::onRender(float dFrame)
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mVertexBuffer);
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mMeshBuffer);
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVHNodeBuffer);
-#if USE_TRIANGLE_INDEX_REORDER	
-
-#else
-		SetStructuredStorageBuffer< PrimitiveIdData >(commandList, *rayTracingPS, mTriangleIdBuffer);
-#endif
 		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *rayTracingPS, mSceneBVHNodeBuffer);
 		SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
 
@@ -264,10 +259,7 @@ namespace RT
 		TArray< ObjectData> objects;
 		TArray< MaterialData > materials;
 		BVHTree meshBVH;
-
-#if USE_TRIANGLE_INDEX_REORDER	
 		TArray< BVHNodeData > meshBVHNodes;
-#endif
 
 		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData)
 		{
@@ -292,21 +284,16 @@ namespace RT
 			return pData - pOutData;
 		}
 
-#if USE_TRIANGLE_INDEX_REORDER
 		struct BuildMeshResult
 		{
 			TArrayView< MeshVertexData const > vertices;
 			TArrayView< BVHNodeData const > nodes;
 			int nodeIndex;
 			int triangleIndex;
+			int numTriangles;
 		};
-#endif
 
-		int buildMeshData(MeshImportData& meshData
-#if USE_TRIANGLE_INDEX_REORDER
-			, BuildMeshResult& buildResult
-#endif
-		)
+		void buildMeshData(MeshImportData& meshData, BuildMeshResult& buildResult)
 		{
 			TIME_SCOPE("BuildMeshData");
 
@@ -315,7 +302,7 @@ namespace RT
 
 			int numTriangles = meshData.indices.size() / 3;
 
-			int vertexOffset = meshVertices.size();
+			int triangleIndex = meshVertices.size();
 
 			TArray< BVHTree::Primitive > primitives;
 			primitives.resize(numTriangles);
@@ -331,18 +318,12 @@ namespace RT
 					Vector3 const& pos = posReader[index + n];
 					primitive.bound.addPoint(pos);
 					primitive.center += pos;
-				}
-#if USE_TRIANGLE_INDEX_REORDER				
+				}			
 				primitive.id = index;
-#else
-				primitive.id = index + vertexOffset;
-#endif
 				primitive.center /= 3.0f;
 			}
 
-#if USE_TRIANGLE_INDEX_REORDER
 			meshBVH.clear();
-#endif
 			int indexLeafStart = meshBVH.leaves.size();
 			TIME_SCOPE("BuildBVH");
 			BVHTree::Builder builder(meshBVH);
@@ -358,39 +339,17 @@ namespace RT
 				mScene.mDebugBVH = meshBVH;
 			}
 
-			int indexTriangleStart = meshVertices.size();
-			meshVertices.resize(vertexOffset + 3 * numTriangles);
+			meshVertices.resize(triangleIndex + 3 * numTriangles);
 
-#if USE_TRIANGLE_INDEX_REORDER
-			int numV = GenerateTriangleVertices(meshBVH, meshData, meshVertices.data() + vertexOffset);
+			int numV = GenerateTriangleVertices(meshBVH, meshData, meshVertices.data() + triangleIndex);
 			CHECK(numV == numTriangles * 3);
 			int nodeIndex = meshBVHNodes.size();
-			BVHNodeData::Generate(meshBVH, meshBVHNodes, indexTriangleStart);
-			buildResult.vertices = TArrayView<MeshVertexData const>(meshVertices.data() + vertexOffset , numV);
+			BVHNodeData::Generate(meshBVH, meshBVHNodes, triangleIndex);
+			buildResult.vertices = TArrayView<MeshVertexData const>(meshVertices.data() + triangleIndex , numV);
 			buildResult.nodes    = TArrayView<BVHNodeData const>(meshBVHNodes.data() + nodeIndex, meshBVH.nodes.size());
 			buildResult.nodeIndex = nodeIndex;
-			buildResult.triangleIndex = indexTriangleStart;
-#else
-			for (int i = 0; i < meshData.indices.size(); ++i)
-			{
-				int index = meshData.indices[i];
-				MeshVertexData& vertex = meshVertices[vertexOffset + i];
-				vertex.pos = posReader[index];
-				vertex.normal = normalReader[index];
-			}
-#endif
-			MeshData mesh;
-			mesh.startIndex = vertexOffset;
-			mesh.numTriangles = numTriangles;
-			mesh.boundMin = meshBVH.nodes[indexRoot].bound.min;
-			mesh.boundMax = meshBVH.nodes[indexRoot].bound.max;
-#if USE_TRIANGLE_INDEX_REORDER
-			mesh.nodeIndex = nodeIndex;
-#else
-			mesh.nodeIndex = indexRoot;
-#endif
-			meshes.push_back(mesh);
-			return meshes.size() - 1;
+			buildResult.numTriangles = numTriangles;
+			buildResult.triangleIndex = triangleIndex;
 		}
 
 
@@ -398,7 +357,7 @@ namespace RT
 		{
 			for(BVHNodeData& node : nodes)
 			{
-				if (node.right < 0)
+				if (node.isLeaf())
 				{
 					node.left += triangleOffset;
 				}
@@ -413,69 +372,64 @@ namespace RT
 		int loadMesh(char const* path)
 		{
 			TIME_SCOPE("LoadMesh");
-#if USE_TRIANGLE_INDEX_REORDER	
+			MeshData mesh;
 
+			auto& dataCache = ::Global::DataCache();
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "MESH_BVH";
 			cacheKey.version = "1e987655-09dc-431a-bf73-116bc953dfe6";
 			cacheKey.keySuffix.add(path);
-			BuildMeshResult buildResult;
 
-			auto& dataCache = ::Global::DataCache();
-
+			TArray< MeshVertexData > vertices;
+			TArray< BVHNodeData > nodes;
+			int nodeIndex;
+			int triangleIndex;
+			auto LoadCache = [&](IStreamSerializer& serializer)-> bool
 			{
-				TArray< MeshVertexData > vertices;
-				TArray< BVHNodeData > nodes;
-				int nodeIndex;
-				int triangleIndex;
-				auto LoadCache = [&](IStreamSerializer& serializer)-> bool
-				{
-					serializer >> vertices;
-					serializer >> nodes;
-					serializer >> nodeIndex;
-					serializer >> triangleIndex;
-					return true;
-				};
-				if (dataCache.loadDelegate(cacheKey, LoadCache))
-				{
-					FixOffset(nodes, (int)meshBVHNodes.size() - nodeIndex , (int)meshVertices.size() - triangleIndex);
-
-					nodeIndex = meshBVHNodes.size();
-					triangleIndex = meshVertices.size();
-					meshBVHNodes.append(nodes);
-					meshVertices.append(vertices);
-
-
-					MeshData mesh;
-					mesh.startIndex = triangleIndex;
-					mesh.numTriangles = vertices.size() / 3;
-					mesh.boundMin = meshBVHNodes[nodeIndex].boundMin;
-					mesh.boundMax = meshBVHNodes[nodeIndex].boundMax;
-					mesh.nodeIndex = nodeIndex;
-
-					meshes.push_back(mesh);
-					return meshes.size() - 1;
-				}
-			}
-			MeshImportData meshData;
-			VERIFY_RETURN_FALSE(meshImporter->importFromFile(path, meshData));
-
-			int resultId = buildMeshData(meshData, buildResult);
-			dataCache.saveDelegate(cacheKey, [&buildResult](IStreamSerializer& serializer)-> bool
-			{
-				serializer << buildResult.vertices;
-				serializer << buildResult.nodes;
-				serializer << buildResult.nodeIndex;
-				serializer << buildResult.triangleIndex;
+				serializer >> vertices;
+				serializer >> nodes;
+				serializer >> nodeIndex;
+				serializer >> triangleIndex;
 				return true;
-			});
+			};
+			if (dataCache.loadDelegate(cacheKey, LoadCache))
+			{
+				FixOffset(nodes, (int)meshBVHNodes.size() - nodeIndex, (int)meshVertices.size() - triangleIndex);
 
-			return resultId;
-#else
-			MeshImportData meshData;
-			VERIFY_RETURN_FALSE(meshImporter->importFromFile(path, meshData));
-			return buildMeshData(meshData);
-#endif
+				nodeIndex = meshBVHNodes.size();
+				triangleIndex = meshVertices.size();
+				meshBVHNodes.append(nodes);
+				meshVertices.append(vertices);
+
+				mesh.startIndex = triangleIndex;
+				mesh.numTriangles = vertices.size() / 3;
+				mesh.nodeIndex = nodeIndex;
+			}
+			else
+			{
+				MeshImportData meshData;
+				if ( !meshImporter->importFromFile(path, meshData) )
+				{
+					return INDEX_NONE;
+				}
+				BuildMeshResult buildResult;
+				buildMeshData(meshData, buildResult);
+				dataCache.saveDelegate(cacheKey, [&buildResult](IStreamSerializer& serializer)-> bool
+				{
+					serializer << buildResult.vertices;
+					serializer << buildResult.nodes;
+					serializer << buildResult.nodeIndex;
+					serializer << buildResult.triangleIndex;
+					return true;
+				});
+
+				mesh.startIndex = buildResult.triangleIndex;
+				mesh.numTriangles = buildResult.numTriangles;
+				mesh.nodeIndex = buildResult.nodeIndex;
+			}
+
+			meshes.push_back(mesh);
+			return meshes.size() - 1;
 		}
 
 		bool addDefaultObjects()
@@ -548,17 +502,6 @@ namespace RT
 			{
 				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(MakeConstView(meshVertices), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(MakeConstView(meshes), EStructuredBufferType::Buffer));
-
-
-#if USE_TRIANGLE_INDEX_REORDER
-				
-#else
-				TArray< BVHNodeData > meshBVHNodes;
-				TArray< int > primitiveIds;
-				BVHNodeData::Generate(meshBVH, meshBVHNodes, primitiveIds);
-
-				VERIFY_RETURN_FALSE(mScene.mTriangleIdBuffer.initializeResource(MakeConstView(primitiveIds), EStructuredBufferType::Buffer));
-#endif
 				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(MakeConstView(meshBVHNodes), EStructuredBufferType::Buffer));
 			}
 
@@ -632,8 +575,12 @@ namespace RT
 							MeshData& mesh = meshes[AsValue<int32>(object.meta.x)];
 							float scale = object.meta.y;
 
-							Vector3 offset = (scale * 0.5) * (mesh.boundMax + mesh.boundMin);
-							Vector3 halfSize = (scale * 0.5) * (mesh.boundMax - mesh.boundMin);
+							Vector3 boundMin = meshBVHNodes[mesh.nodeIndex].boundMin;
+							Vector3 boundMax = meshBVHNodes[mesh.nodeIndex].boundMax;
+
+
+							Vector3 offset = (scale * 0.5) * (boundMax + boundMin);
+							Vector3 halfSize = (scale * 0.5) * (boundMax - boundMin);
 
 							primitive.center = object.pos + object.rotation.rotate(offset);
 							primitive.bound = GetAABB2(offset, object.rotation, halfSize);
@@ -907,11 +854,6 @@ void RayTracingTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	mVertexBuffer.releaseResource();
 	mMeshBuffer.releaseResource();
 	mBVHNodeBuffer.releaseResource();
-#if USE_TRIANGLE_INDEX_REORDER
-
-#else
-	mTriangleIdBuffer.releaseResource();
-#endif
 	mSceneBVHNodeBuffer.releaseResource();
 	mObjectBuffer.releaseResource();
 

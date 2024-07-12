@@ -136,6 +136,14 @@ namespace Render
 		{
 
 		}
+
+		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
+		{
+
+
+
+		}
+
 		void RHIFlushCommand();
 
 		//Shader

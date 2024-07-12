@@ -198,7 +198,6 @@ namespace Render
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
 
 
-
 	RHI_API RHIFrameBuffer*  RHICreateFrameBuffer();
 
 	RHI_API RHIInputLayout*       RHI_TRACE_FUNC(RHICreateInputLayout, InputLayoutDesc const& desc);
@@ -298,6 +297,8 @@ namespace Render
 	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc);
 
 	RHI_API void RHIClearSRVResource(RHICommandList& commandList, RHIResource* resource);
+
+	RHI_API void RHIResolveTexture(RHICommandList& commandList, RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 
 
 	struct GraphicsRenderStateDesc

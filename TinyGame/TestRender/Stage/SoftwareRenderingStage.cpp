@@ -334,7 +334,7 @@ namespace SR
 					for( int x = xStart; x < xEnd; ++x )
 					{
 						VertexData v = PerspectiveLerp(vMin, vMax, ax);
-#if 0
+#if 1
 
 						if( Math::Fmod(10 * v.uv.x, 1.0) > 0.5 &&
 						    Math::Fmod(10 * v.uv.y, 1.0) > 0.5 )
@@ -342,7 +342,6 @@ namespace SR
 #else
 						LinearColor destC = buffer.getPixel(x, y);
 						buffer.setPixel(x, y, Math::LinearLerp(destC, v.color * simpleTexture.sample(v.uv), 0.8));
-
 #endif
 						ax += dax;
 					}
@@ -675,6 +674,7 @@ namespace SR
 		VERIFY_RETURN_FALSE(mRTRenderer.init());
 
 
+#if 0
 		char const* texPath =
 #if 0
 			"Texture/tile1.tga";
@@ -682,6 +682,7 @@ namespace SR
 			"Texture/rocks.png";
 #endif
 		VERIFY_RETURN_FALSE(simpleTexture.load(texPath));
+#endif
 
 		setupScene();
 

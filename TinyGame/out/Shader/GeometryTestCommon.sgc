@@ -9,8 +9,16 @@ int RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius,
 	float3 offset = pos - center;
 
 	float b = dot(offset, dirNormalized);
+#if 1
+	// d = b * b - c = ( ld * vd )^2 - ld^2 + r^2
+	//   = r^2 - (ld - ( ld * vd ) vd)^2
+	float radius2 = radius * radius;
+	float3 L = offset - b * dirNormalized;
+	float d = radius2 - dot(L,L);
+#else
 	float c = dot(offset, offset) - radius * radius;
 	float d = b * b - c;
+#endif
 
 	if( d < 0 )
 	{

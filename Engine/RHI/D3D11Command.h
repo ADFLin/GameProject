@@ -43,7 +43,7 @@ namespace Render
 		bool initializeResource(ID3D11Device* device);
 		void releaseResource();
 		void updateBufferSize(int newSize);
-		void updateValue(ShaderParameter const parameter, void const* value, int valueSize);
+		void updateValue(ShaderParameter const& parameter, void const* value, int valueSize);
 		void commit(ID3D11DeviceContext* context);
 	};
 
@@ -303,6 +303,8 @@ namespace Render
 				mDeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 			}	
 		}
+
+		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 
 		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
 		{

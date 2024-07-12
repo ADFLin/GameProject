@@ -2446,6 +2446,35 @@ namespace Render
 		}
 	}
 
+	ID3D12Resource* GetTextureResource(RHITextureBase& texture)
+	{
+		switch (texture.getType())
+		{
+		case ETexture::Type1D:
+			return static_cast<D3D12Texture1D&>(texture).getResource();
+		case ETexture::Type2D:
+			return static_cast<D3D12Texture2D&>(texture).getResource();
+		case ETexture::Type3D:
+			return static_cast<D3D12Texture3D&>(texture).getResource();
+		case ETexture::TypeCube:
+			return static_cast<D3D12TextureCube&>(texture).getResource();
+#if 0
+		case ETexture::Type2DArray:
+			return static_cast<D3D12Texture2DArray&>(texture).getResource();
+#endif
+		}
+
+		NEVER_REACH("GetTextureResource");
+		return nullptr;
+	}
+
+	void D3D12Context::RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
+	{
+		ID3D12Resource* destResource = GetTextureResource(destTexture);
+		ID3D12Resource* srcResource = GetTextureResource(srcTexture);
+		mGraphicsCmdList->ResolveSubresource(destResource, destSubIndex, srcResource, srcSubIndex, D3D12Translate::To(destTexture.getFormat()));
+	}
+
 	void D3D12Context::RHIFlushCommand()
 	{
 #if 1

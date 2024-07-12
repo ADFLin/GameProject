@@ -156,6 +156,11 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIClearSRVResource(resource));
 	}
 
+	void RHIResolveTexture(RHICommandList& commandList, RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIResolveTexture(destTexture, destSubIndex, srcTexture, srcSubIndex));
+	}
+
 	void RHIResourceTransition(RHICommandList& commandList, TArrayView<RHIResource*> resources, EResourceTransition transition)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIResourceTransition(resources, transition));

@@ -20,6 +20,8 @@ public:
 	static void Initialize();
 	static CORE_API bool Find(StringView const& str, bool bCaseSensitive, HashString& outValue);
 
+	static bool Find(StringView const& str, HashString& outValue){ return Find(str, false, outValue); }
+
 	HashString()
 	{
 		mIndex = 0;

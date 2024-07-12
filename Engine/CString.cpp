@@ -6,13 +6,28 @@
 #include <Psapi.h>
 #endif
 
+class StringHashBuilder
+{
+public:
+	StringHashBuilder()
+	{
+		hash = 5381;
+	}
+
+	void add(uint32 c)
+	{
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+	}
+
+	uint32 hash;
+};
 
 void FCString::Stricpy(char * dest, char const* src)
 {
 	assert(dest && src);
 	while( *src )
 	{
-		int c = ::tolower(*src);
+		char c = ToLower(*src);
 		*dest = c;
 		++dest;
 		++src;
@@ -22,55 +37,55 @@ void FCString::Stricpy(char * dest, char const* src)
 template< typename CharT >
 uint32 FCString::StriHash(CharT const* str)
 {
-	uint32 result = 5381;
+	StringHashBuilder builder;
 	while( *str )
 	{
-		uint32 c = (uint32)tolower(*str);
-		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		uint32 c = (uint32)ToLower(*str);
+		builder.add(c);
 		++str;
 	}
-	return result;
+	return builder.hash;
 }
 
 template< typename CharT >
 uint32 FCString::StriHash(CharT const* str, int len)
 {
-	uint32 result = 5381;
+	StringHashBuilder builder;
 	while( len )
 	{
-		uint32 c = (uint32)tolower(*str);
-		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		uint32 c = (uint32)ToLower(*str);
+		builder.add(c);
 		++str;
 		--len;
 	}
-	return result;
+	return builder.hash;
 }
 
 template< typename CharT >
 uint32 FCString::StrHash(CharT const* str)
 {
-	uint32 result = 5381;
+	StringHashBuilder builder;
 	while (*str)
 	{
 		uint32 c = (uint32)*str;
-		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		builder.add(c);
 		++str;
 	}
-	return result;
+	return builder.hash;
 }
 
 template< typename CharT >
 uint32 FCString::StrHash(CharT const* str, int len)
 {
-	uint32 result = 5381;
+	StringHashBuilder builder;
 	while (len)
 	{
 		uint32 c = (uint32)*str;
-		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		builder.add(c);
 		++str;
 		--len;
 	}
-	return result;
+	return builder.hash;
 }
 
 thread_local wchar_t GWCharBuff[1024 * 256];

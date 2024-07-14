@@ -42,6 +42,10 @@ bool RayTracingTestStage::onInit()
 		"Mix",
 		"HitNoraml",
 		"HitPos",
+		"BaseColor",
+		"EmissiveColor",
+		"Roughness",
+		"Specular",
 	};
 	static_assert(ARRAY_SIZE(ModeTextList) == (int)EDebugDsiplayMode::COUNT);
 	for (int i = 0; i < (int)EDebugDsiplayMode::COUNT; ++i)
@@ -144,6 +148,7 @@ void RayTracingTestStage::onRender(float dFrame)
 		SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
 
 		rayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
+		rayTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), 1.0f / float(mView.frameCount + 1));
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 
 		DrawUtility::ScreenRect(commandList);
@@ -428,6 +433,7 @@ namespace RT
 				mesh.nodeIndex = buildResult.nodeIndex;
 			}
 
+			BuildMeshResult buildResult;
 			meshes.push_back(mesh);
 			return meshes.size() - 1;
 		}
@@ -435,8 +441,8 @@ namespace RT
 		bool addDefaultObjects()
 		{
 			{
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
+				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
 #if 1
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
@@ -450,13 +456,13 @@ namespace RT
 				float L = 55;
 				const MaterialData mats[] =
 				{
-					{ Color3f(0,0,0), 1.0, L * Color3f(1,1,1) ,0 },
-					{ Color3f(1,1,1), 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(0,1,0), 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(1,0,0), 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(0,0,1), 1.0, Color3f(0,0,0) ,0},
-					{ 0.5 * Color3f(1,1,1), 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(1,1,1), 1.0, Color3f(0,0,0) ,1.51, 0.8},
+					{ Color3f(0,0,0), 1.0, 0.0,L * Color3f(1,1,1) ,0 },
+					{ Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0) ,0},
+					{ Color3f(0,1,0), 1.0, 0.8, Color3f(0,0,0) ,0},
+					{ Color3f(1,0,0), 1.0, 0.8, Color3f(0,0,0) ,0},
+					{ Color3f(0,0,1), 1.0, 0.8, Color3f(0,0,0) ,0},
+					{ 0.5 * Color3f(1,1,1), 0.5, 0.2, Color3f(0,0,0) ,0},
+					{ Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0) ,1.51, 0.8},
 				};
 
 				materials.append(mats, mats + ARRAY_SIZE(mats));
@@ -480,7 +486,7 @@ namespace RT
 					FObject::Box(Vector3(thickness,length, length), 5, Vector3(-0.5 * (length - thickness), 0 ,hl)),
 
 					//FObject::Mesh(0, 1.2, 1, Vector3(0,0,-0.5 *length + 2), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					FObject::Mesh(0, 0.04, 1, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
+					FObject::Mesh(0, 0.04, 5, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
 					//FObject::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
 					//FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
 					//FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
@@ -600,7 +606,7 @@ namespace RT
 				}
 
 				BVHTree::Builder builder(objectBVH);
-				builder.maxLeafPrimitiveCount = 2;
+				builder.minSplitPrimitiveCount = 2;
 
 				int indexRoot = builder.build(MakeConstView(primitives));
 
@@ -672,7 +678,7 @@ namespace RT
 		virtual bool setup(ISceneBuilder& builder, char const* fileName) override
 		{
 			mBuilder = (SceneBuilderImpl*)&builder;
-#if 0
+#if 1
 			try
 			{
 				std::string path = GetFilePath(fileName);
@@ -736,30 +742,36 @@ namespace RT
 		int Material(
 			Color3f baseColor,
 			float   roughness,
+			float   specular,
 			Color3f emissiveColor,
 			float   refractiveIndex,
 			float   refractive)
 		{
 			int result = mBuilder->materials.size();
-			mBuilder->materials.push_back({ baseColor, roughness, emissiveColor, refractiveIndex, refractive } );
+			mBuilder->materials.push_back({ baseColor, roughness, specular, emissiveColor, refractiveIndex, refractive } );
 			return result;
 		}
 
+		bool bDefaultObjectAdded = false;
 		void AddDefaultObjects()
 		{
+			if (bDefaultObjectAdded)
+				return;
+
+			bDefaultObjectAdded = true;
+			int meshId = mBuilder->meshes.size();
+			int matId = mBuilder->materials.size();
 			mBuilder->addDefaultObjects();
 
-			int id = mBuilder->meshes.size();
 			std::map<std::string, Chai::Boxed_Value> locals;
-			locals.emplace("DefMeshId_0", id - 3);
-			locals.emplace("DefMeshId_1", id - 2);
-			locals.emplace("DefMeshId_2", id - 1);	
-#if 0
-			id = mBuilder->materials.size();
-			locals.emplace("DefMatId_0", id - 3);
-			locals.emplace("DefMatId_1", id - 2);
-			locals.emplace("DefMatId_2", id - 1);
-#endif
+			for (int id = meshId; id < mBuilder->meshes.size(); ++id)
+			{
+				locals.emplace(InlineString<>::Make("DefMeshId_%d", id - meshId), id);
+			}
+			for (int id = matId; id < mBuilder->materials.size(); ++id)
+			{
+				locals.emplace(InlineString<>::Make("DefMatId_%d", id - matId), id);
+			}
 			script.set_locals(locals);
 		}
 	};
@@ -792,6 +804,18 @@ bool RayTracingTestStage::loadSceneRHIResource()
 	VERIFY_RETURN_FALSE(builder.buildRHIResource());
 	
 	return true;
+}
+
+void RayTracingTestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+{
+#if 1
+	systemConfigs.screenWidth = 1024;
+	systemConfigs.screenHeight = 768;
+#else
+	systemConfigs.screenWidth = 1920;
+	systemConfigs.screenHeight = 1080;
+#endif
+	systemConfigs.bVSyncEnable = false;
 }
 
 bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)

@@ -1,0 +1,47 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+struct InputParameters
+{
+	float3 resolution;
+	float time;
+	float timeDelta;
+	int   frame;
+	float frameRate;
+};
+
+#if SHADER_COMPILING
+layout(std140) cbuffer InputBlock
+{
+	InputParameters Input;
+};
+#else
+uniform InputParameters Input;
+#endif
+
+#define iResolution Input.resolution
+#define iTime       Input.time
+#define iFrame      Input.frame
+
+#if PIXEL_SHADER
+
+%s
+
+%s
+
+%s
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float4 fragColor;
+	float2 fragCoord = SvPosition.xy;
+
+	mainImage(fragColor, fragCoord);
+
+	OutColor = fragColor;
+}
+
+#endif

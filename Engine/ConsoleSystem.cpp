@@ -397,18 +397,8 @@ bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo
 {
 	char const* format = arg.format;
 	int fillSize = 0;
-	while( 1 )
+	do
 	{
-
-		while( format[0] != '%' &&
-			   format[0] != '\0')
-		{
-			++format;
-		}
-
-		if ( *format =='\0' )
-			break;
-
 		char const* argText;
 
 		if ( context.numArgUsed >= context.numArgs )
@@ -424,30 +414,36 @@ bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo
 				for (int i = 0; i < context.command->mArgs.size(); ++i)
 				{
 					context.errorMsg += std::string(" ");
-
 					char const* pStr = context.command->mArgs[i].format;
-					switch (pStr[1])
+					do 
 					{
-					case 'd': context.errorMsg += "#int"; break;
-					case 'f': context.errorMsg += "#float"; break;
-					case 's': context.errorMsg += "#String"; break;
-					case 'u': context.errorMsg += "#uint"; break;
-					case 'c': context.errorMsg += "#char"; break;
-					case 'h':
-						if (format[2] == 'u')
+						switch (pStr[1])
 						{
-							context.errorMsg += "#uint16";
+						case 'd': context.errorMsg += "#int"; break;
+						case 'f': context.errorMsg += "#float"; break;
+						case 's': context.errorMsg += "#String"; break;
+						case 'u': context.errorMsg += "#uint"; break;
+						case 'c': context.errorMsg += "#char"; break;
+						case 'h':
+							if (format[2] == 'u')
+							{
+								context.errorMsg += "#uint16";
+							}
+							else if (format[2] == 'd')
+							{
+								context.errorMsg += "#int16";
+							}
+							break;
+						case 'l':
+							if (pStr[2] == 'f')
+								context.errorMsg += "#double";
+							break;
 						}
-						else if (format[2] == 'd')
-						{
-							context.errorMsg += "#int16";
-						}
-						break;
-					case 'l':
-						if (pStr[2] == 'f')
-							context.errorMsg += "#double";
-						break;
+
+						pStr = FStringParse::FindChar(pStr + 1, '%');
 					}
+					while( *pStr != 0 );
+
 				}
 				return false;
 			}
@@ -552,8 +548,9 @@ bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo
 		fillSize += elementSize;
 
 		++context.numArgUsed;
-		++format;
+		format = FStringParse::FindChar(format + 1, '%');
 	}
+	while (*format != 0);
 
 	return fillSize != 0;
 }

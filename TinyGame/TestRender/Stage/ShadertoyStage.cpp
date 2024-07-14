@@ -8,10 +8,72 @@
 
 #include "Renderer/RenderTargetPool.h"
 #include "RenderDebug.h"
+#include "FileSystem.h"
+#include "Misc/Format.h"
+
+
 
 namespace Shadertoy
 {
 	using namespace Render;
+	struct GPU_ALIGN InputParam
+	{
+		DECLARE_UNIFORM_BUFFER_STRUCT(InputBlock);
+
+		Vector3 resolution;
+		float time;
+		float timeDelta;
+		int   frame;
+		float frameRate;
+#if 0
+		float channelTime;
+#endif
+	};
+
+	enum class EPassType
+	{
+		None,
+		Image,
+		Buffer,
+		Sound,
+		CubeMap,
+	};
+
+	enum class EChannelType
+	{
+		KeyBoard,
+		Webcam,
+		Micrphone,
+		Soundcloud,
+		Buffer,
+		CubeMap,
+		Texture,
+		CubeTexture,
+		Volume,
+		Vedio,
+		Music,
+	};
+
+	struct ShaderInput
+	{
+		EPassType passType;
+		int typeIndex;
+		std::string code;
+		struct Channel
+		{
+			EChannelType type;
+			int index;
+		};
+		TArray< Channel > channels;
+	};
+
+	struct RenderPass
+	{
+		ShaderInput* input;
+
+		PooledRenderTargetRef renderTargets[2];
+		Shader shader;
+	};
 
 	class TestStage : public StageBase
 	                , public IGameRenderSetup
@@ -34,6 +96,124 @@ namespace Shadertoy
 			return true;
 		}
 
+		TArray< std::unique_ptr<ShaderInput> > mSourceInputs;
+		TArray< std::unique_ptr<RenderPass> >  mRenderPassList;
+
+		bool compileShader(RenderPass& pass, std::vector<uint8> const& codeTemplate, ShaderInput* commonInput)
+		{
+			std::string channelCode;
+			for (ShaderInput::Channel const& channel : pass.input->channels)
+			{
+				switch (channel.type)
+				{
+				case EChannelType::KeyBoard:
+				case EChannelType::Webcam:
+				case EChannelType::Micrphone:
+				case EChannelType::Soundcloud:
+				case EChannelType::Buffer:
+				case EChannelType::Texture:
+				case EChannelType::Vedio:
+				case EChannelType::Music:
+					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", channel.index);
+					break;
+				case EChannelType::CubeMap:
+				case EChannelType::CubeTexture:
+					channelCode += InlineString<>::Make("uniform samplerCube iChannel%d;\n", channel.index);
+					break;
+				case EChannelType::Volume:
+					channelCode += InlineString<>::Make("uniform sampler3D iChannel%d;\n", channel.index);
+					break;
+				}
+			}
+			std::string code;
+			Text::Format((char const*)codeTemplate.data(), TArrayView< std::string const >{ channelCode, commonInput ? commonInput->code : std::string(), pass.input->code }, code);
+
+			ShaderCompileOption option;
+			return ShaderManager::Get().loadFile(pass.shader, nullptr, { EShader::Pixel, "MainPS" }, option, code.c_str());
+		}
+
+		bool loadProject(char const* name)
+		{
+			mSourceInputs.clear();
+			std::string dir = InlineString<>::Make("Shadertoy/%s/" , name );
+			auto LoadShaderInput = [this,&dir](EPassType type, int index = 0) -> ShaderInput*
+			{
+				InlineString<> path;
+				switch (type)
+				{
+				case Shadertoy::EPassType::None:
+					path.format("%s/Common.sgc", dir.c_str());
+					break;
+				case Shadertoy::EPassType::Image:
+					path.format("%s/Image.sgc", dir.c_str());
+					break;
+				case Shadertoy::EPassType::Buffer:
+					path.format("%s/Buffer%c.sgc", dir.c_str(), "ABCDEFG"[index]);
+					break;
+				case Shadertoy::EPassType::Sound:
+					path.format("%s/Sound.sgc", dir.c_str());
+					break;
+				case Shadertoy::EPassType::CubeMap:
+					path.format("%s/CubeMap%c.sgc", dir.c_str(), "ABCDEFG"[index]);
+					break;
+				}
+
+				if (!FFileSystem::IsExist(path))
+					return nullptr;
+
+				auto doc = std::make_unique<ShaderInput>();
+				doc->passType = type;
+				doc->typeIndex = index;
+
+				if (!FFileUtility::LoadToString(path, doc->code))
+					return nullptr;
+
+
+				mSourceInputs.push_back(std::move(doc));
+				return mSourceInputs.back().get();
+			};
+			
+			ShaderInput* commonInput = LoadShaderInput(EPassType::None);
+			for (int i = 0; i < 4; ++i)
+			{
+				LoadShaderInput(EPassType::Buffer, i);
+			}
+			for (int i = 0; i < 1; ++i)
+			{
+				LoadShaderInput(EPassType::CubeMap, i);
+			}
+			LoadShaderInput(EPassType::Sound);
+			LoadShaderInput(EPassType::Image);
+
+			mRenderPassList.clear();
+			for (auto& doc : mSourceInputs)
+			{
+				if ( doc->passType == EPassType::None )
+					continue;
+
+				auto pass = std::make_unique<RenderPass>();
+				pass->input = doc.get();
+				mRenderPassList.push_back(std::move(pass));
+			}
+
+			std::vector<uint8> codeTemplate;
+			if (!FFileUtility::LoadToBuffer("Shader/Game/ShadertoyTemplate.sgc", codeTemplate, true))
+			{
+				LogWarning(0, "Can't load ShadertoyTemplate file");
+				return false;
+			}
+
+			for (auto& pass : mRenderPassList)
+			{
+				if (!compileShader(*pass, codeTemplate, commonInput))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		void onEnd() override
 		{
 			BaseClass::onEnd();
@@ -42,7 +222,12 @@ namespace Shadertoy
 		void restart()
 		{
 			mTime = 0;
+			mTimePrev = 0;
+			mFrameCount = 0;
+			loadProject("PathTracing");
+			//loadProject("ShaderArt");
 		}
+
 		void tick() {}
 		void updateFrame(int frame) {}
 
@@ -62,19 +247,31 @@ namespace Shadertoy
 			updateFrame(frame);
 		}
 
+		int   mFrameCount = 0;
 		float mTime = 0;
+		float mTimePrev = 0;
 		bool  bUseMultisample = true;
 		bool  bPause = false;
 		RHIFrameBufferRef mFrameBuffer;
-
+		TStructuredBuffer< InputParam > mInputBuffer;
 
 		void onRender(float dFrame) override
 		{
+			++mFrameCount;
+
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			GRenderTargetPool.freeAllUsedElements();
 
 			auto screenSize = ::Global::GetScreenSize();
+
+			InputParam inputParam;
+			inputParam.resolution = Vector3(screenSize.x, screenSize.y, 1);
+			inputParam.time = mTime;
+			inputParam.frame = mFrameCount;
+			inputParam.timeDelta = mTime - mTimePrev;
+			mTimePrev = mTime;
+			mInputBuffer.updateBuffer(inputParam);
 
 			PooledRenderTargetRef rt;
 			if (bUseMultisample)
@@ -94,29 +291,28 @@ namespace Shadertoy
 			}
 
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
-
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 			{
-				GPU_PROFILE("DrawCanvas");
+				GPU_PROFILE("RenderPass");
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
+				for (auto& pass : mRenderPassList)
+				{
+					GraphicsShaderStateDesc state;
+					state.vertex = mScreenVS->getRHI();
+					state.pixel = pass->shader.getRHI();
 
-				GraphicsShaderStateDesc state;
-				state.vertex = mScreenVS->getRHI();
-				state.pixel = mShaderPS.getRHI();
-
-				RHISetGraphicsShaderBoundState(commandList, state);
-
-				mShaderPS.setParam(commandList, SHADER_PARAM(Time), mTime);
-				mShaderPS.setParam(commandList, SHADER_PARAM(AspectRatio), float(screenSize.x) / screenSize.y);
-
-				DrawUtility::ScreenRect(commandList);
+					RHISetGraphicsShaderBoundState(commandList, state);
+					SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
+					DrawUtility::ScreenRect(commandList);
+				}
 			}
-#if 0
+
+#if 1
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
 
@@ -136,7 +332,7 @@ namespace Shadertoy
 			{
 				{
 					GPU_PROFILE("ResolveTexture");
-					RHIResolveTexture(commandList, *rt->resolvedTexture, 0, *rt->texture, 0);
+					rt->resolve(commandList);
 				}
 
 				{
@@ -179,12 +375,6 @@ namespace Shadertoy
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
 
-
-		bool compileShader(std::string const& code)
-		{
-			return ShaderManager::Get().loadFile(mShaderPS, nullptr, EShader::Pixel, "MainPS" , code.c_str());
-		}
-
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
 			systemConfigs.screenWidth = 1024;
@@ -200,61 +390,19 @@ namespace Shadertoy
 			ShaderHelper::Get().init();
 
 			mFrameBuffer = RHICreateFrameBuffer();
+			mInputBuffer.initializeResource(1);
 
 			ScreenVS::PermutationDomain domainVector;
 			domainVector.set<ScreenVS::UseTexCoord>(true);
 			mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector);
-			
-			char const* code = R"CODE_STRING_(
-#include "Common.sgc"
-#include "ScreenVertexShader.sgc"
 
-uniform float Time;
-uniform float AspectRatio;
-
-float3 palette( float t ) 
-{
-    float3 a = float3(0.5, 0.5, 0.5);
-    float3 b = float3(0.5, 0.5, 0.5);
-    float3 c = float3(1.0, 1.0, 1.0);
-    float3 d = float3(0.263,0.416,0.557);
-
-    return a + b*cos( 6.28318*(c*t+d) );
-}
-
-PS_ENTRY_START(MainPS)
-	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
-	PS_OUTPUT(float4 OutColor, 0)
-PS_ENTRY_END(MainPS)
-{
-    float2 uv = VSOutput.UVs * 2.0 - 1;
-	uv.x *= AspectRatio;
-	
-    float2 uv0 = uv;
-    float3 finalColor = float3(0,0,0);
-    
-    for (float i = 0.0; i < 5.0; i++) 
-	{
-        uv = frac(uv * 1.5) - 0.5;
-
-        float d = length(uv) * exp(-length(uv0));
-
-        float3 col = palette(length(uv0) + i*0.4 + Time*0.4);
-
-        d = sin(d*8.0 + Time)/8.0;
-        d = abs(d);
-
-        d = pow(0.01 / d, 1.2);
-
-        finalColor += col * d;
-    }
-        
-    OutColor = float4(finalColor, 1.0);
-}
-)CODE_STRING_";
-
-			compileShader(code);
 			return true;
+		}
+
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::OpenGL;
 		}
 
 	protected:

@@ -305,6 +305,9 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define SvGroupThreadID    gl_LocalInvocationID
 #define SvDispatchThreadID gl_GlobalInvocationID
 #define SvGroupIndex       gl_LocalInvocationIndex
+
+#define CS_ENTRY(NAME) void NAME()
+
 #endif
 
 #define Texture1D sampler1D

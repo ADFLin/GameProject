@@ -27,7 +27,7 @@ struct MaterialData
 {
 	float3 baseColor;
 	float  shininess;
-	float3 emissiveeColor;
+	float3 emissiveColor;
 	float  dummy;
 };
 

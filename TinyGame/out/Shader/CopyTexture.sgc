@@ -87,24 +87,42 @@ PS_ENTRY_END(MappingTextureColorPS)
 
 #if SHADER_ENTRY(CopyTextureCS)
 
+#if COMPILER_HLSL
 Texture2D<float4>   TexSource;
 RWTexture2D<float4> TexDest;
+#else
+layout(rgba32f) uniform readonly image2D TexSource;
+layout(rgba32f) uniform writeonly image2D TexDest;
+#endif
+
 CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
 CS_ENTRY(CopyTextureCS)
 {
+#if COMPILER_HLSL
 	TexDest[SvDispatchThreadID.xy] = TexSource[SvDispatchThreadID.xy];
+#else
+	float4 c = imageLoad(TexSource, int2(SvDispatchThreadID.xy));
+	imageStore(TexDest, int2(SvDispatchThreadID.xy), c);
+#endif
 }
 
 #endif
 
 #if SHADER_ENTRY(ClearTextureCS)
-
+#if COMPILER_HLSL
 RWTexture2D<float4> TexDest;
+#else
+layout(rgba32f) uniform writeonly image2D TexDest;
+#endif
 float4 ClearValue;
 CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
 CS_ENTRY(ClearTextureCS)
 {
+#if COMPILER_HLSL
 	TexDest[SvDispatchThreadID.xy] = ClearValue;
+#else
+	imageStore(TexDest, SvDispatchThreadID.xy, ClearValue);
+#endif
 }
 
 #endif

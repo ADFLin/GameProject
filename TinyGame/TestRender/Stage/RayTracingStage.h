@@ -18,6 +18,10 @@ enum class EDebugDsiplayMode
 	Mix,
 	HitNoraml,
 	HitPos,
+	BaseColor,
+	EmissiveColor,
+	Roughness,
+	Specular,
 	COUNT,
 };
 
@@ -86,14 +90,31 @@ struct GPU_ALIGN MaterialData
 	Color3f baseColor;
 	float   roughness;
 	Color3f emissiveColor;
-	float   refractiveIndex;
+	float   specular;
 	float   refractive;
-	Vector3 dummy;
+	float   refractiveIndex;
+
+	Vector2 dummy;
+
+	MaterialData() = default;
+
+	MaterialData(Color3f const& inBaseColor, float inRoughness, float inSpecular = 0, Color3f const& inEmissiveColor = Color3f::Black(), float inRefractive = 0, float inRefractiveIndex = 0)
+		:baseColor(inBaseColor)
+		,roughness(inRoughness)
+		,emissiveColor(inEmissiveColor)
+		,specular(inSpecular)
+		,refractive(inRefractive)
+		,refractiveIndex(inRefractiveIndex)
+	{
+
+
+	}
 
 	REFLECT_STRUCT_BEGIN(MaterialData)
 		REF_PROPERTY(baseColor)
-		REF_PROPERTY(roughness)
 		REF_PROPERTY(emissiveColor)
+		REF_PROPERTY(roughness)
+		REF_PROPERTY(specular)
 		REF_PROPERTY(refractiveIndex)
 		REF_PROPERTY(refractive)
 	REFLECT_STRUCT_END()
@@ -390,7 +411,7 @@ public:
 			int   minAxis;
 			BoundType minBounds[2];
 
-			if (dataList.size() >= minSplitPrimitiveCount)
+			if (dataList.size() > minSplitPrimitiveCount)
 			{
 				Vector3 size = bound.getSize();
 
@@ -839,17 +860,7 @@ public:
 		return ERenderSystem::D3D11;
 	}
 
-	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
-	{
-#if 0
-		systemConfigs.screenWidth = 1024;
-		systemConfigs.screenHeight = 768;
-#else
-		systemConfigs.screenWidth = 1920;
-		systemConfigs.screenHeight = 1080;
-#endif
-		systemConfigs.bVSyncEnable = false;
-	}
+	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 
 	bool setupRenderResource(ERenderSystem systemName) override;
 

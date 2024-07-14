@@ -14,7 +14,7 @@
 
 #define MAX_TRACE_DIST 1.#INF
 
-#define MaxBounceCount 3
+#define MaxBounceCount 5
 #define NumRaysPerPixel 1
 
 #if USE_DEBUG_DISPLAY
@@ -53,18 +53,35 @@ float Random(inout uint seed)
 	return Hash(seed) / 4294967295.0; // 2^32-1
 }
 
+float RandomValueNormalDistribution(inout uint state)
+{
+	// Thanks to https://stackoverflow.com/a/6178290
+	float theta = 2 * 3.1415926 * Random(state);
+	float rho = sqrt(-2 * log(Random(state)));
+	return rho * cos(theta);
+}
+
+// Calculate a random direction
+float3 RandomDirection(inout uint state)
+{
+	// Thanks to https://math.stackexchange.com/a/1585996
+	float x = RandomValueNormalDistribution(state);
+	float y = RandomValueNormalDistribution(state);
+	float z = RandomValueNormalDistribution(state);
+	return normalize(float3(x, y, z));
+}
 
 #if PIXEL_SHADER
-
 
 struct MaterialData
 {
 	float3 baseColor;
 	float  roughness;
 	float3 emissiveColor;
-	float  refractiveIndex;
+	float  specular;
 	float  refractive;
-	float  dummy[3];
+	float  refractiveIndex;
+	float  dummy[2];
 };
 
 #define OBJ_SPHERE        0
@@ -147,7 +164,8 @@ DEFINE_STRUCTURED_BUFFER(BVHNodeData, BVHNodes);
 DEFINE_STRUCTURED_BUFFER(BVHNodeData, SceneBVHNodes);
 DEFINE_STRUCTURED_BUFFER(int, ObjectIds);
 
-int NumObjects;
+uniform int NumObjects;
+uniform float BlendFactor;
 
 MaterialData GetMaterial(int id)
 {
@@ -163,10 +181,16 @@ struct RayCastResult
 	bool   bHit;
 };
 
+#ifndef USE_RAY_INV_DIR
+#define USE_RAY_INV_DIR 0
+#endif
 struct Ray
 {
 	float3 pos;
 	float3 dir;
+#if USE_RAY_INV_DIR
+	float3 invDir;
+#endif	
 };
 
 
@@ -199,7 +223,11 @@ RayCastResult RayTriangle(Ray ray, MeshVertexData a, MeshVertexData b, MeshVerte
 
 RayCastResult RayBox(Ray ray, float3 size)
 {
+#if USE_RAY_INV_DIR
+	float3 invDir = ray.invDir;
+#else
 	float3 invDir = 1 / ray.dir;
+#endif
 	float3 tMin = (-size - ray.pos) * invDir;
 	float3 tMax = (size - ray.pos) * invDir;
 	float3 t1 = min(tMin, tMax);
@@ -241,7 +269,11 @@ RayCastResult RayQuad(Ray ray, float2 size)
 
 bool RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
 {
+#if USE_RAY_INV_DIR
+	float3 invDir = ray.invDir;
+#else
 	float3 invDir = 1 / ray.dir;
+#endif
 	float3 tMin = (boxMin - ray.pos) * invDir;
 	float3 tMax = (boxMax - ray.pos) * invDir;
 	float3 t1 = min(tMin, tMax);
@@ -253,7 +285,11 @@ bool RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
 
 float RayBoundingBoxDist(Ray ray, float3 boxMin, float3 boxMax)
 {
+#if USE_RAY_INV_DIR
+	float3 invDir = ray.invDir;
+#else
 	float3 invDir = 1 / ray.dir;
+#endif
 	float3 tMin = (boxMin - ray.pos) * invDir;
 	float3 tMax = (boxMax - ray.pos) * invDir;
 	float3 t1 = min(tMin, tMax);
@@ -419,6 +455,9 @@ void RayObject(Ray ray , ObjectData object, inout  RayCastResult result
 			Ray rayLocal;
 			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
 			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+#if USE_RAY_INV_DIR
+			rayLocal.invDir = 1 / rayLocal.dir;
+#endif
 			RayCastResult castResult = RayBox(rayLocal, size);
 			if (castResult.bHit && castResult.dist < result.dist)
 			{
@@ -440,6 +479,9 @@ void RayObject(Ray ray , ObjectData object, inout  RayCastResult result
 			Ray rayLocal;
 			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - objectPos) / scale);
 			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+#if USE_RAY_INV_DIR
+			rayLocal.invDir = 1 / rayLocal.dir;
+#endif
 #if 0
 			if (RayBoundingBox(rayLocal, mesh.boundMin, mesh.boundMax))
 			{
@@ -489,6 +531,9 @@ void RayObject(Ray ray , ObjectData object, inout  RayCastResult result
 			Ray rayLocal;
 			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
 			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+#if USE_RAY_INV_DIR
+			rayLocal.invDir = 1 / rayLocal.dir;
+#endif
 			RayCastResult castResult = RayQuad(rayLocal, size);
 			if (castResult.bHit && castResult.dist < result.dist)
 			{
@@ -519,6 +564,9 @@ RayCastResult RayCast(float3 start, float3 dir
 	Ray ray;
 	ray.pos = start;
 	ray.dir = dir;
+#if USE_RAY_INV_DIR
+	ray.invDir = 1 / ray.dir;
+#endif
 #if 0
 	for (int i = 0; i < NumObjects; ++i)
 	{
@@ -715,12 +763,13 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 				incomingLight += mat.emissiveColor * rayColor;
 				rayColor *= mat.baseColor;
 
-				rayStart = rayResult.hitPos + 0.00001 * rayDir;
+				rayStart = rayResult.hitPos - 0.00001 * N;
 
 			}
 			else
 			{
 
+#if 0
 				float3x3 tangentToWorld = TangentToWorldTransform(N);
 
 				float3 diffuseDir = ImportanceSampleGGX(float2(Random(randState), Random(randState)), 1.0f).xyz;
@@ -734,13 +783,43 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 
 				rayDir = diffuseDir;
 				rayStart = rayResult.hitPos + 0.0001 * rayDir;
+#else
+				// Figure out new ray position and direction
+				bool isSpecularBounce = mat.specular >= Random(randState);
+
+
+				float3 diffuseDir = normalize(rayResult.hitNormal + RandomDirection(randState));
+				float3 specularDir = reflect(rayDir, rayResult.hitNormal);
+				rayDir = normalize(lerp(diffuseDir, specularDir, mat.roughness * isSpecularBounce));
+
+				// Update light calculations
+				incomingLight += mat.emissiveColor * rayColor;
+				rayColor *= lerp(mat.baseColor, float3(1, 1, 1), isSpecularBounce);
+
+#endif
+				
+
+				// Random early exit if ray colour is nearly 0 (can't contribute much to final result)
+				float p = max(rayColor.r, max(rayColor.g, rayColor.b));
+				if (Random(randState) >= p)
+				{
+					break;
+				}
+				rayColor *= 1.0f / p;
+
+				rayStart = rayResult.hitPos + 0.0001 * N;
 			}
 
 #if USE_DEBUG_DISPLAY
-			if ( DisplayMode == 4)
-				return 0.5 * N + 0.5;
-			else if ( DisplayMode == 5 )
-				return rayResult.hitPos;
+			switch (DisplayMode)
+			{
+			case 4: return 0.5 * N + 0.5;
+			case 5:	return rayResult.hitPos;
+			case 6: return mat.baseColor;
+			case 7: return mat.emissiveColor;
+			case 8: return mat.roughness;
+			case 9: return mat.specular;
+			}
 #endif
 		}
 		else
@@ -824,8 +903,7 @@ PS_ENTRY_END(MainPS)
 #else
 	//float3 color = float3(VSOutput.UVs, 0);
 	float3 oldColor = TEXTURE_SAMPLE(HistoryTexture, VSOutput.UVs).rgb;
-	float weight = 1.0 / (View.frameCount + 1);
-	OutColor = float4(lerp(oldColor, color, weight), 1);
+	OutColor = float4(lerp(oldColor, color, BlendFactor), 1);
 #endif
 
 #endif
@@ -847,8 +925,7 @@ PS_ENTRY_END(AccumulatePS)
 {
 	float4 frameColor = TEXTURE_SAMPLE(FrameTexture, VSOutput.UVs);
 	float4 oldColor = TEXTURE_SAMPLE(HistoryTexture, VSOutput.UVs);
-	float weight = 1.0 / ( FrameCount + 1);
-	OutColor = lerp(oldColor, frameColor, weight);
+	OutColor = lerp(oldColor, frameColor, BlendFactor);
 }
 
 #endif

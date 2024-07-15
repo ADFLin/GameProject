@@ -426,7 +426,6 @@ namespace Render
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-
 	void OpenGLFrameBuffer::setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer)
 	{
 		assert(getHandle());
@@ -451,7 +450,6 @@ namespace Render
 			GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
 		};
 		glDrawBuffers( mTextures.size() , DrawBuffers );
-
 
 		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( status != GL_FRAMEBUFFER_COMPLETE )

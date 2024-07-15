@@ -137,12 +137,7 @@ namespace Render
 
 		}
 
-		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
-		{
-
-
-
-		}
+		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 
 		void RHIFlushCommand();
 
@@ -262,7 +257,7 @@ namespace Render
 			}
 		}
 
-
+		TOpenGLObject<GLFactory::FrameBuffer> mResolveFrameBuffers[2];
 
 		enum EBufferBindingType
 		{

@@ -11,8 +11,7 @@
 #include "FileSystem.h"
 #include "Misc/Format.h"
 #include "RHI/RHIUtility.h"
-
-
+#include "Json.h"
 
 namespace Shadertoy
 {
@@ -154,7 +153,7 @@ namespace Shadertoy
 		bool loadProject(char const* name)
 		{
 			mSourceInputs.clear();
-			std::string dir = InlineString<>::Make("Shadertoy/%s/" , name );
+			std::string dir = InlineString<>::Make("Shadertoy/%s" , name );
 			auto LoadShaderInput = [this,&dir](EPassType type, int index = 0) -> ShaderInput*
 			{
 				InlineString<> path;
@@ -191,18 +190,88 @@ namespace Shadertoy
 				mSourceInputs.push_back(std::move(doc));
 				return mSourceInputs.back().get();
 			};
-			
-			ShaderInput* commonInput = LoadShaderInput(EPassType::None);
+
+			JsonObject* inputDoc = JsonObject::LoadFromFile((dir + "/input.json").c_str());
+			if (inputDoc == nullptr)
+			{
+				return false;
+			}
+			auto LoadShaderInput2 = [this, inputDoc, &dir](EPassType type, int index = 0) -> ShaderInput*
+			{
+
+				InlineString<> path;
+				switch (type)
+				{
+				case Shadertoy::EPassType::None:
+					path.format("%s/Common.sgc", dir.c_str());
+					break;
+				case Shadertoy::EPassType::Image:
+					path.format("%s/Image.sgc", dir.c_str());
+					break;
+				case Shadertoy::EPassType::Buffer:
+					path.format("%s/Buffer%c.sgc", dir.c_str(), AlphaSeq[index]);
+					break;
+				case Shadertoy::EPassType::Sound:
+					path.format("%s/Sound.sgc", dir.c_str());
+					break;
+				case Shadertoy::EPassType::CubeMap:
+					path.format("%s/CubeMap%c.sgc", dir.c_str(), AlphaSeq[index]);
+					break;
+				}
+
+				if (!FFileSystem::IsExist(path))
+					return nullptr;
+
+				auto input = std::make_unique<ShaderInput>();
+				input->passType = type;
+				input->typeIndex = index;
+
+				if (!FFileUtility::LoadToString(path, input->code))
+					return nullptr;
+
+
+				mSourceInputs.push_back(std::move(input));
+
+				JsonObject* inputObject = nullptr;
+				switch (type)
+				{
+				case Shadertoy::EPassType::None:
+					inputObject = inputDoc->getObject("Common");
+					break;
+				case Shadertoy::EPassType::Image:
+					inputObject = inputDoc->getObject("Image");
+					break;
+				case Shadertoy::EPassType::Buffer:
+					inputObject = inputDoc->getObject(InlineString<>::Make("Buffer%c", AlphaSeq[index]));
+					break;
+				case Shadertoy::EPassType::Sound:
+					inputObject = inputDoc->getObject("Sound");
+					break;
+				case Shadertoy::EPassType::CubeMap:
+					inputObject = inputDoc->getObject(InlineString<>::Make("CubeMap%c", AlphaSeq[index]));
+					break;
+				}
+
+				if (inputObject)
+				{
+
+
+
+				}
+
+				return mSourceInputs.back().get();
+			};
+			ShaderInput* commonInput = LoadShaderInput2(EPassType::None);
 			for (int i = 0; i < 4; ++i)
 			{
-				LoadShaderInput(EPassType::Buffer, i);
+				LoadShaderInput2(EPassType::Buffer, i);
 			}
 			for (int i = 0; i < 1; ++i)
 			{
-				LoadShaderInput(EPassType::CubeMap, i);
+				LoadShaderInput2(EPassType::CubeMap, i);
 			}
-			LoadShaderInput(EPassType::Sound);
-			LoadShaderInput(EPassType::Image);
+			LoadShaderInput2(EPassType::Sound);
+			LoadShaderInput2(EPassType::Image);
 
 
 			//TODO

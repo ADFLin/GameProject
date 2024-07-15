@@ -4,12 +4,16 @@
 #include "nlohmann/json.hpp"
 
 #include <fstream>
+#include "DataStructure/Array.h"
+#include "Meta/Select.h"
 
-class JsonObjectImpl : public JsonObject
+template< bool bReference >
+class TJsonObjectImpl : public JsonObject
 {
 public:
-	typedef nlohmann::json ImplType;
-	JsonObjectImpl( ImplType&& j )
+	typedef typename TSelect<bReference , nlohmann::json& , nlohmann::json >::Type ImplType;
+
+	TJsonObjectImpl( ImplType&& j )
 		:mImpl(j){ }
 
 	void release() override { delete this; }
@@ -60,7 +64,21 @@ public:
 		return true;
 	}
 
+	using SubObject = TJsonObjectImpl<true>;
 
+	JsonObject* getObject(char const* key) override
+	{
+		auto iter = mImpl.find(key);
+		if (iter == mImpl.end() || !iter->is_object())
+			return nullptr;
+
+		auto ptr = std::make_unique<SubObject>(*iter);
+		mSubObjects.push_back(std::move(ptr));
+
+		return mSubObjects.back().get();
+	}
+
+	TArray< std::unique_ptr<SubObject> > mSubObjects;
 	ImplType mImpl;
 };
 
@@ -75,6 +93,6 @@ JsonObject* JsonObject::LoadFromFile(char const* path)
 	if( !fs )
 		return nullptr;
 
-	return new JsonObjectImpl(std::move(j));
+	return new TJsonObjectImpl<false>(std::move(j));
 }
 

@@ -362,6 +362,17 @@ namespace Render
 
 		CORE_API void blitToBackBuffer(int index = 0);
 
+		bool haveMutlisample() const
+		{
+			for (auto const& info : mTextures)
+			{
+				if (info.typeEnumGL == GL_TEXTURE_2D_MULTISAMPLE)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 		
 		struct BufferInfo
 		{

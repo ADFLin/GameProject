@@ -5,6 +5,13 @@
 
 #include <string>
 
+class JsonValue
+{
+
+
+
+};
+
 class JsonObject
 {
 public:
@@ -15,6 +22,8 @@ public:
 	virtual bool tryGet(char const* key, int& outValue) = 0;
 	virtual bool tryGet(char const* key, float& outValue) = 0;
 	virtual bool tryGet(char const* key, bool& outValue) = 0;
+	virtual JsonObject* getObject(char const* key) = 0;
+
 	static JsonObject* LoadFromFile(char const* path);
 
 };

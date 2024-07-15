@@ -192,6 +192,7 @@
     <None Include="..\TinyGame\out\Shader\Game\RayTracing.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SDFSceneBuiltin.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SDFSceneTemplate.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\ShadertoyTemplate.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Simple.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SimpleSprite.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SimpleSpriteParticle.sgc" />

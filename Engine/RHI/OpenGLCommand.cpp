@@ -589,6 +589,10 @@ namespace Render
 			LogMsg("MaxMeshOutPrimitiveCount = %d", MaxMeshOutPrimitiveCount);
 		}
 
+		for (int i = 0; i < ARRAY_SIZE(mResolveFrameBuffers); ++i)
+		{
+			mResolveFrameBuffers[i].fetchHandle();
+		}
 	}
 
 	void OpenGLContext::shutdown()
@@ -599,6 +603,11 @@ namespace Render
 		mLastIndexBuffer.release();
 		mInputLayoutPending.release();
 		mInputLayoutCommitted.release();	
+
+		for (int i = 0; i < ARRAY_SIZE(mResolveFrameBuffers); ++i)
+		{
+			mResolveFrameBuffers[i].destroyHandle();
+		}
 	}
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -690,9 +699,15 @@ namespace Render
 		}
 
 		mLastFrameBuffer = frameBuffer;
+
 		if (mLastFrameBuffer.isValid())
 		{
+			EnableGLState(GL_MULTISAMPLE, OpenGLCast::To(mLastFrameBuffer)->haveMutlisample());
 			OpenGLCast::To(mLastFrameBuffer)->bind();
+		}
+		else
+		{
+
 		}
 	}
 
@@ -971,6 +986,24 @@ namespace Render
 	{
 		commitSamplerStates();
 		glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+	}
+
+	void OpenGLContext::RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
+	{
+		if (destTexture.getDesc().type != ETexture::Type2D || srcTexture.getDesc().type != ETexture::Type2D)
+			return;
+
+		IntVector3 srcDim = srcTexture.getDesc().dimension;
+		IntVector3 dstDim = destTexture.getDesc().dimension;
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mResolveFrameBuffers[0].mHandle);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mResolveFrameBuffers[1].mHandle);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D_MULTISAMPLE, static_cast<OpenGLTexture2D&>(srcTexture).getHandle(), srcSubIndex);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, static_cast<OpenGLTexture2D&>(destTexture).getHandle(), destSubIndex);
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + 0);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0 + 1);
+		glBlitFramebuffer(0, 0, srcDim.x, srcDim.y, 0, 0, dstDim.x, dstDim.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 
 	void OpenGLContext::RHIFlushCommand()

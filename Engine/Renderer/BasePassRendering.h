@@ -25,7 +25,7 @@ namespace Render
 		GBufferResource();
 
 		PooledRenderTargetRef mTargets[EGBuffer::Count];
-		ETexture::Format       mTargetFomats[EGBuffer::Count];
+		ETexture::Format      mTargetFomats[EGBuffer::Count];
 
 		RHITexture2D& getRenderTexture(EGBuffer::Type bufferName)
 		{

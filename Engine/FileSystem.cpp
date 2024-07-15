@@ -3,16 +3,18 @@
 
 #include "CString.h"
 #include "InlineString.h"
+#include "Core/ScopeGuard.h"
 
 #include <stdio.h>
 #include <fstream>
-#include "Core/ScopeGuard.h"
+#include <sstream>
 
 #if SYS_PLATFORM_WIN
 #include <tchar.h>
 #include <Strsafe.h>
 #include "WindowsHeader.h"
 #include "ProfileSystem.h"
+
 
 
 #undef FindFirstFile
@@ -660,6 +662,20 @@ bool FFileUtility::LoadLines(char const* path, std::vector< std::string >& outLi
 		outLineList.push_back(std::move(str));
 	}
 
+	return true;
+}
+
+bool FFileUtility::LoadToString(char const* path, std::string& outString)
+{
+	std::ifstream fs(path);
+
+	if (!fs.is_open())
+		return false;
+
+	std::ostringstream oss;
+	oss << fs.rdbuf();
+
+	outString = oss.str();
 	return true;
 }
 

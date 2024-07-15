@@ -10,6 +10,7 @@
 #include "RenderDebug.h"
 #include "FileSystem.h"
 #include "Misc/Format.h"
+#include "RHI/RHIUtility.h"
 
 
 
@@ -25,9 +26,9 @@ namespace Shadertoy
 		float timeDelta;
 		int   frame;
 		float frameRate;
-#if 0
-		float channelTime;
-#endif
+		float sampleRate;
+		Vector4 mouse;
+		//float channelTime;
 	};
 
 	enum class EPassType
@@ -41,6 +42,7 @@ namespace Shadertoy
 
 	enum class EChannelType
 	{
+		None,
 		KeyBoard,
 		Webcam,
 		Micrphone,
@@ -63,6 +65,8 @@ namespace Shadertoy
 		{
 			EChannelType type;
 			int index;
+			ESampler::Filter      filter;
+			ESampler::AddressMode addressMode;
 		};
 		TArray< Channel > channels;
 	};
@@ -70,10 +74,11 @@ namespace Shadertoy
 	struct RenderPass
 	{
 		ShaderInput* input;
-
-		PooledRenderTargetRef renderTargets[2];
+		PooledRenderTargetRef renderTarget;
 		Shader shader;
 	};
+
+	char const* AlphaSeq = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 	class TestStage : public StageBase
 	                , public IGameRenderSetup
@@ -91,7 +96,16 @@ namespace Shadertoy
 			auto frame = WidgetUtility::CreateDevFrame();
 			frame->addCheckBox("Pause", bPause);
 			frame->addCheckBox("Use Multisample", bUseMultisample);
-
+			frame->addButton("Restart", [this](int event, GWidget*)
+			{
+				restart();
+				return false;
+			});
+			frame->addButton("Compile", [this](int event, GWidget*)
+			{
+				compileShader();
+				return false;
+			});
 			restart();
 			return true;
 		}
@@ -102,11 +116,14 @@ namespace Shadertoy
 		bool compileShader(RenderPass& pass, std::vector<uint8> const& codeTemplate, ShaderInput* commonInput)
 		{
 			std::string channelCode;
+			int channelIndex = 0;
 			for (ShaderInput::Channel const& channel : pass.input->channels)
 			{
 				switch (channel.type)
 				{
 				case EChannelType::KeyBoard:
+					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", channelIndex);
+					break;
 				case EChannelType::Webcam:
 				case EChannelType::Micrphone:
 				case EChannelType::Soundcloud:
@@ -114,16 +131,18 @@ namespace Shadertoy
 				case EChannelType::Texture:
 				case EChannelType::Vedio:
 				case EChannelType::Music:
-					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", channel.index);
+					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", channelIndex);
 					break;
 				case EChannelType::CubeMap:
 				case EChannelType::CubeTexture:
-					channelCode += InlineString<>::Make("uniform samplerCube iChannel%d;\n", channel.index);
+					channelCode += InlineString<>::Make("uniform samplerCube iChannel%d;\n", channelIndex);
 					break;
 				case EChannelType::Volume:
-					channelCode += InlineString<>::Make("uniform sampler3D iChannel%d;\n", channel.index);
+					channelCode += InlineString<>::Make("uniform sampler3D iChannel%d;\n", channelIndex);
 					break;
 				}
+
+				++channelIndex;
 			}
 			std::string code;
 			Text::Format((char const*)codeTemplate.data(), TArrayView< std::string const >{ channelCode, commonInput ? commonInput->code : std::string(), pass.input->code }, code);
@@ -148,13 +167,13 @@ namespace Shadertoy
 					path.format("%s/Image.sgc", dir.c_str());
 					break;
 				case Shadertoy::EPassType::Buffer:
-					path.format("%s/Buffer%c.sgc", dir.c_str(), "ABCDEFG"[index]);
+					path.format("%s/Buffer%c.sgc", dir.c_str(), AlphaSeq[index]);
 					break;
 				case Shadertoy::EPassType::Sound:
 					path.format("%s/Sound.sgc", dir.c_str());
 					break;
 				case Shadertoy::EPassType::CubeMap:
-					path.format("%s/CubeMap%c.sgc", dir.c_str(), "ABCDEFG"[index]);
+					path.format("%s/CubeMap%c.sgc", dir.c_str(), AlphaSeq[index]);
 					break;
 				}
 
@@ -185,17 +204,52 @@ namespace Shadertoy
 			LoadShaderInput(EPassType::Sound);
 			LoadShaderInput(EPassType::Image);
 
-			mRenderPassList.clear();
-			for (auto& doc : mSourceInputs)
+
+			//TODO
+			if (FCString::Compare(name, "PathTracing") == 0)
 			{
-				if ( doc->passType == EPassType::None )
+				for (auto& input : mSourceInputs)
+				{
+					switch (input->passType)
+					{
+					case EPassType::Image:
+						input->channels = {{ EChannelType::Buffer , 1 }};
+						break;
+					case EPassType::Buffer:
+						if ( input->typeIndex == 0)
+							input->channels = { { EChannelType::Buffer , 1 } , { EChannelType::None , 0 } , { EChannelType::Texture , 0 }, { EChannelType::CubeTexture , 0 } };
+						else if (input->typeIndex == 1)
+							input->channels = { { EChannelType::Buffer , 1 } , { EChannelType::Buffer , 0 } , { EChannelType::KeyBoard , 0 } };
+						break;
+					}
+				}
+			}
+
+			mRenderPassList.clear();
+			for (auto& input : mSourceInputs)
+			{
+				if (input->passType == EPassType::None )
 					continue;
 
 				auto pass = std::make_unique<RenderPass>();
-				pass->input = doc.get();
+				pass->input = input.get();
 				mRenderPassList.push_back(std::move(pass));
 			}
 
+			return compileShader(commonInput);
+		}
+
+		bool compileShader()
+		{
+			int commonIndex = mSourceInputs.findIndexPred([](auto const& input)
+			{
+				return input->passType == EPassType::None;
+			});
+
+			return compileShader( commonIndex != INDEX_NONE ? mSourceInputs[commonIndex].get() : nullptr);
+		}
+		bool compileShader(ShaderInput* commonInput)
+		{
 			std::vector<uint8> codeTemplate;
 			if (!FFileUtility::LoadToBuffer("Shader/Game/ShadertoyTemplate.sgc", codeTemplate, true))
 			{
@@ -224,6 +278,7 @@ namespace Shadertoy
 			mTime = 0;
 			mTimePrev = 0;
 			mFrameCount = 0;
+			FMemory::Zero( mKeyBoardBuffer, sizeof(mKeyBoardBuffer));
 			loadProject("PathTracing");
 			//loadProject("ShaderArt");
 		}
@@ -250,19 +305,79 @@ namespace Shadertoy
 		int   mFrameCount = 0;
 		float mTime = 0;
 		float mTimePrev = 0;
-		bool  bUseMultisample = true;
+		bool  bUseMultisample = false;
 		bool  bPause = false;
+		Vector4 mMouse = Vector4::Zero();
+		uint8   mKeyBoardBuffer[256 * 2];
 		RHIFrameBufferRef mFrameBuffer;
 		TStructuredBuffer< InputParam > mInputBuffer;
 
+
+		RHITextureBase* getTexture(EChannelType type, int index)
+		{
+			switch (type)
+			{
+			case EChannelType::Buffer:
+				{
+					for (auto const& pass : mRenderPassList)
+					{
+						if (pass->input->passType != EPassType::Buffer || pass->input->typeIndex != index)
+							continue;
+
+						if (pass->renderTarget.isValid())
+						{
+							return pass->renderTarget->resolvedTexture;
+						}
+						else
+						{
+							return GBlackTexture2D;
+						}
+						break;
+					}
+				}
+				break;
+			case EChannelType::Texture:
+				return mDefaultTex2D;
+			case EChannelType::CubeTexture:
+				return mDefaultCube;
+			case EChannelType::KeyBoard:
+				return mTexKeyboard;
+			case EChannelType::CubeMap:
+				{
+					for (auto const& pass : mRenderPassList)
+					{
+						if (pass->input->passType != EPassType::CubeMap || pass->input->typeIndex != index)
+							continue;
+
+						if (pass->renderTarget.isValid())
+						{
+							return pass->renderTarget->resolvedTexture;
+						}
+						else
+						{
+							return GBlackTextureCube;
+						}
+						break;
+					}
+				}
+				break;
+			case EChannelType::Webcam:
+			case EChannelType::Micrphone:
+			case EChannelType::Soundcloud:
+			case EChannelType::Vedio:
+			case EChannelType::Music:
+			case EChannelType::Volume:
+				break;
+			}
+
+			return nullptr;
+		}
+
 		void onRender(float dFrame) override
 		{
-			++mFrameCount;
-
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			GRenderTargetPool.freeAllUsedElements();
-
 			auto screenSize = ::Global::GetScreenSize();
 
 			InputParam inputParam;
@@ -270,8 +385,95 @@ namespace Shadertoy
 			inputParam.time = mTime;
 			inputParam.frame = mFrameCount;
 			inputParam.timeDelta = mTime - mTimePrev;
-			mTimePrev = mTime;
+			inputParam.mouse = mMouse;
+			inputParam.sampleRate = 22000;
 			mInputBuffer.updateBuffer(inputParam);
+
+			mKeyBoardBuffer[EKeyCode::W] = 255;
+			RHIUpdateTexture(*mTexKeyboard , 0 , 0 , 256 , 2 , mKeyBoardBuffer);
+
+			mTimePrev = mTime;
+			++mFrameCount;
+
+			PooledRenderTargetRef rtImage;
+			{
+				GPU_PROFILE("RenderPass");
+
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+				for (auto& pass : mRenderPassList)
+				{
+					PooledRenderTargetRef rt;
+
+					RenderTargetDesc desc;
+					desc.format = ETexture::RGBA32F;
+					desc.numSamples = 1;
+					desc.size = screenSize;
+					switch (pass->input->passType)
+					{
+					case EPassType::Buffer:
+						{
+							InlineString<> name;
+							name.format("Buffer%c", AlphaSeq[pass->input->typeIndex]);
+							desc.debugName = name;
+						}
+						break;
+					case EPassType::Image:
+						{
+							desc.debugName = "Image";
+						}
+						break;
+					}
+
+					GPU_PROFILE(desc.debugName.c_str());
+
+					rt = GRenderTargetPool.fetchElement(desc);
+					mFrameBuffer->setTexture(0, *rt->texture);
+					RHISetFrameBuffer(commandList, mFrameBuffer);
+
+					RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
+					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+
+					GraphicsShaderStateDesc state;
+					state.vertex = mScreenVS->getRHI();
+					state.pixel = pass->shader.getRHI();
+
+					RHISetGraphicsShaderBoundState(commandList, state);
+					int channelIndex = 0;
+					for (auto const& channel : pass->input->channels)
+					{
+						char const* channelNames[] =
+						{
+							"iChannel0","iChannel1","iChannel2","iChannel3",
+						};
+
+						RHITextureBase* texture = getTexture(channel.type, channel.index);
+						if (texture)
+						{
+							pass->shader.setTexture(commandList, channelNames[channelIndex], *texture);
+						}
+						++channelIndex;
+					}
+					SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
+					DrawUtility::ScreenRect(commandList);
+
+					RHISetFrameBuffer(commandList, nullptr);
+
+					if (pass->renderTarget.isValid())
+					{
+						pass->renderTarget->bResvered = false;
+					}
+
+					rt->bResvered = true;
+					pass->renderTarget = rt;
+					if (pass->input->passType == EPassType::Image)
+					{
+						rtImage = rt;
+					}
+				}
+			}
 
 			PooledRenderTargetRef rt;
 			if (bUseMultisample)
@@ -293,26 +495,14 @@ namespace Shadertoy
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
+			if (rtImage.isValid())
 			{
-				GPU_PROFILE("RenderPass");
-
-				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-
-				for (auto& pass : mRenderPassList)
-				{
-					GraphicsShaderStateDesc state;
-					state.vertex = mScreenVS->getRHI();
-					state.pixel = pass->shader.getRHI();
-
-					RHISetGraphicsShaderBoundState(commandList, state);
-					SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
-					DrawUtility::ScreenRect(commandList);
-				}
+				GPU_PROFILE("CopyImageToBuffer");
+				ShaderHelper::Get().copyTextureToBuffer(commandList, *rtImage->resolvedTexture);
 			}
 
-#if 1
+
+#if 0
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
 
@@ -349,6 +539,21 @@ namespace Shadertoy
 
 		MsgReply onMouse(MouseMsg const& msg) override
 		{
+			if (msg.onLeftDown())
+			{
+				mMouse.x = mMouse.z = msg.getPos().x;
+				mMouse.y = mMouse.w = msg.getPos().y;
+			}
+			else if (msg.onLeftUp())
+			{
+				mMouse.z = -Math::Abs(mMouse.z);
+				mMouse.w = -Math::Abs(mMouse.w);
+			}
+			else if (msg.isLeftDown() && msg.onMoving())
+			{
+				mMouse.x = msg.getPos().x;
+				mMouse.y = msg.getPos().y;
+			}
 			return BaseClass::onMouse(msg);
 		}
 
@@ -356,9 +561,22 @@ namespace Shadertoy
 		{
 			if (msg.isDown())
 			{
+				if (0 <= msg.getCode() && msg.getCode() < 256)
+				{
+					mKeyBoardBuffer[msg.getCode()] = 255;
+					mKeyBoardBuffer[msg.getCode() + 256] = 255 - mKeyBoardBuffer[msg.getCode() + 256];
+				}
+
 				switch (msg.getCode())
 				{
 				case EKeyCode::R: restart(); break;
+				}
+			}
+			else
+			{
+				if (0 <= msg.getCode() && msg.getCode() < 256)
+				{
+					mKeyBoardBuffer[msg.getCode()] = 0;
 				}
 			}
 			return BaseClass::onKey(msg);
@@ -382,6 +600,11 @@ namespace Shadertoy
 			systemConfigs.bVSyncEnable = false;
 		}
 
+		RHITexture2DRef mTexKeyboard;
+		RHITexture2DRef mDefaultTex2D;
+		RHITextureCubeRef mDefaultCube;
+
+
 		ScreenVS* mScreenVS;
 		Shader    mShaderPS;
 
@@ -391,6 +614,21 @@ namespace Shadertoy
 
 			mFrameBuffer = RHICreateFrameBuffer();
 			mInputBuffer.initializeResource(1);
+
+			mDefaultTex2D = RHIUtility::LoadTexture2DFromFile("Shadertoy/Assets/Wood.jpg");
+			char const* cubePaths[] = 
+			{
+				"Shadertoy/Assets/UffiziGallery.jpg",
+				"Shadertoy/Assets/UffiziGallery_1.jpg",
+				"Shadertoy/Assets/UffiziGallery_2.jpg",
+				"Shadertoy/Assets/UffiziGallery_3.jpg",
+				"Shadertoy/Assets/UffiziGallery_4.jpg",
+				"Shadertoy/Assets/UffiziGallery_5.jpg",
+			};
+			mDefaultCube = RHIUtility::LoadTextureCubeFromFile(cubePaths);
+			mTexKeyboard = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R8U , 256 , 2));
+
+			GTextureShowManager.registerTexture("Keyborad" , mTexKeyboard);
 
 			ScreenVS::PermutationDomain domainVector;
 			domainVector.set<ScreenVS::UseTexCoord>(true);

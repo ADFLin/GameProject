@@ -701,6 +701,11 @@ namespace Render
 		return !!loadInternal(shader, fileName, entry, option, additionalCode);
 	}
 
+	bool ShaderManager::loadFile(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
+	{
+		return !!loadInternal(shader, fileName, entry, option, additionalCode); 
+	}
+
 	ShaderManagedData* ShaderManager::loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shader);

@@ -8,6 +8,8 @@ struct InputParameters
 	float timeDelta;
 	int   frame;
 	float frameRate;
+	float sampleRate;
+	float4 mouse;
 };
 
 #if SHADER_COMPILING
@@ -22,6 +24,7 @@ uniform InputParameters Input;
 #define iResolution Input.resolution
 #define iTime       Input.time
 #define iFrame      Input.frame
+#define iMouse      Input.mouse
 
 #if PIXEL_SHADER
 

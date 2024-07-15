@@ -149,7 +149,7 @@ namespace Render
 
 
 		bool loadFile(Shader& shader, char const* fileName, EShader::Type type, char const* entryName, char const* additionalCode = nullptr);
-
+		bool loadFile(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode = nullptr);
 		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, 
 			            char const* entryVS = nullptr, char const* entryPS = nullptr, char const* def = nullptr, char const* additionalCode = nullptr);
 

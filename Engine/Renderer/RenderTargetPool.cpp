@@ -67,8 +67,17 @@ namespace Render
 
 	void RenderTargetPool::freeAllUsedElements()
 	{
-		mFreeRTs.append(mUsedRTs);
-		mUsedRTs.clear();
+		for (int index = 0; index < mUsedRTs.size(); ++index)
+		{
+			auto& rt = mUsedRTs[index];
+			if (rt->bResvered)
+				continue;
+
+			mFreeRTs.push_back(rt);
+			mUsedRTs.removeIndexSwap(index);
+			--index;
+		}
+
 		for (auto& rt : mFreeRTs)
 		{
 			rt->desc.debugName == EName::None;

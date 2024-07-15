@@ -55,6 +55,7 @@ public:
 #undef USING_OP
 
 	static bool LoadLines(char const* path, std::vector< std::string >& outLineList);
+	static bool LoadToString(char const* path, std::string& outString);
 };
 
 template< class CharT >

@@ -41,6 +41,16 @@ namespace Render
 		RenderTargetDesc desc;
 		RHITexture2DRef  texture;
 		RHITexture2DRef  resolvedTexture;
+
+		bool bResvered = false;
+
+		void resolve(RHICommandList& commandList)
+		{
+			if (desc.numSamples <= 1)
+				return;
+
+			RHIResolveTexture(commandList, *resolvedTexture, 0, *texture, 0);
+		}
 	};
 
 	typedef TRefCountPtr< PooledRenderTarget > PooledRenderTargetRef;

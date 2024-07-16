@@ -12,6 +12,7 @@
 #include "Misc/Format.h"
 #include "RHI/RHIUtility.h"
 #include "Json.h"
+#include "Core/ScopeGuard.h"
 
 namespace Shadertoy
 {
@@ -42,7 +43,7 @@ namespace Shadertoy
 	enum class EChannelType
 	{
 		None,
-		KeyBoard,
+		Keyboard,
 		Webcam,
 		Micrphone,
 		Soundcloud,
@@ -120,7 +121,7 @@ namespace Shadertoy
 			{
 				switch (channel.type)
 				{
-				case EChannelType::KeyBoard:
+				case EChannelType::Keyboard:
 					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", channelIndex);
 					break;
 				case EChannelType::Webcam:
@@ -154,49 +155,18 @@ namespace Shadertoy
 		{
 			mSourceInputs.clear();
 			std::string dir = InlineString<>::Make("Shadertoy/%s" , name );
-			auto LoadShaderInput = [this,&dir](EPassType type, int index = 0) -> ShaderInput*
+
+			JsonFile* inputDoc = JsonFile::Load((dir + "/input.json").c_str());
+
+			ON_SCOPE_EXIT
 			{
-				InlineString<> path;
-				switch (type)
+				if (inputDoc)
 				{
-				case Shadertoy::EPassType::None:
-					path.format("%s/Common.sgc", dir.c_str());
-					break;
-				case Shadertoy::EPassType::Image:
-					path.format("%s/Image.sgc", dir.c_str());
-					break;
-				case Shadertoy::EPassType::Buffer:
-					path.format("%s/Buffer%c.sgc", dir.c_str(), AlphaSeq[index]);
-					break;
-				case Shadertoy::EPassType::Sound:
-					path.format("%s/Sound.sgc", dir.c_str());
-					break;
-				case Shadertoy::EPassType::CubeMap:
-					path.format("%s/CubeMap%c.sgc", dir.c_str(), AlphaSeq[index]);
-					break;
+					inputDoc->release();
 				}
-
-				if (!FFileSystem::IsExist(path))
-					return nullptr;
-
-				auto doc = std::make_unique<ShaderInput>();
-				doc->passType = type;
-				doc->typeIndex = index;
-
-				if (!FFileUtility::LoadToString(path, doc->code))
-					return nullptr;
-
-
-				mSourceInputs.push_back(std::move(doc));
-				return mSourceInputs.back().get();
 			};
 
-			JsonObject* inputDoc = JsonObject::LoadFromFile((dir + "/input.json").c_str());
-			if (inputDoc == nullptr)
-			{
-				return false;
-			}
-			auto LoadShaderInput2 = [this, inputDoc, &dir](EPassType type, int index = 0) -> ShaderInput*
+			auto LoadShaderInput = [this, inputDoc, &dir](EPassType type, int index = 0) -> ShaderInput*
 			{
 
 				InlineString<> path;
@@ -229,70 +199,83 @@ namespace Shadertoy
 				if (!FFileUtility::LoadToString(path, input->code))
 					return nullptr;
 
+				if (inputDoc)
+				{
+					JsonObject inputObject;
+					switch (type)
+					{
+					case Shadertoy::EPassType::None:
+						inputObject = inputDoc->getObject("Common");
+						break;
+					case Shadertoy::EPassType::Image:
+						inputObject = inputDoc->getObject("Image");
+						break;
+					case Shadertoy::EPassType::Buffer:
+						inputObject = inputDoc->getObject(InlineString<>::Make("Buffer%c", AlphaSeq[index]));
+						break;
+					case Shadertoy::EPassType::Sound:
+						inputObject = inputDoc->getObject("Sound");
+						break;
+					case Shadertoy::EPassType::CubeMap:
+						inputObject = inputDoc->getObject(InlineString<>::Make("CubeMap%c", AlphaSeq[index]));
+						break;
+					}
+
+					if (inputObject.isVaild())
+					{
+						TArray<JsonValue> channelValues = inputObject.getArray("Channels");
+						if (channelValues.size())
+						{
+							for (auto channelValue : channelValues)
+							{
+								int index = 0;
+								EChannelType type = EChannelType::None;
+								JsonObject channelObject = channelValue.asObject();
+								if (channelObject.isVaild())
+								{
+									std::string typeName;
+									if (channelObject.tryGet("Type", typeName))
+									{
+										if (typeName == "Buffer")
+										{
+											type = EChannelType::Buffer;
+										}
+										else if (typeName == "Texture")
+										{
+											type = EChannelType::Texture;
+										}
+										else if (typeName == "CubeTexture")
+										{
+											type = EChannelType::CubeTexture;
+										}
+										else if (typeName == "Keyboard")
+										{
+											type = EChannelType::Keyboard;
+										}
+									}
+									channelObject.tryGet("Index", index);
+								}
+
+								input->channels.push_back({ type , index });
+							}
+						}
+					}
+				}
 
 				mSourceInputs.push_back(std::move(input));
-
-				JsonObject* inputObject = nullptr;
-				switch (type)
-				{
-				case Shadertoy::EPassType::None:
-					inputObject = inputDoc->getObject("Common");
-					break;
-				case Shadertoy::EPassType::Image:
-					inputObject = inputDoc->getObject("Image");
-					break;
-				case Shadertoy::EPassType::Buffer:
-					inputObject = inputDoc->getObject(InlineString<>::Make("Buffer%c", AlphaSeq[index]));
-					break;
-				case Shadertoy::EPassType::Sound:
-					inputObject = inputDoc->getObject("Sound");
-					break;
-				case Shadertoy::EPassType::CubeMap:
-					inputObject = inputDoc->getObject(InlineString<>::Make("CubeMap%c", AlphaSeq[index]));
-					break;
-				}
-
-				if (inputObject)
-				{
-
-
-
-				}
-
 				return mSourceInputs.back().get();
 			};
-			ShaderInput* commonInput = LoadShaderInput2(EPassType::None);
+			ShaderInput* commonInput = LoadShaderInput(EPassType::None);
 			for (int i = 0; i < 4; ++i)
 			{
-				LoadShaderInput2(EPassType::Buffer, i);
+				LoadShaderInput(EPassType::Buffer, i);
 			}
 			for (int i = 0; i < 1; ++i)
 			{
-				LoadShaderInput2(EPassType::CubeMap, i);
+				LoadShaderInput(EPassType::CubeMap, i);
 			}
-			LoadShaderInput2(EPassType::Sound);
-			LoadShaderInput2(EPassType::Image);
-
-
-			//TODO
-			if (FCString::Compare(name, "PathTracing") == 0)
-			{
-				for (auto& input : mSourceInputs)
-				{
-					switch (input->passType)
-					{
-					case EPassType::Image:
-						input->channels = {{ EChannelType::Buffer , 1 }};
-						break;
-					case EPassType::Buffer:
-						if ( input->typeIndex == 0)
-							input->channels = { { EChannelType::Buffer , 1 } , { EChannelType::None , 0 } , { EChannelType::Texture , 0 }, { EChannelType::CubeTexture , 0 } };
-						else if (input->typeIndex == 1)
-							input->channels = { { EChannelType::Buffer , 1 } , { EChannelType::Buffer , 0 } , { EChannelType::KeyBoard , 0 } };
-						break;
-					}
-				}
-			}
+			LoadShaderInput(EPassType::Sound);
+			LoadShaderInput(EPassType::Image);
 
 			mRenderPassList.clear();
 			for (auto& input : mSourceInputs)
@@ -409,7 +392,7 @@ namespace Shadertoy
 				return mDefaultTex2D;
 			case EChannelType::CubeTexture:
 				return mDefaultCube;
-			case EChannelType::KeyBoard:
+			case EChannelType::Keyboard:
 				return mTexKeyboard;
 			case EChannelType::CubeMap:
 				{
@@ -458,7 +441,6 @@ namespace Shadertoy
 			inputParam.sampleRate = 22000;
 			mInputBuffer.updateBuffer(inputParam);
 
-			mKeyBoardBuffer[EKeyCode::W] = 255;
 			RHIUpdateTexture(*mTexKeyboard , 0 , 0 , 256 , 2 , mKeyBoardBuffer);
 
 			mTimePrev = mTime;
@@ -532,6 +514,7 @@ namespace Shadertoy
 
 					if (pass->renderTarget.isValid())
 					{
+						pass->renderTarget->desc.debugName = EName::None;
 						pass->renderTarget->bResvered = false;
 					}
 
@@ -569,7 +552,6 @@ namespace Shadertoy
 				GPU_PROFILE("CopyImageToBuffer");
 				ShaderHelper::Get().copyTextureToBuffer(commandList, *rtImage->resolvedTexture);
 			}
-
 
 #if 0
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
@@ -695,7 +677,7 @@ namespace Shadertoy
 				"Shadertoy/Assets/UffiziGallery_5.jpg",
 			};
 			mDefaultCube = RHIUtility::LoadTextureCubeFromFile(cubePaths);
-			mTexKeyboard = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R8U , 256 , 2));
+			mTexKeyboard = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R8 , 256 , 2));
 
 			GTextureShowManager.registerTexture("Keyborad" , mTexKeyboard);
 

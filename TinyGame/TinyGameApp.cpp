@@ -62,7 +62,7 @@ namespace
 {
 	TConsoleVariable<bool> CVarProfileGPU{ true , "ProfileGPU", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarProfileCPU{ true , "ProfileCPU", CVF_TOGGLEABLE };
-	TConsoleVariable<bool> CVarDrawGPUUsage{ false, "r.GPUUsage", CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarDrawGPUUsage{ true, "r.GPUUsage", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarLockFPS{ false, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
@@ -1147,7 +1147,7 @@ void TinyGameApp::handleWindowPaint(HDC hDC)
 
 bool TinyGameApp::handleWindowActivation( bool beA )
 {
-	LogMsg("Window %s", beA ? "Active" : "Deactive");
+	//LogMsg("Window %s", beA ? "Active" : "Deactive");
 	InputManager::Get().bActive = beA;
 
 	return true;
@@ -1312,7 +1312,6 @@ void TinyGameApp::render( float dframe )
 
 		if (CVarShowProifle)
 		{
-			IGraphics2D& g = ::Global::GetIGraphics2D();
 			RenderUtility::SetFont(g, FONT_S10);
 			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
 		}

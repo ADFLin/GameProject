@@ -7,92 +7,144 @@
 #include "DataStructure/Array.h"
 #include "Meta/Select.h"
 
-template< bool bReference >
-class TJsonObjectImpl : public JsonObject
+
+using ObjectImpl = nlohmann::json::object_t;
+
+class JsonObjectImpl : public JsonObject
 {
 public:
-	typedef typename TSelect<bReference , nlohmann::json& , nlohmann::json >::Type ImplType;
-
-	TJsonObjectImpl( ImplType&& j )
-		:mImpl(j){ }
-
-	void release() override { delete this; }
-
-	template< class T >
-	bool tryGetT(char const* key, T& outValue)
+	bool find(char const* key, ObjectImpl::iterator& outIter)
 	{
-		auto iter = mImpl.find(key);
-		if( iter == mImpl.end() || !iter->is_string() )
-			return false;
-		outValue = iter->get<T>();
-		return true;
+		outIter = getImpl()->find(key);
+		return outIter != getImpl()->end();
 	}
 
-	bool tryGet(char const* key, std::string& outValue) override 
+	ObjectImpl* getImpl()
 	{
-		auto iter = mImpl.find(key);
-		if (iter == mImpl.end() || !iter->is_string())
-			return false;
-		outValue = iter->get<std::string>();
-		return true;
+		return static_cast<ObjectImpl*>(mPtr);
 	}
-
-	bool tryGet(char const* key, int& outValue) override
-	{
-		auto iter = mImpl.find(key);
-		if (iter == mImpl.end() || !iter->is_number_integer())
-			return false;
-		outValue = iter->get<int>();
-		return true;
-	}
-
-	bool tryGet(char const* key, float& outValue) override 
-	{
-		auto iter = mImpl.find(key);
-		if (iter == mImpl.end() || !iter->is_number_float())
-			return false;
-		outValue = iter->get<float>();
-		return true;
-	}
-
-	bool tryGet(char const* key, bool& outValue) override 
-	{
-		auto iter = mImpl.find(key);
-		if (iter == mImpl.end() || !iter->is_boolean())
-			return false;
-		outValue = iter->get<bool>();
-		return true;
-	}
-
-	using SubObject = TJsonObjectImpl<true>;
-
-	JsonObject* getObject(char const* key) override
-	{
-		auto iter = mImpl.find(key);
-		if (iter == mImpl.end() || !iter->is_object())
-			return nullptr;
-
-		auto ptr = std::make_unique<SubObject>(*iter);
-		mSubObjects.push_back(std::move(ptr));
-
-		return mSubObjects.back().get();
-	}
-
-	TArray< std::unique_ptr<SubObject> > mSubObjects;
-	ImplType mImpl;
 };
 
-JsonObject* JsonObject::LoadFromFile(char const* path)
+class JsonFileImpl : public JsonFile
+{
+public:
+	JsonFileImpl(nlohmann::json&& j)
+		:mImpl(j)
+	{
+		mPtr = mImpl.get_ptr<ObjectImpl*>();
+	}
+
+	virtual void release() override { delete this; }
+
+	nlohmann::json mImpl;
+};
+
+JsonFile* JsonFile::Load(char const* path)
 {
 	std::ifstream fs(path);
 
-	if( !fs.is_open() )
+	if (!fs.is_open())
 		return nullptr;
 	nlohmann::json j;
 	fs >> j;
-	if( !fs )
+	if (!fs)
 		return nullptr;
 
-	return new TJsonObjectImpl<false>(std::move(j));
+	if (!j.is_object())
+		return nullptr;
+	return new JsonFileImpl(std::move(j));
 }
 
+bool JsonObject::tryGet(char const* key, std::string& outValue)
+{
+	ObjectImpl::iterator iter;
+	if ( !static_cast<JsonObjectImpl*>(this)->find(key, iter) )
+		return false;
+	if (!iter->second.is_string())
+		return false;
+	outValue = iter->second.get<std::string>();
+	return true;
+}
+
+bool JsonObject::tryGet(char const* key, int& outValue)
+{
+	ObjectImpl::iterator iter;
+	if (!static_cast<JsonObjectImpl*>(this)->find(key, iter))
+		return false;
+	if (!iter->second.is_number())
+		return false;
+	outValue = iter->second.get<int>();
+	return true;
+}
+
+bool JsonObject::tryGet(char const* key, float& outValue)
+{
+	ObjectImpl::iterator iter;
+	if (!static_cast<JsonObjectImpl*>(this)->find(key, iter))
+		return false;
+	if (!iter->second.is_number())
+		return false;
+	outValue = iter->second.get<float>();
+	return true;
+}
+
+bool JsonObject::tryGet(char const* key, bool& outValue)
+{
+	ObjectImpl::iterator iter;
+	if (!static_cast<JsonObjectImpl*>(this)->find(key, iter))
+		return false;
+	if (!iter->second.is_boolean())
+		return false;
+	outValue = iter->second.get<int>();
+	return true;
+}
+
+JsonObject JsonObject::getObject(char const* key)
+{
+	JsonObject result;
+	ObjectImpl::iterator iter;
+	if (static_cast<JsonObjectImpl*>(this)->find(key, iter) &&
+		iter->second.is_object())
+	{
+		result.mPtr = iter->second.get_ptr<ObjectImpl*>();
+	}
+	return result;
+}
+
+
+JsonValue ToValue(nlohmann::json& json)
+{
+	using namespace nlohmann::detail;
+	if (json.type() == value_t::discarded)
+		return JsonValue();
+	JsonValue result;
+	result.type = static_cast<EJsonType>(static_cast<uint8>(json.type()));
+	result.ptr = &json;
+	return result;
+}
+
+TArray<JsonValue> JsonObject::getArray(char const* key)
+{
+	TArray<JsonValue> result;
+	ObjectImpl::iterator iter;
+	if (static_cast<JsonObjectImpl*>(this)->find(key, iter) &&
+		iter->second.is_array())
+	{
+		auto arrayPtr = iter->second.get_ptr<nlohmann::json::array_t*>();
+		for (auto& element : *arrayPtr)
+		{
+			result.push_back(ToValue(element));
+		}
+	}
+	return result;
+}
+
+JsonObject JsonValue::asObject() const
+{
+	if (!isObject())
+		return JsonObject();
+
+	JsonObject object;
+	object.mPtr = static_cast<nlohmann::json*>(ptr)->get_ptr<ObjectImpl*>();
+	return object;
+}

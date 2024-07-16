@@ -52,6 +52,13 @@ GCheckBox* DevFrame::addCheckBox(int id, char const* title)
 	return addWidget<GCheckBox>(id, title);
 }
 
+GCheckBox* DevFrame::addCheckBox(char const* text, bool& value)
+{
+	GCheckBox* result = addCheckBox(UI_ANY, text);
+	FWidgetProperty::Bind(result, value);
+	return result;
+}
+
 template< class T >
 T* DevFrame::addWidget(char const* title, WidgetEventDelegate delegate)
 {

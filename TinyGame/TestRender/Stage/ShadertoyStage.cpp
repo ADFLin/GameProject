@@ -16,6 +16,11 @@
 
 namespace Shadertoy
 {
+	static uint32 AlignCount(uint32 size, uint32 alignment)
+	{
+		return (size + alignment - 1) / alignment;
+	}
+
 	using namespace Render;
 	struct GPU_ALIGN InputParam
 	{
@@ -71,11 +76,54 @@ namespace Shadertoy
 		TArray< Channel > channels;
 	};
 
+	class RenderPassShader : public Shader
+	{
+	public:
+		void bindChannelParameters(TArray<ShaderInput::Channel> const& channels)
+		{
+			mParamChannels.resize(channels.size());
+			mParamSamplerChannels.resize(channels.size());
+			int channelIndex = 0;
+			for (auto const& channel : channels)
+			{
+				if (channel.type != EChannelType::None)
+				{
+					getParameter(InlineString<>::Make("iChannel%d", channelIndex), mParamChannels[channelIndex]);
+				}
+				++channelIndex;
+			}
+		}
+
+		static RHISamplerState& GetSamplerState(ShaderInput::Channel const& channel)
+		{
+			if (channel.type == EChannelType::Texture)
+				return TStaticSamplerState< ESampler::Bilinear, ESampler::Warp, ESampler::Warp >::GetRHI();
+			return TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
+		}
+
+		template< typename TGetTexture >
+		void setChannelParameters(RHICommandList& commandList, TArray<ShaderInput::Channel> const& channels, TGetTexture& GetTexture)
+		{
+			int channelIndex = 0;
+			for (auto const& channel : channels)
+			{
+				RHITextureBase* texture = GetTexture(channel.type, channel.index);
+				if (texture)
+				{
+					setTexture(commandList, mParamChannels[channelIndex], *texture, mParamSamplerChannels[channelIndex], GetSamplerState(channel));
+				}
+				++channelIndex;
+			}
+		}
+		TArray< ShaderParameter > mParamChannels;
+		TArray< ShaderParameter > mParamSamplerChannels;
+	};
+
 	struct RenderPass
 	{
 		ShaderInput* input;
 		PooledRenderTargetRef renderTarget;
-		Shader shader;
+		RenderPassShader shader;
 	};
 
 	char const* AlphaSeq = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -101,12 +149,14 @@ namespace Shadertoy
 				restart();
 				return false;
 			});
-			frame->addButton("Compile", [this](int event, GWidget*)
+			frame->addCheckBox("Use ComputeShader", [this](int event, GWidget*)
 			{
+				bUseComputeShader = !bUseComputeShader;
 				compileShader();
 				return false;
-			});
-			restart();
+			})->bChecked = bUseComputeShader;
+			
+			restart(true);
 			return true;
 		}
 
@@ -148,10 +198,14 @@ namespace Shadertoy
 			Text::Format((char const*)codeTemplate.data(), TArrayView< std::string const >{ channelCode, commonInput ? commonInput->code : std::string(), pass.input->code }, code);
 
 			ShaderCompileOption option;
-			return ShaderManager::Get().loadFile(pass.shader, nullptr, { EShader::Pixel, "MainPS" }, option, code.c_str());
+			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option, code.c_str()))
+				return false;
+
+			pass.shader.bindChannelParameters(pass.input->channels);
+			return true;
 		}
 
-		bool loadProject(char const* name)
+		bool loadProject(char const* name, bool bCompileShader)
 		{
 			mSourceInputs.clear();
 			std::string dir = InlineString<>::Make("Shadertoy/%s" , name );
@@ -288,7 +342,12 @@ namespace Shadertoy
 				mRenderPassList.push_back(std::move(pass));
 			}
 
-			return compileShader(commonInput);
+			if (bCompileShader)
+			{
+				return compileShader(commonInput);
+			}
+
+			return true;
 		}
 
 		bool compileShader()
@@ -309,12 +368,15 @@ namespace Shadertoy
 				return false;
 			}
 
+			int indexPass = 0;
 			for (auto& pass : mRenderPassList)
 			{
 				if (!compileShader(*pass, codeTemplate, commonInput))
 				{
+					LogWarning(0, "Compile RenderPass Fail index = %d" , indexPass);
 					return false;
 				}
+				++indexPass;
 			}
 
 			return true;
@@ -325,13 +387,13 @@ namespace Shadertoy
 			BaseClass::onEnd();
 		}
 
-		void restart()
+		void restart(bool bInit = false)
 		{
 			mTime = 0;
 			mTimePrev = 0;
 			mFrameCount = 0;
 			FMemory::Zero( mKeyBoardBuffer, sizeof(mKeyBoardBuffer));
-			loadProject("PathTracing");
+			loadProject("PathTracing", !bInit);
 			//loadProject("ShaderArt");
 		}
 
@@ -448,7 +510,7 @@ namespace Shadertoy
 
 			PooledRenderTargetRef rtImage;
 			{
-				GPU_PROFILE("RenderPass");
+				GPU_PROFILE(bUseComputeShader ? "RenderPassCS" : "RenderPass");
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -462,6 +524,11 @@ namespace Shadertoy
 					desc.format = ETexture::RGBA32F;
 					desc.numSamples = 1;
 					desc.size = screenSize;
+					if (bUseComputeShader)
+					{
+						desc.creationFlags |= TCF_CreateUAV;
+					}
+					
 					switch (pass->input->passType)
 					{
 					case EPassType::Buffer:
@@ -479,38 +546,43 @@ namespace Shadertoy
 					}
 
 					GPU_PROFILE(desc.debugName.c_str());
-
 					rt = GRenderTargetPool.fetchElement(desc);
-					mFrameBuffer->setTexture(0, *rt->texture);
-					RHISetFrameBuffer(commandList, mFrameBuffer);
 
-					RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
-					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-
-					GraphicsShaderStateDesc state;
-					state.vertex = mScreenVS->getRHI();
-					state.pixel = pass->shader.getRHI();
-
-					RHISetGraphicsShaderBoundState(commandList, state);
-					int channelIndex = 0;
-					for (auto const& channel : pass->input->channels)
+					if (bUseComputeShader)
 					{
-						char const* channelNames[] =
-						{
-							"iChannel0","iChannel1","iChannel2","iChannel3",
-						};
+						RHISetComputeShader(commandList, pass->shader.getRHI());
 
-						RHITextureBase* texture = getTexture(channel.type, channel.index);
-						if (texture)
-						{
-							pass->shader.setTexture(commandList, channelNames[channelIndex], *texture);
-						}
-						++channelIndex;
+						pass->shader.setChannelParameters(commandList, pass->input->channels,
+							[this](EChannelType type, int index) { return getTexture(type, index); }
+						);
+						SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
+						pass->shader.setRWTexture(commandList, "OutTexture", *rt->resolvedTexture, EAccessOperator::AO_WRITE_ONLY);
+						int const GROUP_SIZE = 8;
+
+						RHIDispatchCompute(commandList, AlignCount(screenSize.x, GROUP_SIZE), AlignCount(screenSize.y, GROUP_SIZE), 1);
+
+						pass->shader.clearRWTexture(commandList, "OutTexture");
 					}
-					SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
-					DrawUtility::ScreenRect(commandList);
+					else
+					{
+						mFrameBuffer->setTexture(0, *rt->texture);
+						RHISetFrameBuffer(commandList, mFrameBuffer);
+						RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-					RHISetFrameBuffer(commandList, nullptr);
+						GraphicsShaderStateDesc state;
+						state.vertex = mScreenVS->getRHI();
+						state.pixel = pass->shader.getRHI();
+
+						RHISetGraphicsShaderBoundState(commandList, state);
+
+						pass->shader.setChannelParameters(commandList, pass->input->channels,
+							[this](EChannelType type, int index) { return getTexture(type, index); }
+						);
+						SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
+						DrawUtility::ScreenRect(commandList);
+
+						RHISetFrameBuffer(commandList, nullptr);
+					}
 
 					if (pass->renderTarget.isValid())
 					{
@@ -655,9 +727,9 @@ namespace Shadertoy
 		RHITexture2DRef mDefaultTex2D;
 		RHITextureCubeRef mDefaultCube;
 
-
+		bool bUseComputeShader = true;
 		ScreenVS* mScreenVS;
-		Shader    mShaderPS;
+
 
 		bool setupRenderResource(ERenderSystem systemName) override
 		{
@@ -682,8 +754,10 @@ namespace Shadertoy
 			GTextureShowManager.registerTexture("Keyborad" , mTexKeyboard);
 
 			ScreenVS::PermutationDomain domainVector;
-			domainVector.set<ScreenVS::UseTexCoord>(true);
+			domainVector.set<ScreenVS::UseTexCoord>(false);
 			mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector);
+
+			compileShader();
 
 			return true;
 		}

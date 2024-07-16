@@ -26,13 +26,13 @@ uniform InputParameters Input;
 #define iFrame      Input.frame
 #define iMouse      Input.mouse
 
+%s
+
+%s
+
+%s
+
 #if PIXEL_SHADER
-
-%s
-
-%s
-
-%s
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -45,6 +45,37 @@ PS_ENTRY_END(MainPS)
 	mainImage(fragColor, fragCoord);
 
 	OutColor = fragColor;
+}
+
+#endif
+
+#if COMPUTE_SHADER
+
+#ifndef GROUP_SIZE
+#define GROUP_SIZE 8
+#endif
+
+#if COMPILER_HLSL
+RWTexture2D<float4> OutTexture;
+#else
+layout(rgba32f) uniform writeonly image2D OutTexture;
+#endif
+
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
+CS_ENTRY(MainCS)
+{
+	float4 fragColor;
+	float2 fragCoord = float2(SvDispatchThreadID.x, SvDispatchThreadID.y) + 0.5;
+	if (fragCoord.x > iResolution.x || fragCoord.y > iResolution.y)
+		return;
+
+	mainImage(fragColor, fragCoord);
+
+#if COMPILER_HLSL
+	OutTexture[SvDispatchThreadID.xy] = fragColor;
+#else
+	imageStore(OutTexture, int2(SvDispatchThreadID.xy), fragColor);
+#endif
 }
 
 #endif

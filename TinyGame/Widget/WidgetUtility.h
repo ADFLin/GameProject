@@ -222,6 +222,8 @@ public:
 	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
 	GCheckBox* addCheckBox(int id, char const* tile);
 	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
+	GCheckBox* addCheckBox(char const* text, bool& value);
+
 	GSlider*   addSlider(int id = UI_ANY, bool bUseBroder = true);
 	GSlider*   addSlider(char const* title, int id = UI_ANY, bool bUseBroder = true);
 	GTextCtrl* addTextCtrl(int id);
@@ -230,10 +232,6 @@ public:
 	GChoice*   addChoice(char const* title, int id = UI_ANY);
 	GText*     addText(char const* pText, bool bUseBroder = false);
 
-	void addCheckBox(char const* text, bool& value)
-	{
-		FWidgetProperty::Bind(addCheckBox(UI_ANY, text), value);
-	}
 
 	void refresh();
 private:

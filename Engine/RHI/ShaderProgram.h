@@ -32,6 +32,8 @@ namespace Render
 	{
 	public:
 
+		bool isVaild() const { return mRHIResource.isValid(); }
+
 		RHIResourceType* getRHI() { return mRHIResource; }
 		void releaseRHI()
 		{

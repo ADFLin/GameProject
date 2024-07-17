@@ -511,6 +511,17 @@ namespace CPP
 			StringView exprText;
 			if (mInput.tokenLineString(exprText))
 			{
+				//Cut Comment
+				for (int i = 0; i < exprText.size() - 1; ++i)
+				{
+					if (exprText[i] == '/' && exprText[i + 1] == '/')
+					{
+						exprText = StringView(exprText.data(), i);
+						exprText.trimEnd();
+						break;
+					}
+				}
+
 				marco.expr.append(exprText.begin(), exprText.end());
 				marco.evalFrame = -1;
 			}

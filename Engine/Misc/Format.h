@@ -10,9 +10,14 @@ namespace Text
 {
 	template< typename CharT >
 	using TStdString = typename TStringTraits< CharT >::StdString;
-
 	template< typename CharT >
-	static int Format(CharT const* format, TArrayView< TStdString< CharT > const > const& strList, TStdString< CharT >& outString)
+	void operator += (TStdString<CharT>& str, TStringView<CharT> const& view)
+	{
+		str.append(view.data(), view.size());
+	}
+
+	template< typename CharT , typename StringType >
+	static int FormatInternal(CharT const* format, TArrayView< StringType > strList, TStdString< CharT >& outString)
 	{
 		int index = 0;
 		char const* cur = format;
@@ -57,6 +62,18 @@ namespace Text
 			outString.append(cur);
 		}
 		return index;
+	}
+
+	template< typename CharT >
+	static int Format(CharT const* format, TArrayView< TStdString<CharT> const > strList, TStdString< CharT >& outString)
+	{
+		return FormatInternal(format, strList, outString);
+	}
+
+	template< typename CharT >
+	static int Format(CharT const* format, TArrayView< TStringView<CharT> > strList, TStdString< CharT >& outString)
+	{
+		return FormatInternal(format, strList, outString);
 	}
 }
 

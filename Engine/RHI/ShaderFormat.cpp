@@ -46,6 +46,7 @@ namespace Render
 		}
 		preprocessor.bReplaceMarcoText = true;
 		preprocessor.bAllowRedefineMarco = true;
+		preprocessor.bAddLineMarco = settings.bAddLineMarco;
 		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);

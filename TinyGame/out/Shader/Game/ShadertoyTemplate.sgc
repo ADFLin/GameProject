@@ -1,30 +1,18 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 
-struct InputParameters
-{
-	float3 resolution;
-	float time;
-	float timeDelta;
-	int   frame;
-	float frameRate;
-	float sampleRate;
-	float4 mouse;
-};
-
-#if SHADER_COMPILING
 layout(std140) cbuffer InputBlock
 {
-	InputParameters Input;
+	float3 iResolution;
+	float  iTime;
+	float  iTimeDelta;
+	int    iFrame;
+	float  iFrameRate;
+	float  iSampleRate;
+	float4 iMouse;
 };
-#else
-uniform InputParameters Input;
-#endif
 
-#define iResolution Input.resolution
-#define iTime       Input.time
-#define iFrame      Input.frame
-#define iMouse      Input.mouse
+uniform float3 iChannelResolution[4];
 
 %s
 

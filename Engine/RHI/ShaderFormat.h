@@ -111,11 +111,12 @@ namespace Render
 	struct ShaderPreprocessSettings
 	{
 		bool bSupportLineFilePath;
-
+		bool bAddLineMarco = true;
 
 		ShaderPreprocessSettings()
 		{
 			bSupportLineFilePath = true;
+			bAddLineMarco = true;
 		}
 	};
 	class ShaderFormat

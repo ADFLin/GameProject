@@ -453,6 +453,9 @@ void main()
 	{
 		ShaderPreprocessSettings result;
 		result.bSupportLineFilePath = IsLineFilePathSupported();
+		if (result.bSupportLineFilePath == false)
+			result.bAddLineMarco = false;
+
 		return result;
 	}
 

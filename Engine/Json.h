@@ -47,9 +47,14 @@ public:
 
 };
 
-class JsonFile : public JsonObject
+class JsonFile
 {
 public:
+	virtual bool isObject() = 0;
+	virtual bool isArray() = 0;
+	virtual JsonObject getObject() = 0;
+	virtual TArray<JsonValue> getArray() = 0;
+
 	virtual void release() = 0;
 	static JsonFile* Load(char const* path);
 };

@@ -389,7 +389,7 @@ namespace Render
 
 
 			PooledRenderTargetRef shadowRT = GRenderTargetPool.fetchElement(desc);
-			mShadowFrameBuffer->setDepth(*shadowRT->texture);
+			mShadowFrameBuffer->setDepth(static_cast<RHITexture2D&>(*shadowRT->texture));
 
 #if 0
 			//RenderTargetDesc desc;
@@ -468,7 +468,7 @@ namespace Render
 
 
 			PooledRenderTargetRef shadowRT = GRenderTargetPool.fetchElement(desc);
-			mShadowFrameBuffer->setDepth(*shadowRT->texture);
+			mShadowFrameBuffer->setDepth(static_cast<RHITexture2D&>(*shadowRT->texture));
 
 #if 0
 			//RenderTargetDesc desc;

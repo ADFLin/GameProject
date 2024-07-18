@@ -663,8 +663,8 @@ namespace Bloxorz
 			desc.format = ETexture::FloatRGBA;
 			desc.creationFlags = TCF_CreateSRV;
 
-			renderBuffers[0] = GRenderTargetPool.fetchElement(desc)->texture;
-			renderBuffers[1] = GRenderTargetPool.fetchElement(desc)->texture;
+			renderBuffers[0] = static_cast<RHITexture2D*>(GRenderTargetPool.fetchElement(desc)->texture.get());
+			renderBuffers[1] = static_cast<RHITexture2D*>(GRenderTargetPool.fetchElement(desc)->texture.get());
 
 			RayTraceProgram::PermutationDomain permutationVector;
 			permutationVector.set<RayTraceProgram::UseBuiltinScene>( bUseDeferredRending ? false : bUseSceneBuitin);
@@ -747,7 +747,7 @@ namespace Bloxorz
 					desc.size = size;
 					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
-					RHITexture2DRef downsampleTexture = GRenderTargetPool.fetchElement(desc)->texture;
+					RHITexture2DRef downsampleTexture = static_cast<RHITexture2D*>(GRenderTargetPool.fetchElement(desc)->texture.get());
 					mBloomFrameBuffer->setTexture(0, *downsampleTexture);
 					RHISetViewport(commandList, 0, 0, size.x, size.y);
 					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
@@ -789,7 +789,7 @@ namespace Bloxorz
 
 					DrawUtility::ScreenRect(commandList);
 
-					downsampleTextures[0] = bloomSetupRT->texture;
+					downsampleTextures[0] = static_cast<RHITexture2D*>(bloomSetupRT->texture.get());
 				}
 
 				{
@@ -856,7 +856,7 @@ namespace Bloxorz
 						DrawUtility::ScreenRect(commandList);
 					}
 
-					return blurYRT->texture;
+					return static_cast<RHITexture2D*>(blurYRT->texture.get());
 				};
 
 				struct BlurInfo

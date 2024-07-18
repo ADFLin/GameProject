@@ -1180,32 +1180,29 @@ namespace Render
 		}
 	}
 
-	void D3D11ResourceBoundState::setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture)
+	void D3D11ResourceBoundState::setRWTexture(ShaderParameter const& parameter, RHITextureBase& texture, int level)
 	{
 		ID3D11UnorderedAccessView* UAV = nullptr;
-		if (texture)
+		switch (texture.getType())
 		{
-			switch (texture->getType())
+		case ETexture::Type1D:
 			{
-			case ETexture::Type1D:
-				{
-					auto& textureImpl = static_cast<D3D11Texture1D&>(*texture);
-					UAV = textureImpl.mUAV;
-				}
-				break;
-			case ETexture::Type2D:
-				{
-					auto& textureImpl = static_cast<D3D11Texture2D&>(*texture);
-					UAV = textureImpl.mUAV;
-				}
-				break;
-			case ETexture::Type3D:
-				{
-					auto& textureImpl = static_cast<D3D11Texture3D&>(*texture);
-					UAV = textureImpl.mUAV;
-				}
-				break;
+				auto& textureImpl = static_cast<D3D11Texture1D&>(texture);
+				UAV = textureImpl.mUAV;
 			}
+			break;
+		case ETexture::Type2D:
+			{
+				auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
+				UAV = textureImpl.mUAV;
+			}
+			break;
+		case ETexture::Type3D:
+			{
+				auto& textureImpl = static_cast<D3D11Texture3D&>(texture);
+				UAV = textureImpl.mUAV;
+			}
+			break;
 		}
 
 		if (mBoundedUAVs[parameter.mLoc] != UAV)
@@ -1220,6 +1217,58 @@ namespace Render
 			}
 			CHECK(mUAVUsageCount >= 0);
 			mBoundedUAVs[parameter.mLoc] = UAV;
+			mUAVDirtyMask |= BIT(parameter.mLoc);
+		}
+	}
+
+	void D3D11ResourceBoundState::setRWSubTexture(ShaderParameter const& parameter, RHITextureBase& texture, int subIndex, int level)
+	{
+		ID3D11UnorderedAccessView* UAV = nullptr;
+		switch (texture.getType())
+		{
+		case ETexture::Type1D:
+			{
+				auto& textureImpl = static_cast<D3D11Texture1D&>(texture);
+				UAV = textureImpl.mUAV;
+			}
+			break;
+		case ETexture::Type2D:
+			{
+				auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
+				UAV = textureImpl.mUAV;
+			}
+			break;
+		case ETexture::Type3D:
+			{
+				auto& textureImpl = static_cast<D3D11Texture3D&>(texture);
+				UAV = textureImpl.mUAV;
+			}
+			break;
+		}
+
+		if (mBoundedUAVs[parameter.mLoc] != UAV)
+		{
+			if (UAV == nullptr)
+			{
+				mUAVUsageCount -= 1;
+			}
+			else if (mBoundedUAVs[parameter.mLoc] == nullptr)
+			{
+				mUAVUsageCount += 1;
+			}
+			CHECK(mUAVUsageCount >= 0);
+			mBoundedUAVs[parameter.mLoc] = UAV;
+			mUAVDirtyMask |= BIT(parameter.mLoc);
+		}
+	}
+
+	void D3D11ResourceBoundState::clearRWTexture(ShaderParameter const& parameter)
+	{
+		if (mBoundedUAVs[parameter.mLoc] != nullptr)
+		{
+			mUAVUsageCount -= 1;
+			CHECK(mUAVUsageCount >= 0);
+			mBoundedUAVs[parameter.mLoc] = nullptr;
 			mUAVDirtyMask |= BIT(parameter.mLoc);
 		}
 	}
@@ -1245,9 +1294,9 @@ namespace Render
 	}
 
 
-	void D3D11ResourceBoundState::setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOperator op)
+	void D3D11ResourceBoundState::setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOp op)
 	{
-		if (op == AO_READ_ONLY)
+		if (op == EAccessOp::ReadOnly)
 		{
 			ID3D11ShaderResourceView* SRV = static_cast<D3D11Buffer&>(buffer).mSRV;
 			if (mBoundedSRVs[parameter.mLoc] != SRV)
@@ -2423,52 +2472,76 @@ namespace Render
 		mResourceBoundStates[type].setSampler(param, sampler);
 	}
 
-	void D3D11Context::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void D3D11Context::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		switch (op)
 		{
-		case Render::AO_READ_ONLY:
+		case EAccessOp::ReadOnly:
 #if 0
 			setShaderTexture(shaderProgram, param, texture);
 			break;
 #endif
-		case Render::AO_WRITE_ONLY:
-		case Render::AO_READ_AND_WRITE:
-			shaderProgramImpl.setupShader(param, [this, &texture](EShader::Type type, ShaderParameter const& shaderParam)
+		case EAccessOp::WriteOnly:
+		case EAccessOp::ReadAndWrite:
+			shaderProgramImpl.setupShader(param, [this, &texture, level](EShader::Type type, ShaderParameter const& shaderParam)
 			{
-				mResourceBoundStates[type].setRWTexture(shaderParam, &texture);
+				mResourceBoundStates[type].setRWTexture(shaderParam, texture, level);
 			});
 			break;
 		}
 	}
 
-	void D3D11Context::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void D3D11Context::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
 		auto type = shaderImpl.mResource.type;
-		mResourceBoundStates[type].setRWTexture(param, &texture);
+		mResourceBoundStates[type].setRWTexture(param, texture, level);
 	}
+
+	void D3D11Context::setShaderRWSubTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		switch (op)
+		{
+		case EAccessOp::ReadOnly:
+		case EAccessOp::WriteOnly:
+		case EAccessOp::ReadAndWrite:
+			shaderProgramImpl.setupShader(param, [this, &texture, subIndex, level](EShader::Type type, ShaderParameter const& shaderParam)
+			{
+				mResourceBoundStates[type].setRWSubTexture(shaderParam, texture, subIndex, level);
+			});
+			break;
+		}
+	}
+
+
+	void D3D11Context::setShaderRWSubTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mResourceBoundStates[type].setRWSubTexture(param, texture, subIndex, level);
+	}
+
 
 	void D3D11Context::clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this](EShader::Type type, ShaderParameter const& shaderParam)
 		{
-			mResourceBoundStates[type].setRWTexture(shaderParam, nullptr);
+			mResourceBoundStates[type].clearRWTexture(shaderParam);
 			if (type == EShader::Compute)
 			{
 				mResourceBoundStates[type].commitUAVState(mDeviceContext);
 			}
 		});
-
 	}
 
 	void D3D11Context::clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param)
 	{
 		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
 		auto type = shaderImpl.mResource.type;
-		mResourceBoundStates[type].setRWTexture(param, nullptr);
+		mResourceBoundStates[type].clearRWTexture(param);
 		if (type == EShader::Compute)
 		{
 			mResourceBoundStates[type].commitUAVState(mDeviceContext);
@@ -2491,7 +2564,7 @@ namespace Render
 		mResourceBoundStates[type].setUniformBuffer(param, buffer);
 	}
 
-	void D3D11Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void D3D11Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, &buffer, op](EShader::Type type, ShaderParameter const& shaderParam)
@@ -2500,7 +2573,7 @@ namespace Render
 		});
 	}
 
-	void D3D11Context::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void D3D11Context::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
 		auto type = shaderImpl.mResource.type;

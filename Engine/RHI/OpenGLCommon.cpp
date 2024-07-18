@@ -758,13 +758,13 @@ namespace Render
 		return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
 	}
 
-	GLenum OpenGLTranslate::To(EAccessOperator op)
+	GLenum OpenGLTranslate::To(EAccessOp op)
 	{
 		switch( op )
 		{
-		case AO_READ_ONLY: return GL_READ_ONLY;
-		case AO_WRITE_ONLY: return GL_WRITE_ONLY;
-		case AO_READ_AND_WRITE: return GL_READ_WRITE;
+		case EAccessOp::ReadOnly: return GL_READ_ONLY;
+		case EAccessOp::WriteOnly: return GL_WRITE_ONLY;
+		case EAccessOp::ReadAndWrite: return GL_READ_WRITE;
 		}
 		assert(0);
 		return GL_READ_WRITE;

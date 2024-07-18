@@ -966,9 +966,9 @@ namespace Render
 
 			RHISetShaderProgram(commandList, mShaderBassPassTest.getRHI());
 			view.setupShader(commandList, mShaderBassPassTest);
-			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
-			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
+			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, 0, EAccessOp::WriteOnly);
+			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, 0, EAccessOp::ReadAndWrite);
+			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, 0, EAccessOp::ReadAndWrite);
 			mShaderBassPassTest.setAtomicCounterBuffer(commandList, SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 
 
@@ -1187,9 +1187,9 @@ namespace Render
 
 	void OITTechnique::setupShader(RHICommandList& commandList, ShaderProgram& program)
 	{
-		program.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
-		program.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		program.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
+		program.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, 0, EAccessOp::WriteOnly);
+		program.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, 0, EAccessOp::ReadAndWrite);
+		program.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, 0, EAccessOp::ReadAndWrite);
 		program.setAtomicCounterBuffer(commandList, SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 	}
 
@@ -1212,9 +1212,9 @@ namespace Render
 
 	void BMAResolveProgram::setParameters(RHICommandList& commandList, OITShaderData& data )
 	{
-		setRWTexture(commandList, mParamColorStorageTexture, *data.colorStorageTexture, AO_READ_AND_WRITE);
-		setRWTexture(commandList, mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+		setRWTexture(commandList, mParamColorStorageTexture, *data.colorStorageTexture, 0, EAccessOp::ReadAndWrite);
+		setRWTexture(commandList, mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, 0, EAccessOp::ReadAndWrite);
+		setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, 0, EAccessOp::ReadAndWrite);
 	}
 
 	void SSAOGenerateProgram::bindParameters(ShaderParameterMap const& parameterMap)
@@ -1584,7 +1584,7 @@ namespace Render
 
 		void setParameters(RHICommandList& commandList, RHITexture3D& Buffer , Vector4 const& clearValue)
 		{
-			setRWTexture(commandList, mParamBufferRW, Buffer, AO_WRITE_ONLY);
+			setRWTexture(commandList, mParamBufferRW, Buffer, 0, EAccessOp::WriteOnly);
 			setParam(commandList, mParamClearValue, clearValue);
 		}
 		
@@ -1651,7 +1651,7 @@ namespace Render
 			if (mParamVolumeBufferB.isBound())
 				setTexture(commandList, mParamVolumeBufferB, *parameter.volumeBuffer[1]);
 			if (mParamScatteringRWBuffer.isBound())
-				setRWTexture(commandList, mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
+				setRWTexture(commandList, mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], 0, EAccessOp::WriteOnly);
 
 			setStructuredStorageBufferT<TiledLightInfo>(commandList, *parameter.lightBuffer);
 			view.setupShader(commandList, *this);

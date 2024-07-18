@@ -349,9 +349,9 @@ namespace Render
 
 		void setParameters(RHICommandList& commandList, ShaderProgram& shader , OITShaderData& data)
 		{
-			shader.setRWTexture(commandList, mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
-			shader.setRWTexture(commandList, mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-			shader.setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+			shader.setRWTexture(commandList, mParamColorStorageTexture, *data.colorStorageTexture, 0, EAccessOp::WriteOnly);
+			shader.setRWTexture(commandList, mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, 0, EAccessOp::ReadAndWrite);
+			shader.setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, 0, EAccessOp::ReadAndWrite);
 			shader.setAtomicCounterBuffer(commandList, mParamNextIndex, *data.storageUsageCounter);
 		}
 

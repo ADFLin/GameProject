@@ -95,14 +95,14 @@ namespace Render
 
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(NumVertices), numVertices);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(VertexStride), stride);
-		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(VertexBlock), *mMesh.mVertexBuffer, AO_READ_ONLY);
-		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(HeightBlock), *mMeshOffsetData.getRHI(), AO_WRITE_ONLY);
+		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(VertexBlock), *mMesh.mVertexBuffer, EAccessOp::ReadOnly);
+		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(HeightBlock), *mMeshOffsetData.getRHI(), EAccessOp::WriteOnly);
 
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(RimWidth), mSettings.rimWidth);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(RimSteepness), mSettings.rimSteepness);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(FloorHeight), mSettings.floorHeight);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(Smoothness), mSettings.smoothness);
-		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(CraterBlock), *mCraterData.getRHI(), AO_READ_ONLY);
+		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(CraterBlock), *mCraterData.getRHI(), EAccessOp::ReadOnly);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(NumCraters), (int)mCraterData.getElementNum());
 
 		RHIDispatchCompute(commandList, (numVertices + 127) / 128, 1, 1);
@@ -247,7 +247,7 @@ namespace Render
 		RHISetShaderProgram(commandList, mProgRender->getRHI());
 
 		mProgRender->setParam(commandList, SHADER_PARAM(XForm), mView.worldToClip);
-		mProgRender->setStorageBuffer(commandList, SHADER_PARAM(HeightBlock), *mMeshOffsetData.getRHI(), AO_READ_ONLY);
+		mProgRender->setStorageBuffer(commandList, SHADER_PARAM(HeightBlock), *mMeshOffsetData.getRHI(), EAccessOp::ReadOnly);
 		mView.setupShader(commandList, *mProgRender);
 
 		mMesh.draw(commandList);

@@ -452,7 +452,8 @@ namespace Render
 		}
 		std::unordered_map< RenderTargetKey, ID3D11ShaderResourceView*, MemberFuncHasher > mSRViewMap;
 #endif
-		std::unordered_map< RenderTargetKey, ID3D11RenderTargetView*, MemberFuncHasher > mRTViewMap;
+		std::unordered_map< RenderTargetKey, ID3D11RenderTargetView*, MemberFuncHasher >    mRTViewMap;
+		std::unordered_map< RenderTargetKey, ID3D11UnorderedAccessView*, MemberFuncHasher > mUAViewMap;
 	};
 
 	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >

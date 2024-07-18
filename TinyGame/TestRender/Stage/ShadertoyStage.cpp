@@ -260,10 +260,10 @@ namespace Shadertoy
 			frame->addCheckBox("Use Multisample", bUseMultisample);
 			frame->addCheckBox("Use ComputeShader", [this](int event, GWidget*)
 			{
-				bUseComputeShader = !bUseComputeShader;
+				bAllowComputeShader = !bAllowComputeShader;
 				compileShader();
 				return false;
-			})->bChecked = bUseComputeShader;
+			})->bChecked = bAllowComputeShader;
 
 			return true;
 		}
@@ -302,9 +302,10 @@ namespace Shadertoy
 				}
 			}
 			std::string code;
-			Text::Format((char const*)codeTemplate.data(), { StringView(channelCode), StringView(commonInfo ? commonInfo->code : std::string()), StringView(pass.info->code) }, code);
+			Text::Format((char const*)codeTemplate.data(), { StringView(channelCode), commonInfo ? StringView(commonInfo->code) : StringView(), StringView(pass.info->code) }, code);
 
 			ShaderCompileOption option;
+			bool bUseComputeShader = canUseComputeShader(pass);
 			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option, code.c_str()))
 				return false;
 
@@ -997,7 +998,7 @@ namespace Shadertoy
 
 			PooledRenderTargetRef rtImage;
 			{
-				GPU_PROFILE(bUseComputeShader ? "RenderPassCS" : "RenderPass");
+				GPU_PROFILE(bAllowComputeShader ? "RenderPassCS" : "RenderPass");
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -1005,6 +1006,8 @@ namespace Shadertoy
 
 				for (auto& pass : mRenderPassList)
 				{
+					bool bUseComputeShader = canUseComputeShader(*pass);
+
 					TArray< PooledRenderTargetRef , TInlineAllocator<4> > outputBuffers;
 					HashString debugName;
 					int index;
@@ -1067,6 +1070,8 @@ namespace Shadertoy
 
 					GPU_PROFILE(debugName.c_str());
 
+					int subPassCount = pass->info->passType == EPassType::CubeMap ? 6 : 1;
+
 					if (bUseComputeShader)
 					{
 						RHISetComputeShader(commandList, pass->shader.getRHI());
@@ -1080,7 +1085,7 @@ namespace Shadertoy
 						index = 0;
 						for (auto const& output : pass->info->outputs)
 						{
-							pass->shader.setRWTexture(commandList, OutputNames[output.channel], *outputBuffers[index]->resolvedTexture, EAccessOperator::AO_WRITE_ONLY);
+							pass->shader.setRWTexture(commandList, OutputNames[output.channel], *outputBuffers[index]->resolvedTexture, 0, EAccessOp::WriteOnly);
 							++index;
 						}
 
@@ -1097,29 +1102,45 @@ namespace Shadertoy
 					}
 					else
 					{
-						index = 0;
-						for (auto const& output : pass->info->outputs)
+						for (int subPassIndex = 0; subPassIndex < subPassCount; ++subPassIndex)
 						{
-							mFrameBuffer->setTexture(output.channel, *outputBuffers[index]->texture);
-							++index;
+							index = 0;
+							for (auto const& output : pass->info->outputs)
+							{
+								mFrameBuffer->setTexture(output.channel, *outputBuffers[index]->texture, subPassIndex);
+								++index;
+							}
+
+							RHISetFrameBuffer(commandList, mFrameBuffer);
+							if (pass->info->passType == EPassType::CubeMap)
+							{
+								int size = outputBuffers[0]->texture->getDesc().dimension.x;
+								RHISetViewport(commandList, 0, 0, size, size);
+							}
+							else
+							{
+								RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+							}
+
+							GraphicsShaderStateDesc state;
+							state.vertex = mScreenVS->getRHI();
+							state.pixel = pass->shader.getRHI();
+
+							RHISetGraphicsShaderBoundState(commandList, state);
+
+							pass->shader.setInputParameters(commandList, pass->info->inputs,
+								[this](EInputType type, int index) { return getInputTexture(type, index); }
+							);
+							SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
+
+							if (pass->info->passType == EPassType::CubeMap)
+							{
+	
+							}
+
+							DrawUtility::ScreenRect(commandList);
+							RHISetFrameBuffer(commandList, nullptr);
 						}
-
-						RHISetFrameBuffer(commandList, mFrameBuffer);
-						RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-
-						GraphicsShaderStateDesc state;
-						state.vertex = mScreenVS->getRHI();
-						state.pixel = pass->shader.getRHI();
-
-						RHISetGraphicsShaderBoundState(commandList, state);
-
-						pass->shader.setInputParameters(commandList, pass->info->inputs,
-							[this](EInputType type, int index) { return getInputTexture(type, index); }
-						);
-						SetStructuredUniformBuffer(commandList, pass->shader, mInputBuffer);
-						DrawUtility::ScreenRect(commandList);
-
-						RHISetFrameBuffer(commandList, nullptr);
 					}
 
 					if (pass->info->passType == EPassType::Image)
@@ -1168,7 +1189,7 @@ namespace Shadertoy
 			if (rtImage.isValid())
 			{
 				GPU_PROFILE("CopyImageToBuffer");
-				ShaderHelper::Get().copyTextureToBuffer(commandList, *rtImage->resolvedTexture);
+				ShaderHelper::Get().copyTextureToBuffer(commandList, static_cast<RHITexture2D&>(*rtImage->resolvedTexture));
 			}
 
 #if 0
@@ -1198,7 +1219,7 @@ namespace Shadertoy
 					GPU_PROFILE("CopyToBackBuffer");
 					RHISetFrameBuffer(commandList, nullptr);
 					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-					ShaderHelper::Get().copyTextureToBuffer(commandList, *rt->resolvedTexture);
+					ShaderHelper::Get().copyTextureToBuffer(commandList, static_cast<RHITexture2D&>(*rt->resolvedTexture));
 				}
 			}
 
@@ -1259,7 +1280,7 @@ namespace Shadertoy
 
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
-#if 0
+#if 1
 			systemConfigs.screenWidth = 1280;
 			systemConfigs.screenHeight = 768;
 #else
@@ -1273,7 +1294,12 @@ namespace Shadertoy
 		RHITexture2DRef mDefaultTex2D;
 		RHITextureCubeRef mDefaultCube;
 
-		bool bUseComputeShader = true;
+		bool canUseComputeShader(RenderPassData const& pass)
+		{
+			return bAllowComputeShader && pass.info->passType != EPassType::CubeMap;
+		}
+
+		bool bAllowComputeShader = true;
 		ScreenVS* mScreenVS;
 
 

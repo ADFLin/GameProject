@@ -15,21 +15,17 @@ namespace Render
 
 	struct RenderTargetDesc
 	{
+		ETexture::Type type = ETexture::Type2D;
 		HashString debugName;
 		IntVector2 size;
-		int numSamples;
+		int numSamples = 1;
 		ETexture::Format format;
 		TextureCreationFlags creationFlags = TCF_DefalutValue | TCF_RenderTarget;
 
-
-		RenderTargetDesc()
-		{
-			numSamples = 1;
-		}
-
 		bool isMatch(RenderTargetDesc const& rhs) const
 		{
-			return size == rhs.size &&
+			return type == rhs.type &&
+				   size == rhs.size &&
 				   numSamples == rhs.numSamples &&
 				   format == rhs.format &&
 				   (creationFlags | TCF_RenderTarget) == (rhs.creationFlags | TCF_RenderTarget);
@@ -39,8 +35,8 @@ namespace Render
 	struct PooledRenderTarget : public RefCountedObjectT< PooledRenderTarget >
 	{
 		RenderTargetDesc desc;
-		RHITexture2DRef  texture;
-		RHITexture2DRef  resolvedTexture;
+		RHITextureRef  texture;
+		RHITextureRef  resolvedTexture;
 
 		bool bResvered = false;
 

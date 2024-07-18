@@ -572,6 +572,33 @@ namespace Render
 		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
+		int addTexture(RHITextureBase& target, int subIndex = 0, int level = 0)
+		{
+			switch (target.getType())
+			{
+			case ETexture::Type2D:
+				return addTexture(static_cast<RHITexture2D&>(target), level);
+			case ETexture::Type2DArray:
+				return addTexture(static_cast<RHITexture2DArray&>(target), subIndex, level);
+			case ETexture::TypeCube:
+				return addTexture(static_cast<RHITextureCube&>(target), ETexture::Face(subIndex), level);
+			}
+			return INDEX_NONE;
+		}
+
+		void setTexture(int idx, RHITextureBase& target, int subIndex = 0, int level = 0)
+		{
+			switch (target.getType())
+			{
+			case ETexture::Type2D:
+				return setTexture(idx, static_cast<RHITexture2D&>(target), level);
+			case ETexture::Type2DArray:
+				return setTexture(idx, static_cast<RHITexture2DArray&>(target), subIndex, level);
+			case ETexture::TypeCube:
+				return setTexture(idx, static_cast<RHITextureCube&>(target), ETexture::Face(subIndex), level);
+			}
+		}
+
 		virtual void setDepth(RHITexture2D& target) = 0; 
 		virtual void removeDepth() = 0;
 	};

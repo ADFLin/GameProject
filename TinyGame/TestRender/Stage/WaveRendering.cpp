@@ -313,7 +313,7 @@ namespace Render
 			RHISetComputeShader(commandList, mFFTHCS->getRHI());
 			if (bOnepassFFT)
 			{
-				mFFTHCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[inoutReadIndex], AO_READ_AND_WRITE);
+				mFFTHCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[inoutReadIndex], 0, EAccessOp::ReadAndWrite);
 				RHIDispatchCompute(commandList, 1, textureSize.y, 1);
 				mFFTHCS->clearRWTexture(commandList, SHADER_PARAM(TexOut));
 			}
@@ -323,7 +323,7 @@ namespace Render
 				{
 					int stride = textureSize.x >> (step + 1);
 					mFFTHCS->setTexture(commandList, SHADER_PARAM(TexIn), mFFTTextures[inoutReadIndex]);
-					mFFTHCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[1 - inoutReadIndex], AO_WRITE_ONLY);
+					mFFTHCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[1 - inoutReadIndex], 0, EAccessOp::WriteOnly);
 					mFFTHCS->setParam(commandList, SHADER_PARAM(FFTStride), stride);
 					RHIDispatchCompute(commandList, 1, textureSize.y, 1);
 
@@ -338,7 +338,7 @@ namespace Render
 			RHISetComputeShader(commandList, mFFTVCS->getRHI());
 			if (bOnepassFFT)
 			{
-				mFFTVCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[inoutReadIndex], AO_READ_AND_WRITE);
+				mFFTVCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[inoutReadIndex], 0, EAccessOp::ReadAndWrite);
 				RHIDispatchCompute(commandList, 1, textureSize.x, 1);
 				mFFTVCS->clearRWTexture(commandList, SHADER_PARAM(TexOut));
 			}
@@ -348,7 +348,7 @@ namespace Render
 				{
 					int stride = textureSize.y >> (step + 1);
 					mFFTVCS->setTexture(commandList, SHADER_PARAM(TexIn), mFFTTextures[inoutReadIndex]);
-					mFFTVCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[1 - inoutReadIndex], AO_WRITE_ONLY);
+					mFFTVCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[1 - inoutReadIndex], 0, EAccessOp::WriteOnly);
 					mFFTVCS->setParam(commandList, SHADER_PARAM(FFTStride), stride);
 					RHIDispatchCompute(commandList, 1, textureSize.x, 1);
 
@@ -361,7 +361,7 @@ namespace Render
 			if (!bOnepassFFT)
 			{
 				RHISetComputeShader(commandList, mScaleValueCS->getRHI());
-				mScaleValueCS->setRWTexture(commandList, SHADER_PARAM(TexDest), *mFFTTextures[inoutReadIndex], AO_READ_AND_WRITE);
+				mScaleValueCS->setRWTexture(commandList, SHADER_PARAM(TexDest), *mFFTTextures[inoutReadIndex], 0, EAccessOp::ReadAndWrite);
 				mScaleValueCS->setParam(commandList, SHADER_PARAM(Scale), Vector2(1.0 / textureSize.x, 1.0 / textureSize.y));
 				RHIDispatchCompute(commandList, textureSize.x / ScaleValueCS::GroupSize, textureSize.y / ScaleValueCS::GroupSize, 1);
 				mScaleValueCS->clearRWTexture(commandList, SHADER_PARAM(TexDest));
@@ -376,7 +376,7 @@ namespace Render
 
 			RHISetComputeShader(commandList, mFillValueCS->getRHI());
 			mFillValueCS->setTexture(commandList, SHADER_PARAM(TexSource), mFFTTestTex);
-			mFillValueCS->setRWTexture(commandList, SHADER_PARAM(TexDest), *mFFTTextures[0] , AO_WRITE_ONLY);
+			mFillValueCS->setRWTexture(commandList, SHADER_PARAM(TexDest), *mFFTTextures[0] , 0, EAccessOp::WriteOnly);
 			RHIDispatchCompute(commandList, mFFTTestTex->getSizeX() / FillValueCS::GroupSize, mFFTTestTex->getSizeY() / FillValueCS::GroupSize, 1);
 			mFillValueCS->clearRWTexture(commandList, SHADER_PARAM(TexDest));
 
@@ -389,7 +389,7 @@ namespace Render
 			RHIClearSRVResource(commandList, mFFTResultTex);
 			RHISetComputeShader(commandList, mNormalizeCS->getRHI());
 			mNormalizeCS->setTexture(commandList, SHADER_PARAM(TexIn), *mFFTTextures[readIndex]);
-			mNormalizeCS->setRWTexture(commandList, SHADER_PARAM(TexResult), *mFFTResultTex, AO_WRITE_ONLY);
+			mNormalizeCS->setRWTexture(commandList, SHADER_PARAM(TexResult), *mFFTResultTex, 0, EAccessOp::WriteOnly);
 			mNormalizeCS->setParam(commandList, SHADER_PARAM(Size), mFFTTestTex->getSizeX());
 			RHIDispatchCompute(commandList, mFFTTestTex->getSizeX() / NormailizeCS::GroupSize, mFFTTestTex->getSizeY() / NormailizeCS::GroupSize, 1);
 			mNormalizeCS->clearTexture(commandList, SHADER_PARAM(TexIn));
@@ -420,8 +420,8 @@ namespace Render
 			RHIClearSRVResource(commandList, mTextureDisp);
 			RHIClearSRVResource(commandList, mTextureDispDiff);
 			RHISetComputeShader(commandList, mWaveGenerateCS->getRHI());
-			mWaveGenerateCS->setRWTexture(commandList, SHADER_PARAM(TexDisp), *mTextureDisp, EAccessOperator::AO_WRITE_ONLY);
-			mWaveGenerateCS->setRWTexture(commandList, SHADER_PARAM(TexDispDiff), *mTextureDispDiff, EAccessOperator::AO_WRITE_ONLY);
+			mWaveGenerateCS->setRWTexture(commandList, SHADER_PARAM(TexDisp), *mTextureDisp, 0, EAccessOp::WriteOnly);
+			mWaveGenerateCS->setRWTexture(commandList, SHADER_PARAM(TexDispDiff), *mTextureDispDiff, 0, EAccessOp::WriteOnly);
 			mView.setupShader(commandList, *mWaveGenerateCS);
 
 			float lengthScale = mTileLength / mTextureDisp->getSizeX();

@@ -85,7 +85,8 @@ namespace Render
 		}
 
 
-		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
+		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, int level = 0, EAccessOp op = EAccessOp::ReadAndWrite);
+		void setRWSubTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, int, int level = 0, EAccessOp op = EAccessOp::ReadAndWrite);
 		void clearRWTexture(RHICommandList& commandList, char const* name);
 		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, char const* samplerName, RHISamplerState& sampler);
 
@@ -124,7 +125,8 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const v[], int num);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const v[], int num);
 
-		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
+		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, int level = 0, EAccessOp op = EAccessOp::ReadAndWrite);
+		void setRWSubTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, int , int level = 0, EAccessOp op = EAccessOp::ReadAndWrite);
 		void clearRWTexture(RHICommandList& commandList, ShaderParameter const& param);
 
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture);
@@ -154,8 +156,8 @@ namespace Render
 
 		void setUniformBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer);
 		void setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer);
-		void setStorageBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
-		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
+		void setStorageBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly);
+		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly);
 		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer);
 		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer);
 
@@ -189,7 +191,7 @@ namespace Render
 		}
 
 		template< class TStruct >
-		void setStructuredStorageBufferT(RHICommandList& commandList, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
+		void setStructuredStorageBufferT(RHICommandList& commandList, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly)
 		{
 			auto& bufferStruct = TStruct::GetStructInfo();
 			for (auto const& block : mBoundedBlocks)
@@ -211,7 +213,7 @@ namespace Render
 			}
 		}
 
-		void setStructuredStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& info, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
+		void setStructuredStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& info, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly)
 		{
 			ShaderParameter param;
 			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Storage, info);

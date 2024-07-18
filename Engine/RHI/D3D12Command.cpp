@@ -2687,13 +2687,13 @@ namespace Render
 		});
 	}
 
-	void D3D12Context::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void D3D12Context::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
-		setShaderRWTexture(shaderImpl.getType(), shaderImpl, param, texture, op);
+		setShaderRWTexture(shaderImpl.getType(), shaderImpl, param, texture, level, op);
 	}
 
-	void D3D12Context::setShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void D3D12Context::setShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 
 		D3D12PooledHeapHandle const* handle;
@@ -2734,6 +2734,15 @@ namespace Render
 			mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle->getGPUHandle());
 		}
 
+	}
+
+	void D3D12Context::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
+	{
+		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, &texture, level, op](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
+		{
+			setShaderRWTexture(shaderType, shaderData, shaderParam, texture, level, op);
+		});
 	}
 
 	void D3D12Context::clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param)
@@ -2809,7 +2818,7 @@ namespace Render
 		setShaderUniformBuffer(shaderImpl.getType(), shaderImpl, param, buffer);
 	}
 
-	void D3D12Context::setShaderStorageBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void D3D12Context::setShaderStorageBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
 
@@ -2906,7 +2915,7 @@ namespace Render
 	}
 
 
-	void D3D12Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void D3D12Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, &buffer, op](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
@@ -2916,7 +2925,7 @@ namespace Render
 	}
 
 
-	void D3D12Context::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void D3D12Context::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
 		setShaderStorageBuffer(shaderImpl.getType(), shaderImpl, param, buffer, op);

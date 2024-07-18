@@ -1224,24 +1224,45 @@ namespace Render
 	}
 
 	template< class TShaderObject >
-	void OpenGLContext::setShaderRWTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void OpenGLContext::setShaderRWTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 		CHECK_PARAMETER(param);
 		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
 		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
 		int indexSlot = fetchSamplerStateSlot(shaderHandle, param.mLoc);
-		glBindImageTexture(indexSlot, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
+		glBindImageTexture(indexSlot, resourceViewImpl.handle, level, TRUE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
 		glUniform1i(param.mLoc, indexSlot);
 	}
 
-	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	template< class TShaderObject >
+	void OpenGLContext::setShaderRWSubTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op)
 	{
-		setShaderRWTextureT(shaderProgram, param, texture, op);
+		CHECK_PARAMETER(param);
+		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
+		int indexSlot = fetchSamplerStateSlot(shaderHandle, param.mLoc);
+		glBindImageTexture(indexSlot, resourceViewImpl.handle, level, FALSE, subIndex, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
+		glUniform1i(param.mLoc, indexSlot);
 	}
 
-	void OpenGLContext::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
-		setShaderRWTextureT(shader, param, texture, op);
+		setShaderRWTextureT(shaderProgram, param, texture, level, op);
+	}
+
+	void OpenGLContext::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
+	{
+		setShaderRWTextureT(shader, param, texture, level, op);
+	}
+
+	void OpenGLContext::setShaderRWSubTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op)
+	{
+		setShaderRWSubTextureT(shaderProgram, param, texture, subIndex, level, op);
+	}
+
+	void OpenGLContext::setShaderRWSubTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op)
+	{
+		setShaderRWSubTextureT(shader, param, texture, subIndex, level, op);
 	}
 
 	void OpenGLContext::clearShaderUAV(RHIShaderProgram& shaderProgram, ShaderParameter const& param)
@@ -1277,7 +1298,7 @@ namespace Render
 	}	
 	
 	template< class TShaderObject >
-	void OpenGLContext::setShaderStorageBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void OpenGLContext::setShaderStorageBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		CHECK_PARAMETER(param);
 		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
@@ -1290,12 +1311,12 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		setShaderStorageBufferT(shaderProgram, param, buffer, op);
 	}
 
-	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		setShaderStorageBufferT(shader, param, buffer, op);
 	}
@@ -1866,8 +1887,8 @@ namespace Render
 			{
 				return indexSlot;
 			}
-
 		}
+
 		int newSlotIndex = mNextSamplerSlotIndex;
 		++mNextSamplerSlotIndex;
 		SamplerState& newSamplerState = mSamplerStates[newSlotIndex];

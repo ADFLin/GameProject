@@ -135,7 +135,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 		SET_SHADER_PARAM(commandList, *this, MaxIteration, param.maxIteration);
 		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
 
-		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
+		setRWTexture(commandList, mParamColorRWTexture, colorTexture, EAccessOp::WriteOnly);
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture ,COMMA_SEPARATED(TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI()));
 	}
 
@@ -217,7 +217,7 @@ class MandelbrotProgram : public GlobalShader
 		SET_SHADER_PARAM(commandList, *this, MaxIteration, param.maxIteration);
 		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
 #endif
-		setRWTexture(commandList, SHADER_MEMBER_PARAM(ColorRWTexture), colorTexture, AO_WRITE_ONLY);
+		setRWTexture(commandList, SHADER_MEMBER_PARAM(ColorRWTexture), colorTexture, 0, EAccessOp::WriteOnly);
 		auto& samplerState = TStaticSamplerState< ESampler::Bilinear, ESampler::Wrap >::GetRHI();
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, samplerState);
 	}

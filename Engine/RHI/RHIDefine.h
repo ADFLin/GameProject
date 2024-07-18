@@ -141,11 +141,11 @@ namespace Render
 		Invert,
 	};
 
-	enum EAccessOperator
+	enum class EAccessOp
 	{
-		AO_READ_ONLY,
-		AO_WRITE_ONLY,
-		AO_READ_AND_WRITE,
+		ReadOnly,
+		WriteOnly,
+		ReadAndWrite,
 	};
 
 	enum class EPrimitive

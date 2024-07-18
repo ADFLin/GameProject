@@ -29,12 +29,12 @@ namespace Render
 
 		RHITexture2D& getRenderTexture(EGBuffer::Type bufferName)
 		{
-			return *mTargets[bufferName]->texture;
+			return static_cast<RHITexture2D&>(*mTargets[bufferName]->texture);
 		}
 
 		RHITexture2D& getResolvedTexture(EGBuffer::Type bufferName)
 		{
-			return *mTargets[bufferName]->resolvedTexture;
+			return static_cast<RHITexture2D&>(*mTargets[bufferName]->resolvedTexture);
 		}
 
 		bool prepare(IntVector2 const& size, int numSamples);

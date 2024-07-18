@@ -86,10 +86,13 @@ namespace Render
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
 		bool clearTexture(ShaderParameter const& parameter);
 		bool clearUAV(ShaderParameter const& parameter);
-		void setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture);
+		void setRWTexture(ShaderParameter const& parameter, RHITextureBase& texture, int level);
+		void setRWSubTexture(ShaderParameter const& parameter, RHITextureBase& texture, int subIndex, int level);
+
+		void clearRWTexture(ShaderParameter const& parameter);
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
 		void setUniformBuffer(ShaderParameter const& parameter, RHIBuffer& buffer);
-		void setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOperator op);
+		void setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOp op);
 		void setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize);
 
 		template< EShader::Type TypeValue >
@@ -363,11 +366,12 @@ namespace Render
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
 		void clearShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
-		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op);
+		void setShaderRWSubTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op);
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
-		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
@@ -399,10 +403,11 @@ namespace Render
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
 		void clearShaderTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
-		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op);
+		void setShaderRWSubTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
 
 		void clearSRVResource(RHIResource& resource);

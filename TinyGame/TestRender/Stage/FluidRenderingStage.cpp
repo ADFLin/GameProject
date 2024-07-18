@@ -379,7 +379,7 @@ namespace Render
 				descDepthBuffer.size = screenSize;
 				descDepthBuffer.debugName = "DepthBuffer";
 				RTDepthBuffer = GRenderTargetPool.fetchElement(descDepthBuffer);
-				mFrameBuffer->setDepth(*RTDepthBuffer->texture);
+				mFrameBuffer->setDepth(static_cast<RHITexture2D&>(*RTDepthBuffer->texture));
 
 
 				RHISetFrameBuffer(commandList, mFrameBuffer);

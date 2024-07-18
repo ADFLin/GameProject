@@ -36,24 +36,42 @@ namespace Render
 		result->desc = desc;
 		result->desc.creationFlags |= TCF_RenderTarget;
 
-		if (ETexture::IsDepthStencil(desc.format))
+		if (desc.type == ETexture::Type2D)
 		{
-			TextureDesc depthDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags);
-			result->texture = RHICreateTextureDepth(depthDesc);
+			if (ETexture::IsDepthStencil(desc.format))
+			{
+				TextureDesc depthDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags);
+				result->texture = RHICreateTextureDepth(depthDesc);
+			}
+			else
+			{
+				TextureDesc texDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget);
+				result->texture = RHICreateTexture2D(texDesc);
+				if (desc.numSamples > 1)
+				{
+					texDesc.Samples(1);
+					result->resolvedTexture = RHICreateTexture2D(texDesc);
+				}
+				else
+				{
+					result->resolvedTexture = result->texture;
+				}
+			}
 		}
-		else
+		else if (desc.type == ETexture::TypeCube)
 		{
-			TextureDesc texDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget);
-			result->texture = RHICreateTexture2D(texDesc);
+			TextureDesc texDesc = TextureDesc::TypeCube(desc.format, desc.size.x).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget);
+			result->texture = RHICreateTextureCube(texDesc);
 			if (desc.numSamples > 1)
 			{
 				texDesc.Samples(1);
-				result->resolvedTexture = RHICreateTexture2D(texDesc);
+				result->resolvedTexture = RHICreateTextureCube(texDesc);
 			}
 			else
 			{
 				result->resolvedTexture = result->texture;
 			}
+
 		}
 
 		mUsedRTs.push_back(result);

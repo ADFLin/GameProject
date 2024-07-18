@@ -274,7 +274,7 @@ namespace Render
 	{
 	public:
 		static GLenum To(EPrimitive type, int& outPatchPointCount);
-		static GLenum To(EAccessOperator op);
+		static GLenum To(EAccessOp op);
 		static GLenum To(ETexture::Format format);
 		static GLenum To(EShader::Type type);
 		static GLbitfield ToStageBit(EShader::Type type);

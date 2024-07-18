@@ -960,7 +960,7 @@ namespace Render
 	{
 		switch( mode )
 		{
-		case ESampler::Warp:   return GL_REPEAT;
+		case ESampler::Wrap:   return GL_REPEAT;
 		case ESampler::Clamp:  return GL_CLAMP_TO_EDGE;
 		case ESampler::Mirror: return GL_MIRRORED_REPEAT;
 		case ESampler::Border: return GL_CLAMP_TO_BORDER;

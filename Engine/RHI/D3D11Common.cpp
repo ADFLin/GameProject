@@ -155,7 +155,7 @@ namespace Render
 	{
 		switch( mode )
 		{
-		case ESampler::Warp:   return D3D11_TEXTURE_ADDRESS_WRAP;
+		case ESampler::Wrap:   return D3D11_TEXTURE_ADDRESS_WRAP;
 		case ESampler::Clamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
 		case ESampler::Mirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
 		case ESampler::Border: return D3D11_TEXTURE_ADDRESS_BORDER;

@@ -10,14 +10,6 @@
 namespace Render
 {
 
-	int CalcMipmapLevel(int size)
-	{
-		int result = 0;
-		int value = 1;
-		while (value <= size) { value *= 2; ++result; }
-		return result;
-	}
-
 	ImageLoadOption ToImageLoadOption(TextureLoadOption const& option)
 	{
 		ImageLoadOption result;

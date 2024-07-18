@@ -390,6 +390,8 @@ namespace CPP
 		if (!mInput.tokenIdentifier(marcoName))
 			return false;
 
+		mInput.skipSpaceInLine();
+
 		MarcoSymbol marco;
 		if (mInput.tokenChar('('))
 		{
@@ -1171,6 +1173,8 @@ namespace CPP
 			if (marco->numArgs > 0)
 			{
 				TArray< StringView > argList;
+
+				code.skipSpaceInLine();
 
 				if (!code.tokenChar('('))
 				{

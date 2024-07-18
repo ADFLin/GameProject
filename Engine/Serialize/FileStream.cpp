@@ -50,6 +50,20 @@ struct FileStreamHeader
 	}
 };
 
+bool InputFileSerializer::openNoHeader(char const* path)
+{
+	using namespace std;
+	mFS.open(path, ios::binary);
+	if (!mFS.is_open())
+		return false;
+
+	std::ios::pos_type cur = mFS.tellg();
+	mFS.seekg(0, ios::end);
+	mEOFPos = mFS.tellg();
+	mFS.seekg(cur, ios::beg);
+	return true;
+}
+
 bool InputFileSerializer::open(char const* path, bool bCheckLegacy)
 {
 	using namespace std;

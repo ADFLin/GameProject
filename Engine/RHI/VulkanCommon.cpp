@@ -268,7 +268,7 @@ namespace Render
 	{
 		switch (mode)
 		{
-		case ESampler::Warp: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case ESampler::Wrap: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		case ESampler::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		case ESampler::Mirror: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 		case ESampler::Border: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;

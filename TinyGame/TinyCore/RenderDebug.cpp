@@ -106,7 +106,6 @@ namespace Render
 
 	MsgReply TextureShowFrame::onMouseMsg(MouseMsg const& msg)
 	{
-
 		static bool sbScaling = false;
 		static bool sbMoving = false;
 		static Vec2i sRefPos = Vec2i(0, 0);

@@ -129,10 +129,26 @@ bool JsonObject::tryGet(char const* key, bool& outValue)
 	ObjectImpl::iterator iter;
 	if (!FJsonObjectImpl::Find(mPtr, key, iter))
 		return false;
-	if (!iter->second.is_boolean())
-		return false;
-	outValue = iter->second.get<int>();
-	return true;
+	if (iter->second.is_boolean())
+	{
+		outValue = iter->second.get<bool>();
+		return true;
+	}
+	else if (iter->second.is_string())
+	{
+		auto strPtr = iter->second.get_ptr<nlohmann::json::string_t*>();
+		if (*strPtr == "true")
+		{
+			outValue = true;
+			return true;
+		}
+		if (*strPtr == "false")
+		{
+			outValue = false;
+			return true;
+		}
+	}
+	return false;
 }
 
 JsonObject JsonObject::getObject(char const* key)

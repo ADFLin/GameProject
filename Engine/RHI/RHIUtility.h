@@ -40,6 +40,14 @@ namespace Render
 	class RHIUtility
 	{
 	public:
+		static int CalcMipmapLevel(int size)
+		{
+			int result = 0;
+			int value = 1;
+			while (value <= size) { value *= 2; ++result; }
+			return result;
+		}
+
 		static RHITexture2D* LoadTexture2DFromFile(char const* path, TextureLoadOption const& option = TextureLoadOption());
 		static RHITexture2D* LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option);
 		static RHITextureCube* LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option = TextureLoadOption());

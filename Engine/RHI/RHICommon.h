@@ -390,6 +390,7 @@ namespace Render
 		TextureDesc& MipLevel(int value) { numMipLevel = Math::Max( 1, value ); return *this; }
 		TextureDesc& Samples(int value) { numSamples = Math::Max( 1, value ); return *this; }
 		TextureDesc& Flags(TextureCreationFlags value) { creationFlags = value; return *this; }
+		TextureDesc& AddFlags(TextureCreationFlags value) { creationFlags |= value; return *this; }
 
 		static TextureDesc Type1D(ETexture::Format format, int sizeX)
 		{

@@ -14,6 +14,7 @@
 #include "Misc/Format.h"
 #include "Json.h"
 #include "Core/ScopeGuard.h"
+#include "Serialize/FileStream.h"
 
 namespace Shadertoy
 {
@@ -34,6 +35,7 @@ namespace Shadertoy
 		float  iFrameRate;
 		float  iSampleRate;
 		Vector4 iMouse;
+		Vector4 iDate;
 	};
 
 	enum class EPassType
@@ -67,9 +69,9 @@ namespace Shadertoy
 		EInputType type;
 		int id;
 		int channel;
-
-		ESampler::Filter      filter;
-		ESampler::AddressMode addressMode;
+		bool bVFlip = false;
+		ESampler::Filter      filter = ESampler::Bilinear;
+		ESampler::AddressMode addressMode = ESampler::Clamp;
 	};
 
 	struct RenderOutput
@@ -108,15 +110,46 @@ namespace Shadertoy
 
 		static RHISamplerState& GetSamplerState(RenderInput const& input)
 		{
-			if (input.type == EInputType::Texture)
-				return TStaticSamplerState< ESampler::Bilinear, ESampler::Warp, ESampler::Warp >::GetRHI();
-			return TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
+			switch (input.filter)
+			{
+			default:
+				break;
+			case ESampler::Point:
+				switch (input.addressMode)
+				{
+				case ESampler::Wrap:
+					return TStaticSamplerState< ESampler::Point, ESampler::Wrap, ESampler::Wrap, ESampler::Wrap>::GetRHI();
+				case ESampler::Clamp:
+					return TStaticSamplerState< ESampler::Point, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI();
+				}
+				break;
+			case ESampler::Bilinear:
+				switch (input.addressMode)
+				{
+				case ESampler::Wrap:
+					return TStaticSamplerState< ESampler::Bilinear, ESampler::Wrap, ESampler::Wrap, ESampler::Wrap>::GetRHI();
+				case ESampler::Clamp:
+					return TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI();
+				}
+				break;
+			case ESampler::Trilinear:
+				switch (input.addressMode)
+				{
+				case ESampler::Wrap:
+					return TStaticSamplerState< ESampler::Trilinear, ESampler::Wrap, ESampler::Wrap, ESampler::Wrap>::GetRHI();
+				case ESampler::Clamp:
+					return TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI();
+				}
+				break;
+			}
+
+			return TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 		}
 
 		template< typename TGetTexture >
 		void setInputParameters(RHICommandList& commandList, TArray<RenderInput> const& inputs, TGetTexture& GetTexture)
 		{
-			Vector3 channelSize[4];
+			Vector3 channelSize[4] = { Vector3(1,0,0) , Vector3(0,1,0), Vector3(0,0,1) , Vector3(1,1,1) };
 			int Index = 0;
 			for (auto const& input : inputs)
 			{
@@ -138,6 +171,47 @@ namespace Shadertoy
 		TArray< ShaderParameter > mParamInputs;
 		TArray< ShaderParameter > mParamInputSamplers;
 	};
+
+	RHITexture3D* LoadBinTexture(char const* path, bool bGenMipmap)
+	{
+		InputFileSerializer serializer;
+		if (!serializer.openNoHeader(path))
+			return nullptr;
+
+		struct Header
+		{
+			char magic[4];
+			uint32 sizeX;
+			uint32 sizeY;
+			uint32 sizeZ;
+			uint32 pixelByte;
+		};
+		Header header;
+		serializer >> header; 
+
+		TArray<uint8> data;
+
+		data.resize(header.sizeX * header.sizeY * header.sizeZ * header.pixelByte);
+		serializer.read(data.data(), data.size());
+		ETexture::Format format;
+
+
+		int level = 1;
+		if ( bGenMipmap )
+		{
+			level = RHIUtility::CalcMipmapLevel( Math::Min(header.sizeX , Math::Min(header.sizeY , header.sizeZ)) );
+		}
+
+		switch (header.pixelByte)
+		{
+		case 1: format = ETexture::R8; break;
+		//case 2: format = ETexture::RG8; break;
+		case 3: format = ETexture::RGB8; break;
+		case 4: format = ETexture::RGBA8; break;
+		}
+
+		return RHICreateTexture3D(TextureDesc::Type3D(format, header.sizeX, header.sizeY, header.sizeZ).MipLevel(level).AddFlags(TCF_GenerateMips), data.data());
+	}
 
 
 	struct RenderPassData
@@ -163,7 +237,7 @@ namespace Shadertoy
 
 			auto frame = WidgetUtility::CreateDevFrame();
 			auto choice = frame->addChoice();
-
+			choice->addItem("Test");
 			FileIterator fileIter;
 			if ( FFileSystem::FindFiles("Shadertoy", ".json" , fileIter) )
 			{
@@ -255,25 +329,24 @@ namespace Shadertoy
 					mInputResources.resize(input.id + 1);
 				}
 				mInputResources[input.id] = &texture;
+				GTextureShowManager.registerTexture( InlineString<>::Make("Res%d" , input.id ).c_str(), &texture);
 			};
 
 			switch (input.type)
 			{
 			case EInputType::Keyboard:
-				break;
 			case EInputType::Webcam:
-				break;
 			case EInputType::Micrphone:
-				break;
 			case EInputType::Soundcloud:
-				break;
 			case EInputType::Buffer:
-				break;
 			case EInputType::CubeBuffer:
 				break;
 			case EInputType::Texture:
 				{
-					RHITexture2DRef texture = RHIUtility::LoadTexture2DFromFile(loadPath.c_str());			
+					TextureLoadOption option;
+					option.FlipV(input.bVFlip);
+					option.bAutoMipMap = input.filter == ESampler::Trilinear;
+					RHITexture2DRef texture = RHIUtility::LoadTexture2DFromFile(loadPath.c_str(), option);
 					if (!texture.isValid())
 						return false;
 
@@ -297,7 +370,9 @@ namespace Shadertoy
 						cubePaths[i + 1] = facePath[i].c_str();
 					}
 
-					RHITextureCubeRef texture = RHIUtility::LoadTextureCubeFromFile(cubePaths);
+					TextureLoadOption option;
+					option.bAutoMipMap = input.filter == ESampler::Trilinear;
+					RHITextureCubeRef texture = RHIUtility::LoadTextureCubeFromFile(cubePaths, option);
 					if (!texture.isValid())
 						return false;
 
@@ -305,12 +380,17 @@ namespace Shadertoy
 				}
 				break;
 			case EInputType::Volume:
+				{
+					RHITexture3DRef texture = LoadBinTexture(loadPath.c_str(), input.filter == ESampler::Trilinear );
+
+					if (!texture.isValid())
+						return false;
+
+					AddResource(*texture);
+				}
 				break;
 			case EInputType::Vedio:
-				break;
 			case EInputType::Music:
-				break;
-			case EInputType::COUNT:
 				break;
 			}
 
@@ -335,6 +415,9 @@ namespace Shadertoy
 			int nextResourceId = 0;
 			auto ParseOutput = [&](JsonObject& jsonObject, RenderOutput& output) -> bool
 			{
+				if (!jsonObject.tryGet("channel", output.channel))
+					return false;
+
 				std::string idName;
 				if (!jsonObject.tryGet("id", idName))
 					return false;
@@ -350,14 +433,15 @@ namespace Shadertoy
 					nameToIdMap.emplace(idName, output.id);
 				}
 
-				if (!jsonObject.tryGet("channel", output.channel))
-					return false;
-
 				return true;
 			};
 
 			auto ParseInput = [&](JsonObject& jsonObject, RenderInput& input) -> bool
 			{
+
+				if (!jsonObject.tryGet("channel", input.channel))
+					return false;
+
 				std::string typeName;
 				if (!jsonObject.tryGet("type", typeName))
 					return false;
@@ -374,15 +458,53 @@ namespace Shadertoy
 				{
 					input.type = EInputType::CubeMap;
 				}
+				else if (typeName == "volume")
+				{
+					input.type = EInputType::Volume;
+				}
 				else if (typeName == "keyboard")
 				{
 					input.type = EInputType::Keyboard;
 				}
 
+				JsonObject samplerObject = jsonObject.getObject("sampler");
+				if (samplerObject.isVaild())
+				{
+					samplerObject.tryGet("vflip", input.bVFlip);
+
+					std::string name;
+					if (samplerObject.tryGet("filter", name))
+					{
+						if (name == "linear")
+						{
+							input.filter = ESampler::Bilinear;
+						}
+						else if (name == "nearest")
+						{
+							input.filter = ESampler::Point;
+						}
+						else if (name == "mipmap")
+						{
+							input.filter = ESampler::Trilinear;
+						}
+					}
+
+					if (samplerObject.tryGet("wrap", name))
+					{
+						if (name == "clamp")
+						{
+							input.addressMode = ESampler::Clamp;
+						}
+						else if (name == "repeat")
+						{
+							input.addressMode = ESampler::Wrap;
+						}
+					}
+				}
+
 				std::string idName;
 				if (!jsonObject.tryGet("id", idName))
 					return false;
-
 
 				auto iter = nameToIdMap.find(idName);
 				if (iter != nameToIdMap.end())
@@ -407,7 +529,10 @@ namespace Shadertoy
 								return false;
 
 							if (!loadResource(input, filePath))
+							{
+								LogWarning(0, "LoadResource Fial");
 								return false;
+							}
 						}
 						break;
 					case EInputType::Vedio:
@@ -421,21 +546,6 @@ namespace Shadertoy
 					}
 
 					nameToIdMap.emplace(idName , input.id); 
-				}
-
-
-				if (!jsonObject.tryGet("channel", input.channel))
-					return false;
-
-				JsonObject samplerObject = jsonObject.getObject("sampler");
-				if (samplerObject.isVaild())
-				{
-
-				}
-				else
-				{
-
-
 				}
 
 				return true;
@@ -532,8 +642,25 @@ namespace Shadertoy
 
 		bool loadProject(char const* name)
 		{
+			if (!loadProjectActual(name) || !compileShader())
+			{
+				mRenderPassList.clear();
+				mOutputBuffers.clear();
+				mInputResources.clear();
+				return false;
+			}
+
+			resetInputParams();
+			return true;
+		}
+
+		bool loadProjectActual(char const* name)
+		{
 			mRenderPassInfos.clear();
 			mRenderPassList.clear();
+			mOutputBuffers.clear();
+			mInputResources.clear();
+
 #if 1
 			JsonFile* webDoc = JsonFile::Load(InlineString<>::Make("Shadertoy/%s.json", name));
 			if ( webDoc )
@@ -712,11 +839,6 @@ namespace Shadertoy
 				mRenderPassList.push_back(std::move(pass));
 			}
 
-			if (!compileShader())
-				return false;
-
-			resetInputParams();
-
 			return true;
 		}
 
@@ -758,6 +880,14 @@ namespace Shadertoy
 			}
 
 			return true;
+		}
+
+		void initAudio()
+		{
+
+
+
+
 		}
 
 		void onEnd() override
@@ -817,6 +947,12 @@ namespace Shadertoy
 					return mInputResources[id];
 				}
 				return mDefaultCube;
+			case EInputType::Volume:
+				if (mInputResources.isValidIndex(id))
+				{
+					return mInputResources[id];
+				}
+				return GBlackTexture3D;
 			case EInputType::Keyboard:
 				return mTexKeyboard;
 			case EInputType::CubeBuffer:
@@ -829,7 +965,6 @@ namespace Shadertoy
 			case EInputType::Soundcloud:
 			case EInputType::Vedio:
 			case EInputType::Music:
-			case EInputType::Volume:
 				break;
 			}
 
@@ -850,6 +985,9 @@ namespace Shadertoy
 			inputParam.iTimeDelta = mTime - mTimePrev;
 			inputParam.iMouse = mMouse;
 			inputParam.iSampleRate = 22000;
+
+			DateTime now = SystemPlatform::GetLocalTime();
+			inputParam.iDate = Vector4( now.getYear() , now.getMonth() , now.getDay(), now.getSecond() );
 			mInputBuffer.updateBuffer(inputParam);
 
 			RHIUpdateTexture(*mTexKeyboard , 0 , 0 , 256 , 2 , mKeyBoardBuffer);
@@ -1121,12 +1259,12 @@ namespace Shadertoy
 
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
-#if 1
-			systemConfigs.screenWidth = 1024;
+#if 0
+			systemConfigs.screenWidth = 1280;
 			systemConfigs.screenHeight = 768;
 #else
-			systemConfigs.screenWidth = 800;
-			systemConfigs.screenHeight = 450;
+			systemConfigs.screenWidth = 768;
+			systemConfigs.screenHeight = 432;
 #endif
 			systemConfigs.bVSyncEnable = false;
 		}
@@ -1165,7 +1303,7 @@ namespace Shadertoy
 			domainVector.set<ScreenVS::UseTexCoord>(false);
 			mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector);
 
-			loadProject("PathTracing");
+			loadProject("Clouds");
 			//loadProject("ShaderArt");
 			return true;
 		}

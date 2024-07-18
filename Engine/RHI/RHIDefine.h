@@ -243,7 +243,7 @@ namespace Render
 	{
 		enum AddressMode
 		{
-			Warp,
+			Wrap,
 			Mirror,
 			Clamp,
 			Border,

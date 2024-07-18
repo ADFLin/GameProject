@@ -10,6 +10,7 @@ layout(std140) cbuffer InputBlock
 	float  iFrameRate;
 	float  iSampleRate;
 	float4 iMouse;
+	float4 iDate;
 };
 
 uniform float3 iChannelResolution[4];

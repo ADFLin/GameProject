@@ -207,9 +207,9 @@ namespace Render
 	template
 	<
 		ESampler::Filter Filter = ESampler::Point,
-		ESampler::AddressMode AddressU = ESampler::Warp,
-		ESampler::AddressMode AddressV = ESampler::Warp,
-		ESampler::AddressMode AddressW = ESampler::Warp 
+		ESampler::AddressMode AddressU = ESampler::Wrap,
+		ESampler::AddressMode AddressV = ESampler::Wrap,
+		ESampler::AddressMode AddressW = ESampler::Wrap 
 	>
 	class TStaticSamplerState : public StaticRHIResourceT< 
 		TStaticSamplerState< Filter, AddressU, AddressV, AddressW >, 

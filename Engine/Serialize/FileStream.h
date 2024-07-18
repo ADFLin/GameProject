@@ -118,6 +118,7 @@ protected:
 class InputFileSerializer : public TFileStreamSerializer< std::ifstream >
 {
 public:
+	bool openNoHeader(char const* path);
 	bool open(char const* path, bool bCheckLegacy = false);
 	bool isEOF();
 	virtual void read(void* ptr, size_t num) override;

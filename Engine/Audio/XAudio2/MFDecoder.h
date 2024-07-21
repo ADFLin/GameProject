@@ -51,9 +51,8 @@ public:
 	virtual void getWaveFormat(WaveFormatInfo& outFormat) override;
 
 	virtual int64 getTotalSampleNum() override;
-#define USE_COM_BUFFER 0
 
-	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int requiredMinSameleNum) override;
+	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override;
 
 	void releaseSampleData(uint32 sampleHadle) override
 	{

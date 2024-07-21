@@ -165,6 +165,7 @@ namespace Render
 		{
 		case ETexture::RGBA8:   return VK_FORMAT_R8G8B8A8_UNORM;
 		case ETexture::RGB8:    return VK_FORMAT_R8G8B8_UNORM;
+		case ETexture::RG8:     return VK_FORMAT_R8G8_UNORM;
 		case ETexture::BGRA8:   return VK_FORMAT_B8G8R8A8_UNORM;
 		case ETexture::RGB10A2: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
 		case ETexture::R16:     return VK_FORMAT_R16_UNORM;

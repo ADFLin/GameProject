@@ -1,5 +1,19 @@
 #include "Common.sgc"
+#if PIXEL_SHADER
 #include "ScreenVertexShader.sgc"
+#endif
+#ifndef RENDER_IMAGE
+#define RENDER_IMAGE 0
+#endif
+#ifndef RENDER_BUFFER
+#define RENDER_BUFFER 0
+#endif
+#ifndef RENDER_CUBE
+#define RENDER_CUBE 0
+#endif
+#ifndef RENDER_SOUND
+#define RENDER_SOUND 0
+#endif
 
 layout(std140) cbuffer InputBlock
 {
@@ -21,19 +35,61 @@ uniform float3 iChannelResolution[4];
 
 %s
 
+#if RENDER_IMAGE || RENDER_BUFFER
+void mainImage(out float4 fragColor, in float2 fragCoord);
+float4 Render(float2 fragCoord)
+{
+	float4 fragColor;
+	mainImage(fragColor, fragCoord);
+	return fragColor;
+}
+#elif RENDER_CUBE
+void mainCubemap(out float4 fragColor, in float2 fragCoord, in float3 ro, in float3 rd);
+uniform float3 iFaceDir;
+uniform float3 iFaceUDir;
+uniform float3 iFaceVDir;
+uniform float3 iOrigin;
+uniform float2 iViewportSize;
+
+float4 Render(float2 fragCoord)
+{
+	float2 uv = fragCoord / iViewportSize;
+	float3 rd = normalize(iFaceDir + (2 * uv.x - 1) * iFaceUDir + (2 * uv.y - 1) * iFaceVDir);
+	float4 fragColor;
+	mainCubemap(fragColor, fragCoord, iOrigin, rd);
+	return fragColor;
+}
+#elif RENDER_SOUND
+uniform float iTimeOffset;
+uniform int iSampleOffset;
+float2 mainSound(in int samp, float time);
+float4 Render(float2 fragCoord)
+{
+	float t = iTimeOffset + ((fragCoord.x-0.5) + (fragCoord.y-0.5)*512.0)/iSampleRate;
+	int   s = iSampleOffset + int(fragCoord.x - 0.2) + int(fragCoord.y-0.2)*512;
+	float2 y = mainSound( s, t );
+#if 0
+	float2 v  = floor((0.5+0.5*y)*65536.0);
+	float2 vl = mod(v,256.0)/255.0;
+	float2 vh = floor(v/256.0)/255.0;
+
+	return float4(vl.x,vh.x,vl.y,vh.y);
+#else
+	return float4(y, 0, 1);
+#endif
+}
+#endif
+
+
 #if PIXEL_SHADER
 
 PS_ENTRY_START(MainPS)
-	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
 	float4 fragColor;
 	float2 fragCoord = SvPosition.xy;
-
-	mainImage(fragColor, fragCoord);
-
-	OutColor = fragColor;
+	OutColor = Render(fragCoord);
 }
 
 #endif
@@ -53,12 +109,11 @@ layout(rgba32f) uniform writeonly image2D OutTexture;
 CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
 CS_ENTRY(MainCS)
 {
-	float4 fragColor;
 	float2 fragCoord = float2(SvDispatchThreadID.x, SvDispatchThreadID.y) + 0.5;
 	if (fragCoord.x > iResolution.x || fragCoord.y > iResolution.y)
 		return;
 
-	mainImage(fragColor, fragCoord);
+	float4 fragColor = Render(fragCoord);
 
 #if COMPILER_HLSL
 	OutTexture[SvDispatchThreadID.xy] = fragColor;

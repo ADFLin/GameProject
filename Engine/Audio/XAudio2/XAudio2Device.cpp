@@ -117,7 +117,7 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 	auto const& formatInfo = instance.soundwave->format;
 
 	AudioStreamSample sample;
-	auto fetchResult = instance.soundwave->streamSource->generatePCMData(mNextStreamSampleFrame, sample , formatInfo.sampleRate / 32 );
+	auto fetchResult = instance.soundwave->streamSource->generatePCMData(mNextStreamSampleFrame, sample , formatInfo.sampleRate / 16 );
 
 	if( fetchResult == EAudioStreamStatus::NoSample )
 		return false;

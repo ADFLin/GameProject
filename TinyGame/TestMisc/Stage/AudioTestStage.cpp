@@ -174,15 +174,15 @@ public:
 		return 100000 * mFormat.sampleRate;
 	}
 
-	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int requiredMinSameleNum) override
+	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override
 	{
 		outSample.handle = mSampleBuffer.fetchSampleData();
 		WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
-		sampleData->data.resize( requiredMinSameleNum * mFormat.byteRate / mFormat.sampleRate );
+		sampleData->data.resize(minSampleFrameRequired * mFormat.byteRate / mFormat.sampleRate );
 
-		float dt = float( requiredMinSameleNum ) / mFormat.sampleRate;
+		float dt = float(minSampleFrameRequired) / mFormat.sampleRate;
 		int16* pData = (int16*) sampleData->data.data();
-		for( int i = 0; i < requiredMinSameleNum; ++i )
+		for( int i = 0; i < minSampleFrameRequired; ++i )
 		{
 			float t = double(samplePos + i) / mFormat.sampleRate;
 			float value = mWaveGenerator(t);

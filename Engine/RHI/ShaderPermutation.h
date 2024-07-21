@@ -89,6 +89,12 @@ namespace Render
 
 	struct FShaderPermutation
 	{
+		template<typename T>
+		static void SetupOption(T const& domain, ShaderCompileOption& option)
+		{
+			option.addDefine(T::DefineName, static_cast<T const&>(domain).value);
+		}
+
 		struct CDomainConvertable
 		{
 			template< typename ...Ts >

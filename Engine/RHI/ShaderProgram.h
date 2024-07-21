@@ -41,12 +41,12 @@ namespace Render
 			mRHIResource.release(); 
 		}
 
-		void setParam(RHICommandList& commandList, char const* name, int v1) { setParamT(commandList, name, v1); }
+		void setParam(RHICommandList& commandList, char const* name, int32 v1) { setParamT(commandList, name, v1); }
 
 
-		void setParam(RHICommandList& commandList, char const* name, int v1, int v2) { setParamT(commandList, name, IntVector2(v1, v2)); }
-		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3) { setParamT(commandList, name, IntVector3(v1, v2, v3)); }
-		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4) { setParamT(commandList, name, IntVector4(v1, v2, v3, v4)); }
+		void setParam(RHICommandList& commandList, char const* name, int32 v1, int32 v2) { setParamT(commandList, name, IntVector2(v1, v2)); }
+		void setParam(RHICommandList& commandList, char const* name, int32 v1, int32 v2, int32 v3) { setParamT(commandList, name, IntVector3(v1, v2, v3)); }
+		void setParam(RHICommandList& commandList, char const* name, int32 v1, int32 v2, int32 v3, int32 v4) { setParamT(commandList, name, IntVector4(v1, v2, v3, v4)); }
 
 		void setParam(RHICommandList& commandList, char const* name, float v1) { setParamT(commandList, name, v1); }
 		void setParam(RHICommandList& commandList, char const* name, float v1, float v2) { setParamT(commandList, name, Vector2(v1, v2)); }
@@ -105,8 +105,7 @@ namespace Render
 		}
 
 
-
-		void setParam(RHICommandList& commandList, ShaderParameter const& param, int v1);
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, int32 v1);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector2 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector3 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector4 const& v);

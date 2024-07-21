@@ -636,6 +636,7 @@ namespace Render
 #endif
 		TEXTURE_INFO(ETexture::RGBA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_RGBA)
 		TEXTURE_INFO(ETexture::RGB8    ,GL_RGB8    ,GL_RGB ,GL_UNSIGNED_BYTE ,GL_RGB)
+		TEXTURE_INFO(ETexture::RG8     ,GL_RG8     ,GL_RG  ,GL_UNSIGNED_BYTE ,GL_RG)
 		TEXTURE_INFO(ETexture::BGRA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
 		TEXTURE_INFO(ETexture::RGB10A2 ,GL_RGB10_A2,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
 		TEXTURE_INFO(ETexture::R16     ,GL_R16     ,GL_RED,GL_UNSIGNED_SHORT ,GL_RED)
@@ -722,7 +723,7 @@ namespace Render
 		switch (format)
 		{
 		case ETexture::RGBA8:case ETexture::BGRA8:
-		case ETexture::RGB8: case ETexture::RGB10A2:
+		case ETexture::RGB8: case ETexture::RG8: case ETexture::RGB10A2:
 		case ETexture::R32F:case ETexture::R16:case ETexture::R8:
 		case ETexture::RGB32F:
 		case ETexture::RGBA32F:

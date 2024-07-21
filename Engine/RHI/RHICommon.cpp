@@ -349,6 +349,7 @@ namespace Render
 #endif
 		TEXTURE_INFO(ETexture::RGBA8   ,4,CVT_UByte)
 		TEXTURE_INFO(ETexture::RGB8    ,3,CVT_UByte)
+		TEXTURE_INFO(ETexture::RG8     ,2,CVT_UByte)
 		TEXTURE_INFO(ETexture::BGRA8   ,4,CVT_UByte)
 		TEXTURE_INFO(ETexture::RGB10A2 ,4,CVT_UByte)
 

@@ -218,14 +218,14 @@ int64 MFAudioStreamSource::getTotalSampleNum()
 	return mTotalSampleNum;
 }
 
-EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioStreamSample& outSample, int requiredMinSameleNum)
+EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired)
 {
 	HRESULT hr = S_OK;
 
 	EAudioStreamStatus result = EAudioStreamStatus::Ok;
 	// Get audio samples from the source reader.
 
-	int genertatedSampleNum = 0;
+	int genertatedSampleFrame = 0;
 
 	uint32 idxSampleData = mSampleBuffer.fetchSampleData();
 	WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(idxSampleData);
@@ -270,7 +270,7 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 			assert((cbBuffer % mWaveFormat.bitsPerSample) == 0);
 			sampleData->data.append(pAudioData, pAudioData + cbBuffer);
 			buffer->Unlock();
-			genertatedSampleNum += cbBuffer * mWaveFormat.sampleRate / mWaveFormat.byteRate;
+			genertatedSampleFrame += cbBuffer * mWaveFormat.sampleRate / mWaveFormat.byteRate;
 		};
 
 #if 0
@@ -294,7 +294,7 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 		}
 #endif
 
-		if (genertatedSampleNum > requiredMinSameleNum)
+		if (genertatedSampleFrame > minSampleFrameRequired)
 			break;
 	}
 

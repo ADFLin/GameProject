@@ -111,6 +111,7 @@ namespace Render
 		{
 			RGBA8,
 			RGB8,
+			RG8,
 			BGRA8 ,
 
 			RGB10A2,

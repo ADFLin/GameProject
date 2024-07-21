@@ -36,6 +36,7 @@ namespace Render
 		{
 		//case ETexture::RGB8:
 		case ETexture::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case ETexture::RG8:   return DXGI_FORMAT_R8G8_UNORM;
 		case ETexture::BGRA8: return DXGI_FORMAT_B8G8R8A8_UNORM;
 		case ETexture::RGB10A2: return DXGI_FORMAT_R10G10B10A2_UNORM;
 		case ETexture::R16:   return DXGI_FORMAT_R16_UNORM;

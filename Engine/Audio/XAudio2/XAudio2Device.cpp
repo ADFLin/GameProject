@@ -154,7 +154,7 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 	}
 	else
 	{
-		mNextStreamSampleFrame += sample.dataSize / ( formatInfo.numChannels * formatInfo.bitsPerSample / 8 );
+		mNextStreamSampleFrame += sample.dataSize / formatInfo.blockAlign;
 	}	
 
 	return true;

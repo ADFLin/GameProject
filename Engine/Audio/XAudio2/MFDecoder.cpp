@@ -270,7 +270,7 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 			assert((cbBuffer % mWaveFormat.bitsPerSample) == 0);
 			sampleData->data.append(pAudioData, pAudioData + cbBuffer);
 			buffer->Unlock();
-			genertatedSampleFrame += cbBuffer * mWaveFormat.sampleRate / mWaveFormat.byteRate;
+			genertatedSampleFrame += cbBuffer / mWaveFormat.blockAlign;
 		};
 
 #if 0

@@ -279,9 +279,11 @@ namespace Shadertoy
 	class SoundRenderPassStreamSource : public IAudioStreamSource
 	{
 	public:
+		static int const SampleRate = 44100;
+		static constexpr int TextureSize = 256;
 
 		WaveFormatInfo mFormat;
-		static int const SampleRate = 44100;
+
 		SoundRenderPassStreamSource()
 		{
 			mFormat.tag = WAVE_FORMAT_PCM;
@@ -289,7 +291,7 @@ namespace Shadertoy
 			mFormat.sampleRate = SampleRate;
 			mFormat.bitsPerSample = 8 * sizeof(int16);
 			mFormat.blockAlign = mFormat.numChannels * mFormat.bitsPerSample / 8;
-			mFormat.byteRate = mFormat.bitsPerSample * mFormat.sampleRate * mFormat.numChannels / 8;
+			mFormat.byteRate = mFormat.blockAlign * mFormat.sampleRate;
 		}
 
 		virtual void seekSamplePosition(int64 samplePos) override
@@ -311,16 +313,23 @@ namespace Shadertoy
 		virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override
 		{
 			int blockFrame = TextureSize * TextureSize;
-			int genSampleFame = minSampleFrameRequired;
+			int genSampleFame = Math::Max(blockFrame, minSampleFrameRequired);
+
 			outSample.handle = mSampleBuffer.fetchSampleData();
 			WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
-			sampleData->data.resize(genSampleFame * mFormat.byteRate / mFormat.sampleRate);
+			sampleData->data.resize(genSampleFame * mFormat.blockAlign);
 
 
 			int numBlocks = AlignCount(genSampleFame, blockFrame);
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			mRenderer->setRenderTarget(commandList, *mTexSound);
+
+			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0,0,0,0), 1);
 			RHISetViewport(commandList, 0, 0, TextureSize, TextureSize);
+
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
 			mRenderer->setPixelShader(commandList, mRenderPass->shader);
 			mRenderer->setInputParameters(commandList, *mRenderPass->info, mRenderPass->shader);
@@ -337,32 +346,37 @@ namespace Shadertoy
 				RHIFlushCommand(commandList);
 
 				int numRead = Math::Min(genSampleFame - indexBlock * blockFrame, blockFrame);
-				readData(pData, numRead);
+				readSampleData(pData, numRead);
 				pData += numRead * mFormat.numChannels;
 			}
 
 			outSample.data = sampleData->data.data();
 			outSample.dataSize = sampleData->data.size();
 
-			return EAudioStreamStatus::Ok;
+			return samplePos + genSampleFame < getTotalSampleNum() ? EAudioStreamStatus::Ok : EAudioStreamStatus::Eof;
 		}
 
-		void readData(int16* pOutData, int numSamples)
+		TVector2<int16> Decode(uint8 const* pData)
+		{
+			int16 left = int16(MaxInt16 *(-1.0 + 2.0*(pData[0] + 256.0*pData[1]) / 65535.0));
+			int16 right = int16(MaxInt16 *(-1.0 + 2.0*(pData[2] + 256.0*pData[3]) / 65535.0));
+			return {left, right};
+		}
+
+		void readSampleData(int16* pOutData, int numSamples)
 		{
 			TArray<uint8> data;
-			RHIReadTexture(*mTexSound, ETexture::RGBA32F, 0, data);
-			float* pData = (float*)data.data();
+			RHIReadTexture(*mTexSound, ETexture::RGBA8, 0, data);
+
+			uint8 const* pData = data.data();
 			for (int i = 0; i < numSamples; ++i)
 			{
-#if 0
-				int16 left = int16(MaxInt16 *(-1.0 + 2.0*(data[4 * i + 0] + 256.0*data[4 * i + 1]) / 65535.0));
-				int16 right = int16(MaxInt16 *(-1.0 + 2.0*(data[4 * i + 2] + 256.0*data[4 * i + 3]) / 65535.0));
-#else
-				int16 left = int16(MaxInt16 * pData[4 * i + 0]);
-				int16 right = int16(MaxInt16 * pData[4 * i + 1]);
-#endif
-				pOutData[2 * i] = left;
-				pOutData[2 * i + 1] = right;
+				auto sample = Decode(pData);
+				pData += 4;
+
+				pOutData[0] = sample.x;
+				pOutData[1] = sample.y;
+				pOutData += 2;
 			}
 		}
 
@@ -371,10 +385,10 @@ namespace Shadertoy
 			mSampleBuffer.releaseSampleData(sampleHadle);
 		}
 
-		static constexpr int TextureSize = 512;
+
 		void initializeRHI()
 		{
-			mTexSound = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA32F, TextureSize, TextureSize).AddFlags(TCF_AllowCPUAccess | TCF_RenderTarget));
+			mTexSound = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, TextureSize, TextureSize).AddFlags(TCF_AllowCPUAccess | TCF_RenderTarget));
 		}
 
 		RenderPassData*  mRenderPass;
@@ -479,6 +493,7 @@ namespace Shadertoy
 				break;
 			case EPassType::Sound:
 				option.addDefine(SHADER_PARAM(RENDER_SOUND), 1);
+				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), SoundRenderPassStreamSource::TextureSize);
 				break;
 			case EPassType::CubeMap:
 				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
@@ -875,6 +890,7 @@ namespace Shadertoy
 			);
 
 			mOutputBuffers.resize(nextBufferId);
+			mInputResources.resize(nextResourceId);
 			return true;
 		}
 
@@ -935,6 +951,10 @@ namespace Shadertoy
 			mRenderPassList.clear();
 			mOutputBuffers.clear();
 			mInputResources.clear();
+			if (mSoundHandle != ERROR_AUDIO_HANDLE)
+			{
+				mAudioDevice->stopSound(mSoundHandle);
+			}
 
 #if 1
 			JsonFile* webDoc = JsonFile::Load(InlineString<>::Make("Shadertoy/%s.json", name));
@@ -1113,7 +1133,7 @@ namespace Shadertoy
 			return true;
 		}
 
-		int mSoundHandle;
+		int mSoundHandle = ERROR_AUDIO_HANDLE;
 
 		void resetInputParams()
 		{
@@ -1439,10 +1459,12 @@ namespace Shadertoy
 				}
 
 
+#if 0
 				for (int k = 0; k < 256; k++)
 				{
 					mKeyboardData[k + 1 * 256] = 0;
 				}
+#endif
 			}
 
 			PooledRenderTargetRef rt;
@@ -1542,10 +1564,11 @@ namespace Shadertoy
 			{
 				if (0 <= msg.getCode() && msg.getCode() < 256)
 				{
-					mKeyboardData[msg.getCode() + 1 * 256] = 0;
+					mKeyboardData[msg.getCode() + 0 * 256] = 0;
 					mKeyboardData[msg.getCode() + 1 * 256] = 0;
 				}
 			}
+
 			return BaseClass::onKey(msg);
 		}
 
@@ -1611,7 +1634,7 @@ namespace Shadertoy
 			domainVector.set<ScreenVS::UseTexCoord>(false);
 			mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector);
 
-			loadProject("VolumetricLighting");
+			loadProject("Test");
 			//loadProject("ShaderArt");
 			return true;
 		}

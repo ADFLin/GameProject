@@ -155,7 +155,7 @@ public:
 		mFormat.sampleRate = 4 * 44100 + 44100/2;
 		mFormat.bitsPerSample = 8 * sizeof(int16);
 		mFormat.blockAlign = mFormat.numChannels * mFormat.bitsPerSample / 8;
-		mFormat.byteRate = mFormat.bitsPerSample * mFormat.sampleRate * mFormat.numChannels / 8;
+		mFormat.byteRate = mFormat.blockAlign * mFormat.sampleRate;
 	}
 
 	virtual void seekSamplePosition(int64 samplePos) override
@@ -178,7 +178,7 @@ public:
 	{
 		outSample.handle = mSampleBuffer.fetchSampleData();
 		WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
-		sampleData->data.resize(minSampleFrameRequired * mFormat.byteRate / mFormat.sampleRate );
+		sampleData->data.resize(minSampleFrameRequired * mFormat.blockAlign);
 
 		float dt = float(minSampleFrameRequired) / mFormat.sampleRate;
 		int16* pData = (int16*) sampleData->data.data();

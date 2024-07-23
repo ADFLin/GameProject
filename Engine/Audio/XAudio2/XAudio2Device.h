@@ -41,8 +41,9 @@ public:
 	bool commitStreamingData( bool bInit = false);
 	// pos = INDEX_NONE, no data need commit;
 	int64 mNextStreamSampleFrame = INDEX_NONE;
+
 	TCycleQueue< uint32 > mUsedSampleHandles;
-	//TArray< uint32 > mUsedSampleHandles;
+	//TArray< uint32 >      mUsedSampleHandles;
 };
 
 class XAudio2SourceCallback : public IXAudio2VoiceCallback

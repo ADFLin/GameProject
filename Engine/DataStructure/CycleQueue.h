@@ -79,6 +79,12 @@ public:
 		return ArrayData::getAllocation() + index;
 	}
 
+	void checkIndex()
+	{
+		CHECK(0 <= mIndexCur && mIndexCur < ArrayData::getMaxSize());
+		CHECK(0 <= mIndexNext && mIndexNext < ArrayData::getMaxSize());
+	}
+
 	void moveFrontToBack()
 	{
 		if (mNum == 0)
@@ -104,6 +110,7 @@ public:
 			else if (mIndexNext == ArrayData::getMaxSize())
 				mIndexNext = 0;
 		}
+		checkIndex();
 	}
 
 	T* addUninitialized()
@@ -138,6 +145,8 @@ public:
 		if (mIndexNext == ArrayData::getMaxSize())
 			mIndexNext = 0;
 		++mNum;
+
+		checkIndex();
 		return result;
 	}
 
@@ -170,7 +179,14 @@ private:
 				index = 0;
 			return *this;
 		}
-		IteratorBase operator++() { IteratorBase temp(*this); ++index; return temp; }
+		IteratorBase operator++() 
+		{ 
+			IteratorBase temp(*this); 
+			++index; 
+			if (index == queue->ArrayData::getMaxSize())
+				index = 0; 
+			return temp;
+		}
 		bool operator == (IteratorBase const& other) const { assert(queue == other.queue); return index == other.index; }
 		bool operator != (IteratorBase const& other) const { return !this->operator==(other); }
 	};

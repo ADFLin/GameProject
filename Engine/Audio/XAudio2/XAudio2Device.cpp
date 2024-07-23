@@ -128,7 +128,7 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 		return false;
 	}
 
-	if( sample.handle != INDEX_NONE)
+	//if( sample.handle != INDEX_NONE)
 	{
 		mUsedSampleHandles.push_back(sample.handle);
 	}
@@ -236,6 +236,7 @@ void XAudio2Source::notifyBufferEnd()
 		{
 			uint32 handle = mUsedSampleHandles.front();
 			mUsedSampleHandles.pop_front();
+			//mUsedSampleHandles.removeIndex(0);
 			mInstance->soundwave->streamSource->releaseSampleData(handle);
 		}
 	}

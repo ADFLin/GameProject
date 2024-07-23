@@ -312,6 +312,9 @@ namespace Shadertoy
 
 		virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override
 		{
+			if ( mRenderPass == nullptr )
+				return EAudioStreamStatus::Eof;
+
 			int blockFrame = TextureSize * TextureSize;
 			int genSampleFame = Math::Max(blockFrame, minSampleFrameRequired);
 
@@ -954,6 +957,7 @@ namespace Shadertoy
 			if (mSoundHandle != ERROR_AUDIO_HANDLE)
 			{
 				mAudioDevice->stopSound(mSoundHandle);
+				mStreamSource->mRenderPass = nullptr;
 			}
 
 #if 1
@@ -1189,21 +1193,18 @@ namespace Shadertoy
 		std::unique_ptr<SoundWave>    mSoundWave;
 		void initAudio(RenderPassData& pass)
 		{
-			if (mAudioDevice.get())
-				return;
+			if (mAudioDevice.get() == nullptr)
+			{
+				mAudioDevice = std::unique_ptr<AudioDevice>(AudioDevice::Create());
+				mStreamSource = std::make_unique<SoundRenderPassStreamSource>();
+				mStreamSource->initializeRHI();
+				mStreamSource->mRenderer = this;
+				mSoundWave = std::make_unique<SoundWave>();
+				mSoundWave->setupStream(mStreamSource.get());
+				GTextureShowManager.registerTexture("SoundTexture", mStreamSource->mTexSound);
+			}
 
-			mAudioDevice = std::unique_ptr<AudioDevice>(AudioDevice::Create());
-			mStreamSource = std::make_unique<SoundRenderPassStreamSource>();
-			mStreamSource->initializeRHI();
-			mStreamSource->mRenderer = this;
 			mStreamSource->mRenderPass = &pass;
-
-			mSoundWave = std::make_unique<SoundWave>();
-			mSoundWave->setupStream(mStreamSource.get());
-
-			GTextureShowManager.registerTexture("SoundTexture", mStreamSource->mTexSound);
-
-			SystemPlatform::Sleep(100);
 		}
 
 		void onEnd() override

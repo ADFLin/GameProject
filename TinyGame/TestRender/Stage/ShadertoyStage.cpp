@@ -17,7 +17,8 @@
 #include "Serialize/FileStream.h"
 #include "Audio/AudioDevice.h"
 #include "Audio/AudioDecoder.h"
-#include "DirectX/Include/audiodefs.h"
+
+#include "Mmreg.h"
 
 namespace Shadertoy
 {
@@ -155,7 +156,7 @@ namespace Shadertoy
 		template< typename TGetTexture >
 		void setInputParameters(RHICommandList& commandList, TArray<RenderInput> const& inputs, TGetTexture& GetTexture)
 		{
-			Vector3 channelSize[4] = { Vector3(1,0,0) , Vector3(0,1,0), Vector3(0,0,1) , Vector3(1,1,1) };
+			Vector3 channelSize[4] = { Vector3(0,0,0) , Vector3(0,0,0), Vector3(0,0,0) , Vector3(0,0,0) };
 			int Index = 0;
 			for (auto const& input : inputs)
 			{
@@ -260,110 +261,200 @@ namespace Shadertoy
 			RHISetGraphicsShaderBoundState(commandList, state);
 		}
 
-		void setInputParameters(RHICommandList& commandList, RenderPassInfo const& passInfo, RenderPassShader& shader)
+		void setInputParameters(RHICommandList& commandList, RenderPassData& pass)
 		{
-			shader.setInputParameters(commandList, passInfo.inputs,
+			pass.shader.setInputParameters(commandList, pass.info->inputs,
 				[this](EInputType type, int id) { return getInputTexture(type, id); }
 			);
 
-			SetStructuredUniformBuffer(commandList, shader, mInputBuffer);
-		};
-
-		virtual RHITextureBase* getInputTexture(EInputType type, int id) = 0;
-
-		ScreenVS* mScreenVS;
-		RHIFrameBufferRef mFrameBuffer;
-		TStructuredBuffer< InputParam > mInputBuffer;
-	};
-
-	class SoundRenderPassStreamSource : public IAudioStreamSource
-	{
-	public:
-		static int const SampleRate = 44100;
-		static constexpr int TextureSize = 256;
-
-		WaveFormatInfo mFormat;
-
-		SoundRenderPassStreamSource()
+			SetStructuredUniformBuffer(commandList, pass.shader, mInputBuffer);
+		}
+		
+		static char const* GetOutputName(int index)
 		{
-			mFormat.tag = WAVE_FORMAT_PCM;
-			mFormat.numChannels = 2;
-			mFormat.sampleRate = SampleRate;
-			mFormat.bitsPerSample = 8 * sizeof(int16);
-			mFormat.blockAlign = mFormat.numChannels * mFormat.bitsPerSample / 8;
-			mFormat.byteRate = mFormat.blockAlign * mFormat.sampleRate;
+			static char const* OutputNames[] = { "OutTexture", "OutTexture1" , "OutTexture2" , "OutTexture3" };
+			return OutputNames[index];
 		}
 
-		virtual void seekSamplePosition(int64 samplePos) override
+		void renderImage(RHICommandList& commandList, RenderPassData& pass, IntVector2 const& viewportSize, TArrayView< PooledRenderTargetRef > outputBuffers)
 		{
+			int index;
+			auto& passShader = pass.shader;
 
-		}
-
-		virtual void getWaveFormat(WaveFormatInfo& outFormat) override
-		{
-			outFormat = mFormat;
-		}
-
-
-		virtual int64 getTotalSampleNum() override
-		{
-			return 3 * 60 * SampleRate;
-		}
-
-		virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override
-		{
-			if ( mRenderPass == nullptr )
-				return EAudioStreamStatus::Eof;
-
-			int blockFrame = TextureSize * TextureSize;
-			int genSampleFame = Math::Max(blockFrame, minSampleFrameRequired);
-
-			outSample.handle = mSampleBuffer.fetchSampleData();
-			WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
-			sampleData->data.resize(genSampleFame * mFormat.blockAlign);
-
-
-			int numBlocks = AlignCount(genSampleFame, blockFrame);
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-			mRenderer->setRenderTarget(commandList, *mTexSound);
-
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0,0,0,0), 1);
-			RHISetViewport(commandList, 0, 0, TextureSize, TextureSize);
-
-			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-
-			mRenderer->setPixelShader(commandList, mRenderPass->shader);
-			mRenderer->setInputParameters(commandList, *mRenderPass->info, mRenderPass->shader);
-
-			int16* pData = (int16*)sampleData->data.data();
-			for (int indexBlock = 0; indexBlock < numBlocks; ++indexBlock)
+			auto SetPassParameters = [&](RHICommandList& commandList, int subPassIndex)
 			{
-				int64 sampleOffset = samplePos + indexBlock * blockFrame;
-				float timeOffset = float(sampleOffset) / mFormat.sampleRate;
-				mRenderPass->shader.setParam(commandList, SHADER_PARAM(iTimeOffset), timeOffset);
-				mRenderPass->shader.setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
+				if (pass.info->passType == EPassType::CubeMap)
+				{
+					Vector3 faceDir = ETexture::GetFaceDir(ETexture::Face(subPassIndex));
+					Vector3 faceUpDir = ETexture::GetFaceUpDir(ETexture::Face(subPassIndex));
+					passShader.setParam(commandList, SHADER_PARAM(iFaceDir), faceDir);
+					passShader.setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDir);
+					passShader.setParam(commandList, SHADER_PARAM(iFaceUDir), faceDir.cross(faceUpDir));
+					passShader.setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
+					passShader.setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
+				}
+			};
 
-				DrawUtility::ScreenRect(commandList);
-				RHIFlushCommand(commandList);
+			int subPassCount = pass.info->passType == EPassType::CubeMap ? 6 : 1;
 
-				int numRead = Math::Min(genSampleFame - indexBlock * blockFrame, blockFrame);
-				readSampleData(pData, numRead);
-				pData += numRead * mFormat.numChannels;
+			if (passShader.getType() == EShader::Compute)
+			{
+				RHISetComputeShader(commandList, pass.shader.getRHI());
+				setInputParameters(commandList, pass);
+
+				char const* OutputNames[] = { "OutTexture", "OutTexture1" , "OutTexture2" , "OutTexture3" };
+				for (int subPassIndex = 0; subPassIndex < subPassCount; ++subPassIndex)
+				{
+					SetPassParameters(commandList, subPassIndex);
+
+					if (subPassCount == 1)
+					{
+						index = 0;
+						for (auto const& output : pass.info->outputs)
+						{
+							passShader.setRWTexture(commandList, GetOutputName(output.channel), *outputBuffers[index]->resolvedTexture, 0, EAccessOp::WriteOnly);
+							++index;
+						}
+					}
+					else
+					{
+						index = 0;
+						for (auto const& output : pass.info->outputs)
+						{
+							passShader.setRWSubTexture(commandList, GetOutputName(output.channel), *outputBuffers[index]->resolvedTexture,subPassIndex, 0, EAccessOp::WriteOnly);
+							++index;
+						}
+					}
+
+
+					int const GROUP_SIZE = 8;
+					RHIDispatchCompute(commandList, AlignCount(viewportSize.x, GROUP_SIZE), AlignCount(viewportSize.y, GROUP_SIZE), 1);
+				}
+				
+				index = 0;
+				for (auto const& output : pass.info->outputs)
+				{
+					passShader.clearRWTexture(commandList, GetOutputName(output.channel));
+					++index;
+				}
+			}
+			else
+			{
+				RHISetViewport(commandList, 0, 0, viewportSize.x, viewportSize.y);
+
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+				setPixelShader(commandList, passShader);
+				setInputParameters(commandList, pass);
+
+				for (int subPassIndex = 0; subPassIndex < subPassCount; ++subPassIndex)
+				{
+					index = 0;
+					for (auto const& output : pass.info->outputs)
+					{
+						mFrameBuffer->setTexture(output.channel, *outputBuffers[index]->texture, subPassIndex);
+						++index;
+					}
+
+					RHISetFrameBuffer(commandList, mFrameBuffer);
+					SetPassParameters(commandList, subPassIndex);
+					DrawUtility::ScreenRect(commandList);
+					RHISetFrameBuffer(commandList, nullptr);
+				}
+			}
+		}
+
+
+		void renderSound(RHICommandList& commandList, RenderPassData& pass, WaveFormatInfo const& format, int64 samplePos, int sampleCount, AudioStreamSample& outData)
+		{
+			auto& passShader = pass.shader;
+
+			int blockFrame = SoundTextureSize * SoundTextureSize;
+
+			int numBlocks = AlignCount(sampleCount, blockFrame);
+
+			if (passShader.getType() == EShader::Compute)
+			{	
+				RHISetComputeShader(commandList, pass.shader.getRHI());
+				setInputParameters(commandList, pass);
+
+				passShader.setRWTexture(commandList, GetOutputName(0), *mTexSound, 0, EAccessOp::WriteOnly);
+
+				int16* pData = (int16*)outData.data;
+				for (int indexBlock = 0; indexBlock < numBlocks; ++indexBlock)
+				{
+					int64 sampleOffset = samplePos + indexBlock * blockFrame;
+					float timeOffset = float(sampleOffset) / format.sampleRate;
+					passShader.setParam(commandList, SHADER_PARAM(iTimeOffset), timeOffset);
+					passShader.setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
+
+					int const GROUP_SIZE = 8;
+					RHIDispatchCompute(commandList, AlignCount(SoundTextureSize, GROUP_SIZE), AlignCount(SoundTextureSize, GROUP_SIZE), 1);
+					RHIFlushCommand(commandList);
+
+					int numRead = Math::Min(sampleCount - indexBlock * blockFrame, blockFrame);
+					readSampleData(pData, numRead);
+					pData += numRead * format.numChannels;
+				}
+
+				passShader.clearRWTexture(commandList, GetOutputName(0));
+			}
+			else
+			{
+				setRenderTarget(commandList, *mTexSound);
+
+				RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 0), 1);
+				RHISetViewport(commandList, 0, 0, SoundTextureSize, SoundTextureSize);
+
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+				setPixelShader(commandList, passShader);
+				setInputParameters(commandList, pass);
+
+				int16* pData = (int16*)outData.data;
+				for (int indexBlock = 0; indexBlock < numBlocks; ++indexBlock)
+				{
+					int64 sampleOffset = samplePos + indexBlock * blockFrame;
+					float timeOffset = float(sampleOffset) / format.sampleRate;
+					passShader.setParam(commandList, SHADER_PARAM(iTimeOffset), timeOffset);
+					passShader.setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
+
+					DrawUtility::ScreenRect(commandList);
+					RHIFlushCommand(commandList);
+
+					int numRead = Math::Min(sampleCount - indexBlock * blockFrame, blockFrame);
+					readSampleData(pData, numRead);
+					pData += numRead * format.numChannels;
+				}
 			}
 
-			outSample.data = sampleData->data.data();
-			outSample.dataSize = sampleData->data.size();
-
-			return samplePos + genSampleFame < getTotalSampleNum() ? EAudioStreamStatus::Ok : EAudioStreamStatus::Eof;
 		}
 
-		TVector2<int16> Decode(uint8 const* pData)
+
+		bool initializeRHI()
+		{
+			mFrameBuffer = RHICreateFrameBuffer();
+
+			ScreenVS::PermutationDomain domainVector;
+			domainVector.set<ScreenVS::UseTexCoord>(false);
+			mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector);
+
+			mTexSound = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, SoundTextureSize, SoundTextureSize).AddFlags(TCF_AllowCPUAccess | TCF_CreateUAV | TCF_RenderTarget));
+			GTextureShowManager.registerTexture("SoundTexture", mTexSound);
+
+			mInputBuffer.initializeResource(1);
+			return true;
+		}
+
+		static TVector2<int16> Decode(uint8 const* pData)
 		{
 			int16 left = int16(MaxInt16 *(-1.0 + 2.0*(pData[0] + 256.0*pData[1]) / 65535.0));
 			int16 right = int16(MaxInt16 *(-1.0 + 2.0*(pData[2] + 256.0*pData[3]) / 65535.0));
-			return {left, right};
+			return { left, right };
 		}
 
 		void readSampleData(int16* pOutData, int numSamples)
@@ -383,22 +474,149 @@ namespace Shadertoy
 			}
 		}
 
+		virtual RHITextureBase* getInputTexture(EInputType type, int id) = 0;
+
+		static constexpr int SoundSampleRate = 44100;
+		static constexpr int SoundTextureSize = 256;
+
+		ScreenVS* mScreenVS;
+		RHIFrameBufferRef mFrameBuffer;
+		TStructuredBuffer< InputParam > mInputBuffer;
+		RHITexture2DRef  mTexSound;
+	};
+
+	class SoundRenderPassStreamSource : public IAudioStreamSource
+	{
+	public:
+		static constexpr int SampleRate  = Renderer::SoundSampleRate;
+		static constexpr int TextureSize = Renderer::SoundTextureSize;
+
+		WaveFormatInfo mFormat;
+
+		bool bFullFlush = false;
+
+		SoundRenderPassStreamSource()
+		{
+			mFormat.tag = WAVE_FORMAT_PCM;
+			mFormat.numChannels = 2;
+			mFormat.sampleRate = SampleRate;
+			mFormat.bitsPerSample = 8 * sizeof(int16);
+			mFormat.blockAlign = mFormat.numChannels * mFormat.bitsPerSample / 8;
+			mFormat.byteRate = mFormat.blockAlign * mFormat.sampleRate;
+
+			mLastSampleData.data = nullptr;
+		}
+
+		virtual void seekSamplePosition(int64 samplePos) override
+		{
+
+		}
+
+		virtual void getWaveFormat(WaveFormatInfo& outFormat) override
+		{
+			outFormat = mFormat;
+		}
+
+		virtual int64 getTotalSampleNum() override
+		{
+			return 3 * 60 * SampleRate;
+		}
+
+		virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush) override
+		{
+			if ( mRenderPass == nullptr)
+				return EAudioStreamStatus::Eof;
+
+			int minGenerateSampleCount = Math::Max(TextureSize * TextureSize, minSampleFrameRequired);
+
+			auto CheckRequireSample = [&](int64 inSamplePos)
+			{
+				if (inSamplePos < getTotalSampleNum())
+				{
+					mSamplePosRequired = inSamplePos;
+					mNumSampleRequired = minGenerateSampleCount;
+				}
+			};
+
+			int sampleCount = 0;
+			if (bNeedFlush)
+			{
+				RHICommandList& commandList = RHICommandList::GetImmediateList();
+				sampleCount = bFullFlush ? getTotalSampleNum() : minGenerateSampleCount;
+				generateStreamingSample(commandList, samplePos, sampleCount, outSample);
+			}
+			else if (mLastSampleData.data )
+			{
+				if ( mLastSamplePos == samplePos )
+				{
+					outSample = mLastSampleData;
+					sampleCount = mLastSampleData.dataSize / mFormat.blockAlign;
+					mLastSampleData.data = nullptr;
+					mLastSampleData.handle = INDEX_NONE;
+
+					CheckRequireSample(samplePos + sampleCount);
+				}
+				else
+				{
+					mSampleBuffer.releaseSampleData(mLastSampleData.handle);
+					mLastSampleData.data = nullptr;
+					mLastSampleData.handle = INDEX_NONE;
+
+					CheckRequireSample(samplePos);
+					return EAudioStreamStatus::NoSample;
+				}
+			}
+			else
+			{
+				CheckRequireSample(samplePos);
+				return EAudioStreamStatus::NoSample;
+			}
+
+			if ((samplePos + sampleCount) > getTotalSampleNum())
+				return EAudioStreamStatus::Eof;
+
+			return EAudioStreamStatus::Ok;
+		}
+
+		int generateStreamingSample(RHICommandList& commandList, int64 samplePos, int sampleCount, AudioStreamSample& outSample)
+		{
+			outSample.handle = mSampleBuffer.fetchSampleData();
+			WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
+			sampleData->data.resize(sampleCount * mFormat.blockAlign);
+
+			outSample.data = sampleData->data.data();
+			outSample.dataSize = sampleData->data.size();
+			mRenderer->renderSound(commandList, *mRenderPass, mFormat, samplePos, sampleCount, outSample);
+
+			return sampleCount;
+		}
+
+		void checkGenerateRequiredStreamingSample(RHICommandList& commandList)
+		{
+			if (mNumSampleRequired == 0)
+				return;
+
+			generateStreamingSample(commandList, mSamplePosRequired, mNumSampleRequired, mLastSampleData);
+			mLastSamplePos = mSamplePosRequired;
+			mNumSampleRequired = 0;
+		}
+
 		virtual void releaseSampleData(uint32 sampleHadle) override
 		{
 			mSampleBuffer.releaseSampleData(sampleHadle);
 		}
 
-
-		void initializeRHI()
-		{
-			mTexSound = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, TextureSize, TextureSize).AddFlags(TCF_AllowCPUAccess | TCF_RenderTarget));
-		}
-
 		RenderPassData*  mRenderPass;
 		Renderer*        mRenderer;
 
+		int64 mSamplePosRequired = INDEX_NONE;
+		int   mNumSampleRequired = 0;
+
+		int64             mLastSamplePos;
+		AudioStreamSample mLastSampleData;
+
 		WaveSampleBuffer mSampleBuffer;
-		RHITexture2DRef  mTexSound;
+
 	};
 
 	class TestStage : public StageBase
@@ -458,66 +676,8 @@ namespace Shadertoy
 		TArray< PooledRenderTargetRef > mOutputBuffers;
 		TArray< RHITextureRef > mInputResources;
 
-		bool compileShader(RenderPassData& pass, std::vector<uint8> const& codeTemplate, RenderPassInfo* commonInfo)
-		{
-			std::string channelCode;
-			for (RenderInput const& input : pass.info->inputs)
-			{
-				switch (input.type)
-				{
-				case EInputType::Keyboard:
-					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", input.channel);
-					break;
-				case EInputType::Webcam:
-				case EInputType::Micrphone:
-				case EInputType::Soundcloud:
-				case EInputType::Buffer:
-				case EInputType::Texture:
-				case EInputType::Vedio:
-				case EInputType::Music:
-					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", input.channel);
-					break;
-				case EInputType::CubeMap:
-					channelCode += InlineString<>::Make("uniform samplerCube iChannel%d;\n", input.channel);
-					break;
-				case EInputType::Volume:
-					channelCode += InlineString<>::Make("uniform sampler3D iChannel%d;\n", input.channel);
-					break;
-				}
-			}
-			std::string code;
-			Text::Format((char const*)codeTemplate.data(), { StringView(channelCode), commonInfo ? StringView(commonInfo->code) : StringView(), StringView(pass.info->code) }, code);
-
-			ShaderCompileOption option;
-			switch (pass.info->passType)
-			{
-			case EPassType::Buffer:
-				option.addDefine(SHADER_PARAM(RENDER_BUFFER), 1);
-				break;
-			case EPassType::Sound:
-				option.addDefine(SHADER_PARAM(RENDER_SOUND), 1);
-				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), SoundRenderPassStreamSource::TextureSize);
-				break;
-			case EPassType::CubeMap:
-				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
-				break;
-			case EPassType::Image:
-				option.addDefine(SHADER_PARAM(RENDER_IMAGE), 1);
-				break;
-			}
-			bool bUseComputeShader = canUseComputeShader(pass);
-			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option, code.c_str()))
-				return false;
-
-			pass.shader.bindInputParameters(pass.info->inputs);
-			return true;
-		}
-
-
-		
 		bool loadResource(RenderInput const& input, std::string const& filePath)
 		{
-
 			if (mInputResources.isValidIndex(input.resId) && mInputResources[input.resId].isValid())
 				return true;
 
@@ -609,9 +769,9 @@ namespace Shadertoy
 			case EInputType::Buffer:
 				return GBlackTexture2D;
 			case EInputType::Texture:
-				return mDefaultTex2D;
+				return GBlackTexture2D;
 			case EInputType::CubeMap:
-				return mDefaultCube;
+				return GBlackTextureCube;
 			case EInputType::Volume:
 				return GBlackTexture3D;
 			case EInputType::Webcam:
@@ -935,6 +1095,8 @@ namespace Shadertoy
 
 		bool loadProject(char const* name)
 		{
+			mLastProjectName = name;
+
 			if (!loadProjectActual(name) || !compileShader())
 			{
 				mRenderPassList.clear();
@@ -943,7 +1105,6 @@ namespace Shadertoy
 				return false;
 			}
 
-			mLastProjectName = name;
 			resetInputParams();
 			return true;
 		}
@@ -1137,8 +1298,6 @@ namespace Shadertoy
 			return true;
 		}
 
-		int mSoundHandle = ERROR_AUDIO_HANDLE;
-
 		void resetInputParams()
 		{
 			mTime = 0;
@@ -1188,20 +1347,85 @@ namespace Shadertoy
 			return true;
 		}
 
+		bool compileShader(RenderPassData& pass, std::vector<uint8> const& codeTemplate, RenderPassInfo* commonInfo)
+		{
+			std::string channelCode;
+			for (RenderInput const& input : pass.info->inputs)
+			{
+				switch (input.type)
+				{
+				case EInputType::Keyboard:
+					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", input.channel);
+					break;
+				case EInputType::Webcam:
+				case EInputType::Micrphone:
+				case EInputType::Soundcloud:
+				case EInputType::Buffer:
+				case EInputType::Texture:
+				case EInputType::Vedio:
+				case EInputType::Music:
+					channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", input.channel);
+					break;
+				case EInputType::CubeMap:
+					channelCode += InlineString<>::Make("uniform samplerCube iChannel%d;\n", input.channel);
+					break;
+				case EInputType::Volume:
+					channelCode += InlineString<>::Make("uniform sampler3D iChannel%d;\n", input.channel);
+					break;
+				}
+			}
+			std::string code;
+			Text::Format((char const*)codeTemplate.data(), { StringView(channelCode), commonInfo ? StringView(commonInfo->code) : StringView(), StringView(pass.info->code) }, code);
+
+
+			ShaderCompileOption option;
+			switch (pass.info->passType)
+			{
+			case EPassType::Buffer:
+				option.addDefine(SHADER_PARAM(RENDER_BUFFER), 1);
+				break;
+			case EPassType::Sound:
+				option.addDefine(SHADER_PARAM(RENDER_SOUND), 1);
+				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), SoundRenderPassStreamSource::TextureSize);
+				break;
+			case EPassType::CubeMap:
+				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
+				break;
+			case EPassType::Image:
+				option.addDefine(SHADER_PARAM(RENDER_IMAGE), 1);
+				break;
+			}
+			bool bUseComputeShader = canUseComputeShader(pass);
+			if (bUseComputeShader)
+			{
+				if (pass.info->code.find("discard") != std::string::npos ||
+					(commonInfo && commonInfo->code.find("discard") != std::string::npos))
+				{
+					option.addDefine(SHADER_PARAM(COMPUTE_DISCARD_SIM), 1);
+				}
+			}
+			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option, code.c_str()))
+				return false;
+
+			pass.shader.bindInputParameters(pass.info->inputs);
+			return true;
+		}
+		
 		std::unique_ptr<AudioDevice> mAudioDevice;
 		std::unique_ptr<SoundRenderPassStreamSource> mStreamSource;
 		std::unique_ptr<SoundWave>    mSoundWave;
+		AudioHandle mSoundHandle = ERROR_AUDIO_HANDLE;
+
 		void initAudio(RenderPassData& pass)
 		{
 			if (mAudioDevice.get() == nullptr)
 			{
 				mAudioDevice = std::unique_ptr<AudioDevice>(AudioDevice::Create());
 				mStreamSource = std::make_unique<SoundRenderPassStreamSource>();
-				mStreamSource->initializeRHI();
 				mStreamSource->mRenderer = this;
 				mSoundWave = std::make_unique<SoundWave>();
 				mSoundWave->setupStream(mStreamSource.get());
-				GTextureShowManager.registerTexture("SoundTexture", mStreamSource->mTexSound);
+
 			}
 
 			mStreamSource->mRenderPass = &pass;
@@ -1261,30 +1485,27 @@ namespace Shadertoy
 			inputParam.iSampleRate = SoundRenderPassStreamSource::SampleRate;
 
 			DateTime now = SystemPlatform::GetLocalTime();
-			inputParam.iDate = Vector4( now.getYear() , now.getMonth() , now.getDay(), now.getSecond() );
+			inputParam.iDate = Vector4( now.getYear() , now.getMonth() , now.getDay(), double( now.getTicks() % DateTime::TicksPerDay ) / double(DateTime::TicksPerSecond) );
 			mInputBuffer.updateBuffer(inputParam);
 
 			RHIUpdateTexture(*mTexKeyboard, 0, 0, 256, 3, mKeyboardData);
-
-			mTimePrev = mTime;
-			++mFrameCount;
 
 			PooledRenderTargetRef rtImage;
 			{
 				GPU_PROFILE(bAllowComputeShader ? "RenderPassCS" : "RenderPass");
 
-				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-
 				int const CubeMapSize = 1024;
 
 				for (auto& pass : mRenderPassList)
 				{
-					if (pass->info->passType == EPassType::Sound )
+					if (pass->info->passType == EPassType::Sound)
+					{
+						GPU_PROFILE("Sound");
+						mStreamSource->checkGenerateRequiredStreamingSample(commandList);
 						continue;
+					}
 
-					bool bUseComputeShader = canUseComputeShader(*pass);
+					bool bUseComputeShader = pass->shader.getType() == EShader::Compute;
 
 					TArray< PooledRenderTargetRef , TInlineAllocator<4> > outputBuffers;
 					HashString debugName;
@@ -1308,7 +1529,6 @@ namespace Shadertoy
 							desc.type = ETexture::Type2D;
 							desc.size = screenSize;
 						}
-
 
 						if (index == 0)
 						{
@@ -1366,73 +1586,9 @@ namespace Shadertoy
 						outputBuffers.push_back(rt);
 						++index;
 					}
-	
-					auto SetupParam = [&](RHICommandList& commandList, int subPassIndex)
-					{							
-						setInputParameters(commandList, *pass->info, pass->shader);
-
-						if (pass->info->passType == EPassType::CubeMap)
-						{
-							Vector3 faceDir = ETexture::GetFaceDir(ETexture::Face(subPassIndex));
-							Vector3 faceUpDir = ETexture::GetFaceUpDir(ETexture::Face(subPassIndex));
-							pass->shader.setParam(commandList, SHADER_PARAM(iFaceDir), faceDir);
-							pass->shader.setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDir);
-							pass->shader.setParam(commandList, SHADER_PARAM(iFaceUDir), faceDir.cross(faceUpDir));
-							pass->shader.setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
-							pass->shader.setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
-						}
-					};
 
 					GPU_PROFILE(debugName.c_str());
-
-					int subPassCount = pass->info->passType == EPassType::CubeMap ? 6 : 1;
-
-					if (bUseComputeShader)
-					{
-						RHISetComputeShader(commandList, pass->shader.getRHI());
-
-						SetupParam(commandList, 0);
-
-						char const* OutputNames[] = { "OutTexture", "OutTexture1" , "OutTexture2" , "OutTexture3" };
-						index = 0;
-						for (auto const& output : pass->info->outputs)
-						{
-							pass->shader.setRWTexture(commandList, OutputNames[output.channel], *outputBuffers[index]->resolvedTexture, 0, EAccessOp::WriteOnly);
-							++index;
-						}
-
-						int const GROUP_SIZE = 8;
-
-						RHIDispatchCompute(commandList, AlignCount(screenSize.x, GROUP_SIZE), AlignCount(screenSize.y, GROUP_SIZE), 1);
-
-						index = 0;
-						for (auto const& output : pass->info->outputs)
-						{
-							pass->shader.clearRWTexture(commandList, OutputNames[output.channel]);
-							++index;
-						}
-					}
-					else
-					{
-						for (int subPassIndex = 0; subPassIndex < subPassCount; ++subPassIndex)
-						{
-							index = 0;
-							for (auto const& output : pass->info->outputs)
-							{
-								mFrameBuffer->setTexture(output.channel, *outputBuffers[index]->texture, subPassIndex);
-								++index;
-							}
-
-							RHISetFrameBuffer(commandList, mFrameBuffer);
-							RHISetViewport(commandList, 0, 0, viewportSize.x, viewportSize.y);
-
-							setPixelShader(commandList, pass->shader);
-							SetupParam(commandList, subPassIndex);
-
-							DrawUtility::ScreenRect(commandList);
-							RHISetFrameBuffer(commandList, nullptr);
-						}
-					}
+					renderImage(commandList, *pass, viewportSize, outputBuffers);
 
 					if (pass->info->passType == EPassType::Image)
 					{
@@ -1458,8 +1614,6 @@ namespace Shadertoy
 						}
 					}
 				}
-
-
 #if 0
 				for (int k = 0; k < 256; k++)
 				{
@@ -1485,7 +1639,10 @@ namespace Shadertoy
 				RHISetFrameBuffer(commandList, nullptr);
 			}
 
-			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
+			if (mFrameCount == 0)
+			{
+				RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.0, 0.0, 0.0, 0.0), 1);
+			}
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 			if (rtImage.isValid())
@@ -1528,6 +1685,8 @@ namespace Shadertoy
 			RHIFlushCommand(commandList);
 			GTextureShowManager.registerRenderTarget(GRenderTargetPool);
 
+			mTimePrev = mTime;
+			++mFrameCount;
 		}
 
 		MsgReply onMouse(MouseMsg const& msg) override
@@ -1597,12 +1756,10 @@ namespace Shadertoy
 		}
 
 		RHITexture2DRef mTexKeyboard;
-		RHITexture2DRef mDefaultTex2D;
-		RHITextureCubeRef mDefaultCube;
 
 		bool canUseComputeShader(RenderPassData const& pass)
 		{
-			return bAllowComputeShader && pass.info->passType != EPassType::CubeMap;
+			return bAllowComputeShader /*&& pass.info->passType != EPassType::CubeMap*/;
 		}
 
 		bool bAllowComputeShader = false;
@@ -1613,27 +1770,10 @@ namespace Shadertoy
 		{
 			ShaderHelper::Get().init();
 
-			mFrameBuffer = RHICreateFrameBuffer();
-			mInputBuffer.initializeResource(1);
+			Renderer::initializeRHI();
 
-			mDefaultTex2D = RHIUtility::LoadTexture2DFromFile("Shadertoy/Assets/Wood.jpg");
-			char const* cubePaths[] = 
-			{
-				"Shadertoy/Assets/UffiziGallery.jpg",
-				"Shadertoy/Assets/UffiziGallery_1.jpg",
-				"Shadertoy/Assets/UffiziGallery_2.jpg",
-				"Shadertoy/Assets/UffiziGallery_3.jpg",
-				"Shadertoy/Assets/UffiziGallery_4.jpg",
-				"Shadertoy/Assets/UffiziGallery_5.jpg",
-			};
-			mDefaultCube = RHIUtility::LoadTextureCubeFromFile(cubePaths);
 			mTexKeyboard = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R8 , 256 , 3));
-			GTextureShowManager.registerTexture("DefaultCube", mDefaultCube);
 			GTextureShowManager.registerTexture("Keyborad" , mTexKeyboard);
-
-			ScreenVS::PermutationDomain domainVector;
-			domainVector.set<ScreenVS::UseTexCoord>(false);
-			mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector);
 
 			loadProject("Test");
 			//loadProject("ShaderArt");

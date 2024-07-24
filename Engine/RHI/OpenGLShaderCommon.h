@@ -129,7 +129,7 @@ namespace Render
 		virtual char const* getName() final { return "glsl"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
-		virtual bool compileCode(ShaderCompileContext const& context);
+		virtual EShaderCompileResult compileCode(ShaderCompileContext const& context);
 
 		virtual void precompileCode(ShaderProgramSetupData& setupData) final;
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
@@ -146,6 +146,7 @@ namespace Render
 		virtual bool getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 
 		virtual ShaderPreprocessSettings getPreprocessSettings();
+		virtual bool isMultiCodesCompileSupported() const { return true; }
 
 		ShaderParameterMap mTempParameterMap;
 		uint32  mDefaultVersion;

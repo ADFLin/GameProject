@@ -52,7 +52,7 @@ public:
 
 	virtual int64 getTotalSampleNum() override;
 
-	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override;
+	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush) override;
 
 	void releaseSampleData(uint32 sampleHadle) override
 	{

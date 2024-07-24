@@ -284,87 +284,55 @@ void main()
 		setupData.intermediateData = std::make_unique<GLSLCompileIntermediates>();
 	}
 
-	bool ShaderFormatGLSL::compileCode(ShaderCompileContext const& context)
+	EShaderCompileResult ShaderFormatGLSL::compileCode(ShaderCompileContext const& context)
 	{
-		bool bSuccess;
-		do
+		int numSourceCodes = 0;
+		char const* sourceCodes[4];
+		CHECK(context.codes.size() < ARRAY_SIZE(sourceCodes));
+
+		for (auto code : context.codes)
 		{
-			bSuccess = false;
-
-			int numSourceCodes = 0;
-			char const* sourceCodes[2];
-
-			TArray< uint8 > codeBuffer;
-			if (context.bUsePreprocess)
-			{
-				if (!loadCode(context, codeBuffer))
-					return false;
-			}
-			else
-			{
-				StringView definition = context.getDefinition();
-				if (definition.size())
-				{
-					sourceCodes[numSourceCodes] = definition.data();
-					++numSourceCodes;
-				}
-
-				if (!FFileUtility::LoadToBuffer(context.getPath(), codeBuffer, true))
-					return false;
-			}
-
-			sourceCodes[numSourceCodes] = (char const*)codeBuffer.data();
+			sourceCodes[numSourceCodes] = code.data();
 			++numSourceCodes;
+		}
 
-			auto ProcessCompileError = [&]( GLuint shaderHandle )
+		auto ProcessCompileError = [&]( GLuint shaderHandle )
+		{
+			if (shaderHandle)
 			{
-				{
-					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size() - 1);
-				}
-
-				if (shaderHandle)
-				{
-					TArray< char > buf;
-					FOpenGLShader::GetLogInfo(shaderHandle, buf);
-					emitCompileError(context , buf.data());
-				}
-			};
-
-
-			OpenGLShaderObject shaderObject;
-			bSuccess = shaderObject.compile(context.getType(), sourceCodes, numSourceCodes);
-
-			if (!bSuccess )
-			{
-				if (context.bUsePreprocess)
-				{
-					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
-				}
-				ProcessCompileError(shaderObject.mHandle);
-
-				continue;
+				TArray< char > buf;
+				FOpenGLShader::GetLogInfo(shaderHandle, buf);
+				emitCompileError(context , buf.data());
 			}
+		};
 
-			if (context.programSetupData)
+		OpenGLShaderObject shaderObject;
+		if (!shaderObject.compile(context.getType(), sourceCodes, numSourceCodes))
+		{
+			context.checkOuputDebugCode();
+			ProcessCompileError(shaderObject.mHandle);
+
+			return EShaderCompileResult::CodeError;
+		}
+
+		if (context.programSetupData)
+		{
+			//If a shader object is deleted while it is attached to a program object, it will be flagged for deletion, 
+			//and deletion will not occur until glDetachShader is called to detach it from all program objects to which it is attached
+			auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*context.programSetupData->resource);
+			shaderProgramImpl.attach(context.getType(), shaderObject);
+		}
+		else
+		{
+			auto& shaderImpl = static_cast<OpenGLShader&>(*context.shaderSetupData->resource);
+			if (!shaderImpl.attach(shaderObject))
 			{
-				//If a shader object is deleted while it is attached to a program object, it will be flagged for deletion, 
-				//and deletion will not occur until glDetachShader is called to detach it from all program objects to which it is attached
-				auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*context.programSetupData->resource);
-				shaderProgramImpl.attach(context.getType(), shaderObject);
+				LogWarning(0, "Can't create shader resource");
+				return EShaderCompileResult::ResourceError;
 			}
-			else
-			{
-				auto& shaderImpl = static_cast<OpenGLShader&>(*context.shaderSetupData->resource);
-				if (!shaderImpl.attach(shaderObject))
-				{
-					LogWarning(0, "Can't create shader resource");
-					return false;
-				}
-			}
+		}
 
-		} while( !bSuccess && context.bAllowRecompile );
-
-		return bSuccess;
+		return EShaderCompileResult::Ok;
 	}
 
 	ShaderParameterMap* ShaderFormatGLSL::initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)

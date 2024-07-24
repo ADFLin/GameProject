@@ -50,108 +50,99 @@ namespace Render
 		inoutCode += "#define COMPILER_HLSL 1\n";
 	}
 
-	bool ShaderFormatHLSL_D3D12::compileCode(ShaderCompileContext const& context)
+	EShaderCompileResult ShaderFormatHLSL_D3D12::compileCode(ShaderCompileContext const& context)
 	{
 #if TARGET_PLATFORM_64BITS
-		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
+		VERIFY_FAILCODE(ensureDxcObjectCreation(), return EShaderCompileResult::ResourceError);
 
-		bool bSuccess;
-		do
+		CHECK(context.codes.size() == 1);
+
+		uint32_t codePage = CP_UTF8;
+		TComPtr<IDxcBlobEncoding> sourceBlob;
+		VERIFY_D3D_RESULT(mLibrary->CreateBlobWithEncodingFromPinned(context.codes[0].data(), (uint32)context.codes[0].size(), codePage, &sourceBlob),
+			return EShaderCompileResult::ResourceError; );
+
+		wchar_t const* profileName;
+		switch (context.getType())
 		{
-			bSuccess = true;
-			TArray< uint8 > codeBuffer;
-			if (!loadCode(context, codeBuffer))
-				return false;
+		case EShader::Vertex: profileName = L"vs_6_1"; break;
+		case EShader::Pixel: profileName = L"ps_6_1"; break;
+		case EShader::Geometry: profileName = L"gs_6_1"; break;
+		case EShader::Compute: profileName = L"cs_6_1"; break;
+		case EShader::Hull: profileName = L"hs_6_1"; break;
+		case EShader::Domain: profileName = L"ds_6_1"; break;
+		case EShader::Task: profileName = L"as_6_1"; break;
+		case EShader::Mesh: profileName = L"ms_6_1"; break;
+		default:
+			break;
+		}
 
+		wchar_t const* args[16];
+		int numArgs = 0;
+		if (GRHIPrefEnabled)
+		{
+			args[numArgs++] = L"-Zi";
+		}
+		char const* fileName = FFileUtility::GetFileName(context.getPath());
+		TComPtr<IDxcOperationResult> compileResult;
+		HRESULT hr = mCompiler->Compile(
+			sourceBlob, // pSource
+			FCString::CharToWChar(fileName).c_str(), // pSourceName
+			FCString::CharToWChar(context.getEntry()).c_str(), // pEntryPoint
+			profileName, // pTargetProfile
+			args, numArgs, // pArguments, argCount
+			NULL, 0, // pDefines, defineCount
+			NULL, // pIncludeHandler
+			&compileResult); // ppResult
 
-			uint32_t codePage = CP_UTF8;
-			TComPtr<IDxcBlobEncoding> sourceBlob;
-			VERIFY_D3D_RESULT_RETURN_FALSE(mLibrary->CreateBlobWithEncodingFromPinned(codeBuffer.data(), (uint32)codeBuffer.size(), codePage, &sourceBlob));
-
-			wchar_t const* profileName;
-			switch (context.getType())
-			{
-			case EShader::Vertex: profileName = L"vs_6_1"; break;
-			case EShader::Pixel: profileName = L"ps_6_1"; break;
-			case EShader::Geometry: profileName = L"gs_6_1"; break;
-			case EShader::Compute: profileName = L"cs_6_1"; break;
-			case EShader::Hull: profileName = L"hs_6_1"; break;
-			case EShader::Domain: profileName = L"ds_6_1"; break;
-			case EShader::Task: profileName = L"as_6_1"; break;
-			case EShader::Mesh: profileName = L"ms_6_1"; break;
-			default:
-				break;
-			}
-
-			wchar_t const* args[16];
-			int numArgs = 0;
-			if (GRHIPrefEnabled)
-			{
-				args[numArgs++] = L"-Zi";
-			}
-			char const* fileName = FFileUtility::GetFileName(context.getPath());
-			TComPtr<IDxcOperationResult> compileResult;
-			HRESULT hr = mCompiler->Compile(
-				sourceBlob, // pSource
-				FCString::CharToWChar(fileName).c_str(), // pSourceName
-				FCString::CharToWChar(context.getEntry()).c_str(), // pEntryPoint
-				profileName, // pTargetProfile
-				args, numArgs, // pArguments, argCount
-				NULL, 0, // pDefines, defineCount
-				NULL, // pIncludeHandler
-				&compileResult); // ppResult
-			if (SUCCEEDED(hr))
-			{
-				compileResult->GetStatus(&hr);
-				if (FAILED(hr))
-				{
-					bSuccess = false;
-				}
-			}
-			else
+		bool bSuccess = true;
+		if (SUCCEEDED(hr))
+		{
+			compileResult->GetStatus(&hr);
+			if (FAILED(hr))
 			{
 				bSuccess = false;
 			}
+		}
+		else
+		{
+			bSuccess = false;
+		}
 
-			if (!bSuccess)
+		if (!bSuccess)
+		{
+			context.checkOuputDebugCode();
+			TComPtr<IDxcBlobEncoding> errorsBlob;
+			hr = compileResult->GetErrorBuffer(&errorsBlob);
+			emitCompileError(context, (LPCSTR)errorsBlob->GetBufferPointer());
+			return EShaderCompileResult::CodeError;
+		}
+
+		TComPtr<IDxcBlob> shaderCode;
+		compileResult->GetResult(&shaderCode);
+
+		if (context.programSetupData)
+		{
+			auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
+			auto& shaderData = shaderProgramImpl.mShaderDatas[context.shaderIndex];
+
+			if (!shaderData.initialize(shaderCode))
+				return EShaderCompileResult::ResourceError;
+			shaderData.type = context.getType();
+		}
+		else
+		{
+			auto& shaderImpl = static_cast<D3D12Shader&>(*context.shaderSetupData->resource);
+			if (!shaderImpl.initialize(shaderCode))
 			{
-				if (context.bUsePreprocess)
-				{
-					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
-				}
-
-				TComPtr<IDxcBlobEncoding> errorsBlob;
-				hr = compileResult->GetErrorBuffer(&errorsBlob);
-				emitCompileError(context, (LPCSTR)errorsBlob->GetBufferPointer());
-				continue;
+				LogWarning(0, "Can't create shader resource");
+				return EShaderCompileResult::ResourceError;
 			}
+		}
 
-			TComPtr<IDxcBlob> shaderCode;
-			compileResult->GetResult(&shaderCode);
-
-			if (context.programSetupData)
-			{
-				auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
-				auto& shaderData = shaderProgramImpl.mShaderDatas[context.shaderIndex];
-
-				if (!shaderData.initialize(shaderCode))
-					return false;
-				shaderData.type = context.getType();
-			}
-			else
-			{
-				auto& shaderImpl = static_cast<D3D12Shader&>(*context.shaderSetupData->resource);
-				if (!shaderImpl.initialize(shaderCode))
-				{
-					LogWarning(0, "Can't create shader resource");
-					return false;
-				}
-			}
-		} while (!bSuccess && context.bAllowRecompile );
-
-		return bSuccess;
+		return EShaderCompileResult::Ok;
 #else
-		return false;
+		return EShaderCompileResult::ResourceError;
 #endif
 	}
 
@@ -242,11 +233,7 @@ namespace Render
 
 			if (!bSuccess)
 			{
-				if (context.bUsePreprocess)
-				{
-					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
-				}
-
+				context.checkOuputDebugCode();
 				TComPtr<IDxcBlobEncoding> errorsBlob;
 				hr = compileResult->GetErrorBuffer(&errorsBlob);
 				emitCompileError(context, (LPCSTR)errorsBlob->GetBufferPointer());

@@ -545,7 +545,7 @@ namespace Render
 		ShaderObject* result = (*shaderObjectClass.CreateShaderObject)();
 		if( result )
 		{
-			switch (result->getType())
+			switch (result->getObjectType())
 			{
 			case EShaderObjectType::Program:
 				{
@@ -803,7 +803,7 @@ namespace Render
 	{
 		for( auto pair : mShaderDataMap )
 		{
-			switch (pair.first->getType())
+			switch (pair.first->getObjectType())
 			{
 			case EShaderObjectType::Shader:
 				reloadShader(*static_cast<Shader*>(pair.first));
@@ -835,6 +835,64 @@ namespace Render
 				mAssetViewerReigster->unregisterViewer(pair.second);
 			}
 		}
+	}
+
+	bool LoadCode(ShaderCompileContext& context, ShaderFormat& format, TArray<uint8>& outCodeBuffer)
+	{
+		if (context.bUsePreprocess)
+		{
+			if (context.haveFile())
+			{
+				if (!FFileUtility::LoadToBuffer(context.getPath(), outCodeBuffer, true))
+				{
+					LogWarning(0, "Can't load shader file %s", context.getPath());
+					return false;
+				}
+			}
+			if (!format.preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition(), context.sourceLibrary, outCodeBuffer, context.includeFiles, context.bOuputPreprocessedCode))
+				return false;
+
+			context.codes.push_back(StringView((char const*)outCodeBuffer.data(), outCodeBuffer.size()));
+		}
+		else if (format.isMultiCodesCompileSupported())
+		{
+			StringView definition = context.getDefinition();
+			if (definition.size())
+			{
+				context.codes.push_back(definition);
+			}
+
+			if (context.haveFile())
+			{
+				if (!FFileUtility::LoadToBuffer(context.getPath(), outCodeBuffer, true))
+				{
+					return false;
+				}
+				context.codes.push_back(StringView((char const*)outCodeBuffer.data(), outCodeBuffer.size()));
+			}
+		}
+		else	
+		{
+			StringView definition = context.getDefinition();
+			if (definition.size())
+			{
+				outCodeBuffer.resize(definition.size());
+				outCodeBuffer.assign(definition.data(), definition.data() + definition.size());
+			}
+
+			if (context.haveFile())
+			{
+				if (!FFileUtility::LoadToBuffer(context.getPath(), outCodeBuffer, true, true))
+				{
+					LogWarning(0, "Can't load shader file %s", context.getPath());
+					return false;
+				}
+			}
+
+			context.codes.push_back(StringView((char const*)outCodeBuffer.data(), outCodeBuffer.size()));
+		}
+
+		return true;
 	}
 
 	bool ShaderManager::buildShader(ShaderProgramManagedData& managedData, bool bForceReload)
@@ -901,11 +959,28 @@ namespace Render
 					context.sourceLibrary = mSourceLibrary;
 				}
 
-				if (!mShaderFormat->compileCode(context))
+				do
 				{
-					bFailed = true;
-					break;
-				}
+					TArray< uint8 > codeBuffer;
+					if (!LoadCode(context, *mShaderFormat, codeBuffer))
+					{
+						bFailed = true;
+						break;
+					}
+					
+					switch (mShaderFormat->compileCode(context))
+					{
+					case EShaderCompileResult::Ok:
+						break;
+					case EShaderCompileResult::CodeError:
+						if (context.bAllowRecompile)
+							continue;
+					case EShaderCompileResult::ResourceError:
+						bFailed = true;
+						break;
+					}
+
+				} while (0);
 
 				if (managedData.bShowComplieInfo)
 				{
@@ -1002,10 +1077,28 @@ namespace Render
 					context.sourceLibrary = mSourceLibrary;
 				}
 
-				if (!mShaderFormat->compileCode(context))
+				do
 				{
-					bFailed = true;
-				}
+					TArray< uint8 > codeBuffer;
+					if (!LoadCode(context, *mShaderFormat, codeBuffer))
+					{
+						bFailed = true;
+						break;
+					}
+
+					switch (mShaderFormat->compileCode(context))
+					{
+					case EShaderCompileResult::Ok:
+						break;
+					case EShaderCompileResult::CodeError:
+						if (context.bAllowRecompile)
+							continue;
+					case EShaderCompileResult::ResourceError:
+						bFailed = true;
+						break;
+					}
+
+				} while (0);
 
 				if (managedData.bShowComplieInfo)
 				{

@@ -175,6 +175,14 @@ namespace Render
 #endif
 	}
 
+	void ShaderCompileContext::checkOuputDebugCode() const
+	{
+		if (!bUsePreprocess)
+			return;
+
+		FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, (uint8 const*)codes[0].data(), codes[0].size());
+	}
+
 }//namespace Render
 
 

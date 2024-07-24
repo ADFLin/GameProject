@@ -1,7 +1,20 @@
+#ifndef COMPUTE_DISCARD_SIM
+#define COMPUTE_DISCARD_SIM 0
+#endif
+
 #include "Common.sgc"
 #if PIXEL_SHADER
 #include "ScreenVertexShader.sgc"
+#elif COMPUTE_SHADER
+#if COMPUTE_DISCARD_SIM
+bool bDiscardPixel;
+#define discard { bDiscardPixel = true; return; }
 #endif
+#endif
+
+#define buffer buffer_ST_
+#undef  PI
+
 #ifndef RENDER_IMAGE
 #define RENDER_IMAGE 0
 #endif
@@ -14,9 +27,6 @@
 #ifndef RENDER_SOUND
 #define RENDER_SOUND 0
 #endif
-
-#define buffer buffer_ST_
-#undef PI
 
 layout(std140) cbuffer InputBlock
 {
@@ -112,10 +122,25 @@ CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
 CS_ENTRY(MainCS)
 {
 	float2 fragCoord = float2(SvDispatchThreadID.x, SvDispatchThreadID.y) + 0.5;
+#if RENDER_IMAGE
 	if (fragCoord.x > iResolution.x || fragCoord.y > iResolution.y)
 		return;
+#elif RENDER_CUBE
+	if (fragCoord.x > iViewportSize.x || fragCoord.y > iViewportSize.y)
+		return;
+#elif RENDER_SOUND
+	if (fragCoord.x > SOUND_TEXTURE_SIZE || fragCoord.y > SOUND_TEXTURE_SIZE)
+		return;
+#endif
 
+#if COMPUTE_DISCARD_SIM
+	bDiscardPixel = false;
+#endif
 	float4 fragColor = Render(fragCoord);
+#if COMPUTE_DISCARD_SIM
+	if (bDiscardPixel)
+		return;
+#endif
 
 #if COMPILER_HLSL
 	OutTexture[SvDispatchThreadID.xy] = fragColor;

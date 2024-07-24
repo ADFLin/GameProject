@@ -31,7 +31,7 @@ public:
 
 	template< typename A >
 	TArrayView(TArray<BaseType, A> const& inArray)
-		: mData(inArray.data()), mNum(inArray.size())
+		: mData((T*)inArray.data()), mNum(inArray.size())
 	{
 
 	}

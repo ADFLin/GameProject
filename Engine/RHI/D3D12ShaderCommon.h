@@ -176,7 +176,7 @@ namespace Render
 		virtual char const* getName() final { return "hlsl_dxc"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option);
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry);
-		virtual bool compileCode(ShaderCompileContext const& context);
+		virtual EShaderCompileResult compileCode(ShaderCompileContext const& context);
 
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode);

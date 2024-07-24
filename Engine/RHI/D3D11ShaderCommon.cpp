@@ -36,98 +36,78 @@ namespace Render
 		inoutCode += "#define COMPILER_HLSL 1\n";
 	}
 
-	bool ShaderFormatHLSL::compileCode(ShaderCompileContext const& context)
+	EShaderCompileResult ShaderFormatHLSL::compileCode(ShaderCompileContext const& context)
 	{
 		bool bGLSLCodeConv = true;
-		bool bSuccess;
-		do
-		{
-			bSuccess = true;
-			TArray< uint8 > codeBuffer;
-
-			if (!loadCode(context, codeBuffer))
-				return false;
+		CHECK(context.codes.size() == 1);
 #if 0
-			if (bGLSLCodeConv)
+		if (bGLSLCodeConv)
+		{
+			codeBuffer.pop_back();
+			std::string pathGLSL = "Temp/Temp.glsl";
+			if (!FFileUtility::SaveFromBuffer(pathGLSL.c_str(), context.codes[0].data(), context.codes[0].size()))
 			{
-				codeBuffer.pop_back();
-				std::string pathGLSL = "Temp/Temp.glsl";
-				if (!FFileUtility::SaveFromBuffer(pathGLSL.c_str(), codeBuffer.data(), codeBuffer.size()))
-				{
-					return false;
-				}
-
-				ChildProcess process;
-				char const* command = "glslcc --%s = %s --output = Temp/Temp.hlsl --lang = hlsl --reflect";
-				process.create("glslcc --vert = shader.vert --frag = shader.frag --output = shader.hlsl --lang = hlsl --reflect")
-
+				return false;
 			}
+
+			ChildProcess process;
+			char const* command = "glslcc --%s = %s --output = Temp/Temp.hlsl --lang = hlsl --reflect";
+			process.create("glslcc --vert = shader.vert --frag = shader.frag --output = shader.hlsl --lang = hlsl --reflect")
+
+		}
 #endif
 
+		TComPtr< ID3DBlob > errorCode;
+		TComPtr< ID3DBlob > byteCode;
+		InlineString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice->GetFeatureLevel() , context.getType());
 
-			TComPtr< ID3DBlob > errorCode;
-			TComPtr< ID3DBlob > byteCode;
-			InlineString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice->GetFeatureLevel() , context.getType());
+		uint32 compileFlag = D3DCOMPILE_IEEE_STRICTNESS /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
+		if (GRHIPrefEnabled)
+			compileFlag |= D3DCOMPILE_DEBUG;
 
-			uint32 compileFlag = D3DCOMPILE_IEEE_STRICTNESS /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
-			if (GRHIPrefEnabled)
-				compileFlag |= D3DCOMPILE_DEBUG;
-
-			VERIFY_D3D_RESULT(
-				D3DCompile(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, context.desc->entryName.c_str(),
-										profileName, compileFlag, 0, &byteCode, &errorCode),
-				{
-					bSuccess = false;
-				}
-			);
-
-			if( !bSuccess )
+		VERIFY_D3D_RESULT(
+			D3DCompile(context.codes[0].data(), context.codes[0].size(), "ShaderCode", NULL, NULL, context.desc->entryName.c_str(),
+									profileName, compileFlag, 0, &byteCode, &errorCode),
 			{
-				if( context.bUsePreprocess )
-				{
-					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
-				}
-
-
+				context.checkOuputDebugCode();
 				emitCompileError(context, (LPCSTR)errorCode->GetBufferPointer());
-				continue;
+				return EShaderCompileResult::CodeError;
 			}
+		);
 
-			if (context.programSetupData)
+
+		if (context.programSetupData)
+		{
+			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*context.programSetupData->resource);
+
+			auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*context.programSetupData->intermediateData.get());
+			shaderIntermediates.codeList.push_back(byteCode);
+
+			if (!shaderProgramImpl.mShaderDatas[context.shaderIndex].initialize(context.getType(), mDevice, MakeConstView(byteCode) ))
 			{
-				auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*context.programSetupData->resource);
-
-				auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*context.programSetupData->intermediateData.get());
-				shaderIntermediates.codeList.push_back(byteCode);
-
-				if (!shaderProgramImpl.mShaderDatas[context.shaderIndex].initialize(context.getType(), mDevice, MakeConstView(byteCode) ))
-				{
-					return false;
-				}
-
-				if (context.getType() == EShader::Vertex)
-				{
-					uint8 const* code = (uint8 const*)byteCode->GetBufferPointer();
-					shaderProgramImpl.vertexByteCode.assign(code, code + byteCode->GetBufferSize());
-				}
+				return EShaderCompileResult::ResourceError;
 			}
-			else
+
+			if (context.getType() == EShader::Vertex)
 			{
-				auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*context.shaderSetupData->intermediateData.get());
-				shaderIntermediates.codeList.push_back(byteCode);
-
-				auto& shaderImpl = static_cast<D3D11Shader&>(*context.shaderSetupData->resource);
-				if (!shaderImpl.initialize(mDevice, MakeConstView(byteCode)))
-				{
-					LogWarning(0, "Can't create shader resource");
-					return false;
-				}
+				uint8 const* code = (uint8 const*)byteCode->GetBufferPointer();
+				shaderProgramImpl.vertexByteCode.assign(code, code + byteCode->GetBufferSize());
 			}
+		}
+		else
+		{
+			auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*context.shaderSetupData->intermediateData.get());
+			shaderIntermediates.codeList.push_back(byteCode);
 
+			auto& shaderImpl = static_cast<D3D11Shader&>(*context.shaderSetupData->resource);
+			if (!shaderImpl.initialize(mDevice, MakeConstView(byteCode)))
+			{
+				LogWarning(0, "Can't create shader resource");
+				return EShaderCompileResult::ResourceError;
+			}
+		}
 
-		} while( !bSuccess && context.bAllowRecompile );
-
-		return bSuccess;
+		return EShaderCompileResult::Ok;
 	}
 
 	ShaderParameterMap* ShaderFormatHLSL::initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)

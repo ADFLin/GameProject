@@ -191,16 +191,10 @@ namespace Render
 		setupData.intermediateData = std::make_unique<VulkanShaderCompileIntermediates>();
 	}
 
-	bool ShaderFormatSpirv::compileCode(ShaderCompileContext const& context)
+	EShaderCompileResult ShaderFormatSpirv::compileCode(ShaderCompileContext const& context)
 	{
 #if USE_SHADERC_COMPILE
-		TArray<uint8> codeBuffer;
-
-		if (!loadCode(context, codeBuffer))
-			return false;
-
-		codeBuffer.pop_back();
-
+		CHECK(context.codes.size() == 1);
 
 		shaderc_compiler_t compilerHandle = shaderc_compiler_initialize();
 		shaderc_compile_options_t optionHandle = shaderc_compile_options_initialize();
@@ -221,7 +215,7 @@ namespace Render
 		};
 
 		shaderc_compilation_result_t resultHandle = shaderc_compile_into_spv(
-			compilerHandle,(char const*)codeBuffer.data(), codeBuffer.size(), 
+			compilerHandle, context.codes[0].data(), context.codes[0].size(),
 			ShaderKindMap[context.getType()], context.getPath(), "main", optionHandle);
 
 		ON_SCOPE_EXIT
@@ -232,7 +226,7 @@ namespace Render
 		if (shaderc_result_get_compilation_status(resultHandle) != shaderc_compilation_status_success)
 		{
 			emitCompileError(context, shaderc_result_get_error_message(resultHandle) );
-			return false;
+			return EShaderCompileResult::CodeError;
 		}
 
 		char const* pCodeText = shaderc_result_get_bytes(resultHandle);
@@ -249,32 +243,16 @@ namespace Render
 			SpirvShaderCode code;
 			code.codeBuffer.assign(pCodeText, pCodeText + codeLength);
 			auto& shaderImpl = static_cast<VulkanShader&>(*context.shaderSetupData->resource);
-			VERIFY_RETURN_FALSE(shaderImpl.initialize(mDevice, context.getType(), code));
+			VERIFY_FAILCODE(shaderImpl.initialize(mDevice, context.getType(), code) , return EShaderCompileResult::ResourceError);
 		}
 
-		return true;
 #else
 		std::string pathFull = FFileSystem::ConvertToFullPath(context.getPath());
 		char const* posExtension = FFileUtility::GetExtension(pathFull.c_str());
 		std::string pathCompile;
-		StringView definition = context.getDefinition();
-		if (definition.size())
-		{
-			std::string pathPrep = pathFull.substr(0, posExtension - &pathFull[0]) + "prep" + SHADER_FILE_SUBNAME;
 
-			TArray<uint8> codeBuffer;
-			if (!loadCode(context, codeBuffer))
-				return false;
-
-			FFileUtility::SaveFromBuffer(pathPrep.c_str(), codeBuffer.data(), codeBuffer.size());
-
-			pathCompile = std::move(pathPrep);
-		}
-		else
-		{
-			pathCompile = pathFull;
-		}
-
+		pathCompile = pathFull.substr(0, posExtension - &pathFull[0]) + "prep" + SHADER_FILE_SUBNAME;
+		FFileUtility::SaveFromBuffer(pathCompile.c_str(), context.codes[0].data(), context.codes[0].size());
 
 		std::string pathSpv = pathFull.substr(0, posExtension - &pathFull[0]) + "spv";
 		char const* VulkanSDKDir = SystemPlatform::GetEnvironmentVariable("VULKAN_SDK");
@@ -305,7 +283,7 @@ namespace Render
 			outputBuffer[readSize] = 0;
 
 			emitCompileError(context, outputBuffer);
-			return false;
+			return EShaderCompileResult::CodeError;
 		}
 
 		ON_SCOPE_EXIT
@@ -317,23 +295,21 @@ namespace Render
 		{
 			VulkanShaderCompileIntermediates* myIntermediates = static_cast<VulkanShaderCompileIntermediates*>(context.programSetupData->intermediateData.get());
 			SpirvShaderCode& code = myIntermediates->shaderCodes[ myIntermediates->numShaders ];
-			VERIFY_RETURN_FALSE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
+			VERIFY_FAILCODE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer), return EShaderCompileResult::ResourceError);
 			++myIntermediates->numShaders;
 		}
 		else
 		{
 			SpirvShaderCode code;
-			VERIFY_RETURN_FALSE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
+			VERIFY_FAILCODE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer), return EShaderCompileResult::ResourceError);
 			auto& shaderImpl = static_cast<VulkanShader&>(*context.shaderSetupData->resource);
-			VERIFY_RETURN_FALSE(shaderImpl.initialize(mDevice, context.type, code));
+			VERIFY_FAILCODE(shaderImpl.initialize(mDevice, context.type, code), return EShaderCompileResult::ResourceError);
 
 			context.shaderSetupData->resource = shaderImpl;
 		}
 
-
-		return true;
-
 #endif
+		return EShaderCompileResult::Ok;
 	}
 
 

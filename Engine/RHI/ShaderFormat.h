@@ -94,6 +94,9 @@ namespace Render
 		char const* getPath() const { return desc->filePath.c_str(); }
 		char const* getEntry() const {  return desc->entryName.c_str();  }
 		StringView  getDefinition() const { return desc->headCode; }
+
+		void checkOuputDebugCode() const;
+		TArray< StringView > codes;
 		
 		CPP::CodeSourceLibrary* sourceLibrary;
 
@@ -119,6 +122,14 @@ namespace Render
 			bAddLineMarco = true;
 		}
 	};
+
+	enum class EShaderCompileResult
+	{
+		Ok,
+		CodeError,
+		ResourceError,
+	};
+
 	class ShaderFormat
 	{
 	public:
@@ -128,7 +139,7 @@ namespace Render
 		virtual void setupShaderCompileOption(ShaderCompileOption& context) = 0;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) = 0;
 
-		virtual bool compileCode(ShaderCompileContext const& context) = 0;
+		virtual EShaderCompileResult compileCode(ShaderCompileContext const& context) = 0;
 		virtual void precompileCode(ShaderProgramSetupData& setupData){}
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) = 0;
@@ -152,6 +163,7 @@ namespace Render
 			return ShaderPreprocessSettings();
 		}
 
+		virtual bool isMultiCodesCompileSupported() const { return false; }
 		void emitCompileError(ShaderCompileContext const& context, char const* errorCode);
 		static void OutputError(char const* title, char const* text);
 		

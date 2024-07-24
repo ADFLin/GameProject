@@ -14,7 +14,7 @@ namespace Render
 	class ShaderObject
 	{
 	public:
-		virtual EShaderObjectType getType() const = 0;
+		virtual EShaderObjectType getObjectType() const = 0;
 		enum EClassTypeName
 		{
 			Global,
@@ -240,13 +240,15 @@ namespace Render
 	class ShaderProgram : public TShaderFuncHelper< RHIShaderProgram >
 	{
 	public:
-		virtual EShaderObjectType getType() const override { return EShaderObjectType::Program; }
+		virtual EShaderObjectType getObjectType() const override { return EShaderObjectType::Program; }
 	};
 
 	class Shader : public TShaderFuncHelper< RHIShader >
 	{
 	public:
-		virtual EShaderObjectType getType() const override { return EShaderObjectType::Shader; }
+		virtual EShaderObjectType getObjectType() const override { return EShaderObjectType::Shader; }
+
+		EShader::Type getType() { return mRHIResource->getType(); }
 	};
 
 

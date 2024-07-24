@@ -218,7 +218,7 @@ int64 MFAudioStreamSource::getTotalSampleNum()
 	return mTotalSampleNum;
 }
 
-EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired)
+EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush)
 {
 	HRESULT hr = S_OK;
 

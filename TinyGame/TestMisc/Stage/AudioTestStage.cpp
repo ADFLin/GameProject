@@ -174,7 +174,7 @@ public:
 		return 100000 * mFormat.sampleRate;
 	}
 
-	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired) override
+	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush) override
 	{
 		outSample.handle = mSampleBuffer.fetchSampleData();
 		WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);

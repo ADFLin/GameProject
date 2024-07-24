@@ -121,12 +121,13 @@ public:
 	bool operator >= (DateTime const& rhs) const { return !(*this < rhs); }
 	bool operator <= (DateTime const& rhs) const { return !(*this > rhs); }
 
-private:
 	static constexpr uint64 TicksPerMillisecond = 1;
 	static constexpr uint64 TicksPerSecond = TicksPerMillisecond * 10000;
 	static constexpr uint64 TicksPerMinute = TicksPerSecond * 60;
 	static constexpr uint64 TicksPerHour = TicksPerMinute * 60;
 	static constexpr uint64 TicksPerDay = TicksPerHour * 24;
+
+private:
 
 	uint64 mTicks;
 };

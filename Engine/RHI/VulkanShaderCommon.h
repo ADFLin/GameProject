@@ -123,7 +123,7 @@ namespace Render
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
 
-		virtual bool compileCode(ShaderCompileContext const& context) final;
+		virtual EShaderCompileResult compileCode(ShaderCompileContext const& context) final;
 		virtual void precompileCode(ShaderProgramSetupData& setupData);
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;

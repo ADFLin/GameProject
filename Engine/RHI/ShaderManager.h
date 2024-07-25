@@ -130,28 +130,29 @@ namespace Render
 
 		void cleanupGlobalShader();
 
-		bool loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
+		bool loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr);
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries,
-					  char const* def = nullptr, char const* additionalCode = nullptr);
+					  char const* def = nullptr);
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
 					  char const* vertexEntryName, char const* pixelEntryName, 
-					  char const* def = nullptr, char const* additionalCode = nullptr );
+					  char const* def = nullptr);
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
 					  char const* vertexEntryName, char const* pixelEntryName, 
-					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
+					  ShaderCompileOption const& option);
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName,
 					  TArrayView< ShaderEntryInfo const > entries,
-			          ShaderCompileOption const& option, char const* additionalCode = nullptr);
+			          ShaderCompileOption const& option);
 
 
-		bool loadFile(Shader& shader, char const* fileName, EShader::Type type, char const* entryName, char const* additionalCode = nullptr);
-		bool loadFile(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode = nullptr);
+		bool loadFile(Shader& shader, char const* fileName, EShader::Type type, char const* entryName);
+		bool loadFile(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option);
+
 		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, 
-			            char const* entryVS = nullptr, char const* entryPS = nullptr, char const* def = nullptr, char const* additionalCode = nullptr);
+			            char const* entryVS = nullptr, char const* entryPS = nullptr, char const* def = nullptr);
 
 
 		bool reloadShader(ShaderProgram& shaderProgram);
@@ -169,18 +170,18 @@ namespace Render
 			char const* additionalCode;
 		};
 
-		ShaderProgramManagedData* loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], 
-			TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode,
-			ShaderClassType classType = ShaderClassType::Common);
-
 		ShaderProgramManagedData* loadInternal(ShaderProgram& shaderProgram, char const* fileName, 
 			TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, 
-			char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+			bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+
+		ShaderProgramManagedData* loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], 
+			TArrayView< ShaderEntryInfo const > entries, char const* def, ShaderClassType classType = ShaderClassType::Common);
 
 		ShaderManagedData* loadInternal(Shader& shader, char const* fileName, 
 			ShaderEntryInfo const& entry, ShaderCompileOption const& option, 
-			char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
+			ShaderClassType classType = ShaderClassType::Common);
 		
+
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
 			int indexUsed = 0;
@@ -208,17 +209,14 @@ namespace Render
 
 		void  setupManagedData(
 			ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries,
-			ShaderCompileOption const& option, char const* additionalCode ,
-			char const* fileName , bool bSingleFile );
+			ShaderCompileOption const& option, char const* fileName , bool bSingleFile );
 
 		void  setupManagedData(
 			ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries,
-			ShaderCompileOption const& option, char const* additionalCode,
-			char const* fileNames[]);
+			ShaderCompileOption const& option, char const* fileNames[]);
 
 		void setupManagedData(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
-			ShaderCompileOption const& option, char const* additionalCode, 
-			char const* fileName);
+			ShaderCompileOption const& option, char const* fileName);
 
 		void postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData);
 

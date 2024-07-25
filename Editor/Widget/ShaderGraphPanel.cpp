@@ -48,7 +48,8 @@ bool ShaderGraphPanel::compileShader()
 
 	using namespace Render;
 	ShaderCompileOption option;
-	return ShaderManager::Get().loadFile(mShaderProgram, nullptr, "ScreenVS", "MainPS", option, code.c_str());
+	option.addCode(code.c_str());
+	return ShaderManager::Get().loadFile(mShaderProgram, nullptr, { { EShader::Vertex , "ScreenVS" },{ EShader::Pixel , "MainPS" } }, option);
 }
 
 void ShaderGraphPanel::renderShaderPreview(TVector2<int> const& size)

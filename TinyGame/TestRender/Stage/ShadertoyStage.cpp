@@ -1404,7 +1404,8 @@ namespace Shadertoy
 					option.addDefine(SHADER_PARAM(COMPUTE_DISCARD_SIM), 1);
 				}
 			}
-			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option, code.c_str()))
+			option.addCode(code.c_str());
+			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option))
 				return false;
 
 			pass.shader.bindInputParameters(pass.info->inputs);

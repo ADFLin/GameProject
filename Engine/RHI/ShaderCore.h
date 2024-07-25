@@ -35,7 +35,14 @@ namespace Render
 #endif
 	};
 
-
+	enum class EShaderCodePos : uint8
+	{
+		BeforeCommon,
+		AfterCommon,
+		BeforeInclude,
+		AfterInclude,
+		Last,
+	};
 	class ShaderCompileOption
 	{
 	public:
@@ -87,9 +94,9 @@ namespace Render
 			mConfigVars.push_back(std::move(var));
 		}
 		
-		void addCode(char const* name)
+		void addCode(char const* code, EShaderCodePos pos = EShaderCodePos::Last)
 		{
-			mCodes.push_back(name);
+			mCodes.emplace_back(pos, code);
 		}
 
 		void addMeta(HashString key, char const* value)
@@ -133,14 +140,22 @@ namespace Render
 			std::string value;
 		};
 
-		std::string getCode(ShaderEntryInfo const& entry, char const* defCode = nullptr , char const* addionalCode = nullptr ) const;
+		std::string getCode(ShaderEntryInfo const& entry, char const* defCode = nullptr) const;
 
 		void setup(ShaderFormat& shaderFormat) const;
 
 		bool     bShowComplieInfo = false;
-		bool     bSFSetuped = false;
+		bool     bHadShaderFormatSetup = false;
 
-		TArray< std::string > mCodes;
+		struct CodeInfo
+		{
+			EShaderCodePos pos;
+			std::string    content;
+
+			CodeInfo(EShaderCodePos pos, char const* code)
+				:pos(pos),content(code){}
+		};
+		TArray< CodeInfo > mCodes;
 		TArray< ConfigVar >   mConfigVars;
 		TArray< std::string > mIncludeFiles;
 		std::unordered_map< HashString, std::string > mMetaMap;

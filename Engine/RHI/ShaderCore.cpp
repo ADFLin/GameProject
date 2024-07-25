@@ -118,13 +118,25 @@ namespace Render
 		return InlineString<>::Make("\"%s%s\"", name, SHADER_FILE_SUBNAME);
 	}
 
-	std::string ShaderCompileOption::getCode(ShaderEntryInfo const& entry, char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
+	std::string ShaderCompileOption::getCode(ShaderEntryInfo const& entry, char const* defCode) const
 	{
 		std::string result;
 		if (defCode)
 		{
 			result += defCode;
 		}
+
+		auto AddCode = [&](EShaderCodePos pos)
+		{
+			for (auto const& code : mCodes)
+			{
+				if ( code.pos != pos )
+					continue;
+
+				result += code.content;
+				result += '\n';
+			}
+		};
 
 		result += "#define SHADER_COMPILING 1\n";
 		result += InlineString<>::Make("#define SHADER_ENTRY_%s 1\n", entry.name);
@@ -143,19 +155,12 @@ namespace Render
 			result += "\n";
 		}
 
+		AddCode(EShaderCodePos::BeforeCommon);
+
 		result += "#include \"Common" SHADER_FILE_SUBNAME "\"\n";
 
-		if (addionalCode)
-		{
-			result += addionalCode;
-			result += '\n';
-		}
-
-		for (auto const& code : mCodes)
-		{
-			result += code;
-			result += '\n';
-		}
+		AddCode(EShaderCodePos::AfterCommon);
+		AddCode(EShaderCodePos::BeforeInclude);
 
 		for (auto& name : mIncludeFiles)
 		{
@@ -165,15 +170,17 @@ namespace Render
 			result += "\"\n";
 		}
 
+		AddCode(EShaderCodePos::AfterInclude);
+		AddCode(EShaderCodePos::Last);
 		return result;
 	}
 
 	void ShaderCompileOption::setup(ShaderFormat& shaderFormat) const
 	{
-		if (bSFSetuped == false)
+		if (bHadShaderFormatSetup == false)
 		{
 			ShaderCompileOption* mutableThis = const_cast<ShaderCompileOption*>(this);
-			mutableThis->bSFSetuped = true;
+			mutableThis->bHadShaderFormatSetup = true;
 			shaderFormat.setupShaderCompileOption(*mutableThis);
 		}
 	}

@@ -34,7 +34,8 @@ public:
 		}
 
 		ShaderCompileOption option;
-		if (!ShaderManager::Get().loadFile(mProgPlot2D, nullptr, "ScreenVS", "MainPS", option, (char const*)codeTemplate.data()))
+		option.addCode((char const*)codeTemplate.data());
+		if (!ShaderManager::Get().loadFile(mProgPlot2D, nullptr, "ScreenVS", "MainPS", option))
 		{
 			return false;
 		}

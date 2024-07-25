@@ -885,7 +885,7 @@ namespace Render
 			if( !ShaderManager::Get().loadFile(
 				mShaderBassPassTest, "Shader/OITRender",
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
-				option, nullptr) )
+				option) )
 				return false;
 			VERIFY_RETURN_FALSE( mShaderResolve = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option) );
 		}
@@ -1421,7 +1421,7 @@ namespace Render
 			static ParamConstructor sParamConstructor;
 			option.addDefine(SHADER_PARAM( SAMPLE_RADIUS_NUM ), SampleRaidusNum);
 			option.addDefine(SHADER_PARAM( FLITER_NFACTOR ), sParamConstructor.factor);
-			option.addCode(sParamConstructor.code.c_str());
+			option.addCode(sParamConstructor.code.c_str(), EShaderCodePos::BeforeInclude);
 		}
 
 		static char const* GetShaderFileName()

@@ -130,7 +130,7 @@ namespace Render
 		if (!ShaderManager::Get().loadFile(
 			GSimpleBasePass,
 			"Shader/SimpleBasePass",
-			SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option, nullptr))
+			SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option))
 			return false;
 
 		for (uint32 i = 0; i < SimplePipelineProgram::PermutationDomain::GetPermutationCount(); ++i)

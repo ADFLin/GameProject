@@ -1374,9 +1374,9 @@ namespace Shadertoy
 					break;
 				}
 			}
+
 			std::string code;
 			Text::Format((char const*)codeTemplate.data(), { StringView(channelCode), commonInfo ? StringView(commonInfo->code) : StringView(), StringView(pass.info->code) }, code);
-
 
 			ShaderCompileOption option;
 			switch (pass.info->passType)
@@ -1405,7 +1405,8 @@ namespace Shadertoy
 				}
 			}
 			option.addCode(code.c_str());
-			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, { bUseComputeShader ? EShader::Compute : EShader::Pixel, bUseComputeShader ? "MainCS" : "MainPS" }, option))
+			ShaderEntryInfo entry = bUseComputeShader ? ShaderEntryInfo{ EShader::Compute, "MainCS" } : ShaderEntryInfo{ EShader::Pixel, "MainPS" };
+			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, entry, option))
 				return false;
 
 			pass.shader.bindInputParameters(pass.info->inputs);

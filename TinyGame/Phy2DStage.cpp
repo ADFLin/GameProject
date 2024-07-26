@@ -50,19 +50,18 @@ namespace Phy2D
 	void Phy2DStageBase::renderObject(RHIGraphics2D& g, CollideObject& obj)
 	{
 		Shape* shape = obj.mShape;
+		g.pushXForm();
 
-		glPushMatrix();
-
-		glTranslatef(obj.getPos().x, obj.getPos().y, 0);
-		glRotatef(Math::RadToDeg(obj.mXForm.getRotateAngle()), 0, 0, 1);
-		glTranslatef(-obj.getPos().x, -obj.getPos().y, 0);
+		g.translateXForm(obj.getPos().x, obj.getPos().y);
+		g.rotateXForm(Math::RadToDeg(obj.mXForm.getRotateAngle()));
+		g.translateXForm(-obj.getPos().x, -obj.getPos().y);
 
 		switch( shape->getType() )
 		{
 		case Shape::eBox:
 		{
 			Vector2 ext = static_cast<BoxShape*>(shape)->mHalfExt;
-			g.drawRect(obj.getPos() - ext, Vec2i(2 * ext));
+			g.drawRect(obj.getPos() - ext, 2.0 * ext);
 		}
 		break;
 		case Shape::eCircle:
@@ -71,12 +70,14 @@ namespace Phy2D
 		case Shape::ePolygon:
 		{
 			PolygonShape* poly = static_cast<PolygonShape*>(shape);
-			glTranslatef(obj.getPos().x, obj.getPos().y, 0);
+			g.translateXForm(obj.getPos().x, obj.getPos().y);
 			g.drawPolygon(&poly->mVertices[0], poly->mVertices.size());
 		}
 		break;
 		}
-		glPopMatrix();
+
+		g.popXForm();
+
 	}
 
 	bool CollideTestStage::onInit()
@@ -95,10 +96,9 @@ namespace Phy2D
 		mShape2.setRadius(1);
 		mObjects[0].mShape = &mShape1;
 		mObjects[0].mXForm.setTranslation(Vector2(0, 0));
-		mObjects[1].mShape = &mShape2;
+		mObjects[1].mShape = &mShape3;
 		//mObjects[1].mXForm.setRoatation( Math::Deg2Rad( 45 ) );
 		mObjects[1].mXForm.setTranslation(Vector2(1, 1));
-
 
 		restart();
 		return true;
@@ -108,22 +108,19 @@ namespace Phy2D
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();
 
 		float scale = 50;
 		Vector2 offset = Vector2(300, 300);
 
-		glPushMatrix();
-		glTranslatef(offset.x, offset.y, 0);
-		glScalef(scale, scale, scale);
-
+		g.pushXForm();
+		g.translateXForm(offset.x, offset.y);
+		g.scaleXForm(scale,scale);
 
 		RenderUtility::SetPen(g, EColor::Red);
 		g.drawLine(Vector2(-100, 0), Vector2(100, 0));
 		RenderUtility::SetPen(g, EColor::Green);
 		g.drawLine(Vector2(0, -100), Vector2(0, 100));
-
 
 		RenderUtility::SetPen(g, (mIsCollided) ? EColor::White : EColor::Gray);
 		RenderUtility::SetBrush(g, EColor::Null);
@@ -131,8 +128,8 @@ namespace Phy2D
 		{
 			CollideObject& obj = mObjects[i];
 			renderObject(g, obj);
-
 		}
+
 		InlineString< 256 > str;
 
 		//if ( mIsCollided )
@@ -145,12 +142,10 @@ namespace Phy2D
 			RenderUtility::SetPen(g, EColor::Purple);
 			g.drawLine(mObjects[0].getPos() - mContact.normal, mObjects[0].getPos());
 
-
 			XForm2D const& worldTrans = mObjects[0].mXForm;
-
-			glPushMatrix();
-			glTranslatef(worldTrans.getPos().x, worldTrans.getPos().y, 0);
-			glRotatef(Math::RadToDeg(worldTrans.getRotateAngle()), 0, 0, 1);
+			g.pushXForm();
+			g.translateXForm(worldTrans.getPos().x, worldTrans.getPos().y);
+			g.rotateXForm(Math::RadToDeg(worldTrans.getRotateAngle()));
 
 #if PHY2D_DEBUG	
 
@@ -195,11 +190,10 @@ namespace Phy2D
 			}
 
 #endif //PHY2D_DEBUG
-
-			glPopMatrix();
+			g.popXForm();
 		}
 
-		glPopMatrix();
+		g.popXForm();
 
 		if( mIsCollided )
 		{
@@ -316,9 +310,9 @@ namespace Phy2D
 		float scale = 10;
 		Vector2 offset = Vector2(300, 500);
 
-		glPushMatrix();
-		glTranslatef(offset.x, offset.y, 0);
-		glScalef(scale, -scale, scale);
+		g.pushXForm();
+		g.translateXForm(offset.x, offset.y);
+		g.scaleXForm(scale, -scale);
 
 
 		RenderUtility::SetPen(g, EColor::Red);
@@ -351,10 +345,9 @@ namespace Phy2D
 			g.drawLine(body->getPos(), body->getPos() + body->mLinearVel);
 
 		}
+		g.popXForm();
 
 		InlineString< 256 > str;
-
-		glPopMatrix();
 
 		if( !mWorld.mColManager.mMainifolds.empty() )
 		{

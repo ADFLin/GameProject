@@ -29,6 +29,10 @@ namespace Phy2D
 
 		void renderObject( RHIGraphics2D& g , CollideObject& obj );
 
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::OpenGL;
+		}
 
 	};
 	class TINY_API CollideTestStage : public Phy2DStageBase

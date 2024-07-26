@@ -31,6 +31,7 @@ namespace Math
 
 		bool isValid() const { return min <= max; }
 		bool isEmpty() const { return max <= min; }
+		bool isPoint() const { return min == max; }
 
 		bool isInside(VectorType const& p) const
 		{

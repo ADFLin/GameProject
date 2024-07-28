@@ -7,11 +7,37 @@
 
 #include "GameGlobal.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/GlobalShader.h"
+#include "RHI/ShaderManager.h"
 
 namespace Phy2D
 {
+	using namespace Render;
+
 	FunctionJumper gDebugJumper;
 	bool gDebugStep = true;
+
+	class MinkowskiSunProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(MinkowskiSunProgram, Global)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/MinkowskiSun";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(MinkowskiSunProgram);
 
 	void jumpDebug()
 	{
@@ -53,7 +79,7 @@ namespace Phy2D
 		g.pushXForm();
 
 		g.translateXForm(obj.getPos().x, obj.getPos().y);
-		g.rotateXForm(Math::RadToDeg(obj.mXForm.getRotateAngle()));
+		g.rotateXForm(obj.mXForm.getRotateAngle());
 		g.translateXForm(-obj.getPos().x, -obj.getPos().y);
 
 		switch( shape->getType() )
@@ -94,11 +120,10 @@ namespace Phy2D
 		mShape3.mVertices.push_back(Vector2(-1, -2));
 		mShape1.mHalfExt = Vector2(1, 1);
 		mShape2.setRadius(1);
+		mObjects[1].mShape = &mShape2;
+		mObjects[1].mXForm.setTranslation(Vector2(0, 0));
 		mObjects[0].mShape = &mShape1;
-		mObjects[0].mXForm.setTranslation(Vector2(0, 0));
-		mObjects[1].mShape = &mShape3;
-		//mObjects[1].mXForm.setRoatation( Math::Deg2Rad( 45 ) );
-		mObjects[1].mXForm.setTranslation(Vector2(1, 1));
+		mObjects[0].mXForm.setTranslation(Vector2(1, 1));
 
 		restart();
 		return true;
@@ -107,6 +132,9 @@ namespace Phy2D
 	void CollideTestStage::onRender(float dFrame)
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
+
+		using namespace Render;
+		RHIClearRenderTargets(RHICommandList::GetImmediateList(), EClearBits::Color, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		g.beginRender();
 
@@ -122,6 +150,42 @@ namespace Phy2D
 		RenderUtility::SetPen(g, EColor::Green);
 		g.drawLine(Vector2(0, -100), Vector2(0, 100));
 
+		ObjectParamData paramData;
+		paramData.ObjectA.set(mObjects[0]);
+		paramData.ObjectB.set(mObjects[1]);
+		mObjectParams.updateBuffer(paramData);
+
+		AABB bound;
+		bound.invalidate();
+		bound += mObjects[0].getAABB();
+		bound += mObjects[1].getAABB();
+		bound.expand(Vector2(1, 1));
+
+		MinkowskiSunProgram* program = ShaderManager::Get().getGlobalShaderT< MinkowskiSunProgram >();
+		g.drawCustomFunc([program, &g, bound, this](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
+		{
+			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+			RHISetShaderProgram(commandList, program->getRHI());
+			program->setParam(commandList, SHADER_PARAM(XForm), element.transform.toMatrix4() * g.getBaseTransform());
+			SetStructuredUniformBuffer(commandList, *program, mObjectParams);
+
+			LinearColor color = LinearColor(1, 0, 0, 0.2);
+
+			struct Vertex
+			{
+				Vector2 pos;
+				LinearColor color;
+			} v[] =
+			{
+				{ bound.min, color },
+				{ Vector2(bound.max.x,bound.min.y), color },
+				{ bound.max, color },
+				{ Vector2(bound.min.x,bound.max.y), color },
+			};
+
+			TRenderRT<RTVF_XY_CA>::Draw(commandList, EPrimitive::Quad, v, 4);
+		});
+
 		RenderUtility::SetPen(g, (mIsCollided) ? EColor::White : EColor::Gray);
 		RenderUtility::SetBrush(g, EColor::Null);
 		for( int i = 0; i < 2; ++i )
@@ -132,7 +196,7 @@ namespace Phy2D
 
 		InlineString< 256 > str;
 
-		//if ( mIsCollided )
+		if ( mIsCollided )
 		{
 			RenderUtility::SetPen(g, EColor::Green);
 			g.drawLine(mContact.pos[0], mObjects[0].getPos());
@@ -145,12 +209,12 @@ namespace Phy2D
 			XForm2D const& worldTrans = mObjects[0].mXForm;
 			g.pushXForm();
 			g.translateXForm(worldTrans.getPos().x, worldTrans.getPos().y);
-			g.rotateXForm(Math::RadToDeg(worldTrans.getRotateAngle()));
+			g.rotateXForm(worldTrans.getRotateAngle());
 
 #if PHY2D_DEBUG	
 
 #if 0
-			RenderUtility::setPen(g, Color::eOrange);
+			RenderUtility::setPen(g, EColor::Orange);
 			for( int n = 0; n < 3; ++n )
 			{
 				Vector2 size = Vector2(0.1, 0.1);
@@ -159,7 +223,7 @@ namespace Phy2D
 #endif
 #endif //PHY2D_DEBUG
 #if 0
-			RenderUtility::setPen(g, Color::eBlue);
+			RenderUtility::setPen(g, EColor::Blue);
 			for( int n = 0; n < 3; ++n )
 			{
 				Vector2 size = Vector2(0.1, 0.1);
@@ -172,9 +236,10 @@ namespace Phy2D
 				GJK::Edge& edge = gGJK.mEdges[n];
 				Vector2 size = Vector2(0.05, 0.05);
 				RenderUtility::SetPen(g, EColor::Cyan);
-				g.drawRect(edge.sv->v - size / 2, size);
+				Vector2 v = mObjects[1].mXForm.transformPosition(edge.sv->v);
+				g.drawRect(v - size / 2, size);
 				RenderUtility::SetPen(g, EColor::Cyan);
-				g.drawLine(edge.sv->v, edge.sv->v + Math::GetNormal(edge.sv->d));
+				g.drawLine(v, v + Math::GetNormal(edge.sv->d));
 			}
 #endif
 #if PHY2D_DEBUG	
@@ -200,6 +265,9 @@ namespace Phy2D
 			str.format("%f , %f , %f", mContact.normal.x, mContact.normal.y, mContact.depth);
 			g.drawText(10, 20, str);
 		}
+
+
+
 		g.endRender();
 	}
 
@@ -218,9 +286,13 @@ namespace Phy2D
 			case EKeyCode::W: moveObject(Vector2(0, speed)); break;
 			case EKeyCode::S: moveObject(Vector2(0, -speed)); break;
 			case EKeyCode::Left:
-				mObjects[1].mXForm.rotate(0.01); break;
+				mObjects[0].mXForm.rotate(0.01);
+				doCollisionTest();
+				break;
 			case EKeyCode::Right:
-				mObjects[1].mXForm.rotate(-0.01); break;
+				mObjects[0].mXForm.rotate(-0.01);
+				doCollisionTest();
+				break;
 			case EKeyCode::Num1:
 				++idx; if (idx >= ARRAY_SIZE(mShapes)) idx = 0;
 				mObjects[0].mShape = mShapes[idx];

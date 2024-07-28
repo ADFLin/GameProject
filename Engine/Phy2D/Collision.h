@@ -36,8 +36,15 @@ namespace Phy2D
 		}
 		virtual PhyType getType() const { return PhyObject::eCollideType; }
 		Vector2 const& getPos() const { return mXForm.getPos(); }
+		Rotation2D const& getRotation() const { return mXForm.getRotation(); }
 		void         setPos( Vector2 const& p ){ mXForm.setTranslation( p ); }
 
+		AABB  getAABB()
+		{
+			AABB result;
+			mShape->calcAABB(mXForm, result);
+			return result;
+		}
 
 		Vector2 getSupport( Vector2 const& dir ) const
 		{

@@ -6,6 +6,7 @@
 #include "HashString.h"
 #include "LogSystem.h"
 #include "Template/ConstString.h"
+#include "Template/ArrayView.h"
 #include "DataStructure/Array.h"
 
 #include <string>
@@ -13,7 +14,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
-
 
 namespace CPP
 {
@@ -390,9 +390,41 @@ namespace CPP
 	class CodeSource
 	{
 	public:
-		void appendString(StringView const& str);
+
+		virtual int getLineOffset() { return 0; }
+		virtual char const* getCode() { return nullptr; }
+		virtual HashString  getFilePath() { return HashString(); }
+		virtual char const* getSourceName() { return ""; }
+	};
+
+
+	class CodeStringSource : public CodeSource
+	{
+	public:
+
+		virtual int getLineOffset() { return 0; }
+		virtual char const* getCode() { return mString.data(); }
+		virtual HashString  getFilePath() { return HashString(); }
+		virtual char const* getSourceName() { return ""; }
+
+		StringView mString;
+	};
+
+	class CodeBufferSource : public CodeSource
+	{
+	public:
 		bool loadFile(char const* path);
 
+		void appendString(StringView const& str);
+		bool appendFile(char const* path);
+
+		TArrayView< uint8 const > getBuffer() { return mBuffer; }
+
+
+		virtual int getLineOffset(){  return lineOffset;  }
+		virtual char const* getCode() {  return (char const*)mBuffer.data();  }
+		virtual HashString  getFilePath() { return filePath; }
+		virtual char const* getSourceName() { return filePath.c_str(); }
 		HashString    filePath;
 		int lineOffset = 0;
 	private:
@@ -409,20 +441,27 @@ namespace CPP
 	public:
 		CodeSource* source;
 
+
+		char const* getSourceName()
+		{
+			if (source)
+				return source->getSourceName();
+			return "";
+		}
+
 		int getLine() const
 		{
 #if _DEBUG
 			int lineCountActual = countCharFormStart('\n');
 			assert(lineCountActual == mLineCount);
 #endif
-			return mLineCount + source->lineOffset + 1;
+			return mLineCount + source->getLineOffset() + 1;
 		}
 
 		void resetSeek()
 		{
 			assert(source);
-			mCur = (char const*)source->mBuffer.data();
-			//skip BOM
+			mCur = source->getCode();
 			SkipBOM(mCur);
 			mLineCount = 0;
 		}
@@ -434,7 +473,7 @@ namespace CPP
 
 		int countCharFormStart(char c) const
 		{
-			return FStringParse::CountChar((char const*)source->mBuffer.data(), mCur, c);
+			return FStringParse::CountChar(source->getCode(), mCur, c);
 		}
 		
 	private:
@@ -453,11 +492,11 @@ namespace CPP
 
 		~CodeSourceLibrary();
 
-		CodeSource* FindOrLoadSource(HashString const& path);
+		CodeBufferSource* FindOrLoadSource(HashString const& path);
 
 		void cleanup();
 
-		std::unordered_map< HashString, CodeSource* > mSourceMap;
+		std::unordered_map< HashString, CodeBufferSource* > mSourceMap;
 	};
 
 	class Preprocessor
@@ -466,7 +505,8 @@ namespace CPP
 		Preprocessor();
 		~Preprocessor();
 
-
+		void pushInput(CodeSource& sorce);
+		void translate();
 		void translate(CodeSource& sorce);
 		void setOutput(CodeOutput& output);
 		void setSourceLibrary(CodeSourceLibrary& sourceLibrary);

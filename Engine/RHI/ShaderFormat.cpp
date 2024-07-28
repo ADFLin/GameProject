@@ -14,7 +14,30 @@ namespace Render
 	{
 		TimeScope scope("PreprocessCode");
 
-		CPP::CodeSource source;
+#define USE_MULTI_INPUT 1
+
+		CPP::CodeBufferSource source;
+		CPP::Preprocessor preprocessor;
+
+#if USE_MULTI_INPUT
+		if (path)
+		{
+			if (!source.loadFile(path))
+			{
+				LogWarning(0, "Can't load shader file %s", path);
+				return false;
+			}
+			source.filePath = path;
+			preprocessor.pushInput(source);
+		}
+
+		CPP::CodeStringSource definitionSource;
+		if (definition.size())
+		{
+			definitionSource.mString = definition;
+			preprocessor.pushInput(definitionSource);
+		}
+#else
 
 		if (path)
 		{
@@ -23,13 +46,16 @@ namespace Render
 				source.appendString(definition);
 				source.lineOffset = -FStringParse::CountChar(definition.data(), definition.data() + definition.size() + 1, '\n');
 			}
-			source.appendString(StringView((char const*)inoutCodes.data(), inoutCodes.size()));
-			source.filePath = path;
+			if (!source.appendFile(path))
+			{
+				LogWarning(0, "Can't load shader file %s", path);
+				return false;
+			}
 
+			source.filePath = path;
 		}
 		else
 		{
-			source.lineOffset = 0;
 			if (definition.size())
 			{
 				source.appendString(definition);
@@ -37,9 +63,39 @@ namespace Render
 			source.filePath = "RuntimeCode";
 		}
 
+		bool bOuputUnPreprocessedCode = false;
+		if (bOuputUnPreprocessedCode)
+		{
+#if 0
+			FFileSystem::CreateDirectory("ShaderOutput");
+			std::string outputPath = "ShaderOutput/";
+			if (path)
+			{
+				outputPath += FFileUtility::GetBaseFileName(path).toCString();
+			}
+			else
+			{
+				outputPath += "RuntimeCode";
+			}
+			if (compileDesc)
+			{
+				outputPath += "_";
+				outputPath += compileDesc->entryName.c_str();
+			}
+			outputPath += "_";
+			outputPath += getName();
+			outputPath += SHADER_FILE_SUBNAME;
+#else
+			std::string outputPath = "temp_unpreprocessed.sgc";
+#endif
+			FFileUtility::SaveFromBuffer(outputPath.c_str(), source.getBuffer().data(), source.getBuffer().size());
+		}
+
+		preprocessor.pushInput(source);
+#endif
+
 		auto settings = getPreprocessSettings();
 
-		CPP::Preprocessor preprocessor;
 		if (sourceLibrary)
 		{
 			preprocessor.setSourceLibrary(*sourceLibrary);
@@ -65,7 +121,7 @@ namespace Render
 
 		try
 		{
-			preprocessor.translate(source);
+			preprocessor.translate();
 		}
 		catch (std::exception& e)
 		{

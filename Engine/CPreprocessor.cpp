@@ -11,12 +11,12 @@
 static InlineString<512> GMsg;
 #define PARSE_ERROR( MSG , ... ) \
 	{\
-		GMsg.format( "%s (%d) - " MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
+		GMsg.format( "%s (%d) - " MSG , mInput.getSourceName() , mInput.getLine() , ##__VA_ARGS__ );\
 		throw SyntaxError( GMsg.c_str() );\
 	}
 #define PARSE_WARNING( MSG , ... )\
 	{\
-		GMsg.format( "%s (%d) - " MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
+		GMsg.format( "%s (%d) - " MSG , mInput.getSourceName() , mInput.getLine() , ##__VA_ARGS__ );\
 		emitWarning( GMsg.c_str() );\
 	}
 
@@ -35,7 +35,7 @@ namespace CPP
 
 	Preprocessor::Preprocessor()
 	{
-
+		mInput.source = nullptr;
 	}
 
 	Preprocessor::~Preprocessor()
@@ -46,11 +46,47 @@ namespace CPP
 		}
 	}
 
+	void Preprocessor::pushInput(CodeSource& sorce)
+	{
+		if (mInput.source)
+		{
+			InputEntry entry;
+			entry.input = mInput;
+#if 0
+			entry.onChildFinish = [this, savedPath = path.toStdString()]()
+			{
+				mOutput->pushEoL();
+				if (bCommentIncludeFileName)
+				{
+					mOutput->push("//~Include ");
+					mOutput->push(savedPath);
+					mOutput->pushEoL();
+				}
+
+				bRequestSourceLine = true;
+			};
+#endif
+
+			mInputStack.push_back(entry);
+		}
+
+		mInput.source = &sorce;
+		mInput.resetSeek();
+	}
+
+	void Preprocessor::translate()
+	{
+		mBlockStateStack.clear();
+		mIfScopeDepth = 0;
+		parseCode(false);
+	}
+
 	void Preprocessor::translate(CodeSource& sorce)
 	{
 		mInputStack.clear();
 		mInput.source = &sorce;
 		mInput.resetSeek();
+
 		mBlockStateStack.clear();
 		mIfScopeDepth = 0;
 
@@ -690,9 +726,10 @@ namespace CPP
 		{
 		case HashValue("once"):
 			{
-				if (mInput.source && !mInput.source->filePath.empty())
+				auto filePath = mInput.source ? mInput.source->getFilePath() : HashString();
+				if (!filePath.empty())
 				{
-					mPragmaOnceSet.insert(mInput.source->filePath);
+					mPragmaOnceSet.insert(filePath);
 				}
 			}
 			break;
@@ -1407,7 +1444,7 @@ namespace CPP
 			len = lineMarco.format("#line %d\n", mInput.getLine() + lineOffset);
 			break;
 		case LF_LineNumberAndFilePath:
-			len = lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, (mInput.source) ? mInput.source->filePath.c_str() : "");
+			len = lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, mInput.getSourceName());
 			break;
 		}
 		if (len)
@@ -1447,17 +1484,31 @@ namespace CPP
 		return true;
 	}
 
-	void CodeSource::appendString(StringView const& str)
+	void CodeBufferSource::appendString(StringView const& str)
 	{
 		if (!mBuffer.empty())
 			mBuffer.pop_back();
-		mBuffer.append(str.begin() , str.end());
+
+		char const* start = str.data();
+		FCodeParse::SkipBOM(start);
+		mBuffer.append(start, str.end());
 		mBuffer.push_back(0);
 	}
 
-	bool CodeSource::loadFile(char const* path)
+	bool CodeBufferSource::loadFile(char const* path)
 	{
 		if (!FFileUtility::LoadToBuffer(path, mBuffer, true))
+			return false;
+
+		return true;
+	}
+
+	bool CodeBufferSource::appendFile(char const* path)
+	{
+		if (!mBuffer.empty())
+			mBuffer.pop_back();
+
+		if (!FFileUtility::LoadToBuffer(path, mBuffer, true, true))
 			return false;
 
 		return true;
@@ -1600,14 +1651,14 @@ namespace CPP
 		cleanup();
 	}
 
-	CodeSource* CodeSourceLibrary::FindOrLoadSource(HashString const& path)
+	CodeBufferSource* CodeSourceLibrary::FindOrLoadSource(HashString const& path)
 	{
 		auto iter = mSourceMap.find(path);
 
-		CodeSource* result;
+		CodeBufferSource* result;
 		if (iter == mSourceMap.end())
 		{
-			TPtrHolder< CodeSource > includeSourcePtr(new CodeSource);
+			TPtrHolder< CodeBufferSource > includeSourcePtr(new CodeBufferSource);
 			if (!includeSourcePtr->loadFile(path.c_str()))
 			{
 				return nullptr;

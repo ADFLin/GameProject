@@ -699,10 +699,10 @@ namespace Render
 		}
 
 		template < class TRHIResource >
-		static auto To(TRefCountPtr<TRHIResource>& ptr) { return To(ptr.get()); }
+		static auto To(TRHIResourceRef<TRHIResource>& ptr) { return To(ptr.get()); }
 
 		template < class TRHIResource >
-		static auto To(TRefCountPtr<TRHIResource> const& ptr) { return To(ptr.get()); }
+		static auto To(TRHIResourceRef<TRHIResource> const& ptr) { return To(ptr.get()); }
 
 		static auto To(OpenGLFrameBuffer* buffer) { return buffer; }
 
@@ -719,12 +719,12 @@ namespace Render
 		}
 
 		template < class TRHIResource >
-		static GLuint GetHandle(TRefCountPtr<TRHIResource>& refPtr)
+		static GLuint GetHandle(TRHIResourceRef<TRHIResource>& refPtr)
 		{
 			return OpenGLCast::To(refPtr)->getHandle();
 		}
 		template < class TRHIResource >
-		static GLuint GetHandle(TRefCountPtr<TRHIResource> const& refPtr)
+		static GLuint GetHandle(TRHIResourceRef<TRHIResource> const& refPtr)
 		{
 			return OpenGLCast::To(refPtr)->getHandle();
 		}

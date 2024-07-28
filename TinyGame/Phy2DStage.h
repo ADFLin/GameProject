@@ -6,10 +6,50 @@
 #include "StageBase.h"
 #include "Phy2D/Phy2D.h"
 
+#include "RHI/ShaderCore.h"
+#include "RHI/RHICommand.h"
+
 
 namespace Phy2D
 {
 	void jumpDebug();
+
+	using namespace Render;
+
+	struct ObjectData
+	{
+		Vector3 meta;
+		int     type;
+		Vector2 pos;
+		Vector2 rotation;
+
+		void set(CollideObject& object)
+		{
+			auto shape = object.getShape();
+			switch (shape->getType())
+			{
+			case Shape::eBox:
+				type = 1;
+				meta = Vector3(static_cast<BoxShape*>(shape)->mHalfExt.x, static_cast<BoxShape*>(shape)->mHalfExt.y, 0);
+				break;
+			case Shape::eCircle:
+				type = 0;
+				meta = Vector3(static_cast<CircleShape*>(shape)->getRadius(), 0, 0);
+				break;
+			}
+			pos = object.getPos();
+			rotation = object.getRotation().getXDir();
+		}
+	};
+
+	struct ObjectParamData
+	{
+		DECLARE_UNIFORM_BUFFER_STRUCT(ObjectParamBlock);
+
+		ObjectData ObjectA;
+		ObjectData ObjectB;
+	};
+
 
 	class TINY_API Phy2DStageBase : public StageBase
 		                          , public IGameRenderSetup
@@ -35,6 +75,7 @@ namespace Phy2D
 		}
 
 	};
+
 	class TINY_API CollideTestStage : public Phy2DStageBase
 	{
 		typedef Phy2DStageBase BaseClass;
@@ -77,8 +118,22 @@ namespace Phy2D
 
 		void moveObject(Vector2 const& offset)
 		{
-			mObjects[1].mXForm.translate(offset);
+			mObjects[0].mXForm.translate(offset);
+			doCollisionTest();
+		}
+
+
+		void doCollisionTest()
+		{
 			mIsCollided = mCollision.test(&mObjects[0], &mObjects[1], mContact);
+		}
+
+
+		virtual bool setupRenderResource(ERenderSystem systemName)
+		{
+			VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
+			mObjectParams.initializeResource(1);
+			return true;
 		}
 	protected:
 		Contact mContact;
@@ -90,6 +145,8 @@ namespace Phy2D
 		PolygonShape mShape3;
 		Shape*       mShapes[3];
 		CollisionManager mCollision;
+
+		TStructuredBuffer<ObjectParamData> mObjectParams;
 	};
 
 

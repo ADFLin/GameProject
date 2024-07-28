@@ -1591,7 +1591,7 @@ namespace Render
 		}
 
 		template < class TRHIResource >
-		static auto To(TRefCountPtr<TRHIResource>& ptr) { return To(ptr.get()); }
+		static auto To(TRHIResourceRef<TRHIResource>& ptr) { return To(ptr.get()); }
 
 		template < class TRHIResource >
 		static auto GetHandle(TRHIResource& RHIObject)
@@ -1605,7 +1605,7 @@ namespace Render
 			return VulkanCast::To(RHIObject).getHandle();
 		}
 		template < class TRHIResource >
-		static auto GetHandle(TRefCountPtr<TRHIResource>& refPtr)
+		static auto GetHandle(TRHIResourceRef<TRHIResource>& refPtr)
 		{
 			return VulkanCast::To(refPtr)->getHandle();
 		}

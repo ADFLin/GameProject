@@ -35,9 +35,9 @@ void PreprocessorTest()
 	Preprocessor preprocessor;
 	preprocessor.bReplaceMarcoText = true;
 	preprocessor.addSreachDir("Test");
-	CodeSource source;
+	CodeBufferSource source;
 	char const* filePath = "Test/PTest.h";
-	source.loadFile(filePath);
+	source.appendFile(filePath);
 	source.filePath = filePath;
 
 	std::stringstream oss;

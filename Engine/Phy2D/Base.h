@@ -6,6 +6,7 @@
 #include "Core/IntegerType.h"
 #include <limits>
 #include "Math/Math2D.h"
+#include "Math/GeometryPrimitive.h"
 
 #define PHY2D_DEBUG 1
 
@@ -19,33 +20,7 @@ namespace Phy2D
 
 	using namespace Math;
 
-	class AABB
-	{
-	public:
-		Vector2 min;
-		Vector2 max;
-
-		void  expend(Vector2 const& offset)
-		{
-			if( offset.x > 0 )
-				max.x += offset.x;
-			else
-				min.x += offset.x;
-
-			if( offset.y > 0 )
-				max.y += offset.y;
-			else
-				min.y += offset.y;
-		}
-		bool isInterect(AABB const& other)
-		{
-			if( min.x > other.max.x || min.y > other.max.y )
-				return false;
-			if( max.x < other.min.x || max.y < other.min.y )
-				return false;
-			return true;
-		}
-	};
+	using AABB = Math::TAABBox< Vector2 >;
 
 	typedef void(*DebugJumpFunc)();
 	extern DebugJumpFunc GDebugJumpFun;

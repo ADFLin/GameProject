@@ -180,6 +180,7 @@
     <None Include="..\TinyGame\out\Shader\Game\Mandelbrot.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\MarchingCubes.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Metaball.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\MinkowskiSun.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\MVRender.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\NoiseTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Parallax.sgc" />

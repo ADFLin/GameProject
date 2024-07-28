@@ -245,6 +245,9 @@
     <None Include="..\TinyGame\out\Shader\Game\ShadertoyTemplate.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\MinkowskiSun.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

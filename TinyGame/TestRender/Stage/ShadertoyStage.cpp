@@ -450,6 +450,14 @@ namespace Shadertoy
 			return true;
 		}
 
+		void releaseRHI()
+		{
+			mFrameBuffer.release();
+			mScreenVS = nullptr;
+			mTexSound.release();
+			mInputBuffer.releaseResource();
+		}
+
 		static TVector2<int16> Decode(uint8 const* pData)
 		{
 			int16 left = int16(MaxInt16 *(-1.0 + 2.0*(pData[0] + 256.0*pData[1]) / 65535.0));
@@ -1404,6 +1412,7 @@ namespace Shadertoy
 					option.addDefine(SHADER_PARAM(COMPUTE_DISCARD_SIM), 1);
 				}
 			}
+
 			option.addCode(code.c_str());
 			ShaderEntryInfo entry = bUseComputeShader ? ShaderEntryInfo{ EShader::Compute, "MainCS" } : ShaderEntryInfo{ EShader::Pixel, "MainPS" };
 			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, entry, option))
@@ -1745,6 +1754,8 @@ namespace Shadertoy
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
 
+
+
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
 #if 1
@@ -1782,11 +1793,21 @@ namespace Shadertoy
 			return true;
 		}
 
+		void preShutdownRenderSystem(bool bReInit = false) override
+		{
+			for (auto& pass : mRenderPassList)
+			{
+				pass->shader.releaseRHI();
+			}
+			mTexKeyboard.release();
+			Renderer::releaseRHI();
+		}
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
 			return ERenderSystem::OpenGL;
 		}
+
 
 	protected:
 	};

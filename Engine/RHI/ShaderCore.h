@@ -373,7 +373,7 @@ namespace Render
 		uint32 mGUID = 0;
 	};
 
-	using RHIShaderRef = TRefCountPtr< RHIShader >;
+	using RHIShaderRef = TRHIResourceRef< RHIShader >;
 	
 	class RHIShaderProgram : public RHIShaderObject
 	{
@@ -386,7 +386,7 @@ namespace Render
 		uint32 mGUID = 0;
 	};
 
-	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;
+	using RHIShaderProgramRef = TRHIResourceRef< RHIShaderProgram >;
 
 	struct ShaderBoundStateKey
 	{

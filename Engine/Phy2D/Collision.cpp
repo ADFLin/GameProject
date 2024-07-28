@@ -39,8 +39,8 @@ namespace Phy2D
 
 		std::fill_n( &mMap[0][0] , Shape::NumShape * Shape::NumShape , &sGjkAlgo );
 		mMap[ Shape::eCircle ][ Shape::eCircle ] = &sCircleAlgo;
-		mMap[ Shape::eBox ][ Shape::eCircle ] = &sBoxCircleAlgo;
-		mMap[ Shape::eCircle ][ Shape::eBox ] = &sBoxCircleAlgo;
+		//mMap[ Shape::eBox ][ Shape::eCircle ] = &sBoxCircleAlgo;
+		//mMap[ Shape::eCircle ][ Shape::eBox ] = &sBoxCircleAlgo;
 
 	}
 
@@ -411,9 +411,12 @@ namespace Phy2D
 
 	bool BoxCircleAlgo::test( CollideObject* objA , CollideObject* objB , Contact& c)
 	{
-		if ( objA->mShape->getType() == Shape::eCircle )
-			std::swap( objA , objB );
-
+		bool bSwapped = false;
+		if (objA->mShape->getType() == Shape::eCircle)
+		{
+			std::swap(objA, objB);
+			bSwapped = true;
+		}
 		assert( objA->mShape->getType() == Shape::eBox && objB->mShape->getType() == Shape::eCircle );
 
 		Vector2 offset = objA->mXForm.transformVector( objB->getPos() - objA->getPos() );
@@ -547,6 +550,15 @@ namespace Phy2D
 		}
 		c.pos[0] = objA->mXForm.transformPosition( c.posLocal[0] );
 		c.posLocal[1] = objB->mXForm.transformPositionInv( c.pos[1] );
+
+#if 0
+		if (bSwapped)
+		{
+			std::swap(c.object[0], c.object[1]);
+			std::swap(c.posLocal[0], c.posLocal[1]);
+			std::swap(c.pos[0], c.pos[1]);
+		}
+#endif
 		return true;
 	}
 

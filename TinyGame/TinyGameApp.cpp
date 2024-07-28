@@ -73,6 +73,7 @@ namespace
 TINY_API IGameNetInterface* GGameNetInterfaceImpl;
 TINY_API IDebugInterface*   GDebugInterfaceImpl;
 
+
 void ToggleGraphics()
 {
 	static ERenderSystem sSavedRenderSystem = ERenderSystem::OpenGL;

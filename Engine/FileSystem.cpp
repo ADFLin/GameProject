@@ -571,7 +571,7 @@ bool LoadToBufferImpl(CharT const* path, TArrayType& outBuffer, bool bAppendZero
 	::ReadFile(hFile, pRead, size, NULL, NULL);
 
 	if (bAppendZeroAfterLoad)
-		outBuffer[size] = 0;
+		pRead[size] = 0;
 
 	return true;
 #else

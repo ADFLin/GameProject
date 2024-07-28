@@ -844,14 +844,6 @@ namespace Render
 	{
 		if (context.bUsePreprocess)
 		{
-			if (context.haveFile())
-			{
-				if (!FFileUtility::LoadToBuffer(context.getPath(), outCodeBuffer, true))
-				{
-					LogWarning(0, "Can't load shader file %s", context.getPath());
-					return false;
-				}
-			}
 			if (!format.preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition(), context.sourceLibrary, outCodeBuffer, context.includeFiles, context.bOuputPreprocessedCode))
 				return false;
 

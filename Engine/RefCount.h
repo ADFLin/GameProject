@@ -72,7 +72,8 @@ public:
 	TRefCountPtr& operator = ( TRefCountPtr< Q > const& rcPtr) { assign(rcPtr.mPtr); return *this; }
 
 	TRefCountPtr& operator = ( T* ptr ){  assign( ptr ); return *this;  }
-private:
+
+protected:
 	void init(T* ptr)
 	{
 		mPtr = ptr;

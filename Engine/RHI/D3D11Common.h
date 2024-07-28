@@ -886,8 +886,8 @@ namespace Render
 			TD3D11Resource< RHISwapChain >::releaseResource();
 		}
 
-		TRefCountPtr< D3D11Texture2D >  mColorTexture;
-		TRefCountPtr< D3D11Texture2D >  mDepthTexture;
+		TRHIResourceRef< D3D11Texture2D >  mColorTexture;
+		TRHIResourceRef< D3D11Texture2D >  mDepthTexture;
 		D3D11RenderTargetsState mRenderTargetsState;
 
 	};
@@ -895,13 +895,13 @@ namespace Render
 	struct D3D11Cast
 	{
 		template< class TRHIResource >
-		static auto* To(TRHIResource* resource) { return static_cast< typename TD3D11TypeTraits< TRHIResource >::ImplType*>(resource); }
+		static auto* To(TRHIResource* resource) { return static_cast<typename TD3D11TypeTraits< TRHIResource >::ImplType*>(resource); }
 		
 		template< class TRHIResource >
-		static auto& To(TRHIResource& resource) { return static_cast<typename TD3D11TypeTraits< TRHIResource >::ImplType& >(resource); }
+		static auto& To(TRHIResource& resource) { return static_cast<typename TD3D11TypeTraits< TRHIResource >::ImplType&>(resource); }
 
 		template < class T >
-		static auto* To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }
+		static auto* To(TRHIResourceRef<T>& ptr) { return D3D11Cast::To(ptr.get()); }
 
 		template< class T >
 		static auto GetResource(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getResource(); }
@@ -910,7 +910,7 @@ namespace Render
 		static auto GetResource(T* RHIObject) { return RHIObject ? D3D11Cast::To(RHIObject)->getResource() : nullptr; }
 
 		template< class T >
-		static auto GetResource(TRefCountPtr<T>& refPtr) { return D3D11Cast::To(refPtr)->getResource(); }
+		static auto GetResource(TRHIResourceRef<T>& refPtr) { return D3D11Cast::To(refPtr)->getResource(); }
 	};
 
 

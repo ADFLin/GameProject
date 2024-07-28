@@ -1,0 +1,267 @@
+﻿#include "Common.sgc"
+
+/*
+ Written by Alan Wolfe
+ http://demofox.org/
+ http://blog.demofox.org/
+ */
+
+float2 Operation_Max(float2 a, float2 b, float2 dir)
+{
+	// aka shrink wrap!
+	float da = dot(a, dir);
+	float db = dot(b, dir);
+
+	return (da > db) ? a : b;
+}
+
+float2 Operation_Lerp(float2 a, float2 b, float amount)
+{
+	return lerp(a, b, amount);
+}
+
+//------- operations on the input pixel location.
+float2 Operation_PixelRepeat(float2 pixel, float2 size, float2 offset)
+{
+	return fmod(pixel - offset, size) + offset;
+}
+
+//==================================================================================
+//                               SUPPORT FUNCTIONS
+//==================================================================================
+// All support functions return the point in the shape farthest along the dir vector.
+float2 Support_HorizLine(float size, float2 dir)
+{
+	return float2(sign(dir.x)*size, 0.0);
+}
+
+float2 Support_VertLine(float size, float2 dir)
+{
+	return float2(0.0, sign(dir.y)*size);
+}
+
+float2 Support_Line(float2 a, float2 b, float2 dir)
+{
+	return Operation_Max(a, b, dir);
+}
+
+float2 Support_Triangle(float2 a, float2 b, float2 c, float2 dir)
+{
+	float2 s = Operation_Max(a, b, dir);
+	s = Operation_Max(s, c, dir);
+	return s;
+}
+
+float2 Support_Circle(float radius, float2 dir)
+{
+	return dir * radius;
+}
+
+float2 Support_Rectangle(float2 size, float2 dir)
+{
+	return float2(sign(dir.x)*size.x, sign(dir.y)*size.y);
+}
+
+float2 Support_Point(float2 point, float2 dir)
+{
+	return point;
+}
+
+struct ObjectData
+{
+	float3 meta;
+	int    type;
+	float2 pos;
+	float2 rotation;
+};
+
+layout(std140) cbuffer ObjectParamBlock
+{
+	ObjectData ObjectA;
+	ObjectData ObjectB;
+};
+
+float2 Rotate(float2 rotation, float2 v)
+{
+	return float2(v.x * rotation.x - v.y * rotation.y, v.x * rotation.y + v.y * rotation.x);
+}
+float2 InverseRotate(float2 rotation, float2 v)
+{
+	return float2(v.x * rotation.x + v.y * rotation.y, -v.x * rotation.y + v.y * rotation.x);
+}
+
+float2 GetSupport(ObjectData object, float2 dir)
+{
+	float2 localDir = InverseRotate(object.rotation, dir);
+	float2 v = float2(0,0);
+	if (object.type == 0)
+	{
+		v = Support_Circle(object.meta.x , localDir);
+	}
+	else if (object.type == 1)
+	{
+		v = Support_Rectangle(object.meta.xy, localDir);
+	}
+
+	return object.pos + Rotate(object.rotation, v);
+}
+
+// this is the final support function of our rendered shape, which can be a combination
+// or transformation of other support functions.
+float2 Support(float2 dir)
+{
+	//return Operation_Lerp(Support_Circle(100, dir), Support_Rectangle(float2(500, 100), dir), 0.5);
+	return GetSupport(ObjectA, dir) - GetSupport(ObjectB, -dir);
+}
+
+// must return a point deep inside of the resulting shape! If it doesn't, there will
+// be some weird visual problems.
+float2 PointInside()
+{
+	return 0.25 * (
+		Support(float2(-1.0, 0.0)) +
+		Support(float2(1.0, 0.0)) +
+		Support(float2(0.0, -1.0)) +
+		Support(float2(0.0, 1.0)) );
+}
+
+//==================================================================================
+//                                  MPR FUNCTIONS
+//==================================================================================
+
+float cross(float2 a, float2 b)
+{
+	return a.x * b.y - a.y * b.x;
+}
+bool LineSide(float2 linePoint1, float2 linePoint2, float2 point)
+{
+#if 1
+	return cross(linePoint2 - linePoint1, point - linePoint1) > 0.0;
+#else
+	return (
+		(linePoint2.x - linePoint1.x)*(point.y - linePoint1.y) -
+		(linePoint2.y - linePoint1.y)*(point.x - linePoint1.x)
+		) > 0.0;
+#endif
+}
+
+bool MPR(float2 pixel, out int loopCount)
+{
+	//----------------------------
+	//----- portal discovery -----
+	//----------------------------
+	// (1b) obtain a point that we know lies somewhere deep within B–A.
+	float2 pointInside = PointInside() - pixel;
+
+	// (1c) get the support point in the direction to the origin.
+	float2 toOrigin = normalize(-pointInside);
+	float2 supportToOrigin = Support(toOrigin) - pixel;
+
+	// (1d) get a support point in the perpendicular direction.  Since there are two possibilities,
+	// take the one that points towards the origin instead of away (dot product > 0)
+	float2 toSupportToOrigin = normalize(supportToOrigin - pointInside);
+	float2 perpendicularVec = normalize(float2(-toSupportToOrigin.y, toSupportToOrigin.x));
+	if (dot(toOrigin, perpendicularVec) < 0.0) 
+	{
+		perpendicularVec *= float2(-1.0, -1.0);
+		perpendicularVec = normalize(perpendicularVec);
+	}
+	float2 supportToPerpendicular = Support(perpendicularVec) - pixel;
+
+	// (1e) we know have 3 points that form an angle & we know the origin lies in this angle.
+	// The 3 points are: supportToOrigin, pointInside, supportToPerpendicular.
+	// Our portal is the line from supportToOrigin to supportToPerpendicular.
+
+	//-----------------------------
+	//----- portal refinement -----
+	//-----------------------------
+	for (int index = 0; index < 10; ++index)
+	{
+		// remember how many loops we've done
+		loopCount = index + 1;
+
+		// (1f) if the origin is on the same side of our portal as the center is, we are know the
+		// shape contains the origin and we are done.
+		bool sideOrigin = LineSide(supportToOrigin, supportToPerpendicular, float2(0.0, 0.0));
+		bool sidePointInside = LineSide(supportToOrigin, supportToPerpendicular, pointInside);
+		if (sideOrigin == sidePointInside)
+			return true;
+
+		// (1g) otherwise get a normal to the portal and get a support point along that normal.
+		// make sure the normal is pointing towards the origin!
+		float2 portal = supportToPerpendicular - supportToOrigin;
+		float2 portalNormal = normalize(float2(portal.y, -portal.x));
+		if (dot(portalNormal, toOrigin) < 0.0)
+			portalNormal *= -1.0;
+		float2 newSupport = Support(portalNormal) - pixel;
+
+		// (1g) if the origin is on the outside side of this 2d plane, we have a miss
+		if (dot(portalNormal, newSupport) < dot(portalNormal, float2(0.0, 0.0)))
+			return false;
+
+		// (1h/1i) the line from the center to the new support point bisects our angle.
+		// We need to see which side the origin is in, and make that be our new angle
+		// for the next iteration.
+		if (LineSide(pointInside, newSupport, supportToPerpendicular) ==
+			LineSide(pointInside, newSupport, float2(0.0, 0.0))) {
+			//angle containing origin is made from the points:
+			//newSupport, supportToPerpendicular from pointInside
+			supportToOrigin = newSupport;
+		}
+		else {
+			//angle containing origin is made from the points:
+			//newSupport, supportToOrigin from pointInside
+			supportToPerpendicular = newSupport;
+		}
+	}
+
+	// we hit the maximum number of loops, return a miss!
+	return false;
+}
+
+
+struct OutputVSParam
+{
+	float2 pos MEMBER_OUT(TEXCOORD0);
+	float4 color  MEMBER_OUT(TEXCOORD1);
+};
+
+#if VERTEX_SHADER
+
+uniform float4x4 XForm;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+	SvPosition = mul(XForm, float4(InPos, 0 , 1));
+	OutputVS.pos = InPos.xy;
+	OutputVS.color = InColor;
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, Texture);
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	int loopCount;
+	if (!MPR(OutputVS.pos, loopCount))
+		discard;
+
+	OutColor = OutputVS.color;
+	//OutColor = float4(OutputVS.pos, 0, 1);
+
+	//OutColor = OutputVS.color;
+	//OutColor = float4(ObjectB.meta, 1);
+}
+
+#endif //PIXEL_SHADER

@@ -1186,21 +1186,57 @@ namespace Render
 		}
 	};
 
-	using RHITextureRef           = TRefCountPtr< RHITextureBase >;
-	using RHITexture1DRef         = TRefCountPtr< RHITexture1D >;
-	using RHITexture2DRef         = TRefCountPtr< RHITexture2D >;
-	using RHITexture3DRef         = TRefCountPtr< RHITexture3D >;
-	using RHITextureCubeRef       = TRefCountPtr< RHITextureCube >;
-	using RHITexture2DArrayRef    = TRefCountPtr< RHITexture2DArray >;
-	using RHIFrameBufferRef       = TRefCountPtr< RHIFrameBuffer >;
-	using RHIBufferRef            = TRefCountPtr< RHIBuffer >;
-	using RHISamplerStateRef      = TRefCountPtr< RHISamplerState >;
-	using RHIRasterizerStateRef   = TRefCountPtr< RHIRasterizerState >;
-	using RHIDepthStencilStateRef = TRefCountPtr< RHIDepthStencilState >;
-	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
-	using RHIPipelineStateRef     = TRefCountPtr< RHIPipelineState >;
-	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
-	using RHISwapChainRef         = TRefCountPtr< RHISwapChain >;
+	class IResourceReleasable
+	{
+	public:
+		virtual ~IResourceReleasable() = default;
+		virtual void releaseResource(bool bWillResotore) = 0;
+	};
+
+#if 0
+	template < class T >
+	class TRHIResourceRef : public TRefCountPtr<T>
+	{
+	public:
+		using TRefCountPtr<T>::TRefCountPtr;
+
+		T*       operator->() { return mPtr; }
+		T const* operator->() const { return mPtr; }
+		T&       operator *(void) { return *mPtr; }
+		T const& operator *(void) const { return *mPtr; }
+
+		operator T* (void) { return mPtr; }
+		operator T* (void) const { return mPtr; }
+
+		TRHIResourceRef& operator = (TRHIResourceRef const& rcPtr) { assign(rcPtr.mPtr); return *this; }
+		template< class Q >
+		TRHIResourceRef& operator = (TRHIResourceRef< Q > const& rcPtr) { assign(rcPtr.mPtr); return *this; }
+
+		TRHIResourceRef& operator = (T* ptr) { assign(ptr); return *this; }
+
+		template< class Q >
+		friend class TRHIResourceRef;
+	};
+#else
+	template < class T >
+	using TRHIResourceRef = TRefCountPtr<T>;
+#endif
+
+	using RHITextureRef           = TRHIResourceRef< RHITextureBase >;
+	using RHITexture1DRef         = TRHIResourceRef< RHITexture1D >;
+	using RHITexture2DRef         = TRHIResourceRef< RHITexture2D >;
+	using RHITexture3DRef         = TRHIResourceRef< RHITexture3D >;
+	using RHITextureCubeRef       = TRHIResourceRef< RHITextureCube >;
+	using RHITexture2DArrayRef    = TRHIResourceRef< RHITexture2DArray >;
+	using RHIFrameBufferRef       = TRHIResourceRef< RHIFrameBuffer >;
+	using RHIBufferRef            = TRHIResourceRef< RHIBuffer >;
+	using RHISamplerStateRef      = TRHIResourceRef< RHISamplerState >;
+	using RHIRasterizerStateRef   = TRHIResourceRef< RHIRasterizerState >;
+	using RHIDepthStencilStateRef = TRHIResourceRef< RHIDepthStencilState >;
+	using RHIBlendStateRef        = TRHIResourceRef< RHIBlendState >;
+	using RHIPipelineStateRef     = TRHIResourceRef< RHIPipelineState >;
+	using RHIInputLayoutRef       = TRHIResourceRef< RHIInputLayout >;
+	using RHISwapChainRef         = TRHIResourceRef< RHISwapChain >;
 
 	struct InputStreamInfo
 	{

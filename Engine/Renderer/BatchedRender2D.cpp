@@ -373,7 +373,7 @@ namespace Render
 		return *element;
 	}
 
-	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, TArray< FontVertex > const& vertices)
+	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale)
 	{
 		TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
 		element->type = RenderBatchedElement::Text;
@@ -381,6 +381,7 @@ namespace Render
 		element->payload.vertices = (FontVertex*)mAllocator.alloc(vertices.size() * sizeof(FontVertex));
 		FMemory::Copy(element->payload.vertices, vertices.data(), vertices.size() * sizeof(FontVertex));
 		element->payload.verticesCount = vertices.size();
+		element->payload.bRemoveScale = bRemoveScale;
 
 		return *element;
 	}
@@ -984,6 +985,8 @@ namespace Render
 					RenderBatchedElementList::TextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextPayload >(element);
 
 					int numChar = payload.verticesCount / 4;
+					CHECK(numChar);
+
 					FontVertex* pSrcVertices = payload.vertices;
 					
 					FetchedData data = fetchBuffer(4 * numChar, 6 * numChar);
@@ -991,19 +994,37 @@ namespace Render
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
-					for (int i = 0; i < numChar; ++i)
+					if (payload.bRemoveScale)
 					{
-						pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos) , payload.color , pSrcVertices[0].uv };
-						pVertices[1] = { element->transform.transformPosition(pSrcVertices[1].pos) , payload.color , pSrcVertices[1].uv };
-						pVertices[2] = { element->transform.transformPosition(pSrcVertices[2].pos) , payload.color , pSrcVertices[2].uv };
-						pVertices[3] = { element->transform.transformPosition(pSrcVertices[3].pos) , payload.color , pSrcVertices[3].uv };
+						RenderTransform2D transform = element->transform;
+						transform.removeScale();
+						Vector2 pos = element->transform.transformPosition(pSrcVertices[0].pos);
+						Vector2 v0 = pSrcVertices[0].pos;
+						for (int i = 0; i < numChar; ++i)
+						{
+							pVertices[0] = { pos + transform.transformVector(pSrcVertices[0].pos - v0) , payload.color , pSrcVertices[0].uv };
+							pVertices[1] = { pos + transform.transformVector(pSrcVertices[1].pos - v0) , payload.color , pSrcVertices[1].uv };
+							pVertices[2] = { pos + transform.transformVector(pSrcVertices[2].pos - v0) , payload.color , pSrcVertices[2].uv };
+							pVertices[3] = { pos + transform.transformVector(pSrcVertices[3].pos - v0) , payload.color , pSrcVertices[3].uv };
 
-						pVertices += 4;
-						pSrcVertices += 4;
-
-						pIndices = FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
-						baseIndex += 4;
+							pVertices += 4;
+							pSrcVertices += 4;
+						}
 					}
+					else
+					{
+						for (int i = 0; i < numChar; ++i)
+						{
+							pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos) , payload.color , pSrcVertices[0].uv };
+							pVertices[1] = { element->transform.transformPosition(pSrcVertices[1].pos) , payload.color , pSrcVertices[1].uv };
+							pVertices[2] = { element->transform.transformPosition(pSrcVertices[2].pos) , payload.color , pSrcVertices[2].uv };
+							pVertices[3] = { element->transform.transformPosition(pSrcVertices[3].pos) , payload.color , pSrcVertices[3].uv };
+
+							pVertices += 4;
+							pSrcVertices += 4;
+						}
+					}
+					pIndices = FillQuadSequence(pIndices, baseIndex, numChar);
 				}
 				break;
 			case RenderBatchedElement::GradientRect:

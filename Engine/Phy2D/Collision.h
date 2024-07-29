@@ -109,7 +109,7 @@ namespace Phy2D
 		Contact mContect;
 	};
 
-	class ColAlgo
+	class CollisionAlgo
 	{
 	public:
 		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c ) = 0;
@@ -204,12 +204,15 @@ namespace Phy2D
 
 		bool test( CollideObject* objA , CollideObject* objB , Contact& c )
 		{
-			ColAlgo* algo = mMap[ objA->mShape->getType() ][ objB->mShape->getType() ];
+			int index = Math::PairingFunction<int>(objA->mShape->getType(), objB->mShape->getType());
+			CollisionAlgo* algo = mMap[index];
 			return algo->test( objA , objB , c );
 		}
 
-		void preocss( float dt  );
-		ColAlgo*         mMap[ Shape::NumShape ][ Shape::NumShape ];
+		void preocss( float dt );
+		
+		CollisionAlgo*   mDefaultConvexAlgo;
+		CollisionAlgo*   mMap[ Shape::NumShape * Shape::NumShape / 2 + 1];
 		ContactManager   mPairManager;
 		Broadphase       mBroadphase;
 		TArray< ContactManifold* > mMainifolds;
@@ -218,19 +221,13 @@ namespace Phy2D
 	class GJK
 	{
 	public:
-		GJK()
-		{
-			mSv[0] = mStorage + 0;
-			mSv[1] = mStorage + 1;
-			mSv[2] = mStorage + 2;
-
-		}
+		GJK();
 		void init( CollideObject* objA , CollideObject* objB );
 
 		struct Simplex
 		{
 			Vector2 v;
-			Vector2 d;
+			Vector2 dir;
 #if PHY2D_DEBUG
 			Vector2 vObj[2];
 #endif
@@ -246,7 +243,7 @@ namespace Phy2D
 
 		Simplex* calcSupport( Simplex* sv , Vector2 const& dir );
 
-		bool     test( Vector2 const& initDir );
+		bool     test();
 		void     generateContact( Contact& c );
 
 		Edge*    addEdge( Simplex* sv , Vector2 const& b );

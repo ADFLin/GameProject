@@ -421,6 +421,15 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 		DoDrawText();
 	}
 }
+void SnapValue(float& inoutValue)
+{
+	inoutValue = int(inoutValue);
+}
+void SnapValue(Vector2& inoutPos)
+{
+	SnapValue(inoutPos.x);
+	SnapValue(inoutPos.y);
+}
 
 template< typename CharT >
 void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charCount)
@@ -431,7 +440,18 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 	setBlendState(ESimpleBlendMode::Translucent);
 	setTextureState(&mFont->getTexture());
 	commitRenderState();
-	auto& element = mElementList.addText(mColorFont, Vector2(int(ox), int(oy)), *mFont, str, charCount);
+	Vector2 pos = Vector2(ox, oy);
+
+	bool bRemoveScale = false;
+	if (!mXFormStack.get().hadScaledOrRotation())
+	{
+		SnapValue(pos);
+	}
+	else if (mXFormStack.get().hadSacled())
+	{
+		bRemoveScale = bTextRemoveScale;
+	}
+	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, bRemoveScale, charCount);
 	setupElement(element);
 	setBlendState(prevMode);
 }

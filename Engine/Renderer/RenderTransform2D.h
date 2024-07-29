@@ -205,6 +205,11 @@ namespace Render
 			return Vector2(xAxis.length(), yAxis.length());
 		}
 
+		bool hadScaledOrRotation() const
+		{
+			return Math::Abs(M[0] - 1) > 1e-5 || Math::Abs(M[3] - 1) > 1e-5;
+		}
+
 		Vector2 removeScale()
 		{
 			Vector2 xAxis = Vector2(M[0], M[1]);

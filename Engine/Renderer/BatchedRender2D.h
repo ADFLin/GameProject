@@ -322,6 +322,7 @@ namespace Render
 		struct TextPayload
 		{
 			Color4Type color;
+			bool bRemoveScale;
 			FontVertex* vertices;
 			int verticesCount;
 		};
@@ -387,9 +388,9 @@ namespace Render
 		RenderBatchedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
 		RenderBatchedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
 		RenderBatchedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
-		RenderBatchedElement& addText(Color4Type const& color, TArray< FontVertex > const& vertices);
+		RenderBatchedElement& addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale);
 		template< typename CharT >
-		RenderBatchedElement& addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount = 0)
+		RenderBatchedElement& addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, bool bRemoveScale, int charCount = 0)
 		{
 			int verticesCount = 4 * ((charCount) ? charCount : front.getCharCount(str));
 			TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
@@ -397,6 +398,7 @@ namespace Render
 			element->payload.color = color;
 			element->payload.vertices = (FontVertex*)mAllocator.alloc(verticesCount * sizeof(FontVertex));
 			element->payload.verticesCount = verticesCount;
+			element->payload.bRemoveScale = bRemoveScale;
 			front.generateVertices(pos, str, element->payload.vertices);
 
 			return *element;
@@ -450,6 +452,16 @@ namespace Render
 		{
 			pIndices = FillTriangle(pIndices, base, i0, i1, i2);
 			pIndices = FillTriangle(pIndices, base, i0, i2, i3);
+			return pIndices;
+		}
+
+		FORCEINLINE static uint32* FillQuadSequence(uint32* pIndices, int base, int num)
+		{
+			for (int i = 0; i < num; ++i)
+			{
+				pIndices = FillQuad(pIndices, base, 0, 1, 2, 3);
+				base += 4;
+			}
 			return pIndices;
 		}
 

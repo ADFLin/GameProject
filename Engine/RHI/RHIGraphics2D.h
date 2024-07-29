@@ -262,6 +262,7 @@ public:
 	}
 	void setTextureState(RHITexture2D* texture = nullptr);
 
+	void setTextRemoveScale(bool bRemoved) { bTextRemoveScale = bRemoved; }
 private:
 
 	template< typename CharT >
@@ -272,6 +273,7 @@ private:
 	void flushBatchedElements();
 	void preModifyRenderState();
 
+	bool bTextRemoveScale = false;
 
 
 	void setupElement(Render::RenderBatchedElement& element)

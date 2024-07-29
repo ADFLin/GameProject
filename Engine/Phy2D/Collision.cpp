@@ -5,25 +5,29 @@
 
 namespace Phy2D
 {
-	class GJKColAlgo : public ColAlgo
+#if PHY2D_DEBUG
+	GJK gGJK;
+#endif
+
+	class CollisionAlgoGJK : public CollisionAlgo
 	{
 	public:
 		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c );
 	};
 
-	class CircleCircleAlgo : public ColAlgo
+	class CollisionAlgoCircle : public CollisionAlgo
 	{	
 	public:
 		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c );
 	};
 
-	class BoxCircleAlgo : public ColAlgo
+	class CollisionAlgoBoxCircle : public CollisionAlgo
 	{
 	public:
 		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c );
 	};
 
-	class BoxBoxAlgo : public ColAlgo
+	class BoxBoxAlgo : public CollisionAlgo
 	{
 	public:
 		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c );
@@ -33,15 +37,22 @@ namespace Phy2D
 
 	CollisionManager::CollisionManager()
 	{
-		static GJKColAlgo       sGjkAlgo;
-		static CircleCircleAlgo sCircleAlgo;
-		static BoxCircleAlgo    sBoxCircleAlgo;
+		static CollisionAlgoGJK        StaticGJKAlgo;
+		static CollisionAlgoCircle     StaticCircleAlgo;
+		static CollisionAlgoBoxCircle  StaticBoxCircleAlgo;
 
-		std::fill_n( &mMap[0][0] , Shape::NumShape * Shape::NumShape , &sGjkAlgo );
-		mMap[ Shape::eCircle ][ Shape::eCircle ] = &sCircleAlgo;
-		mMap[ Shape::eBox ][ Shape::eCircle ] = &sBoxCircleAlgo;
-		mMap[ Shape::eCircle ][ Shape::eBox ] = &sBoxCircleAlgo;
+		std::fill_n( mMap , ARRAY_SIZE(mMap) , &StaticGJKAlgo );
 
+		auto RegisterAlgo = [this](Shape::Type a, Shape::Type b, CollisionAlgo& algo)
+		{
+			int index = Math::PairingFunction<int>(a, b);
+			mMap[index] = &algo;
+		};
+
+		RegisterAlgo(Shape::eCircle, Shape::eCircle, StaticCircleAlgo);
+		RegisterAlgo(Shape::eBox, Shape::eCircle, StaticBoxCircleAlgo);
+		
+		mDefaultConvexAlgo = &StaticGJKAlgo;
 	}
 
 	void CollisionManager::preocss(float dt)
@@ -164,8 +175,12 @@ namespace Phy2D
 		return true;
 	}
 
-	GJK gGJK;
-	void GJK::init(CollideObject* objA , CollideObject* objB)
+	GJK::GJK()
+	{
+
+	}
+
+	void GJK::init(CollideObject* objA, CollideObject* objB)
 	{
 		assert( objA->getShape()->isConvex() && objB->getShape()->isConvex() );
 		mObj[0] = objA;
@@ -181,9 +196,23 @@ namespace Phy2D
 #endif
 	}
 
-	bool GJK::test(Vector2 const& initDir)
+	GJK::Simplex* GJK::calcSupport(Simplex* sv , Vector2 const& dir)
 	{
-		Vector2 dir = initDir;
+		assert( sv );
+		Vector2 v0 = mObj[0]->mShape->getSupport( dir );
+		Vector2 v1 = mObj[1]->mShape->getSupport( mBToALocal.transformVectorInv(-dir) );
+#if PHY2D_DEBUG
+		sv->vObj[0] = v0;
+		sv->vObj[1] = v1;
+#endif
+		sv->v   = v0 - mBToALocal.transformPosition( v1 );
+		sv->dir = dir;
+		return  sv;
+	}
+
+	bool GJK::test()
+	{
+		Vector2 dir = Math::GetNormal(mBToALocal.transformPosition(mObj[1]->getPos()));
 		Vector2 d;
 		Simplex* sv = calcSupport( mSv[0] , dir );
 #if PHY2D_DEBUG
@@ -291,8 +320,8 @@ namespace Phy2D
 
 		c.object[0] = mObj[0];
 		c.object[1] = mObj[1];
-		c.posLocal[0] = p[0] * ( mObj[0]->mShape->getSupport( e->sv->d ) ) +
-			            p[1] * ( mObj[0]->mShape->getSupport( next->sv->d ) );
+		c.posLocal[0] = p[0] * ( mObj[0]->mShape->getSupport( e->sv->dir ) ) +
+			            p[1] * ( mObj[0]->mShape->getSupport( next->sv->dir ) );
 		c.posLocal[1] = mBToALocal.transformPositionInv( c.posLocal[0] - d );
 		c.pos[0] = mObj[0]->mXForm.transformPosition( c.posLocal[0] );
 		c.pos[1] = mObj[1]->mXForm.transformPosition( c.posLocal[1] );
@@ -344,33 +373,23 @@ namespace Phy2D
 		return edge;
 	}
 
-	GJK::Simplex* GJK::calcSupport(Simplex* sv , Vector2 const& dir)
+	bool CollisionAlgoGJK::test(CollideObject* objA , CollideObject* objB , Contact& c )
 	{
-		assert( sv );
-		Vector2 v0 = mObj[0]->mShape->getSupport( dir );
-		Vector2 v1 = mObj[1]->mShape->getSupport( mBToALocal.transformVectorInv(-dir) );
 #if PHY2D_DEBUG
-		sv->vObj[0] = v0;
-		sv->vObj[1] = v1;
+		GJK& gjk = gGJK;
+#else
+		GJK gjk;
 #endif
-		sv->v = v0 - mBToALocal.transformPosition( v1 );
-		sv->d = dir;
-		return  sv;
-	}
-
-	bool GJKColAlgo::test(CollideObject* objA , CollideObject* objB , Contact& c )
-	{
-		gGJK.init( objA , objB );
-		Vector2 dir = objB->getPos() - objA->getPos();
-		if ( gGJK.test( objA->mXForm.transformVectorInv( dir ) ) )
+		gjk.init( objA , objB );
+		if (gjk.test() )
 		{
-			gGJK.generateContact( c );
+			gjk.generateContact( c );
 			return true;
 		}
 		return false;
 	}
 
-	bool CircleCircleAlgo::test(CollideObject* objA , CollideObject* objB , Contact& c)
+	bool CollisionAlgoCircle::test(CollideObject* objA , CollideObject* objB , Contact& c)
 	{
 		assert( objA->mShape->getType() == Shape::eCircle &&  
 			    objB->mShape->getType() == Shape::eCircle );
@@ -405,7 +424,7 @@ namespace Phy2D
 		return true;
 	}
 
-	bool BoxCircleAlgo::test( CollideObject* objA , CollideObject* objB , Contact& c)
+	bool CollisionAlgoBoxCircle::test( CollideObject* objA , CollideObject* objB , Contact& c)
 	{
 		bool bSwapped = false;
 		if (objA->mShape->getType() == Shape::eCircle)

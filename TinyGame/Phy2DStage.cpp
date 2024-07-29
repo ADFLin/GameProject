@@ -131,6 +131,8 @@ namespace Phy2D
 		mObjects[0].mShape = &mShape3;
 		mObjects[0].mXForm.setTranslation(Vector2(1, 1));
 
+		doCollisionTest();
+
 		restart();
 		return true;
 	}
@@ -250,10 +252,11 @@ namespace Phy2D
 				Vector2 v = xForm.transformVector(edge.sv->v);
 				g.drawRect(v - size / 2, size);
 				RenderUtility::SetPen(g, EColor::Cyan);
-				g.drawLine(v, v + Math::GetNormal(xForm.transformVector(edge.sv->d)));
+				g.drawLine(v, v + Math::GetNormal(xForm.transformVector(edge.sv->dir)));
 			}
 #endif
 #if PHY2D_DEBUG	
+			g.setTextRemoveScale(true);
 			for( int n = 0; n < gGJK.mDBG.size(); ++n )
 			{
 				GJK::Simplex& sv = gGJK.mDBG[n];
@@ -264,8 +267,10 @@ namespace Phy2D
 				RenderUtility::SetPen(g, EColor::Green);
 				g.drawRect(v - size / 2, size);
 				RenderUtility::SetPen(g, EColor::Green);
-				g.drawLine(v, v + 0.5 * Math::GetNormal(xForm.transformVector(sv.d)));
+				g.drawLine(v, v + 0.5 * Math::GetNormal(xForm.transformVector(sv.dir)));
+				g.drawTextF(v, "%d", n);
 			}
+			g.setTextRemoveScale(false);
 
 #endif //PHY2D_DEBUG
 			//g.popXForm();

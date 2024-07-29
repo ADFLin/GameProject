@@ -62,10 +62,11 @@ float2 Support_Rectangle(float2 size, float2 dir)
 	return float2(sign(dir.x)*size.x, sign(dir.y)*size.y);
 }
 
-float2 Support_Point(float2 point, float2 dir)
+float2 Support_Point(float2 p, float2 dir)
 {
-	return point;
+	return p;
 }
+
 
 struct ObjectData
 {
@@ -80,6 +81,26 @@ layout(std140) cbuffer ObjectParamBlock
 	ObjectData ObjectA;
 	ObjectData ObjectB;
 };
+
+DEFINE_STRUCTURED_BUFFER(float2, Vertices);
+
+float2 Support_Polygon(int index, int numV , float2 dir)
+{
+	float vMax = dot(dir, Vertices[index]);
+	float2 result = Vertices[index];
+	for (int i = 1; i < numV; ++i)
+	{
+		float2 v = Vertices[index + i];
+		float val = dot(dir, v);
+		if (val > vMax)
+		{
+			result = v;
+			vMax = val;
+		}
+	}
+	return result;
+}
+
 
 float2 Rotate(float2 rotation, float2 v)
 {
@@ -102,9 +123,17 @@ float2 GetSupport(ObjectData object, float2 dir)
 	{
 		v = Support_Rectangle(object.meta.xy, localDir);
 	}
+	else if (object.type == 2)
+	{
+		int index = asint(object.meta.x);
+		int numV  = asint(object.meta.y);
+		v = Support_Polygon(index, numV, localDir);
+	}
 
 	return object.pos + Rotate(object.rotation, v);
 }
+
+
 
 // this is the final support function of our rendered shape, which can be a combination
 // or transformation of other support functions.
@@ -133,14 +162,14 @@ float cross(float2 a, float2 b)
 {
 	return a.x * b.y - a.y * b.x;
 }
-bool LineSide(float2 linePoint1, float2 linePoint2, float2 point)
+bool LineSide(float2 linePoint1, float2 linePoint2, float2 p)
 {
 #if 1
-	return cross(linePoint2 - linePoint1, point - linePoint1) > 0.0;
+	return cross(linePoint2 - linePoint1, p - linePoint1) > 0.0;
 #else
 	return (
-		(linePoint2.x - linePoint1.x)*(point.y - linePoint1.y) -
-		(linePoint2.y - linePoint1.y)*(point.x - linePoint1.x)
+		(linePoint2.x - linePoint1.x)*(p.y - linePoint1.y) -
+		(linePoint2.y - linePoint1.y)*(p.x - linePoint1.x)
 		) > 0.0;
 #endif
 }
@@ -232,7 +261,6 @@ uniform float4x4 XForm;
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
-	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
 	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
 	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
 VS_ENTRY_END(MainVS)

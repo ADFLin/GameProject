@@ -39,8 +39,8 @@ namespace Phy2D
 
 		std::fill_n( &mMap[0][0] , Shape::NumShape * Shape::NumShape , &sGjkAlgo );
 		mMap[ Shape::eCircle ][ Shape::eCircle ] = &sCircleAlgo;
-		//mMap[ Shape::eBox ][ Shape::eCircle ] = &sBoxCircleAlgo;
-		//mMap[ Shape::eCircle ][ Shape::eBox ] = &sBoxCircleAlgo;
+		mMap[ Shape::eBox ][ Shape::eCircle ] = &sBoxCircleAlgo;
+		mMap[ Shape::eCircle ][ Shape::eBox ] = &sBoxCircleAlgo;
 
 	}
 
@@ -48,10 +48,8 @@ namespace Phy2D
 	{
 		mBroadphase.process( mPairManager , dt );
 
-		for( ProxyPairList::iterator iter = mPairManager.mProxyList.begin() , itEnd = mPairManager.mProxyList.end();
-			iter != itEnd ; ++iter )
+		for (ProxyPair* pair : mPairManager.mProxyList)
 		{
-			ProxyPair* pair = *iter;
 			Contact  contact;
 			CollideObject* objA = pair->proxy[0]->object;
 			CollideObject* objB = pair->proxy[1]->object;
@@ -70,10 +68,8 @@ namespace Phy2D
 		}
 
 		mMainifolds.clear();
-		for( ProxyPairList::iterator iter = mPairManager.mProxyList.begin() , itEnd = mPairManager.mProxyList.end();
-			iter != itEnd ; ++iter )
+		for(ProxyPair* pair : mPairManager.mProxyList)
 		{
-			ProxyPair* pair = *iter;
 			if ( pair->manifold.update() )
 			{
 				mMainifolds.push_back( &pair->manifold );
@@ -174,7 +170,7 @@ namespace Phy2D
 		assert( objA->getShape()->isConvex() && objB->getShape()->isConvex() );
 		mObj[0] = objA;
 		mObj[1] = objB;
-		mBToALocal = objA->mXForm.mulInv( objB->mXForm );
+		mBToALocal = XForm2D::MakeRelative(objB->mXForm, objA->mXForm);
 		mSv[0] = mStorage + 0;
 		mSv[1] = mStorage + 1;
 		mSv[2] = mStorage + 2;
@@ -419,146 +415,86 @@ namespace Phy2D
 		}
 		assert( objA->mShape->getType() == Shape::eBox && objB->mShape->getType() == Shape::eCircle );
 
-		Vector2 offset = objA->mXForm.transformVector( objB->getPos() - objA->getPos() );
-		Vector2 const& half  = static_cast< BoxShape* >( objA->mShape )->mHalfExt;
+		Vector2 offset = objA->mXForm.transformPositionInv( objB->getPos() );
+		Vector2 const& boxHalfSize = static_cast< BoxShape* >( objA->mShape )->mHalfExt;
 		float radius = static_cast< CircleShape* >( objB->mShape )->getRadius();
 
-		int idx = 0;
-		if ( offset.x > half.x )
-			idx += 1;
-		else if ( offset.x < -half.x )
-			idx -= 1;
+		Vector2 offsetAbs = offset.abs();
 
-		if ( offset.y > half.y )
-			idx += 3;
-		else if ( offset.y < -half.y )
-			idx -= 3;
+		if (offsetAbs.x > boxHalfSize.x + radius)
+			return false;
+		if (offsetAbs.y > boxHalfSize.y + radius)
+			return false;
 
-		bool isEdge = true;
-		Vector2 vCol;
-		if ( idx == 0 )
+		Vector2 normalLocal;
+		if (offsetAbs.x > boxHalfSize.x && offsetAbs.y > boxHalfSize.y)
 		{
-			float ox = Math::Abs( offset.x );
-			float oy = Math::Abs( offset.y );
-#if 0
-			if ( Math::Abs( ox - oy ) < FLT_ZERO_EPSILON )
-			{
-				c.normal = normalize( Vector2( offset.x > 0 ? 1 : -1 , offset.y > 0 ? 1 : -1 ) );
-				c.depth  = Sqrt( )
-
-				isEdge = false;
-			}
-			else 
-#endif
-			if ( half.x - ox < half.y - oy )
-			{
-				if ( offset.x > 0 )
-				{
-					c.depth = radius + half.x - offset.x; 
-					c.normal = Vector2::PositiveX(); 
-				}
-				else
-				{
-					c.depth = radius + half.x + offset.x; 
-					c.normal = Vector2::NegativeX();
-				}
-			}
-			else // half.x - ox > half.y - oy 
-			{
-				if ( offset.y > 0 )
-				{
-					c.depth = radius + half.y - offset.y; 
-					c.normal = Vector2::PositiveY(); 
-				}
-				else
-				{
-					c.depth = radius + half.y + offset.y; 
-					c.normal = Vector2::NegativeY();
-				}
-			}
-		}
-		else if ( ( idx % 2 )== 0 )
-		{
-			switch ( idx )
-			{
-			case  4: vCol = half; break;
-			case  2: vCol = Vector2( -half.x , half.y ); break;
-			case -2: vCol = Vector2( half.x , -half.y ); break;
-			case -4: vCol = -half; break;
-			}
-
-			Vector2 diff = offset - vCol;
-			float len = diff.length2();
-			if ( len > radius * radius )
+			if ((offsetAbs - boxHalfSize).length2() > Math::Square(radius))
 				return false;
-			len = Math::Sqrt( len );
-			c.depth = radius - len;
-			if ( len < FLOAT_DIV_ZERO_EPSILON )
+			
+			c.posLocal[0] = Vector2(Math::Sign(offset.x) * boxHalfSize.x , Math::Sign(offset.y) * boxHalfSize.y);
+			normalLocal = offset - c.posLocal[0];
+			float len = normalLocal.normalize();
+			if (len == 0)
 			{
-				c.normal = GetNormal( Vector2( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
+				normalLocal = Math::GetNormal(offset);
+				len = radius;
 			}
-			else
+			else if (normalLocal.dot(offset) < 0)
 			{
-				c.normal = diff / len;
+				normalLocal = -normalLocal;
 			}
-
-			isEdge = false;
+			c.depth  = radius - len;
 		}
 		else
 		{
-			switch ( idx )
+			Vector2 depthV = boxHalfSize + Vector2(radius, radius) - offsetAbs;
+
+			bool bHorizonal;	
+			if (offsetAbs.x > boxHalfSize.x)
 			{
-			case  1: 
-				if ( offset.x > half.x + radius ) 
-					return false; 
-				c.depth = ( half.x + radius ) - offset.x; 
-				c.normal = Vector2::PositiveX(); 
-				break;
-			case -1: 
-				if ( -offset.x > ( half.x + radius ) ) 
-					return false;
-				c.depth = ( half.x + radius ) + offset.x; 
-				c.normal = Vector2::NegativeX();
-				break;
-			case  3: 
-				if ( offset.y > half.y + radius ) 
-					return false; 
-				c.depth = ( half.y + radius ) - offset.y; 
-				c.normal = Vector2::PositiveY();
-				break;
-			case -3: 
-				if ( -offset.y > ( half.y + radius ) ) 
-					return false;
-				c.depth = ( half.y + radius ) + offset.y; 
-				c.normal = Vector2::NegativeY(); 
-				break;
-			}	
+				CHECK(depthV.x > 0);
+				bHorizonal = true;
+			}
+			else if (offsetAbs.y > boxHalfSize.y)
+			{
+				CHECK(depthV.y > 0);
+				bHorizonal = false;
+			}
+			else
+			{
+				CHECK(depthV.x > 0 && depthV.y > 0);
+				bHorizonal = depthV.x <= depthV.y;
+			}
+
+			if (bHorizonal)
+			{
+				c.depth = depthV.x;
+				normalLocal = Vector2(Math::Sign(offset.x), 0);
+				c.posLocal[0] = Vector2(normalLocal.x * boxHalfSize.x, offset.y);
+			}
+			else
+			{
+				c.depth = depthV.y;
+				normalLocal = Vector2(0, Math::Sign(offset.y));
+				c.posLocal[0] = Vector2(offset.x, normalLocal.y * boxHalfSize.y);
+			}
 		}
 
 		c.object[0] = objA;
 		c.object[1] = objB;
-		if ( isEdge )
-		{
-			Vector2 pB = offset - radius * c.normal; 
-			c.posLocal[0] = pB + c.depth * c.normal;
-			c.pos[1] = objA->mXForm.transformPosition( pB );
-		}
-		else
-		{
-			c.posLocal[0] = vCol;
-			c.pos[1] = objA->mXForm.transformPosition( vCol - c.depth * c.normal );
-		}
-		c.pos[0] = objA->mXForm.transformPosition( c.posLocal[0] );
-		c.posLocal[1] = objB->mXForm.transformPositionInv( c.pos[1] );
+		c.normal = objA->mXForm.transformVector(normalLocal);
+		c.pos[0] = objA->mXForm.transformPosition(c.posLocal[0]);
+		c.pos[1] = objA->mXForm.transformPosition(offset - radius * normalLocal);
+		c.posLocal[1] = objB->mXForm.transformPositionInv(c.pos[1]);
 
-#if 0
 		if (bSwapped)
 		{
 			std::swap(c.object[0], c.object[1]);
 			std::swap(c.posLocal[0], c.posLocal[1]);
 			std::swap(c.pos[0], c.pos[1]);
+			c.normal = -c.normal;
 		}
-#endif
 		return true;
 	}
 

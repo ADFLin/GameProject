@@ -26,6 +26,10 @@
 #if SHADER_COMPILING
 
 #define cbuffer uniform
+#define asint floatBitsToInt
+#define asuint floatBitsToUint
+float asfloat(int v){ return intBitsToFloat(v); }
+float asfloat(uint v) { return uintBitsToFloat(v); }
 
 #else
 

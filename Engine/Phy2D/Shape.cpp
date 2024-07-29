@@ -7,14 +7,10 @@ namespace Phy2D
 	{
 		AABBUpdater( AABB& aabb ):aabb(aabb)
 		{
-			aabb.min.x = std::numeric_limits< float >::max();
-			aabb.min.y = std::numeric_limits< float >::max();
-			aabb.max.x = std::numeric_limits< float >::lowest();
-			aabb.max.y = std::numeric_limits< float >::lowest();
+			aabb.invalidate();
 #if _DEBUG
 			count = 0;
-#endif
-			
+#endif		
 		}
 		~AABBUpdater()
 		{
@@ -23,19 +19,10 @@ namespace Phy2D
 
 		void add( Vector2 const& p )
 		{
-			if ( aabb.min.x > p.x )
-				aabb.min.x = p.x;
-			else if ( aabb.max.x < p.x )
-				aabb.max.x = p.x;
-			if ( aabb.min.y > p.y )
-				aabb.min.y = p.x;
-			else if ( aabb.max.y < p.y )
-				aabb.max.y = p.y;
-
+			aabb.addPoint(p);
 #if _DEBUG
 			++count;
 #endif
-
 		}
 #if _DEBUG
 		int count;
@@ -124,6 +111,7 @@ namespace Phy2D
 
 	Vector2 PolygonShape::getSupport(Vector2 const& dir)
 	{
+#if 1
 		float vMax = dir.dot( mVertices[0] );
 		int idx = 0;
 		for( int i = 1 ; i < getVertexNum() ; ++i )
@@ -137,6 +125,53 @@ namespace Phy2D
 			}
 		}
 		return mVertices[idx];
+#else
+		if ( mVertices.size() == 0)
+			return Vector2::Zero();
+
+		if ( mVertices.size() > 1 )
+		{
+			float vMax = dir.dot(mVertices[0]);
+			float v = dir.dot(mVertices[1]);
+			if (v > vMax)
+			{
+				vMax = v;
+				int index = 2;
+				for (; index < getVertexNum(); ++index)
+				{
+					float val = dir.dot(mVertices[index]);
+					if (val <= vMax)
+					{
+						return mVertices[index - 1];
+					}
+					vMax = val;
+				}
+				return mVertices[index];
+			}
+
+			if (mVertices.size() > 2)
+			{
+				int indexLast = mVertices.size() - 1;
+				v = dir.dot(mVertices[indexLast]);
+				if (v > vMax)
+				{
+					vMax = v;
+					for (int index = indexLast - 1; index > 1; --index)
+					{
+						float val = dir.dot(mVertices[index]);
+						if (val <= vMax)
+						{
+							return mVertices[index + 1];
+						}
+						vMax = val;
+					}
+					return mVertices[2];
+				}
+			}
+		}
+
+		return mVertices[0];
+#endif
 	}
 
 	void PolygonShape::calcMass(MassInfo& info )

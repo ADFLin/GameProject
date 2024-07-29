@@ -30,9 +30,8 @@ namespace StickMove
 	static Vector2 RotateVector(Vector2 const& v, float theta)
 	{
 		Rotation2D rotation(theta);
-		return rotation.mul(v);
+		return rotation.rotate(v);
 	}
-
 
 	void Stick::init(MoveBound& moveBound , Vector2 const& pivotPos , Vector2 const& endpointPos )
 	{

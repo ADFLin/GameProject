@@ -170,8 +170,8 @@ public:
 				Vector2 offsetRight = newOffset;
 				for (int i = 0; i < numBranch / 2; ++i)
 				{
-					offsetLeft = rotation.mul(offsetLeft);
-					offsetRight = rotation.mulInv(offsetRight);
+					offsetLeft = rotation.rotate(offsetLeft);
+					offsetRight = rotation.rotateInv(offsetRight);
 					generateOdd(nextPos, offsetLeft, level, index);
 					generateOdd(nextPos, offsetRight, level, index);
 				}
@@ -189,14 +189,14 @@ public:
 			{
 				++level;
 				Vector2 newOffset = scale * offset;	
-				Vector2 offsetLeft = rotationHalf.mul(newOffset);
-				Vector2 offsetRight = rotationHalf.mulInv(newOffset);
+				Vector2 offsetLeft = rotationHalf.rotate(newOffset);
+				Vector2 offsetRight = rotationHalf.rotateInv(newOffset);
 				for (int i = 0; i < numBranch / 2; ++i)
 				{
 					generateEven(nextPos, offsetLeft, level, index);
 					generateEven(nextPos, offsetRight, level, index);
-					offsetLeft = rotation.mul(offsetLeft);
-					offsetRight = rotation.mulInv(offsetRight);
+					offsetLeft = rotation.rotate(offsetLeft);
+					offsetRight = rotation.rotateInv(offsetRight);
 				}
 			}
 		}
@@ -211,8 +211,8 @@ public:
 			{
 				++level;
 				Vector2 newOffset = scale * offset;
-				generate2(nextPos, rotationHalf.mul(newOffset), level, index);
-				generate2(nextPos, rotationHalf.mulInv(newOffset), level, index);
+				generate2(nextPos, rotationHalf.rotate(newOffset), level, index);
+				generate2(nextPos, rotationHalf.rotateInv(newOffset), level, index);
 			}
 		}
 

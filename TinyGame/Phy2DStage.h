@@ -16,6 +16,14 @@ namespace Phy2D
 
 	using namespace Render;
 
+	template<typename T, typename Q>
+	FORCEINLINE T AsValue(Q value)
+	{
+		static_assert(sizeof(T) == sizeof(Q));
+		T* ptr = (T*)&value;
+		return *ptr;
+	}
+
 	struct ObjectData
 	{
 		Vector3 meta;
@@ -28,13 +36,17 @@ namespace Phy2D
 			auto shape = object.getShape();
 			switch (shape->getType())
 			{
+			case Shape::eCircle:
+				type = 0;
+				meta = Vector3(static_cast<CircleShape*>(shape)->getRadius(), 0, 0);
+				break;
 			case Shape::eBox:
 				type = 1;
 				meta = Vector3(static_cast<BoxShape*>(shape)->mHalfExt.x, static_cast<BoxShape*>(shape)->mHalfExt.y, 0);
 				break;
-			case Shape::eCircle:
-				type = 0;
-				meta = Vector3(static_cast<CircleShape*>(shape)->getRadius(), 0, 0);
+			case Shape::ePolygon:
+				type = 2;
+				meta = Vector3(AsValue<float>(int(0)), AsValue<float>(int(static_cast<PolygonShape*>(shape)->mVertices.size())), 0);
 				break;
 			}
 			pos = object.getPos();
@@ -48,6 +60,11 @@ namespace Phy2D
 
 		ObjectData ObjectA;
 		ObjectData ObjectB;
+	};
+
+	struct VertexData
+	{
+		DECLARE_BUFFER_STRUCT(Vertices);
 	};
 
 
@@ -71,7 +88,7 @@ namespace Phy2D
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 
 	};
@@ -133,6 +150,7 @@ namespace Phy2D
 		{
 			VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
 			mObjectParams.initializeResource(1);
+			mVertexBuffer.initializeResource(mShape3.mVertices, EStructuredBufferType::Buffer);
 			return true;
 		}
 	protected:
@@ -147,6 +165,7 @@ namespace Phy2D
 		CollisionManager mCollision;
 
 		TStructuredBuffer<ObjectParamData> mObjectParams;
+		TStructuredBuffer<Vector2>         mVertexBuffer;
 	};
 
 

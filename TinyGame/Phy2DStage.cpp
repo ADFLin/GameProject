@@ -35,6 +35,12 @@ namespace Phy2D
 			};
 			return entries;
 		}
+	public:
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+		
+		}
+
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(MinkowskiSunProgram);
@@ -118,11 +124,11 @@ namespace Phy2D
 		mShape3.mVertices.push_back(Vector2(1, 3));
 		mShape3.mVertices.push_back(Vector2(-2, 0));
 		mShape3.mVertices.push_back(Vector2(-1, -2));
-		mShape1.mHalfExt = Vector2(1, 1);
+		mShape1.mHalfExt = Vector2(2, 1);
 		mShape2.setRadius(1);
 		mObjects[1].mShape = &mShape2;
 		mObjects[1].mXForm.setTranslation(Vector2(0, 0));
-		mObjects[0].mShape = &mShape1;
+		mObjects[0].mShape = &mShape3;
 		mObjects[0].mXForm.setTranslation(Vector2(1, 1));
 
 		restart();
@@ -134,6 +140,9 @@ namespace Phy2D
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		using namespace Render;
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(RHICommandList::GetImmediateList(), EClearBits::Color, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		g.beginRender();
@@ -168,8 +177,9 @@ namespace Phy2D
 			RHISetShaderProgram(commandList, program->getRHI());
 			program->setParam(commandList, SHADER_PARAM(XForm), element.transform.toMatrix4() * g.getBaseTransform());
 			SetStructuredUniformBuffer(commandList, *program, mObjectParams);
+			SetStructuredStorageBuffer<VertexData>(commandList, *program, mVertexBuffer);
 
-			LinearColor color = LinearColor(1, 0, 0, 0.2);
+			LinearColor color = LinearColor(0, 0, 1, 0.2);
 
 			struct Vertex
 			{
@@ -207,9 +217,9 @@ namespace Phy2D
 			g.drawLine(mObjects[0].getPos() - mContact.normal, mObjects[0].getPos());
 
 			XForm2D const& worldTrans = mObjects[0].mXForm;
-			g.pushXForm();
-			g.translateXForm(worldTrans.getPos().x, worldTrans.getPos().y);
-			g.rotateXForm(worldTrans.getRotateAngle());
+			//g.pushXForm();
+			//g.translateXForm(worldTrans.getPos().x, worldTrans.getPos().y);
+			//g.rotateXForm(worldTrans.getRotateAngle());
 
 #if PHY2D_DEBUG	
 
@@ -236,26 +246,29 @@ namespace Phy2D
 				GJK::Edge& edge = gGJK.mEdges[n];
 				Vector2 size = Vector2(0.05, 0.05);
 				RenderUtility::SetPen(g, EColor::Cyan);
-				Vector2 v = mObjects[1].mXForm.transformPosition(edge.sv->v);
+				auto const& xForm = mObjects[0].mXForm;
+				Vector2 v = xForm.transformVector(edge.sv->v);
 				g.drawRect(v - size / 2, size);
 				RenderUtility::SetPen(g, EColor::Cyan);
-				g.drawLine(v, v + Math::GetNormal(edge.sv->d));
+				g.drawLine(v, v + Math::GetNormal(xForm.transformVector(edge.sv->d)));
 			}
 #endif
 #if PHY2D_DEBUG	
 			for( int n = 0; n < gGJK.mDBG.size(); ++n )
 			{
 				GJK::Simplex& sv = gGJK.mDBG[n];
-				Vector2 pos = mObjects[0].mXForm.transformPosition(sv.v);
+
+				auto const& xForm = mObjects[0].mXForm;
+				Vector2 v = xForm.transformVector(sv.v);
 				Vector2 size = Vector2(0.05, 0.05);
 				RenderUtility::SetPen(g, EColor::Green);
-				g.drawRect(pos - size / 2, size);
+				g.drawRect(v - size / 2, size);
 				RenderUtility::SetPen(g, EColor::Green);
-				g.drawLine(pos, pos + 0.5 * Math::GetNormal(sv.d));
+				g.drawLine(v, v + 0.5 * Math::GetNormal(xForm.transformVector(sv.d)));
 			}
 
 #endif //PHY2D_DEBUG
-			g.popXForm();
+			//g.popXForm();
 		}
 
 		g.popXForm();
@@ -374,6 +387,9 @@ namespace Phy2D
 
 	void WorldTestStage::onRender(float dFrame)
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHISetFrameBuffer(commandList, nullptr);
+
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

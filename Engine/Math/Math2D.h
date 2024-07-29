@@ -22,53 +22,45 @@ namespace Math
 		void     setAngle(float angle) { Math::SinCos(angle, s, c); }
 		float    getAngle() const { return Math::ATan2(s, c); }
 
-		Vector2  rotate(Vector2 const& v) { return mul(v); }
+		Vector2    rotate(Vector2 const& v) const { return leftMul(v); }
+		Vector2    rotateInv(Vector2 const& v) const { return mul(v); }
+
 		Rotation2D inverse() const { return Rotation2D(c, -s); }
-
-		Vector2 mul(Vector2 const& v) const
-		{
-			return Vector2(v.x * c - v.y * s, v.x * s + v.y * c);
-		}
-
-		Vector2 mulInv(Vector2 const& v) const
-		{
-			return Vector2(v.x * c + v.y * s, -v.x * s + v.y * c);
-		}
 
 		Rotation2D mul(Rotation2D const& rhs) const
 		{
-			// R * Rr = [ c -s ][ cr -sr ] = [ c*cr-s*sr -(c*sr+s*cr)]
-			//          [ s  c ][ sr  cr ]   [ c*sr+s*cr   c*cr-s*sr ]
+			// R * Rr = [  c  s ][  cr  sr ] = [  c*cr-s*sr    c*sr+s*cr ]
+			//          [ -s  c ][ -sr  cr ]   [-(c*sr+s*cr)   c*cr-s*sr ]
 			Rotation2D r;
-			r.c = c*rhs.c - s*rhs.s;
-			r.s = c*rhs.s + s*rhs.c;
+			r.c = c * rhs.c - s * rhs.s;
+			r.s = c * rhs.s + s * rhs.c;
 			return r;
 		}
 
-		Rotation2D mulInv(Rotation2D const& rhs) const
+		FORCEINLINE Rotation2D operator * (Rotation2D const& rhs) const
 		{
-			// Rt * Rr = [  c  s ][ cr -sr ] = [ c*cr+s*sr -(c*sr-s*cr)]
-			//           [ -s  c ][ sr  cr ]   [ c*sr-s*cr   c*cr+s*sr ]
-			Rotation2D r;
-			r.c = c*rhs.c + s*rhs.s;
-			r.s = c*rhs.s - s*rhs.c;
-			return r;
-		}
-
-		Rotation2D mulRightInv(Rotation2D const rhs) const
-		{
-			// R * Rr^t = [ c -s ][  cr  sr ] = [ c*cr+s*sr -(s*cr-c*sr)]
-			//            [ s  c ][ -sr  cr ]   [(s*cr-c*sr)  c*cr+s*sr ]
-			Rotation2D r;
-			r.c = c*rhs.c + s*rhs.s;
-			r.s = s*rhs.c - c*rhs.s;
-			return r;
+			return mul(rhs);
 		}
 
 	private:
+		
+		Vector2 mul(Vector2 const& v) const
+		{
+			// [  c  s ][ x ] = [ c * x + s * y ]
+			// [ -s  c ][ y ]   [ -s * x + c * y]
+			return Vector2(c * v.x + s * v.y, -s * v.x + c * v.y);
+		}
+
+		Vector2 leftMul(Vector2 const& v) const
+		{
+			//[ x  y ][  c  s ] = [ c * x - s * y ]
+			//        [ -s  c ]   [ s * x + c * y ]
+			return Vector2(c * v.x - s * v.y, s * v.x + c * v.y);
+		}
+
 		Rotation2D(float c, float s) :c(c), s(s) {}
-		// [ c -s ]
-		// [ s  c ]
+		// [  c  s ]
+		// [ -s  c ]
 		float c, s;
 	};
 
@@ -98,43 +90,55 @@ namespace Math
 		Vector2 const& getPos() const { return mP; }
 		Rotation2D const& getRotation() const { return mR; }
 
+		XForm2D getRelativeTransform(XForm2D const& rhs) const
+		{
+			//return A.mul(B.inverse());
+			//[ R  0][  Rr(-1)    0] = [ R*Rr(-1)        0]
+			//[ P  1][ -Pr*Rr(-1) 1]   [ (P*-Pr)*Rr(-1)  1]
+			return XForm2D(rhs.mR.rotateInv(mP - rhs.mP), mR * rhs.mR.inverse());
+		}
+
+		// A * B(-1)
+		static XForm2D MakeRelative(XForm2D const& A, XForm2D const& B)
+		{
+			return A.getRelativeTransform(B);
+		}
+
 		XForm2D mul(XForm2D const& rhs) const
 		{
-			// [ R P ][ Rr Pr ]=[ R*Rr R*Pr+P ]  R * Rr = [ c -s ][ cr -sr ] = [ c*cr-s*sr -(c*sr+s*cr)]
-			// [ 0 1 ][ 0  1  ] [  0     1    ]           [ s  c ][ sr  cr ]   [ c*sr+s*cr   c*cr-s*sr ]
-			return XForm2D(mR.mul(rhs.mP) + mP, mR.mul(rhs.mR));
+			// [ R 0 ][ Rr  0 ]=[ R*Rr    1 ]
+			// [ P 1 ][ Pr  1 ] [ P*Rr+Pr 1 ]
+			return XForm2D(rhs.mR.rotate(mP) + rhs.mP, mR * rhs.mR);
 		}
 
-		XForm2D mulInv(XForm2D const rhs) const
+		FORCEINLINE XForm2D operator * (XForm2D const& rhs) const
 		{
-			// [ Rt -P ][ Rr Pr ]=[ Rt*Rr Rt*Pr-P ]  R^t * Rr = [  c  s ][ cr -sr ] = [ c*cr+s*sr -(c*sr-s*cr)]
-			// [ 0  1  ][ 0  1  ] [   0     1     ]             [ -s  c ][ sr  cr ]   [ c*sr-s*cr   c*cr+s*sr ]
-			return XForm2D(mR.mulInv(rhs.mP) - mP, mR.mulInv(rhs.mR));
+			return mul(rhs);
 		}
 
-		XForm2D mulRightInv(XForm2D const rhs) const
+		XForm2D inverse() const
 		{
-			// [ R  P ][ Rr^t -Pr ]=[ R*Rr^t -R*Pr+P ]  R * Rr^t = [ c -s ][  cr  sr ] = [ c*cr+s*sr -(c*sr-s*cr)]
-			// [ 0  1 ][ 0     1  ] [   0       1    ]             [ s  c ][ -sr  cr ]   [ c*sr-s*cr   c*cr+s*sr ]
-			return XForm2D(mP - mR.mulInv(rhs.mP), mR.mulRightInv(rhs.mR));
+			// [ R 0 ][ R(-1)  0 ]=[ R*R(-1)       1 ] = [ I 0 ]
+			// [ P 1 ][ P(-1)  1 ] [ P*R(-1)+P(-1) 1 ]   [ 0 1 ]
+			return XForm2D(-mR.rotateInv(mP), mR.inverse());
 		}
 
 		Vector2 transformPosition(Vector2 const& v) const 
 		{ 
-			//  T = [ R  P ]   Vw = T v = R V + P;
-			//      [ 0  1 ]
-			return mP + mR.mul(v); 
+			//  T = [ R  0 ]   v' = v * T = v * R + P;
+			//      [ P  1 ]
+			return mP + mR.rotate(v);
 		}
 		
 		Vector2 transformPositionInv(Vector2 const& v) const 
 		{ 
-			//  Tinv = [ Rt  -Rt * P ]   VL = Tinv V = Rt * ( V - P );
-			//         [ 0    1      ]
-			return mR.mulInv(v - mP); 
+			//  T(-1) = [ R(-1)    0 ]   v' = v * T(-1) = ( v - P ) * R(-1);
+			//          [-P*R(-1)  1 ]
+			return mR.rotateInv(v - mP);
 		}
 		
-		Vector2 transformVector(Vector2 const& v) const { return mR.mul(v); }
-		Vector2 transformVectorInv(Vector2 const& v) const { return mR.mulInv(v); }
+		Vector2 transformVector(Vector2 const& v) const { return mR.rotate(v); }
+		Vector2 transformVectorInv(Vector2 const& v) const { return mR.rotateInv(v); }
 
 		void  translate(Vector2 const& offset) { mP += offset; }
 		//void translateLocal( Vector2 const& offset ){ mP += offset; }

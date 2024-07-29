@@ -176,8 +176,8 @@ namespace Render
 
 		RenderTransform2D inverse() const
 		{
-			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ] = [ 1  0 ]
-			//[ P  1 ] [ Pr 1 ]     [ P * Mr + Pr   1 ] = [ 0  1 ]
+			//[ M  0 ] [ M(-1) 0 ]  =  [ M*M(-1)        0 ] = [ I  0 ]
+			//[ P  1 ] [ P(-1) 1 ]     [ P*M(-1)+P(-1)  1 ] = [ 0  1 ]
 			RenderTransform2D result;
 			float det;
 			M.inverse(result.M, det);

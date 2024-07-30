@@ -223,29 +223,21 @@ namespace Phy2D
 			//g.translateXForm(worldTrans.getPos().x, worldTrans.getPos().y);
 			//g.rotateXForm(worldTrans.getRotateAngle());
 
-#if PHY2D_DEBUG	
-
-#if 0
-			RenderUtility::setPen(g, EColor::Orange);
-			for( int n = 0; n < 3; ++n )
-			{
-				Vector2 size = Vector2(0.1, 0.1);
-				g.drawRect(gGJK.mSv[n]->vObj[0] - size / 2, size);
-			}
-#endif
-#endif //PHY2D_DEBUG
+			auto& gjk = gGJK;
 #if 0
 			RenderUtility::setPen(g, EColor::Blue);
 			for( int n = 0; n < 3; ++n )
 			{
 				Vector2 size = Vector2(0.1, 0.1);
-				g.drawRect(gGJK.mSv[n]->v - size / 2, size);
+				g.drawRect(gjk.mSv[n]->v - size / 2, size);
 			}
 #endif
+
+
 #if 1
-			for( int n = 0; n < gGJK.mNumEdge; ++n )
+			for( int n = 0; n < gjk.mNumEdge; ++n )
 			{
-				GJK::Edge& edge = gGJK.mEdges[n];
+				MinkowskiBase::Edge& edge = gjk.mEdges[n];
 				Vector2 size = Vector2(0.05, 0.05);
 				RenderUtility::SetPen(g, EColor::Cyan);
 				auto const& xForm = mObjects[0].mXForm;
@@ -257,9 +249,9 @@ namespace Phy2D
 #endif
 #if PHY2D_DEBUG	
 			g.setTextRemoveScale(true);
-			for( int n = 0; n < gGJK.mDBG.size(); ++n )
+			for( int n = 0; n < gjk.mDBG.size(); ++n )
 			{
-				GJK::Simplex& sv = gGJK.mDBG[n];
+				MinkowskiBase::Vertex& sv = gjk.mDBG[n];
 
 				auto const& xForm = mObjects[0].mXForm;
 				Vector2 v = xForm.transformVector(sv.v);
@@ -303,6 +295,7 @@ namespace Phy2D
 			case EKeyCode::A: moveObject(Vector2(-speed, 0)); break;
 			case EKeyCode::W: moveObject(Vector2(0, speed)); break;
 			case EKeyCode::S: moveObject(Vector2(0, -speed)); break;
+			case EKeyCode::X: doCollisionTest(); break;
 			case EKeyCode::Left:
 				mObjects[0].mXForm.rotate(0.01);
 				doCollisionTest();

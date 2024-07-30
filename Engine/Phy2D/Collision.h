@@ -112,7 +112,13 @@ namespace Phy2D
 	class CollisionAlgo
 	{
 	public:
-		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c ) = 0;
+		virtual ~CollisionAlgo() = default;
+		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c) = 0;
+		
+		bool test(CollideObject& objA, CollideObject& objB, Contact& c)
+		{
+			return test(objA, *objA.mShape, objB, *objB.mShape, c);
+		}
 	};
 
 	struct CollisionProxy
@@ -206,7 +212,7 @@ namespace Phy2D
 		{
 			int index = Math::PairingFunction<int>(objA->mShape->getType(), objB->mShape->getType());
 			CollisionAlgo* algo = mMap[index];
-			return algo->test( objA , objB , c );
+			return algo->test( *objA , *objB , c );
 		}
 
 		void preocss( float dt );
@@ -218,59 +224,83 @@ namespace Phy2D
 		TArray< ContactManifold* > mMainifolds;
 	};
 
-	class GJK
+	class MinkowskiBase
 	{
 	public:
-		GJK();
-		void init( CollideObject* objA , CollideObject* objB );
 
-		struct Simplex
+		struct Vertex
 		{
 			Vector2 v;
 			Vector2 dir;
-#if PHY2D_DEBUG
-			Vector2 vObj[2];
-#endif
 		};
 		struct Edge
 		{
 			Vector2  normal;
 			float    depth;
 			Edge*    next;
-			Simplex* sv;
+			Vertex* sv;
 		};
 
+		void init(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB);
 
-		Simplex* calcSupport( Simplex* sv , Vector2 const& dir );
+		Vertex* calcSupport(Vertex* sv, Vector2 const& dir);
 
-		bool     test();
-		void     generateContact( Contact& c );
+		Vector2 getSupport(Vector2 const& dir) const
+		{
+			Vector2 v0 = mShapes[0]->getSupport(dir);
+			Vector2 v1 = mShapes[1]->getSupport(mBToALocal.transformVectorInv(-dir));
+			return v0 - mBToALocal.transformPosition(v1);
+		}
 
-		Edge*    addEdge( Simplex* sv , Vector2 const& b );
-		void     updateEdge( Edge* e ,Vector2 const& b );
-		Edge*    insertEdge( Edge* cur , Simplex* sv );
-		void     buildContact( Edge* e, Contact &c );
-		Edge*    getClosetEdge();
+		void  buildContact(Edge* e, Contact &c);
+
+		Edge* addEdge(Vertex* sv, Vector2 const& b);
+		void  updateEdge(Edge* e, Vector2 const& b);
+		Edge* insertEdge(Edge* cur, Vertex* sv);
+		Edge* getClosetEdge();
+
+		void generateContact(Contact& c);
+
 
 		XForm2D     mBToALocal;
 
-
 		static int const MaxIterNum = 20;
 		int       mNumEdge;
-		Edge      mEdges[ MaxIterNum + 3 ];
+		Edge      mEdges[MaxIterNum + 3];
 		int       mNumSimplex;
-		Simplex   mStorage[ MaxIterNum + 3 ];
-		Simplex*  mSv[3];
-		CollideObject* mObj[2];
-#if PHY2D_DEBUG
-		TArray< Simplex > mDBG;
-#endif
+		Vertex    mStorage[MaxIterNum + 3];
+		Vertex*   mSv[3];
+		CollideObject*  mObjects[2];
+		Shape*          mShapes[2];
 
+#if PHY2D_DEBUG
+		TArray< Vertex > mDBG;
+#endif
 	};
 
 
+	class GJK : public MinkowskiBase
+	{
+	public:
+		GJK();
+		void init(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB);
+		bool test();
+
+	};
+
+	class MPR : public MinkowskiBase
+	{
+	public:
+		void init(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB);
+
+		Vector2 getPointInside() const;
+
+		bool test();
+	};
+
 #if PHY2D_DEBUG
-	extern GJK gGJK;
+	MinkowskiBase& GetGJK();
+	#define gGJK GetGJK()
 #endif
 
 }//namespace Phy2D

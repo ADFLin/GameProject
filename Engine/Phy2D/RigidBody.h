@@ -136,10 +136,10 @@ namespace Phy2D
 		Vector2  mLinearVel;
 		float  mAngularVel;
 		float  mDensity;
-		float  mMass , mInvMass;
-		float  mI , mInvI;
-
-
+		float  mMass;
+		float  mInvMass;
+		float  mI;
+		float  mInvI;
 	};
 
 }//namespace Phy2D

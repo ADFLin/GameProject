@@ -238,20 +238,8 @@ public:
 		int numSliceInput, int  inputSize[],
 		NNScalar const* RESTRICT inputs, NNScalar* RESTRICT outputs);
 
-	static void VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b)
-	{
-		for (int i = 0; i < dim; ++i)
-		{
-			a[i] += b[i];
-		}
-	}
-	static void VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
-	{
-		for (int i = 0; i < dim; ++i)
-		{
-			out[i] = a[i] + b[i];
-		}
-	}
+	static void VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b);
+	static void VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride);
@@ -275,20 +263,13 @@ public:
 		}
 	}
 
-	static void MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
-	{
-		for (int row = 0; row < dimRow; ++row)
-		{
-			out[row] = b[row]  + VectorDotNOP(dimCol, m, v);
-			m += dimCol;
-		}
-	}
+	static void MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 
 	static void MatrixMulVector(int dimRow, int dimCol,  NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
 	{
 		for (int row = 0; row < dimRow; ++row)
 		{
-			out[row] = VectorDotNOP(dimCol, m, v);
+			out[row] = VectorDot(dimCol, m, v);
 			m += dimCol;
 		}
 	}
@@ -297,7 +278,7 @@ public:
 	{
 		for (int col = 0; col < dimCol; ++col)
 		{
-			out[col] = VectorDotNOP(dimRow, m, v);
+			out[col] = VectorDot(dimRow, m, v);
 			m += dimRow;
 		}
 	}

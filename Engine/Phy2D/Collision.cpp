@@ -49,12 +49,12 @@ namespace Phy2D
 
 		auto RegisterAlgo = [this](Shape::Type a, Shape::Type b, CollisionAlgo& algo)
 		{
-			int index = Math::PairingFunction<int>(a, b);
+			int index = ToIndex(a, b);
 			mMap[index] = &algo;
 		};
 
 		RegisterAlgo(Shape::eCircle, Shape::eCircle, StaticCircleAlgo);
-		RegisterAlgo(Shape::eBox, Shape::eCircle, StaticBoxCircleAlgo);
+		//RegisterAlgo(Shape::eBox, Shape::eCircle, StaticBoxCircleAlgo);
 		
 		mDefaultConvexAlgo = &StaticGJKAlgo;
 	}
@@ -95,10 +95,8 @@ namespace Phy2D
 
 	void Broadphase::process( ContactManager& pairManager , float dt )
 	{
-		for( ProxyList::iterator iter = mProxys.begin(), itEnd = mProxys.end() ; 
-			 iter != itEnd ; ++iter )
+		for(CollisionProxy* proxy : mProxys)
 		{
-			CollisionProxy* proxy = *iter;
 			CollideObject* object = proxy->object;
 			object->mShape->calcAABB( object->mXForm , proxy->aabb );
 			Vector2 dp = Vector2( mContactBreakThreshold + 0.5  , mContactBreakThreshold + 0.5 );
@@ -106,8 +104,8 @@ namespace Phy2D
 			proxy->aabb.max += dp;
 		}
 
-		for( ProxyList::iterator iter = mProxys.begin(), itEnd = mProxys.end() ; 
-			iter != itEnd ; ++iter )
+		for( ProxyList::iterator iter = mProxys.begin(), itEnd = mProxys.end(); 
+			 iter != itEnd ; ++iter )
 		{
 			CollisionProxy* proxyA = *iter;
 			ProxyList::iterator iter2 = iter; 
@@ -137,8 +135,6 @@ namespace Phy2D
 			ProxyPair* pair = *iter;
 			if ( pair->proxy[0] == proxyA && pair->proxy[1] == proxyB )
 				return pair;
-			if ( pair->proxy[0] == proxyB && pair->proxy[1] == proxyA )
-				return pair;
 		}
 
 		//for( int i = 0; i < proxyA->pairs.size() ; ++i )
@@ -152,6 +148,10 @@ namespace Phy2D
 
 	bool ContactManager::addProxyPair(CollisionProxy* proxyA , CollisionProxy* proxyB)
 	{
+		if (proxyA > proxyB)
+		{
+			std::swap(proxyA, proxyB);
+		}
 		ProxyPair* pair = findProxyPair( proxyA , proxyB );
 		if ( pair )
 			return false;
@@ -168,6 +168,10 @@ namespace Phy2D
 
 	bool ContactManager::removeProxyPair(CollisionProxy* proxyA , CollisionProxy* proxyB)
 	{
+		if (proxyA > proxyB)
+		{
+			std::swap(proxyA, proxyB);
+		}
 		ProxyPair* pair = findProxyPair( proxyA , proxyB );
 		if ( pair == NULL )
 			return false;

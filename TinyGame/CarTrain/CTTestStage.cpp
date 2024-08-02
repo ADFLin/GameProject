@@ -2,12 +2,6 @@
 #include "Serialize/FileStream.h"
 #include "FileSystem.h"
 
-#if _DEBUG
-#pragma comment( lib , "Box2Dd.lib" )
-#else
-#pragma comment( lib , "Box2D.lib" )
-#endif // _DEBUG
-
 namespace CarTrain
 {
 

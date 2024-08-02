@@ -103,7 +103,7 @@ namespace Phy2D
 		}
 
 		float   impulse;
-		float   velParam;
+		float   velocityBias;
 		int     mNumContact;
 		int     mAge;
 		Contact mContect;
@@ -176,7 +176,11 @@ namespace Phy2D
 			CollisionProxy* proxy = obj->mProxy;
 			if ( proxy )
 			{
+#if 1
 				proxy->hook.unlink();
+#else
+				mProxys.remove(proxy);
+#endif
 				delete proxy;
 			}
 		}
@@ -184,14 +188,16 @@ namespace Phy2D
 		void process( ContactManager& pairManager , float dt );
 		float mContactBreakThreshold;
 	
+#if 1
 		typedef TIntrList< 
 			CollisionProxy , 
 			MemberHook< CollisionProxy , &CollisionProxy::hook > , 
 			PointerType 
-		> ProxyList;
-
+		> ProxyList;		
+#else
+		using ProxyList = TArray< CollisionProxy* >;
+#endif
 		ProxyList mProxys;
-
 	};
 
 	class CollisionManager
@@ -209,16 +215,24 @@ namespace Phy2D
 		}
 
 		bool test( CollideObject* objA , CollideObject* objB , Contact& c )
-		{
-			int index = Math::PairingFunction<int>(objA->mShape->getType(), objB->mShape->getType());
+		{                                                                
+			int index = ToIndex(objA->mShape->getType(), objB->mShape->getType());
 			CollisionAlgo* algo = mMap[index];
 			return algo->test( *objA , *objB , c );
 		}
 
+		static int ToIndex(Shape::Type a, Shape::Type b)
+		{
+			if (a > b)
+			{
+				std::swap(a,b);
+			}
+			return a * ( a + 1 ) / 2 + b;
+		}
 		void preocss( float dt );
 		
 		CollisionAlgo*   mDefaultConvexAlgo;
-		CollisionAlgo*   mMap[ Shape::NumShape * Shape::NumShape / 2 + 1];
+		CollisionAlgo*   mMap[ Shape::NumShape * Shape::NumShape / 2 ];
 		ContactManager   mPairManager;
 		Broadphase       mBroadphase;
 		TArray< ContactManifold* > mMainifolds;

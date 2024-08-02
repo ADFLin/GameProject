@@ -17,6 +17,12 @@ namespace Math
 		static Rotation2D Identity() { return Rotation2D(1, 0); }
 		static Rotation2D Make( Vector2 const& from , Vector2 const& to );
 
+		void     setXDir(Vector2 const& dir)
+		{
+			CHECK(dir.isNormalized());
+			c = dir.x;
+			s = dir.y;
+		}
 		Vector2  getXDir() const { return Vector2(c, s); }
 		Vector2  getYDir() const { return Vector2(-s, c); }
 		void     setAngle(float angle) { Math::SinCos(angle, s, c); }
@@ -145,6 +151,10 @@ namespace Math
 		void  rotate(float angle) { mR = mR.mul(Rotation2D(angle)); }
 		void  setTranslation(Vector2 const& p) { mP = p; }
 		void  setRoatation(float angle) { mR.setAngle(angle); }
+		void  setBaseXDir(Vector2 const& dir)
+		{
+			mR.setXDir(dir);
+		}
 		float getRotateAngle() const { return mR.getAngle(); }
 
 	private:

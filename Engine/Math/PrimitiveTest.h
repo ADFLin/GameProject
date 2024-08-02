@@ -23,6 +23,7 @@ namespace Math
 	bool LineSphereTest(Vector3 const& pos, Vector3 const& dirNormalized, Vector3 const& center, float radius, float outDistance[2]);
 
 	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, Vector2& outPos);
+	bool SegmentSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, Vector2& outPos);
 	bool LineCircleTest(Vector2 const& rPos, Vector2 const& rDir,
 						Vector2 const& cPos, float cRadius, float t[]);
 

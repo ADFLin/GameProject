@@ -15,7 +15,7 @@
 float TestFunc(float x)
 {
 #if 1
-	return x * x * x - x * x - sin(2 * Math::PI * x);
+	return x * x * x - x * x - exp(2 * Math::PI * x);
 #else
 	if (x < -0.5)
 		return -1;
@@ -46,15 +46,17 @@ public:
 		TArray< NNScalar > netInputs;
 		TArray< NNScalar > lossGrads;
 		TArray< NNScalar > deltaParameters;
-
+		TArray< NNScalar > batchNormParameters;
 		NNScalar loss;
 
 		void init(FCNNLayout& layout, int batchSize = 1)
 		{
+			batchSize = 1;
 			signals.resize(batchSize * layout.getSignalNum());
 			netInputs.resize(batchSize * (layout.getHiddenNodeNum() + layout.getOutputNum()));
 			lossGrads.resize(batchSize * (layout.getHiddenNodeNum() + layout.getOutputNum()));
-			deltaParameters.resize(batchSize * layout.getParameterNum());
+			
+			deltaParameters.resize(layout.getParameterNum());
 		}
 
 		void reset()
@@ -81,7 +83,7 @@ public:
 
 		::Global::GUI().cleanupWidget();
 
-		int size = 32;
+		int size = 24;
 		uint32 topology[] = { 1, size, size, size, size, 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
 		mLayout.setHiddenLayerFunction<ENNFunc::ReLU>();
@@ -92,7 +94,7 @@ public:
 		mFNN.setParamsters(mParameters);
 		mRMSPropSqare.resize(mLayout.getParameterNum(), 0);
 
-		int workerNum = 30;
+		int workerNum = 10;
 		for (int i = 0; i < workerNum; ++i)
 		{
 			mThreadTrainDatas.push_back(std::make_unique<TrainData>());

@@ -6,6 +6,12 @@
 
 #include "RHI/RHIGraphics2D.h"
 
+#if _DEBUG
+#pragma comment( lib , "Box2Dd.lib" )
+#else
+#pragma comment( lib , "Box2D.lib" )
+#endif // _DEBUG
+
 namespace CarTrain
 {
 
@@ -17,7 +23,7 @@ namespace CarTrain
 		{
 			XForm2D result;
 			result.setTranslation(To(xForm.p));
-			result.setRoatation(xForm.q.GetAngle());
+			result.setBaseXDir(Vector2(xForm.q.c, xForm.q.s));
 			return result;
 		}
 		static Color4f  To(b2Color const& c) { return Color4f(c.r, c.g, c.b, c.a); }
@@ -29,7 +35,7 @@ namespace CarTrain
 		Box2DDraw(RHIGraphics2D& g)
 			:mGraphic(&g)
 		{
-			SetFlags(e_shapeBit);
+			SetFlags(e_shapeBit| e_aabbBit | e_centerOfMassBit);
 		}
 
 		void setGraphics(RHIGraphics2D& g)
@@ -44,17 +50,22 @@ namespace CarTrain
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
-
 		void drawPolygonInternal(const b2Vec2* vertices, int32 vertexCount)
 		{
-			Vector2 v[b2_maxPolygonVertices];
-			assert(vertexCount <= ARRAY_SIZE(v));
-			for (int i = 0; i < vertexCount; ++i)
+			if constexpr (sizeof(Vector2) == sizeof(b2Vec2))
 			{
-				v[i] = Box2DConv::To(vertices[i]);
+				mGraphic->drawPolygon((Vector2*)vertices, vertexCount);
 			}
-			mGraphic->drawPolygon(v, vertexCount);
-
+			else
+			{
+				Vector2 v[b2_maxPolygonVertices];
+				CHECK(vertexCount <= ARRAY_SIZE(v));
+				for (int i = 0; i < vertexCount; ++i)
+				{
+					v[i] = Box2DConv::To(vertices[i]);
+				}
+				mGraphic->drawPolygon(v, vertexCount);
+			}
 		}
 
 		void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
@@ -64,12 +75,10 @@ namespace CarTrain
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
-
 		void DrawCircle(const b2Vec2& center, float32 radius, const b2Color& color) override
 		{
 			mGraphic->drawCircle(Box2DConv::To(center), radius);
 		}
-
 
 		void DrawSolidCircle(const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color& color) override
 		{
@@ -78,23 +87,25 @@ namespace CarTrain
 			mGraphic->drawCircle(Box2DConv::To(center), radius);
 		}
 
-
 		void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override
 		{
 			mGraphic->drawLine(Box2DConv::To(p1), Box2DConv::To(p2));
 		}
 
-
 		void DrawTransform(const b2Transform& xf) override
 		{
-
+			float len = 5;
+			XForm2D xForm = Box2DConv::To(xf);
+			mGraphic->setPen(Color3f(1, 0, 0));
+			mGraphic->drawLine(xForm.getPos(), xForm.getPos() + len * xForm.getRotation().getXDir());
+			mGraphic->setPen(Color3f(0, 1, 0));
+			mGraphic->drawLine(xForm.getPos(), xForm.getPos() + len * xForm.getRotation().getYDir());
 		}
 
 		void DrawPoint(const b2Vec2& p, float32 size, const b2Color& color) override
 		{
 
 		}
-
 
 		RHIGraphics2D* mGraphic;
 	};

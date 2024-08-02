@@ -50,7 +50,7 @@ namespace ODE
 		int mIndexStart = 0;
 		int mPointCount = 0;
 		int mMaxPointCount = 3000;
-		std::vector< Vector2 > mPoints;
+		TArray< Vector2 > mPoints;
 	};
 
 	template< int Dim, typename Type = Scalar >

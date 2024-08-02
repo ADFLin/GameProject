@@ -164,7 +164,7 @@ namespace Math
 	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, Vector2& outPos)
 	{
 		//[ dax -dbx ][ta] = [ pbx-pax ]
-		//[ day -dby ][tb] = [ pby-pay ]
+		//[ day -dby ][tb]   [ pby-pay ]
 		float det = dirA.x * dirB.y - dirA.y * dirB.x;
 		if( Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON )
 			return false;
@@ -172,6 +172,28 @@ namespace Math
 		Vector2 dPos = posB - posA;
 		float t = (dPos.x * dirB.y - dPos.y * dirB.x) / det;
 		outPos = posA + t * dirA;
+		return true;
+	}
+
+	bool SegmentSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, Vector2& outPos)
+	{
+		Vector2 dirA = posA2 - posA1;
+		Vector2 dirB = posB2 - posB1;
+		//[ dax -dbx ][ta] = [ dx ]  => [ta] = [-dby  dbx][dx] / det
+		//[ day -dby ][tb]   [ dy ]     [tb]   [-day  dax][dy]
+		float det = dirA.x * dirB.y - dirA.y * dirB.x;
+		if (Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON)
+			return false;
+
+		Vector2 dPos = posB1 - posA1;
+		float tA = (dPos.x * dirB.y - dPos.y * dirB.x) / det;
+		if (tA > 1 || tA < 0)
+			return false;
+		float tB = (dPos.x * dirA.y - dPos.y * dirA.x) / det;
+		if (tB > 1 || tB < 0)
+			return false;
+
+		outPos = posA1 + tA * dirA;
 		return true;
 	}
 

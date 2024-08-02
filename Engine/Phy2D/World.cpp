@@ -13,7 +13,7 @@ namespace Phy2D
 
 	void World::simulate(float dt)
 	{
-		LogDevMsg(0,"World::sim");
+		//LogDevMsg(0,"World::sim");
 		mAllocator.clearFrame();
 
 		int vIterNum = 50;
@@ -74,13 +74,12 @@ namespace Phy2D
 			Vector2 vA = bodyA->getVelFromWorldPos( cp );
 			Vector2 vB = bodyB->getVelFromWorldPos( cp );
 			float vrel = c.normal.dot( vB - vA );
-			float relectParam = 1.0f;
-			cm.velParam = 0;
+			float restitution = 0.6f;
+			cm.velocityBias = 0;
 			if ( vrel < -1 )
 			{
-				cm.velParam = -relectParam * vrel;
+				cm.velocityBias = -restitution * vrel;
 			}
-			
 
 			//cm.impulse = 0;
 
@@ -97,6 +96,7 @@ namespace Phy2D
 
 		if ( numMainfold != 0 )
 			GDebugJumpFun();
+
 		//std::sort( sortedContact.begin() , sortedContact.end() , DepthSort() );
 
 		for( int nIter = 0 ; nIter < vIterNum ; ++nIter )
@@ -124,14 +124,14 @@ namespace Phy2D
 				invMass += bodyA->mInvMass + bodyA->mInvI * nrA * nrA;
 				invMass += bodyB->mInvMass + bodyB->mInvI * nrB * nrB;
 
-	
-				float impulse =  -( vn - cm.velParam ) / invMass;
+				float impulse =  -( vn - cm.velocityBias ) / invMass;
 				float newImpulse = Math::Max( cm.impulse + impulse , 0.0f );
 				impulse = newImpulse - cm.impulse;
 
-				bodyA->mLinearVel -= impulse * c.normal * bodyA->mInvMass;
+				Vector2 P = impulse * c.normal;
+				bodyA->mLinearVel -= P * bodyA->mInvMass;
 				//bodyA->mAngularVel -= impulse * nrA * bodyA->mInvI;
-				bodyB->mLinearVel += impulse * c.normal * bodyB->mInvMass;
+				bodyB->mLinearVel += P * bodyB->mInvMass;
 				//bodyB->mAngularVel += impulse * nrB * bodyB->mInvI;
 
 				cm.impulse = newImpulse;

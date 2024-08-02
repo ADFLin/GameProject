@@ -298,13 +298,60 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScalar const*
 		(*layer.funcTransform)(outputs, num);
 	}
 }
+#define USE_DUFF_DEVICE 1
+int constexpr BlockSize = 8;
+
+#define DUFF_DEVICE( DIM , BLOCK_SIZE , OP )\
+	{\
+		int blockCount = (DIM + BLOCK_SIZE - 1) / BLOCK_SIZE;\
+		switch (DIM % BLOCK_SIZE)\
+		{\
+		case 0: do { OP;\
+		case 7: OP;\
+		case 6: OP;\
+		case 5: OP;\
+		case 4: OP;\
+		case 3: OP;\
+		case 2: OP;\
+		case 1: OP;\
+			} while (--blockCount > 0);\
+		}\
+	}
+
+void FNNCalc::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b)
+{
+#if USE_DUFF_DEVICE
+#define OP	*a += *b; ++a; ++b;
+	DUFF_DEVICE(dim, BlockSize, OP);
+#undef OP
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		a[i] += b[i];
+	}
+#endif
+}
+
+void FNNCalc::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
+{
+#if USE_DUFF_DEVICE
+#define OP	*out = *a + *b; ++out; ++a; ++b;
+	DUFF_DEVICE(dim, BlockSize, OP);
+#undef OP
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		out[i] = a[i] + b[i];
+	}
+#endif
+}
 
 NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
-	NNScalar result = 0;
-#if USE_MATH_SIMD 
+#if USE_MATH_SIMD  && 0
 	if constexpr (Meta::IsSameType< NNScalar, float >::Value)
 	{
+		NNScalar result = 0;
 		using namespace SIMD;
 		int numPackedDim = dim / 4;
 
@@ -337,40 +384,64 @@ NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 			break;
 		}
 		result = vr;
+
+		return result;
 	}
 	else
 #endif
 	{
-
-		for (; dim; --dim)
-		{
-			result += (*a++) * (*b++);
-		}
+		return VectorDotNOP(dim, a, b);
 	}
-	return result;
 }
 
 
 NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride)
 {
 	NNScalar result = 0;
+#if USE_DUFF_DEVICE
+#define OP	result += *a * *b; ++a; b += bStride;
+	DUFF_DEVICE(dim, BlockSize, OP);
+#undef OP
+#else
 	for (; dim; --dim)
 	{
 		result += (*a) * (*b);
 		++a;
 		b += bStride;
 	}
+#endif
 	return result;
 }
 
 NNScalar FNNCalc::VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
 	NNScalar result = 0;
+#if USE_DUFF_DEVICE
+#define OP	result += (*a++) * (*b++);
+	DUFF_DEVICE(dim, BlockSize, OP);
+#undef OP
+#else
 	for (; dim; --dim)
 	{
 		result += (*a++) * (*b++);
 	}
+#endif
 	return result;
+}
+
+void FNNCalc::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
+{
+#if USE_DUFF_DEVICE
+#define OP	*out = *b + VectorDot(dimCol, m, v); ++out; ++b; m += dimCol;
+	DUFF_DEVICE(dimRow, BlockSize, OP);
+#undef OP
+#else
+	for (int row = 0; row < dimRow; ++row)
+	{
+		out[row] = b[row] + VectorDot(dimCol, m, v);
+		m += dimCol;
+	}
+#endif
 }
 
 void FNNCalc::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
@@ -519,7 +590,7 @@ void NeuralFullConLayer::frontFeedback(NNScalar const* RESTRICT parameterData, i
 
 	for (int i = 0; i < numNode; ++i)
 	{
-		NNScalar value = pBias[0] + FNNCalc::VectorDotNOP(numInput, pWeight, pInput);
+		NNScalar value = pBias[0] + FNNCalc::VectorDot(numInput, pWeight, pInput);
 		pWeight += numInput;
 		pBias += 1;
 

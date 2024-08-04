@@ -23,7 +23,7 @@ namespace Zuma
 		ZRenderUtility::drawLevelBG( RDSystem , lvInfo );
 		RDSystem.enableBlend( true );
 
-		RDSystem.setBlendFun( BLEND_ONE , BLEND_ONE );
+		RDSystem.setBlendFunc( BLEND_ONE , BLEND_ONE );
 
 		glLineWidth( 5 );
 

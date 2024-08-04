@@ -165,21 +165,21 @@ namespace Zuma
 		if ( beE )
 		{
 			if ( ( flag & TBF_USE_BLEND_PARAM ) )
-				setupBlendFun( mSrcBlend , mDstBlend );
+				setupBlendFunc( mSrcBlend , mDstBlend );
 			else
-				setupBlendFun( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
+				setupBlendFunc( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
 		}
 		return beE;
 	}
 
-	void IRenderSystem::setBlendFun( BlendEnum src , BlendEnum dst )
+	void IRenderSystem::setBlendFunc( BlendEnum src , BlendEnum dst )
 	{
 		mSrcBlend = src;
 		mDstBlend = dst;
 
 		if ( mBlendEnable )
 		{
-			setupBlendFun( mSrcBlend , mDstBlend );
+			setupBlendFunc( mSrcBlend , mDstBlend );
 		}
 	}
 
@@ -193,7 +193,7 @@ namespace Zuma
 
 		if ( beE )
 		{
-			setupBlendFun( mSrcBlend , mDstBlend );
+			setupBlendFunc( mSrcBlend , mDstBlend );
 		}
 	}
 

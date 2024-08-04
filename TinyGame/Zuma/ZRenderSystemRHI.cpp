@@ -419,7 +419,7 @@ namespace Zuma
 		return src << 4 | dst;
 	}
 
-	void RenderSystemRHI::setupBlendFun(BlendEnum src, BlendEnum dst)
+	void RenderSystemRHI::setupBlendFunc(BlendEnum src, BlendEnum dst)
 	{
 		switch (MakeKey(src,dst))
 		{

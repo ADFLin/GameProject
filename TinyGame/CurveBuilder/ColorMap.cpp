@@ -87,16 +87,19 @@ void ColorMap::sortCPList()
 
 void ColorMap::getColor(float fVal,Color3f& outColor) const
 {
-	int rotion = m_iRotion*getSizePosRatio();
-	int index = ( int(fVal*m_iMapSize) - rotion ) % m_iMapSize;
-	
-	if (index < 0) 
-		index+=m_iMapSize;
+	int rotion = m_iRotion * getSizePosRatio();
+	float pos = fVal * m_iMapSize;
+	int index = ( Math::FloorToInt(pos) - rotion ) % m_iMapSize;
+	if (index < 0)
+		index += m_iMapSize;
 
-	outColor = mColorData[index];
+	int indexNext = index + 1;
+	if (indexNext == m_iMapSize)
+		indexNext = 0;
+
+	float frac = pos - Math::FloorToInt(pos);
+	outColor = (1 - frac) * mColorData[index] + frac * mColorData[indexNext];
 }
-
-
 
 void ColorMap::setCPPos(int index,int Pos)
 {

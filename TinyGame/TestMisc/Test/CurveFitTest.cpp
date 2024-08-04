@@ -94,11 +94,12 @@ public:
 		mFNN.setParamsters(mParameters);
 		mRMSPropSqare.resize(mLayout.getParameterNum(), 0);
 
-		int workerNum = 10;
+		bool bUseBatchNormaliztion = false;
+		int workerNum = 30;
 		for (int i = 0; i < workerNum; ++i)
 		{
 			mThreadTrainDatas.push_back(std::make_unique<TrainData>());
-			mThreadTrainDatas.back()->init(mLayout , i == 0 ? mBatchSize : 1);
+			mThreadTrainDatas.back()->init(mLayout , bUseBatchNormaliztion ? (i == 0 ? mBatchSize : 1) : 1);
 		}
 		mPool.init(workerNum);
 

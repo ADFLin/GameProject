@@ -594,7 +594,7 @@ cleanup:
 		return GL_ONE;
 	}
 
-	void GLRenderSystem::setupBlendFun( BlendEnum src , BlendEnum dst )
+	void GLRenderSystem::setupBlendFunc( BlendEnum src , BlendEnum dst )
 	{
 		glBlendFunc( convBlendValue( src ) , convBlendValue( dst ) );
 	}

@@ -69,7 +69,7 @@ namespace Zuma
 		void postRender() override;
 
 		void enableBlendImpl(bool beE) override;
-		void setupBlendFun(BlendEnum src, BlendEnum dst) override;
+		void setupBlendFunc(BlendEnum src, BlendEnum dst) override;
 
 		bool loadTextureInternal(ITexture2D& texture, char const* imagePath, char const* alphaPath);
 

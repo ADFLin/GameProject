@@ -66,7 +66,7 @@ namespace Zuma
 
 		static GLenum convBlendValue( BlendEnum value );
 		void  enableBlendImpl( bool beB );
-		void  setupBlendFun( BlendEnum src , BlendEnum dst );
+		void  setupBlendFunc( BlendEnum src , BlendEnum dst );
 		void  setMatrix( Vector2 const& pos , float c , float s );
 
 	public:

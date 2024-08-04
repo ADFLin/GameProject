@@ -69,7 +69,7 @@ namespace Zuma
 		normal *= 10;
 		Vector2 pos = frog.getPos() + 50 * frog.getDir();
 
-		RDSystem.setBlendFun( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
+		RDSystem.setBlendFunc( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
 		RDSystem.enableBlend( true );
 		RDSystem.setWorldIdentity();
 
@@ -133,7 +133,7 @@ namespace Zuma
 
 		RDSystem.setColor( 255 , 255 , 125 , 255 );
 
-		RDSystem.setBlendFun( BLEND_ONE , BLEND_ONE );
+		RDSystem.setBlendFunc( BLEND_ONE , BLEND_ONE );
 
 		for( int i = 0 ; i < texSparkle->col ; ++i )
 		{
@@ -252,7 +252,7 @@ namespace Zuma
 
 			RDSystem.translateWorld( -1 , 1 );
 
-			RDSystem.setBlendFun( BLEND_ONE , BLEND_ONE );
+			RDSystem.setBlendFunc( BLEND_ONE , BLEND_ONE );
 			RDSystem.setColor( frame , frame , frame , 255 );
 			RDSystem.drawBitmap( *texlight , 
 				TBF_ENABLE_ALPHA_BLEND | TBF_USE_BLEND_PARAM | TBF_OFFSET_CENTER );
@@ -463,7 +463,7 @@ namespace Zuma
 		{
 			RDSystem.setWorldIdentity();
 			RDSystem.setColor( 0 , 0 , 0 , 100 );
-			RDSystem.setBlendFun( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
+			RDSystem.setBlendFunc( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
 			RDSystem.enableBlend( true );
 			RDSystem.drawRect( Vector2(0,0), Vector2(g_ScreenWidth, g_ScreenHeight));
 			RDSystem.enableBlend( false );
@@ -534,7 +534,7 @@ namespace Zuma
 		RDSystem.scaleWorld( s , s );
 
 		RDSystem.setColor( 50 , 50 , 10 ,  60 * s  );
-		RDSystem.setBlendFun( BLEND_ONE , BLEND_ONE );
+		RDSystem.setBlendFunc( BLEND_ONE , BLEND_ONE );
 		RDSystem.drawBitmap( *tex , TBF_OFFSET_CENTER | TBF_USE_BLEND_PARAM | TBF_ENABLE_ALPHA_BLEND );
 		RDSystem.setColor( 255 , 255 , 255 , 255 );
 

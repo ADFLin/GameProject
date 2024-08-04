@@ -230,6 +230,9 @@ public:
 	operator Vector3() const { return Vector3(r, g, b); }
 
 	friend Color3f operator * ( float s, Color3f const& c ) { return Color3f(s * c.r, s *c.g, s * c.b); }
+	friend Color3f operator + (Color3f const& lhs, Color3f const& rhs) { return Color3f(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b); }
+	friend Color3f operator - (Color3f const& lhs, Color3f const& rhs) { return Color3f(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b); }
+	
 };
 
 
@@ -271,10 +274,8 @@ public:
 	operator Vector4() const { return Vector4(r, g, b, a); }
 
 	friend Color4f operator * (float f, Color4f const& c) { return Color4f(f * c.r, f * c.g, f * c.b, f * c.a); }
+	friend Color4f operator + (Color4f const& lhs, Color4f const& rhs) { return Color4f(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b, lhs.a + rhs.a); }
 	friend Color4f operator - (Color4f const& lhs, Color4f const& rhs) { return Color4f(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
-
-
-
 };
 
 

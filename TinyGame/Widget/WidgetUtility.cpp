@@ -93,7 +93,10 @@ GSlider* DevFrame::addSlider(int id, bool bUseBroder)
 
 GSlider* DevFrame::addSlider(char const* title, int id , bool bUseBroder)
 {
-	addText(title);
+	if (title)
+	{
+		addText(title);
+	}
 	return addSlider(id, bUseBroder);
 }
 
@@ -108,7 +111,10 @@ GTextCtrl* DevFrame::addTextCtrl(int id)
 
 GTextCtrl* DevFrame::addTextCtrl(char const* title, int id )
 {
-	addText(title);
+	if (title)
+	{
+		addText(title);
+	}
 	return addTextCtrl(id);
 }
 
@@ -123,7 +129,10 @@ GChoice* DevFrame::addChoice(int id)
 
 GChoice* DevFrame::addChoice(char const* title, int id)
 {
-	addText(title);
+	if (title)
+	{
+		addText(title);
+	}
 	return addChoice(id);
 }
 

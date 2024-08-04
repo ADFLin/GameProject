@@ -295,7 +295,6 @@ namespace Phy2D
 			case EKeyCode::A: moveObject(Vector2(-speed, 0)); break;
 			case EKeyCode::W: moveObject(Vector2(0, speed)); break;
 			case EKeyCode::S: moveObject(Vector2(0, -speed)); break;
-			case EKeyCode::X: doCollisionTest(); break;
 			case EKeyCode::Left:
 				mObjects[0].mXForm.rotate(0.01);
 				doCollisionTest();
@@ -307,21 +306,25 @@ namespace Phy2D
 			case EKeyCode::Num1:
 				++idx; if (idx >= ARRAY_SIZE(mShapes)) idx = 0;
 				mObjects[0].mShape = mShapes[idx];
+				doCollisionTest();
 				break;
 			case EKeyCode::Num2:
 				--idx; if (idx < 0) idx = ARRAY_SIZE(mShapes) - 1;
 				mObjects[0].mShape = mShapes[idx];
+				doCollisionTest();
 				break;
 			case EKeyCode::Num3:
 				++idx2; if (idx2 >= ARRAY_SIZE(mShapes)) idx2 = 0;
 				mObjects[1].mShape = mShapes[idx2];
+				doCollisionTest();
 				break;
 			case EKeyCode::Num4:
 				--idx2; if (idx2 < 0) idx2 = ARRAY_SIZE(mShapes) - 1;
 				mObjects[1].mShape = mShapes[idx2];
+				doCollisionTest();
 				break;
 			case EKeyCode::E:
-				mIsCollided = mCollision.test(&mObjects[0], &mObjects[1], mContact);
+				doCollisionTest();
 				break;
 			}
 		}

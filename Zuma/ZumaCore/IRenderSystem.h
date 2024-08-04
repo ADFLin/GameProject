@@ -161,7 +161,7 @@ namespace Zuma
 		virtual void postRender(){}
 
 		virtual void  enableBlendImpl( bool beE ) = 0;
-		virtual void  setupBlendFun( BlendEnum src , BlendEnum dst ) = 0;
+		virtual void  setupBlendFunc( BlendEnum src , BlendEnum dst ) = 0;
 	public:
 		ITexture2D*   getTexture( ResID id );
 		ZFont*        getFontRes( ResID id );
@@ -171,7 +171,7 @@ namespace Zuma
 
 
 		void          enableBlend( bool beE );
-		void          setBlendFun( BlendEnum src , BlendEnum dst );
+		void          setBlendFunc( BlendEnum src , BlendEnum dst );
 
 	protected:
 		//ResLoader

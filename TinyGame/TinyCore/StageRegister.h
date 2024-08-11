@@ -9,10 +9,12 @@
 #include "DataStructure/Array.h"
 #include "Math/TVector2.h"
 
+#include "SystemPlatform.h"
+#include "SystemMessage.h"
+
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
-#include "SystemPlatform.h"
 
 class StageBase;
 class StageManager;
@@ -188,15 +190,20 @@ public:
 	TINY_API virtual ~IMiscTestCore();
 
 	virtual void pauseExecution(uint32 threadId) = 0;
-	virtual MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size) = 0;
+	virtual MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe) = 0;
+	virtual EKeyCode::Type  waitInputKey(uint32 threadId) = 0;
 };
 
 struct TINY_API FMiscTestUtil
 {
 	static bool IsTesting();
 	static void Pause();
-	static MiscRenderScope RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size);
+	static MiscRenderScope RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe = true);
+	static EKeyCode::Type  WaitInputKey();
 };
+
+#define TEST_CHECK(C)\
+	if (!(C)){ LogWarning(0, "Check Fail - %s (%d): %s", __FILE__ ,__LINE__,  #C); }
 
 #define REGISTER_STAGE_ENTRY( NAME , CLASS , GROUP , ... )\
 	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeChangeStageOperation< CLASS >() , GROUP , ##__VA_ARGS__) );

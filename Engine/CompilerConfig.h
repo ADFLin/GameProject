@@ -31,6 +31,7 @@
 #define DLLIMPORT __declspec( dllimport )
 #define RESTRICT __restrict
 #define NOINLINE __declspec(noinline)
+#define DECL_ALLOCATOR	__declspec(allocator)
 
 #define ASSUME_BUILTIN(EXPR)  __assume(EXPR)
 #define LIKELY(EXPR) EXPR
@@ -73,6 +74,10 @@
 	virtual const char* what() const _NOEXCEPT { return mWhat; }\
 	char const* mWhat;
 
+#endif
+
+#ifndef DECL_ALLOCATOR
+#define DECL_ALLOCATOR
 #endif
 
 #endif // CompilerConfig_h__

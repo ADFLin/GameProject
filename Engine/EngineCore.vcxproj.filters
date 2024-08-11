@@ -1014,6 +1014,9 @@
     <ClInclude Include="Core\DateTime.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="DataStructure\SkipList.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

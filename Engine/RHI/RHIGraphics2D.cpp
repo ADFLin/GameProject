@@ -89,7 +89,6 @@ void RHIGraphics2D::scaleXForm(float sx, float sy)
 	mXFormStack.scale(Vector2(sx, sy));
 }
 
-
 void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool bApplyPrev)
 {
 	if (bApplyPrev)
@@ -101,7 +100,6 @@ void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool 
 		mXFormStack.set(xform);
 	}
 }
-
 
 void RHIGraphics2D::beginFrame()
 {
@@ -136,7 +134,6 @@ void RHIGraphics2D::beginRender()
 
 void RHIGraphics2D::endRender()
 {
-	mBatchedRender.endRender();
 	flush();
 }
 
@@ -152,6 +149,7 @@ void RHIGraphics2D::commitRenderState()
 	mDirtyState.rasterizer |= mRenderStateCommitted.bEnableScissor != mRenderStatePending.bEnableScissor || 
 		mRenderStateCommitted.bEnableMultiSample != mRenderStatePending.bEnableMultiSample;
 	mDirtyState.pipeline |= mRenderStateCommitted.texture != mRenderStatePending.texture;
+	mDirtyState.pipeline |= mRenderStateCommitted.sampler != mRenderStatePending.sampler;
 	mDirtyState.scissorRect = mRenderStateCommitted.scissorRect != mRenderStatePending.scissorRect;
 	if (mDirtyState.value)
 	{
@@ -379,8 +377,6 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	{
 		DoDrawText();
 	}
-
-
 }
 
 void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip /*= false */)
@@ -517,7 +513,6 @@ RHICommandList& RHIGraphics2D::getCommandList()
 void RHIGraphics2D::setTextureState(RHITexture2D* texture /*= nullptr*/)
 {
 	mRenderStatePending.texture = texture;
-
 }
 
 void RHIGraphics2D::setTexture(RHITexture2D& texture)
@@ -529,7 +524,6 @@ void RHIGraphics2D::setTexture(RHITexture2D& texture)
 void RHIGraphics2D::setSampler(RHISamplerState& sampler)
 {
 	mRenderStatePending.sampler = &sampler;
-	mDirtyState.pipeline |= mRenderStateCommitted.sampler != mRenderStatePending.sampler;
 }
 
 void RHIGraphics2D::preModifyRenderState()
@@ -552,14 +546,7 @@ void RHIGraphics2D::setPen(Color3Type const& color, int width)
 {
 	mPaintArgs.bUsePen = true;
 	mPaintArgs.penColor = Color4Type(Color3Type(color), mPaintArgs.penColor.a);
-	if (mPaintArgs.penWidth != width)
-	{
-		if (GRHISystem->getName() == RHISystemName::OpenGL)
-		{
-			glLineWidth(width);
-		}
-		mPaintArgs.penWidth = width;
-	}
+	mPaintArgs.penWidth = width;
 }
 
 void RHIGraphics2D::setPenWidth(int width)
@@ -577,7 +564,6 @@ void RHIGraphics2D::setClipRect(Vec2i const& pos, Vec2i const& size)
 {
 	mRenderStatePending.scissorRect.pos  = pos;
 	mRenderStatePending.scissorRect.size = size;
-
 }
 
 void RHIGraphics2D::endClip()

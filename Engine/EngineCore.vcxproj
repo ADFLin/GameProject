@@ -360,6 +360,7 @@
     <ClInclude Include="DataStructure\IntrList.h" />
     <ClInclude Include="DataStructure\KDTree.h" />
     <ClInclude Include="DataStructure\RedBlackTree.h" />
+    <ClInclude Include="DataStructure\SkipList.h" />
     <ClInclude Include="DataStructure\SList.h" />
     <ClInclude Include="DataStructure\Grid2D.h" />
     <ClInclude Include="DataStructure\TLinkable.h" />

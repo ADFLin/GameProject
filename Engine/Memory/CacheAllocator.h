@@ -1,7 +1,7 @@
 #ifndef CacheAllocator_h__
 #define CacheAllocator_h__
 
-#include <memory>
+#include "Core/Memory.h"
 
 class CacheAllocator
 {
@@ -9,7 +9,7 @@ public:
 	CacheAllocator( int maxCacheSize )
 		:mNumCache(0)
 	{
-		mCache = (void**)malloc( maxCacheSize * sizeof( void* ) );
+		mCache = (void**)FMemory::Alloc( maxCacheSize * sizeof( void* ) );
 		FMemory::Zero( mCache , sizeof(mCache) * maxCacheSize );
 	}
 
@@ -32,7 +32,7 @@ public:
 				return cache;
 			}
 		}
-		return ::malloc( size > sizeof( CacheInfo ) ? size : sizeof( CacheInfo ) );
+		return FMemory::Alloc( size > sizeof( CacheInfo ) ? size : sizeof( CacheInfo ) );
 	}
 
 	void   dealloc( void* ptr )

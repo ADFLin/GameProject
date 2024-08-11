@@ -90,7 +90,7 @@ struct TDynamicArrayData
 		}
 	}
 
-	void grow(size_t oldSize, size_t newSize)
+	DECL_ALLOCATOR T* grow(size_t oldSize, size_t newSize)
 	{
 		void* newAlloc;
 		if constexpr (TBitwiseReallocatable<T>::Value)
@@ -121,6 +121,7 @@ struct TDynamicArrayData
 
 		mStorage = newAlloc;
 		mMaxSize = newSize;
+		return (T*)mStorage;
 	}
 
 	void reserve(size_t oldSize, size_t size)

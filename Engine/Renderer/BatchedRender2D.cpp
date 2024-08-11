@@ -601,7 +601,9 @@ namespace Render
 	{
 		if (!mTexVertexBuffer.canFetch(size))
 		{
-			flushDrawCommand(true);
+			flushDrawCommand();
+			if (!tryLockBuffer())
+				return nullptr;
 		}
 
 		baseIndex = mTexVertexBuffer.usedCount;
@@ -613,7 +615,9 @@ namespace Render
 	{
 		if (!mIndexBuffer.canFetch(size))
 		{
-			flushDrawCommand(true);
+			flushDrawCommand();
+			if (!tryLockBuffer())
+				return nullptr;
 		}
 		return mIndexBuffer.fetch(size);
 	}
@@ -624,7 +628,15 @@ namespace Render
 		if (!mTexVertexBuffer.canFetch(vSize) ||
 			!mIndexBuffer.canFetch(iSize))
 		{
-			flushDrawCommand(true);
+			flushDrawCommand();
+			if (!tryLockBuffer())
+			{
+				FetchedData data;
+				data.base = 0;
+				data.indices = nullptr;
+				data.vertices = nullptr;
+				return data;
+			}
 		}
 		FetchedData data;
 		data.base = mTexVertexBuffer.usedCount;
@@ -719,18 +731,13 @@ namespace Render
 		group.state = renderState;
 		mGroups.push_back(std::move(group));
 #else
-		bool bLocked = mTexVertexBuffer.lock() && mIndexBuffer.lock();
-		if (!bLocked)
-		{
-			mTexVertexBuffer.tryUnlock();
-			mIndexBuffer.tryUnlock();
+		if (!tryLockBuffer())
 			return;
-		}
 
 		updateRenderState(*mCommandList, renderState);
 		emitElements(elementList.mElements, renderState);
 		elementList.releaseElements();
-		flushDrawCommand(false);
+		flushDrawCommand();
 		elementList.mAllocator.clearFrame();
 #endif
 	}
@@ -745,13 +752,8 @@ namespace Render
 			mGroups.clear();
 		};
 
-		bool bLocked = mTexVertexBuffer.lock() && mIndexBuffer.lock();
-		if (!bLocked)
-		{
-			mTexVertexBuffer.tryUnlock();
-			mIndexBuffer.tryUnlock();
+		if (!tryLockBuffer())
 			return;
-		}
 
 		mIndexRender = 0;
 		for (int index = 0; index < mGroups.size(); ++index)
@@ -763,11 +765,10 @@ namespace Render
 			group.indexCount = mIndexBuffer.usedCount - group.indexStart;
 		}
 
-		flushDrawCommand(false);
-		mGroups.clear();
+		flushDrawCommand();
 	}
 
-	void BatchedRender::flushDrawCommand(bool bRelockBuffer, bool bForceUpdateState)
+	void BatchedRender::flushDrawCommand(bool bForceUpdateState)
 	{
 		PROFILE_ENTRY("flushDrawCommand");
 
@@ -775,7 +776,6 @@ namespace Render
 		mIndexBuffer.unlock();
 
 #if USE_BATCHED_GROUP
-
 		for (; mIndexRender < mIndexEmit; ++mIndexRender)
 		{
 			RenderGroup& group = mGroups[mIndexRender];
@@ -789,7 +789,7 @@ namespace Render
 			if (count)
 			{
 				updateRenderState(*mCommandList, group.state);
-				RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, group.indexStart, mIndexBuffer.usedCount - group.indexStart);
+				RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, group.indexStart, count);
 			}
 			else if (bForceUpdateState)
 			{
@@ -800,12 +800,6 @@ namespace Render
 #else
 		RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, 0, mIndexBuffer.usedCount);
 #endif
-
-		if (bRelockBuffer)
-		{
-			mTexVertexBuffer.lock();
-			mIndexBuffer.lock();
-		}
 	}
 
 	void BatchedRender::emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState)
@@ -1048,7 +1042,11 @@ namespace Render
 				{
 					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
-					flushDrawCommand(true, false);
+					flushDrawCommand();
+					if (!tryLockBuffer())
+					{
+
+					}
 
 					if (payload.renderer)
 					{
@@ -1068,15 +1066,17 @@ namespace Render
 				{
 					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
-					flushDrawCommand(true, true);
+					flushDrawCommand(true);
+					if (!tryLockBuffer())
+					{
+
+					}
 
 					payload.renderer->render(*mCommandList, *element);
-
 					if (element->type == RenderBatchedElement::CustomRenderAndState)
 					{
 						commitRenderState(*mCommandList, renderState);
 					}
-
 					FObjectManage::Release(payload.renderer, payload.manageMode);
 				}
 				break;
@@ -1165,20 +1165,21 @@ namespace Render
 
 	uint32 const AttributeMask = BIT(EVertex::ATTRIBUTE_COLOR) | BIT(EVertex::ATTRIBUTE_TEXCOORD);
 
-
-	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
+	void SetRDBState(RHICommandList& commandList, BatchedRender::RenderState const& state)
 	{
-		//RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-
-		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
-		RHISetBlendState(commandList, GetBlendState(state.blendMode));
-		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
+		RHISetDepthStencilState(commandList, BatchedRender::GraphicsDepthState::GetRHI());
+		RHISetBlendState(commandList, BatchedRender::GetBlendState(state.blendMode));
+		RHISetRasterizerState(commandList, BatchedRender::GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
 		if (state.bEnableScissor)
 		{
 			auto const& rect = state.scissorRect;
 			RHISetScissorRect(commandList, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
 		}
+	}
 
+	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
+	{
+		SetRDBState(commandList, state);
 		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
 		RHISetShaderProgram(commandList, program->getRHI());
 
@@ -1189,28 +1190,18 @@ namespace Render
 
 	void BatchedRender::updateRenderState(RHICommandList& commandList, RenderState const& state)
 	{
-		//RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 		if ( mbCustomState )
 			return;
 
-		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
-		RHISetBlendState(commandList, GetBlendState(state.blendMode));
-		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
-		if (state.bEnableScissor)
-		{
-			auto const& rect = state.scissorRect;
-			RHISetScissorRect(commandList, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
-		}
-
+		SetRDBState(commandList, state);
 		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
 		if (program != mProgramCur)
 		{
-			RHISetShaderProgram(commandList, program->getRHI());
 			mProgramCur = program;
+			RHISetShaderProgram(commandList, program->getRHI());
 			SET_SHADER_PARAM(commandList, *program, XForm, mBaseTransform);
 			SET_SHADER_PARAM(commandList, *program, Color, LinearColor(1, 1, 1, 1));
 		}
-
 		if (state.texture)
 		{
 			program->setTextureParam(commandList, state.texture, state.sampler);

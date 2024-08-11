@@ -229,19 +229,19 @@ namespace Poker {
 		{
 			if (card == Card::None())
 				return;
-
-			RHIGraphics2D& impl = g.getImpl< RHIGraphics2D >();
-			impl.setBlendState(ESimpleBlendMode::Translucent);
-			Vec2i const& posImg = mCardPos[card.getIndex()];
-			impl.drawTexture(*mTexture, pos, CardSize, Vector2(posImg).mul(textSizeInv), cardUVSize);
-			//impl.drawTexture(*mTexture, Vector2(200, 200), Vector2(200, 200));
+			drawCard(g, pos, mCardPos[card.getIndex()]);
 		}
 
 		void drawCardBack(IGraphics2D& g, Vec2i const& pos) override
 		{
+			drawCard(g, pos, mCardBackPos);
+		}
+
+		void drawCard(IGraphics2D& g, Vec2i const& pos, Vector2 const& posUV)
+		{
 			RHIGraphics2D& impl = g.getImpl< RHIGraphics2D >();
 			impl.setBlendState(ESimpleBlendMode::Translucent);
-			impl.drawTexture(*mTexture, pos, CardSize, Vector2(mCardBackPos).mul(textSizeInv), cardUVSize);
+			impl.drawTexture(*mTexture, pos, CardSize, posUV.mul(textSizeInv), cardUVSize);
 		}
 
 		Vector2 cardUVSize;
@@ -255,16 +255,18 @@ namespace Poker {
 
 		TRect<float> getUVRect(Card const& card) const override
 		{
-			Vec2i const& posImg = mCardPos[card.getIndex()];
-			Vector2 min = Vector2(posImg).mul(textSizeInv);
-			return TRect<float>(min, min + cardUVSize);
+			return getCardUVRect( mCardPos[card.getIndex()]);
 		}
 		TRect<float> getBackUVRect(Card const& card) const override
 		{
-			Vector2 min = Vector2(mCardBackPos).mul(textSizeInv);
-			return TRect<float>(min, min + cardUVSize);
+			return getCardUVRect(mCardBackPos);
 		}
 
+		TRect<float> getCardUVRect(Vector2 const& pos) const
+		{
+			Vector2 min = Vector2(pos).mul(textSizeInv);
+			return TRect<float>(min, min + cardUVSize);
+		}
 		ICardResource* getResource() override
 		{
 			return this;

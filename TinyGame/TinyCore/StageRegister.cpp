@@ -174,14 +174,24 @@ void FMiscTestUtil::Pause()
 	}
 }
 
-MiscRenderScope FMiscTestUtil::RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size)
+MiscRenderScope FMiscTestUtil::RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe)
 {
 	if (GTestCore)
 	{
-		return GTestCore->registerRender(Thread::GetCurrentThreadId(), func, size);
+		return GTestCore->registerRender(Thread::GetCurrentThreadId(), func, size, bTheadSafe);
 	}
 
 	return MiscRenderScope{};
+}
+
+EKeyCode::Type FMiscTestUtil::WaitInputKey()
+{
+	if (GTestCore)
+	{
+		return GTestCore->waitInputKey(Thread::GetCurrentThreadId());
+	}
+
+	return EKeyCode::None;
 }
 
 IMiscTestCore::IMiscTestCore()

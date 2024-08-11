@@ -66,7 +66,6 @@ public:
 	void  beginFrame();
 	void  endFrame();
 	void  beginRender();
-
 	void  endRender();
 
 	void  enablePen(bool beE) { mPaintArgs.bUsePen = beE; }

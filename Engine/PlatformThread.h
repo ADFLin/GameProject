@@ -87,7 +87,7 @@ public:
 	bool tryLock() { return !!::TryEnterCriticalSection(&mCS); }
 private: 
 	friend class WindowsConditionVariable;
-	CRITICAL_SECTION mCS;
+	mutable CRITICAL_SECTION mCS;
 };
 
 

@@ -27,6 +27,7 @@ namespace EKeyCode
 {
 	enum Type
 	{
+		None           = 0,
 		Cancel         = PLATFORM_WIN_VALUE(VK_CANCEL, 0x03 ) ,
 		Back           = PLATFORM_WIN_VALUE(VK_BACK,  0x08 ) ,
 		Tab            = PLATFORM_WIN_VALUE(VK_TAB, 0x09 ) ,

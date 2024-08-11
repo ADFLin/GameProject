@@ -130,9 +130,14 @@ public:
 	}
 	void onRender() override
 	{
-		if (SystemPlatform::AtomicRead(&renderFlag) == 0)
+		if (SystemPlatform::AtomicRead(&renderFlag) <= 0)
 			return;
 
+		if (mutex && !mutex->tryLock())
+		{
+			return;
+		}
+		
 		Vec2i pos = getWorldPos();
 		IGraphics2D& g = Global::GetIGraphics2D();
 		Vec2i size = getSize();
@@ -141,10 +146,23 @@ public:
 		g.translateXForm(pos.x, pos.y + 25);
 		renderFunc(g);
 		g.popXForm();
+
+		if (mutex)
+		{
+			mutex->unlock();
+		}
 	}
+
+	MsgReply onKeyMsg(KeyMsg const& msg) 
+	{ 
+		return static_cast<MiscTestStage*>(GTestCore)->onPanelKeyMsg(this, msg);
+	}
+
 	Thread* thread;
 	MiscRenderFunc renderFunc;
+	bool bThreadSafe;
 	volatile int32 renderFlag;
+	std::unique_ptr<Mutex> mutex;
 };
 
 
@@ -205,30 +223,65 @@ bool MiscTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 
 void MiscTestStage::pauseExecution(uint32 threadId)
 {
-	ExecutionData* exec;
-	{
-		Mutex::Locker locker(mThreadDataMutex);
-		exec = findExecutionAssumeLocked(threadId);
-	}
+	mThreadDataMutex.lock();
+	ExecutionData* exec = findExecutionAssumeLocked(threadId);
 	if (exec && !exec->thread->hadSuspended())
 	{
-		exec->thread->suspend();
+		mThreadDataMutex.unlock();
+		pauseExecution(*exec);
+	}
+	else
+	{
+		mThreadDataMutex.unlock();
 	}
 }
 
-MiscRenderScope MiscTestStage::registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size)
+void MiscTestStage::pauseExecution(ExecutionData& exec)
+{
+	if (exec.panel)
+	{
+		if (exec.panel->mutex)
+		{
+			exec.panel->mutex->unlock();
+		}
+	}
+	exec.thread->suspend();
+}
+
+void MiscTestStage::resumeExecution(ExecutionData& exec)
+{
+	if (exec.panel)
+	{
+		if (exec.panel->mutex)
+		{
+			exec.panel->mutex->lock();
+		}
+	}
+	exec.thread->resume();
+}
+
+MiscRenderScope MiscTestStage::registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe)
 {
 	Mutex::Locker locker(mThreadDataMutex);
 	for (auto& exec : mRunningExecutions)
 	{
 		if (exec.thread->getID() == threadId)
 		{
-			auto panel = new ExecutionPanel(UI_ANY, Vec2i(0, 0), Vec2i(600, 600), nullptr);
+			auto panel = new ExecutionPanel(UI_EXECUTE_PANEL, Vec2i(0, 0), Vec2i(600, 600), nullptr);
 			panel->thread = exec.thread;
 			panel->renderFunc = func;
 			panel->setRenderSize(size);
 			panel->renderFlag = 0;
+			panel->bThreadSafe = bTheadSafe;
 			exec.panel = panel;
+			if (bTheadSafe == false)
+			{
+				panel->mutex = std::make_unique<Mutex>();
+				if (!exec.thread->hadSuspended())
+				{
+					panel->mutex->lock();
+				}
+			}
 
 			addGameThreadCommnad([panel]
 			{
@@ -241,6 +294,49 @@ MiscRenderScope MiscTestStage::registerRender(uint32 threadId, MiscRenderFunc co
 	return MiscRenderScope();
 }
 
+EKeyCode::Type MiscTestStage::waitInputKey(uint32 threadId)
+{
+	mThreadDataMutex.lock();
+
+	ExecutionData* exec = findExecutionAssumeLocked(threadId);
+	if (exec && !exec->thread->hadSuspended())
+	{
+		exec->bWaitKey = true;
+		exec->key = EKeyCode::None;
+		mThreadDataMutex.unlock();
+		pauseExecution(*exec);
+		return exec->key;
+	}
+	else
+	{
+		mThreadDataMutex.unlock();
+		return EKeyCode::None;
+	}
+}
+
+MsgReply MiscTestStage::onPanelKeyMsg(class ExecutionPanel* panel, KeyMsg const& msg)
+{
+	if ( msg.isDown() )
+	{
+		Mutex::Locker locker(mThreadDataMutex);
+		for (auto& exec : mRunningExecutions)
+		{
+			if (exec.panel != panel)
+				continue;
+			
+			if (exec.bWaitKey && exec.thread->hadSuspended())
+			{
+				exec.bWaitKey = false;
+				exec.key = msg.getCode();
+				exec.thread->resume();
+			}
+			break;
+		}
+	}
+
+	return MsgReply::Handled();
+}
+
 void MiscTestStage::terminateThread(Thread* thread)
 {
 	unregisterThread(thread);
@@ -250,9 +346,16 @@ void MiscTestStage::terminateThread(Thread* thread)
 void MiscTestStage::resumeThread(Thread* thread)
 {
 	Mutex::Locker locker(mThreadDataMutex);
-	if (thread->hadSuspended())
+	for (auto& exec : mRunningExecutions)
 	{
-		thread->resume();
+		if (exec.thread != thread)
+			continue;
+
+		if (thread->hadSuspended())
+		{
+			resumeExecution(exec);
+		}
+		break;
 	}
 }
 
@@ -263,8 +366,7 @@ void MiscTestStage::resumeAllThreads()
 	{
 		if (exec.thread->hadSuspended())
 		{
-			exec.thread->resume();
-			break;
+			resumeExecution(exec);
 		}
 	}
 }
@@ -278,7 +380,6 @@ MiscTestStage::ExecutionData* MiscTestStage::findExecutionAssumeLocked(uint32 th
 			return &exec;
 		}
 	}
-
 	return nullptr;
 }
 

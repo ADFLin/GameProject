@@ -149,10 +149,10 @@ namespace Bsp2D
 
 
 		template < class Visitor >
-		void treasure( Vector2 const& pos , Visitor& visitor ){ treasure_R( mRoot , pos , visitor ); }
+		void traverse( Vector2 const& pos , Visitor& visitor ){ traverse_R( mRoot , pos , visitor ); }
 
 		template < class Visitor >
-		void treasure_R( Node* node , Vector2 const& pos , Visitor& visitor )
+		void traverse_R( Node* node , Vector2 const& pos , Visitor& visitor )
 		{
 			if ( !node )
 				return;
@@ -168,14 +168,14 @@ namespace Bsp2D
 			{
 			case SIDE_FRONT:
 			case SIDE_IN:
-				treasure_R( node->front , pos , visitor );
+				traverse_R( node->front , pos , visitor );
 				visitor.visit( *node );
-				treasure_R( node->back , pos , visitor );
+				traverse_R( node->back , pos , visitor );
 				break;
 			case SIDE_BACK:
-				treasure_R( node->back , pos , visitor );
+				traverse_R( node->back , pos , visitor );
 				visitor.visit( *node );
-				treasure_R( node->front , pos , visitor );
+				traverse_R( node->front , pos , visitor );
 				break;
 			}
 		}

@@ -50,6 +50,7 @@ public:
 	{
 		UI_TEST_FUNC_BUTTON = BaseClass::NEXT_UI_ID ,
 		UI_TEST_STAGE_BUTTON,
+		UI_EXECUTE_PANEL,
 	};
 	bool onInit() override;
 
@@ -118,11 +119,13 @@ public:
 
 	bool onWidgetEvent(int event , int id , GWidget* ui) override;
 
+	//IMiscTestCore
 	void pauseExecution(uint32 threadId) override;
+	MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe) override;
+	EKeyCode::Type waitInputKey(uint32 threadId) override;
+	//
 
-
-
-	MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size) override;
+	MsgReply onPanelKeyMsg(class ExecutionPanel* panel, KeyMsg const& msg);
 	void terminateThread(Thread* thread);
 	void resumeThread(Thread* thread);
 	void resumeAllThreads();
@@ -132,10 +135,14 @@ public:
 	{
 		Thread* thread;
 		class ExecutionPanel* panel = nullptr;
-
+		bool bWaitKey = false;
+		EKeyCode::Type key;
 	};
 	ExecutionData* findExecutionAssumeLocked(uint32 threadId);
 	ExecutionData& registerThread(Thread* thread);
+
+	void pauseExecution(ExecutionData& exec);
+	void resumeExecution(ExecutionData& exec);
 	void unregisterThread(Thread* thread);
 
 	template< class TFunc >

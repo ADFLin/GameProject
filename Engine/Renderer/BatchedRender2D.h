@@ -626,10 +626,6 @@ namespace Render
 		void updateRenderState(RHICommandList& commandList, RenderState const& state);
 
 		void flush();
-		void endRender()
-		{
-
-		}
 
 		void emitPolygon(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
 		void emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs);
@@ -673,7 +669,18 @@ namespace Render
 		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
 
-		void flushDrawCommand(bool bRelockBuffer, bool bForceUpdateState = false);
+		void flushDrawCommand(bool bForceUpdateState = false);
+		bool tryLockBuffer()
+		{
+			bool bLocked = mTexVertexBuffer.lock() && mIndexBuffer.lock();
+			if (!bLocked)
+			{
+				mTexVertexBuffer.tryUnlock();
+				mIndexBuffer.tryUnlock();
+				return false;
+			}
+			return true;
+		}
 
 		template< class T>
 		struct TBufferData

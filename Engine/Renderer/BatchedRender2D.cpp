@@ -386,6 +386,27 @@ namespace Render
 		return *element;
 	}
 
+
+	template< typename CharT >
+	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale)
+	{
+		CHECK(charCount > 0);
+
+		int verticesCount = 4 * (charCount);
+		TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
+		element->type = RenderBatchedElement::Text;
+		element->payload.color = color;
+		element->payload.vertices = (FontVertex*)mAllocator.alloc(verticesCount * sizeof(FontVertex));
+		element->payload.verticesCount = verticesCount;
+		element->payload.bRemoveScale = bRemoveScale;
+		front.generateVertices(pos, str, element->payload.vertices);
+
+		return *element;
+	}
+
+	template RenderBatchedElement& RenderBatchedElementList::addText<char>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, char const* str, int charCount, bool bRemoveScale);
+	template RenderBatchedElement& RenderBatchedElementList::addText<wchar_t>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, wchar_t const* str, int charCount, bool bRemoveScale);
+
 	RenderBatchedElement& RenderBatchedElementList::addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
 	{
 		TRenderBatchedElement<GradientRectPayload>* element = addElement< GradientRectPayload >();

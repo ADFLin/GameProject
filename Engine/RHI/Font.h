@@ -65,11 +65,7 @@ namespace Render
 		FontFaceKey(FontFaceInfo const& fontFace)
 			:fontFace(fontFace)
 		{
-			cachedHash = HashValue(fontFace.name);
-			cachedHash = HashCombine(cachedHash, fontFace.size);
-			cachedHash = HashCombine(cachedHash, fontFace.bBold);
-			cachedHash = HashCombine(cachedHash, fontFace.bUnderLine);
-
+			cachedHash = HashValues(fontFace.name, fontFace.size, fontFace.bBold, fontFace.bUnderLine);
 		}
 
 		bool operator == (FontFaceKey const& rhs) const

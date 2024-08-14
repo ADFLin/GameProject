@@ -12,7 +12,7 @@ namespace Math
 	{
 	public:
 		template< class TMatrix >
-		static void toQuaternion(TMatrix const& m , Quaternion& q )
+		FORCEINLINE static void ToQuaternion(TMatrix const& m , Quaternion& q )
 		{
 			float tr = m(0,0)+m(1,1)+m(2,2);
 			if (tr>0)	
@@ -64,9 +64,24 @@ namespace Math
 				m( 2 , 0 )*v[0] + m( 2 , 1 )*v[1] + m( 2 , 2 )*v[2] );
 		}
 
+		template< class TMatrix >
+		FORCEINLINE static void ApplyLeftScale(TMatrix& m, Vector3 const& scale)
+		{
+			m(0, 0) *= scale.x; m(0, 1) *= scale.x; m(0, 2) *= scale.x;
+			m(1, 0) *= scale.y; m(1, 1) *= scale.y; m(1, 2) *= scale.y;
+			m(2, 0) *= scale.z; m(2, 1) *= scale.z; m(2, 2) *= scale.z;
+		}
 
 		template< class TMatrix >
-		static void setRotationX(TMatrix& m , float angle )
+		FORCEINLINE static void ApplyRightScale(TMatrix& m, Vector3 const& scale)
+		{
+			m(0, 0) *= scale.x; m(0, 1) *= scale.y; m(0, 2) *= scale.z;
+			m(1, 0) *= scale.x; m(1, 1) *= scale.y; m(1, 2) *= scale.z;
+			m(2, 0) *= scale.x; m(2, 1) *= scale.y; m(2, 2) *= scale.z;
+		}
+
+		template< class TMatrix >
+		FORCEINLINE static void SetRotationX(TMatrix& m , float angle )
 		{
 			float c,s;
 			Math::SinCos( angle , s , c );
@@ -76,7 +91,7 @@ namespace Math
 		}
 
 		template< class TMatrix >
-		FORCEINLINE static void setRotationY(TMatrix& m ,float angle )
+		FORCEINLINE static void SetRotationY(TMatrix& m ,float angle )
 		{
 			float c,s;
 			Math::SinCos( angle , s , c );
@@ -86,7 +101,7 @@ namespace Math
 		}
 
 		template< class TMatrix >
-		FORCEINLINE static void setRotationZ(TMatrix& m ,float angle )
+		FORCEINLINE static void SetRotationZ(TMatrix& m ,float angle )
 		{
 			float c,s;
 			Math::SinCos( angle , s , c );
@@ -96,7 +111,7 @@ namespace Math
 		}
 
 		template< class TMatrix >
-		static void modifyOrientation(TMatrix& m , Quaternion const& q )
+		FORCEINLINE static void SetRotation(TMatrix& m , Quaternion const& q )
 		{
 			float d = q.length2();
 			assert( d > FLOAT_DIV_ZERO_EPSILON);
@@ -121,8 +136,52 @@ namespace Math
 			m( 2 , 2 ) = 1.0f - (xx+yy);
 		}
 
+
 		template< class TMatrix >
-		static void setRotation(TMatrix& m , Vector3 const& axis , float angle )
+		FORCEINLINE static void ApplyLocalRotation(TMatrix& m, Quaternion const& q)
+		{
+			Matrix3 Mq;
+			SetRotation(Mq, q);
+			
+#define MAT_MUL( idx1 , idx2 )\
+	( Mq(idx1, 0) * m(0, idx2) + Mq(idx1, 1) * m(1, idx2) + Mq(idx1, 2) * m(2, idx2) )
+
+			float m00 = MAT_MUL(0, 0); float m01 = MAT_MUL(0, 1); float m02 = MAT_MUL(0, 2);
+			float m10 = MAT_MUL(1, 0); float m11 = MAT_MUL(1, 1); float m12 = MAT_MUL(1, 2);
+			float m20 = MAT_MUL(2, 0); float m21 = MAT_MUL(2, 1); float m22 = MAT_MUL(2, 2);
+#undef MAT_MUL
+
+			m(0, 0) = m00; m(0, 1) = m01; m(0, 2) = m02;
+			m(1, 0) = m10; m(1, 1) = m11; m(1, 2) = m12;
+			m(2, 0) = m20; m(2, 1) = m21; m(2, 2) = m22;
+		}
+
+		template< class TMatrix >
+		FORCEINLINE static void ApplyWorldRotation(TMatrix& m, Quaternion const& q)
+		{
+			Matrix3 Mq;
+			SetRotation(Mq, q);
+
+#define MAT_MUL( idx1 , idx2 )\
+	( m(idx1, 0) * Mq(0, idx2) + m(idx1, 1) * Mq(1, idx2) + m(idx1, 2) * Mq(2, idx2) )
+
+			float m00 = MAT_MUL(0, 0); float m01 = MAT_MUL(0, 1); float m02 = MAT_MUL(0, 2);
+			float m10 = MAT_MUL(1, 0); float m11 = MAT_MUL(1, 1); float m12 = MAT_MUL(1, 2);
+			float m20 = MAT_MUL(2, 0); float m21 = MAT_MUL(2, 1); float m22 = MAT_MUL(2, 2);
+#undef MAT_MUL
+
+			m(0, 0) = m00; m(0, 1) = m01; m(0, 2) = m02;
+			m(1, 0) = m10; m(1, 1) = m11; m(1, 2) = m12;
+			m(2, 0) = m20; m(2, 1) = m21; m(2, 2) = m22;
+
+			if (std::is_same_v<TMatrix, Matrix4>)
+			{
+				m.modifyTranslation(q.rotate(m.getTranslation()));
+			}
+		}
+
+		template< class TMatrix >
+		FORCEINLINE static void SetRotation(TMatrix& m , Vector3 const& axis , float angle )
 		{
 			// R = cos(theta ) I + sin(theta)[k]x + ( 1 - cos(theta) )[k]x[k]
 			//           0    kz  -ky                  kx^2   kx*ky kx*kz

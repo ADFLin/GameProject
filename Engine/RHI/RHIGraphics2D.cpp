@@ -325,10 +325,15 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	if (!mFont || !mFont->isValid())
 		return;
 
+	int charCount = 0;
+	Vector2 extent = mFont->calcTextExtent(str, &charCount);
+	if (charCount == 0)
+	{
+		return;
+	}
+
 	auto DoDrawText = [&]()
 	{
-		int charCount = 0;
-		Vector2 extent = mFont->calcTextExtent(str, &charCount);
 		Vector2 renderPos = pos;
 		switch (alignH)
 		{
@@ -384,10 +389,15 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	if (!mFont || !mFont->isValid())
 		return;
 
+	int charCount = 0;
+	Vector2 extent = mFont->calcTextExtent(str, &charCount);
+	if (charCount == 0)
+	{
+		return;
+	}
+
 	auto DoDrawText = [&]()
 	{
-		int charCount = 0;
-		Vector2 extent = mFont->calcTextExtent(str, &charCount);
 		Vector2 renderPos = pos + (size - extent) / 2;
 		drawTextImpl(renderPos.x, renderPos.y, str, charCount);
 	};
@@ -430,7 +440,8 @@ void SnapValue(Vector2& inoutPos)
 template< typename CharT >
 void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charCount)
 {
-	assert(mFont);
+	CHECK(mFont);
+	CHECK(charCount > 0 || charCount == INDEX_NONE);
 
 	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
 	setBlendState(ESimpleBlendMode::Translucent);
@@ -447,7 +458,18 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 	{
 		bRemoveScale = bTextRemoveScale;
 	}
-	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, bRemoveScale, charCount);
+
+	if (charCount == INDEX_NONE)
+	{
+		charCount = mFont->getCharCount(str);
+		if (charCount == 0)
+		{
+			setBlendState(prevMode);
+			return;
+		}
+	}
+
+	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, charCount, bRemoveScale);
 	setupElement(element);
 	setBlendState(prevMode);
 }

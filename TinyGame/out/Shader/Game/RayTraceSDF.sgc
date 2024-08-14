@@ -305,7 +305,7 @@ float3 CalcLighting(float3 pos, int matId , float3 rayDir, float rayDist , float
 	//float ao = 1;
 	//Fog
 	float fogFactor = rayDist / SceneEnv.fogDistance;
-	lighting = lerp(lighting + diffuse * ao + Materials[matId].emissiveeColor, SceneEnv.fogColor, 1.0 - exp(-Pow3(fogFactor)));
+	lighting = lerp(lighting + diffuse * ao + Materials[matId].emissiveColor, SceneEnv.fogColor, 1.0 - exp(-Pow3(fogFactor)));
 	return lighting;
 }
 

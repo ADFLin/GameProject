@@ -104,12 +104,12 @@ protected:
 	bool taskDestroyServerListPanelCL( long time );
 	void sendGameSetting( unsigned pID = SERVER_PLAYER_ID);
 
-	void procPlayerStateSv( IComPacket* cp);
-	void procPlayerState  ( IComPacket* cp);
-	void procMsg          ( IComPacket* cp);
-	void procPlayerStatus ( IComPacket* cp);
-	void procSlotState    ( IComPacket* cp);
-	void procRawData      ( IComPacket* cp);
+	void procPlayerStateSv(IComPacket* cp);
+	void procPlayerState  (IComPacket* cp);
+	void procMsg          (IComPacket* cp);
+	void procPlayerStatus (IComPacket* cp);
+	void procSlotState    (IComPacket* cp);
+	void procRawData      (IComPacket* cp);
 	
 	TPtrHolder< NetRoomSettingHelper >  mHelper;
 

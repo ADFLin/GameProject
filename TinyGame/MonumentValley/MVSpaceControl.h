@@ -30,7 +30,7 @@ namespace MV
 	public:
 		ISpaceModifier()
 		{
-			isUse = false;
+			bUsing = false;
 			bModifyChildren = true;
 		}
 		virtual ~ISpaceModifier(){}
@@ -46,7 +46,7 @@ namespace MV
 		virtual void prevRender(RenderContext& context) = 0;
 		virtual void postRender(RenderContext& context) = 0;
 
-		bool  isUse;
+		bool  bUsing;
 		bool  bModifyChildren;
 
 	};

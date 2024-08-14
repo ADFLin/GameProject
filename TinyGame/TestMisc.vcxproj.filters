@@ -253,9 +253,6 @@
     <ClCompile Include="TestMisc\Stage\RVOTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />

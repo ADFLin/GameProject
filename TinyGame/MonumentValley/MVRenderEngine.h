@@ -58,7 +58,7 @@ namespace MV
 		}
 		void prevRender(RenderContext& context) override
 		{
-			if ( !isUse )
+			if ( !bUsing )
 				return;
 
 			Vec3f const& axis = FDir::OffsetF( mDir );
@@ -72,7 +72,7 @@ namespace MV
 		}
 		void postRender(RenderContext& context) override
 		{
-			if ( !isUse )
+			if ( !bUsing )
 				return;
 		
 			context.stack.pop();
@@ -94,7 +94,7 @@ namespace MV
 		}
 		void prevRender(RenderContext& context) override
 		{
-			if ( !isUse )
+			if ( !bUsing )
 				return;
 
 			//Vec3f const& axis = FDir::OffsetF(mDir);
@@ -106,7 +106,7 @@ namespace MV
 		}
 		void postRender(RenderContext& context) override
 		{
-			if ( !isUse )
+			if ( !bUsing )
 				return;
 			
 			context.stack.pop();

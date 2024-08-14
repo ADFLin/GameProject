@@ -89,7 +89,7 @@ namespace MV
 						}
 					}
 
-					state.block = destSurface->block;
+					state.block = destSurface->getBlock();
 					state.prevBlockNode  = node;
 					state.faceDirL = Block::LocalDir( *destSurface );
 					addSreachNode( state , aNode , 1 );
@@ -112,7 +112,7 @@ namespace MV
 		return true;
 	}
 
-	static void addPathNode( std::vector< PathNode >& pathNodes  , PointVec&  points ,  
+	static void addPathNode( TArray< PathNode >& pathNodes  , PointVec&  points ,  
 		FindState& state , FindState* nextState , Dir inDir , Dir outDir , bool isParallax  )
 	{
 		PathNode pathNode;
@@ -159,7 +159,7 @@ namespace MV
 			if ( isParallax )
 			{
 				BlockSurface* destSurf = pathNode.link->link->getSurface();
-				Block* destBlock = destSurf->block;
+				Block* destBlock = destSurf->getBlock();
 				Vec3f destPos = Vec3f( destBlock->pos ) + 0.5 * ( FDir::OffsetF( Block::WorldDir( *destSurf ) ) ) - outOffset;
 
 				points.push_back( faceCenterPos + 0.5 * FDir::OffsetF( outDir ) );
@@ -249,7 +249,7 @@ namespace MV
 				case NFT_ROTATOR_C:
 				case NFT_ROTATOR_NC:
 				case NFT_STAIR:
-					if ( surf->func == nextSurf->func && surf->block == nextSurf->block )
+					if ( surf->func == nextSurf->func && surf->getBlock() == nextSurf->getBlock())
 						needAddNode = false;
 					break;
 				}
@@ -363,7 +363,7 @@ namespace MV
 
 	void Navigator::fixPathParallaxPosition(int idxStart)
 	{
-		mWorld->refrechFixNode();
+		mWorld->refreshFixNode();
 
 		int idx = idxStart;
 		PathNode* prevNode = NULL;

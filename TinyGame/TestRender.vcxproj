@@ -274,7 +274,6 @@
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
     <ClCompile Include="TestRender\Stage\ShaderConductorTest.cpp" />
-    <ClCompile Include="TestRender\Stage\ShadertoyStage.cpp" />
     <ClCompile Include="TestRender\Stage\SoftwareRenderingStage.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</OpenMPSupport>

@@ -176,6 +176,7 @@ namespace Rich
 		void onRender( float dFrame )
 		{
 			IGraphics2D& g = ::Global::GetIGraphics2D();
+			g.beginRender();
 
 			RenderParams renderParams;
 			renderParams.bDrawDebug = mbShowDebugDraw;
@@ -184,6 +185,8 @@ namespace Rich
 			mScene.mView.zoom = 0.5;
 			mScene.mView.update();
 			mScene.render( g , renderParams );
+
+			g.endRender();
 		}
 
 

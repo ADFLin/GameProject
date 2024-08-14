@@ -265,7 +265,7 @@ public:
 private:
 
 	template< typename CharT >
-	void drawTextImpl(float ox, float oy, CharT const* str, int charCount = 0);
+	void drawTextImpl(float ox, float oy, CharT const* str, int charCount = INDEX_NONE);
 
 	void setupCommittedRenderState();
 

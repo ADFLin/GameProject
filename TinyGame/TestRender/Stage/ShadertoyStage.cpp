@@ -19,6 +19,7 @@
 #include "Audio/AudioDecoder.h"
 
 #include "Mmreg.h"
+#include "Core/FNV1a.h"
 
 namespace Shadertoy
 {

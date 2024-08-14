@@ -290,8 +290,7 @@ namespace Rich
 		{
 			uint32 operator()(MapCoord const& v) const
 			{
-				uint32 result = HashValue(v.x);
-				result = HashCombine(result, v.y);
+				uint32 result = HashValues(v.x, v.y);
 				return result;
 			}
 		};

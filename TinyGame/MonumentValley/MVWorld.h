@@ -4,7 +4,7 @@
 #include "MVCommon.h"
 #include "MVObject.h"
 
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace MV
 {
@@ -34,7 +34,7 @@ namespace MV
 		void removeActor( Actor& actor );
 
 		void action( Actor& actor , int idxNode );
-		void setActorBlock( Actor& actor , int blockId , Dir faceDir , bool updateRender = true );
+		void setActorBlock( Actor& actor , int blockId , Dir faceDir , bool bUpdateRender = true );
 
 		Block* getBlock( int id ){ return mBlocks[id]; }
 
@@ -103,7 +103,7 @@ namespace MV
 		void  removeNavNode( Block& block );
 
 		void updateBlockNavNode( ObjectGroup& group );
-		void updateSurfaceNavNode( Block& block , Dir faceDirL , bool testParallax );
+		void updateSurfaceNavNode( Block& block , Dir faceDirL , bool bParallaxTest );
 		void buildSurfaceNavNode( Block &block, NavLinkInfo &info );
 		int  buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFunc& func , int idx );
 		int  buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFunc& func , Dir dir );
@@ -132,7 +132,7 @@ namespace MV
 			return calcParallaxPos( pos , mParallaxOffset , axis );
 		}
 
-		void refrechFixNode();
+		void refreshFixNode();
 		int  calcFixParallaxPosOffset( Block& block , Dir face );
 
 		int  raycastTest( Vec3f const& startPos , Vec3f endPos )
@@ -156,23 +156,23 @@ namespace MV
 		Vec3i      mParallaxOffset;
 		Vec3i      mMapSize;
 		Vec3i      mMapOffset;
-		typedef std::vector< int > IntMap;
+		typedef TArray< int > IntMap;
 		IntMap     mBlockMap;
 
 		uint32     mUpdateCount;
 		uint32     mSkipCount;
 
-		typedef std::vector< ObjectGroup* > GroupVec;
+		typedef TArray< ObjectGroup* > GroupVec;
 		ObjectGroup mRootGroup;
 		GroupVec    mGroups;
 
 
 
 
-		std::vector< NavNode* > mFixNodes;
+		TArray< NavNode* > mFixNodes;
 
 		int       mFreeBlockId;
-		std::vector< Block* > mBlocks;
+		TArray< Block* > mBlocks;
 
 	};
 

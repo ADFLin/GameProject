@@ -63,12 +63,6 @@ namespace MV
 	int const BLOCK_FACE_NUM = 6;
 	int const FACE_NAV_LINK_NUM = 4;
 
-	struct NavSurfInfo
-	{
-		int idxDir;
-		BlockSurface* surf;
-	};
-
 	struct NavNode
 	{
 		NavNode()
@@ -82,12 +76,13 @@ namespace MV
 			eFixPos = 1 << 1 ,
 		};
 
-		int           getDirIndex(){ return surfInfo->idxDir; }
-		BlockSurface* getSurface(){ return surfInfo->surf; }
+		int           getDirIndex(){ return idxDir; }
+		BlockSurface* getSurface();
 
-		uint8         flag;
-		NavSurfInfo*  surfInfo;
 		NavNode*      link;
+		uint8         flag;
+		uint8         type;
+		uint8         idxDir;
 
 		void connect( NavNode& other );
 
@@ -108,17 +103,18 @@ namespace MV
 		{
 			for( int i = 0 ; i < FACE_NAV_LINK_NUM ; ++i )
 			{
-				NavSurfInfo* info = surfInfo + i;
-				info->idxDir = i;
-				info->surf   = this;
-				nodes[ NODE_DIRECT ][i].surfInfo = info;
-				nodes[ NODE_PARALLAX ][i].surfInfo = info;
+				nodes[NODE_DIRECT][i].idxDir = i;
+				nodes[NODE_DIRECT][i].type = NODE_DIRECT;
+				nodes[NODE_PARALLAX][i].idxDir = i;
+				nodes[NODE_PARALLAX][i].type = NODE_PARALLAX;
 			}
 		}
-		Block*      block;
-		NavNode     nodes[ NUM_NODE_TYPE ][ FACE_NAV_LINK_NUM ];
-	private:
-		NavSurfInfo surfInfo[ FACE_NAV_LINK_NUM ];
+
+		static BlockSurface* Get(NavNode& node);
+
+		Block*     getBlock();
+		NavNode    nodes[ NUM_NODE_TYPE ][ FACE_NAV_LINK_NUM ];
+		uint8      face;
 	};
 
 	struct GameObject
@@ -138,8 +134,10 @@ namespace MV
 	public:
 		Block()
 		{
-			for(auto& surface : surfaces)
-				surface.block = this;
+			for (uint8 face = 0; face < BLOCK_FACE_NUM; ++face)
+			{
+				surfaces[face].face = face;
+			}
 		}
 		int          id;
 		int          idMesh;
@@ -160,16 +158,15 @@ namespace MV
 			return surfaces[ rotation.toLocal( dir ) ];
 		}
 
+		static Block* Get(BlockSurface& surface);
 
 		static Dir WorldDir( BlockSurface& surface )
 		{
-			return surface.block->rotation.toWorld( LocalDir( surface ) );
+			return surface.getBlock()->rotation.toWorld( LocalDir( surface ) );
 		}
 		static Dir LocalDir( BlockSurface& surface )
 		{
-			assert( 0 <= (&surface - surface.block->surfaces) && 
-				    ( &surface - surface.block->surfaces) < BLOCK_FACE_NUM );
-			return Dir( &surface - surface.block->surfaces );
+			return Dir(surface.face);
 		}
 
 	};

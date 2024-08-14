@@ -130,10 +130,10 @@ namespace Math
 				0, 0, factor.z );
 		}
 
-		void setRotation( Vector3 const& axis , float angle ){ MatrixUtility::setRotation( *this , axis , angle ); }
-		void setRotationX( float angle ){  MatrixUtility::setRotationX( *this , angle );  }
-		void setRotationY( float angle ){  MatrixUtility::setRotationY( *this , angle );  }
-		void setRotationZ( float angle ){  MatrixUtility::setRotationZ( *this , angle );  }
+		void setRotation( Vector3 const& axis , float angle ){ MatrixUtility::SetRotation( *this , axis , angle ); }
+		void setRotationX( float angle ){  MatrixUtility::SetRotationX( *this , angle );  }
+		void setRotationY( float angle ){  MatrixUtility::SetRotationY( *this , angle );  }
+		void setRotationZ( float angle ){  MatrixUtility::SetRotationZ( *this , angle );  }
 
 		void setQuaternion( Quaternion const& q );
 		void setTranslation( Vector3 const& pos )
@@ -180,11 +180,13 @@ namespace Math
 			return result;
 		}
 
-		// result = m * this 
-		Matrix4   leftMul(Matrix3 const& m ) const;
+		// result = [m 0] * this
+		//          [0 1]
+		Matrix4   leftMul(Matrix3 const& m) const;
 		Vector3   leftMul(Vector3 const& v) const;
 		Vector4   leftMul(Vector4 const& v) const;
-		// result = this * m
+		// result = this * [m 0]
+		//                 [0 1]
 		Matrix4   mul( Matrix3 const& m ) const;
 		Vector3   mul( Vector3 const& v ) const;
 		Vector4   mul( Vector4 const& v ) const;

@@ -584,7 +584,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 }
 
-void NetRoomStage::procPlayerStateSv( IComPacket* cp)
+void NetRoomStage::procPlayerStateSv(IComPacket* cp)
 {
 	CSPPlayerState* com = cp->cast< CSPPlayerState >();
 	SVPlayerManager* playerMgr = mServer->getPlayerManager();
@@ -611,7 +611,7 @@ void NetRoomStage::procPlayerStateSv( IComPacket* cp)
 	}
 }
 
-void NetRoomStage::procMsg( IComPacket* cp)
+void NetRoomStage::procMsg(IComPacket* cp)
 {
 	CSPMsg* com = cp->cast< CSPMsg >();
 
@@ -639,14 +639,14 @@ void NetRoomStage::procMsg( IComPacket* cp)
 }
 
 
-void NetRoomStage::procPlayerStatus( IComPacket* cp)
+void NetRoomStage::procPlayerStatus(IComPacket* cp)
 {
 	SPPlayerStatus* com = cp->cast< SPPlayerStatus >();
 
 	mPlayerPanel->setupPlayerList(*com);
 }
 
-void NetRoomStage::procSlotState( IComPacket* cp)
+void NetRoomStage::procSlotState(IComPacket* cp)
 {
 	SPSlotState* com = cp->cast< SPSlotState >();
 	for( int i = 0 ; i < MAX_PLAYER_NUM ; ++i )
@@ -662,7 +662,7 @@ void NetRoomStage::procSlotState( IComPacket* cp)
 	mPlayerPanel->refreshPlayerList(com->idx, com->state);
 }
 
-void NetRoomStage::procRawData( IComPacket* cp)
+void NetRoomStage::procRawData(IComPacket* cp)
 {
 	CSPRawData* com = cp->cast< CSPRawData >();
 

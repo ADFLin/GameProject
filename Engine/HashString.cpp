@@ -34,7 +34,7 @@ public:
 		int idxElement = index % ChunkElementNum;
 		if( mChunkStorage[idxChunk] == nullptr )
 		{
-			mChunkStorage[idxChunk] = ::malloc(sizeof(T) * ChunkElementNum);
+			mChunkStorage[idxChunk] = FMemory::Alloc(sizeof(T) * ChunkElementNum);
 		}
 		++mNumElement;
 		return (T*)(mChunkStorage[idxChunk]) + idxElement;
@@ -50,44 +50,30 @@ public:
 
 private:
 
-	template< class Q = T , TEnableIf_Type< std::is_trivially_destructible<Q>::value, bool > = true>
 	void release()
 	{
-		if( mNumElement )
+		if( mNumElement == 0 )
+			return;
+
+		int numChunk = (mNumElement + ChunkElementNum - 1) / ChunkElementNum;
+		if constexpr ( std::is_trivially_destructible_v<T> )
 		{
-			int numChunk = (mNumElement - 1) / ChunkElementNum + 1;
 			for( int i = 0; i < numChunk; ++i )
 			{
 				FMemory::Free(mChunkStorage[i]);
 			}
 		}
-	}
-
-	template< class Q = T, TEnableIf_Type< !std::is_trivially_destructible<Q>::value, bool > = true >
-	void release()
-	{
-		if( mNumElement )
+		else
 		{
-			int numChunk = (mNumElement - 1) / ChunkElementNum + 1;
-			for( int i = 0; i < numChunk - 1; ++i )
+			for (int i = 0; i < numChunk - 1; ++i)
 			{
-				for( int n = 0; n < ChunkElementNum; ++n )
-				{
-					T* ptr = (T*)(mChunkStorage[i]) + n;
-					ptr->~T();
-				}
+				FTypeMemoryOp::DestructSequence((T*)mChunkStorage[i], ChunkElementNum);
 				FMemory::Free(mChunkStorage[i]);
 			}
 
 			int idxChunk = numChunk - 1;
-
 			int num = mNumElement % ChunkElementNum;
-			for( int n = 0; n < num; ++n )
-			{
-				T* ptr = (T*)(mChunkStorage[idxChunk]) + n;
-				ptr->~T();
-			}
-
+			FTypeMemoryOp::DestructSequence((T*)mChunkStorage[idxChunk], num);
 			FMemory::Free(mChunkStorage[idxChunk]);
 		}
 	}
@@ -106,10 +92,6 @@ struct NameSlot
 	uint32    hashValue;
 	uint32    index;
 	NameSlot* next;
-	static NameSlot* sHashHead[NameSlotHashBucketSize];
-	static NameSlot* sHashTail[NameSlotHashBucketSize];
-
-	static TChunkArray< NameSlot, 2 * 1024 * 4, NameSlotChunkNum > sNameSlots;
 
 	int compare(char const* other, bool bCaseSensitive)
 	{
@@ -127,24 +109,20 @@ struct NameSlot
 
 };
 
-struct HashStringInternal
-{
-	static TChunkArray< NameSlot, 2 * 1024 * 4, NameSlotChunkNum > sNameSlots;
-
-};
-
-TChunkArray< NameSlot, 2 * 1024 * 4, NameSlotChunkNum > HashStringInternal::sNameSlots;
-
-NameSlot* NameSlot::sHashHead[NameSlotHashBucketSize];
-NameSlot* NameSlot::sHashTail[NameSlotHashBucketSize];
-
 #if CORE_SHARE_CODE
 
-CORE_API void* DebugHashStringSlot = &HashStringInternal::sNameSlots;
+namespace HashStringInternal
+{
+	static TChunkArray< NameSlot, 2 * 1024 * 4, NameSlotChunkNum > GNameSlots;
+	static NameSlot* GHashHead[NameSlotHashBucketSize];
+	static NameSlot* GHashTail[NameSlotHashBucketSize];
+};
+
+CORE_API void* DebugHashStringSlot = &HashStringInternal::GNameSlots;
 void HashString::Initialize()
 {
-	std::fill_n(NameSlot::sHashHead, NameSlotHashBucketSize, nullptr);
-	std::fill_n(NameSlot::sHashTail, NameSlotHashBucketSize, nullptr);
+	std::fill_n(HashStringInternal::GHashHead, NameSlotHashBucketSize, nullptr);
+	std::fill_n(HashStringInternal::GHashTail, NameSlotHashBucketSize, nullptr);
 	{
 		HashString name( EName::None , "None" );
 	}
@@ -162,7 +140,7 @@ bool HashString::Find(StringView const& str, bool bCaseSensitive, HashString& ou
 		hashValue = FCString::StriHash(str.data(), str.length());
 	}
 	uint32 idxHash = hashValue % NameSlotHashBucketSize;
-	NameSlot* slot = NameSlot::sHashHead[idxHash];
+	NameSlot* slot = HashStringInternal::GHashHead[idxHash];
 	for (; slot; slot = slot->next)
 	{
 		if (hashValue == slot->hashValue && slot->compareN(str.data(), str.length(), bCaseSensitive) == 0)
@@ -200,7 +178,7 @@ void HashString::init(char const* str, bool bCaseSensitive)
 		hashValue = FCString::StriHash(str);
 	}
 	uint32 idxHash = hashValue % NameSlotHashBucketSize;
-	NameSlot* slot = NameSlot::sHashHead[idxHash];
+	NameSlot* slot = HashStringInternal::GHashHead[idxHash];
 	for( ; slot; slot = slot->next )
 	{
 		if( hashValue == slot->hashValue && slot->compare(str, bCaseSensitive) == 0 )
@@ -209,8 +187,8 @@ void HashString::init(char const* str, bool bCaseSensitive)
 
 	if( slot == nullptr )
 	{
-		int idx = HashStringInternal::sNameSlots.size();
-		void* ptr = HashStringInternal::sNameSlots.addUninitialized();
+		int idx = HashStringInternal::GNameSlots.size();
+		void* ptr = HashStringInternal::GNameSlots.addUninitialized();
 
 		slot = new (ptr) NameSlot;
 		slot->hashValue = hashValue;
@@ -219,13 +197,13 @@ void HashString::init(char const* str, bool bCaseSensitive)
 		slot->next = nullptr;
 
 		//#TODO : thread-safe
-		if( NameSlot::sHashTail[idxHash] )
-			NameSlot::sHashTail[idxHash]->next = slot;
+		if(HashStringInternal::GHashTail[idxHash] )
+			HashStringInternal::GHashTail[idxHash]->next = slot;
 
-		NameSlot::sHashTail[idxHash] = slot;
+		HashStringInternal::GHashTail[idxHash] = slot;
 
-		if( NameSlot::sHashHead[idxHash] == nullptr )
-			NameSlot::sHashHead[idxHash] = slot;
+		if(HashStringInternal::GHashHead[idxHash] == nullptr )
+			HashStringInternal::GHashHead[idxHash] = slot;
 	}
 
 	mIndex = slot->index << 1;
@@ -253,7 +231,7 @@ void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
 		hashValue = FCString::StriHash(str, len);
 	}
 	uint32 idxHash = hashValue % NameSlotHashBucketSize;
-	NameSlot* slot = NameSlot::sHashHead[idxHash];
+	NameSlot* slot = HashStringInternal::GHashHead[idxHash];
 	for( ; slot; slot = slot->next )
 	{
 		if( hashValue == slot->hashValue && slot->compareN(str, len, bCaseSensitive) == 0 )
@@ -262,8 +240,8 @@ void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
 
 	if( slot == nullptr )
 	{
-		int idx = HashStringInternal::sNameSlots.size();
-		void* ptr = HashStringInternal::sNameSlots.addUninitialized();
+		int idx = HashStringInternal::GNameSlots.size();
+		void* ptr = HashStringInternal::GNameSlots.addUninitialized();
 
 		slot = new (ptr) NameSlot;
 		slot->hashValue = hashValue;
@@ -272,13 +250,13 @@ void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
 		slot->next = nullptr;
 
 		//#TODO : thread-safe
-		if( NameSlot::sHashTail[idxHash] )
-			NameSlot::sHashTail[idxHash]->next = slot;
+		if(HashStringInternal::GHashTail[idxHash] )
+			HashStringInternal::GHashTail[idxHash]->next = slot;
 
-		NameSlot::sHashTail[idxHash] = slot;
+		HashStringInternal::GHashTail[idxHash] = slot;
 
-		if( NameSlot::sHashHead[idxHash] == nullptr )
-			NameSlot::sHashHead[idxHash] = slot;
+		if(HashStringInternal::GHashHead[idxHash] == nullptr )
+			HashStringInternal::GHashHead[idxHash] = slot;
 	}
 
 	mIndex = slot->index << 1;
@@ -298,19 +276,19 @@ char const* HashString::c_str() const
 	if( mIndex == 0 )
 		return "";
 
-	NameSlot& slot = HashStringInternal::sNameSlots[getSlotIndex()];
+	NameSlot& slot = HashStringInternal::GNameSlots[getSlotIndex()];
 	return slot.str;
 }
 
 uint32 HashString::getTypeHash() const
 {
-	NameSlot& slot = HashStringInternal::sNameSlots[getSlotIndex()];
+	NameSlot& slot = HashStringInternal::GNameSlots[getSlotIndex()];
 	return slot.hashValue;
 }
 
 bool HashString::operator==(char const* str) const
 {
-	NameSlot& slot = HashStringInternal::sNameSlots[getSlotIndex()];
+	NameSlot& slot = HashStringInternal::GNameSlots[getSlotIndex()];
 	return slot.compare(str, isCastSensitive()) == 0;
 }
 

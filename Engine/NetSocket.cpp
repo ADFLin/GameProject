@@ -96,7 +96,7 @@ int NetSocket::sendData( char const* data , size_t num , char const* addrName , 
 {
 	NetAddress addr;
 	if ( !addr.setInternet( addrName , port ) )
-		return false;
+		return SOCKET_ERROR;
 
 	return sendData( data , num , addr );
 }
@@ -105,7 +105,7 @@ int NetSocket::sendData( char const* data , size_t num , char const* addrName , 
 int NetSocket::sendData( char const* data , size_t num , sockaddr* addrInfo , int addrLength )
 {
 	if ( mHandle == INVALID_SOCKET && ! createUDP( ) )
-		return false;
+		return SOCKET_ERROR;
 
 	return ::sendto( getHandle() , data , (int)num , 0 , addrInfo , addrLength );
 }

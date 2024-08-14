@@ -242,8 +242,7 @@ namespace Render
 
 			uint32 getTypeHash() const
 			{
-				uint32 result = HashValue(permutationId);
-				result = HashCombine(result, shaderClass);
+				uint32 result = HashValues(permutationId, shaderClass);
 				return result;
 			}
 		};

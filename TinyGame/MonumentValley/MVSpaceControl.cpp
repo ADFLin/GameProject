@@ -16,37 +16,29 @@ namespace MV
 
 	void SpaceControllor::prevModify( World& world )
 	{
-		for( InfoVec::iterator iter = mInfo.begin() , itEnd = mInfo.end();
-			iter != itEnd ; ++iter )
+		for (Info& info : mInfo)
 		{
-			Info& info = *iter;
-			info.modifier->isUse = true;
+			info.modifier->bUsing = true;
 			info.modifier->prevModify( world );
 		}
 	}
 
 	bool SpaceControllor::modify( World& world , float factor )
 	{
-		for( InfoVec::iterator iter = mInfo.begin() , itEnd = mInfo.end();
-			iter != itEnd ; ++iter )
+		for (Info& info : mInfo)
 		{
-			Info& info = *iter;
 			if ( !info.modifier->canModify( world , info.factorScale * factor ) )
 				return false;
 		}
 
-		for( InfoVec::iterator iter = mInfo.begin() , itEnd = mInfo.end();
-			iter != itEnd ; ++iter )
+		for (Info& info : mInfo)
 		{
-			Info& info = *iter;
 			info.modifier->modify( world , info.factorScale * factor );
 		}
 
-		for( InfoVec::iterator iter = mInfo.begin() , itEnd = mInfo.end();
-			iter != itEnd ; ++iter )
+		for(Info& info : mInfo)
 		{
-			Info& info = *iter;
-			info.modifier->isUse = false;
+			info.modifier->bUsing = false;
 			info.modifier->postModify( world );
 		}
 
@@ -55,11 +47,9 @@ namespace MV
 
 	void SpaceControllor::updateValue( float ctrlFactor )
 	{
-		for( InfoVec::iterator iter = mInfo.begin() , itEnd = mInfo.end();
-			iter != itEnd ; ++iter )
+		for (Info& info : mInfo)
 		{
-			Info& info = *iter;
-			assert( info.modifier->isUse );
+			assert( info.modifier->bUsing );
 			info.modifier->updateValue( info.factorScale * ctrlFactor );
 		}
 	}
@@ -67,24 +57,18 @@ namespace MV
 
 	void IGroupModifier::prevModify( World& world )
 	{
-		for( ObjectGroupList::iterator iter = mGourps.begin() , itEnd = mGourps.end() ;
-			iter != itEnd ; ++iter )
+		for (ObjectGroup* group : mGourps)
 		{
-			ObjectGroup* group = *iter;
 			world.removeMap( *group );
 			world.removeDynamicNavNode( *group );
 		}
 
 		world.increaseUpdateCount();
-		for( ObjectGroupList::iterator iter = mGourps.begin() , itEnd = mGourps.end() ;
-			iter != itEnd ; ++iter )
+		
+		for(ObjectGroup* group : mGourps)
 		{
-			ObjectGroup* group = *iter;
-
-			for( BlockList::iterator iter2 = group->blocks.begin() , it2End = group->blocks.end();
-				iter2 != it2End ; ++iter2 )
+			for(Block* block : group->blocks)
 			{
-				Block* block = *iter2;
 				world.updateNeighborNavNode( block->pos , block->group );
 			}
 		}
@@ -92,17 +76,13 @@ namespace MV
 
 	void IGroupModifier::postModify( World& world )
 	{
-		for( ObjectGroupList::iterator iter = mGourps.begin() , itEnd = mGourps.end() ;
-			iter != itEnd ; ++iter )
+		for (ObjectGroup* group : mGourps)
 		{
-			ObjectGroup* group = *iter;
 			world.updateMap( *group );
 		}
 
-		for( ObjectGroupList::iterator iter = mGourps.begin() , itEnd = mGourps.end() ;
-			iter != itEnd ; ++iter )
+		for (ObjectGroup* group : mGourps)
 		{
-			ObjectGroup* group = *iter;
 			world.updateNavNode( *group );
 		}
 	}
@@ -118,10 +98,9 @@ namespace MV
 		iFactor = ( iFactor % 4 );
 		if ( iFactor < 0 )
 			iFactor += 4;
-		for( ObjectGroupList::iterator iter = mGourps.begin() , itEnd = mGourps.end() ;
-			iter != itEnd ; ++iter )
+
+		for (ObjectGroup* group : mGourps)
 		{
-			ObjectGroup* group = *iter;
 			rotate_R( *group , iFactor , bModifyChildren );
 		}
 	}
@@ -131,38 +110,27 @@ namespace MV
 		assert( 0 <= factor && factor < 4 );
 		if ( modifyChildren )
 		{
-			for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-				iter != itEnd ; ++iter )
+			for (ObjectGroup* child : group.children)
 			{
-				ObjectGroup* child = *iter;
 				rotate_R( *child , factor , true );
 			}
 		}
 
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for (Block* block : group.blocks)
 		{
-			Block* block = *iter;
-
 			block->pos = roatePos( mPos , mDir , block->pos , factor );
 			block->rotation.rotate( mDir , factor );
-
 		}
 
-		for( ActorList::iterator iter = group.actors.begin() , itEnd = group.actors.end();
-			iter != itEnd ; ++iter )
+		for (Actor* actor : group.actors)
 		{
-			Actor* actor = *iter;
-
 			actor->pos = roatePos( mPos , mDir , actor->pos , factor );
 			actor->renderPos = roatePos( mPos , mDir , actor->renderPos , factor );
 			actor->rotation.rotate( mDir , factor );
 		}
 
-		for( MeshList::iterator iter = group.meshs.begin() , itEnd = group.meshs.end();
-			iter != itEnd ; ++iter )
+		for (MeshObject* mesh : group.meshs)
 		{
-			MeshObject* mesh = *iter;
 			mesh->pos = roatePos( mPos , mDir , mesh->pos , factor );
 			Quat q; q.setEulerZYX( mesh->rotation.z , mesh->rotation.y , mesh->rotation.x );
 			Quat rq = Quat::Rotate( FDir::OffsetF( mDir ) , Math::DegToRad( 90 * factor )  ) * q;
@@ -182,10 +150,8 @@ namespace MV
 		Vec3i destPos = org + temp * diff;
 		Vec3i offset = destPos - prevPos;
 
-		for( ObjectGroupList::iterator iter = mGourps.begin() , itEnd = mGourps.end() ;
-			iter != itEnd ; ++iter )
+		for (ObjectGroup* group : mGourps)
 		{
-			ObjectGroup* group = *iter;
 			translate_R( *group , offset , bModifyChildren );
 		}
 	}
@@ -194,32 +160,24 @@ namespace MV
 	{
 		if ( modifyChildren )
 		{
-			for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-				iter != itEnd ; ++iter )
+			for(ObjectGroup* child: group.children)
 			{
-				ObjectGroup* child = *iter;
 				translate_R( *child , offset , true );
 			}
 		}
 
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for(Block* block : group.blocks)
 		{
-			Block* block = *iter;
 			block->pos += offset;
 		}
 
-		for( ActorList::iterator iter = group.actors.begin() , itEnd = group.actors.end();
-			iter != itEnd ; ++iter )
+		for(Actor* actor : group.actors)
 		{
-			Actor* actor = *iter;
 			actor->pos += offset;
 		}
 
-		for( MeshList::iterator iter = group.meshs.begin() , itEnd = group.meshs.end();
-			iter != itEnd ; ++iter )
+		for(MeshObject* mesh : group.meshs)
 		{
-			MeshObject* mesh = *iter;
 			mesh->pos += Vec3f( offset );
 		}
 	}

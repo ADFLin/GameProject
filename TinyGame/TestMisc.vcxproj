@@ -456,7 +456,6 @@
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
     <ClCompile Include="TestMisc\Stage\MidlineTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp" />
-    <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RVOTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StackStage.cpp" />

@@ -4,6 +4,8 @@
 #include "MVCommon.h"
 #include "MVWorld.h"
 
+#include "DataStructure/Array.h"
+
 namespace MV
 {
 	struct FindState
@@ -42,10 +44,10 @@ namespace MV
 		int             getNodeNum() const { return mNodes.size(); }
 	private:
 		friend class PathFinder;
-		std::vector< PathNode > mNodes;
+		TArray< PathNode > mNodes;
 	};
 
-	typedef std::vector< Vec3f > PointVec;
+	typedef TArray< Vec3f > PointVec;
 
 	class PathFinder
 	{

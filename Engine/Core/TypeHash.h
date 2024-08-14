@@ -31,17 +31,36 @@ inline uint32 HashValue(T const& v)
 	return hasher(v);
 }
 
-template <class T>
-inline uint32 HashCombine(uint32& seed, const T& v)
-{
-	std::hash<T> hasher;
-	return seed ^ ( hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2) );
-}
-
 inline uint32 CombineHash(uint32 a, uint32 b)
 {
-	a ^= b + 0x9e3779b9 + (a << 6) + (a >> 2);
-	return a;
+	return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
+}
+
+template <class T>
+inline uint32 HashCombine(uint32 seed, T const& v)
+{
+	std::hash<T> hasher;
+	return CombineHash(seed, hasher(v));
+}
+
+template< typename T, typename ...TArgs >
+inline uint32 HashCombine(uint32 seed, T const& v, TArgs const& ...args)
+{
+	seed = HashCombine(seed, v);
+	return HashCombine(seed, args...);
+}
+
+template< typename T>
+inline uint32 HashValues(T const& v)
+{
+	return HashValue(v);
+}
+
+template< typename T, typename ...TArgs >
+inline uint32 HashValues(T const& v, TArgs const& ...args)
+{
+	std::hash<T> hasher;
+	return HashCombine(HashValue(v), args...);
 }
 
 struct MemberFuncHasher

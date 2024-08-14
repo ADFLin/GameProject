@@ -59,7 +59,7 @@
   
   <Type Name="HashString">
     <DisplayString>
-      { ((EngineShare.dll!NameSlot*)(EngineShare.dll!HashStringInternal::sNameSlots.mChunkStorage[ ( mIndex &gt;&gt; 1 ) / EngineShare.dll!NameSlotChunkNum ]) + ( mIndex &gt;&gt; 1 ) % EngineShare.dll!NameSlotChunkNum)->str }
+      { ((EngineShare.dll!NameSlot*)(EngineShare.dll!HashStringInternal::GNameSlots.mChunkStorage[ ( mIndex &gt;&gt; 1 ) / EngineShare.dll!NameSlotChunkNum ]) + ( mIndex &gt;&gt; 1 ) % EngineShare.dll!NameSlotChunkNum)->str }
     </DisplayString>
   </Type>
 

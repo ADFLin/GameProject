@@ -71,12 +71,12 @@ namespace Math
 			          0, 0, factor.z );
 		}
 
-		void setRotation( Vector3 const& axis , float angle ){ MatrixUtility::setRotation( *this , axis , angle ); }
-		void setRotationX( float angle ){  MatrixUtility::setRotationX( *this , angle );  }
-		void setRotationY( float angle ){  MatrixUtility::setRotationY( *this , angle );  }
-		void setRotationZ( float angle ){  MatrixUtility::setRotationZ( *this , angle );  }
+		void setRotation( Vector3 const& axis , float angle ){ MatrixUtility::SetRotation( *this , axis , angle ); }
+		void setRotationX( float angle ){  MatrixUtility::SetRotationX( *this , angle );  }
+		void setRotationY( float angle ){  MatrixUtility::SetRotationY( *this , angle );  }
+		void setRotationZ( float angle ){  MatrixUtility::SetRotationZ( *this , angle );  }
 
-		void setQuaternion( Quaternion const& q ){ MatrixUtility::modifyOrientation( *this , q ); }
+		void setQuaternion( Quaternion const& q ){ MatrixUtility::SetRotation( *this , q ); }
 
 		Quaternion toQuatNoScale() const
 		{

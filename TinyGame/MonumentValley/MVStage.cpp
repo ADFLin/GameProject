@@ -953,8 +953,8 @@ namespace MV
 		
 		
 		Vec3i pos;
-		pos.x = std::ceil( xScan * factor[0] + yScan * factor[1] + ox - 0.5 );
-		pos.y = std::ceil( xScan * factor[2] + yScan * factor[3] + oy - 0.5 );
+		pos.x = Math::CeilToInt(xScan * factor[0] + yScan * factor[1] + ox - 0.5);
+		pos.y = Math::CeilToInt(xScan * factor[2] + yScan * factor[3] + oy - 0.5);
 		pos.z = 0;
 
 		pos3Dbg = pos;
@@ -971,7 +971,7 @@ namespace MV
 		float const (&factorInv)[4] = transToMapPosInvFactor[ idxParallaxDir ];
 		
 		float sx0 = xScan + ( ox * factorInv[0] + oy * factorInv[1] );
-		float flacX = std::ceil( sx0 ) - ( sx0 );
+		float flacX = Math::Ceil( sx0 ) - ( sx0 );
 		int d = ( flacX > 0.5 ) ? 1 : -1;
 		d *= ( ( pos.x + pos.y ) % 2 == 0 ) ? 1 : -1;
 

@@ -114,11 +114,7 @@ namespace Render
 
 			uint32 getTypeHash() const
 			{
-				uint32 result = HashValue(type);
-				result = HashCombine(result, v4.x);
-				result = HashCombine(result, v4.y);
-				result = HashCombine(result, v4.z);
-				result = HashCombine(result, v4.w);
+				uint32 result = HashValues(type, v4.x, v4.y, v4.z, v4.w);
 				return result;
 			}
 
@@ -390,19 +386,7 @@ namespace Render
 		RenderBatchedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
 		RenderBatchedElement& addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale);
 		template< typename CharT >
-		RenderBatchedElement& addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, bool bRemoveScale, int charCount = 0)
-		{
-			int verticesCount = 4 * ((charCount) ? charCount : front.getCharCount(str));
-			TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
-			element->type = RenderBatchedElement::Text;
-			element->payload.color = color;
-			element->payload.vertices = (FontVertex*)mAllocator.alloc(verticesCount * sizeof(FontVertex));
-			element->payload.verticesCount = verticesCount;
-			element->payload.bRemoveScale = bRemoveScale;
-			front.generateVertices(pos, str, element->payload.vertices);
-
-			return *element;
-		}
+		RenderBatchedElement& addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale);
 
 		RenderBatchedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
@@ -429,7 +413,6 @@ namespace Render
 		FrameAllocator& mAllocator;
 		TArray< RenderBatchedElement* > mElements;
 	};
-
 
 	struct FPrimitiveHelper
 	{

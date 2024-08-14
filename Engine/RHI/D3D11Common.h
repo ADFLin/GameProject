@@ -341,8 +341,7 @@ namespace Render
 
 			uint32 getTypeHash() const
 			{
-				uint32 result = HashValue(level);
-				result = HashCombine(result, arrayIndex);
+				uint32 result = HashValues(level, arrayIndex);
 				return result;
 			}
 

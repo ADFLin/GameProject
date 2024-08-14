@@ -8,12 +8,12 @@ namespace Math
 {
 	void Quaternion::setMatrix( Matrix3 const& m )
 	{
-		MatrixUtility::toQuaternion( m , *this );
+		MatrixUtility::ToQuaternion( m , *this );
 	}
 
 	void Quaternion::setMatrix( Matrix4 const& m )
 	{
-		MatrixUtility::toQuaternion( m , *this );
+		MatrixUtility::ToQuaternion( m , *this );
 	}
 
 	void Quaternion::setEulerZYX(float yaw,float pitch,float roll)

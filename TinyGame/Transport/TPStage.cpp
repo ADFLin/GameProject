@@ -8,14 +8,12 @@
 #include "Math/TVector2.h"
 #include "Renderer/RenderTransform2D.h"
 
-
-
 DEFINE_TYPE_HASH_TO_STD(TVector2<int>, (TVector2<int> const& v) 
 { 
-	uint32 result = HashValue(v.x);
-	result = HashCombine(result, v.y);
+	uint32 result = HashValues(v.x, v.y);
 	return result;
 })
+
 namespace Transport
 {
 	using Vec2i = TVector2<int>;

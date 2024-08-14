@@ -13,7 +13,7 @@ namespace MV
 		Dir   linkDirL;
 		Dir   linkDir;
 		int   nodeType;
-		bool  testParallax;
+		bool  bParallaxTest;
 
 		Block* block;
 		NavNode* node;
@@ -240,7 +240,7 @@ namespace MV
 		updateNeighborNavNode( block->pos );
 	}
 
-	void World::setActorBlock( Actor& actor , int blockId , Dir faceDir , bool updateRender )
+	void World::setActorBlock( Actor& actor , int blockId , Dir faceDir , bool bUpdateRender )
 	{
 		Block* block = mBlocks[ blockId ];
 		if ( actor.actBlockId )
@@ -248,7 +248,7 @@ namespace MV
 		actor.actBlockId = blockId;
 		actor.pos = block->pos;
 		actor.actFaceDir = faceDir;
-		if ( updateRender )
+		if ( bUpdateRender )
 		{
 			actor.renderPos = Vec3f( block->pos ) + 0.5 * FDir::OffsetF( faceDir );
 		}
@@ -268,24 +268,19 @@ namespace MV
 	void World::updateNavNode_R( ObjectGroup& group )
 	{
 		updateBlockNavNode( group );
-		for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-			iter != itEnd ; ++iter )
+		for(ObjectGroup* child : group.children)
 		{
-			ObjectGroup* child = *iter;
 			updateNavNode_R( *child );
 		}
 	}
 
 	void World::updateBlockNavNode( ObjectGroup& group )
 	{
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for(Block* block : group.blocks)
 		{
-			Block* block = *iter;
 			updateNavNode( *block );
 		}
 	}
-
 
 	void World::connectBlockNavNode( Block& block , Dir dirL , Dir linkDirL )
 	{
@@ -300,10 +295,7 @@ namespace MV
 		node.connect( destSurface.nodes[ NODE_DIRECT ][ idxDest ] );
 	}
 
-	enum
-	{
-		FUN_IAVE ,
-	};
+
 	class ActionNavFunc
 	{
 	public:
@@ -505,8 +497,8 @@ namespace MV
 		//check parallax block Obstacle 
 		Vec3i blockPosBlockObstacle;
 		int blockIdBlockObstacle = getTopParallaxBlock( block.pos , blockPosBlockObstacle );
-		bool testParallax = ( blockIdBlockObstacle == block.id );
-		if ( testParallax )
+		bool bParallaxTest = ( blockIdBlockObstacle == block.id );
+		if ( bParallaxTest )
 		{
 			//remove Face Nav Link if Find Obstacle
 			Vec3i tempPos = blockPosBlockObstacle;
@@ -534,14 +526,14 @@ namespace MV
 
 		for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 		{
-			updateSurfaceNavNode( block , Dir(i) , testParallax );
+			updateSurfaceNavNode( block , Dir(i) , bParallaxTest );
 		}
 	}
 
-	void World::updateSurfaceNavNode( Block& block , Dir faceDirL , bool testParallax )
+	void World::updateSurfaceNavNode( Block& block , Dir faceDirL , bool bParallaxTest )
 	{
 		NavLinkInfo info;
-		info.testParallax = testParallax;
+		info.bParallaxTest = bParallaxTest;
 		info.block = &block;
 		info.faceDirL = faceDirL;
 		info.faceDir = block.rotation.toWorld( info.faceDirL );
@@ -580,7 +572,7 @@ namespace MV
 			}
 		}
 
-		if ( testParallax )
+		if ( bParallaxTest )
 		{
 			if ( info.faceOffset.dot( mParallaxOffset ) > 0 )
 			{
@@ -589,14 +581,14 @@ namespace MV
 				int blockIdFaceObstacle = getTopParallaxBlock( posTest , blockPosFaceObstacle );
 				if ( blockIdFaceObstacle != 0 && comparePosFromView( info.faceDir , block.pos , blockPosFaceObstacle ) < 0 )
 				{
-					info.testParallax = false;
+					info.bParallaxTest = false;
 				}
 			}
 		}
 		buildSurfaceNavNode( block , info );
 	}
 
-	void World::buildSurfaceNavNode( Block &block, NavLinkInfo &info )
+	void World::buildSurfaceNavNode(Block& block, NavLinkInfo& info)
 	{
 		switch( info.surface->func )
 		{
@@ -651,12 +643,12 @@ namespace MV
 
 	int World::buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFunc& func , int idx )
 	{
-		info.setupNodeFromIndex( 0 , idx );
+		info.setupNodeFromIndex(NODE_DIRECT, idx );
 		info.linkDir = block.rotation.toWorld( info.linkDirL );
 		int result = buildNeighborNavLink( block , info , func );
-		if ( info.testParallax )
+		if ( info.bParallaxTest )
 		{
-			info.setupNodeFromIndex( 1 , idx );
+			info.setupNodeFromIndex(NODE_PARALLAX, idx );
 			buildParallaxNavLink( block , info , func );
 		}
 		return result;
@@ -665,12 +657,12 @@ namespace MV
 
 	int World::buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFunc& func , Dir dirL )
 	{
-		info.setupNodeFromDir( 0 , dirL );
+		info.setupNodeFromDir(NODE_DIRECT, dirL );
 		info.linkDir = block.rotation.toWorld( info.linkDirL );
 		int result = buildNeighborNavLink( block , info , func );
-		if ( info.testParallax )
+		if ( info.bParallaxTest )
 		{
-			info.setupNodeFromDir( 1 , dirL );
+			info.setupNodeFromDir(NODE_PARALLAX, dirL );
 			buildParallaxNavLink( block , info , func );
 		}
 		return result;
@@ -701,7 +693,9 @@ namespace MV
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
 			int ret = func.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
 			if ( ret )
-				return ret; 
+			{
+				return ret;
+			}
 		}
 
 		// Block L
@@ -880,21 +874,16 @@ namespace MV
 			}
 		}
 
-		for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-			iter != itEnd ; ++iter )
+		for(ObjectGroup* child : group.children)
 		{
-			ObjectGroup* child = *iter;
 			removeDynamicNavNode_R( *child );
 		}
 	}
 
 	void World::removeParallaxNavNode_R( ObjectGroup& group )
 	{
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for(Block* block : group.blocks)
 		{
-			Block* block = *iter;
-
 			for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 			{
 				BlockSurface& surface = block->getLocalFace( Dir(i) );
@@ -908,10 +897,8 @@ namespace MV
 			}
 		}
 
-		for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-			iter != itEnd ; ++iter )
+		for(ObjectGroup* child : group.children)
 		{
-			ObjectGroup* child = *iter;
 			removeParallaxNavNode_R( *child );
 		}
 	}
@@ -933,7 +920,7 @@ namespace MV
 
 		NavNode* destNode = node->link;
 		BlockSurface* destSurface = destNode->getSurface();
-		Block* destBlock = destSurface->block;
+		Block* destBlock = destSurface->getBlock();
 		Dir dirFaceL = Block::LocalDir( *destSurface );
 		setActorBlock( actor , destBlock->id , destBlock->rotation.toWorld( dirFaceL ) );
 	}
@@ -1071,7 +1058,7 @@ namespace MV
 		mGroups.erase( std::find( mGroups.begin() , mGroups.end() , group ) );
 	}
 
-	void World::refrechFixNode()
+	void World::refreshFixNode()
 	{
 		int num = mFixNodes.size();
 		for( int i = 0; i != num ; )
@@ -1108,7 +1095,7 @@ namespace MV
 			if (  face != Block::WorldDir( *node->getSurface() ) )
 				continue;
 
-			Block* sBlock = node->getSurface()->block;
+			Block* sBlock = node->getSurface()->getBlock();
 
 			if ( comparePosFromView( face , block.pos , sBlock->pos ) >= 0 )
 				continue;

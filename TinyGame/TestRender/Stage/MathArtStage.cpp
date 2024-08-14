@@ -290,24 +290,7 @@ public:
 		};
 
 		int stepCount = Math::CeilToInt( dt * 4000 );
-#if 0
-		{
-			float prevTime = time;
-			float curTime  = time + dt;
-			updatePoints(curTime, mPoints[mIndexBufferWrite]);
-			auto const& curPoints = mPoints[1 - mIndexBufferWrite];
-			auto const& prevPoints = mPoints[mIndexBufferWrite];
 
-			Vector2 pA1 = prevPoints[mNodes.size() - 1];
-			Vector2 pA2 = prevPoints[mNodes.size()];
-			Vector2 pB1 = curPoints[mNodes.size() - 1];
-			Vector2 pB2 = curPoints[mNodes.size()];
-			float d1 = Math::Distance(pA1, pB1);
-			float d2 = Math::Distance(pA2, pB2);
-
-			stepCount = Math::CeilToInt( 5 * Math::Max(d1, d2) );
-		}
-#endif
 		TArray< Vertex > vertices;
 		vertices.reserve(6 * stepCount);
 		for (int step = 0; step < stepCount; ++step)

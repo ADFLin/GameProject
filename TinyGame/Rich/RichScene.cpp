@@ -301,8 +301,6 @@ namespace Rich
 	void Scene::render(IGraphics2D& gInterface, RenderParams const& renderParams)
 	{
 		RHIGraphics2D& g = gInterface.getImpl<RHIGraphics2D>();
-		g.beginRender();
-
 
 		RenderUtility::SetPen( g , EColor::Gray );
 		RenderUtility::SetBrush( g , EColor::Gray );
@@ -341,8 +339,6 @@ namespace Rich
 			}
 			g.endBlend();
 		}
-
-		g.endRender();
 	}
 
 
@@ -1060,21 +1056,14 @@ namespace Rich
 		return convScanToMapPos(scanPos);
 	}
 
-	Vector2 RenderView::convMapToScreenPos( Vec2i const& mapPos ) const
+	Vector2 RenderView::convMapToScreenPos(Vec2i const& mapPos) const
 	{
-		Vector2 scanPos = convMapToScanPos(mapPos);
-		return convScanToScreenPos(scanPos);
+		return convScanToScreenPos(convMapToScanPos(mapPos));
 	}
 
-	Vector2 RenderView::convMapToScreenPos( Vector2 const& mapPos) const
+	Vector2 RenderView::convMapToScreenPos(Vector2 const& mapPos) const
 	{
-		float const (&factor)[4] = transToScanPosFactor[ dir ];
-
-		Vector2 scanPos;
-		scanPos.x = float(mapPos.x * factor[0] + mapPos.y * factor[1]);
-		scanPos.y = float(mapPos.x * factor[2] + mapPos.y * factor[3]);
-
-		return convScanToScreenPos(scanPos);
+		return convScanToScreenPos(convMapToScanPos(mapPos));
 	}
 
 	Vector2 RenderView::convMapToScanPos(Vector2 const& mapPos) const

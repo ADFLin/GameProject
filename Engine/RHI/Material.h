@@ -154,9 +154,7 @@ namespace Render
 
 		uint32 getTypeHash() const
 		{
-			uint32 result = HashValue(shaderClass);
-			result = CombineHash(result, permutationId);
-			result = CombineHash(result, uniqueHash);
+			uint32 result = HashValues(shaderClass, permutationId, uniqueHash);
 			return result;
 		}
 	};

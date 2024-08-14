@@ -5,7 +5,8 @@
 #include "RHICommon.h"
 #include "RHICommand.h"
 
-#include <vector>
+#include "Math/MatrixUtility.h"
+#include "DataStructure/Array.h"
 
 namespace Render
 {
@@ -42,17 +43,26 @@ namespace Render
 
 		FORCEINLINE void translate(Vector3 const& offset)
 		{
-			transform(Matrix4::Translate(offset));
+			// [ I  0 ][ R 0 ] = [ R      0 ]
+			// [ T  1 ][ P 1 ]   [ T*R+P  1 ] 
+			//transform(Matrix4::Translate(offset));
+			mCurrent.translate(Math::MatrixUtility::Rotate(offset, mCurrent));
 		}
 
 		FORCEINLINE void rotate(Quaternion const& q)
 		{
-			transform(Matrix4::Rotate(q));
+			// [ Q  0 ][ R 0 ] = [ Q*R  0 ]
+			// [ 0  1 ][ P 1 ]   [ P    1 ] 
+			//transform(Matrix4::Rotate(q));
+			Math::MatrixUtility::ApplyLocalRotation(mCurrent, q);
 		}
 
 		FORCEINLINE void scale(Vector3 const& scale)
 		{
-			transform(Matrix4::Scale(scale));
+			// [ S  0 ][ R 0 ] = [ S*R  0 ]
+			// [ 0  1 ][ P 1 ]   [ P    1 ] 
+			//transform(Matrix4::Scale(scale));
+			Math::MatrixUtility::ApplyLeftScale( mCurrent , scale );
 		}
 
 		void push()

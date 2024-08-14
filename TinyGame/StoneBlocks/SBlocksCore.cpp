@@ -21,9 +21,7 @@ namespace SBlocks
 				uint32 blockHash = 0xcab129de1;
 				for (auto const& block : bc->blocks)
 				{
-					blockHash = HashCombine(blockHash, block.pos.x);
-					blockHash = HashCombine(blockHash, block.pos.y);
-					blockHash = HashCombine(blockHash, block.type);
+					blockHash = HashCombine(blockHash, block.pos.x, block.pos.y, block.type);
 				}
 				return blockHash;
 			}
@@ -165,12 +163,8 @@ namespace SBlocks
 		blockHashNoType = 0xcab129de1;
 		for (auto const& block : blocks)
 		{
-			blockHash = HashCombine(blockHash, block.pos.x);
-			blockHash = HashCombine(blockHash, block.pos.y);
-			blockHash = HashCombine(blockHash, block.type);
-
-			blockHashNoType = HashCombine(blockHashNoType, block.pos.x);
-			blockHashNoType = HashCombine(blockHashNoType, block.pos.y);
+			blockHash = HashCombine(blockHash, block.pos.x, block.pos.y, block.type);
+			blockHashNoType = HashCombine(blockHashNoType, block.pos.x, block.pos.y);
 		}
 #endif
 	}

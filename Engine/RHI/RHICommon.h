@@ -971,10 +971,7 @@ namespace Render
 
 		uint32 getTypeHash() const
 		{
-			uint32 hash = HashValue(filter);
-			hash = HashCombine(hash, addressU);
-			hash = HashCombine(hash, addressV);
-			hash = HashCombine(hash, addressW);
+			uint32 hash = HashValues(filter, addressU, addressV, addressW);
 			return hash;
 		}
 	};
@@ -1314,9 +1311,8 @@ namespace Render
 			hashValue = HashValue(inputStreamCount);
 			for (int i = 0; i < inputStreamCount; ++i)
 			{
-				hashValue = HashCombine(hashValue, inputStreams[i].buffer.get());
-				hashValue = HashCombine(hashValue, inputStreams[i].offset);
-				hashValue = HashCombine(hashValue, inputStreams[i].stride);
+				auto const& streams = inputStreams[i];
+				hashValue = HashCombine(hashValue, streams.buffer.get(), streams.offset, streams.stride);
 			}
 		}
 

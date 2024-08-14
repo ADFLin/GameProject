@@ -3,6 +3,37 @@
 
 #include <iostream>
 
+
+template < typename T, typename ...TArgs >
+void packWarpper(T& packer, TArgs& ...args)
+{
+	packer.processStruct(args...);
+}
+
+#define  REFLECT_STRUCT_BEGIN(CLASS)\
+	template < typename T >\
+	void pack(T& packer){\
+		packWarpper(packer, \
+
+#define REF_PROPERTY(VAR) ,VAR
+
+#define REFLECT_STRUCT_END()\
+		);\
+	}
+
+
+struct Data
+{
+	int a;
+	float b;
+
+	REFLECT_STRUCT_BEGIN(Data)
+		REF_PROPERTY(a)
+		REF_PROPERTY(b)
+	REFLECT_STRUCT_END()
+};
+
+
 struct Foo
 {
 	int pa;

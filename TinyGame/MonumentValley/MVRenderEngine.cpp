@@ -236,10 +236,8 @@ namespace MV
 		if ( group.node )
 			group.node->prevRender(context);
 
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for(Block* block  : group.blocks)
 		{
-			Block* block = *iter;
 			renderBlock(context, *block , block->pos );
 		}
 
@@ -247,17 +245,14 @@ namespace MV
 		{
 			renderNav(context, group );
 		}
-		for( ActorList::iterator iter = group.actors.begin() , itEnd = group.actors.end();
-			iter != itEnd ; ++iter)
+
+		for(Actor* actor : group.actors)
 		{
-			Actor* actor = *iter;
 			renderActor(context, *actor );
 		}
 
-		for( MeshList::iterator iter = group.meshs.begin() , itEnd = group.meshs.end();
-			iter != itEnd ; ++iter)
+		for(MeshObject* mesh : group.meshs)
 		{
-			MeshObject* mesh = *iter;
 			renderMesh(context, mesh->idMesh , mesh->pos , mesh->rotation );
 		}
 
@@ -266,10 +261,8 @@ namespace MV
 			if ( !group.node->bModifyChildren )
 				group.node->postRender(context);
 
-			for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-				iter != itEnd ; ++iter )
+			for(ObjectGroup* child : group.children)
 			{
-				ObjectGroup* child = *iter;
 				renderGroup(context, *child );
 			}
 
@@ -278,10 +271,8 @@ namespace MV
 		}
 		else
 		{
-			for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-				iter != itEnd ; ++iter )
+			for(ObjectGroup* child : group.children)
 			{
-				ObjectGroup* child = *iter;
 				renderGroup(context, *child );
 			}
 
@@ -354,11 +345,8 @@ namespace MV
 
 		float* v = buffer;
 		int nV = 0;
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for(Block* block : group.blocks)
 		{
-			Block* block = *iter;
-
 			for( int i = 0 ; i < 6 ; ++i )
 			{
 				Dir faceDirL = Dir(i);

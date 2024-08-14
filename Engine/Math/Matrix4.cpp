@@ -1,4 +1,5 @@
 #include "Matrix4.h"
+#include "Matrix3.h"
 
 namespace Math
 {
@@ -28,7 +29,7 @@ namespace Math
 
 	void Matrix4::modifyOrientation( Quaternion const& q )
 	{
-		MatrixUtility::modifyOrientation( *this , q );
+		MatrixUtility::SetRotation( *this , q );
 	}
 
 	void Matrix4::setQuaternion( Quaternion const& q )
@@ -163,13 +164,18 @@ namespace Math
 
 	Matrix4 Matrix4::leftMul( Matrix3 const& m ) const
 	{
-		//FIXME
-		assert(0);
+		// result = [m 0] * [ R P ] = [ m * R m * P ]
+		//          [0 1]   [ T Q ]   [  T      Q   ]
+#define MAT_MUL( idx1 , idx2 )\
+	( m(3*idx1 + 0) * mM[0][idx2] + m(3*idx1+1) * mM[1][idx2] + m(3*idx1+2) * mM[2][idx2] )
+
 		return Matrix4(
-
-			);
+			MAT_MUL(0, 0), MAT_MUL(0, 1), MAT_MUL(0, 2), MAT_MUL(0, 3),
+			MAT_MUL(1, 0), MAT_MUL(1, 1), MAT_MUL(1, 2), MAT_MUL(1, 3),
+			MAT_MUL(2, 0), MAT_MUL(2, 1), MAT_MUL(2, 2), MAT_MUL(2, 3),
+			mM[3][0], mM[3][1], mM[3][2], mM[3][3] );
+#undef MAT_MUL
 	}
-
 
 	Matrix4 Matrix4::mul(Matrix3 const& m) const
 	{
@@ -178,7 +184,7 @@ namespace Math
 		return Matrix4(
 
 
-			);
+		);
 	}
 
 	bool Matrix4::isAffine() const

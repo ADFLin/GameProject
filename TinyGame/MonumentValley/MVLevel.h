@@ -5,6 +5,8 @@
 #include "MVWorld.h"
 #include "MVSpaceControl.h"
 
+#include "DataStructure/Array.h"
+
 namespace MV
 {
 	class IModifyCreator
@@ -33,11 +35,11 @@ namespace MV
 
 		IRotator*        createRotator( Vec3i const& pos , Dir dir );
 
-		typedef std::vector< ISpaceModifier* >   ModifierVec;
+		typedef TArray< ISpaceModifier* >   ModifierVec;
 		ModifierVec    mModifiers;
-		typedef std::vector< SpaceControllor* > SpaceCtrlorVec;
+		typedef TArray< SpaceControllor* > SpaceCtrlorVec;
 		SpaceCtrlorVec  mSpaceCtrlors;
-		typedef std::vector< MeshObject* >      MeshVec;
+		typedef TArray< MeshObject* >      MeshVec;
 		MeshVec         mMeshVec;
 		World           mWorld;
 		IModifyCreator* mCreator;

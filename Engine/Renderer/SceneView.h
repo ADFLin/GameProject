@@ -55,15 +55,15 @@ namespace Render
 
 		Vector3 getViewForwardDir() const
 		{
-			return TransformVector(Vector3(0, 0, 1), viewToTranslatedWorld);
+			return TransformVector(FRenderView::FrontDirection(), viewToTranslatedWorld);
 		}
 		Vector3 getViewRightDir() const
 		{
-			return TransformVector(Vector3(1, 0, 0), viewToTranslatedWorld);
+			return TransformVector(FRenderView::RightDirection(), viewToTranslatedWorld);
 		}
 		Vector3 getViewUpDir() const
 		{
-			return TransformVector(Vector3(0, 1, 0), viewToTranslatedWorld);
+			return TransformVector(FRenderView::UpDirection(), viewToTranslatedWorld);
 		}
 
 		void updateRHIResource();

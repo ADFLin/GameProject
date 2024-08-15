@@ -37,7 +37,7 @@ namespace MV
 
 	Block* Block::Get(BlockSurface& surface)
 	{
-		ptrdiff_t offset = offsetof(Block, surfaces) + surface.face * sizeof(NavNode);
+		ptrdiff_t offset = offsetof(Block, surfaces) + surface.face * sizeof(BlockSurface);
 		return reinterpret_cast<Block*>(intptr_t(&surface) - offset);
 	}
 

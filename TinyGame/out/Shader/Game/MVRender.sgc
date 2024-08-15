@@ -14,8 +14,8 @@ static const float3 DirOffset[6] = {
 
 #endif
 
-uniform float3 LightDir = float3( 0.4 , 0.5 , 0.8 );
-uniform float3 LocalScale = float3( 1 , 1 , 1 );
+uniform float3   LightDir = float3( 0.4 , 0.5 , 0.8 );
+uniform float3   LocalScale;
 uniform float4x4 LocalToWorld;
 uniform float4x4 WorldToLocal;
 
@@ -24,6 +24,7 @@ uniform int2 Rotation = int2(0,4);
 struct OutputVSParam
 {
 	float3 normal MEMBER_OUT(TEXCOORD0);
+	float3 debug MEMBER_OUT(TEXCOORD1);
 };
 
 
@@ -46,14 +47,17 @@ VS_ENTRY_END(BaseRenderVS)
 		float4( LocalScale.y * axisY , 0 ) , 
 		float4( LocalScale.z * axisZ , 0 ) , 
 		float4( 0,0,0,1) );
-
-	float4x4 localToWorld = LocalToWorld * localScale;
+#if COMPILER_HLSL
+	localScale = transpose(localScale);
+#endif
+	float4x4 localToWorld = mul(LocalToWorld , localScale);
 	// NormalMatrix = ( inverse( LocalToWorld ) )^t
 #if COMPILER_GLSL
-	OutputVS.normal = InNormal * inverse(float3x3(localToWorld));
+	OutputVS.normal = mul( InNormal , inverse(float3x3(localToWorld)));
 #else
-	OutputVS.normal = InNormal /** float3x3((float3x3)WorldToLocal)*/;
+	OutputVS.normal = mul( InNormal , (float3x3)inverse(localToWorld));
 #endif
+	OutputVS.debug = LocalScale;
 	SvPosition = mul( View.worldToClip , mul( localToWorld , float4(InPos, 1.0 ) ) );
 }
 
@@ -69,6 +73,7 @@ PS_ENTRY_END(BaseRenderPS)
 {
 	float3 N = normalize(OutputVS.normal);
 	OutColor.rgb = abs(dot(N, normalize(LightDir))) * BaseColor;
+	//OutColor.rgb = OutputVS.debug;
 	OutColor.a = 1;
 }
 

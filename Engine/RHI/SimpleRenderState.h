@@ -111,7 +111,7 @@ namespace Render
 		}
 		TransformStack  stack;
 
-		LinearColor     mColor;
+		LinearColor     mColor = LinearColor(1,1,1,1);
 		RHITexture2DRef mTexture;
 	};
 

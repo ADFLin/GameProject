@@ -327,7 +327,7 @@ namespace Render
 	public:
 		Matrix4 getPerspectiveMatrix()
 		{
-			if(FRHIZBuffer::IsInverted)
+			if constexpr (FRHIZBuffer::IsInverted)
 				return ReversedZPerspectiveMatrix(mYFov, mAspect, mNear, mFar);
 				       
 			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);

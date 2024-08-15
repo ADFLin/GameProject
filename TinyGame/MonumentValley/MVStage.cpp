@@ -39,9 +39,6 @@ namespace MV
 
 		//testRotation();
 
-		//mCamera.setPos( Vector3( 20 , 20 , 20 ) );
-		mCamera.setPos(Vec3f(0, 0, 0));
-		mCamera.setRotation( Math::DegToRad( 225 ) , Math::DegToRad( 45 ) , 0 );
 
 		bCameraView = false;
 		mViewWidth = 32;
@@ -82,6 +79,14 @@ namespace MV
 		mNavigator.mWorld = &mWorld;
 
 		mWorld.setParallaxDir( 0 );
+
+		//mCamera.setPos( Vector3( 20 , 20 , 20 ) );
+		//mCamera.setPos(Vec3f(10, 10, 10));
+		//mCamera.setViewDir(-Vec3f(mWorld.mParallaxOffset), Vec3f(0,0,-1));
+
+		mCamera.lookAt(Vector3(20, 20, 20), Vector3(0, 0, 0), Vector3(0, 0, 1));
+		//mCamera.setRotation(Math::DegToRad(225), Math::DegToRad(45), 0);
+
 
 		restart( true );
 
@@ -582,16 +587,20 @@ namespace MV
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHISetFrameBuffer(commandList, nullptr);
-		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1);
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		float width = mViewWidth;
 		float height = width * screenSize.y / screenSize.x;
-		//Matrix4  projectMatrix = ReversedZOrthoMatrix(width, height, -100, 100);
-		Matrix4  projectMatrix = OrthoMatrix(width, height, -100, 100);
+		Matrix4  projectMatrix;
+
+		if constexpr (FRHIZBuffer::IsInverted)
+			projectMatrix = ReversedZOrthoMatrix(width, height, -100, 100);
+		else
+			projectMatrix = OrthoMatrix(width, height, -100, 100);
+
 		Matrix4  projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
-
 
 		Vec3f viewPos = getViewPos();
 		
@@ -619,14 +628,18 @@ namespace MV
 				renderScene( matView, projectMatrix);
 
 				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-			
-				projectMatrix = OrthoMatrix(0 , screenSize.x , 0 , screenSize.y , -1 , 1 );
-
+				if constexpr (FRHIZBuffer::IsInverted)
+					projectMatrix = ReversedZOrthoMatrix(0 , screenSize.x , 0 , screenSize.y , -1 , 1 );
+				else
+					projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
+				projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
 				RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
+#if 0
 				glBegin( GL_LINES );
 				glVertex2i( width , 0 ); glVertex2i( width , 2 * height );
 				glVertex2i( 0 , height ); glVertex2i( 2 * width , height );
 				glEnd();
+#endif
 			}
 			break;
 		case eView3D:
@@ -636,17 +649,19 @@ namespace MV
 				int width = screenSize.x;
 				int height = screenSize.y;
 				RHISetViewport(commandList, 0, 0, width, height);
-				if ( bCameraView )
+				if ( bCameraView)
 				{
-					//glOrtho(0, screenSize.x , 0 , screenSize.y , -10000 , 100000 );
 					float aspect = float( screenSize.x ) / screenSize.y;
 
-					projectMatrix = PerspectiveMatrix(100.0f / aspect, aspect, 0.01, 1000);
+					if constexpr (FRHIZBuffer::IsInverted)
+						projectMatrix = ReversedZPerspectiveMatrix(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
+					else
+						projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
+
 					Vector3 camPos  = mCamera.getPos();
 					Vector3 viewDir = mCamera.getViewDir();
 					Vector3 upDir   = mCamera.getUpDir();
-
-					matView = LookAtMatrix( camPos , viewDir , upDir );
+					matView = mCamera.getViewMatrix();
 				}
 				else
 				{
@@ -747,6 +762,10 @@ namespace MV
 		RenderParam& param = mRenderEngine.mParam;
 		param.world = &mWorld;
 
+		Vec2i screenSize = ::Global::GetScreenSize();
+		float width = mViewWidth;
+		float height = width * screenSize.y / screenSize.x;
+
 		mRenderEngine.beginRender();
 		mRenderEngine.renderScene(context);
 		//mRenderEngine.renderMesh(context, MeshId::MESH_STAIR , editMeshPos, Vec3f(0, 0, 0));
@@ -771,7 +790,7 @@ namespace MV
 				context.stack.translate( Vec3f(editPos) - Vec3f(0.5));
 
 			context.setColor(LinearColor(1, 1, 1));
-			context.setupSimplePipeline(commandList);
+			context.setSimpleShader(commandList);
 			DrawUtility::CubeLine(commandList);
 
 			context.stack.pop();
@@ -796,14 +815,14 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
-				context.setupSimplePipeline(commandList);
+				context.setSimpleShader(commandList);
 				TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineList , buffer , size / 3 );
 			}
 
 			{
 				context.stack.push();
 				context.stack.scale(Vec3f(len));
-				context.setupSimplePipeline(commandList);
+				context.setSimpleShader(commandList);
 				DrawUtility::AixsLine(commandList);
 				context.stack.pop();
 			}

@@ -42,6 +42,7 @@ namespace Render
 	{
 		static Vector3 FrontDirection() { return Vector3(0, 0, 1); }
 		static Vector3 UpDirection() { return Vector3(0, 1, 0); }
+		static Vector3 RightDirection() { return Vector3(1, 0, 0); }
 	};
 
 	class LookAtMatrix : public Matrix4
@@ -197,7 +198,7 @@ namespace Render
 				xFactor,       0,                0, 0,
 				      0, yFactor,                0, 0,
 				      0,       0,         -zFactor, 0,
-				      0,       0,  zNear * zFactor, 1);
+				      0,       0,   zFar * zFactor, 1);
 		}
 
 		FORCEINLINE ReversedZOrthoMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
@@ -209,7 +210,7 @@ namespace Render
 				              2 * xFactor,                         0,                0, 0,
 				                        0,               2 * yFactor,                0, 0,
 				                        0,                         0,         -zFactor, 0,
-				-(left + right) * xFactor, -(top + bottom) * yFactor,  zNear * zFactor, 1);
+				-(left + right) * xFactor, -(top + bottom) * yFactor,   zFar * zFactor, 1);
 		}
 	};
 

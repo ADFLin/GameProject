@@ -96,13 +96,14 @@ namespace MV
 			BIND_SHADER_PARAM(parameterMap, BaseColor);
 			BIND_SHADER_PARAM(parameterMap, LocalScale);
 			BIND_SHADER_PARAM(parameterMap, LocalToWorld);
-
+			BIND_SHADER_PARAM(parameterMap, LightDir);
 		}
 
 		DEFINE_SHADER_PARAM(Rotation);
 		DEFINE_SHADER_PARAM(BaseColor);
 		DEFINE_SHADER_PARAM(LocalScale);
 		DEFINE_SHADER_PARAM(LocalToWorld);
+		DEFINE_SHADER_PARAM(LightDir);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(BaseRenderProgram);
@@ -138,6 +139,16 @@ namespace MV
 	{
 		RHICommandList& commandList = *mCommandList;
 		beginRender();
+
+		bool bDrawAxis = true;
+		if (bDrawAxis)
+		{
+			context.setColor(LinearColor(1, 1, 1));
+			context.setSimpleShader(commandList);
+			DrawUtility::AixsLine(commandList, 10);
+			RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHI());
+		}
+
 		renderGroup(context, mParam.world->mRootGroup );
 		endRender();
 	}
@@ -160,6 +171,7 @@ namespace MV
 
 		context.stack.push();
 		context.stack.translate( Vector3( pos.x , pos.y , pos.z ) );
+
 		if (mParam.bShowGroupColor)
 		{
 			int idx = (block.group == &mParam.world->mRootGroup) ? 0 : (block.group->idx);
@@ -169,9 +181,10 @@ namespace MV
 		{
 			SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1,1,1));
 		}
-		
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)block.rotation[0], (int)block.rotation[2]));
 		context.setupShader(commandList, *mProgBaseRender);
+
 		mMesh[ block.idMesh ].draw(commandList);
 
 		for( int i = 0 ; i < 6 ; ++i )
@@ -190,7 +203,7 @@ namespace MV
 
 	void RenderEngine::renderPath(RenderContext& context, Path& path , PointVec& points)
 	{
-		return;
+		//return;
 
 		RHICommandList& commandList = *mCommandList;
 		if ( !points.empty() )
@@ -205,6 +218,7 @@ namespace MV
 
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1, 1, 1));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)Dir::X, (int)Dir::Z));
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
 		context.setupShader(commandList, *mProgBaseRender);
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 
@@ -224,6 +238,7 @@ namespace MV
 	
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1, 1, 1));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)rotation[0], (int)rotation[2]));
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
 		context.setupShader(commandList, *mProgBaseRender);
 		mMesh[ idMesh ].draw(commandList);
 
@@ -241,9 +256,9 @@ namespace MV
 			renderBlock(context, *block , block->pos );
 		}
 
-		if ( mParam.bShowNavNode )
+		if (mParam.bShowNavNode)
 		{
-			renderNav(context, group );
+			renderNav(context, group);
 		}
 
 		for(Actor* actor : group.actors)
@@ -275,7 +290,6 @@ namespace MV
 			{
 				renderGroup(context, *child );
 			}
-
 		}
 	}
 
@@ -324,7 +338,7 @@ namespace MV
 		};
 
 		RHISetShaderProgram(commandList, nullptr);
-		context.setupSimplePipeline(commandList);
+		context.setSimpleShader(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices));
 		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
 
@@ -385,7 +399,8 @@ namespace MV
 			}
 		}
 
-		context.setupSimplePipeline(commandList);
+		context.setColor(LinearColor(1, 1, 1));
+		context.setSimpleShader(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer , nV  );
 		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
 	}

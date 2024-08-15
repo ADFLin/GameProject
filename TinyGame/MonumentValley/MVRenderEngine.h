@@ -22,7 +22,7 @@ namespace MV
 	using Render::ViewInfo;
 	using Render::RHICommandList;
 
-	using RenderDepthStencilState = Render::TStaticDepthStencilState<true, Render::ECompareFunc::Less >;
+	using RenderDepthStencilState = Render::TStaticDepthStencilState<true>;
 
 
 #define USE_RENDER_CONTEXT 1
@@ -34,6 +34,7 @@ namespace MV
 		{		
 			mView->setupShader(commandList, shader);
 			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
+			SET_SHADER_PARAM(commandList, shader, LightDir, Vector3(0.4, 0.5, 0.8));
 		}
 
 		template< class TShader>
@@ -42,9 +43,9 @@ namespace MV
 			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
 		}
 
-		void setupSimplePipeline(RHICommandList& commandList)
+		void setSimpleShader(RHICommandList& commandList)
 		{
-			RHISetFixedShaderPipelineState(commandList, stack.get() * mView->worldToClip, mColor);
+			RHISetFixedShaderPipelineState(commandList,  Render::AdjProjectionMatrixForRHI(stack.get() * mView->worldToClip), mColor);
 		}
 
 		ViewInfo* mView;

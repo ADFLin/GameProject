@@ -140,6 +140,7 @@ void RHIGraphics2D::endRender()
 void RHIGraphics2D::setupCommittedRenderState()
 {
 	RHICommandList& commandList = getCommandList();
+	mBatchedRender.setViewportSize(mBatchedRender.mWidth, mBatchedRender.mHeight);
 	mBatchedRender.commitRenderState(commandList, mRenderStateCommitted);
 }
 

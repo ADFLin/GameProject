@@ -1200,6 +1200,7 @@ namespace Render
 
 	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
 	{
+		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 		SetRDBState(commandList, state);
 		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
 		RHISetShaderProgram(commandList, program->getRHI());

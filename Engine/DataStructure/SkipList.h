@@ -139,13 +139,14 @@ public:
 		Node(T const& inValue) :value(inValue) {}
 	};
 
+	template< bool bConst >
 	class Iterator
 	{
 	public:
 		typedef T const& reference;
 		typedef T const* pointer;
 
-		Iterator(Node* node) :mNode(node) {}
+		Iterator(Node* node = nullptr) :mNode(node) {}
 
 		Iterator  operator++() { Node* node = mNode; mNode = mNode->links[0]; return Iterator(node); }
 		Iterator& operator++(int) { mNode = mNode->links[0]; return *this; }
@@ -158,9 +159,23 @@ public:
 		Node* mNode;
 	};
 
-	using iterator = Iterator;
-	iterator begin() { return Iterator(mHeads[0]); }
-	iterator end()   { return Iterator(nullptr); }
+	using iterator = Iterator<false>;
+	using const_iterator = Iterator<true>;
+
+	iterator begin() { return iterator(mHeads[0]); }
+	iterator end()   { return iterator(); }
+	const_iterator begin() const { return const_iterator(mHeads[0]); }
+	const_iterator end()   const { return const_iterator(); }
+
+	iterator erase(iterator iter)
+	{
+		if (iter.mNode == nullptr)
+			return iterator();
+
+		Node* next = iter.mNode->links[0];
+		remove(iter.mNode);
+		return iterator(next);
+	}
 
 public:
 

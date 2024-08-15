@@ -43,7 +43,7 @@ namespace Rich
 	/// \|/       \   
 	/// sy         \
 	//               cx
-	float const transToScanPosFactor[4][4] =
+	static float const transToScanPosFactor[4][4] =
 	{
 		//  sx         sy
 		//cx  cy     cx  cy

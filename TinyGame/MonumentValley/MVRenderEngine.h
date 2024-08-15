@@ -22,11 +22,6 @@ namespace MV
 	using Render::ViewInfo;
 	using Render::RHICommandList;
 
-	using RenderDepthStencilState = Render::TStaticDepthStencilState<true>;
-
-
-#define USE_RENDER_CONTEXT 1
-
 	struct RenderContext : public SimpleRenderState
 	{
 		template< class TShader>
@@ -161,11 +156,13 @@ namespace MV
 			bShowNavNode = true;
 			bShowGroupColor = true;
 			bShowNavPath = true;
+			bDrawAxis = true;
 		}
 		World* world;
 		bool   bShowNavNode;
 		bool   bShowNavPath;
 		bool   bShowGroupColor;
+		bool   bDrawAxis;
 	};
 
 

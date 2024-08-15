@@ -116,10 +116,9 @@ namespace MV
 		mCommandList = &RHICommandList::GetImmediateList();
 
 		{
-			if ( !FMeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
-				 !FMeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
-				 !FMeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
-				return false;
+			VERIFY_RETURN_FALSE(FMeshBuild::Cube(mMesh[MESH_BOX], 0.5f));
+			VERIFY_RETURN_FALSE(FMeshBuild::UVSphere(mMesh[MESH_SPHERE], 0.3, 10, 10));
+			VERIFY_RETURN_FALSE(FMeshBuild::Plane(mMesh[MESH_PLANE], Vector3(0.5, 0, 0), Vector3(1, 0, 0), Vector3(0, 1, 0), Vector2(0.5, 0.5), 1));
 
 			for( int i = 0 ; i < ARRAY_SIZE( GMeshInfo ) ; ++i )
 			{
@@ -140,8 +139,7 @@ namespace MV
 		RHICommandList& commandList = *mCommandList;
 		beginRender();
 
-		bool bDrawAxis = true;
-		if (bDrawAxis)
+		if (mParam.bDrawAxis)
 		{
 			context.setColor(LinearColor(1, 1, 1));
 			context.setSimpleShader(commandList);
@@ -157,7 +155,7 @@ namespace MV
 	{
 		RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHI());
 		RHISetRasterizerState(*mCommandList, TStaticRasterizerState<>::GetRHI());
-		RHISetDepthStencilState(*mCommandList, RenderDepthStencilState::GetRHI());
+		RHISetDepthStencilState(*mCommandList, TStaticDepthStencilState<>::GetRHI());
 	}
 
 	void RenderEngine::endRender()
@@ -322,15 +320,13 @@ namespace MV
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(0.5, 0.5, 0.5));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(0.4, 0.6, 1.0));
 		mMesh[ MESH_BOX ].draw(commandList);
-		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
-
 		//Vector3 offset = actor.moveOffset * cast( frontOffset ) - 0.2 * cast( upOffset );
+	
 		context.stack.translate(0.9 * upOffset);
 		context.setupPrimitiveParams(commandList, *mProgBaseRender);
-		mMesh[ MESH_SPHERE ].draw(*mCommandList);
-
-
-
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
+		mMesh[ MESH_SPHERE ].draw(commandList);
+		
 		Vertex_XYZ_C vertices[]
 		{
 			{ Vec3f(0,0,0) , Vec3f(1,0,0) },{ frontOffset, Vec3f(1,0,0) },

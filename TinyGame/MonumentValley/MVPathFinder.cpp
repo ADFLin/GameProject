@@ -187,6 +187,7 @@ namespace MV
 	{
 		path.mNodes.clear();
 
+		gFinderImpl.mSreachResult.globalNode->child = nullptr;
 		gFinderImpl.constructPath(gFinderImpl.mSreachResult.globalNode,
 			[](AStarFinder::NodeType* node )
 			{

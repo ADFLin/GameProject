@@ -411,14 +411,7 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 			Matrix4 shadowProject;
-			if (FRHIZBuffer::IsInverted)
-			{
-				shadowProject = ReversedZPerspectiveMatrix(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
-			}
-			else
-			{
-				shadowProject = PerspectiveMatrix(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
-			}
+			shadowProject = PerspectiveMatrixZBuffer(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
 
 			Matrix4 worldToLight = LookAtMatrix(Vector3::Zero(), light.dir, GetUpDir(light.dir));
 			Matrix4 shadowMatrix = worldToLight * AdjProjectionMatrixForRHI(shadowProject);

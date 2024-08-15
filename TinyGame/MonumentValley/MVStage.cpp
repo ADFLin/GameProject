@@ -130,9 +130,9 @@ namespace MV
 	void TestStage::restart( bool beInit )
 	{
 
-		loadLevel( DEV_MAP_NAME );
+		//loadLevel( DEV_MAP_NAME );
 
-		//createDefaultBlock();
+		createDefaultBlock();
 
 	}
 
@@ -591,12 +591,7 @@ namespace MV
 
 		float width = mViewWidth;
 		float height = width * screenSize.y / screenSize.x;
-		Matrix4  projectMatrix;
-
-		if constexpr (FRHIZBuffer::IsInverted)
-			projectMatrix = ReversedZOrthoMatrix(width, height, -100, 100);
-		else
-			projectMatrix = OrthoMatrix(width, height, -100, 100);
+		Matrix4  projectMatrix = OrthoMatrixZBuffer(width, height, -100, 100);
 
 		Matrix4  projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
@@ -628,18 +623,16 @@ namespace MV
 				renderScene( matView, projectMatrix);
 
 				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-				if constexpr (FRHIZBuffer::IsInverted)
-					projectMatrix = ReversedZOrthoMatrix(0 , screenSize.x , 0 , screenSize.y , -1 , 1 );
-				else
-					projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
+				
+				projectMatrix = OrthoMatrixZBuffer(0, screenSize.x, 0, screenSize.y, -1, 1);
 				projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
 				RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
-#if 0
-				glBegin( GL_LINES );
-				glVertex2i( width , 0 ); glVertex2i( width , 2 * height );
-				glVertex2i( 0 , height ); glVertex2i( 2 * width , height );
-				glEnd();
-#endif
+				Vector2 v[] = 
+				{
+					Vector2(width , 0), Vector2(width , 2 * height),
+					Vector2(0 , height), Vector2(2 * width , height),
+				};
+				TRenderRT<RTVF_XY>::Draw(commandList, EPrimitive::LineList, v, sizeof(v));
 			}
 			break;
 		case eView3D:
@@ -649,18 +642,11 @@ namespace MV
 				int width = screenSize.x;
 				int height = screenSize.y;
 				RHISetViewport(commandList, 0, 0, width, height);
-				if ( bCameraView)
+				if ( bCameraView )
 				{
 					float aspect = float( screenSize.x ) / screenSize.y;
-
-					if constexpr (FRHIZBuffer::IsInverted)
-						projectMatrix = ReversedZPerspectiveMatrix(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
-					else
-						projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
-
-					Vector3 camPos  = mCamera.getPos();
-					Vector3 viewDir = mCamera.getViewDir();
-					Vector3 upDir   = mCamera.getUpDir();
+					projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
+					projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
 					matView = mCamera.getViewMatrix();
 				}
 				else
@@ -668,26 +654,22 @@ namespace MV
 					matView = LookAtMatrix( viewPos , -Vec3f( mWorld.mParallaxOffset ) , Vector3(0,0,1) );
 				}
 				renderScene( matView, projectMatrix);
-
-#if 0				
+#if 0
 				Vector3 v1 = Vector3(1,0,0) * matView; 
-				Vector3 v2 = Vector3(0,0,1) * matView; 
+				Vector3 v2 = Vector3(0,1,0) * matView; 
 
 				float len = sqrt( v1.x * v1.x + v1.y * v1.y );
-
-				glLoadIdentity();
-				glColor3f(0,1,1);
-				glBegin( GL_LINES );
+				RHISetFixedShaderPipelineState(commandList, Matrix4::Identity(), Color3f(0, 1, 1));
 
 				float const factor = Sqrt_2d3; // sqrt( 2 / 3 )
 				float const factorScanY = factor;
 				float const factorScanX = factor * Sqrt3; //sqrt(3)
-
-				glVertex3f( 0, 0 , 0 );
-				glVertex3f( 5 * factorScanX , 0 , 0 );
-				glVertex3f( 0, 0 , 0 );
-				glVertex3f( 0, 5 * factorScanY , 0 );
-				glEnd();
+				Vector3 v[] =
+				{
+					Vector3(0, 0, 0), Vector3(0.2 * factorScanX, 0 , 0),
+					Vector3(0, 0, 0), Vector3(0, 0.2 * factorScanY , 0),
+				};
+				TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineList, v, sizeof(v));
 #endif
 			}
 			break;
@@ -781,8 +763,7 @@ namespace MV
 		if ( isEditMode )
 		{
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			//glEnable( GL_POLYGON_OFFSET_LINE );
-			//glPolygonOffset( -0.4f, 0.2f );
+
 			context.stack.push();
 			if (mEditType == eEditMesh)
 				context.stack.translate(editMeshPos - Vec3f(0.5));
@@ -794,9 +775,7 @@ namespace MV
 			DrawUtility::CubeLine(commandList);
 
 			context.stack.pop();
-
-			//glDisable( GL_POLYGON_OFFSET_LINE );
-			RHISetDepthStencilState(commandList, RenderDepthStencilState::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 			float len = 50;
 
@@ -956,6 +935,7 @@ namespace MV
 		posDbg.z = 0;
 
 		assert( FDir::ParallaxOffset( 1 ).x == 1 && FDir::ParallaxOffset( 1 ).y == -1 );
+#if 1
 		static const int transToMapPosFactor[4][4] =
 		{   //  cx      cy
 			//sx  sy  sx  sy
@@ -964,6 +944,17 @@ namespace MV
 			{ 1 , -1 ,-1 , -1 },
 			{ -1 , -1 , -1 , 1 },
 		};
+#else
+		static const int transToMapPosFactor[4][4] =
+		{
+			//  cx      cy
+			//sx  sy  sx  sy
+			{ 1 ,1 , 1 , -1 },
+			{ 1 ,-1 ,-1 ,-1 },
+			{-1 ,-1 ,-1 , 1 },
+			{-1 , 1 , 1 , 1 },
+		};
+#endif
 
 		int const (&factor)[4] = transToMapPosFactor[ idxParallaxDir ];
 		
@@ -977,8 +968,8 @@ namespace MV
 		pos.z = 0;
 
 		pos3Dbg = pos;
-
-		static const float transToMapPosInvFactor[4][4] =
+#if 1
+		static const float transToScanPosFactor[4][4] =
 		{   //  sx      sy
 			//cx  cy  cx  cy
 			{ -0.5 , 0.5 , 0.5 , 0.5 },
@@ -986,8 +977,21 @@ namespace MV
 			{ 0.5 , -0.5 ,-0.5 , -0.5 },
 			{ -0.5 , -0.5 , -0.5 , 0.5 },
 		};
+#else
+		static float const transToScanPosFactor[4][4] =
+		{
+			//  sx         sy
+			//cx  cy     cx  cy
+			{ 0.5, 0.5, 0.5,-0.5 },
+			{ 0.5,-0.5,-0.5,-0.5 },
+			{-0.5,-0.5,-0.5, 0.5 },
+			{-0.5, 0.5, 0.5, 0.5 },
+		};
+#endif
 
-		float const (&factorInv)[4] = transToMapPosInvFactor[ idxParallaxDir ];
+
+
+		float const (&factorInv)[4] = transToScanPosFactor[ idxParallaxDir ];
 		
 		float sx0 = xScan + ( ox * factorInv[0] + oy * factorInv[1] );
 		float flacX = Math::Ceil( sx0 ) - ( sx0 );
@@ -1096,7 +1100,7 @@ namespace MV
 
 	void TestStage::createDefaultBlock()
 	{
-#if 1
+#if 0
 		Vec3i pos( 0 , 0 , 0 );
 		createBlock( pos , 0 , false );
 		pos += Vec3i( 1 , 0 , 0  );

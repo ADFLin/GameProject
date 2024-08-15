@@ -214,7 +214,8 @@ namespace Render
 		}
 	};
 
-
+	using OrthoMatrixZBuffer = TSelect< FRHIZBuffer::IsInverted, ReversedZOrthoMatrix, OrthoMatrix >::Type;
+	using PerspectiveMatrixZBuffer = TSelect< FRHIZBuffer::IsInverted, ReversedZPerspectiveMatrix, PerspectiveMatrix >::Type;
 
 
 	class BasisMaterix : public Matrix4

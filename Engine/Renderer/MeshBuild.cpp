@@ -171,9 +171,9 @@ namespace Render
 		float const sf = 1.0 / sectors;
 		int r, s;
 
-		float* v = &vertex[0] + mesh.mInputLayoutDesc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
-		float* n = &vertex[0] + mesh.mInputLayoutDesc.getAttributeFormat(EVertex::ATTRIBUTE_NORMAL) / sizeof(float);
-		float* t = &vertex[0] + mesh.mInputLayoutDesc.getAttributeFormat(EVertex::ATTRIBUTE_TEXCOORD) / sizeof(float);
+		float* v = &vertex[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
+		float* n = &vertex[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_NORMAL) / sizeof(float);
+		float* t = &vertex[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD) / sizeof(float);
 
 		for (r = 1; r < rings; ++r)
 		{
@@ -199,20 +199,21 @@ namespace Render
 				n[1] = y;
 				n[2] = z;
 
-				t[0] = s * sf;
-				t[1] = r * rf;
-
 				v += size;
 				n += size;
+
+				t[0] = s * sf;
+				t[1] = r * rf;
 				t += size;
 			}
 
 			v[0] = vb[0]; v[1] = vb[1]; v[2] = vb[2];
 			n[0] = nb[0]; n[1] = nb[1]; n[2] = nb[2];
-			t[0] = 1; t[1] = tb[1];
 
 			v += size;
 			n += size;
+
+			t[0] = 1; t[1] = tb[1];
 			t += size;
 		}
 
@@ -220,23 +221,24 @@ namespace Render
 		{
 			v[0] = 0; v[1] = 0; v[2] = -radius;
 			n[0] = 0; n[1] = 0; n[2] = -1;
-			t[0] = i * sf + 0.5 * sf; t[1] = 0;
 
 			v += size;
 			n += size;
+
+			t[0] = i * sf + 0.5 * sf; t[1] = 0;
 			t += size;
 		}
+
 		for (int i = 0; i < sectors; ++i)
 		{
 			v[0] = 0; v[1] = 0; v[2] = radius;
 			n[0] = 0; n[1] = 0; n[2] = 1;
-			t[0] = i * sf + 0.5 * sf; t[1] = 1;
-
 			v += size;
 			n += size;
+
+			t[0] = i * sf + 0.5 * sf; t[1] = 1;
 			t += size;
 		}
-
 
 		TArray< uint32 > indices((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
 		uint32* i = &indices[0];
@@ -278,6 +280,7 @@ namespace Render
 		}
 
 		//FillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
+		mesh.mType = EPrimitive::TriangleList;
 		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size()))
 			return false;
 

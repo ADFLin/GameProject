@@ -84,6 +84,14 @@ namespace MV
 		uint8         type;
 		uint8         idxDir;
 
+		void checkDisconnect()
+		{
+			if (link)
+			{
+				disconnect();
+			}
+		}
+
 		void connect( NavNode& other );
 
 		void disconnect()

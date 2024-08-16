@@ -201,8 +201,6 @@ namespace MV
 
 	void RenderEngine::renderPath(RenderContext& context, Path& path , PointVec& points)
 	{
-		//return;
-
 		RHICommandList& commandList = *mCommandList;
 		if ( !points.empty() )
 			TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );

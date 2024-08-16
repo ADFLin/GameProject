@@ -194,16 +194,17 @@ namespace Math
 
 	void Matrix4::transpose()
 	{
-#define SWAP_RAW_COL( i , j) std::swap(mM[i][j] , mM[j][i])
+		using namespace std;
+#define SWAP_ROW_COL(i , j) swap(mM[i][j] , mM[j][i])
 
-		SWAP_RAW_COL(0, 1);
-		SWAP_RAW_COL(0, 2);
-		SWAP_RAW_COL(0, 3);
-		SWAP_RAW_COL(1, 2);
-		SWAP_RAW_COL(1, 3);
-		SWAP_RAW_COL(2, 3);
+		SWAP_ROW_COL(0, 1);
+		SWAP_ROW_COL(0, 2);
+		SWAP_ROW_COL(0, 3);
+		SWAP_ROW_COL(1, 2);
+		SWAP_ROW_COL(1, 3);
+		SWAP_ROW_COL(2, 3);
 
-#undef SWAP_RAW_COL
+#undef SWAP_ROW_COL
 	}
 
 }

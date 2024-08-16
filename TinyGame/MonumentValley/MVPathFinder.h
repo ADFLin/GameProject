@@ -18,7 +18,7 @@ namespace MV
 		NavNode* prevBlockNode;
 		Dir      faceDirL;
 		Dir      upDir;
-		bool     isPrevParallax;
+		bool     bParallaxLink;
 	};
 
 	struct PathNode

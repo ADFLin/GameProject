@@ -170,10 +170,9 @@ namespace MV
 					}
 					if ( idxX == 1 && idxY == 1 ) //3d view
 					{
-						float dx = mViewWidth * ( 2 * x / screenSize.x - 0.5 );
-						float dy = -mViewWidth * float( screenSize.y ) / screenSize.x * (  2 * y / screenSize.y - 0.5 ); 
+						Vec2f scanPos = convertViewportToScanPos(Vec2f(x,y) , 0.5 * Vec2f(screenSize));
 						Dir dir;
-						int id = getBlockFormScreen( dx , dy , viewPos , dir );
+						int id = getBlockFromScanPos(scanPos, viewPos , dir );
 
 						if ( id )
 						{
@@ -182,7 +181,7 @@ namespace MV
 
 						if ( mEditType == eEditMesh )
 						{
-							editMeshPos = editPos;
+							editMeshPos = Vec3f(editPos);
 						}
 
 					}
@@ -196,7 +195,7 @@ namespace MV
 
 						if ( mEditType == eEditMesh )
 						{
-							editMeshPos = editPos;
+							editMeshPos = Vec3f(editPos);
 						}
 					}
 				}
@@ -218,7 +217,7 @@ namespace MV
 							}
 							else if ( mEditType == eEditMesh )
 							{
-								editMeshPos = editPos;
+								editMeshPos = Vec3f(editPos);
 							}
 						}
 					}
@@ -750,13 +749,13 @@ namespace MV
 
 		mRenderEngine.beginRender();
 		mRenderEngine.renderScene(context);
-		//mRenderEngine.renderMesh(context, MeshId::MESH_STAIR , editMeshPos, Vec3f(0, 0, 0));
 		mRenderEngine.endRender();
 
 
 		if ( param.bShowNavPath )
 		{
 			context.setColor(LinearColor(0.2, 0.8, 0.8));
+			context.setSimpleShader(commandList);
 			mRenderEngine.renderPath(context, mNavigator.mPath , mNavigator.mMovePoints );
 		}
 
@@ -799,6 +798,7 @@ namespace MV
 			}
 
 			{
+				context.setColor(LinearColor(0.6,0.6,0.6));
 				context.stack.push();
 				context.stack.scale(Vec3f(len));
 				context.setSimpleShader(commandList);
@@ -816,7 +816,7 @@ namespace MV
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 
 					mRenderEngine.beginRender();
-					mRenderEngine.renderMesh( context , model.mesh , editPos , AxisRoataion::Identity() );
+					mRenderEngine.renderMesh(context, model.mesh, Vec3f(editPos), AxisRoataion::Identity() );
 					mRenderEngine.endRender();
 
 					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -828,6 +828,7 @@ namespace MV
 						{
 							context.stack.push();
 							context.stack.translate(Vec3f(block->pos) - Vec3f(0.5));
+							context.setSimpleShader(commandList);
 							DrawUtility::CubeLine(commandList);
 							context.stack.pop();
 						}
@@ -852,6 +853,7 @@ namespace MV
 						MeshObject* mesh = Level::mMeshVec[ editIdxMeshSelect ];
 						context.stack.push();
 						context.stack.translate(mesh->pos - Vec3f(0.5));
+						context.setSimpleShader(commandList);
 						DrawUtility::CubeLine(commandList);
 						context.stack.pop();
 					}
@@ -874,6 +876,7 @@ namespace MV
 								context.stack.push();
 								context.stack.translate(Vec3f(rotator->mPos) - Vec3f(0.5));
 								context.stack.scale(Vec3f(1.3));
+								context.setSimpleShader(commandList);
 								DrawUtility::CubeLine(commandList);
 								context.stack.pop();
 							}
@@ -899,62 +902,83 @@ namespace MV
 		InlineString< 256 > str;
 		g.setTextColor(Color3f(1, 1, 0));
 		str.format("( %d %d %d ) dir = %d", pos2Dbg.x, pos2Dbg.y, pos2Dbg.z, (int)dirDBG);
-		g.drawText( pos.x , pos.y , str );
+		g.drawText(pos.x, pos.y, str);
 		str.format("( %f %f %f )", posDbg.x, posDbg.y, posDbg.z);
-		g.drawText( pos.x , pos.y + 10 , str );
+		g.drawText(pos.x, pos.y + 10, str);
 		str.format("( %d %d %d )", pos3Dbg.x, pos3Dbg.y, pos3Dbg.z);
-		g.drawText( pos.x , pos.y + 20 , str );
+		g.drawText(pos.x, pos.y + 20, str);
+		str.format("ParallaxDir = %d (%d %d %d)", mWorld.mIdxParallaxDir, mWorld.mParallaxOffset.x, mWorld.mParallaxOffset.y, mWorld.mParallaxOffset.z);
+		g.drawText(pos.x, pos.y + 30, str);
 	}
 
-	int TestStage::findBlockFromScreenPos( Vec2i const& pos ,Vec3f const& viewPos , Dir& outDir )
+	Vec3f TestStage::getViewPos()
 	{
-		Vec2i screenSize = ::Global::GetScreenSize();
+		if ( isEditMode )
+		{
+			return Vec3f( editPos );
+			//return Vec3f(10,10,10); 
+		}
+
+		return Vec3f(0,0,0);
+		//return ( Level::mWorld.mMapOffset + Level::mWorld.mMapSize ) / 2;
+	}
+
+
+
+	Vec2f TestStage::convertViewportToScanPos(Vec2f const& pos, Vector2 const& viewportSize)
+	{
 		float x = pos.x;
-		float y = screenSize.y - pos.y;
-		float dx = mViewWidth * (  x / screenSize.x - 0.5 );
-		float dy = -mViewWidth * float( screenSize.y ) / screenSize.x * (  y / screenSize.y - 0.5 ); 
-		return getBlockFormScreen( dx , dy , viewPos , outDir );
-	}
+		float y = pos.y;
+		float dx = mViewWidth * (x / viewportSize.x - 0.5);
+		float dy = mViewWidth * viewportSize.y / viewportSize.x * (y / viewportSize.y - 0.5);
 
-	int TestStage::getBlockFormScreen( float dx , float dy  , Vec3f const& offset , Dir& outDir )
-	{
-		//#TODO:Support parallaxOffset.z = -1?
-
-		float const factorScan = Sqrt_2d3; // sqrt( 2 / 3 );
+		float const factorScan = Sqrt_2d3; // sqrt(2/3)
 		float const factorScanY = factorScan;
 		float const factorScanX = factorScan * Sqrt3; //sqrt(3)
+
+		float xScan = dx / factorScanX;
+		float yScan = dy / factorScanY - 0.5f;
+
+		return Vec2f(xScan, yScan);
+	}
+
+	int TestStage::findBlockFromScreenPos(Vec2f const& screenPos, Vec3f const& viewPos , Dir& outDir )
+	{
+		Vector2 scanPos = convertViewportToScanPos(screenPos, ::Global::GetScreenSize());	
+		return getBlockFromScanPos(scanPos, viewPos , outDir );
+	}
+
+	int TestStage::getBlockFromScanPos( Vec2f const& scanPos, Vec3f const& offset , Dir& outDir )
+	{
+		//#TODO:Support parallaxOffset.z = -1?
 
 		int idxParallaxDir = mWorld.mIdxParallaxDir;
 		Vec3i const& parallaxOffset = mWorld.mParallaxOffset;
 
-		float xScan = dx / factorScanX;
-		float yScan = dy / factorScanY - 0.5f;
+		float xScan = scanPos.x;
+		float yScan = scanPos.y;
 
 		posDbg.x = xScan;
 		posDbg.y = yScan;
 		posDbg.z = 0;
 
 		assert( FDir::ParallaxOffset( 1 ).x == 1 && FDir::ParallaxOffset( 1 ).y == -1 );
-#if 1
+
+		/// 
+		///   --------> sx  
+		///  |   	
+		///	 |        	
+		/// \|/      / \   
+		/// sy      /   \
+		//       cy       cx
 		static const int transToMapPosFactor[4][4] =
 		{   //  cx      cy
 			//sx  sy  sx  sy
-			{ -1 , 1 , 1 , 1 },
-			{ 1 ,  1 , 1 , -1 },
-			{ 1 , -1 ,-1 , -1 },
-			{ -1 , -1 , -1 , 1 },
+			{  1,  1, -1,  1 },
+			{ -1,  1, -1, -1 },
+			{ -1, -1,  1, -1 },
+			{  1, -1,  1,  1 },
 		};
-#else
-		static const int transToMapPosFactor[4][4] =
-		{
-			//  cx      cy
-			//sx  sy  sx  sy
-			{ 1 ,1 , 1 , -1 },
-			{ 1 ,-1 ,-1 ,-1 },
-			{-1 ,-1 ,-1 , 1 },
-			{-1 , 1 , 1 , 1 },
-		};
-#endif
 
 		int const (&factor)[4] = transToMapPosFactor[ idxParallaxDir ];
 		
@@ -968,48 +992,38 @@ namespace MV
 		pos.z = 0;
 
 		pos3Dbg = pos;
-#if 1
+
 		static const float transToScanPosFactor[4][4] =
-		{   //  sx      sy
-			//cx  cy  cx  cy
-			{ -0.5 , 0.5 , 0.5 , 0.5 },
-			{ 0.5 , 0.5 , 0.5 , -0.5 },
-			{ 0.5 , -0.5 ,-0.5 , -0.5 },
-			{ -0.5 , -0.5 , -0.5 , 0.5 },
+		{   //     sx         sy
+			//  cx    cy    cx   cy
+			{  0.5, -0.5,  0.5,  0.5 },
+			{ -0.5, -0.5,  0.5, -0.5 },
+			{ -0.5,  0.5, -0.5, -0.5 },
+			{  0.5,  0.5, -0.5,  0.5 },
 		};
-#else
-		static float const transToScanPosFactor[4][4] =
-		{
-			//  sx         sy
-			//cx  cy     cx  cy
-			{ 0.5, 0.5, 0.5,-0.5 },
-			{ 0.5,-0.5,-0.5,-0.5 },
-			{-0.5,-0.5,-0.5, 0.5 },
-			{-0.5, 0.5, 0.5, 0.5 },
-		};
-#endif
-
-
 
 		float const (&factorInv)[4] = transToScanPosFactor[ idxParallaxDir ];
 		
 		float sx0 = xScan + ( ox * factorInv[0] + oy * factorInv[1] );
-		float flacX = Math::Ceil( sx0 ) - ( sx0 );
-		int d = ( flacX > 0.5 ) ? 1 : -1;
+		float xFrac = Math::Ceil( sx0 ) - ( sx0 );
+		int d = ( xFrac > 0.5 ) ? 1 : -1;
 		d *= ( ( pos.x + pos.y ) % 2 == 0 ) ? 1 : -1;
 
 		posDbg.z = d;
 
 		Vec3i findPos[3];
 		int id[3];
-
-		static const Dir OffsetDirMap[] = 
+		static const Dir OffsetDirMap[][2] = 
 		{
-			Dir::Y , Dir::X , Dir::InvY , Dir::InvX , Dir::Y
+			{ Dir::X   , Dir::Y },  
+			{ Dir::InvY, Dir::X },
+			{ Dir::InvX, Dir::InvY },
+			{ Dir::Y   , Dir::InvX },
 		};
+
 		Dir dir[3];
-		dir[0] = OffsetDirMap[ idxParallaxDir + (( d > 0 )? 0 : 1 ) ];
-		dir[1] = OffsetDirMap[ idxParallaxDir + (( d > 0 )? 1 : 0 ) ];
+		dir[0] = OffsetDirMap[idxParallaxDir][( d > 0 ) ? 0 : 1 ];
+		dir[1] = OffsetDirMap[idxParallaxDir][( d > 0 ) ? 1 : 0 ];
 		dir[2] = Dir::Z;
 		id[0] = mWorld.getTopParallaxBlock( pos , findPos[0] );
 		id[1] = mWorld.getTopParallaxBlock( pos + FDir::Offset( dir[0] ) , findPos[1] );
@@ -1031,10 +1045,9 @@ namespace MV
 				id[1] = 0;
 		}
 
-		int result = 0;
 		int maxZ = std::numeric_limits< int >::lowest();
-		int idx = -1;
-		assert( parallaxOffset.z > 0 );
+		int idx = INDEX_NONE;
+		CHECK( parallaxOffset.z > 0 );
 		for( int i = 0 ; i < 3 ; ++i )
 		{
 			if ( id[i] == 0 )
@@ -1052,10 +1065,9 @@ namespace MV
 			}
 		}
 
-		if ( idx != -1 )
+		if ( idx != INDEX_NONE)
 		{
 			outDir  = dir[ idx ];
-
 			dirDBG = outDir;
 			pos2Dbg = findPos[idx];
 			return id[idx];
@@ -1063,20 +1075,6 @@ namespace MV
 
 		return 0;
 	}
-
-
-	Vec3f TestStage::getViewPos()
-	{
-		if ( isEditMode )
-		{
-			return Vec3f( editPos );
-			//return Vec3f(10,10,10); 
-		}
-
-		return Vec3f(0,0,0);
-		//return ( Level::mWorld.mMapOffset + Level::mWorld.mMapSize ) / 2;
-	}
-
 
 
 	bool TestStage::loadLevel(char const* path)
@@ -1107,7 +1105,6 @@ namespace MV
 		createBlock( pos , 0 , false );
 		pos += Vec3i( 0 , 1 , 0  );
 		createBlock( pos , 0 , false );
-
 #else
 
 		Vec3i pos( 5 , 5 , 10 );

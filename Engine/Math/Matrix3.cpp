@@ -17,7 +17,19 @@ namespace Math
 	Matrix3 const& Matrix3::Identity(){ return gIdentity; }
 	Matrix3 const& Matrix3::Zero(){ return gZero; }
 
-	bool Matrix3::inverse( Matrix3& m , float& det ) const
+	void Matrix3::transpose()
+	{
+		using namespace std;
+#define SWAP_ROW_COL(i , j) swap(mM[i][j] , mM[j][i])
+
+		SWAP_ROW_COL(0, 1);
+		SWAP_ROW_COL(0, 2);
+		SWAP_ROW_COL(1, 2);
+
+#undef SWAP_ROW_COL
+	}
+
+	bool Matrix3::inverse(Matrix3& m, float& det) const
 	{
 		float m00 = mM[0][0], m01 = mM[0][1], m02 = mM[0][2];
 		float m10 = mM[1][0], m11 = mM[1][1], m12 = mM[1][2];

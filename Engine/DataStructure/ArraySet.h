@@ -6,7 +6,7 @@
 #include <algorithm>
 
 
-template< class T , class CmpFunc = std::less< T >  >
+template< class T , class CmpFunc = std::less<> >
 class TArraySet
 {
 	typedef TArray< T > ImplType;
@@ -25,7 +25,7 @@ public:
 	{
 		iterator iter = find( value );
 		if ( iter == mImpl.end() )
-			return -1;
+			return INDEX_NONE;
 		return iter - mImpl.begin();
 	}
 	iterator find( T const& value )

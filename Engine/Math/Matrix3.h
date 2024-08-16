@@ -85,6 +85,15 @@ namespace Math
 
 		void setIdentity(){  setValue( 1, 0, 0,  0, 1, 0,  0, 0, 1);  }
 
+
+		Matrix3 getTranspose() const 
+		{
+			Matrix3 result(*this);
+			result.transpose();
+			return result;
+		}
+		void  transpose();
+
 		Vector3 leftMul( Vector3 const& v ) const
 		{
 #define MAT_MUL( m , index )\

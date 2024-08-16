@@ -58,10 +58,10 @@ namespace MV
 		return roatePosT( pos , dir , inPos );
 	}
 
-	Vec3i roatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos ){ return roatePosT( pos , dir , inPos ); }
-	Vec3i roatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos , int factor ){ return roatePosT( pos , dir , inPos , factor ); }
-	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos ){ return roatePosT( pos , dir , inPos ); }
-	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos , int factor ){ return roatePosT( pos , dir , inPos , factor ); }
+	Vec3i RotatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos ){ return roatePosT( pos , dir , inPos ); }
+	Vec3i RotatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos , int factor ){ return roatePosT( pos , dir , inPos , factor ); }
+	Vec3f RotatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos ){ return roatePosT( pos , dir , inPos ); }
+	Vec3f RotatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos , int factor ){ return roatePosT( pos , dir , inPos , factor ); }
 
 	void AxisRoataion::rotate( Dir axis , int factor )
 	{

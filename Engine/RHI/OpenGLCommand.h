@@ -234,7 +234,7 @@ namespace Render
 	
 		GLenum commitPrimitiveState(EPrimitive type)
 		{
-			int patchPointCount = 1;
+			int patchPointCount = 0;
 			GLenum primitiveGL = OpenGLTranslate::To(type, patchPointCount);
 			if (patchPointCount)
 			{

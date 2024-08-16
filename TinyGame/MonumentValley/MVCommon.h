@@ -17,16 +17,8 @@ namespace MV
 	using Quat = Math::Quaternion;
 	using Mat4 = Math::Matrix4;
 
-	class Vec3f : public Math::Vector3
-	{
-	public:
-		Vec3f() = default;
-		using Math::Vector3::Vector3;
-
-		Vec3f( Vec3i const& v ):Math::Vector3(v.x , v.y , v.z ){}
-		Vec3f( Math::Vector3 const& v ):Math::Vector3(v.x , v.y , v.z ){}
-	};
-
+	using Vec2f = Math::Vector2;
+	using Vec3f = Math::Vector3;
 
 	float constexpr Sqrt3 =  1.732050807568877f;
 	float constexpr Sqrt_2d3 = 0.8164965809277f; // sqrt( 2 / 3 );
@@ -127,10 +119,10 @@ namespace MV
 
 	};
 
-	Vec3i roatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos );
-	Vec3i roatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos , int factor );
-	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos );
-	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos , int factor );
+	Vec3i RotatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos );
+	Vec3i RotatePos( Vec3i const& pos , Dir dir , Vec3i const& inPos , int factor );
+	Vec3f RotatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos );
+	Vec3f RotatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos , int factor );
 
 	class AxisRoataion
 	{

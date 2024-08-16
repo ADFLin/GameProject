@@ -102,17 +102,13 @@ namespace MV
 
 	void World::removeMap( ObjectGroup& group )
 	{
-		for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-			iter != itEnd ; ++iter )
+		for (ObjectGroup* child : group.children)
 		{
-			ObjectGroup* child = *iter;
 			removeMap( *child );
 		}
 
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for (Block* block : group.blocks)
 		{
-			Block* block = *iter;
 			//#TODO:map only 1 block
 			if ( getBlock( block->pos ) == block->id )
 				setBlock( block->pos , 0 );
@@ -122,17 +118,13 @@ namespace MV
 
 	void World::updateMap( ObjectGroup& group )
 	{
-		for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
-			iter != itEnd ; ++iter )
+		for (ObjectGroup* child : group.children)
 		{
-			ObjectGroup* child = *iter;
 			updateMap( *child );
 		}
 
-		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
-			iter != itEnd ; ++iter )
+		for (Block* block : group.blocks)
 		{
-			Block* block = *iter;
 			setBlock( block->pos , block->id );
 		}
 	}
@@ -318,10 +310,8 @@ namespace MV
 					if ( destSurface.meta == ( idxLink / 2 ) )
 					{
 						NavNode& linkNode = destSurface.nodes[ info.nodeType ][ idxLink ];
-						if ( info.node->link )
-							info.node->disconnect();
-						if ( linkNode.link )
-							linkNode.disconnect();
+						linkNode.checkDisconnect();
+						info.node->checkDisconnect();
 						info.node->connect( linkNode );
 						return 1;
 					}
@@ -515,8 +505,7 @@ namespace MV
 						BlockSurface& surface = mBlocks[id]->surfaces[i];
 						for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
 						{
-							if ( surface.nodes[ NODE_PARALLAX ][idx].link )
-								surface.nodes[ NODE_PARALLAX ][idx].disconnect();
+							surface.nodes[ NODE_PARALLAX ][idx].checkDisconnect();
 						}
 					}
 					break;
@@ -559,8 +548,7 @@ namespace MV
 			{
 				for( int idx = 0 ; idx < 4 ; ++idx )
 				{
-					if ( destSurface.nodes[ NODE_DIRECT ][idx].link )
-						destSurface.nodes[ NODE_DIRECT ][idx].disconnect();
+					destSurface.nodes[ NODE_DIRECT ][idx].checkDisconnect();
 				}
 				return;
 			}
@@ -866,10 +854,10 @@ namespace MV
 				BlockSurface& surface = block->getLocalFace( Dir(i) );
 				for( int n = 0 ; n < FACE_NAV_LINK_NUM ; ++n )
 				{
-					if ( surface.nodes[ NODE_DIRECT ][n].link && ( surface.nodes[ NODE_DIRECT ][n].flag & NavNode::eStatic ) == 0 )
-						surface.nodes[ NODE_DIRECT ][n].disconnect();
-					if ( surface.nodes[ NODE_PARALLAX ][n].link )
-						surface.nodes[ NODE_PARALLAX ][n].disconnect();
+					if ( surface.nodes[ NODE_DIRECT ][n].flag & NavNode::eStatic )
+						surface.nodes[ NODE_DIRECT ][n].checkDisconnect();
+					
+					surface.nodes[ NODE_PARALLAX ][n].checkDisconnect();
 				}
 			}
 		}
@@ -889,10 +877,7 @@ namespace MV
 				BlockSurface& surface = block->getLocalFace( Dir(i) );
 				for( int n = 0 ; n < FACE_NAV_LINK_NUM ; ++n )
 				{
-					if ( surface.nodes[ NODE_PARALLAX ][n].link )
-					{
-						surface.nodes[ NODE_PARALLAX ][n].disconnect();
-					}
+					surface.nodes[ NODE_PARALLAX ][n].checkDisconnect();
 				}
 			}
 		}
@@ -911,10 +896,10 @@ namespace MV
 		BlockSurface& surface = block->getFace( actor.actFaceDir );
 
 		NavNode* node = &surface.nodes[ NODE_DIRECT ][ idxNode ];
-		if ( node->link == NULL )
+		if ( node->link == nullptr )
 		{
 			node = &surface.nodes[ NODE_PARALLAX ][ idxNode ];
-			if ( node->link == NULL )
+			if ( node->link == nullptr )
 				return;
 		}
 
@@ -922,7 +907,7 @@ namespace MV
 		BlockSurface* destSurface = destNode->getSurface();
 		Block* destBlock = destSurface->getBlock();
 		Dir dirFaceL = Block::LocalDir( *destSurface );
-		setActorBlock( actor , destBlock->id , destBlock->rotation.toWorld( dirFaceL ) );
+		setActorBlock(actor, destBlock->id, destBlock->rotation.toWorld( dirFaceL ));
 	}
 
 	void World::removeNavNode(Block& block)
@@ -932,10 +917,8 @@ namespace MV
 			BlockSurface& surface = block.surfaces[i];
 			for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
 			{
-				if ( surface.nodes[ NODE_DIRECT ][idx].link )
-					surface.nodes[ NODE_DIRECT ][idx].disconnect();
-				if ( surface.nodes[ NODE_PARALLAX ][idx].link )
-					surface.nodes[ NODE_PARALLAX ][idx].disconnect();
+				surface.nodes[ NODE_DIRECT ][idx].checkDisconnect();
+				surface.nodes[ NODE_PARALLAX ][idx].checkDisconnect();
 			}
 		}
 	}

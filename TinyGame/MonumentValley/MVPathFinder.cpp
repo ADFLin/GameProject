@@ -40,11 +40,11 @@ namespace MV
 
 			BlockSurface& surface = block->getLocalFace( aNode.state.faceDirL );
 
-			for( int idxNode = 0 ; idxNode < 4 ; ++idxNode )
+			for( int idxNode = 0 ; idxNode < FACE_NAV_LINK_NUM; ++idxNode )
 			{
-				for( int n = 0 ; n < 2 ; ++n )
+				for( int nodeType = 0 ; nodeType < NUM_NODE_TYPE; ++nodeType )
 				{
-					NavNode* node = &surface.nodes[n][ idxNode ];
+					NavNode* node = &surface.nodes[nodeType][ idxNode ];
 					if ( node->link == NULL )
 						continue;
 					if ( aNode.state.prevBlockNode == node->link )
@@ -56,7 +56,7 @@ namespace MV
 					BlockSurface* srcSurface = node->getSurface(); 
 
 					FindState state;
-					state.isPrevParallax = ( n == 1 ) ;
+					state.bParallaxLink = nodeType == NODE_PARALLAX;
 					state.upDir = aNode.state.upDir;
 
 					if ( srcSurface->func != destSurface->func )
@@ -101,19 +101,18 @@ namespace MV
 		FindState    mGoal;
 	};
 
-	AStarFinder gFinderImpl;
+	AStarFinder GFinderImpl;
 
 	bool PathFinder::find(FindState const& from , FindState const& to )
 	{
-		gFinderImpl.mGoal = to;
-		if ( !gFinderImpl.sreach( from , gFinderImpl.mSreachResult) )
+		GFinderImpl.mGoal = to;
+		if ( !GFinderImpl.sreach( from , GFinderImpl.mSreachResult) )
 			return false;
 
 		return true;
 	}
 
-	static void addPathNode( TArray< PathNode >& pathNodes  , PointVec&  points ,  
-		FindState& state , FindState* nextState , Dir inDir , Dir outDir , bool isParallax  )
+	void AddPathNode( TArray< PathNode >& pathNodes, PointVec& points, FindState& state, FindState* nextState, Dir inDir, Dir outDir, bool bParallaxLink)
 	{
 		PathNode pathNode;
 
@@ -143,7 +142,7 @@ namespace MV
 			pathNode.numPos =  1;
 		}
 
-		if ( nextState == NULL )
+		if ( nextState == nullptr )
 		{
 			pathNode.parallaxDir = 0;
 			pathNode.link = NULL;
@@ -156,7 +155,7 @@ namespace MV
 			++pathNode.numPos;
 			pathNode.link = nextState->prevBlockNode;
 			Vec3f outPos;
-			if ( isParallax )
+			if ( bParallaxLink )
 			{
 				BlockSurface* destSurf = pathNode.link->link->getSurface();
 				Block* destBlock = destSurf->getBlock();
@@ -187,8 +186,8 @@ namespace MV
 	{
 		path.mNodes.clear();
 
-		gFinderImpl.mSreachResult.globalNode->child = nullptr;
-		gFinderImpl.constructPath(gFinderImpl.mSreachResult.globalNode,
+		GFinderImpl.mSreachResult.globalNode->child = nullptr;
+		GFinderImpl.constructPath(GFinderImpl.mSreachResult.globalNode,
 			[](AStarFinder::NodeType* node )
 			{
 				if( node->parent )
@@ -198,7 +197,7 @@ namespace MV
 			}
 		);
 
-		AStarFinder::NodeType* aNode = gFinderImpl.mSreachResult.startNode;
+		AStarFinder::NodeType* aNode = GFinderImpl.mSreachResult.startNode;
 		AStarFinder::NodeType* aNodeNext; 
 
 		Block*   prevBlock = NULL;
@@ -223,7 +222,7 @@ namespace MV
 				nextState = NULL;
 				dir = Dir::X;
 			}
-			addPathNode( path.mNodes , points , state , nextState , dir , dir , false );
+			AddPathNode( path.mNodes , points , state , nextState , dir , dir , false );
 			
 		}
 
@@ -259,7 +258,7 @@ namespace MV
 			if ( needAddNode )
 			{
 				dir = ( nextState ) ? block->rotation.toWorld( FDir::Neighbor( state.faceDirL , nextState->prevBlockNode->getDirIndex() ) ) : Dir::X;
-				addPathNode( path.mNodes , points , state , nextState , prevDir , dir , ( nextState ) ? nextState->isPrevParallax : false );
+				AddPathNode( path.mNodes , points , state , nextState , prevDir , dir , ( nextState ) ? nextState->bParallaxLink : false );
 			}
 		}
 	}

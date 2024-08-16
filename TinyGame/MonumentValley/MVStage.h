@@ -43,6 +43,14 @@ namespace MV
 
 	};
 
+	struct RenderView
+	{
+
+
+
+
+	};
+
 	class TestStage : public StageBase
 		            , public Level
 		            , public IGameRenderSetup
@@ -111,8 +119,10 @@ namespace MV
 		void renderScene(Mat4 const& viewMatrix , Mat4 const& projectMatrix);
 
 		Vec3f getViewPos();
-		int  findBlockFromScreenPos( Vec2i const& pos , Vec3f const& viewPos , Dir& outDir );
-		int  getBlockFormScreen( float dx , float dy , Vec3f const& offset , Dir& dir );
+		Vec2f convertViewportToScanPos(Vec2f const& pos, Vector2 const& viewportSize);
+		int   findBlockFromScreenPos(Vec2f const& pos, Vec3f const& viewPos , Dir& outDir );
+		int   getBlockFromScanPos(Vec2f const& scanPos, Vec3f const& offset , Dir& dir );
+
 		void renderDbgText( Vec2i const& pos );
 		ObjectGroup* getUseGroup();
 		ISpaceModifier*  getUseModifier()
@@ -193,6 +203,8 @@ namespace MV
 
 
 		/////////////////////////////////
+
+
 
 		float mViewWidth;
 		SpaceControllor  mControllor;

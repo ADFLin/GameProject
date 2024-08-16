@@ -118,20 +118,20 @@ namespace MV
 
 		for (Block* block : group.blocks)
 		{
-			block->pos = roatePos( mPos , mDir , block->pos , factor );
+			block->pos = RotatePos( mPos , mDir , block->pos , factor );
 			block->rotation.rotate( mDir , factor );
 		}
 
 		for (Actor* actor : group.actors)
 		{
-			actor->pos = roatePos( mPos , mDir , actor->pos , factor );
-			actor->renderPos = roatePos( mPos , mDir , actor->renderPos , factor );
+			actor->pos = RotatePos( mPos , mDir , actor->pos , factor );
+			actor->renderPos = RotatePos( mPos , mDir , actor->renderPos , factor );
 			actor->rotation.rotate( mDir , factor );
 		}
 
 		for (MeshObject* mesh : group.meshs)
 		{
-			mesh->pos = roatePos( mPos , mDir , mesh->pos , factor );
+			mesh->pos = RotatePos( mPos , mDir , mesh->pos , factor );
 			Quat q; q.setEulerZYX( mesh->rotation.z , mesh->rotation.y , mesh->rotation.x );
 			Quat rq = Quat::Rotate( FDir::OffsetF( mDir ) , Math::DegToRad( 90 * factor )  ) * q;
 			mesh->rotation = rq.getEulerZYX();

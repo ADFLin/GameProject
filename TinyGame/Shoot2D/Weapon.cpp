@@ -10,8 +10,8 @@ namespace Shoot2D
 {
 	Weapon::Weapon(BulletGen* gen)
 		:gen(gen)
-		,owner(NULL)
-		,destObj(NULL)
+		,owner(nullptr)
+		,destObj(nullptr)
 		,cdtime( 500 )
 		,maxFireCount(1)
 		,maxSaveCount(1)

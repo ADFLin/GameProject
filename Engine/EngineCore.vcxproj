@@ -249,6 +249,7 @@
     <ClCompile Include="DataStructure\ClassTree.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
+    <ClCompile Include="Game\Engine.cpp" />
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
     <ClCompile Include="Image\GIFLoader.cpp" />
     <ClCompile Include="Image\ImageData.cpp" />
@@ -369,6 +370,7 @@
     <ClInclude Include="DataStructure\ArraySet.h" />
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GameFramework\EntityManager.h" />
+    <ClInclude Include="Game\Engine.h" />
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
     <ClInclude Include="Image\GIFLoader.h" />
     <ClInclude Include="Image\ImageData.h" />

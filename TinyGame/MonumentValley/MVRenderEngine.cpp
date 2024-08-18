@@ -113,11 +113,9 @@ namespace MV
 
 		VERIFY_RETURN_FALSE( mProgBaseRender = ShaderManager::Get().getGlobalShaderT< BaseRenderProgram >() );
 
-		mCommandList = &RHICommandList::GetImmediateList();
-
 		{
 			VERIFY_RETURN_FALSE(FMeshBuild::Cube(mMesh[MESH_BOX], 0.5f));
-			VERIFY_RETURN_FALSE(FMeshBuild::UVSphere(mMesh[MESH_SPHERE], 0.3, 10, 10));
+			VERIFY_RETURN_FALSE(FMeshBuild::UVSphere(mMesh[MESH_SPHERE], 1, 20, 20));
 			VERIFY_RETURN_FALSE(FMeshBuild::Plane(mMesh[MESH_PLANE], Vector3(0.5, 0, 0), Vector3(1, 0, 0), Vector3(0, 1, 0), Vector2(0.5, 0.5), 1));
 
 			for( int i = 0 ; i < ARRAY_SIZE( GMeshInfo ) ; ++i )
@@ -136,43 +134,45 @@ namespace MV
 
 	void RenderEngine::renderScene(RenderContext& context)
 	{
-		RHICommandList& commandList = *mCommandList;
-		beginRender();
+		RHICommandList& commandList = context.getCommandList();
+		beginRender(context);
 
-		if (mParam.bDrawAxis)
+		if (context.param.bDrawAxis)
 		{
 			context.setColor(LinearColor(1, 1, 1));
-			context.setSimpleShader(commandList);
+			context.setSimpleShader();
 			DrawUtility::AixsLine(commandList, 10);
-			RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHI());
+			RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
 		}
 
-		renderGroup(context, mParam.world->mRootGroup );
-		endRender();
+		renderGroup(context, context.world->mRootGroup );
+		endRender(context);
 	}
 
-	void RenderEngine::beginRender()
+	void RenderEngine::beginRender(RenderContext& context)
 	{
-		RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHI());
-		RHISetRasterizerState(*mCommandList, TStaticRasterizerState<>::GetRHI());
-		RHISetDepthStencilState(*mCommandList, TStaticDepthStencilState<>::GetRHI());
+		RHICommandList& commandList = context.getCommandList();
+		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 	}
 
-	void RenderEngine::endRender()
+	void RenderEngine::endRender(RenderContext& context)
 	{
-		RHISetShaderProgram(*mCommandList, nullptr);
+		RHICommandList& commandList = context.getCommandList();
+		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void RenderEngine::renderBlock(RenderContext& context, Block& block, Vec3i const& pos)
 	{
-		RHICommandList& commandList = *mCommandList;
+		RHICommandList& commandList = context.getCommandList();
 
 		context.stack.push();
 		context.stack.translate( Vector3( pos.x , pos.y , pos.z ) );
 
-		if (mParam.bShowGroupColor)
+		if (context.param.bShowGroupColor)
 		{
-			int idx = (block.group == &mParam.world->mRootGroup) ? 0 : (block.group->idx);
+			int idx = (block.group == &context.world->mRootGroup) ? 0 : (block.group->idx);
 			SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, GGroupColor[idx % ARRAY_SIZE(GGroupColor)]);
 		}
 		else
@@ -181,7 +181,7 @@ namespace MV
 		}
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)block.rotation[0], (int)block.rotation[2]));
-		context.setupShader(commandList, *mProgBaseRender);
+		context.setupShader(*mProgBaseRender);
 
 		mMesh[ block.idMesh ].draw(commandList);
 
@@ -192,30 +192,23 @@ namespace MV
 			{
 				Vec3f offset = 0.5 * FDir::OffsetF( block.rotation.toWorld( Dir(i) ) );
 				context.stack.translate(offset);
-				context.setupPrimitiveParams(commandList, *mProgBaseRender);
+				context.setupPrimitiveParams(*mProgBaseRender);
 				mMesh[ MESH_LADDER ].draw(commandList);
 			}
 		}
 		context.stack.pop();
 	}
 
-	void RenderEngine::renderPath(RenderContext& context, Path& path , PointVec& points)
-	{
-		RHICommandList& commandList = *mCommandList;
-		if ( !points.empty() )
-			TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
-	}
-
 	void RenderEngine::renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , Vec3f const& rotation)
 	{
-		RHICommandList& commandList = *mCommandList;
+		RHICommandList& commandList = context.getCommandList();
 		context.stack.push();
 		context.stack.translate(pos);
 
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1, 1, 1));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)Dir::X, (int)Dir::Z));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
-		context.setupShader(commandList, *mProgBaseRender);
+		context.setupShader(*mProgBaseRender);
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 
 		context.stack.rotate(q);
@@ -228,14 +221,14 @@ namespace MV
 
 	void RenderEngine::renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , AxisRoataion const& rotation)
 	{
-		RHICommandList& commandList = *mCommandList;
+		RHICommandList& commandList = context.getCommandList();
 		context.stack.push();
 		context.stack.translate(pos);
 	
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1, 1, 1));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)rotation[0], (int)rotation[2]));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
-		context.setupShader(commandList, *mProgBaseRender);
+		context.setupShader(*mProgBaseRender);
 		mMesh[ idMesh ].draw(commandList);
 
 		context.stack.pop();
@@ -252,7 +245,7 @@ namespace MV
 			renderBlock(context, *block , block->pos );
 		}
 
-		if (mParam.bShowNavNode)
+		if (context.param.bShowNavNode)
 		{
 			renderNav(context, group);
 		}
@@ -298,7 +291,7 @@ namespace MV
 
 	void RenderEngine::renderActor(RenderContext& context, Actor& actor)
 	{
-		RHICommandList& commandList = *mCommandList;
+		RHICommandList& commandList = context.getCommandList();
 
 
 		Vec3f pos = actor.renderPos + 0.5 * FDir::OffsetF( actor.actFaceDir );
@@ -314,15 +307,15 @@ namespace MV
 		context.stack.translate(pos);
 
 		SET_SHADER_PARAM( commandList , *mProgBaseRender, Rotation , Vec2i((int)actor.rotation[0], (int)actor.rotation[2]));
-		context.setupShader(commandList, *mProgBaseRender);
+		context.setupShader(*mProgBaseRender);
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(0.5, 0.5, 0.5));
 		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(0.4, 0.6, 1.0));
 		mMesh[ MESH_BOX ].draw(commandList);
 		//Vector3 offset = actor.moveOffset * cast( frontOffset ) - 0.2 * cast( upOffset );
 	
 		context.stack.translate(0.9 * upOffset);
-		context.setupPrimitiveParams(commandList, *mProgBaseRender);
-		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
+		context.setupPrimitiveParams(*mProgBaseRender);
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(0.3, 0.3, 0.3));
 		mMesh[ MESH_SPHERE ].draw(commandList);
 		
 		Vertex_XYZ_C vertices[]
@@ -332,7 +325,7 @@ namespace MV
 		};
 
 		RHISetShaderProgram(commandList, nullptr);
-		context.setSimpleShader(commandList);
+		context.setSimpleShader();
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices));
 		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
 
@@ -342,61 +335,206 @@ namespace MV
 
 	void RenderEngine::renderNav(RenderContext& context, ObjectGroup &group)
 	{
-		RHICommandList& commandList = *mCommandList;
+		RHICommandList& commandList = context.getCommandList();
 
-#if 1
-		StackMaker marker(mAllocator);
-		float* buffer = (float*)mAllocator.alloc(sizeof(float) * group.getBlockNum() * 6 * 4 * 2 * 2 * 6);
-#else
-		float* buffer = useCacheBuffer(group.getBlockNum() * 6 * 4 * 2 * 2 * 6);
-#endif
-
-		float* v = buffer;
-		int nV = 0;
-		for(Block* block : group.blocks)
 		{
-			for( int i = 0 ; i < 6 ; ++i )
+			StackMaker marker(mAllocator);
+
+			Vertex_XYZ_C* buffer = (Vertex_XYZ_C*)mAllocator.alloc(sizeof(Vertex_XYZ_C) * group.getBlockNum() * Dir::COUNT * FACE_NAV_LINK_NUM * NUM_NODE_TYPE * 2);
+
+			Vertex_XYZ_C* v = buffer;
+			for (Block* block : group.blocks)
 			{
-				Dir faceDirL = Dir(i);
-				Dir faceDir =block->rotation.toWorld(faceDirL);
-
-				BlockSurface& surface = block->getLocalFace( faceDirL );
-
-				Vec3f p1 = Vec3f( block->pos ) + 0.55 * FDir::OffsetF( faceDir );
-
-				for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
+				for (int i = 0; i < Dir::COUNT; ++i)
 				{
-					NavNode& node = surface.nodes[ NODE_DIRECT ][idx];
-					if ( !node.link )
-						continue;
-					Dir linkDir = block->rotation.toWorld( FDir::Neighbor( faceDirL , idx ) );
-					Vec3f p2 = p1 + 0.5 * FDir::OffsetF( linkDir );
+					Dir faceDirL = Dir(i);
+					Dir faceDir = block->rotation.toWorld(faceDirL);
 
-					v[0]=p1.x;v[1]=p1.y;v[2]=p1.z;v[3]=1;v[4]=1;v[5]=0; v += 6;
-					v[0]=p2.x;v[1]=p2.y;v[2]=p2.z;v[3]=1;v[4]=1;v[5]=0; v += 6;
-					nV += 2;
+					BlockSurface& surface = block->getLocalFace(faceDirL);
+
+					float surfaceOffset = 0.55;
+					Vec3f p1 = Vec3f(block->pos) + surfaceOffset * FDir::OffsetF(faceDir);
+
+					for (int idx = 0; idx < FACE_NAV_LINK_NUM; ++idx)
+					{
+						NavNode& node = surface.nodes[NODE_DIRECT][idx];
+						if (!node.link)
+							continue;
+
+						Dir linkDir = block->rotation.toWorld(FDir::Neighbor(faceDirL, idx));
+						BlockSurface* linkSurf = node.link->getSurface();
+						Dir linkSurfDir = Block::WorldDir(*linkSurf);
+
+						Vec3f p2;
+						if (linkDir == linkSurfDir)
+						{
+							p2 = p1 + surfaceOffset * FDir::OffsetF(linkDir);
+						}
+						else if (linkDir == FDir::Inverse(linkSurfDir))
+						{
+							p2 = p1 + ( 1 - surfaceOffset ) * FDir::OffsetF(linkDir);
+						}
+						else
+						{
+							p2 = p1 + 0.5 * FDir::OffsetF(linkDir);
+						}
+
+						v[0] = { p1 , Vec3f(1,1,0) };
+						v[1] = { p2 , Vec3f(1,1,0) };
+						v += 2;
+					}
+
+					surfaceOffset += 0.02;
+					p1 += 0.02 * FDir::OffsetF(faceDir);
+					for (int idx = 0; idx < FACE_NAV_LINK_NUM; ++idx)
+					{
+						NavNode& node = surface.nodes[NODE_PARALLAX][idx];
+						if (!node.link)
+							continue;
+
+						Dir linkDir = block->rotation.toWorld(FDir::Neighbor(faceDirL, idx));
+						BlockSurface* linkSurf = node.link->getSurface();
+						Dir linkSurfDir = Block::WorldDir(*linkSurf);
+
+						Vec3f p2;
+						if (linkDir == linkSurfDir)
+						{
+							p2 = p1 + surfaceOffset * FDir::OffsetF(linkDir);
+						}
+						else if (linkDir == FDir::Inverse(linkSurfDir))
+						{
+							p2 = p1 + (1 - surfaceOffset) * FDir::OffsetF(linkDir);
+						}
+						else
+						{
+							p2 = p1 + 0.5 * FDir::OffsetF(linkDir);
+						}
+
+						v[0] = { p1 , Vec3f(1,0,1) };
+						v[1] = { p2 , Vec3f(1,0,1) };
+						v += 2;
+					}
 				}
+			}
 
-				p1 += 0.02 * FDir::OffsetF( faceDir );
-				for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
+			context.setColor(LinearColor(1, 1, 1));
+			context.setSimpleShader();
+			TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer, v - buffer);
+		}
+
+		if (context.view->isPerspectiveProjection())
+		{
+			StackMaker marker(mAllocator);
+
+			Vertex_XYZ_C* buffer = (Vertex_XYZ_C*)mAllocator.alloc(sizeof(Vertex_XYZ_C) * group.getBlockNum() * Dir::COUNT * FACE_NAV_LINK_NUM * 2);
+
+			Vertex_XYZ_C* v = buffer;
+			for (Block* block : group.blocks)
+			{
+				for (int i = 0; i < Dir::COUNT; ++i)
 				{
-					NavNode& node = surface.nodes[ NODE_PARALLAX ][idx];
-					if ( !node.link )
-						continue;
-					Dir linkDir = block->rotation.toWorld( FDir::Neighbor( faceDirL , idx ) );
-					Vec3f p2 = p1 + 0.5 * FDir::OffsetF( linkDir );
+					Dir faceDirL = Dir(i);
+					Dir faceDir = block->rotation.toWorld(faceDirL);
 
-					v[0]=p1.x;v[1]=p1.y;v[2]=p1.z;v[3]=1;v[4]=0;v[5]=1; v += 6;
-					v[0]=p2.x;v[1]=p2.y;v[2]=p2.z;v[3]=1;v[4]=0;v[5]=1; v += 6;
-					nV += 2;
+					BlockSurface& surface = block->getLocalFace(faceDirL);
+
+					float surfaceOffset = 0.57;
+					Vec3f p1 = Vec3f(block->pos) + surfaceOffset * FDir::OffsetF(faceDir);
+					for (int idx = 0; idx < FACE_NAV_LINK_NUM; ++idx)
+					{
+						NavNode& node = surface.nodes[NODE_PARALLAX][idx];
+						if (!node.link || &node < node.link)
+							continue;
+
+						Dir linkDir = block->rotation.toWorld(FDir::Neighbor(faceDirL, idx));
+						Vec3f p2 = p1 + 0.5 * FDir::OffsetF(linkDir);
+
+						BlockSurface* linkSurf = node.link->getSurface();
+						Block* linkBlock = linkSurf->getBlock();
+						Vec3f linkPos = Vec3f(linkBlock->pos) + surfaceOffset * (FDir::OffsetF(Block::WorldDir(*linkSurf))) + 0.5 * FDir::OffsetF(FDir::Inverse(linkDir));
+
+						v[0] = { p2 , Vec3f(0,1,1) };
+						v[1] = { linkPos , Vec3f(0,1,1) };
+						v += 2;
+					}
+				}
+			}
+
+			context.setColor(LinearColor(1, 1, 1));
+			context.setSimpleShader();
+			TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer, v - buffer);
+		}
+
+		for (auto node : context.world->mFixNodes)
+		{
+			BlockSurface* sufrace = node->getSurface();
+			Block* block = sufrace->getBlock();
+			
+			float surfaceOffset = 0.5;
+			Dir faceDir = Block::WorldDir(*node->getSurface());
+			Vec3f p1 = Vec3f(block->pos) + surfaceOffset * FDir::OffsetF(faceDir);
+			Dir linkDir = block->rotation.toWorld(FDir::Neighbor(Block::LocalDir(*sufrace) , node->idxDir));
+			Vec3f p2 = p1 + 0.5 * FDir::OffsetF(linkDir);
+
+			context.stack.push();
+			context.stack.translate(p2);
+			context.stack.scale(Vec3f(0.1, 0.1, 0.1));
+			context.setColor(Color3f(0,0,1));
+			context.setSimpleShader();
+			mMesh[MESH_BOX].draw(commandList);
+			context.stack.pop();
+
+		}
+
+		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
+
+
+	}
+
+	void RenderEngine::renderPath(RenderContext& context, Path& path , PointVec& points)
+	{
+		RHICommandList& commandList = context.getCommandList();
+		context.setColor(LinearColor(0.2, 0.8, 0.8));
+
+		int indexPoint = 0;
+		int indexNode = 0;
+		int numPointNode = 0;
+		if (indexNode < path.getNodeNum())
+		{
+			numPointNode = path.getNode(indexNode).posCount;
+		}
+
+		for (auto const& point : points)
+		{
+			context.stack.push();
+			context.stack.translate(point);
+			context.stack.scale(Vec3f(0.1, 0.1, 0.1));
+			context.setColor(GGroupColor[indexNode % ARRAY_SIZE(GGroupColor)]);
+			context.setSimpleShader();
+			mMesh[MESH_SPHERE].draw(commandList);
+			context.stack.pop();
+
+			++indexPoint;
+			if (indexPoint == numPointNode)
+			{
+				auto& node = path.getNode(indexNode);
+
+				indexPoint = 0;
+				++indexNode;
+				if (indexNode < path.getNodeNum())
+				{
+					numPointNode = path.getNode(indexNode).posCount;
+					if (node.parallaxDir)
+					{
+						++numPointNode;
+					}
 				}
 			}
 		}
 
-		context.setColor(LinearColor(1, 1, 1));
-		context.setSimpleShader(commandList);
-		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer , nV  );
-		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
+		context.setSimpleShader(-0.01);
+		if ( !points.empty() )
+			TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
 }//namespace MV

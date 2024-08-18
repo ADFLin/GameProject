@@ -12,7 +12,7 @@ namespace MV
 	{
 		FindState()
 		{
-			prevBlockNode = NULL;
+			prevBlockNode = nullptr;
 		}
 		Block*   block;
 		NavNode* prevBlockNode;
@@ -23,13 +23,14 @@ namespace MV
 
 	struct PathNode
 	{
-		int      numPos;
+		int      posCount;
 		Dir      frontDir;
 		Dir      upDir;
 	
 		NavNode* link;
 		Block*   block;
 		Dir      faceDir;
+		BlockSurface* surface;
 
 		float    moveFactor;
 		char     parallaxDir;
@@ -53,7 +54,7 @@ namespace MV
 	{
 	public:
 		bool find( FindState const& from , FindState const& to );
-		void contructPath( Path& path , PointVec& points , World const& world );
+		void buildPath( Path& path , PointVec& points , World const& world );
 	};
 
 	class Navigator
@@ -74,6 +75,11 @@ namespace MV
 
 		void moveToPos( Block* block , Dir faceDir );
 
+		void initMove();
+
+
+		void moveReplay();
+
 		void update( float dt );
 
 		void setupNodeParam();
@@ -92,7 +98,7 @@ namespace MV
 
 		int    mIdxNode;
 		Vec3f  mPrevPos;
-		int    mNodePosCount;
+		int    mIndexNodePos;
 		int    mIdxNextPos;
 		Vec3f  mMoveOffset;
 		float  mMoveTime;

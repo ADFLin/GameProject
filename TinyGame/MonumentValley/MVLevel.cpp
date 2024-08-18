@@ -163,7 +163,7 @@ namespace MV
 		for( int i = 0 ; i < num ; ++i )
 		{
 			op & ptrId ;
-			mWorld.createGroup( ptrId == 0 ? NULL : mWorld.mGroups[ ptrId - 1 ] );
+			mWorld.createGroup( ptrId == 0 ? nullptr : mWorld.mGroups[ ptrId - 1 ] );
 		}
 		op & num ;
 		for( int i = 0 ; i < num ; ++i )
@@ -197,7 +197,7 @@ namespace MV
 			op & num;
 			for( int i = 0 ; i < num ; ++i )
 			{
-				IGroupModifier* node = NULL;
+				IGroupModifier* node = nullptr;
 				uint8 type;
 				op & type;
 				switch( type )
@@ -282,7 +282,7 @@ namespace MV
 		return ctrl;
 	}
 
-	MeshObject* Level::createMesh(Vec3f const& pos , int idMesh , Vec3f const& rotation , ObjectGroup* group /*= NULL */)
+	MeshObject* Level::createMesh(Vec3f const& pos , int idMesh , Vec3f const& rotation , ObjectGroup* group /*= nullptr */)
 	{
 		MeshObject* mesh = createEmptyMesh( group );
 		mesh->idMesh = idMesh;
@@ -296,7 +296,7 @@ namespace MV
 	{
 		MeshObject* mesh = new MeshObject;
 		mMeshVec.push_back( mesh );
-		if ( group == NULL )
+		if ( group == nullptr )
 			group = &mWorld.mRootGroup;
 		group->add( *mesh );
 		return mesh;

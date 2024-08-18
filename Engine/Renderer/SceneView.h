@@ -73,6 +73,10 @@ namespace Render
 
 		IntVector2 getViewportSize() const;
 
+		bool isPerspectiveProjection() const
+		{
+			return viewToClip(3, 3) < 1.0;
+		}
 		
 		void  setupShader(RHICommandList& commandList, ShaderProgram& program, StructuredBufferInfo const* info = nullptr );
 

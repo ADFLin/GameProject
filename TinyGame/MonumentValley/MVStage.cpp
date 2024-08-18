@@ -20,16 +20,16 @@ namespace MV
 {
 	using namespace Render;
 
-	BlockModel gModels[] =
+	BlockModel GModels[] =
 	{
-		              //       x                 -x                y               -y              z                   -z
-		{ MESH_BOX , { { NFT_PLANE  , 0 }     , { NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } }  } ,
-		//{ MESH_BOX , { { NFT_BLOCK  , 0 }     , { NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_BLOCK , 0 } }  } ,
-		{ MESH_STAIR , { { NFT_STAIR, Dir::Z } , { NFT_NULL , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_STAIR, Dir::X } ,{ NFT_NULL , 0 } }  } ,
-		{ MESH_ROTATOR_C , { { NFT_ROTATOR_C , Dir::Z } , { NFT_NULL , 0 } ,{ NFT_NULL , 0 } ,{ NFT_NULL , 0 } ,{ NFT_ROTATOR_C , Dir::X } ,{ NFT_NULL , 0 } }  } ,
-		{ MESH_ROTATOR_NC , { { NFT_ROTATOR_NC , Dir::Z } , { NFT_NULL , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_ROTATOR_NC , Dir::X } ,{ NFT_BLOCK , 0 } }  } ,
-		{ MESH_BOX , { { NFT_LADDER , 1 }  , { NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } }  } ,
-		{ MESH_TRIANGLE , { { NFT_PASS_VIEW , 0 }  , { NFT_PLANE , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_PASS_VIEW , 0 } ,{ NFT_PLANE , 0 } }  } ,
+	//                     Surface x                     -x                  y                 -y                z                           -z
+		{ MESH_BOX       , { { NFT_PLANE, 0 }          , { NFT_PLANE , 0 }, { NFT_PLANE, 0 }, { NFT_PLANE, 0 }, { NFT_PLANE, 0 }           , { NFT_PLANE, 0 } } } ,
+		//{ MESH_BOX     , { { NFT_BLOCK  , 0 }        , { NFT_BLOCK , 0 }, { NFT_BLOCK, 0 }, { NFT_BLOCK, 0 }, { NFT_PLANE, 0 }           , { NFT_BLOCK, 0 } } } ,
+		{ MESH_STAIR     , { { NFT_STAIR, Dir::Z }     , { NFT_PLANE , 0 }, { NFT_NULL, 0 } , { NFT_NULL, 0 } , { NFT_STAIR, Dir::X }      , { NFT_PLANE, 0 } } } ,
+		{ MESH_ROTATOR_C , { { NFT_ROTATOR_C, Dir::Z } , { NFT_NULL , 0 } , { NFT_NULL, 0 } , { NFT_NULL, 0 } , { NFT_ROTATOR_C, Dir::X }  , { NFT_NULL, 0 } } } ,
+		{ MESH_ROTATOR_NC, { { NFT_ROTATOR_NC, Dir::Z }, { NFT_NULL , 0 } , { NFT_BLOCK, 0 }, { NFT_BLOCK, 0 }, { NFT_ROTATOR_NC, Dir::X } , { NFT_BLOCK, 0 } } } ,
+		{ MESH_BOX       , { { NFT_LADDER, 1 }         , { NFT_PLANE , 0 }, { NFT_PLANE, 0 }, { NFT_PLANE, 0 }, { NFT_PLANE, 0 }           , { NFT_PLANE, 0 } } } ,
+		{ MESH_TRIANGLE  , { { NFT_PASS_VIEW, 0 }      , { NFT_PLANE , 0 }, { NFT_BLOCK, 0 }, { NFT_BLOCK, 0 }, { NFT_PASS_VIEW, 0 }       , { NFT_PLANE, 0 } } } ,
 	};
 
 
@@ -69,7 +69,6 @@ namespace MV
 
 		mWorld.init( Vec3i( 50 , 50 , 100 ) );
 
-		mRenderEngine.mParam.world = &mWorld;
 
 		Level::mCreator = &mRenderEngine;
 
@@ -292,7 +291,6 @@ namespace MV
 
 	bool TestStage::onWidgetEvent(int event , int id , GWidget* ui)
 	{
-		RenderParam& param = mRenderEngine.mParam;
 		switch( id )
 		{
 		case UI_LOAD_LEVEL:
@@ -302,10 +300,10 @@ namespace MV
 			saveLevel( DEV_SAVE_NAME );
 			return false;
 		case UI_SHOW_NAV_LINK: 
-			param.bShowNavNode = !param.bShowNavNode;
+			mRenderParam.bShowNavNode = !mRenderParam.bShowNavNode;
 			return false;
 		case UI_SHOW_NAV_PATH: 
-			param.bShowNavPath = !param.bShowNavPath;
+			mRenderParam.bShowNavPath = !mRenderParam.bShowNavPath;
 			return false;
 		}
 		
@@ -340,6 +338,7 @@ namespace MV
 				case EKeyCode::Down: world.action(player, 1); break;
 				case EKeyCode::Left: world.action(player, 2); break;
 				case EKeyCode::Right: world.action(player, 3); break;
+				case EKeyCode::X: mNavigator.moveReplay(); break;
 					//case EKeyCode::D: mWorld.player.rotate( 3 ); break;
 					//case EKeyCode::A: mWorld.player.rotate( 1 ); break;
 				case EKeyCode::Q:
@@ -361,7 +360,6 @@ namespace MV
 
 			}
 
-			RenderParam& param = mRenderEngine.mParam;
 			switch (msg.getCode())
 			{
 			case EKeyCode::F3:
@@ -371,7 +369,7 @@ namespace MV
 				mViewMode = (mViewMode == eView3D) ? eViewSplit4 : eView3D;
 				break;
 			case EKeyCode::F5:
-				param.bShowNavNode = !param.bShowNavNode;
+				mRenderParam.bShowNavNode = !mRenderParam.bShowNavNode;
 				break;
 			case EKeyCode::F6:
 				bCameraView = !bCameraView;
@@ -482,7 +480,7 @@ namespace MV
 
 		switch( key )
 		{
-			KEY_CHANGE_VAR_RANGE(EKeyCode::O , EKeyCode::P , editModelId , ARRAY_SIZE( gModels ) );
+			KEY_CHANGE_VAR_RANGE(EKeyCode::O , EKeyCode::P , editModelId , ARRAY_SIZE( GModels ) );
 		case EKeyCode::G:
 			world.createGroup( getUseGroup() );
 			break;
@@ -723,7 +721,7 @@ namespace MV
 			switch( mEditType )
 			{
 			case eEditBlock:
-				panel->idMesh = gModels[ editModelId ].mesh;
+				panel->idMesh = GModels[ editModelId ].mesh;
 				break;
 			case eEditMesh:
 				panel->idMesh = editMeshId;
@@ -734,28 +732,25 @@ namespace MV
 
 	void TestStage::renderScene( Mat4 const& viewMatrix , Mat4 const& projectMatrix )
 	{
-		RenderContext context;
-		context.mView = &mRenderEngine.mView;
-		context.mView->setupTransform(viewMatrix, projectMatrix);
-
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-		RenderParam& param = mRenderEngine.mParam;
-		param.world = &mWorld;
+		RenderContext context;
+		context.view = &mRenderView;
+		context.view->setupTransform(viewMatrix, projectMatrix);
+		context.world = &mWorld;
+		context.param = mRenderParam;
+		context.mCommandList = &RHICommandList::GetImmediateList();
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		float width = mViewWidth;
 		float height = width * screenSize.y / screenSize.x;
 
-		mRenderEngine.beginRender();
+		mRenderEngine.beginRender(context);
 		mRenderEngine.renderScene(context);
-		mRenderEngine.endRender();
+		mRenderEngine.endRender(context);
 
-
-		if ( param.bShowNavPath )
+		if (context.param.bShowNavPath )
 		{
-			context.setColor(LinearColor(0.2, 0.8, 0.8));
-			context.setSimpleShader(commandList);
 			mRenderEngine.renderPath(context, mNavigator.mPath , mNavigator.mMovePoints );
 		}
 
@@ -770,7 +765,7 @@ namespace MV
 				context.stack.translate( Vec3f(editPos) - Vec3f(0.5));
 
 			context.setColor(LinearColor(1, 1, 1));
-			context.setSimpleShader(commandList);
+			context.setSimpleShader();
 			DrawUtility::CubeLine(commandList);
 
 			context.stack.pop();
@@ -781,8 +776,10 @@ namespace MV
 			context.setColor(LinearColor(0.3, 0.3, 0.3));
 			{
 				int num = int(len);
-				int size = 3 * 4 * ( 2 * num + 1 ); 
-				float* buffer = mRenderEngine.useCacheBuffer( size );
+				int size = 3 * 4 * ( 2 * num + 1 );
+				StackMaker marker(mRenderEngine.mAllocator);
+				float* buffer = (float*)mRenderEngine.mAllocator.alloc(sizeof(float) * size);
+
 				float* v = buffer;
 				for( int i = -num ; i <= num; ++i )
 				{
@@ -793,7 +790,7 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
-				context.setSimpleShader(commandList);
+				context.setSimpleShader();
 				TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineList , buffer , size / 3 );
 			}
 
@@ -801,7 +798,7 @@ namespace MV
 				context.setColor(LinearColor(0.6,0.6,0.6));
 				context.stack.push();
 				context.stack.scale(Vec3f(len));
-				context.setSimpleShader(commandList);
+				context.setSimpleShader();
 				DrawUtility::AixsLine(commandList);
 				context.stack.pop();
 			}
@@ -810,14 +807,14 @@ namespace MV
 			{
 			case eEditBlock:
 				{
-					BlockModel& model = gModels[editModelId];
+					BlockModel& model = GModels[editModelId];
 					RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 
-					mRenderEngine.beginRender();
+					mRenderEngine.beginRender(context);
 					mRenderEngine.renderMesh(context, model.mesh, Vec3f(editPos), AxisRoataion::Identity() );
-					mRenderEngine.endRender();
+					mRenderEngine.endRender(context);
 
 					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
@@ -828,7 +825,7 @@ namespace MV
 						{
 							context.stack.push();
 							context.stack.translate(Vec3f(block->pos) - Vec3f(0.5));
-							context.setSimpleShader(commandList);
+							context.setSimpleShader();
 							DrawUtility::CubeLine(commandList);
 							context.stack.pop();
 						}
@@ -841,9 +838,9 @@ namespace MV
 
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 
-					mRenderEngine.beginRender();
-					mRenderEngine.renderMesh( context , editMeshId , editMeshPos , Vec3f(0,0,0));
-					mRenderEngine.endRender();
+					mRenderEngine.beginRender(context);
+					mRenderEngine.renderMesh(context , editMeshId , editMeshPos , Vec3f(0,0,0));
+					mRenderEngine.endRender(context);
 
 					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
@@ -853,7 +850,7 @@ namespace MV
 						MeshObject* mesh = Level::mMeshVec[ editIdxMeshSelect ];
 						context.stack.push();
 						context.stack.translate(mesh->pos - Vec3f(0.5));
-						context.setSimpleShader(commandList);
+						context.setSimpleShader();
 						DrawUtility::CubeLine(commandList);
 						context.stack.pop();
 					}
@@ -876,7 +873,7 @@ namespace MV
 								context.stack.push();
 								context.stack.translate(Vec3f(rotator->mPos) - Vec3f(0.5));
 								context.stack.scale(Vec3f(1.3));
-								context.setSimpleShader(commandList);
+								context.setSimpleShader();
 								DrawUtility::CubeLine(commandList);
 								context.stack.pop();
 							}
@@ -909,6 +906,8 @@ namespace MV
 		g.drawText(pos.x, pos.y + 20, str);
 		str.format("ParallaxDir = %d (%d %d %d)", mWorld.mIdxParallaxDir, mWorld.mParallaxOffset.x, mWorld.mParallaxOffset.y, mWorld.mParallaxOffset.z);
 		g.drawText(pos.x, pos.y + 30, str);
+		str.format("Path = %u", mNavigator.mMovePoints.size());
+		g.drawText(pos.x, pos.y + 40, str);
 	}
 
 	Vec3f TestStage::getViewPos()
@@ -1114,9 +1113,11 @@ namespace MV
 		//createBlock( pos , 0 , false, mBaseGroup );
 		//pos.z += 1;
 		//createBlock( pos , 0 , false, mBaseGroup );
-
-		createBlock( pos + Vec3i(0,0,1) , 1 );
-		createBlock( pos + Vec3i(-1,0,2) , 1 );
+		
+		createBlock(pos + Vec3i(0, 0, 1), 1);
+		createBlock(pos + Vec3i(-1, 0, 2), 1);
+		createBlock(pos + Vec3i(-2, 0, 3), 1);
+		createBlock(pos + Vec3i(-1, 0, 1), 0);
 
 		for( int i = 0 ; i < 3 ; ++i )
 		{
@@ -1186,7 +1187,13 @@ namespace MV
 
 	ERenderSystem TestStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::OpenGL;
+		return ERenderSystem::D3D11;
+	}
+
+	void TestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+	{
+		systemConfigs.screenWidth = 1080;
+		systemConfigs.screenHeight = 768;
 	}
 
 }//namespace MV

@@ -42,7 +42,7 @@ namespace Mine
 		{
 			if ( idxRemove[i] != idxSwap )
 			{
-				variables[ idxRemove[i] ] = NULL;
+				variables[ idxRemove[i] ] = nullptr;
 				variables[ idxRemove[i] ] = variables[ idxSwap ];
 				--idxSwap;
 			}
@@ -171,7 +171,7 @@ next:
 				++mNumSolvedCell;
 				if ( cell.number > 0 )
 				{
-					buildConstraint( cell , NULL );
+					buildConstraint( cell , nullptr );
 				}
 			}
 		}
@@ -268,7 +268,7 @@ next:
 				data.y1 = std::max(0, j - 1);
 				data.x2 = std::min(xMax, i + 1);
 				data.y2 = std::min(yMax, j + 1);
-				data.group = NULL;
+				data.group = nullptr;
 				data.number = CV_UNPROBLED;
 			}
 		}

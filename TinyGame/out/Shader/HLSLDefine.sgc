@@ -18,6 +18,9 @@
 #define SV_GroupThreadID
 #define SV_DispatchThreadID
 #define SV_GroupIndex
+#define SV_ViewportArrayIndex
+#define SV_RenderTargetArrayIndex
+#define PSIZE
 
 #define SV_Depth
 #define SV_DepthGreaterEqual
@@ -82,22 +85,24 @@ void GroupMemoryBarrierWithGroupSync();
 
 #define MEMBER_OUT( NAME ) :NAME
 
-#define SHADER_INPUT(TYPE_DECL , LOC) in TYPE_DECL : LOC,
-#define SHADER_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL,
-#define SHADER_OUTPUT_LAST(TYPE_DECL , LOC)  out TYPE_DECL
+#define SHADER_INPUT(TYPE_DECL, LOC)       in TYPE_DECL : LOC,
+#define SHADER_OUTPUT(TYPE_DECL, LOC)      out TYPE_DECL,
+#define SHADER_OUTPUT_LAST(TYPE_DECL, LOC) out TYPE_DECL
 
 
 #if VERTEX_SHADER
 
-#define VS_ENTRY_START(NAME) void NAME(
-#define VS_INPUT_VERTEXID in uint SvVertexID : SV_VertexID,
-#define VS_INPUT_INSTANCEID in uint SvInstanceID : SV_InstanceID,
-#define VS_INPUT_PARAMETERS( TYPE_DECL ) in TYPE_DECL ,
-#define VS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
-#define VS_OUTPUT_POINTSIZE out float SvPointSize : PSIZE,
-#define VS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : TEXCOORD##LOC,
-#define VS_OUTPUT_STRUCT( TYPE_DECL , LOC ) SHADER_OUTPUT( TYPE_DECL , LOC)
-#define VS_ENTRY_END(NAME)  out float4 SvPosition : SV_POSITION )
+#define VS_ENTRY_START(NAME)             void NAME(
+#define VS_INPUT_VERTEXID                in uint SvVertexID : SV_VertexID,
+#define VS_INPUT_INSTANCEID              in uint SvInstanceID : SV_InstanceID,
+#define VS_INPUT_PARAMETERS(TYPE_DECL)   in TYPE_DECL ,
+#define VS_INPUT(TYPE_DECL, LOC)         SHADER_INPUT(TYPE_DECL , LOC)
+#define VS_OUTPUT_POINTSIZE              out float SvPointSize : PSIZE,
+#define VS_OUTPUT_VIEWPORT_INDEX         out SvViewportIndex : SV_ViewportArrayIndex,
+#define VS_OUTPUT_RENDERTARGET_IDNEX     out SvRenderTargetIndex : SV_RenderTargetArrayIndex,
+#define VS_OUTPUT(TYPE_DECL , LOC)       out TYPE_DECL : TEXCOORD##LOC,
+#define VS_OUTPUT_STRUCT(TYPE_DECL, LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
+#define VS_ENTRY_END(NAME)               out float4 SvPosition : SV_POSITION)
 
 #define DECLARE_VERTEX_INPUT_START( NAME ) struct NAME {
 #define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) TYPE NAME : ATTRIBUTE;
@@ -111,12 +116,12 @@ void GroupMemoryBarrierWithGroupSync();
 
 #if PIXEL_SHADER
 
-#define PS_ENTRY_START(NAME) void NAME(
-#define PS_INPUT(TYPE_DECL , LOC) in TYPE_DECL : TEXCOORD##LOC,
-#define PS_INPUT_STRUCT(TYPE_DECL , LOC) in TYPE_DECL,
-#define PS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : SV_Target##LOC,
-#define PS_OUTPUT_DEPTH out float SvDepth : SV_Depth,
-#define PS_ENTRY_END(NAME)  in float4 SvPosition : SV_POSITION )
+#define PS_ENTRY_START(NAME)            void NAME(
+#define PS_INPUT(TYPE_DECL, LOC)        in TYPE_DECL : TEXCOORD##LOC,
+#define PS_INPUT_STRUCT(TYPE_DECL, LOC) in TYPE_DECL,
+#define PS_OUTPUT(TYPE_DECL, LOC)       out TYPE_DECL : SV_Target##LOC,
+#define PS_OUTPUT_DEPTH                 out float SvDepth : SV_Depth,
+#define PS_ENTRY_END(NAME)              in float4 SvPosition : SV_POSITION)
 
 #define PS_EARLY_DEPTH_TEST [earlydepthstencil]
 

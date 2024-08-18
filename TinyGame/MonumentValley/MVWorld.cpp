@@ -5,7 +5,7 @@
 namespace MV
 {
 
-	struct NavLinkInfo
+	struct NavBuildContext
 	{
 		Dir   faceDirL;
 		Dir   faceDir;
@@ -51,7 +51,7 @@ namespace MV
 	void World::init( Vec3i const& mapSize )
 	{
 		mMapSize = mapSize;
-		mBlocks.push_back( NULL );
+		mBlocks.push_back( nullptr );
 		int num = mMapSize.x * mMapSize.y * mMapSize.z;
 		mBlockMap.resize( num , 0 );
 	}
@@ -147,7 +147,7 @@ namespace MV
 	{
 		assert( FDir::Axis( dirZ ) != FDir::Axis( dirX ) );
 		if ( getBlock( pos ) )
-			return NULL;
+			return nullptr;
 
 		int id;
 		if ( mFreeBlockId )
@@ -172,7 +172,7 @@ namespace MV
 		}
 		block->idMesh = idMesh;
 		block->updateCount = 0;
-		if ( group == NULL )
+		if ( group == nullptr )
 			group = &mRootGroup;
 
 		group->add( *block );
@@ -291,28 +291,28 @@ namespace MV
 	class ActionNavFunc
 	{
 	public:
-		virtual int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL ) = 0;
-		virtual int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL ) = 0;
+		virtual int precessObstacleBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL ) = 0;
+		virtual int precessNeighborBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL ) = 0;
 	};
 
 	class MoveActionNavFunc : public ActionNavFunc
 	{
 	public:
-		int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
+		int precessObstacleBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			switch ( destSurface.func )
 			{
 			case NFT_PLANE_LADDER:
 			case NFT_LADDER:
 				{
-					Dir destLinkDirL = destBlock->rotation.toLocal( FDir::Inverse( info.faceDir ) );
+					Dir destLinkDirL = destBlock->rotation.toLocal( FDir::Inverse( context.faceDir ) );
 					int idxLink = FDir::NeighborIndex( destFaceDirL , destLinkDirL );
 					if ( destSurface.meta == ( idxLink / 2 ) )
 					{
-						NavNode& linkNode = destSurface.nodes[ info.nodeType ][ idxLink ];
+						NavNode& linkNode = destSurface.nodes[ context.nodeType ][ idxLink ];
 						linkNode.checkDisconnect();
-						info.node->checkDisconnect();
-						info.node->connect( linkNode );
+						context.node->checkDisconnect();
+						context.node->connect( linkNode );
 						return 1;
 					}
 				}
@@ -321,23 +321,23 @@ namespace MV
 			case NFT_ROTATOR_NC:
 			case NFT_STAIR:
 				{
-					Dir destUpDirL = destBlock->rotation.toLocal( info.faceDir );
+					Dir destUpDirL = destBlock->rotation.toLocal( context.faceDir );
 					if ( destSurface.meta == destUpDirL )
 					{
 						int idx = FDir::NeighborIndex( destFaceDirL , FDir::Inverse( destUpDirL ) );
-						info.node->connect( destSurface.nodes[ info.nodeType ][idx] );
+						context.node->connect( destSurface.nodes[ context.nodeType ][idx] );
 						return 1;
 					}
 				}
 				return -1;
 			case NFT_PLANE:
-				if ( info.surface->func == NFT_STAIR )
+				if ( context.surface->func == NFT_STAIR )
 				{
-					if ( info.block->rotation.toWorld( Dir( info.surface->meta ) ) == destBlock->rotation.toWorld( destFaceDirL ) )
+					if ( context.block->rotation.toWorld( Dir( context.surface->meta ) ) == destBlock->rotation.toWorld( destFaceDirL ) )
 					{
-						Dir destLinkDirL = destBlock->rotation.toLocal( FDir::Inverse( info.faceDir ) );
+						Dir destLinkDirL = destBlock->rotation.toLocal( FDir::Inverse( context.faceDir ) );
 						int idx = FDir::NeighborIndex( destFaceDirL , destLinkDirL );
-						info.node->connect( destSurface.nodes[ info.nodeType ][idx] );
+						context.node->connect( destSurface.nodes[ context.nodeType ][idx] );
 						return 1;
 					}
 				}
@@ -349,7 +349,7 @@ namespace MV
 			return 0;
 		}
 
-		int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
+		int precessNeighborBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			switch( destSurface.func )
 			{
@@ -357,20 +357,20 @@ namespace MV
 			case NFT_PLANE_LADDER:
 			case NFT_SUPER_PLANE:
 				{
-					Dir destNDirL = destBlock->rotation.toLocal( FDir::Inverse( info.linkDir ) );
+					Dir destNDirL = destBlock->rotation.toLocal( FDir::Inverse( context.linkDir ) );
 					int idx = FDir::NeighborIndex( destFaceDirL , destNDirL );
-					NavNode& linkNode = destSurface.nodes[ info.nodeType ][ idx ];
-					info.node->connect( linkNode );
+					NavNode& linkNode = destSurface.nodes[ context.nodeType ][ idx ];
+					context.node->connect( linkNode );
 					return 1;
 				}
 				break;
 			case NFT_ROTATOR_C:
 				{
-					Dir linkDirLD = destBlock->rotation.toLocal( info.linkDir );
+					Dir linkDirLD = destBlock->rotation.toLocal( context.linkDir );
 					if ( destSurface.meta == linkDirLD )
 					{
 						int idx = FDir::NeighborIndex( destFaceDirL , FDir::Inverse( linkDirLD ) );
-						info.node->connect( destSurface.nodes[ info.nodeType ][idx] );
+						context.node->connect( destSurface.nodes[ context.nodeType ][idx] );
 						return 1;
 					}
 				}
@@ -383,7 +383,7 @@ namespace MV
 	class ClimbActionNavFunc : public ActionNavFunc
 	{
 	public:
-		int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
+		int precessObstacleBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			switch ( destSurface.func )
 			{
@@ -394,11 +394,11 @@ namespace MV
 #if 0
 			case NFT_STAIR:
 
-				Dir destUpDirL = destBlock->rotation.toLocal( info.faceDir );
+				Dir destUpDirL = destBlock->rotation.toLocal( context.faceDir );
 				if ( destSurface.meta == destUpDirL )
 				{
 					int idx = FDir::NeighborIndex( destFaceDirL , invertDir( destUpDirL ) );
-					info.node->connect( destSurface.node[ info.nodeType ][idx] , info.block->group == destBlock->group );
+					context.node->connect( destSurface.node[ context.nodeType ][idx] , context.block->group == destBlock->group );
 					return 1;
 				}
 				return -1;
@@ -410,17 +410,17 @@ namespace MV
 			return 0;
 		}
 
-		int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
+		int precessNeighborBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			switch( destSurface.func )
 			{
 			case NFT_LADDER:
 			case NFT_PLANE_LADDER:
 				{
-					Dir destNDirL = destBlock->rotation.toLocal( FDir::Inverse( info.linkDir ) );
+					Dir destNDirL = destBlock->rotation.toLocal( FDir::Inverse( context.linkDir ) );
 					int idx = FDir::NeighborIndex( destFaceDirL , destNDirL );
-					NavNode& linkNode = destSurface.nodes[ info.nodeType ][ idx ];
-					info.node->connect( linkNode );
+					NavNode& linkNode = destSurface.nodes[ context.nodeType ][ idx ];
+					context.node->connect( linkNode );
 					return 1;
 				}
 				break;
@@ -435,7 +435,7 @@ namespace MV
 	public:
 		RotateActionNavFunc( bool beConvex ):beConvex( beConvex ){}
 
-		int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
+		int precessObstacleBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			if ( beConvex )
 			{
@@ -454,7 +454,7 @@ namespace MV
 			return 0;
 		}
 
-		int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
+		int precessNeighborBlock( NavBuildContext const& context , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			if ( beConvex )
 			{
@@ -521,28 +521,28 @@ namespace MV
 
 	void World::updateSurfaceNavNode( Block& block , Dir faceDirL , bool bParallaxTest )
 	{
-		NavLinkInfo info;
-		info.bParallaxTest = bParallaxTest;
-		info.block = &block;
-		info.faceDirL = faceDirL;
-		info.faceDir = block.rotation.toWorld( info.faceDirL );
+		NavBuildContext context;
+		context.bParallaxTest = bParallaxTest;
+		context.block    = &block;
+		context.faceDirL = faceDirL;
+		context.faceDir  = block.rotation.toWorld( context.faceDirL );
 
-		assert( info.faceDirL == block.rotation.toLocal( info.faceDir ) );
-		info.surface = &block.getLocalFace( info.faceDirL );
+		assert( context.faceDirL == block.rotation.toLocal( context.faceDir ) );
+		context.surface = &block.getLocalFace( context.faceDirL );
 
-		if ( info.surface->func == NFT_NULL )
+		if ( context.surface->func == NFT_NULL )
 			return;
 
-		info.faceOffset = FDir::Offset( info.faceDir );
+		context.faceOffset = FDir::Offset( context.faceDir );
 
-		Vec3i posTest = block.pos + info.faceOffset;
+		Vec3i posTest = block.pos + context.faceOffset;
 
 		int destBlockId = getBlockCheck( posTest );
 		if ( destBlockId )
 		{
 
 			Block* destBlock = mBlocks[ destBlockId ];
-			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( info.faceDir ) );
+			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( context.faceDir ) );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
 			if ( destSurface.func != NFT_NULL )
 			{
@@ -562,66 +562,67 @@ namespace MV
 
 		if ( bParallaxTest )
 		{
-			if ( info.faceOffset.dot( mParallaxOffset ) > 0 )
+			if ( context.faceOffset.dot( mParallaxOffset ) > 0 )
 			{
 				//check parallax face Obstacle 
 				Vec3i blockPosFaceObstacle;
 				int blockIdFaceObstacle = getTopParallaxBlock( posTest , blockPosFaceObstacle );
-				if ( blockIdFaceObstacle != 0 && comparePosFromView( info.faceDir , block.pos , blockPosFaceObstacle ) < 0 )
+				if ( blockIdFaceObstacle != 0 && comparePosFromView( context.faceDir , block.pos , blockPosFaceObstacle ) < 0 )
 				{
-					info.bParallaxTest = false;
+					context.bParallaxTest = false;
 				}
 			}
 		}
-		buildSurfaceNavNode( block , info );
+		buildSurfaceNavNode(context);
 	}
 
-	void World::buildSurfaceNavNode(Block& block, NavLinkInfo& info)
+	void World::buildSurfaceNavNode(NavBuildContext& context)
 	{
-		switch( info.surface->func )
+		Block& block = *context.block;
+		switch( context.surface->func )
 		{
 		case NFT_PLANE:
 			for( int idx = 0 ; idx < 4 ; ++idx )
 			{
-				buildNavLinkFromIndex( block , info , MoveActionNavFunc() , idx );
+				buildNavLinkFromIndex(context, MoveActionNavFunc(), idx);
 			}
 			break;
 		case NFT_SUPER_PLANE:
 			for( int idx = 0 ; idx < 4 ; ++idx )
 			{
-				if ( buildNavLinkFromIndex( block , info , MoveActionNavFunc() , idx ) == 0 )
+				if ( buildNavLinkFromIndex(context, MoveActionNavFunc(), idx) == 0 )
 				{
-					connectBlockNavNode( block , info.faceDirL , info.linkDirL );
+					connectBlockNavNode(block, context.faceDirL, context.linkDirL);
 				}
 			}
 			break;
 		case NFT_ROTATOR_C:
 		case NFT_ROTATOR_NC:
 			{
-				Dir dirL = Dir( info.surface->meta );
-				connectBlockNavNode( block , info.faceDirL , dirL );
-				buildNavLinkFromDir( block , info , RotateActionNavFunc( false ) , FDir::Inverse( dirL ) );
+				Dir dirL = Dir( context.surface->meta );
+				connectBlockNavNode(block, context.faceDirL, dirL );
+				buildNavLinkFromDir(context , RotateActionNavFunc( false ), FDir::Inverse( dirL ));
 			}
 			break;
 		case NFT_STAIR:
 			{
-				Dir dirL = Dir( info.surface->meta );
-				connectBlockNavNode( block , info.faceDirL , dirL );
-				buildNavLinkFromDir( block , info , MoveActionNavFunc() , FDir::Inverse( dirL ) );
+				Dir dirL = Dir( context.surface->meta );
+				connectBlockNavNode(block, context.faceDirL, dirL );
+				buildNavLinkFromDir(context, MoveActionNavFunc(), FDir::Inverse( dirL ));
 			}
 			break;
 		case NFT_LADDER:
 			for( int i = 0 ; i < 2 ; ++i )
 			{
-				int idx = 2 * info.surface->meta + i;
-				if ( buildNavLinkFromIndex( block , info , ClimbActionNavFunc() , idx ) == 0 )
+				int idx = 2 * context.surface->meta + i;
+				if ( buildNavLinkFromIndex(context, ClimbActionNavFunc(), idx) == 0 )
 				{
-					BlockSurface& surfaceN = block.getLocalFace( info.linkDirL );
+					BlockSurface& surfaceN = block.getLocalFace( context.linkDirL );
 
 					if ( surfaceN.func == NFT_PLANE || 
 						 surfaceN.func == NFT_PLANE_LADDER )
 					{
-						connectBlockNavNode( block , info.faceDirL , info.linkDirL );
+						connectBlockNavNode(block, context.faceDirL, context.linkDirL);
 					}
 				}
 			}
@@ -629,39 +630,42 @@ namespace MV
 		}
 	}
 
-	int World::buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFunc& func , int idx )
+	int World::buildNavLinkFromIndex(NavBuildContext& context, ActionNavFunc& func, int idx)
 	{
-		info.setupNodeFromIndex(NODE_DIRECT, idx );
-		info.linkDir = block.rotation.toWorld( info.linkDirL );
-		int result = buildNeighborNavLink( block , info , func );
-		if ( info.bParallaxTest )
+		Block& block = *context.block;
+		context.setupNodeFromIndex(NODE_DIRECT, idx );
+		context.linkDir = block.rotation.toWorld( context.linkDirL );
+		int result = buildNeighborNavLink(context, func);
+		if ( context.bParallaxTest )
 		{
-			info.setupNodeFromIndex(NODE_PARALLAX, idx );
-			buildParallaxNavLink( block , info , func );
+			context.setupNodeFromIndex(NODE_PARALLAX, idx );
+			buildParallaxNavLink(context, func);
 		}
 		return result;
 	}
 
-
-	int World::buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFunc& func , Dir dirL )
+	int World::buildNavLinkFromDir(NavBuildContext& context, ActionNavFunc& func, Dir dirL)
 	{
-		info.setupNodeFromDir(NODE_DIRECT, dirL );
-		info.linkDir = block.rotation.toWorld( info.linkDirL );
-		int result = buildNeighborNavLink( block , info , func );
-		if ( info.bParallaxTest )
+		Block& block = *context.block;
+		context.setupNodeFromDir(NODE_DIRECT, dirL);
+		context.linkDir = block.rotation.toWorld(context.linkDirL);
+		int result = buildNeighborNavLink(context, func);
+		if ( context.bParallaxTest )
 		{
-			info.setupNodeFromDir(NODE_PARALLAX, dirL );
-			buildParallaxNavLink( block , info , func );
+			context.setupNodeFromDir(NODE_PARALLAX, dirL);
+			buildParallaxNavLink(context, func);
 		}
 		return result;
 	}
 
-	int World::buildNeighborNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func )
+	int World::buildNeighborNavLink(NavBuildContext const& context, ActionNavFunc& func)
 	{
-		if ( info.node->link )
+		Block& block = *context.block;
+
+		if ( context.node->link )
 			return 2;
 
-		Vec3i linkOffset = FDir::Offset( info.linkDir );
+		Vec3i linkOffset = FDir::Offset( context.linkDir );
 		//       | faceDir
 		//       |___
 		//       | O |
@@ -672,14 +676,14 @@ namespace MV
 		Vec3i destblockPos;
 		int   destBlockId;
 		// Block O
-		Vec3i destPos = block.pos + linkOffset + info.faceOffset;
+		Vec3i destPos = block.pos + linkOffset + context.faceOffset;
 		destBlockId = getBlockCheck( destPos );
 		if ( destBlockId )
 		{
 			Block* destBlock = mBlocks[ destBlockId ];
-			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( info.linkDir ) );
+			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( context.linkDir ) );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = func.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessObstacleBlock( context , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 			{
 				return ret;
@@ -691,9 +695,9 @@ namespace MV
 		if ( destBlockId )
 		{
 			Block* destBlock = mBlocks[ destBlockId ];
-			Dir destFaceDirL = destBlock->rotation.toLocal( info.faceDir );
+			Dir destFaceDirL = destBlock->rotation.toLocal( context.faceDir );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = func.precessNeighborBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessNeighborBlock( context , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 			{
 				return ret; 
@@ -703,12 +707,13 @@ namespace MV
 		return 0;
 	}
 
-	int World::buildParallaxNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func )
+	int World::buildParallaxNavLink(NavBuildContext const& context, ActionNavFunc& func)
 	{
-		if ( info.node->link )
+		Block& block = *context.block;
+		if ( context.node->link )
 			return 2;
 
-		Vec3i linkOffset = FDir::Offset( info.linkDir );
+		Vec3i linkOffset = FDir::Offset( context.linkDir );
 		//       | faceDir
 		//       |___
 		//       | O |
@@ -716,27 +721,27 @@ namespace MV
 		//   | x | L |
 		//   |___|___|
 
-		Vec3i destblockPos;
-		Vec3i tempBlockPos;
-		int   tempBlockId;
 
-		int   destBlockId;
 		// Block O
-		Vec3i destPos = block.pos + linkOffset + info.faceOffset;
+		Vec3i destPos = block.pos + linkOffset + context.faceOffset;
 
 		Vec3i linkBlockPos = block.pos + linkOffset;
 		int idLO = getBlockCheck( destPos );
-		destBlockId = getTopParallaxBlock( destPos , destblockPos );
+
+		Vec3i destblockPos;
+		int destBlockId = getTopParallaxBlock( destPos , destblockPos );
 		int idL  = getBlockCheck( linkBlockPos );
-		tempBlockId = getTopParallaxBlock( linkBlockPos , tempBlockPos );
+
+		Vec3i tempBlockPos;
+		int tempBlockId = getTopParallaxBlock( linkBlockPos , tempBlockPos );
 
 		if ( destBlockId )
 		{
 			if ( destBlockId == idLO || 
-				comparePosFromView( info.linkDir , block.pos , destblockPos ) >= 0 ||
+				comparePosFromView( context.linkDir , block.pos , destblockPos ) >= 0 ||
 				//check O not obstacle X and L
-				( comparePosFromView( info.faceDir , destblockPos , block.pos ) <= 0 &&
-				  comparePosFromView( info.faceDir , destblockPos , tempBlockPos ) <= 0 ) )
+				( comparePosFromView( context.faceDir , destblockPos , block.pos ) <= 0 &&
+				  comparePosFromView( context.faceDir , destblockPos , tempBlockPos ) <= 0 ) )
 			{
 				destBlockId = 0;
 			}
@@ -750,9 +755,9 @@ namespace MV
 		if ( destBlockId )
 		{
 			Block* destBlock = mBlocks[ destBlockId ];
-			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( info.linkDir ) );
+			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( context.linkDir ) );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = func.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessObstacleBlock( context , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 				return ret; 
 		}
@@ -764,13 +769,13 @@ namespace MV
 		{
 			destBlockId = tempBlockId;
 			destblockPos = tempBlockPos;
-			specialTest = comparePosFromView( info.linkDir , block.pos , destblockPos );
+			specialTest = comparePosFromView( context.linkDir , block.pos , destblockPos );
 			if ( specialTest >= 0 )
 			{
 				//check 
-				BlockSurface& surf = ( FDir::IsPositive( info.linkDir ) ) ? 
-					info.block->getFace( info.linkDir ) :
-				mBlocks[ destBlockId ]->getFace( FDir::Inverse( info.linkDir ) );
+				BlockSurface& surf = ( FDir::IsPositive( context.linkDir ) ) ? 
+					context.block->getFace( context.linkDir ) :
+				mBlocks[ destBlockId ]->getFace( FDir::Inverse( context.linkDir ) );
 				if ( surf.func != NFT_PASS_VIEW )
 				{
 					destBlockId = 0;
@@ -781,14 +786,14 @@ namespace MV
 		if ( destBlockId )
 		{
 			Block* destBlock = mBlocks[ destBlockId ];
-			Dir destFaceDirL = destBlock->rotation.toLocal( info.faceDir );
+			Dir destFaceDirL = destBlock->rotation.toLocal( context.faceDir );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = func.precessNeighborBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessNeighborBlock( context , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 			{
 				if ( ret == 1 && specialTest )
 				{
-					NavNode* node = ( specialTest == 1 ) ? info.node : info.node->link;
+					NavNode* node = ( specialTest == 1 ) ? context.node : context.node->link;
 					node ->flag |= NavNode::eFixPos;
 					mFixNodes.push_back( node );
 				}
@@ -937,6 +942,7 @@ namespace MV
 				{
 					if ( i == 0 && j == 0 && k == 0 )
 						continue;
+
 					Vec3i nPos = pos + Vec3i(i,j,k);
 					int idNBlock = getBlockCheck( nPos );
 					if ( idNBlock == 0 )
@@ -989,20 +995,20 @@ namespace MV
 		return true;
 	}
 
-	ObjectGroup* World::createGroup(ObjectGroup* parent /*= NULL */)
+	ObjectGroup* World::createGroup(ObjectGroup* parent /*= nullptr */)
 	{
 		ObjectGroup* group = new ObjectGroup;
 		mGroups.push_back( group );
-		if ( parent == NULL )
+		if ( parent == nullptr )
 			parent = &mRootGroup;
 		parent->add( *group );
 		group->idx = mGroups.size();
 		return group;
 	}
 
-	struct DeleteFun
+	struct DeleteFunc
 	{
-		DeleteFun( World& world ):world(world){}
+		DeleteFunc( World& world ):world(world){}
 		void operator()( Block* obj )
 		{ 
 			world.destroyBlock( obj ); 
@@ -1016,9 +1022,9 @@ namespace MV
 		World& world;
 	};
 
-	struct ModifyGroupFun
+	struct ModifyGroupFunc
 	{
-		ModifyGroupFun( ObjectGroup& group ):group(group){}
+		ModifyGroupFunc( ObjectGroup& group ):group(group){}
 		template< class T >
 		void operator()( T* obj )
 		{
@@ -1032,11 +1038,11 @@ namespace MV
 		assert( group && std::find( mGroups.begin() , mGroups.end() , group ) != mGroups.end() );
 		if ( bDeleteObj )
 		{
-			group->removeAll( DeleteFun( *this ) );
+			group->removeAll( DeleteFunc( *this ) );
 		}
 		else
 		{
-			group->removeAll( ModifyGroupFun( mRootGroup ) );
+			group->removeAll( ModifyGroupFunc( mRootGroup ) );
 		}
 		mGroups.erase( std::find( mGroups.begin() , mGroups.end() , group ) );
 	}

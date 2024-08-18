@@ -46,12 +46,13 @@ namespace MV
 			Render::MatrixSaveScope Scope( matProj , matView );
 			
 			RenderContext context;
-			context.mView = &WidgetView;
-			context.mView->setupTransform(matView, matProj);
+			context.view = &WidgetView;
+			context.view->setupTransform(matView, matProj);
 			context.setColor(LinearColor(1, 1, 1, 1));
-			re.beginRender();
-			re.renderMesh(context ,idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
-			re.endRender();
+			context.mCommandList = &RHICommandList::GetImmediateList();
+			re.beginRender(context);
+			re.renderMesh(context, idMesh, Vec3f(0,0,0), AxisRoataion::Identity());
+			re.endRender(context);
 		}
 	}
 

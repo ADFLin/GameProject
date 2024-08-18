@@ -32,7 +32,7 @@ namespace MV
 		MeshId mesh;
 		SurfaceDef surfaces[ 6 ];
 	};
-	extern BlockModel gModels[];
+	extern BlockModel GModels[];
 
 
 	class EditMode
@@ -110,9 +110,9 @@ namespace MV
 
 		void createDefaultBlock();
 
-		Block* createBlock( Vec3i const& pos , int idModel , bool updateNav = true , ObjectGroup* group = NULL )
+		Block* createBlock( Vec3i const& pos , int idModel , bool updateNav = true , ObjectGroup* group = nullptr )
 		{
-			BlockModel& model = gModels[ idModel ];
+			BlockModel& model = GModels[ idModel ];
 			return mWorld.createBlock( pos , model.mesh , model.surfaces , updateNav , group );
 		}
 
@@ -127,17 +127,18 @@ namespace MV
 		ObjectGroup* getUseGroup();
 		ISpaceModifier*  getUseModifier()
 		{
-			return ( idxModifierUse == -1 ) ? NULL : mModifiers[ idxModifierUse ];
+			return ( idxModifierUse == -1 ) ? nullptr : mModifiers[ idxModifierUse ];
 		}
 		SpaceControllor* getUseControllor()
 		{
-			return ( idxSpaceCtrlUse == -1 ) ? NULL : mSpaceCtrlors[ idxSpaceCtrlUse ];
+			return ( idxSpaceCtrlUse == -1 ) ? nullptr : mSpaceCtrlors[ idxSpaceCtrlUse ];
 		}
 
 		void testRotation();
 
 
 		ERenderSystem getDefaultRenderSystem() override;
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 
 	protected:
 
@@ -203,7 +204,8 @@ namespace MV
 
 
 		/////////////////////////////////
-
+		RenderParam mRenderParam;
+		ViewInfo    mRenderView;
 
 
 		float mViewWidth;

@@ -9,7 +9,7 @@ namespace MV
 
 	void NavNode::connect(NavNode& other)
 	{
-		assert(link == NULL && other.link == NULL);
+		assert(link == nullptr && other.link == nullptr);
 		link = &other;
 		other.link = this;
 		if (getSurface()->getBlock()->group == other.getSurface()->getBlock()->group)

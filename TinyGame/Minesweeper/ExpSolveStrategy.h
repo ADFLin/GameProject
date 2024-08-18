@@ -82,7 +82,7 @@ namespace Mine
 		ProbInfo const* getProbInfo(CellData const& data)
 		{
 			if( data.idxProb == -1 )
-				return NULL;
+				return nullptr;
 			return &mCacheProbs[data.idxProb];
 		}
 		ProbInfo const& getOtherProbInfo() { return mCacheProbs.front(); }

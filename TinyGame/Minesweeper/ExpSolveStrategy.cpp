@@ -787,7 +787,7 @@ namespace Mine
 			MARK,
 		};
 		Action   action;
-		CellPos const* rcp = NULL;
+		CellPos const* rcp = nullptr;
 
 		if( !param || param->numOverlap == 0 )
 		{
@@ -871,7 +871,7 @@ namespace Mine
 	{
 		CellPos sharePos[NumNeighborDir];
 		int numShare = getShareFreeNeighbor(cp, ncp, sharePos);
-		return execShareCellInternal(cp, ncp, sharePos, numShare, dir, NULL);
+		return execShareCellInternal(cp, ncp, sharePos, numShare, dir, nullptr);
 	}
 
 	int ExpSolveStrategy::getShareFreeNeighbor(CellPos const& p1, CellPos const& p2, CellPos share[])

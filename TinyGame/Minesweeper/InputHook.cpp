@@ -2,10 +2,10 @@
 
 static HookProc* gMouseHookProc;
 static HookProc* gKeyboardHookProc;
-static HHOOK ghMouseHook = NULL;
-static HHOOK ghKeyboardHook = NULL;
+static HHOOK ghMouseHook = nullptr;
+static HHOOK ghKeyboardHook = nullptr;
 
-HINSTANCE gHinstance = NULL;
+HINSTANCE gHinstance = nullptr;
 
 LRESULT __stdcall CALLBACK MouseHookProc( int nCode ,WPARAM wParam,  LPARAM lParam )
 {
@@ -25,7 +25,7 @@ extern "C"
 {
 	BOOL HOOKAPI InstallMouseHook( HookProc* userPorc )
 	{
-		if ( userPorc == NULL )
+		if ( userPorc == nullptr )
 			return FALSE;
 		ghMouseHook = ::SetWindowsHookEx( WH_MOUSE ,(HOOKPROC)MouseHookProc, gHinstance ,0 );
 		gMouseHookProc = userPorc;
@@ -35,14 +35,14 @@ extern "C"
 	BOOL HOOKAPI UninstallMouseHook()
 	{
 		UnhookWindowsHookEx( ghMouseHook );
-		ghMouseHook = NULL;
-		gMouseHookProc = NULL;
+		ghMouseHook = nullptr;
+		gMouseHookProc = nullptr;
 		return TRUE;
 	}
 
 	BOOL HOOKAPI InstallKeyBoardHook( HookProc* userPorc )
 	{
-		if ( userPorc == NULL )
+		if ( userPorc == nullptr )
 			return FALSE;
 		ghKeyboardHook = ::SetWindowsHookEx( WH_KEYBOARD ,(HOOKPROC)KeyBoardHookProc , gHinstance ,0 );
 		gKeyboardHookProc = userPorc;
@@ -52,8 +52,8 @@ extern "C"
 	BOOL HOOKAPI UninstallKeyBoardHook()
 	{
 		UnhookWindowsHookEx( ghKeyboardHook );
-		ghKeyboardHook = NULL;
-		gKeyboardHookProc = NULL;
+		ghKeyboardHook = nullptr;
+		gKeyboardHookProc = nullptr;
 		return TRUE;
 	}
 

@@ -266,7 +266,7 @@ namespace Render
 			auto const* extensions = (char const*)glGetString(GL_EXTENSIONS);
 
 #define GET_GLFUNC( NAME ) GetGLExtenionFunc(NAME, #NAME) 
-			if ( FCString::StrStr(extensions, "mesh_shader") )
+			if ( FCString::StrStr(extensions, "GL_NV_mesh_shader") )
 			{
 				if (GET_GLFUNC(glDrawMeshTasksNV)&&
 					GET_GLFUNC(glDrawMeshTasksIndirectNV) &&
@@ -275,6 +275,10 @@ namespace Render
 				{
 					GRHISupportMeshShader = true;
 				}
+			}
+			if ( FCString::StrStr(extensions, "GL_ARB_shader_viewport_layer_array"))
+			{
+				GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = true;
 			}
 #undef GET_GLFUNC
 		}

@@ -22,29 +22,70 @@ namespace MV
 	using Render::ViewInfo;
 	using Render::RHICommandList;
 
+	struct RenderParam
+	{
+		RenderParam()
+		{
+			bShowNavNode = true;
+			bShowGroupColor = true;
+			bShowNavPath = true;
+			bDrawAxis = true;
+		}
+
+		bool   bShowNavNode;
+		bool   bShowNavPath;
+		bool   bShowGroupColor;
+		bool   bDrawAxis;
+	};
+
+
 	struct RenderContext : public SimpleRenderState
 	{
 		template< class TShader>
-		void setupShader(RHICommandList& commandList, TShader& shader)
+		void setupShader(TShader& shader)
 		{		
-			mView->setupShader(commandList, shader);
+			RHICommandList& commandList = getCommandList();
+			view->setupShader(commandList, shader);
 			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
 			SET_SHADER_PARAM(commandList, shader, LightDir, Vector3(0.4, 0.5, 0.8));
 		}
 
 		template< class TShader>
-		void setupPrimitiveParams(RHICommandList& commandList, TShader& shader)
+		void setupPrimitiveParams(TShader& shader)
 		{
+			RHICommandList& commandList = getCommandList();
 			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
 		}
 
-		void setSimpleShader(RHICommandList& commandList)
+		void setSimpleShader()
 		{
-			RHISetFixedShaderPipelineState(commandList,  Render::AdjProjectionMatrixForRHI(stack.get() * mView->worldToClip), mColor);
+			using namespace Render;
+			RHICommandList& commandList = getCommandList();
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(stack.get() * view->worldToClip), mColor);
 		}
 
-		ViewInfo* mView;
+		void setSimpleShader(float depthBias)
+		{
+			RHICommandList& commandList = getCommandList();
+			using namespace Render;
+			Matrix4 depthOffset =
+			{
+				1, 0 ,0 ,0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, depthBias, 1,
+			};
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(stack.get() * view->worldToView * depthOffset * view->viewToClip), mColor);
+		}
+
+		RHICommandList& getCommandList() { return *mCommandList; }
+
+		RHICommandList* mCommandList;
+		RenderParam param;
+		World*      world = nullptr;
+		ViewInfo*   view = nullptr;
 	};
+
 	class CRotator : public IRotator
 	{
 	public:
@@ -149,21 +190,6 @@ namespace MV
 		NUM_MESH ,
 	};
 
-	struct RenderParam
-	{
-		RenderParam()
-		{
-			bShowNavNode = true;
-			bShowGroupColor = true;
-			bShowNavPath = true;
-			bDrawAxis = true;
-		}
-		World* world;
-		bool   bShowNavNode;
-		bool   bShowNavPath;
-		bool   bShowGroupColor;
-		bool   bDrawAxis;
-	};
 
 
 	class RenderEngine : public CModifyCreator
@@ -174,9 +200,8 @@ namespace MV
 
 		void renderScene(RenderContext& context);
 
-		void beginRender();
-
-		void endRender();
+		void beginRender(RenderContext& context);
+		void endRender(RenderContext& context);
 
 		void renderBlock(RenderContext& context, Block& block , Vec3i const& pos );
 		void renderPath(RenderContext& context, Path& path , PointVec& points );
@@ -186,27 +211,14 @@ namespace MV
 		void renderActor(RenderContext& context, Actor& actor);
 		void renderNav(RenderContext& context, ObjectGroup &group);
 
-		RenderParam mParam;
 
-		Mat4 mViewToWorld;
 		Render::RHICommandList* mCommandList;
 
 		class BaseRenderProgram* mProgBaseRender;
 
 		Render::Mesh mMesh[ NUM_MESH ];
 
-		std::vector< float > mCacheBuffer;
-		float* useCacheBuffer( int len )
-		{
-			if ( len > mCacheBuffer.size() )
-				mCacheBuffer.resize( len );
-			return &mCacheBuffer[0];
-		}
-
 		FrameAllocator mAllocator;
-
-		ViewInfo mView;
-
 	};
 
 	RenderEngine& getRenderEngine();

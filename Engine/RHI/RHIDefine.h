@@ -29,6 +29,7 @@ namespace Render
 
 	extern RHI_API bool GRHISupportMeshShader;
 	extern RHI_API bool GRHISupportRayTracing;
+	extern RHI_API bool GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer;
 
 	extern RHI_API bool GRHIPrefEnabled;
 

@@ -83,7 +83,7 @@ namespace Shoot2D
 			for (int j= y-1 ; j< y+1 ; ++j )
 			{
 				Cell* cell2 = getCell(i,j);
-				if ( cell2 == NULL ) 
+				if ( cell2 == nullptr ) 
 					continue;
 
 				for (Cell::iterator iter2 = cell2->begin();

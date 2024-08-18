@@ -9,7 +9,7 @@
 namespace MV
 {
 
-	struct NavLinkInfo;
+	struct NavBuildContext;
 	class  ActionNavFunc;
 
 	class World
@@ -23,11 +23,11 @@ namespace MV
 		Block* createBlock( 
 			Vec3i const& pos , int idMesh , 
 			SurfaceDef surfaceDef[] , bool updateNav = true , 
-			ObjectGroup* group = NULL , Dir dirZ = Dir::Z , Dir dirX = Dir::X );
+			ObjectGroup* group = nullptr , Dir dirZ = Dir::Z , Dir dirX = Dir::X );
 		void   destroyBlock( Block* block );
 		bool   destroyBlock( Vec3i const& pos );
 
-		ObjectGroup* createGroup( ObjectGroup* parent = NULL );
+		ObjectGroup* createGroup( ObjectGroup* parent = nullptr );
 		void         destroyGroup( ObjectGroup* group , bool bDeleteObj );
 
 		bool putActor( Actor& actor , Vec3i const& pos , Dir faceDir = Dir::Z );
@@ -93,7 +93,7 @@ namespace MV
 		void removeParallaxNavNode( ObjectGroup& group ){ removeParallaxNavNode_R( group ); }
 
 
-		void  updateNeighborNavNode( Vec3i const& pos , ObjectGroup* skipGroup = NULL );
+		void  updateNeighborNavNode( Vec3i const& pos , ObjectGroup* skipGroup = nullptr );
 
 		void updateNavNode_R( ObjectGroup& group );
 		void removeDynamicNavNode_R( ObjectGroup& group );
@@ -104,11 +104,11 @@ namespace MV
 
 		void updateBlockNavNode( ObjectGroup& group );
 		void updateSurfaceNavNode( Block& block , Dir faceDirL , bool bParallaxTest );
-		void buildSurfaceNavNode( Block &block, NavLinkInfo &info );
-		int  buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFunc& func , int idx );
-		int  buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFunc& func , Dir dir );
-		int  buildNeighborNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func );
-		int  buildParallaxNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func );
+		void buildSurfaceNavNode(NavBuildContext& context);
+		int  buildNavLinkFromIndex(NavBuildContext& context, ActionNavFunc& func, int idx);
+		int  buildNavLinkFromDir(NavBuildContext& context, ActionNavFunc& func, Dir dir);
+		int  buildNeighborNavLink(NavBuildContext const& context, ActionNavFunc& func);
+		int  buildParallaxNavLink(NavBuildContext const& context, ActionNavFunc& func);
 
 		void connectBlockNavNode( Block& block , Dir dirL , Dir linkDirL );
 

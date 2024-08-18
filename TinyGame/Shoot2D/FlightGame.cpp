@@ -18,8 +18,8 @@
 namespace Shoot2D
 {
 
-	RenderEngine* TestStage::de = NULL;
-	AxisSweepDetector* TestStage::objManger = NULL;
+	RenderEngine* TestStage::de = nullptr;
+	AxisSweepDetector* TestStage::objManger = nullptr;
 
 	void spawnObject(Object* obj)
 	{

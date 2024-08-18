@@ -58,7 +58,7 @@ namespace Shoot2D
 			{
 				Cell* cell = getCell(i,j);
 
-				if ( cell == NULL )
+				if ( cell == nullptr )
 					continue;
 
 				for( Cell::iterator iter = cell->begin();

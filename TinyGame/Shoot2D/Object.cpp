@@ -26,7 +26,7 @@ namespace Shoot2D
 		nextDir = 0;
 
 		m_HP = 1;
-		m_Action = NULL;
+		m_Action = nullptr;
 		m_Stats = STATS_LIVE;
 	}
 
@@ -92,7 +92,7 @@ namespace Shoot2D
 
 	Vehicle::Vehicle(ModelId id,Vec2D const& pos) 
 		:Object(id,pos)
-		,weapon( NULL )
+		,weapon( nullptr )
 	{
 		m_HP = 10;
 		colFlag = COL_DEFAULT_VEHICLE;

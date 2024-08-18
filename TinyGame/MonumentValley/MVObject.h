@@ -50,6 +50,7 @@ namespace MV
 	{
 		NavFuncType func;
 		int         meta;
+
 	};
 
 	enum NodeType
@@ -168,15 +169,14 @@ namespace MV
 
 		static Block* Get(BlockSurface& surface);
 
-		static Dir WorldDir( BlockSurface& surface )
+		static Dir WorldDir(BlockSurface& surface)
 		{
-			return surface.getBlock()->rotation.toWorld( LocalDir( surface ) );
+			return Get(surface)->rotation.toWorld(Dir(surface.face));
 		}
-		static Dir LocalDir( BlockSurface& surface )
+		static Dir LocalDir(BlockSurface& surface)
 		{
 			return Dir(surface.face);
 		}
-
 	};
 
 	class WorldCell

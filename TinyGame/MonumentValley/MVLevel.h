@@ -29,8 +29,8 @@ namespace MV
 		SpaceControllor* createControllor();
 		MeshObject*      createMesh( 
 			Vec3f const& pos , int idMesh , 
-			Vec3f const& rotation , ObjectGroup* group = NULL );
-		MeshObject*      createEmptyMesh( ObjectGroup* group = NULL );
+			Vec3f const& rotation , ObjectGroup* group = nullptr );
+		MeshObject*      createEmptyMesh( ObjectGroup* group = nullptr );
 		void             destroyMeshByIndex( int idx );
 
 		IRotator*        createRotator( Vec3i const& pos , Dir dir );

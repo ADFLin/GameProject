@@ -35,6 +35,7 @@ namespace Render
 	bool GRHISupportMeshShader = false;
 	bool GRHISupportRayTracing = false;
 	bool GRHIPrefEnabled = false;
+	bool GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
 
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
@@ -141,6 +142,7 @@ namespace Render
 		GRHIDeviceVendorName = DeviceVendorName::Unknown;
 		GRHISupportRayTracing = false;
 		GRHISupportMeshShader = false;
+		GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
 
 		TChar const* cmdLine = FCommandLine::Get();
 		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");

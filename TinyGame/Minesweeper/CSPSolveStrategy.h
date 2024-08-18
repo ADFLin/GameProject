@@ -292,7 +292,7 @@ namespace Mine
 			++mNumSolvedCell;
 			if ( num > 0 )
 			{
-				ConstraintGroup* group = NULL;
+				ConstraintGroup* group = nullptr;
 				if ( ct )
 					cell.group = CellData::cast( ct )->group;
 				buildConstraint( cell , group );

@@ -18,7 +18,7 @@ namespace Shoot2D
 	template< class T >
 	class Node
 	{
-		Node(){ prev = next = NULL; }
+		Node(){ prev = next = nullptr; }
 		T* prev;
 		T* next;
 	};
@@ -61,7 +61,7 @@ namespace Shoot2D
 		struct ColData;
 		struct Node
 		{
-			Node(ColData* d = NULL):data(d),val(0){}
+			Node(ColData* d = nullptr):data(d),val(0){}
 			ColData* data;
 			float    val;
 		};

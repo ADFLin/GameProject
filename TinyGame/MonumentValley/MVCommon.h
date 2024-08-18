@@ -31,6 +31,8 @@ namespace MV
 		InvY = 3,
 		Z    = 4,
 		InvZ = 5,
+
+		COUNT,
 	};
 
 	Dir constexpr gDirInvertMap[6] =

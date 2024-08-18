@@ -36,7 +36,7 @@ public:
 			if ( iter->regID == id )
 				return &(*iter);
 		}
-		return NULL;
+		return nullptr;
 	}
 	ScanShape& addShape( unsigned id , int error )
 	{

@@ -7,6 +7,11 @@ namespace MV
 	struct AStarNode : AStar::NodeBaseT< AStarNode , FindState , int >
 	{
 		AStarNode* child;
+
+		BlockSurface& getSurface()
+		{ 
+			return state.block->getLocalFace(state.faceDirL);
+		}
 	};
 
 	class AStarFinder : public AStar::AStarT< AStarFinder , AStarNode >
@@ -28,7 +33,7 @@ namespace MV
 		{  
 			return a.faceDirL == b.faceDirL && a.block->pos == b.block->pos;
 		}
-		bool      isGoal (StateType& state )
+		bool      isGoal(StateType& state )
 		{ 
 			return isEqual( mGoal , state );
 		}
@@ -36,16 +41,14 @@ namespace MV
 		//  call addSreachNode for all possible next state
 		void      processNeighborNode( NodeType& aNode )
 		{  
-			Block* block = aNode.state.block;
-
-			BlockSurface& surface = block->getLocalFace( aNode.state.faceDirL );
+			BlockSurface& surface = aNode.getSurface();
 
 			for( int idxNode = 0 ; idxNode < FACE_NAV_LINK_NUM; ++idxNode )
 			{
 				for( int nodeType = 0 ; nodeType < NUM_NODE_TYPE; ++nodeType )
 				{
 					NavNode* node = &surface.nodes[nodeType][ idxNode ];
-					if ( node->link == NULL )
+					if ( node->link == nullptr )
 						continue;
 					if ( aNode.state.prevBlockNode == node->link )
 						continue;
@@ -119,40 +122,42 @@ namespace MV
 		pathNode.block = state.block;
 		pathNode.upDir = state.upDir;
 		pathNode.faceDir = pathNode.block->rotation.toWorld( state.faceDirL );
-		
+		pathNode.posCount = 0;
+		pathNode.surface = &state.block->getLocalFace(state.faceDirL);
 		//pathNode.frontDir = outDir;
 
-		BlockSurface* surf = &state.block->getLocalFace( state.faceDirL );
+		BlockSurface* surf = &state.block->getLocalFace(state.faceDirL);
 
 		Vec3f faceOffset = 0.5 * FDir::OffsetF( pathNode.faceDir );
 		Vec3f faceCenterPos = Vec3f( state.block->pos ) + faceOffset;
 
+		static const float Sqrt2 = Math::Sqrt(2);
+
 		switch( surf->func )
 		{
 		case NFT_STAIR:
+			pathNode.moveFactor = Sqrt2;
 			points.push_back( Vec3f( state.block->pos ) );
-			pathNode.numPos = 1;
-			pathNode.moveFactor = 1.4f;
+			pathNode.posCount += 1;
 			break;
 		case NFT_ROTATOR_C:
 		case NFT_ROTATOR_NC:
 		default:
 			pathNode.moveFactor = 1.0f;
 			points.push_back( faceCenterPos );
-			pathNode.numPos =  1;
+			pathNode.posCount += 1;
 		}
 
 		if ( nextState == nullptr )
 		{
 			pathNode.parallaxDir = 0;
-			pathNode.link = NULL;
+			pathNode.link = nullptr;
 			pathNode.moveFactor *= 0.5;
 		}
 		else
 		{
 			Vec3f outOffset = 0.5 *  FDir::OffsetF( outDir );
 
-			++pathNode.numPos;
 			pathNode.link = nextState->prevBlockNode;
 			Vec3f outPos;
 			if ( bParallaxLink )
@@ -163,6 +168,7 @@ namespace MV
 
 				points.push_back( faceCenterPos + 0.5 * FDir::OffsetF( outDir ) );
 				points.push_back( destPos );
+				pathNode.posCount += 1;
 				if ( faceOffset.dot( destPos - faceCenterPos ) > 0.0 )
 				{
 					pathNode.parallaxDir = 1;
@@ -175,22 +181,37 @@ namespace MV
 			else
 			{
 				pathNode.parallaxDir = 0;
-				points.push_back( faceCenterPos + 0.5 * FDir::OffsetF( outDir ) );
+				switch (surf->func)
+				{
+				case NFT_STAIR:
+					if (state.block->pos != nextState->block->pos)
+						points.push_back(faceCenterPos + outOffset);
+					else
+						points.push_back(faceCenterPos + outOffset - 2 * faceOffset);
+					break;
+				case NFT_ROTATOR_C:
+				case NFT_ROTATOR_NC:
+				default:
+					pathNode.moveFactor = 1.0f;
+					points.push_back(faceCenterPos + outOffset);
+				}
+
+				pathNode.posCount += 1;
 			}
 		}
 
 		pathNodes.push_back( pathNode );
 	}
 
-	void PathFinder::contructPath(Path& path , PointVec& points , World const& world )
+	void PathFinder::buildPath(Path& path , PointVec& points , World const& world )
 	{
 		path.mNodes.clear();
 
 		GFinderImpl.mSreachResult.globalNode->child = nullptr;
 		GFinderImpl.constructPath(GFinderImpl.mSreachResult.globalNode,
-			[](AStarFinder::NodeType* node )
+			[](AStarFinder::NodeType* node)
 			{
-				if( node->parent )
+				if(node->parent)
 				{
 					node->parent->child = node;
 				}
@@ -200,10 +221,11 @@ namespace MV
 		AStarFinder::NodeType* aNode = GFinderImpl.mSreachResult.startNode;
 		AStarFinder::NodeType* aNodeNext; 
 
-		Block*   prevBlock = NULL;
+		Block*   prevBlock = nullptr;
+		Block*   block;
 		Dir      prevDir;
 		Dir      dir;
-		Block*   block;
+
 		FindState* state;
 		FindState* nextState;
 
@@ -214,16 +236,23 @@ namespace MV
 			aNodeNext = aNode->child;
 			if ( aNodeNext )
 			{
-				nextState = ( aNodeNext ) ? &aNodeNext->state : NULL;
-				dir =  block->rotation.toWorld( FDir::Neighbor( state.faceDirL , nextState->prevBlockNode->getDirIndex() ) );
+				nextState = &aNodeNext->state;
+				NavNode* node = nextState->prevBlockNode;
+				dir =  block->rotation.toWorld( FDir::Neighbor( state.faceDirL , node->getDirIndex() ) );
 			}
 			else
 			{
-				nextState = NULL;
+				nextState = nullptr;
 				dir = Dir::X;
 			}
-			AddPathNode( path.mNodes , points , state , nextState , dir , dir , false );
-			
+			prevDir = dir;
+			BlockSurface* surf = &aNode->getSurface();
+
+			bool needAddNode = true;
+			if (needAddNode)
+			{
+				AddPathNode(path.mNodes, points, state, nextState, prevDir, dir, false);
+			}
 		}
 
 		while( aNodeNext )
@@ -235,7 +264,7 @@ namespace MV
 			FindState& state = aNode->state;
 			block = state.block;
 			aNodeNext = aNode->child;
-			nextState = ( aNodeNext ) ? &aNodeNext->state : NULL;
+			nextState = ( aNodeNext ) ? &aNodeNext->state : nullptr;
 
 			bool needAddNode = true;
 
@@ -249,7 +278,7 @@ namespace MV
 				case NFT_ROTATOR_C:
 				case NFT_ROTATOR_NC:
 				case NFT_STAIR:
-					if ( surf->func == nextSurf->func && surf->getBlock() == nextSurf->getBlock())
+					if (Block::WorldDir(*surf) == dir || Block::WorldDir(*surf) == FDir::Inverse(dir))
 						needAddNode = false;
 					break;
 				}
@@ -258,7 +287,7 @@ namespace MV
 			if ( needAddNode )
 			{
 				dir = ( nextState ) ? block->rotation.toWorld( FDir::Neighbor( state.faceDirL , nextState->prevBlockNode->getDirIndex() ) ) : Dir::X;
-				AddPathNode( path.mNodes , points , state , nextState , prevDir , dir , ( nextState ) ? nextState->bParallaxLink : false );
+				AddPathNode( path.mNodes , points , state , nextState , prevDir, dir , ( nextState ) ? nextState->bParallaxLink : false );
 			}
 		}
 	}
@@ -280,8 +309,8 @@ namespace MV
 					dt -= mMoveTime;
 					PathNode const& node = mPath.getNode( mIdxNode );
 					
-					++mNodePosCount;
-					if ( mNodePosCount == node.numPos )
+					++mIndexNodePos;
+					if ( mIndexNodePos == node.posCount )
 					{
 						++mIdxNode;
 						if ( mIdxNode == mPath.getNodeNum() )
@@ -290,7 +319,7 @@ namespace MV
 							return;
 						}
 
-						if ( node.link->link == NULL )
+						if ( node.link->link == nullptr )
 						{
 							mState = eDisconnect;
 							return;
@@ -341,24 +370,36 @@ namespace MV
 			return;
 
 		mMovePoints.clear();
-		pathFinder.contructPath( mPath , mMovePoints , *mWorld );
+		pathFinder.buildPath( mPath , mMovePoints , *mWorld );
 		fixPathParallaxPosition( 0 );
 
+		initMove();
+		return;
+	}
+
+	void Navigator::initMove()
+	{
 		mState = eRun;
 		mIdxNode = 0;
 		mIdxNextPos = 0;
 		setupNodeParam();
-		mPrevPos = mMovePoints[ mIdxNextPos ];
-		++mNodePosCount;
+		mPrevPos = mMovePoints[mIdxNextPos];
+		++mIndexNodePos;
 		++mIdxNextPos;
-		if ( mIdxNextPos == mMovePoints.size() )
+		if (mIdxNextPos == mMovePoints.size())
 		{
 			mHost->renderPos = mPrevPos;
 			mState = eFinish;
 			return;
 		}
-		mMoveOffset = mMovePoints[ mIdxNextPos ] - mPrevPos;
+		mMoveOffset = mMovePoints[mIdxNextPos] - mPrevPos;
 		mMoveTime = mMoveDuration;
+	}
+
+	void Navigator::moveReplay()
+	{
+		initMove();
+		setupActorOnNode();
 	}
 
 	void Navigator::fixPathParallaxPosition(int idxStart)
@@ -366,7 +407,7 @@ namespace MV
 		mWorld->refreshFixNode();
 
 		int idx = idxStart;
-		PathNode* prevNode = NULL;
+		PathNode* prevNode = nullptr;
 		for( int i = 0 ; i < mPath.getNodeNum() ; ++i )
 		{
 			PathNode& node = mPath.getNode(i);
@@ -379,7 +420,7 @@ namespace MV
 					mMovePoints[idx] += fixOffset;
 					++idx;
 				}
-				for( int n = 0 ; n < node.numPos ; ++n )
+				for( int n = 0 ; n < node.posCount ; ++n )
 				{
 					mMovePoints[idx] += fixOffset;
 					++idx;
@@ -389,7 +430,7 @@ namespace MV
 			{
 				if ( prevNode && prevNode->parallaxDir )
 					++idx;
-				idx += node.numPos;
+				idx += node.posCount;
 			}
 
 			prevNode = &node;
@@ -399,8 +440,8 @@ namespace MV
 	void Navigator::setupNodeParam()
 	{
 		PathNode const& node = mPath.getNode( mIdxNode );
-		mNodePosCount = 0;
-		mMoveDuration = 0.3 * node.moveFactor / node.numPos;
+		mIndexNodePos = 0;
+		mMoveDuration = 0.3 * node.moveFactor / node.posCount;
 	}
 
 	void Navigator::setupActorOnNode()

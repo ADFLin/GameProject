@@ -39,7 +39,7 @@ namespace Shoot2D
 		{
 			if ( isInRange(x,y) )
 				return &cell[y][x];
-			return NULL;
+			return nullptr;
 		}
 
 		void getCellPos( Vec2D const& pos , int* n)

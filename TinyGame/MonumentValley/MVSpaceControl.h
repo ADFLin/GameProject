@@ -80,7 +80,7 @@ namespace MV
 		{
 			assert( group.node == this );
 			group.spaceHook.unlink();
-			group.node = NULL;
+			group.node = nullptr;
 		}
 
 		ObjectGroupList mGourps;

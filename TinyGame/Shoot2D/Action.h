@@ -22,7 +22,7 @@ namespace Shoot2D
 	class SampleAI : public Action
 	{
 	public:
-		SampleAI(Action* m = NULL)
+		SampleAI(Action* m = nullptr)
 		{
 			move = m;
 		}

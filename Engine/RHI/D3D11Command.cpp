@@ -219,6 +219,12 @@ namespace Render
 		{
 			mDeviceContext = mDeviceContextImmdiate;
 		}
+		D3D11_FEATURE_DATA_D3D11_OPTIONS3 featureOption3;
+		mDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS3, &featureOption3, sizeof(featureOption3));
+		if (featureOption3.VPAndRTArrayIndexFromAnyShaderFeedingRasterizer)
+		{
+			GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = true;
+		}
 
 		TComPtr< IDXGIDevice > pDXGIDevice;
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice));

@@ -3,7 +3,7 @@
 
 namespace Mario
 {
-	Block* GBlockMap[ 256 ] = { NULL };
+	Block* GBlockMap[ 256 ] = { nullptr };
 
 	float const gTileMargin = 0.001f;
 	//float const gTileMargin = 0;
@@ -12,7 +12,7 @@ namespace Mario
 	{
 		static Block block;
 		static BlockSlope slope;
-		GBlockMap[ BLOCK_NULL   ] = NULL;
+		GBlockMap[ BLOCK_NULL   ] = nullptr;
 		GBlockMap[ BLOCK_STATIC ] = &block;
 		GBlockMap[ BLOCK_BRICK  ] = &block;
 		GBlockMap[ BLOCK_SLOPE_21 ] = &slope;
@@ -213,7 +213,7 @@ namespace Mario
 						testPos.x = pos.x;
 						testPos.y = yTile;
 
-						if ( getWorld()->testTileCollision( testPos , size ) == NULL )
+						if ( getWorld()->testTileCollision( testPos , size ) == nullptr )
 						{
 							pos = testPos;
 							haveBlock = false;
@@ -398,7 +398,7 @@ namespace Mario
 				return &tile;
 			}
 		}
-		return NULL;
+		return nullptr;
 	}
 
 

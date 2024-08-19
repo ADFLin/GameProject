@@ -1388,8 +1388,6 @@ namespace Render
 	{
 	public:
 
-		virtual void setupTextureLayer(RHITextureCube& target, int level = 0) = 0;
-
 		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0)
 		{
 

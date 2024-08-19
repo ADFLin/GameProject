@@ -149,7 +149,7 @@ namespace Render
 				mTexRT2->setDebugName("RT2");
 				GTextureShowManager.registerTexture("TexRT", mTexRT);
 				GTextureShowManager.registerTexture("TexRT2", mTexRT2);
-				mTexDepth = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, screenSize.x, screenSize.y).Flags(TCF_None));
+				mTexDepth = RHICreateTexture2D(TextureDesc::Type2D(ETexture::D24S8, screenSize.x, screenSize.y).Flags(TCF_None));
 
 				mFrameBuffer = RHICreateFrameBuffer();
 				mFrameBuffer->setTexture(0, *mTexRT);

@@ -386,7 +386,7 @@ namespace Render
 		if (info.bCreateDepth)
 		{
 			TextureDesc depthDesc = TextureDesc::Type2D(info.depthFormat, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(info.depthCreateionFlags | TCF_RenderTarget);
-			depthTexture = (D3D11Texture2D*)RHICreateTextureDepth(depthDesc);
+			depthTexture = (D3D11Texture2D*)RHICreateTexture2D(depthDesc, nullptr, 0);
 		}
 		D3D11SwapChain* swapChain = new D3D11SwapChain(swapChainResource, *colorTexture, depthTexture);
 
@@ -407,7 +407,7 @@ namespace Render
 	RHITexture2D* D3D11System::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
-		if( createTexture2DInternal(desc, data, dataAlign, false, creationResult) )
+		if( createTexture2DInternal(desc, data, dataAlign, creationResult) )
 		{
 			return new D3D11Texture2D(desc, creationResult);
 		}
@@ -436,18 +436,6 @@ namespace Render
 		{
 			return new D3D11TextureCube(desc, creationResult);
 		}
-		return nullptr;
-	}
-
-	RHITexture2D* D3D11System::RHICreateTextureDepth(TextureDesc const& desc)
-	{
-		Texture2DCreationResult creationResult;
-
-		if (createTexture2DInternal(desc, nullptr, 0, true, creationResult))
-		{
-			return new D3D11Texture2D(desc, creationResult, D3D11Texture2D::DepthFormat);
-		}
-
 		return nullptr;
 	}
 
@@ -857,11 +845,11 @@ namespace Render
 
 
 	template< class TD3D11_TEXTURE_DESC >
-	void SetupTextureDesc(TD3D11_TEXTURE_DESC& desc, uint32 creationFlags, bool bDepth = false)
+	void SetupTextureDesc(TD3D11_TEXTURE_DESC& desc, uint32 creationFlags, bool bDepthFormat = false)
 	{
 		desc.Usage = (creationFlags & TCF_AllowCPUAccess) ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
 
-		if (bDepth)
+		if (bDepthFormat)
 		{
 			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 		}
@@ -871,7 +859,26 @@ namespace Render
 		}
 			
 		if (creationFlags & TCF_CreateSRV)
+		{
 			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+#if 1
+			switch (desc.Format)
+			{
+			case DXGI_FORMAT_D16_UNORM:
+				desc.Format = DXGI_FORMAT_R16_TYPELESS;
+				break;
+			case DXGI_FORMAT_D32_FLOAT:
+				desc.Format = DXGI_FORMAT_R32_TYPELESS;
+				break;
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+				desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+				break;
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+				desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+				break;
+			}
+#endif
+		}
 		if (creationFlags & TCF_CreateUAV)
 			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 
@@ -924,8 +931,9 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11System::createTexture2DInternal(TextureDesc const& desc, void* data, int dataAlign, bool bDepth, Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture2DInternal(TextureDesc const& desc, void* data, int dataAlign, Texture2DCreationResult& outResult)
 	{
+		bool bDepthFormat = ETexture::IsDepthStencil(desc.format);
 		DXGI_FORMAT format = D3D11Translate::To(desc.format);
 		uint32 pixelSize = ETexture::GetFormatSize(desc.format);
 
@@ -937,45 +945,24 @@ namespace Render
 		d3dDesc.MipLevels = desc.numMipLevel;
 		d3dDesc.ArraySize = 1;
 		d3dDesc.BindFlags = 0;
-		SetupTextureDesc(d3dDesc, desc.creationFlags, bDepth);
+		SetupTextureDesc(d3dDesc, desc.creationFlags, bDepthFormat);
 
 		HRESULT hr;
 		UINT maxQuality = 0;
-		if (desc.numSamples > 1 && !bDepth)
+		if (desc.numSamples > 1 && !bDepthFormat)
 		{
 			hr = mDevice->CheckMultisampleQualityLevels(format, desc.numSamples, &maxQuality);
 			maxQuality = D3D11_STANDARD_MULTISAMPLE_PATTERN;
 		}
 		d3dDesc.SampleDesc.Count = desc.numSamples;
 		d3dDesc.SampleDesc.Quality = maxQuality;
-
-		if (desc.creationFlags & TCF_CreateSRV)
-		{
-#if 1
-			switch (d3dDesc.Format)
-			{
-			case DXGI_FORMAT_D16_UNORM:
-				d3dDesc.Format = DXGI_FORMAT_R16_TYPELESS;
-				break;
-			case DXGI_FORMAT_D32_FLOAT:
-				d3dDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-				break;
-			case DXGI_FORMAT_D24_UNORM_S8_UINT:
-				d3dDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-				break;
-			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
-				d3dDesc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
-				break;
-			}
-#endif
-		}
 #if SYS_PLATFORM_WIN
 		if (desc.creationFlags & TCF_PlatformGraphicsCompatible)
 		{
 			if (format == DXGI_FORMAT_B8G8R8A8_UNORM)
 			{
 				d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
-				if (!bDepth)
+				if (!bDepthFormat)
 				{
 					d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 				}
@@ -1024,6 +1011,7 @@ namespace Render
 
 	bool D3D11System::createTexture3DInternal(TextureDesc const& desc, void* data, Texture3DCreationResult& outResult)
 	{
+		bool bDepthFormat = ETexture::IsDepthStencil(desc.format);
 		DXGI_FORMAT format = D3D11Translate::To(desc.format);
 		uint32 pixelSize = ETexture::GetFormatSize(desc.format);
 
@@ -1034,7 +1022,7 @@ namespace Render
 		d3dDesc.Depth = desc.dimension.z;
 		d3dDesc.MipLevels = desc.numMipLevel;
 		d3dDesc.BindFlags = 0;
-		SetupTextureDesc(d3dDesc, desc.creationFlags);
+		SetupTextureDesc(d3dDesc, desc.creationFlags, bDepthFormat);
 
 		D3D11_SUBRESOURCE_DATA initData = {};
 		if (data)
@@ -1069,6 +1057,7 @@ namespace Render
 
 	bool D3D11System::createTextureCubeInternal(TextureDesc const& desc, void* data[], TextureCubeCreationResult& outResult)
 	{
+		bool bDepthFormat = ETexture::IsDepthStencil(desc.format);
 		DXGI_FORMAT format = D3D11Translate::To(desc.format);
 
 		D3D11_TEXTURE2D_DESC d3dDesc = {};
@@ -1078,7 +1067,7 @@ namespace Render
 		d3dDesc.MipLevels = desc.numMipLevel;
 		d3dDesc.ArraySize = 6;
 		d3dDesc.BindFlags = 0;
-		SetupTextureDesc(d3dDesc, desc.creationFlags);
+		SetupTextureDesc(d3dDesc, desc.creationFlags, bDepthFormat);
 		d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
 
 		d3dDesc.SampleDesc.Count = desc.numSamples;
@@ -1808,7 +1797,7 @@ namespace Render
 		return true;
 	}
 
-	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData)
+	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 numInstance)
 	{
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
@@ -1870,18 +1859,32 @@ namespace Render
 			if( indexBuffer )
 			{
 				mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-				mDeviceContext->DrawIndexed(numDrawIndex, 0, 0);
+				if (numInstance != 1)
+				{
+					mDeviceContext->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
+				}
+				else
+				{
+					mDeviceContext->DrawIndexed(numDrawIndex, 0, 0);
+				}
 			}
 			else
 			{
 				mDeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
-				mDeviceContext->Draw(numVertices, 0);
+				if (numInstance != 1)
+				{
+					mDeviceContext->DrawInstanced(numVertices, numInstance, 0, 0);
+				}
+				else
+				{
+					mDeviceContext->Draw(numVertices, 0);
+				}
 			}
 			postDrawPrimitive();
 		}
 	}
 
-	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
+	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance)
 	{
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;
@@ -1921,7 +1924,15 @@ namespace Render
 			mDeviceContext->IASetVertexBuffers(0, numVertexData, vertexBuffers, strides, offsets);
 
 			mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-			mDeviceContext->DrawIndexed(numDrawIndex, 0, 0);
+
+			if (numInstance != 1)
+			{
+				mDeviceContext->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
+			}
+			else
+			{
+				mDeviceContext->DrawIndexed(numDrawIndex, 0, 0);
+			}
 			postDrawPrimitive();
 		}
 	}
@@ -2099,11 +2110,10 @@ namespace Render
 			}
 
 			GRAPHIC_SHADER_LIST(SET_SHADER_OP)
-			mBoundedShaderDirtyMask = (mBoundedShaderDirtyMask & BIT(EShader::Compute));
+			mBoundedShaderDirtyMask &= ~(BIT(EShader::Vertex)|BIT(EShader::Pixel)|BIT(EShader::Geometry)|BIT(EShader::Hull)|BIT(EShader::Domain));
 
 #undef SET_SHADER_OP
 		}
-
 
 		if ( mResourceBoundStates[EShader::Pixel].mUAVUsageCount )
 		{

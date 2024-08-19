@@ -342,11 +342,17 @@ namespace Render
 		return idx;
 	}
 
-
 	int OpenGLFrameBuffer::addTexture(RHITexture2DArray& target, int indexLayer, int level /*= 0*/)
 	{
 		int idx = mTextures.size();
 		setTexture(idx, target, indexLayer, level);
+		return idx;
+	}
+
+	int OpenGLFrameBuffer::addTextureArray(RHITextureCube& target, int level)
+	{
+		int idx = mTextures.size();
+		setTextureArray(idx, target, level);
 		return idx;
 	}
 
@@ -363,7 +369,7 @@ namespace Render
 		info.idxFace = -1;
 		info.level = level;
 		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
-		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info.typeEnumGL, level );
+		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info);
 	}
 
 	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , ETexture::Face face, int level)
@@ -379,7 +385,7 @@ namespace Render
 		info.idxFace = face;
 		info.level = level;
 		info.typeEnumGL = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
-		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , level );
+		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info);
 	}
 
 	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level /*= 0*/)
@@ -395,9 +401,24 @@ namespace Render
 		info.indexLayer = indexLayer;
 		info.level = level;
 		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
-		setTextureLayerInternal(idx, OpenGLCast::GetHandle(target), info.typeEnumGL , level , indexLayer);
+		setTextureLayerInternal(idx, OpenGLCast::GetHandle(target), info);
 	}
 
+	void OpenGLFrameBuffer::setTextureArray(int idx, RHITextureCube& target, int level)
+	{
+		assert(idx <= mTextures.size());
+		if (idx == mTextures.size())
+		{
+			mTextures.push_back(BufferInfo());
+		}
+
+		BufferInfo& info = mTextures[idx];
+		info.bufferRef = &target;
+		info.idxFace = 0;
+		info.level = level;
+		info.typeEnumGL = GL_TEXTURE_CUBE_MAP;
+		setTextureArrayInternal(idx, OpenGLCast::GetHandle(target), info);
+	}
 
 	void OpenGLFrameBuffer::setRenderBufferInternal(GLuint handle)
 	{
@@ -408,29 +429,37 @@ namespace Render
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setTexture2DInternal(int idx, GLuint handle , GLenum texType, int level)
+	void OpenGLFrameBuffer::setTexture2DInternal(int idx, GLuint handle , BufferInfo const& info)
 	{
 		assert( getHandle() );
 		glBindFramebuffer( GL_FRAMEBUFFER , getHandle() );
-		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , level );
+		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , info.typeEnumGL , handle , info.level );
 		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
 
-	void OpenGLFrameBuffer::setTexture3DInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer)
+	void OpenGLFrameBuffer::setTexture3DInternal(int idx, GLuint handle, BufferInfo const& info)
 	{
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
-		glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, texType, handle, level , idxLayer);
+		glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, info.typeEnumGL, handle, info.level , info.indexLayer);
 		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer)
+	void OpenGLFrameBuffer::setTextureLayerInternal(int idx, GLuint handle, BufferInfo const& info)
 	{
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
-		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, level, idxLayer);
+		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, info.level, info.indexLayer);
+		VerifyFrameBufferStatus();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	void OpenGLFrameBuffer::setTextureArrayInternal(int idx, GLuint handle, BufferInfo const& info)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, info.level);
 		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
@@ -440,15 +469,20 @@ namespace Render
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle() );
 	}
 
-
 	void OpenGLFrameBuffer::bind()
 	{
 		glBindFramebuffer( GL_FRAMEBUFFER, getHandle() );
-		GLenum DrawBuffers[] =
+		static const GLenum DrawBuffers[] =
 		{ 
-			GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
-			GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
+			GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1 , GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, 
+			GL_COLOR_ATTACHMENT4 , GL_COLOR_ATTACHMENT5 , GL_COLOR_ATTACHMENT6 , GL_COLOR_ATTACHMENT7, 
+#if 0
+			GL_COLOR_ATTACHMENT8 , GL_COLOR_ATTACHMENT9 , GL_COLOR_ATTACHMENT10, GL_COLOR_ATTACHMENT11,
+			GL_COLOR_ATTACHMENT12, GL_COLOR_ATTACHMENT13, GL_COLOR_ATTACHMENT14, GL_COLOR_ATTACHMENT15,
+#endif
 		};
+
+		CHECK(mTextures.size() < ARRAY_SIZE(DrawBuffers));
 		glDrawBuffers( mTextures.size() , DrawBuffers );
 
 		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -526,7 +560,7 @@ namespace Render
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL)
+	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL, bool bArray)
 	{
 		removeDepth();
 
@@ -545,14 +579,20 @@ namespace Render
 				else
 					attachType = GL_STENCIL_ATTACHMENT;
 			}
-
-			if( typeEnumGL == GL_RENDERBUFFER )
+			if ( bArray )
 			{
-				glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachType, GL_RENDERBUFFER, handle);
+				glFramebufferTexture(GL_FRAMEBUFFER, attachType, handle, 0);
 			}
 			else
 			{
-				glFramebufferTexture2D(GL_FRAMEBUFFER, attachType , typeEnumGL, handle, 0);
+				if (typeEnumGL == GL_RENDERBUFFER)
+				{
+					glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachType, GL_RENDERBUFFER, handle);
+				}
+				else
+				{
+					glFramebufferTexture2D(GL_FRAMEBUFFER, attachType, typeEnumGL, handle, 0);
+				}
 			}
 
 			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);

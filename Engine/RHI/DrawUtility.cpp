@@ -94,24 +94,39 @@ namespace Render
 			mRectVertexInputLayout.release();
 		}
 
-		void drawRect(RHICommandList& commandList)
+		void drawRect(RHICommandList& commandList, uint32 numInstance = 1)
 		{
 			InputStreamInfo inputStream;
 			inputStream.buffer = mRectVertexBuffer;
 			RHISetInputStream(commandList, mRectVertexInputLayout, &inputStream, 1);
 
 			RHISetIndexBuffer(commandList, mQuadIndexBuffer);
-			RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 6);
+			if ( numInstance != 1)
+			{
+				RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, numInstance);
+			}
+			else
+			{
+				RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 6);
+			}
+	
 		}
 
-		void drawOptimisedTriangle(RHICommandList& commandList)
+		void drawOptimisedTriangle(RHICommandList& commandList, uint32 numInstance = 1)
 		{
 			InputStreamInfo inputStream;
 			inputStream.buffer = mRectVertexBuffer;
 			RHISetInputStream(commandList, mRectVertexInputLayout, &inputStream, 1);
 
 			RHISetIndexBuffer(commandList, mQuadIndexBuffer);
-			RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 3, 4);
+			if (numInstance != 1)
+			{
+				RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 3, numInstance, 4);
+			}
+			else
+			{
+				RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 3, 4);
+			}
 		}
 
 

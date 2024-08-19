@@ -219,9 +219,9 @@ namespace Render
 		}
 
 	
-		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 numInstance);
 
-		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance);
 
 
 		void RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
@@ -612,7 +612,6 @@ namespace Render
 		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) { return nullptr; }
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
-		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return RHICreateTexture2D(desc, nullptr, 0); }
 
 
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);

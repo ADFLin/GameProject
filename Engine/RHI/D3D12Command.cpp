@@ -2148,7 +2148,7 @@ namespace Render
 		postDrawPrimitive();
 	}
 
-	void D3D12Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData)
+	void D3D12Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 numInstance)
 	{
 
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
@@ -2221,18 +2221,18 @@ namespace Render
 			if (indexBufferView.SizeInBytes)
 			{
 				mGraphicsCmdList->IASetIndexBuffer(&indexBufferView);
-				mGraphicsCmdList->DrawIndexedInstanced(numDrawIndex, 1, 0, 0, 0);
+				mGraphicsCmdList->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
 			}
 			else
 			{
-				mGraphicsCmdList->DrawInstanced(numVertices, 1, 0, 0);
+				mGraphicsCmdList->DrawInstanced(numVertices, numInstance, 0, 0);
 			}
 
 			postDrawPrimitive();
 		}
 	}
 
-	void D3D12Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
+	void D3D12Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance)
 	{
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
 		EPrimitive determitedPrimitive;
@@ -2274,7 +2274,7 @@ namespace Render
 
 			mGraphicsCmdList->IASetVertexBuffers(0, numVertexData, vertexBufferViews);
 			mGraphicsCmdList->IASetIndexBuffer(&indexBufferView);
-			mGraphicsCmdList->DrawIndexedInstanced(numDrawIndex, 1, 0, 0, 0);
+			mGraphicsCmdList->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
 
 
 			postDrawPrimitive();

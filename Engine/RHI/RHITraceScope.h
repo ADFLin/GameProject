@@ -6,7 +6,6 @@
 #define RHICreateTexture3D(...) RHICreateTexture3DTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateTextureCube(...) RHICreateTextureCubeTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateTexture2DArray(...) RHICreateTexture2DArrayTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
-#define RHICreateTextureDepth(...) RHICreateTextureDepthTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateShaderProgram(...) RHICreateShaderProgramTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateInputLayout(...) RHICreateInputLayoutTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateBuffer(...) RHICreateBufferTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
@@ -25,7 +24,6 @@
 #undef RHICreateTexture3D
 #undef RHICreateTextureCube
 #undef RHICreateTexture2DArray
-#undef RHICreateTextureDepth
 #undef RHICreateShaderProgram
 #undef RHICreateInputLayout
 #undef RHICreateBuffer

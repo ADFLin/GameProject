@@ -91,7 +91,7 @@ bool RenderEngine::setupFrameBuffer( int width , int height )
 	mTexNormalMap = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGB10A2, width, height).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue));
 	mTexNormalMap->setDebugName("TexNormalMap");
 
-	mTexDepth     = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, width, height).Flags(TCF_None));
+	mTexDepth     = RHICreateTexture2D(TextureDesc::Type2D(ETexture::D24S8, width, height).Flags(TCF_None));
 	mDeferredFrameBuffer = RHICreateFrameBuffer();
 	mDeferredFrameBuffer->setTexture(0, *mTexGeometry);
 	mDeferredFrameBuffer->setTexture(1, *mTexNormalMap);

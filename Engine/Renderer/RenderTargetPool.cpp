@@ -41,7 +41,7 @@ namespace Render
 			if (ETexture::IsDepthStencil(desc.format))
 			{
 				TextureDesc depthDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags);
-				result->texture = RHICreateTextureDepth(depthDesc);
+				result->texture = RHICreateTexture2D(depthDesc);
 			}
 			else
 			{

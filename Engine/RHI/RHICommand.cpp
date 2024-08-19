@@ -283,16 +283,6 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture2DArray(desc, data)));
 	}
 
-	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, ETexture::Format format, int w, int h, int numMipLevel, int numSamples, TextureCreationFlags creationFlags)
-	{
-		TextureDesc desc = TextureDesc::Type2D(format, w, h).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(desc)) );
-	}
-	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, TextureDesc const& desc)
-	{
-		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTextureDepth(desc)));
-	}
-
 	RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, uint32 elementSize, uint32 numElements, BufferCreationFlags creationFlags, void* data)
 	{
 		if (elementSize == 0 || numElements == 0)

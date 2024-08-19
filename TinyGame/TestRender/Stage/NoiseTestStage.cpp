@@ -291,7 +291,7 @@ namespace Render
 
 		int numSamples = 1;
 
-		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(ETexture::Depth32F, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV));
+		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTexture2D(ETexture::Depth32F, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV));
 		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(ETexture::FloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 		mFrameBuffer->addTexture(*mScreenBuffer);
@@ -299,7 +299,7 @@ namespace Render
 
 		if( numSamples != 1 )
 		{
-			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTextureDepth(ETexture::Depth32F, screenSize.x, screenSize.y, 1, 1, TCF_CreateSRV));
+			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTexture2D(ETexture::Depth32F, screenSize.x, screenSize.y, 1, 1, TCF_CreateSRV));
 		}
 		else
 		{

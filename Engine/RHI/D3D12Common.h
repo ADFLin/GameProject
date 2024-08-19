@@ -554,7 +554,6 @@ namespace Render
 	class D3D12FrameBuffer : public TRefcountResource< RHIFrameBuffer >
 	{
 	public:
-		virtual void setupTextureLayer(RHITextureCube& target, int level = 0){}
 
 		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) 
 		{ 
@@ -565,6 +564,15 @@ namespace Render
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) { setTextureInternal(idx, target, level); }
 		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) {  }
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) {  }
+
+		virtual int  addTextureArray(RHITextureCube& target, int level)
+		{
+			return INDEX_NONE;
+		}
+		virtual void setTextureArray(int idx, RHITextureCube& target, int level)
+		{
+
+		}
 
 		void setDepth(RHITexture2D& target) override;
 		virtual void removeDepth();

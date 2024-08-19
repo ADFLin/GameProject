@@ -165,7 +165,7 @@ namespace Render
 			++index;
 		}
 
-		mDepthTexture = RHICreateTextureDepth(ETexture::D32FS8, size.x, size.y, 1, numSamples, TCF_CreateSRV);
+		mDepthTexture = RHICreateTexture2D(ETexture::D32FS8, size.x, size.y, 1, numSamples, TCF_CreateSRV);
 		if (!mDepthTexture.isValid())
 			return false;
 

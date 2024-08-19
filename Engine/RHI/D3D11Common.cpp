@@ -288,10 +288,7 @@ namespace Render
 	{
 		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
-		mRenderTargetsState.colorResources[indexSlot] = &target;
-		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
-		mRenderTargetsState.numColorBuffers += 1;
-		bStateDirty = true;
+		setTexture(indexSlot, target, level);
 		return indexSlot;
 	}
 
@@ -299,12 +296,18 @@ namespace Render
 	{
 		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
-		mRenderTargetsState.colorResources[indexSlot] = &target;
-		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
-		mRenderTargetsState.numColorBuffers += 1;
-		bStateDirty = true;
+		setTexture(indexSlot, target, face, level);
 		return indexSlot;
 	}
+
+	int D3D11FrameBuffer::addTextureArray(RHITextureCube& target, int level)
+	{
+		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
+		int indexSlot = mRenderTargetsState.numColorBuffers;
+		setTextureArray(indexSlot, target, level);
+		return indexSlot;
+	}
+
 
 	void D3D11FrameBuffer::setTexture(int idx, RHITexture2D& target, int level)
 	{
@@ -323,6 +326,17 @@ namespace Render
 			mRenderTargetsState.numColorBuffers += 1;
 		mRenderTargetsState.colorResources[idx] = &target;
 		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
+		bStateDirty = true;
+	}
+
+
+	void D3D11FrameBuffer::setTextureArray(int idx, RHITextureCube& target, int level)
+	{
+		CHECK(idx <= mRenderTargetsState.numColorBuffers);
+		if (idx == mRenderTargetsState.numColorBuffers)
+			mRenderTargetsState.numColorBuffers += 1;
+		mRenderTargetsState.colorResources[idx] = &target;
+		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11TextureCube&>(target).getRenderTargetArrayView(level);
 		bStateDirty = true;
 	}
 
@@ -371,7 +385,7 @@ namespace Render
 		{
 			TextureDesc depthDesc = mDepthTexture->getDesc();
 			depthDesc.dimension = IntVector3(w, h, 1);
-			mDepthTexture = (D3D11Texture2D*)RHICreateTextureDepth(depthDesc);
+			mDepthTexture = (D3D11Texture2D*)RHICreateTexture2D(depthDesc);
 		}
 
 		updateRenderTargetsState();

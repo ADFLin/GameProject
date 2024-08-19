@@ -564,14 +564,15 @@ namespace Render
 	public:
 		RHIFrameBuffer() :RHIResource(TRACE_TYPE_NAME("FrameBuffer")) {}
 
-		virtual void setupTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
-
 		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
+		virtual int  addTextureArray(RHITextureCube& target, int level = 0) = 0;
+
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
+		virtual void setTextureArray(int idx, RHITextureCube& target, int level = 0) = 0;
 
 		int addTexture(RHITextureBase& target, int subIndex = 0, int level = 0)
 		{

@@ -251,6 +251,7 @@ namespace Render
 	class TD3D11Texture : public TD3D11Resource< RHITextureType >
 	{
 	protected:
+
 		TD3D11Texture(TextureDesc const& desc, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
 			:mSRV(SRV),mUAV(UAV)
 		{
@@ -266,6 +267,12 @@ namespace Render
 		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
 
 	public:
+
+		enum EDepthFormat
+		{
+			DepthFormat,
+		};
+
 		D3D11ShaderResourceView    mSRV;
 		ID3D11UnorderedAccessView* mUAV;
 	};
@@ -387,6 +394,21 @@ namespace Render
 			});
 		}
 
+		ID3D11RenderTargetView* getRenderTargetArray_TextureCube(ID3D11Resource* texture, ETexture::Format format, int level)
+		{
+			RenderTargetKey key;
+			key.level = level;
+			key.arrayIndex = 0;
+			return getRednerTargetInternal(key, texture, [=](D3D11_RENDER_TARGET_VIEW_DESC& desc)
+			{
+				desc.Format = D3D11Translate::To(format);
+				desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+				desc.Texture2DArray.ArraySize = 6;
+				desc.Texture2DArray.FirstArraySlice = 0;
+				desc.Texture2DArray.MipSlice = level;
+			});
+		}
+
 
 		template< class TFunc >
 		ID3D11RenderTargetView* getRednerTargetInternal(RenderTargetKey const& key ,ID3D11Resource* texture, TFunc&& SetupDescFunc)
@@ -459,45 +481,38 @@ namespace Render
 	{
 		using BaseClass = TD3D11Texture< RHITexture2D >;
 	public:
-		enum EDepthFormat
-		{
-			DepthFormat ,
-		};
+
 		D3D11Texture2D(TextureDesc const& desc, Texture2DCreationResult& creationResult)
 			:TD3D11Texture< RHITexture2D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mResource = creationResult.resource.detach();
-		}
 
-		D3D11Texture2D(TextureDesc const& desc, Texture2DCreationResult& creationResult , EDepthFormat )
-			:TD3D11Texture< RHITexture2D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
-		{
-			mResource = creationResult.resource.detach();
-
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-			depthStencilDesc.Format = D3D11Translate::To(mDesc.format);
-			switch (depthStencilDesc.Format)
+			if (ETexture::IsDepthStencil(mDesc.format))
 			{
-			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
-			case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
-				depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-				break;
-			}
+				TComPtr<ID3D11Device> device;
+				mResource->GetDevice(&device);
+				D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+				depthStencilDesc.Format = D3D11Translate::To(mDesc.format);
+				switch (depthStencilDesc.Format)
+				{
+				case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+				case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+					depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+					break;
+				}
 
-			if (mDesc.numSamples > 1)
-			{
-				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-			}
-			else
-			{
-				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-				depthStencilDesc.Texture2D.MipSlice = 0;
-			}
+				if (mDesc.numSamples > 1)
+				{
+					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+				}
+				else
+				{
+					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+					depthStencilDesc.Texture2D.MipSlice = 0;
+				}
 
-			VERIFY_D3D_RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
-
+				VERIFY_D3D_RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
+			}
 		}
 
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
@@ -598,6 +613,30 @@ namespace Render
 			:TD3D11Texture< RHITextureCube >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mResource = creationResult.resource.detach();
+
+			if (ETexture::IsDepthStencil(mDesc.format))
+			{
+				TComPtr<ID3D11Device> device;
+				mResource->GetDevice(&device);
+				D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+				depthStencilDesc.Format = D3D11Translate::ToDSV(D3D11Translate::To(mDesc.format));
+
+				if (mDesc.numSamples > 1)
+				{
+					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+					depthStencilDesc.Texture2DMSArray.FirstArraySlice = 0;
+					depthStencilDesc.Texture2DMSArray.ArraySize = 6;
+				}
+				else
+				{
+					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+					depthStencilDesc.Texture2DArray.FirstArraySlice = 0;
+					depthStencilDesc.Texture2DArray.ArraySize = 6;
+					depthStencilDesc.Texture2DArray.MipSlice = 0;
+				}
+
+				VERIFY_D3D_RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
+			}
 		}
 
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level )
@@ -649,6 +688,7 @@ namespace Render
 		void releaseResource()
 		{
 			mViewStorage.releaseResource();
+			SAFE_RELEASE(mDSV);
 			BaseClass::releaseResource();
 		}
 
@@ -657,7 +697,12 @@ namespace Render
 		{
 			return mViewStorage.getRenderTarget_TextureCube(mResource, mDesc.format, face, level);
 		}
+		ID3D11RenderTargetView* getRenderTargetArrayView(int level)
+		{
+			return mViewStorage.getRenderTargetArray_TextureCube(mResource, mDesc.format, level);
+		}
 		D3D11ResourceViewStorage mViewStorage;
+		ID3D11DepthStencilView*  mDSV = nullptr;
 	};
 
 	struct D3D11BufferCreationResult
@@ -798,10 +843,7 @@ namespace Render
 	class D3D11FrameBuffer : public TRefcountResource< RHIFrameBuffer >
 	{
 	public:
-		virtual void setupTextureLayer(RHITextureCube& target, int level)
-		{
 
-		}
 		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level);
 		virtual int  addTexture(RHITexture2D& target, int level);
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level)
@@ -809,6 +851,8 @@ namespace Render
 			return INDEX_NONE;
 
 		}
+		virtual int  addTextureArray(RHITextureCube& target, int level);
+
 		virtual void setTexture(int idx, RHITexture2D& target, int level);
 		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level);
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
@@ -816,6 +860,9 @@ namespace Render
 
 
 		}
+
+
+		virtual void setTextureArray(int idx, RHITextureCube& target, int level);
 		virtual void setDepth(RHITexture2D& target);
 		virtual void removeDepth();
 	

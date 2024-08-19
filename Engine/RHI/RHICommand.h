@@ -165,16 +165,11 @@ namespace Render
 		TextureCreationFlags creationFlags = TCF_DefalutValue,
 		void* data = nullptr);
 
-	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTextureDepth,
-		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, 
-		TextureCreationFlags creationFlags = TCF_None);
-
 	RHI_API RHITexture1D*      RHI_TRACE_FUNC(RHICreateTexture1D, TextureDesc const& desc, void* data = nullptr);
 	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTexture2D, TextureDesc const& desc, void* data = nullptr, int dataAlign = 0);
 	RHI_API RHITexture3D*      RHI_TRACE_FUNC(RHICreateTexture3D, TextureDesc const& desc, void* data = nullptr);
 	RHI_API RHITextureCube*    RHI_TRACE_FUNC(RHICreateTextureCube,TextureDesc const& desc,void* data[] = nullptr);
 	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, TextureDesc const& desc, void* data = nullptr);
-	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTextureDepth,TextureDesc const& desc);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer,
 		uint32 elementSize, uint32 numElements, BufferCreationFlags creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -255,16 +250,16 @@ namespace Render
 	RHI_API void RHIDrawPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance = 0);
 	RHI_API void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex = 0, uint32 baseInstance = 0);
 
-	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertices, int vetexStride);
-	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertices, int vetexStride, uint32 const* pIndices, int numIndex);
+	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertices, int vetexStride, uint32 numInstance = 1);
+	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertices, int vetexStride, uint32 const* pIndices, int numIndex, uint32 numInstance = 1);
 	struct VertexDataInfo
 	{
 		void const* ptr;
 		int   size;
 		int   stride;
 	};
-	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[] , int numData );
-	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
+	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[] , int numData, uint32 numInstance = 1);
+	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance = 1);
 	
 	RHI_API void RHIDrawMeshTasks(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 	RHI_API void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
@@ -367,7 +362,6 @@ namespace Render
 		RHI_FUNC(RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data));
 		RHI_FUNC(RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]));
 		RHI_FUNC(RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data));
-		RHI_FUNC(RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc));
 		
 		RHI_FUNC(RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data));
 

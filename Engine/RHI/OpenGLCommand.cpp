@@ -349,7 +349,13 @@ namespace Render
 	{
 		if (ETexture::IsDepthStencil(desc.format))
 		{
-			return RHICreateTextureDepth(desc);
+			OpenGLTexture2D* result = new OpenGLTexture2D(desc);
+			if (result && !result->createDepth())
+			{
+				delete result;
+				return nullptr;
+			}
+			return result;
 		}
 		return CreateOpenGLResource1T< OpenGLTexture2D >(desc, data, dataAlign);
 	}
@@ -367,17 +373,6 @@ namespace Render
 	RHITexture2DArray* OpenGLSystem::RHICreateTexture2DArray(TextureDesc const& desc, void* data)
 	{
 		return CreateOpenGLResource1T< OpenGLTexture2DArray >(desc, data);
-	}
-
-	RHITexture2D* OpenGLSystem::RHICreateTextureDepth(TextureDesc const& desc)
-	{
-		OpenGLTexture2D* result = new OpenGLTexture2D(desc);
-		if (result && !result->createDepth())
-		{
-			delete result;
-			return nullptr;
-		}
-		return result;
 	}
 
 	RHIBuffer* OpenGLSystem::RHICreateBuffer(BufferDesc const& desc, void* data)
@@ -929,17 +924,24 @@ namespace Render
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	void OpenGLContext::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData)
+	void OpenGLContext::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData, uint32 numInstance)
 	{
 		if( !commitInputStreamUP(dataInfos, numData) )
 			return;
 
 		commitGraphicStates();
 		GLenum primitiveGL = commitPrimitiveState(type);
-		glDrawArrays(primitiveGL, 0, numVertices);
+		if ( numInstance != 1)
+		{
+			glDrawArraysInstanced(primitiveGL, 0 , numVertices, numInstance);
+		}
+		else
+		{
+			glDrawArrays(primitiveGL, 0, numVertices);
+		}	
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , uint32 const* pIndices, int numIndex)
+	void OpenGLContext::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , uint32 const* pIndices, int numIndex, uint32 numInstance)
 	{
 		if( pIndices == nullptr )
 			return;
@@ -948,9 +950,15 @@ namespace Render
 			return;
 
 		commitGraphicStates();
-
 		GLenum primitiveGL = commitPrimitiveState(type);
-		glDrawElements(primitiveGL, numIndex, GL_UNSIGNED_INT, (void*)pIndices);
+		if (numInstance != 1)
+		{
+			glDrawElementsInstanced(primitiveGL, numIndex, GL_UNSIGNED_INT, (void*)pIndices, numInstance);
+		}
+		else
+		{
+			glDrawElements(primitiveGL, numIndex, GL_UNSIGNED_INT, (void*)pIndices);
+		}
 	}
 
 	void OpenGLContext::RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)

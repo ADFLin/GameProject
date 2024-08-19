@@ -346,9 +346,12 @@ namespace Render
 		int  addTexture(RHITexture2D& target, int level = 0);
 		int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0);
 		int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0);
+		int  addTextureArray(RHITextureCube& target, int level);
+
 		void setTexture(int idx, RHITexture2D& target, int level = 0);
 		void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0);
 		void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0);
+		void setTextureArray(int idx, RHITextureCube& target, int level);
 
 		
 		void bindDepthOnly();
@@ -386,10 +389,11 @@ namespace Render
 			};
 		};
 		void setRenderBufferInternal(GLuint handle);
-		void setTexture2DInternal(int idx, GLuint handle, GLenum texType, int level);
-		void setTexture3DInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
-		void setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
-		void setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL);
+		void setTexture2DInternal(int idx, GLuint handle, BufferInfo const& info);
+		void setTexture3DInternal(int idx, GLuint handle, BufferInfo const& info);
+		void setTextureLayerInternal(int idx, GLuint handle, BufferInfo const& info);
+		void setTextureArrayInternal(int idx, GLuint handle, BufferInfo const& info);
+		void setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL, bool bArray = false);
 
 		TArray< BufferInfo > mTextures;
 		BufferInfo  mDepth;

@@ -112,8 +112,8 @@ namespace Render
 		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
 		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
-		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData);
-		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData, uint32 numInstance);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance);
 
 		void RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 		void RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
@@ -402,7 +402,6 @@ namespace Render
 		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data);
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]);
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data);
-		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc);
 
 		RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data);
 

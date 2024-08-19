@@ -18,6 +18,7 @@ namespace Render
 		static DXGI_FORMAT To(ETexture::Format format);
 		static DXGI_FORMAT IndexType(RHIBuffer* buffer);
 		static DXGI_FORMAT ToSRV(DXGI_FORMAT format);
+		static DXGI_FORMAT ToDSV(DXGI_FORMAT format);
 	};
 
 

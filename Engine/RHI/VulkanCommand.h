@@ -128,7 +128,6 @@ namespace Render
 		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) { return nullptr; }
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
-		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return nullptr; }
 
 		RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data);
 

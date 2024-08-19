@@ -158,6 +158,17 @@ namespace Render
 		return format;
 	}
 
+	DXGI_FORMAT D3DTranslate::ToDSV(DXGI_FORMAT format)
+	{
+		switch (format)
+		{
+		case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+		case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+			return DXGI_FORMAT_D24_UNORM_S8_UINT;
+		}
+		return format;
+	}
+
 	DeviceVendorName FD3DUtils::GetDevicVenderName(UINT vendorId)
 	{
 		switch (vendorId)

@@ -1,0 +1,49 @@
+#include "Common.sgc"
+#if COMPILER_GLSL
+#extension GL_ARB_shader_viewport_layer_array : enable
+#endif
+
+#if SHADER_ENTRY(MainVS)
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT_INSTANCEID
+	VS_OUTPUT(float2 OutUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_VIEWPORT_INDEX
+	VS_OUTPUT_RENDERTARGET_IDNEX
+VS_ENTRY_END(MainVS)
+{
+	SvPosition = float4(InPos, 0, 1);
+	OutUV = 0.5 * InPos + 0.5;
+	SvViewportIndex = SvInstanceID / 6;
+	SvRenderTargetIndex = SvInstanceID % 6;
+}
+#endif
+
+#if SHADER_ENTRY(MainPS)
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+	PS_INPUT_VIEWPORT_INDEX
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	if (0.25 < InUV.x && InUV.x < 0.75 &&
+		0.25 < InUV.y && InUV.y < 0.75)
+	{
+		if (SvViewportIndex == 0)
+			OutColor = float4(1, 0, 0, 1);
+		if (SvViewportIndex == 1)
+			OutColor = float4(0, 1, 0, 1);
+		if (SvViewportIndex == 2)
+			OutColor = float4(0, 0, 1, 1);
+		if (SvViewportIndex == 3)
+			OutColor = float4(1, 1, 1, 1);
+	}
+	else
+	{
+		OutColor = float4(InUV, 0, 1);
+	}
+}
+
+#endif

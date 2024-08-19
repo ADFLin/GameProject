@@ -107,7 +107,7 @@ PS_ENTRY_END(MainPS)
 	}
 #endif
 	//color.rgb = pow(color.rgb, 0.2);
-	OutColor = float4(VSOutput.UVs, 0, 1);
+	//OutColor = float4(VSOutput.UVs, 0, 1);
 	OutColor = color;
 }
 

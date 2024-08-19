@@ -98,8 +98,8 @@ void GroupMemoryBarrierWithGroupSync();
 #define VS_INPUT_PARAMETERS(TYPE_DECL)   in TYPE_DECL ,
 #define VS_INPUT(TYPE_DECL, LOC)         SHADER_INPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT_POINTSIZE              out float SvPointSize : PSIZE,
-#define VS_OUTPUT_VIEWPORT_INDEX         out SvViewportIndex : SV_ViewportArrayIndex,
-#define VS_OUTPUT_RENDERTARGET_IDNEX     out SvRenderTargetIndex : SV_RenderTargetArrayIndex,
+#define VS_OUTPUT_VIEWPORT_INDEX         out uint SvViewportIndex : SV_ViewportArrayIndex,
+#define VS_OUTPUT_RENDERTARGET_IDNEX     out uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
 #define VS_OUTPUT(TYPE_DECL , LOC)       out TYPE_DECL : TEXCOORD##LOC,
 #define VS_OUTPUT_STRUCT(TYPE_DECL, LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
 #define VS_ENTRY_END(NAME)               out float4 SvPosition : SV_POSITION)
@@ -119,6 +119,8 @@ void GroupMemoryBarrierWithGroupSync();
 #define PS_ENTRY_START(NAME)            void NAME(
 #define PS_INPUT(TYPE_DECL, LOC)        in TYPE_DECL : TEXCOORD##LOC,
 #define PS_INPUT_STRUCT(TYPE_DECL, LOC) in TYPE_DECL,
+#define PS_INPUT_VIEWPORT_INDEX         in uint SvViewportIndex : SV_ViewportArrayIndex,
+#define PS_INPUT_RENDERTARGET_IDNEX     in uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
 #define PS_OUTPUT(TYPE_DECL, LOC)       out TYPE_DECL : SV_Target##LOC,
 #define PS_OUTPUT_DEPTH                 out float SvDepth : SV_Depth,
 #define PS_ENTRY_END(NAME)              in float4 SvPosition : SV_POSITION)

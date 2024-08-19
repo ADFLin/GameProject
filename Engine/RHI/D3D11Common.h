@@ -379,22 +379,32 @@ namespace Render
 			});
 		}
 
-		ID3D11RenderTargetView* getRenderTarget_TextureCube(ID3D11Resource* texture, ETexture::Format format, ETexture::Face face, int level)
+		ID3D11RenderTargetView* getRenderTarget_TextureCube(ID3D11Resource* texture, ETexture::Format format, ETexture::Face face, int level, int numSamples)
 		{
 			RenderTargetKey key;
 			key.level = level;
 			key.arrayIndex = face;
 			return getRednerTargetInternal(key, texture, [=](D3D11_RENDER_TARGET_VIEW_DESC& desc)
-			{
+			{				
 				desc.Format = D3D11Translate::To(format);
-				desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-				desc.Texture2DArray.ArraySize = 1;
-				desc.Texture2DArray.FirstArraySlice = (int)face;
-				desc.Texture2DArray.MipSlice = level;
+				if (numSamples > 1)
+				{
+					desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+					desc.Texture2DMSArray.ArraySize = 1;
+					desc.Texture2DMSArray.FirstArraySlice = (int)face;
+				}
+				else
+				{
+
+					desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+					desc.Texture2DArray.ArraySize = 1;
+					desc.Texture2DArray.FirstArraySlice = (int)face;
+					desc.Texture2DArray.MipSlice = level;
+				}
 			});
 		}
 
-		ID3D11RenderTargetView* getRenderTargetArray_TextureCube(ID3D11Resource* texture, ETexture::Format format, int level)
+		ID3D11RenderTargetView* getRenderTargetArray_TextureCube(ID3D11Resource* texture, ETexture::Format format, int level, int numSamples)
 		{
 			RenderTargetKey key;
 			key.level = level;
@@ -402,10 +412,19 @@ namespace Render
 			return getRednerTargetInternal(key, texture, [=](D3D11_RENDER_TARGET_VIEW_DESC& desc)
 			{
 				desc.Format = D3D11Translate::To(format);
-				desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-				desc.Texture2DArray.ArraySize = 6;
-				desc.Texture2DArray.FirstArraySlice = 0;
-				desc.Texture2DArray.MipSlice = level;
+				if (numSamples > 1)
+				{
+					desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+					desc.Texture2DMSArray.ArraySize = 6;
+					desc.Texture2DMSArray.FirstArraySlice = 0;
+				}
+				else
+				{
+					desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+					desc.Texture2DArray.ArraySize = 6;
+					desc.Texture2DArray.FirstArraySlice = 0;
+					desc.Texture2DArray.MipSlice = level;
+				}
 			});
 		}
 
@@ -695,11 +714,11 @@ namespace Render
 
 		ID3D11RenderTargetView* getRenderTargetView(ETexture::Face face, int level)
 		{
-			return mViewStorage.getRenderTarget_TextureCube(mResource, mDesc.format, face, level);
+			return mViewStorage.getRenderTarget_TextureCube(mResource, mDesc.format, face, level, mDesc.numSamples);
 		}
 		ID3D11RenderTargetView* getRenderTargetArrayView(int level)
 		{
-			return mViewStorage.getRenderTargetArray_TextureCube(mResource, mDesc.format, level);
+			return mViewStorage.getRenderTargetArray_TextureCube(mResource, mDesc.format, level, mDesc.numSamples);
 		}
 		D3D11ResourceViewStorage mViewStorage;
 		ID3D11DepthStencilView*  mDSV = nullptr;

@@ -4,9 +4,34 @@
 #include "RHI/RHIGraphics2D.h"
 #include "Math/PrimitiveTest.h"
 #include "RHI/DrawUtility.h"
-#include "CurveBuilder/ColorMap.h"
+#include "RHI/ShaderManager.h"
+#include "RenderDebug.h"
 
 using namespace Render;
+
+class MultiViewOnePassProgram : public ShaderProgram
+{
+	DECLARE_SHADER_PROGRAM(MultiViewOnePassProgram, Global);
+public:
+	static GlobalShaderProgram* CreateShader() { assert(0); return nullptr; }
+	static void SetupShaderCompileOption(ShaderCompileOption& option) {}
+
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/MultiViewOnePass";
+	}
+	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+	{
+		static ShaderEntryInfo const entries[] =
+		{
+			{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+			{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+		};
+		return entries;
+	}
+};
+
+IMPLEMENT_SHADER_PROGRAM(MultiViewOnePassProgram);
 
 class MultiViewOnePassStage : public StageBase
 	                        , public IGameRenderSetup
@@ -49,8 +74,9 @@ public:
 
 	}
 
-	bool bUseMultiViewports = true;
-
+	MultiViewOnePassProgram* mProgram;
+	bool bUseViewportArray = true;
+	bool bUseRTArray = true;
 	void onRender(float dFrame) override
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
@@ -58,12 +84,24 @@ public:
 		Vector2 screenSize = ::Global::GetScreenSize();
 		auto& commandList = g.getCommandList();
 
-		RHISetFrameBuffer(commandList, nullptr);
-		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
-		if (bUseMultiViewports)
+		if (bUseRTArray)
 		{
-			float with = screenSize.x / 2;
-			float height = screenSize.y / 2;
+			mFrameBuffer->setTextureArray(0, *mCubeImage);
+			RHISetFrameBuffer(commandList, mFrameBuffer);
+		}
+		else
+		{
+			RHISetFrameBuffer(commandList, nullptr);
+		}
+
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
+
+		Vector2 renderTargetSize = (bUseRTArray) ? Vector2(mCubeImage->getSize(), mCubeImage->getSize()) : screenSize;
+		if (bUseViewportArray)
+		{
+			float with = renderTargetSize.x / 2;
+			float height = renderTargetSize.y / 2;
+
 			ViewportInfo vps[4] =
 			{
 				ViewportInfo(0,0, with, height),
@@ -75,18 +113,33 @@ public:
 		}
 		else
 		{
-			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+			RHISetViewport(commandList, 0, 0, renderTargetSize.x, renderTargetSize.y);
 		}
 		Vector2 v[] =
 		{
-			0.5 * Vector2(-1,-1),
-			0.5 * Vector2( 1,-1),
-			0.5 * Vector2( 1, 1),
-			0.5 * Vector2(-1, 1),
+			Vector2(-1,-1),
+			Vector2( 1,-1),
+			Vector2( 1, 1),
+			Vector2(-1, 1),
 		};
 
-		RHISetFixedShaderPipelineState(commandList, Matrix4::Identity(), LinearColor(1,1,1,1));
-		TRenderRT<RTVF_XY>::DrawInstanced(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v), bUseMultiViewports ? 4 : 1);
+		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+		RHISetShaderProgram(commandList, mProgram->getRHI());
+		int numInstance = 1;
+		if (bUseViewportArray)
+			numInstance *= 4;
+		if (bUseRTArray)
+			numInstance *= 6;
+		TRenderRT<RTVF_XY>::DrawInstanced(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v), numInstance);
+
+		RHISetFrameBuffer(commandList, nullptr);
+		if (bUseRTArray)
+		{
+			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
+			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
+			DrawUtility::DrawCubeTexture(commandList, porjectMatrix, *mCubeImage, Vector2(0, 0), 250);
+		}
 	}
 
 	MsgReply onMouse(MouseMsg const& msg) override
@@ -112,18 +165,21 @@ public:
 	}
 
 	RHIFrameBufferRef mFrameBuffer;
-	RHITexture2DRef   mImage;
+
+	RHITextureCubeRef mCubeImage;
 	bool setupRenderResource(ERenderSystem systemName) override
 	{
 
 		ShaderHelper::Get().init();
 
 		auto screenSize = ::Global::GetScreenSize();
-		mImage = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA32F, 2 * screenSize.x, 2 * screenSize.y).AddFlags(TCF_RenderTarget));
 
+		mCubeImage = RHICreateTextureCube(TextureDesc::TypeCube(ETexture::RGBA8, 1024).AddFlags(TCF_RenderTarget));
 		mFrameBuffer = RHICreateFrameBuffer();
-		mFrameBuffer->addTexture(*mImage);
+		mProgram = ShaderManager::Get().getGlobalShaderT<MultiViewOnePassProgram>();
 
+
+		GTextureShowManager.registerTexture("CubeImage", mCubeImage);
 		return true;
 	}
 
@@ -132,6 +188,12 @@ public:
 	{
 		systemConfigs.screenWidth = 1024;
 		systemConfigs.screenHeight = 768;
+	}
+
+
+	ERenderSystem getDefaultRenderSystem() override
+	{
+		return ERenderSystem::OpenGL;
 	}
 
 protected:

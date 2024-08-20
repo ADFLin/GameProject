@@ -3,6 +3,10 @@
 #extension GL_ARB_shader_viewport_layer_array : enable
 #endif
 
+#ifndef USE_RT_INDEX
+#define USE_RT_INDEX 1
+#endif
+
 #if SHADER_ENTRY(MainVS)
 
 VS_ENTRY_START(MainVS)
@@ -10,13 +14,19 @@ VS_ENTRY_START(MainVS)
 	VS_INPUT_INSTANCEID
 	VS_OUTPUT(float2 OutUV, ATTRIBUTE_TEXCOORD)
 	VS_OUTPUT_VIEWPORT_INDEX
+#if USE_RT_INDEX
 	VS_OUTPUT_RENDERTARGET_IDNEX
+#endif
 VS_ENTRY_END(MainVS)
 {
 	SvPosition = float4(InPos, 0, 1);
 	OutUV = 0.5 * InPos + 0.5;
+#if USE_RT_INDEX
 	SvViewportIndex = SvInstanceID / 6;
 	SvRenderTargetIndex = SvInstanceID % 6;
+#else
+	SvViewportIndex = SvInstanceID;
+#endif
 }
 #endif
 

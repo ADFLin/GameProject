@@ -31,7 +31,7 @@ namespace Render
 	RHISystem* GRHISystem = nullptr;
 	float GRHIClipZMin = 0;
 	float GRHIProjectionYSign = 1;
-	float GRHIVericalFlip = 1;
+	float GRHIViewportOrgToNDCPosY = 1;
 	bool GRHISupportMeshShader = false;
 	bool GRHISupportRayTracing = false;
 	bool GRHIPrefEnabled = false;

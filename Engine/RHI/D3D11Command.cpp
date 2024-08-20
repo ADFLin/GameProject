@@ -240,7 +240,7 @@ namespace Render
 
 		GRHIClipZMin = 0;
 		GRHIProjectionYSign = 1;
-		GRHIVericalFlip = -1;
+		GRHIViewportOrgToNDCPosY = 1;
 
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
@@ -1526,15 +1526,15 @@ namespace Render
 		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
 	}
 
-	void D3D11Context::RHISetViewport(float x, float y, float w, float h, float zNear, float zFar)
+	void D3D11Context::RHISetViewport(ViewportInfo const& viewport)
 	{
 		D3D11_VIEWPORT& vp = mViewportStates[0];
-		vp.TopLeftX = x;
-		vp.TopLeftY = y;
-		vp.Width = w;
-		vp.Height = h;
-		vp.MinDepth = zNear;
-		vp.MaxDepth = zFar;
+		vp.TopLeftX = viewport.x;
+		vp.TopLeftY = viewport.y;
+		vp.Width = viewport.w;
+		vp.Height = viewport.h;
+		vp.MinDepth = viewport.zNear;
+		vp.MaxDepth = viewport.zFar;
 		mDeviceContext->RSSetViewports(1, &vp);
 	}
 

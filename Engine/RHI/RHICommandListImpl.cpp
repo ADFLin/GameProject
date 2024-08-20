@@ -18,9 +18,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetDepthStencilState(depthStencilState, stencilRef));
 	}
 
-	void RHISetViewport(RHICommandList& commandList, float x, float y, float w, float h, float zNear, float zFar)
+	void RHISetViewport(RHICommandList& commandList, ViewportInfo const& viewport)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetViewport(x, y, w, h, zNear, zFar));
+		RHI_COMMAND_FUNC(commandList, RHISetViewport(viewport));
 	}
 
 	void RHISetViewports(RHICommandList& commandList, ViewportInfo const viewports[], int numViewports)

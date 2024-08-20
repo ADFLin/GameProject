@@ -251,7 +251,7 @@ namespace Render
 
 		GRHIClipZMin = 0;
 		GRHIProjectionYSign = 1;
-		GRHIVericalFlip = -1;
+		GRHIViewportOrgToNDCPosY = 1;
 
 		D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels{};
 		if (SUCCEEDED(mDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels))))
@@ -1920,14 +1920,14 @@ namespace Render
 		mGraphicsCmdList->OMSetStencilRef(stencilRef);
 	}
 
-	void D3D12Context::RHISetViewport(float x, float y, float w, float h, float zNear, float zFar)
+	void D3D12Context::RHISetViewport(ViewportInfo const& viewport)
 	{
-		mGraphicsCmdList->RSSetViewports(1, &FD3D12Init::Viewport(x, y, w, h, zNear, zFar));
+		mGraphicsCmdList->RSSetViewports(1, &FD3D12Init::Viewport(viewport.x, viewport.y, viewport.w, viewport.h, viewport.zNear, viewport.zFar));
 		D3D12_RECT& scissorRect = mViewportRects[0];
-		scissorRect.left = x;
-		scissorRect.top = y;
-		scissorRect.right = x + w;
-		scissorRect.bottom = y + h;
+		scissorRect.left = viewport.x;
+		scissorRect.top = viewport.y;
+		scissorRect.right = viewport.x + viewport.w;
+		scissorRect.bottom = viewport.y + viewport.h;
 		mGraphicsCmdList->RSSetScissorRects(1, mViewportRects);
 
 		mScissorRects[0] = mViewportRects[0];

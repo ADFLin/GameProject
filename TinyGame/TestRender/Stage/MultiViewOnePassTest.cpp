@@ -99,17 +99,31 @@ public:
 		Vector2 renderTargetSize = (bUseRTArray) ? Vector2(mCubeImage->getSize(), mCubeImage->getSize()) : screenSize;
 		if (bUseViewportArray)
 		{
-			float with = renderTargetSize.x / 2;
-			float height = renderTargetSize.y / 2;
-
-			ViewportInfo vps[4] =
+			float scale = 0.8;
+			float with = scale * renderTargetSize.x / 2;
+			float height = scale * renderTargetSize.y / 2;
+			if( bUseRTArray)
 			{
-				ViewportInfo(0,0, with, height),
-				ViewportInfo(with,0, with, height),
-				ViewportInfo(0,height, with, height),
-				ViewportInfo(with,height, with, height),
-			};
-			RHISetViewports(commandList, vps, ARRAY_SIZE(vps));
+				ViewportInfo vps[4] =
+				{
+					ViewportInfo(0,0, with, height),
+					ViewportInfo(with / scale,0, with, height),
+					ViewportInfo(0,height / scale, with, height),
+					ViewportInfo(with / scale,height / scale, with, height),
+				};
+				RHISetViewports(commandList, vps, ARRAY_SIZE(vps));
+			}
+			else
+			{
+				ViewportInfo vps[4] =
+				{
+					ViewportInfo(0,0, with, height).AdjRenderTargetRHI(renderTargetSize),
+					ViewportInfo(with / scale,0, with, height).AdjRenderTargetRHI(renderTargetSize),
+					ViewportInfo(0,height / scale, with, height).AdjRenderTargetRHI(renderTargetSize),
+					ViewportInfo(with / scale,height / scale, with, height).AdjRenderTargetRHI(renderTargetSize),
+				};
+				RHISetViewports(commandList, vps, ARRAY_SIZE(vps));
+			}
 		}
 		else
 		{
@@ -184,6 +198,13 @@ public:
 	}
 
 
+	void preShutdownRenderSystem(bool bReInit) override
+	{
+		mCubeImage.release();
+		mFrameBuffer.release();
+		mProgram = nullptr;
+	}
+
 	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 	{
 		systemConfigs.screenWidth = 1024;
@@ -194,6 +215,13 @@ public:
 	ERenderSystem getDefaultRenderSystem() override
 	{
 		return ERenderSystem::OpenGL;
+	}
+
+	bool isRenderSystemSupported(ERenderSystem systemName) override
+	{
+		if ( systemName == ERenderSystem::D3D12 || systemName == ERenderSystem::Vulkan )
+			return false;
+		return true;
 	}
 
 protected:

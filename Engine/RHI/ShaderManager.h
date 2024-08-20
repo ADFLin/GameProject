@@ -218,7 +218,7 @@ namespace Render
 		void setupManagedData(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
 			ShaderCompileOption const& option, char const* fileName);
 
-		void postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData);
+		void postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData, ShaderClassType classType);
 
 		uint32          mDefaultVersion;
 		ShaderFormat*   mShaderFormat = nullptr;

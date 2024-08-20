@@ -235,9 +235,25 @@ namespace Render
 			:x(inX),y(inY),w(inW),h(inH),zNear(inZNear),zFar(inZFar)
 		{
 		}
+
+		ViewportInfo& AdjRenderTargetRHI(Vector2 const& RTSize)
+		{
+			if (GRHIViewportOrgToNDCPosY < 0)
+			{
+				y = RTSize.y - ( y + h );
+			}
+			return *this;
+		}
 	};
-	RHI_API void RHISetViewport(RHICommandList& commandList, float x, float y, float w, float h, float zNear = GRHIClipZMin, float zFar = 1);
-	RHI_API void RHISetViewports(RHICommandList& commandList, ViewportInfo const viewports[] , int numViewports );
+
+	RHI_API void RHISetViewport(RHICommandList& commandList, ViewportInfo const& viewport);
+
+	FORCEINLINE void RHISetViewport(RHICommandList& commandList, float x, float y, float w, float h, float zNear = GRHIClipZMin, float zFar = 1)
+	{
+		RHISetViewport(commandList, ViewportInfo(x, y, w, h, zNear, zFar));
+	}
+
+	RHI_API void RHISetViewports(RHICommandList& commandList, ViewportInfo const viewports[], int numViewports );
 
 	RHI_API void RHISetScissorRect(RHICommandList& commandList , int x = 0, int y = 0, int w = 0, int h = 0);
 

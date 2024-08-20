@@ -25,7 +25,7 @@ namespace Render
 {
 	extern RHI_API float GRHIClipZMin;
 	extern RHI_API float GRHIProjectionYSign;
-	extern RHI_API float GRHIVericalFlip;
+	extern RHI_API float GRHIViewportOrgToNDCPosY;
 
 	extern RHI_API bool GRHISupportMeshShader;
 	extern RHI_API bool GRHISupportRayTracing;

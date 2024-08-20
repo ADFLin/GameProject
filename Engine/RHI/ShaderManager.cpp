@@ -553,15 +553,22 @@ namespace Render
 					GlobalShaderProgramClass const& shaderProgramClass = static_cast<GlobalShaderProgramClass const&>(shaderObjectClass);
 					shaderProgramClass.SetupShaderCompileOption(option, permutationId);
 
-					ShaderProgramManagedData* mamagedData = loadInternal(
+					ShaderProgramManagedData* managedData = loadInternal(
 						*shaderProgram, shaderProgramClass.GetShaderFileName(),
 						shaderProgramClass.GetShaderEntries(permutationId), option,
 						true, classType);
 
-					if ( mamagedData )
+					if ( managedData )
 					{
-						mamagedData->shaderClass = &shaderObjectClass;
-						mamagedData->permutationId = permutationId;
+						if (classType == ShaderClassType::Material)
+						{
+							delete managedData;
+						}
+						else
+						{
+							managedData->shaderClass = &shaderObjectClass;
+							managedData->permutationId = permutationId;
+						}
 					}
 					else
 					{
@@ -578,13 +585,20 @@ namespace Render
 
 					shaderClass.SetupShaderCompileOption(option, permutationId);
 
-					ShaderManagedData* mamagedData = loadInternal(
+					ShaderManagedData* managedData = loadInternal(
 						*shader, shaderClass.GetShaderFileName(), shaderClass.entry, option, classType);
 
-					if ( mamagedData )
+					if ( managedData )
 					{
-						mamagedData->shaderClass = &shaderObjectClass;
-						mamagedData->permutationId = permutationId;
+						if (classType == ShaderClassType::Material)
+						{
+							delete managedData;
+						}
+						else
+						{
+							managedData->shaderClass = &shaderObjectClass;
+							managedData->permutationId = permutationId;
+						}
 					}
 					else
 					{
@@ -596,7 +610,7 @@ namespace Render
 				break;
 
 			default:
-				NEVER_REACH("");
+				NEVER_REACH("Unknow Shader Object Type");
 				break;
 			}
 		}
@@ -606,13 +620,6 @@ namespace Render
 			
 		}
 
-		if (result)
-		{
-			if (classType == ShaderClassType::Material)
-			{
-				removeFromShaderCompileMap(*result);
-			}
-		}
 		return result;
 	}
 
@@ -687,7 +694,7 @@ namespace Render
 			return nullptr;
 		}
 
-		postShaderLoaded(shaderProgram, *managedData);
+		postShaderLoaded(shaderProgram, *managedData, classType);
 		return managedData;
 	}
 
@@ -720,7 +727,7 @@ namespace Render
 			return nullptr;
 		}
 
-		postShaderLoaded(shader, *managedData);
+		postShaderLoaded(shader, *managedData, classType);
 		return managedData;
 	}
 
@@ -745,7 +752,7 @@ namespace Render
 			return nullptr;
 		}
 
-		postShaderLoaded(shaderProgram, *managedData);
+		postShaderLoaded(shaderProgram, *managedData, classType);
 		return managedData;
 	}
 
@@ -1236,8 +1243,11 @@ namespace Render
 		}
 	}
 
-	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData)
+	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData, ShaderClassType classType)
 	{
+		if ( classType == ShaderClassType::Material )
+			return;
+
 		mShaderDataMap.insert({ &shader , &managedData });
 		if (mAssetViewerReigster && CVarShaderDectectFileModify)
 		{

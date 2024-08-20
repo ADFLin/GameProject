@@ -589,7 +589,7 @@ namespace Render
 		{
 			Vec2i screenSize = ::Global::GetScreenSize();
 			GPU_PROFILE("drawNoiseImage");
-			if (GRHIVericalFlip < 0)
+			if (GRHIViewportOrgToNDCPosY > 0)
 			{	
 				RHISetViewport(commandList, pos.x, screenSize.y - pos.y - size.y , size.x, size.y);
 			}

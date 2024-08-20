@@ -259,7 +259,7 @@ namespace Render
 
 		GRHIClipZMin = -1;
 		GRHIProjectionYSign = 1;
-		GRHIVericalFlip = 1;
+		GRHIViewportOrgToNDCPosY = -1;
 
 		if (GRHIDeviceVendorName == DeviceVendorName::NVIDIA)
 		{
@@ -602,7 +602,12 @@ namespace Render
 		mLastShaderProgram.release();
 		mLastIndexBuffer.release();
 		mInputLayoutPending.release();
-		mInputLayoutCommitted.release();	
+		mInputLayoutCommitted.release();
+
+		for(auto& inputStream : mInputStreamsPending)
+		{
+			inputStream.buffer.release();
+		}
 
 		for (int i = 0; i < ARRAY_SIZE(mResolveFrameBuffers); ++i)
 		{
@@ -635,10 +640,10 @@ namespace Render
 #endif
 	}
 
-	void OpenGLContext::RHISetViewport(float x, float y, float w, float h , float zNear, float zFar)
+	void OpenGLContext::RHISetViewport(ViewportInfo const& viewport)
 	{
-		glViewport(x, y, w, h);
-		glDepthRange(zNear, zFar);
+		glViewport(viewport.x, viewport.y, viewport.w, viewport.h);
+		glDepthRange(viewport.zNear, viewport.zFar);
 	}
 
 	void OpenGLContext::RHISetViewports(ViewportInfo const viewports[], int numViewports)

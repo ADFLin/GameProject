@@ -37,6 +37,22 @@ namespace Render
 	bool GRHIPrefEnabled = false;
 	bool GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
 
+	void RHIInitGlobalParameters()
+	{
+		GRHIDeviceVendorName = DeviceVendorName::Unknown;
+
+		GRHIClipZMin = 0;
+		GRHIProjectionYSign = 1;
+		GRHIViewportOrgToNDCPosY = 1;
+
+		GRHISupportRayTracing = false;
+		GRHISupportMeshShader = false;
+		GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
+
+		TChar const* cmdLine = FCommandLine::Get();
+		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
+	}
+
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
 #define RHI_USE_FACTORY_LIST 1
@@ -139,13 +155,8 @@ namespace Render
 
 		LogMsg("===== Init RHI System : %s ====", ToString(name));
 
-		GRHIDeviceVendorName = DeviceVendorName::Unknown;
-		GRHISupportRayTracing = false;
-		GRHISupportMeshShader = false;
-		GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
+		RHIInitGlobalParameters();
 
-		TChar const* cmdLine = FCommandLine::Get();
-		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
 
 		FRHIResourceTable::Initialize();
 

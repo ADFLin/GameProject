@@ -603,7 +603,7 @@ namespace Render
 		mLastIndexBuffer.release();
 		mInputLayoutPending.release();
 		mInputLayoutCommitted.release();
-
+		mInputStreamStateCommttied.release();
 		for(auto& inputStream : mInputStreamsPending)
 		{
 			inputStream.buffer.release();

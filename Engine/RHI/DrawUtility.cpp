@@ -316,6 +316,35 @@ namespace Render
 		}
 	}
 
+	void DrawUtility::ScreenRect(RHICommandList& commandList, int numInstance , EScreenRenderMethod method)
+	{
+		if (CVarDrawScreenUseOptimisedTriangle)
+			method = EScreenRenderMethod::OptimisedTriangle;
+		switch (method)
+		{
+		case EScreenRenderMethod::Rect:
+			if (CVarDrawScreenUseDynamicVertexData)
+			{
+				TRenderRT< RTVF_XYZW_T2 >::DrawIndexedInstanced(commandList, EPrimitive::TriangleList, GScreenVertices, 4, GScreenIndices32, 6, numInstance);
+			}
+			else
+			{
+				GScreenRenderResoure.drawRect(commandList, numInstance);
+			}
+			break;
+		case EScreenRenderMethod::OptimisedTriangle:
+			if (CVarDrawScreenUseDynamicVertexData)
+			{
+				TRenderRT< RTVF_XYZW_T2 >::DrawInstanced(commandList, EPrimitive::TriangleList, GScreenVertices + 4, 3, numInstance);
+			}
+			else
+			{
+				GScreenRenderResoure.drawOptimisedTriangle(commandList, numInstance);
+			}
+			break;
+		}
+	}
+
 	void DrawUtility::ScreenRect(RHICommandList& commandList, float uSize, float vSize)
 	{
 		VertexXYZW_T1 screenVertices[] =

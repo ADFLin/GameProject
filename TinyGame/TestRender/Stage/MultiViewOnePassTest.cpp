@@ -183,7 +183,6 @@ public:
 	RHITextureCubeRef mCubeImage;
 	bool setupRenderResource(ERenderSystem systemName) override
 	{
-
 		ShaderHelper::Get().init();
 
 		auto screenSize = ::Global::GetScreenSize();
@@ -191,7 +190,6 @@ public:
 		mCubeImage = RHICreateTextureCube(TextureDesc::TypeCube(ETexture::RGBA8, 1024).AddFlags(TCF_RenderTarget));
 		mFrameBuffer = RHICreateFrameBuffer();
 		mProgram = ShaderManager::Get().getGlobalShaderT<MultiViewOnePassProgram>();
-
 
 		GTextureShowManager.registerTexture("CubeImage", mCubeImage);
 		return true;

@@ -156,18 +156,49 @@ namespace Render
 	}
 
 
-	IGlobalRenderResource* GStaticResourceHead = nullptr;
-	IGlobalRenderResource* GStaticResourceHeadPendingRestore = nullptr;
+	IGlobalRenderResource* GResourceListHead = nullptr;
+	IGlobalRenderResource* GResourceListHeadPendingRestore = nullptr;
+	bool GResourceListInitialized = false;
 
 	IGlobalRenderResource::IGlobalRenderResource()
 	{
-		mNext = GStaticResourceHeadPendingRestore;
-		GStaticResourceHeadPendingRestore = this;
+		if (GResourceListInitialized)
+		{
+			mNext = GResourceListHead;
+			GResourceListHead = this;
+		}
+		else
+		{
+			mNext = GResourceListHeadPendingRestore;
+			GResourceListHeadPendingRestore = this;
+		}
+	}
+	void IGlobalRenderResource::RestoreAllResources()
+	{
+		GResourceListInitialized = true;
+
+		IGlobalRenderResource* resource = GResourceListHeadPendingRestore;
+		if (resource)
+		{
+			for (;;)
+			{
+				resource->restoreRHI();
+				if (resource->mNext == nullptr)
+				{
+					resource->mNext = GResourceListHead;
+					break;
+				}
+				resource = resource->mNext;
+			}
+		}
+
+		GResourceListHead = GResourceListHeadPendingRestore;
+		GResourceListHeadPendingRestore = nullptr;
 	}
 
 	void IGlobalRenderResource::ReleaseAllResources()
 	{
-		IGlobalRenderResource* resource = GStaticResourceHead;
+		IGlobalRenderResource* resource = GResourceListHead;
 		if (resource)
 		{
 			for(;;)
@@ -175,39 +206,17 @@ namespace Render
 				resource->releaseRHI();
 				if (resource->mNext == nullptr)
 				{
-					resource->mNext = GStaticResourceHeadPendingRestore;
+					resource->mNext = GResourceListHeadPendingRestore;
 					break;
 				}
 				resource = resource->mNext;
 			}
 		}
 
-		GStaticResourceHeadPendingRestore = GStaticResourceHead;
-		GStaticResourceHead = nullptr;
+		GResourceListHeadPendingRestore = GResourceListHead;
+		GResourceListHead = nullptr;
+		GResourceListInitialized = false;
 	}
-
-	void IGlobalRenderResource::RestoreAllResources()
-	{
-		IGlobalRenderResource* resource = GStaticResourceHeadPendingRestore;
-		if (resource)
-		{
-			for(;;)
-			{
-				resource->restoreRHI();
-				if (resource->mNext == nullptr)
-				{
-					resource->mNext = GStaticResourceHead;
-					break;
-				}
-				resource = resource->mNext;
-			}
-		}
-
-		GStaticResourceHead = GStaticResourceHeadPendingRestore;
-		GStaticResourceHeadPendingRestore = nullptr;
-	}
-
 #endif
-
 }
 

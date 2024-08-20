@@ -2,6 +2,23 @@
 #define COMPUTE_DISCARD_SIM 0
 #endif
 
+#ifndef RENDER_IMAGE
+#define RENDER_IMAGE 0
+#endif
+#ifndef RENDER_BUFFER
+#define RENDER_BUFFER 0
+#endif
+#ifndef RENDER_CUBE
+#define RENDER_CUBE 0
+#endif
+#ifndef RENDER_SOUND
+#define RENDER_SOUND 0
+#endif
+
+#ifndef RENDER_CUBE_ONE_PASS
+#define RENDER_CUBE_ONE_PASS 0
+#endif
+
 #include "Common.sgc"
 #if PIXEL_SHADER
 #include "ScreenVertexShader.sgc"
@@ -15,18 +32,24 @@ bool bDiscardPixel;
 #define buffer buffer_ST_
 #undef  PI
 
-#ifndef RENDER_IMAGE
-#define RENDER_IMAGE 0
+#if VERTEX_SHADER
+
+#if COMPILER_GLSL
+#extension GL_ARB_shader_viewport_layer_array : enable
 #endif
-#ifndef RENDER_BUFFER
-#define RENDER_BUFFER 0
-#endif
-#ifndef RENDER_CUBE
-#define RENDER_CUBE 0
-#endif
-#ifndef RENDER_SOUND
-#define RENDER_SOUND 0
-#endif
+
+VS_ENTRY_START(CubeOnePassVS)
+	VS_INPUT(float4 InPosition, ATTRIBUTE_POSITION)
+	VS_INPUT_INSTANCEID
+	VS_OUTPUT_RENDERTARGET_IDNEX
+VS_ENTRY_END(CubeOnePassVS)
+{
+	SvPosition = InPosition;
+	SvRenderTargetIndex = SvInstanceID;
+}
+
+#else
+
 
 layout(std140) cbuffer InputBlock
 {
@@ -57,17 +80,33 @@ float4 Render(float2 fragCoord)
 	return fragColor;
 }
 #elif RENDER_CUBE
+
 void mainCubemap(out float4 fragColor, in float2 fragCoord, in float3 ro, in float3 rd);
+
+#if RENDER_CUBE_ONE_PASS
+uniform float3 iFaceDir[6];
+uniform float3 iFaceUDir[6];
+uniform float3 iFaceVDir[6];
+#else
 uniform float3 iFaceDir;
 uniform float3 iFaceUDir;
 uniform float3 iFaceVDir;
+#endif
 uniform float3 iOrigin;
 uniform float2 iViewportSize;
 
+#if RENDER_CUBE_ONE_PASS
+float4 Render(float2 fragCoord, uint faceIndex)
+#else
 float4 Render(float2 fragCoord)
+#endif
 {
 	float2 uv = fragCoord / iViewportSize;
+#if RENDER_CUBE_ONE_PASS
+	float3 rd = normalize(iFaceDir[faceIndex] + (2 * uv.x - 1) * iFaceUDir[faceIndex] + (2 * uv.y - 1) * iFaceVDir[faceIndex]);
+#else
 	float3 rd = normalize(iFaceDir + (2 * uv.x - 1) * iFaceUDir + (2 * uv.y - 1) * iFaceVDir);
+#endif
 	float4 fragColor;
 	mainCubemap(fragColor, fragCoord, iOrigin, rd);
 	return fragColor;
@@ -97,11 +136,18 @@ float4 Render(float2 fragCoord)
 
 PS_ENTRY_START(MainPS)
 	PS_OUTPUT(float4 OutColor, 0)
+#if RENDER_CUBE_ONE_PASS
+	PS_INPUT_RENDERTARGET_IDNEX
+#endif
 PS_ENTRY_END(MainPS)
 {
 	float4 fragColor;
 	float2 fragCoord = SvPosition.xy;
+#if RENDER_CUBE_ONE_PASS
+	OutColor = Render(fragCoord, SvRenderTargetIndex);
+#else
 	OutColor = Render(fragCoord);
+#endif
 }
 
 #endif
@@ -150,3 +196,6 @@ CS_ENTRY(MainCS)
 }
 
 #endif
+
+
+#endif //VERTEX_SHADER

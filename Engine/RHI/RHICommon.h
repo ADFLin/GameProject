@@ -1278,6 +1278,15 @@ namespace Render
 			std::copy(rhs.inputStreams, rhs.inputStreams + rhs.inputStreamCount, inputStreams);
 		}
 
+		void release()
+		{
+			for (int i = 0; i < inputStreamCount; ++i)
+			{
+				inputStreams[i].buffer.release();
+			}
+			inputStreamCount = 0;
+		}
+
 		bool update(InputStreamInfo inInputSteams[], int inNumInputStream)
 		{
 			bool bModified = false;

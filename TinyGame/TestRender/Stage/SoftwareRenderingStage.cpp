@@ -9,6 +9,7 @@
 #endif
 #include "Image/ImageData.h"
 #include "SystemPlatform.h"
+#include "BitUtility.h"
 
 namespace SR
 {
@@ -21,7 +22,7 @@ namespace SR
 	{
 		int const alignedSize = 4;
 		mSize = size;
-		mRowStride = alignedSize * ((size.x + alignedSize - 1) / alignedSize);
+		mRowStride = AlignArbitrary(size.x, alignedSize);
 
 		BITMAPINFO bmpInfo;
 		bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);

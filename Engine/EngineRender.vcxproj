@@ -130,6 +130,7 @@
     <ClInclude Include="RHI\RHIDefine.h" />
     <ClInclude Include="RHI\RHIGlobalResource.h" />
     <ClInclude Include="RHI\RHIGraphics2D.h" />
+    <ClInclude Include="RHI\RHIMisc.h" />
     <ClInclude Include="RHI\RHIRaytracingTypes.h" />
     <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />

@@ -9,6 +9,7 @@
 #include "RHITraceScope.h"
 #endif
 #include "BitUtility.h"
+#include "RHIMisc.h"
 
 namespace Render
 {
@@ -1667,140 +1668,40 @@ namespace Render
 		postDrawPrimitive();
 	}
 
-	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
+	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
 	{
-		switch (primitive)
+		struct MyBuffer
 		{
-		case EPrimitive::Quad:
+			MyBuffer(D3D11DynamicBuffer& buffer, ID3D11DeviceContext* context)
+				:mBuffer(buffer),mContext(context)
 			{
-				int numQuad = num / 4;
-				int indexBufferSize = sizeof(uint32) * numQuad * 6;
-				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-				if (pIndexBufferData == nullptr)
-					return false;
-
-				uint32* pData = (uint32*)pIndexBufferData;
-				if (pIndices)
-				{
-					for (int i = 0; i < numQuad; ++i)
-					{
-						pData[0] = pIndices[0];
-						pData[1] = pIndices[1];
-						pData[2] = pIndices[2];
-						pData[3] = pIndices[0];
-						pData[4] = pIndices[2];
-						pData[5] = pIndices[3];
-						pData += 6;
-						pIndices += 4;
-					}
-				}
-				else
-				{
-					for (int i = 0; i < numQuad; ++i)
-					{
-						int index = 4 * i;
-						pData[0] = index + 0;
-						pData[1] = index + 1;
-						pData[2] = index + 2;
-						pData[3] = index + 0;
-						pData[4] = index + 2;
-						pData[5] = index + 3;
-						pData += 6;
-					}
-				}
-				outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-				outIndexNum = numQuad * 6;
-				return true;
 			}
-			break;
-		case EPrimitive::LineLoop:
+			void* lock(uint32 size)
 			{
-				if (pIndices)
-				{
-					int indexBufferSize = sizeof(uint32) * (num + 1);
-					void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-					if (pIndexBufferData == nullptr)
-						return false;
-					uint32* pData = (uint32*)pIndexBufferData;
-					for (int i = 0; i < num; ++i)
-					{
-						pData[i] = pIndices[i];
-					}
-					pData[num] = pIndices[0];
-					*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-					outIndexNum = num + 1;
-
-				}
-
-				outPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
-				return true;
+				return mBuffer.lock(mContext, size);
 			}
-			break;
-		case EPrimitive::Polygon:
+			void unlock()
 			{
-				if (num <= 2)
-					return false;
-
-				int numTriangle = (num - 2);
-
-				int indexBufferSize = sizeof(uint32) * numTriangle * 3;
-				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-				if (pIndexBufferData == nullptr)
-					return false;
-
-				uint32* pData = (uint32*)pIndexBufferData;
-				if (pIndices)
-				{
-					for (int i = 0; i < numTriangle; ++i)
-					{
-						pData[0] = pIndices[0];
-						pData[1] = pIndices[i + 1];
-						pData[2] = pIndices[i + 2];
-						pData += 3;
-					}
-				}
-				else
-				{
-					for (int i = 0; i < numTriangle; ++i)
-					{
-						pData[0] = 0;
-						pData[1] = i + 1;
-						pData[2] = i + 2;
-						pData += 3;
-					}
-				}
-				outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-				outIndexNum = numTriangle * 3;
-				return true;
+				outIndexBuffer = mBuffer.unlock(mContext);
 			}
-			break;
-		}
 
-		outPrimitiveTopology = D3D11Translate::To(primitive);
-		if (outPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
-			return false;
-
-		if (pIndices)
+			D3D11DynamicBuffer&  mBuffer;
+			ID3D11DeviceContext* mContext;
+			ID3D11Buffer* outIndexBuffer = nullptr;
+		};
+		MyBuffer buffer(mDynamicIBuffer, mDeviceContext);
+		if ( DetermitPrimitiveTopologyUP(primitive, D3D11Translate::To(primitive) != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED, num, pIndices, buffer, outPrimitiveDetermited, outIndexNum))
 		{
-			uint32 indexBufferSize = num * sizeof(uint32);
-			void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-			if (pIndexBufferData == nullptr)
-				return false;
-
-			FMemory::Copy(pIndexBufferData, pIndices, indexBufferSize);
-			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-			outIndexNum = num;
-
+			*outIndexBuffer = buffer.outIndexBuffer;
+			return true;
 		}
-		return true;
+		return false;
 	}
 
 	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 numInstance)
 	{
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
-		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
+		EPrimitive primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;
 		int numDrawIndex;
 		if( !determitPrimitiveTopologyUP(type, numVertices, nullptr, primitiveTopology, &indexBuffer, numDrawIndex) )
@@ -1812,22 +1713,20 @@ namespace Render
 			++numVertices;
 			for (int i = 0; i < numVertexData; ++i)
 			{
-				vertexBufferSize += (D3D11BUFFER_ALIGN * (dataInfos[i].size + dataInfos[i].stride) + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+				vertexBufferSize += AlignArbitrary<uint32>(dataInfos[i].size + dataInfos[i].stride, D3D11BUFFER_ALIGN);
 			}
 		}
 		else
 		{
 			for (int i = 0; i < numVertexData; ++i)
 			{
-				vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+				vertexBufferSize += AlignArbitrary<uint32>(dataInfos[i].size, D3D11BUFFER_ALIGN);
 			}
 		}
 
 		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
 		if( pVBufferData )
 		{
-			commitGraphicsShaderState();
-
 			ID3D11Buffer* vertexBuffer = mDynamicVBuffer.getLockedBuffer();
 			uint32 dataOffset = 0;
 			UINT strides[MAX_INPUT_STREAM_NUM];
@@ -1844,17 +1743,20 @@ namespace Render
 				{
 					FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size );
 					FMemory::Copy(pVBufferData + dataOffset + info.size , info.ptr, info.stride);
-					dataOffset += (D3D11BUFFER_ALIGN * ( info.size + info.stride ) + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+					dataOffset += AlignArbitrary<uint32>(dataInfos[i].size + dataInfos[i].stride, D3D11BUFFER_ALIGN);
 				}
 				else
 				{
 					FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
-					dataOffset += (D3D11BUFFER_ALIGN * info.size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+					dataOffset += AlignArbitrary<uint32>(dataInfos[i].size, D3D11BUFFER_ALIGN);
 				}
 			}
 
 			mDynamicVBuffer.unlock(mDeviceContext);
-			mDeviceContext->IASetPrimitiveTopology(primitiveTopology);
+
+			commitGraphicsShaderState();
+
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(primitiveTopology));
 			mDeviceContext->IASetVertexBuffers(0, numVertexData, vertexBuffers, strides, offsets);
 			if( indexBuffer )
 			{
@@ -1886,7 +1788,7 @@ namespace Render
 
 	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance)
 	{
-		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
+		EPrimitive primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;
 		int numDrawIndex;
 		if( !determitPrimitiveTopologyUP(type, numIndex, pIndices, primitiveTopology, &indexBuffer, numDrawIndex) )
@@ -1901,8 +1803,6 @@ namespace Render
 		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
 		if( pVBufferData )
 		{
-			commitGraphicsShaderState();
-
 			ID3D11Buffer* vertexBuffer = mDynamicVBuffer.getLockedBuffer();
 			uint32 dataOffset = 0;
 			UINT strides[MAX_INPUT_STREAM_NUM];
@@ -1920,7 +1820,10 @@ namespace Render
 			}
 
 			mDynamicVBuffer.unlock(mDeviceContext);
-			mDeviceContext->IASetPrimitiveTopology(primitiveTopology);
+
+			commitGraphicsShaderState();
+
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(primitiveTopology));
 			mDeviceContext->IASetVertexBuffers(0, numVertexData, vertexBuffers, strides, offsets);
 
 			mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);

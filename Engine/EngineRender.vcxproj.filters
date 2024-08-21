@@ -386,6 +386,9 @@
     <ClInclude Include="RHI\RHIUtility.h">
       <Filter>RHI</Filter>
     </ClInclude>
+    <ClInclude Include="RHI\RHIMisc.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

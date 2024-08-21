@@ -7,6 +7,11 @@
 
 #include <cassert>
 
+template< typename T >
+static T AlignArbitrary(T size, T alignment)
+{
+	return ((size + alignment - 1) / alignment) * alignment;
+}
 
 class FBitUtility
 {

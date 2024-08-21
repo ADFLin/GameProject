@@ -20,6 +20,7 @@
 #include "RHITraceScope.h"
 #endif
 #include "PlatformThread.h"
+#include "BitUtility.h"
 
 
 
@@ -159,7 +160,7 @@ namespace Render
 			std::sort(initialBufferSizes, initialBufferSizes + numInitialBuffer, [](auto lhs, auto rhs) { return lhs < rhs; });
 			for( int i = 0; i < numInitialBuffer; ++i )
 			{
-				uint32 bufferSize = (D3D11BUFFER_ALIGN * initialBufferSizes[i] + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+				uint32 bufferSize = AlignArbitrary(initialBufferSizes[i], D3D11BUFFER_ALIGN);
 				pushNewBuffer(device, bufferSize);
 			}
 			return true;
@@ -198,7 +199,7 @@ namespace Render
 
 		void* lock( ID3D11DeviceContext* context , uint32 size )
 		{
-			size = (D3D11BUFFER_ALIGN * size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+			size = AlignArbitrary(size, D3D11BUFFER_ALIGN);
 			int index = 0;
 			for( ; index < mBufferSizes.size(); ++index )
 			{
@@ -340,7 +341,7 @@ namespace Render
 		void commitGraphicsShaderState();
 
 		void commitComputeState();
-		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, uint32 const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
+		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, uint32 const* pIndices, EPrimitive& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
 
 
 		//

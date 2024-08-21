@@ -3,6 +3,7 @@
 #include "D3D12Utility.h"
 
 #include "RHIGlobalResource.h"
+#include "RHIMisc.h"
 
 #include "LogSystem.h"
 #include "GpuProfiler.h"
@@ -1831,6 +1832,17 @@ namespace Render
 			mDevice->CreateCommandSignature(&desc, NULL, IID_PPV_ARGS(&mDrawIndexedCmdSignature));
 		}
 
+		if ( GRHISupportMeshShader)
+		{
+			D3D12_INDIRECT_ARGUMENT_DESC args[1];
+			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
+			D3D12_COMMAND_SIGNATURE_DESC desc;
+			desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+			desc.NumArgumentDescs = ARRAY_SIZE(args);
+			desc.pArgumentDescs = args;
+			mDevice->CreateCommandSignature(&desc, NULL, IID_PPV_ARGS(&mDispatchMeshCmdSignature));
+		}
+
 		mFrameIndex = 0;
 		mFrameDataList.resize(1);
 		auto& frameData = mFrameDataList[mFrameIndex];
@@ -1970,145 +1982,6 @@ namespace Render
 		mGraphicsCmdList->RSSetScissorRects(mNumViewports, mScissorRects);
 	}
 
-	template< typename TBuffer >
-	bool DetermitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, TBuffer& buffer, EPrimitive& outPrimitiveDetermited, int& outIndexNum)
-	{
-		switch (primitive)
-		{
-		case EPrimitive::Quad:
-			{
-				int numQuad = num / 4;
-				int indexBufferSize = sizeof(uint32) * numQuad * 6;
-				void* pIndexBufferData = buffer.lock(indexBufferSize);
-				if (pIndexBufferData == nullptr)
-					return false;
-
-				uint32* pData = (uint32*)pIndexBufferData;
-				if (pIndices)
-				{
-					for (int i = 0; i < numQuad; ++i)
-					{
-						pData[0] = pIndices[0];
-						pData[1] = pIndices[1];
-						pData[2] = pIndices[2];
-						pData[3] = pIndices[0];
-						pData[4] = pIndices[2];
-						pData[5] = pIndices[3];
-						pData += 6;
-						pIndices += 4;
-					}
-				}
-				else
-				{
-					for (int i = 0; i < numQuad; ++i)
-					{
-						int index = 4 * i;
-						pData[0] = index + 0;
-						pData[1] = index + 1;
-						pData[2] = index + 2;
-						pData[3] = index + 0;
-						pData[4] = index + 2;
-						pData[5] = index + 3;
-						pData += 6;
-					}
-				}
-				outPrimitiveDetermited = EPrimitive::TriangleList;
-				buffer.unlock();
-				outIndexNum = numQuad * 6;
-				return true;
-			}
-			break;
-		case EPrimitive::LineLoop:
-			{
-				int indexBufferSize = sizeof(uint32) * (num + 1);
-				void* pIndexBufferData = buffer.lock(indexBufferSize);
-				if (pIndexBufferData == nullptr)
-					return false;
-				uint32* pData = (uint32*)pIndexBufferData;
-
-				if (pIndices)
-				{
-					for (int i = 0; i < num; ++i)
-					{
-						pData[i] = pIndices[i];
-					}
-					pData[num] = pIndices[0];
-				}
-				else
-				{
-					for (int i = 0; i < num; ++i)
-					{
-						pData[i] = i;
-					}
-					pData[num] = 0;
-				}
-
-				buffer.unlock();
-				outIndexNum = num + 1;
-				outPrimitiveDetermited = EPrimitive::LineStrip;
-				return true;
-			}
-			break;
-		case EPrimitive::Polygon:
-			{
-				if (num <= 2)
-					return false;
-
-				int numTriangle = (num - 2);
-
-				int indexBufferSize = sizeof(uint32) * numTriangle * 3;
-				void* pIndexBufferData = buffer.lock(indexBufferSize);
-				if (pIndexBufferData == nullptr)
-					return false;
-
-				uint32* pData = (uint32*)pIndexBufferData;
-				if (pIndices)
-				{
-					for (int i = 0; i < numTriangle; ++i)
-					{
-						pData[0] = pIndices[0];
-						pData[1] = pIndices[i + 1];
-						pData[2] = pIndices[i + 2];
-						pData += 3;
-					}
-				}
-				else
-				{
-					for (int i = 0; i < numTriangle; ++i)
-					{
-						pData[0] = 0;
-						pData[1] = i + 1;
-						pData[2] = i + 2;
-						pData += 3;
-					}
-				}
-				outPrimitiveDetermited = EPrimitive::TriangleList;
-				buffer.unlock();
-				outIndexNum = numTriangle * 3;
-				return true;
-			}
-			break;
-		}
-
-		if (D3D12Translate::To(primitive) == D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
-			return false;
-
-		if (pIndices)
-		{
-			uint32 indexBufferSize = num * sizeof(uint32);
-			void* pIndexBufferData = buffer.lock(indexBufferSize);
-			if (pIndexBufferData == nullptr)
-				return false;
-
-			FMemory::Copy(pIndexBufferData, pIndices, indexBufferSize);
-			buffer.unlock();
-			outIndexNum = num;
-		}
-
-		outPrimitiveDetermited = primitive;
-		return true;
-	}
-
 	bool D3D12Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum)
 	{
 		struct MyBuffer
@@ -2129,7 +2002,7 @@ namespace Render
 			D3D12_INDEX_BUFFER_VIEW& mBufferView;
 		};
 
-		return DetermitPrimitiveTopologyUP(primitive, num, pIndices,  MyBuffer(mIndexBufferUP, outIndexBufferView), outPrimitiveDetermited, outIndexNum);
+		return DetermitPrimitiveTopologyUP(primitive, D3D12Translate::To(primitive) != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED, num, pIndices,  MyBuffer(mIndexBufferUP, outIndexBufferView), outPrimitiveDetermited, outIndexNum);
 	}
 
 	void D3D12Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
@@ -2145,6 +2018,35 @@ namespace Render
 		auto& bufferImpl = *static_cast<D3D12Buffer*>(commandBuffer);
 		commitGraphicsPipelineState(type);
 		mGraphicsCmdList->ExecuteIndirect(mDrawIndexedCmdSignature, numCommand, bufferImpl.getResource(), offset, nullptr, 0);
+		postDrawPrimitive();
+	}
+
+	void D3D12Context::RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
+	{
+		commitGraphicsPipelineState(type);
+		mGraphicsCmdList->DrawInstanced(nv, numInstance, vStart, baseInstance);
+		postDrawPrimitive();
+	}
+
+	void D3D12Context::RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
+	{
+		commitGraphicsPipelineState(type);
+		mGraphicsCmdList->DrawIndexedInstanced(nIndex, numInstance, indexStart, baseVertex, baseInstance);
+		postDrawPrimitive();
+	}
+
+	void D3D12Context::RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
+	{
+		commitMeshPipelineState();
+		mGraphicsCmdList->DispatchMesh(numGroupX, numGroupY, numGroupZ);
+		postDrawPrimitive();
+	}
+
+	void D3D12Context::RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		auto& bufferImpl = *static_cast<D3D12Buffer*>(commandBuffer);
+		commitMeshPipelineState();
+		mGraphicsCmdList->ExecuteIndirect(mDispatchMeshCmdSignature, numCommand, bufferImpl.getResource(), offset, nullptr, 0);
 		postDrawPrimitive();
 	}
 
@@ -2180,8 +2082,6 @@ namespace Render
 		uint8* pVBufferData = (uint8*)mVertexBufferUP.lock(vertexBufferSize);
 		if (pVBufferData)
 		{
-			commitGraphicsPipelineState(determitedPrimitive);
-
 			uint32 dataOffset = 0;
 			UINT offsets[MAX_INPUT_STREAM_NUM];
 
@@ -2217,6 +2117,8 @@ namespace Render
 				}
 			}
 
+			commitGraphicsPipelineState(determitedPrimitive);
+
 			mGraphicsCmdList->IASetVertexBuffers(0, numVertexData, vertexBufferViews);
 			if (indexBufferView.SizeInBytes)
 			{
@@ -2250,8 +2152,6 @@ namespace Render
 		uint8* pVBufferData = (uint8*)mVertexBufferUP.lock(vertexBufferSize);
 		if (pVBufferData)
 		{
-			commitGraphicsPipelineState(determitedPrimitive);
-
 			uint32 dataOffset = 0;
 			UINT offsets[MAX_INPUT_STREAM_NUM];
 			for (int i = 0; i < numVertexData; ++i)
@@ -2272,10 +2172,11 @@ namespace Render
 				vertexBufferViews[i].SizeInBytes = dataInfos[i].size;
 			}
 
+			commitGraphicsPipelineState(determitedPrimitive);
+
 			mGraphicsCmdList->IASetVertexBuffers(0, numVertexData, vertexBufferViews);
 			mGraphicsCmdList->IASetIndexBuffer(&indexBufferView);
 			mGraphicsCmdList->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
-
 
 			postDrawPrimitive();
 		}
@@ -3219,6 +3120,8 @@ namespace Render
 		mFrameDataList[mFrameIndex].fenceValue = currentFenceValue + 1;
 		D3D12FenceResourceManager::Get().mFenceValue = mFrameDataList[mFrameIndex].fenceValue;
 	}
+
+
 
 	bool D3D12ResourceBoundState::initialize(ID3D12DeviceRHI* device)
 	{

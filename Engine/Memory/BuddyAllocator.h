@@ -8,15 +8,6 @@
 #include <vector>
 #include <unordered_set>
 
-static uint64 AlignArbitrary(uint64 size, uint64 alignment)
-{
-	return ((size + alignment - 1) / alignment) * alignment;
-}
-static uint32 AlignArbitrary(uint32 size, uint32 alignment)
-{
-	return ((size + alignment - 1) / alignment) * alignment;
-}
-
 
 class BuddyAllocatorBase
 {

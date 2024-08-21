@@ -204,37 +204,18 @@ namespace Render
 		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 
 		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
-		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
-		{
-			commitGraphicsPipelineState(type);
-			mGraphicsCmdList->DrawInstanced(nv, numInstance,vStart, baseInstance);
-			postDrawPrimitive();
-		}
+		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
 
-		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
-		{
-			commitGraphicsPipelineState(type);
-			mGraphicsCmdList->DrawIndexedInstanced(nIndex, numInstance, indexStart, baseVertex, baseInstance);
-			postDrawPrimitive();
-		}
+		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
+
+		void RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
+
+		void RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 
 	
 		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 numInstance);
-
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex, uint32 numInstance);
 
-
-		void RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
-		{
-			commitMeshPipelineState();
-			mGraphicsCmdList->DispatchMesh(numGroupX, numGroupY, numGroupZ);
-			postDrawPrimitive();
-		}
-
-		void RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-		{
-
-		}
 
 		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler) 
 		{
@@ -442,6 +423,7 @@ namespace Render
 
 		TComPtr< ID3D12CommandSignature > mDrawCmdSignature;
 		TComPtr< ID3D12CommandSignature > mDrawIndexedCmdSignature;
+		TComPtr< ID3D12CommandSignature > mDispatchMeshCmdSignature;
 
 
 		static constexpr int MaxViewportCount = 8;

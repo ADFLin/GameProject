@@ -24,7 +24,7 @@ namespace Render
 		case EPrimitive::Quad:
 
 		default:
-			LogWarning(0, "D3D No Support Primitive %d", (int)type);
+			//LogWarning(0, "D3D No Support Primitive %d", (int)type);
 			break;
 		}
 		return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;

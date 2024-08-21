@@ -78,7 +78,7 @@ void main()
 		return result;
 	}
 
-	GLuint OpenGLShaderObject::getIntParam(GLuint val)
+	GLint OpenGLShaderObject::getIntParam(GLuint val)
 	{
 		GLint status;
 		glGetShaderiv(mHandle, val, &status);

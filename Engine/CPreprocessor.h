@@ -119,7 +119,7 @@ namespace CPP
 	public:
 		static int FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType);
 		static int FindOperatorToEnd(char const* code, EOperatorPrecedence::Type precedenceStart, EOperator::Type& outType);
-		static OperationInfo GetOperationInfo(EOperator::Type type);
+		static constexpr OperationInfo GetOperationInfo(EOperator::Type type);
 
 		template< EOperatorPrecedence::Type Precedence >
 		static int FindOperator(char const* code, EOperator::Type& outType);
@@ -727,7 +727,7 @@ namespace CPP
 	class ExpressionEvaluator
 	{
 	public:
-		ExpressionEvaluator(Preprocessor& preprocessor , CodeLoc const& loc)
+		ExpressionEvaluator(Preprocessor& preprocessor, CodeLoc const& loc)
 			:mProcesser(preprocessor)
 			,mLoc(loc)
 		{

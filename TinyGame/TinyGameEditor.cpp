@@ -41,7 +41,7 @@ bool TinyGameApp::initializeEditorRender()
 		moduleName = "VulkanRHI.dll";
 		break;
 	}
-	if (ModuleManager::Get().loadModule(moduleName))
+	if (!ModuleManager::Get().loadModule(moduleName))
 	{
 		return false;
 	}

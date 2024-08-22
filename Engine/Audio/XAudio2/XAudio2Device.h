@@ -16,7 +16,8 @@ struct VoiceDeleter
 class XAudio2Device;
 
 
-class XAudio2Source : public AudioSource
+class XAudio2Source : public AudioSource,
+					  public IXAudio2VoiceCallback
 {
 public:
 	bool doInitialize(XAudio2Device& device)
@@ -42,13 +43,11 @@ public:
 	// pos = INDEX_NONE, no data need commit;
 	int64 mNextStreamSampleFrame = INDEX_NONE;
 
-	TCycleQueue< uint32 > mUsedSampleHandles;
-	//TArray< uint32 >      mUsedSampleHandles;
-};
+	//TCycleQueue< uint32 > mUsedSampleHandles;
+	TArray< uint32 >      mUsedSampleHandles;
 
-class XAudio2SourceCallback : public IXAudio2VoiceCallback
-{
-public:
+
+
 	STDMETHOD_(void , OnVoiceProcessingPassStart)(UINT32 BytesRequired) override;
 	STDMETHOD_(void , OnVoiceProcessingPassEnd)() override;
 	STDMETHOD_(void , OnStreamEnd)() override;
@@ -56,8 +55,8 @@ public:
 	STDMETHOD_(void , OnBufferEnd)(void* pBufferContext) override;
 	STDMETHOD_(void , OnLoopEnd)(void* pBufferContext) override;
 	STDMETHOD_(void , OnVoiceError)(void* pBufferContext, HRESULT Error) override;
-
 };
+
 
 class XAudio2Device : public AudioDevice
 {
@@ -72,8 +71,6 @@ public:
 
 	TComPtr<IXAudio2> pXAudio2;
 	TComPtr<IXAudio2MasteringVoice, VoiceDeleter > pMasterVoice;
-
-	XAudio2SourceCallback sourceCallback;
 
 	virtual AudioSource* createSource() override;
 };

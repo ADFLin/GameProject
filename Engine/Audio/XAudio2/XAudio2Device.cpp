@@ -79,7 +79,7 @@ bool XAudio2Source::doInitialize(SoundInstance& instance)
 	format.nBlockAlign = formatInfo.blockAlign;
 	format.cbSize = 0; //WAVE_FORMAT_PCM must be 0
 	CHECK_RESULT_CODE(
-		mDevice->pXAudio2->CreateSourceVoice(&pSourceVoice, &format, 0, 10.0f, &mDevice->sourceCallback),
+		mDevice->pXAudio2->CreateSourceVoice(&pSourceVoice, &format, 0, 10.0f, this),
 		LogWarning(0, "Can't Create SourceVoice");
 		return false;
 	);
@@ -123,16 +123,15 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 	if( fetchResult == EAudioStreamStatus::NoSample )
 		return false;
 
-	if( fetchResult == EAudioStreamStatus::Error )
+	if(  fetchResult == EAudioStreamStatus::Error ||
+	    (fetchResult == EAudioStreamStatus::Eof && sample.dataSize == 0))
 	{
 		mNextStreamSampleFrame = INDEX_NONE;
+		pSourceVoice->Discontinuity();
 		return false;
 	}
 
-	//if( sample.handle != INDEX_NONE)
-	{
-		mUsedSampleHandles.push_back(sample.handle);
-	}
+	mUsedSampleHandles.push_back(sample.handle);
 
 	if( instance.soundwave->bSaveStreamingPCMData && sample.dataSize )
 	{
@@ -147,20 +146,20 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 	{
 		buffer.LoopCount = instance.activeSound->bLoop ? XAUDIO2_LOOP_INFINITE : 0;
 	}
-	buffer.pContext = this;
-	CHECK_RETURN(pSourceVoice->SubmitSourceBuffer(&buffer), false);
-	if( fetchResult == EAudioStreamStatus::Eof )
+	buffer.pContext = (void*)sample.handle;
+
+	if (fetchResult == EAudioStreamStatus::Eof)
 	{
 		mNextStreamSampleFrame = INDEX_NONE;
 	}
 	else
 	{
 		mNextStreamSampleFrame += sample.dataSize / formatInfo.blockAlign;
-	}	
+	}
 
+	CHECK_RETURN(pSourceVoice->SubmitSourceBuffer(&buffer), false);
 	return true;
 }
-
 
 void XAudio2Source::update(float deltaT)
 {
@@ -224,20 +223,45 @@ void XAudio2Source::pause()
 	}
 }
 
-void XAudio2Source::notifyBufferStart()
+
+void XAudio2Source::OnVoiceProcessingPassStart(UINT32 BytesRequired)
 {
 
 }
 
-void XAudio2Source::notifyBufferEnd()
+void XAudio2Source::OnVoiceProcessingPassEnd()
 {
-	if( mInstance->soundwave->isStreaming() )
+
+}
+
+void XAudio2Source::OnStreamEnd()
+{
+	if (!mInstance->activeSound->bLoop)
+		mInstance->bPlaying = false;
+
+	if (mInstance->soundwave->isStreaming())
 	{
-		if ( mUsedSampleHandles.size() )
+		for (uint32 handle : mUsedSampleHandles)
 		{
-			uint32 handle = mUsedSampleHandles.front();
-			mUsedSampleHandles.pop_front();
-			//mUsedSampleHandles.removeIndex(0);
+			mInstance->soundwave->streamSource->releaseSampleData(handle);
+		}
+		mUsedSampleHandles.clear();
+	}
+}
+
+void XAudio2Source::OnBufferStart(void* pBufferContext)
+{
+
+}
+
+void XAudio2Source::OnBufferEnd(void* pBufferContext)
+{
+	if (mInstance->soundwave->isStreaming())
+	{
+		uint32 handle = (uint32)pBufferContext;
+		if (mUsedSampleHandles.size())
+		{
+			mUsedSampleHandles.remove(handle);
 			mInstance->soundwave->streamSource->releaseSampleData(handle);
 		}
 	}
@@ -247,45 +271,12 @@ void XAudio2Source::notifyBufferEnd()
 	}
 }
 
-void XAudio2Source::noitfyStreamEnd()
-{
-	if ( !mInstance->activeSound->bLoop )
-		mInstance->bPlaying = false;
-}
-
-void XAudio2SourceCallback::OnVoiceProcessingPassStart(UINT32 BytesRequired)
+void XAudio2Source::OnLoopEnd(void* pBufferContext)
 {
 
 }
 
-void XAudio2SourceCallback::OnVoiceProcessingPassEnd()
-{
-
-}
-
-void XAudio2SourceCallback::OnStreamEnd()
-{
-
-}
-
-void XAudio2SourceCallback::OnBufferStart(void* pBufferContext)
-{
-	XAudio2Source* source = static_cast<XAudio2Source*>(pBufferContext);
-	source->notifyBufferStart();
-}
-
-void XAudio2SourceCallback::OnBufferEnd(void* pBufferContext)
-{
-	XAudio2Source* source = static_cast<XAudio2Source*>(pBufferContext);
-	source->notifyBufferEnd();
-}
-
-void XAudio2SourceCallback::OnLoopEnd(void* pBufferContext)
-{
-
-}
-
-void XAudio2SourceCallback::OnVoiceError(void* pBufferContext, HRESULT Error)
+void XAudio2Source::OnVoiceError(void* pBufferContext, HRESULT Error)
 {
 
 }

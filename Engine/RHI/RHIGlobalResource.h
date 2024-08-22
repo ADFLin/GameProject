@@ -273,7 +273,7 @@ namespace Render
 	};
 
 
-	CORE_API RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode);
+	CORE_API RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode = EFillMode::Solid);
 
 	template 
 	<

@@ -31,7 +31,7 @@ namespace Render
 		bool compile(EShader::Type type, char const* src[], int num);
 		bool loadFile(EShader::Type type, char const* path, char const* def);
 
-		GLint getIntParam(GLuint val);
+		GLint getIntParameter(GLuint val);
 
 	};
 

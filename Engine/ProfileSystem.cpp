@@ -293,11 +293,11 @@ ProfileSystemImpl::~ProfileSystemImpl()
 }
 
 std::unordered_map< uint32, ThreadProfileData* > GThreadDataMap;
-Mutex GThreadDataMapMutex;
+RWLock GThreadDataMapLock;
 
 void ProfileSystemImpl::cleanup()
 {
-	Mutex::Locker locker(GThreadDataMapMutex);
+	RWLock::WriteLocker locker(GThreadDataMapLock);
 	bFinalized = true;
 	for (auto& pair : GThreadDataMap)
 	{
@@ -309,7 +309,7 @@ void ProfileSystemImpl::cleanup()
 
 void ProfileSystemImpl::resetSample()
 {
-	Mutex::Locker locker(GThreadDataMapMutex);
+	RWLock::ReadLocker locker(GThreadDataMapLock);
 
 	GProfileClock.reset();
 	GFrameCount = 0;
@@ -333,18 +333,22 @@ void ProfileSystemImpl::incrementFrameCount()
 	auto& frameData = mRecordFrames[ProfileSampleNode::GetWriteIndex()];
 	frameData.durationSinceReset = double(tick - mResetTime) / Profile_GetTickRate();
 	frameData.duration = double(tick - mFrameStartTime) / Profile_GetTickRate();
-	for (auto& pair : GThreadDataMap)
-	{
-		pair.second->endFrame(frameData, tick);
-	}
 
-	++GFrameCount;
-	GWriteIndex = 1 - GWriteIndex;
-	mFrameStartTime = tick;
-
-	for (auto& pair : GThreadDataMap)
 	{
-		pair.second->startFrame(tick);
+		RWLock::ReadLocker  DataMaplocker(GThreadDataMapLock);
+		for (auto& pair : GThreadDataMap)
+		{
+			pair.second->endFrame(frameData, tick);
+		}
+
+		++GFrameCount;
+		GWriteIndex = 1 - GWriteIndex;
+		mFrameStartTime = tick;
+
+		for (auto& pair : GThreadDataMap)
+		{
+			pair.second->startFrame(tick);
+		}
 	}
 }
 void ProfileSystemImpl::setThreadName(uint32 threadId, char const* name)
@@ -358,7 +362,8 @@ void ProfileSystemImpl::setThreadName(uint32 threadId, char const* name)
 
 void ProfileSystemImpl::getAllThreadIds(TArray<uint32>& outIds)
 {
-	Mutex::Locker locker(GThreadDataMapMutex);
+	RWLock::ReadLocker  DataMaplocker(GThreadDataMapLock);
+
 	for (auto& pair : GThreadDataMap)
 	{
 		outIds.push_back(pair.first);
@@ -375,7 +380,7 @@ ThreadProfileData* ProfileSystemImpl::GetCurrentThreadData()
 		GThreadDataLocal->mThreadId = PlatformThread::GetCurrentThreadId();
 	
 		{
-			Mutex::Locker locker(GThreadDataMapMutex);
+			RWLock::WriteLocker locker(GThreadDataMapLock);
 			GThreadDataMap.insert({ GThreadDataLocal->mThreadId , GThreadDataLocal });
 		}
 	}
@@ -384,7 +389,7 @@ ThreadProfileData* ProfileSystemImpl::GetCurrentThreadData()
 
 ThreadProfileData* ProfileSystemImpl::GetThreadData(uint32 threadId)
 {
-	Mutex::Locker locker(GThreadDataMapMutex);
+	RWLock::ReadLocker locker(GThreadDataMapLock);
 
 	auto iter = GThreadDataMap.find(threadId);
 	if (iter == GThreadDataMap.end())

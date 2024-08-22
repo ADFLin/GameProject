@@ -1641,7 +1641,7 @@ namespace CPP
 #undef OPINFO_OP
 	};
 
-	OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
+	constexpr OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
 	{
 		return OpInfos[type];
 	}

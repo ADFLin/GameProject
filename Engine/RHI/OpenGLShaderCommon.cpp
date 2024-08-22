@@ -51,7 +51,7 @@ void main()
 		glShaderSource(mHandle, num, src, 0);
 		glCompileShader(mHandle);
 
-		if (getIntParam(GL_COMPILE_STATUS) == GL_FALSE)
+		if (getIntParameter(GL_COMPILE_STATUS) == GL_FALSE)
 		{
 			return false;
 		}
@@ -78,7 +78,7 @@ void main()
 		return result;
 	}
 
-	GLint OpenGLShaderObject::getIntParam(GLuint val)
+	GLint OpenGLShaderObject::getIntParameter(GLuint val)
 	{
 		GLint status;
 		glGetShaderiv(mHandle, val, &status);

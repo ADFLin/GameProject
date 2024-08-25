@@ -299,27 +299,38 @@ namespace Render
 			mVertexSizes[e.streamIndex] += EVertex::GetFormatSize(e.format);
 		}
 	}
+	
+	static Vector3 const CubeFaceDir[] =
+	{
+		Vector3(1,0,0),Vector3(-1,0,0),
+		Vector3(0,1,0),Vector3(0,-1,0),
+		Vector3(0,0,1),Vector3(0,0,-1),
+	};
 
 	Vector3 ETexture::GetFaceDir(Face face)
 	{
-		static Vector3 const CubeFaceDir[] =
-		{
-			Vector3(1,0,0),Vector3(-1,0,0),
-			Vector3(0,1,0),Vector3(0,-1,0),
-			Vector3(0,0,1),Vector3(0,0,-1),
-		};
 		return CubeFaceDir[face];
 	}
 
+	Vector3 const* ETexture::GetFaceDirArray()
+	{
+		return CubeFaceDir;
+	}
+	static Vector3 const CubeFaceUpDir[] =
+	{
+		Vector3(0,-1,0),Vector3(0,-1,0),
+		Vector3(0,0,1),Vector3(0,0,-1),
+		Vector3(0,-1,0),Vector3(0,-1,0),
+	};
+
 	Vector3 ETexture::GetFaceUpDir(Face face)
 	{
-		static Vector3 const CubeFaceUpDir[] =
-		{
-			Vector3(0,-1,0),Vector3(0,-1,0),
-			Vector3(0,0,1),Vector3(0,0,-1),
-			Vector3(0,-1,0),Vector3(0,-1,0),
-		};
 		return CubeFaceUpDir[face];
+	}
+
+	Vector3 const* ETexture::GetFaceUpArray()
+	{
+		return CubeFaceUpDir;
 	}
 
 	int EVertex::GetFormatSize(uint8 format)

@@ -109,10 +109,8 @@ namespace Render
 
 		Matrix4       mShadowMatrix;
 
-#if USE_DepthRenderBuffer
-		RHIDepthRenderBufferRef depthBuffer1;
-		RHIDepthRenderBufferRef depthBuffer2;
-#endif
+		RHITexture2DRef depthBuffer1;
+		RHITexture2DRef depthBuffer2;
 	};
 
 

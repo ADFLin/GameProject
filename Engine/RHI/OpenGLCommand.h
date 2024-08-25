@@ -427,7 +427,7 @@ namespace Render
 		RHIShaderProgram* RHICreateShaderProgram();
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
-		class OpenglProfileCore* mProfileCore = nullptr;
+		class OpenGLProfileCore* mProfileCore = nullptr;
 
 		std::unordered_map< ShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
 

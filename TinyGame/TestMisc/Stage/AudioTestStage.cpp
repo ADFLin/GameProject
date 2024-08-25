@@ -176,20 +176,16 @@ public:
 
 	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush) override
 	{
-		outSample.handle = mSampleBuffer.fetchSampleData();
-		WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
-		sampleData->data.resize(minSampleFrameRequired * mFormat.blockAlign);
+		outSample = mSampleBuffer.allocSamples(minSampleFrameRequired * mFormat.blockAlign);
 
 		float dt = float(minSampleFrameRequired) / mFormat.sampleRate;
-		int16* pData = (int16*) sampleData->data.data();
+		int16* pData = (int16*)outSample.data;
 		for( int i = 0; i < minSampleFrameRequired; ++i )
 		{
 			float t = double(samplePos + i) / mFormat.sampleRate;
 			float value = mWaveGenerator(t);
 			pData[i] = int16( float( MaxInt16 ) * Math::Clamp< float>(value , -1 , 1 ) );
 		}
-		outSample.data = sampleData->data.data();
-		outSample.dataSize = sampleData->data.size();
 
 		return EAudioStreamStatus::Ok;
 	}

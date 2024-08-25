@@ -36,13 +36,29 @@ public:
 
 	bool isVaild() const { return !!mPtr;}
 
-	bool tryGet(char const* key, std::string& outValue);
-	bool tryGet(char const* key, int& outValue);
-	bool tryGet(char const* key, float& outValue);
-	bool tryGet(char const* key, bool& outValue);
+	bool tryGet(char const* key, std::string& outValue) const;
+	bool tryGet(char const* key, int& outValue) const;
+	bool tryGet(char const* key, float& outValue) const;
+	bool tryGet(char const* key, bool& outValue) const;
+
+	std::string getString(char const* key, std::string const& defaultValue) const { return getValue(key, defaultValue); }
+	int         getInt(char const* key, int defaultValue) const { return getValue(key, defaultValue); }
+	float       getFloat(char const* key, float defaultValue) const { return getValue(key, defaultValue); }
+	bool        getBool(char const* key, bool defaultValue) const { return getValue(key, defaultValue); }
+
 	JsonObject getObject(char const* key);
 	TArray<JsonValue> getArray(char const* key);
 
+
+	template< typename T>
+	T getValue(char const* key, T defaultValue) const
+	{
+		T outValue;
+		if (tryGet(key, outValue))
+			return outValue;
+
+		return defaultValue;
+	}
 	void* mPtr = nullptr;
 
 };

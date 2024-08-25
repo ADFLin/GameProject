@@ -1,5 +1,6 @@
-#ifndef GLCommon_h__
-#define GLCommon_h__
+#pragma once
+#ifndef OpenGLCommon_H_A9A6184A_7B9B_4C34_8520_FF3989EB6502
+#define OpenGLCommon_H_A9A6184A_7B9B_4C34_8520_FF3989EB6502
 
 #include "RHIType.h"
 #include "RHIDefine.h"
@@ -53,7 +54,6 @@ namespace Render
 				TFactory::Create(mHandle, std::forward<Args>(args)...);
 			return isValid();
 		}
-
 #else
 		bool fetchHandle()
 		{
@@ -69,9 +69,7 @@ namespace Render
 				TFactory::Create(mHandle, p1);
 			return isValid();
 		}
-
 #endif
-
 		bool destroyHandle()
 		{
 			if( mHandle )
@@ -216,10 +214,8 @@ namespace Render
 		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
 		static GLenum const TypeEnumGLMultisample = OpenGLTextureTraits< RHITextureType >::EnumValueMultisample;
 
-
 		OpenGLShaderResourceView mView;
 	};
-
 
 	class OpenGLTexture1D : public TOpengGLTexture< RHITexture1D >
 	{
@@ -229,7 +225,6 @@ namespace Render
 		bool create(void* data);
 		bool update(int offset, int length, ETexture::Format format, void* data, int level );
 	};
-
 
 	class OpenGLTexture2D : public TOpengGLTexture< RHITexture2D >
 	{
@@ -242,7 +237,6 @@ namespace Render
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 	};
-
 
 	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
@@ -268,6 +262,12 @@ namespace Render
 		using TOpengGLTexture<RHITexture2DArray>::TOpengGLTexture;
 
 		bool create(void* data);
+	};
+
+	class OpenGLRenderBuffer : public TOpenGLResource< RHITexture2D, GLFactory::RenderBuffer >
+	{
+	public:
+		bool create();
 	};
 
 	class OpenGLTranslate
@@ -308,20 +308,6 @@ namespace Render
 		}
 	};
 
-#define USE_DepthRenderBuffer 0
-
-#if USE_DepthRenderBuffer
-	class RHIDepthRenderBuffer : public TRHIResource< GLFactory::RenderBuffer >
-	{
-	public:
-		bool create( int w , int h , ETexture::Format format );
-		ETexture::Format getFormat() { return mFormat;  }
-		ETexture::Format mFormat;
-	};
-
-
-	typedef TRefCountPtr< RHIDepthRenderBuffer > RHIDepthRenderBufferRef;
-#endif
 
 	namespace GLFactory
 	{
@@ -341,8 +327,6 @@ namespace Render
 
 		bool create();
 
-		void setupTextureLayer(RHITextureCube& target, int level = 0);
-
 		int  addTexture(RHITexture2D& target, int level = 0);
 		int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0);
 		int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0);
@@ -353,13 +337,9 @@ namespace Render
 		void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0);
 		void setTextureArray(int idx, RHITextureCube& target, int level);
 
-		
-		void bindDepthOnly();
 		void bind();
 		void unbind();
-#if USE_DepthRenderBuffer
-		void setDepth( RHIDepthRenderBuffer& buffer );
-#endif
+
 		void setDepth( RHITexture2D& target );
 		void removeDepth();
 
@@ -379,21 +359,18 @@ namespace Render
 		
 		struct BufferInfo
 		{
-			RHIResourceRef bufferRef;
+			RHITextureRef bufferRef;
 			GLenum typeEnumGL;
 			uint8  level;
-			union
-			{
-				uint8  idxFace;
-				int    indexLayer;
-			};
+			int    indexLayer;
 		};
 		void setRenderBufferInternal(GLuint handle);
 		void setTexture2DInternal(int idx, GLuint handle, BufferInfo const& info);
 		void setTexture3DInternal(int idx, GLuint handle, BufferInfo const& info);
 		void setTextureLayerInternal(int idx, GLuint handle, BufferInfo const& info);
 		void setTextureArrayInternal(int idx, GLuint handle, BufferInfo const& info);
-		void setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL, bool bArray = false);
+		void setRenderBufferInternal(int idx, GLuint handle, BufferInfo const& info);
+		void setDepthInternal(RHITextureBase& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL, bool bArray = false);
 
 		TArray< BufferInfo > mTextures;
 		BufferInfo  mDepth;
@@ -644,7 +621,6 @@ namespace Render
 		std::unordered_map< InputStreamState, VertexArrayObject, MemberFuncHasher > mVAOMap;
 		TArray< Element > mElements;
 		uint32 mAttributeMask;
-
 		virtual void releaseResource() override;
 
 	};
@@ -658,7 +634,6 @@ namespace Render
 
 	class OpenGLShader;
 	class OpenGLShaderProgram;
-	class ShaderProgram;
 
 	template< class TRHIResource >
 	struct TOpengGLTypeTraits {};
@@ -796,4 +771,4 @@ namespace Render
 
 }
 
-#endif // GLCommon_h__
+#endif // OpenGLCommon_H_A9A6184A_7B9B_4C34_8520_FF3989EB6502

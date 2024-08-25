@@ -91,7 +91,7 @@ JsonFile* JsonFile::Load(char const* path)
 	return nullptr;
 }
 
-bool JsonObject::tryGet(char const* key, std::string& outValue)
+bool JsonObject::tryGet(char const* key, std::string& outValue) const
 {
 	ObjectImpl::iterator iter;
 	if ( !FJsonObjectImpl::Find(mPtr, key, iter) )
@@ -102,7 +102,7 @@ bool JsonObject::tryGet(char const* key, std::string& outValue)
 	return true;
 }
 
-bool JsonObject::tryGet(char const* key, int& outValue)
+bool JsonObject::tryGet(char const* key, int& outValue) const
 {
 	ObjectImpl::iterator iter;
 	if (!FJsonObjectImpl::Find(mPtr, key, iter))
@@ -113,7 +113,7 @@ bool JsonObject::tryGet(char const* key, int& outValue)
 	return true;
 }
 
-bool JsonObject::tryGet(char const* key, float& outValue)
+bool JsonObject::tryGet(char const* key, float& outValue) const
 {
 	ObjectImpl::iterator iter;
 	if (!FJsonObjectImpl::Find(mPtr, key, iter))
@@ -124,7 +124,7 @@ bool JsonObject::tryGet(char const* key, float& outValue)
 	return true;
 }
 
-bool JsonObject::tryGet(char const* key, bool& outValue)
+bool JsonObject::tryGet(char const* key, bool& outValue) const
 {
 	ObjectImpl::iterator iter;
 	if (!FJsonObjectImpl::Find(mPtr, key, iter))
@@ -162,8 +162,6 @@ JsonObject JsonObject::getObject(char const* key)
 	}
 	return result;
 }
-
-
 
 TArray<JsonValue> JsonObject::getArray(char const* key)
 {

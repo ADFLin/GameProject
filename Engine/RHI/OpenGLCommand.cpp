@@ -163,7 +163,7 @@ namespace Render
 		GLuint mHandles[2];
 	};
 
-	class OpenglProfileCore : public RHIProfileCore
+	class OpenGLProfileCore : public RHIProfileCore
 	{
 	public:
 		void releaseRHI() override
@@ -285,7 +285,7 @@ namespace Render
 
 		if( 1 )
 		{
-			mProfileCore = new OpenglProfileCore;
+			mProfileCore = new OpenGLProfileCore;
 			GpuProfiler::Get().setCore(mProfileCore);
 		}
 
@@ -347,7 +347,11 @@ namespace Render
 
 	RHITexture2D* OpenGLSystem::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
-		if (ETexture::IsDepthStencil(desc.format))
+		if (desc.creationFlags & TCF_RenderBufferOptimize)
+		{
+			return CreateOpenGLResourceT<OpenGLRenderBuffer>();
+		}
+		else if (ETexture::IsDepthStencil(desc.format))
 		{
 			OpenGLTexture2D* result = new OpenGLTexture2D(desc);
 			if (result && !result->createDepth())

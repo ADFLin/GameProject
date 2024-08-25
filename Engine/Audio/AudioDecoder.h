@@ -5,6 +5,7 @@
 #include "Audio/AudioTypes.h"
 
 #include "DataStructure/Array.h"
+#include "AudioStreamSource.h"
 
 
 class WaveSampleBuffer
@@ -18,6 +19,18 @@ public:
 	TArray< std::unique_ptr< SampleData > > mSampleDataList;
 
 	SampleData* getSampleData(uint32 idx) { return mSampleDataList[idx].get(); }
+
+
+	AudioStreamSample allocSamples(uint32 size)
+	{
+		AudioStreamSample result;
+		result.handle = fetchSampleData();
+		SampleData* sampleData = getSampleData(result.handle);
+		sampleData->data.resize(size);
+		result.data = sampleData->data.data();
+		result.dataSize = size;
+		return result;
+	}
 
 	uint32 fetchSampleData()
 	{
@@ -33,7 +46,6 @@ public:
 		auto sampleData = std::make_unique<SampleData>();
 		mSampleDataList.push_back(std::move(sampleData));
 		return result;
-
 	}
 
 	void releaseSampleData(uint32 sampleHadle)

@@ -318,27 +318,10 @@ namespace Shadertoy
 
 				setInputParameters(commandList, pass);
 
-				static Vector3 faceDirs[] =
-				{
-					ETexture::GetFaceDir(ETexture::Face(0)),
-					ETexture::GetFaceDir(ETexture::Face(1)),
-					ETexture::GetFaceDir(ETexture::Face(2)),
-					ETexture::GetFaceDir(ETexture::Face(3)),
-					ETexture::GetFaceDir(ETexture::Face(4)),
-					ETexture::GetFaceDir(ETexture::Face(5)),
-				};
+				Vector3 const* faceDirs = ETexture::GetFaceDirArray();
+				Vector3 const* faceUpDirs = ETexture::GetFaceUpArray();
 
-				static Vector3 faceUpDirs[] =
-				{
-					ETexture::GetFaceUpDir(ETexture::Face(0)),
-					ETexture::GetFaceUpDir(ETexture::Face(1)),
-					ETexture::GetFaceUpDir(ETexture::Face(2)),
-					ETexture::GetFaceUpDir(ETexture::Face(3)),
-					ETexture::GetFaceUpDir(ETexture::Face(4)),
-					ETexture::GetFaceUpDir(ETexture::Face(5)),
-				};
-
-				static Vector3 faceRightDirs[] =
+				static Vector3 faceRightDirs[ETexture::FaceCount] =
 				{
 					faceDirs[0].cross(faceUpDirs[0]),
 					faceDirs[1].cross(faceUpDirs[1]),
@@ -348,15 +331,14 @@ namespace Shadertoy
 					faceDirs[5].cross(faceUpDirs[5]),
 				};
 
-
-				passShader.setParam(commandList, SHADER_PARAM(iFaceDir), faceDirs, ARRAY_SIZE(faceDirs));
-				passShader.setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDirs, ARRAY_SIZE(faceUpDirs));
-				passShader.setParam(commandList, SHADER_PARAM(iFaceUDir), faceRightDirs, ARRAY_SIZE(faceRightDirs));
+				passShader.setParam(commandList, SHADER_PARAM(iFaceDir), faceDirs, ETexture::FaceCount);
+				passShader.setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDirs, ETexture::FaceCount);
+				passShader.setParam(commandList, SHADER_PARAM(iFaceUDir), faceRightDirs, ETexture::FaceCount);
 
 				passShader.setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
 				passShader.setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
 
-				DrawUtility::ScreenRect(commandList, 6);
+				DrawUtility::ScreenRect(commandList, ETexture::FaceCount);
 				RHISetFrameBuffer(commandList, nullptr);
 			}
 		}
@@ -674,14 +656,8 @@ namespace Shadertoy
 
 		int generateStreamingSample(RHICommandList& commandList, int64 samplePos, int sampleCount, AudioStreamSample& outSample)
 		{
-			outSample.handle = mSampleBuffer.fetchSampleData();
-			WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
-			sampleData->data.resize(sampleCount * mFormat.blockAlign);
-
-			outSample.data = sampleData->data.data();
-			outSample.dataSize = sampleData->data.size();
+			outSample = mSampleBuffer.allocSamples(sampleCount * mFormat.blockAlign);
 			mRenderer->renderSound(commandList, *mRenderPass, mFormat, samplePos, sampleCount, outSample);
-
 			return sampleCount;
 		}
 
@@ -1318,14 +1294,8 @@ namespace Shadertoy
 												input.type = EInputType::Keyboard;
 											}
 										}
-										if (!inputObject.tryGet("ID", input.resId))
-										{
-											input.resId = 0;
-										}
-										if (!inputObject.tryGet("Channel", input.channel))
-										{
-											input.channel = 0;
-										}
+										input.resId = inputObject.getInt("ID", 0);
+										input.channel = inputObject.getInt("Channel", 0);
 										info->inputs.push_back(input);
 									}
 								}
@@ -1469,26 +1439,12 @@ namespace Shadertoy
 				}
 			}
 
+			ShaderCompileOption option;
+
 			std::string code;
 			Text::Format((char const*)codeTemplate.data(), { StringView(channelCode), commonInfo ? StringView(commonInfo->code) : StringView(), StringView(pass.info->code) }, code);
+			option.addCode(code.c_str());
 
-			ShaderCompileOption option;
-			switch (pass.info->passType)
-			{
-			case EPassType::Buffer:
-				option.addDefine(SHADER_PARAM(RENDER_BUFFER), 1);
-				break;
-			case EPassType::Sound:
-				option.addDefine(SHADER_PARAM(RENDER_SOUND), 1);
-				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), SoundRenderPassStreamSource::TextureSize);
-				break;
-			case EPassType::CubeMap:
-				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
-				break;
-			case EPassType::Image:
-				option.addDefine(SHADER_PARAM(RENDER_IMAGE), 1);
-				break;
-			}
 			bool bUseComputeShader = canUseComputeShader(pass);
 			if (bUseComputeShader)
 			{
@@ -1498,12 +1454,28 @@ namespace Shadertoy
 					option.addDefine(SHADER_PARAM(COMPUTE_DISCARD_SIM), 1);
 				}
 			}
-			if (pass.info->passType == EPassType::CubeMap && bUseComputeShader == false && bRenderCubeOnPass)
+
+			switch (pass.info->passType)
 			{
-				option.addDefine(SHADER_PARAM(RENDER_CUBE_ONE_PASS), 1);
+			case EPassType::Buffer:
+				option.addDefine(SHADER_PARAM(RENDER_BUFFER), 1);
+				break;
+			case EPassType::Sound:
+				option.addDefine(SHADER_PARAM(RENDER_SOUND), 1);
+				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), Renderer::SoundTextureSize);
+				break;
+			case EPassType::CubeMap:
+				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
+				if (bRenderCubeOnPass && bUseComputeShader == false)
+				{
+					option.addDefine(SHADER_PARAM(RENDER_CUBE_ONE_PASS), 1);
+				}
+				break;
+			case EPassType::Image:
+				option.addDefine(SHADER_PARAM(RENDER_IMAGE), 1);
+				break;
 			}
 
-			option.addCode(code.c_str());
 			ShaderEntryInfo entry = bUseComputeShader ? ShaderEntryInfo{ EShader::Compute, "MainCS" } : ShaderEntryInfo{ EShader::Pixel, "MainPS" };
 			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, entry, option))
 				return false;
@@ -1526,7 +1498,6 @@ namespace Shadertoy
 				mStreamSource->mRenderer = this;
 				mSoundWave = std::make_unique<SoundWave>();
 				mSoundWave->setupStream(mStreamSource.get());
-
 			}
 
 			mStreamSource->mRenderPass = &pass;

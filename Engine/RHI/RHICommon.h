@@ -44,7 +44,6 @@ namespace Render
 	class RHIUnorderedAccessView;
 	
 	class RHIBuffer;
-	class RHIBuffer;
 
 	class RHIInputLayout;
 	class RHIRasterizerState;
@@ -204,8 +203,10 @@ namespace Render
 
 
 		static Vector3 GetFaceDir(Face face);
+		static Vector3 const* GetFaceDirArray();
 
 		static Vector3 GetFaceUpDir(Face face);
+		static Vector3 const* GetFaceUpArray();
 		static uint32  GetFormatSize(Format format);
 		static uint32  GetComponentCount(Format format);
 		static EComponentType GetComponentType(Format format);
@@ -371,6 +372,7 @@ namespace Render
 		TCF_HalfData       = BIT(6),
 
 		TCF_PlatformGraphicsCompatible = BIT(7),
+		TCF_RenderBufferOptimize   = BIT(8), //Opengl Render Buffer
 		TCF_DefalutValue = TCF_CreateSRV,
 	};
 	SUPPORT_ENUM_FLAGS_OPERATION(TextureCreationFlags);

@@ -53,6 +53,31 @@ namespace Render
 		}
 	}
 
+
+	class FOpenGLBase
+	{
+	public:
+		static void FramebufferTextureLayer(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint layer)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, texture, level, layer);
+			VerifyFrameBufferStatus();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+	};
+	class FOpenGL45 : public FOpenGLBase
+	{
+	public:
+		static void FramebufferTextureLayer(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint layer)
+		{
+			glNamedFramebufferTextureLayer(framebuffer, attachment, texture, level, layer);
+			VerifyFrameBufferStatus();
+		}
+	};
+
+
+	using FOpenGL = FOpenGL45;
+
 	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
 
 	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
@@ -366,10 +391,18 @@ namespace Render
 
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace = -1;
+		info.indexLayer = INDEX_NONE;
 		info.level = level;
-		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
-		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info);
+		if (target.getDesc().creationFlags & TCF_RenderBufferOptimize)
+		{
+			info.typeEnumGL = GL_RENDERBUFFER;
+			setRenderBufferInternal(idx, static_cast<OpenGLRenderBuffer&>(target).getHandle(), info);
+		}
+		else
+		{
+			info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
+			setTexture2DInternal(idx, OpenGLCast::GetHandle(target), info);
+		}
 	}
 
 	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , ETexture::Face face, int level)
@@ -382,10 +415,10 @@ namespace Render
 
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace = face;
+		info.indexLayer = face;
 		info.level = level;
 		info.typeEnumGL = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
-		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info);
+		setTextureLayerInternal( idx , OpenGLCast::GetHandle( target ) , info);
 	}
 
 	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level /*= 0*/)
@@ -414,25 +447,25 @@ namespace Render
 
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace = 0;
+		info.indexLayer = INDEX_NONE;
 		info.level = level;
 		info.typeEnumGL = GL_TEXTURE_CUBE_MAP;
 		setTextureArrayInternal(idx, OpenGLCast::GetHandle(target), info);
 	}
 
-	void OpenGLFrameBuffer::setRenderBufferInternal(GLuint handle)
+	void OpenGLFrameBuffer::setRenderBufferInternal(int idx, GLuint handle, BufferInfo const& info)
 	{
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 , GL_RENDERBUFFER, handle);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, GL_RENDERBUFFER, handle);
 		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setTexture2DInternal(int idx, GLuint handle , BufferInfo const& info)
+	void OpenGLFrameBuffer::setTexture2DInternal(int idx, GLuint handle, BufferInfo const& info)
 	{
 		assert( getHandle() );
-		glBindFramebuffer( GL_FRAMEBUFFER , getHandle() );
+		glBindFramebuffer( GL_FRAMEBUFFER , getHandle());
 		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , info.typeEnumGL , handle , info.level );
 		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
@@ -450,10 +483,7 @@ namespace Render
 	void OpenGLFrameBuffer::setTextureLayerInternal(int idx, GLuint handle, BufferInfo const& info)
 	{
 		assert(getHandle());
-		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
-		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, info.level, info.indexLayer);
-		VerifyFrameBufferStatus();
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		FOpenGL::FramebufferTextureLayer(getHandle(), GL_COLOR_ATTACHMENT0 + idx, handle, info.level, info.indexLayer);
 	}
 
 	void OpenGLFrameBuffer::setTextureArrayInternal(int idx, GLuint handle, BufferInfo const& info)
@@ -462,11 +492,6 @@ namespace Render
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, info.level);
 		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-
-	void OpenGLFrameBuffer::bindDepthOnly()
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, getHandle() );
 	}
 
 	void OpenGLFrameBuffer::bind()
@@ -503,21 +528,6 @@ namespace Render
 			return false;
 
 		return true;
-	}
-
-	void OpenGLFrameBuffer::setupTextureLayer(RHITextureCube& target, int level )
-	{
-		mTextures.clear();
-		int idx = mTextures.size();
-		BufferInfo info;
-		info.bufferRef = &target;
-		info.idxFace = -1;
-		info.typeEnumGL = GL_TEXTURE_CUBE_MAP;
-		mTextures.push_back(info);
-		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, OpenGLCast::GetHandle( target ), level);
-		VerifyFrameBufferStatus();
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 
@@ -560,7 +570,7 @@ namespace Render
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL, bool bArray)
+	void OpenGLFrameBuffer::setDepthInternal(RHITextureBase& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL, bool bArray)
 	{
 		removeDepth();
 
@@ -604,18 +614,10 @@ namespace Render
 		}
 	}
 
-
-
-#if USE_DepthRenderBuffer
-	void OpenGLFrameBuffer::setDepth( RHIDepthRenderBuffer& buffer)
-	{
-		setDepthInternal( buffer , buffer.mHandle , buffer.getFormat() , GL_RENDERBUFFER );
-	}
-#endif
-
 	void OpenGLFrameBuffer::setDepth(RHITexture2D& target)
 	{
-		setDepthInternal(target, OpenGLCast::GetHandle(target), target.getFormat(), OpenGLCast::To(&target)->getGLTypeEnum());
+		GLenum typeEnumGL = (target.getDesc().creationFlags & TCF_RenderBufferOptimize) ? GL_RENDERBUFFER : OpenGLCast::To(&target)->getGLTypeEnum();
+		setDepthInternal(target, OpenGLCast::GetHandle(target), target.getFormat(), typeEnumGL);
 	}
 
 	void OpenGLFrameBuffer::removeDepth()
@@ -637,22 +639,29 @@ namespace Render
 		}
 	}
 
-#if USE_DepthRenderBuffer
 
-	bool RHIDepthRenderBuffer::create(int w, int h, ETexture::Format format)
+	bool OpenGLRenderBuffer::create()
 	{
-		assert( mHandle == 0 );
-		mFormat = format;
-		glGenRenderbuffers(1, &mHandle );
-		glBindRenderbuffer( GL_RENDERBUFFER , mHandle );
-		glRenderbufferStorage( GL_RENDERBUFFER , OpenGLTranslate::DepthFormat( format ), w , h );
-		//glRenderbufferStorage( GL_RENDERBUFFER , GL_DEPTH_COMPONENT , w , h );
-		glBindRenderbuffer( GL_RENDERBUFFER , 0 );
+		if (!mGLObject.fetchHandle())
+			return false;
 
+		glBindRenderbuffer(GL_RENDERBUFFER, getHandle());
+
+		GLenum formtGL = ETexture::IsDepthStencil(mDesc.format) ? OpenGLTranslate::DepthFormat(mDesc.format) : OpenGLTranslate::To(mDesc.format);
+		if (mDesc.numSamples > 1)
+		{
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, mDesc.numSamples, formtGL, mDesc.dimension.x, mDesc.dimension.y);
+		}
+		else
+		{
+			glRenderbufferStorage(GL_RENDERBUFFER, formtGL, mDesc.dimension.x, mDesc.dimension.y);
+		}
+
+		VerifyOpenGLStatus();
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 		return true;
 	}
 
-#endif
 
 	struct OpenGLTextureConvInfo
 	{

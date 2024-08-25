@@ -61,14 +61,8 @@ namespace Render
 		int sizeX = Math::Max(CascadedShadowNum * CascadeTextureSize, ShadowTextureSize);
 		int sizeY = Math::Max(CascadeTextureSize, ShadowTextureSize);
 
-#if USE_DepthRenderBuffer
-		depthBuffer1 = new RHIDepthRenderBuffer;
-		if( !depthBuffer1->create(sizeX, sizeY, ETexture::Depth32F) )
-			return false;
-		depthBuffer2 = new RHIDepthRenderBuffer;
-		if( !depthBuffer2->create(ShadowTextureSize, ShadowTextureSize, ETexture::Depth32F) )
-			return false;
-#endif
+		depthBuffer1 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::Depth32F, sizeX, sizeY).Flags(TCF_RenderTarget|TCF_RenderBufferOptimize));
+		depthBuffer2 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::Depth32F, ShadowTextureSize, ShadowTextureSize).Flags(TCF_RenderTarget|TCF_RenderBufferOptimize));
 
 		OpenGLCast::To(mShadowMap2)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -76,9 +70,7 @@ namespace Render
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		OpenGLCast::To(mShadowMap2)->unbind();
-#if USE_DepthRenderBuffer
 		mShadowBuffer->setDepth(*depthBuffer1);
-#endif
 		mShadowBuffer->addTexture(*mShadowMap, ETexture::FaceX);
 		//mBuffer.addTexture( mShadowMap2 );
 		//mBuffer.addTexture( mShadowMap , ETexture::FaceX , false );
@@ -236,9 +228,7 @@ namespace Render
 			};
 
 			shadowProjectParam.shadowTexture = mCascadeTexture;
-#if USE_DepthRenderBuffer
-			mShadowBuffer.setDepth(*depthBuffer1);
-#endif
+			mShadowBuffer->setDepth(*depthBuffer1);
 			mShadowBuffer->setTexture(0, *mCascadeTexture);
 
 
@@ -292,10 +282,7 @@ namespace Render
 			shadowProjectParam.shadowMatrix[0] = mShadowMatrix;
 
 			shadowProjectParam.shadowTexture = mShadowMap2;
-
-#if USE_DepthRenderBuffer
-			mShadowBuffer.setDepth(*depthBuffer2);
-#endif
+			mShadowBuffer->setDepth(*depthBuffer2);
 			mShadowBuffer->setTexture(0, *mShadowMap2);
 			RHISetFrameBuffer(commandList, mShadowBuffer);
 
@@ -338,9 +325,7 @@ namespace Render
 
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
-#if USE_DepthRenderBuffer
 			mShadowBuffer->setDepth(*depthBuffer2);
-#endif
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			for( int i = 0; i < 6; ++i )
 			{

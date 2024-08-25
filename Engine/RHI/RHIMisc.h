@@ -1,5 +1,6 @@
-#ifndef RHIMisc_h__
-#define RHIMisc_h__
+#pragma once
+#ifndef RHIMisc_H_24D3F3E9_D037_4086_BA7E_40EC7C523D3F
+#define RHIMisc_H_24D3F3E9_D037_4086_BA7E_40EC7C523D3F
 
 #include "RHIDefine.h"
 
@@ -147,4 +148,4 @@ namespace Render
 	}
 }
 
-#endif // RHIMisc_h__
+#endif // RHIMisc_H_24D3F3E9_D037_4086_BA7E_40EC7C523D3F

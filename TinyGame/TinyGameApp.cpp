@@ -1495,6 +1495,7 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	return createStage( STAGE_MAIN_MENU );
 }
 
+
 bool TinyGameApp::initializeStage(StageBase* stage)
 {
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);

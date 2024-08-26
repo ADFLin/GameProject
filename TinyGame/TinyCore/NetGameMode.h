@@ -141,6 +141,7 @@ public:
 	};
 
 	NetLevelStageMode();
+	~NetLevelStageMode();
 
 	bool prevStageInit();
 	bool postStageInit();

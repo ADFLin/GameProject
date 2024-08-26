@@ -212,7 +212,7 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 
 	virtual bool setFromString(StringView const& str) override
 	{
-		return FStringConv::ToCheck(str.data(), str.length(), *mPtr);
+		return FStringConv::ToCheck(str.data(), (int)str.length(), *mPtr);
 	}
 
 	static TArrayView< ConsoleArgTypeInfo const > GetArg()
@@ -235,11 +235,11 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 		FTypeMemoryOp::Assign(mPtr, *(Type*)pDest);
 	}
 
-	virtual bool setFromInt(int inValue) { *mPtr = inValue; return true; }
-	virtual int  getAsInt() const { return *mPtr; }
+	virtual bool setFromInt(int inValue) { *mPtr = (Type)inValue; return true; }
+	virtual int  getAsInt() const { return int(*mPtr); }
 
-	virtual bool  setFromFloat(float inValue) { *mPtr = inValue;  return true; }
-	virtual float getAsFloat() const { return *mPtr; }
+	virtual bool  setFromFloat(float inValue) { *mPtr = (Type)inValue;  return true; }
+	virtual float getAsFloat() const { return float(*mPtr); }
 };
 
 

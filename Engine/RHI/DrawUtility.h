@@ -43,9 +43,9 @@ namespace Render
 #define RTS_ELEMENT(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_Float )
 #define RTS_ELEMENT_U8N(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_U8N )
 
-#define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT_( S , RTS_ELEMENT_COUNT_MASK , 0x1) )
+#define USE_SEMANTIC( VF , S )         ( ( VF ) & RTS_ELEMENT_( S , RTS_ELEMENT_COUNT_MASK , 0x1) )
 #define VERTEX_ELEMENT_COUNT( VF , S ) ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * (S) + 1 ) )
-#define VERTEX_ELEMENT_TYPE( VF , S ) ( ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * (S) ) ) & 0x1 )
+#define VERTEX_ELEMENT_TYPE( VF , S )  ( ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * (S) ) ) & 0x1 )
 
 	static_assert(RTS_ELEMENT_BIT_OFFSET * (RTS_MAX - 1) <= sizeof(uint32) * 8, "RenderRTSemantic Can't Support ");
 
@@ -100,9 +100,9 @@ namespace Render
 			bool bNormalized = type != CVT_Float;
 			auto format = EVertex::GetFormat(type, VERTEX_ELEMENT_COUNT(VertexFormat, semantic));
 
-			if constexpr (SkipVertexFormat)
+			if constexpr (!!SkipVertexFormat)
 			{
-				desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, semantic) ? EVertex::ATTRIBUTE_UNUSED : attribute, format, bNormalized);
+				desc.addElement(indexStream, (!!USE_SEMANTIC(SkipVertexFormat, semantic)) ? EVertex::ATTRIBUTE_UNUSED : attribute, format, bNormalized);
 			}
 			else
 			{
@@ -110,13 +110,13 @@ namespace Render
 			}
 		};
 
-		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Position))
+		if constexpr (!!USE_SEMANTIC(VertexFormat, RTS_Position))
 			AddElement(RTS_Position, EVertex::ATTRIBUTE_POSITION);
-		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Color))
+		if constexpr (!!USE_SEMANTIC(VertexFormat, RTS_Color))
 			AddElement(RTS_Color, EVertex::ATTRIBUTE_COLOR);
-		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Normal))
+		if constexpr (!!USE_SEMANTIC(VertexFormat, RTS_Normal))
 			AddElement(RTS_Normal, EVertex::ATTRIBUTE_NORMAL);
-		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Texcoord))
+		if constexpr (!!USE_SEMANTIC(VertexFormat, RTS_Texcoord))
 			AddElement(RTS_Texcoord, EVertex::ATTRIBUTE_TEXCOORD);
 	}
 
@@ -150,7 +150,7 @@ namespace Render
 		{
 			InputLayoutDesc desc;
 			SetupRenderRTInputLayoutDesc< VertexFormat0, VertexFormat1 >(0, desc);
-			if constexpr (VertexFormat1)
+			if constexpr (!!VertexFormat1)
 			{
 				SetupRenderRTInputLayoutDesc< VertexFormat1 >(1, desc);
 			}

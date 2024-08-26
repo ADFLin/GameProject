@@ -13,6 +13,11 @@ SingleStageMode::SingleStageMode()
 
 }
 
+SingleStageMode::~SingleStageMode()
+{
+
+}
+
 bool SingleStageMode::postStageInit()
 {
 	if( !BaseClass::postStageInit() )

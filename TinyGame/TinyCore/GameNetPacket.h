@@ -322,7 +322,7 @@ public:
 
 	void setServerState( uint8 inState )
 	{
-		playerId = SERVER_PLAYER_ID;
+		playerId = (int8)SERVER_PLAYER_ID;
 		state = inState;
 	}
 	template < class BufferOP >

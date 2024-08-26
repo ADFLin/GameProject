@@ -26,45 +26,11 @@ namespace Render
 		InputLayoutDesc desc;
 		TArray<MeshSection> sections;
 
-		void initSections()
-		{
-			MeshSection section;
-			section.indexStart = 0;
-			section.count = indices.size();
-			sections.push_back(section);
-		}
+		void initSections();
 
-		void append(MeshImportData const& other)
-		{
-			if (sections.empty())
-			{
-				initSections();
-			}
+		void append(MeshImportData const& other);
 
-			uint32 baseIndex = numVertices;
-			vertices.append(other.vertices);
-
-			int start = indices.size();
-			indices.append(other.indices);
-			for (int i = start; i < indices.size(); ++i)
-			{
-				indices[i] += baseIndex;
-			}
-			numVertices += other.numVertices;
-
-			MeshSection section;
-			section.indexStart = start;
-			section.count = other.indices.size();
-			sections.push_back(section);
-		}
-
-		VertexElementReader makeAttributeReader( EVertex::Attribute attribute)
-		{
-			VertexElementReader result;
-			result.vertexDataStride = desc.getVertexSize();
-			result.pVertexData = vertices.data() + desc.getAttributeOffset(attribute);
-			return result;
-		}
+		VertexElementReader makeAttributeReader( EVertex::Attribute attribute);
 
 	};
 

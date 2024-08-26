@@ -26,7 +26,7 @@ struct AnyParam
 	}
 	void setValue(size_t value)
 	{
-		intValue = value;
+		intValue = (int)value;
 	}
 	void setValue(float value)
 	{

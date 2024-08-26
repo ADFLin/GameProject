@@ -6,17 +6,17 @@
 #include "TypeMemoryOp.h"
 #include "DataStructure/CycleQueue.h"
 
-class TINY_API ConsoleCmdTextCtrl : public GTextCtrl
+class ConsoleCmdTextCtrl : public GTextCtrl
 {
 	using BaseClass = GTextCtrl;
 public:
 	using GTextCtrl::GTextCtrl;
 
-	MsgReply onCharMsg(unsigned code);
-	MsgReply onKeyMsg(KeyMsg const& msg);
+	TINY_API MsgReply onCharMsg(unsigned code);
+	TINY_API MsgReply onKeyMsg(KeyMsg const& msg);
 
 
-	void setFoundCmdToText();
+	TINY_API void setFoundCmdToText();
 	TArray< std::string > mFoundCmds;
 	TArray< std::string > mHistoryCmds;
 	int mIndexHistoryUsed = INDEX_NONE;
@@ -24,19 +24,19 @@ public:
 
 	std::string mNamespace;
 
-	bool preSendEvent(int event);
+	TINY_API bool preSendEvent(int event);
 
 };
 
-class TINY_API ConsoleFrame : public GFrame
+class ConsoleFrame : public GFrame
 	               , public LogOutput
 {
 	typedef GFrame BaseClass;
 
 public:
 
-	ConsoleFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
-	~ConsoleFrame();
+	TINY_API ConsoleFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API ~ConsoleFrame();
 	enum 
 	{
 		UI_COM_TEXT = BaseClass::NEXT_UI_ID ,

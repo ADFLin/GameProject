@@ -12,6 +12,7 @@ class SingleStageMode : public LevelStageMode
 	typedef LevelStageMode BaseClass;
 public:
 	SingleStageMode();
+	~SingleStageMode();
 
 	bool   postStageInit();
 	void   onRestart(uint64& seed);

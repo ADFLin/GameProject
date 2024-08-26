@@ -220,7 +220,7 @@ namespace Render
 
 		void setDebugName(char const* name) override
 		{
-			mResource->SetPrivateData(WKPDID_D3DDebugObjectName, FCString::Strlen(name), name);
+			mResource->SetPrivateData(WKPDID_D3DDebugObjectName, (uint32)FCString::Strlen(name), name);
 		}
 
 		void release()
@@ -750,7 +750,7 @@ namespace Render
 			mTrace = trace;
 			if (mTag)
 			{
-				mResource->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(mTag), mTag);
+				mResource->SetPrivateData(WKPDID_D3DDebugObjectName, (uint32)FCString::Strlen(mTag), mTag);
 			}
 		}
 #endif

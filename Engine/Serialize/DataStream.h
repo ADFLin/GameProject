@@ -288,10 +288,12 @@ public:
 		readSequence(&value[0], N);
 	}
 
+	using SizeType = uint32;
+
 	template<  class T, class A >
 	void write(TArray< T, A > const& value)
 	{
-		uint32 size = value.size();
+		SizeType size = (SizeType)value.size();
 		this->write(size);
 		if (size)
 		{
@@ -302,7 +304,7 @@ public:
 	template< class T >
 	void write(TArrayView< T const > const& value)
 	{
-		uint32 size = value.size();
+		SizeType size = (SizeType)value.size();
 		this->write(size);
 		if (size)
 		{
@@ -313,7 +315,7 @@ public:
 	template<  class T, class A >
 	void write(std::vector< T, A > const& value)
 	{
-		uint32 size = value.size();
+		SizeType size = (SizeType)value.size();
 		this->write(size);
 		if( size )
 		{
@@ -324,7 +326,7 @@ public:
 	template< class T, class A >
 	void read(TArray< T , A >& value)
 	{
-		uint32 size = 0;
+		SizeType size = 0;
 		this->read(size);
 		if (size)
 		{
@@ -336,7 +338,7 @@ public:
 	template< class T, class A >
 	void read(std::vector< T, A >& value)
 	{
-		uint32 size = 0;
+		SizeType size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -348,7 +350,7 @@ public:
 	template< class T>
 	void write(std::basic_string<T> const& value)
 	{
-		uint32 size = value.size();
+		SizeType size = (SizeType)value.size();
 		this->write(size);
 		if( size )
 		{
@@ -359,7 +361,7 @@ public:
 	template< class T>
 	void read(std::basic_string<T>& value)
 	{
-		uint32 size = 0;
+		SizeType size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -375,7 +377,7 @@ public:
 	template< class MapType >
 	void writeMap(MapType const& mapValue)
 	{
-		uint32 size = mapValue.size();
+		SizeType size = (SizeType)mapValue.size();
 		this->write(size);
 		if( size )
 		{
@@ -396,7 +398,7 @@ public:
 	void readMap(MapType& mapValue)
 	{
 		mapValue.clear();
-		uint32 size = 0;
+		SizeType size = 0;
 		this->read(size);
 		if( size )
 		{

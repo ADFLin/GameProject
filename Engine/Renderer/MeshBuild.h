@@ -50,7 +50,7 @@ namespace Render
 		bool initializeRHI(Mesh& mesh)
 		{
 			uint32 vertexSize = mesh.mInputLayoutDesc.getVertexSize();
-			if (!mesh.createRHIResource(vertexData.data(), vertexData.size() / vertexSize, indexData.data(), indexData.size()))
+			if (!mesh.createRHIResource(vertexData.data(), int(vertexData.size() / vertexSize), indexData.data(), (int)indexData.size()))
 				return false;
 
 			return true;

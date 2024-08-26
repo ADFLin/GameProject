@@ -141,7 +141,7 @@ namespace Rich
 
 		int getMaxLevel() const
 		{
-			return mInfo.tolls.size() - 1;
+			return (int)mInfo.tolls.size() - 1;
 		}
 
 		Info    mInfo;

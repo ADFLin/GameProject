@@ -301,8 +301,8 @@ namespace Reflection
 
 		template< typename T >
 		static T GetValue(void* data) { return *reinterpret_cast<T*>(data); }
-		template< typename T >
-		static void SetValue(void* data, T value) { *reinterpret_cast<T*>(data) = value; }
+		template< typename T , typename Q >
+		static void SetValue(void* data, Q value) { *reinterpret_cast<T*>(data) = T(value); }
 
 		static int64 GetUnderlyingValue(void* data, EPropertyType underlyingType)
 		{
@@ -431,7 +431,7 @@ namespace Reflection
 
 		virtual int   getElementCount(void* ptr)
 		{
-			return reinterpret_cast<T*>(ptr)->size();
+			return (int)reinterpret_cast<T*>(ptr)->size();
 		}
 		virtual void* getElement(void* ptr, int index)
 		{

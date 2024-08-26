@@ -29,7 +29,7 @@ public:
 		NEXT_UI_ID = UI_GAME_STAGE_MODE_ID,
 	};
 	GameStageMode(EGameStageMode mode);
-	virtual ~GameStageMode() {}
+	virtual ~GameStageMode();
 	virtual bool prevStageInit() { return true; }
 	virtual bool postStageInit() {  return true; }
 	virtual void onEnd(){}
@@ -73,7 +73,7 @@ class LevelStageMode : public GameStageMode
 	using BaseClass = GameStageMode;
 public:
 	LevelStageMode(EGameStageMode mode);
-
+	~LevelStageMode();
 	void   onRestart(uint64& seed) override;
 	bool   saveReplay(char const* name) override;
 

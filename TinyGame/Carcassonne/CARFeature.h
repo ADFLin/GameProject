@@ -166,7 +166,7 @@ namespace CAR
 		virtual void addAbbeyNode( MapTile& mapData , int dir );
 		void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ) override;
 		bool getActorPos( MapTile const& mapTile , ActorPos& actorPos ) override;
-		int  getScoreTileNum() const override { return mapTiles.size(); }
+		int  getScoreTileNum() const override { return (int)mapTiles.size(); }
 
 		int getSideContentNum(SideContentMask contentMask);
 		int getSideContentNum(SideContent::Enum type) { return getSideContentNum(BIT(type)); }
@@ -273,7 +273,7 @@ namespace CAR
 	public:
 		TArray< MapTile* > neighborTiles;
 		bool checkComplete() const override { return neighborTiles.size() == 8; }
-		int  getScoreTileNum() const override { return neighborTiles.size() + 1; }
+		int  getScoreTileNum() const override { return (int)neighborTiles.size() + 1; }
 		void mergeData(FeatureBase& other, MapTile const& putData, int meta) override { NEVER_REACH("Feature can't be merged!!"); }
 		int doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) override;
 		bool updateForAdjacentTile(MapTile& tile) override;

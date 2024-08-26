@@ -34,6 +34,46 @@ namespace Render
 	}
 #endif
 
+	void MeshImportData::initSections()
+	{
+		MeshSection section;
+		section.indexStart = 0;
+		section.count = indices.size();
+		sections.push_back(section);
+	}
+
+	void MeshImportData::append(MeshImportData const& other)
+	{
+		if (sections.empty())
+		{
+			initSections();
+		}
+
+		uint32 baseIndex = numVertices;
+		vertices.append(other.vertices);
+
+		int start = (int)indices.size();
+		indices.append(other.indices);
+		for (int i = start; i < indices.size(); ++i)
+		{
+			indices[i] += baseIndex;
+		}
+		numVertices += other.numVertices;
+
+		MeshSection section;
+		section.indexStart = start;
+		section.count = other.indices.size();
+		sections.push_back(section);
+	}
+
+	VertexElementReader MeshImportData::makeAttributeReader(EVertex::Attribute attribute)
+	{
+		VertexElementReader result;
+		result.vertexDataStride = desc.getVertexSize();
+		result.pVertexData = vertices.data() + desc.getAttributeOffset(attribute);
+		return result;
+	}
+
 }//namespace Render
 
 

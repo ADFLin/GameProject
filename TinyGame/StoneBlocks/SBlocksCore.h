@@ -321,7 +321,7 @@ namespace SBlocks
 		int findSubset(PieceShapeData const& data) const;
 		int getBlockCount() const
 		{
-			return getDataByIndex(0).blocks.size();
+			return (int)getDataByIndex(0).blocks.size();
 		}
 
 		int getDifferentShapeNum() const;

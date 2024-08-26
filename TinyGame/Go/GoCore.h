@@ -8,8 +8,8 @@ class SocketBuffer;
 
 namespace GoCore
 {
-	char const EDGE_MARK = 0x80;
-	char const VISITED_MARK = 0x40;
+	char const EDGE_MARK = char(0x80);
+	char const VISITED_MARK = char(0x40);
 
 	namespace EStoneColor
 	{

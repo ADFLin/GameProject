@@ -893,6 +893,11 @@ NetLevelStageMode::NetLevelStageMode()
 	mbReconnectMode = false;
 }
 
+NetLevelStageMode::~NetLevelStageMode()
+{
+
+}
+
 bool NetLevelStageMode::prevStageInit()
 {
 	if( !BaseClass::prevStageInit() )

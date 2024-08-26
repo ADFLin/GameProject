@@ -55,8 +55,8 @@ public:
 			filterDown( index );
 		}
 	}
-	int size() const { return mTreeMap.size(); }
-	int capacity() const { return mTreeMap.capacity(); }
+	size_t size() const { return mTreeMap.size(); }
+	size_t capacity() const { return mTreeMap.capacity(); }
 
 private:
 

@@ -216,7 +216,7 @@ namespace Render
 
 		int addInstance(Matrix4 const& xform, Vector4 const& param)
 		{
-			int result = mInstanceTransforms.size();
+			int result = (int)mInstanceTransforms.size();
 			mInstanceTransforms.push_back(xform);
 			mInstanceParams.push_back(param);
 			bBufferValid = false;
@@ -352,10 +352,10 @@ namespace Render
 			NumSimpleMesh,
 		};
 	};
-	struct TINY_API SharedAssetData
+	struct SharedAssetData
 	{
-		bool loadCommonShader();
-		bool createSimpleMesh();
+		TINY_API bool loadCommonShader();
+		TINY_API bool createSimpleMesh();
 
 		Mesh& getMesh(int id) { return mSimpleMeshs[id]; }
 		SphereProgram* mProgSphere;
@@ -364,7 +364,7 @@ namespace Render
 		Mesh   mSimpleMeshs[SimpleMeshId::NumSimpleMesh];
 
 
-		void releaseRHIResource(bool bReInit = false);
+		TINY_API void releaseRHIResource(bool bReInit = false);
 	};
 
 
@@ -396,9 +396,9 @@ namespace Render
 	};
 
 
-	class TINY_API TestRenderStageBase : public StageBase
-		                               , public SharedAssetData
-		                               , public IGameRenderSetup
+	class TestRenderStageBase : public StageBase
+		                      , public SharedAssetData
+		                      , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -409,14 +409,14 @@ namespace Render
 		SimpleCamera  mCamera;
 		bool          mbGamePased;
 
-		bool onInit() override;
+		TINY_API bool onInit() override;
 
-		void onEnd() override;
+		TINY_API void onEnd() override;
 
 		virtual void restart(){}
 		virtual void tick() {}
 		virtual void updateFrame(int frame) {}
-		void onUpdate(long time) override;
+		TINY_API void onUpdate(long time) override;
 
 		//
 		virtual bool setupRenderResource(ERenderSystem systemName)
@@ -436,28 +436,22 @@ namespace Render
 			mBitbltFrameBuffer.release();
 		}
 
-		void initializeRenderState();
-		void bitBltToBackBuffer(RHICommandList& commandList, RHITexture2D& texture);
+		TINY_API void initializeRenderState();
+		TINY_API void bitBltToBackBuffer(RHICommandList& commandList, RHITexture2D& texture);
 
 		RHIFrameBufferRef mBitbltFrameBuffer;
 
-		MsgReply onMouse(MouseMsg const& msg) override;
+		TINY_API MsgReply onMouse(MouseMsg const& msg) override;
 
-		MsgReply onKey(KeyMsg const& msg) override;
+		TINY_API MsgReply onKey(KeyMsg const& msg) override;
 
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
-			switch( id )
-			{
-			default:
-				break;
-			}
-
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
 
-		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
+		TINY_API void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
 		struct ESkyboxShow
 		{
 			enum
@@ -473,7 +467,7 @@ namespace Render
 				Count,
 			};
 		};
-		void drawSkyBox(RHICommandList& commandList, ViewInfo& view, RHITexture2D& HDRImage, IBLResource& IBL, int skyboxShowIndex);
+		TINY_API void drawSkyBox(RHICommandList& commandList, ViewInfo& view, RHITexture2D& HDRImage, IBLResource& IBL, int skyboxShowIndex);
 	};
 
 }//namespace Render

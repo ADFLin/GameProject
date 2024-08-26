@@ -72,7 +72,7 @@ public:
 
 	void  drawRect(int left, int top, int right, int bottom)
 	{
-		drawRect(Vector2(left, top), Vector2(right - left, bottom - right));
+		drawRect(Vec2i(left, top), Vec2i(right - left, bottom - right));
 	}
 	class Visitor
 	{

@@ -335,7 +335,7 @@ class LatencyCalculator
 public:
 	LatencyCalculator( int maxSampleNum )
 	{
-		mSample = new uint32[ maxSampleNum ];
+		mSample = new int64[ maxSampleNum ];
 		mMaxSampleNum = maxSampleNum;
 		mCount = 0;
 	}
@@ -354,7 +354,7 @@ public:
 		if ( mCount >= mMaxSampleNum )
 			return;
 
-		mSample[ mCount ] = ( getSystemTime() - mLastRequst )/2;
+		mSample[ mCount ] = ( getSystemTime() - mLastRequst ) / 2;
 		++mCount;
 	}
 
@@ -365,18 +365,18 @@ public:
 
 	int    getSampleNum(){ return mCount; }
 
-	uint32 calcResult()
+	int64 calcResult()
 	{
-		uint32 total = 0;
+		int64 total = 0;
 		for ( int i = 0 ; i < mCount ; ++i )
 			total += mSample[i];
 		return total / mCount;
 	}
 
 	int     mMaxSampleNum;
-	uint32  mLastRequst;
+	int64   mLastRequst;
 	int     mCount;
-	uint32* mSample;
+	int64*  mSample;
 };
 
 #endif // GameNetConnect_h__

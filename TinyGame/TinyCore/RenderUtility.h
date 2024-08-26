@@ -119,13 +119,13 @@ struct SimpleTextLayout
 	{
 		InlineString< 512 > str;
 		str.format(format, args...);
-		g.drawText(Vector2( posX, posY ), str);
+		g.drawText(Vec2i( posX, posY ), str);
 		posY += offset;
 	}
 	template< class TGraphics2D, class ...Args>
 	FORCEINLINE void show(TGraphics2D& g, char const* str)
 	{
-		g.drawText(Vector2(posX, posY), str);
+		g.drawText(Vec2i(posX, posY), str);
 		posY += offset;
 	}
 	int posX = 100;

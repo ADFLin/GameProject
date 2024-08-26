@@ -224,7 +224,7 @@ public:
 		Leaf leaf;
 		leaf.dataIndices = std::move(dataIndices);
 
-		int indexLeaf = mLeaves.size();
+		int indexLeaf = (int)mLeaves.size();
 		mLeaves.push_back(std::move(leaf));
 		return -(indexLeaf + 1);
 	}
@@ -273,7 +273,7 @@ public:
 			}
 		);
 
-		int numEdge = dataIndices.size() * 2;
+		int numEdge = (int)dataIndices.size() * 2;
 		int numShared = 0;
 		int numLeft = 0;
 
@@ -299,7 +299,7 @@ public:
 			if( edge.value >= bound.max[axis] )
 				break;
 
-			int const numRight = dataIndices.size() - numShared - numLeft;
+			int const numRight = (int)dataIndices.size() - numShared - numLeft;
 			int score = std::abs(numLeft - numRight) + 5 * numShared;
 
 			if( score < minScore )
@@ -339,7 +339,7 @@ public:
 		}
 
 		float splitValue = edges[indexBestChoice].value;
-		int idxNode = mNodes.size();
+		int idxNode = (int)mNodes.size();
 		mNodes.push_back(Node());
 
 		int idxLeftChild;

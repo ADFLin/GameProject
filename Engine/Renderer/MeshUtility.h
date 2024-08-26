@@ -28,9 +28,9 @@ namespace Render
 
 		DistanceFieldBuildSetting()
 		{
-			boundSizeScale = 1.1;
+			boundSizeScale = 1.1f;
 			bTwoSign = false;
-			gridLength = 0.1;
+			gridLength = 0.1f;
 			resolutionScale = 1.0f;
 			workTaskPool = nullptr;
 		}

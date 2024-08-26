@@ -14,6 +14,11 @@ GameStageMode::GameStageMode(EGameStageMode mode)
 
 }
 
+GameStageMode::~GameStageMode()
+{
+
+}
+
 bool GameStageMode::changeState(EGameState state)
 {
 	if( mGameState == state )
@@ -55,6 +60,11 @@ bool GameStageMode::togglePause()
 
 LevelStageMode::LevelStageMode(EGameStageMode mode)
 	:BaseClass(mode)
+{
+
+}
+
+LevelStageMode::~LevelStageMode()
 {
 
 }

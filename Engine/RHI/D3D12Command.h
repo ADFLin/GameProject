@@ -740,7 +740,7 @@ namespace Render
 			{
 				delete pair.second;
 			}
-			mShaderBoundStateMap.empty();
+			mShaderBoundStateMap.clear();
 		}
 
 		

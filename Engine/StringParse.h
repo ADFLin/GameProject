@@ -60,7 +60,7 @@ public:
 	static CharT const* FindLastChar(CharT const* str, int num, CharT c);
 	static CharT const* FindLastChar(CharT const* str, CharT c)
 	{
-		return FindLastChar(str, FCString::Strlen(str), c);
+		return FindLastChar(str, (int)FCString::Strlen(str), c);
 	}
 	static CharT const* FindChar(CharT const* str, CharT c);
 	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2);
@@ -178,7 +178,7 @@ public:
 
 	int        calcOffset(char const* ptr)
 	{
-		return mPtr - ptr;
+		return int(mPtr - ptr);
 	}
 
 	char const* mPtr;

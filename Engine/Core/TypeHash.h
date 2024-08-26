@@ -9,57 +9,55 @@
 #include <type_traits>
 
 
-inline uint32 HashValue(char const* str)
+FORCEINLINE uint32 HashValue(char const* str)
 {
 	return FCString::StrHash(str);
 }
 
-inline uint32 HashValue(char const* str, int num)
+FORCEINLINE uint32 HashValue(char const* str, int num)
 {
 	return FCString::StrHash(str, num);
 }
 
-inline uint32 HashValue(void const* pData, int num)
+FORCEINLINE uint32 HashValue(void const* pData, int num)
 {
 	return FCRC::Value32((uint8 const*)pData, num);
 }
 
 template< class T >
-inline uint32 HashValue(T const& v)
+FORCEINLINE uint32 HashValue(T const& v)
 {
 	std::hash<T> hasher;
-	return hasher(v);
+	return (uint32)hasher(v);
 }
 
-inline uint32 CombineHash(uint32 a, uint32 b)
+FORCEINLINE uint32 CombineHash(uint32 a, uint32 b)
 {
 	return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
 }
 
 template <class T>
-inline uint32 HashCombine(uint32 seed, T const& v)
+FORCEINLINE uint32 HashCombine(uint32 seed, T const& v)
 {
-	std::hash<T> hasher;
-	return CombineHash(seed, hasher(v));
+	return CombineHash(seed, HashValue(v));
 }
 
 template< typename T, typename ...TArgs >
-inline uint32 HashCombine(uint32 seed, T const& v, TArgs const& ...args)
+FORCEINLINE uint32 HashCombine(uint32 seed, T const& v, TArgs const& ...args)
 {
 	seed = HashCombine(seed, v);
 	return HashCombine(seed, args...);
 }
 
 template< typename T>
-inline uint32 HashValues(T const& v)
+FORCEINLINE uint32 HashValues(T const& v)
 {
 	return HashValue(v);
 }
 
 template< typename T, typename ...TArgs >
-inline uint32 HashValues(T const& v, TArgs const& ...args)
+FORCEINLINE uint32 HashValues(T const& v, TArgs const& ...args)
 {
-	std::hash<T> hasher;
 	return HashCombine(HashValue(v), args...);
 }
 

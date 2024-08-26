@@ -78,7 +78,7 @@ public:
 	double         getTotalTime() const { return getReadData().execTimeTotal; }
 	double         getFrameExecTime() const { return getReadData().execTime; }
 	TArray<ProfileTimestamp> const& getFrameTimestamps() const { return getReadData().timestamps; }
-	double         getLastFrame() const { return getReadData().frame; }
+	uint64         getLastFrame() const { return getReadData().frame; }
 	void           showChild(bool beShow) { mIsShowChild = beShow; }
 	bool           isShowChild() const { return mIsShowChild; }
 	void           showAllChild(bool beShow);
@@ -168,7 +168,7 @@ public:
 	virtual void   resetSample() = 0;
 
 	virtual void   incrementFrameCount() = 0;
-	virtual int	   getFrameCountSinceReset() = 0;
+	virtual uint64 getFrameCountSinceReset() = 0;
 	virtual double getDurationSinceReset() = 0;
 	virtual double getLastFrameDuration() = 0;
 	virtual void   readLock() = 0;

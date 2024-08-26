@@ -212,7 +212,7 @@ void HashString::init(char const* str, bool bCaseSensitive)
 	mNumber = 0;
 }
 
-void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
+void HashString::init(char const* str, size_t len, bool bCaseSensitive /*= true*/)
 {
 	if( str == nullptr || len == 0 )
 	{

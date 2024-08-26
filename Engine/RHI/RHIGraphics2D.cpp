@@ -559,6 +559,23 @@ void RHIGraphics2D::setBlendState(ESimpleBlendMode mode)
 	mRenderStatePending.blendMode = mode;
 }
 
+void RHIGraphics2D::setBlendAlpha(float value)
+{
+	if constexpr (Meta::IsSameType< Color4Type, Color4f >::Value)
+	{
+		mPaintArgs.brushColor.a = value;
+		mPaintArgs.penColor.a = value;
+		mColorFont.a = value;
+	}
+	else
+	{
+		uint8 byteValue = uint32(value * 255) & 0xff;
+		mPaintArgs.brushColor.a = byteValue;
+		mPaintArgs.penColor.a = byteValue;
+		mColorFont.a = byteValue;
+	}
+}
+
 void RHIGraphics2D::restoreRenderState()
 {
 	preModifyRenderState();

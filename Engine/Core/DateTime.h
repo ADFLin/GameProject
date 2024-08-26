@@ -70,7 +70,7 @@ public:
 
 	int32 getTotalDays() const
 	{
-		return mTicks / TicksPerDay;
+		return int32(mTicks / TicksPerDay);
 	}
 
 	Date getDate() const

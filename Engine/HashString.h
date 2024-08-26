@@ -89,7 +89,7 @@ public:
 	}
 private:
 	CORE_API void init(char const* str, bool bCaseSensitive = false);
-	CORE_API void init(char const* str, int len , bool bCaseSensitive = false);
+	CORE_API void init(char const* str, size_t len , bool bCaseSensitive = false);
 	uint32 getSlotIndex() const { return mIndex >> 1;  }
 	bool   isCastSensitive() const { return !(mIndex & 0x1);  }
 	CORE_API HashString(EName name, char const* str);

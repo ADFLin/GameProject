@@ -533,7 +533,7 @@ void WListCtrlT< Impl , CoreImpl >::ensureVisible( unsigned pos )
 		int numItemShow = getSize().y / _this()->getItemHeight();
 		if ( numItemShow <= diff )
 		{
-			mIndexShowStart = std::min<int>( pos - numItemShow , mItemList.size() - 1 );
+			mIndexShowStart = std::min<int>( pos - numItemShow , (int)mItemList.size() - 1 );
 		}
 	}
 

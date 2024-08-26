@@ -93,22 +93,7 @@ public:
 	void  endBlend();
 
 	void  setBlendState(ESimpleBlendMode mode);
-	void  setBlendAlpha(float value)
-	{ 
-		if constexpr (Meta::IsSameType< Color4Type, Color4f >::Value)
-		{
-			mPaintArgs.brushColor.a = value;
-			mPaintArgs.penColor.a = value;
-			mColorFont.a = value;
-		}
-		else
-		{
-			uint8 byteValue = uint32(value * 255) & 0xff;
-			mPaintArgs.brushColor.a = byteValue;
-			mPaintArgs.penColor.a = byteValue;
-			mColorFont.a = byteValue;
-		}
-	}
+	void  setBlendAlpha(float value);
 	void  enableMultisample(bool bEnabled)
 	{
 		mRenderStatePending.bEnableMultiSample = bEnabled;

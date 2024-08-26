@@ -207,22 +207,22 @@ public:
 	template<class Q>
 	Q toValue() const
 	{
-		return FStringConv::To<Q>(mData, mNum);
+		return FStringConv::To<Q>(mData, (int)mNum);
 	}
 	template<class Q>
 	bool toValueCheck(Q& outValue) const
 	{
-		return FStringConv::ToCheck<Q>(mData, mNum, outValue);
+		return FStringConv::ToCheck<Q>(mData, (int)mNum, outValue);
 	}
 
 protected:
 
-	int compareInternal(CharT const* other, int numOhter) const
+	int compareInternal(CharT const* other, size_t numOhter) const
 	{
 		CHECK(size() <= numOhter);
 		CharT const* p1 = data();
 		CharT const* p2 = other;
-		for( int i = 0; i < size(); ++i, ++p1, ++p2 )
+		for(size_t i = 0; i < size(); ++i, ++p1, ++p2 )
 		{
 			CHECK(*p1 != 0 && *p2 != 0);
 			if( *p1 != *p2 )

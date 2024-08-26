@@ -106,7 +106,7 @@ namespace CPP
 			mStream.write(&c, 1);
 		}
 
-		void push(char const* str, int num)
+		void push(char const* str, size_t num)
 		{
 			mStream.write(str, num);
 		}

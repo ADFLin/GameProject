@@ -128,7 +128,7 @@ public:
 
 	void   incrementFrameCount() override;
 
-	int	   getFrameCountSinceReset() override { return GFrameCount; }
+	uint64 getFrameCountSinceReset() override { return GFrameCount; }
 	double getDurationSinceReset() override
 	{
 		return mRecordFrames[ProfileSampleNode::GetReadIndex()].durationSinceReset;

@@ -104,7 +104,7 @@ namespace Render
 	public:
 		FORCEINLINE PerspectiveMatrix(float yFov, float aspect, float zNear, float zFar)
 		{
-			float f = 1.0 / Math::Tan(yFov / 2);
+			float f = 1.0f / Math::Tan(yFov / 2);
 			float zFactor = 1 / (zFar - zNear);
 			setValue(
 				f / aspect, 0,                       0,  0,
@@ -134,7 +134,7 @@ namespace Render
 
 		FORCEINLINE ReversedZPerspectiveMatrix(float yFov, float aspect, float zNear, float zFar)
 		{
-			float f = 1.0 / Math::Tan(yFov / 2);
+			float f = 1.0f / Math::Tan(yFov / 2);
 			float zFactor = 1 / (zFar - zNear);
 			setValue(
 				f / aspect, 0,                      0,  0,

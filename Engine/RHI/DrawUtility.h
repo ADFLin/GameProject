@@ -395,7 +395,7 @@ namespace Render
 		}
 		~ViewportSaveScope()
 		{
-			RHISetViewport(mCommandList, value[0], value[1], value[2], value[3]);
+			RHISetViewport(mCommandList, float(value[0]), float(value[1]), float(value[2]), float(value[3]));
 		}
 
 		int operator[](int idx) const { return value[idx]; }

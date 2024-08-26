@@ -12,14 +12,14 @@ namespace Render
 {
 	class RenderTargetPool;
 	
-	class TINY_API TextureShowManager : public ITextureShowManager
+	class TextureShowManager : public ITextureShowManager
 	{
 	public:
-		void registerTexture(HashString const& name, RHITextureBase* texture);
+		virtual ~TextureShowManager(){}
 
-		void handleShowTexture(char const* texName);
-
-		void registerRenderTarget(RenderTargetPool& renderTargetPool);
+		TINY_API void registerTexture(HashString const& name, RHITextureBase* texture);
+		TINY_API void handleShowTexture(char const* texName);
+		TINY_API void registerRenderTarget(RenderTargetPool& renderTargetPool);
 
 		std::unordered_map< HashString, TextureHandleRef > mTextureMap;
 
@@ -27,17 +27,17 @@ namespace Render
 		{
 			return mTextureMap;
 		}
-		void releaseRHI();
+		TINY_API void releaseRHI();
 	};
 
-	class TINY_API GlobalTextureShowManager : public TextureShowManager
-		                                    , public IGlobalRenderResource
+	class GlobalTextureShowManager : public TextureShowManager
+		                           , public IGlobalRenderResource
 	{
 	public:
-		GlobalTextureShowManager();
+		TINY_API GlobalTextureShowManager();
 
-		void restoreRHI() override;
-		void releaseRHI() override;
+		TINY_API void restoreRHI() override;
+		TINY_API void releaseRHI() override;
 	};
 
 	extern TINY_API GlobalTextureShowManager GTextureShowManager;

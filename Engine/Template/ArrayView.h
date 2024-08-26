@@ -18,12 +18,12 @@ public:
 	{
 	}
 
-	TArrayView(T* inData, int inNum)
+	TArrayView(T* inData, size_t inNum)
 		:mData(inData), mNum(inNum)
 	{
 	}
 
-	template< int N >
+	template< size_t N >
 	TArrayView(T(&inData)[N])
 		: mData(inData), mNum(N)
 	{

@@ -296,4 +296,81 @@ namespace Render
 		getMesh(SimpleMeshId::SkyBox).draw(commandList);
 	}
 
+	void InstancedMesh::setupMesh(Mesh& InMesh)
+	{
+		mMesh = &InMesh;
+		InputLayoutDesc desc = InMesh.mInputLayoutDesc;
+		desc.addElement(1, EVertex::ATTRIBUTE4, EVertex::Float4, false, true, 1);
+		desc.addElement(1, EVertex::ATTRIBUTE5, EVertex::Float4, false, true, 1);
+		desc.addElement(1, EVertex::ATTRIBUTE6, EVertex::Float4, false, true, 1);
+		desc.addElement(1, EVertex::ATTRIBUTE7, EVertex::Float4, false, true, 1);
+		mInputLayout = RHICreateInputLayout(desc);
+	}
+
+	bool InstancedMesh::UpdateInstanceBuffer()
+	{
+		if (!mInstancedBuffer.isValid() || mInstancedBuffer->getNumElements() < mInstanceTransforms.size())
+		{
+			mInstancedBuffer = RHICreateVertexBuffer(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_CpuAccessWrite, nullptr);
+			if (!mInstancedBuffer.isValid())
+			{
+				LogMsg("Can't create vertex buffer!!");
+				return false;
+			}
+		}
+
+		Vector4* ptr = (Vector4*)RHILockBuffer(mInstancedBuffer, ELockAccess::WriteDiscard);
+		if (ptr == nullptr)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < mInstanceTransforms.size(); ++i)
+		{
+			ptr[0] = mInstanceTransforms[i].row(0);
+			ptr[0].w = mInstanceParams[i].x;
+			ptr[1] = mInstanceTransforms[i].row(1);
+			ptr[1].w = mInstanceParams[i].y;
+			ptr[2] = mInstanceTransforms[i].row(2);
+			ptr[2].w = mInstanceParams[i].z;
+			ptr[3] = mInstanceTransforms[i].row(3);
+			ptr[3].w = mInstanceParams[i].w;
+
+			ptr += 4;
+		}
+		RHIUnlockBuffer(mInstancedBuffer);
+		return true;
+	}
+
+	void InstancedMesh::draw(RHICommandList& comandList)
+	{
+		if (mMesh && mMesh->mVertexBuffer.isValid())
+		{
+			if (!bBufferValid)
+			{
+				if (UpdateInstanceBuffer())
+				{
+					bBufferValid = true;
+				}
+				else
+				{
+					return;
+				}
+			}
+			InputStreamInfo inputStreams[2];
+			inputStreams[0].buffer = mMesh->mVertexBuffer;
+			inputStreams[1].buffer = mInstancedBuffer;
+			RHISetInputStream(comandList, mInputLayout, inputStreams, 2);
+			if (mMesh->mIndexBuffer.isValid())
+			{
+				RHISetIndexBuffer(comandList, mMesh->mIndexBuffer);
+				RHIDrawIndexedPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mIndexBuffer->getNumElements(), mInstanceParams.size());
+			}
+			else
+			{
+				RHIDrawPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mVertexBuffer->getNumElements(), mInstanceParams.size());
+			}
+		}
+	}
+
 }//namespace Render

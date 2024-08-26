@@ -77,7 +77,7 @@ namespace Render
 		TArrayView< Vector2 > build(FrameAllocator& allocator, RenderTransform2D const& xForm)
 		{
 			Vector2* result = (Vector2*)allocator.alloc(posList.size() * sizeof(Vector2));
-			Transform(posList.data(), result, posList.size(), xForm);
+			Transform(posList.data(), result, (int)posList.size(), xForm);
 			return TArrayView< Vector2 >(result, posList.size());
 		}
 	};
@@ -595,12 +595,7 @@ namespace Render
 		void beginRender(RHICommandList& commandList);
 		void render(RenderState const& renderState, RenderBatchedElementList& elementList);
 
-		void setViewportSize(int width, int height)
-		{
-			mWidth = width;
-			mHeight = height;
-			mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
-		}
+		void setViewportSize(int width, int height);
 
 		void commitRenderState(RHICommandList& commandList, RenderState const& state);
 

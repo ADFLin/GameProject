@@ -35,8 +35,9 @@ namespace Render
 		Material,
 	};
 
-	struct ShaderManagedDataBase : public IAssetViewer
+	class ShaderManagedDataBase : public IAssetViewer
 	{
+	public:
 		ShaderClassType classType = ShaderClassType::Common;
 		GlobalShaderObjectClass const* shaderClass = nullptr;
 
@@ -46,8 +47,9 @@ namespace Render
 		std::unordered_set< HashString > includeFiles;
 	};
 
-	struct ShaderProgramManagedData : public ShaderManagedDataBase
+	class ShaderProgramManagedData : public ShaderManagedDataBase
 	{
+	public:
 		ShaderProgram*  shaderProgram = nullptr;
 		TArray< ShaderCompileDesc > descList;
 	protected:
@@ -55,8 +57,9 @@ namespace Render
 		virtual void postFileModify(EFileAction action) override;
 	};
 
-	struct ShaderManagedData : public ShaderManagedDataBase
+	class ShaderManagedData : public ShaderManagedDataBase
 	{
+	public:
 		Shader* shader = nullptr;
 		ShaderCompileDesc desc;
 	protected:
@@ -184,7 +187,7 @@ namespace Render
 
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
-			int indexUsed = 0;
+			size_t indexUsed = 0;
 			for( int i = 0; i < EShader::Count; ++i )
 			{
 				if( (shaderMask & BIT(i)) == 0 )

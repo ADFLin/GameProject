@@ -118,7 +118,7 @@ public:
 		mLength = FCString::Strlen(mData);
 #endif
 	}
-	FORCEINLINE void  assign(CharT const* str, int num)
+	FORCEINLINE void  assign(CharT const* str, size_t num)
 	{ 
 		FCString::CopyN(mData, str, num);
 #if INLINE_STRING_USE_LENGTH_MEMBER
@@ -137,7 +137,7 @@ public:
 #endif
 	}
 
-	FORCEINLINE void append(CharT const* str, int num)
+	FORCEINLINE void append(CharT const* str, size_t num)
 	{
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		FCString::CopyN(mData + mLength, CHAR_COUNT - mLength, str, num);

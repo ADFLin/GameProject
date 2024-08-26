@@ -20,6 +20,7 @@ public:
 		int    index;
 		size_t size;
 		Chunk* link;
+#pragma warning(suppress : 4200)
 		uint8  storage[0];
 	};
 

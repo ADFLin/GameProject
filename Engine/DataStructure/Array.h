@@ -383,22 +383,22 @@ public:
 
 	void insert(iterator where, T const& val)
 	{
-		int indexPos = where - begin();
+		int indexPos = int(where - begin());
 		insertAt(indexPos, val);
 	}
 
 	void insert(iterator where, size_t num, T const& val)
 	{
-		int indexPos = where - begin();
+		int indexPos = int(where - begin());
 		insertAt(indexPos, num, val);
 	}
 
 	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
 	void insert(iterator where, Iter itBegin, Iter itEnd)
 	{
-		int indexPos = where - begin();
-		int numMove = end() - where;
-		int addSize = std::distance(itBegin, itEnd);
+		int indexPos = int(where - begin());
+		size_t numMove = end() - where;
+		size_t addSize = std::distance(itBegin, itEnd);
 		T* ptr = addUninitialized(addSize);
 		if (numMove)
 		{
@@ -410,7 +410,7 @@ public:
 
 	void insertAt(int indexPos, T const& val)
 	{
-		int numMove = size() - indexPos;
+		size_t numMove = size() - size_t(indexPos);
 		T* ptr = addUninitialized(1);
 		if (numMove)
 		{
@@ -422,7 +422,7 @@ public:
 
 	void insertAt(int indexPos, size_t num, T const& val)
 	{
-		int numMove = size() - indexPos;
+		size_t numMove = size() - size_t(indexPos);
 		T* ptr = addUninitialized(num);
 		if (numMove)
 		{
@@ -566,7 +566,7 @@ public:
 				++index;
 			}
 		}
-		int result = mNum - index;
+		int result = int(mNum) - index;
 		mNum = index;
 		return result;
 	}
@@ -604,7 +604,7 @@ public:
 
 	void makeUnique(int idxStart = 0)
 	{
-		int idxLast = mNum - 1;
+		int idxLast = int(mNum) - 1;
 		for (int i = idxStart; i <= idxLast; ++i)
 		{
 			for (int j = 0; j < i; ++j)
@@ -637,7 +637,7 @@ public:
 		}
 		else
 		{
-			int delta = num - mNum;
+			size_t delta = num - mNum;
 			T* ptr = addUninitialized(delta);
 			FTypeMemoryOp::ConstructSequence(ptr, delta);
 		}
@@ -648,13 +648,13 @@ public:
 		if (num == mNum)
 			return;
 
-		if (num < size())
+		if (num < mNum)
 		{
 			erase(begin() + num, end());
 		}
 		else
 		{
-			int delta = num - mNum;
+			size_t delta = num - mNum;
 			T* ptr = addUninitialized(delta);
 			FTypeMemoryOp::ConstructSequence(ptr, delta, value);
 		}
@@ -670,7 +670,7 @@ public:
 	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
 	void addRange(Iter itBegin, Iter itEnd)
 	{
-		int num = std::distance(itBegin , itEnd);
+		size_t num = std::distance(itBegin , itEnd);
 		if (num)
 		{
 			T* ptr = addUninitialized(num);
@@ -716,35 +716,35 @@ public:
 		return result;
 	}
 
-	T* getElement(int index)
+	T* getElement(size_t index)
 	{
 		return ArrayData::getAllocation() + index;
 	}
 
-	T const* getElement(int index) const
+	T const* getElement(size_t index) const
 	{
 		return ArrayData::getAllocation() + index;
 	}
 
 	void  moveToEnd(iterator where, iterator src)
 	{
-		int num = mNum - (src - getElement(0));
+		size_t num = mNum - (src - getElement(0));
 		if (num)
 		{
 			FTypeMemoryOp::MoveSequence(where, num, src);
 		}
-		mNum = mNum - (src - where);
+		mNum = mNum - size_t(src - where);
 	}
 
 
 	void  eraseToEnd(iterator is)
 	{
 		FTypeMemoryOp::DestructSequence(is, end() - is);
-		mNum = is - getElement(0);
+		mNum = size_t(is - getElement(0));
 	}
 
 	void   checkRange(const_iterator it) const { assert(begin() <= it && it < end()); }
-	int mNum;
+	size_t mNum;
 
 };
 

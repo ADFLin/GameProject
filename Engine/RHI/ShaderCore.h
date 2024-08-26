@@ -511,7 +511,7 @@ namespace Render
 		}
 		uint32 getTypeHash() const
 		{
-			uint32 result = std::hash_value(value);
+			uint32 result = HashValue(value);
 			return result;
 		}
 

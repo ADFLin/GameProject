@@ -177,21 +177,25 @@ struct FCString
 
 	FORCEINLINE static void   Copy_Unsafe(char* dst, char const* src)
 	{
+#pragma warning(suppress : 4996)
 		::strcpy(dst, src);
 	}
 
 	FORCEINLINE static void   Copy_Unsafe(wchar_t* dst, wchar_t const* src)
 	{
+#pragma warning(suppress : 4996)
 		::wcscpy(dst, src);
 	}
 
 	FORCEINLINE static void   CopyN_Unsafe(char* dst, char const* src, size_t num)
 	{
+#pragma warning(suppress : 4996)
 		::strncpy(dst, src, num);
 	}
 
 	FORCEINLINE static void   CopyN_Unsafe(wchar_t* dst, wchar_t const* src, size_t num)
 	{
+#pragma warning(suppress : 4996)
 		::wcsncpy(dst, src, num);
 	}
 
@@ -423,7 +427,5 @@ bool FCString::CheckForamtStringInternal(CharT const*& format, T&& t)
 	format += lenFormat;
 	return true;
 }
-
-
 
 #endif // CString_H_68B1FD83_57D7_4E26_B8F4_683C9097A912

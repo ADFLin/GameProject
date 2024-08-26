@@ -38,13 +38,13 @@ typedef uint8_t  uint8;
 #endif
 
 constexpr int8 MaxInt8 = 0x7F;
-constexpr int8 MinInt8 = 0x80;
+constexpr int8 MinInt8 = int8(0x80u);
 constexpr int16 MaxInt16 = 0x7FFF;
-constexpr int16 MinInt16 = 0x8000;
+constexpr int16 MinInt16 = int16(0x8000u);
 constexpr int32 MaxInt32 = 0x7FFFFFFF;
-constexpr int32 MinInt32 = 0x80000000;
+constexpr int32 MinInt32 = int32(0x80000000u);
 constexpr int64 MaxInt64 = 0x7FFFFFFFFFFFFFFFLL;
-constexpr int64 MinInt64 = 0x8000000000000000LL;
+constexpr int64 MinInt64 = int64(0x8000000000000000LLU);
 constexpr uint8 MaxUint8 = 0xFFU;
 constexpr uint16 MaxUint16 = 0xFFFFU;
 constexpr uint32 MaxUint32 = 0xFFFFFFFFU;

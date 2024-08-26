@@ -763,6 +763,13 @@ namespace Render
 #endif
 	}
 
+	void BatchedRender::setViewportSize(int width, int height)
+	{
+		mWidth = width;
+		mHeight = height;
+		mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
+	}
+
 	void BatchedRender::flushGroup()
 	{
 		if (mGroups.empty())

@@ -280,7 +280,7 @@ public:
 	void     removeItem( unsigned pos );
 	void     removeAllItem();
 
-	unsigned getItemNum(){ return mItemList.size(); }
+	size_t   getItemNum(){ return mItemList.size(); }
 	void*    getSelectedItemData()
 	{ 
 		if ( mCurSelect != INDEX_NONE )

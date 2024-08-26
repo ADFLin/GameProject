@@ -168,3 +168,98 @@ DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )
 	return frame;
 }
 
+void FWidgetProperty::Bind(GSlider* widget, float& valueRef, float min, float max, float power, std::function< void(float) > inDelegate /*= std::function< void(float) >() */)
+{
+	float constexpr scale = 0.001;
+	widget->setRange(0, 1 / scale);
+	float delta = max - min;
+	FWidgetProperty::Set(widget, Math::Exp(Math::Log((valueRef - min) / delta) / power) / scale);
+
+	widget->onRefresh = [&valueRef, scale, min, delta, power](GWidget* widget)
+	{
+		FWidgetProperty::Set(widget->cast<GSlider>(), Math::Exp(Math::Log((valueRef - min) / delta) / power) / scale);
+	};
+	widget->onEvent = [&valueRef, scale, min, delta, power, inDelegate](int event, GWidget* widget)
+	{
+		float factor = scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
+		valueRef = min + delta * Math::Pow(factor, power);
+		if (inDelegate)
+		{
+			inDelegate(valueRef);
+		}
+		return false;
+	};
+}
+
+void FWidgetProperty::Bind(GSlider* widget, float& valueRef, float min, float max, std::function< void(float) > inDelegate)
+{
+	float constexpr scale = 0.001;
+	float len = max - min;
+	widget->setRange(0, len / scale);
+	FWidgetProperty::Set(widget, (valueRef - min) / scale);
+	widget->onRefresh = [&valueRef, scale, min](GWidget* widget)
+	{
+		FWidgetProperty::Set(widget->cast<GSlider>(), (valueRef - min) / scale);
+	};
+	widget->onEvent = [&valueRef, scale, min, inDelegate](int event, GWidget* widget)
+	{
+		valueRef = min + scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
+		if (inDelegate)
+		{
+			inDelegate(valueRef);
+		}
+		return false;
+	};
+}
+
+void FWidgetProperty::Bind(GSlider* widget, int& valueRef, int min, int max)
+{
+	widget->setRange(min, max);
+	FWidgetProperty::Set(widget, valueRef);
+
+	widget->onRefresh = [&valueRef](GWidget* widget)
+	{
+		FWidgetProperty::Set(widget->cast<GSlider>(), valueRef);
+	};
+	widget->onEvent = [&valueRef](int event, GWidget* widget)
+	{
+		valueRef = FWidgetProperty::Get<int>(widget->cast<GSlider>());
+		return false;
+	};
+}
+
+void FWidgetProperty::Bind(GSlider* widget, int& valueRef, int min, int max, std::function< void(int) > inDelegate)
+{
+	widget->setRange(min, max);
+	FWidgetProperty::Set(widget, valueRef);
+	widget->onRefresh = [&valueRef](GWidget* widget)
+	{
+		FWidgetProperty::Set(widget->cast<GSlider>(), valueRef);
+	};
+	widget->onEvent = [&valueRef, inDelegate](int event, GWidget* widget)
+	{
+		valueRef = FWidgetProperty::Get<int>(widget->cast<GSlider>());
+		if (inDelegate)
+		{
+			inDelegate(valueRef);
+		}
+		return false;
+	};
+}
+
+void FWidgetProperty::Bind(GSlider* widget, float& valueRef, float min, float max)
+{
+	float constexpr scale = 0.001;
+	float len = max - min;
+	widget->setRange(0, len / scale);
+	FWidgetProperty::Set(widget, (valueRef - min) / scale);
+	widget->onRefresh = [&valueRef, scale, min](GWidget* widget)
+	{
+		FWidgetProperty::Set(widget->cast<GSlider>(), (valueRef - min) / scale);
+	};
+	widget->onEvent = [&valueRef, scale, min](int event, GWidget* widget)
+	{
+		valueRef = min + scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
+		return false;
+	};
+}

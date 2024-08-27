@@ -178,7 +178,7 @@ struct HoughLine
 
 struct HoughSetting 
 {
-	float threshold = 0.60;
+	float threshold = 0.60f;
 };
 
 

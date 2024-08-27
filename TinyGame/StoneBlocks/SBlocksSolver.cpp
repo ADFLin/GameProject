@@ -1845,6 +1845,15 @@ NoCombineSolve:
 		return SolveDLX(*this, mSolveData, bRecursive);
 	}
 
+	void Solver::cleanupSolveWork()
+	{
+		for (auto work : mParallelWorks)
+		{
+			delete work;
+		}
+		mParallelWorks.clear();
+	}
+
 	ISolver* ISolver::Create(EType type)
 	{
 		switch (type)

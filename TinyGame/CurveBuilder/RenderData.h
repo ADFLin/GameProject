@@ -27,7 +27,7 @@ namespace CB
 		int         getVertexNum() const { return mVertexNum; }
 		int         getVertexSize() const {  return mVertexSize;  }
 
-		int         getIndexNum() const { return mIndexBuffer.size(); }
+		int         getIndexNum() const { return (int)mIndexBuffer.size(); }
 		uint32*     getIndexData() { return mIndexBuffer.empty() ? nullptr : &mIndexBuffer[0]; }
 
 	private:

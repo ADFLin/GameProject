@@ -58,14 +58,14 @@ namespace Render
 	using IMeshImporterFactoryPtr = std::shared_ptr< IMeshImporterFactory >;
 
 
-	class CORE_API MeshImporterRegistry
+	class MeshImporterRegistry
 	{
 	public:
 
-		static MeshImporterRegistry& Get();
+		CORE_API static MeshImporterRegistry& Get();
 
-		void registerMeshImporter(HashString name, IMeshImporterFactoryPtr const& importor);
-		void unregisterMeshImporter(HashString name);
+		CORE_API void registerMeshImporter(HashString name, IMeshImporterFactoryPtr const& importor);
+		CORE_API void unregisterMeshImporter(HashString name);
 
 		template< class T >
 		class TMeshImporterFactory : public IMeshImporterFactory
@@ -87,7 +87,7 @@ namespace Render
 		{
 			mFactoryMap.clear();
 		}
-		IMeshImporterPtr getMeshImproter(HashString name);
+		CORE_API IMeshImporterPtr getMeshImproter(HashString name);
 
 		std::unordered_map< HashString, IMeshImporterFactoryPtr > mFactoryMap;
 	};

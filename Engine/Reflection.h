@@ -183,7 +183,7 @@ namespace Reflection
 		void setOffset(P(T::*memberPtr))
 		{
 			T* ptr = (T*)(0);
-			offset = (uint8*)(&(ptr->*memberPtr)) - (uint8*)ptr;
+			offset = uint32((uint8*)(&(ptr->*memberPtr)) - (uint8*)ptr);
 		}
 
 

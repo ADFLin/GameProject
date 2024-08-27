@@ -174,10 +174,10 @@ namespace MV
 			if ( editSnapFactor >= 0 )
 			{
 				int size = 1 << editSnapFactor;
-				return size;
+				return float(size);
 			}
 			int size = 1 << (-editSnapFactor );
-			return 1.0 / size;
+			return 1.0f / size;
 		}
 
 		float snapValue( float value )

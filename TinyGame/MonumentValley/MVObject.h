@@ -269,7 +269,7 @@ namespace MV
 		if (b##TYPE##ListModify)\
 		{\
 			b##TYPE##ListModify = false;\
-			cached##TYPE##Num = LIST.size();\
+			cached##TYPE##Num = (int)LIST.size();\
 		}\
 		return cached##TYPE##Num;\
 	}

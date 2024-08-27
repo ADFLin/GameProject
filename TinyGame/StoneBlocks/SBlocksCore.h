@@ -155,7 +155,7 @@ namespace SBlocks
 
 		Vec2i getBoundSize() const
 		{
-			return Vec2i(sizeX, (data.size() + sizeX - 1) / sizeX);
+			return Vec2i(sizeX, ((int)data.size() + sizeX - 1) / sizeX);
 		}
 
 		Vector2 getPivot() const

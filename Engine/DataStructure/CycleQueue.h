@@ -74,7 +74,7 @@ public:
 	bool empty() const { return mNum == 0; }
 	size_t size() const { return mNum;  }
 
-	T* getElement(int index)
+	T* getElement(size_t index)
 	{
 		return ArrayData::getAllocation() + index;
 	}

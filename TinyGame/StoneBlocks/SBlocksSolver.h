@@ -149,7 +149,7 @@ namespace SBlocks
 		int  getStateNum() const
 		{
 			int result = 1;
-			int num = mStates.size();
+			int num = (int)mStates.size();
 			for (int i = 1; i <= mTakeCount; ++i)
 			{
 				result *= num;
@@ -384,14 +384,7 @@ namespace SBlocks
 
 		void handleWorkFinish(SolveWork* work);
 
-		void cleanupSolveWork()
-		{
-			for (auto work : mParallelWorks)
-			{
-				delete work;
-			}
-			mParallelWorks.clear();
-		}
+		void cleanupSolveWork();
 
 		void solveParallel(int numThreads);
 		void waitWorkCompletion();

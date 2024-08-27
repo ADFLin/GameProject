@@ -141,19 +141,7 @@ namespace Render
 			return v0 + (v1 - v0) * (float(::rand()) / RAND_MAX);
 		}
 
-		void generateKernelVectors(int numKernal)
-		{
-			mKernelVectors.resize(numKernal);
-			for( int i = 0; i < numKernal; ++i )
-			{
-				mKernelVectors[i] = Vector3(Random(-1, 1), Random(-1, 1), Random(0, 1));
-				//mKernelVectors[i] = Vector3(0,0,1);
-				mKernelVectors[i].normalize();
-				float scale = float(i) / numKernal;
-				scale = Math::Lerp(0.1, 1, scale * scale);
-				mKernelVectors[i] *= scale;
-			}
-		}
+		void generateKernelVectors(int numKernal);
 
 	public:
 		TArray< Vector3 > mKernelVectors;

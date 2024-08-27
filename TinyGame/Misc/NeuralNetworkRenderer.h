@@ -29,7 +29,7 @@ public:
 
 	float getOffsetY(int idx, int numNode)
 	{
-		return (float(idx) - 0.5 * float(numNode - 1)) * nodeOffset;
+		return (float(idx) - 0.5f * float(numNode - 1)) * nodeOffset;
 	}
 	Vector2 getInputNodePos(int idx)
 	{

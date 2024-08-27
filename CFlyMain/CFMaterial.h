@@ -92,7 +92,7 @@ namespace CFly
 		void      addUsageFlag( unsigned flag ){ mUsageMask |= flag; }
 		void      removeUsageFlag( unsigned flag ){ mUsageMask &= ~flag; }
 		bool      isEnable() const { return ( mUsageMask & TLF_ENABLE ) != 0;  }
-		unsigned  getSlotNum() const { return mSlot.size(); }
+		size_t    getSlotNum() const { return mSlot.size(); }
 
 		int       getCurrentSlot() const { return mCurSlot;  }
 		void      setCurrentSlot( int slot ){  mCurSlot = slot;  }

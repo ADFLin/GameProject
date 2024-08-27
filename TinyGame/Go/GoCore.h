@@ -494,7 +494,7 @@ namespace Go
 		}
 
 		int     getCurrentStep() const	{  return mCurrentStep; }
-		int     getLastStep() const  {  return mStepHistory.size() - 1;  }
+		int     getLastStep() const  {  return (int)mStepHistory.size() - 1;  }
 		PlayVertex getStepPos(int step) const;
 		PlayVertex getLastStepPos() const { return getStepPos(getCurrentStep() - 1); }
 

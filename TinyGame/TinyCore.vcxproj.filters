@@ -27,6 +27,12 @@
     <Filter Include="Misc">
       <UniqueIdentifier>{c37f384d-876e-4899-aa56-27c5a86d235c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{5edfbab5-0723-4ebc-9957-3067b57f6a9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\minisat">
+      <UniqueIdentifier>{de678c99-0afe-4d40-8a23-a62d130aafb2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TinyCore\DataTransfer.h">
@@ -219,6 +225,21 @@
     </ClCompile>
     <ClCompile Include="Misc\NeuralNetworkRenderer.cpp">
       <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\Main.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
+      <Filter>OtherLib\minisat</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

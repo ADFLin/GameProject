@@ -51,7 +51,7 @@ namespace GoCore
 
 		Vector2 getIntersectionPos(int i, int j) const
 		{
-			return renderPos + cellLength * Vector2(i, board.getSize() - 1 - j);
+			return renderPos + cellLength * Vector2(float(i), board.getSize() - 1.0f - float(j));
 		}
 		Vec2i getCoord(Vector2 const& pos) const
 		{

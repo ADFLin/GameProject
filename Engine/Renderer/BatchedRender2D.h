@@ -633,8 +633,8 @@ namespace Render
 			Vector2 uv;
 		};
 
-		TexVertex* fetchVertex(int size, int& baseIndex);
-		uint32*    fetchIndex(int size);
+		TexVertex* fetchVertex(uint32 size, int& baseIndex);
+		uint32*    fetchIndex(uint32 size);
 
 		struct FetchedData
 		{
@@ -642,7 +642,7 @@ namespace Render
 			TexVertex* vertices;
 			uint32*    indices;
 		};
-		FetchedData fetchBuffer(int vSize, int iSize);
+		FetchedData fetchBuffer(uint32 vSize, uint32 iSize);
 
 		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
@@ -664,7 +664,7 @@ namespace Render
 		struct TBufferData
 		{
 			T*  dataPtr = nullptr;
-			int usedCount = 0;
+			uint32 usedCount = 0;
 			BufferCreationFlags creationflags;
 
 			bool initialize(int num, BufferCreationFlags flags)
@@ -680,12 +680,12 @@ namespace Render
 				buffer.release();
 			}
 
-			bool canFetch(int num)
+			bool canFetch(uint32 num)
 			{
 				CHECK(dataPtr);
 				return usedCount + num <= buffer->getNumElements();
 			}
-			T* fetch(int num)
+			T* fetch(uint32 num)
 			{
 				if (num > buffer->getNumElements())
 				{

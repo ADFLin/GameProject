@@ -14,13 +14,13 @@ namespace Render
 		int meshLevel = 400;
 
 		int numCraters = 200;
-		float radiusDistribution = 0.606;
-		Vector2 radiusMinMax = { 0.01 , 0.17 };
+		float radiusDistribution = 0.606f;
+		Vector2 radiusMinMax = { 0.01f , 0.17f };
 
-		float rimWidth = 0.7;
-		float rimSteepness = 0.42;
-		float smoothness = 0.34;
-		float floorHeight = -0.29;
+		float rimWidth = 0.7f;
+		float rimSteepness = 0.42f;
+		float smoothness = 0.34f;
+		float floorHeight = -0.29f;
 	};
 
 	struct CraterInfo

@@ -29,7 +29,7 @@ namespace Math
 		}
 		template< class T >
 		constexpr explicit Vector3( TVector3<T> const& rhs)
-			:x(rhs.x),y(rhs.y),z(rhs.z)
+			:x(ScalarType(rhs.x)),y(ScalarType(rhs.y)),z(ScalarType(rhs.z))
 		{
 
 		}

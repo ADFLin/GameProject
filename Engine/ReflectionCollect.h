@@ -15,7 +15,7 @@ namespace ReflectionMeta
 		}
 		template< typename Q >
 		TSlider(TSlider<Q> const& rhs)
-			:min(rhs.min), max(rhs.max)
+			:min(T(rhs.min)), max(T(rhs.max))
 		{
 		}
 		T min;

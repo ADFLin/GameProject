@@ -32,7 +32,7 @@ namespace CFly
 
 		void          setParent( NodeBase* parent );
 		NodeBase*     getParent() const { return mParent; }
-		int           getChildrenNum(){ return mChildren.size(); }
+		int           getChildrenNum(){ return (int)mChildren.size(); }
 		//ChildIterator getChildren(){ return ChildIterator( mChildren ); }
 		char const*   getName(){ return mName.c_str(); }
 		bool          registerName( char const* name );

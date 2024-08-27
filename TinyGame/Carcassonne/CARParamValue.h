@@ -18,11 +18,11 @@ namespace CAR
 		int const SheepTokenTypeNum = 5;
 	}
 #if CAR_USE_CONST_PARAMVALUE
-	struct GameParamCollection {};
+	class GameParamCollection {};
 	namespace GameParamSpace
 	{
 #else
-	struct GameParamCollection
+	class GameParamCollection
 	{
 		static GameParamCollection const& GetDefalut()
 		{

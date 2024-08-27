@@ -24,7 +24,7 @@ struct FEditor
 {
 	static constexpr uint32 Hash(StringView const& str, uint32 mask = 0xffff)
 	{
-		return FNV1a::MakeStringHashIgnoreCase<uint32>(str.data(), str.length()) & mask;
+		return FNV1a::MakeStringHashIgnoreCase<uint32>(str.data(), (int)str.length()) & mask;
 	}
 };
 

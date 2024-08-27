@@ -226,6 +226,11 @@
     <ClInclude Include="Widget\ServerListPanel.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\minisat\core\Main.cc" />
+    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc" />
+    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc" />
+    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc" />
+    <ClCompile Include="..\OtherLib\minisat\utils\System.cc" />
     <ClCompile Include="CurveBuilder\ColorMap.cpp" />
     <ClCompile Include="CurveBuilder\CurveRenderer.cpp" />
     <ClCompile Include="CurveBuilder\DifferentialParser.cpp" />

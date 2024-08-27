@@ -18,7 +18,7 @@ class FBitUtility
 public:
 
 	template< class T >
-	static T ExtractTrailingBit(T v) { return (v & -v); }
+	static T ExtractTrailingBit(T v) { return v & (~v + 1); }
 
 	template< class T >
 	static bool IsOneBitSet(T v) { return !(v & (v - 1)); }

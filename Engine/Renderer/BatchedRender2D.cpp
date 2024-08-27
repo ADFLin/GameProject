@@ -466,7 +466,7 @@ namespace Render
 		assert(numV > 2);
 		int numTriangle = (numV - 2);
 		FetchedData data = fetchBuffer(numV, 3 * numTriangle);
-		int baseIndex = data.base;
+		uint32 baseIndex = data.base;
 		TexVertex* pVertices = data.vertices;
 		uint32* pIndices = data.indices;
 
@@ -503,7 +503,7 @@ namespace Render
 			int numTriangle = (cachedData.posList.size() - 2);
 
 			FetchedData data = fetchBuffer(cachedData.posList.size(), 3 * numTriangle);
-			int baseIndex = data.base;
+			uint32 baseIndex = data.base;
 			TexVertex* pVertices = data.vertices;
 			uint32* pIndices = data.indices;
 
@@ -526,7 +526,7 @@ namespace Render
 #if USE_POLYGON_LINE_NEW
 
 			FetchedData data = fetchBuffer(2 * cachedData.posList.size(), 3 * 2 * cachedData.posList.size());
-			int baseIndex = data.base;
+			uint32 baseIndex = data.base;
 			TexVertex* pVertices = data.vertices;
 			uint32* pIndices = data.indices;
 
@@ -560,7 +560,7 @@ namespace Render
 			}
 #else
 			FetchedData data = fetchBuffer(4 * cachedData.posList.size(), 4 * 6 * cachedData.posList.size());
-			int baseIndex = data.base;
+			uint32 baseIndex = data.base;
 			TexVertex* pVertices = data.vertices;
 			uint32* pIndices = data.indices;
 
@@ -580,7 +580,7 @@ namespace Render
 		if (paintArgs.bUseBrush)
 		{
 			FetchedData data = fetchBuffer(4 , 3 * 2);
-			int baseIndex = data.base;
+			uint32 baseIndex = data.base;
 			TexVertex* pVertices = data.vertices;
 			uint32* pIndices = data.indices;
 
@@ -596,7 +596,7 @@ namespace Render
 		{
 			float halfWidth = 0.5 * float(paintArgs.penWidth);
 			FetchedData data = fetchBuffer(4 * 2, 3 * 2 * 4);
-			int baseIndex = data.base;
+			uint32 baseIndex = data.base;
 			TexVertex* pVertices = data.vertices;
 			uint32* pIndices = data.indices;
 
@@ -618,7 +618,7 @@ namespace Render
 		}
 	}
 
-	BatchedRender::TexVertex* BatchedRender::fetchVertex(int size, int& baseIndex)
+	BatchedRender::TexVertex* BatchedRender::fetchVertex(uint32 size, int& baseIndex)
 	{
 		if (!mTexVertexBuffer.canFetch(size))
 		{
@@ -632,7 +632,7 @@ namespace Render
 
 	}
 
-	uint32* BatchedRender::fetchIndex(int size)
+	uint32* BatchedRender::fetchIndex(uint32 size)
 	{
 		if (!mIndexBuffer.canFetch(size))
 		{
@@ -643,7 +643,7 @@ namespace Render
 		return mIndexBuffer.fetch(size);
 	}
 
-	BatchedRender::FetchedData BatchedRender::fetchBuffer(int vSize, int iSize)
+	BatchedRender::FetchedData BatchedRender::fetchBuffer(uint32 vSize, uint32 iSize)
 	{
 		//CHECK(vSize > 0 && iSize > 0);
 		if (!mTexVertexBuffer.canFetch(vSize) ||
@@ -671,7 +671,7 @@ namespace Render
 		float halfWidth = 0.5 * float(lineWidth);
 #if USE_POLYGON_LINE_NEW
 		FetchedData data = fetchBuffer(2 * numV, 3 * 2 * numV);
-		int baseIndex = data.base;
+		uint32 baseIndex = data.base;
 		TexVertex* pVertices = data.vertices;
 		uint32* pIndices = data.indices;
 
@@ -719,7 +719,7 @@ namespace Render
 		Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
 
 		FetchedData data = fetchBuffer(4 * numV, 4 * 6 * numV);
-		int baseIndex = data.base;
+		uint32 baseIndex = data.base;
 		TexVertex* pVertices = data.vertices;
 		uint32* pIndices = data.indices;
 
@@ -908,7 +908,7 @@ namespace Render
 					RenderBatchedElementList::TextureRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextureRectPayload >(element);
 
 					FetchedData data = fetchBuffer(4, 6);
-					int baseIndex = data.base;
+					uint32 baseIndex = data.base;
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
@@ -945,7 +945,7 @@ namespace Render
 					int index3 = (index0 + 3) % 4;
 
 					FetchedData data = fetchBuffer(3 * 2, 4 * 3);
-					int baseIndex = data.base;
+					uint32 baseIndex = data.base;
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
@@ -961,7 +961,7 @@ namespace Render
 					pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
 #else
 					FetchedData data = fetchBuffer(4 * 2, 4 * 6);
-					int baseIndex = data.base;
+					uint32 baseIndex = data.base;
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
@@ -1012,7 +1012,7 @@ namespace Render
 					FontVertex* pSrcVertices = payload.vertices;
 					
 					FetchedData data = fetchBuffer(4 * numChar, 6 * numChar);
-					int baseIndex = data.base;
+					uint32 baseIndex = data.base;
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
@@ -1054,7 +1054,7 @@ namespace Render
 					RenderBatchedElementList::GradientRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::GradientRectPayload >(element);
 
 					FetchedData data = fetchBuffer(4 , 6);
-					int baseIndex = data.base;
+					uint32 baseIndex = data.base;
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
@@ -1130,7 +1130,7 @@ namespace Render
 #else
 		FetchedData data = fetchBuffer(4 * 2 * lineCount, 4 * 6 * lineCount);
 #endif
-		int baseIndex = data.base;
+		uint32 baseIndex = data.base;
 		TexVertex* pVertices = data.vertices;
 		uint32* pIndices = data.indices;
 

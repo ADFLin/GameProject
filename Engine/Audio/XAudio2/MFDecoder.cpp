@@ -227,8 +227,8 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 
 	int genertatedSampleFrame = 0;
 
-	uint32 idxSampleData = mSampleBuffer.fetchSampleData();
-	WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(idxSampleData);
+	WaveSampleBuffer::SampleHandle sampleHandle = mSampleBuffer.fetchSampleData();
+	WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(sampleHandle);
 	assert(sampleData->data.empty());
 	for (;;)
 	{
@@ -303,20 +303,20 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 	case EAudioStreamStatus::Ok:
 		break;
 	case EAudioStreamStatus::Error:
-		mSampleBuffer.releaseSampleData(idxSampleData);
+		mSampleBuffer.releaseSampleData(sampleHandle);
 		break;
 	case EAudioStreamStatus::NoSample:
 	case EAudioStreamStatus::Eof:
 		if (sampleData->data.empty())
 		{
-			mSampleBuffer.releaseSampleData(idxSampleData);
+			mSampleBuffer.releaseSampleData(sampleHandle);
 		}
 		break;
 	}
 
 	if (!sampleData->data.empty())
 	{
-		outSample.handle = idxSampleData;
+		outSample.handle = sampleHandle;
 		outSample.data = sampleData->data.data();
 		outSample.dataSize = sampleData->data.size();
 	}

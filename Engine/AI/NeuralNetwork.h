@@ -52,7 +52,7 @@ namespace NNFunc
 			if (value > 10)
 				return 1;
 #endif
-			return 1.0 / (1.0 + exp(-value));
+			return NNScalar(1.0) / (NNScalar(1.0) + exp(-value));
 		}
 
 		static NNScalar Derivative(NNScalar value)
@@ -63,8 +63,8 @@ namespace NNFunc
 			if (value > 10)
 				return 0;
 #endif
-			NNScalar v = 1.0 / (1.0 + exp(-value));
-			return v * (1 - v);
+			NNScalar v = NNScalar(1.0) / (NNScalar(1.0) + exp(-value));
+			return v * (NNScalar(1) - v);
 		}
 	};
 
@@ -109,7 +109,7 @@ namespace NNFunc
 
 		static NNScalar Derivative(NNScalar value)
 		{
-			return (value > 0) ? 1 : 0;
+			return (value > 0) ? NNScalar(1) : 0;
 		}
 	};
 
@@ -365,7 +365,7 @@ public:
 	int getInputSignalOffset(int idxLayer) const;
 	int getOutputSignalOffset(int idxLayer) const;
 
-	int getHiddenLayerNum() const { return mLayers.size() - 1; }
+	int getHiddenLayerNum() const { return (int)mLayers.size() - 1; }
 	int getInputNum()  const { return mNumInput; }
 	int getOutputNum() const { return mLayers.back().numNode; }
 	int getSignalNum() const { return getInputNum() + mTotalNodeNum; }

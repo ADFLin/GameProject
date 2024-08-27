@@ -38,7 +38,7 @@ public:
 	{
 		Node* node = allocNode( Val );
 		mTreeMap.push_back( node );
-		filterUp(size()-1);
+		filterUp((int)size()-1);
 	}
 
 	bool empty(){ return  mTreeMap.empty(); }

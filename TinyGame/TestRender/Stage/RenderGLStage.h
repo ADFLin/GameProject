@@ -41,7 +41,7 @@ class Thread;
 
 namespace Render
 {
-	float const FLT_DIV_ZERO_EPSILON = 1e-6;
+	float const FLT_DIV_ZERO_EPSILON = 1e-6f;
 
 	//#MOVE
 
@@ -263,7 +263,7 @@ namespace Render
 		float factor[3];
 		for( int i = 0 ; i < 3 ; ++i )
 		{
-			float const esp = 1e-5;
+			float const esp = 1e-5f;
 			if ( dir[i] > FLT_DIV_ZERO_EPSILON )
 			{
 				factor[i] = ( min[i] - org[i] ) / dir[i];

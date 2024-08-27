@@ -105,7 +105,7 @@ namespace SBlocks
 
 		void onUpdate(long time) override
 		{
-			float dt = time / 1000.0;
+			float dt = time / 1000.0f;
 
 			BaseClass::onUpdate(time);
 

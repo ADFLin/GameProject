@@ -334,7 +334,7 @@ public:
 		CHECK(numSampleCheck == mSamples.size());
 
 		generateNNCurve();
-		mLossPoints.emplace_back(mEpoch, log10(loss / mSamples.size()));
+		mLossPoints.emplace_back(float(mEpoch), log10(loss / mSamples.size()));
 		++mEpoch;
 
 		NNScalar lossTest = 0.0;
@@ -345,7 +345,7 @@ public:
 			lossTest += LossFunc::Calc(output, sample.label);
 		}
 		lossTest /= mTestSamples.size();
-		mTestLossPoints.emplace_back(mEpoch, log10(lossTest));
+		mTestLossPoints.emplace_back(float(mEpoch), log10(lossTest));
 	}
 
 

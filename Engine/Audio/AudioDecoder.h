@@ -15,10 +15,13 @@ public:
 	{
 		TArray<uint8> data;
 	};
+	using SampleHandle = uint32;
+
+
 	TArray< uint32 > mFreeSampleDataIndices;
 	TArray< std::unique_ptr< SampleData > > mSampleDataList;
 
-	SampleData* getSampleData(uint32 idx) { return mSampleDataList[idx].get(); }
+	SampleData* getSampleData(SampleHandle handle) { return mSampleDataList[handle].get(); }
 
 
 	AudioStreamSample allocSamples(uint32 size)
@@ -32,7 +35,7 @@ public:
 		return result;
 	}
 
-	uint32 fetchSampleData()
+	SampleHandle fetchSampleData()
 	{
 		uint32 result;
 		if (!mFreeSampleDataIndices.empty())
@@ -42,17 +45,17 @@ public:
 			return result;
 		}
 
-		result = mSampleDataList.size();
+		result = (uint32)mSampleDataList.size();
 		auto sampleData = std::make_unique<SampleData>();
 		mSampleDataList.push_back(std::move(sampleData));
 		return result;
 	}
 
-	void releaseSampleData(uint32 sampleHadle)
+	void releaseSampleData(SampleHandle handle)
 	{
-		auto& sampleData = mSampleDataList[sampleHadle];
+		auto& sampleData = mSampleDataList[handle];
 		sampleData->data.clear();
-		mFreeSampleDataIndices.push_back(sampleHadle);
+		mFreeSampleDataIndices.push_back(handle);
 	}
 };
 

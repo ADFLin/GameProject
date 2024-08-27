@@ -32,7 +32,7 @@ bool SudokuSolverT<T,BS>::evalSingleValueMethod( int index , Group group , int i
 	unsigned pBit = mPosibleBitsCell[ index ];
 	while( pBit )
 	{
-		unsigned numBits = pBit & -pBit;
+		unsigned numBits = FBitUtility::ExtractTrailingBit(pBit);
 		pBit -= numBits;
 
 		if ( calcGroupNumBitCount( group , idxGroup , numBits ) == 1 )
@@ -330,7 +330,7 @@ bool SudokuSolverT<T,BS>::evalPointingMethod( int index , Group  group , int idx
 	unsigned pBit = mPosibleBitsCell[ index ];
 	while( pBit )
 	{
-		unsigned numBits = pBit & -pBit;
+		unsigned numBits = FBitUtility::ExtractTrailingBit(pBit);
 		pBit -= numBits;
 		result |= evalPointingInternal( index ,  idxGroup , numBits );
 	}
@@ -428,7 +428,7 @@ bool SudokuSolverT<T,BS>::evalBoxLineMethod( int index , Group group , int idxGr
 	unsigned pBit = mPosibleBitsCell[ index ];
 	while( pBit )
 	{
-		unsigned numBits = pBit & -pBit;
+		unsigned numBits = FBitUtility::ExtractTrailingBit(pBit);
 		pBit -= numBits;
 
 		if ( checkNumInBox( COL , col , idxGroup , numBits ) )
@@ -480,7 +480,7 @@ bool SudokuSolverT<T,BS>::evalXWingMethod(  int index , Group group , int idxGro
 	unsigned pBit = mPosibleBitsCell[ index ];
 	while( pBit )
 	{
-		unsigned numBits = pBit & -pBit;
+		unsigned numBits = FBitUtility::ExtractTrailingBit(pBit);
 		pBit -= numBits;
 
 		result |= evalXWingInternal( index , group , idxGroup , numBits );
@@ -669,7 +669,7 @@ bool SudokuSolverT<T,BS>::evalHiddenMethod(  int index , Group group , int idxGr
 	unsigned posible = mPosibleBitsCell[index];
 	while( posible )
 	{
-		unsigned bit = posible & (-posible );
+		unsigned bit = FBitUtility::ExtractTrailingBit(posible);
 		posibleNumBit[num++] = bit;
 		posible -= bit;
 	}
@@ -884,7 +884,7 @@ bool SudokuSolverT<T,BS>::evalSimpleColourMethod( int index , Group group  , int
 	unsigned pBit = mPosibleBitsCell[ index ];
 	while( pBit )
 	{
-		unsigned numBits = pBit & -pBit;
+		unsigned numBits = FBitUtility::ExtractTrailingBit(pBit);
 		pBit -= numBits;
 		result |= evalSimpleColourInternal( index , numBits );
 	}

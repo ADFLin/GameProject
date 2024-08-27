@@ -281,7 +281,10 @@ namespace Render
 		{
 			size_t offset = mBuffer.size();
 			CHECK(str.length() > 0);
-			mBuffer.insert(mBuffer.end(), str.data() , str.data() + sizeof(*LPCWSTR(0)) * str.length());
+			mBuffer.insert(mBuffer.end(), (uint8 const*)str.data() , (uint8 const*)(str.data()) + sizeof(*LPCWSTR(0)) * (str.length() + 1));
+			LPWSTR strData = (LPWSTR)&mBuffer[offset];
+			strData[str.length()] = 0;
+
 			mStrings.push_back(LPCWSTR(offset));
 
 			if (pRef)

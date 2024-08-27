@@ -42,7 +42,7 @@ namespace MV
 	public:
 		PathNode const& getNode( int idx ) const { return mNodes[idx]; }
 		PathNode&       getNode( int idx )       { return mNodes[idx]; }
-		int             getNodeNum() const { return mNodes.size(); }
+		int             getNodeNum() const { return (int)mNodes.size(); }
 	private:
 		friend class PathFinder;
 		TArray< PathNode > mNodes;

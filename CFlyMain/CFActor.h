@@ -142,7 +142,7 @@ namespace CFly
 		int       getBoneID( char const* name );
 		void      takeOffAttachment( Object* obj );
 		int       getEmptyAttchSlot();
-		int       getMaxAttachmentIndex(){ return mAttachVec.size(); }
+		int       getMaxAttachmentIndex(){ return (int)mAttachVec.size(); }
 
 		Object*   createSkin();
 		int       getSkinNum(){ return (int)mSkinVec.size(); }

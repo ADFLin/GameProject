@@ -136,7 +136,7 @@ namespace Zuma
 			posList[1] = pos + Vector2(size.x, 0);
 			posList[2] = pos + size;
 			posList[3] = pos + Vector2(0, size.y);
-			drawPolygon(posList, ARRAY_SIZE(posList));
+			drawPolygon(posList, (int)ARRAY_SIZE(posList));
 		}
 
 		virtual void  loadWorldMatrix( Vector2 const& pos , Vector2 const& dir ) = 0;

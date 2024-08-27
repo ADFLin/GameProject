@@ -42,9 +42,9 @@ namespace Math
 	FORCEINLINE float LogX(float base, float value) { return Log(value) / Log(base); }
 
 	template <typename T>
-	FORCEINLINE float Sign(T x)
+	FORCEINLINE T Sign(T x)
 	{
-		return (T(0) < x) - (x < T(0));
+		return T(T(0) < x) - (x < T(0));
 	}
 
 	FORCEINLINE double FloorToInt(double val) { return ::floor(val); }

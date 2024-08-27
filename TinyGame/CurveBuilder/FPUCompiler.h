@@ -23,7 +23,7 @@ public:
 
 	void   printCode();
 	void   clearCode();
-	int    getCodeLength() const { return mCodeEnd - mCode; }
+	int    getCodeLength() const { return int(mCodeEnd - mCode); }
 
 protected:
 	void pushCode(uint8 byte);

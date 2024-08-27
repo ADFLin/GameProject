@@ -171,7 +171,7 @@ public:
 
 	int getNextKeyIndex(float time) const
 	{
-		int count = mKeys.size();
+		int count = (int)mKeys.size();
 		int idxCur = 0;
 		while (count > 0)
 		{

@@ -39,8 +39,9 @@ namespace MV
 	};
 
 
-	struct RenderContext : public SimpleRenderState
+	class RenderContext : public SimpleRenderState
 	{
+	public:
 		template< class TShader>
 		void setupShader(TShader& shader)
 		{		
@@ -100,7 +101,7 @@ namespace MV
 
 			Vec3f const& axis = FDir::OffsetF( mDir );
 
-			Vec3f pos = Vec3f(mPos.x, mPos.y, mPos.z);
+			Vec3f pos = Vec3f(mPos);
 			context.stack.push();
 			context.stack.translate(pos);
 			context.stack.rotate(Quat::Rotate(axis, Math::DegToRad(rotateAngle)));

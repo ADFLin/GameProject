@@ -29,8 +29,8 @@ namespace FlowFree
 
 		struct LoadParams
 		{
-			float fliterThreshold = 0.21;
-			float houghThreshold  = 0.60;
+			float fliterThreshold = 0.21f;
+			float houghThreshold  = 0.60f;
 
 			Color3ub* colorMap = nullptr;
 			Color3ub* gridColor = nullptr;

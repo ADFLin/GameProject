@@ -176,7 +176,7 @@ struct FuncInfo
 	}
 
 
-	int         getArgNum() const { return signature->argTypes.size(); }
+	int         getArgNum() const { return (int)signature->argTypes.size(); }
 	ValueLayout getArgType(int idx) { return signature->argTypes[idx]; }
 	ValueLayout getReturnType() { return signature->returnType; }
 

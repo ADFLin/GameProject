@@ -188,7 +188,7 @@ namespace CAR
 		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo ) override;
 		bool checkComplete() const override;
 		int  calcPlayerScore(PlayerBase* player) override;
-		int  getScoreTileNum() const override { return mapTiles.size(); }
+		int  getScoreTileNum() const override { return (int)mapTiles.size(); }
 		void onAddFollower(LevelActor& actor) override { actor.className = EFollowerClassName::Thief; }
 		bool      haveInn;
 	};

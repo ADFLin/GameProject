@@ -16,9 +16,6 @@
     <Filter Include="OtherLib\NvTess">
       <UniqueIdentifier>{83e58566-e359-4fa9-9b92-d0ae70f7a2f1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OtherLib\minisat">
-      <UniqueIdentifier>{829b52a6-adfb-447f-b2d7-5c1c9ea59434}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OtherLib\SpirvReflect">
       <UniqueIdentifier>{b7c74b3c-8d74-4907-b9e5-90da4fc01964}</UniqueIdentifier>
     </Filter>
@@ -146,21 +143,6 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp">
       <Filter>OtherLib\NvTess</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\core\Main.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
-      <Filter>OtherLib\minisat</Filter>
     </ClCompile>
     <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c">
       <Filter>OtherLib\SpirvReflect</Filter>

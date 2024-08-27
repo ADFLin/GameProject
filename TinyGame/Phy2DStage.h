@@ -169,15 +169,15 @@ namespace Phy2D
 	};
 
 
-	class TINY_API WorldTestStage : public Phy2DStageBase
+	class WorldTestStage : public Phy2DStageBase
 	{
 		typedef Phy2DStageBase BaseClass;
 	public:
 		WorldTestStage(){}
 
-		virtual bool onInit();
+		TINY_API virtual bool onInit();
 
-		void debugEntry();
+		TINY_API void debugEntry();
 
 		virtual void onEnd()
 		{
@@ -185,7 +185,7 @@ namespace Phy2D
 		}
 
 
-		void onRender( float dFrame );
+		TINY_API void onRender( float dFrame );
 
 
 
@@ -195,7 +195,7 @@ namespace Phy2D
 		}
 
 
-		virtual void tick();
+		TINY_API virtual void tick();
 
 		virtual void updateFrame( int frame )
 		{
@@ -207,7 +207,7 @@ namespace Phy2D
 			return BaseClass::onMouse(msg);
 		}
 
-		MsgReply onKey(KeyMsg const& msg) override;
+		TINY_API MsgReply onKey(KeyMsg const& msg) override;
 	protected:
 
 		RigidBody*   mBody[2];

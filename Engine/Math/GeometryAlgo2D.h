@@ -231,7 +231,7 @@ namespace Geom2D
 					}
 				}
 			}
-			return mOutIndices - outHullIndices;
+			return int(mOutIndices - outHullIndices);
 		}
 		int  constuct_R( int pIdx[] , int nV , int i1 , int i2 )
 		{
@@ -305,7 +305,7 @@ namespace Geom2D
 				*itMax = *pIdx;
 				*pIdx = temp;
 			}
-			return iter - pIdx;
+			return int(iter - pIdx);
 		}
 
 	};

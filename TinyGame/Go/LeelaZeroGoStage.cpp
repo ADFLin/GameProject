@@ -2242,7 +2242,7 @@ namespace Go
 		for(auto& data : mWinRateDataList)
 		{
 			data.history.clear();
-			data.history.emplace_back(0, 50);
+			data.history.emplace_back(0.0f, 50.0f);
 		}
 		if( mWinRateWidget )
 		{

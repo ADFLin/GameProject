@@ -24,7 +24,7 @@ public:
 	{
 #if CPP_COMPILER_MSVC
 		uint64 result = __rdtsc();
-		return result;
+		return uint32(result);
 #else
 		//#FIXME
 		unsigned dummy;

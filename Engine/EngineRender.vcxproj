@@ -30,11 +30,6 @@
     <ClCompile Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.cpp" />
     <ClCompile Include="..\OtherLib\DirectXSamples\Generation.cpp" />
     <ClCompile Include="..\OtherLib\DirectXSamples\Utilities.cpp" />
-    <ClCompile Include="..\OtherLib\minisat\core\Main.cc" />
-    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc" />
-    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc" />
-    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc" />
-    <ClCompile Include="..\OtherLib\minisat\utils\System.cc" />
     <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp" />
     <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp" />
     <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp" />

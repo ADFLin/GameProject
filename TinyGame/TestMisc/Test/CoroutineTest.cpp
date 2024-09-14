@@ -132,8 +132,7 @@ struct FooFunc
 } gFunc;
 
 static CoroutineType::pull_type* gCor;
-static FunctionJumper gJumper;
-
+static Coroutines::ExecutionHandle GExecHandle;
 template< class TFunc >
 void foo(TFunc func)
 {
@@ -151,7 +150,7 @@ void foo2()
 	GButton* button = new GButton(CoroutineTestStage::UI_TEST_BUTTON2, Vec2i(200, 100), Vec2i(100, 20), nullptr);
 	button->setTitle("foo2");
 	::Global::GUI().addWidget(button);
-	gJumper.jump();
+	CO_YEILD(nullptr);
 
 	while (1)
 	{
@@ -159,13 +158,13 @@ void foo2()
 		for (int i = 0; i < 3; ++i)
 		{
 			button->setSize(2 * button->getSize());
-			gJumper.jump();
+			CO_YEILD(nullptr);
 		}
 
 		for (int i = 0; i < 3; ++i)
 		{
 			button->setSize(button->getSize() / 2);
-			gJumper.jump();
+			CO_YEILD(nullptr);
 		}
 	}
 }
@@ -183,8 +182,11 @@ bool CoroutineTestStage::onInit()
 	Foo f;
 	f.mI = 1;
 	foo(std::ref(f));
+	GExecHandle = Coroutines::Start([this]()
+	{
+		foo2();
+	});
 
-	gJumper.start(foo2);
 	auto& context = Coroutines::ThreadContext::Get();
 	Coroutines::Start([this]()
 	{
@@ -204,7 +206,7 @@ bool CoroutineTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 		(*gCor)();
 		return false;
 	case UI_TEST_BUTTON2:
-		gJumper.jump();
+		Coroutines::Resume(GExecHandle);
 		return false;
 	}
 

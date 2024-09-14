@@ -302,6 +302,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Engine\Algo\FFT.cpp" />
+    <ClCompile Include="..\Engine\Algo\Voronoi.cpp" />
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
     <ClCompile Include="Bejeweled\BJStage.cpp" />
@@ -463,6 +464,7 @@
     <ClCompile Include="TestMisc\Stage\TMachineStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp" />
     <ClCompile Include="TestMisc\Stage\VectorGraphicRenderStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\VoronoiStage.cpp" />
     <ClCompile Include="TestMisc\TestMisc.cpp" />
     <ClCompile Include="TestMisc\TestMiscPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -490,6 +492,7 @@
     <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp" />
     <ClCompile Include="TestMisc\Test\PWTest.cpp" />
     <ClCompile Include="TestMisc\Test\SpatialIndexTest.cpp" />
+    <ClCompile Include="TestRender\Stage\SplitscreenStage.cpp" />
     <ClCompile Include="TripleTown\TTLevel.cpp" />
     <ClCompile Include="TripleTown\TTScene.cpp" />
     <ClCompile Include="TripleTown\TTStage.cpp" />

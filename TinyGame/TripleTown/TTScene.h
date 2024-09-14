@@ -89,6 +89,14 @@ namespace TripleTown
 		Vector2 pos;
 	};
 
+	class Renderer
+	{
+
+
+
+
+	};
+
 
 	class Scene : public LevelListener
 	{

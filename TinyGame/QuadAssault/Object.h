@@ -131,7 +131,7 @@ public:
 	Vec2f const& getSize() const { return mSize; }
 	void         setSize(Vec2f const& size ){ mSize = size; }
 
-	void         calcBoundBox( Rect& bBox );
+	void         calcBoundBox( BoundBox& bBox );
 
 
 	//Edit

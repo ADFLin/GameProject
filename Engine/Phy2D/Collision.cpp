@@ -113,7 +113,7 @@ namespace Phy2D
 			for(  ; iter2 != itEnd ; ++iter2 )
 			{
 				CollisionProxy* proxyB = *iter2;
-				if ( proxyA->aabb.isInterect( proxyB->aabb ) )
+				if ( proxyA->aabb.isIntersect( proxyB->aabb ) )
 				{
 					pairManager.addProxyPair( proxyA , proxyB );
 				}

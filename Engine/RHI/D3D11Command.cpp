@@ -808,7 +808,7 @@ namespace Render
 		desc.DepthEnable = initializer.isDepthEnable();
 		desc.DepthWriteMask = initializer.bWriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 		desc.DepthFunc = D3D11Translate::To( initializer.depthFunc );
-		desc.StencilEnable = initializer.bEnableStencilTest;
+		desc.StencilEnable = initializer.bEnableStencil;
 		desc.StencilReadMask = initializer.stencilReadMask;
 		desc.StencilWriteMask = initializer.stencilWriteMask;
 

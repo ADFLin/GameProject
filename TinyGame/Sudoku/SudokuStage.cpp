@@ -29,7 +29,7 @@ public:
 		lastGroup = group;
 		lastMethod = method;
 		lastNumBit = numBit;
-		Jumper.jump();
+		CO_YEILD(nullptr);
 		return true; 
 	}
 	void onPostEvalMethod(EMethod method, Group group, int idx, unsigned numBit) 
@@ -38,7 +38,7 @@ public:
 		{
 			LogMsg("error method");
 		}
-		//Jumper.jump();
+		//CO_YEILD(nullptr);
 	}
 	void doEnumRelatedCellInfo(RelatedCellInfo const& info)
 	{
@@ -57,11 +57,14 @@ public:
 		}
 
 		this->evalSimpleColourMethod(ToCellIndex(4,5));
-		
 
-		std::function< void() > func = std::bind(&SudokuSolver::solveLogic, (SudokuSolver*)this);
-		Jumper.start( func );
+		hExec = Coroutines::Start([&]()
+		{
+			solveLogic();
+		});
 	}
+
+	Coroutines::ExecutionHandle hExec;
 
 	bool        bRelatedCell[NumberNum * NumberNum];
 	EMethod      lastMethod;
@@ -71,7 +74,6 @@ public:
 	int MaxStep;
 	int numStep;
 	unsigned    methodMask;
-	FunctionJumper Jumper;
 };
 
 
@@ -272,7 +274,7 @@ public:
 			switch (msg.getCode())
 			{
 			case EKeyCode::R: restart(); break;
-			case EKeyCode::J: mSolver.Jumper.jump(); break;
+			case EKeyCode::J: Coroutines::Resume(mSolver.hExec); break;
 			}
 		}
 		return BaseClass::onKey(msg);

@@ -109,6 +109,7 @@ class TinyGameApp : public GameLoopT< TinyGameApp , WindowsPlatform >
 				  , public IGUIDelegate
 				  , public IGameNetInterface
 	              , public IGameWindowProvider
+				  //, public IGameViewportClient
 #if TINY_WITH_EDITOR
 				  , public IEditorGameViewport
 #endif

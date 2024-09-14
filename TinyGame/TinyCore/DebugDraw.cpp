@@ -2,9 +2,17 @@
 #include "DataStructure/Array.h"
 #include "GameGraphics2D.h"
 
-class DebugDrawBatcher
+class DebugDrawBatcher : public IDebugDrawBatcher
 {
 public:
+	DebugDrawBatcher()
+	{
+		IDebugDrawBatcher::Set(this);
+	}
+	~DebugDrawBatcher()
+	{
+		IDebugDrawBatcher::Set(nullptr);
+	}
 
 	void addPoint(Vector2 const& pos, Color3ub const& color, float size)
 	{
@@ -52,6 +60,7 @@ public:
 	{
 		for (auto const& point : mPoints)
 		{
+			g.setPen(point.color);
 			g.setBrush(point.color);
 			g.drawRect(point.pos - Vector2(point.size, point.size) / 2, Vector2(point.size, point.size));
 		}
@@ -71,31 +80,11 @@ public:
 	TArray< PointElement > mPoints;
 	TArray< LineElement > mLines;
 	TArray< TextElement > mTexts;
-};
 
-DebugDrawBatcher GDebugDraw;
-void DrawDebugLine(Vector2 const& posStart, Vector2 const& posEnd, Color3ub const& color, float thickneess)
-{
-	GDebugDraw.addLine(posStart, posEnd, color, thickneess);
-}
-
-void DrawDebugPoint(Vector2 const& pos, Color3ub const& color, float size)
-{
-	GDebugDraw.addPoint(pos, color, size);
-}
-
-void DrawDebugText(Vector2 const& pos, char const* text, Color3ub const& color)
-{
-	GDebugDraw.addText(pos, text, color);
-}
+}GDebugDraw;
 
 void DrawDebugCommit(IGraphics2D& g)
 {
 	GDebugDraw.render(g);
-}
-
-void DrawDebugClear()
-{
-	GDebugDraw.clear();
 }
 

@@ -1079,7 +1079,7 @@ namespace Render
 					if (payload.renderer)
 					{
 						mbCustomState = true;
-						payload.renderer->render(*mCommandList, *element);
+						payload.renderer->render(*mCommandList, *element, renderState);
 						FObjectManage::Release(payload.renderer, payload.manageMode);
 					}
 					else
@@ -1100,7 +1100,7 @@ namespace Render
 
 					}
 
-					payload.renderer->render(*mCommandList, *element);
+					payload.renderer->render(*mCommandList, *element, renderState);
 					if (element->type == RenderBatchedElement::CustomRenderAndState)
 					{
 						commitRenderState(*mCommandList, renderState);
@@ -1202,6 +1202,20 @@ namespace Render
 		{
 			auto const& rect = state.scissorRect;
 			RHISetScissorRect(commandList, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+		}
+	}
+
+	void BatchedRender::SetupShaderState(RHICommandList& commandList, Math::Matrix4 const& baseXForm, RenderState const& state)
+	{
+		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
+		CHECK(program);
+
+		RHISetShaderProgram(commandList, program->getRHI());
+		SET_SHADER_PARAM(commandList, *program, XForm, baseXForm);
+		SET_SHADER_PARAM(commandList, *program, Color, LinearColor(1, 1, 1, 1));
+		if (state.texture)
+		{
+			program->setTextureParam(commandList, state.texture, state.sampler);
 		}
 	}
 

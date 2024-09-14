@@ -797,6 +797,8 @@ void TinyGameApp::cleanup()
 
 	Global::Finalize();
 
+	//ProfileSystem::Get().cleanup();
+
 	EngineFinalize();
 	
 	Global::ModuleManager().cleanupModuleMemory();
@@ -819,15 +821,6 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 	}
 #endif
 
-#if TINY_WITH_EDITOR
-	if (mEditor)
-	{
-		PROFILE_ENTRY("Editor Render");
-		GPU_PROFILE("Editor Render");
-		mEditor->render();
-
-	}
-#endif
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
 
@@ -1173,22 +1166,30 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 
 void TinyGameApp::render( float dframe )
 {
-	PROFILE_ENTRY("Render");
-
 	using namespace Render;
 
-	if ( getNextStage() || mbInitializingStage )
-		return;
+	PROFILE_ENTRY("Render");
+
+#if TINY_WITH_EDITOR
+	if (mEditor)
+	{
+		PROFILE_ENTRY("Editor Render");
+		GPU_PROFILE("Editor Render");
+		mEditor->render();
+	}
+#endif
 
 	DrawEngine& drawEngine = Global::GetDrawEngine();
 
-	if ( !drawEngine.beginFrame() )
+	if (!drawEngine.beginFrame())
 		return;
 
 	++GRenderFrame;
-
-	if ( CVarProfileGPU )
+	if (CVarProfileGPU)
 		GpuProfiler::Get().beginFrame();
+
+	if ( getNextStage() || mbInitializingStage )
+		return;
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
 
@@ -1319,11 +1320,6 @@ void TinyGameApp::render( float dframe )
 
 		if (CVarShowGPUProifle)
 		{
-			{
-				PROFILE_ENTRY("ProfileGPU.endFrame");
-				if (CVarProfileGPU)
-					GpuProfiler::Get().endFrame();
-			}
 
 			if (CVarProfileGPU && RHIIsInitialized())
 			{
@@ -1345,6 +1341,8 @@ void TinyGameApp::render( float dframe )
 
 				InlineString< 512 > temp;
 				int curLevel = 0;
+
+				GpuProfileReadScope scopedRead;
 				for (int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i)
 				{
 					GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
@@ -1366,10 +1364,22 @@ void TinyGameApp::render( float dframe )
 				}
 			}
 		}
+
+
 	}
+
 	g.endRender();	
+
+
+	{
+		PROFILE_ENTRY("ProfileGPU.endFrame");
+		if (CVarProfileGPU)
+			GpuProfiler::Get().endFrame();
+	}
+
 	drawEngine.endFrame();
 }
+
 ///
 void TinyGameApp::importUserProfile()
 {
@@ -1578,7 +1588,7 @@ void TinyGameApp::prevStageChange()
 	DrawEngine& de = ::Global::GetDrawEngine();
 	if ( de.beginFrame() )
 	{
-		Graphics2D& g = ::Global::GetGraphics2D();
+		IGraphics2D& g = ::Global::GetIGraphics2D();
 
 		RenderUtility::SetBrush( g , EColor::Black );
 		RenderUtility::SetPen( g , EColor::Black );

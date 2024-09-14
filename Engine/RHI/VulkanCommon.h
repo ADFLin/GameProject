@@ -829,7 +829,7 @@ namespace Render
 			createInfo.depthWriteEnable = initializer.bWriteDepth;
 			createInfo.depthCompareOp = VulkanTranslate::To(initializer.depthFunc);
 			createInfo.depthBoundsTestEnable = VK_FALSE;
-			createInfo.stencilTestEnable = initializer.bEnableStencilTest;
+			createInfo.stencilTestEnable = initializer.bEnableStencil;
 
 
 			createInfo.front.failOp = VulkanTranslate::To(initializer.stencilFailOp);

@@ -1035,7 +1035,7 @@ namespace Render
 	struct DepthStencilStateInitializer
 	{
 		ECompareFunc depthFunc;
-		bool bEnableStencilTest;
+		bool bEnableStencil;
 		ECompareFunc stencilFunc;
 		EStencil stencilFailOp;
 		EStencil zFailOp;
@@ -1053,7 +1053,7 @@ namespace Render
 		{
 #define MEMBER_OP( M ) if ( M != rhs.M ) return false
 			MEMBER_OP(depthFunc);
-			MEMBER_OP(bEnableStencilTest);
+			MEMBER_OP(bEnableStencil);
 			MEMBER_OP(stencilFunc);
 			MEMBER_OP(stencilFailOp);
 			MEMBER_OP(zFailOp);

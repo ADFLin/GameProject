@@ -8,7 +8,6 @@ namespace Render
 
 	GpuProfiler::GpuProfiler()
 	{
-		mNumSampleUsed = 0;
 		mbStartSampling = false;
 	}
 
@@ -21,7 +20,10 @@ namespace Render
 
 	void GpuProfiler::releaseRHIResource()
 	{
-		mSamples.clear();
+		for (int i = 0; i < ARRAY_SIZE(mFrameBuffers); ++i)
+		{
+			mFrameBuffers[i].clear();
+		}
 
 		if (mCore)
 		{
@@ -33,9 +35,10 @@ namespace Render
 
 	void GpuProfiler::beginFrame()
 	{
-		mNumSampleUsed = 0;
+		auto& frameData = getWriteData();
+		frameData.numSampleUsed = 0;
+	
 		mCurLevel = 0;
-
 		if( mCore )
 		{
 			mCore->beginFrame();
@@ -57,15 +60,19 @@ namespace Render
 				if( mCore->endFrame() )
 				{
 					mCore->beginReadback();
-					for( int i = 0; i < mNumSampleUsed; ++i )
+
+					auto& frameData = getWriteData();
+
+					for( int i = 0; i < frameData.numSampleUsed; ++i )
 					{
-						GpuProfileSample* sample = mSamples[i].get();
+						GpuProfileSample* sample = frameData.samples[i].get();
 
 						if( sample->timingHandle != RHI_ERROR_PROFILE_HANDLE )
 						{
 							uint64 time;
 							while( !mCore->getTimingDuration(sample->timingHandle, time) )
 							{
+								LogMsg("GpuProfiler Can't get sample");
 								SystemPlatform::Sleep(0);
 							}
 							sample->time = double(time) * mCycleToSecond;
@@ -80,6 +87,12 @@ namespace Render
 				mbStartSampling = false;
 			}
 		}
+
+		{
+			RWLock::WriteLocker locker(mIndexLock);
+			mIndexWriteBuffer = 1 - mIndexWriteBuffer;
+		}
+
 	}
 
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
@@ -87,22 +100,24 @@ namespace Render
 		if( !mbStartSampling  || mCore == nullptr)
 			return nullptr;
 
+		auto& frameData = getWriteData();
+
 		GpuProfileSample* sample;
-		if( mNumSampleUsed >= mSamples.size() )
+		if(frameData.numSampleUsed >= frameData.samples.size() )
 		{
-			mSamples.push_back(std::make_unique< GpuProfileSample>());
-			sample = mSamples.back().get();
+			frameData.samples.push_back(std::make_unique< GpuProfileSample>());
+			sample = frameData.samples.back().get();
 			sample->timingHandle = mCore->fetchTiming();
 		}
 		else
 		{
-			sample = mSamples[mNumSampleUsed].get();
+			sample = frameData.samples[frameData.numSampleUsed].get();
 		}
 
 		sample->name = name;
 		sample->level = mCurLevel;
 		++mCurLevel;
-		++mNumSampleUsed;
+		++frameData.numSampleUsed;
 		if ( sample->timingHandle != RHI_ERROR_PROFILE_HANDLE )
 			mCore->startTiming(sample->timingHandle);
 		return sample;
@@ -128,7 +143,10 @@ namespace Render
 		}
 		else
 		{
-			mSamples.clear();
+			for (int i = 0; i < ARRAY_SIZE(mFrameBuffers); ++i)
+			{
+				mFrameBuffers[i].clear();
+			}
 		}
 	}
 

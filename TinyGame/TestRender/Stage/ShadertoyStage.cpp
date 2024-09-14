@@ -1698,10 +1698,7 @@ namespace Shadertoy
 					}
 				}
 #if 0
-				for (int k = 0; k < 256; k++)
-				{
-					mKeyboardData[k + 1 * 256] = 0;
-				}
+				FMemory::Zero(mKeyboardData + 256, 256);
 #endif
 			}
 

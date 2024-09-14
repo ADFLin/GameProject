@@ -96,4 +96,23 @@ struct TOverloaded : public TFunc...
 template< typename ...TFunc >
 TOverloaded(TFunc ...func)->TOverloaded< TFunc... >;
 
+template< typename T >
+struct TReverseView
+{
+	TReverseView(T& t)
+		:mT(t)
+	{
+	}
+
+	auto begin() { return mT.rbegin(); }
+	auto end() { return mT.rend(); }
+	T& mT;
+};
+
+template< typename T >
+auto MakeReverseView(T& t)
+{
+	return TReverseView<T>(t);
+}
+
 #endif // TemplateMisc_H_89EFA76B_D261_47AE_83A7_DE05B2C8EA0D

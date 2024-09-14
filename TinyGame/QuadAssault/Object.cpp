@@ -28,7 +28,7 @@ LevelObject::LevelObject( Vec2f const& pos )
 }
 
 
-void LevelObject::calcBoundBox( Rect& bBox )
+void LevelObject::calcBoundBox( BoundBox& bBox )
 {
 	Vec2f half = mSize / 2;
 	bBox.min = mPos - half;

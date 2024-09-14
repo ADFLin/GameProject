@@ -8,6 +8,7 @@
 #include "Core/Tickable.cpp"
 
 #include "Launch/CommandlLine.cpp"
+#include "Misc/DebugDraw.cpp"
 
 #include "UnitTest/TestClass.cpp"
 
@@ -37,7 +38,6 @@
 #include "Renderer/BatchedRender2D.cpp"
 
 #include "GameFramework/EntityManager.cpp"
-
 
 #endif
 

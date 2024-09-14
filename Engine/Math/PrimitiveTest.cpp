@@ -318,5 +318,27 @@ namespace Math
 		return true;
 	}
 
+	Vector2 GetCircumcirclePoint(Vector2 const& a, Vector2 const& b, Vector2 const& c)
+	{
+		Vector2 ab = a - b;
+		Vector2 bc = b - c;
+		Vector2 ca = c - a;
+		Vector2 d = 0.5 * (a.length2()*bc + b.length2()*ca + c.length2()*ab);
+
+		Vector2 result;
+		result.x = d.y / (a.x*bc.y + b.x*ca.y + c.x*ab.y);
+		result.y = d.x / (a.y*bc.x + b.y*ca.x + c.y*ab.x);
+		return result;
+	}
+
+	bool IsInsideCircumcircle(Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, Vector2 const& p)
+	{
+		Vector2 a = v0 - p;
+		Vector2 b = v1 - p;
+		Vector2 c = v2 - p;
+		float det = a.length2()*b.cross(c) + b.length2()*c.cross(a) + c.length2()*a.cross(b);
+		return det > 0;
+	}
+
 }//namespace Math2D
 

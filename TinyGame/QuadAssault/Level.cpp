@@ -401,10 +401,10 @@ LevelObject* Level::hitObjectTest( Vec2f const& pos )
 {
 	for(LevelObject* obj : mObjects)
 	{
-		Rect bBox;
+		BoundBox bBox;
 		obj->calcBoundBox( bBox );
 
-		if ( bBox.hitTest( pos ) )
+		if ( bBox.isInside( pos ) )
 			return obj;
 	}
 

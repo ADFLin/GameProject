@@ -136,9 +136,16 @@ public:
 			:mFunc(std::forward<TFunc>(func))
 		{
 		}
-		void render(Render::RHICommandList& commandList, Render::RenderBatchedElement& element) override
+		void render(Render::RHICommandList& commandList, Render::RenderBatchedElement& element, RenderState const& state) override
 		{
-			mFunc(commandList, element);
+			if constexpr (TCheckConcept< CFunctionCallable, TFunc, Render::RHICommandList&, Render::RenderBatchedElement&, RenderState const&>::Value)
+			{
+				mFunc(commandList, element, state);
+			}
+			else
+			{
+				mFunc(commandList, element);
+			}
 		}
 		TFunc mFunc;
 	};

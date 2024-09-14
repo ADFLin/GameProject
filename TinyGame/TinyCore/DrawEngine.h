@@ -15,6 +15,11 @@
 
 #define OPENGL_RENDER_DIB 0
 
+namespace Render
+{
+	struct ViewportInfo;
+}
+
 class IGameWindow
 {
 public:
@@ -34,10 +39,29 @@ public:
 class IGameWindowProvider
 {
 public:
-	virtual ~IGameWindowProvider() {}
+	virtual ~IGameWindowProvider() = default;
 	virtual GameWindow& getMainWindow() = 0;
 	virtual bool        reconstructWindow(GameWindow& window) = 0;
 	virtual GameWindow* createWindow(Vec2i const& pos, Vec2i const& size, char const* title) = 0;
+};
+
+
+class IGameViewport
+{
+public:
+	virtual ~IGameViewport() = default;
+	virtual void getViewportInfo(Render::ViewportInfo& outInfo) = 0;
+	virtual void present(bool bVSync) = 0;
+
+
+	class IGameViewportClient* viewportClient = nullptr;
+};
+
+class IGameViewportClient
+{
+public:
+	virtual ~IGameViewportClient() = default;
+	virtual void drawViewport(IGameViewport* viewport) = 0;
 };
 
 
@@ -59,6 +83,21 @@ public:
 	TINY_API bool resetupSystem(ERenderSystem systemName);
 
 	IGameRenderSetup* getRenderSetup() { return mRenderSetup; }
+
+
+	void draw(IGameViewport& viewport)
+	{
+		if (isRHIEnabled())
+		{
+			
+
+
+
+		}
+
+
+
+	}
 
 
 	Vec2i          getScreenSize() { return Vec2i(mGameWindow->getWidth(), mGameWindow->getHeight()); }

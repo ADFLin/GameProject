@@ -379,6 +379,9 @@
     <ClCompile Include="Game\Engine.cpp">
       <Filter>Game</Filter>
     </ClCompile>
+    <ClCompile Include="Misc\DebugDraw.cpp">
+      <Filter>Misc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1025,6 +1028,12 @@
     </ClInclude>
     <ClInclude Include="Game\Engine.h">
       <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Algo\Voronoi.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc\DebugDraw.h">
+      <Filter>Misc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

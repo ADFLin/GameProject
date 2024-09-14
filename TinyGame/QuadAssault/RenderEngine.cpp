@@ -473,7 +473,7 @@ void RenderEngine::updateRenderGroup( RenderParam& param )
 	mRenderGroups.clear();
 	mBodyList.clear();
 
-	Rect bBox;
+	BoundBox bBox;
 	bBox.min = param.camera->getPos();
 	bBox.max = param.camera->getPos() + Vec2f( param.renderWidth  , param.renderHeight );
 	param.level->getColManager().findBody( bBox , COL_RENDER , mBodyList );

@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <string>
+#include "PlatformThread.h"
 
 namespace Render
 {
@@ -60,11 +61,41 @@ namespace Render
 
 		CORE_API void releaseRHIResource();
 
-		int  getSampleNum() { return mNumSampleUsed; }
+
 		void setCore(RHIProfileCore* core);
 
-		GpuProfileSample* getSample(int idx) { return mSamples[idx].get(); }
+		CORE_API bool beginRead()
+		{
+			mIndexLock.readLock();
+			return true;
+		}
+		GpuProfileSample* getSample(int idx) { return getReadData().samples[idx].get(); }
+		int  getSampleNum() const { return getReadData().numSampleUsed; }
+		CORE_API void endRead()
+		{
+			mIndexLock.readUnlock();
+		}
 
+
+	private:
+		struct FrameData
+		{
+			TArray< std::unique_ptr< GpuProfileSample > > samples;
+			int    numSampleUsed = 0;
+
+			void clear()
+			{
+				samples.clear();
+				numSampleUsed = 0;
+			}
+		};
+		FrameData const& getReadData() const { return mFrameBuffers[1 - mIndexWriteBuffer]; }
+		FrameData& getWriteData(){ return mFrameBuffers[mIndexWriteBuffer]; }
+
+
+		FrameData mFrameBuffers[2];
+		int       mIndexWriteBuffer;
+		RWLock    mIndexLock;
 
 		struct SampleGroup
 		{
@@ -72,8 +103,6 @@ namespace Render
 			float time;
 			int idxParent;
 		};
-		
-		TArray< std::unique_ptr< GpuProfileSample > > mSamples;
 
 		RHIProfileCore* mCore = nullptr;
 		GpuProfileSample* mRootSample;
@@ -81,6 +110,19 @@ namespace Render
 		int    mCurLevel;
 		int    mNumSampleUsed;
 		double mCycleToSecond;
+	};
+
+	struct GpuProfileReadScope
+	{
+		GpuProfileReadScope()
+		{
+			GpuProfiler::Get().beginRead();
+		}
+
+		~GpuProfileReadScope()
+		{
+			GpuProfiler::Get().endRead();
+		}
 	};
 
 	struct GpuProfileScope

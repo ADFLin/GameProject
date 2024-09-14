@@ -24,10 +24,10 @@ typedef InlineString< 512 > FString;
 #include "Holder.h"
 #include "RefCount.h"
 
-#include "Rect.h"
 #include "Core/Color.h"
+#include "Math/GeometryPrimitive.h"
 
-typedef TRect< float > Rect;
+using BoundBox = Math::TAABBox< Vec2f >;
 
 namespace Priv
 {

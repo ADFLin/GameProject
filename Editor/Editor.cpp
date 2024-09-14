@@ -102,19 +102,14 @@ public:
 		delete this;
 	}
 
+	bool bAdvanceFrame = false;
+
 	void update() override
-	{
-
-	}
-
-	bool bPanelInitialized = false;
-
-
-	void render() override
 	{
 		mRenderer->beginFrame();
 		ImGui::NewFrame();
 		EditorRenderGloabal::Get().beginFrame();
+		bAdvanceFrame = true;
 
 		if (bPanelInitialized == false)
 		{
@@ -149,9 +144,8 @@ public:
 
 		for (auto& panel : mPanels)
 		{
-			if (panel.bOpened == false && panel.bOpenRequest == false )
+			if (panel.bOpened == false && panel.bOpenRequest == false)
 				continue;
-
 
 			WindowRenderParams params;
 			panel.widget->getRenderParams(params);
@@ -195,6 +189,15 @@ public:
 			}
 			ImGui::End();
 		}
+	}
+
+	bool bPanelInitialized = false;
+
+
+	void render() override
+	{
+		if (!bAdvanceFrame)
+			return;
 
 		// End of frame: render Dear ImGui
 		ImGui::Render();

@@ -34,9 +34,9 @@ public:
 	void  update();
 	bool  testCollision( ColInfo& info , Vec2f const& offset , ColBody& body , unsigned colMaskReplace = 0 );
 	Tile* rayTerrainTest( Vec2f const& from , Vec2f const& to , unsigned typeMask );
-	Tile* testTerrainCollision( Rect const& bBox , unsigned typeMask );
+	Tile* testTerrainCollision( BoundBox const& bBox , unsigned typeMask );
 	
-	void  findBody( Rect const& bBox , unsigned colMask , ColBodyVec& out );
+	void  findBody( BoundBox const& bBox , unsigned colMask , ColBodyVec& out );
 	float getCellLength(){ return mCellLength; }
 
 private:

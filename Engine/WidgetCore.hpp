@@ -8,8 +8,9 @@
 
 template< class T >
 WidgetCoreT<T>::WidgetCoreT( Vec2i const& pos , Vec2i const& size , T* parent ) 
-	:mBoundRect( pos , pos + size )
 {
+	mBoundRect.min = pos;
+	mBoundRect.max = pos + size;
 	init();
 
 	if ( parent && parent != UI_NO_PARENT )

@@ -32,7 +32,7 @@ private:
 	unsigned     colMask;
 	unsigned     typeMask;
 	Vec2f        cachePos;
-	Rect         boundBox;
+	BoundBox         boundBox;
 	int          idxCell;
 	LevelObject* object;
 

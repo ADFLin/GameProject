@@ -1094,7 +1094,7 @@ namespace Render
 		mStateValue.depthFun = OpenGLTranslate::To(initializer.depthFunc);
 		mStateValue.bWriteDepth = initializer.bWriteDepth;
 
-		mStateValue.bEnableStencilTest = initializer.bEnableStencilTest;
+		mStateValue.bEnableStencilTest = initializer.bEnableStencil;
 
 		mStateValue.stencilFunc = OpenGLTranslate::To(initializer.stencilFunc);
 		mStateValue.stencilFailOp = OpenGLTranslate::To(initializer.stencilFailOp);

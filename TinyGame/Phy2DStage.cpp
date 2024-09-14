@@ -14,7 +14,8 @@ namespace Phy2D
 {
 	using namespace Render;
 
-	FunctionJumper gDebugJumper;
+
+	Coroutines::ExecutionHandle GExecHandle;
 	bool gDebugStep = true;
 
 	class MinkowskiSunProgram : public GlobalShaderProgram
@@ -47,8 +48,8 @@ namespace Phy2D
 
 	void jumpDebug()
 	{
-		if( gDebugStep )
-			gDebugJumper.jump();
+		if (gDebugStep)
+			CO_YEILD(nullptr);
 	}
 
 
@@ -373,14 +374,11 @@ namespace Phy2D
 		body->setPos(Vector2(0, 8));
 		mBody[1] = body;
 
-
-
 		//body = mWorld.createRigidBody( &mCircleShape , info );
 		//body->setPos( Vector2( 0 , 20 ) );
-
-
-		std::function< void() > func = std::bind(&WorldTestStage::debugEntry, this);
-		gDebugJumper.start(func);
+		GExecHandle = Coroutines::Start([this] {
+			debugEntry();
+		});
 
 		restart();
 		return true;
@@ -500,13 +498,15 @@ namespace Phy2D
 					if (gDebugStep)
 					{
 						gDebugStep = false;
-						gDebugJumper.jump();
+						Coroutines::Resume(GExecHandle);
 					}
 					else
 					{
 						gDebugStep = true;
-						std::function< void() > func = std::bind(&WorldTestStage::debugEntry, this);
-						gDebugJumper.start(func);
+						GExecHandle = Coroutines::Start([this]
+						{
+							debugEntry();
+						});
 					}
 				}
 				break;

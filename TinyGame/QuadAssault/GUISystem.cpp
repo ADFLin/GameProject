@@ -11,22 +11,23 @@
 
 #include "RHI/RHIGraphics2D.h"
 #include "TinyCore/RenderUtility.h"
+#include "Rect.h"
 
 class ScissorClipStack
 {
 public:
 	
-	void push( Vec2i const& pos , Vec2i const& size , bool bOverlapPrev );
+	void push(Vec2i const& pos, Vec2i const& size, bool bApplyPrev);
 	void pop();
 
-	typedef TRect< int > SRect;
+	using SRect = Math::TAABBox< Vec2i >;
 	bool mPrevEnable;
 	std::vector< SRect > mStack;
 };
 
 ScissorClipStack gClipStack;
 
-void ScissorClipStack::push( Vec2i const& pos , Vec2i const& size , bool bOverlapPrev )
+void ScissorClipStack::push(Vec2i const& pos, Vec2i const& size, bool bApplyPrev)
 {
 	SRect rect;
 	rect.min = pos;
@@ -38,10 +39,14 @@ void ScissorClipStack::push( Vec2i const& pos , Vec2i const& size , bool bOverla
 	{
 		g.beginClip(pos, size);
 	}
-	else if (bOverlapPrev)
+	else if (bApplyPrev)
 	{
-		if (!rect.overlap(mStack.back()))
+		rect = rect.intersection(mStack.back());
+		if (!rect.isValid())
+		{
 			rect.max = rect.min;
+		}
+
 		Vec2i sizeRect = rect.getSize();
 		g.setClipRect(pos, sizeRect);
 	}
@@ -52,10 +57,13 @@ void ScissorClipStack::push( Vec2i const& pos , Vec2i const& size , bool bOverla
 		if ( !mPrevEnable )
 			glEnable( GL_SCISSOR_TEST );
 	}
-	else if ( bOverlapPrev )
+	else if ( bApplyPrev )
 	{
-		if ( !rect.overlap( mStack.back() ) )
+		rect = rect.intersection(mStack.back());
+		if (!rect.isValid())
+		{
 			rect.max = rect.min;
+		}
 	}
 	Vec2i sizeRect = rect.getSize();
 	glScissor( rect.min.x , rect.min.y , sizeRect.x , sizeRect.y );

@@ -271,6 +271,7 @@
     <ClCompile Include="Math\Transform.cpp" />
     <ClCompile Include="Memory\BuddyAllocator.cpp" />
     <ClCompile Include="Memory\FrameAllocator.cpp" />
+    <ClCompile Include="Misc\DebugDraw.cpp" />
     <ClCompile Include="Misc\Guid.cpp" />
     <ClCompile Include="Misc\ImageMergeHelper.cpp" />
     <ClCompile Include="Module\ModularFeature.cpp" />
@@ -309,6 +310,7 @@
     <ClInclude Include="Algo\Combination.h" />
     <ClInclude Include="Algo\DLX.h" />
     <ClInclude Include="Algo\IDAStar.h" />
+    <ClInclude Include="Algo\Voronoi.h" />
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AssetViewer.h" />
@@ -400,6 +402,7 @@
     <ClInclude Include="Meta\MetaTypeList.h" />
     <ClInclude Include="Meta\Select.h" />
     <ClInclude Include="Meta\Unroll.h" />
+    <ClInclude Include="Misc\DebugDraw.h" />
     <ClInclude Include="Misc\Format.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />

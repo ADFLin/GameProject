@@ -114,21 +114,25 @@ class CProfileViewer : public ProfileNodeVisitorT< CProfileViewer >
 {
 public:
 
-	void onRoot     ( SampleNode* node )
+	void onRoot(VisitContext& context)
 	{
+		SampleNode* node = context.node;
+
 		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
-		msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
-			node->getName() , time_since_reset );
+		double lastFrameDuration = ProfileSystem::Get().getLastFrameDuration();
+		msgShow.push("--- Profiling: %s (total running time: %.03lf(%.03lf) ms) ---",
+			node->getName(), time_since_reset, lastFrameDuration);
 	}
 
 	void onNode(VisitContext const& context)
 	{
 		SampleNode* node = context.node;
-		msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)",
-			++mIdxChild , node->getName() ,
-			context.parentTimeTotal > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTimeTotal) * 100 : 0.f ,
-			node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset() ,
-			node->getTotalCalls() );
+		msgShow.push("|-> %s (%.2lf %%) :: %.3lf(%.3lf) ms / frame (%d calls)",
+			node->getName(),
+			context.timeTotalParent > CLOCK_EPSILON ? (node->getTotalTime() / context.timeTotalParent) * 100 : 0.f,
+			node->getTotalTime() / double(node->getTotalCalls()),
+			node->getFrameExecTime() / double(node->getFrameCalls()),
+			node->getTotalCalls());
 	}
 
 	bool onEnterChild(VisitContext const& context)
@@ -142,21 +146,18 @@ public:
 	{
 		SampleNode* node = context.node;
 		int    numChildren = childContext.indexNode;
-		double accTime = childContext.timeAcc;
+		double timeAcc = childContext.totalTimeAcc;
 
 		if ( numChildren )
 		{
-			double time;
-			if ( node->haveParent() )
-				time = node->getTotalTime();
-			else
-				time = ProfileSystem::Get().getDurationSinceReset();
-
-			double delta = time - accTime;
-			msgShow.push( "|-> %s (%.3f %%) :: %.3f ms / frame", "Other",
+			double time = childContext.timeTotalParent;
+			double delta = time - timeAcc;
+			msgShow.push("|-> %s (%.3lf %%) :: %.3lf(%.3lf) ms / frame",
+				"Other",
 				// (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
-				( time > CLOCK_EPSILON ) ? ( delta / time * 100 ) : 0.f  , 
-				delta / (double)ProfileSystem::Get().getFrameCountSinceReset() );
+				(time > CLOCK_EPSILON) ? (delta / time * 100) : 0.f,
+				delta / context.node->getTotalCalls(),
+				(childContext.displayTimeParent - childContext.displayTimeAcc) / context.node->getFrameCalls());
 			msgShow.push( "-------------------------------------------------" );
 		}
 

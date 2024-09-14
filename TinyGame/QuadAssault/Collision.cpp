@@ -41,7 +41,7 @@ bool CollisionManager::testCollision( ColInfo& info , Vec2f const& offset , ColB
 {
 	unsigned colMask = ( colMaskReplace ) ? colMaskReplace : body.colMask;
 
-	Rect bBox;
+	BoundBox bBox;
 	bBox.min = body.boundBox.min + offset;
 	bBox.max = body.boundBox.max + offset;
 
@@ -68,7 +68,7 @@ bool CollisionManager::testCollision( ColInfo& info , Vec2f const& offset , ColB
 			if ( ( colMask & bodyTest.typeMask ) == 0 )
 				continue;
 
-			if ( !bBox.intersect( bodyTest.boundBox ) )
+			if ( !bBox.isIntersect( bodyTest.boundBox ) )
 				continue;
 
 			info.isTerrain = false;
@@ -117,7 +117,7 @@ bool CollisionManager::testCollision( ColInfo& info , Vec2f const& offset , ColB
 					if ( ( colMask & bodyTest.typeMask ) == 0 )
 						continue;
 
-					if ( !bBox.intersect( bodyTest.boundBox ) )
+					if ( !bBox.isIntersect( bodyTest.boundBox ) )
 						continue;
 
 					info.isTerrain = false;
@@ -160,7 +160,7 @@ bool CollisionManager::checkCollision( ColBody& body )
 			if ( mask == 0 )
 				continue;
 
-			if ( !body.boundBox.intersect( bodyTest.boundBox ) )
+			if ( !body.boundBox.isIntersect( bodyTest.boundBox ) )
 				continue;
 
 			body.object->onBodyCollision( body , bodyTest );
@@ -180,7 +180,7 @@ bool CollisionManager::checkCollision( ColBody& body )
 		}
 		else
 		{
-			Rect const& bBox = body.boundBox;
+			BoundBox const& bBox = body.boundBox;
 			xMin = Math::Clamp( Math::FloorToInt( bBox.min.x / mCellLength ) - 1 , 0 , mCellMap.getSizeX() - 1 );
 			xMax = Math::Clamp( Math::FloorToInt( bBox.max.x / mCellLength ) + 1 , 0 , mCellMap.getSizeX() - 1 );
 			yMin = Math::Clamp( Math::FloorToInt( bBox.min.y / mCellLength ) - 1 , 0 , mCellMap.getSizeY() - 1 );
@@ -207,7 +207,7 @@ bool CollisionManager::checkCollision( ColBody& body )
 					if ( mask == 0 )
 						continue;
 
-					if ( !body.boundBox.intersect( bodyTest.boundBox ) )
+					if ( !body.boundBox.isIntersect( bodyTest.boundBox ) )
 						continue;
 
 					body.object->onBodyCollision( body , bodyTest );
@@ -437,7 +437,7 @@ Tile* CollisionManager::rayBlockTest( Vec2i const& tPos , Vec2f const& from , Ve
 	return &tile;
 }
 
-Tile* CollisionManager::testTerrainCollision( Rect const& bBox , unsigned typeMask )
+Tile* CollisionManager::testTerrainCollision( BoundBox const& bBox , unsigned typeMask )
 {
 	TileMap& terrain = *mTerrain;
 
@@ -456,11 +456,11 @@ Tile* CollisionManager::testTerrainCollision( Rect const& bBox , unsigned typeMa
 			if ( ( block->getColMask() & typeMask ) == 0 )
 				continue;
 
-			Rect bBoxOther;
+			BoundBox bBoxOther;
 			bBoxOther.min = tile.pos;
 			bBoxOther.max = tile.pos + Vec2f(BLOCK_SIZE,BLOCK_SIZE);
 
-			if( !bBox.intersect(bBoxOther) )
+			if( !bBox.isIntersect(bBoxOther) )
 				continue;
 
 			if ( block->checkFlag( BF_NONSIMPLE ) )
@@ -475,7 +475,7 @@ Tile* CollisionManager::testTerrainCollision( Rect const& bBox , unsigned typeMa
 	return NULL;
 }
 
-void CollisionManager::findBody( Rect const& bBox , unsigned colMask , ColBodyVec& out )
+void CollisionManager::findBody( BoundBox const& bBox , unsigned colMask , ColBodyVec& out )
 {
 	visitBodies(bBox.min, bBox.max, 
 		[&bBox, colMask, &out](ColBody& bodyTest)
@@ -483,7 +483,7 @@ void CollisionManager::findBody( Rect const& bBox , unsigned colMask , ColBodyVe
 			if ((colMask & bodyTest.typeMask) == 0)
 				return false;
 
-			if (!bBox.hitTest(bodyTest.cachePos))
+			if (!bBox.isInside(bodyTest.cachePos))
 				return false;
 
 			out.push_back(&bodyTest);

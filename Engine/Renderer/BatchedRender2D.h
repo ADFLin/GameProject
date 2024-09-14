@@ -12,6 +12,7 @@
 #include "RHI/Font.h"
 
 #include "DataStructure/Array.h"
+#include "Rect.h"
 
 #define USE_POLYGON_LINE_NEW 1
 
@@ -117,17 +118,11 @@ namespace Render
 				uint32 result = HashValues(type, v4.x, v4.y, v4.z, v4.w);
 				return result;
 			}
-
 		};
 
-
 		ShapeCachedData* getCircle(int numSegment);
-
 		ShapeCachedData* getEllipse(float yFactor, int numSegment);
-
 		ShapeCachedData* getRoundRect(Vector2 const& rectSize, Vector2 const& circleRadius);
-
-
 		ShapeCachedData* getShapeLine(ShapeCachedData& cacheData, float width);
 
 		template< typename TFunc >
@@ -141,6 +136,67 @@ namespace Render
 		int mFrame  = 0;
 		int mNextId = 0;
 	};
+
+	enum class ESimpleBlendMode
+	{
+		None,
+		Translucent,
+		Add,
+		Multiply,
+		InvDestColor,
+	};
+
+	class GraphicsDefinition
+	{
+	public:
+
+		typedef TVector2<int> Vec2i;
+
+		struct StateFlags
+		{
+			union
+			{
+				struct
+				{
+					uint8 pipeline : 1;
+					uint8 scissorRect : 1;
+					uint8 blend : 1;
+					uint8 rasterizer : 1;
+				};
+				uint8 value;
+			};
+		};
+
+		using Rect = TRect<float>;
+
+		struct RenderState
+		{
+			RHITexture2D*    texture;
+			RHISamplerState* sampler;
+			ESimpleBlendMode blendMode;
+			bool bEnableMultiSample;
+			bool bEnableScissor;
+
+			Rect scissorRect;
+
+			void setInit()
+			{
+				texture = nullptr;
+				sampler = nullptr;
+				blendMode = ESimpleBlendMode::None;
+				bEnableMultiSample = false;
+				bEnableScissor = false;
+			}
+		};
+
+
+		static RHIBlendState& GetBlendState(ESimpleBlendMode blendMode);
+
+		static RHIRasterizerState& GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample);
+
+		using GraphicsDepthState = StaticDepthDisableState;
+	};
+
 
 
 	struct RenderBatchedElement
@@ -197,8 +253,10 @@ namespace Render
 	class ICustomElementRenderer
 	{
 	public:
+		using RenderState = GraphicsDefinition::RenderState;
+
 		virtual ~ICustomElementRenderer() = default;
-		virtual void render(RHICommandList& commandList, RenderBatchedElement& element) = 0;
+		virtual void render(RHICommandList& commandList, RenderBatchedElement& element, RenderState const& state) = 0;
 	};
 
 	template< class TPayload >
@@ -223,6 +281,7 @@ namespace Render
 		bool bUseBrush;
 		int  penWidth;
 	};
+
 
 	class RenderBatchedElementList
 	{
@@ -497,87 +556,6 @@ namespace Render
 		}
 	};
 
-	enum class ESimpleBlendMode
-	{
-		None,
-		Translucent,
-		Add,
-		Multiply,
-		InvDestColor,
-	};
-
-	class GraphicsDefinition
-	{
-	public:
-
-		typedef TVector2<int> Vec2i;
-		struct Rect
-		{
-			Vec2i pos;
-			Vec2i size;
-
-			bool isValid() const
-			{
-				return size.x > 0 && size.y > 0;
-			}
-
-			static Rect Intersect(Rect const& r1, Rect const& r2)
-			{
-				Vec2i min = r1.pos.max(r2.pos);
-				Vec2i max = (r1.pos + r1.size).min(r2.pos + r2.size);
-				return { min , max - min };
-			}
-
-			bool operator != (Rect const& rhs) const
-			{
-				return pos != rhs.pos || size != rhs.size;
-			}
-		};
-
-		struct RenderState
-		{
-			RHITexture2D*    texture;
-			RHISamplerState* sampler;
-			ESimpleBlendMode blendMode;
-			bool bEnableMultiSample;
-			bool bEnableScissor;
-
-			Rect  scissorRect;
-
-			void setInit()
-			{
-				texture = nullptr;
-				sampler = nullptr;
-				blendMode = ESimpleBlendMode::None;
-				bEnableMultiSample = false;
-				bEnableScissor = false;
-			}
-		};
-
-		struct StateFlags
-		{
-			union
-			{
-				struct
-				{
-					uint8 pipeline : 1;
-					uint8 scissorRect : 1;
-					uint8 blend : 1;
-					uint8 rasterizer : 1;
-				};
-				uint8 value;
-			};
-		};
-
-
-
-		static RHIBlendState& GetBlendState(ESimpleBlendMode blendMode);
-
-		static RHIRasterizerState& GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample);
-
-		using GraphicsDepthState = StaticDepthDisableState;
-	};
-
 	class BatchedRender : public FPrimitiveHelper , public GraphicsDefinition
 	{
 	public:
@@ -596,6 +574,8 @@ namespace Render
 		void render(RenderState const& renderState, RenderBatchedElementList& elementList);
 
 		void setViewportSize(int width, int height);
+
+		static void SetupShaderState(RHICommandList& commandList, Math::Matrix4 const& baseXForm, RenderState const& state);
 
 		void commitRenderState(RHICommandList& commandList, RenderState const& state);
 

@@ -13,6 +13,7 @@
 
 #include "RHI/RHIGlobalResource.h"
 #include "RHI/DrawUtility.h"
+#include "RenderDebug.h"
 
 #define USE_TEXTURE_ATLAS 1
 #define USE_COMPACT_IMAGE 1
@@ -301,6 +302,8 @@ namespace TripleTown
 
 		TRACE_RESOURCE_TAG("TTScene.TexAtlas");
 		VERIFY_RETURN_FALSE(mTexAtlas.initialize(ETexture::RGBA8, 2048, 2048 , 1 ));
+
+		GTextureShowManager.registerTexture("TTAtlas", &mTexAtlas.getTexture());
 
 		for( int i = 0; i < TEX_ID_NUM; ++i )
 		{

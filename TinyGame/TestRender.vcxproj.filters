@@ -10,6 +10,15 @@
     <Filter Include="Script\RTScene">
       <UniqueIdentifier>{fe540c0d-7105-4354-b0b3-ddac17951849}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SplitScreen">
+      <UniqueIdentifier>{fce8a38f-3470-424d-b52a-f5f459757322}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SplitScreen\Geometry">
+      <UniqueIdentifier>{e21132cd-cf85-4547-ac16-01ff3a711a2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SplitScreen\Voronoi">
+      <UniqueIdentifier>{b8e52c6f-951f-4111-9f43-6350f849f3c0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="out\Script\SceneA.chai">
@@ -17,6 +26,30 @@
     </None>
     <None Include="out\Script\RTScene\TestA.chai">
       <Filter>Script\RTScene</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiNormalizationScope.cs">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cs">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cs">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiRegion.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiEdge.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiBuilder.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiBounds.h">
+      <Filter>SplitScreen\Voronoi</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -53,6 +86,33 @@
     </ClInclude>
     <ClInclude Include="TestRender\Stage\SoftwareRenderingStage.h">
       <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\Circle.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\ConvexPolygon.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\DelaunayDual.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\Line.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\MaxInscribedCircle.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\PointWithCenterClockwiseSort.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\Range.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\StandardLine.h">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\SplitScreen\Geometry\Triangle.h">
+      <Filter>SplitScreen\Geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +197,18 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\SoftwareRenderingStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\SplitScreen\Geometry\MaxInscribedCircle.cpp">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiBuilder.cpp">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\SplitScreen\Geometry\ConvexPolygon.cpp">
+      <Filter>SplitScreen\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.cpp">
+      <Filter>SplitScreen\Voronoi</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

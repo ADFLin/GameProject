@@ -32,6 +32,11 @@ namespace Math
 	Vector3 PointToTriangleClosestPoint(Vector3 const& p, Vector3 const& a, Vector3 const& b, Vector3 const& c, float& outSide);
 
 	bool SegmentInterection(Vector2 const& a1, Vector2 const& a2, Vector2 const& b1, Vector2 const& b2, float& fracA);
+
+
+	Vector2 GetCircumcirclePoint(Vector2 const& a, Vector2 const& b, Vector2 const& c);
+
+	bool IsInsideCircumcircle(Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, Vector2 const& p);;
 }
 
 #endif // PrimitiveTest2D_H_713D2BCD_4AC3_4B4C_99C5_4BEBB85721AE

@@ -77,7 +77,7 @@ namespace Rich
 	void Level::start()
 	{
 		mIdxActive = -1;
-		Coroutines::ThreadContext::Get().stopExecution(mRunHandle);
+		Coroutines::Stop(mRunHandle);
 		mRunHandle = Coroutines::Start([this]
 		{
 			runLogicAsync();

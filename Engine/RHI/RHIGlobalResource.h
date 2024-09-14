@@ -279,7 +279,7 @@ namespace Render
 	<
 		bool bWriteDepth = true,
 		ECompareFunc DepthFunc = ECompareFunc::DepthNear,
-		bool bEnableStencilTest = false,
+		bool bEnableStencil = false,
 		ECompareFunc StencilFunc = ECompareFunc::Always,
 		EStencil StencilFailOp = EStencil::Keep,
 		EStencil ZFailOp = EStencil::Keep,
@@ -294,7 +294,7 @@ namespace Render
 	class TStaticDepthStencilSeparateState : public StaticRHIResourceT<
 		TStaticDepthStencilSeparateState
 		<
-			bWriteDepth, DepthFunc, bEnableStencilTest, StencilFunc, StencilFailOp,
+			bWriteDepth, DepthFunc, bEnableStencil, StencilFunc, StencilFailOp,
 			ZFailOp, ZPassOp, BackStencilFunc, BackStencilFailOp, BackZFailOp, BackZPassOp,
 			StencilReadMask, StencilWriteMask 
 		>,
@@ -311,7 +311,7 @@ namespace Render
 			DepthStencilStateInitializer initializer;
 			initializer.bWriteDepth = bWriteDepth;
 			initializer.depthFunc = DepthFunc;
-			initializer.bEnableStencilTest = bEnableStencilTest;
+			initializer.bEnableStencil = bEnableStencil;
 			initializer.stencilFunc = StencilFunc;
 			initializer.stencilFailOp = StencilFailOp;
 			initializer.zFailOp = ZFailOp;
@@ -333,9 +333,9 @@ namespace Render
 	template
 	<
 		bool bWriteDepth = true,
-		ECompareFunc DepthFun = ECompareFunc::DepthNearEqual,
-		bool bEnableStencilTest = false,
-		ECompareFunc StencilFun = ECompareFunc::Always,
+		ECompareFunc DepthFunc = ECompareFunc::DepthNearEqual,
+		bool bEnableStencil = false,
+		ECompareFunc StencilFunc = ECompareFunc::Always,
 		EStencil StencilFailOp = EStencil::Keep,
 		EStencil ZFailOp = EStencil::Keep,
 		EStencil ZPassOp = EStencil::Keep,
@@ -343,9 +343,9 @@ namespace Render
 		uint32 StencilWriteMask = -1 
 	>
 	class TStaticDepthStencilState : public TStaticDepthStencilSeparateState<
-		bWriteDepth, DepthFun, bEnableStencilTest,
-		StencilFun, StencilFailOp, ZFailOp, ZPassOp,
-		StencilFun, StencilFailOp, ZFailOp, ZPassOp,
+		bWriteDepth, DepthFunc, bEnableStencil,
+		StencilFunc, StencilFailOp, ZFailOp, ZPassOp,
+		StencilFunc, StencilFailOp, ZFailOp, ZPassOp,
 		StencilReadMask, StencilWriteMask >
 	{
 

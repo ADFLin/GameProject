@@ -233,6 +233,9 @@ void RHIGraphics2D::drawEllipse(Vector2 const& center, Vector2 const& size)
 
 void RHIGraphics2D::drawPolygon(Vector2 const pos[], int num)
 {
+	if (num <= 2)
+		return;
+
 	setTextureState();
 	commitRenderState();
 
@@ -242,6 +245,9 @@ void RHIGraphics2D::drawPolygon(Vector2 const pos[], int num)
 
 void RHIGraphics2D::drawPolygon(Vec2i const pos[], int num)
 {
+	if (num <= 2)
+		return;
+
 	setTextureState();
 	commitRenderState();
 

@@ -50,11 +50,8 @@
 #include "SystemPlatform.h"
 #include "ProfileSampleVisitor.h"
 
-ConsoleSystem gConsoleSystem;
-
 #include "CNPCBase.h"
 #include "CHero.h"
-
 
 GlobalVal g_GlobalVal( 30 );
 
@@ -89,19 +86,21 @@ public:
 	{
 		SampleNode* node = context.node;
 		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
-		msgShow.push( "--- Profiling: %s (total running time: %.3lf ms) ---" , 
-			node->getName() , time_since_reset );
+		double lastFrameDuration = ProfileSystem::Get().getLastFrameDuration();
+		msgShow.push("--- Profiling: %s (total running time: %.03lf(%.03lf) ms) ---",
+			node->getName(), time_since_reset, lastFrameDuration);
 	}
 
 	void onNode(VisitContext const& context)
 	{
 		SampleNode* node = context.node;
 		float tf = node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset();
-		msgShow.push( "|-> %d -- %s (%.2lf %%) :: %.3lf ms / frame  (%.3f (1e-5ms/call) (%d calls)",
-			++mIdxChild , node->getName() ,
-			context.parentTimeTotal > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTimeTotal) * 100 : 0.f ,
-			tf , 100000 * ( tf / node->getTotalCalls() ) ,
-			node->getTotalCalls() );
+		msgShow.push("|-> %s (%.2lf %%) :: %.3lf(%.3lf) ms / frame (%d calls)",
+			node->getName(),
+			context.timeTotalParent > CLOCK_EPSILON ? (node->getTotalTime() / context.timeTotalParent) * 100 : 0.f,
+			node->getTotalTime() / double(node->getTotalCalls()),
+			node->getFrameExecTime() / double(node->getFrameCalls()),
+			node->getTotalCalls());
 	}
 
 	bool onEnterChild(VisitContext const& context)
@@ -115,7 +114,7 @@ public:
 	{
 		SampleNode* node = context.node;
 		int    numChildren = childContext.indexNode;
-		double accTime = childContext.timeAcc;
+		double accTime = childContext.totalTimeAcc;
 
 		if ( numChildren )
 		{

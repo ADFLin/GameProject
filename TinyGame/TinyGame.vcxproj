@@ -351,7 +351,6 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Voronoi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\NesEmu\Apu.h" />
@@ -419,8 +418,6 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="TinyCore\SingleStageMode.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
-    <ClInclude Include="Voronoi.h" />
-    <ClInclude Include="VoronoiStage.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp" />

@@ -13,10 +13,10 @@ struct ProfileFrameData
 	double duration;
 };
 
-HighResClock  GProfileClock;
-int    GWriteIndex = 0;
-uint64 GFrameCount = 0;
-RWLock GDataIndexLock;
+CORE_API extern HighResClock  GProfileClock;
+CORE_API extern int    GWriteIndex;
+CORE_API extern uint64 GFrameCount;
+CORE_API extern RWLock GDataIndexLock;
 
 class ThreadProfileData
 {
@@ -227,6 +227,11 @@ struct TimeScopeResult
 
 #if CORE_SHARE_CODE
 
+HighResClock  GProfileClock;
+int    GWriteIndex = 0;
+uint64 GFrameCount = 0;
+RWLock GDataIndexLock;
+
 void Profile_GetTicks(uint64 * ticks)
 {
 	*ticks = GProfileClock.getTimeMicroseconds();
@@ -297,6 +302,8 @@ RWLock GThreadDataMapLock;
 
 void ProfileSystemImpl::cleanup()
 {
+	return;
+
 	RWLock::WriteLocker locker(GThreadDataMapLock);
 	bFinalized = true;
 	for (auto& pair : GThreadDataMap)

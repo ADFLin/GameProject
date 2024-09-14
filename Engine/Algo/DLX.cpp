@@ -3,26 +3,10 @@
 #include "LogSystem.h"
 #include "ProfileSystem.h"
 #include "MarcoCommon.h"
+#include "TemplateMisc.h"
 
 namespace DLX
 {
-	template< typename T >
-	struct TReverseView
-	{
-		TReverseView(T& t)
-			:mT(t){}
-
-		auto begin() { return mT.rbegin(); }
-		auto end() { return mT.rend(); }
-		T& mT;
-	};
-
-	template< typename T >
-	auto MakeReverseView(T& t)
-	{
-		return TReverseView<T>(t);
-	}
-
 	void Matrix::build(int nRow, int nCol, uint8 data[])
 	{
 		mRowCount = nRow;

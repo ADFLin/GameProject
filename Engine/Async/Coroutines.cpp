@@ -5,6 +5,13 @@
 
 namespace Coroutines
 {
+
+	ExecutionContext::ExecutionContext()
+		:mYeildReturnType(typeid(void))
+	{
+
+	}
+
 	ExecutionContext::~ExecutionContext()
 	{
 		delete mExecution;
@@ -13,9 +20,11 @@ namespace Coroutines
 
 	void ExecutionContext::execute()
 	{
+		mYeildReturnType = typeid(void);
+
 		CHECK(mYeild);
 		mInstruction.release();
-		(*mExecution)();
+		(*mExecution)(nullptr);
 	}
 
 	ThreadContext::~ThreadContext()
@@ -26,7 +35,6 @@ namespace Coroutines
 	int ThreadContext::getExecutionOrderIndex(ExecutionContext* context)
 	{
 		int index = mExecutions.findIndex(context);
-
 		if (index == INDEX_NONE)
 			return INDEX_NONE;
 
@@ -302,14 +310,22 @@ namespace Coroutines
 		return resumeExecutionInternal(context);
 	}
 
-	bool ThreadContext::resumeExecution(ExecutionHandle handle)
+	bool ThreadContext::resumeExecution(ExecutionHandle& handle)
 	{
 		if (!handle.isValid())
 			return false;
-		return resumeExecutionInternal(handle.getPointer());
+
+		if (!canResumeExecutionInternal(handle.getPointer()))
+			return false;
+
+		executeContextInternal(*handle.getPointer());
+		if (isCompleted(handle.getPointer()))
+		{
+			handle = ExecutionHandle::Completed(handle.getPointer());
+		}	
 	}
 
-	bool ThreadContext::resumeExecutionInternal(ExecutionContext* context)
+	bool ThreadContext::canResumeExecutionInternal(ExecutionContext* context)
 	{
 		if (mExecutingContext)
 		{
@@ -321,6 +337,14 @@ namespace Coroutines
 		{
 			return false;
 		}
+		return true;
+	}
+
+	bool ThreadContext::resumeExecutionInternal(ExecutionContext* context)
+	{
+		if (!canResumeExecutionInternal(context))
+			return false;
+		
 		executeContextInternal(*context);
 		return true;
 	}

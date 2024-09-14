@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "SystemMessage.h"
-#include "Rect.h"
+#include "Math/GeometryPrimitive.h"
 
 #include "DataStructure/IntrList.h"
 #include "StdUtility.h"
+
 
 //#include "ProfileSystem.h"
 #define  WIDGET_PROFILE_ENTRY(...)
@@ -65,7 +66,7 @@ template< class T >
 class WidgetCoreT : public WidgetCoreBase
 {
 	T* _this() { return static_cast<T*>(this); }
-	using Rect = TRect< int >;
+	using Rect = Math::TAABBox< Vec2i >;
 	using WidgetCore = WidgetCoreT<T>;
 
 public:
@@ -128,7 +129,7 @@ protected:
 
 	void    onFocus(bool beF) {}
 	void    onResize(Vec2i const& size) {}
-	bool    doHitTest(Vec2i const& pos) { return mBoundRect.hitTest(pos); }
+	bool    doHitTest(Vec2i const& pos) { return mBoundRect.isInside(pos); }
 
 	void    doRenderAll();
 	void    onRender() {}

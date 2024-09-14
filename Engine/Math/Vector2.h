@@ -46,6 +46,27 @@ namespace Math
 		return result;
 	}
 
+	FORCEINLINE Vector2 GetNormalSafe(Vector2 const& v)
+	{
+		Vector2 result = v;
+		float len = result.normalize();
+		if (len == 0)
+			return Vector2::Zero();
+
+		return result;
+	}
+
+	FORCEINLINE  float  Dot(Vector2 const& a, Vector2 const& b)
+	{
+		return a.dot(b);
+	}
+
+	FORCEINLINE float DistanceSqure(Vector2 const& v1, Vector2 const& v2)
+	{
+		Vector2 diff = v1 - v2;
+		return diff.length2();
+	}
+
 	FORCEINLINE float Distance(Vector2 const& a, Vector2 const& b)
 	{
 		return Vector2(a - b).length();

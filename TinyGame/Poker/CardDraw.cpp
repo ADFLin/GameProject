@@ -265,7 +265,10 @@ namespace Poker {
 		TRect<float> getCardUVRect(Vector2 const& pos) const
 		{
 			Vector2 min = Vector2(pos).mul(textSizeInv);
-			return TRect<float>(min, min + cardUVSize);
+			TRect<float> result;
+			result.pos = min;
+			result.size = cardUVSize;
+			return result;
 		}
 		ICardResource* getResource() override
 		{

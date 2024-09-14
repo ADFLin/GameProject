@@ -41,9 +41,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Voronoi.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\MainMenuStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
@@ -201,12 +198,6 @@
     </ClInclude>
     <ClInclude Include="TinyGamePCH.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Voronoi.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="VoronoiStage.h">
-      <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="Stage\TestStageHeader.h">
       <Filter>Stage</Filter>

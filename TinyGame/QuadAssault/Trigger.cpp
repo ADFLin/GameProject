@@ -86,16 +86,16 @@ void AreaTrigger::onDestroy( unsigned flag )
 
 void AreaTrigger::tick()
 {
-	Rect bBox;
+	BoundBox bBox;
 	calcBoundBox( bBox );
 
 	if ( mEnable )
 	{
 		Player* player = getLevel()->getPlayer();
-		Rect bBoxOther;
+		BoundBox bBoxOther;
 		player->calcBoundBox( bBoxOther );
 
-		if( bBox.intersect(bBoxOther) )
+		if( bBox.isIntersect(bBoxOther) )
 		{
 			switch( mMode )
 			{
@@ -139,10 +139,10 @@ void AreaTrigger::tick()
 	{
 		LevelObject* obj = *iter;
 
-		Rect bBoxOther;
+		BoundBox bBoxOther;
 		obj->calcBoundBox( bBoxOther );
 
-		if ( !bBox.intersect(bBoxOther) )
+		if ( !bBox.isIntersect(bBoxOther) )
 		{
 			iter = mTouchObjects.erase( iter );
 		}

@@ -87,15 +87,6 @@ namespace Math
 			return result;
 		}
 
-		bool isInterect(TAABBox const& other) const
-		{
-			if (min.x > other.max.x || min.y > other.max.y)
-				return false;
-			if (max.x < other.min.x || max.y < other.min.y)
-				return false;
-			return true;
-		}
-
 		TAABBox() {}
 		TAABBox(EForceInit)
 		{

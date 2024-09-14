@@ -88,10 +88,10 @@ namespace Life
 			for (int i = 7; i >= 0; --i)
 			{
 				Vector2 boxPos = pos + 0.5 * ( size - Vector2(BoxSize) ) * ( GetBoxOffset()[i] + Vector2(1,1) );
-				TRect< float > rect;
+				Math::TAABBox< Vector2 > rect;
 				rect.min = boxPos;
 				rect.max = boxPos + BoxSize;
-				if (rect.hitTest(hitPos))
+				if (rect.isInside(hitPos))
 				{
 					return i;
 				}

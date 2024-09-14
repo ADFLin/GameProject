@@ -242,8 +242,11 @@ class TArray : private Allocator::template TArrayData< T >
 	using ArrayData = typename Allocator::template TArrayData< T >;
 
 public:
-	typedef T*        iterator;
-	typedef T const*  const_iterator;
+	using iterator = T*;
+	using const_iterator = T const* ;
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
 	typedef T         value_type;
 	typedef T&        reference;
 	typedef T const & const_refernece;
@@ -347,6 +350,12 @@ public:
 	iterator       begin() { return getElement(0); }
 	const_iterator end()   const { return getElement(mNum); }
 	iterator       end() { return getElement(mNum); }
+
+	const_reverse_iterator rbegin() const { return const_reverse_iterator(getElement(mNum)); }
+	reverse_iterator rbegin() { return reverse_iterator(getElement(mNum)); }
+	const_reverse_iterator rend() const { return const_reverse_iterator(getElement(0)); }
+	reverse_iterator rend() { return reverse_iterator(getElement(0)); }
+
 
 	T const* data() const { return getElement(0); }
 	T*       data()       { return getElement(0); }

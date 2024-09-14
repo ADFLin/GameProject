@@ -6,8 +6,9 @@
 
 #include "Core/IntegerType.h"
 
-#include <vector>
+#include "DataStructure/Array.h"
 #include <iostream>
+
 
 namespace Chromatron
 {
@@ -124,7 +125,7 @@ namespace Chromatron
 		World       mWorld;
 		Device*     mStorgeMap[ MaxNumUserDC ];
 
-		using DeviceVec = std::vector< Device* >;
+		using DeviceVec = TArray< Device* >;
 		static void removeDevice( DeviceVec& dcVec , Device& dc );
 
 		DeviceVec   mUserDCs;

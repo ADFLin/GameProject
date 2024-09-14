@@ -327,7 +327,7 @@ namespace Render
 	D3D12DepthStencilState::D3D12DepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
 		mDesc.DepthEnable = initializer.isDepthEnable();
-		mDesc.StencilEnable = initializer.bEnableStencilTest;
+		mDesc.StencilEnable = initializer.bEnableStencil;
 
 		mDesc.DepthFunc = D3D12Translate::To(initializer.depthFunc);
 

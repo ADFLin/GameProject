@@ -317,7 +317,7 @@ namespace CAR
 			InlineString< 512 > str;
 			for( int i = 0 ; i < mSetting.getFieldNum() ; i += 2 )
 			{
-				str += gFieldNames[ mFiledTypeMap[i] ];
+				str += gFieldNames[ mFieldTypeMap[i] ];
 				str += "  ";
 			}
 			g.drawText( pos , str );
@@ -326,7 +326,7 @@ namespace CAR
 			str.clear();
 			for( int i = 1 ; i < mSetting.getFieldNum() ; i += 2 )
 			{
-				str += gFieldNames[ mFiledTypeMap[i] ];
+				str += gFieldNames[ mFieldTypeMap[i] ];
 				str += "  ";
 			}
 			g.drawText( pos , str );
@@ -1586,7 +1586,7 @@ namespace CAR
 			int idx = mSetting.getFieldIndex( EField::Type(i) );
 			if ( idx != -1 )
 			{
-				mFiledTypeMap[ idx ] = i;
+				mFieldTypeMap[ idx ] = i;
 			}
 		}
 

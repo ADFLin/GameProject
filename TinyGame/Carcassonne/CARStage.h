@@ -254,7 +254,7 @@ namespace CAR
 		bool    mb2DView;
 
 
-		int    mFiledTypeMap[ EField::COUNT ];
+		int    mFieldTypeMap[ EField::COUNT ];
 
 		Vec2i  mCurMapPos;
 		int    mRotation;

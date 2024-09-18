@@ -29,6 +29,11 @@ namespace Quixo
 		B,
 	};
 
+	struct PlayerInfo
+	{
+		EBlockSymbol symbol;
+		uint8 dir;
+	};
 
     FORCEINLINE int ToIndex(Vec2i const& pos)
 	{
@@ -40,6 +45,14 @@ namespace Quixo
 		return x + BoardSize * y;
 	}
 
+	Vector2 GetDirOffset(uint8 dir)
+	{
+		static const Vector2 StaticOffsets[] =
+		{
+			Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0), Vector2(0, -1),
+		};
+		return StaticOffsets[dir];
+	}
 
 	class Game
 	{
@@ -62,27 +75,27 @@ namespace Quixo
 			uint8 dir;
 		};
 
-		Block const& getBlock(int x, int y) const { return mBlockDatas[ToIndex(x,y)]; }
+		Block const& getBlock(Vec2i const& pos) const { return mBlockDatas[ToIndex(pos)]; }
 
-		bool canPlay(int x, int y, EBlockSymbol playerSymbol, uint8 playDir)
+
+		bool canPlay(PlayerInfo const& player, Vec2i const& pos) const
 		{
-			if (!CanPlayPos(x, y))
+			if (!CanPlayPos(pos.x, pos.y))
 				return false;
-			auto const& block = getBlock(x, y);
+			auto const& block = getBlock(pos);
 			if (block.symbol == EBlockSymbol::Empty)
 				return true;
 
-			if (block.symbol == playerSymbol)
+			if (block.symbol == player.symbol)
 			{
 				if (mRule == ERule::TwoPlayers)
 					return true;
 
-				return block.dir == playDir;
+				return block.dir == player.dir;
 			}
 
 			return false;
 		}
-
 
 		static bool CanMove(int x, int y, uint8 moveDir)
 		{
@@ -109,58 +122,47 @@ namespace Quixo
 			NEVER_REACH("MoveToPos");
 		}
 
+		static bool IsVaildPos(int x, int y)
+		{
+			return 0 <= x && x < BoardSize && 0 <= y && y < BoardSize;
+		}
 		static bool CanPlayPos(int x, int y)
 		{
+			if (!IsVaildPos(x, y))
+				return false;
 			return (x == 0 || x == BoardSize - 1) || (y == 0 || y == BoardSize - 1);
 		}
 
-		static int GetOffset(uint8 moveDir)
+		static int GetMoveInfo(Vec2i const& pos, uint8 moveDir, int& outIndexOffset)
 		{
 			switch (moveDir)
 			{
-			case 0: return -1;
-			case 1: return -BoardSize;
-			case 2: return 1;
-			case 3: return BoardSize;
+			case 0: outIndexOffset = -1; return pos.x;
+			case 1: outIndexOffset = -BoardSize; return pos.y;
+			case 2: outIndexOffset = 1; return BoardSize - pos.x - 1;
+			case 3: outIndexOffset = BoardSize; return BoardSize - pos.y - 1;
 			}
-			NEVER_REACH("GetOffset");
+
+			NEVER_REACH("GetMoveInfo");
+			return 0;
 		}
 
-		void play(int x, int y, EBlockSymbol playerSymbol, uint8 playDir, uint8 moveDir)
+		void play(PlayerInfo const& player, Vec2i const& pos, uint8 moveDir)
 		{
-			CHECK(canPlay(x, y, playerSymbol, playDir));
+			CHECK(canPlay(player, pos));
 
-			Block block = getBlock(x,y);
-			block.symbol = playerSymbol;
-			int offset = GetOffset(moveDir);
+			Block block = getBlock(pos);
+			block.symbol = player.symbol;
+			block.dir = player.dir;
 
-			int index;
 			int indexOffset;
-			switch (moveDir)
+			int numMove = GetMoveInfo(pos, moveDir, indexOffset);
+			Block* pBlock = &mBlockDatas[ToIndex(pos)];
+			for (int i = 0; i < numMove; ++i)
 			{
-			case 0: index = x; indexOffset = -1; break;
-			case 1: index = y; indexOffset = -BoardSize; break;
-			case 2: index = x; indexOffset = 1; break;
-			case 3: index = y; indexOffset = BoardSize; break;
-			}
-			Block* pBlock = &mBlockDatas[ToIndex(x, y)];
-			if (offset > 0)
-			{
-				for (int i = index; i < BoardSize - 1; ++i)
-				{
-					Block* nextBlock = pBlock + indexOffset;
-					*pBlock = *nextBlock;
-					pBlock = nextBlock;
-				}
-			}
-			else
-			{
-				for (int i = index; i > 0; --i)
-				{
-					Block* nextBlock = pBlock + indexOffset;
-					*pBlock = *nextBlock;
-					pBlock = nextBlock;
-				}
+				Block* nextBlock = pBlock + indexOffset;
+				*pBlock = *nextBlock;
+				pBlock = nextBlock;
 			}
 
 			*pBlock = block;
@@ -241,8 +243,9 @@ namespace Quixo
 			::Global::GUI().cleanupWidget();
 
 			Vec2i screenSize = ::Global::GetScreenSize();
-			mWorldToScreen = RenderTransform2D::LookAt(screenSize, 0.5 * Vector2(BoardSize, BoardSize), Vector2(0, 1), screenSize.y / float(BoardSize + 2), true);
+			mWorldToScreen = RenderTransform2D::LookAt(screenSize, 0.5 * Vector2(BoardSize, BoardSize), Vector2(0, 1), screenSize.y / float(BoardSize + 2.5), true);
 
+			mGame.mRule = ERule::FourPlayers;
 
 			startGame();
 
@@ -261,7 +264,7 @@ namespace Quixo
 			int color = EColor::Null;
 		};
 		float mOffsetAlpha = 0.0f;
-		Sprite mSprite[BoardSize * BoardSize];
+		Sprite mSprites[BoardSize * BoardSize];
 
 		bool bAnimating = false;
 		float mAnimDuration;
@@ -272,49 +275,31 @@ namespace Quixo
 		void clearAnimOffset()
 		{
 			mOffsetAlpha = 0;
-			for (int i = 0; i < BoardSize * BoardSize; ++i)
-				mSprite[i].offset = Vector2::Zero();
+			for(auto& sprite : mSprites)
+				sprite.offset = Vector2::Zero();
 		}
 
 		void clearSpriteColor()
 		{
-			for (int i = 0; i < BoardSize * BoardSize; ++i)
-				mSprite[i].color = EColor::Null;
+			for (auto& sprite : mSprites)
+				sprite.color = EColor::Null;
 		}
 
 		void playMoveAnim(Vec2i const& pos, uint8 moveDir)
 		{
 			clearAnimOffset();
 
-			Vector2 offset;
-			int index;
-			int indexOffset;
-			switch (moveDir)
-			{
-			case 0: offset = Vector2(1, 0); index = pos.x; indexOffset = -1; break;
-			case 1: offset = Vector2(0, 1); index = pos.y; indexOffset = -BoardSize; break;
-			case 2: offset = Vector2(-1, 0);  index = pos.x; indexOffset = 1; break;
-			case 3: offset = Vector2(0, -1); index = pos.y; indexOffset = BoardSize; break;
-			}
+			Vector2 offset = GetDirOffset(moveDir);
 
-			Sprite* sprite = &mSprite[pos.x + BoardSize * pos.y];
+			int indexOffset;
+			int numMove = Game::GetMoveInfo(pos, moveDir, indexOffset);
+			Sprite* sprite = &mSprites[ToIndex(pos)];
 			sprite->offset = Vector2(-100000, -100000);
 
-			if (indexOffset > 0)
+			for (int i = 0; i < numMove; ++i)
 			{
-				for (int i = index + 1; i < BoardSize; ++i)
-				{
-					sprite += indexOffset;
-					sprite->offset = offset;
-				}
-			}
-			else
-			{
-				for (int i = index - 1; i >= 0; --i)
-				{
-					sprite += indexOffset;
-					sprite->offset = offset;
-				}
+				sprite += indexOffset;
+				sprite->offset = offset;
 			}
 
 			mTweener.tweenValue< Easing::IOQuad >(mOffsetAlpha, 0.0f, 1.0f, 0.2).finishCallback(
@@ -338,7 +323,6 @@ namespace Quixo
 			g.pushXForm();
 			g.transformXForm(mWorldToScreen, false);
 
-			RenderUtility::SetPen(g, EColor::Black);
 			RenderUtility::SetBrush(g, EColor::White);
 
 
@@ -349,48 +333,66 @@ namespace Quixo
 				{
 					int brushColor = EColor::White;
 
-					auto& sprite = mSprite[BoardSize * y + x];
+					auto& sprite = mSprites[BoardSize * y + x];
 					if (sprite.color != EColor::Null)
 						brushColor = sprite.color;
 
 					RenderUtility::SetBrush(g, brushColor);
-					Vector2 offset = mOffsetAlpha * sprite.offset;
+					Vector2 offset = Vector2(x,y) + 0.5 * Vector2(1,1) + mOffsetAlpha * sprite.offset;
 					g.pushXForm();
 					g.translateXForm(offset.x, offset.y);
 
-					g.drawRect(Vector2(x, y), Vector2(1, 1));
 
-					auto const& block = mGame.getBlock(x, y);
+					RenderUtility::SetPen(g, EColor::Black);
+					g.drawRoundRect(-Vector2(0.5,0.5), Vector2(1, 1), Vector2(0.4,0.4));
+
+					auto const& block = mGame.getBlock(Vec2i(x, y));
 					if (block.symbol == EBlockSymbol::A)
 					{
-
+#if 1
+						float len = 0.25;
+						RenderUtility::SetBrush(g, EColor::Null);
+						g.setPenWidth(5);
+						g.drawCircle(Vector2::Zero(), len);
+						g.setPenWidth(1);
+#else
 						float len = 0.5;
-						Vector2 rPos = Vector2(x, y) + 0.5 * (Vector2(1, 1) - Vector2(len, len));
+						Vector2 rPos = -0.5 * Vector2(len, len);
 						RenderUtility::SetBrush(g, EColor::Null);
 						g.setPenWidth(5);
 						g.drawRect(rPos, Vector2(len,len));
 						g.setPenWidth(1);
+#endif
 
 					}
 					else if (block.symbol == EBlockSymbol::B)
-					{
-	
+					 {	
 						float len = 0.25;
 						RenderUtility::SetBrush(g, EColor::Null);
 						g.setPenWidth(5);
-						Vector2 rPos = Vector2(x, y) + 0.5 * Vector2(1, 1);
-#if 0
-						g.drawCircle(rPos, len);
-#else
-						g.drawLine(rPos - Vector2(len, len), rPos + Vector2(len, len));
-						g.drawLine(rPos - Vector2(len, -len), rPos + Vector2(len, -len));
-#endif
+						g.drawLine(-Vector2(len, len), Vector2(len, len));
+						g.drawLine(-Vector2(len, -len), Vector2(len, -len));
 						g.setPenWidth(1);
 					}
 
+					if (mGame.mRule == ERule::FourPlayers && block.symbol != EBlockSymbol::Empty)
+					{
+						RenderUtility::SetBrush(g, EColor::Black);
+						RenderUtility::SetPen(g, EColor::Null);
+						g.drawCircle(0.38 * GetDirOffset(block.dir), 0.06);
+
+					}
 					g.popXForm();
 				}
 			}
+
+
+			Vector2 offset = 0.5 * Vector2(BoardSize, BoardSize) + (0.5 * BoardSize + 0.5) * GetDirOffset(player.dir);
+
+			int playerColors[] = { EColor::Cyan , EColor::Pink, EColor::Orange, EColor::Brown };
+			RenderUtility::SetBrush(g, playerColors[mIndexPlay]);
+			RenderUtility::SetPen(g, EColor::Black);
+			g.drawCircle(offset, 0.25);
 
 			g.popXForm();
 			g.endRender();
@@ -435,114 +437,122 @@ namespace Quixo
 				mStep = EStep::SelectBlock;
 
 				clearSpriteColor();
+				int playableCount = 0;
 				for (int y = 0; y < BoardSize; ++y)
 				{
 					for (int x = 0; x < BoardSize; ++x)
 					{
-						if (mGame.canPlay(x, y, player.symbol, player.dir))
+						if (mGame.canPlay(player, Vec2i(x, y)))
 						{
-							mSprite[ToIndex(Vec2i(x, y))].color = EColor::Yellow;
+							++playableCount;
+							mSprites[ToIndex(x, y)].color = EColor::Yellow;
+						}
+					}
+				}
+
+				if (playableCount)
+				{
+					do
+					{
+						clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
+					} while (!mGame.canPlay(player, clickPos));
+
+					mSelectedBlockPos = clickPos;
+
+					mStep = EStep::SelectMovePos;
+					clearSpriteColor();
+					mSprites[ToIndex(mSelectedBlockPos)].color = EColor::Red;
+
+					Vec2i movePosList[4];
+					uint8 moveDirList[4];
+					int   numMove = 0;
+
+					for (uint8 dir = 0; dir < 4; ++dir)
+					{
+						if (Game::CanMove(clickPos.x, clickPos.y, dir))
+						{
+							Vec2i movePos = clickPos;
+							Game::MoveToPos(movePos.x, movePos.y, dir);
+
+							movePosList[numMove] = movePos;
+							moveDirList[numMove] = dir;
+							mSprites[ToIndex(movePos)].color = EColor::Yellow;
+							++numMove;
+						}
+					}
+
+					uint8 moveDir = 0xff;
+					for (;;)
+					{
+						clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
+						if (clickPos.x == -1)
+							break;
+
+						for (int i = 0; i < numMove; ++i)
+						{
+							if (movePosList[i] == clickPos)
+							{
+								moveDir = moveDirList[i];
+								break;
+							}
+						}
+						if (moveDir != 0xff)
+							break;
+					}
+
+					if (moveDir == 0xff)
+						continue;
+
+					mStep = EStep::ProcPlay;
+					clearSpriteColor();
+					playMoveAnim(mSelectedBlockPos, moveDir);
+					CO_YEILD(nullptr);
+
+					mGame.play(player, mSelectedBlockPos, moveDir);
+
+					TArray<Game::Line> lines;
+					uint8 gameResult = mGame.checkResult(lines);
+
+					if (gameResult)
+					{
+						if (gameResult & BIT(uint8(player.symbol)))
+						{
+							mWinner = player.symbol;
+						}
+						else
+						{
+							mWinner = (player.symbol == EBlockSymbol::A) ? EBlockSymbol::B : EBlockSymbol::A;
 						}
 
-					}
-				}
+						for (int i = 0; i < lines.size(); ++i)
+						{
+							auto const& line = lines[i];
+							if (mGame.mBlockDatas[line.index].symbol != mWinner)
+								continue;
 
-				do
-				{
-					clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
-				} 
-				while (!mGame.canPlay(clickPos.x, clickPos.y, player.symbol, player.dir));
+							int indexOffset;
+							switch (line.type)
+							{
+							case 0: indexOffset = 1; break;
+							case 1: indexOffset = BoardSize; break;
+							case 2: indexOffset = BoardSize + 1; break;
+							case 3: indexOffset = BoardSize - 1; break;
+							}
 
-				mSelectedBlockPos = clickPos;
-
-
-				mStep = EStep::SelectMovePos;
-				clearSpriteColor();
-				mSprite[ToIndex(mSelectedBlockPos)].color = EColor::Red;
-
-				Vec2i movePosList[4];
-				uint8 moveDirList[4];
-				int   numMove = 0;
-
-				for (uint8 dir = 0; dir < 4; ++dir)
-				{
-					if (mGame.CanMove(clickPos.x, clickPos.y, dir))
-					{
-						Vec2i movePos = clickPos;
-						mGame.MoveToPos(movePos.x, movePos.y, dir);
-
-						movePosList[numMove] = movePos;
-						moveDirList[numMove] = dir;
-						mSprite[ToIndex(movePos)].color = EColor::Yellow;
-						++numMove;
-					}
-				}
-
-				uint moveDir = -1;
-				for (;;)
-				{
-					clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
-					if (clickPos.x == -1)
+							Sprite* sprite = &mSprites[line.index];
+							for (int n = 0; n < BoardSize; ++n)
+							{
+								sprite->color = EColor::Red;
+								sprite += indexOffset;
+							}
+						}
 						break;
-
-					for (int i = 0; i < numMove; ++i)
-					{
-						if (movePosList[i] == clickPos)
-						{
-							moveDir = moveDirList[i];
-						}
 					}
-					if ( moveDir != -1 )
-						break;
 				}
-
-				if ( moveDir == -1 )
-					continue;
-
-				mStep = EStep::ProcPlay;
-				clearSpriteColor();
-				playMoveAnim(mSelectedBlockPos, moveDir);
-				CO_YEILD(nullptr);
-
-				mGame.play(mSelectedBlockPos.x, mSelectedBlockPos.y, player.symbol, player.dir, moveDir);
-
-				TArray<Game::Line> lines;
-				uint8 gameResult = mGame.checkResult(lines);
-
-				if (gameResult)
+				else
 				{
-					if (gameResult & BIT(uint8(player.symbol)))
-					{
-						mWinner = player.symbol;
-					}
-					else
-					{
-						mWinner = (player.symbol == EBlockSymbol::A) ? EBlockSymbol::B : EBlockSymbol::A;
-					}
 
-					for (int i = 0; i < lines.size(); ++i)
-					{
-						auto const& line = lines[i];
-						if ( mGame.mBlockDatas[line.index].symbol != mWinner )
-							continue;
 
-						int indexOffset;
-						switch (line.type)
-						{
-						case 0: indexOffset = 1; break;
-						case 1: indexOffset = BoardSize; break;
-						case 2: indexOffset = BoardSize + 1; break;
-						case 3: indexOffset = BoardSize - 1; break;
-						}
-
-						Sprite* sprite = &mSprite[line.index];
-						for (int n = 0; n < BoardSize; ++n)
-						{
-							sprite->color = EColor::Red;
-							sprite += indexOffset;
-						}
-					}
-					break;
 				}
 
 				if (mGame.mRule == ERule::TwoPlayers)
@@ -551,14 +561,10 @@ namespace Quixo
 					mIndexPlay = (mIndexPlay + 1) % 4;
 			}
 
+
 			LogMsg("GameOver player %s win", (mWinner == EBlockSymbol::A) ? "A" : "B");
 		}
 
-		struct PlayerInfo
-		{
-			EBlockSymbol symbol;
-			uint8 dir;
-		};
 
 		PlayerInfo mPlayers[4];
 		int mIndexPlay = 0;
@@ -570,7 +576,15 @@ namespace Quixo
 			ProcPlay,
 		};
 
+
+		struct PlayAction
+		{
+			Vec2i pos;
+			uint8 moveDir;
+		};
+
 		Vec2i mSelectedBlockPos;
+
 
 		MsgReply onMouse(MouseMsg const& msg) override
 		{

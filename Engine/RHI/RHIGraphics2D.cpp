@@ -255,6 +255,54 @@ void RHIGraphics2D::drawPolygon(Vec2i const pos[], int num)
 	setupElement(element);
 }
 
+void RHIGraphics2D::drawTriangleList(Vector2 const pos[], int num)
+{
+	if (num <= 2)
+		return;
+
+	setTextureState();
+	commitRenderState();
+
+	auto& element = mElementList.addTriangleList(mXFormStack.get(), getPaintArgs(), pos, num);
+	setupElement(element);
+}
+
+void RHIGraphics2D::drawTriangleList(Vec2i const pos[], int num)
+{
+	if (num <= 2)
+		return;
+
+	setTextureState();
+	commitRenderState();
+
+	auto& element = mElementList.addTriangleList(mXFormStack.get(), getPaintArgs(), pos, num);
+	setupElement(element);
+}
+
+void RHIGraphics2D::drawTriangleStrip(Vector2 const pos[], int num)
+{
+	if (num <= 2)
+		return;
+
+	setTextureState();
+	commitRenderState();
+
+	auto& element = mElementList.addTriangleStrip(mXFormStack.get(), getPaintArgs(), pos, num);
+	setupElement(element);
+}
+
+void RHIGraphics2D::drawTriangleStrip(Vec2i const pos[], int num)
+{
+	if (num <= 2)
+		return;
+
+	setTextureState();
+	commitRenderState();
+
+	auto& element = mElementList.addTriangleStrip(mXFormStack.get(), getPaintArgs(), pos, num);
+	setupElement(element);
+}
+
 void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 {
 	setTextureState();

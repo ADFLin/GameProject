@@ -47,6 +47,18 @@ public:
 		return (r << 24) | (g << 16) | (b << 8) | a;
 	}
 
+	static void FromRGB(uint32 v, uint8& r, uint8& g, uint8& b)
+	{
+		r = (v >> 0) & 0xff;
+		g = (v >> 8) & 0xff;
+		b = (v >> 16) & 0xff;
+	}
+	static void FromBGR(uint32 v, uint8& r, uint8& g, uint8& b)
+	{
+		r = (v >> 16) & 0xff;
+		g = (v >> 8) & 0xff;
+		b = (v >> 0) & 0xff;
+	}
 	static void FromRGBA(uint32 v, uint8& r, uint8& g, uint8& b, uint8& a)
 	{
 		r = (v >> 0) & 0xff;
@@ -207,6 +219,20 @@ class Color3ub : public TColor3< uint8 >
 {
 public:
 	using TColor3<uint8>::TColor3;
+
+	static Color3ub FromRGB(uint32 rgb)
+	{
+		Color3ub result;
+		FColor::FromRGB(rgb, result.r, result.g, result.b);
+		return result;
+	}
+	static Color3ub FromBGR(uint32 bgr)
+	{
+		Color3ub result;
+		FColor::FromBGR(bgr, result.r, result.g, result.b);
+		return result;
+	}
+
 
 	Color3ub() = default;
 	Color3ub(uint8 cr, uint8 cg, uint8 cb)

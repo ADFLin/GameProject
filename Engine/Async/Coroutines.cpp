@@ -6,8 +6,9 @@
 namespace Coroutines
 {
 
-	ExecutionContext::ExecutionContext()
+	ExecutionContext::ExecutionContext(std::function< void() >&& entryFunc)
 		:mYeildReturnType(typeid(void))
+		,mEntryFunc(std::move(entryFunc))
 	{
 
 	}
@@ -20,11 +21,9 @@ namespace Coroutines
 
 	void ExecutionContext::execute()
 	{
-		mYeildReturnType = typeid(void);
-
 		CHECK(mYeild);
 		mInstruction.release();
-		(*mExecution)(nullptr);
+		(*mExecution)(*this);
 	}
 
 	ThreadContext::~ThreadContext()
@@ -123,9 +122,9 @@ namespace Coroutines
 		mExecutingContext->doYeild();
 	}
 
-	ExecutionContext* ThreadContext::newExecution()
+	ExecutionContext* ThreadContext::newExecution(std::function< void() >&& entryFunc)
 	{
-		ExecutionContext* context = new ExecutionContext;
+		ExecutionContext* context = new ExecutionContext(std::move(entryFunc));
 		mExecutions.push_back(context);
 		return context;
 	}
@@ -138,28 +137,35 @@ namespace Coroutines
 		if (context.mInstruction == nullptr || 
 			context.mInstruction->isKeepWaiting() == false)
 		{
+			context.setYeildReturn();
 			executeContextInternal(context);
 		}
 	}
 
-	ExecutionHandle ThreadContext::startInternal(std::function< void(ExecutionContext&) > entryFunc)
+	static void ExecuteEntry(YeildType& yeild)
 	{
-		ExecutionContext* context = newExecution();
+		ExecutionContext& context = yeild.get();
+		context.mYeild = &yeild;
+		context.mEntryFunc();
+		context.mYeild = nullptr;
+	}
+
+	ExecutionHandle ThreadContext::startInternal(std::function< void() > entryFunc)
+	{
+		ExecutionContext* context = newExecution(std::move(entryFunc));
 		ExecutionContext* parentContext = mExecutingContext;
 		mExecutingContext = context;
-		entryFunc(*context);
+		context->mExecution = new ExecutionType(ExecuteEntry);
+		(*context->mExecution)(*context);
 		mExecutingContext = parentContext;
-		postExecuteContext(*context);
-
-		bool bEnd = context->mYeild == nullptr;
+		bool bKeep = postExecuteContext(*context);
 		cleanupCompletedExecutions();
-		if (bEnd)
+		if (bKeep)
 		{
-			return ExecutionHandle::Completed(context);
+			context->mParent = parentContext;
+			return ExecutionHandle(context);
 		}
-
-		context->mParent = mExecutingContext;
-		return ExecutionHandle(context);
+		return ExecutionHandle::Completed(context);
 	}
 
 	void ThreadContext::executeContextInternal(ExecutionContext& context)
@@ -171,15 +177,17 @@ namespace Coroutines
 		postExecuteContext(context);
 	}
 
-	void ThreadContext::postExecuteContext(ExecutionContext& context)
+	bool ThreadContext::postExecuteContext(ExecutionContext& context)
 	{
-		if (context.mYeild == nullptr)
+		bool bKeep = context.mExecution && bool(*context.mExecution) && context.mYeild;
+		if (bKeep == false)
 		{
 			if (context.mParent && context.mParent->mDependenceIndex != INDEX_NONE)
 			{			
 				if (context.mParent->mDependenceIndex == SIMPLE_SYNC_INDEX)
 				{
 					CHECK(context.mParent->mInstruction == nullptr);
+					context.setYeildReturn();
 					executeContextInternal(*context.mParent);
 					mIndexCompleted.push_back(mExecutions.findIndex(&context));
 				}
@@ -192,11 +200,12 @@ namespace Coroutines
 						if (!flow.executions.empty())
 						{
 							mIndexCompleted.push_back(mExecutions.findIndex(&context));
-							return;
+							return bKeep;
 						}
 					}
 
 					CHECK(context.mParent->mInstruction == nullptr);
+					context.mParent->setYeildReturn();
 					executeContextInternal(*context.mParent);
 
 					if (flow.mode == DependencyFlow::eRace)
@@ -209,7 +218,7 @@ namespace Coroutines
 								mIndexCompleted.push_back(index);
 							}
 						}
-						std::sort(mIndexCompleted.begin(), mIndexCompleted.end(), std::less<int>());
+						std::sort(mIndexCompleted.begin(), mIndexCompleted.end(), std::less());
 					}
 					removeDependencyFlow(context.mParent->mDependenceIndex);
 				}			
@@ -219,6 +228,8 @@ namespace Coroutines
 				mIndexCompleted.push_back(mExecutions.findIndex(&context));
 			}
 		}
+
+		return bKeep;
 	}
 
 	void ThreadContext::cleanup()
@@ -243,7 +254,7 @@ namespace Coroutines
 		cleanupCompletedExecutions();
 	}
 
-	void ThreadContext::stopExecution(ExecutionHandle handle)
+	void ThreadContext::stopExecution(ExecutionHandle& handle)
 	{
 		int index = getExecutionOrderIndex(handle);
 		if (index != INDEX_NONE)
@@ -257,6 +268,8 @@ namespace Coroutines
 			{
 				cleanupCompletedExecutions();
 			}
+
+			handle.mPtr = 0;
 		}
 	}
 
@@ -307,7 +320,11 @@ namespace Coroutines
 	bool ThreadContext::resumeExecution(YieldContextHandle handle)
 	{
 		ExecutionContext* context = (ExecutionContext*)handle;
-		return resumeExecutionInternal(context);
+		if (!canResumeExecutionInternal(context))
+			return false;
+
+		resumeExecutionInternal(context);
+		return true;
 	}
 
 	bool ThreadContext::resumeExecution(ExecutionHandle& handle)
@@ -315,10 +332,12 @@ namespace Coroutines
 		if (!handle.isValid())
 			return false;
 
-		if (!canResumeExecutionInternal(handle.getPointer()))
+		auto context = handle.getPointer();
+		if (!canResumeExecutionInternal(context))
 			return false;
 
-		executeContextInternal(*handle.getPointer());
+		context->setYeildReturn();
+		resumeExecutionInternal(context);
 		if (isCompleted(handle.getPointer()))
 		{
 			handle = ExecutionHandle::Completed(handle.getPointer());
@@ -340,13 +359,11 @@ namespace Coroutines
 		return true;
 	}
 
-	bool ThreadContext::resumeExecutionInternal(ExecutionContext* context)
+	void ThreadContext::resumeExecutionInternal(ExecutionContext* context)
 	{
-		if (!canResumeExecutionInternal(context))
-			return false;
-		
+		CHECK(context->mDependenceIndex == SLEEP_SYNC_INDEX);
+		context->mDependenceIndex = INDEX_NONE;
 		executeContextInternal(*context);
-		return true;
 	}
 
 	void ThreadContext::cleanupCompletedExecutions()
@@ -389,6 +406,7 @@ namespace Coroutines
 #if 1
 			int num = mExecutions.size() - index;
 			FTypeMemoryOp::MoveSequence(&mExecutions[indexMove], num, &mExecutions[index]);
+			indexMove += num;
 #else
 			while (index < mExecutions.size())
 			{

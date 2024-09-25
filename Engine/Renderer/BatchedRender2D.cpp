@@ -463,7 +463,7 @@ namespace Render
 
 	void BatchedRender::emitPolygon(Vector2 v[], int numV, Color4Type const& color)
 	{
-		assert(numV > 2);
+		CHECK(numV > 2);
 		int numTriangle = (numV - 2);
 		FetchedData data = fetchBuffer(numV, 3 * numTriangle);
 		uint32 baseIndex = data.base;
@@ -494,12 +494,58 @@ namespace Render
 		}
 	}
 
+	void BatchedRender::emitTriangleList(Vector2 v[], int numV, ShapePaintArgs const& paintArgs)
+	{
+		if (paintArgs.bUseBrush)
+		{
+			CHECK(numV > 2);
+			int numTriangle = numV / 3;
+			int numIndices = numTriangle * 3;
+			FetchedData data = fetchBuffer(numV, numIndices);
+			uint32 baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
+
+			for (int i = 0; i < numIndices; ++i)
+			{
+				TexVertex& vertex = pVertices[i];
+				vertex.pos = v[i];
+				vertex.color = paintArgs.brushColor;
+			}
+
+			pIndices = FillTriangleList(pIndices, baseIndex, numTriangle);
+		}
+	}
+
+	void BatchedRender::emitTriangleStrip(Vector2 v[], int numV, ShapePaintArgs const& paintArgs)
+	{
+		if (paintArgs.bUseBrush)
+		{
+			CHECK(numV > 2);
+			int numTriangle = numV - 2;
+			int numIndices  = numTriangle * 3;
+			FetchedData data = fetchBuffer(numV, numIndices);
+			uint32 baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
+
+			for (int i = 0; i < numV; ++i)
+			{
+				TexVertex& vertex = pVertices[i];
+				vertex.pos = v[i];
+				vertex.color = paintArgs.brushColor;
+			}
+
+			pIndices = FillTriangleStrip(pIndices, baseIndex, numTriangle);
+		}
+	}
+
 	void BatchedRender::emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs)
 	{
 		if (paintArgs.bUseBrush)
 		{
 			PROFILE_ENTRY("EmitCachedPolygon");
-			assert(cachedData.posList.size() > 2);
+			CHECK(cachedData.posList.size() > 2);
 			int numTriangle = (cachedData.posList.size() - 2);
 
 			FetchedData data = fetchBuffer(cachedData.posList.size(), 3 * numTriangle);
@@ -849,8 +895,20 @@ namespace Render
 				break;
 			case RenderBatchedElement::Polygon:
 				{
-					RenderBatchedElementList::PolygonPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::PolygonPayload >(element);
+					RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(element);
 					emitPolygon(payload.posList, payload.posCount, payload.paintArgs);
+				}
+				break;
+			case RenderBatchedElement::TriangleList:
+				{
+					RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(element);
+					emitTriangleList(payload.posList, payload.posCount, payload.paintArgs);
+				}
+				break;
+			case RenderBatchedElement::TriangleStrip:
+				{
+					RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(element);
+					emitTriangleStrip(payload.posList, payload.posCount, payload.paintArgs);
 				}
 				break;
 			case RenderBatchedElement::Circle:

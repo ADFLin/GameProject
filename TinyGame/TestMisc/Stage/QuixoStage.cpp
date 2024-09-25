@@ -14,6 +14,43 @@
 
 namespace Quixo
 {
+	class GameTimeControl
+	{
+	public:
+		float time = 0;
+
+		void update(float deltaTime)
+		{
+			time += deltaTime;
+		}
+
+		void reset()
+		{
+			time = 0;
+		}
+	};
+
+	GameTimeControl GGameTime;
+
+	class WaitForSeconds : public IYieldInstruction
+	{
+	public:
+		WaitForSeconds(float duration)
+		{
+			time = GGameTime.time + duration;
+		}
+
+		float time;
+
+
+		bool isKeepWaiting() const override
+		{
+			return time > GGameTime.time;
+		}
+
+	};
+
+
 	constexpr int BoardSize = 5;
 
 	enum class ERule
@@ -242,20 +279,45 @@ namespace Quixo
 
 			::Global::GUI().cleanupWidget();
 
+			auto frame = WidgetUtility::CreateDevFrame();
+
+			frame->addButton("Restart", [this](int event, GWidget*) -> bool
+			{
+				restart();
+				return false;
+			});
 			Vec2i screenSize = ::Global::GetScreenSize();
 			mWorldToScreen = RenderTransform2D::LookAt(screenSize, 0.5 * Vector2(BoardSize, BoardSize), Vector2(0, 1), screenSize.y / float(BoardSize + 2.5), true);
+			mScreenToWorld = mWorldToScreen.inverse();
 
 			mGame.mRule = ERule::FourPlayers;
 
+			mWinCounts[0] = 0;
+			mWinCounts[1] = 0;
 			startGame();
 
 			return true;
 		}
 
+		int mWinCounts[2];
+
+		void restart()
+		{
+			if (mGameHandle.isValid())
+			{
+				Coroutines::Stop(mGameHandle);
+			}
+
+			mTweener.clear();
+			startGame();
+		}
+
 		void onUpdate(long time) override
 		{
 			float dt = time / 1000.0f;
+			GGameTime.update(dt);
 			mTweener.update(dt);
+			Coroutines::ThreadContext::Get().checkAllExecutions();
 		}
 
 		struct Sprite
@@ -265,6 +327,8 @@ namespace Quixo
 		};
 		float mOffsetAlpha = 0.0f;
 		Sprite mSprites[BoardSize * BoardSize];
+
+		bool bAutoPlay = true;
 
 		bool bAnimating = false;
 		float mAnimDuration;
@@ -395,6 +459,9 @@ namespace Quixo
 			g.drawCircle(offset, 0.25);
 
 			g.popXForm();
+
+			g.drawTextF(Vector2(20, 20), "A = %d , B = %d", mWinCounts[0], mWinCounts[1]);
+
 			g.endRender();
 		}
 
@@ -406,11 +473,44 @@ namespace Quixo
 		{
 			mGameHandle = Coroutines::Start([this]()
 			{
-				gameEntry();
+				for(;;)
+				{
+					gameRound();
+
+					if (mWinner == EBlockSymbol::A)
+					{
+						mWinCounts[0] += 1;
+					}
+					else
+					{
+						mWinCounts[1] += 1;
+					}
+
+
+					if (bAutoPlay)
+					{
+						CO_YEILD(WaitForSeconds(1.0));
+					}
+					else
+					{
+						InlineString<> str;
+						str.format("Player %s win ! Do you play again?", (mWinner == EBlockSymbol::A) ? "A" : "B");
+						GWidget* widget = ::Global::GUI().showMessageBox(UI_ANY, str.c_str(), EMessageButton::YesNo);
+						widget->onEvent = [this](int event, GWidget*)->bool
+						{
+							Coroutines::Resume(mGameHandle, bool(event == EVT_BOX_YES));
+							return false;
+						};
+						bool bPlayAgain = CO_YEILD_RETRUN(bool, nullptr);
+
+						if (!bPlayAgain)
+							break;
+					}
+				}
 			});
 		}
 
-		void gameEntry()
+		void gameRound()
 		{
 
 			mGame.restart();
@@ -454,7 +554,33 @@ namespace Quixo
 				{
 					do
 					{
-						clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
+						if (bAutoPlay)
+						{
+							int indexPlay = ::Global::Random() % playableCount;
+							for (int y = 0; y < BoardSize; ++y)
+							{
+								for (int x = 0; x < BoardSize; ++x)
+								{
+									if (mSprites[ToIndex(x, y)].color == EColor::Yellow)
+									{
+										if (indexPlay == 0)
+										{
+											clickPos = Vec2i(x, y);
+											goto End;
+										}
+										else
+										{
+											--indexPlay;
+										}
+									}
+								}
+							}
+						End:;
+						}
+						else
+						{
+							clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
+						}
 					} while (!mGame.canPlay(player, clickPos));
 
 					mSelectedBlockPos = clickPos;
@@ -482,22 +608,31 @@ namespace Quixo
 					}
 
 					uint8 moveDir = 0xff;
-					for (;;)
+					if (bAutoPlay)
 					{
-						clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
-						if (clickPos.x == -1)
-							break;
-
-						for (int i = 0; i < numMove; ++i)
+						moveDir = moveDirList[::Global::Random() % numMove];
+						CO_YEILD(WaitForSeconds(0.2));
+					}
+					else
+					{
+						for (;;)
 						{
-							if (movePosList[i] == clickPos)
-							{
-								moveDir = moveDirList[i];
+
+							clickPos = CO_YEILD_RETRUN(Vec2i, nullptr);
+							if (clickPos.x == -1)
 								break;
+
+							for (int i = 0; i < numMove; ++i)
+							{
+								if (movePosList[i] == clickPos)
+								{
+									moveDir = moveDirList[i];
+									break;
+								}
 							}
+							if (moveDir != 0xff)
+								break;
 						}
-						if (moveDir != 0xff)
-							break;
 					}
 
 					if (moveDir == 0xff)
@@ -562,7 +697,6 @@ namespace Quixo
 			}
 
 
-			LogMsg("GameOver player %s win", (mWinner == EBlockSymbol::A) ? "A" : "B");
 		}
 
 
@@ -590,7 +724,7 @@ namespace Quixo
 		{
 			if (msg.onLeftDown())
 			{
-				Vector2 worldPos = mWorldToScreen.transformInvPosition(msg.getPos());
+				Vector2 worldPos = mScreenToWorld.transformPosition(msg.getPos());
 				Vec2i blockPos;
 				blockPos.x = Math::FloorToInt(Math::ToTileValue(worldPos.x, 1.0f));
 				blockPos.y = Math::FloorToInt(Math::ToTileValue(worldPos.y, 1.0f));
@@ -614,6 +748,7 @@ namespace Quixo
 		EStep mStep = EStep::SelectBlock;
 
 		RenderTransform2D mWorldToScreen;
+		RenderTransform2D mScreenToWorld;
 		Game mGame;
 	};
 

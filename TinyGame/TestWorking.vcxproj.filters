@@ -84,6 +84,12 @@
     <ClCompile Include="TestMisc\Stage\QuixoStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="AppleSnake\AppleSnakeStage.cpp">
+      <Filter>GameAppleSnake</Filter>
+    </ClCompile>
+    <ClCompile Include="AppleSnake\AppleSnakeLevel.cpp">
+      <Filter>GameAppleSnake</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
@@ -150,6 +156,15 @@
     <ClInclude Include="StoneBlocks\SBlocksLevel.h">
       <Filter>GameStoneBlocks</Filter>
     </ClInclude>
+    <ClInclude Include="AppleSnake\AppleSnakeLevel.h">
+      <Filter>GameAppleSnake</Filter>
+    </ClInclude>
+    <ClInclude Include="AppleSnake\ApplsSnakeLevelData.h">
+      <Filter>GameAppleSnake</Filter>
+    </ClInclude>
+    <ClInclude Include="AppleSnake\AppleSnakeStage.h">
+      <Filter>GameAppleSnake</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GameChess">
@@ -178,6 +193,9 @@
     </Filter>
     <Filter Include="Stage">
       <UniqueIdentifier>{6cd527c6-13ce-4f4b-b694-ecc028d60019}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameAppleSnake">
+      <UniqueIdentifier>{d9569443-0bc8-4052-88bd-24be7bbb1187}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

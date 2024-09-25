@@ -206,6 +206,8 @@ namespace Render
 			Rect,
 			Circle,
 			Polygon,
+			TriangleList,
+			TriangleStrip,
 			Ellipse,
 			RoundRect,
 			TextureRect,
@@ -325,7 +327,7 @@ namespace Render
 			Vector2 circleRadius;
 		};
 
-		struct PolygonPayload : ShapePayload
+		struct TrianglePayload : ShapePayload
 		{
 			Vector2* posList;
 			int posCount;
@@ -409,9 +411,27 @@ namespace Render
 		template< class TVector2 >
 		RenderBatchedElement& addPolygon(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
 		{
+			return addTriangles(RenderBatchedElement::Polygon, transform, paintArgs, v, numV);
+		}
+
+		template< class TVector2 >
+		RenderBatchedElement& addTriangleList(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		{
+			return addTriangles(RenderBatchedElement::TriangleList, transform, paintArgs, v, numV);
+		}
+
+		template< class TVector2 >
+		RenderBatchedElement& addTriangleStrip(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		{
+			return addTriangles(RenderBatchedElement::TriangleStrip, transform, paintArgs, v, numV);
+		}
+
+		template< class TVector2 >
+		RenderBatchedElement& addTriangles(RenderBatchedElement::EType type, RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		{
 			CHECK(numV > 2);
-			TRenderBatchedElement<PolygonPayload>* element = addElement< PolygonPayload >();
-			element->type = RenderBatchedElement::Polygon;
+			TRenderBatchedElement<TrianglePayload>* element = addElement< TrianglePayload >();
+			element->type = type;
 			element->payload.paintArgs = paintArgs;
 			element->payload.posList = (Vector2*)mAllocator.alloc(sizeof(Vector2) * numV);
 			element->payload.posCount = numV;
@@ -533,6 +553,33 @@ namespace Render
 			return pIndices;
 		}
 
+		FORCEINLINE static uint32* FillTriangleList(uint32* pIndices, int baseIndex, int numTriangle)
+		{
+			for (int i = 0; i < numTriangle; ++i)
+			{
+				pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
+				baseIndex += 3;
+			}
+			return pIndices;
+		}
+
+		FORCEINLINE static uint32* FillTriangleStrip(uint32* pIndices, int baseIndex, int numTriangle)
+		{
+			for (int i = 0; i < numTriangle; ++i)
+			{
+				if (i & 0x1)
+				{
+					pIndices = FillTriangle(pIndices, baseIndex, 0, 2, 1);
+				}
+				else
+				{
+					pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
+				}
+				baseIndex += 1;
+			}
+			return pIndices;
+		}
+
 		FORCEINLINE static uint32* FillPolygonLine(uint32* pIndices, int baseIndex, int numV)
 		{
 #if USE_POLYGON_LINE_NEW
@@ -586,6 +633,9 @@ namespace Render
 		void flush();
 
 		void emitPolygon(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
+		void emitTriangleList(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
+		void emitTriangleStrip(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
+
 		void emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs);
 		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
 		void emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState);

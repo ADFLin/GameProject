@@ -29,8 +29,9 @@ public:
 
 namespace Coroutines
 {
-	using ExecutionType = boost::coroutines2::asymmetric_coroutine< void* >::push_type;
-	using YeildType = boost::coroutines2::asymmetric_coroutine< void* >::pull_type;
+	class ExecutionContext;
+	using ExecutionType = boost::coroutines2::asymmetric_coroutine< ExecutionContext& >::push_type;
+	using YeildType = boost::coroutines2::asymmetric_coroutine< ExecutionContext&  >::pull_type;
 	struct ExecutionContext;
 
 	struct ExecutionHandle 
@@ -131,9 +132,11 @@ namespace Coroutines
 	};
 
 #define SIMPLE_SYNC_INDEX MaxInt32
+#define SLEEP_SYNC_INDEX  (MaxInt32 - 1)
+
 	struct ExecutionContext
 	{
-		ExecutionContext();
+		ExecutionContext(std::function< void() >&& entryFunc);
 		~ExecutionContext();
 
 
@@ -142,11 +145,12 @@ namespace Coroutines
 			(*mYeild)();
 		}
 
-		void* yeildReturn()
+		void const* yeildReturn()
 		{
 			CHECK(mInstruction == nullptr);
+			mDependenceIndex = SLEEP_SYNC_INDEX;
 			doYeild();
-			return mYeild->get();
+			return mYeildReturnData;
 		}
 
 		void yeildReturn(ExecutionHandle childContext)
@@ -160,23 +164,23 @@ namespace Coroutines
 		}
 
 		template< typename T, TEnableIf_Type< std::is_base_of_v< IYieldInstruction, std::remove_reference_t<T> >, bool > = true >
-		void* yeildReturn(T&& value)
+		void const* yeildReturn(T&& value)
 		{
 			using Type = std::remove_reference_t<T>;
 			CHECK(mInstruction == nullptr);
-			mInstruction.construct<T>(value);
+			mInstruction.construct<Type>(value);
 			mInstruction->startYield(this);
 			doYeild();
-			return mYeild->get();
+			return mYeildReturnData;
 		}
 
-		void* yeildReturn(IYieldInstruction* instruction)
+		void const* yeildReturn(IYieldInstruction* instruction)
 		{
 			CHECK(mInstruction == nullptr);
 			mInstruction.construct(YieldInstructionProxy(instruction));
 			mInstruction->startYield(this);
 			doYeild();
-			return mYeild->get();
+			return mYeildReturnData;
 		}
 
 		void breakReturn()
@@ -185,23 +189,26 @@ namespace Coroutines
 			mYeild = nullptr;
 			doYeild();
 		}
-
-		void execute();
-
-
 		template< typename T >
-		void execute(T const& value)
+		void setYeildReturn(T const& value)
 		{
 			mYeildReturnType = typeid(T);
-			CHECK(mYeild);
-			mInstruction.release();
-			T* ptr = const_cast<T*>(&value);
-			(*mExecution)(ptr);
+			mYeildReturnData = &value;
 		}
+
+		void setYeildReturn()
+		{
+			mYeildReturnType = typeid(void);
+			mYeildReturnData = nullptr;
+		}
+
+		void execute();
 
 		HashString tag;
 
 		std::type_index mYeildReturnType;
+		void const*     mYeildReturnData;
+		std::function< void() > mEntryFunc;
 
 		int mDependenceIndex = INDEX_NONE;
 		ExecutionContext*  mParent = nullptr;
@@ -228,7 +235,7 @@ namespace Coroutines
 
 		bool bUseExecutions = false;
 
-		void stopExecution(ExecutionHandle handle);
+		void stopExecution(ExecutionHandle& handle);
 
 		void stopAllExecutions(HashString tag);
 
@@ -244,28 +251,20 @@ namespace Coroutines
 			if (!handle.isValid())
 				return false;
 
-			if (!canResumeExecutionInternal(handle.getPointer()))
+			auto context = handle.getPointer();
+			if (!canResumeExecutionInternal(context))
 				return false;
 
-			executeContextInternal(*handle.getPointer(), value);
+			context->setYeildReturn(value);
+			resumeExecutionInternal(context);
 			if (isCompleted(handle.getPointer()))
 			{
-				handle = ExecutionHandle::Completed(handle.getPointer());
+				handle = ExecutionHandle::Completed(context);
 			}
 		}
 
-		template< typename T >
-		void executeContextInternal(ExecutionContext& context, T const& value)
-		{
-			ExecutionContext* parentContext = mExecutingContext;
-			mExecutingContext = &context;
-			context.execute(value);
-			mExecutingContext = parentContext;
-			postExecuteContext(context);
-		}
-
 		bool canResumeExecutionInternal(ExecutionContext* context);
-		bool resumeExecutionInternal(ExecutionContext* context);
+		void resumeExecutionInternal(ExecutionContext* context);
 
 		struct DependencyFlow
 		{
@@ -311,29 +310,19 @@ namespace Coroutines
 		void raceExecutions(std::initializer_list<ExecutionHandle> executions);
 		void rushExecutions(std::initializer_list<ExecutionHandle> executions);
 
-		ExecutionContext* newExecution();
+		ExecutionContext* newExecution(std::function< void() >&& entryFunc);
 
 		void checkExecution(ExecutionContext& context);
 
 		template< typename TFunc >
 		ExecutionHandle start(TFunc&& func)
 		{
-			return startInternal([this, &func](ExecutionContext& context)
-			{
-				auto EntryFunc = [this, &context, func](YeildType& yeild)
-				{
-					context.mYeild = &yeild;
-					func();
-					context.mYeild = nullptr;
-				};
-				context.mExecution = new ExecutionType(EntryFunc);
-				(*context.mExecution)(nullptr);
-			});
+			return startInternal(std::forward<TFunc>(func));
 		}
 
-		ExecutionHandle startInternal(std::function< void(ExecutionContext&) > entryFunc);
+		ExecutionHandle startInternal(std::function< void() > entryFunc);
 		void executeContextInternal(ExecutionContext& context);
-		void postExecuteContext(ExecutionContext& context);
+		bool postExecuteContext(ExecutionContext& context);
 		void cleanupCompletedExecutions();
 
 
@@ -367,7 +356,7 @@ namespace Coroutines
 	}
 
 	template< typename R, typename T >
-	FORCEINLINE void YeildReturn(T&& value)
+	FORCEINLINE R YeildReturn(T&& value)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
 		R* returnPtr = (R*)context.yeildReturn(value);
@@ -385,7 +374,7 @@ namespace Coroutines
 	}
 
 	template< typename R >
-	FORCEINLINE void YeildReturn(IYieldInstruction* instruction)
+	FORCEINLINE R YeildReturn(IYieldInstruction* instruction)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
 		R* returnPtr = (R*)context.yeildReturn(instruction);
@@ -458,7 +447,7 @@ namespace Coroutines
 		return ThreadContext::Get().resumeExecution(handle, value);
 	}
 
-	FORCEINLINE void Stop(ExecutionHandle handle)
+	FORCEINLINE void Stop(ExecutionHandle& handle)
 	{
 		ThreadContext::Get().stopExecution(handle);
 	}

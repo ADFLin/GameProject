@@ -8,19 +8,24 @@ namespace EColor
 	enum Name
 	{
 		Null = 0,
-		Cyan,
-		Blue,
-		Orange,
-		Yellow,
-		Green,
-		Purple,
 		Red,
+		Green,
+		Blue,
+		Cyan,
+		Magenta,
+		Yellow,
+
+		Orange,
+		Purple,
 		Pink,
+		Brown,
+		Gold,
+
 		Gray,
 		White,
 		Black,
 
-		Number,
+		COUNT,
 	};
 
 }

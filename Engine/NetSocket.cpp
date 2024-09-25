@@ -9,7 +9,7 @@
 
 WORD  gSockVersion = MAKEWORD(1,1);
 
-void socketError(char* str){ }
+void SocketError(char* str){ }
 
 NetSocket::NetSocket()
 	:mHandle( INVALID_SOCKET )
@@ -35,11 +35,10 @@ bool NetSocket::connect( char const* addrName  , unsigned  port )
 bool NetSocket::connect( NetAddress const& addr )
 {
 	assert(mHandle != INVALID_SOCKET);
-	int result = ::connect( getHandle() , (sockaddr*)&addr.get() , sizeof( addr.get() ) );
 
-	if ( result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK )
+	if ( !FSocket::Connect( getHandle(), (sockaddr*)&addr.get(), sizeof(addr.get())) )
 	{
-		socketError("Failed connect()");
+		SocketError("Failed connect()");
 		return  false;
 	}
 	if (mState == SKS_UDP)
@@ -79,12 +78,12 @@ bool NetSocket::listen( unsigned port , int maxWaitClient )
 
 int NetSocket::recvData( char* data , size_t maxNum )
 {
-	return ::recv( getHandle() , data , (int)maxNum , 0 );
+	return FSocket::Recv( getHandle() , data , (int)maxNum , 0 );
 }
 
 int NetSocket::recvData( char* data , size_t maxNum , sockaddr* addrInfo , int addrLength )
 {
-	return ::recvfrom( getHandle() ,data , (int)maxNum , 0 , addrInfo , &addrLength );
+	return FSocket::Recvfrom( getHandle(), data, (int)maxNum, 0, addrInfo, addrLength );
 }
 
 int NetSocket::sendData( char const* data , size_t num )
@@ -107,14 +106,14 @@ int NetSocket::sendData( char const* data , size_t num , sockaddr* addrInfo , in
 	if ( mHandle == INVALID_SOCKET && ! createUDP( ) )
 		return SOCKET_ERROR;
 
-	return ::sendto( getHandle() , data , (int)num , 0 , addrInfo , addrLength );
+	return FSocket::SendTo( getHandle() , data , (int)num , 0 , addrInfo , addrLength );
 }
 
 bool NetSocket::createTCP( bool beNB )
 {
 	close();
 
-	mHandle = ::socket( PF_INET , SOCK_STREAM , 0 );
+	mHandle = FSocket::Create( PF_INET , SOCK_STREAM , 0 );
 	if ( mHandle  == INVALID_SOCKET )
 	{
 		throw SocketException("Can't create socket");
@@ -127,7 +126,7 @@ bool NetSocket::createTCP( bool beNB )
 bool NetSocket::createUDP()
 {
 	close();
-	mHandle = ::socket( PF_INET , SOCK_DGRAM , IPPROTO_UDP );
+	mHandle = FSocket::Create( PF_INET , SOCK_DGRAM , IPPROTO_UDP );
 
 	if ( mHandle == INVALID_SOCKET )
 	{
@@ -143,10 +142,7 @@ bool NetSocket::createUDP()
 
 bool NetSocket::setBroadcast()
 {
-	int i = 1;
-	if ( setsockopt( getHandle() , SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == SOCKET_ERROR )
-		return false;
-	return true;
+	return FSocket::SetOption(getHandle(), SO_BROADCAST, 1);
 }
 
 bool NetSocket::bindPort( unsigned port )
@@ -155,15 +151,7 @@ bool NetSocket::bindPort( unsigned port )
 	addr.sin_family      = AF_INET;
 	addr.sin_addr.s_addr = htonl( INADDR_ANY );
 	addr.sin_port        = htons(port);
-
-	int result;
-	//bind the socket
-	result = ::bind(getHandle(), (sockaddr*)&addr, sizeof(addr));
-	if( result == SOCKET_ERROR)
-	{
-		return false;
-	}
-	return true;
+	return FSocket::Bind(getHandle(), (sockaddr*)&addr, sizeof(addr));
 }
 
 
@@ -348,17 +336,8 @@ bool NetSocket::detectUDPInternal(SocketDetector& detector , NetSelectSet& selec
 
 void NetSocket::close()
 {
-	if ( getHandle() != INVALID_SOCKET )
-	{
-		int rVal = ::closesocket( getHandle() );
-		if ( rVal == SOCKET_ERROR )
-		{
-
-		}
-	}
-	mHandle =  INVALID_SOCKET;
+	FSocket::Close(mHandle);
 	mState     =  SKS_CLOSE;
-
 }
 
 static bool bNetSocketSystemInitialized = false;
@@ -405,7 +384,7 @@ void NetSocket::move( NetSocket& socket )
 {
 	assert( mHandle == INVALID_SOCKET );
 
-	mHandle =  socket.mHandle;
+	mHandle = socket.mHandle;
 	mState = socket.mState;
 
 	socket.mHandle = INVALID_SOCKET;

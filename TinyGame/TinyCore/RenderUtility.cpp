@@ -13,11 +13,11 @@ using namespace Render;
 
 namespace
 {
-	HBRUSH hBrush[3][EColor::Number];
-	HPEN   hCPen[3][EColor::Number];
+	HBRUSH hBrush[3][EColor::COUNT];
+	HPEN   hCPen[3][EColor::COUNT];
 	HFONT  hFont[FONT_NUM];
 	FontDrawer FontRHI[FONT_NUM];
-	Color3ub gColorMap[3][EColor::Number];
+	Color3ub gColorMap[3][EColor::COUNT];
 	TCHAR const* FontName = "µÿ±d§§∂Í≈È";
 }
 
@@ -30,17 +30,27 @@ void RenderUtility::Initialize()
 {
 	using std::min;
 
-	gColorMap[COLOR_NORMAL][ EColor::Cyan   ] = Color3ub( 0 , 255 , 255 );
-	gColorMap[COLOR_NORMAL][ EColor::Blue   ] = Color3ub( 0 , 0 , 255 );
-	gColorMap[COLOR_NORMAL][ EColor::Orange ] = Color3ub( 255 , 165 , 0 );
-	gColorMap[COLOR_NORMAL][ EColor::Yellow ] = Color3ub( 255 , 255 , 0 );
-	gColorMap[COLOR_NORMAL][ EColor::Green  ] = Color3ub( 0 , 255 , 0 );
-	gColorMap[COLOR_NORMAL][ EColor::Purple ] = Color3ub( 160 , 32 , 240 );
-	gColorMap[COLOR_NORMAL][ EColor::Red    ] = Color3ub( 255 , 0 , 0 );
-	gColorMap[COLOR_NORMAL][ EColor::Gray   ] = Color3ub( 100 , 100 , 100 );
-	gColorMap[COLOR_NORMAL][ EColor::Pink   ] = Color3ub( 255 , 0 , 255 );
-	gColorMap[COLOR_NORMAL][ EColor::White  ] = Color3ub( 255 , 255 , 255 );
-	gColorMap[COLOR_NORMAL][ EColor::Black  ] = Color3ub( 0, 0, 0 );
+#define DEF_COLOR(NAME, CODE)\
+	gColorMap[COLOR_NORMAL][NAME] = Color3ub::FromBGR(0x##CODE);
+
+	DEF_COLOR(EColor::Red    , FF0000);
+	DEF_COLOR(EColor::Green  , 00FF00);
+	DEF_COLOR(EColor::Blue   , 0000FF);
+	DEF_COLOR(EColor::Cyan   , 00FFFF);
+	DEF_COLOR(EColor::Magenta, FF00FF);
+	DEF_COLOR(EColor::Yellow , FFFF00);
+
+	DEF_COLOR(EColor::Orange, FFA500);
+	DEF_COLOR(EColor::Purple, A020F0);
+	DEF_COLOR(EColor::Pink  , FFC0CB);
+	DEF_COLOR(EColor::Brown , 964B00);
+	DEF_COLOR(EColor::Gold  , FFD700);
+
+	DEF_COLOR(EColor::Gray  , 808080);
+	DEF_COLOR(EColor::White , FFFFFF);
+	DEF_COLOR(EColor::Black , 000000);
+
+#undef DEF_COLOR
 
 	hBrush[ COLOR_NORMAL ][ EColor::Null ] = 
 	hBrush[ COLOR_DEEP   ][ EColor::Null ] =
@@ -48,7 +58,7 @@ void RenderUtility::Initialize()
 
 	hCPen[COLOR_NORMAL][ EColor::Null ] = hCPen[COLOR_DEEP][EColor::Null] = hCPen[COLOR_LIGHT][EColor::Null] = (HPEN)::GetStockObject( NULL_PEN ) ;
 
-	for(int i = 1; i < EColor::Number ; ++i )
+	for(int i = 1; i < EColor::COUNT ; ++i )
 	{
 #if 1
 		gColorMap[COLOR_DEEP][i] = Color3ub(
@@ -61,8 +71,8 @@ void RenderUtility::Initialize()
 			min( gColorMap[COLOR_NORMAL][i].b + 180 , 255 )  );
 #else
 		Vector3 hsv = FColorConv::RGBToHSV(Color3f(gColorMap[COLOR_NORMAL][i]));
-		Vector3 hsvLight = hsv; hsvLight.y = Math::Clamp<float>(2 * hsvLight.y, 0, 1);
-		Vector3 hsvDark = hsv; hsvDark.y = Math::Clamp<float>(2 * hsvDark.y, 0, 1);
+		Vector3 hsvLight = hsv; hsvLight.y = Math::Clamp<float>(1.2 * hsvLight.y, 0, 1);
+		Vector3 hsvDark = hsv; hsvDark.y = Math::Clamp<float>(hsvDark.y / 1.2, 0, 1);
 
 		gColorMap[COLOR_DEEP][i] = Color3ub(FColorConv::HSVToRGB(hsvDark));
 		gColorMap[COLOR_LIGHT][i] = Color3ub( FColorConv::HSVToRGB(hsvLight));
@@ -92,7 +102,7 @@ void RenderUtility::Initialize()
 
 void RenderUtility::Finalize()
 {
-	for(int i= 1 ; i < EColor::Number ;++i)
+	for(int i= 1 ; i < EColor::COUNT ;++i)
 	{
 		::DeleteObject(hBrush[ COLOR_NORMAL ][i]);
 		::DeleteObject(hBrush[ COLOR_DEEP ][i]);

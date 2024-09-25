@@ -110,6 +110,11 @@ public:
 	void  drawEllipse(Vector2 const& center, Vector2 const& size);
 	void  drawPolygon(Vector2 const pos[], int num);
 	void  drawPolygon(Vec2i const pos[], int num);
+	void  drawTriangleList(Vector2 const pos[], int num);
+	void  drawTriangleList(Vec2i const pos[], int num);
+	void  drawTriangleStrip(Vector2 const pos[], int num);
+	void  drawTriangleStrip(Vec2i const pos[], int num);
+
 	void  drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize);
 
 	void  drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT,

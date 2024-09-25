@@ -102,64 +102,79 @@ enum SocketState
 };
 
 
-class SocketObject
+class FSocket
 {
 public:
-
-	static int getLastError()
+	static int GetLastError()
 	{
 		return ::WSAGetLastError();
 	}
-	bool init( int af,int type,int protocol )
+	static SOCKET Create( int af, int type, int protocol )
 	{
-		mHandle = ::socket( af , type , protocol );
-		if ( mHandle == INVALID_SOCKET )
-			return false;
-		return true;
+		return ::socket( af , type , protocol );
 	}
-	void close()
+	static void Close(SOCKET& handle)
 	{
-		if ( mHandle == INVALID_SOCKET )
+		if ( handle == INVALID_SOCKET )
 			return;
-		int rVal = ::closesocket( mHandle );
-		if ( rVal != SOCKET_ERROR )
-			mHandle =  INVALID_SOCKET;
+		int rVal = ::closesocket( handle );
+		if (rVal == SOCKET_ERROR)
+		{
+
+
+		}
+		handle =  INVALID_SOCKET;
 	}
-	bool setopt( int option , int value )
+	static bool SetOption(SOCKET handle, int option , int value )
 	{
-		if ( setsockopt( mHandle , SOL_SOCKET , option , (char *)&value, sizeof(value) ) == SOCKET_ERROR )
+		if ( setsockopt( handle , SOL_SOCKET , option , (char *)&value, sizeof(value) ) == SOCKET_ERROR )
 			return false;
 		return true;
 	}
-	bool getopt( int option , int& value )
+	static bool GetOption(SOCKET handle, int option , int& value )
 	{
 		int len = sizeof(value);
-		if ( getsockopt( mHandle , SOL_SOCKET , option , (char *)&value, &len ) == SOCKET_ERROR )
+		if ( getsockopt( handle , SOL_SOCKET , option , (char *)&value, &len ) == SOCKET_ERROR )
 			return false;
 		return true;
-	}
-	bool connect( sockaddr const *to , int tolen )
-	{  
-		int ret = ::connect( mHandle , to , tolen ); 
-		if ( ret == SOCKET_ERROR && getLastError()  != WSAEWOULDBLOCK )
-			return false;
-		return true;
-	}
-	int sendto( char const* buf , int len, int flags, sockaddr const *to , int tolen )
-	{  return ::sendto( mHandle , buf , len , flags , to , tolen );  }
-	int recvfrom( char* buf , int len, int flags, sockaddr* addr , int lenAddr )
-	{  return ::recvfrom( mHandle , buf , len , flags , addr , &lenAddr );  }
-	int recv( char* buf , int len, int flags )
-	{  return ::recv( mHandle , buf , len , flags );  }
-	int select( fd_set* fRead , fd_set* fWrite , fd_set* fExcept , timeval const& timeout )
-	{
-		if ( fRead  ) FD_SET( mHandle , fRead );
-		if ( fWrite ) FD_SET( mHandle , fRead );
-		if ( fExcept ) FD_SET( mHandle , fRead );
-		return ::select( 1, fRead, fWrite, fExcept, &timeout );
 	}
 
-	SOCKET       mHandle;
+	static bool Bind(SOCKET handle, sockaddr const *to, int tolen)
+	{
+		int result = ::bind(handle, to, tolen);
+		if (result == SOCKET_ERROR)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	static bool Connect(SOCKET handle, sockaddr const *to , int tolen )
+	{  
+		int ret = ::connect( handle , to , tolen ); 
+		if ( ret == SOCKET_ERROR && GetLastError()  != WSAEWOULDBLOCK )
+			return false;
+		return true;
+	}
+	static int SendTo(SOCKET handle, char const* buf , int len, int flags, sockaddr const *to , int tolen )
+	{  
+		return ::sendto( handle , buf , len , flags , to , tolen );  
+	}
+	static int Recvfrom(SOCKET handle, char* buf , int len, int flags, sockaddr* addr , int lenAddr )
+	{  
+		return ::recvfrom( handle , buf , len , flags , addr , &lenAddr );  
+	}
+	static int Recv(SOCKET handle, char* buf , int len, int flags )
+	{  
+		return ::recv( handle , buf , len , flags );  
+	}
+	static int Select(SOCKET handle, fd_set* fRead , fd_set* fWrite , fd_set* fExcept , timeval const& timeout )
+	{
+		if ( fRead  ) FD_SET( handle , fRead );
+		if ( fWrite ) FD_SET( handle , fRead );
+		if ( fExcept ) FD_SET( handle , fRead );
+		return ::select( 1, fRead, fWrite, fExcept, &timeout );
+	}
 };
 
 class NetSocket;

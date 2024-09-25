@@ -227,6 +227,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AppleSnake\AppleSnakeLevel.cpp" />
+    <ClCompile Include="AppleSnake\AppleSnakeStage.cpp" />
     <ClCompile Include="Chess\ChessCore.cpp" />
     <ClCompile Include="Factorio\FIOStage.cpp" />
     <ClCompile Include="FlowFree\FlowFreeGameStage.cpp" />
@@ -258,6 +260,9 @@
     <ClCompile Include="Transport\TPStage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AppleSnake\AppleSnakeLevel.h" />
+    <ClInclude Include="AppleSnake\AppleSnakeStage.h" />
+    <ClInclude Include="AppleSnake\ApplsSnakeLevelData.h" />
     <ClInclude Include="Chess\ChessCore.h" />
     <ClInclude Include="FlowFree\FlowFreeGameStage.h" />
     <ClInclude Include="FlowFree\FlowFreeLevel.h" />

@@ -53,9 +53,9 @@ public:
 	bool onInit() override;
 	bool onWidgetEvent(int event, int id, GWidget* ui) override;
 
-	void onUpdate(long time) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		GGameTime.update(float(time) / 1000.0f);
+		GGameTime.update(deltaTime);
 		Coroutines::ThreadContext::Get().checkAllExecutions();
 	}
 

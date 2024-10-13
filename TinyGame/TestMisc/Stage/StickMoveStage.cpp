@@ -342,15 +342,14 @@ namespace StickMove
 			BaseClass::onEnd();
 		}
 
-		virtual void onUpdate(long time)
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
+			for (auto& stick : mSticks)
+			{
+				stick.tick(deltaTime);
+			}
 		}
 
 		void onRender(float dFrame)
@@ -382,22 +381,6 @@ namespace StickMove
 			stick.init(mMoveBound, Vector2(150, 100), Vector2(100, 0));
 			mSticks.push_back(stick);
 			updateGUI();
-		}
-
-
-		void tick()
-		{
-			float dt = gDefaultTickTime / 1000.0f;
-			for( auto& stick : mSticks )
-			{
-				stick.tick(dt);
-			}
-		}
-
-
-		void updateFrame(int frame)
-		{
-
 		}
 
 		MsgReply onMouse(MouseMsg const& msg) override

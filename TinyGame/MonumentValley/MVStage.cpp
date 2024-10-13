@@ -108,7 +108,28 @@ namespace MV
 		cleanup( true );
 	}
 
-	void TestStage::cleanup( bool beDestroy )
+	void TestStage::onUpdate(GameTimeSpan deltaTime)
+	{
+		BaseClass::onUpdate(deltaTime);
+
+		mNavigator.update(deltaTime);
+
+		if (isEditMode)
+		{
+			MeshViewPanel* panel = ::Global::GUI().findTopWidget(UI_MESH_VIEW_PANEL)->cast< MeshViewPanel >();
+			switch (mEditType)
+			{
+			case eEditBlock:
+				panel->idMesh = GModels[editModelId].mesh;
+				break;
+			case eEditMesh:
+				panel->idMesh = editMeshId;
+				break;
+			}
+		}
+	}
+
+	void TestStage::cleanup(bool beDestroy)
 	{
 		mWorld.removeActor( player );
 
@@ -709,25 +730,6 @@ namespace MV
 
 		renderDbgText( pos );
 		g.endRender();
-	}
-
-	void TestStage::tick()
-	{
-		mNavigator.update( gDefaultTickTime / 1000.0f );
-
-		if ( isEditMode )
-		{
-			MeshViewPanel* panel = ::Global::GUI().findTopWidget( UI_MESH_VIEW_PANEL )->cast< MeshViewPanel >();
-			switch( mEditType )
-			{
-			case eEditBlock:
-				panel->idMesh = GModels[ editModelId ].mesh;
-				break;
-			case eEditMesh:
-				panel->idMesh = editMeshId;
-				break;
-			}
-		}
 	}
 
 	void TestStage::renderScene( Mat4 const& viewMatrix , Mat4 const& projectMatrix )

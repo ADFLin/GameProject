@@ -166,13 +166,40 @@ namespace Math
 	//     [ day -dby ]      [tb]      [ dy ]                                           [-day  dax][dy]
 	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, Vector2& outPos)
 	{
+		float t;
+		if (!LineLineTest(posA, dirA, posB, dirB, t))
+			return false;
+
+		outPos = posA + t * dirA;
+		return true;
+	}
+
+	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, float& outT)
+	{
 		float det = dirA.y * dirB.x - dirA.x * dirB.y;
-		if( Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON )
+		if (Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON)
 			return false;
 
 		Vector2 d = posB - posA;
-		float t = (d.y * dirB.x - d.x * dirB.y) / det;
-		outPos = posA + t * dirA;
+		outT = (d.y * dirB.x - d.x * dirB.y) / det;
+		return true;
+	}
+
+	bool LineSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, Vector2& outPos)
+	{
+		Vector2 dirA = posA2 - posA1;
+		Vector2 dirB = posB2 - posB1;
+
+		float det = dirA.y * dirB.x - dirA.x * dirB.y;
+		if (Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON)
+			return false;
+
+		Vector2 d = posB1 - posA1;
+		float tB = (d.y * dirA.x - d.x * dirA.y) / det;
+		if (tB > 1 + FLOAT_EPSILON || tB < -FLOAT_EPSILON)
+			return false;
+
+		outPos = posB1 + tB * dirB;
 		return true;
 	}
 
@@ -187,10 +214,10 @@ namespace Math
 
 		Vector2 d = posB1 - posA1;
 		float tA = (d.y * dirB.x - d.x * dirB.y) / det;
-		if (tA > 1 || tA < 0)
+		if (tA > 1 + FLOAT_EPSILON || tA < -FLOAT_EPSILON)
 			return false;
 		float tB = (d.y * dirA.x - d.x * dirA.y) / det;
-		if (tB > 1 || tB < 0)
+		if (tB > 1 + FLOAT_EPSILON || tB < -FLOAT_EPSILON)
 			return false;
 
 		outPos = posA1 + tA * dirA;
@@ -290,32 +317,6 @@ namespace Math
 		float v = vb / (va + vb + vc);
 		float w = 1.0f - u - v; // = vc / (va + vb + vc)
 		return u * a + v * b + w * c;
-	}
-
-	bool SegmentInterection(Vector2 const& a1, Vector2 const& a2, Vector2 const& b1, Vector2 const& b2, float& fracA)
-	{
-		float x1 = a1.x, x2 = a2.x, x3 = b1.x, x4 = b2.x;
-		float y1 = a1.y, y2 = a2.y, y3 = b1.y, y4 = b2.y;
-
-		float denom = x1 * (y4 - y3) + x2 * (y3 - y4) + x4 * (y2 - y1) + x3 * (y1 - y2);
-
-		//Segments are parallel
-		if (Math::Abs(denom) < FLOAT_DIV_ZERO_EPSILON)
-			return false;
-
-		//Compute numerators
-		float numer1 = x1 * (y4 - y3) + x3 * (y1 - y4) + x4 * (y3 - y1);
-		float numer2 = -(x1 * (y3 - y2) + x2 * (y1 - y3) + x3 * (y2 - y1));
-
-		double s = numer1 / denom;
-		double t = numer2 / denom;
-
-		if (s < -FLOAT_EPSILON || s > 1 + FLOAT_EPSILON ||
-			t < -FLOAT_EPSILON || t > 1 + FLOAT_EPSILON)
-			return  false;
-
-		fracA = s;
-		return true;
 	}
 
 	Vector2 GetCircumcirclePoint(Vector2 const& a, Vector2 const& b, Vector2 const& c)

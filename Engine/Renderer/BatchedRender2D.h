@@ -380,6 +380,7 @@ namespace Render
 		{
 			Color4Type color;
 			bool bRemoveScale;
+			bool bRemoveRotation;
 			FontVertex* vertices;
 			int verticesCount;
 		};
@@ -463,9 +464,9 @@ namespace Render
 		RenderBatchedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
 		RenderBatchedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
 		RenderBatchedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
-		RenderBatchedElement& addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale);
+		RenderBatchedElement& addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale, bool bRemoveRotation);
 		template< typename CharT >
-		RenderBatchedElement& addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale);
+		RenderBatchedElement& addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
 
 		RenderBatchedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 

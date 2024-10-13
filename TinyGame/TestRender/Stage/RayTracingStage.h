@@ -780,29 +780,18 @@ public:
 	}
 
 	void restart() {}
-	void tick() {}
-	void updateFrame(int frame) {}
 
-	void onUpdate(long time) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate(time);
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
-		for (int i = 0; i < frame; ++i)
+		mView.gameTime += deltaTime;
+		if (!mbGamePased)
 		{
-			float dt = gDefaultTickTime / 1000.0;
-			mView.gameTime += dt;
-
-			if (!mbGamePased)
-			{
-				mView.gameTime += dt;
-			}
-			tick();
+			mView.gameTime += deltaTime;
 		}
 
-		float dt = float(time) / 1000;
-		mCamera.updatePosition(dt);
-		updateFrame(frame);
+		mCamera.updatePosition(deltaTime);
 	}
 
 

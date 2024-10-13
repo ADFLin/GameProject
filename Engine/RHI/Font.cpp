@@ -8,10 +8,9 @@
 #include "WinGDIRenderSystem.h"
 #endif //SYS_PLATFORM_WIN
 
-
 #include "FileSystem.h"
-#include <cwchar>
 #include "Core/ScopeGuard.h"
+#include <cwchar>
 
 template< class FormCharT, class ToCharT >
 struct FCharConv
@@ -407,8 +406,7 @@ namespace Render
 		while( *str != 0 )
 		{
 			wchar_t c;
-			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
-			str += num;
+			str += FCharConv< CharT, wchar_t >::Do(str, &c);
 
 			if( c == L'\n' )
 			{
@@ -462,8 +460,8 @@ namespace Render
 		while (*str != 0)
 		{
 			wchar_t c;
-			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
-			str += num;
+			str += FCharConv< CharT, wchar_t >::Do(str, &c);
+			
 			if (c == L'\n')
 			{
 				continue;
@@ -545,8 +543,7 @@ namespace Render
 		while (*str != 0)
 		{
 			wchar_t c;
-			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
-			str += num;
+			str += FCharConv< CharT, wchar_t >::Do(str, &c);
 
 			if (c == L'\n')
 			{

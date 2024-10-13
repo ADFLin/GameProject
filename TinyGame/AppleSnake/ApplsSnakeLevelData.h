@@ -9,14 +9,21 @@
 namespace AppleSnake
 {
 
+#define WITH_META(ID , META) ((ID) | ((META) << 5))
+
 #define B ETile::Block
 #define S ETile::SnakeBody
 #define H ETile::SnakeHead
-#define A ETile::Apple
+#define A WITH_META(ETile::Apple,EApple::Noraml)
+#define Q WITH_META(ETile::Apple,EApple::Gold)
+#define F WITH_META(ETile::Apple,EApple::Fire)
+#define D WITH_META(ETile::Apple,EApple::Double)
+#define N WITH_META(ETile::Apple,EApple::Poison)
 #define G ETile::Goal
 #define R ETile::Rock
 #define T ETile::Trap
 #define P ETile::Portal
+#define C ETile::Cobweb
 
 	struct LevelData
 	{
@@ -81,24 +88,46 @@ namespace AppleSnake
 
 	LevelData LvPortalTest =
 	{
-		Vec2i(9, 4), 1,
+		Vec2i(11, 5), 1,
 		ARRAY_VIEW_REAONLY_DATA(uint8,
-			0,0,0,0,B,0,0,0,0,
-			0,0,0,0,B,0,0,0,0,
-			S,H,R,P,B,P,0,0,G,
-			S,B,B,B,B,B,B,B,B,
+			0,0,0,0,0,B,0,0,0,0,0,
+			S,0,0,0,P,B,0,0,A,0,G,
+			S,S,S,S,H,B,B,P,0,0,0,
+			C,B,B,B,B,B,B,B,B,0,B,
+			A,A,A,A,A,A,A,A,A,A,A,
 		),
-		ARRAY_VIEW_REAONLY_DATA(uint8,0x00,0x02)
+		ARRAY_VIEW_REAONLY_DATA(uint8,0x00,0x03)
 	};
 
+	LevelData LvAppleTest =
+	{
+		Vec2i(9, 10), 1,
+		ARRAY_VIEW_REAONLY_DATA(uint8,
+			0,0,0,0,0,0,0,0,G,
+			0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,
+			0,0,0,0,A,N,A,0,0,
+			0,0,0,0,N,A,N,0,0,
+			0,0,0,0,A,N,A,0,0,
+			S,H,0,0,0,0,0,0,0,
+			B,B,B,B,B,B,B,B,B,
+		)
+	};
 
 #undef B
 #undef S
 #undef H
 #undef A
+#undef Q
+#undef F
+#undef D
 #undef G
 #undef R
 #undef P
+#undef C
+#undef WITH_META
 
 }//namespace AppleSnake
 

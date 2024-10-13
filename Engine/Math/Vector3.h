@@ -3,6 +3,7 @@
 
 #include "Math/Base.h"
 #include "TVector3.h"
+#include "Vector2.h"
 
 namespace Math
 {
@@ -30,6 +31,12 @@ namespace Math
 		template< class T >
 		constexpr explicit Vector3( TVector3<T> const& rhs)
 			:x(ScalarType(rhs.x)),y(ScalarType(rhs.y)),z(ScalarType(rhs.z))
+		{
+
+		}
+
+		constexpr explicit Vector3(Vector2 const& v, float value)
+			:x(v.x), y(v.y), z(value)
 		{
 
 		}
@@ -104,6 +111,8 @@ namespace Math
 
 		static Vector3 Zero(){ return Vector3(0,0,0); }
 		static Vector3 Fill(float s) { return Vector3(s, s, s); }
+
+		Vector2 xy() const { return Vector2(x, y); }
 
 		bool operator == (Vector3 const& rhs) const
 		{

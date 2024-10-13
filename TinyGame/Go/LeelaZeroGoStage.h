@@ -523,16 +523,12 @@ namespace Go
 		bool onInit() override;
 		void postInit() override;
 		void onEnd() override;
-		void onUpdate(long time) override;
+		void onUpdate(GameTimeSpan deltaTime) override;
 
 		void onRender(float dFrame) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;
 		MsgReply onMouse(MouseMsg const& msg) override;
 		MsgReply onKey(KeyMsg const& msg) override;
-
-
-		void tick() {}
-		void updateFrame(int frame) {}
 
 		void cleanupModeData(bool bEndStage = false);
 

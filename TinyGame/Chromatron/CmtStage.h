@@ -30,14 +30,11 @@ namespace Chromatron
 	protected:
 		bool   onInit() override;
 		void   onEnd() override;
-		void   onUpdate( long time ) override;
-		void   onRender( float dFrame ) override;
+		void   onUpdate(GameTimeSpan deltaTime) override;
+		void   onRender(float dFrame) override;
 		bool   onWidgetEvent( int event , int id , GWidget* ui ) override;
 		MsgReply onKey(KeyMsg const& msg) override;
-		MsgReply onMouse( MouseMsg const& msg ) override;
-
-		void   tick();
-		void   updateFrame( int frame );
+		MsgReply onMouse(MouseMsg const& msg) override;
 
 		void   cleanupGameData();
 		bool   loadGameData( int idxPackage , bool loadState );

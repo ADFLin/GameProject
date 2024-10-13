@@ -53,7 +53,7 @@ namespace FlappyBird
 		};
 
 		virtual bool onInit();
-		virtual void onUpdate(long time);
+		virtual void onUpdate(GameTimeSpan deltaTime);
 
 		GameLevel& getLevel() { return mLevel; }
 
@@ -64,11 +64,6 @@ namespace FlappyBird
 		EColResponse notifyBridCollsion(BirdEntity& bird, ColObject& obj);
 
 		void tick();
-
-		void updateFrame( int frame )
-		{
-
-		}
 
 		MsgReply onMouse( MouseMsg const& msg );
 		MsgReply onKey(KeyMsg const& msg);

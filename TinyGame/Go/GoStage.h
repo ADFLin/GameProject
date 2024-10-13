@@ -137,8 +137,9 @@ namespace Go
 		{
 			mMode.exit();
 		}
-		virtual void onUpdate( long time )
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
+			BaseClass::onUpdate(deltaTime);
 			mMode.update();
 		}
 		virtual void onRender( float dFrame );

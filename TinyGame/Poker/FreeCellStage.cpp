@@ -98,9 +98,9 @@ namespace Poker
 
 	}
 
-	void FreeCellStage::onUpdate( long time )
+	void FreeCellStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		mTweener.update( time );
+		mTweener.update( long(deltaTime) );
 	}
 
 	void FreeCellStage::onRender( float dFrame )

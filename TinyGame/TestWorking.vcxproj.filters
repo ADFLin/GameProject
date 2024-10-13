@@ -90,6 +90,13 @@
     <ClCompile Include="AppleSnake\AppleSnakeLevel.cpp">
       <Filter>GameAppleSnake</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\StoreSimStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Collision2D\Bsp2D.cpp" />
+    <ClCompile Include="TestMisc\Stage\Bsp2DStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />

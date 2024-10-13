@@ -93,18 +93,9 @@ public:
 		generate(1, 30);
 	}
 
-	void tick() {}
-	void updateFrame(int frame) {}
-
-	void onUpdate(long time) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate(time);
-
-		int frame = time / gDefaultTickTime;
-		for (int i = 0; i < frame; ++i)
-			tick();
-
-		updateFrame(frame);
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	float   mWidth = 0.05f;

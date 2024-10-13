@@ -148,7 +148,7 @@
     <Link />
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x86;../OtherLib/Boost/lib/x86</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
@@ -185,7 +185,7 @@
     <Link />
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x64;../OtherLib/Dxc;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x64;../OtherLib/Dxc;../OtherLib/Boost/lib/x64</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
@@ -211,7 +211,7 @@
     </ProjectReference>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x86;../OtherLib/Boost/lib/x86</AdditionalLibraryDirectories>
       <ForceFileOutput>Enabled</ForceFileOutput>
     </Link>
     <PostBuildEvent>
@@ -240,7 +240,7 @@
     </ProjectReference>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x64;../OtherLib/Dxc;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Vulkan/Lib/x64;../OtherLib/Dxc;../OtherLib/Boost/lib/x64</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

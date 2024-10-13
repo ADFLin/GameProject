@@ -250,6 +250,8 @@
     </ClCompile>
     <ClCompile Include="TestRender\SplitScreen\Geometry\ConvexPolygon.cpp" />
     <ClCompile Include="TestRender\SplitScreen\Geometry\MaxInscribedCircle.cpp" />
+    <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cpp" />
+    <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cpp" />
     <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiBuilder.cpp" />
     <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
@@ -284,6 +286,7 @@
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\SplitscreenStage.cpp" />
     <ClCompile Include="TestRender\Stage\TemplateRenderingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp" />
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
@@ -324,13 +327,13 @@
   <ItemGroup>
     <None Include="out\Script\RTScene\TestA.chai" />
     <None Include="out\Script\SceneA.chai" />
-    <None Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cs" />
-    <None Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cs" />
+    <None Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.h" />
+    <None Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.h" />
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiBounds.h" />
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiBuilder.h" />
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.h" />
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiEdge.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiNormalizationScope.cs" />
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiNormalizationScope.h" />
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiRegion.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

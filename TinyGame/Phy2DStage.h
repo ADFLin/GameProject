@@ -79,7 +79,7 @@ namespace Phy2D
 
 		virtual void onEnd();
 
-		virtual void onUpdate( long time );
+		virtual void onUpdate(GameTimeSpan time);
 
 		virtual void tick(){}
 		virtual void updateFrame( int frame ){}

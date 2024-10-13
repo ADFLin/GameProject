@@ -147,8 +147,11 @@ namespace CB
 		}
 
 		void restart() {}
-		void tick() 		
+
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
+			BaseClass::onUpdate(deltaTime);
+
 			static float t = 0;
 			t += 1;
 			mMeshBuilder->setTime(t);
@@ -157,7 +160,7 @@ namespace CB
 				PROFILE_ENTRY("Update Surface");
 
 #if USE_PARALLEL_UPDATE
-				for( ShapeBase* current : mSurfaceList )
+				for (ShapeBase* current : mSurfaceList)
 				{
 					mUpdateThreadPool->addFunctionWork([this, current]()
 					{
@@ -166,26 +169,12 @@ namespace CB
 				}
 				mUpdateThreadPool->waitAllWorkComplete();
 #else
-				for( ShapeBase* current : mSurfaceList )
+				for (ShapeBase* current : mSurfaceList)
 				{
 					current->update(*mMeshBuilder);
 				}
 #endif
 			}
-
-		}
-
-		void updateFrame(int frame) {}
-
-		void onUpdate(long time) override
-		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
 		}
 
 		void onRender(float dFrame) override

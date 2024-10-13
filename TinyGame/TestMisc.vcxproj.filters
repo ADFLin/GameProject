@@ -253,9 +253,6 @@
     <ClCompile Include="TestMisc\Stage\RVOTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="TestRender\Stage\SplitscreenStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="TestMisc\Stage\VoronoiStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>

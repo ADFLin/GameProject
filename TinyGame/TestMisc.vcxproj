@@ -492,7 +492,6 @@
     <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp" />
     <ClCompile Include="TestMisc\Test\PWTest.cpp" />
     <ClCompile Include="TestMisc\Test\SpatialIndexTest.cpp" />
-    <ClCompile Include="TestRender\Stage\SplitscreenStage.cpp" />
     <ClCompile Include="TripleTown\TTLevel.cpp" />
     <ClCompile Include="TripleTown\TTScene.cpp" />
     <ClCompile Include="TripleTown\TTStage.cpp" />

@@ -638,11 +638,11 @@ namespace Go
 		BaseClass::onEnd();
 	}
 
-	void LeelaZeroGoStage::onUpdate(long time)
+	void LeelaZeroGoStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		GHook.update(time);
+		GHook.update(long(deltaTime));
 
-		BaseClass::onUpdate(time);
+		BaseClass::onUpdate(deltaTime);
 
 		if( mGameMode == GameMode::Match )
 		{
@@ -686,7 +686,7 @@ namespace Go
 			}
 			else
 			{
-				keepLeelaProcessRunning(time);
+				keepLeelaProcessRunning(long(deltaTime));
 			}
 			
 		}
@@ -731,12 +731,6 @@ namespace Go
 		}
 
 		bPrevGameCom = false;
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0; i < frame; ++i )
-			tick();
-
-		updateFrame(frame);
 	}
 
 

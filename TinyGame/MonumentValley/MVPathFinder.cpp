@@ -4,12 +4,12 @@
 
 namespace MV
 {
-	struct AStarNode : AStar::NodeBaseT< AStarNode , FindState , int >
+	struct AStarNode : AStar::NodeBaseT< AStarNode , FindState , float >
 	{
 		AStarNode* child;
 
 		BlockSurface& getSurface()
-		{ 
+		{
 			return state.block->getLocalFace(state.faceDirL);
 		}
 	};

@@ -73,15 +73,7 @@ namespace MV
 		bool onInit();
 		void onEnd();
 
-		void onUpdate(long time)
-		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-			updateFrame( frame );
-		}
+		void onUpdate(GameTimeSpan deltaTime);
 		void onRender( float dFrame );
 
 		bool onWidgetEvent(int event, int id, GWidget* ui);
@@ -96,13 +88,7 @@ namespace MV
 
 		void cleanup( bool beDestroy );
 		void restart( bool bInit );
-		void tick();
 
-
-		void updateFrame( int frame )
-		{
-
-		}
 
 		bool saveLevel( char const* path );
 		void clearLevel();

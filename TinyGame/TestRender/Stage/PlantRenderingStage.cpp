@@ -188,9 +188,9 @@ namespace Render
 		return true;
 	}
 
-	void PlantRenderingStage::onUpdate(long time)
+	void PlantRenderingStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		BaseClass::onUpdate(time);
+		BaseClass::onUpdate(deltaTime);
 
 		if (mPendingBuildMask)
 		{
@@ -210,12 +210,6 @@ namespace Render
 
 			mPendingBuildMask = 0;
 		}
-
-		int frame = time / gDefaultTickTime;
-		for (int i = 0; i < frame; ++i)
-			tick();
-
-		updateFrame(frame);
 	}
 
 	void PlantRenderingStage::onRender(float dFrame)

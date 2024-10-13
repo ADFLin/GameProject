@@ -72,9 +72,9 @@ namespace P2G
 
 		}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			float deltaTime = time / 1000.0f;
+			BaseClass::onUpdate(deltaTime);
 			mWorld.tick(deltaTime);
 		}
 

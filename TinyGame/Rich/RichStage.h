@@ -258,7 +258,7 @@ namespace Rich
 			}
 		}
 
-		virtual void onUpdate( long time )
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
 			if (mbPauseGame)
 			{
@@ -266,7 +266,8 @@ namespace Rich
 			}
 
 			int accFactor = 15;
-			BaseClass::onUpdate(accFactor * time );
+			deltaTime.value *= 15;
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		virtual void onWorldMsg( WorldMsg const& msg )

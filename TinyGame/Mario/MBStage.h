@@ -26,15 +26,11 @@ namespace Mario
 			return true;
 		}
 
-		virtual void onUpdate(long time)
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
+			tick();
 		}
 
 		void restart();
@@ -42,10 +38,6 @@ namespace Mario
 
 		void tick();
 
-		void updateFrame(int frame)
-		{
-
-		}
 
 		void onRender(float dFrame);
 

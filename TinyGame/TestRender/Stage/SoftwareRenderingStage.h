@@ -577,18 +577,15 @@ namespace SR
 			BaseClass::onEnd();
 		}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
-			int frame = time / gDefaultTickTime;
 			if( !bPause )
 			{
-				for( int i = 0; i < frame; ++i )
-					tick();
+				angle += deltaTime;
+				mCameraControl.updatePosition(deltaTime);
 			}
-
-			updateFrame(frame);
 		}
 
 		void renderTest1(RenderTarget& renderTarget);
@@ -624,19 +621,6 @@ namespace SR
 
 		bool bPause = false;
 		float angle = 0;
-
-		void tick()
-		{
-			float deltaTime = float(gDefaultTickTime) / 1000.0;
-			angle += deltaTime;
-
-			mCameraControl.updatePosition(deltaTime);
-		}
-
-		void updateFrame(int frame)
-		{
-
-		}
 
 		MsgReply onMouse(MouseMsg const& msg) override
 		{

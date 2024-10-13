@@ -317,7 +317,6 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="AngryBird\AngryBirdStage.cpp" />
     <ClCompile Include="AngryBird\GameObject.cpp" />
     <ClCompile Include="AngryBird\HeaderPCH.cpp" />
-    <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Gomoku\GomokuCore.cpp" />
     <ClCompile Include="Gomoku\GomokuStage.cpp" />
     <ClCompile Include="Go\Bots\AQBot.cpp" />
@@ -390,7 +389,6 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="..\va_stdafx.h" />
     <ClInclude Include="AngryBird\GameObject.h" />
     <ClInclude Include="AngryBird\HeaderPCH.h" />
-    <ClInclude Include="Bsp2D.h" />
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Gomoku\GomokuCore.h" />
     <ClInclude Include="Gomoku\GomokuStage.h" />

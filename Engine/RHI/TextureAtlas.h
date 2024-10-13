@@ -29,7 +29,11 @@ namespace Render
 
 		void getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const;
 		void getRectUVSizeChecked(int id, Vector2& outPos, Vector2& outSize) const;
+		Vector2 converUVChecked(int id, Vector2 const& inUV) const;
+
 		bool getRectSize(int id, IntVector2& outSize ) const;
+
+
 		IntVector2 getRectSizeChecked(int id) const;
 
 

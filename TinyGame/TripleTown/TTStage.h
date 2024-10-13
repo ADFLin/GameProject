@@ -64,11 +64,11 @@ namespace TripleTown
 			}
 			return BaseClass::onWidgetEvent(event, id, ui); 
 		}
-		void onUpdate( long time ) override
+		void onUpdate(GameTimeSpan time) override
 		{
-			BaseClass::onUpdate( time );
+			BaseClass::onUpdate(time);
 
-			int frame = time / gDefaultTickTime;
+			int frame = long(time) / gDefaultTickTime;
 			for( int i = 0 ; i < frame ; ++i )
 				tick();
 			updateFrame( frame );

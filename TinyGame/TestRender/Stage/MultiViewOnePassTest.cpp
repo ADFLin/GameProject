@@ -69,9 +69,9 @@ public:
 	}
 
 
-	void onUpdate(long time) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	MultiViewOnePassProgram* mProgram;

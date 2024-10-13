@@ -151,7 +151,7 @@ namespace Zuma
 			BaseClass::onEnd();
 
 		}
-		virtual void onUpdate( long time ){ mGameCore->update( time ); }
+		virtual void onUpdate(GameTimeSpan deltaTime){ mGameCore->update( long(deltaTime) ); }
 		virtual void onRender( float dFrame )
 		{ 
 			mGameCore->render( dFrame ); 

@@ -12,9 +12,9 @@ StageBase::~StageBase()
 
 }
 
-void StageBase::update( long time )
+void StageBase::update(GameTimeSpan time)
 {
-	TaskHandler::runTask( time );
+	TaskHandler::runTask( long(time) );
 	onUpdate( time );
 }
 

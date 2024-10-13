@@ -124,16 +124,13 @@ namespace Bloxorz
 
 		virtual bool onInit();
 		virtual void onEnd();
-		virtual void onUpdate( long time );
+		virtual void onUpdate(GameTimeSpan deltaTime);
 		void onRender( float dFrame );
 
 		void restart();
-		void tick();
 		
 		void requestMove( Dir dir );
 		void moveObject();
-
-		void updateFrame( int frame );
 
 		MsgReply onMouse( MouseMsg const& msg );
 		MsgReply onKey(KeyMsg const& msg);

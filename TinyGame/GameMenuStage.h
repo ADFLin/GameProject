@@ -25,7 +25,7 @@ public:
 
 	GameMenuStage();
 	bool onInit() override;
-	void onUpdate( long time ) override;
+	void onUpdate(GameTimeSpan deltaTime) override;
 	MsgReply onMouse(MouseMsg const& msg) override;
 	MsgReply onKey(KeyMsg const& msg) override;
 

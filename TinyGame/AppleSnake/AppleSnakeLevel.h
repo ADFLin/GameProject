@@ -57,7 +57,8 @@ namespace AppleSnake
 		struct Body
 		{
 			Vec2i   pos;
-			DirType dir;
+			DirType moveDir;
+			DirType linkDir;
 		};
 
 		Snake() {}
@@ -77,41 +78,67 @@ namespace AppleSnake
 
 		void    moveStep(DirType moveDir)
 		{
-			Body& body = mBodies[mIdxTail];
+			Body& head = mBodies[mIdxHead];
+			head.linkDir = moveDir;
 
-			Body const& head = getHead();
-			body.dir = moveDir;
+			int indexTail = getTailIndex();
+			Body& body = mBodies[indexTail];
+			body.moveDir = moveDir;
+			body.linkDir = moveDir;
 			body.pos = head.pos + GetDirOffset(moveDir);
 
-			mIdxHead = mIdxTail;
-			++mIdxTail;
-			if (mIdxTail >= mBodies.size())
-				mIdxTail = 0;
+			mIdxHead = indexTail;
 		}
 
-		void    moveStep(Vec2i const& pos, DirType moveDir)
+		void    moveStep(Vec2i const& pos, DirType actionDir, DirType moveDir)
 		{
-			Body& body = mBodies[mIdxTail];
-			body.dir = moveDir;
+			Body& head = mBodies[mIdxHead];
+			head.linkDir = actionDir;
+
+			int indexTail = getTailIndex();
+			Body& body = mBodies[indexTail];
+			body.moveDir = moveDir;
+			body.linkDir = moveDir;
 			body.pos = pos;
 
-			mIdxHead = mIdxTail;
-			++mIdxTail;
-			if (mIdxTail >= mBodies.size())
-				mIdxTail = 0;
+			mIdxHead = indexTail;
 		}
 
 		void    growBody(size_t num = 1)
 		{
-			Body newBody = mBodies[mIdxTail];
-			mBodies.insert(mBodies.begin() + mIdxTail, num, newBody);
+			int indexTail = getTailIndex();
+			Body newBody = mBodies[indexTail];
+			mBodies.insert(mBodies.begin() + indexTail, num, newBody);
 
 			//resolve case : [ Tail ] [][]....[][ Head ]
-			if (mIdxTail <= mIdxHead)
+			if (indexTail == 0)
 				mIdxHead += num;
 		}
+
+		void       addTial(DirType dir)
+		{
+			int indexTail = getTailIndex();
+			Body newBody = mBodies[indexTail];
+			newBody.moveDir = dir;
+			newBody.linkDir = dir;
+			newBody.pos += GetDirOffset(InverseDir(dir));
+			mBodies.insert(mBodies.begin() + indexTail, 1, newBody);
+
+			//resolve case : [ Tail ] [][]....[][ Head ]
+			if (indexTail == 0)
+				mIdxHead += 1;
+		}
+
 		Body const& getHead() const { return mBodies[mIdxHead]; }
-		Body const& getTail() const { return mBodies[mIdxTail]; }
+		Body const& getTail() const { return mBodies[getTailIndex()]; }
+		int  getTailIndex() const
+		{
+			int index = mIdxHead + 1;
+			if (index == mBodies.size())
+				index = 0;
+			return index;
+		}
+
 		Body& getBody(int index)
 		{
 			CHECK(0 <= index && index < mBodies.size());
@@ -139,65 +166,109 @@ namespace AppleSnake
 			}
 		}
 
+		void splitFront(Snake& outSnake)
+		{
+
+
+		}
+
+		void removeBack(int numRemoved)
+		{
+			int indexTail = getTailIndex();
+			if (indexTail > mIdxHead)
+			{
+				int num = mBodies.size() - indexTail;
+				if (numRemoved >= num)
+				{
+					int numCheck = mBodies.eraseToEnd(mBodies.begin() + indexTail);
+					CHECK(numCheck == num);
+					numRemoved -= num;
+				}
+				else
+				{
+					auto it = mBodies.begin() + indexTail;
+					mBodies.erase(it, it + numRemoved);
+					numRemoved = 0;
+				}
+			}
+
+			if (numRemoved)
+			{
+				mBodies.erase(mBodies.begin(), mBodies.begin() + numRemoved);
+				mIdxHead = mBodies.size() - 1;
+			}
+		}
+
+		void splitBack(int indexStart, Snake& outSnake)
+		{
+			outSnake.mBodies.clear();
+			for (int index = mBodies.size() - 1; index >= indexStart; --index)
+			{
+				outSnake.mBodies.push_back(getBody(index));
+			}
+			outSnake.mIdxHead = outSnake.mBodies.size() - 1;
+
+			removeBack(outSnake.mBodies.size());
+		}
+
 		typedef TArray< Body > BodyList;
 		class Iterator
 		{
 		public:
 			Body const& getElement() { return mBodies[mIdxCur]; }
 			int  getIndex() { return mCount; }
-			bool haveMore() { return mCount < mBodies.size(); }
+			bool haveMore() { return mCount < (int)mBodies.size(); }
 			void goNext()
 			{
 				++mCount;
 				if (mIdxCur == 0)
-					mIdxCur = (unsigned)mBodies.size();
+					mIdxCur = (int)mBodies.size();
 				--mIdxCur;
 			}
-			bool isTail() const { return mCount == mBodies.size() - 1; }
+			bool isTail() const { return mCount == (int)mBodies.size() - 1; }
 		private:
 			Iterator(BodyList const& bodies, unsigned idxHead)
 				:mBodies(bodies), mIdxCur(idxHead), mCount(0)
 			{
 			}
 			BodyList const& mBodies;
-			size_t   mCount;
-			unsigned mIdxCur;
+			int mCount;
+			int mIdxCur;
 			friend class Snake;
 		};
 
-		Iterator       createIterator() { return Iterator(mBodies, mIdxHead); }
+		Iterator    createIterator() { return Iterator(mBodies, mIdxHead); }
 		Body const& getElementByIndex(unsigned idx) { return mBodies[idx]; }
 
 
-		void       addTial(DirType dir)
-		{
-			Body newBody = mBodies[mIdxTail];
-			newBody.dir = dir;
-			newBody.pos += GetDirOffset(InverseDir(dir));
-			mBodies.insert(mBodies.begin() + mIdxTail, 1, newBody);
-
-			//resolve case : [ Tail ] [][]....[][ Head ]
-			if (mIdxTail <= mIdxHead)
-				mIdxHead += 1;
-		}
-
+	
 		void       reset(Vec2i const& pos, DirType dir, size_t length)
 		{
-			mIdxTail = 0;
 			mIdxHead = length - 1;
 
 			mBodies.clear();
 			Body body;
 			body.pos = pos;
-			body.dir = dir;
+			body.moveDir = dir;
+			body.linkDir = dir;
 			mBodies.resize(length, body);
 		}
 	private:
 		BodyList  mBodies;
-		unsigned  mIdxTail;
 		unsigned  mIdxHead;
 	};
 
+	template< typename T, typename ...TArgs >
+	constexpr uint32 MakeBitFlags(T value, TArgs ...args)
+	{
+		return BIT(value) | MakeBitFlags(args...);
+	}
+
+	template< typename T >
+	constexpr uint32 MakeBitFlags(T value)
+	{
+		return BIT(value);
+	}
 
 	namespace ETile
 	{
@@ -209,37 +280,32 @@ namespace AppleSnake
 			Goal,
 			Trap,
 			Portal,
+			Cobweb,
 
 			//Entity
 			Rock,
 
-
+			SnakeDead,
 			SnakeHead,
 			SnakeBody,
 		};
 
-		FORCEINLINE bool IsEntity(uint8 id)
-		{
-			if (id == ETile::Rock)
-				return true;
 
-			return false;
+		FORCEINLINE bool IsEntity(uint8 tileId)
+		{
+			constexpr uint32 BitFlags = MakeBitFlags(ETile::Rock, ETile::SnakeDead);
+			return !!(BitFlags & BIT(tileId));
 		}
 
-		template< typename T , typename ...TArgs >
-		constexpr uint32 MakeBitFlags(T value , TArgs ...args)
+		FORCEINLINE static bool CanEnityMoveTo(uint8 tileId)
 		{
-			return BIT(value) | MakeBitFlags(args...);
+			constexpr uint32 BitFlags = MakeBitFlags(ETile::None, ETile::Trap, ETile::Portal, ETile::Cobweb);
+			return !!(BitFlags & BIT(tileId));
 		}
 
-		template< typename T >
-		constexpr uint32 MakeBitFlags(T value)
-		{
-			return BIT(value);
-		}
 		FORCEINLINE static bool CanMoveTo(uint8 tileId)
 		{
-			constexpr uint32 BitFlags = MakeBitFlags(ETile::None, ETile::Goal, ETile::Apple, ETile::Trap, ETile::Portal);
+			constexpr uint32 BitFlags = MakeBitFlags(ETile::None, ETile::Goal, ETile::Apple, ETile::Trap, ETile::Portal, ETile::Cobweb);
 			return !!(BitFlags & BIT(tileId));
 		}
 	
@@ -261,13 +327,31 @@ namespace AppleSnake
 
 		FORCEINLINE bool CanFallIn(uint8 tileId)
 		{
-			constexpr uint32 BitFlags = MakeBitFlags(ETile::None, ETile::SnakeBody, ETile::Trap, ETile::Portal);
+			constexpr uint32 BitFlags = MakeBitFlags(ETile::None, ETile::SnakeBody, ETile::Trap, ETile::Portal, ETile::Cobweb);
+			return !!(BitFlags & BIT(tileId));
+		}
+
+		FORCEINLINE bool CanEat(uint8 tileId)
+		{
+			constexpr uint32 BitFlags = MakeBitFlags(ETile::Apple);
 			return !!(BitFlags & BIT(tileId));
 		}
 
 	}
 
-	class WorldData
+	namespace EApple
+	{
+		enum Type
+		{
+			Noraml,
+			Fire,
+			Gold,
+			Double,
+			Poison,
+		};
+	};
+
+	class World
 	{
 	public:
 
@@ -285,6 +369,7 @@ namespace AppleSnake
 			uint8 id;
 			Vec2i pos;
 			uint8 meta;
+			uint8 flags = 0;
 		};
 
 		struct Portal
@@ -295,22 +380,51 @@ namespace AppleSnake
 			int     link;
 		};
 
-		Snake mSnake;
-		TGrid2D<Tile>    mMap;
-		TArray< Entity > mEntities;
-		TArray<Portal>   mPortals;
-
-		int getEntityIndex(Vec2i const& pos)
+		struct DeadSnake : Snake
 		{
-			return mEntities.findIndexPred([&](auto const& e) { return e.pos == pos; });
+			int entityIndex;
+		};
+
+		Snake mSnake;
+		TGrid2D<Tile>      mMap;
+		TArray<Entity>     mEntities;
+		TArray<Portal>     mPortals;
+		TArray<DeadSnake>  mDeadSnakes;
+
+		void addDeadSnake(DeadSnake&& snake)
+		{
+			snake.entityIndex = mEntities.size();
+			Entity e;
+			e.id = ETile::SnakeDead;
+			e.pos = snake.getHead().pos;
+			e.meta = mDeadSnakes.size();
+			for (int i = 0; i < snake.getLength(); ++i)
+			{
+				auto& body = snake.getBody(i);
+				body.pos -= e.pos;
+			}
+			mEntities.push_back(e);
+			mDeadSnakes.push_back(std::move(snake));
 		}
 
+
+		Portal& getPortalChecked(Vec2i const& pos)
+		{
+			auto const& tile = mMap(pos);
+			CHECK(tile.id == ETile::Portal);
+			return mPortals[tile.meta];
+		}
+
+		int getEntityIndex(Vec2i const& pos);
+
+		bool checkMoveTo(Entity& entity, DirType dir, bool bSnakeMove);
+
 		uint8 getTile(Vec2i const& pos, bool bCheckEntity = true);
-		uint8 getThing(Vec2i const& pos);
+		uint8 getThing(Vec2i const& pos, bool bCheckEntity = true);
 		int   getSnakeBody(Vec2i const& pos);
 
 		bool checkSnakeFall();
-		int checkPortalMove(Vec2i pos, DirType dir, Vec2i& outPos, DirType& outDir);
+		int  checkPortalMove(Vec2i pos, DirType dir, Vec2i& outPos, DirType& outDir);
 
 	};
 

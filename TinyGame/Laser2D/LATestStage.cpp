@@ -59,18 +59,10 @@ namespace Laser2D
 		}
 
 		void restart() {}
-		void tick() {}
-		void updateFrame(int frame) {}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for (int i = 0; i < frame; ++i)
-				tick();
-
-			updateFrame(frame);
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		void onRender(float dFrame) override

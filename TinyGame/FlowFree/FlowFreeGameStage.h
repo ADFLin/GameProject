@@ -68,22 +68,13 @@ namespace FlowFree
 		}
 
 		void restart();
-		void tick() {}
-		void updateFrame(int frame) {}
-
 
 		Vec2i ToScreenPos(Vec2i const& cellPos);
 		Vec2i ToCellPos(Vec2i const& screenPos);
 
-		virtual void onUpdate(long time) override
+		virtual void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		void onRender(float dFrame) override;

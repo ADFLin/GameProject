@@ -129,22 +129,12 @@ namespace Mine
 
 			mapOrigin.x = (::Global::GetScreenSize().x - LengthCell * mLevel.mCells.getSizeX()) / 2;
 		}
-		void tick() {}
-		void updateFrame(int frame) {}
 
-		virtual void onUpdate(long time)
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
+			BaseClass::onUpdate(deltaTime);
 
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for (int i = 0; i < frame; ++i)
-				tick();
-
-			updateFrame(frame);
-
-			float dt = float(time) / 1000;
-			mTweener.update(dt);
+			mTweener.update(deltaTime);
 		}
 		Vec2i mapOrigin = Vec2i(20, 20);
 		int const LengthCell = 24;

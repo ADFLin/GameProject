@@ -70,11 +70,11 @@ public:
 		mGame->exit();
 	}
 
-	virtual void onUpdate(long time) override
+	virtual void onUpdate(GameTimeSpan deltaTime) override
 	{
 		if (mGame == nullptr)
 			return;
-		mGame->tick(float(time) / 1000);
+		mGame->tick(deltaTime);
 	}
 
 	virtual void onRender(float dFrame) override

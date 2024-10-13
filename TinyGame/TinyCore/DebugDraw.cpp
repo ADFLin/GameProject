@@ -1,6 +1,7 @@
 #include "DebugDraw.h"
 #include "DataStructure/Array.h"
 #include "GameGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 class DebugDrawBatcher : public IDebugDrawBatcher
 {
@@ -58,11 +59,21 @@ public:
 
 	void render(IGraphics2D& g)
 	{
+		float scale = 1.0f;
+		if (g.isUseRHI())
+		{
+			scale = 1.0 / g.getImpl<RHIGraphics2D>().getTransformStack().get().getScale().x;
+			g.getImpl<RHIGraphics2D>().setTextRemoveScale(true);
+			g.getImpl<RHIGraphics2D>().setTextRemoveRotation(true);
+		}
+
 		for (auto const& point : mPoints)
 		{
 			g.setPen(point.color);
 			g.setBrush(point.color);
-			g.drawRect(point.pos - Vector2(point.size, point.size) / 2, Vector2(point.size, point.size));
+
+			Vector2 size = scale * Vector2(point.size, point.size);
+			g.drawRect(point.pos - size / 2, size);
 		}
 
 		for (auto const& line : mLines)

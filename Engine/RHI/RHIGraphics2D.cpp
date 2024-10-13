@@ -524,7 +524,7 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 		}
 	}
 
-	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, charCount, bRemoveScale);
+	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
 	setupElement(element);
 	setBlendState(prevMode);
 }

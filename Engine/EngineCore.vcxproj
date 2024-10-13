@@ -331,6 +331,7 @@
     <ClInclude Include="BehaviorTree\NodeExpression.h" />
     <ClInclude Include="BehaviorTree\TreeBuilder.h" />
     <ClInclude Include="BehaviorTree\Visitor.h" />
+    <ClInclude Include="Collision2D\Bsp2D.h" />
     <ClInclude Include="Collision2D\SATSolver.h" />
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\CRC.h" />

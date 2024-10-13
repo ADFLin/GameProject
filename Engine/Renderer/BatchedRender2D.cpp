@@ -373,7 +373,7 @@ namespace Render
 		return *element;
 	}
 
-	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale)
+	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, TArray< FontVertex > const& vertices, bool bRemoveScale, bool bRemoveRotation)
 	{
 		TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
 		element->type = RenderBatchedElement::Text;
@@ -382,13 +382,13 @@ namespace Render
 		FMemory::Copy(element->payload.vertices, vertices.data(), vertices.size() * sizeof(FontVertex));
 		element->payload.verticesCount = vertices.size();
 		element->payload.bRemoveScale = bRemoveScale;
-
+		element->payload.bRemoveRotation = bRemoveRotation;
 		return *element;
 	}
 
 
 	template< typename CharT >
-	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale)
+	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, Vector2 const& pos, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale, bool bRemoveRotation)
 	{
 		CHECK(charCount > 0);
 
@@ -399,13 +399,14 @@ namespace Render
 		element->payload.vertices = (FontVertex*)mAllocator.alloc(verticesCount * sizeof(FontVertex));
 		element->payload.verticesCount = verticesCount;
 		element->payload.bRemoveScale = bRemoveScale;
+		element->payload.bRemoveRotation = bRemoveRotation;
 		front.generateVertices(pos, str, element->payload.vertices);
 
 		return *element;
 	}
 
-	template RenderBatchedElement& RenderBatchedElementList::addText<char>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, char const* str, int charCount, bool bRemoveScale);
-	template RenderBatchedElement& RenderBatchedElementList::addText<wchar_t>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, wchar_t const* str, int charCount, bool bRemoveScale);
+	template RenderBatchedElement& RenderBatchedElementList::addText<char>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, char const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
+	template RenderBatchedElement& RenderBatchedElementList::addText<wchar_t>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, wchar_t const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
 
 	RenderBatchedElement& RenderBatchedElementList::addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
 	{
@@ -1074,10 +1075,21 @@ namespace Render
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
 
-					if (payload.bRemoveScale)
+					if (payload.bRemoveScale || payload.bRemoveRotation)
 					{
 						RenderTransform2D transform = element->transform;
-						transform.removeScale();
+						if (payload.bRemoveRotation)
+						{
+							if (payload.bRemoveScale)
+								transform.removeScaleAndRotation();
+							else
+								transform.removeRotation();
+						}
+						else if (payload.bRemoveScale)
+						{
+							transform.removeScale();
+						}
+
 						Vector2 pos = element->transform.transformPosition(pSrcVertices[0].pos);
 						Vector2 v0 = pSrcVertices[0].pos;
 						for (int i = 0; i < numChar; ++i)

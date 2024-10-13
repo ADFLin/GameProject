@@ -16,7 +16,7 @@ namespace Bejeweled
 
 		bool onInit();
 		void postInit();
-		void onUpdate( long time );
+		void onUpdate(GameTimeSpan deltaTime);
 		void onRender( float dFrame );
 
 		void restart();

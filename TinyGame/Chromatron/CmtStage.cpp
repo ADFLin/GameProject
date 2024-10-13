@@ -140,40 +140,6 @@ namespace Chromatron
 		return false;
 	}
 
-	void LevelStage::tick()
-	{
-		mScene.tick();
-
-		State& state = mLevels[ mIndexLevel ].state;
-		switch( state )
-		{
-		case eHAVE_SOLVED:
-		case eUNSOLVED:
-			if ( getCurLevel().isGoal() )
-			{
-				++mNumLevelSolved;
-				state = eSOLVED;
-				if ( state == eUNSOLVED )
-				{
-					tryUnlockLevel();
-				}
-			}
-			break;
-		case eSOLVED:
-			if ( !getCurLevel().isGoal() )
-			{
-				--mNumLevelSolved;
-				state = eHAVE_SOLVED;
-			}
-			break;
-		}
-	}
-
-	void LevelStage::updateFrame( int frame )
-	{
-		mScene.updateFrame( frame );
-	}
-
 	MsgReply LevelStage::onMouse( MouseMsg const& msg )
 	{
 		mScene.procMouseMsg( msg );
@@ -367,13 +333,33 @@ namespace Chromatron
 		return true;
 	}
 
-	void LevelStage::onUpdate( long time )
+	void LevelStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
+		mScene.tick(deltaTime);
 
-		updateFrame( frame );
+		State& state = mLevels[mIndexLevel].state;
+		switch (state)
+		{
+		case eHAVE_SOLVED:
+		case eUNSOLVED:
+			if (getCurLevel().isGoal())
+			{
+				++mNumLevelSolved;
+				state = eSOLVED;
+				if (state == eUNSOLVED)
+				{
+					tryUnlockLevel();
+				}
+			}
+			break;
+		case eSOLVED:
+			if (!getCurLevel().isGoal())
+			{
+				--mNumLevelSolved;
+				state = eHAVE_SOLVED;
+			}
+			break;
+		}
 	}
 
 	bool LevelStage::saveGameLevelState()

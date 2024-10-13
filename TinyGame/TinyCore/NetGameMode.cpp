@@ -446,7 +446,7 @@ void NetRoomStage::onServerEvent( EventID event , unsigned msg )
 	
 }
 
-void NetRoomStage::onUpdate( long time )
+void NetRoomStage::onUpdate(GameTimeSpan deltaTime)
 {
 	if (mServer)
 	{
@@ -467,13 +467,13 @@ void NetRoomStage::onUpdate( long time )
 			bFired = false;
 		}
 	}
-	BaseClass::onUpdate( time );
+	BaseClass::onUpdate(deltaTime);
 	if ( mNeedSendSetting && SystemPlatform::GetTickCount() - mLastSendSetting > 500 )
 	{
 		sendGameSetting();
 		mNeedSendSetting = false;
 	}
-	::Global::GUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
+	::Global::GUI().updateFrame( long(deltaTime) / gDefaultTickTime , gDefaultTickTime );
 }
 
 void NetRoomStage::procPlayerState( IComPacket* cp )

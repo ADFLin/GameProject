@@ -101,8 +101,8 @@ namespace Tetris
 		};
 		bool onInit();
 		void doChangeWidgetGroup( StageGroupID group );
-		void onUpdate( long time );
-		void onRender( float dFrame );
+		void onUpdate(GameTimeSpan deltaTime);
+		void onRender(float dFrame);
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 
 
@@ -115,8 +115,8 @@ namespace Tetris
 	{
 	public:
 		virtual bool onInit();
-		virtual void onUpdate( long time );
-		virtual void onRender( float dFrame );
+		virtual void onUpdate(GameTimeSpan deltaTime);
+		virtual void onRender(float dFrame);
 
 		struct PieceSprite
 		{
@@ -146,8 +146,8 @@ namespace Tetris
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 		MsgReply onKey(KeyMsg const& msg);
 		bool onInit();
-		void onUpdate( long time );
-		void onRender( float dFrame );
+		void onUpdate(GameTimeSpan deltaTime);
+		void onRender(float dFrame);
 
 		void setPlayerOrder( int order );
 		void renderRecord( GWidget* ui );

@@ -525,9 +525,9 @@ namespace Render
 
 		TStructuredBuffer<ParticleData> mParticleBuffer;
 
-		void tick() override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::tick();
+			BaseClass::onUpdate(deltaTime);
 			generateTestData();
 		}
 

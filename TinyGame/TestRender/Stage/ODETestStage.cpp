@@ -423,20 +423,21 @@ namespace ODE
 		Trajectory mTrace2;
 		Scalar accTime = 0;
 
-		void tick() 
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
+			BaseClass::onUpdate(deltaTime);
+
 			Scalar dt = 0.001;
 
-			accTime += gDefaultTickTime / 1000.0;
-			if ( accTime > dt )
+			accTime += deltaTime;
+			if (accTime > dt)
 			{
 				do
 				{
 					mDP.simulate(dt);
 					mEP.simulate(dt);
 					accTime -= dt;
-				}
-				while (accTime > dt);
+				} while (accTime > dt);
 				{
 					Vector2 p1 = mDP.l1 * Vector2(sin(mDP.theta[0]), cos(mDP.theta[0]));
 					Vector2 p2 = p1 + mDP.l2 * Vector2(sin(mDP.theta[1]), cos(mDP.theta[1]));
@@ -447,18 +448,6 @@ namespace ODE
 					mTrace2.addPoint(p1);
 				}
 			}
-		}
-		void updateFrame(int frame) {}
-
-		void onUpdate(long time) override
-		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for (int i = 0; i < frame; ++i)
-				tick();
-
-			updateFrame(frame);
 		}
 
 

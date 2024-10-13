@@ -130,10 +130,8 @@ namespace Render
 		}
 
 		void restart() {}
-		void tick() {}
-		void updateFrame(int frame) {}
 
-		void onUpdate(long time) override;
+		void onUpdate(GameTimeSpan deltaTime) override;
 
 		void onRender(float dFrame) override;
 

@@ -275,26 +275,15 @@ namespace Render
 		}
 
 		void restart() override {}
-		void tick() override {}
-		void updateFrame(int frame) override {}
 
 
 		float angle = 0;
 		float worldTime = 0;
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
-
-		
-			worldTime += time / float(1000);
-
+			BaseClass::onUpdate(deltaTime);
+			worldTime += deltaTime;
 			Offset = sin(worldTime);
 		}
 

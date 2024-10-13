@@ -32,11 +32,11 @@ namespace Bejeweled
 		restart();
 	}
 
-	void TestStage::onUpdate(long time)
+	void TestStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		BaseClass::onUpdate( time );
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
+		int frame = long(deltaTime) / gDefaultTickTime;
 		for( int i = 0 ; i < frame ; ++i )
 			tick();
 

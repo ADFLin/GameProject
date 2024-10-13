@@ -58,7 +58,7 @@ public:
 protected:
 	//StageBase
 	virtual bool onInit();
-	virtual void onUpdate( long time ){}
+	virtual void onUpdate(GameTimeSpan deltaTime){}
 	virtual void onEnd(){}
 	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 

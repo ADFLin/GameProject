@@ -91,15 +91,10 @@ namespace Cube
 
 		virtual bool onInit();
 
-		virtual void onUpdate( long time )
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate( time );
+			BaseClass::onUpdate(deltaTime);
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
 		}
 
 		void onRender( float dFrame )
@@ -108,19 +103,7 @@ namespace Cube
 			mScene->render( mCamera );
 		}
 
-
 		void restart()
-		{
-
-		}
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
 		{
 
 		}

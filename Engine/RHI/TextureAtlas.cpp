@@ -128,7 +128,7 @@ namespace Render
 	void TextureAtlas::getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const
 	{
 		auto* node = mHelper.getNodeChecked(id);
-		assert(node);
+		CHECK(node);
 		auto const& rect = node->rect;
 		outMin = mInvSize.mul(Vector2(rect.x + mBorder, rect.y + mBorder));
 		outMax = mInvSize.mul(Vector2(rect.x + rect.w - mBorder, rect.y + rect.h - mBorder));
@@ -141,6 +141,15 @@ namespace Render
 		auto const& rect = node->rect;
 		outPos = mInvSize.mul(Vector2(rect.x + mBorder, rect.y + mBorder));
 		outSize = mInvSize.mul(Vector2(rect.w - 2 * mBorder, rect.h - 2 * mBorder));
+	}
+
+	Vector2 TextureAtlas::converUVChecked(int id, Vector2 const& inUV) const
+	{
+		auto* node = mHelper.getNodeChecked(id);
+		CHECK(node);
+		auto const& rect = node->rect;
+		Vector2 pos = Vector2(rect.x + mBorder, rect.y + mBorder) + Vector2(rect.w - 2 * mBorder, rect.h - 2 * mBorder) * inUV;
+		return mInvSize.mul(pos);
 	}
 
 	bool TextureAtlas::getRectSize(int id, IntVector2& outSize) const

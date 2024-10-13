@@ -298,30 +298,6 @@ public:
 		step = 0;
 	}
 
-	void tick()
-	{
-		if( bMoving )
-		{
-			moveDeltaT += float(gDefaultTickTime) / 1000;
-			float factor = moveDeltaT / 3;
-
-			if( factor > 1 )
-			{
-
-				bMoving = false;
-				curPos = prevPos = nextPos;
-				curRadius = prevRadius = nextRadius;
-			}
-			else
-			{
-				curRadius = Math::LinearLerp(prevRadius, nextRadius, factor);
-				curPos = Math::LinearLerp(prevPos, nextPos, factor);
-			}
-
-
-		}
-	}
-	void updateFrame(int frame) {}
 
 	float mTime = 0;
 	int   mNumFreqGroup = 50;
@@ -335,7 +311,7 @@ public:
 	};
 	std::vector< HistroyData > mHistoryDatas;
 
-	virtual void onUpdate(long time);
+	virtual void onUpdate(GameTimeSpan deltaTime);
 
 	virtual void onRender(float dFrame) override;
 
@@ -484,11 +460,10 @@ bool AudioTestStage::onInit()
 	return true;
 }
 
-void AudioTestStage::onUpdate(long time)
+void AudioTestStage::onUpdate(GameTimeSpan deltaTime)
 {
-	BaseClass::onUpdate(time);
+	BaseClass::onUpdate(deltaTime);
 
-	float deltaTime = float(time) / 1000;
 	mAudioDevice->update(deltaTime);
 	mTime += deltaTime;
 	ActiveSound* sound = mAudioDevice->getActiveSound(mAudioHandle);
@@ -535,11 +510,24 @@ void AudioTestStage::onUpdate(long time)
 		}
 	}
 
-	int frame = time / gDefaultTickTime;
-	for( int i = 0; i < frame; ++i )
-		tick();
+	if (bMoving)
+	{
+		moveDeltaT += deltaTime;
+		float factor = moveDeltaT / 3;
 
-	updateFrame(frame);
+		if (factor > 1)
+		{
+
+			bMoving = false;
+			curPos = prevPos = nextPos;
+			curRadius = prevRadius = nextRadius;
+		}
+		else
+		{
+			curRadius = Math::LinearLerp(prevRadius, nextRadius, factor);
+			curPos = Math::LinearLerp(prevPos, nextPos, factor);
+		}
+	}
 }
 
 void AudioTestStage::onRender(float dFrame)

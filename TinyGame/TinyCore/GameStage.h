@@ -65,7 +65,7 @@ public:
 	void onEnd() override;
 	
 	void onRender(float dFrame) override {}
-	void onUpdate(long time) override;
+	void onUpdate(GameTimeSpan deltaTime) override;
 
 	virtual void onRestart(bool beInit) {}
 	virtual void tick() {}

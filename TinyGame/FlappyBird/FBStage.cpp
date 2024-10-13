@@ -356,18 +356,18 @@ namespace FlappyBird
 		return true;
 	}
 
-	void LevelStage::onUpdate(long time)
+	void LevelStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		BaseClass::onUpdate(time);
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
+		int frame = long(deltaTime) / gDefaultTickTime;
 		if( mbFastTick && frame == 1 )
 			frame *= 20;
 
 		for( int i = 0; i < frame; ++i )
 			tick();
 
-		updateFrame(frame);
+
 	}
 
 	bool LevelStage::loadResource()

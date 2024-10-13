@@ -107,12 +107,10 @@ namespace Render
 		{
 
 		}
-		void tick() override {}
-		void updateFrame(int frame) override {}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		void onRender(float dFrame) override

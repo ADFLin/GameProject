@@ -3,6 +3,7 @@
 #define Math2D_H_F04CCD24_F01B_47D4_B29F_08BA7185C53D
 
 #include "Vector2.h"
+#include "Matrix2.h"
 
 namespace Math
 {
@@ -48,6 +49,10 @@ namespace Math
 			return mul(rhs);
 		}
 
+		Matrix2 toMatrix() const
+		{
+			return Matrix2(c, s, -s, c);
+		}
 	private:
 		
 		Vector2 mul(Vector2 const& v) const
@@ -91,6 +96,12 @@ namespace Math
 		XForm2D(Vector2 const& p, Rotation2D const& r)
 			:mP(p), mR(r)
 		{
+		}
+
+		void setIdentity()
+		{
+			mP = Vector2::Zero();
+			mR = Rotation2D::Identity();
 		}
 
 		Vector2 const& getPos() const { return mP; }

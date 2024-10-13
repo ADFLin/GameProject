@@ -62,6 +62,15 @@ constexpr size_t array_size(T(&ar)[N]) { return N; }
 #define CODE_STRING_INNER( CODE_TEXT ) R###CODE_TEXT
 #define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE_STRING_(##CODE_TEXT)CODE_STRING_ )
 
+#define SUPPORT_ENUM_FLAGS_OPERATION(TYPE)\
+	FORCEINLINE TYPE operator | (TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return TYPE(T(a) | T(b)); }\
+	FORCEINLINE TYPE operator & (TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return TYPE(T(a) & T(b)); }\
+	FORCEINLINE TYPE operator ^ (TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return TYPE(T(a) ^ T(b)); }\
+	FORCEINLINE TYPE& operator |= (TYPE& a, TYPE b) { using T = std::underlying_type_t<TYPE>; a = a | b; return a; }\
+	FORCEINLINE TYPE& operator &= (TYPE& a, TYPE b) { using T = std::underlying_type_t<TYPE>; a = a & b; return a; }\
+	FORCEINLINE TYPE& operator ^= (TYPE& a, TYPE b) { using T = std::underlying_type_t<TYPE>; a = a ^ b; return a; }\
+	FORCEINLINE bool HaveBits(TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return !!(T(a) & T(b)); }
+
 
 #if CPP_COMPILER_MSVC
 #define PRAGMA_ENABLE_OPTIMIZE_ACTUAL __pragma(optimize( "", on ))

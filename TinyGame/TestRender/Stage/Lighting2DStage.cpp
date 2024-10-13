@@ -73,15 +73,9 @@ namespace Render
 		blocks.clear();
 	}
 
-	void Lighting2DTestStage::onUpdate( long time )
+	void Lighting2DTestStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		BaseClass::onUpdate( time );
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	bool Lighting2DTestStage::onWidgetEvent(int event, int id, GWidget* ui)

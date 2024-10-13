@@ -809,26 +809,15 @@ namespace RVO
 
 
 		}
-		void tick()
+
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
+			BaseClass::onUpdate(deltaTime);
+
 			if (bSimulating)
 			{
 				simulateStep();
 			}
-		}
-		void updateFrame(int frame) {}
-
-		void onUpdate(long time) override
-		{
-			BaseClass::onUpdate(time);
-
-
-
-			int frame = time / gDefaultTickTime;
-			for (int i = 0; i < frame; ++i)
-				tick();
-
-			updateFrame(frame);
 		}
 
 		void onRender(float dFrame) override
@@ -872,7 +861,7 @@ namespace RVO
 		void drawArea(RHIGraphics2D& g, Plane const& plane)
 		{
 			using namespace Math;
-			EPlaneSide::Enum sides[4];
+			EPlaneSide::Type sides[4];
 			float dists[4];
 			Vector2 screenSize = ::Global::GetScreenSize();
 			Vector2 screenVertices[] =
@@ -892,7 +881,7 @@ namespace RVO
 			int nV= 0;
 
 
-			EPlaneSide::Enum sidePrev = sides[3];
+			EPlaneSide::Type sidePrev = sides[3];
 			for (int i = 0; i < 4; ++i)
 			{
 				auto sideCur = sides[i];

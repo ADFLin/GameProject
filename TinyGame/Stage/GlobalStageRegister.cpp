@@ -19,9 +19,6 @@ ExecutionEntryInfo GPreRegisterStageGroup[] =
 	STAGE_INFO("RHIGraphics2D Test"   , RHIGraphics2DTestStage , EExecGroup::GraphicsTest) ,
 	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EExecGroup::GraphicsTest) ,
 
-	STAGE_INFO("Bsp Test"       , Bsp2D::TestStage , EExecGroup::Test, "Algorithm") ,
-
-
 	STAGE_INFO("RB Tree Test"   , TreeTestStage , EExecGroup::Test)  ,
 	STAGE_INFO("Tween Test"     , TweenTestStage , EExecGroup::Test) ,
 

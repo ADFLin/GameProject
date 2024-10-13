@@ -47,9 +47,6 @@
     <ClCompile Include="Stage\MiscTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="Bsp2D.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -187,9 +184,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Bsp2D.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="CellWalker.h">
       <Filter>Common</Filter>
     </ClInclude>

@@ -607,13 +607,11 @@ namespace Render
 		{
 			mData.time = 0;
 		}
-		void tick() override {}
-		void updateFrame(int frame) override {}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
-			mData.time += float(time) / 1000.0f;
+			BaseClass::onUpdate(deltaTime);
+			mData.time += deltaTime;
 		}
 
 		void onRender(float dFrame) override;

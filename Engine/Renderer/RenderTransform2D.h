@@ -174,17 +174,7 @@ namespace Render
 			return M.mul(pos - P);
 		}
 
-		RenderTransform2D inverse() const
-		{
-			//[ M  0 ] [ M(-1) 0 ]  =  [ M*M(-1)        0 ] = [ I  0 ]
-			//[ P  1 ] [ P(-1) 1 ]     [ P*M(-1)+P(-1)  1 ] = [ 0  1 ]
-			RenderTransform2D result;
-			float det;
-			M.inverse(result.M, det);
-			result.P = -P * result.M;
-
-			return result;
-		}
+		RenderTransform2D inverse() const;
 
 		bool isUniformScale() const
 		{
@@ -210,16 +200,9 @@ namespace Render
 			return Math::Abs(M[0] - 1) > 1e-5 || Math::Abs(M[3] - 1) > 1e-5;
 		}
 
-		Vector2 removeScale()
-		{
-			Vector2 xAxis = Vector2(M[0], M[1]);
-			float xScale = xAxis.normalize();
-			Vector2 yAxis = Vector2(M[2], M[3]);
-			float yScale = yAxis.normalize();
-
-			M = Matrix2(xAxis, yAxis);
-			return Vector2(xScale, yScale);
-		}
+		Vector2 removeScale();
+		void    removeRotation();
+		void    removeScaleAndRotation();
 
 		FORCEINLINE void translateWorld(Vector2 const& offset)
 		{
@@ -289,19 +272,7 @@ namespace Render
 				 P.x,  P.y, 0, 1);
 		}
 
-		static Vector2 MulOffset(Vector2 const& v, Matrix2 const& m, Vector2 const& offset)
-		{
-#if USE_MATH_SIMD
-			__m128 rv = _mm_setr_ps(v.x, v.x, v.y, v.y);
-			__m128 mv = _mm_loadu_ps(m);
-			__m128 xv = _mm_dp_ps(rv, mv, 0x51);
-			__m128 yv = _mm_dp_ps(rv, mv, 0xa2);
-			__m128 resultV = _mm_add_ps(_mm_add_ps(xv, yv), _mm_setr_ps(offset.x, offset.y, 0, 0));
-			return Vector2(resultV.m128_f32[0], resultV.m128_f32[1]);
-#else
-			return v * m + offset;
-#endif
-		}
+		static Vector2 MulOffset(Vector2 const& v, Matrix2 const& m, Vector2 const& offset);
 	};
 
 	struct TransformStack2D
@@ -366,7 +337,7 @@ namespace Render
 
 		void pop()
 		{
-			assert(!mStack.empty());
+			CHECK(!mStack.empty());
 			mCurrent = mStack.back();
 			mStack.pop_back();
 		}

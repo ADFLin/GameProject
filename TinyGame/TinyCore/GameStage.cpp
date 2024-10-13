@@ -87,10 +87,10 @@ void GameStageBase::onEnd()
 	BaseClass::onEnd();
 }
 
-void GameStageBase::onUpdate(long time)
+void GameStageBase::onUpdate(GameTimeSpan deltaTime)
 {
-	mStageMode->updateTime(time);
-	BaseClass::onUpdate(time);
+	mStageMode->updateTime(long(deltaTime));
+	BaseClass::onUpdate(deltaTime);
 }
 
 MsgReply GameStageBase::onKey(KeyMsg const& msg)

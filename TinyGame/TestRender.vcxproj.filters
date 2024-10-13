@@ -27,15 +27,6 @@
     <None Include="out\Script\RTScene\TestA.chai">
       <Filter>Script\RTScene</Filter>
     </None>
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiNormalizationScope.cs">
-      <Filter>SplitScreen\Voronoi</Filter>
-    </None>
-    <None Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cs">
-      <Filter>SplitScreen\Voronoi</Filter>
-    </None>
-    <None Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cs">
-      <Filter>SplitScreen\Voronoi</Filter>
-    </None>
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiRegion.h">
       <Filter>SplitScreen\Voronoi</Filter>
     </None>
@@ -49,6 +40,15 @@
       <Filter>SplitScreen\Voronoi</Filter>
     </None>
     <None Include="TestRender\SplitScreen\Voronoi\VoronoiBounds.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.h">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </None>
+    <None Include="TestRender\SplitScreen\Voronoi\VoronoiNormalizationScope.h">
       <Filter>SplitScreen\Voronoi</Filter>
     </None>
   </ItemGroup>
@@ -208,6 +208,15 @@
       <Filter>SplitScreen\Geometry</Filter>
     </ClCompile>
     <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.cpp">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\SplitscreenStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cpp">
+      <Filter>SplitScreen\Voronoi</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cpp">
       <Filter>SplitScreen\Voronoi</Filter>
     </ClCompile>
   </ItemGroup>

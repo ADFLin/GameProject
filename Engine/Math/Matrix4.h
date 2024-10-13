@@ -40,6 +40,16 @@ namespace Math
 			setValue( a0 , a1 , a2 ,a3 , a4 , a5 ,a6 , a7 , a8 ,a9 , a10 , a11 );
 		}
 
+
+		Matrix4(Vector4 const& row0, Vector4 const& row1, Vector4 const& row2, Vector4 const& row3)
+		{
+			setValue(
+				row0.x, row0.y, row0.z, row0.w,
+				row1.x, row1.y, row1.z, row1.w,
+				row2.x, row2.y, row2.z, row2.w,
+				row3.x, row3.y, row3.z, row3.w);
+		}
+
 		Matrix4( Vector3 const& pos , Quaternion const& q )
 		{
 			setTransform( pos , q );
@@ -197,8 +207,10 @@ namespace Math
 				-  mValues[1] * mimor( *this , 1 , 2 , 3 , 0 , 2 , 3 )
 				+  mValues[2] * mimor( *this , 1 , 2 , 3 , 0 , 1 , 3 ) 
 				-  mValues[3] * mimor( *this , 1 , 2 , 3 , 0 , 1 , 2 ); 
-
 		}
+
+
+
 	private:
 		inline static float  mimor( Matrix4 const& m , int r1 , int r2 , int r3 , int c1 , int c2 , int c3 )
 		{
@@ -213,7 +225,34 @@ namespace Math
 		bool  isAffine() const;
 
 		void  transpose();
-		Matrix4  operator * ( Matrix4 const& rhs ) const;
+		Matrix4 operator * (Matrix4 const& rhs) const;
+		Matrix4 operator + (Matrix4 const& rhs) const
+		{
+			Matrix4 result;
+			for (int i = 0; i < ARRAY_SIZE(result.mValues); ++i)
+			{
+				result.mValues[i] = mValues[i] + rhs.mValues[i];
+			}
+			return result;
+		}
+		Matrix4 operator - (Matrix4 const& rhs) const
+		{
+			Matrix4 result;
+			for (int i = 0; i < ARRAY_SIZE(result.mValues); ++i)
+			{
+				result.mValues[i] = mValues[i] - rhs.mValues[i];
+			}
+			return result;
+		}
+		friend Matrix4 operator * (float scale, Matrix4 const& m)
+		{
+			Matrix4 result;
+			for (int i = 0; i < ARRAY_SIZE(result.mValues); ++i)
+			{
+				result.mValues[i] = scale * m.mValues[i];
+			}
+			return result;
+		}
 
 		float& operator()( int idx )       { return mValues[idx]; }
 		float  operator()( int idx ) const { return mValues[idx]; }
@@ -289,6 +328,7 @@ namespace Math
 	{
 		return m.leftMul( v );
 	}
+
 
 	FORCEINLINE Vector3 TransformVector( Vector3 const& v  , Matrix4 const& m )
 	{ 

@@ -7,12 +7,14 @@
 
 #include "Template/ArrayView.h"
 #include "Core/IntegerType.h"
+#include "CoreShare.h"
 
 #include "boost/coroutine2/all.hpp"
 #include "boost/ref.hpp"
 #include "boost/bind.hpp"
 #include "boost/function.hpp"
 #include <typeindex>
+
 
 using YieldContextHandle = void*;
 class IYieldInstruction
@@ -131,8 +133,8 @@ namespace Coroutines
 		char mStorage[Size];
 	};
 
-#define SIMPLE_SYNC_INDEX MaxInt32
-#define SLEEP_SYNC_INDEX  (MaxInt32 - 1)
+#define SIMPLE_SYNC_INDEX     MaxInt32
+#define SLEEPING_SYNC_INDEX  (MaxInt32 - 1)
 
 	struct ExecutionContext
 	{
@@ -148,19 +150,21 @@ namespace Coroutines
 		void const* yeildReturn()
 		{
 			CHECK(mInstruction == nullptr);
-			mDependenceIndex = SLEEP_SYNC_INDEX;
+			mDependenceIndex = SLEEPING_SYNC_INDEX;
 			doYeild();
 			return mYeildReturnData;
 		}
 
-		void yeildReturn(ExecutionHandle childContext)
+		void const* yeildReturn(ExecutionHandle childContext)
 		{
 			CHECK(mInstruction == nullptr);
 			if ( childContext.isValid() )
 			{
 				mDependenceIndex = SIMPLE_SYNC_INDEX;
 				doYeild();
+				return mYeildReturnData;
 			}
+			return nullptr;
 		}
 
 		template< typename T, TEnableIf_Type< std::is_base_of_v< IYieldInstruction, std::remove_reference_t<T> >, bool > = true >
@@ -206,24 +210,20 @@ namespace Coroutines
 
 		HashString tag;
 
-		std::type_index mYeildReturnType;
-		void const*     mYeildReturnData;
-		std::function< void() > mEntryFunc;
-
-		int mDependenceIndex = INDEX_NONE;
+		std::type_index    mYeildReturnType;
+		void const*        mYeildReturnData;
 		ExecutionContext*  mParent = nullptr;
-		ExecutionType*     mExecution = nullptr;
 		YeildType*         mYeild = nullptr;
+		std::function< void() > mEntryFunc;
+		ExecutionType      mExecution;
+		int mDependenceIndex = INDEX_NONE;
+
 		TInlineDynamicObject<IYieldInstruction, 32> mInstruction;
 	};
 
 	struct ThreadContext
 	{
-		static ThreadContext& Get()
-		{
-			thread_local static ThreadContext StaticContext;
-			return StaticContext;
-		}
+		CORE_API static ThreadContext& Get();
 
 		~ThreadContext();
 
@@ -256,15 +256,16 @@ namespace Coroutines
 				return false;
 
 			context->setYeildReturn(value);
-			resumeExecutionInternal(context);
-			if (isCompleted(handle.getPointer()))
+			bool bKeep = resumeExecutionInternal(context);
+			if (!bKeep)
 			{
 				handle = ExecutionHandle::Completed(context);
 			}
+			return bKeep;
 		}
 
 		bool canResumeExecutionInternal(ExecutionContext* context);
-		void resumeExecutionInternal(ExecutionContext* context);
+		bool resumeExecutionInternal(ExecutionContext* context);
 
 		struct DependencyFlow
 		{
@@ -321,7 +322,7 @@ namespace Coroutines
 		}
 
 		ExecutionHandle startInternal(std::function< void() > entryFunc);
-		void executeContextInternal(ExecutionContext& context);
+		bool executeContextInternal(ExecutionContext& context);
 		bool postExecuteContext(ExecutionContext& context);
 		void cleanupCompletedExecutions();
 
@@ -453,13 +454,12 @@ namespace Coroutines
 	}
 }
 
-#define CO_YEILD( EXPR ) ::Coroutines::YeildReturn(EXPR);
-#define CO_YEILD_RETRUN( R, EXPR ) ::Coroutines::YeildReturn<R>(EXPR);
+#define CO_YEILD ::Coroutines::YeildReturn
 #define CO_BREAK() ::Coroutines::BreakReturn();
 
-#define CO_SYNC( ... ) ::Coroutines::SyncReturn({ ##__VA_ARGS__ } );
-#define CO_RACE( ... ) ::Coroutines::RaceReturn({ ##__VA_ARGS__ } );
-#define CO_RUSH( ... ) ::Coroutines::RushReturn({ ##__VA_ARGS__ } );
+#define CO_SYNC( ... ) ::Coroutines::SyncReturn({ ##__VA_ARGS__ } )
+#define CO_RACE( ... ) ::Coroutines::RaceReturn({ ##__VA_ARGS__ } )
+#define CO_RUSH( ... ) ::Coroutines::RushReturn({ ##__VA_ARGS__ } )
 
 
 #endif // Coroutines_h__236D6542_36DD_4B46_8899_164DE1E3E983

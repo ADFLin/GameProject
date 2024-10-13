@@ -15,9 +15,7 @@ public:
 
 	bool testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 const& pB, float radius);
 	bool testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 const& pB, Vector2 vB[], int nB);
-
-	bool testBoxIntersect(Vector2 const& pA, Vector2 const& sizeA, Vector2 const& pB, Vector2 const& sizeB, Math::Rotation2D const& rotation);
-
+	bool testBoxIntersect(Vector2 const& posA, Vector2 const& sizeA, Vector2 const& posB, Vector2 const& sizeB, Math::XForm2D const& xform);
 	static bool IsOverlap(float rangeA[], float rangeB[])
 	{
 		return (rangeA[0] <= rangeB[1]) &&

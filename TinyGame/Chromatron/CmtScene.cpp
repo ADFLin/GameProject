@@ -60,7 +60,7 @@ namespace Chromatron
 		reset();
 	}
 
-	void Scene::tick()
+	void Scene::tick(float dt)
 	{
 		if ( mNeedUpdateLevel )
 		{
@@ -68,11 +68,6 @@ namespace Chromatron
 			//::Msg( "Light Count = %d " , getLevel().getWorld().getLightCount() );
 			mNeedUpdateLevel = false;
 		}
-	}
-
-	void Scene::updateFrame( int frame )
-	{
-
 	}
 
 	void Scene::render( Graphics2D& g )

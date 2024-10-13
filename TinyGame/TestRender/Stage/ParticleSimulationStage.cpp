@@ -693,16 +693,13 @@ namespace Render
 		{
 			initParticleData(RHICommandList::GetImmediateList());
 		}
-		void tick() override {}
-		void updateFrame(int frame) override {}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
-			float dt = float(time) / 1000;
-			updateParticleData(RHICommandList::GetImmediateList() , dt);
-			upateWaterData(RHICommandList::GetImmediateList(), dt);
+			updateParticleData(RHICommandList::GetImmediateList() , deltaTime);
+			upateWaterData(RHICommandList::GetImmediateList(), deltaTime);
 		}
 
 		Mesh mSpherePlane;

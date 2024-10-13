@@ -36,6 +36,8 @@ namespace Math
 
 		void    divideW(){ assert( w != 0 ); float wf = 1.0f / w ; x *= wf ; y *= wf; z *= wf ; w = 1; }
 		Vector3 xyz() const { return Vector3(x,y,z); }
+		Vector2 xy() const { return Vector2(x, y); }
+
 		Vector3 dividedVector() const { float wf = 1.0f / w ; return Vector3(x*wf,y*wf,z*wf); }
 
 		Vector4& operator *= ( float v ) { x *= v ; y *= v; z *= v; w *= v; return *this; }
@@ -49,8 +51,16 @@ namespace Math
 		operator float*() { return &x; }
 		operator float const*() const { return &x; }
 
+
+
 		float x , y , z , w;
 	};
+
+
+	FORCEINLINE Vector4 operator-(Vector4 const& a)
+	{
+		return Vector4(-a.x, -a.y, -a.z, -a.w);
+	}
 
 	FORCEINLINE Vector4 operator * (float s, Vector4 const& v)
 	{
@@ -66,6 +76,12 @@ namespace Math
 	{
 		return Vector4(v.x / s, v.y / s, v.z / s , v.w / s);
 	}
+
+	FORCEINLINE  float  Dot(Vector4 const& a, Vector4 const& b)
+	{
+		return a.dot(b);
+	}
+
 
 }//namespace Math
 

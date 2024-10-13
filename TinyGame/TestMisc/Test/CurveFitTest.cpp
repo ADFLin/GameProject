@@ -349,25 +349,17 @@ public:
 	}
 
 
-	void tick() 
+
+	void updateFrame(int frame) {}
+
+	virtual void onUpdate(GameTimeSpan deltaTime)
 	{
+		BaseClass::onUpdate(deltaTime);
+
 		if (bAutoTrain)
 		{
 			Train();
 		}
-	}
-
-	void updateFrame(int frame) {}
-
-	virtual void onUpdate(long time)
-	{
-		BaseClass::onUpdate(time);
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0; i < frame; ++i )
-			tick();
-
-		updateFrame(frame);
 	}
 
 

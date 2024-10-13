@@ -414,9 +414,7 @@ namespace Render
 		TINY_API void onEnd() override;
 
 		virtual void restart(){}
-		virtual void tick() {}
-		virtual void updateFrame(int frame) {}
-		TINY_API void onUpdate(long time) override;
+		TINY_API void onUpdate(GameTimeSpan deltaTime) override;
 
 		//
 		virtual bool setupRenderResource(ERenderSystem systemName)

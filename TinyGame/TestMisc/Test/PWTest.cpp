@@ -43,18 +43,10 @@ namespace PW
 		}
 
 		void restart() {}
-		void tick() {}
-		void updateFrame(int frame) {}
 
-		virtual void onUpdate(long time)
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		void onRender(float dFrame)

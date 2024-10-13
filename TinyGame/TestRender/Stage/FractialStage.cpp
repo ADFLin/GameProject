@@ -489,20 +489,12 @@ public:
 		bNeedUpdateTexture = true;
 		//updateTexture();
 	}
-	void tick() {}
-	void updateFrame(int frame) {}
 
 	int mFrameIndex = 0;
 
-	virtual void onUpdate(long time)
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate(time);
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0; i < frame; ++i )
-			tick();
-
-		updateFrame(frame);
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	void onRender(float dFrame)

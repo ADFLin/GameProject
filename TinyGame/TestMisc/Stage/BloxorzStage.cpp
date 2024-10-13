@@ -517,27 +517,10 @@ namespace Bloxorz
 
 	}
 
-	void TestStage::onUpdate(long time)
+	void TestStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		BaseClass::onUpdate(time);
+		BaseClass::onUpdate(deltaTime);
 
-		float dt = float(time) / 1000;
-		mCamera.updatePosition(dt);
-
-		int frame = time / gDefaultTickTime;
-		for (int i = 0; i < frame; ++i)
-			tick();
-
-		updateFrame(frame);
-	}
-
-	void TestStage::updateFrame(int frame)
-	{
-		mTweener.update(float(frame * gDefaultTickTime) / 1000.0f);
-	}
-
-	void TestStage::tick()
-	{
 		if (mMoveCur == DIR_NONE && canInput())
 		{
 			if (InputManager::Get().isKeyDown(EKeyCode::A))
@@ -549,6 +532,8 @@ namespace Bloxorz
 			else if (InputManager::Get().isKeyDown(EKeyCode::W))
 				requestMove(DIR_Y);
 		}
+		mCamera.updatePosition(deltaTime);
+		mTweener.update(deltaTime);
 	}
 
 	void TestStage::onRender(float dFrame)

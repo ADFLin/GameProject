@@ -125,7 +125,7 @@ namespace Render
 		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
 
-		void onUpdate( long time ) override;
+		void onUpdate(GameTimeSpan deltaTime) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;
 		void onRender( float dFrame ) override;
 
@@ -133,17 +133,6 @@ namespace Render
 		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertices );
 
 		void restart();
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
-		{
-
-		}
 
 		MsgReply onMouse( MouseMsg const& msg ) override;
 		MsgReply onKey(KeyMsg const& msg) override

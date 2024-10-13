@@ -78,15 +78,10 @@ namespace BoneIK
 			BaseClass::onEnd();
 		}
 
-		virtual void onUpdate(long time)
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
 		}
 
 		void onRender(float dFrame)
@@ -135,8 +130,6 @@ namespace BoneIK
 			return (sPos - Vector2(400, 300)) / 4;
 		}
 		void restart() {}
-		void tick() {}
-		void updateFrame(int frame) {}
 		
 		MsgReply onMouse(MouseMsg const& msg)
 		{

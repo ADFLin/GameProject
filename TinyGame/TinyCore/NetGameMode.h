@@ -82,7 +82,7 @@ public:
 	virtual void onRender( float dFrame );
 	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 
-	virtual void onUpdate( long time );
+	virtual void onUpdate(GameTimeSpan deltaTime);
 	virtual void onServerEvent( EventID event , unsigned msg );
 
 	//SettingListener

@@ -355,20 +355,11 @@ namespace Chess
 		{
 			mGame.restart();
 		}
-		void tick() {}
-		void updateFrame(int frame) {}
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
-
-			mCamera.updatePosition(float(time) / 1000);
-
-			int frame = time / gDefaultTickTime;
-			for (int i = 0; i < frame; ++i)
-				tick();
-
-			updateFrame(frame);
+			BaseClass::onUpdate(deltaTime);
+			mCamera.updatePosition(deltaTime);
 		}
 
 

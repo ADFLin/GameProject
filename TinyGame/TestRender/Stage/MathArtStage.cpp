@@ -195,12 +195,14 @@ public:
 		return true;
 	}
 
-	void onUpdate(long time) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
+		BaseClass::onUpdate(deltaTime);
+
 		if (!checkNeedRender())
 			return;
 
-		mTimeAcc += time;
+		mTimeAcc += long(deltaTime);
 		float speed = 2.0f;
 		while (mTimeAcc > gDefaultTickTime)
 		{

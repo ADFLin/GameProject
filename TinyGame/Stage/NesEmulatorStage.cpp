@@ -243,34 +243,26 @@ public:
 			mMechine->reset();
 		}	
 	}
-	void tick() 
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		if (bUseNewEmu)
+		BaseClass::onUpdate(deltaTime);
+
+		int numFrame = long(deltaTime) / gDefaultTickTime;
+		for( int i = 0; i < numFrame; ++i)
 		{
-			bool const bPaused = false;
-			Input::Update();
-			//Debugger::Update();
-			mNes->ExecuteFrame(bPaused);
+			if (bUseNewEmu)
+			{
+				bool const bPaused = false;
+				Input::Update();
+				//Debugger::Update();
+				mNes->ExecuteFrame(bPaused);
+			}
+			else
+			{
+				int cycle = Math::FloorToInt(178977.25 / gDefaultTickTime);
+				mMechine->run(cycle);
+			}
 		}
-		else
-		{
-			int cycle = Math::FloorToInt(178977.25 / gDefaultTickTime);
-			mMechine->run(cycle);
-		}
-
-
-	}
-	void updateFrame(int frame) {}
-
-	virtual void onUpdate(long time)
-	{
-		BaseClass::onUpdate(time);
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0; i < frame; ++i )
-			tick();
-
-		updateFrame(frame);
 	}
 
 	void onRender(float dFrame)

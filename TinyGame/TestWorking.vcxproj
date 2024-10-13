@@ -227,6 +227,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Engine\Collision2D\Bsp2D.cpp" />
     <ClCompile Include="AppleSnake\AppleSnakeLevel.cpp" />
     <ClCompile Include="AppleSnake\AppleSnakeStage.cpp" />
     <ClCompile Include="Chess\ChessCore.cpp" />
@@ -246,9 +247,11 @@
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AgarStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\Bsp2DStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CollatzTreeStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp" />
     <ClCompile Include="TestMisc\Stage\QuixoStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\StoreSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FluidRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\MathArtStage.cpp" />

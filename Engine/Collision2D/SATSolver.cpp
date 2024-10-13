@@ -145,8 +145,14 @@ bool SATSolver::testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 c
 	return haveSA;
 }
 
-bool SATSolver::testBoxIntersect(Vector2 const& pA, Vector2 const& sizeA, Vector2 const& pB, Vector2 const& sizeB, Math::Rotation2D const& rotation)
+bool SATSolver::testBoxIntersect(Vector2 const& posA, Vector2 const& sizeA, Vector2 const& posB, Vector2 const& sizeB, Math::XForm2D const& xform)
 {
-	assert(0);
-	return false;
+	Vector2 polyA[] = { Vector2::Zero(), Vector2(sizeA.x, 0) , sizeA, Vector2(0,sizeA.y) };
+	Vector2 polyB[] = { Vector2::Zero(), Vector2(sizeB.x, 0) , sizeB, Vector2(0,sizeB.y) };
+	for (int i = 0; i < ARRAY_SIZE(polyB); ++i)
+	{
+		polyB[i] = xform.transformPosition(posB + polyB[i]);
+	}
+
+	return testIntersect(posA, polyA, ARRAY_SIZE(polyA), Vector2::Zero(), polyB, ARRAY_SIZE(polyB) );
 }

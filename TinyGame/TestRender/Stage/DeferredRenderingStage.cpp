@@ -156,26 +156,16 @@ namespace Render
 
 		}
 
-		void tick() override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
+			BaseClass::onUpdate(deltaTime);
 
+			if (!mbPause)
+			{
+				mLights[0].light.pos = mTrack.getValue(mView.gameTime);
+				mLights[0].light.dir = (Vector3(12.5, 12.5, 0) - mLights[0].light.pos).getNormal();
+			}
 		}
-
-		void updateFrame(int frame) override
-		{
-			if (mbPause)
-				return;
-
-			mLights[0].light.pos = mTrack.getValue(mView.gameTime);
-			mLights[0].light.dir = (Vector3(12.5, 12.5, 0) - mLights[0].light.pos ).getNormal();
-		}
-
-		void onUpdate(long time) override
-		{
-			BaseClass::onUpdate(time);
-		}
-
-
 
 		struct MeshProcesser
 		{

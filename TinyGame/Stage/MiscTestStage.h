@@ -59,15 +59,11 @@ public:
 		mInfos.clear();
 	}
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate( time );
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		processGameThreadCommnads();
 	}
 
 	void addTestFunc( char const* name , ExecuteFunc const& func );
@@ -82,17 +78,6 @@ public:
 	void onRender( float dFrame ) override;
 
 	void restart()
-	{
-
-	}
-
-
-	void tick()
-	{
-		processGameThreadCommnads();
-	}
-
-	void updateFrame( int frame )
 	{
 
 	}
@@ -216,15 +201,9 @@ public:
 
 	}
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate( time );
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	void onRender( float dFrame ) override
@@ -245,17 +224,6 @@ public:
 		mSpline.mB = Vector2( 40 , 40 );
 		mSpline.mC = Vector2( 200 , 100 );
 		constructSpline();
-	}
-
-
-	void tick()
-	{
-
-	}
-
-	void updateFrame( int frame )
-	{
-
 	}
 
 	MsgReply onMouse(MouseMsg const& msg) override
@@ -508,15 +476,9 @@ public:
 
 	}
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate( time );
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	void onRender( float dFrame ) override
@@ -562,17 +524,6 @@ public:
 			"x";
 
 		prase( testStr , ARRAYSIZE(testStr) - 1 );
-	}
-
-
-	void tick()
-	{
-
-	}
-
-	void updateFrame( int frame )
-	{
-
 	}
 
 	MsgReply onMouse(MouseMsg const& msg) override
@@ -804,31 +755,14 @@ namespace MRT
 			mNetwork.cleanup();
 			mStationSelected = nullptr;
 		}
-		void onUpdate( long time ) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		void onRender( float dFrame ) override;
 
 		void restart()
-		{
-
-		}
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
 		{
 
 		}
@@ -910,34 +844,15 @@ public:
 	float mAngle = 0.0;
 	float mSpeed = 0.01;
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		mAngle += mSpeed * time;
-
-		BaseClass::onUpdate( time );
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		BaseClass::onUpdate(deltaTime);
+		mAngle += mSpeed * long(deltaTime);
 	}
 
 	void onRender( float dFrame ) override;
 
-
 	void restart()
-	{
-
-	}
-
-
-	void tick()
-	{
-
-	}
-
-	void updateFrame( int frame )
 	{
 
 	}
@@ -1002,15 +917,50 @@ public:
 		return true;
 	}
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate( time );
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
+		Vector2 dir = Vector2(0, 0);
+		InputManager& input = InputManager::Get();
+		if (input.isKeyDown(EKeyCode::A))
+			dir.x -= 1;
+		else if (input.isKeyDown(EKeyCode::D))
+			dir.x += 1;
+		if (input.isKeyDown(EKeyCode::W))
+			dir.y -= 1;
+		else if (input.isKeyDown(EKeyCode::S))
+			dir.y += 1;
 
-		updateFrame( frame );
+		if (dir.length2() > 0)
+		{
+			Vector2 offset = 3.0 * dir;
+			Vector2 newPos = mPos + offset;
+
+			bool haveCol = checkCollision(newPos, mSize);
+			if (haveCol)
+			{
+				Vector2 testPos = newPos;
+				offset /= 2;
+				testPos -= offset;
+				for (int i = 0; i < 10; ++i)
+				{
+					offset /= 2;
+					if (checkCollision(testPos, mSize))
+					{
+						testPos -= offset;
+					}
+					else
+					{
+						haveCol = false;
+						newPos = testPos;
+						testPos += offset;
+					}
+				}
+			}
+			if (!haveCol)
+				mPos = newPos;
+		}
 	}
 
 	void onRender( float dFrame ) override
@@ -1054,55 +1004,6 @@ public:
 			   getMapData( pos + Vector2( size.x , 0 ) ) != 0 || 
 			   getMapData( pos + Vector2( 0 , size.y )) != 0 || 
 			   getMapData( pos + size ) != 0 ; 
-	}
-
-	void tick()
-	{
-		Vector2 dir = Vector2(0,0);
-		InputManager& input = InputManager::Get();
-		if ( input.isKeyDown( EKeyCode::A ) )
-			dir.x -= 1;
-		else if ( input.isKeyDown( EKeyCode::D ) )
-			dir.x += 1;
-		if ( input.isKeyDown( EKeyCode::W ) )
-			dir.y -= 1;
-		else if ( input.isKeyDown( EKeyCode::S ) )
-			dir.y += 1;
-
-		if ( dir.length2() > 0 )
-		{
-			Vector2 offset = 3.0 * dir;
-			Vector2 newPos = mPos + offset;
-
-			bool haveCol = checkCollision( newPos , mSize );
-			if ( haveCol )
-			{
-				Vector2 testPos = newPos;
-				offset /= 2;
-				testPos -= offset;
-				for( int i = 0 ; i < 10 ; ++i )
-				{
-					offset /= 2;
-					if ( checkCollision( testPos , mSize ) )
-					{
-						testPos -= offset;
-					}
-					else
-					{
-						haveCol = false;
-						newPos = testPos;
-						testPos += offset;
-					}
-				}
-			}
-			if ( !haveCol )
-				mPos = newPos;
-		}
-	}
-
-	void updateFrame( int frame )
-	{
-
 	}
 
 	MsgReply onMouse(MouseMsg const& msg) override
@@ -1208,15 +1109,9 @@ namespace TankGame
 
 		}
 
-		void onUpdate( long time ) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		void onRender( float dFrame ) override
@@ -1226,17 +1121,6 @@ namespace TankGame
 
 
 		void restart()
-		{
-
-		}
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
 		{
 
 		}
@@ -1263,144 +1147,6 @@ namespace TankGame
 }
 
 
-#include "Bsp2D.h"
-
-namespace Bsp2D
-{
-	class MyRenderer : public SimpleRenderer
-	{
-	public:
-		void draw( Graphics2D& g , PolyArea const& poly )
-		{
-			drawPoly( g , &poly.mVtx[0] , poly.getVertexNum() );
-		}
-		void drawPolyInternal( Graphics2D& g ,PolyArea const& poly, Vec2i buf[] )
-		{
-			drawPoly( g , &poly.mVtx[0] , poly.getVertexNum() , buf );
-		}
-	};
-
-
-
-	class TreeDrawVisitor
-	{
-	public:
-		TreeDrawVisitor( Tree& t , Graphics2D& g , MyRenderer& r )
-			:tree( t) ,g(g),renderer(r){}
-
-		void visit( Tree::Leaf& leaf );
-		void visit( Tree::Node& node );
-
-		Tree&       tree;
-		Graphics2D& g;
-		MyRenderer&   renderer;
-	};
-
-
-	class TestStage : public StageBase
-		            , public MyRenderer
-	{
-		using BaseClass = StageBase;
-	public:
-
-		enum
-		{
-			UI_ADD_POLYAREA = BaseClass::NEXT_UI_ID ,
-			UI_BUILD_TREE ,
-			UI_TEST_INTERATION ,
-			UI_ACTOR_MOVE ,
-
-		};
-
-		enum ControlMode
-		{
-			CMOD_NONE ,
-			CMOD_CREATE_POLYAREA ,
-			CMOD_TEST_INTERACTION ,
-			CMOD_ACTOR_MOVE ,
-		};
-
-		ControlMode mCtrlMode;
-		TPtrHolder< PolyArea >  mPolyEdit;
-		using PolyAreaVec = TArray< PolyArea* >;
-		PolyAreaVec mPolyAreaMap;
-		Tree     mTree;
-		bool     mDrawTree;
-		Vector2    mSegment[2];
-		bool     mHaveCol;
-		Vector2    mPosCol;
-
-
-		struct Actor
-		{
-			Vector2 pos;
-			Vector2 size;
-		};
-		Actor       mActor;
-
-		TestStage();
-
-
-		void moveActor( Actor& actor , Vector2 const& offset );
-
-		void testPlane()
-		{
-
-			Plane plane;
-			plane.init( Vector2( 0 , 1 ) , Vector2( 1 , 1 ) );
-			float dist = plane.calcDistance( Vector2(0,0) );
-
-			int i = 1;
-		}
-
-		void testTree()
-		{
-			Tree tree;
-			PolyArea poly( Vector2( 0 , 0 ) );
-			poly.pushVertex( Vector2( 1 , 0 ) );
-			poly.pushVertex( Vector2( 0 , 1 ) );
-
-			PolyArea* list[] = { &poly };
-			tree.build( list , 1 , Vector2( -1000 , -1000 ) , Vector2(1000, 1000 ) );
-		}
-
-		bool onInit() override;
-
-		void onUpdate( long time ) override
-		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
-		}
-
-
-
-		void onRender( float dFrame ) override;
-
-		void restart();
-		void tick();
-		void updateFrame( int frame )
-		{
-
-		}
-
-
-		MsgReply onMouse( MouseMsg const& msg ) override;
-		MsgReply onKey(KeyMsg const& msg) override;
-		bool onWidgetEvent( int event , int id , GWidget* ui ) override;
-
-	protected:
-
-	};
-}
-
-
-
-
 #include "Tween.h"
 #include "EasingFunction.h"
 
@@ -1417,15 +1163,11 @@ public:
 		return true;
 	}
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate( time );
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		mTweener.update(deltaTime);
 	}
 
 	void onRender( float dFrame ) override
@@ -1452,17 +1194,6 @@ public:
 				.tweenValue< Easing::OQuad >( radius , 20.0f , 10.0f , 1 ).end()
 			.end();
 		        
-	}
-
-	void tick()
-	{
-
-
-	}
-
-	void updateFrame( int frame )
-	{
-		mTweener.update( frame * gDefaultTickTime / 1000.0f );
 	}
 
 	MsgReply onMouse(MouseMsg const& msg) override
@@ -1556,15 +1287,9 @@ public:
 		return true;
 	}
 
-	void onUpdate( long time ) override
+	void onUpdate(GameTimeSpan deltaTime) override
 	{
-		BaseClass::onUpdate( time );
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
-			tick();
-
-		updateFrame( frame );
+		BaseClass::onUpdate(deltaTime);
 	}
 
 	class TreeDrawVisitor
@@ -1607,17 +1332,6 @@ public:
 
 
 	void restart()
-	{
-
-	}
-
-
-	void tick()
-	{
-
-	}
-
-	void updateFrame( int frame )
 	{
 
 	}

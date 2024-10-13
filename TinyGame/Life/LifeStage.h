@@ -313,13 +313,13 @@ namespace Life
 
 		void restart();
 
-		void onUpdate(long time) override
+		void onUpdate(GameTimeSpan deltaTime) override
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
 			if (bRunEvolate)
 			{
-				accEvolateCount += evolateTimeRate * time / 1000.0;
+				accEvolateCount += evolateTimeRate * deltaTime;
 				while (accEvolateCount > 0)
 				{
 					PROFILE_ENTRY("Life.Setp");

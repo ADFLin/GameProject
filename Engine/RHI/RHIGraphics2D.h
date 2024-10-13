@@ -259,6 +259,7 @@ public:
 	void setTextureState(RHITexture2D* texture = nullptr);
 
 	void setTextRemoveScale(bool bRemoved) { bTextRemoveScale = bRemoved; }
+	void setTextRemoveRotation(bool bRemoved) { bTextRemoveRotation = bRemoved; }
 private:
 
 	template< typename CharT >
@@ -270,6 +271,7 @@ private:
 	void preModifyRenderState();
 
 	bool bTextRemoveScale = false;
+	bool bTextRemoveRotation = false;
 
 
 	void setupElement(Render::RenderBatchedElement& element)

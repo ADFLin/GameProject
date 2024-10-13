@@ -746,10 +746,12 @@ public:
 	}
 
 
-	void  eraseToEnd(iterator is)
+	int  eraseToEnd(iterator is)
 	{
-		FTypeMemoryOp::DestructSequence(is, end() - is);
+		int numRemoved = end() - is;
+		FTypeMemoryOp::DestructSequence(is, numRemoved);
 		mNum = size_t(is - getElement(0));
+		return numRemoved;
 	}
 
 	void   checkRange(const_iterator it) const { assert(begin() <= it && it < end()); }

@@ -7,6 +7,7 @@
 #include "Math/Vector4.h"
 #include "PrimitiveTest.h"
 #include <type_traits>
+#include "Template/ArrayView.h"
 
 
 namespace Math
@@ -15,6 +16,8 @@ namespace Math
 	struct TAABBox
 	{
 		using ScalarType = typename VectorType::ScalarType;
+
+
 		VectorType min;
 		VectorType max;
 
@@ -37,9 +40,26 @@ namespace Math
 		{
 			return min <= p && p <= max;
 		}
+		ScalarType getArea() const
+		{
+			VectorType size = getSize();
+			return size.x * size.y;
+		}
 
 		VectorType getSize() const { return max - min; }
 		VectorType getCenter() const { return 0.5 * (max + min); }
+
+		void setSize(VectorType const& size)
+		{
+			Vector2 center = getCenter();
+			setCenterAndSize(getCenter(), size);
+		}
+
+		void setCenterAndSize(VectorType const& center, VectorType const& size)
+		{
+			min = center - 0.5 * size;
+			max = center + 0.5 * size;
+		}
 
 		void translate(VectorType const& offset)
 		{
@@ -88,9 +108,13 @@ namespace Math
 		}
 
 		TAABBox() {}
-		TAABBox(EForceInit)
+		explicit TAABBox(EForceInit)
 		{
 			setZero();
+		}
+		TAABBox(VectorType const& inMin, VectorType const& inMax)
+			:min(inMin), max(inMax)
+		{
 		}
 	};
 
@@ -152,7 +176,7 @@ namespace Math
 
 	namespace EPlaneSide
 	{
-		enum Enum
+		enum Type
 		{
 			Front = 1,
 			In = 0,
@@ -187,12 +211,17 @@ namespace Math
 		VectorType const& getNormal() const { return mNormal; }
 		float getArgD() const { return mArgD; }
 
+		VectorType getAnyPoint() const
+		{
+			return (-mArgD) * mNormal;
+		}
+
 		float calcDistance(VectorType const& p) const
 		{
 			return mNormal.dot(p) + mArgD;
 		}
 
-		EPlaneSide::Enum testSide(VectorType const& p, float thinkness, float& dist) const
+		EPlaneSide::Type testSide(VectorType const& p, float thinkness, float& dist) const
 		{
 			dist = calcDistance(p);
 			if (dist > thinkness)
@@ -202,10 +231,10 @@ namespace Math
 			return EPlaneSide::In;
 		}
 
-		EPlaneSide::Enum testSide(VectorType const& p, float thinkness) const
+		EPlaneSide::Type testSide(VectorType const& p, float thinkness) const
 		{
 			float dist;
-			return testSide(p, thinkness);
+			return testSide(p, thinkness, dist);
 		}
 	protected:
 		VectorType mNormal;
@@ -257,6 +286,11 @@ namespace Math
 		{
 			Vector2 offset = posB - posA;
 			return Plane2D(Vector2(offset.y, -offset.x), posA);
+		}
+
+		Vector2 getDirection() const
+		{
+			return Vector2(-mNormal.y, mNormal.x);
 		}
 	};
 
@@ -321,6 +355,25 @@ namespace Math
 
 
 	};
+
+
+	FORCEINLINE Vector2 CalcPolygonCentroid(TArrayView<Vector2 const> posList)
+	{
+		int indexPrev = posList.size() - 1;
+		float totalWeight = 0;
+		Vector2 pos = Vector2::Zero();
+		for (int index = 0; index < posList.size(); ++index)
+		{
+			Vector2 const& p1 = posList[indexPrev];
+			Vector2 const& p2 = posList[index];
+			float area = p1.cross(p2);
+			pos += (p1 + p2) * area;
+			totalWeight += area;
+			indexPrev = index;
+		}
+
+		return pos / (3 * totalWeight);
+	}
 
 }
 

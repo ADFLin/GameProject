@@ -39,13 +39,12 @@ namespace FIO
 		}
 		virtual void onInitFail() {}
 		virtual void onEnd() {}
-		virtual void onUpdate(long time) 
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
 			PROFILE_ENTRY("onUpdate");
-			float dt = time / 1000.0;
 			for (Entity& e : mEntities)
 			{
-				e.pos += e.vel * dt;
+				e.pos += e.vel * deltaTime;
 			}
 		}
 		virtual void onRender(float dFrame) {}

@@ -18,24 +18,25 @@ namespace Bsp2D
 	class PolyArea
 	{
 	public:
+		PolyArea() = default;
 		PolyArea( Vector2 const& v0 )
 		{
-			mVtx.reserve( 4 );
-			mVtx.push_back( v0 );
+			mVertices.reserve( 4 );
+			mVertices.push_back( v0 );
 		}
 
 		void         shift( Vector2 const& offset )
 		{
-			for( int i = 0 ; i < mVtx.size() ; ++i )
-				mVtx[i] += offset;
+			for( int i = 0 ; i < mVertices.size() ; ++i )
+				mVertices[i] += offset;
 		}
-		int          getVertexNum() const { return (int)mVtx.size(); }
-		Vector2 const& getVertex( int idx ) const { return mVtx[ idx ]; }
+		int          getVertexNum() const { return (int)mVertices.size(); }
+		Vector2 const& getVertex( int idx ) const { return mVertices[ idx ]; }
 		//void insertVertex( int idx , Vector2 const& v );
-		void         pushVertex( Vector2 const& v ){ mVtx.push_back( v ); }
+		void         pushVertex( Vector2 const& v ){ mVertices.push_back( v ); }
 
 
-		TArray< Vector2 > mVtx;
+		TArray< Vector2 > mVertices;
 		//int mSolidType;
 	};
 
@@ -55,10 +56,12 @@ namespace Bsp2D
 		using ::Math::Plane2D::Plane2D;
 
 		void  init( Vector2 const& v1 , Vector2 const& v2 );
-		bool  getIntersectPos( Vector2 const& v1 , Vector2 const& v2 , Vector2& out );
-		Side  testSegment( Vector2 const& v0 , Vector2 const& v1 );
-		Side  testSegment( Vector2 const v[2] ){  return testSegment( v[0] , v[1] );  }
-		Side  split( Vector2 v[2] , Vector2 vSplit[2] );
+
+		Side  testSegment( Vector2 const& v0 , Vector2 const& v1 ) const;
+		Side  testSegment( Vector2 const v[2] ) const {  return testSegment( v[0] , v[1] );  }
+
+		Side  split( Vector2 v[2] , Vector2 vSplit[2] ) const;
+		int   clip(bool bFront, Vector2 inoutV[2]) const;
 	};
 
 
@@ -68,7 +71,7 @@ namespace Bsp2D
 
 		struct Edge
 		{
-			int   idx;
+			int   polyIndex;
 			Vector2 v[2];
 			Plane plane;
 		};
@@ -76,12 +79,14 @@ namespace Bsp2D
 
 
 		typedef TArray< Edge > EdgeVec;
-		typedef TArray< int > IndexVec;
+		typedef TArray< int > IndexList;
 
+
+		static bool IsLeafTag(uint32 tag) { return (tag & 0x80000000) != 0; }
 
 		struct Node
 		{
-			bool isLeaf(){ return ( tag & 0x80000000 ) != 0; }
+			bool isLeaf() { return IsLeafTag(tag); }
 			uint32    tag;
 			int       idxEdge;
 			Node*     parent;
@@ -92,13 +97,16 @@ namespace Bsp2D
 		struct Leaf
 		{
 			Node*     node;
-			IndexVec  edges;
+			IndexList  edges;
+
+			Vector2  debugPos;
 		};
 
 		struct Portal
 		{
 			Vector2  v[2];
-			uint32 con[2];
+			uint32   frontTag;
+			uint32   backTag;
 		};
 
 		typedef TArray< Leaf > LeafVec;
@@ -135,6 +143,12 @@ namespace Bsp2D
 			return  mLeaves[ ~node->tag ];
 		}
 
+		Leaf& getLeafByTag(uint32 tag)
+		{
+			assert(IsLeafTag(tag));
+			return  mLeaves[~tag];
+		}
+
 		void clear();
 
 		struct ColInfo
@@ -145,6 +159,8 @@ namespace Bsp2D
 		};
 
 		bool segmentTest( Vector2 const& start , Vector2 const& end , ColInfo& info );
+
+		Node* getLeaf(Vector2 const& pos);
 
 
 
@@ -210,19 +226,19 @@ namespace Bsp2D
 			delete node;
 		}
 
-		static bool isInRect( Vector2 const& p , Vector2 const& min , Vector2 const& max )
+		static bool IsInRect( Vector2 const& p , Vector2 const& min , Vector2 const& max )
 		{
-			return min.x <= p.x && p.x < max.x &&
-				min.y <= p.y && p.y < max.y;
+			return min.x <= p.x && p.x <= max.x &&
+				   min.y <= p.y && p.y <= max.y;
 		}
 
-		void addEdge( Vector2 const& from , Vector2 const& to , int idx )
+		void addEdge( Vector2 const& from , Vector2 const& to , int polyIndex )
 		{
 			Edge edge;
 			edge.v[0] = from;
 			edge.v[1] = to;
 			edge.plane.init( edge.v[0] , edge.v[1] );
-			edge.idx  = idx;
+			edge.polyIndex  = polyIndex;
 			mEdges.push_back( edge );
 		}
 		void  build( PolyArea* polys[] , int num , Vector2 const& bbMin , Vector2 const& bbMax );
@@ -231,56 +247,56 @@ namespace Bsp2D
 		
 
 	private:
-		Node* contructTree_R( IndexVec& idxEdges );
-		int   choiceBestSplitEdge( IndexVec const& idxEdges  );
+		Node* contructTree_R( IndexList& edgeIndices);
+		int   choiceBestSplitEdge( IndexList const& edgeIndices);
 
 		class SegmentColSolver;
-
-		class PortalBuilder
-		{
-
-			typedef TArray< Portal > PortalVec;
-			struct SuperPlane
-			{
-				uint32    tag;
-				Node*     node;
-				Plane     plane;
-				PortalVec portals;
-			};
-
-			typedef TArray< SuperPlane* > SPlaneVec;
-
-			SPlaneVec mSPlanes;
-
-			void build( Vector2 const& max , Vector2 const& min );
-
-			SuperPlane* createSuperPlane( Node* node , Vector2 const& max , Vector2 const& min );
-
-
-			void generatePortal_R( Node* node , SuperPlane* splane )
-			{
-				if ( node->isLeaf() )
-				{
-					Leaf& leaf = mTree->getLeaf( node );
-
-					for( int i = 0 ; i < leaf.edges.size() ; ++i )
-					{
-						Edge& edge = mTree->getEdge( leaf.edges[i] );
-
-
-
-					}
-
-				}
-
-
-			}
-			Tree*  mTree;
-		};
-
+		class LeafFinder;
 
 	};
 
+	class PortalBuilder
+	{
+	public:
+		using Node = Tree::Node;
+		using Leaf = Tree::Leaf;
+		using Edge = Tree::Edge;
+		using Portal = Tree::Portal;
+
+		using PortalVec = TArray< Portal >;
+		struct SuperPlane
+		{
+			uint32    tag;
+			Node*     node;
+			Plane     plane;
+			PortalVec portals;
+
+			Vector2   debugPos[2];
+		};
+
+		using SPlaneVec = TArray< SuperPlane* >;
+		SPlaneVec mSPlanes;
+
+		~PortalBuilder()
+		{
+			cleanup();
+		}
+
+		void cleanup()
+		{
+			for (auto splane : mSPlanes)
+			{
+				delete splane;
+			}
+			mSPlanes.clear();
+		}
+		void build(Vector2 const& min, Vector2 const& max);
+
+		SuperPlane* createSuperPlane(Node* node, Vector2 const& min, Vector2 const& max);
+
+		void generatePortal_R(Node* node, SuperPlane* splane);
+		Tree*  mTree;
+	};
 
 }//namespace Bsp2D
 

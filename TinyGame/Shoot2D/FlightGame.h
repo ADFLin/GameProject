@@ -15,8 +15,8 @@ namespace Shoot2D
 	public:
 		bool onInit();
 		void onEnd();
-		void onUpdate( long time );
-		void onRender( float dFrame );
+		void onUpdate(GameTimeSpan deltaTime);
+		void onRender(float dFrame);
 
 	public:
 		void produceFlight();

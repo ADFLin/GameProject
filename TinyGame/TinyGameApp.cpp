@@ -67,6 +67,7 @@ namespace
 	TConsoleVariable<bool> CVarLockFPS{ true, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowGPUProifle{ true, "ShowGPUProfile" , CVF_TOGGLEABLE };
+	TConsoleVariable<float> CVarTimeDilation{ 1.0 , "Slomo" };
 	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 }
 
@@ -849,7 +850,9 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 		{
 			PROFILE_ENTRY("Stage Update");
-			getCurStage()->update(getUpdateTime());
+			GameTimeSpan deltaTime;
+			deltaTime.value = CVarTimeDilation * getUpdateTime() / 1000.0f;
+			getCurStage()->update(deltaTime);
 		}
 		{
 			PROFILE_ENTRY("GUI Update");

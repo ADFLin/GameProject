@@ -115,15 +115,23 @@ namespace TMachine
 		long execTime = 0;
 
 		virtual bool onInit();
-		virtual void onUpdate(long time)
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate(time);
+			BaseClass::onUpdate(deltaTime);
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
-			updateFrame(frame);
+			if (bExecuting)
+			{
+				execTime += long(deltaTime);
+				if (execTime > stepTime)
+				{
+					execTime -= stepTime;
+					if (!mechine.runStep())
+					{
+						bExecuting = false;
+						execTime = 0;
+					}
+				}
+			}
 		}
 
 		void restart()
@@ -151,28 +159,6 @@ namespace TMachine
 
 		void drawOp(Graphics2D& g, Vec2i const& pos, Operator const& op);
 		void drawMemory(Graphics2D& g);
-
-		void tick()
-		{
-			if ( bExecuting )
-			{
-				execTime += gDefaultTickTime;
-				if( execTime > stepTime )
-				{
-					execTime -= stepTime;
-					if( !mechine.runStep() )
-					{
-						bExecuting = false;
-						execTime = 0;
-					}
-				}
-			}
-		}
-
-		void updateFrame(int frame)
-		{
-
-		}
 
 		int  getChangeDataIndex(Vec2i loc)
 		{

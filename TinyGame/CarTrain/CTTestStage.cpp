@@ -313,16 +313,15 @@ namespace CarTrain
 		}
 	}
 
-	void TestStage::onUpdate(long time)
+	void TestStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		BaseClass::onUpdate(time);
+		BaseClass::onUpdate(deltaTime);
 
-		int frame = time / gDefaultTickTime;
+		int frame = long(deltaTime) / gDefaultTickTime;
 		int tickCount = CVarFrameTickFactor * frame;
 		for (int i = 0; i < tickCount; ++i)
 			tick();
 
-		updateFrame(frame);
 	}
 
 	void TestStage::onRender(float dFrame)

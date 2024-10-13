@@ -1035,6 +1035,9 @@
     <ClInclude Include="Misc\DebugDraw.h">
       <Filter>Misc</Filter>
     </ClInclude>
+    <ClInclude Include="Collision2D\Bsp2D.h">
+      <Filter>Collision</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

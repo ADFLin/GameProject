@@ -225,13 +225,6 @@ namespace Render
 		{
 
 		}
-		void tick() override
-		{
-
-		}
-		void updateFrame(int frame) override
-		{
-		}
 
 		bool bEnableTonemap = true;
 		bool bShowIrradiance = false;

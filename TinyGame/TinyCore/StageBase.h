@@ -31,6 +31,12 @@ enum StageID
 	STAGE_NEXT_ID     ,
 };
 
+struct GameTimeSpan
+{
+	operator float() { return value; }
+	explicit operator long() { return value * 1000; }
+	float value;
+};
 
 class StageBase : public TaskHandler
 {
@@ -42,15 +48,15 @@ public:
 	StageBase();
 	virtual ~StageBase();
 
-	void  update( long time );
-	void  render( float dFrame );
+	void  update(GameTimeSpan time);
+	void  render(float dFrame);
 
 	virtual bool onInit(){ return true; }
 	virtual void postInit(){}
 	virtual void onInitFail(){}
 	virtual void onEnd(){}
-	virtual void onUpdate( long time ){}
-	virtual void onRender( float dFrame ){}
+	virtual void onUpdate(GameTimeSpan deltaTime){}
+	virtual void onRender(float dFrame){}
 	
 	virtual MsgReply onChar( unsigned code );
 	virtual MsgReply onKey( KeyMsg const& msg );

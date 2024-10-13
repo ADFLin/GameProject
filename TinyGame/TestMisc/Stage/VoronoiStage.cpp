@@ -62,15 +62,9 @@ namespace Voronoi
 
 		}
 
-		virtual void onUpdate( long time )
+		virtual void onUpdate(GameTimeSpan deltaTime)
 		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
+			BaseClass::onUpdate(deltaTime);
 		}
 
 		bool bDrawCircumcircle = false;
@@ -135,18 +129,6 @@ namespace Voronoi
 			generate();
 #endif
 		}
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
-		{
-
-		}
-
 
 		DelaunaySolver solver;
 		void doGenerate()

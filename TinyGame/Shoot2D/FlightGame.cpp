@@ -86,7 +86,7 @@ namespace Shoot2D
 	}
 
 
-	void TestStage::onUpdate( long time )
+	void TestStage::onUpdate(GameTimeSpan deltaTime)
 	{
 
 		//m_ob->update();
@@ -101,7 +101,7 @@ namespace Shoot2D
 			spawnObject( fly );
 		}
 
-		objManger->update(time);
+		objManger->update(long(deltaTime));
 		objManger->testCollision();
 	}
 

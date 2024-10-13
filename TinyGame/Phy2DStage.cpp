@@ -69,11 +69,11 @@ namespace Phy2D
 		BaseClass::onEnd();
 	}
 
-	void Phy2DStageBase::onUpdate(long time)
+	void Phy2DStageBase::onUpdate(GameTimeSpan time)
 	{
 		BaseClass::onUpdate(time);
 
-		int frame = time / gDefaultTickTime;
+		int frame = long(time) / gDefaultTickTime;
 		for( int i = 0; i < frame; ++i )
 			tick();
 

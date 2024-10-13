@@ -590,9 +590,7 @@ namespace CarTrain
 
 		CarEntity* mCar = nullptr;
 		void tick();
-		void updateFrame(int frame) {}
-
-		void onUpdate(long time) override;
+		void onUpdate(GameTimeSpan deltaTime) override;
 
 
 		RenderTransform2D mWorldToScreen = RenderTransform2D::Identity();

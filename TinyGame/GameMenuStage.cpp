@@ -100,9 +100,9 @@ void GameMenuStage::fadeoutGroup( int dDelay )
 	}
 }
 
-void GameMenuStage::onUpdate( long time )
+void GameMenuStage::onUpdate(GameTimeSpan deltaTime)
 {
-	::Global::GUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
+	::Global::GUI().updateFrame(long(deltaTime) / gDefaultTickTime , gDefaultTickTime );
 }
 
 void GameMenuStage::onTaskMessage( TaskBase* task , TaskMsg const& msg )

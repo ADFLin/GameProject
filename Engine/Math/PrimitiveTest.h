@@ -23,6 +23,8 @@ namespace Math
 	bool LineSphereTest(Vector3 const& pos, Vector3 const& dirNormalized, Vector3 const& center, float radius, float outDistance[2]);
 
 	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, Vector2& outPos);
+	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, float& outT);
+	bool LineSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, Vector2& outPos);
 	bool SegmentSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, Vector2& outPos);
 	bool LineCircleTest(Vector2 const& rPos, Vector2 const& rDir,
 						Vector2 const& cPos, float cRadius, float t[]);
@@ -30,9 +32,6 @@ namespace Math
 	bool BoxCircleTest(Vector2 const& boxCenter, Vector2 const& boxHalfSize, Vector2 const& circlePos, float circleRadius);
 
 	Vector3 PointToTriangleClosestPoint(Vector3 const& p, Vector3 const& a, Vector3 const& b, Vector3 const& c, float& outSide);
-
-	bool SegmentInterection(Vector2 const& a1, Vector2 const& a2, Vector2 const& b1, Vector2 const& b2, float& fracA);
-
 
 	Vector2 GetCircumcirclePoint(Vector2 const& a, Vector2 const& b, Vector2 const& c);
 

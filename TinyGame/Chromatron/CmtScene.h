@@ -18,8 +18,7 @@ namespace Chromatron
 
 		void setupLevel( Level& level , bool bCreationMode = false );
 		void reset();
-		void tick();
-		void updateFrame( int frame );
+		void tick(float dt);
 		void render( Graphics2D& g );
 
 

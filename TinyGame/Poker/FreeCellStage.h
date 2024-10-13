@@ -22,7 +22,7 @@ namespace Poker
 
 		virtual bool onInit();
 		virtual void onEnd();
-		virtual void onUpdate( long time );
+		virtual void onUpdate(GameTimeSpan deltaTime);
 
 
 		virtual void onRender( float dFrame );

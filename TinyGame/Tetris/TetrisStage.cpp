@@ -517,9 +517,9 @@ namespace Tetris
 	}
 
 
-	void MenuStage::onUpdate( long time )
+	void MenuStage::onUpdate(GameTimeSpan deltaTime)
 	{
-		t += 0.001f * time;
+		t += deltaTime;
 
 		offsetBG.x += 2;
 		if ( offsetBG.x > 12 * BlockSize )
@@ -706,13 +706,13 @@ namespace Tetris
 		return true;
 	}
 
-	void AboutGameStage::onUpdate( long time )
+	void AboutGameStage::onUpdate(GameTimeSpan deltaTime)
 	{
 		static long count = 0;
 
 		static long const tiggerTime = 100;
 
-		count += time;
+		count += long(deltaTime);
 
 		if ( count > tiggerTime )
 		{
@@ -722,10 +722,9 @@ namespace Tetris
 			if ( curIndex >= TotalSpriteNum )
 				curIndex = 0;
 		}
-		float dt = time * 0.001f;
 
 		for( int i = 0 ; i < TotalSpriteNum ; ++i)
-			sprite[i].update( dt );
+			sprite[i].update(deltaTime);
 
 		//if ( ( pos.x < 0  && vel.x < 0 ) || 
 		//	 ( pos.x > Global::GetScreenSize().x && vel.x > 0 ) )
@@ -853,10 +852,10 @@ namespace Tetris
 	}
 
 
-	void RecordStage::onUpdate( long time )
+	void RecordStage::onUpdate(GameTimeSpan deltaTime)
 	{
 		int const freq = 1000;
-		lightBlink += time;
+		lightBlink += long(deltaTime);
 		if ( lightBlink > freq )
 			lightBlink = -freq / 3;
 	}

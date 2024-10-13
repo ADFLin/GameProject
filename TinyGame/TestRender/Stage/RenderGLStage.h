@@ -406,16 +406,7 @@ namespace Render
 		void setupScene();
 		void unregisterAllAsset();
 
-		virtual void onUpdate( long time )
-		{
-			BaseClass::onUpdate( time );
-
-			executeGameCommand();
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-			updateFrame( frame );
-		}
+		virtual void onUpdate(GameTimeSpan deltaTime);
 
 		void onRender( float dFrame );
 
@@ -441,13 +432,6 @@ namespace Render
 
 		}
 
-
-		void tick();
-
-		void updateFrame( int frame )
-		{
-
-		}
 
 		MsgReply onMouse(MouseMsg const& msg);
 		MsgReply onKey(KeyMsg const& msg);

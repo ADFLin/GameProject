@@ -38,6 +38,7 @@
 #include "Renderer/BatchedRender2D.cpp"
 
 #include "GameFramework/EntityManager.cpp"
+#include "Async/Coroutines.cpp"
 
 #endif
 

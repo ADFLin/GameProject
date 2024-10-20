@@ -78,21 +78,18 @@ bool SATSolver::testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 c
 
 	float depthMin = std::numeric_limits< float >::max();
 	int   idx = -1;
-	for( int cur = 0, prev = nA - 1; cur < nA; prev = cur++ )
+	float rangeA[2];
+	float rangeB[2];
+	auto TestAxis = [&](int cur, Vector2 const& axis)
 	{
-		Vector2 edge = vA[cur] - vA[prev];
-		Vector2 axis = Vector2(edge.y, -edge.x);
-
-		float rangeA[2];
 		CalcRange(rangeA, axis, vA, nA);
-		float rangeB[2];
 		CalcRange(rangeB, axis, vB, nB);
 
 		float offset = axis.dot(posRel);
 		rangeB[0] += offset;
 		rangeB[1] += offset;
 
-		if( !IsOverlap(rangeA, rangeB) )
+		if (!IsOverlap(rangeA, rangeB))
 		{
 			fResult = CalcDistance(rangeA, rangeB);
 			vResult = axis;
@@ -101,10 +98,22 @@ bool SATSolver::testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 c
 		}
 
 		float depth = CalcOverlapDepth(rangeA, rangeB) / axis.length();
-		if( depth < depthMin )
+		if (depth < depthMin)
 		{
 			depthMin = depth;
 			idx = cur;
+		}
+		return false;
+	};
+
+	for( int cur = 0, prev = nA - 1; cur < nA; prev = cur++ )
+	{
+		Vector2 edge = vA[cur] - vA[prev];
+		Vector2 axis = Vector2(edge.y, -edge.x);
+
+		if (TestAxis(cur, axis))
+		{
+			return true;
 		}
 	}
 
@@ -112,32 +121,10 @@ bool SATSolver::testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 c
 	{
 		Vector2 edge = vB[cur] - vB[prev];
 		Vector2 axis = Vector2(edge.y, -edge.x);
-
-		float rangeA[2];
-		CalcRange(rangeA, axis, vA, nA);
-		float rangeB[2];
-		CalcRange(rangeB, axis, vB, nB);
-
-
-		float offset = axis.dot(posRel);
-		rangeB[0] += offset;
-		rangeB[1] += offset;
-
-		if( !IsOverlap(rangeA, rangeB) )
+		if (TestAxis(-cur, axis))
 		{
-			fResult = CalcDistance(rangeA, rangeB);
-			vResult = axis;
-			haveSA = true;
-			return haveSA;
+			return true;
 		}
-
-		float depth = CalcOverlapDepth(rangeA, rangeB) / axis.length();
-		if( depth < depthMin )
-		{
-			depthMin = depth;
-			idx = -cur;
-		}
-		prev = cur;
 	}
 
 	fResult = depthMin;

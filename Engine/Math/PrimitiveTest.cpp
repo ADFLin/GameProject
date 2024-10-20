@@ -196,10 +196,29 @@ namespace Math
 
 		Vector2 d = posB1 - posA1;
 		float tB = (d.y * dirA.x - d.x * dirA.y) / det;
+		outPos = posB1 + tB * dirB;
+
+		if (tB > 1 + FLOAT_EPSILON || tB < -FLOAT_EPSILON)
+			return false;
+		
+		return true;
+	}
+
+	bool LineSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, float& outT)
+	{
+		Vector2 dirA = posA2 - posA1;
+		Vector2 dirB = posB2 - posB1;
+
+		float det = dirA.y * dirB.x - dirA.x * dirB.y;
+		if (Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON)
+			return false;
+
+		Vector2 d = posB1 - posA1;
+		float tB = (d.y * dirA.x - d.x * dirA.y) / det;
+		outT = tB;
 		if (tB > 1 + FLOAT_EPSILON || tB < -FLOAT_EPSILON)
 			return false;
 
-		outPos = posB1 + tB * dirB;
 		return true;
 	}
 
@@ -214,13 +233,38 @@ namespace Math
 
 		Vector2 d = posB1 - posA1;
 		float tA = (d.y * dirB.x - d.x * dirB.y) / det;
+		outPos = posA1 + tA * dirA;
+
 		if (tA > 1 + FLOAT_EPSILON || tA < -FLOAT_EPSILON)
 			return false;
+
 		float tB = (d.y * dirA.x - d.x * dirA.y) / det;
 		if (tB > 1 + FLOAT_EPSILON || tB < -FLOAT_EPSILON)
 			return false;
 
-		outPos = posA1 + tA * dirA;
+		return true;
+	}
+
+
+	bool SegmentSegmentTest(Vector2 const& posA1, Vector2 const& posA2, Vector2 const& posB1, Vector2 const& posB2, float outT[2])
+	{
+		Vector2 dirA = posA2 - posA1;
+		Vector2 dirB = posB2 - posB1;
+
+		float det = dirA.y * dirB.x - dirA.x * dirB.y;
+		if (Math::Abs(det) < FLOAT_DIV_ZERO_EPSILON)
+			return false;
+
+		Vector2 d = posB1 - posA1;
+		float tA = (d.y * dirB.x - d.x * dirB.y) / det;
+		outT[0] = tA;
+		float tB = (d.y * dirA.x - d.x * dirA.y) / det;
+		outT[1] = tA;
+		if (tA > 1 + FLOAT_EPSILON || tA < -FLOAT_EPSILON)
+			return false;
+		if (tB > 1 + FLOAT_EPSILON || tB < -FLOAT_EPSILON)
+			return false;
+
 		return true;
 	}
 

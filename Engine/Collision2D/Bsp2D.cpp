@@ -4,7 +4,7 @@
 //#include "DebugDraw.h"
 
 #define DEBUG_BSP2D 0
-
+#include "Misc/DebugDraw.h"
 #if DEBUG_BSP2D
 #include "Async/Coroutines.h"
 #include "Misc/DebugDraw.h"
@@ -23,7 +23,6 @@
 
 namespace Bsp2D
 {
-	float const WallThin = 1e-3f;
 
 	void Plane::init( Vector2 const& v1 , Vector2 const& v2 )
 	{
@@ -32,9 +31,9 @@ namespace Bsp2D
 
 	Side Plane::split( Vector2 v[2] , Vector2 vSplit[2] ) const
 	{
-		EPlaneSide::Type s0 = testSide(v[0], WallThin);
+		EPlaneSide::Type s0 = testSide(v[0], WallThickness);
 		float dist;
-		EPlaneSide::Type s1 = testSide(v[1], WallThin, dist);
+		EPlaneSide::Type s1 = testSide(v[1], WallThickness, dist);
 		if ( s0 + s1 != 0 )
 			return ( s0 ) ? Side( s0 ) : Side(s1);
 
@@ -66,9 +65,9 @@ namespace Bsp2D
 	int Plane::clip(bool bFront, Vector2 inoutV[2]) const
 	{
 		EPlaneSide::Type clipSide = bFront ? EPlaneSide::Front : EPlaneSide::Back;
-		EPlaneSide::Type s0 = testSide(inoutV[0], WallThin);
+		EPlaneSide::Type s0 = testSide(inoutV[0], WallThickness);
 		float dist;
-		EPlaneSide::Type s1 = testSide(inoutV[1], WallThin, dist);
+		EPlaneSide::Type s1 = testSide(inoutV[1], WallThickness, dist);
 		if (s0 + s1 != 0)
 		{
 			return (((s0) ? s0 : s1) == clipSide) ? 1 : 0;
@@ -90,8 +89,8 @@ namespace Bsp2D
 	Side Plane::testSegment( Vector2 const& v0 , Vector2 const& v1 ) const
 	{
 		float dist;
-		EPlaneSide::Type s0 = testSide( v0 , WallThin, dist );
-		EPlaneSide::Type s1 = testSide( v1 , WallThin, dist );
+		EPlaneSide::Type s0 = testSide( v0 , WallThickness, dist );
+		EPlaneSide::Type s1 = testSide( v1 , WallThickness, dist );
 
 		if ( s0 + s1 != 0 )
 			return ( s0 ) ? Side( s0 ) : Side(s1);
@@ -217,7 +216,7 @@ namespace Bsp2D
 				break;
 			case SIDE_IN:
 				++countOnPlane;			
-#if 1
+#if 0
 				idxFronts.push_back(indexEdge);
 #else
 				if ( Math::Dot(plane.getNormal(), edgeTest.plane.getNormal()) > 0 )
@@ -341,13 +340,15 @@ namespace Bsp2D
 					Edge& edge = mTree->getEdge( idxEdge );
 
 
-					Vector2 pos;
-					float frac;
-					if ( Math::SegmentSegmentTest(mStart, mEnd, edge.v[0], edge.v[1], pos) )
+					float frac[2];
+					if ( Math::SegmentSegmentTest(mStart, mEnd, edge.v[0], edge.v[1], frac) )
 					{
-						mInfo->indexEdge = idxEdge;
-						mInfo->frac = frac;
-						return true;
+						if (WallThickness <= frac[1] && frac[1] <= 1 - WallThickness)
+						{
+							mInfo->indexEdge = idxEdge;
+							mInfo->frac = frac[2];
+							return true;
+						}
 					}
 
 				}
@@ -357,8 +358,8 @@ namespace Bsp2D
 			Edge& edge = mTree->getEdge( node->idxEdge );
 
 			float dist;
-			EPlaneSide::Type s0 = edge.plane.testSide(mStart, WallThin, dist);
-			EPlaneSide::Type s1 = edge.plane.testSide(mEnd, WallThin, dist);
+			EPlaneSide::Type s0 = edge.plane.testSide(mStart, WallThickness, dist);
+			EPlaneSide::Type s1 = edge.plane.testSide(mEnd, WallThickness, dist);
 
 			if ( s0 == EPlaneSide::In )
 			{
@@ -437,7 +438,7 @@ namespace Bsp2D
 
 				Edge& edge = mTree->getEdge(node->idxEdge);
 				float dist;
-				EPlaneSide::Type side = edge.plane.testSide(mPos, WallThin, dist);
+				EPlaneSide::Type side = edge.plane.testSide(mPos, WallThickness, dist);
 				switch (side)
 				{
 				case EPlaneSide::Front:
@@ -470,6 +471,35 @@ namespace Bsp2D
 		return finder.find(*this, pos);
 	}
 
+
+	static bool IsContain(Vector2 const a[], Vector2 const b[])
+	{
+		Vector2 dirA = a[1] - a[0];
+#if 0
+		Vector2 dirB = b[1] - b[0];
+		if ( Math::Abs(Math::Dot(dirA, dirB)) < 1 - FLOAT_DIV_ZERO_EPSILON)
+			return false;
+#endif
+
+		float length = dirA.length();
+		dirA /= length;
+
+		Vector2 dir0 = b[0] - a[0];
+		if ( Math::Abs(dirA.cross(dir0)) > FLOAT_DIV_ZERO_EPSILON)
+			return false;
+		float d0 = Math::Dot(dirA , dir0);
+		if (d0 < -WallThickness || d0 > length + WallThickness)
+			return false;
+
+		Vector2 dir1 = b[1] - a[0];
+		if ( Math::Abs(dirA.cross(dir1)) > FLOAT_DIV_ZERO_EPSILON)
+			return false;
+		float d1 = Math::Dot(dirA, dir1);
+		if (d1 < -WallThickness || d1 > length + WallThickness)
+			return false;
+
+		return true;
+	}
 	void PortalBuilder::build(Vector2 const& min, Vector2 const& max)
 	{
 		cleanup();
@@ -487,6 +517,48 @@ namespace Bsp2D
 			{
 				generatePortal_R(node->front, splane);
 				generatePortal_R(node->back, splane);
+
+
+				Edge edgeTemp;
+				for (int indexPortal = 0; indexPortal < splane->portals.size(); ++indexPortal)
+				{
+					auto& portal = splane->portals[indexPortal];
+					Leaf& leafFront = mTree->getLeafByTag(portal.frontTag);
+					for (int i = 0; i < leafFront.edges.size(); ++i)
+					{
+						Edge const& edge = mTree->getEdge(leafFront.edges[i]);
+						if (IsContain(edge.v, portal.v))
+						{
+							edgeTemp = edge;
+							goto Remove;
+						}
+					}
+					Leaf& leafBack = mTree->getLeafByTag(portal.backTag);
+					for (int i = 0; i < leafBack.edges.size(); ++i)
+					{
+						Edge const& edge = mTree->getEdge(leafBack.edges[i]);
+						if (IsContain(edge.v, portal.v))
+						{
+							edgeTemp = edge;
+							goto Remove;
+						}
+					}
+
+					continue;
+
+				Remove:
+#if 0
+					static int Count = 0;
+					++Count;
+					if ( Count == 1 )
+					{
+						DrawDebugLine(portal.v[0], portal.v[1], Color3f(0.5, 0.5, 1), 2);
+						DrawDebugPoint(0.5 * (portal.v[0] + portal.v[1]), Color3f(1, 0.5, 0.5), 4);
+					}
+#endif
+					splane->portals.removeIndexSwap(indexPortal);
+					--indexPortal;
+				}
 			}
 		}
 	}
@@ -589,7 +661,26 @@ namespace Bsp2D
 			auto& portal = splane->portals[indexPortal];
 			Vector2 mid = 0.5 * (portal.v[0] + portal.v[1]);
 			InlineString<> str;
-			str.format("%u, %u", portal.frontTag, portal.backTag);
+			if (Bsp2D::Tree::IsLeafTag(portal.frontTag))
+			{
+				if (Bsp2D::Tree::IsLeafTag(portal.backTag))
+				{
+					str.format("L[%u], L[%u]", ~portal.frontTag, ~portal.backTag);
+				}
+				else
+				{
+					str.format("L[%u], %u", ~portal.frontTag, portal.backTag);
+				}
+			}
+			else if (Bsp2D::Tree::IsLeafTag(portal.backTag))
+			{
+				str.format("%u, L[%u]", portal.frontTag, ~portal.backTag);
+			}
+			else
+			{
+				str.format("%u, %u", portal.frontTag, portal.backTag);
+			}
+
 			DEBUG_TEXT(mid, str, Color3f(0, 1, 0));
 		}
 		DEBUG_BREAK();
@@ -622,11 +713,13 @@ namespace Bsp2D
 					DEBUG_LINE(portal.v[0], portal.v[1], Color3f(0, 1, 1));
 					DEBUG_BREAK();
 
-					if ( SegmentSegmentTest(portal.v[0], portal.v[1], edge.v[0], edge.v[1], WallThin) )
+					if ( SegmentSegmentTest(portal.v[0], portal.v[1], edge.v[0], edge.v[1], WallThickness) )
 					{
 						float dot = Math::Dot(edge.plane.getNormal(), splane->plane.getNormal());
 						if (Math::Abs(1 - dot) < FLOAT_EPSILON)
+						{
 							continue;
+						}
 
 						Vector2 vSplitted[2];
 						int clipStatus = edge.plane.clip(true, portal.v);
@@ -634,6 +727,8 @@ namespace Bsp2D
 						{
 							splane->portals.removeIndexSwap(indexPortal);
 							--indexPortal;
+							if (indexPortal < 0)
+								break;
 						}
 
 #if DEBUG_BSP2D
@@ -647,11 +742,13 @@ namespace Bsp2D
 					}
 					else
 					{
-						if (edge.plane.testSegment(portal.v) == SIDE_BACK)
+						auto side = edge.plane.testSegment(portal.v);
+						if (side == SIDE_BACK)
 						{
 							splane->portals.removeIndexSwap(indexPortal);
 							--indexPortal;
-
+							if (indexPortal < 0)
+								break;
 						}
 					}
 				}

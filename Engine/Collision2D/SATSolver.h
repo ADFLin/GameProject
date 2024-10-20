@@ -19,7 +19,7 @@ public:
 	static bool IsOverlap(float rangeA[], float rangeB[])
 	{
 		return (rangeA[0] <= rangeB[1]) &&
-			(rangeB[0] <= rangeA[1]);
+			   (rangeB[0] <= rangeA[1]);
 	}
 
 	static float CalcOverlapDepth(float rangeA[], float rangeB[])

@@ -12,8 +12,20 @@
 
 namespace Bsp2D
 {
-
+	constexpr float WallThickness = 1e-3f;
 	typedef ::Math::Vector2 Vector2;
+
+	static bool IsInRect(Vector2 const& p, Vector2 const& min, Vector2 const& max)
+	{
+		return min.x - WallThickness <= p.x && p.x <= max.x + WallThickness &&
+			   min.y - WallThickness <= p.y && p.y <= max.y + WallThickness;
+	}
+
+	static bool IsEqual(Vector2 const& v1, Vector2 const& v2)
+	{
+		Vector2 diff = (v1 - v2).abs();
+		return diff.x < WallThickness && diff.y < WallThickness;
+	}
 
 	class PolyArea
 	{
@@ -153,9 +165,9 @@ namespace Bsp2D
 
 		struct ColInfo
 		{
-			float frac;
 			float depth;
 			int   indexEdge;
+			float frac;
 		};
 
 		bool segmentTest( Vector2 const& start , Vector2 const& end , ColInfo& info );
@@ -224,12 +236,6 @@ namespace Bsp2D
 			if ( node->back )
 				deleteNode_R( node->back );
 			delete node;
-		}
-
-		static bool IsInRect( Vector2 const& p , Vector2 const& min , Vector2 const& max )
-		{
-			return min.x <= p.x && p.x <= max.x &&
-				   min.y <= p.y && p.y <= max.y;
 		}
 
 		void addEdge( Vector2 const& from , Vector2 const& to , int polyIndex )

@@ -90,12 +90,12 @@
     <ClCompile Include="AppleSnake\AppleSnakeLevel.cpp">
       <Filter>GameAppleSnake</Filter>
     </ClCompile>
-    <ClCompile Include="TestMisc\Stage\StoreSimStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="..\Engine\Collision2D\Bsp2D.cpp" />
     <ClCompile Include="TestMisc\Stage\Bsp2DStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="StoreSim\StoreSimStage.cpp">
+      <Filter>GameStoreSim</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -203,6 +203,9 @@
     </Filter>
     <Filter Include="GameAppleSnake">
       <UniqueIdentifier>{d9569443-0bc8-4052-88bd-24be7bbb1187}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameStoreSim">
+      <UniqueIdentifier>{518ba1cd-8758-4439-8fe1-f25f4df78288}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

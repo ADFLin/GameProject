@@ -37,7 +37,10 @@ namespace Math
 
 	Vector2 GetCircumcirclePoint(Vector2 const& a, Vector2 const& b, Vector2 const& c);
 
-	bool IsInsideCircumcircle(Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, Vector2 const& p);;
+	bool IsInsideCircumcircle(Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, Vector2 const& p);
+
+
+	bool IsInsidePolygon(Vector2 const& p, Vector2 const v[], int nV);
 }
 
 #endif // PrimitiveTest2D_H_713D2BCD_4AC3_4B4C_99C5_4BEBB85721AE

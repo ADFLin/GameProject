@@ -174,12 +174,31 @@ public:
 		);
 	};
 
+
+	struct CGlobalSerializeCallable
+	{
+		template< typename T, typename OP>
+		static auto Requires(T& value, OP& op) -> decltype
+		(
+			Serialize(value, op)
+		);
+	};
+
 	template< typename T , typename OP >
 	struct TUseSerializeFunc
 	{
 		enum 
 		{
-			Value = TTypeSupportSerializeOPFunc<T>::Value || (TCheckConcept< CSerializeCallable, T, OP >::Value && !TTypeSupportSerializeOPFunc<T>::Defined ),
+			Value = TTypeSupportSerializeOPFunc<T>::Value || (TCheckConcept< CSerializeCallable, T, OP >::Value && !TTypeSupportSerializeOPFunc<T>::Defined),
+		};
+	};
+
+	template< typename T, typename OP >
+	struct TUseGlobalSerializeFunc
+	{
+		enum
+		{
+			Value = TTypeSupportSerializeOPFunc<T>::Value || (TCheckConcept< CGlobalSerializeCallable, T, OP >::Value && !TTypeSupportSerializeOPFunc<T>::Defined),
 		};
 	};
 
@@ -189,6 +208,10 @@ public:
 		if constexpr (TUseSerializeFunc<T, WriteOp>::Value)
 		{
 			const_cast<T&>(value).serialize(WriteOp(*this));
+		}
+		else if constexpr (TUseSerializeFunc<T, WriteOp>::Value)
+		{
+			Serialize(const_cast<T&>(value), WriteOp(*this));
 		}
 		else
 		{
@@ -203,6 +226,10 @@ public:
 		if constexpr (TUseSerializeFunc<T, ReadOp>::Value)
 		{
 			value.serialize(ReadOp(*this));
+		}
+		else if constexpr (TUseSerializeFunc<T, ReadOp>::Value)
+		{
+			Serialize(value, ReadOp(*this));
 		}
 		else
 		{

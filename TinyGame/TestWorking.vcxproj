@@ -245,6 +245,8 @@
     <ClCompile Include="StoneBlocks\SBlocksLevel.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksSolver.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
+    <ClCompile Include="StoreSim\StoreSimCore.cpp" />
+    <ClCompile Include="StoreSim\StoreSimNav.cpp" />
     <ClCompile Include="StoreSim\StoreSimStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AgarStage.cpp" />
@@ -283,6 +285,11 @@
     <ClInclude Include="StoneBlocks\SBlocksSerialize.h" />
     <ClInclude Include="StoneBlocks\SBlocksSolver.h" />
     <ClInclude Include="StoneBlocks\SBlocksStage.h" />
+    <ClInclude Include="StoreSim\StoreSimAI.h" />
+    <ClInclude Include="StoreSim\StoreSimCore.h" />
+    <ClInclude Include="StoreSim\StoreSimItem.h" />
+    <ClInclude Include="StoreSim\StoreSimNav.h" />
+    <ClInclude Include="StoreSim\StoreSimSerialize.h" />
     <ClInclude Include="Sudoku\SamplerTest.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />

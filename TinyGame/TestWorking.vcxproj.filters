@@ -97,6 +97,12 @@
     <ClCompile Include="StoreSim\StoreSimStage.cpp">
       <Filter>GameStoreSim</Filter>
     </ClCompile>
+    <ClCompile Include="StoreSim\StoreSimNav.cpp">
+      <Filter>GameStoreSim</Filter>
+    </ClCompile>
+    <ClCompile Include="StoreSim\StoreSimCore.cpp">
+      <Filter>GameStoreSim</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
@@ -171,6 +177,19 @@
     </ClInclude>
     <ClInclude Include="AppleSnake\AppleSnakeStage.h">
       <Filter>GameAppleSnake</Filter>
+    </ClInclude>
+    <ClInclude Include="StoreSim\StoreSimCore.h">
+      <Filter>GameStoreSim</Filter>
+    </ClInclude>
+    <ClInclude Include="StoreSim\StoreSimNav.h">
+      <Filter>GameStoreSim</Filter>
+    </ClInclude>
+    <ClInclude Include="StoreSim\StoreSimAI.h">
+      <Filter>GameStoreSim</Filter>
+    </ClInclude>
+    <ClInclude Include="StoreSim\StoreSimItem.h" />
+    <ClInclude Include="StoreSim\StoreSimSerialize.h">
+      <Filter>GameStoreSim</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

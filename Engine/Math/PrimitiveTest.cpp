@@ -385,5 +385,18 @@ namespace Math
 		return det > 0;
 	}
 
+	bool IsInsidePolygon(Vector2 const& p, Vector2 const v[], int nV)
+	{
+		for (int32 i = 0; i < nV; ++i)
+		{
+			float dot = Math::Dot(v[i], p - v[i]);
+			if (dot > 0.0f)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 }//namespace Math2D
 

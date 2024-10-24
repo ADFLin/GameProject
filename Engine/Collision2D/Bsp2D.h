@@ -27,6 +27,8 @@ namespace Bsp2D
 		return diff.x < WallThickness && diff.y < WallThickness;
 	}
 
+	bool IsContain(Vector2 const a[], Vector2 const b[]);
+
 	class PolyArea
 	{
 	public:

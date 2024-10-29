@@ -117,7 +117,7 @@ namespace SBlocks
 			TArray< T > result;
 
 			uint32 dataSizeX = GetDataSizeX(sizeX);
-			uint32 sizeY = (bitData.size() + dataSizeX - 1) / dataSizeX;
+			uint32 sizeY = ((uint32)bitData.size() + dataSizeX - 1) / dataSizeX;
 			result.resize(sizeX * sizeY, 0);
 			for (uint32 index = 0; index < result.size(); ++index)
 			{

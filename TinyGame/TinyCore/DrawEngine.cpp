@@ -182,7 +182,6 @@ DrawEngine::~DrawEngine()
 	mBufferDC.release();
 	mPlatformGraphics.release();
 	mRHIGraphics.release();
-
 }
 
 void DrawEngine::initialize(IGameWindowProvider& provider)

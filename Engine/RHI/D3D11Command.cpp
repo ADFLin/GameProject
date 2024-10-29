@@ -630,15 +630,12 @@ namespace Render
 		box.right = ox + w;
 		box.top = oy;
 		box.bottom = oy + h;
-		if (dataWidth)
+		if ( dataWidth == 0)
 		{
-			mDeviceContextImmdiate->UpdateSubresource(textureImpl.mResource, level, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), dataWidth * h * ETexture::GetFormatSize(texture.getFormat()));
+			dataWidth = w;
 		}
-		else
-		{
-			mDeviceContextImmdiate->UpdateSubresource(textureImpl.mResource, level, &box, data, w * ETexture::GetFormatSize(texture.getFormat()), w * h * ETexture::GetFormatSize(texture.getFormat()));
-		}
-
+		
+		mDeviceContextImmdiate->UpdateSubresource(textureImpl.mResource, level, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), dataWidth * h * ETexture::GetFormatSize(texture.getFormat()));
 		return true;
 	}
 
@@ -790,7 +787,6 @@ namespace Render
 			targetValueD3D11.BlendOpAlpha = D3D11Translate::To(targetValue.opAlpha);
 			targetValueD3D11.SrcBlendAlpha = D3D11Translate::To(targetValue.srcAlpha);
 			targetValueD3D11.DestBlendAlpha = D3D11Translate::To(targetValue.destAlpha);
-
 		}
 
 		TComPtr< ID3D11BlendState > stateResource;
@@ -1476,7 +1472,7 @@ namespace Render
 		ID3D11ShaderResourceView* EmptySRVs[MaxSimulatedBoundedSRVNum] = { nullptr };
 		D3D11ShaderTraits<TypeValue>::SetShaderResources(context, 0, MaxSimulatedBoundedSRVNum, EmptySRVs);
 
-		if (TypeValue == EShader::Compute)
+		if constexpr (TypeValue == EShader::Compute)
 		{
 			ID3D11UnorderedAccessView* EmptyUAVs[MaxSimulatedBoundedSRVNum] = { nullptr };
 			context->CSSetUnorderedAccessViews(0, MaxSimulatedBoundedUAVNum, EmptyUAVs, nullptr);

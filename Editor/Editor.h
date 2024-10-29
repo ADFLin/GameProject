@@ -26,6 +26,7 @@ public:
 class IEditorGameViewport
 {
 public:
+	virtual TVector2<int> getInitialSize() = 0;
 	virtual void resizeViewport(int w, int h) = 0;
 	virtual void renderViewport(IEditorRenderContext& context) = 0;
 	virtual void onViewportMouseEvent(MouseMsg const& msg) = 0;

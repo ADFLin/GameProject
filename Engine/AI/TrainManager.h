@@ -78,9 +78,9 @@ namespace AI
 			numPoolDataSelectUsed = 5;
 			numTrainDataSelect = 10;
 
-			mutationGeneProb = 0.8;
-			mutationValueProb = 0.5;
-			mutationValueDelta = 1e-2;
+			mutationGeneProb = 0.8f;
+			mutationValueProb = 0.5f;
+			mutationValueDelta = 1e-2f;
 		}
 	};
 

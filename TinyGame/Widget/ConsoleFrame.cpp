@@ -27,7 +27,7 @@ void ConsoleFrame::onRender()
 	RenderUtility::SetFont(g, FONT_S10);
 
 	int lineCount = 0;
-	int startLineIndex = Math::Max(0, mLines.size() - numLines);
+	int startLineIndex = Math::Max(0, (int)mLines.size() - numLines);
 	for( int index = startLineIndex; index < mLines.size() ; ++index )
 	{
 		auto const& line = mLines[index];

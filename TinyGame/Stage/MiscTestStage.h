@@ -211,7 +211,7 @@ public:
 		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetPen( g , EColor::Red );
-		int num = mSplineLine.size() - 1;
+		int num = (int)mSplineLine.size() - 1;
 		for( int i = 0 ; i < num ; ++i )
 		{
 			g.drawLine( Vec2i( mSplineLine[i]) , Vec2i( mSplineLine[i+1] ) );
@@ -309,7 +309,6 @@ public:
 			printBits( flag );
 			printBits( bit );
 			int index = FBitUtility::CountTrailingZeros( bit );
-			int i;
 		}	
 	}
 #if 0

@@ -68,6 +68,11 @@ void TinyGameApp::finalizeEditor()
 	}
 }
 
+TVector2<int> TinyGameApp::getInitialSize()
+{
+	return TVector2<int>(mGameWindow.getWidth(), mGameWindow.getHeight());
+}
+
 void TinyGameApp::resizeViewport(int w, int h)
 {
 	::Global::GetDrawEngine().changeScreenSize(w, h, true);

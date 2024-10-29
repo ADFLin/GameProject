@@ -388,11 +388,11 @@ namespace TripleTown
 		bool redo()
 		{
 			int index = mIndexLastStepState + 1;
-			if (index == ARRAY_SIZE(mStepStaes))
+			if (index == ARRAY_SIZE(mStepStates))
 			{
 				index = 0;
 			}
-			auto& state = mStepStaes[index];
+			auto& state = mStepStates[index];
 			if (state.step != mStep + 1)
 				return false;
 
@@ -406,9 +406,9 @@ namespace TripleTown
 			int index = mIndexLastStepState - 1;
 			if (index < 0)
 			{
-				index += ARRAY_SIZE(mStepStaes);
+				index += (int)ARRAY_SIZE(mStepStates);
 			}
-			auto& state = mStepStaes[index];
+			auto& state = mStepStates[index];
 			if (state.step != mStep - 1)
 				return false;
 
@@ -426,10 +426,10 @@ namespace TripleTown
 		void recordStepState()
 		{
 			++mIndexLastStepState;
-			if (mIndexLastStepState == ARRAY_SIZE(mStepStaes))
+			if (mIndexLastStepState == ARRAY_SIZE(mStepStates))
 				mIndexLastStepState = 0;
 
-			saveState(mStepStaes[mIndexLastStepState]);
+			saveState(mStepStates[mIndexLastStepState]);
 		}
 		void saveState(StateData& state)
 		{
@@ -448,7 +448,7 @@ namespace TripleTown
 		}
 
 		int mIndexLastStepState = 0;
-		StateData mStepStaes[32];
+		StateData mStepStates[32];
 
 
 		struct ProduceInfo

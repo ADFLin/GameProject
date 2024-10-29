@@ -83,6 +83,7 @@ void TextureViewerPanel::render()
 		gamma = 1.0f;
 		scale = 1.0f;
 		sizeScale = 1.0f;
+		bVFlip = false;
 	}
 
 	ImGui::SameLine();
@@ -93,6 +94,8 @@ void TextureViewerPanel::render()
 	ImGui::Checkbox("B", &bMaskB);
 	ImGui::SameLine();
 	ImGui::Checkbox("A", &bMaskA);
+	ImGui::SameLine();
+	ImGui::Checkbox("VFlip", &bVFlip);
 	ImGui::SameLine();
 	ImGui::Text("Gamma");
 	ImGui::SameLine();
@@ -144,7 +147,7 @@ void TextureViewerPanel::render()
 	ImGui::BeginChild("Split", ImVec2(0,0), false);
 	if (texture)
 	{
-		bool bUseShader = !bMaskR || !bMaskG || !bMaskB || gamma != 1.0 || scale != 1.0;
+		bool bUseShader = bVFlip || !bMaskR || !bMaskG || !bMaskB || gamma != 1.0 || scale != 1.0;
 
 		if (bUseShader)
 		{
@@ -200,7 +203,15 @@ void TextureViewerPanel::render()
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 				Matrix4 xForm = AdjProjectionMatrixForRHI(OrthoMatrix(0, drawData->DisplaySize.x, drawData->DisplaySize.y, 0, 1, -1));
-				DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Bilinear >::GetRHI(), data.clientPos, renderSize, &colorMask, &mappingParams);
+				if ( bVFlip )
+				{
+					Vector2 pos = data.clientPos + Vector2(0 , renderSize.y);
+					DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Bilinear >::GetRHI(), pos, Vector2(renderSize.x, -renderSize.y), &colorMask, &mappingParams);
+				}
+				else
+				{
+					DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Bilinear >::GetRHI(), data.clientPos, renderSize, &colorMask, &mappingParams);
+				}
 
 				RHIEndRender(false);
 			});

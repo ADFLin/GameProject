@@ -54,7 +54,7 @@ namespace CB
 		void evalExpr(Vector3& out, float x, float y)
 		{
 			assert(isParsed());
-			out.setValue(x, y, mExpr.eval(x, y));
+			out.setValue(x, y, (float)mExpr.eval(x, y));
 		}
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
 		std::string const& getExprString() { return mExpr.getExprString(); }

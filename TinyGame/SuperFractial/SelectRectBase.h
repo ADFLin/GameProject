@@ -114,8 +114,8 @@ protected:
 	{
 		if (!mbEnable) return;
 
-		float dx=cx - mCenterPos.x;
-		float dy=cy - mCenterPos.y;
+		float dx= float(cx - mCenterPos.x);
+		float dy= float(cy - mCenterPos.y);
 		setRotationAngle( Math::ATan2(dx,-dy) );
 		_this()->repaint();
 	}
@@ -133,7 +133,7 @@ protected:
 	{
 		if (!mbEnable) return;
 
-		Vector2 lPos = worldToLocalPos(Vector2(PosX, PosY));
+		Vector2 lPos = worldToLocalPos(Vec2i(PosX, PosY));
 		int lPosX = Math::CeilToInt(lPos.x + 0.5f);
 		int lPosY = Math::CeilToInt(lPos.x + 0.5f);
 

@@ -13,16 +13,19 @@
 #include "Rect.h"
 #include "TinyCore/DebugDraw.h"
 
+#define USE_SPLITSCREEN_LIB 0
 
+#if USE_SPLITSCREEN_LIB
 #include "SplitScreen/Voronoi/VoronoiBuilder.h"
 #include "SplitScreen/Voronoi/VoronoiDiagram.h"
 #include "SplitScreen/Voronoi/VoronoiBounds.h"
 #include "SplitScreen/Voronoi/VoronoiNormalizationScope.h"
 #include "SplitScreen/Voronoi/Balancing/FloydRelaxation.h"
 #include "SplitScreen/Voronoi/Balancing/UniformTransformRelaxation.h"
-
+#endif
 using namespace Render;
 
+#if USE_SPLITSCREEN_LIB
 namespace SplitScreen
 {
 	struct ScreenRegion
@@ -1009,7 +1012,7 @@ namespace SplitScreen
 		}
 	};
 }
-
+#endif
 class SplitScreenTestStage : public StageBase
 				           , public IGameRenderSetup
 {
@@ -1066,10 +1069,12 @@ public:
 		restart();
 		return true;
 	}
-
+#if USE_SPLITSCREEN_LIB
 	SplitScreen::SplitScreenEffect mEffect;
+#endif
 	void test()
 	{
+#if USE_SPLITSCREEN_LIB
 		mEffect.Screens.resize(4);
 
 		mEffect.Screens[0].worldPos = 2 * Vector3(1, 1, 0);
@@ -1078,6 +1083,7 @@ public:
 		mEffect.Screens[3].worldPos = 2 * Vector3(1, -1, 0);
 
 		mEffect.Update();
+#endif
 	}
 
 	void onEnd() override

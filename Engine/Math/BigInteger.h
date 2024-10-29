@@ -430,7 +430,7 @@ void TBigUint<NumWord>::shiftLeftElement( unsigned offset , unsigned fill )
 		return;
 
 	assert( offset < NumWord );
-	int i;
+	unsigned i;
 	for ( i = NumWord - 1 ; i >= offset ; --i )
 	{
 		elements[ i ] = elements[ i - offset ];
@@ -448,8 +448,8 @@ void TBigUint<NumWord>::shiftRightElement( unsigned offset , unsigned fill )
 		return;
 
 	assert( offset < NumWord );
-	int i;
-	for ( i = 0 ; i < NumWord - offset ; ++i )
+	unsigned i;
+	for ( i = 0 ; i < unsigned(NumWord) - offset ; ++i )
 	{
 		elements[ i ] = elements[ i + offset ];
 	}

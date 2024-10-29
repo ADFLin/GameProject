@@ -1019,8 +1019,7 @@ namespace TripleTown
 
 			unsigned bitH = mLevel->getTerrain(TilePos(xCorner, y)) != tId ? 1 : 0;
 			unsigned bitV = mLevel->getTerrain(TilePos(x, yCorner)) != tId ? 1 : 0;
-			unsigned char con;
-			con = (bitV << 1) | bitH;
+			unsigned char con = (bitV << 1) | bitH;
 			if( con == 0 )
 			{
 				unsigned bitC = mLevel->getTerrain(TilePos(xCorner, yCorner)) != tId ? 1 : 0;

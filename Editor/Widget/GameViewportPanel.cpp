@@ -31,8 +31,9 @@ public:
 void GameViewportPanel::onOpen()
 {
 	ImGuiWindow* window = ImGui::GetCurrentWindowRead();
-	window->ContentSize;
-	mTexture = RHICreateTexture2D(ETexture::BGRA8, 800, 600, 0, 1, TCF_DefalutValue | TCF_PlatformGraphicsCompatible);
+
+	TVector2<int> size = mViewport->getInitialSize();
+	mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::BGRA8, size.x, size.y).AddFlags(TCF_PlatformGraphicsCompatible));
 }
 
 void GameViewportPanel::onClose()
@@ -49,7 +50,8 @@ void GameViewportPanel::render()
 	mViewport->renderViewport(context);
 
 	FImGui::DisableBlend();
-	ImGui::ImageButton(FImGui::GetTextureID(*context.texture), ImVec2(context.texture->getSizeX(), context.texture->getSizeY()));
+	ImGui::Image(FImGui::GetTextureID(*context.texture), ImVec2(context.texture->getSizeX(), context.texture->getSizeY()));
+	//ImGui::ImageButton(FImGui::GetTextureID(*context.texture), ImVec2(context.texture->getSizeX(), context.texture->getSizeY()));
 	FImGui::RestoreBlend();
 
 	if (ImGui::IsItemHovered())

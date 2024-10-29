@@ -66,9 +66,9 @@ namespace CarTrain
 		};
 
 
-		void initializeRHI(IntVector2 const& screenSize)
+		void initializeRHI(IntVector2 const& viewportSize)
 		{
-			mTexture = RHICreateTexture2D(ETexture::RGBA8, screenSize.x, screenSize.y, 0, 1, TCF_AllowCPUAccess | TCF_RenderTarget);
+			mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, viewportSize.x, viewportSize.y).AddFlags(TCF_AllowCPUAccess | TCF_RenderTarget));
 			mFrameBuffer = RHICreateFrameBuffer();
 			mFrameBuffer->addTexture(*mTexture);
 		}
@@ -354,6 +354,7 @@ namespace CarTrain
 				uint16 collisionMask = BIT(ECollision::Wall);
 
 				detector.bHitted = getWorld()->getPhysicsScene()->rayCast(XForm.getPos(), XForm.getPos() + MaxDetectDistance * dir, info, collisionMask);
+
 				if (detector.bHitted)
 				{
 					detector.fractionDelta = info.fraction - detector.fraction;
@@ -361,6 +362,7 @@ namespace CarTrain
 				}
 				else
 				{
+					detector.fractionDelta = 1.0 - detector.fraction;
 					detector.fraction = 1.0f;
 				}
 			}

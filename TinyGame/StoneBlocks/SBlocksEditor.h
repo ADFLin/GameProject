@@ -157,7 +157,7 @@ namespace SBlocks
 		{
 			if (OP::IsSaving)
 			{
-				int num = std::count_if(
+				int num = (int)std::count_if(
 					mPieceShapeLibrary.begin(), mPieceShapeLibrary.end(), 
 					[](auto const& value) {  return value.bMarkSave; }
 				);

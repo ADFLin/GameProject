@@ -285,7 +285,7 @@ public:
 		--mNum;
 	}
 
-	int  size() const { return mNum; }
+	size_t size() const { return mNum; }
 	bool empty() const { return mNum == 0; }
 	void clear()
 	{
@@ -342,8 +342,8 @@ public:
 
 	T const& operator [](int index) const { return *(T*)mStorage[(index + mIndexStart) % mNum]; }
 
-	int mNum;
-	int mIndexStart;
+	size_t mNum;
+	size_t mIndexStart;
 	TCompatibleStorage< T, N > mStorage;
 
 };

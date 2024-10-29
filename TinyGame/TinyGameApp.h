@@ -141,6 +141,7 @@ public:
 	bool initializeEditor();
 	bool initializeEditorRender();
 	void finalizeEditor();
+	TVector2<int> getInitialSize() override;
 	void resizeViewport(int w, int h) override;
 	void renderViewport(IEditorRenderContext& context) override;
 	void onViewportMouseEvent(MouseMsg const& msg) override;

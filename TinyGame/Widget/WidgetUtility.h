@@ -39,7 +39,7 @@ struct FWidgetProperty
 	template< class T >
 	static T Get(GTextCtrl* widget)
 	{
-		return FStringConv::To<T>(widget->getValue() , FCString::Strlen(widget->getValue()));
+		return FStringConv::To<T>(widget->getValue() , (int)FCString::Strlen(widget->getValue()));
 	}
 
 	template< class T >

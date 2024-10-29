@@ -24,6 +24,7 @@ public:
 	bool  bMaskB = true;
 	bool  bMaskA = true;
 	bool  bGrayScale = true;
+	bool  bVFlip = false;
 	float gamma = 1.0f;
 	float scale = 1.0f;
 	

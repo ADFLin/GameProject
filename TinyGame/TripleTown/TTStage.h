@@ -21,33 +21,23 @@ namespace TripleTown
 		typedef StageBase BaseClass;
 	public:
 
+
+
+		bool onInit() override;
+		void onEnd() override;
+		virtual void onRestart( bool beInit );
+		void onRender( float dFrame ) override;
+
 		//IGameRenderSetup
 		ERenderSystem getDefaultRenderSystem() override
 		{
 			return ERenderSystem::None;
 		}
 
-		bool setupRenderResource(ERenderSystem systemName) override
-		{
-			VERIFY_RETURN_FALSE( mScene.loadResource() );
+		bool setupRenderResource(ERenderSystem systemName) override;
 
-
-			FFileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
-			mScene.loadPreviewTexture(mFileIterator.getFileName());
-
-			return true;
-		}
-
-		void preShutdownRenderSystem(bool bReInit) override
-		{
-			mScene.releaseResource();
-		}
+		void preShutdownRenderSystem(bool bReInit) override;
 		//~IGameRenderSetup
-
-		bool onInit() override;
-		void onEnd() override;
-		virtual void onRestart( bool beInit );
-		void onRender( float dFrame ) override;
 
 		MsgReply onMouse( MouseMsg const& msg ) override;
 		MsgReply onKey(KeyMsg const& msg) override;

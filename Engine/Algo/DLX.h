@@ -150,7 +150,7 @@ namespace DLX
 			return header.next == &header;
 		}
 
-		int getColSize() const { return mCols.size(); }
+		int getColSize() const { return (int)mCols.size(); }
 		int getRowSize() const { return mRowCount; }
 		NodeLink header;
 		TArray< MatrixColumn > mCols;

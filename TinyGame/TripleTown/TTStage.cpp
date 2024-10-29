@@ -2,11 +2,12 @@
 
 #include "RHI/RHIGraphics2D.h"
 #include "InputManager.h"
-
+#include "RenderDebug.h"
 
 namespace TripleTown
 {
 	using namespace Render;
+
 
 	bool LevelStage::onInit()
 	{
@@ -26,6 +27,22 @@ namespace TripleTown
 		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Show preview texture"), mScene.bShowPreviewTexture);
 		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Show TexAtlas"), mScene.bShowTexAtlas);
 		return true;
+	}
+
+	bool LevelStage::setupRenderResource(ERenderSystem systemName)
+	{
+		VERIFY_RETURN_FALSE(mScene.loadResource());
+
+		FFileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
+		mScene.loadPreviewTexture(mFileIterator.getFileName());
+
+		GTextureShowManager.registerTexture("TTAltas", &mScene.mTexAtlas.getTexture());
+		return true;
+	}
+
+	void LevelStage::preShutdownRenderSystem(bool bReInit)
+	{
+		mScene.releaseResource();
 	}
 
 	void LevelStage::onRender(float dFrame)

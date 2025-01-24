@@ -354,7 +354,7 @@ void ReplayStageMode::onEnd()
 	BaseClass::onEnd();
 }
 
-void ReplayStageMode::updateTime(long time)
+void ReplayStageMode::updateTime(GameTimeSpan deltaTime)
 {
 	if( !mReplayInput->isValid() )
 		return;
@@ -362,7 +362,7 @@ void ReplayStageMode::updateTime(long time)
 	if( mReplayInput->isPlayEnd() )
 		changeState(EGameState::End);
 
-	int numFrame = time / mCurStage->getTickTime();
+	int numFrame = long(deltaTime) / mCurStage->getTickTime();
 
 	int numGameFrame = 0;
 

@@ -92,14 +92,39 @@ IModuleInterface* ModuleManager::findModule(char const* name)
 	return nullptr;
 }
 
+
+std::string& operator += (std::string& str, StringView view)
+{
+	str.append(view.data(), view.size());
+	return str;
+}
+
 bool ModuleManager::loadModule(char const* path)
 {
-	StringView::TCStringConvertible<> loadName = FFileUtility::GetBaseFileName(path).toCString();
+	auto loadName = FFileUtility::GetBaseFileName(path).toCString();
 
 	if (mNameToModuleMap.find((char const*)loadName) != mNameToModuleMap.end())
 		return true;
 
-	FPlatformModule::Handle hModule = FPlatformModule::Load(path);
+	FPlatformModule::Handle hModule;
+	if (bHotReloadEnabled)
+	{
+		auto fileName = FFileUtility::GetBaseFileName(path);
+		auto dir = FFileUtility::GetDirectory(path);
+
+		std::string hotReloadPath;
+		hotReloadPath += FFileUtility::GetDirectory(path);
+		hotReloadPath += FFileUtility::GetBaseFileName(path);
+		hotReloadPath += "_HotReload.";
+		hotReloadPath += FFileUtility::GetExtension(path);
+		FFileSystem::CopyFile(path, hotReloadPath.c_str(), false);
+
+		hModule = FPlatformModule::Load(hotReloadPath.c_str());
+	}
+	else
+	{
+		hModule = FPlatformModule::Load(path);
+	}
 	if (hModule == NULL)
 		return false;
 

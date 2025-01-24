@@ -236,6 +236,16 @@ namespace Math
 			float dist;
 			return testSide(p, thinkness, dist);
 		}
+
+		VectorType getIntersection(VectorType const& p1, VectorType const& p2) const
+		{
+			VectorType dir = p2 - p1;
+			float dist = calcDistance(p1);
+			float t = -dist / mNormal.dot(dir);
+			return p1 + t * dir;
+		}
+
+		void inverse() { mNormal = -mNormal; }
 	protected:
 		VectorType mNormal;
 		float      mArgD;
@@ -244,7 +254,7 @@ namespace Math
 	class Plane : public TPlane<Vector3>
 	{
 	public:
-
+		Plane() = default;
 		using TPlane<Vector3>::TPlane;
 
 		Plane(Vector3 const& v0, Vector3 const& v1, Vector3 const& v2)
@@ -280,6 +290,7 @@ namespace Math
 	class Plane2D : public TPlane<Vector2>
 	{
 	public:
+		Plane2D() = default;
 		using TPlane<Vector2>::TPlane;
 
 		static Plane2D FromPosition(Vector2 const& posA, Vector2 const& posB)

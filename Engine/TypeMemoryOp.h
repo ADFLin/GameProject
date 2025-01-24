@@ -174,7 +174,6 @@ public:
 	template< class T >
 	static void MoveRightOverlap(T* ptr, size_t num, T* from)
 	{
-		CHECK(from + num > ptr || num == 1);
 		if constexpr (Meta::IsPod< T >::Value)
 		{
 			FMemory::Move(ptr, from, sizeof(T)*num);

@@ -24,6 +24,7 @@ namespace Render
 	extern RHI_API bool GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer;
 
 	extern RHI_API bool GRHIPrefEnabled;
+	extern RHI_API uint64 GRHIRenderCount;
 
 	enum class DeviceVendorName
 	{

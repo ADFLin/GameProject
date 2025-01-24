@@ -25,7 +25,7 @@ public:
 	virtual void  getWaveFormat(WaveFormatInfo& outFormat) = 0;
 	virtual int64 getTotalSampleNum() = 0;
 	virtual EAudioStreamStatus  generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush) = 0;
-	virtual void  releaseSampleData(uint32 sampleHadle) {}
+	virtual void  releaseSampleData(uint32 sampleHandle) {}
 };
 
 #endif // AudioStreamSource_h__

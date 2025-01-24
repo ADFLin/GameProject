@@ -291,16 +291,16 @@ namespace Rich
 		int const DiceMaxNumber = 6;
 
 		IRandom& random = mPlayer->getWorld().getRandom();
-		int frac = totalStep - numDice;
+		int remaining = totalStep - numDice;
 		for( int i = numDice ; i != 1 ; --i )
 		{
-			int minValue = std::max( frac - ( DiceMaxNumber - 1 ) * i , 0 );
+			int minValue = std::max( remaining - ( DiceMaxNumber - 1 ) * i , 0 );
 			int temp = minValue + random.getInt() % ( DiceMaxNumber - minValue );
-			frac -= temp;
+			remaining -= temp;
 			value[ numDice - i ] = 1 + temp;
 		}
 
-		value[ numDice - 1 ] = 1 + frac;
+		value[ numDice - 1 ] = 1 + remaining;
 	}
 
 	void PlayerTurn::queryAction( ActionRequestID id, ActionReqestData const& data )

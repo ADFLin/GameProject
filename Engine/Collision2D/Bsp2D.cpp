@@ -8,12 +8,14 @@
 #if DEBUG_BSP2D
 #include "Async/Coroutines.h"
 #include "Misc/DebugDraw.h"
-#define DEBUG_BREAK() CO_YEILD(nullptr)
+#define DEBUG_RUNNING() Coroutines::IsRunning()
+#define DEBUG_YEILD() if (DEBUG_RUNNING()){ CO_YEILD(nullptr); }
 #define DEBUG_POINT(V, C) DrawDebugPoint(V, C, 5);
 #define DEBUG_LINE(V1, V2, C) DrawDebugLine(V1, V2, C, 2);
 #define DEBUG_TEXT(V, TEXT, C) DrawDebugText(V, TEXT, C);
 #else
-#define DEBUG_BREAK()
+#define DEBUG_RUNNING() false
+#define DEBUG_YEILD()
 #define DEBUG_POINT(V, C)
 #define DEBUG_LINE(V1, V2)
 #define DEBUG_TEXT(V, TEXT, C)
@@ -73,13 +75,20 @@ namespace Bsp2D
 		return true;
 	}
 
+	enum class EClipResult : uint8
+	{
+		None     = -1,
+		AClipped = 0,
+		BClipped = 1,
+		Overlap  = 2,
+	};
 
-	int OverlapClip(Vector2 a[], Vector2 const b[])
+	EClipResult OverlapClip(Vector2 a[], Vector2 const b[])
 	{
 		Vector2 dirA = a[1] - a[0];
 		float length = dirA.length();
 		if (length < FLOAT_DIV_ZERO_EPSILON)
-			return 0;
+			return EClipResult::AClipped;
 
 		dirA /= length;
 
@@ -87,23 +96,21 @@ namespace Bsp2D
 		Vector2 dirB = b[1] - b[0];
 		float lengthB = dirB.length();
 		if (lengthB < FLOAT_DIV_ZERO_EPSILON)
-			return 1;
+			return EClipResult::BClipped;
 
 		if (Math::Abs(dirA.cross(dirB)) > FLOAT_DIV_ZERO_EPSILON)
-			return -1;
+			return EClipResult::None;
 #endif
-
-
 
 		Vector2 dir0 = b[0] - a[0];
 		if (Math::Abs(dirA.cross(dir0)) > FLOAT_DIV_ZERO_EPSILON)
-			return -1;
+			return EClipResult::None;
 		float d0 = Math::Dot(dirA, dir0);
 
 
 		Vector2 dir1 = b[1] - a[0];
 		if (Math::Abs(dirA.cross(dir1)) > FLOAT_DIV_ZERO_EPSILON)
-			return -1;
+			return EClipResult::None;
 		float d1 = Math::Dot(dirA, dir1);
 
 
@@ -115,13 +122,13 @@ namespace Bsp2D
 		}
 
 		if (d1 < -WallThickness || d0 > length + WallThickness)
-			return -1;
+			return EClipResult::None;
 
 		if (d0 < -WallThickness)
 		{
 			if (d1 > length + WallThickness)
 			{
-				return 0;
+				return EClipResult::AClipped;
 			}
 			else
 			{
@@ -136,10 +143,10 @@ namespace Bsp2D
 			}
 			else
 			{
-				return 1;
+				return EClipResult::BClipped;
 			}
 		}
-		return 2;
+		return EClipResult::Overlap;
 	}
 
 	void Plane::init( Vector2 const& v1 , Vector2 const& v2 )
@@ -316,43 +323,30 @@ namespace Bsp2D
 #if 1
 			for (int i = 0; i < edgeIndices.size(); ++i)
 			{
-				Vector2* vi = mEdges[edgeIndices[i]].v;
+				int indexB = edgeIndices[i];
+				Vector2* vB = mEdges[indexB].v;
 
 				int j = 0;
-				int clipEdge = -1;
 				for (; j < data.edges.size(); ++j)
 				{
-					Vector2* vj = mEdges[data.edges[j]].v;
+					int indexA = data.edges[j];
+					Vector2* vA = mEdges[indexA].v;
 
-
-					int state = Bsp2D::OverlapClip(vj, vi);
-					if (state == 1)
+					auto status = Bsp2D::OverlapClip(vA, vB);
+					if (status == EClipResult::BClipped)
 					{
-
-
-						clipEdge = edgeIndices[i];
-						if (clipEdge == 25)
-						{
-							DrawEdge(clipEdge);
-							DrawEdge(data.edges[j]);
-						}
 						break;
 					}
-					else if (state == 0)
+					else if (status == EClipResult::AClipped)
 					{
-						clipEdge = data.edges[j];
-						data.edges[j] = edgeIndices[i];
-						break;
+						data.edges.removeIndexSwap(j);
+						--j;
 					}
 				}
 
 				if (j == data.edges.size())
 				{
-					data.edges.push_back(edgeIndices[i]);
-				}
-				else
-				{
-					//DrawEdge(clipEdge);
+					data.edges.push_back(indexB);
 				}
 			}
 #else
@@ -360,7 +354,7 @@ namespace Bsp2D
 #endif
 
 #if 0
-			if (~node->tag == 12)
+			if (~node->tag == 10)
 			{
 				for (int index : data.edges)
 				{
@@ -825,7 +819,7 @@ namespace Bsp2D
 
 			DEBUG_TEXT(mid, str, Color3f(0, 1, 0));
 		}
-		DEBUG_BREAK();
+		DEBUG_YEILD();
 #endif
 
 
@@ -853,7 +847,7 @@ namespace Bsp2D
 
 					DEBUG_LINE(edge.v[0], edge.v[1], Color3f(1, 0, 1));
 					DEBUG_LINE(portal.v[0], portal.v[1], Color3f(0, 1, 1));
-					DEBUG_BREAK();
+					DEBUG_YEILD();
 
 					if ( SegmentSegmentTest(portal.v[0], portal.v[1], edge.v[0], edge.v[1]) )
 					{
@@ -878,7 +872,7 @@ namespace Bsp2D
 						{
 							DEBUG_LINE(edge.v[0], edge.v[1], Color3f(1, 0, 1));
 							DEBUG_LINE(portal.v[0], portal.v[1], Color3f(0, 1, 1));
-							DEBUG_BREAK();
+							DEBUG_YEILD();
 						}
 #endif
 					}

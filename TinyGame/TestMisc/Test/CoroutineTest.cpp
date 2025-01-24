@@ -22,6 +22,21 @@ public:
 
 GameTimeControl GGameTime;
 
+struct Object
+{
+	Object(char const* str)
+		:str(str)
+	{
+		LogMsg("Object construct : %s" , str);
+	}
+
+	~Object()
+	{
+		LogMsg("Object destruct : %s" , str);
+	}
+	char const* str;
+};
+
 class WaitForSeconds : public IYieldInstruction
 {
 public:
@@ -63,11 +78,13 @@ public:
 	{
 		auto a = Coroutines::Start([this] { testA(); });
 		auto b = Coroutines::Start([this] { testB(); });
+		auto c = Coroutines::Start([this] { testC(); });
 #if 0
-		CO_YEILD(a);
-		CO_YEILD(b);
+		CO_SYNC(a, b);
+		//CO_YEILD(a);
+		//CO_YEILD(b);
 #else
-		CO_RACE(a, b);
+		int index = CO_RACE(a, b, c);
 #endif
 		LogMsg("Test End");
 	}
@@ -75,11 +92,12 @@ public:
 
 	void testA()
 	{
+		Object object("A");
 		LogMsg("TestA Start");
 		for (int i = 0; i < 10; ++i)
 		{
 			LogMsg("TestA %d", i);
-			CO_YEILD(WaitForSeconds(2));
+			CO_YEILD(WaitForSeconds(1));
 		}
 		LogMsg("TestA End");
 	}
@@ -95,6 +113,17 @@ public:
 		}
 #endif
 		LogMsg("TestB End");
+	}
+
+	void testC()
+	{
+		LogMsg("TestC Start");
+		for (int i = 0; i < 10; ++i)
+		{
+			LogMsg("TestC %d", i);
+			CO_YEILD(WaitForSeconds(0.5));
+		}
+		LogMsg("TestC End");
 	}
 };
 

@@ -28,21 +28,33 @@
 #endif
 
 
+struct FMediaFoundation
+{
+	static bool Initialize()
+	{
+		HRESULT hr;
+		hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+		hr = MFStartup(MF_VERSION);
+		return SUCCEEDED(hr);
+	}
+
+	static void Finalize()
+	{
+		MFShutdown();
+		CoUninitialize();
+	}
+};
+
+
 struct MediaFoundationScope
 {
 	MediaFoundationScope()
 	{
-		HRESULT hr;
-		hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-		hr = MFStartup(MF_VERSION);
-		bInit = SUCCEEDED(hr);
+		bInit = FMediaFoundation::Initialize();
 	}
 	~MediaFoundationScope()
 	{
-		MFShutdown();
-
-		CoUninitialize();
+		FMediaFoundation::Finalize();
 	}
 	bool bInit;
 };

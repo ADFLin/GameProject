@@ -19,23 +19,39 @@ namespace StoreSim
 		};
 	}
 
-	template< typename OP >
-	void Serialize(XForm2D& xform, OP& op)
+	class IArchive
 	{
-		if (OP::IsLoading)
+	public:
+		IArchive(IStreamSerializer& serializer, bool bLoading)
+			:mSerializer(serializer)
+			,mbLoading(bLoading)
 		{
-			Vector2 pos;
-			float angle;
-			op & pos & angle;
-			xform.setTranslation(pos);
-			xform.setRoatation(angle);
+
 		}
-		else
+
+		bool isLoading() { return mbLoading; }
+		bool isSaving() { return !mbLoading; }
+
+
+		template< typename T >
+		IArchive& operator & (T& value)
 		{
-			Vector2 pos = xform.getPos();
-			float angle = xform.getRotateAngle();
-			op & pos & angle;
+			if (isLoading())
+			{
+				mSerializer >> value;
+			}
+			else
+			{
+				mSerializer << value;
+			}
+			return *this;
 		}
-	}
+
+
+		bool mbLoading;
+		IStreamSerializer& mSerializer;
+	};
+
+
 }
 #endif // StoreSimSerialize_H_FC694783_8C34_4ED1_B737_EF80FF885FBC

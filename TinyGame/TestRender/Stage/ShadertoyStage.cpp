@@ -170,16 +170,16 @@ namespace Shadertoy
 		void setInputParameters(RHICommandList& commandList, TArray<RenderInput> const& inputs, TGetTexture& GetTexture)
 		{
 			Vector3 channelSize[4] = { Vector3(0,0,0) , Vector3(0,0,0), Vector3(0,0,0) , Vector3(0,0,0) };
-			int Index = 0;
+			int index = 0;
 			for (auto const& input : inputs)
 			{
 				RHITextureBase* texture = GetTexture(input.type, input.resId);
 				if (texture)
 				{
-					setTexture(commandList, mParamInputs[Index], *texture, mParamInputSamplers[Index], GetSamplerState(input));
+					setTexture(commandList, mParamInputs[index], *texture, mParamInputSamplers[index], GetSamplerState(input));
 					channelSize[input.channel] = Vector3(texture->getDesc().dimension);
 				}
-				++Index;
+				++index;
 			}
 
 			if (mParamChannelResolution.isBound())
@@ -290,7 +290,7 @@ namespace Shadertoy
 		}
 
 
-		void renderCubeOnPass(RHICommandList& commandList, RenderPassData& pass, IntVector2 const& viewportSize, TArrayView< PooledRenderTargetRef > outputBuffers)
+		void renderCubeOnePass(RHICommandList& commandList, RenderPassData& pass, IntVector2 const& viewportSize, TArrayView< PooledRenderTargetRef > outputBuffers)
 		{
 			int index;
 			auto& passShader = pass.shader;
@@ -368,7 +368,6 @@ namespace Shadertoy
 				RHISetComputeShader(commandList, pass.shader.getRHI());
 				setInputParameters(commandList, pass);
 
-				char const* OutputNames[] = { "OutTexture", "OutTexture1" , "OutTexture2" , "OutTexture3" };
 				for (int subPassIndex = 0; subPassIndex < subPassCount; ++subPassIndex)
 				{
 					SetPassParameters(commandList, subPassIndex);
@@ -391,7 +390,6 @@ namespace Shadertoy
 							++index;
 						}
 					}
-
 
 					int const GROUP_SIZE = 8;
 					RHIDispatchCompute(commandList, AlignCount(viewportSize.x, GROUP_SIZE), AlignCount(viewportSize.y, GROUP_SIZE), 1);
@@ -671,9 +669,9 @@ namespace Shadertoy
 			mNumSampleRequired = 0;
 		}
 
-		virtual void releaseSampleData(uint32 sampleHadle) override
+		virtual void releaseSampleData(uint32 sampleHandle) override
 		{
-			mSampleBuffer.releaseSampleData(sampleHadle);
+			mSampleBuffer.releaseSampleData(sampleHandle);
 		}
 
 		RenderPassData*  mRenderPass;
@@ -734,10 +732,15 @@ namespace Shadertoy
 			frame->addCheckBox("Use ComputeShader", [this](int event, GWidget*)
 			{
 				bAllowComputeShader = !bAllowComputeShader;
-				compileShader();
+				compileAllShaders();
 				return false;
 			})->bChecked = bAllowComputeShader;
-
+			frame->addCheckBox("Render Cube OnePass", [this](int event, GWidget*)
+			{
+				bAllowRenderCubeOnePass = !bAllowRenderCubeOnePass;
+				compileAllShaders();
+				return false;
+			})->bChecked = bAllowRenderCubeOnePass;
 			return true;
 		}
 
@@ -1167,7 +1170,7 @@ namespace Shadertoy
 		{
 			mLastProjectName = name;
 
-			if (!loadProjectActual(name) || !compileShader())
+			if (!loadProjectActual(name) || !compileAllShaders())
 			{
 				mRenderPassList.clear();
 				mOutputBuffers.clear();
@@ -1379,16 +1382,17 @@ namespace Shadertoy
 			}
 		}
 
-		bool compileShader()
+		bool compileAllShaders()
 		{
 			int commonIndex = mRenderPassInfos.findIndexPred([](auto const& input)
 			{
 				return input->passType == EPassType::None;
 			});
 
-			return compileShader(commonIndex != INDEX_NONE ? mRenderPassInfos[commonIndex].get() : nullptr);
+			return compileAllShaders(commonIndex != INDEX_NONE ? mRenderPassInfos[commonIndex].get() : nullptr);
 		}
-		bool compileShader(RenderPassInfo* commonInfo)
+
+		bool compileAllShaders(RenderPassInfo* commonInfo)
 		{
 			std::vector<uint8> codeTemplate;
 			if (!FFileUtility::LoadToBuffer("Shader/Game/ShadertoyTemplate.sgc", codeTemplate, true))
@@ -1466,7 +1470,7 @@ namespace Shadertoy
 				break;
 			case EPassType::CubeMap:
 				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
-				if (bRenderCubeOnPass && bUseComputeShader == false)
+				if (bAllowRenderCubeOnePass && bUseComputeShader == false)
 				{
 					option.addDefine(SHADER_PARAM(RENDER_CUBE_ONE_PASS), 1);
 				}
@@ -1574,25 +1578,22 @@ namespace Shadertoy
 					HashString debugName;
 					int index;
 					bool bRenderCubeMap = pass->info->passType == EPassType::CubeMap;
-					IntVector2 viewportSize;
+					bool bRenderCubeMapOnePass = bRenderCubeMap && bAllowRenderCubeOnePass && bUseComputeShader == false;
+					IntVector2 viewportSize = bRenderCubeMap ? IntVector2(CubeMapSize, CubeMapSize) : screenSize;
+
+					RenderTargetDesc desc;
+					desc.format = ETexture::RGBA32F;
+					desc.numSamples = 1;
+					desc.size = viewportSize;
+					desc.type = bRenderCubeMap ? ETexture::TypeCube : ETexture::Type2D;
+					if (bUseComputeShader)
+					{
+						desc.creationFlags |= TCF_CreateUAV;
+					}
+
 					index = 0;
 					for (auto const& output : pass->info->outputs)
 					{
-						RenderTargetDesc desc;
-						desc.format = ETexture::RGBA32F;
-						desc.numSamples = 1;
-
-						if (bRenderCubeMap)
-						{
-							desc.type = ETexture::TypeCube;
-							desc.size = IntVector2(CubeMapSize, CubeMapSize);
-						}
-						else
-						{
-							desc.type = ETexture::Type2D;
-							desc.size = screenSize;
-						}
-
 						if (index == 0)
 						{
 							switch (pass->info->passType)
@@ -1613,12 +1614,15 @@ namespace Shadertoy
 								}
 								break;
 							}
-							debugName = desc.debugName;
-							if (bRenderCubeOnPass && pass->info->passType == EPassType::CubeMap)
+
+							if (bRenderCubeMapOnePass)
 							{
 								debugName = InlineString<>::Make("CubeMap%c OnePass", AlphaSeq[pass->info->typeIndex]);
 							}
-							viewportSize = desc.size;
+							else
+							{
+								debugName = desc.debugName;
+							}
 						}
 						else
 						{
@@ -1641,13 +1645,8 @@ namespace Shadertoy
 								}
 								break;
 							}
-
 						}
 
-						if (bUseComputeShader)
-						{
-							desc.creationFlags |= TCF_CreateUAV;
-						}
 						PooledRenderTargetRef rt;
 						rt = GRenderTargetPool.fetchElement(desc);
 						outputBuffers.push_back(rt);
@@ -1656,9 +1655,9 @@ namespace Shadertoy
 
 					GPU_PROFILE(debugName.c_str());
 
-					if (bRenderCubeOnPass && pass->info->passType == EPassType::CubeMap && bUseComputeShader == false)
+					if (bRenderCubeMapOnePass)
 					{
-						renderCubeOnPass(commandList, *pass, viewportSize, outputBuffers);
+						renderCubeOnePass(commandList, *pass, viewportSize, outputBuffers);
 					}
 					else
 					{
@@ -1782,21 +1781,26 @@ namespace Shadertoy
 
 		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if (msg.isDown())
+			auto IsVaild = [](uint32 value) -> bool
 			{
-				if (0 <= msg.getCode() && msg.getCode() < 256 && mKeyboardData[msg.getCode() + 0 * 256] != 255)
+				return 0 <= value && value < 256;
+			};
+			auto code = msg.getCode();
+			if (IsVaild(code))
+			{
+				if (msg.isDown())
 				{
-					mKeyboardData[msg.getCode() + 0 * 256] = 255;
-					mKeyboardData[msg.getCode() + 1 * 256] = 255;
-					mKeyboardData[msg.getCode() + 2 * 256] = 255 - mKeyboardData[msg.getCode() + 2 * 256];
+					if (mKeyboardData[code + 0 * 256] != 255)
+					{
+						mKeyboardData[code + 0 * 256] = 255;
+						mKeyboardData[code + 1 * 256] = 255;
+						mKeyboardData[code + 2 * 256] = 255 - mKeyboardData[code + 2 * 256];
+					}
 				}
-			}
-			else
-			{
-				if (0 <= msg.getCode() && msg.getCode() < 256)
+				else
 				{
-					mKeyboardData[msg.getCode() + 0 * 256] = 0;
-					mKeyboardData[msg.getCode() + 1 * 256] = 0;
+					mKeyboardData[code + 0 * 256] = 0;
+					mKeyboardData[code + 1 * 256] = 0;
 				}
 			}
 
@@ -1813,8 +1817,6 @@ namespace Shadertoy
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
-
-
 
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
@@ -1836,7 +1838,7 @@ namespace Shadertoy
 		}
 
 		bool bAllowComputeShader = false;
-		bool bRenderCubeOnPass = false;
+		bool bAllowRenderCubeOnePass = true;
 
 
 		bool setupRenderResource(ERenderSystem systemName) override

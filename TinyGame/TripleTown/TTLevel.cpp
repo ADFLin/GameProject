@@ -662,7 +662,7 @@ namespace TripleTown
 
 	void Level::restart()
 	{
-		mMap.fillValue( Tile::InitTile() );
+		mMap.fillValue( Tile::DefaultTile() );
 		mNumEmptyTile = mMap.getSizeX() * mMap.getSizeY();
 
 		mCheckCount = 0;

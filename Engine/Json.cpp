@@ -9,6 +9,18 @@
 
 using ObjectImpl = nlohmann::json::object_t;
 
+void StaticCheck()
+{
+	static_assert((uint8)EJsonType::Null == (uint8)nlohmann::detail::value_t::null);
+	static_assert((uint8)EJsonType::Object == (uint8)nlohmann::detail::value_t::object);
+	static_assert((uint8)EJsonType::Array == (uint8)nlohmann::detail::value_t::array);
+	static_assert((uint8)EJsonType::String == (uint8)nlohmann::detail::value_t::string);
+	static_assert((uint8)EJsonType::Bool == (uint8)nlohmann::detail::value_t::boolean);
+	static_assert((uint8)EJsonType::NumberInt == (uint8)nlohmann::detail::value_t::number_integer);
+	static_assert((uint8)EJsonType::NumberUInt == (uint8)nlohmann::detail::value_t::number_unsigned);
+	static_assert((uint8)EJsonType::NumberFloat == (uint8)nlohmann::detail::value_t::number_float);
+}
+
 JsonValue ToValue(nlohmann::json& json)
 {
 	using namespace nlohmann::detail;

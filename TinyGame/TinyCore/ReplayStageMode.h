@@ -106,7 +106,7 @@ protected:
 	bool postStageInit();
 	bool loadReplay(char const* path);
 	void onEnd();
-	void updateTime(long time);
+	void updateTime(GameTimeSpan deltaTime);
 	bool onWidgetEvent(int event, int id, GWidget* ui);
 	void onRestart(uint64& seed);
 

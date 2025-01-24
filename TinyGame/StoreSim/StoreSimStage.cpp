@@ -15,6 +15,9 @@
 
 
 #include "BehaviorTree/TreeBuilder.h"
+#include "Serialize/FileStream.h"
+#include "StoreSimSerialize.h"
+#include "FileSystem.h"
 
 
 
@@ -23,11 +26,24 @@ namespace StoreSim
 	using namespace Render;
 
 
+	template< typename T >
+	struct TClassReigsterHelper
+	{
+		TClassReigsterHelper()
+		{
+			T::StaticClass();
+		}
+	};
 
+#define REGISTER_CLASS(CLASS) TClassReigsterHelper<CLASS> ANONYMOUS_VARIABLE(GRegister)
 
 	class TestBlockClass : public TEquipmentClass<TestBlockClass, Equipment>
 	{
 	public:
+		static char const* GetClassName()
+		{
+			return "TestBlock";
+		}
 		virtual TArrayView<Area const> getAreaList()
 		{
 			static Area const AreaList[] =
@@ -38,7 +54,7 @@ namespace StoreSim
 			return AreaList;
 		}
 	};
-
+	REGISTER_CLASS(TestBlockClass);
 
 	RenderTransform2D ToRender(XForm2D const& xform)
 	{
@@ -144,19 +160,17 @@ namespace StoreSim
 				endPlace();
 			}
 			
-
 			cleanup();
-
 			bNavDirty = false;
-
-#if 1
-
+#if 0
 			spawn(*TestBlockClass::StaticClass(), XForm2D(Vector2(10, 10)));
 			spawn(*TestBlockClass::StaticClass(), XForm2D(Vector2(10, 12)));
 			spawn(*TestBlockClass::StaticClass(), XForm2D(Vector2(10, 14)));
 			spawn(*TestBlockClass::StaticClass(), XForm2D(Vector2(10, 16)));
 			spawn(*TestBlockClass::StaticClass(), XForm2D(Vector2(14.5, 16.5)));
 			spawn(*TestBlockClass::StaticClass(), XForm2D(Vector2(8, 16), Math::DegToRad(180)));
+#else
+			load("StoreSim/Debug.bin");
 #endif
 		}
 
@@ -180,9 +194,7 @@ namespace StoreSim
 				delete equip;
 			}
 			mEquipments.clear();
-
 			mNavManager.cleanup();
-
 		}
 
 		bool bShowAABB = true;
@@ -192,6 +204,57 @@ namespace StoreSim
 		bool bShowPortal = true;
 
 		int mIndexNodeDraw = 0;
+
+		bool save(char const* path)
+		{
+			auto dirView = FFileUtility::GetDirectory(path);
+			if (!FFileSystem::CreateDirectorySequence(dirView.toCString()))
+			{
+				return false;
+			}
+
+			OutputFileSerializer serializer;
+			if (!serializer.open(path))
+				return false;
+
+			IArchive ar{ serializer, false };
+
+			int numEuqip = mEquipments.size();
+			ar & numEuqip;
+			for (auto equip : mEquipments)
+			{
+				ar & equip->mClass->name;
+				equip->serialize(ar);
+			}
+		}
+
+		bool load(char const* path)
+		{
+			cleanup();
+			InputFileSerializer serializer;
+			if (!serializer.open(path))
+				return false;
+
+			IArchive ar{ serializer, true };
+
+			int numEuqip = 0;
+			ar & numEuqip;
+			for( int i = 0 ;i < numEuqip; ++i)
+			{
+				std::string className;
+				ar & className;
+
+				Equipment* equip = EquipmentFactory::Instance().create(className.c_str());
+				if (equip == nullptr)
+					return false;
+
+				mEquipments.push_back(equip);
+				equip->serialize(ar);
+				equip->notifyTrasformChanged();
+			}
+
+			bNavDirty = true;
+		}
 
 		void onRender(float dFrame) override
 		{
@@ -398,6 +461,9 @@ namespace StoreSim
 							Vector2 v2 = v1 + 0.8 * edge.plane.getNormal();
 							g.drawTextF(0.5*(v1 + v2), "%d", indexLeaf);
 							//g.drawTextF(0.5*(v1 + v2), "%d %d", leaf.edges[i], indexLeaf);
+							Vector2 offsetH = 0.2 * Math::GetNormal(edge.v[1] - edge.v[0]);
+							g.drawTextF(edge.v[0] + 0.2 * edge.plane.getNormal() + offsetH, "%d", i);
+							g.drawTextF(edge.v[1] + 0.2 * edge.plane.getNormal() - offsetH, "%d", i);
 							RenderUtility::SetPen(g, EColor::Green);
 							g.drawLine(v1, v2);
 						}
@@ -468,14 +534,14 @@ namespace StoreSim
 					auto& area = navMesh.areas[indexArea];
 
 					if (indexArea == mFromIndex)
-						RenderUtility::SetBrush(g, EColor::Blue);
+						RenderUtility::SetBrush(g, EColor::Blue, COLOR_LIGHT);
 					else if (indexArea == mToIndex)
 						RenderUtility::SetBrush(g, EColor::Green);
 					else
 						RenderUtility::SetBrush(g, EColor::Yellow);
 
 					RenderUtility::SetPen(g, EColor::White);
-					g.drawPolygon(area.polygon.data(), area.polygon.size());
+					g.drawPolygon(area.vertices.data(), area.vertices.size());
 				}
 				g.endBlend();
 
@@ -564,7 +630,6 @@ namespace StoreSim
 		Equipment* spawn(EquipmentClass& equipClass, XForm2D const& xForm)
 		{
 			auto equip = equipClass.create();
-			equip->mClass = &equipClass;
 			equip->transform = xForm;
 			equip->notifyTrasformChanged();
 			mEquipments.push_back(equip);
@@ -618,47 +683,113 @@ namespace StoreSim
 			}
 			else if ( mPlaceEquipClass )
 			{
-				if (msg.onMoving() || msg.onLeftDown())
+				if (msg.onMoving())
 				{
-					
+					if (msg.isShiftDown())
+					{
+						XForm2D xform = mPlaceXForm;
+						xform.setTranslation(worldPos);
+						auto equipBound = mPlaceEquipClass->calcAreaBound(xform);
+
+						equipBound.expand(Vector2(1, 1));
+
+						OverlapResult overlapResult;
+						if (haveOverlap(equipBound, overlapResult))
+						{
+							Vector2 dir = mPlaceXForm.getRotation().getXDir();
+							Vector2 dirX = overlapResult.equip->transform.getRotation().getXDir();
+							Vector2 dirY = overlapResult.equip->transform.getRotation().getXDir();
+
+							float dotX = Math::Dot(dir, dirX);
+							float dotY = Math::Dot(dir, dirY);
+
+							float dot;
+							if (Math::Abs(dotX) > Math::Abs(dotY))
+							{
+								dir = dirX;
+								if (dotX < 0)
+									dir = -dir;
+							}
+							else
+							{
+								dir = dirY;
+								if (dotY < 0)
+									dir = -dir;
+							}
+
+							xform.setBaseXDir(dir);
+							mPlaceXForm = xform;
+						}
+					}
+					else
+					{
+						if (msg.onLeftDown() || msg.onMoving())
+						{
+
+							switch (mPlaceStep)
+							{
+							case 0:
+								{
+									mPlaceXForm.setTranslation(SnapValue(worldPos, mSnapLength));
+									mCanPlace = canPlace(*mPlaceEquipClass, mPlaceXForm);
+								}
+								break;
+							case 1:
+								{
+									Vector2 dir = worldPos - mPlaceXForm.getPos();
+									float len = dir.normalize();
+									if (len == 0)
+									{
+										dir = Vector2(1, 0);
+									}
+
+									float angle = Math::ATan2(dir.y, dir.x);
+									mPlaceXForm.setRoatation(SnapValue(angle, Math::DegToRad(mSnapAngle)));
+									mCanPlace = canPlace(*mPlaceEquipClass, mPlaceXForm);
+								}
+								break;
+							}
+						}
+						else if (msg.onRightDown())
+						{
+							switch (mPlaceStep)
+							{
+							case 0:
+								{
+									endPlace();
+								}
+								break;
+							case 1:
+								{
+									mPlaceStep = 0;
+								}
+								break;
+							}
+						}
+					}
+
+				}
+				else if (msg.onLeftDown())
+				{
+	
 					switch (mPlaceStep)
 					{
 					case 0:
 						{					
-							mPlaceXForm.setTranslation(SnapValue(worldPos, mSnapLength));
-
-							mCanPlace = canPlace(*mPlaceEquipClass, mPlaceXForm);
-							if (msg.onLeftDown())
-							{
-								mPlaceStep += 1;
-							}
+							mPlaceStep += 1;
 						}
 						break;
 					case 1:
 						{
-							Vector2 dir = worldPos - mPlaceXForm.getPos();
-							float len = dir.normalize();
-							if (len == 0)
+							if (canPlace(*mPlaceEquipClass, mPlaceXForm))
 							{
-								dir = Vector2(1, 0);
+								auto equip = spawn(*mPlaceEquipClass, mPlaceXForm);
+								endPlace();
 							}
-
-							float angle = Math::ATan2(dir.y, dir.x);
-							mPlaceXForm.setRoatation(SnapValue(angle, Math::DegToRad(mSnapAngle)));
-							mCanPlace = canPlace(*mPlaceEquipClass, mPlaceXForm);
-
-							if (msg.onLeftDown())
+							else
 							{
-								if (canPlace(*mPlaceEquipClass, mPlaceXForm))
-								{
-									auto equip = spawn(*mPlaceEquipClass, mPlaceXForm);
-									endPlace();
-								}
-								else
-								{
 
 
-								}
 							}
 						}
 						break;
@@ -751,6 +882,16 @@ namespace StoreSim
 				case EKeyCode::N:
 					--mIndexNodeDraw;
 					break;
+				case EKeyCode::O:
+					{
+						save("StoreSim/test.bin");
+					}
+					break;
+				case EKeyCode::P:
+					{
+						load("StoreSim/test.bin");
+					}
+					break;
 				}
 			}
 			return BaseClass::onKey(msg);
@@ -766,12 +907,45 @@ namespace StoreSim
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+		struct OverlapResult
+		{
+			Equipment* equip;
+			int        indexArea;
+		};
+		bool haveOverlap(AABB const& bound, OverlapResult& overlapResult)
+		{
+			bool result = false;
+			float minDist = Math::MaxFloat;
+			for (auto equipCheck : mEquipments)
+			{
+				if (!bound.isIntersect(equipCheck->bound))
+					continue;
 
+				auto checkAreaList = equipCheck->mClass->getAreaList();
+				XForm2D xFormRel = equipCheck->transform;
+				for (Area const& areaCheck : checkAreaList)
+				{
+					SATSolver solver;
+					if (!solver.testBoxIntersect(bound.min, bound.getSize(), areaCheck.bound.min, areaCheck.bound.getSize(), xFormRel))
+					{
+						if (solver.fResult > Bsp2D::WallThickness)
+						{
+							result = true;
+							if (solver.fResult < minDist)
+							{
+								overlapResult.equip = equipCheck;
+								overlapResult.indexArea = &areaCheck - checkAreaList.data();
+							}
+						}
+					}
+				}
+			}
+			return result;
+		}
 
 		bool canPlace(EquipmentClass& equipClass, XForm2D const& xform)
 		{
 			auto placeAreaList = equipClass.getAreaList();
-
 			auto equipBound = equipClass.calcAreaBound(xform);
 
 			for (auto equipCheck : mEquipments)

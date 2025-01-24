@@ -108,10 +108,10 @@ public:
 	static TINY_API PropertySet&         GameConfig();
 	static TINY_API GUISystem&           GUI();
 	
-	static TINY_API DrawEngine&   GetDrawEngine();
-	static TINY_API Graphics2D&   GetGraphics2D();
+	static TINY_API DrawEngine&    GetDrawEngine();
+	static TINY_API Graphics2D&    GetGraphics2D();
 	static TINY_API RHIGraphics2D& GetRHIGraphics2D();
-	static TINY_API IGraphics2D&  GetIGraphics2D();
+	static TINY_API IGraphics2D&   GetIGraphics2D();
 
 	static TINY_API UserProfile&  GetUserProfile();
 

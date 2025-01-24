@@ -6,10 +6,11 @@
 #include "Core/IntegerType.h"
 #include "InlineString.h"
 #include "DataStructure/Array.h"
+#include "PlatformThread.h"
 
 #include <memory>
 #include <string>
-#include "PlatformThread.h"
+
 
 namespace Render
 {
@@ -60,22 +61,13 @@ namespace Render
 
 
 		CORE_API void releaseRHIResource();
+		CORE_API void setCore(RHIProfileCore* core);
 
+		CORE_API bool beginRead();
+		CORE_API void endRead();
 
-		void setCore(RHIProfileCore* core);
-
-		CORE_API bool beginRead()
-		{
-			mIndexLock.readLock();
-			return true;
-		}
 		GpuProfileSample* getSample(int idx) { return getReadData().samples[idx].get(); }
 		int  getSampleNum() const { return getReadData().numSampleUsed; }
-		CORE_API void endRead()
-		{
-			mIndexLock.readUnlock();
-		}
-
 
 	private:
 		struct FrameData
@@ -91,7 +83,7 @@ namespace Render
 		};
 		FrameData const& getReadData() const { return mFrameBuffers[1 - mIndexWriteBuffer]; }
 		FrameData& getWriteData(){ return mFrameBuffers[mIndexWriteBuffer]; }
-
+		void readSamples(FrameData& frameData);
 
 		FrameData mFrameBuffers[2];
 		int       mIndexWriteBuffer;
@@ -107,6 +99,7 @@ namespace Render
 		RHIProfileCore* mCore = nullptr;
 		GpuProfileSample* mRootSample;
 		bool   mbStartSampling = false;
+		bool   mbCanRead = false;
 		int    mCurLevel;
 		int    mNumSampleUsed;
 		double mCycleToSecond;

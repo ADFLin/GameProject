@@ -39,7 +39,7 @@ public:
 
 	virtual void restart(bool beInit);
 
-	virtual void   updateTime(long time){}
+	virtual void   updateTime(GameTimeSpan deltaTime){}
 	virtual bool   canRender() { return true; }
 	virtual bool   saveReplay(char const* name) { return false; }
 	virtual IPlayerManager* getPlayerManager() = 0;

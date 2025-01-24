@@ -224,7 +224,7 @@
   <ItemGroup>
     <ClInclude Include="GameShare.h" />
     <ClInclude Include="Phy2DStage.h" />
-    <ClInclude Include="TestRender\Stage\TestRenderStageBase.h" />
+    <ClInclude Include="Stage\TestRenderStageBase.h" />
     <ClInclude Include="TinyCore\CAsyncFrameManager.h" />
     <ClInclude Include="TinyCore\CFrameActionNetEngine.h" />
     <ClInclude Include="TinyCore\ComPacket.h" />
@@ -260,7 +260,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Phy2DStage.cpp" />
-    <ClCompile Include="TestRender\Stage\TestRenderStageBase.cpp" />
+    <ClCompile Include="Stage\TestRenderStageBase.cpp" />
     <ClCompile Include="TinyCore\CFrameActionNetEngine.cpp" />
     <ClCompile Include="TinyCore\ComPacket.cpp" />
     <ClCompile Include="TinyCore\CSyncFrameManager.cpp" />

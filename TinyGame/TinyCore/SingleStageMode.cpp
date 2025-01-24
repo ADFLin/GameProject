@@ -61,28 +61,33 @@ void SingleStageMode::onRestart(uint64& seed)
 	BaseClass::onRestart(seed);
 }
 
-void SingleStageMode::updateTime(long time)
+void SingleStageMode::updateTime(GameTimeSpan deltaTime)
 {
-	int frame = time / mCurStage->getTickTime();
-	ActionProcessor& processor = mCurStage->getActionProcessor();
+	mDeltaTimeAcc += 1000.0 * deltaTime;
+	int frame = Math::FloorToInt(mDeltaTimeAcc / mCurStage->getTickTime());
 
-	for( int i = 0; i < frame; ++i )
+	if (frame)
 	{
-		unsigned flag = 0;
-		switch( getGameState() )
+		mDeltaTimeAcc -= frame * mCurStage->getTickTime();
+		ActionProcessor& processor = mCurStage->getActionProcessor();
+		for (int i = 0; i < frame; ++i)
 		{
-		case EGameState::Run:
-			++mReplayFrame;
-			break;
-		default:
-			flag |= CTF_FREEZE_FRAME;
+			unsigned flag = 0;
+			switch (getGameState())
+			{
+			case EGameState::Run:
+				++mReplayFrame;
+				break;
+			default:
+				flag |= CTF_FREEZE_FRAME;
+			}
+			processor.beginAction(flag);
+			mCurStage->tick();
+			processor.endAction();
 		}
-		processor.beginAction(flag);
-		mCurStage->tick();
-		processor.endAction();
-	}
 
-	mCurStage->updateFrame(frame);
+		mCurStage->updateFrame(frame);
+	}
 	if ( getGame() )
 		::Global::GUI().scanHotkey(getGame()->getInputControl());
 }

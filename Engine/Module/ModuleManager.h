@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #define USE_DYNAMIC_MODULE 1
-
+#define USE_HOTRELOAD 1
 
 
 class IModuleInterface;
@@ -35,6 +35,7 @@ public:
 		char const*       moduleName,
 		ModuleHandle hModule);
 
+	bool bHotReloadEnabled = false;
 private:
 
 	ModuleManager();
@@ -59,5 +60,15 @@ private:
 	};
 	typedef std::unordered_map< HashString, IModuleInterface* > ModuleMap;
 	TArray< ModuleData >   mModuleDataList;
-	ModuleMap        mNameToModuleMap;
+	ModuleMap              mNameToModuleMap;
 };
+
+
+struct VTableHelper {};
+
+
+#define DECLARE_HOTRELOAD_CLASS(CLASS)\
+	CLASS(VTableHelper const& helper);
+
+#define DEFINE_HOTRELOAD_CLASS(CLASS)\
+	CLASS::CLASS(VTableHelper const& helper){}

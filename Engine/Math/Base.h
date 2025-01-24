@@ -139,6 +139,13 @@ namespace Math
 		T p = a + b;
 		return (p + 1) * p / 2 + b;
 	}
+
+	template< typename T >
+	constexpr T SymmetricPairingFunction(T a, T b)
+	{
+		T p = a + b + 1;
+		return (p * p - p % 2) / 4 + Math::Min(a, b);
+	}
 }//namespace Math
 
 

@@ -9,6 +9,91 @@
 #include "Meta/MetaBase.h"
 
 
+template< typename CharT, size_t BufferSize = 256 >
+struct TCStringConvertible
+{
+	TCStringConvertible(CharT const* data, size_t num)
+	{
+		if (num)
+		{
+			CHECK(data);
+			if (data[num] == 0)
+			{
+				mPtr = data;
+			}
+			else
+			{
+				CHECK(ARRAY_SIZE(mBuffer) > num + 1);
+				FCString::CopyN(mBuffer, data, num);
+				mBuffer[num] = 0;
+				mPtr = mBuffer;
+			}
+		}
+		else
+		{
+			mPtr = STRING_LITERAL(CharT, "");
+		}
+	}
+
+	operator CharT const* () const { return mPtr; }
+
+	CharT const* mPtr;
+	CharT mBuffer[BufferSize];
+};
+
+
+
+template< typename CharT, size_t BufferSize>
+struct TFormatArgPolicy < TCStringConvertible<CharT, BufferSize> >
+{
+	static char const* Convert(TCStringConvertible<CharT, BufferSize>& value)
+	{
+		return value;
+	}
+};
+
+template < typename CharT >
+struct TCStringMutable
+{
+	TCStringMutable(CharT const* data, size_t num)
+	{
+		if (num)
+		{
+			CHECK(data);
+			mPtr = data;
+			mEndPtr = const_cast<CharT*>(mPtr + num);
+			mOldChar = *mEndPtr;
+			*mEndPtr = 0;
+		}
+		else
+		{
+			mOldChar = 0;
+			mPtr = &mOldChar;
+			mEndPtr = &mOldChar;
+		}
+	}
+
+	~TCStringMutable()
+	{
+		*mEndPtr = mOldChar;
+	}
+	operator CharT const* () const { return mPtr; }
+
+	CharT const* mPtr;
+	CharT* mEndPtr;
+	CharT  mOldChar;
+};
+
+
+template< typename CharT >
+struct TFormatArgPolicy < TCStringMutable<CharT> >
+{
+	static char const* Convert(TCStringMutable<CharT>& value)
+	{
+		return value;
+	}
+};
+
 template < typename CharT >
 class TStringView
 {
@@ -137,72 +222,8 @@ public:
 	StdString toStdString() const { return StdString(mData, mNum); }
 
 	template< size_t BufferSize = 256 >
-	struct TCStringConvertible
-	{
-		TCStringConvertible(CharT const* data, size_t num)
-		{
-			if( num )
-			{
-				CHECK(data);
-				if (data[num] == 0)
-				{
-					mPtr = data;
-				}
-				else
-				{
-					CHECK(ARRAY_SIZE(mBuffer) > num + 1);
-					FCString::CopyN(mBuffer, data, num);
-					mBuffer[num] = 0;
-					mPtr = mBuffer;
-				}
-			}
-			else
-			{
-				mPtr = STRING_LITERAL(CharT, "");
-			}
-		}
-
-		operator CharT const* () const { return mPtr; }
-
-		CharT const* mPtr;
-		CharT mBuffer[BufferSize];
-	};
-
-	template< size_t BufferSize = 256 >
-	TCStringConvertible< BufferSize > toCString() const { return TCStringConvertible<BufferSize>(mData, mNum); }
-
-	struct CStringMutable
-	{
-		CStringMutable(CharT const* data, size_t num)
-		{
-			if (num)
-			{
-				CHECK(data);
-				mPtr = data;
-				mEndPtr = const_cast<CharT*>(mPtr + num);
-				mOldChar = *mEndPtr;
-				*mEndPtr = 0;
-			}
-			else
-			{
-				mOldChar = 0;
-				mPtr = &mOldChar;
-				mEndPtr = &mOldChar;
-			}
-		}
-
-		~CStringMutable()
-		{
-			*mEndPtr = mOldChar;
-		}
-		operator CharT const* () const { return mPtr; }
-
-		CharT const* mPtr;
-		CharT* mEndPtr;
-		CharT  mOldChar;
-	};
-
-	CStringMutable toMutableCString() const { return CStringMutable(mData, mNum); }
+	TCStringConvertible<CharT, BufferSize> toCString() const { return TCStringConvertible<CharT , BufferSize>(mData, mNum); }
+	TCStringMutable<CharT> toMutableCString() const { return TCStringMutable<CharT>(mData, mNum); }
 
 	template<class Q>
 	Q toValue() const
@@ -235,6 +256,7 @@ protected:
 	CharT const* mData;
 	size_t   mNum;
 };
+
 
 using StringView = TStringView<char>;
 using WStringView = TStringView<wchar_t>;

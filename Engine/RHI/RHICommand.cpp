@@ -36,6 +36,7 @@ namespace Render
 	bool GRHISupportRayTracing = false;
 	bool GRHIPrefEnabled = false;
 	bool GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
+	uint64 GRHIRenderCount = 0;
 
 	void RHIInitGlobalParameters()
 	{
@@ -48,6 +49,7 @@ namespace Render
 		GRHISupportRayTracing = false;
 		GRHISupportMeshShader = false;
 		GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
+		GRHIRenderCount = 0;
 
 		TChar const* cmdLine = FCommandLine::Get();
 		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
@@ -235,6 +237,7 @@ namespace Render
 
 	void RHIEndRender(bool bPresent)
 	{
+		++GRHIRenderCount;
 		EXECUTE_RHI_FUNC( RHIEndRender(bPresent) );
 	}
 

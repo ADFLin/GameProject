@@ -296,6 +296,16 @@ namespace Render
 		}
 	}
 
+	RenderBatchedElement& RenderBatchedElementList::addPoint(Vector2 const& pos, Color4Type const& color, float size /*= 0*/)
+	{
+		TRenderBatchedElement<PointPayload>* element = addElement< PointPayload >();
+		element->type = RenderBatchedElement::Point;
+		element->payload.pos = pos;
+		element->payload.size = size;
+		element->payload.color = color;
+		return *element;
+	}
+
 	RenderBatchedElement& RenderBatchedElementList::addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max)
 	{
 		TRenderBatchedElement<RectPayload>* element = addElement< RectPayload >();
@@ -877,12 +887,34 @@ namespace Render
 #endif
 	}
 
-	void BatchedRender::emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState)
+	void BatchedRender::emitElements(TArray<RenderBatchedElement*> const& elements, RenderState const& renderState)
 	{
 		for (RenderBatchedElement* element : elements)
 		{
 			switch (element->type)
 			{
+			case RenderBatchedElement::Point:
+				{
+					RenderBatchedElementList::PointPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::PointPayload >(element);
+					FetchedData data = fetchBuffer(4, 6);
+					uint32 baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
+
+					float size = payload.size;
+					if (size == 0)
+					{
+						size = 1;
+					}
+
+					pVertices[0] = { payload.pos, payload.color , Vector2::Zero() };
+					pVertices[1] = { payload.pos + Vector2(size,0), payload.color , Vector2::Zero() };
+					pVertices[2] = { payload.pos + Vector2(size,size), payload.color , Vector2::Zero() };
+					pVertices[3] = { payload.pos + Vector2(0,size), payload.color , Vector2::Zero() };
+
+					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
+				}
+				break;
 			case RenderBatchedElement::Rect:
 				{
 					RenderBatchedElementList::RectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::RectPayload >(element);

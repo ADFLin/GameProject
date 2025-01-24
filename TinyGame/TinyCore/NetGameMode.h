@@ -147,7 +147,7 @@ public:
 	bool postStageInit();
 	void onEnd();
 	
-	void updateTime(long time);
+	void updateTime(GameTimeSpan deltaTime);
 	bool canRender();
 
 	void restart(bool beInit);

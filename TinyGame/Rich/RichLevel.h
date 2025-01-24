@@ -26,8 +26,18 @@ namespace Rich
 		void    tick();
 		void    start();
 
-		void   runLogicAsync();
-		void   resumeLogic();
+		void  runLogicAsync();
+
+
+		template< typename T >
+		void resumeLogic(T const& t)
+		{
+			Coroutines::Resume(mRunHandle, t);
+		}
+		void resumeLogic()
+		{
+			Coroutines::Resume(mRunHandle);
+		}
 
 		Player* getActivePlayer()
 		{

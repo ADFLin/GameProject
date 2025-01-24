@@ -7,6 +7,7 @@
 #include "LogSystem.h"
 #include "Template/ConstString.h"
 #include "Template/ArrayView.h"
+#include "Template/StringView.h"
 #include "DataStructure/Array.h"
 
 #include <string>
@@ -14,6 +15,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
+
 
 namespace CPP
 {
@@ -492,7 +494,7 @@ namespace CPP
 
 		~CodeSourceLibrary();
 
-		CodeBufferSource* FindOrLoadSource(HashString const& path);
+		CodeBufferSource* findOrLoadSource(HashString const& path);
 
 		void cleanup();
 
@@ -638,6 +640,11 @@ namespace CPP
 		{
 			LogWarning(0, msg);
 			return true;
+		}
+
+		bool emitError(char const* msg)
+		{
+			throw SyntaxError(msg);
 		}
 
 		struct MarcoSymbol

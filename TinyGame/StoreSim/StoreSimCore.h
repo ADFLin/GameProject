@@ -2,21 +2,27 @@
 #ifndef StoreSimCore_H_A71F5561_617E_4DCE_8061_B3D38B01B4D5
 #define StoreSimCore_H_A71F5561_617E_4DCE_8061_B3D38B01B4D5
 
+#include "MarcoCommon.h"
 #include "Math/Vector2.h"
 #include "Math/Math2D.h"
-#include "MarcoCommon.h"
 #include "Math/GeometryPrimitive.h"
+
+#include "HashString.h"
 #include "Template/ArrayView.h"
 #include "Collision2D/Bsp2D.h"
+
 #include "StoreSimItem.h"
 
-class IStreamSerializer;
-
+#include <unordered_map>
 
 namespace StoreSim
 {
 	using Math::Vector2;
 	using Math::XForm2D;
+
+
+	class IArchive;
+
 
 
 	using AABB = Math::TAABBox<Vector2>;
@@ -94,6 +100,8 @@ namespace StoreSim
 		virtual TArrayView<Area const> getAreaList() = 0;
 
 		AABB calcAreaBound(XForm2D const& xForm);
+
+		std::string name;
 	};
 
 	class Equipment
@@ -119,28 +127,68 @@ namespace StoreSim
 
 		static void BuildArea(Bsp2D::PolyArea& area, AABB const& bound, XForm2D const& xForm)
 		{
-			float border = 0.1;
+			float border = 0.3;
 			area.mVertices.resize(4);
 			GetVertices(bound, xForm, border, area.mVertices.data());
 		}
 		void updateNavArea();
 
-		virtual void serialize(IStreamSerializer& serializer)
-		{
-
-
-		}
+		virtual void serialize(IArchive& ar);
 	};
 
 
+	class EquipmentFactory
+	{
+	public:
+		Equipment* create(char const* name)
+		{
+			HashString key;
+			if (!HashString::Find(name, key))
+				return nullptr;
 
+			auto iter = mNameClassMap.find(key);
+			if (iter == mNameClassMap.end())
+				return nullptr;
+
+			return iter->second->create();
+		}
+
+		bool registerClass(EquipmentClass* equipClass)
+		{
+			CHECK(equipClass);
+			HashString key = equipClass->name;
+			auto result = mNameClassMap.emplace(key, equipClass).second;
+			if (!result)
+			{
+
+			}
+			return result;
+		}
+
+		static EquipmentFactory& Instance()
+		{
+			static EquipmentFactory StaticInstance;
+			return StaticInstance;
+		}
+
+		std::unordered_map<HashString, EquipmentClass*> mNameClassMap;
+	};
 	template< typename MyClass, typename TEquipment >
 	class TEquipmentClass : public EquipmentClass
 	{
 	public:
+		TEquipmentClass()
+		{
+			name = MyClass::GetClassName();
+			EquipmentFactory::Instance().registerClass(this);
+		}
+
+		static char const* GetClassName();
 		virtual Equipment* create()
 		{
-			return new TEquipment;
+			Equipment* eqip = new Equipment;
+			eqip->mClass = this;
+			return eqip;
 		}
 
 		static MyClass* StaticClass()

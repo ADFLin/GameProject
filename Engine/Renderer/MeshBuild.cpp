@@ -1098,9 +1098,9 @@ namespace Render
 			VertexTraits::SetVertex(vtx, mRadius, v);
 			return idx;
 		}
-		int divVertex(int i1, int i2)
+		int divVertex(uint32 i1, uint32 i2)
 		{
-			KeyType key = (i1 > i2) ? ((KeyType(i2) << 32) | KeyType(i1)) : ((KeyType(i1) << 32) | KeyType(i2));
+			KeyType key = Math::SymmetricPairingFunction(i1, i2);
 			KeyMap::iterator iter = mKeyMap.find(key);
 			if (iter != mKeyMap.end())
 			{
@@ -1151,7 +1151,7 @@ namespace Render
 		}
 		int    mNumV;
 		float  mRadius;
-		using KeyType = uint64;
+		using KeyType = uint32;
 		using KeyMap = std::unordered_map< KeyType, int >;
 		TArray< VertexType > mVertices;
 		KeyMap  mKeyMap;

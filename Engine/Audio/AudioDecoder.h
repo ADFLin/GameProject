@@ -51,11 +51,11 @@ public:
 		return result;
 	}
 
-	void releaseSampleData(SampleHandle handle)
+	void releaseSampleData(SampleHandle sampleHandle)
 	{
-		auto& sampleData = mSampleDataList[handle];
+		auto& sampleData = mSampleDataList[sampleHandle];
 		sampleData->data.clear();
-		mFreeSampleDataIndices.push_back(handle);
+		mFreeSampleDataIndices.push_back(sampleHandle);
 	}
 };
 

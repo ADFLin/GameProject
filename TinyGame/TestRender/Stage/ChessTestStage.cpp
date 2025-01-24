@@ -12,7 +12,7 @@
 #include "Renderer/IBLResource.h"
 
 
-#include "TestRenderStageBase.h"
+#include "Stage/TestRenderStageBase.h"
 
 #include <algorithm>
 

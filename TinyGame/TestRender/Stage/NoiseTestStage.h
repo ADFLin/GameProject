@@ -2,7 +2,7 @@
 #ifndef NoiseTestStage_H_30F74EE6_4F5A_4D25_AABE_DEE26988138F
 #define NoiseTestStage_H_30F74EE6_4F5A_4D25_AABE_DEE26988138F
 
-#include "TestRenderStageBase.h"
+#include "Stage/TestRenderStageBase.h"
 
 #include "RHI/Scene.h"
 #include "RHI/SceneRenderer.h"

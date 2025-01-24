@@ -76,7 +76,7 @@ void FrameAllocator::clearFrame()
 		while (cur != mCur)
 		{
 			Chunk* next = cur->link;
-			::free(cur);
+			FMemory::Free(cur);
 			cur = next;
 		}
 		mUsageList = mCur;

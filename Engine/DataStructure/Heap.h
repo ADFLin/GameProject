@@ -203,9 +203,9 @@ public:
 
 
 	struct Node;
-	typedef KT     KeyType;
-	typedef CmpFunc CompareFunType;
-	typedef Node*  NodeHandle;
+	typedef KT      KeyType;
+	typedef CmpFunc CompareFuncType;
+	typedef Node*   NodeHandle;
 
 	static NodeHandle EmptyHandle() { return nullptr; }
 
@@ -280,8 +280,8 @@ public:
 		update(handle);
 	}
 
-	bool  compareKey(KeyType const& key1, KeyType const& key2) const { return CompareFunType()(key1, key2); }
-	bool  compareKey( Node* n1 , Node* n2 ) const { return CompareFunType()( n1->key , n2->key ); }
+	bool  compareKey(KeyType const& key1, KeyType const& key2) const { return CompareFuncType()(key1, key2); }
+	bool  compareKey( Node* n1 , Node* n2 ) const { return CompareFuncType()( n1->key , n2->key ); }
 
 
 	int   size() const { return mNumNode; }

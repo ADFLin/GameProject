@@ -177,11 +177,52 @@ public:
 	SRWLOCK mImpl;
 };
 
+class WindowsThreadEvent : public Noncopyable
+{
+
+public:
+	WindowsThreadEvent()
+	{
+		mHandle = ::CreateEventA(NULL, TRUE, FALSE, "Event");
+	}
+
+	~WindowsThreadEvent()
+	{
+		if (mHandle)
+		{
+			::CloseHandle(mHandle);
+		}
+	}
+
+	void reset()
+	{
+		::ResetEvent(mHandle);
+	}
+
+
+	void fire()
+	{
+		::SetEvent(mHandle);
+	}
+
+	void wait(double time)
+	{
+		long millisecond = int(time * 1000);
+		DWORD result = ::WaitForSingleObject(mHandle, millisecond);
+	}
+	void wait()
+	{
+		DWORD result = ::WaitForSingleObject(mHandle, INFINITE);
+	}
+	HANDLE mHandle;
+};
+
 
 using PlatformThread = WindowsThread;
 using PlatformMutex = WindowsMutex;
 using PlatformConditionVariable = WindowsConditionVariable;
 using PlatformRWLock = WindowsRWLock;
+using PlatformThreadEvent = WindowsThreadEvent;
 
 #elif SYS_SUPPORT_POSIX_THREAD
 
@@ -265,7 +306,6 @@ protected:
 using PlatformThread = PosixThread;
 using PlatformMutex = PosixMutex;
 using PlatformConditionVariable = PosixConditionVariable;
-
 #else
 #error "Thread Not Support!"
 #endif
@@ -418,6 +458,11 @@ public:
 	{ 
 		return PlatformConditionVariable::doWaitTime(locker.mMutex, time );
 	}
+};
+
+class ThreadEvent : public PlatformThreadEvent
+{
+
 };
 
 template< class T >

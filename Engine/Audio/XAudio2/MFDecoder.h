@@ -54,9 +54,9 @@ public:
 
 	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int minSampleFrameRequired, bool bNeedFlush) override;
 
-	void releaseSampleData(uint32 sampleHadle) override
+	void releaseSampleData(uint32 sampleHandle) override
 	{
-		mSampleBuffer.releaseSampleData(sampleHadle);
+		mSampleBuffer.releaseSampleData(sampleHandle);
 	}
 
 };

@@ -66,6 +66,9 @@ void MoveValue(T& lhs, T& rhs, T reset = T())
 	rhs = reset;
 }
 
+
+#define CHECK_ALLOC_PTR(PTR) if (PTR == nullptr){ std::abort(); }
+
 template< class T >
 struct TDynamicArrayData
 {
@@ -92,34 +95,35 @@ struct TDynamicArrayData
 
 	DECL_ALLOCATOR T* grow(size_t oldSize, size_t newSize)
 	{
-		void* newAlloc;
 		if constexpr (TBitwiseReallocatable<T>::Value)
 		{
-			newAlloc = FMemory::Realloc(mStorage, sizeof(T) * newSize);
-			if (newAlloc == nullptr)
-			{
-
-			}
+			void* newAlloc = FMemory::Realloc(mStorage, sizeof(T) * newSize);
+			CHECK_ALLOC_PTR(newAlloc);
+			mStorage = newAlloc;
 		}
 		else
 		{
-			newAlloc = FMemory::Alloc(sizeof(T) * newSize);
-			if (newAlloc == nullptr)
+			if (FMemory::Expand(mStorage, sizeof(T) * newSize) != nullptr)
 			{
 
 			}
-
-			if (mStorage)
+			else
 			{
-				if (oldSize)
+				void* newAlloc = FMemory::Alloc(sizeof(T) * newSize);
+				CHECK_ALLOC_PTR(newAlloc);
+				if (mStorage)
 				{
-					FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)mStorage);
+					if (oldSize)
+					{
+						FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)mStorage);
+					}
+					FMemory::Free(mStorage);
 				}
-				FMemory::Free(mStorage);
+				mStorage = newAlloc;
 			}
 		}
 
-		mStorage = newAlloc;
+
 		mMaxSize = newSize;
 		return (T*)mStorage;
 	}
@@ -758,6 +762,14 @@ public:
 	size_t mNum;
 
 };
+
+template< typename T >
+void* operator new (std::size_t count, TArray<T>& ar) 
+{ 
+	return ar.addUninitialized(); 
+}
+
+
 
 
 #endif // Array_H_53348890_2577_41C4_9C3E_01D135F952BD

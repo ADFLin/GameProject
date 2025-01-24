@@ -17,32 +17,38 @@ public:
 		return &mPlayerManager;
 	}
 
-	void updateTime(long time) override
+	void updateTime(GameTimeSpan deltaTime) override
 	{
-		int frame = time / mCurStage->getTickTime();
-		ActionProcessor& processor = mCurStage->getActionProcessor();
-
-		for( int i = 0; i < frame; ++i )
+		mDeltaTimeAcc += 1000.0 * deltaTime;
+		int frame = Math::FloorToInt(mDeltaTimeAcc / mCurStage->getTickTime());
+		
+		if (frame)
 		{
-			unsigned flag = 0;
-			switch( getGameState() )
+			mDeltaTimeAcc -= frame * mCurStage->getTickTime();
+			ActionProcessor& processor = mCurStage->getActionProcessor();
+			for (int i = 0; i < frame; ++i)
 			{
-			case EGameState::Run:
-				break;
-			default:
-				flag |= CTF_FREEZE_FRAME;
+				unsigned flag = 0;
+				switch (getGameState())
+				{
+				case EGameState::Run:
+					break;
+				default:
+					flag |= CTF_FREEZE_FRAME;
+				}
+				processor.beginAction(flag);
+				mCurStage->tick();
+				processor.endAction();
 			}
-			processor.beginAction(flag);
-			mCurStage->tick();
-			processor.endAction();
-		}
 
-		mCurStage->updateFrame(frame);
+			mCurStage->updateFrame(frame);
+		}
 		::Global::GUI().scanHotkey(getGame()->getInputControl());
 	}
 
 
 private:
+	float mDeltaTimeAcc = 0.0f;
 	LocalPlayerManager mPlayerManager;
 };
 
@@ -89,7 +95,7 @@ void GameStageBase::onEnd()
 
 void GameStageBase::onUpdate(GameTimeSpan deltaTime)
 {
-	mStageMode->updateTime(long(deltaTime));
+	mStageMode->updateTime(deltaTime);
 	BaseClass::onUpdate(deltaTime);
 }
 

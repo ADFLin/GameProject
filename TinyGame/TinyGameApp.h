@@ -184,7 +184,6 @@ public:
 private:
 	void               loadModules();
 	void               render( float dframe );
-	void               cleanup();
 
 	ServerWorker*      createServer();
 	ClientWorker*      createClinet();

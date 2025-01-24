@@ -203,9 +203,12 @@ namespace Rich
 
 				if (bAutoPlay)
 				{
+					int i = 0;
 					for (auto player : mLevel.getPlayerList())
 					{
-						createAIController(*player);
+						if ( i != 0 )
+							createAIController(*player);
+						++i;
 					}
 				}
 			}
@@ -316,7 +319,7 @@ namespace Rich
 				}
 
 			}
-			return MsgReply::Unhandled();  
+			return MsgReply::Unhandled();
 		}
 
 		GameInputController mUserController;

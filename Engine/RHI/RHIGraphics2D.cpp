@@ -140,7 +140,7 @@ void RHIGraphics2D::endRender()
 void RHIGraphics2D::setupCommittedRenderState()
 {
 	RHICommandList& commandList = getCommandList();
-	mBatchedRender.setViewportSize(mBatchedRender.mWidth, mBatchedRender.mHeight);
+	//mBatchedRender.setViewportSize(mBatchedRender.mWidth, mBatchedRender.mHeight);
 	mBatchedRender.commitRenderState(commandList, mRenderStateCommitted);
 }
 
@@ -185,12 +185,8 @@ void RHIGraphics2D::drawPixel(Vector2 const& p, Color3Type const& color)
 
 	setTextureState();
 	commitRenderState();
-	struct Vertex_XY_CA
-	{
-		Math::Vector2 pos;
-		Color4Type c;
-	} v = { p , Color4Type(color , mPaintArgs.brushColor.a) };
-	TRenderRT<RTVF_XY_CA8>::Draw(getCommandList(), EPrimitive::Points, &v, 1);
+	auto& element = mElementList.addPoint(p, Color4Type(color, mPaintArgs.brushColor.a), 0.0);
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawRect(int left, int top, int right, int bottom)

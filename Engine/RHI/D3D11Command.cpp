@@ -84,7 +84,7 @@ namespace Render
 			while (mDeviceContextImmdiate->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE)
 			{
 				SystemPlatform::Sleep(0);
-#if 0
+#if 1
 				++count;
 				if ( count > 100000)
 					return false;
@@ -96,9 +96,7 @@ namespace Render
 			{
 				return false;
 			}
-			tsDisjoint.Frequency;
-
-			
+			tsDisjoint.Frequency;	
 			return true;
 		}
 

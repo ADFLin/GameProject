@@ -30,14 +30,8 @@ public:
 	virtual void endPlay() override;
 	virtual void pause() override;
 
-
-	void notifyBufferStart();
-	void notifyBufferEnd();
-	void noitfyStreamEnd();
-	
 	TComPtr<IXAudio2SourceVoice, VoiceDeleter > pSourceVoice;
 	XAudio2Device* mDevice;
-
 
 	bool commitStreamingData( bool bInit = false);
 	// pos = INDEX_NONE, no data need commit;
@@ -45,8 +39,6 @@ public:
 
 	//TCycleQueue< uint32 > mUsedSampleHandles;
 	TArray< uint32 >      mUsedSampleHandles;
-
-
 
 	STDMETHOD_(void , OnVoiceProcessingPassStart)(UINT32 BytesRequired) override;
 	STDMETHOD_(void , OnVoiceProcessingPassEnd)() override;

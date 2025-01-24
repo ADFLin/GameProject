@@ -20,7 +20,7 @@
 #include "Renderer/RenderTargetPool.h"
 #include "Renderer/Bloom.h"
 
-#include "TestRender/Stage/TestRenderStageBase.h"
+#include "Stage/TestRenderStageBase.h"
 
 
 

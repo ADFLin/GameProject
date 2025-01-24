@@ -190,9 +190,9 @@ public:
 		return EAudioStreamStatus::Ok;
 	}
 
-	virtual void releaseSampleData(uint32 sampleHadle) override
+	virtual void releaseSampleData(uint32 sampleHandle) override
 	{
-		mSampleBuffer.releaseSampleData(sampleHadle);
+		mSampleBuffer.releaseSampleData(sampleHandle);
 	}
 
 	WavePattern_Sine mWaveGenerator;
@@ -360,7 +360,7 @@ bool AudioTestStage::onInit()
 	}
 	{
 		TIME_SCOPE("MFStartup");
-		HRESULT hr = MFStartup(MF_VERSION);
+		FMediaFoundation::Initialize();
 	}
 
 #if 0

@@ -12,7 +12,7 @@ static InlineString<512> GMsg;
 #define PARSE_ERROR( MSG , ... ) \
 	{\
 		GMsg.format( "%s (%d) - " MSG , mInput.getSourceName() , mInput.getLine() , ##__VA_ARGS__ );\
-		throw SyntaxError( GMsg.c_str() );\
+		emitError( GMsg.c_str() );\
 	}
 #define PARSE_WARNING( MSG , ... )\
 	{\
@@ -380,7 +380,7 @@ namespace CPP
 		}
 
 		CHECK(mSourceLibrary);
-		CodeSource* includeSource = mSourceLibrary->FindOrLoadSource(fullPathHS);
+		CodeSource* includeSource = mSourceLibrary->findOrLoadSource(fullPathHS);
 		if (includeSource == nullptr)
 		{
 			PARSE_ERROR("Can't load include file : %s" , fullPath.c_str());
@@ -480,21 +480,21 @@ namespace CPP
 
 			while (!mInput.isEoL())
 			{
-				bool bHaveConcatArg = false;
-				bool bHaveArgString = false;
+				bool bHadConcatArg = false;
+				bool bHadArgString = false;
 				StringView exprUnit;
 
 				if (mInput[0] == '#')
 				{
 					if (mInput[1] == '#')
 					{
-						bHaveConcatArg = true;
+						bHadConcatArg = true;
 						mInput.advance();
 						mInput.advance();
 					}
 					else
 					{
-						bHaveArgString = true;
+						bHadArgString = true;
 						mInput.advance();
 					}
 				}
@@ -507,32 +507,31 @@ namespace CPP
 						MarcoSymbol::ArgEntry entry;
 						entry.indexArg = idxArg;
 
-						if (bHaveArgString)
+						if (bHadArgString)
 							marco.expr += '\"';
 
 						entry.offset = marco.expr.size();
 						marco.argEntries.push_back(entry);
 
-						if (bHaveArgString)
+						if (bHadArgString)
 							marco.expr += '\"';
-
 					}
 					else
 					{
-						if (bHaveArgString)
+						if (bHadArgString)
 							marco.expr += '\"';
 
 						marco.expr.append(exprUnit.begin(), exprUnit.end());
 
-						if (bHaveArgString)
+						if (bHadArgString)
 							marco.expr += '\"';
 					}
 				}
 				else
 				{
-					if (bHaveArgString)
+					if (bHadArgString)
 						marco.expr += '#';
-					else if (bHaveConcatArg)
+					else if (bHadConcatArg)
 						marco.expr += "##";
 
 					marco.expr += mInput[0];
@@ -739,7 +738,6 @@ namespace CPP
 			return false;
 		}
 
-
 		skipToNextLine();
 		return true;
 	}
@@ -750,7 +748,7 @@ namespace CPP
 
 		mInput.skipSpaceInLine();
 		mInput.tokenLineString(text);
-		PARSE_ERROR("Error : \"%s\"" , static_cast< char const*>( text.toCString()) );
+		PARSE_ERROR("Error : \"%s\"" , text.toCString());
 		return true;
 	}
 
@@ -1124,7 +1122,7 @@ namespace CPP
 				auto marco = findMarco(id);
 				if (marco == nullptr)
 				{
-					PARSE_WARNING( "%s is not defined" , static_cast<char const*>(id.toCString()) );
+					PARSE_WARNING( "%s is not defined" , id.toCString() );
 					ret = 0;
 				}
 				else
@@ -1141,7 +1139,7 @@ namespace CPP
 						exprLoc.mLineCount = 0;
 						if (!parseExpression(exprLoc, marco->cachedEvalValue))
 						{
-							PARSE_ERROR("Define \"%s\" is not Const Expresstion", static_cast<char const*>(id.toCString()));
+							PARSE_ERROR("Define \"%s\" is not Const Expresstion", id.toCString());
 						}
 						marco->evalFrame = mCurFrame;
 					}
@@ -1294,7 +1292,7 @@ namespace CPP
 						LineStringViewCode codeView(arg);
 						if (!expandMarcoInternal(codeView, expandText, outResult))
 						{
-							PARSE_ERROR("Expand Arg Error : %s" , static_cast<char const*>( arg.toCString()) );
+							PARSE_ERROR("Expand Arg Error : %s" , arg.toCString());
 							return false;
 						}
 						outText += expandText;
@@ -1651,7 +1649,7 @@ namespace CPP
 		cleanup();
 	}
 
-	CodeBufferSource* CodeSourceLibrary::FindOrLoadSource(HashString const& path)
+	CodeBufferSource* CodeSourceLibrary::findOrLoadSource(HashString const& path)
 	{
 		auto iter = mSourceMap.find(path);
 

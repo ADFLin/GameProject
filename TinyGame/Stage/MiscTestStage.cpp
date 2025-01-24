@@ -441,6 +441,7 @@ namespace MRT
 
 	void Algo::run()
 	{
+		//Dijkstra
 		assert(startStation);
 
 		for( int i = 0; i < network->stations.size(); ++i )
@@ -508,7 +509,7 @@ namespace MRT
 
 		std::unordered_map< std::string, int > nameMap;
 		std::vector< Station* > stationVec;
-		auto createfun = [&](StringView const& str) -> Station*
+		auto CreateStation = [&](StringView const& str) -> Station*
 		{
 			auto iter = nameMap.find(str.toStdString());
 			if( iter != nameMap.end() )
@@ -563,7 +564,7 @@ namespace MRT
 			case EStringToken::Content:
 				if( mode == Mode::None )
 				{
-					prevStation = createfun(str);
+					prevStation = CreateStation(str);
 				}
 				else if( mode == Mode::Link )
 				{
@@ -576,7 +577,7 @@ namespace MRT
 					}
 					else
 					{
-						Station* station = createfun(str);
+						Station* station = CreateStation(str);
 						if( station == prevStation )
 						{
 							return false;

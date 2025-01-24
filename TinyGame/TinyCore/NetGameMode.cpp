@@ -1297,10 +1297,10 @@ void NetLevelStageMode::procLevelInfo(IComPacket* cp)
 	mWorker->changeState(NAS_LEVEL_LOAD);
 }
 
-void NetLevelStageMode::updateTime(long time)
+void NetLevelStageMode::updateTime(GameTimeSpan deltaTime)
 {
-	BaseClass::updateTime(time);
-	mNetEngine->update(*this, time);
+	BaseClass::updateTime(deltaTime);
+	mNetEngine->update(*this, long(deltaTime));
 	if (getGame())
 	{
 		::Global::GUI().scanHotkey(getGame()->getInputControl());

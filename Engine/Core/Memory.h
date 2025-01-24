@@ -3,6 +3,10 @@
 #define Memory_H_8EDA60D7_C2B5_4E9C_B36D_8554BAB1DF86
 
 #include <cstring>
+#include "PlatformConfig.h"
+#if SYS_PLATFORM_WIN
+#include <malloc.h>
+#endif
 
 struct FMemory
 {
@@ -31,6 +35,16 @@ struct FMemory
 		return ::realloc(ptr, size);
 	}
 
+	static void* Expand(void* ptr, size_t size)
+	{
+#if SYS_PLATFORM_WIN
+		if (ptr == nullptr)
+			return nullptr;
+		return ::_expand(ptr, size);
+#else
+		return nullptr;
+#endif
+	}
 	static void* Alloc(size_t size)
 	{
 		return ::malloc(size);

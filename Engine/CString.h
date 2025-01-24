@@ -59,6 +59,14 @@ struct TStringLiteral< wchar_t >
 #define STRING_FUNC_S_SUPPORTED 0
 #endif
 
+
+template< typename T >
+struct TFormatArgPolicy
+{
+	static T& Convert(T& value) { return value; }
+};
+
+
 struct FCString
 {
 	template< int N >
@@ -378,7 +386,7 @@ struct FCString
 	{
 		static_assert(Meta::And< TIsValidFormatType< Args >... >::Value == true , "Arg Type Error");
 		//assert(CheckForamtString(fmt, args...));
-		return FCString::PrintfImpl(str, N , fmt, args...);
+		return FCString::PrintfImpl(str, N , fmt, TFormatArgPolicy<Args>::Convert(args)...);
 	}
 
 	template< typename CharT >

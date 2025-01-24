@@ -2,7 +2,7 @@
 #ifndef RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080
 #define RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080
 
-#include "TestRenderStageBase.h"
+#include "Stage/TestRenderStageBase.h"
 
 #include "HashString.h"
 #include "SystemPlatform.h"

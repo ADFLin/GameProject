@@ -1,4 +1,4 @@
-#include "TestRenderStageBase.h"
+#include "Stage/TestRenderStageBase.h"
 
 #include "RHI/GLExtensions.h"
 #include "RHI/GlobalShader.h"

@@ -95,11 +95,6 @@ namespace Rich
 		}
 	}
 
-	void Level::resumeLogic()
-	{
-		Coroutines::Resume(mRunHandle);
-	}
-
 	void Level::runPlayerTurn(Player& player)
 	{
 		mTurn.startTurn(player);

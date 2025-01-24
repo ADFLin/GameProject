@@ -46,9 +46,6 @@ namespace Rich
 
 	bool LevelStage::onWidgetEvent( int event , int id , GWidget* widget )
 	{
-		if (!BaseClass::onWidgetEvent(event, id, widget))
-			return false;
-
 		if ( mEditor && !mEditor->onWidgetEvent( event , id , widget ) )
 			return false;
 
@@ -66,6 +63,9 @@ namespace Rich
 			mEditor->setup( mLevel , mScene );
 			break;
 		}
+
+		if (!BaseClass::onWidgetEvent(event, id, widget))
+			return false;
 
 		return true;
 	}
@@ -123,22 +123,22 @@ namespace Rich
 		case REQ_BUY_LAND:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_LAND , "Buy Land?" );
-				widget->setUserData(intptr_t( &turn ) );
-				CO_YEILD(this);
+				auto reply = CO_YEILD< ActionReplyData >(this);
+				turn.replyAction(reply);
 			}
 			break;
 		case REQ_BUY_STATION:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_STATION, "Buy Land?");
-				widget->setUserData(intptr_t(&turn));
-				CO_YEILD(this);
+				auto reply = CO_YEILD< ActionReplyData >(this);
+				turn.replyAction(reply);
 			}
 			break;
 		case REQ_UPGRADE_LAND:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_UPGRADE_LAND, "Upgrade Land?" );
-				widget->setUserData( intptr_t( &turn ) );
-				CO_YEILD(this);
+				auto reply = CO_YEILD< ActionReplyData >(this);
+				turn.replyAction(reply);
 			}
 			break;
 		case REQ_ROMATE_DICE_VALUE:
@@ -160,11 +160,9 @@ namespace Rich
 		case UI_BUY_STATION:
 		case UI_UPGRADE_LAND:
 			{
-				PlayerTurn* turn = reinterpret_cast< PlayerTurn* >( widget->getUserData() );
 				ActionReplyData data;
 				data.addParam( ( event == EVT_BOX_YES ) ? 1 : 0 );
-				turn->replyAction( data );
-				mLevel->resumeLogic();
+				mLevel->resumeLogic(data);
 				widget->destroy();
 			}
 			return false;

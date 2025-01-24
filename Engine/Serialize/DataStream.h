@@ -180,7 +180,7 @@ public:
 		template< typename T, typename OP>
 		static auto Requires(T& value, OP& op) -> decltype
 		(
-			Serialize(value, op)
+			StreamSerializer::Serialize(value, op)
 		);
 	};
 
@@ -209,8 +209,9 @@ public:
 		{
 			const_cast<T&>(value).serialize(WriteOp(*this));
 		}
-		else if constexpr (TUseSerializeFunc<T, WriteOp>::Value)
+		else if constexpr (TUseGlobalSerializeFunc<T, WriteOp>::Value)
 		{
+			using namespace StreamSerializer;
 			Serialize(const_cast<T&>(value), WriteOp(*this));
 		}
 		else
@@ -227,8 +228,9 @@ public:
 		{
 			value.serialize(ReadOp(*this));
 		}
-		else if constexpr (TUseSerializeFunc<T, ReadOp>::Value)
+		else if constexpr (TUseGlobalSerializeFunc<T, ReadOp>::Value)
 		{
+			using namespace StreamSerializer;
 			Serialize(value, ReadOp(*this));
 		}
 		else

@@ -247,6 +247,7 @@
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
     <ClCompile Include="StoreSim\StoreSimCore.cpp" />
     <ClCompile Include="StoreSim\StoreSimNav.cpp" />
+    <ClCompile Include="StoreSim\StoreSimSerialize.cpp" />
     <ClCompile Include="StoreSim\StoreSimStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AgarStage.cpp" />
@@ -254,6 +255,7 @@
     <ClCompile Include="TestMisc\Stage\CollatzTreeStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp" />
     <ClCompile Include="TestMisc\Stage\QuixoStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\SRPGTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FluidRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\MathArtStage.cpp" />

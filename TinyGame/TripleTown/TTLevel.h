@@ -126,7 +126,7 @@ namespace TripleTown
 		};
 		TerrainType terrainBase;
 
-		static Tile InitTile()
+		static Tile DefaultTile()
 		{
 			Tile tile;
 			tile.id = OBJ_NULL;

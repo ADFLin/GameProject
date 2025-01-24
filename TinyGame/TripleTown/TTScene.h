@@ -89,8 +89,22 @@ namespace TripleTown
 		Vector2 pos;
 	};
 
+
+	struct SpriteRenderData
+	{
+		RHITexture2D* texture;
+		struct Vertex
+		{
+			Vector2 pos;
+			Vector2 uv;
+		};
+		RenderTransform2D xForm;
+		Vertex  bound;
+	};
+
 	class Renderer
 	{
+	public:
 
 
 
@@ -230,8 +244,6 @@ namespace TripleTown
 		};
 		std::vector< Vertex > mBatchedVertices;
 		void submitRenderCommand(RHICommandList& commandList);
-
-		//ImageTexture    mTexItemMap[ NUM_OBJ ][ 2 ];
 
 		//LevelListener
 		void postSetupLand() override;

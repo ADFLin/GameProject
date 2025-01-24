@@ -2,7 +2,7 @@
 #ifndef BRDFTestStage_H_7A995FB3_7E3D_4113_8393_AD185D2EDB89
 #define BRDFTestStage_H_7A995FB3_7E3D_4113_8393_AD185D2EDB89
 
-#include "TestRenderStageBase.h"
+#include "Stage/TestRenderStageBase.h"
 #include "RHI/SceneRenderer.h"
 
 #include "Renderer/IBLResource.h"

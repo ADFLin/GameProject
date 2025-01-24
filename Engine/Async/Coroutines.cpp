@@ -23,11 +23,9 @@ namespace Coroutines
 	}
 
 	ExecutionContext::ExecutionContext(std::function< void() >&& entryFunc)
-		:mYeildReturnType(typeid(void))
-		,mEntryFunc(std::move(entryFunc))
-		,mExecution(ExecuteEntry)
+		:mEntryFunc(std::move(entryFunc))
 	{
-
+		mExecution.construct(ExecuteEntry);
 	}
 
 	ExecutionContext::~ExecutionContext()
@@ -39,7 +37,7 @@ namespace Coroutines
 	{
 		CHECK(mYeild);
 		mInstruction.release();
-		mExecution(*this);
+		(*mExecution)(*this);
 	}
 
 
@@ -70,9 +68,10 @@ namespace Coroutines
 	void ThreadContext::syncExecutions(std::initializer_list<ExecutionHandle> executions)
 	{
 		TArray<ExecutionContext*> activeExecutions;
-		for (auto handle : executions)
+		for (int index = 0; index < executions.size(); ++index)
 		{
-			if (isCompleted(handle))
+			auto handle = executions.begin()[index];
+			if (isCompleted(handle) == false)
 			{
 				activeExecutions.push_back(handle.getPointer());
 			}
@@ -83,6 +82,15 @@ namespace Coroutines
 			return;
 		}
 
+#if CO_USE_DEPENDENT_REFCOUNT
+		for (auto exec : activeExecutions)
+		{
+			CHECK(!isCompleted(exec));
+			exec->mDependentRefCount += 1;
+		}
+#endif
+
+		CHECK(mExecutingContext->mDependenceIndex == INDEX_NONE);
 		DependencyFlow* flow = fetchDependencyFlow();
 		CHECK(flow->executions.empty());
 		flow->mode = DependencyFlow::eSync;
@@ -91,52 +99,104 @@ namespace Coroutines
 		mExecutingContext->mDependenceIndex = flow - mDependencyFlows.data();
 		CHECK(mExecutingContext->mInstruction == nullptr);
 		mExecutingContext->doYeild();
+		removeDependencyFlow(mExecutingContext->mDependenceIndex);
+		mExecutingContext->mDependenceIndex = INDEX_NONE;
+		return;
 	}
 
-	void ThreadContext::raceExecutions(std::initializer_list<ExecutionHandle> executions)
+	int FindIndex(std::initializer_list<ExecutionHandle> executions, ExecutionContext* context)
 	{
-		for (auto handle : executions)
+		int index = 0;
+		for (int index = 0; index < executions.size(); ++index)
 		{
+			auto handle = executions.begin()[index];
+			if (handle.mPtr == (int64)context)
+				return index;
+		}
+
+		NEVER_REACH("FindIndex");
+		return INDEX_NONE;
+	}
+
+	int ThreadContext::raceExecutions(std::initializer_list<ExecutionHandle> executions)
+	{
+		int index = 0;
+		for (int index = 0; index < executions.size(); ++index)
+		{
+			auto handle = executions.begin()[index];
 			if (isCompleted(handle))
 			{
 				for (auto otherHandle : executions)
 				{
 					int index = getExecutionOrderIndex(otherHandle);
-					if ( index != INDEX_NONE)
+					if (index != INDEX_NONE)
 					{
-						mIndexCompleted.push_back(index);
+						destroyExecution(index);
 					}
 				}
-				return;
+				return index;
 			}
 		}
-
 		DependencyFlow* flow = fetchDependencyFlow();
 		CHECK(flow->executions.empty());
 		flow->mode = DependencyFlow::eRace;
+#if CO_USE_DEPENDENT_REFCOUNT
+		for (int index = 0; index < executions.size(); ++index)
+		{
+			auto handle = executions.begin()[index];
+			if (!isCompleted(handle))
+			{
+				handle.getPointer()->mDependentRefCount += 1;
+			}
+		}
+#endif
 		flow->append(executions);
 
+		CHECK(mExecutingContext->mDependenceIndex == INDEX_NONE);
 		mExecutingContext->mDependenceIndex = flow - mDependencyFlows.data();
 		CHECK(mExecutingContext->mInstruction == nullptr);
 		mExecutingContext->doYeild();
+
+		int result = FindIndex(executions, flow->executionLastCompleted);
+		removeDependencyFlow(mExecutingContext->mDependenceIndex);
+		mExecutingContext->mDependenceIndex = INDEX_NONE;
+		return result;
 	}
 
-	void ThreadContext::rushExecutions(std::initializer_list<ExecutionHandle> executions)
+	int ThreadContext::rushExecutions(std::initializer_list<ExecutionHandle> executions)
 	{
-		for (auto handle : executions)
+		int index = 0;
+		for (int index = 0; index < executions.size(); ++index)
 		{
+			auto handle = executions.begin()[index];
 			if (isCompleted(handle))
-				return;
+				return index;
 		}
 
 		DependencyFlow* flow = fetchDependencyFlow();
 		CHECK(flow->executions.empty());
 		flow->mode = DependencyFlow::eRush;
+#if CO_USE_DEPENDENT_REFCOUNT
+		for (int index = 0; index < executions.size(); ++index)
+		{
+			auto handle = executions.begin()[index];
+			if (!isCompleted(handle))
+			{
+				handle.getPointer()->mDependentRefCount += 1;
+			}
+		}
+#endif
 		flow->append(executions);
 
+		CHECK(mExecutingContext->mDependenceIndex == INDEX_NONE);
 		mExecutingContext->mDependenceIndex = flow - mDependencyFlows.data();
 		CHECK(mExecutingContext->mInstruction == nullptr);
 		mExecutingContext->doYeild();
+
+		int result = FindIndex(executions, flow->executionLastCompleted);
+		removeDependencyFlow(mExecutingContext->mDependenceIndex);
+		mExecutingContext->mDependenceIndex = INDEX_NONE;
+		return result;
 	}
 
 	ExecutionContext* ThreadContext::newExecution(std::function< void() >&& entryFunc)
@@ -164,7 +224,7 @@ namespace Coroutines
 		ExecutionContext* context = newExecution(std::move(entryFunc));
 		ExecutionContext* parentContext = mExecutingContext;
 		mExecutingContext = context;
-		context->mExecution(*context);
+		(*context->mExecution)(*context);
 		mExecutingContext = parentContext;
 		bool bKeep = postExecuteContext(*context);
 		cleanupCompletedExecutions();
@@ -187,53 +247,61 @@ namespace Coroutines
 
 	bool ThreadContext::postExecuteContext(ExecutionContext& context)
 	{
-		bool bKeep = bool(context.mExecution) && context.mYeild;
+		bool bKeep = bool(*context.mExecution) && context.mYeild;
 		if (bKeep == false)
 		{
-			if (context.mParent && context.mParent->mDependenceIndex != INDEX_NONE)
+			auto parent = context.mParent;
+			destroyExecution(mExecutions.findIndex(&context));
+
+			if (parent && parent->mDependenceIndex != INDEX_NONE)
 			{			
-				if (context.mParent->mDependenceIndex == SIMPLE_SYNC_INDEX)
+				if (parent->mDependenceIndex != SIMPLE_SYNC_INDEX)
 				{
-					CHECK(context.mParent->mInstruction == nullptr);
-					context.setYeildReturn();
-					executeContextInternal(*context.mParent);
-					mIndexCompleted.push_back(mExecutions.findIndex(&context));
-				}
-				else
-				{
-					auto& flow = mDependencyFlows[context.mParent->mDependenceIndex];
+					auto& flow = mDependencyFlows[parent->mDependenceIndex];
+					flow.executionLastCompleted = &context;
+					flow.executions.removeSwap(&context);
 					if (flow.mode == DependencyFlow::eSync)
 					{
-						flow.executions.remove(&context);
 						if (!flow.executions.empty())
 						{
-							mIndexCompleted.push_back(mExecutions.findIndex(&context));
-							return bKeep;
+							for (auto exec : flow.executions)
+							{
+								int index = getExecutionOrderIndex(exec);
+								if (index != INDEX_NONE)
+								{
+									return false;
+								}
+							}
 						}
 					}
-
-					CHECK(context.mParent->mInstruction == nullptr);
-					context.mParent->setYeildReturn();
-					executeContextInternal(*context.mParent);
-
-					if (flow.mode == DependencyFlow::eRace)
+					else if (flow.mode == DependencyFlow::eRace)
 					{
 						for (auto exec : flow.executions)
 						{
 							int index = getExecutionOrderIndex(exec);
 							if (index != INDEX_NONE)
 							{
-								mIndexCompleted.push_back(index);
+#if CO_USE_DEPENDENT_REFCOUNT
+								exec->mDependentRefCount -= 1;
+								if (exec->mDependentRefCount <= 0)
+								{
+#endif
+									if (exec->mAbandonFunc)
+									{
+										exec->mAbandonFunc();
+									}
+									destroyExecution(index);
+#if CO_USE_DEPENDENT_REFCOUNT
+								}
+#endif
 							}
 						}
-						std::sort(mIndexCompleted.begin(), mIndexCompleted.end(), std::less());
 					}
-					removeDependencyFlow(context.mParent->mDependenceIndex);
-				}			
-			}
-			else
-			{
-				mIndexCompleted.push_back(mExecutions.findIndex(&context));
+				}
+
+				CHECK(parent->mInstruction == nullptr);
+				parent->setYeildReturn();
+				executeContextInternal(*parent);
 			}
 		}
 
@@ -245,6 +313,7 @@ namespace Coroutines
 		CHECK(mExecutingContext == nullptr);
 		for (auto execution : mExecutions)
 		{
+			execution->destroy();
 			delete execution;
 		}
 		mExecutions.clear();
@@ -267,7 +336,8 @@ namespace Coroutines
 		int index = getExecutionOrderIndex(handle);
 		if (index != INDEX_NONE)
 		{
-			mIndexCompleted.push_back(index);
+			destroyExecution(index);
+
 			if (handle.getPointer() == mExecutingContext)
 			{
 				mExecutingContext->doYeild();
@@ -283,20 +353,25 @@ namespace Coroutines
 
 	void ThreadContext::stopAllExecutions(HashString tag)
 	{
-		bool bStop = false;
+		int indexStop = INDEX_NONE;
 		for (int index = 0; index < mExecutions.size(); ++index)
 		{
 			auto exec = mExecutions[index];
 			if (exec->tag == tag)
 			{
-				mIndexCompleted.push_back(index);
+				if (exec == mExecutingContext)
+					indexStop = index;
+				else
+				{
+					destroyExecution(index);
+				}
 			}
-			if (exec == mExecutingContext)
-				bStop = true;
 		}
-		if (bStop)
+
+		if (indexStop != INDEX_NONE)
 		{
 			mExecutingContext->doYeild();
+			destroyExecution(indexStop);
 		}
 		else if (mExecutingContext == nullptr)
 		{
@@ -311,13 +386,14 @@ namespace Coroutines
 			auto exec = mExecutions[index];
 			if (exec->tag == tag)
 			{
-				mIndexCompleted.push_back(index);
 				if (exec == mExecutingContext)
 				{
 					mExecutingContext->doYeild();
+					destroyExecution(index);
 				}
 				else if (mExecutingContext == nullptr)
 				{
+					destroyExecution(index);
 					cleanupCompletedExecutions();
 				}
 				return;
@@ -347,7 +423,7 @@ namespace Coroutines
 		bool bKeep = resumeExecutionInternal(context);
 		if (!bKeep)
 		{
-			handle = ExecutionHandle::Completed(handle.getPointer());
+			handle = ExecutionHandle::Completed(context);
 		}
 		return bKeep;
 	}
@@ -369,11 +445,23 @@ namespace Coroutines
 
 	bool ThreadContext::resumeExecutionInternal(ExecutionContext* context)
 	{
-		CHECK(context->mDependenceIndex == SLEEPING_SYNC_INDEX);
-		context->mDependenceIndex = INDEX_NONE;
+		CHECK(context->mDependenceIndex == INDEX_NONE);
 		bool bKeep = executeContextInternal(*context);
 		cleanupCompletedExecutions();
 		return bKeep;
+	}
+
+	void ThreadContext::destoryCompletedExecutions()
+	{
+		if (mIndexCompleted.empty())
+			return;
+
+		for (int i = mIndexCompleted.size() - 1; i >= 0; --i)
+		{
+			int index = mIndexCompleted[i];
+			delete mExecutions[index];
+			mExecutions[index] = nullptr;
+		}
 	}
 
 	void ThreadContext::cleanupCompletedExecutions()
@@ -381,6 +469,12 @@ namespace Coroutines
 		CHECK(bUseExecutions == false);
 		if (mIndexCompleted.empty())
 			return;
+
+#if 0
+		if (mIndexCompleted.size() > 1)
+		{
+			std::sort(mIndexCompleted.begin(), mIndexCompleted.end(), std::less());
+		}
 
 		int indexCheck = 0;
 		int indexMove = 0;
@@ -391,7 +485,6 @@ namespace Coroutines
 			if (index == mIndexCompleted[indexCheck])
 			{
 				delete mExecutions[index];
-
 				++indexCheck;
 				if (indexCheck == mIndexCompleted.size())
 				{
@@ -427,6 +520,19 @@ namespace Coroutines
 #endif
 		}
 		mExecutions.resize(indexMove);
+
+#else
+		if (mIndexCompleted.size() > 1)
+		{
+			std::sort(mIndexCompleted.begin(), mIndexCompleted.end(), std::greater());
+		}
+
+		for (auto index : mIndexCompleted)
+		{
+			delete mExecutions[index];
+			mExecutions.removeIndexSwap(index);
+		}
+#endif
 		mIndexCompleted.clear();
 	}
 
@@ -450,6 +556,7 @@ namespace Coroutines
 		DependencyFlow& flow = mDependencyFlows[index];
 		flow.executions.clear();
 		flow.linkIndex = mIndexFreeFlow;
+		flow.executionLastCompleted = nullptr;
 		mIndexFreeFlow = index;
 	}
 

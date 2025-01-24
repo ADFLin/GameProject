@@ -203,6 +203,7 @@ namespace Render
 	{
 		enum EType
 		{
+			Point,
 			Rect,
 			Circle,
 			Polygon,
@@ -300,6 +301,13 @@ namespace Render
 		struct ShapePayload
 		{
 			ShapePaintArgs paintArgs;
+		};
+
+		struct PointPayload
+		{
+			Vector2    pos;
+			float      size;
+			Color4Type color;
 		};
 
 		struct CirclePayload : ShapePayload
@@ -405,7 +413,7 @@ namespace Render
 		{
 			return static_cast<TRenderBatchedElement<TPayload>*> (ptr)->payload;
 		}
-
+		RenderBatchedElement& addPoint(Vector2 const& pos, Color4Type const& color, float size = 0);
 		RenderBatchedElement& addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max);
 		RenderBatchedElement& addRoundRect(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius);
 

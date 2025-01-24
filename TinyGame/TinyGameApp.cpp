@@ -423,9 +423,153 @@ public:
 	}
 };
 
-static GameLogPrinter gLogPrinter;
-static GameConfigAsset gGameConfigAsset;
-static TinyGameApp* GApp;
+
+class RenderExecuteContext
+{
+
+};
+class RenderCommand
+{
+public:
+	virtual void execute(RenderExecuteContext& context){}
+};
+
+
+class RenderCommand_FlushCommands : public RenderCommand
+{
+public:
+	bool wait(double time)
+	{
+		mEvent.wait(time);
+	}
+	void wait()
+	{
+		mEvent.wait();
+	}
+
+	virtual void execute(RenderExecuteContext& context)
+	{
+		mEvent.fire();
+	}
+
+	ThreadEvent mEvent;
+};
+
+template < typename TFunc >
+class TFuncRenderCommand : public RenderCommand
+{
+public:
+	TFuncRenderCommand(TFunc&& func)
+		:mFunc(func)
+	{
+
+	}
+
+	virtual void execute(RenderExecuteContext& context)
+	{
+		mFunc();
+	}
+
+	TFunc mFunc;
+};
+
+uint32 GRenderThreadId = 0;
+
+class RenderThread : public RunnableThreadT<RenderThread>
+{
+public:
+	Mutex mCommandMutex;
+	TCycleQueue< RenderCommand* > mCommandList;
+
+	void add(RenderCommand* commnad)
+	{
+		Mutex::Locker lock(mCommandMutex);
+		mCommandList.push_back(commnad);
+	}
+
+	static RenderThread* StaticInstance;
+
+	bool bRunning = true;
+	unsigned run() 
+	{ 
+		GRenderThreadId = PlatformThread::GetCurrentThreadId();
+		PlatformThread::SetThreadName(GRenderThreadId, "RenderThread");
+		ProfileSystem::Get().setThreadName(GRenderThreadId, "RenderThread");
+
+		RenderExecuteContext context;
+		while (bRunning)
+		{
+			RenderCommand* command = nullptr;
+			{
+				Mutex::Locker lock(mCommandMutex);
+
+				if (!mCommandList.empty())
+				{
+					command = mCommandList.front();
+					mCommandList.pop_front();
+				}
+			}
+			if (command)
+			{
+				command->execute(context);
+			}
+			else
+			{
+				SystemPlatform::Sleep(0);
+			}
+		}
+
+		return 0; 
+	}
+	void exit() 
+	{
+		GRenderThreadId = 0;
+	}
+
+	static void Initialzie()
+	{
+		StaticInstance = new RenderThread;
+		StaticInstance->start();
+	}
+
+	static void Finalize()
+	{
+		CHECK(StaticInstance);
+
+		FlushCommands();
+		StaticInstance->bRunning = false;
+		StaticInstance->join();
+
+		delete StaticInstance;
+		StaticInstance = nullptr;
+	}
+
+	template< typename TCommand , typename ...TArgs >
+	static TCommand* AllocCommand(TArgs&& ...args)
+	{
+		TCommand* command = new TCommand(std::forward<TArgs>(args)...);
+		StaticInstance->add(command);
+		return command;
+	}
+	
+	template < typename TFunc >
+	static void AddCommand(char const* name, TFunc&& func)
+	{
+		AllocCommand<TFuncRenderCommand<TFunc>(std::forward<TFunc>(func));
+	}
+
+	static void FlushCommands()
+	{
+		auto command = AllocCommand<RenderCommand_FlushCommands>();
+		command->wait();
+	}
+};
+
+RenderThread* RenderThread::StaticInstance = nullptr;
+
+static GameLogPrinter   GLogPrinter;
+static GameConfigAsset  GGameConfigAsset;
+static TinyGameApp*     GApp;
 
 TinyGameApp::TinyGameApp()
 	:mRenderEffect( nullptr )
@@ -435,7 +579,7 @@ TinyGameApp::TinyGameApp()
 	mShowErrorMsg = false;
 
 	GGameNetInterfaceImpl = this;
-	GDebugInterfaceImpl = &gLogPrinter;
+	GDebugInterfaceImpl = &GLogPrinter;
 	GApp = this;
 }
 
@@ -589,7 +733,7 @@ bool TinyGameApp::initializeGame()
 	DateTime appStartTime = SystemPlatform::GetLocalTime();
 
 	CreateConsole();
-	gLogPrinter.addDefaultChannels();
+	GLogPrinter.addDefaultChannels();
 	{
 		EDayOfWeek dayOfWeek = appStartTime.getDayOfWeek();
 		int year = appStartTime.getYear();
@@ -691,7 +835,7 @@ bool TinyGameApp::initializeGame()
 		GameLoop::setUpdateTime(gDefaultTickTime);
 
 		::Global::GetAssetManager().init();
-		::Global::GetAssetManager().registerViewer(&gGameConfigAsset);
+		::Global::GetAssetManager().registerViewer(&GGameConfigAsset);
 
 		Render::ShaderManager::Get().setAssetViewerRegister(&Global::GetAssetManager());
 
@@ -754,6 +898,8 @@ bool TinyGameApp::initializeGame()
 		}
 
 		mFPSCalc.init(mClock.getTimeMilliseconds());
+
+		RenderThread::Initialzie();
 	}
 
 	::ProfileSystem::Get().resetSample();
@@ -762,11 +908,8 @@ bool TinyGameApp::initializeGame()
 
 void TinyGameApp::finalizeGame()
 {
-	cleanup();
-}
+	RenderThread::Finalize();
 
-void TinyGameApp::cleanup()
-{
 #if TINY_WITH_EDITOR
 	finalizeEditor();
 #endif
@@ -812,7 +955,10 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 	ProfileSystem::Get().incrementFrameCount();
 
-	Tickable::Update(float(shouldTime) / 1000.0);
+	long updateTime = shouldTime;
+	float deltaTime = float(updateTime) / 1000.0;
+
+	Tickable::Update(deltaTime);
 
 #if TINY_WITH_EDITOR
 	if (mEditor)
@@ -822,52 +968,47 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 	}
 #endif
 
-	int  numFrame = shouldTime / getUpdateTime();
-	long updateTime = numFrame * getUpdateTime();
-
 	::Global::GetAssetManager().tick(updateTime);
 
 	::Global::GetDrawEngine().update(updateTime);
 
-	for (int i = 0; i < numFrame; ++i)
+	if (mStageMode && mStageMode->getStage() == nullptr)
 	{
-		if (mStageMode && mStageMode->getStage() == nullptr)
-		{
-			delete mStageMode;
-			mStageMode = nullptr;
-		}
-		checkNewStage();
+		delete mStageMode;
+		mStageMode = nullptr;
+	}
+	checkNewStage();
 
-		if (mNetWorker)
-		{
-			mNetWorker->update(getUpdateTime());
-		}
-
-		{
-			PROFILE_ENTRY("Task Update");
-			runTask(getUpdateTime());
-		}
-
-		{
-			PROFILE_ENTRY("Stage Update");
-			GameTimeSpan deltaTime;
-			deltaTime.value = CVarTimeDilation * getUpdateTime() / 1000.0f;
-			getCurStage()->update(deltaTime);
-		}
-		{
-			PROFILE_ENTRY("GUI Update");
-			::Global::GUI().update();
-		}
-
-
-		IGameModule* game = Global::ModuleManager().getRunningGame();
-		if (game)
-		{
-			game->getInputControl().clearFrameInput();
-		}
+	if (mNetWorker)
+	{
+		mNetWorker->update(updateTime);
 	}
 
-	gLogPrinter.update(updateTime);
+	{
+		PROFILE_ENTRY("Task Update");
+		runTask(updateTime);
+	}
+
+	{
+		PROFILE_ENTRY("Stage Update");
+		GameTimeSpan deltaTime;
+		deltaTime.value = CVarTimeDilation * updateTime / 1000.0f;
+		getCurStage()->update(deltaTime);
+	}
+
+	{
+		PROFILE_ENTRY("GUI Update");
+		::Global::GUI().update();
+	}
+
+
+	IGameModule* game = Global::ModuleManager().getRunningGame();
+	if (game)
+	{
+		game->getInputControl().clearFrameInput();
+	}
+
+	GLogPrinter.update(updateTime);
 	return updateTime;
 }
 
@@ -1232,7 +1373,7 @@ void TinyGameApp::render( float dframe )
 
 	if( mConsoleShowMode == ConsoleShowMode::Screen )
 	{
-		gLogPrinter.render(Vec2i(5, 25));
+		GLogPrinter.render(Vec2i(5, 25));
 	}
 
 	{
@@ -1383,7 +1524,6 @@ void TinyGameApp::render( float dframe )
 	drawEngine.endFrame();
 }
 
-///
 void TinyGameApp::importUserProfile()
 {
 	PropertySet& setting = Global::GameConfig();

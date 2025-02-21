@@ -323,10 +323,6 @@ namespace Render
 			serializer << indexDataSize;
 			serializer << bIntType;
 			serializer.write(pIndex, indexDataSize);
-
-			serializer << mInputLayoutDesc;
-			serializer << mSections;
-			return true;
 		}
 		else
 		{
@@ -343,10 +339,10 @@ namespace Render
 
 			uint32 indexDataSize = 0;
 			serializer << indexDataSize;
-
-			serializer << mInputLayoutDesc;
-			serializer << mSections;
 		}
+
+		serializer << mInputLayoutDesc;
+		serializer << mSections;
 		return true;
 	}
 

@@ -1256,6 +1256,11 @@ namespace Render
 				offset == rhs.offset &&
 				stride == rhs.stride;
 		}
+
+		bool operator != (InputStreamInfo const& rhs) const
+		{
+			return !this->operator == (rhs);
+		}
 	};
 
 	static int const MaxSimulationInputStreamSlots = 8;
@@ -1299,7 +1304,7 @@ namespace Render
 			}
 			for (int i = 0; i < inNumInputStream; ++i)
 			{
-				if (!(inputStreams[i] == inInputSteams[i]))
+				if (inputStreams[i] != inInputSteams[i])
 				{
 					inputStreams[i] = inInputSteams[i];
 					bModified = true;
@@ -1337,7 +1342,7 @@ namespace Render
 
 			for (int i = 0; i < inputStreamCount; ++i)
 			{
-				if (!(inputStreams[i] == rhs.inputStreams[i]))
+				if (inputStreams[i] != rhs.inputStreams[i])
 					return false;
 			}
 

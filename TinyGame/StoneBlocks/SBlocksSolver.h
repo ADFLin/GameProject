@@ -57,7 +57,7 @@ namespace SBlocks
 	}
 	FORCEINLINE bool Extract(MapMask& lhs, int& outIndex)
 	{
-		return FBitUtility::IterateMask64<64>(lhs, outIndex);
+		return FBitUtility::IterateMask<64>(lhs, outIndex);
 	}
 	FORCEINLINE bool TestAndSet(MapMask const& test, MapMask& set, int index)
 	{

@@ -259,13 +259,13 @@ public:
 		switch (type)
 		{
 		case ESGValueType::Float1:
-			return InlineString<>::Make("%g", value.x);
+			return InlineString<>::Make("%g", value.x).c_str();
 		case ESGValueType::Float2:
-			return InlineString<>::Make("float2(%g, %g)", value.x, value.y);
+			return InlineString<>::Make("float2(%g, %g)", value.x, value.y).c_str();
 		case ESGValueType::Float3:
-			return InlineString<>::Make("float3(%g, %g, %g)", value.x, value.y, value.z);
+			return InlineString<>::Make("float3(%g, %g, %g)", value.x, value.y, value.z).c_str();
 		case ESGValueType::Float4:
-			return InlineString<>::Make("float4(%g, %g, %g, %g)", value.x, value.y, value.z, value.w);
+			return InlineString<>::Make("float4(%g, %g, %g, %g)", value.x, value.y, value.z, value.w).c_str();
 		}
 		return "Unknown Const Value";
 	}
@@ -455,7 +455,7 @@ public:
 
 	std::string getTitle() override
 	{
-		return InlineString<>::Make("Texcoord[%d]", index);
+		return InlineString<>::Make("Texcoord[%d]", index).c_str();
 	}
 
 	virtual SGNode* copy() override

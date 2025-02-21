@@ -45,6 +45,27 @@ namespace Render
 #undef D3D11_SHADER_TRAITS
 
 #define RESULT_FAILED( hr ) ( hr ) != S_OK
+
+	template< int MaskCount, typename TFunc>
+	void UpdateDirtyState(uint32 mask, TFunc&& func)
+	{
+		CHECK(mask);
+#if 1
+		int index;
+		int count;
+		while (FBitUtility::IterateMaskRange< MaskCount >(mask, index, count))
+		{
+			func(index, count);
+		}
+#else
+		int index;
+		while (FBitUtility::IterateMask< MaskCount >(mask, index))
+		{
+			func(index, 1);
+		}
+#endif
+	}
+
 	class D3D11ProfileCore : public RHIProfileCore
 	{
 	public:
@@ -1354,13 +1375,11 @@ namespace Render
 
 		if( mConstBufferDirtyMask )
 		{
-			uint32 mask = mConstBufferDirtyMask;
-			mConstBufferDirtyMask = 0;
-			int index;
-			while (FBitUtility::IterateMask< MaxSimulatedBoundedBufferNum >(mask, index))
+			UpdateDirtyState<MaxSimulatedBoundedBufferNum>(mConstBufferDirtyMask, [this, context](int index, int count)
 			{
-				D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, 1, mBoundedConstBuffers + index);
-			}
+				D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, count, mBoundedConstBuffers + index);
+			});
+			mConstBufferDirtyMask = 0;
 		}
 
 		commitSAVState<TypeValue>(context);
@@ -1373,13 +1392,11 @@ namespace Render
 
 		if( mSamplerDirtyMask )
 		{
-			uint32 mask = mSamplerDirtyMask;
-			mSamplerDirtyMask = 0;
-			int index;
-			while (FBitUtility::IterateMask< MaxSimulatedBoundedSamplerNum >(mask, index))
+			UpdateDirtyState<MaxSimulatedBoundedSamplerNum>(mSamplerDirtyMask, [this, context](int index, int count)
 			{
-				D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, 1, mBoundedSamplers + index);
-			}
+				D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, count, mBoundedSamplers + index);
+			});
+			mSamplerDirtyMask = 0;
 		}
 	}
 
@@ -1440,13 +1457,10 @@ namespace Render
 	{
 		if (mSRVDirtyMask)
 		{
-			uint32 mask = mSRVDirtyMask;
-			mSRVDirtyMask = 0;
-			int index;
-			while ( FBitUtility::IterateMask< MaxSimulatedBoundedSRVNum >(mask, index) )
+			UpdateDirtyState< MaxSimulatedBoundedSRVNum >(mSRVDirtyMask, [this, context](int index, int count)
 			{
-				D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, 1, mBoundedSRVs + index);
-			}
+				D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, count, mBoundedSRVs + index);
+			});
 		}
 	}
 
@@ -1454,13 +1468,11 @@ namespace Render
 	{
 		if (mUAVDirtyMask)
 		{
-			uint32 mask = mUAVDirtyMask;
-			mUAVDirtyMask = 0;
-			int index;
-			while ( FBitUtility::IterateMask< MaxSimulatedBoundedSRVNum >(mask, index) )
+			UpdateDirtyState< MaxSimulatedBoundedSRVNum >(mUAVDirtyMask, [this, context](int index, int count)
 			{
-				context->CSSetUnorderedAccessViews(index, 1, mBoundedUAVs + index, nullptr);
-			}
+				context->CSSetUnorderedAccessViews(index, count, mBoundedUAVs + index, nullptr);
+			});
+			mUAVDirtyMask = 0;
 		}
 	}
 

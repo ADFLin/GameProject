@@ -72,25 +72,35 @@ public:
 #endif
 
 
-	template< unsigned NumBits >
-	static bool IterateMask(unsigned& mask, int& index)
+	template< unsigned NumBits , typename MaskType >
+	static bool IterateMask(MaskType& mask, int& index)
 	{
 		if (mask == 0)
 			return false;
-		unsigned bit = FBitUtility::ExtractTrailingBit(mask);
+		MaskType bit = FBitUtility::ExtractTrailingBit(mask);
 		index = FBitUtility::ToIndex< NumBits >(bit);
 		mask &= ~bit;
 		return true;
 	}
 
-	template< unsigned NumBits >
-	static bool IterateMask64(uint64& mask, int& index)
+	template< unsigned NumBits, typename MaskType >
+	static bool IterateMaskRange(MaskType& mask, int& index, int& count)
 	{
 		if (mask == 0)
 			return false;
-		uint64 bit = FBitUtility::ExtractTrailingBit(mask);
+		MaskType bit = FBitUtility::ExtractTrailingBit(mask);
 		index = FBitUtility::ToIndex< NumBits >(bit);
 		mask &= ~bit;
+		count = 1;
+		for (;;)
+		{
+			bit <<= 1;
+			if (!(mask & bit))
+				break;
+
+			mask &= ~bit;
+			count += 1;
+		}
 		return true;
 	}
 };

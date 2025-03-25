@@ -7,11 +7,11 @@
 #include "PlatformThread.h"
 #include "FastDelegate/FastDelegate.h"
 
-#include <map>
+#include "GameConfig.h"
+
+#include <unordered_map>
 #include <list>
 #include <cassert>
-
-#include "GameConfig.h"
 
 class SocketBuffer;
 typedef uint32 ComID;
@@ -102,8 +102,8 @@ public:
 	TINY_API ComEvaluator();
 	TINY_API ~ComEvaluator();
 
-	TINY_API static unsigned WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
-	TINY_API static bool     ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
+	TINY_API static uint32 WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
+	TINY_API static bool   ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
 
 	template< class GamePacketT , class T , class TFunc >
 	bool setWorkerFunc( T* processer, TFunc func, TFunc funcSocket );
@@ -147,7 +147,7 @@ private:
 	ICPFactory* addFactory();
 	TINY_API ICPFactory* findFactory( ComID com );
 
-	typedef std::map< ComID , ICPFactory* > CPFactoryMap;
+	typedef std::unordered_map< ComID , ICPFactory* > CPFactoryMap;
 	struct UserCom 
 	{
 		ICPFactory* factory;

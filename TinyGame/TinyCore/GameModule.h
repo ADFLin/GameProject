@@ -65,6 +65,8 @@ struct GameEvent
 
 };
 
+class IFameStateContainer;
+
 class IGameInstance
 {
 public:
@@ -86,7 +88,7 @@ public:
 	virtual void notifyStagePreExit(StageBase* stage){}
 
 	virtual IGameInstance*        createInstance() { return nullptr; }
-
+	virtual IFameStateContainer*  createFrameStateCOntainer(){ return nullptr; }
 
 	virtual void startupModule() override;
 	virtual void shutdownModule() override;

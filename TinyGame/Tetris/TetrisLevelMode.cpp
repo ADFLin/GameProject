@@ -133,12 +133,12 @@ namespace Tetris
 		if ( !lvData )
 			return INDEX_NONE;
 
-		Record record;
 		NormalModeData* modeData = static_cast< ChallengeModeData* >( lvData->getModeData() );
+		
+		Record record;
 		record.level   = modeData->gravityLevel;
 		record.score   = modeData->score;
 		record.duration = lvData->getLevel()->getTimeDuration();
-
 		strcpy_s( record.name , "???" );
 
 		return manager.addRecord( record );

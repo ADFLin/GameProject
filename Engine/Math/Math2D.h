@@ -24,6 +24,12 @@ namespace Math
 			c = dir.x;
 			s = dir.y;
 		}
+		void     setYDir(Vector2 const& dir)
+		{
+			CHECK(dir.isNormalized());
+			c = dir.y;
+			s = -dir.x;
+		}
 		Vector2  getXDir() const { return Vector2(c, s); }
 		Vector2  getYDir() const { return Vector2(-s, c); }
 		void     setAngle(float angle) { Math::SinCos(angle, s, c); }

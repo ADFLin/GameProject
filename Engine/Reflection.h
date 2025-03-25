@@ -515,7 +515,7 @@ namespace Reflection
 		template< typename T >
 		static auto Requires(T&) -> decltype
 		(
-			T::CollectReflection(PropertyCollector())
+			REF_COLLECT_TYPE(T, PropertyCollector())
 		);
 	};
 	struct CEnumValueAvailable

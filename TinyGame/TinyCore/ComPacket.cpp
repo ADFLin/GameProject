@@ -114,10 +114,10 @@ ComEvaluator::ICPFactory* ComEvaluator::findFactory( ComID com )
 	return NULL;
 }
 
-unsigned ComEvaluator::WriteBuffer( SocketBuffer& buffer , IComPacket* cp )
+uint32 ComEvaluator::WriteBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
 	size_t oldSize = buffer.getFillSize();	
-	unsigned size = 0;
+	uint32 size = 0;
 	try
 	{
 		buffer.fill( cp->mId );
@@ -141,7 +141,7 @@ unsigned ComEvaluator::WriteBuffer( SocketBuffer& buffer , IComPacket* cp )
 
 bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
-	unsigned takeSize;
+	uint32 takeSize;
 	buffer.take( takeSize );
 
 	takeSize -= ComPacketHeaderSize;
@@ -152,10 +152,10 @@ bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
 		return false;
 	}
 
-	unsigned oldSize = (unsigned)buffer.getAvailableSize();
+	uint32 oldSize = (uint32)buffer.getAvailableSize();
 	cp->readBuffer( buffer );
 
-	if ( takeSize != oldSize - buffer.getAvailableSize() )
+	if ( takeSize != oldSize - (uint32)buffer.getAvailableSize() )
 		throw ComException( "Error packet format" );
 
 	return true;

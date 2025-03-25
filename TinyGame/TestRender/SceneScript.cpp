@@ -24,7 +24,7 @@ namespace Render
 		template< class T >
 		void collect()
 		{
-			T::CollectReflection(*this);
+			REF_COLLECT_TYPE(T, *this);
 		}
 
 		template< class T >

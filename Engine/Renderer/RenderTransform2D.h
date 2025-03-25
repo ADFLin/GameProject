@@ -3,8 +3,7 @@
 #define RenderTransform2D_H_F3F42C19_2E67_4C07_A6AD_15FC522AD4F0
 
 #include "MarcoCommon.h"
-#include "Math/Matrix2.h"
-#include "Math/Vector2.h"
+#include "Math/Math2D.h"
 #include "Math/Matrix4.h"
 #include "TransformPushScope.h"
 
@@ -28,13 +27,19 @@ namespace Render
 		{
 		}
 
-		RenderTransform2D(float angle, Vector2 const& inOffset = Vector2::Zero())
+		explicit RenderTransform2D(Math::Rotation2D const& rotation, Vector2 const& inOffset = Vector2::Zero())
+			:M(rotation.toMatrix())
+			,P(inOffset)
+		{
+		}
+
+		explicit RenderTransform2D(float angle, Vector2 const& inOffset = Vector2::Zero())
 			:M(Matrix2::Rotate(angle))
 			, P(inOffset)
 		{
 		}
 
-		RenderTransform2D(Vector2 const& scale, Vector2 const& inOffset = Vector2::Zero())
+		explicit RenderTransform2D(Vector2 const& scale, Vector2 const& inOffset = Vector2::Zero())
 			:M(Matrix2::Scale(scale))
 			, P(inOffset)
 		{
@@ -54,27 +59,27 @@ namespace Render
 
 		void setPos(Vector2 const& pos) { P = pos; }
 
-		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
-		static RenderTransform2D Scale(float scale)
+		FORCEINLINE static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
+		FORCEINLINE static RenderTransform2D Scale(float scale)
 		{
 			return RenderTransform2D(Vector2(scale,scale));
 		}
-		static RenderTransform2D Scale(Vector2 const& scale)
+		FORCEINLINE static RenderTransform2D Scale(Vector2 const& scale)
 		{
 			return RenderTransform2D(scale);
 		}
-		static RenderTransform2D TranslateThenScale(Vector2 const& offset, Vector2 const& scale)
+		FORCEINLINE static RenderTransform2D TranslateThenScale(Vector2 const& offset, Vector2 const& scale)
 		{
 			return RenderTransform2D(scale, scale * offset);
 		}
-		static RenderTransform2D TranslateThenRotate(Vector2 const& offset, float angle)
+		FORCEINLINE static RenderTransform2D TranslateThenRotate(Vector2 const& offset, float angle)
 		{
 			RenderTransform2D result;
 			result.M = Matrix2::Rotate(angle);
 			result.P = offset * result.M;
 			return result;
 		}
-		static RenderTransform2D Transform(Vector2 const& pos, Vector2 const& dir)
+		FORCEINLINE static RenderTransform2D Transform(Vector2 const& pos, Vector2 const& dir)
 		{
 			RenderTransform2D result;
 			result.P = pos;
@@ -84,7 +89,7 @@ namespace Render
 			return result;
 		}
 
-		static RenderTransform2D Translate(Vector2 const& pos)
+		FORCEINLINE static RenderTransform2D Translate(Vector2 const& pos)
 		{
 			RenderTransform2D result;
 			result.M = Matrix2::Identity();
@@ -92,7 +97,7 @@ namespace Render
 			return  result;
 		}
 
-		static RenderTransform2D Translate(float x, float y)
+		FORCEINLINE static RenderTransform2D Translate(float x, float y)
 		{
 			RenderTransform2D result;
 			result.M = Matrix2::Identity();
@@ -100,25 +105,24 @@ namespace Render
 			return  result;
 		}
 
-		static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, float theta, float zoom, bool bFlipX = false)
+		FORCEINLINE static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Math::Rotation2D const& rotation, float zoom, bool bFlipX = false)
 		{
-			if (bFlipX)
-				return TranslateThenScale(-lookPos, Vector2(-zoom, zoom)) * RenderTransform2D(theta, 0.5 * screenSize);
-			else
-				return TranslateThenScale(-lookPos, Vector2(zoom, zoom)) * RenderTransform2D(theta, 0.5 * screenSize);
+			return TranslateThenScale(-lookPos, bFlipX ? Vector2(-zoom, zoom) : Vector2(zoom, zoom)) * RenderTransform2D(rotation, 0.5 * screenSize);
 		}
 
-		static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float zoom, bool bFlipX = false)
+		FORCEINLINE static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, float theta, float zoom, bool bFlipX = false)
 		{
-			Vector2 const screenUpDir = Vector2(0, -1);
-			float theta = Math::ACos(screenUpDir.dot(upDir));
-			if (screenUpDir.cross(upDir) < 0)
-				theta = -theta;
-
-			return LookAt(screenSize, lookPos, theta, zoom, bFlipX);
+			return LookAt(screenSize, lookPos, Math::Rotation2D::Angle(theta), zoom, bFlipX);
 		}
 
-		static RenderTransform2D Sprite(Vector2 const& pos, Vector2 const& pivotOffset, float rotation)
+		FORCEINLINE static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float zoom, bool bFlipX = false)
+		{
+			Math::Rotation2D rotation;
+			rotation.setYDir(upDir);
+			return LookAt(screenSize, lookPos, rotation, zoom, bFlipX);
+		}
+
+		FORCEINLINE static RenderTransform2D Sprite(Vector2 const& pos, Vector2 const& pivotOffset, float rotation)
 		{
 			RenderTransform2D result;
 			result.M = Matrix2::Rotate(rotation);

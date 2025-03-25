@@ -7,6 +7,17 @@ class ActionProcessor;
 class IPlayerManager;
 class IGameModule;
 
+
+using FrameStateHandle = int;
+class IFameStateContainer
+{
+public:
+	virtual FrameStateHandle allocState() = 0;
+	virtual void* getState(FrameStateHandle handle) = 0;
+	virtual void  freeState(FrameStateHandle handle) = 0;
+};
+
+
 class IFrameUpdater
 {
 public:

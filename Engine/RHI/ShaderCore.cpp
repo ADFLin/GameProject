@@ -48,7 +48,7 @@ namespace Render
 		{
 			auto& param = mMap[pair.first];
 
-			if (param.mLoc == -1)
+			if (param.mLoc == INDEX_NONE)
 			{
 				param.mLoc = mParamEntryMap.size();
 #if SHADER_DEBUG

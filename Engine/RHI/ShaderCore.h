@@ -208,7 +208,7 @@ namespace Render
 	public:
 		ShaderParameter()
 		{
-			mLoc = -1;
+			mLoc = INDEX_NONE;
 		}
 
 		ShaderParameter(int loc)

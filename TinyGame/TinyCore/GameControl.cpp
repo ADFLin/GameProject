@@ -27,7 +27,7 @@ void ActionProcessor::scanControl( unsigned flag /*= 0 */ )
 
 void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 {
-	bool bUpdateFrame = ( flag & CTF_FREEZE_FRAME ) == 0;
+	bool bUpdateFrame = !!( flag & CTF_FREEZE_FRAME );
 
 	visitListener([&](IActionListener* listener)
 	{
@@ -44,7 +44,7 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 
 	ActionTrigger trigger;
 	trigger.mParam.bUpdateFrame = bUpdateFrame;
-	trigger.mbAcceptFireAction = (flag & CTF_BLOCK_ACTION) == 0;
+	trigger.mbAcceptFireAction = !(flag & CTF_BLOCK_ACTION);
 	trigger.mProcessor = this;
 	trigger.mParam.port = ERROR_ACTION_PORT;
 	lanucher.fireAction( trigger );

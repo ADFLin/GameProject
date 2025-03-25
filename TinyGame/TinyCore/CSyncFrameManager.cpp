@@ -64,13 +64,11 @@ void FrameDataManager::beginFrame()
 
 void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 {
-	for( FrameDataVec::iterator iter = mProcessData.begin();
-		iter != mProcessData.end() ; ++iter )
+	for (auto& frameData : mProcessData)
 	{
-		auto& buffer = *iter->iter;
-		auto dataSteam = CreateSerializer(*(iter->iter));
+		auto& buffer = *frameData.iter;
+		auto dataSteam = CreateSerializer(buffer);
 		actionTemp->restoreFrameData( dataSteam , buffer.getAvailableSize() != 0);
-
 	}
 
 	actionTemp->debugMessage(mCurFrame);
@@ -78,10 +76,9 @@ void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 
 void FrameDataManager::endFrame()
 {
-	for( FrameDataVec::iterator iter = mProcessData.begin();
-		iter != mProcessData.end() ; ++iter )
+	for( auto& frameData : mProcessData)
 	{
-		mDataList.erase( iter->iter );
+		mDataList.erase(frameData.iter);
 	}
 	mProcessData.clear();
 }

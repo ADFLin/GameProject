@@ -11,6 +11,7 @@
 
 #define CHAISCRIPT_NO_THREADS
 #include "chaiscript/chaiscript.hpp"
+#include "Async/AsyncWork.h"
 
 
 namespace Chai = chaiscript;
@@ -77,6 +78,7 @@ namespace ParticleLife
 		ModuleType& module;
 	};
 
+#define USE_PARALLEL_UPDATE 1
 	class TestStage : public StageBase
 	                , public IGameRenderSetup
 	{
@@ -84,16 +86,36 @@ namespace ParticleLife
 	public:
 		TestStage() {}
 
+
+#if USE_PARALLEL_UPDATE
+		std::unique_ptr< QueueThreadPool > mUpdateThreadPool;
+#endif
+
+
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
 				return false;
 			::Global::GUI().cleanupWidget();
 
+#if USE_PARALLEL_UPDATE
+			int numThread = SystemPlatform::GetProcessorNumber();
+			mUpdateThreadPool = std::make_unique<QueueThreadPool>();
+			mUpdateThreadPool->init(numThread);
+#endif
+
+
 			mInteractMap.resize(ParticleTypeMaxCount * ParticleTypeMaxCount);
+
+
+			srand(1231);
+
 			restart();
 			return true;
 		}
+
+
+		
 
 		void postLoadScene()
 		{
@@ -103,6 +125,7 @@ namespace ParticleLife
 		}
 
 		Settings mSettings;
+		float    mMaxForceDistSquare;
 		RenderTransform2D mWorldToScreen;
 		RenderTransform2D mScreenToWorld;
 
@@ -130,20 +153,72 @@ namespace ParticleLife
 		{
 			return mInteractMap[i * ParticleTypeMaxCount + j].factor;
 		}
+		float getRadius(int i, int j)
+		{
+			return mInteractMap[i * ParticleTypeMaxCount + j].radius;
+		}
 
 		void interact(Paricle& p1, Paricle& p2)
 		{
-			Vector2 offset = p2.pos - p1.pos;
+			Vector2 offset = getConnectedOffst(p2.pos, p1.pos);
+			float radius = getRadius(p1.type, p2.type);
 			float distSquare = offset.length2();
+
 			float force = distSquare > 1e-4 ? 1.0 / distSquare : 0.0;
-			p1.force -= (force * getFactor(p1.type, p2.type)) * offset;
-			p2.force += (force * getFactor(p2.type, p1.type)) * offset;
+			if (distSquare < radius * radius)
+			{
+				p1.force -= (force * getFactor(p1.type, p2.type)) * offset;
+			}
+			radius = getRadius(p2.type, p1.type);
+			if (distSquare < radius * radius)
+			{
+				p2.force += (force * getFactor(p2.type, p1.type)) * offset;
+			}
+		}
+
+
+		void interactPart(Paricle& p1, Paricle& p2)
+		{
+			Vector2 offset = getConnectedOffst(p1.pos, p2.pos);
+			float radius = getRadius(p1.type, p2.type);
+			float distSquare = offset.length2();
+			if (distSquare > radius * radius)
+				return;
+
+			float force = distSquare > 1e-4 ? 1.0 / distSquare : 0.0;
+			p1.force += (force * getFactor(p1.type, p2.type)) * offset;
+		}
+
+		void simulateParallel(int index, int num, float dt)
+		{
+			for (; num; --num, ++index)
+			{
+				auto& pi = mParticles[index];
+				for (int j = 0; j < mParticles.size(); ++j)
+				{
+					auto& pj = mParticles[j];
+					interactPart(pi, pj);
+				}
+			}
 		}
 
 		void simulate(float dt)
 		{
 			PROFILE_ENTRY("Simulate");
-
+#if USE_PARALLEL_UPDATE
+			int numGroup = mUpdateThreadPool->getAllThreadNum();
+			int maxGroupCount = (mParticles.size() + numGroup - 1 ) / numGroup;
+			for (int i = 0; i < numGroup; ++i)
+			{
+				int index = i * maxGroupCount;
+				int num = std::min<int>(maxGroupCount, mParticles.size() - index);
+				mUpdateThreadPool->addFunctionWork([this, index , num, dt]()
+				{
+					simulateParallel(index, num, dt);
+				});
+			}
+			mUpdateThreadPool->waitAllWorkComplete();
+#else
 			for (int i = 0; i < mParticles.size(); ++i)
 			{
 				auto& pi = mParticles[i];
@@ -153,6 +228,8 @@ namespace ParticleLife
 					interact(pi, pj);
 				}
 			}
+#endif
+
 
 			float forceScale = mSettings.forceScale * dt;
 			for (int i = 0; i < mParticles.size(); ++i)
@@ -166,10 +243,33 @@ namespace ParticleLife
 			}
 		}
 
+
+#define USE_WARP_LOCATION 1
+
+		Vector2 getConnectedOffst(Vector2 const& p1, Vector2 const& p2)
+		{
+			Vector2 offset = p2 - p1;
+
+#if USE_WARP_LOCATION
+			Vector2 offsetAbs = offset.abs();
+			Vector2 delta = mSettings.boundSize - offsetAbs;
+			CHECK(delta.x >= 0 && delta.y >= 0);
+			if (delta.x < offsetAbs.x)
+				offset.x = -Math::Sign(offset.x) * delta.x;
+			if (delta.y < offsetAbs.y)
+				offset.y = -Math::Sign(offset.y) * delta.y;
+#endif
+			return offset;
+		}
+
 		void limitBound(Paricle& p)
 		{
+#if USE_WARP_LOCATION
+			WarpPos(p.pos, mSettings.boundSize);
+#else
 			Reflect(p.pos.x, p.vel.x, mSettings.boundSize.x);
 			Reflect(p.pos.y, p.vel.y, mSettings.boundSize.y);
+#endif
 		}
 		static void Reflect(float& x, float& v, float len)
 		{
@@ -260,8 +360,6 @@ namespace ParticleLife
 			{
 				desc.factor = 0.0f;
 			}
-
-
 #if 1
 			loadScene("Test");
 #else

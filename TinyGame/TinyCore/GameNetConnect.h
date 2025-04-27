@@ -104,13 +104,9 @@ public:
 	void          recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr );
 	void          close();
 
-	void          updateSocket(long time);
-	void          updateSocket(long time, NetSelectSet& netSelect);
 protected:
 
 	bool checkConnectStatus( long time );
-	virtual bool  doUpdateSocket(long time) = 0;
-	virtual bool  doUpdateSocket(long time, NetSelectSet& netSelect) = 0;
 	//SocketDetector
 	virtual void onReadable( NetSocket& socket , int len ){ assert(0); }
 	virtual void onSendable( NetSocket& socket ){ assert(0); }
@@ -176,8 +172,8 @@ class UdpConnection : public NetConnection
 public:
 	UdpConnection( int recvSize );
 
-	bool doUpdateSocket(long time){ return mSocket.detectUDP(*this);  }
-	bool doUpdateSocket(long time, NetSelectSet& netSelect) { return mSocket.detectUDP(*this, netSelect); }
+	bool updateSocket(long time){ return mSocket.detectUDP(*this);  }
+	bool updateSocket(long time, NetSelectSet& netSelect) { return mSocket.detectUDP(*this, netSelect); }
 	void onReadable( NetSocket& socket , int len );
 
 protected:
@@ -189,8 +185,8 @@ class TcpConnection : public NetConnection
 public:
 	TcpConnection(){}
 	bool isConnected(){ return mSocket.getState() == SKS_CONNECTED; }
-	bool doUpdateSocket(long time) { return mSocket.detectTCP(*this); }
-	bool doUpdateSocket(long time, NetSelectSet& netSelect) { return mSocket.detectTCP(*this, netSelect); }
+	bool updateSocket(long time) { return mSocket.detectTCP(*this); }
+	bool updateSocket(long time, NetSelectSet& netSelect) { return mSocket.detectTCP(*this, netSelect); }
 	void onExcept( NetSocket& socket ){ resolveExcept(); }
 };
 
@@ -227,15 +223,15 @@ public:
 	UdpClient();
 	void initialize();
 	void setServerAddr( char const* addrName , unsigned port );
-	bool doUpdateSocket( long time)
+	bool updateSocket( long time)
 	{
 		mNetTime = time;
-		return UdpConnection::doUpdateSocket( time );
+		return UdpConnection::updateSocket( time );
 	}
-	bool doUpdateSocket(long time, NetSelectSet& netSelect)
+	bool updateSocket(long time, NetSelectSet& netSelect)
 	{
 		mNetTime = time;
-		return UdpConnection::doUpdateSocket(time, netSelect);
+		return UdpConnection::updateSocket(time, netSelect);
 	}
 
 	void onSendable( NetSocket& socket );
@@ -345,22 +341,26 @@ public:
 	}
 
 	void clear(){ mCount = 0; }
+	void markSystemTime()
+	{
+		mSystemTime = SystemPlatform::GetTickCount();
+	}
 	void markRequest()
 	{
-		mLastRequst = getSystemTime();
+		mLastRequst = mSystemTime;
 	}
 	void markReply()
 	{
 		if ( mCount >= mMaxSampleNum )
 			return;
 
-		mSample[ mCount ] = ( getSystemTime() - mLastRequst ) / 2;
+		mSample[ mCount ] = (mSystemTime - mLastRequst ) / 2;
 		++mCount;
 	}
 
 	int64 getSystemTime()
 	{
-		return SystemPlatform::GetTickCount();
+		return mSystemTime;
 	}
 
 	int    getSampleNum(){ return mCount; }
@@ -373,6 +373,7 @@ public:
 		return total / mCount;
 	}
 
+	int64   mSystemTime;
 	int     mMaxSampleNum;
 	int64   mLastRequst;
 	int     mCount;

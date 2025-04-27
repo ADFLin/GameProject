@@ -154,11 +154,10 @@ namespace Render
 		~D3D11DynamicBuffer() { assert(mBuffers.empty()); }
 
 		
-		bool initialize(TComPtr< ID3D11Device >&  device, uint32 inBindFlags, uint32 initialBufferSizes[], int numInitialBuffer)
+		bool initialize(TComPtr< ID3D11Device >&  device, uint32 inBindFlags,TArrayView< uint32 const > initialBufferSizes)
 		{
 			mBindFlags = inBindFlags;
-			std::sort(initialBufferSizes, initialBufferSizes + numInitialBuffer, [](auto lhs, auto rhs) { return lhs < rhs; });
-			for( int i = 0; i < numInitialBuffer; ++i )
+			for( int i = 0; i < initialBufferSizes.size(); ++i )
 			{
 				uint32 bufferSize = AlignArbitrary(initialBufferSizes[i], D3D11BUFFER_ALIGN);
 				pushNewBuffer(device, bufferSize);
@@ -422,8 +421,8 @@ namespace Render
 
 		uint32                  mGfxBoundedShaderMask = 0;
 		uint32                  mBoundedShaderDirtyMask = 0;
-		D3D11ShaderVariant      mBoundedShaders[EShader::Count];
-		D3D11ResourceBoundState mResourceBoundStates[EShader::Count];
+		D3D11ShaderVariant      mBoundedShaders[EShader::CountSM5];
+		D3D11ResourceBoundState mResourceBoundStates[EShader::CountSM5];
 
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;

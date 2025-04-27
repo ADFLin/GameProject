@@ -19,7 +19,6 @@ static int CountCharReverse(CharT const* str , CharT const* last , CharT c )
 Tokenizer::Tokenizer(char const* str, char const* dropDelims, char const* stopDelims /*= ""*/) 
 	:mPtr(str)
 {
-
 	addDelims(dropDelims, DropMask);
 	addDelims(stopDelims, StopMask);
 }

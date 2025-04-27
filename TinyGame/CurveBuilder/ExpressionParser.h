@@ -165,7 +165,15 @@ struct TGetFuncSignature< RT (*)(Args...) >
 
 struct FuncInfo
 {
-	void* funcPtr;
+	union 
+	{
+		void* funcPtr;
+		struct  
+		{
+			int32 symbolId;
+			int32 numParams;
+		};
+	};
 	FuncSignatureInfo const* signature;
 	template< class T >
 	FuncInfo(T func)
@@ -175,6 +183,12 @@ struct FuncInfo
 
 	}
 
+	FuncInfo(int32 symbolId, int32 numParams)
+		:symbolId(symbolId)
+		,numParams(numParams)
+	{
+
+	}
 
 	int         getArgNum() const { return (int)signature->argTypes.size(); }
 	ValueLayout getArgType(int idx) { return signature->argTypes[idx]; }
@@ -370,22 +384,52 @@ public:
 		CN_LEFT  = 0,
 		CN_RIGHT = 1,
 	};
-
+	static int IsLeaf(int idxNode) { return idxNode < 0; }
 	static int LEAF_UNIT_INDEX( int idxNode ){ return -( idxNode + 1 ); }
 
 	struct Node
 	{
-		Unit*    opUnit;
+		int      indexOp;
 		int      parent;
 		intptr_t children[2];
 
-		int   getLeaf( int idxChild )
+		int   getLeaf( int idxChild ) const
 		{ 
-			assert( children[ idxChild ] < 0 );
+			CHECK(IsLeaf(idxChild));
 			return LEAF_UNIT_INDEX( children[ idxChild ] ); 
 		}
 	};
 	using NodeVec = TArray< Node >;
+
+	template< class TCodeGenerator >
+	static void  Process(TCodeGenerator& generator, Unit const& unit)
+	{
+		switch (unit.type)
+		{
+		case ExprParse::VALUE_CONST:
+			generator.codeConstValue(unit.constValue);
+			break;
+		case ExprParse::VALUE_VARIABLE:
+			generator.codeVar(unit.symbol->varValue);
+			break;
+		case ExprParse::VALUE_INPUT:
+			generator.codeInput(unit.symbol->input);
+			break;
+		default:
+			switch (unit.type & TOKEN_MASK)
+			{
+			case TOKEN_FUNC:
+				generator.codeFunction(unit.symbol->func);
+				break;
+			case TOKEN_UNARY_OP:
+				generator.codeUnaryOp(unit.type);
+				break;
+			case TOKEN_BINARY_OP:
+				generator.codeBinaryOp(unit.type, unit.isReverse);
+				break;
+			}
+		}
+	}
 };
 
 
@@ -445,6 +489,8 @@ public:
 	template< class T>
 	void            defineFunc(char const* name, T func) { mNameToEntryMap[name] = FuncInfo{ func }; }
 
+	void            defineFuncSymbol(char const* name, int32 symbolId, int32 numParams = 1) { mNameToEntryMap[name] = FuncInfo{ symbolId, numParams }; }
+
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = InputInfo{ inputIndex }; }
 	
 	ConstValueInfo const* findConst(char const* name) const;
@@ -493,7 +539,6 @@ protected:
 
 };
 
-
 enum EExprErrorCode
 {
 	eExprError  ,
@@ -510,12 +555,60 @@ public:
 	EExprErrorCode errorCode;
 };
 
+struct ExpressionTreeData : public ExprParse
+{
+	NodeVec      nodes;
+	UnitCodes    codes;
+
+
+	template< typename TCodeGenerator >
+	void visitTree(TCodeGenerator& geneartor)
+	{
+		if (!nodes.empty())
+		{
+			Node& root = nodes[0];
+			visitTree_R(geneartor, root.children[CN_LEFT]);
+		}
+	}
+
+	template< typename TCodeGenerator >
+	void visitTree_R(TCodeGenerator& geneartor, int idxNode)
+	{
+		if (idxNode < 0)
+		{
+			Process(geneartor, mTreeData.codes[LEAF_UNIT_INDEX(idxNode)]);
+			return;
+		}
+		else if (idxNode == 0)
+			return;
+
+		Node& node = mTreeData.nodes[idxNode];
+		Unit& unit = mTreeData.codes[node.indexOp];
+		if (unit.type == BOP_ASSIGN)
+		{
+			visitTree_R(geneartor, node.children[CN_RIGHT]);
+			visitTree_R(geneartor, node.children[CN_LEFT]);
+			Process(geneartor, unit);
+		}
+		else
+		{
+			visitTree_R(geneartor, node.children[CN_LEFT]);
+			visitTree_R(geneartor, node.children[CN_RIGHT]);
+			if (unit.type != IDT_SEPARETOR)
+			{
+				Process(geneartor, unit);
+			}
+		}
+	}
+};
+
+
 class ExprTreeBuilder : public ExprParse
 {
 	using Unit = ExprParse::Unit;
 public:
 
-	void build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*throw ParseException */;
+	void build( ExpressionTreeData& treeData ) /*throw ParseException */;
 	void convertPostfixCode( UnitCodes& codes );
 	enum ErrorCode
 	{
@@ -545,7 +638,7 @@ private:
 	{
 		CHECK( idxNode < 0 );
 		CHECK( CanExchange( type ) );
-		Unit& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
+		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
 
 		if ( !IsBinaryOperator( unit.type ) )
 			return false;
@@ -571,7 +664,7 @@ private:
 	{
 		if ( idxNode >= 0 )
 			return false;
-		Unit& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
+		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
 		if ( unit.type != VALUE_CONST )
 			return false;
 		return true;
@@ -579,9 +672,9 @@ private:
 
 	TArray< int > mIdxOpNext;
 	SymbolTable const* mTable;
-	Node*    mTreeNodes;
-	int      mNumNodes;
-	Unit*    mExprCodes;
+	Node*  mTreeNodes;
+	int    mNumNodes;
+	Unit*  mExprCodes;
 };
 
 class ParseResult : public ExprParse
@@ -595,37 +688,9 @@ public:
 
 	template< class TCodeGenerator >
 	void   generateCode(TCodeGenerator& generator, int numInput, ValueLayout inputLayouts[]);
-	template< class TCodeGenerator >
-	static void  Process(TCodeGenerator& generator, Unit const& unit)
-	{
-		switch (unit.type)
-		{
-		case ExprParse::VALUE_CONST:
-			generator.codeConstValue(unit.constValue);
-			break;
-		case ExprParse::VALUE_VARIABLE:
-			generator.codeVar(unit.symbol->varValue);
-			break;
-		case ExprParse::VALUE_INPUT:
-			generator.codeInput(unit.symbol->input);
-			break;
-		default:
-			switch (unit.type & TOKEN_MASK)
-			{
-			case TOKEN_FUNC:
-				generator.codeFunction(unit.symbol->func);
-				break;
-			case TOKEN_UNARY_OP:
-				generator.codeUnaryOp(unit.type);
-				break;
-			case TOKEN_BINARY_OP:
-				generator.codeBinaryOp(unit.type, unit.isReverse);
-				break;
-			}
-		}
-	}
 
-	UnitCodes const& getInfixCodes() const { return mIFCodes; }
+
+	UnitCodes const& getInfixCodes() const { return mTreeData.codes; }
 	UnitCodes const& getPostfixCodes() const { return mPFCodes; }
 
 private:
@@ -637,50 +702,8 @@ private:
 	bool optimizeValueOrder(int index);
 
 	SymbolTable const* mSymbolDefine = nullptr;
-	NodeVec      mTreeNodes;
-	UnitCodes    mIFCodes;
+	ExpressionTreeData mTreeData;
 	UnitCodes    mPFCodes;
-
-
-	template< typename TCodeGenerator >
-	void visitTree(TCodeGenerator& geneartor)
-	{
-		if (!mTreeNodes.empty())
-		{
-			Node& root = mTreeNodes[0];
-			visitTree_R(geneartor, root.children[CN_LEFT]);
-		}
-	}
-
-	template< typename TCodeGenerator >
-	void visitTree_R(TCodeGenerator& geneartor, int idxNode)
-	{
-		if (idxNode < 0)
-		{
-			Process(geneartor, mIFCodes[LEAF_UNIT_INDEX(idxNode)]);
-			return;
-		}
-		else if (idxNode == 0)
-			return;
-
-		Node& node = mTreeNodes[idxNode];
-		Unit& unit = *node.opUnit;
-		if (unit.type == BOP_ASSIGN)
-		{
-			visitTree_R(geneartor, node.children[CN_RIGHT]);
-			visitTree_R(geneartor, node.children[CN_LEFT]);
-			Process(geneartor, unit);
-		}
-		else
-		{
-			visitTree_R(geneartor, node.children[CN_LEFT]);
-			visitTree_R(geneartor, node.children[CN_RIGHT]);
-			if (unit.type != IDT_SEPARETOR)
-			{
-				Process(geneartor, unit);
-			}
-		}
-	}
 
 	friend class ExpressionParser;
 public:
@@ -690,8 +713,8 @@ public:
 		for ( int i = start; i < end; ++i )
 			mPFCodes[i+move] = mPFCodes[i];
 	}
-	void printInfixCodes(){ ExprParse::print( mIFCodes , *mSymbolDefine ,  false ); }
-	void printPostfixCodes(){ ExprParse::print( mPFCodes , *mSymbolDefine ,  true ); }
+	void printInfixCodes(){ ExprParse::print(mTreeData.codes, *mSymbolDefine, false); }
+	void printPostfixCodes(){ ExprParse::print(mPFCodes, *mSymbolDefine, true); }
 
 };
 
@@ -709,7 +732,6 @@ public:
 	void codeEnd();
 };
 
-
 class ExpressionParser : public ExprParse
 {
 public:
@@ -720,9 +742,9 @@ public:
 	};
 
 	// test Compile String has used Var(name)
-	bool parse( char const* expr , SymbolTable const& table );
-	bool parse( char const* expr , SymbolTable const& table , ParseResult& result );
-
+	bool parse(char const* expr, SymbolTable const& table);
+	bool parse(char const* expr, SymbolTable const& table, ParseResult& result);
+	bool parse(char const* expr, SymbolTable const& table, ExpressionTreeData& outTreeData);
 	std::string const& getErrorMsg(){ return mErrorMsg; }
 
 protected:

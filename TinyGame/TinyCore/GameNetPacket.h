@@ -35,7 +35,7 @@ enum NetPacketID
 	//// Server Packet ///////////
 	SP_START_ID = 200 ,
 	SP_PLAYER_STATUS ,
-	SP_CON_SETTING ,
+	SP_CONNECT_MSG ,
 	SP_LEVEL_INFO ,
 	SP_SERVER_INFO ,
 	SP_SLOT_STATE ,
@@ -418,14 +418,15 @@ public:
 		op & id;
 	}
 };
-class SPConSetting : public GamePacketT< SPConSetting , SP_CON_SETTING >
+
+class SPConnectMsg : public GamePacketT< SPConnectMsg , SP_CONNECT_MSG >
 {
 public:
 	enum
 	{
 		eNEW_CON ,
 	};
-	char      result;
+	uint8     result;
 	SessionId id;
 
 	template < class BufferOP >
@@ -442,12 +443,12 @@ class SPPlayerStatus : public GamePacketT< SPPlayerStatus , SP_PLAYER_STATUS >
 public:
 	SPPlayerStatus()
 	{
-		needFree = false;
+		bAlloced = false;
 	}
 
 	~SPPlayerStatus()
 	{
-		if ( needFree )
+		if ( bAlloced )
 			delete[] info[0];
 	}
 
@@ -467,7 +468,7 @@ public:
 			PlayerInfo* newInfo = new PlayerInfo[ numPlayer ];
 			for( unsigned i = 0 ; i < numPlayer ; ++i )
 				info[i] = newInfo + i;
-			needFree = true;
+			bAlloced = true;
 		}
 
 		for( unsigned i = 0 ; i < numPlayer ; ++i )
@@ -483,7 +484,7 @@ public:
 	}
 
 private:
-	bool needFree;
+	bool bAlloced;
 };
 
 class SPNetControlRequest : public GamePacketT< SPNetControlRequest, SP_NET_CONTROL_REQUEST >
@@ -499,7 +500,6 @@ public:
 	uint8  action;
 	uint   result;
 };
-
 
 struct GameSvInfo
 {

@@ -6,6 +6,7 @@
 #include "HashString.h"
 
 #include "Template/ArrayView.h"
+#include "Template/Optional.h"
 #include "Core/IntegerType.h"
 #include "CoreShare.h"
 
@@ -14,6 +15,7 @@
 #include "boost/bind.hpp"
 #include "boost/function.hpp"
 #include <typeindex>
+
 
 
 using YieldContextHandle = void*;
@@ -55,7 +57,7 @@ namespace Coroutines
 		bool isCompleted() const { return mPtr < 0; }
 		bool isNone() const { return mPtr == 0; }
 
-		ExecutionContext* getPointer() const { CHECK(!isCompleted()); return (ExecutionContext*)(intptr_t)(mPtr); }
+		ExecutionContext* getPointer() const { CHECK(isValid()); return (ExecutionContext*)(intptr_t)(mPtr); }
 
 
 		int64 mPtr;
@@ -77,9 +79,13 @@ namespace Coroutines
 	{
 		~TInlineDynamicObject()
 		{
-			release();
+			if (isVaild())
+			{
+				release();
+			}
 		}
 
+		bool isVaild() const { return !!mPtr; }
 		template< typename Q, typename ...TArgs >
 		void construct(TArgs&& ...args)
 		{
@@ -95,36 +101,18 @@ namespace Coroutines
 			}
 		}
 
-		template< typename Q , TEnableIf_Type< std::is_base_of_v< IYieldInstruction, std::remove_reference_t<Q> >, bool > = true >
-		void construct(Q&& value)
+		void release()
 		{
-			using Type = std::remove_reference_t<Q>;
-			CHECK(mPtr == nullptr);
-			if (sizeof(Type) > sizeof(mStorage))
+			CHECK(isVaild());
+			if (mPtr != (void*)mStorage)
 			{
-				mPtr = new Type(std::forward<Q>(value));
+				delete mPtr;
 			}
 			else
 			{
-				FTypeMemoryOp::Construct((Type*)mStorage, std::forward<Q>(value));
-				mPtr = (T*)mStorage;
+				mPtr->~T();
 			}
-		}
-
-		void release()
-		{
-			if ( mPtr )
-			{
-				if (mPtr != (void*)mStorage)
-				{
-					delete mPtr;
-				}
-				else
-				{
-					mPtr->~T();
-				}
-				mPtr = nullptr;
-			}
+			mPtr = nullptr;
 		}
 		operator T*() { return mPtr; }
 		T* operator->() { return mPtr; }
@@ -133,45 +121,6 @@ namespace Coroutines
 		T*   mPtr = nullptr;
 		char mStorage[Size];
 	};
-
-
-	template< class T >
-	struct TDynamicObject
-	{
-		TDynamicObject()
-		{
-			bConstructed = false;
-		}
-		~TDynamicObject()
-		{
-			if (bConstructed)
-			{
-				release();
-			}
-		}
-
-		template< typename ...TArgs >
-		void construct(TArgs&& ...args)
-		{
-			FTypeMemoryOp::Construct(getPtr(), std::forward<TArgs>(args)...);
-			bConstructed = true;
-		}
-		void release()
-		{
-			getPtr()->~T();
-			bConstructed = false;
-		}
-
-		T& operator*() { CHECK(bConstructed); return *getPtr(); }
-
-		operator T*() { return getPtr(); }
-		T* operator->() { return getPtr(); }
-
-		T* getPtr() { return (T*)mStorage; }
-		char mStorage[sizeof(T)];
-		bool bConstructed;
-	};
-
 
 #define SIMPLE_SYNC_INDEX     MaxInt32
 #define CO_USE_DEPENDENT_REFCOUNT 0
@@ -225,7 +174,7 @@ namespace Coroutines
 		void yeildReturn(IYieldInstruction* instruction)
 		{
 			CHECK(mInstruction == nullptr);
-			mInstruction.construct(YieldInstructionProxy(instruction));
+			mInstruction.construct< YieldInstructionProxy>(instruction);
 			mInstruction->startYield(this);
 			doYeild();
 		}
@@ -289,7 +238,7 @@ namespace Coroutines
 		YeildType*         mYeild = nullptr;
 		std::function< void() > mEntryFunc;
 		std::function< void() > mAbandonFunc;
-		TDynamicObject<ExecutionType> mExecution;
+		TOptional<ExecutionType> mExecution;
 		int mDependenceIndex = INDEX_NONE;
 #if CO_USE_DEPENDENT_REFCOUNT
 		int mDependentRefCount = 0;

@@ -23,6 +23,8 @@
 #include "boost/thread.hpp"
 
 #include <cmath>
+#include "FileSystem.h"
+#include "CurveBuilder/ExpressionParser.h"
 
 extern TINY_API IMiscTestCore* GTestCore;
 
@@ -1307,6 +1309,31 @@ void TestShaderPermutation()
 
 }
 REGISTER_MISC_TEST_ENTRY("Shader Permutation", TestShaderPermutation);
+
+
+void OverwriteFileTest()
+{
+	if (FFileSystem::OverwriteFile("D:\\AA\\AA", "D:\\AA\\BB", 1024 * 1024 * 16))
+	{
+		LogMsg("Sucess!!");
+	}
+}
+REGISTER_MISC_TEST_ENTRY("Overwrite File Test", OverwriteFileTest);
+
+
+void DifferentialTest()
+{
+	ExpressionTreeData exprData;
+	ExpressionParser parser;
+	SymbolTable table;
+	table.defineVarInput("x", 0);
+	table.defineVarInput("t", 1);
+	
+	parser.parse("3*x^2 + 2", table, exprData);
+
+}
+
+REGISTER_MISC_TEST_ENTRY("Differential Test", DifferentialTest);
 
 #if 0
 #include "Meta/Concept.h"

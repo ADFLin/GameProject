@@ -220,7 +220,7 @@ namespace Render
 #endif
 
 			Count,
-			
+			CountSM5 = 6,
 			Empty = -1,
 		};
 

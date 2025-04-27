@@ -219,5 +219,8 @@
     <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cpp">
       <Filter>SplitScreen\Voronoi</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\ParticleLifeStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

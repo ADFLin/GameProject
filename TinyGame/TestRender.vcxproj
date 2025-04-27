@@ -269,6 +269,12 @@
     <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ODETestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\ParticleLifeStage.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
     <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\RayTracingStage.cpp">

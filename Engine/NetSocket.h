@@ -189,13 +189,13 @@ struct NetSelectSet
 	void addSocket(NetSocket& socket);
 	void removeSocket(NetSocket& socket);
 
-	bool select(long sec, long usec);
+	bool select(uint64 usec);
 
 	bool canRead(NetSocket& socket);
 	bool canWrite(NetSocket& socket);
 	bool haveExcept(NetSocket& socket);
 
-	TArray< NetSocket* > mSockets;
+	TArray< NetSocket*, TInlineAllocator<FD_SETSIZE> > mSockets;
 	fd_set mRead;
 	fd_set mWrite;
 	fd_set mExcept;

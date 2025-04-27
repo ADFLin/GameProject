@@ -125,8 +125,8 @@ public:
 	static std::string  ConvertToFullPath(char const* path);
 	static std::wstring ConvertToFullPath(wchar_t const* path);
 
-	static bool GetFileSize(char const* path, int64& size);
-	static bool GetFileSize(wchar_t const* path, int64& size);
+	static bool GetFileSize(char const* path, uint64& size);
+	static bool GetFileSize(wchar_t const* path, uint64& size);
 
 	static bool DeleteFile(char const* path);
 	static bool DeleteFile(wchar_t const* path);
@@ -138,6 +138,9 @@ public:
 	static bool CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists = false);
 
 	static bool GetFileAttributes(char const* path, FileAttributes& outAttributes);
+
+
+	static bool OverwriteFile(char const* srcPath, char const* destPath, uint64 num, uint64 offset = 0);
 };
 
 

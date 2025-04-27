@@ -30,13 +30,15 @@ namespace Coroutines
 
 	ExecutionContext::~ExecutionContext()
 	{
-		mInstruction.release();
 	}
 
 	void ExecutionContext::execute()
 	{
 		CHECK(mYeild);
-		mInstruction.release();
+		if (mInstruction.isVaild())
+		{
+			mInstruction.release();
+		}
 		(*mExecution)(*this);
 	}
 
@@ -260,6 +262,7 @@ namespace Coroutines
 					auto& flow = mDependencyFlows[parent->mDependenceIndex];
 					flow.executionLastCompleted = &context;
 					flow.executions.removeSwap(&context);
+
 					if (flow.mode == DependencyFlow::eSync)
 					{
 						if (!flow.executions.empty())
@@ -284,16 +287,15 @@ namespace Coroutines
 #if CO_USE_DEPENDENT_REFCOUNT
 								exec->mDependentRefCount -= 1;
 								if (exec->mDependentRefCount <= 0)
-								{
 #endif
+								{
+
 									if (exec->mAbandonFunc)
 									{
 										exec->mAbandonFunc();
 									}
 									destroyExecution(index);
-#if CO_USE_DEPENDENT_REFCOUNT
 								}
-#endif
 							}
 						}
 					}

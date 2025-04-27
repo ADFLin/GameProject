@@ -393,6 +393,7 @@ namespace SRPG
 				MoveInfo move;
 				move.step = 0;
 				move.pos = pos;
+				move.tile = &mMap(pos.x, pos.y);
 				move.remainStep = actor.attributes.moveStep;
 				outMoveList.push_back(move);
 			}

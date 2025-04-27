@@ -95,21 +95,22 @@ struct TDynamicArrayData
 
 	DECL_ALLOCATOR T* grow(size_t oldSize, size_t newSize)
 	{
+		size_t allocSize = sizeof(T) * newSize;
 		if constexpr (TBitwiseReallocatable<T>::Value)
 		{
-			void* newAlloc = FMemory::Realloc(mStorage, sizeof(T) * newSize);
+			void* newAlloc = FMemory::Realloc(mStorage, allocSize);
 			CHECK_ALLOC_PTR(newAlloc);
 			mStorage = newAlloc;
 		}
 		else
 		{
-			if (FMemory::Expand(mStorage, sizeof(T) * newSize) != nullptr)
+			if (mStorage && FMemory::Expand(mStorage, allocSize) != nullptr)
 			{
 
 			}
 			else
 			{
-				void* newAlloc = FMemory::Alloc(sizeof(T) * newSize);
+				void* newAlloc = FMemory::Alloc(allocSize);
 				CHECK_ALLOC_PTR(newAlloc);
 				if (mStorage)
 				{

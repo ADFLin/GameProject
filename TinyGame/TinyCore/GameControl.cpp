@@ -27,7 +27,7 @@ void ActionProcessor::scanControl( unsigned flag /*= 0 */ )
 
 void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 {
-	bool bUpdateFrame = !!( flag & CTF_FREEZE_FRAME );
+	bool bUpdateFrame = !( flag & CTF_FREEZE_FRAME );
 
 	visitListener([&](IActionListener* listener)
 	{

@@ -161,7 +161,7 @@ struct FWindowsFileSystem
 	}
 
 	template< class CharT >
-	static bool GetFileSize(CharT const* path, int64& size)
+	static bool GetFileSize(CharT const* path, uint64& size)
 	{
 		WIN32_FILE_ATTRIBUTE_DATA fad;
 		if (!FWinApi::GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
@@ -333,7 +333,7 @@ std::wstring FFileSystem::ConvertToFullPath(wchar_t const* path)
 #endif
 }
 
-bool FFileSystem::GetFileSize( char const* path , int64& size )
+bool FFileSystem::GetFileSize( char const* path , uint64& size )
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::GetFileSize(path, size);
@@ -352,7 +352,7 @@ bool FFileSystem::GetFileSize( char const* path , int64& size )
 #endif
 }
 
-bool FFileSystem::GetFileSize(wchar_t const* path, int64& size)
+bool FFileSystem::GetFileSize(wchar_t const* path, uint64& size)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::GetFileSize(path, size);
@@ -444,6 +444,37 @@ bool FFileSystem::GetFileAttributes(char const* path, FileAttributes& outAttribu
 
 	return false;
 
+#endif
+}
+
+bool FFileSystem::OverwriteFile(char const* srcPath, char const* destPath, uint64 num, uint64 offset)
+{
+#if SYS_PLATFORM_WIN
+	HANDLE hFileSrc = FWinApi::CreateFile(srcPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFileSrc == INVALID_HANDLE_VALUE)
+		return false;
+
+	TArray<uint8> readData;
+	readData.resize(num);
+	::ReadFile(hFileSrc, readData.data(), num, NULL, NULL);
+
+	::CloseHandle(hFileSrc);
+
+	HANDLE hFileDst = FWinApi::CreateFile(destPath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFileDst == INVALID_HANDLE_VALUE)
+		return false;
+
+	LONG offsetLow = LONG(offset & 0xffffffffULL);
+	LONG offsetHigh = LONG(offset >> 32);
+
+	::SetFilePointer(hFileDst, offsetLow, &offsetHigh, FILE_BEGIN);
+	::WriteFile(hFileDst, readData.data(), num, NULL, NULL);
+
+	::FlushFileBuffers(hFileDst);
+	::CloseHandle(hFileDst);
+	return true;
+#else
+	return false;
 #endif
 }
 

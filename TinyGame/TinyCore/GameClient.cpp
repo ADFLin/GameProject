@@ -35,7 +35,7 @@ bool ClientWorker::doStartNetwork()
 #define COM_THIS_PACKET_SET_2( Class , Func , SocketFunc )\
 	COM_PACKET_SET( Class , this , &ClientWorker::Func , &ClientWorker::SocketFunc )
 
-	COM_THIS_PACKET_SET ( SPConSetting , procConSetting )
+	COM_THIS_PACKET_SET ( SPConnectMsg , procConnectMsg )
 	COM_THIS_PACKET_SET ( SPPlayerStatus , procPlayerStatus )
 	COM_THIS_PACKET_SET ( CSPPlayerState , procPlayerState )
 	COM_THIS_PACKET_SET_2( CSPClockSynd  , procClockSynd  , procClockSynd_NetThread )
@@ -60,6 +60,9 @@ bool ClientWorker::update_NetThread( long time )
 {
 	if( !BaseClass::update_NetThread(time) )
 		return false;
+
+	mCalculator.markSystemTime();
+
 #if 0
 	mNetSelect.clear();
 	if ( mTcpClient.getSocket().getState() != SKS_CLOSE )
@@ -67,7 +70,7 @@ bool ClientWorker::update_NetThread( long time )
 	mNetSelect.addSocket(mUdpClient.getSocket());
 #endif
 
-	if (mNetSelect.select(0, 0))
+	if (mNetSelect.select(0))
 	{
 		mTcpClient.updateSocket(time, mNetSelect);
 		mUdpClient.updateSocket(time, mNetSelect);
@@ -297,10 +300,10 @@ void ClientWorker::procPlayerState( IComPacket* cp)
 	}
 }
 
-void ClientWorker::procConSetting( IComPacket* cp)
+void ClientWorker::procConnectMsg( IComPacket* cp)
 {
-	SPConSetting* com = cp->cast< SPConSetting >();
-	if ( com->result == SPConSetting::eNEW_CON )
+	SPConnectMsg* com = cp->cast< SPConnectMsg >();
+	if ( com->result == SPConnectMsg::eNEW_CON )
 	{
 		mSessoionId = com->id;
 	}
@@ -317,7 +320,7 @@ void ClientWorker::doCloseNetwork()
 }
 
 
-void ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
+bool ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 {
 	switch( channel )
 	{
@@ -327,7 +330,8 @@ void ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 	case CHANNEL_GAME_NET_UDP_CHAIN:
 		FNetCommand::Write( mUdpClient.getSendCtrl() , cp );
 		break;
-	}	
+	}
+	return true;
 }
 
 
@@ -417,7 +421,7 @@ DelayClientWorker::~DelayClientWorker()
 
 }
 
-void DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
+bool DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 {
 	switch( channel )
 	{
@@ -428,6 +432,7 @@ void DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned fla
 		mSDCUdp.add( cp );
 		break;
 	}	
+	return true;
 }
 
 bool DelayClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr )

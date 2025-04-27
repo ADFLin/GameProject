@@ -152,7 +152,7 @@ protected:
 
 BITWISE_RELLOCATABLE_FAIL(MiscTestStage::TestInfo);
 BITWISE_RELLOCATABLE_FAIL(MiscTestStage::ExecutionData);
-BITWISE_RELLOCATABLE_FAIL(std::function< void() >);
+//BITWISE_RELLOCATABLE_FAIL(std::function< void() >);
 
 template< class T >
 class TQBezierSpline

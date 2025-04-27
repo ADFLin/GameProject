@@ -359,6 +359,7 @@ namespace ParticleLife
 			for (auto& desc : mInteractMap)
 			{
 				desc.factor = 0.0f;
+				desc.radius = 0.0f;
 			}
 #if 1
 			loadScene("Test");

@@ -127,11 +127,11 @@ public:
 	ComEvaluator&   getEvaluator(){ return mCPEvaluator; }
 
 	virtual IPlayerManager*    getPlayerManager() = 0;
-	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag = 0 ){}
+	virtual bool  sendCommand(int channel, IComPacket* cp, unsigned flag = 0) { return false; }
 	virtual long  getNetLatency(){ return 0; }
 
-	void  sendTcpCommand( IComPacket* cp ){ sendCommand( CHANNEL_GAME_NET_TCP , cp , 0 ); }
-	void  sendUdpCommand( IComPacket* cp ){ sendCommand( CHANNEL_GAME_NET_UDP_CHAIN , cp , 0 ); }
+	bool  sendTcpCommand(IComPacket* cp, unsigned flag = 0){ return sendCommand( CHANNEL_GAME_NET_TCP , cp , flag); }
+	bool  sendUdpCommand(IComPacket* cp, unsigned flag = 0){ return sendCommand( CHANNEL_GAME_NET_UDP_CHAIN , cp , flag); }
 
 protected:
 	virtual void  doUpdate( long time ){}
@@ -177,6 +177,7 @@ class NetChannel
 };
 
 typedef std::function< void() > NetCommandDelegate;
+BITWISE_RELLOCATABLE_FAIL(NetCommandDelegate);
 
 
 #define NETWORKER_PROCESS_COMMAND_DEFERRED (TINY_USE_NET_THREAD  || 1 )

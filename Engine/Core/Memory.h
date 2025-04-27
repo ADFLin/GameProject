@@ -38,8 +38,6 @@ struct FMemory
 	static void* Expand(void* ptr, size_t size)
 	{
 #if SYS_PLATFORM_WIN
-		if (ptr == nullptr)
-			return nullptr;
 		return ::_expand(ptr, size);
 #else
 		return nullptr;

@@ -14,6 +14,21 @@ template< class T >
 class TOptional
 {
 public:
+	template< typename ...TArgs >
+	void construct(TArgs&& ...args)
+	{
+		CHECK(!isSet());
+		FTypeMemoryOp::Construct(getValuePtr(), std::forward<TArgs>(args)...);
+		mIsSet = true;
+	}
+
+	void release()
+	{
+		CHECK(isSet());
+		FTypeMemoryOp::Destruct(getValuePtr());
+		mIsSet = false;
+	}
+
 	bool isSet() const { return mIsSet; }
 	TOptional(T const& rhs)
 	{
@@ -28,22 +43,17 @@ public:
 
 	~TOptional()
 	{
-		if (mIsSet)
-		{
-			FTypeMemoryOp::Destruct(getValuePtr());
-		}
+		clear();
 	}
 
 	operator T& () { return *getValuePtr(); }
 	operator T const& () const { return *getValuePtr(); }
+	T& operator*() { CHECK(mIsSet); return *getValuePtr(); }
 
 	template< class Q >
 	TOptional& operator = (Q&& rhs)
 	{
-		if (mIsSet)
-		{
-			FTypeMemoryOp::Destruct(mValue.mData);
-		}
+		clear();
 		FTypeMemoryOp::Construct(getValuePtr(), std::forward<Q>(rhs));
 		return *this;
 	}
@@ -52,8 +62,7 @@ public:
 	{
 		if (mIsSet)
 		{
-			FTypeMemoryOp::Destruct(getValuePtr());
-			mIsSet = false;
+			release();
 		}
 	}
 protected:

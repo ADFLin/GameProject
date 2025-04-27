@@ -76,6 +76,7 @@ public:
 	CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector );
 	//NetFrameManager
 	int   evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames );
+	virtual void  onPrevEvalFrame(){}
 	void  setupInput(ActionProcessor& processor)
 	{
 		processor.addInput(*this);
@@ -161,6 +162,11 @@ public:
 	void fireAction( ActionTrigger& trigger );
 	void resetFrameData();
 	void release();
+
+	virtual void  onPrevEvalFrame() override
+	{
+		mCalcuator.markSystemTime();
+	}
 private:
 	void procFrameData( IComPacket* cp);
 

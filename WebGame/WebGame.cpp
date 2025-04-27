@@ -78,18 +78,15 @@ namespace EShader
 		Compute = 3,
 		Hull = 4,
 		Domain = 5,
-
 		Task = 6,
 		Mesh = 7,
-
 #if 0
 		RayGen = 8,
 		RayHit = 9,
 		RayMiss = 10,
 #endif
-
 		Count,
-
+		CountSM5 = 6,
 		Empty = -1,
 	};
 

@@ -504,12 +504,7 @@ namespace Bloxorz
 
 	void TestStage::updateSceneEnvBuffer()
 	{
-		SceneEnvData* pData = mSceneEnvBuffer.lock();
-		if (pData)
-		{
-			*pData = mSceneEnv;
-			mSceneEnvBuffer.unlock();
-		}
+		mSceneEnvBuffer.updateBuffer(mSceneEnv);
 	}
 
 	void TestStage::restart()

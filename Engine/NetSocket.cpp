@@ -198,7 +198,7 @@ bool NetSocket::detectTCP( SocketDetector& detector)
 
 	NetSelectSet selectSet;
 	selectSet.addSocket(*this);
-	if (!selectSet.select(0, 0))
+	if (!selectSet.select(0))
 		return false;
 
 	return detectTCPInternal(detector , selectSet);
@@ -263,12 +263,8 @@ bool NetSocket::detectTCPInternal(SocketDetector& detector, NetSelectSet& select
 	case SKS_CONNECTING:
 		if (selectSet.canWrite(*this))
 		{
-			sockaddr_in Address;
-			memset(&Address, 0, sizeof(Address));
 			mState = SKS_CONNECTED;
-
 			detector.onConnect(*this);
-
 		}
 		// connect failed
 		if (selectSet.canRead(*this))
@@ -289,7 +285,7 @@ bool NetSocket::detectUDP( SocketDetector& detector)
 
 	NetSelectSet selectSet;
 	selectSet.addSocket(*this);
-	if (!selectSet.select(0, 0))
+	if (!selectSet.select(0))
 		return false;
 
 	return detectUDPInternal(detector, selectSet);
@@ -447,11 +443,11 @@ void NetSelectSet::removeSocket(NetSocket& socket)
 	}
 }
 
-bool NetSelectSet::select(long sec, long usec)
+bool NetSelectSet::select(uint64 usec)
 {
 	timeval TimeOut;
-	TimeOut.tv_sec = sec;
-	TimeOut.tv_usec = usec;
+	TimeOut.tv_sec = usec / 1000000;
+	TimeOut.tv_usec = usec % 1000000;
 
 	FD_ZERO(&mRead);
 	FD_ZERO(&mWrite);

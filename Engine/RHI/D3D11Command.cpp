@@ -16,6 +16,15 @@ namespace Render
 
 	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D11, D3D11System);
 
+
+#define GRAPHIC_SHADER_LIST(op)\
+	op(EShader::Vertex)\
+	op(EShader::Pixel)\
+	op(EShader::Geometry)\
+	op(EShader::Hull)\
+	op(EShader::Domain)
+
+
 	template< EShader::Type >
 	struct D3D11ShaderTraits {};
 
@@ -47,23 +56,27 @@ namespace Render
 #define RESULT_FAILED( hr ) ( hr ) != S_OK
 
 	template< int MaskCount, typename TFunc>
-	void UpdateDirtyState(uint32 mask, TFunc&& func)
+	void UpdateDirtyState(uint32& inoutMask, TFunc&& func)
 	{
-		CHECK(mask);
+		if (inoutMask)
+		{
+			uint32 mask = inoutMask;
+			inoutMask = 0;
 #if 1
-		int index;
-		int count;
-		while (FBitUtility::IterateMaskRange< MaskCount >(mask, index, count))
-		{
-			func(index, count);
-		}
+			int index;
+			int count;
+			while (FBitUtility::IterateMaskRange< MaskCount >(mask, index, count))
+			{
+				func(index, count);
+			}
 #else
-		int index;
-		while (FBitUtility::IterateMask< MaskCount >(mask, index))
-		{
-			func(index, 1);
-		}
+			int index;
+			while (FBitUtility::IterateMask< MaskCount >(mask, index))
+			{
+				func(index, 1);
+			}
 #endif
+		}
 	}
 
 	class D3D11ProfileCore : public RHIProfileCore
@@ -1124,7 +1137,7 @@ namespace Render
 
 	bool D3D11ResourceBoundState::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
 	{
-		::memset(this, 0, sizeof(*this));
+		FMemory::Zero(this, sizeof(*this));
 		for( int i = 0; i < MaxConstBufferNum; ++i )
 		{
 			if( !mConstBuffers[i].initializeResource(device) )
@@ -1373,14 +1386,10 @@ namespace Render
 			}
 		}
 
-		if( mConstBufferDirtyMask )
+		UpdateDirtyState<MaxSimulatedBoundedBufferNum>(mConstBufferDirtyMask, [this, context](int index, int count)
 		{
-			UpdateDirtyState<MaxSimulatedBoundedBufferNum>(mConstBufferDirtyMask, [this, context](int index, int count)
-			{
-				D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, count, mBoundedConstBuffers + index);
-			});
-			mConstBufferDirtyMask = 0;
-		}
+			D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, count, mBoundedConstBuffers + index);
+		});
 
 		commitSAVState<TypeValue>(context);
 
@@ -1389,15 +1398,10 @@ namespace Render
 			commitUAVState(context);
 		}
 
-
-		if( mSamplerDirtyMask )
+		UpdateDirtyState<MaxSimulatedBoundedSamplerNum>(mSamplerDirtyMask, [this, context](int index, int count)
 		{
-			UpdateDirtyState<MaxSimulatedBoundedSamplerNum>(mSamplerDirtyMask, [this, context](int index, int count)
-			{
-				D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, count, mBoundedSamplers + index);
-			});
-			mSamplerDirtyMask = 0;
-		}
+			D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, count, mBoundedSamplers + index);
+		});
 	}
 
 	template< EShader::Type TypeValue >
@@ -1455,25 +1459,18 @@ namespace Render
 	template< EShader::Type TypeValue >
 	void D3D11ResourceBoundState::commitSAVState(ID3D11DeviceContext* context)
 	{
-		if (mSRVDirtyMask)
+		UpdateDirtyState< MaxSimulatedBoundedSRVNum >(mSRVDirtyMask, [this, context](int index, int count)
 		{
-			UpdateDirtyState< MaxSimulatedBoundedSRVNum >(mSRVDirtyMask, [this, context](int index, int count)
-			{
-				D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, count, mBoundedSRVs + index);
-			});
-		}
+			D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, count, mBoundedSRVs + index);
+		});
 	}
 
 	void D3D11ResourceBoundState::commitUAVState(ID3D11DeviceContext* context)
 	{
-		if (mUAVDirtyMask)
+		UpdateDirtyState< MaxSimulatedBoundedUAVNum >(mUAVDirtyMask, [this, context](int index, int count)
 		{
-			UpdateDirtyState< MaxSimulatedBoundedSRVNum >(mUAVDirtyMask, [this, context](int index, int count)
-			{
-				context->CSSetUnorderedAccessViews(index, count, mBoundedUAVs + index, nullptr);
-			});
-			mUAVDirtyMask = 0;
-		}
+			context->CSSetUnorderedAccessViews(index, count, mBoundedUAVs + index, nullptr);
+		});
 	}
 
 	template< EShader::Type TypeValue >
@@ -1493,16 +1490,16 @@ namespace Render
 	{
 		mDevice = device;
 		mDeviceContext = deviceContext;
-		for( int i = 0; i < EShader::Count; ++i )
+		for( int i = 0; i < EShader::CountSM5; ++i )
 		{
 			mBoundedShaders[i].resource = nullptr;
 			mResourceBoundStates[i].initialize(device, deviceContext);
 		}
 
 		uint32 dynamicVBufferSize[] = { sizeof(float) * 512 , sizeof(float) * 1024 , sizeof(float) * 1024 * 4 , sizeof(float) * 1024 * 8 };
-		mDynamicVBuffer.initialize(device, D3D11_BIND_VERTEX_BUFFER, dynamicVBufferSize, ARRAY_SIZE(dynamicVBufferSize));
+		mDynamicVBuffer.initialize(device, D3D11_BIND_VERTEX_BUFFER, dynamicVBufferSize);
 		uint32 dynamicIBufferSize[] = { sizeof(uint32) * 3 * 16 , sizeof(uint32) * 3 * 64  , sizeof(uint32) * 3 * 256 , sizeof(uint32) * 3 * 1024 };
-		mDynamicIBuffer.initialize(device, D3D11_BIND_INDEX_BUFFER, dynamicIBufferSize, ARRAY_SIZE(dynamicIBufferSize));
+		mDynamicIBuffer.initialize(device, D3D11_BIND_INDEX_BUFFER, dynamicIBufferSize);
 		return true;
 	}
 
@@ -1550,12 +1547,14 @@ namespace Render
 		assert(numViewports < ARRAY_SIZE(mViewportStates));
 		for (int i = 0; i < numViewports; ++i)
 		{
-			mViewportStates[i].TopLeftX = viewports[i].x;
-			mViewportStates[i].TopLeftY = viewports[i].y;
-			mViewportStates[i].Width = viewports[i].w;
-			mViewportStates[i].Height = viewports[i].h;
-			mViewportStates[i].MinDepth = viewports[i].zNear;
-			mViewportStates[i].MaxDepth = viewports[i].zFar;
+			auto& viewportState = mViewportStates[i];
+			auto const& vp = viewports[i];
+			viewportState.TopLeftX = vp.x;
+			viewportState.TopLeftY = vp.y;
+			viewportState.Width = vp.w;
+			viewportState.Height = vp.h;
+			viewportState.MinDepth = vp.zNear;
+			viewportState.MaxDepth = vp.zFar;
 		}
 		mDeviceContext->RSSetViewports(numViewports, mViewportStates);
 	}
@@ -1575,16 +1574,12 @@ namespace Render
 
 	void D3D11Context::postDrawPrimitive()
 	{
-#define CLEAR_SHADER_STATE( SHADER_TYPE )\
+#define POST_DRAW_PRIMITIVE_OP( SHADER_TYPE )\
 		mResourceBoundStates[SHADER_TYPE].postDrawPrimitive<SHADER_TYPE>(mDeviceContext.get());
 
-		CLEAR_SHADER_STATE(EShader::Vertex);
-		CLEAR_SHADER_STATE(EShader::Pixel);
-		CLEAR_SHADER_STATE(EShader::Geometry);
-		CLEAR_SHADER_STATE(EShader::Hull);
-		CLEAR_SHADER_STATE(EShader::Domain);
+		GRAPHIC_SHADER_LIST(POST_DRAW_PRIMITIVE_OP);
 
-#undef CLEAR_SHADER_STATE
+#undef POST_DRAW_PRIMITIVE_OP
 	}
 
 
@@ -1989,12 +1984,6 @@ namespace Render
 		}
 	}
 
-#define GRAPHIC_SHADER_LIST(op)\
-	op(EShader::Vertex)\
-	op(EShader::Pixel)\
-	op(EShader::Geometry)\
-	op(EShader::Hull)\
-	op(EShader::Domain)
 
 	void D3D11Context::commitGraphicsShaderState()
 	{
@@ -2010,7 +1999,8 @@ namespace Render
 			}
 		}
 
-		if( mBoundedShaderDirtyMask )
+		uint32 const GraphicShaderMask = BIT(EShader::Vertex) | BIT(EShader::Pixel) | BIT(EShader::Geometry) | BIT(EShader::Hull) | BIT(EShader::Domain);
+		if(mBoundedShaderDirtyMask & GraphicShaderMask)
 		{
 #define SET_SHADER_OP( SHADER_TYPE )\
 			if( mBoundedShaderDirtyMask & BIT(SHADER_TYPE) )\
@@ -2019,8 +2009,7 @@ namespace Render
 			}
 
 			GRAPHIC_SHADER_LIST(SET_SHADER_OP)
-			mBoundedShaderDirtyMask &= ~(BIT(EShader::Vertex)|BIT(EShader::Pixel)|BIT(EShader::Geometry)|BIT(EShader::Hull)|BIT(EShader::Domain));
-
+			mBoundedShaderDirtyMask &= ~GraphicShaderMask;
 #undef SET_SHADER_OP
 		}
 
@@ -2052,11 +2041,11 @@ namespace Render
 	void D3D11Context::commitComputeState()
 	{
 #if 0
-		mShaderBoundState[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext);
-		mShaderBoundState[EShader::Pixel].clearSRVResource<EShader::Pixel>(mDeviceContext);
-		mShaderBoundState[EShader::Hull].clearSRVResource<EShader::Hull>(mDeviceContext);
-		mShaderBoundState[EShader::Domain].clearSRVResource<EShader::Domain>(mDeviceContext);
-		mShaderBoundState[EShader::Geometry].clearSRVResource<EShader::Geometry>(mDeviceContext);
+		mResourceBoundStates[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext);
+		mResourceBoundStates[EShader::Pixel].clearSRVResource<EShader::Pixel>(mDeviceContext);
+		mResourceBoundStates[EShader::Hull].clearSRVResource<EShader::Hull>(mDeviceContext);
+		mResourceBoundStates[EShader::Domain].clearSRVResource<EShader::Domain>(mDeviceContext);
+		mResourceBoundStates[EShader::Geometry].clearSRVResource<EShader::Geometry>(mDeviceContext);
 #endif
 
 		if( mBoundedShaderDirtyMask & BIT(EShader::Compute) )
@@ -2083,7 +2072,7 @@ namespace Render
 		{
 			mGfxBoundedShaderMask = 0;
 			mVertexShader = nullptr;
-			for( int i = 0; i < EShader::Count; ++i )
+			for( int i = 0; i < EShader::CountSM5; ++i )
 			{
 				if ( i == EShader::Compute )
 					continue;
@@ -2147,7 +2136,7 @@ namespace Render
 			}
 		}
 
-		for (int i = 0; i < EShader::Count; ++i)
+		for (int i = 0; i < EShader::CountSM5; ++i)
 		{
 			if (i == EShader::Compute || (setupMask & BIT(i)))
 				continue;
@@ -2572,7 +2561,7 @@ namespace Render
 	{
 		mRenderTargetsState = nullptr;
 
-		for (int i = 0; i < EShader::Count; ++i)
+		for (int i = 0; i < EShader::CountSM5; ++i)
 		{
 			mBoundedShaders[i].resource = nullptr;
 			mResourceBoundStates[i].clear();

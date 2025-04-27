@@ -130,6 +130,7 @@ namespace Shadertoy
 		{
 			if (input.type == EInputType::Keyboard)
 				return TStaticSamplerState< ESampler::Point, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI();
+
 			switch (input.filter)
 			{
 			default:
@@ -222,10 +223,10 @@ namespace Shadertoy
 
 		switch (header.numChannels + header.format)
 		{
-		case 1: format = ETexture::R8; break;
-		case 2: format = ETexture::RG8; break;
-		case 3: format = ETexture::RGB8; break;
-		case 4: format = ETexture::RGBA8; break;
+		case 1:  format = ETexture::R8; break;
+		case 2:  format = ETexture::RG8; break;
+		case 3:  format = ETexture::RGB8; break;
+		case 4:  format = ETexture::RGBA8; break;
 		case 11: format = ETexture::R32F; break;
 		case 12: format = ETexture::RG32F; break;
 		case 13: format = ETexture::RGB32F; break;
@@ -704,6 +705,7 @@ namespace Shadertoy
 			auto frame = WidgetUtility::CreateDevFrame();
 			auto choice = frame->addChoice();
 			choice->addItem("Test");
+			choice->addItem("ShaderArt");
 			FileIterator fileIter;
 			if (FFileSystem::FindFiles("Shadertoy", ".json", fileIter))
 			{

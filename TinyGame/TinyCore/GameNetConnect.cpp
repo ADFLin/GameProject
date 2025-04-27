@@ -37,16 +37,6 @@ void NetConnection::close()
 	mSocket.close();
 }
 
-void NetConnection::updateSocket( long time)
-{
-	doUpdateSocket(time);
-}
-
-void NetConnection::updateSocket(long time, NetSelectSet& netSelect)
-{
-	doUpdateSocket(time, netSelect);
-}
-
 bool NetConnection::checkConnectStatus( long time )
 {
 	long const TimeOut = 30 * 1000;
@@ -108,9 +98,12 @@ void UdpClient::setServerAddr( char const* addrName , unsigned port )
 	if ( !mServerAddr.setInternet( addrName , port ) )
 		throw SocketException("Can't get server address");
 
-	if (!mSocket.connect(mServerAddr))
+	if (CVarClUseConnectedUDP)
 	{
-		throw SocketException("Can't connect to server");
+		if (!mSocket.connect(mServerAddr))
+		{
+			throw SocketException("Can't connect to server");
+		}
 	}
 
 #if 0

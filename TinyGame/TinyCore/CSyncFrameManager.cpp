@@ -118,6 +118,8 @@ int CSyncFrameManager::evalFrame( IFrameUpdater& updater , int updateFrames , in
 		return 0;
 	}
 
+	onPrevEvalFrame();
+
 	int frameCount = 0;
 
 	int deltaFrame = mFrameMgr.getLastDataFrame() - mFrameMgr.getFrame();

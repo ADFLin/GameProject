@@ -339,6 +339,12 @@ namespace Render
 				pair.second->Release();
 			}
 			mRTViewMap.clear();
+
+			for (auto& pair : mUAViewMap)
+			{
+				pair.second->Release();
+			}
+			mUAViewMap.clear();
 		}
 
 		struct RenderTargetKey
@@ -492,8 +498,48 @@ namespace Render
 		}
 		std::unordered_map< RenderTargetKey, ID3D11ShaderResourceView*, MemberFuncHasher > mSRViewMap;
 #endif
-		std::unordered_map< RenderTargetKey, ID3D11RenderTargetView*, MemberFuncHasher >    mRTViewMap;
-		std::unordered_map< RenderTargetKey, ID3D11UnorderedAccessView*, MemberFuncHasher > mUAViewMap;
+		std::unordered_map< RenderTargetKey, ID3D11RenderTargetView*, MemberFuncHasher >   mRTViewMap;
+
+
+		struct UnorderedAccessKey
+		{
+			int level;
+			int arrayIndex;
+
+			uint32 getTypeHash() const
+			{
+				uint32 result = HashValues(level, arrayIndex);
+				return result;
+			}
+
+			bool operator == (UnorderedAccessKey const& rhs) const
+			{
+				return level == rhs.level && arrayIndex == rhs.arrayIndex;
+			}
+		};
+
+		template< class TFunc >
+		ID3D11UnorderedAccessView* getUnorderedAccessInternal(UnorderedAccessKey const& key, ID3D11Resource* texture, TFunc&& SetupDescFunc)
+		{
+			auto iter = mUAViewMap.find(key);
+			if (iter != mUAViewMap.end())
+			{
+				return iter->second;
+			}
+
+			TComPtr<ID3D11Device> device;
+			texture->GetDevice(&device);
+
+			TComPtr< ID3D11UnorderedAccessView > UAView;
+			D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
+			SetupDescFunc(desc);
+			VERIFY_D3D_RESULT(device->CreateUnorderedAccessView(texture, &desc, &UAView), return nullptr;);
+
+			ID3D11UnorderedAccessView* result = UAView.detach();
+			mUAViewMap.emplace(key, result);
+			return result;
+		}
+		std::unordered_map< UnorderedAccessKey, ID3D11UnorderedAccessView*, MemberFuncHasher > mUAViewMap;
 	};
 
 	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >

@@ -120,7 +120,10 @@ void ServerWorker::postChangeState( NetActionState oldState )
 			CSPClockSynd com;
 			com.code = CSPClockSynd::eSTART;
 			com.numSample = 20;
-			sendTcpCommand( &com );
+			if (!sendTcpCommand(&com, WSF_IGNORE_LOCAL))
+			{
+				changeState(NAS_LEVEL_RUN);
+			}
 		}
 		break;
 	case NAS_LEVEL_SETUP:
@@ -206,10 +209,10 @@ bool ServerWorker::update_NetThread( long time )
 	if( mLocalWorker )
 		mLocalWorker->update_NetThread(time);
 
-	if ( mNetSelect.select(0,0))
+	if ( mNetSelect.select(0))
 	{
-		mTcpServer.updateSocket(time);
-		mUdpServer.updateSocket(time);
+		mTcpServer.updateSocket(time, mNetSelect);
+		mUdpServer.updateSocket(time, mNetSelect);
 		mClientManager.updateSocket(time, mNetSelect);
 	}
 
@@ -260,8 +263,8 @@ void ServerWorker::notifyConnectionAccpet( NetConnection* con )
 		{
 			client->tcpChannel.setListener(this);
 			mNetSelect.addSocket(client->tcpChannel.getSocket());
-			SPConSetting com;
-			com.result = SPConSetting::eNEW_CON;
+			SPConnectMsg com;
+			com.result = SPConnectMsg::eNEW_CON;
 			com.id = client->id;
 			sendClientTcpCommand(*client, &com);
 		}
@@ -757,9 +760,9 @@ void ServerWorker::generatePlayerStatus( SPPlayerStatus& comPS )
 	comPS.numPlayer = (uint8)getPlayerManager()->getPlayerNum();
 }
 
-void ServerWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
+bool ServerWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
 {
-	mPlayerManager->sendCommand( channel , cp , flag );
+	return mPlayerManager->sendCommand( channel , cp , flag );
 }
 
 SVPlayerManager::SVPlayerManager()
@@ -834,10 +837,8 @@ SLocalPlayer* SVPlayerManager::createAIPlayer()
 
 void SVPlayerManager::removePlayerFlag( unsigned bitPos )
 {
-	for( PlayerTable::iterator iter = mPlayerTable.begin();
-		iter != mPlayerTable.end() ; ++iter )
+	for (ServerPlayer* player : mPlayerTable)
 	{
-		ServerPlayer* player = *iter;
 		player->getStateFlag().remove( bitPos );
 	}
 
@@ -848,10 +849,8 @@ bool SVPlayerManager::checkPlayerFlag( unsigned bitPos , bool beNet )
 	bool result = true;
 	if ( beNet )
 	{
-		for( PlayerTable::iterator iter = mPlayerTable.begin();
-			iter != mPlayerTable.end() ; ++iter )
+		for (ServerPlayer* player : mPlayerTable)
 		{
-			ServerPlayer* player = *iter;
 			if (  player->isNetwork() &&
 				 !player->getStateFlag().check( bitPos )  )
 				return false;
@@ -859,10 +858,8 @@ bool SVPlayerManager::checkPlayerFlag( unsigned bitPos , bool beNet )
 	}
 	else
 	{
-		for( PlayerTable::iterator iter = mPlayerTable.begin();
-			iter != mPlayerTable.end() ; ++iter )
+		for (ServerPlayer* player : mPlayerTable)
 		{
-			ServerPlayer* player = *iter;
 			if ( !player->getStateFlag().check( bitPos ) )
 				return false;
 		}
@@ -874,10 +871,8 @@ void SVPlayerManager::getPlayerInfo( PlayerInfo* info[] )
 {
 	NET_MUTEX_LOCK( mMutexPlayerTable );
 	int i = 0;
-	for ( PlayerTable::iterator iter = mPlayerTable.begin();
-		iter != mPlayerTable.end() ; ++iter )
+	for (ServerPlayer* player : mPlayerTable)
 	{
-		ServerPlayer* player = *iter;
 		info[i++] = &player->getInfo();
 	}
 }
@@ -886,10 +881,8 @@ void SVPlayerManager::getPlayerFlag( int flags[] )
 {
 	NET_MUTEX_LOCK( mMutexPlayerTable );
 	int i = 0;
-	for ( PlayerTable::iterator iter = mPlayerTable.begin();
-		iter != mPlayerTable.end() ; ++iter )
+	for (ServerPlayer* player : mPlayerTable)
 	{
-		ServerPlayer* player = *iter;
 		flags[i++] = player->getStateFlag().getValue();
 	}
 }
@@ -897,10 +890,9 @@ void SVPlayerManager::getPlayerFlag( int flags[] )
 void SVPlayerManager::cleanup()
 {
 	NET_MUTEX_LOCK( mMutexPlayerTable );
-	for( PlayerTable::iterator iter = mPlayerTable.begin() ; 
-		iter != mPlayerTable.end() ; ++iter )
+	for (ServerPlayer* player : mPlayerTable)
 	{
-		delete *iter;
+		delete player;
 	}
 	mPlayerTable.clear();
 }
@@ -929,39 +921,18 @@ bool SVPlayerManager::removePlayer( PlayerId id )
 	return true;
 }
 
-void SVPlayerManager::sendCommand( int channel , IComPacket* cp , unsigned flag )
+bool SVPlayerManager::sendCommand( int channel , IComPacket* cp , unsigned flag )
 {
 	NET_MUTEX_LOCK( mMutexPlayerTable );
-	for( PlayerTable::iterator iter = mPlayerTable.begin();
-		iter != mPlayerTable.end(); ++iter )
+	bool result = false;
+	for(ServerPlayer* player : mPlayerTable)
 	{
-		ServerPlayer* player = *iter;
 		if ( ( flag & WSF_IGNORE_LOCAL ) && !player->isNetwork() )
 			continue;
 		player->sendCommand( channel , cp );
+		result = true;
 	}
-}
-
-void SVPlayerManager::sendTcpCommand( IComPacket* cp )
-{
-	NET_MUTEX_LOCK( mMutexPlayerTable );
-	for( PlayerTable::iterator iter = mPlayerTable.begin();
-		 iter != mPlayerTable.end(); ++iter )
-	{
-		ServerPlayer* player = *iter;
-		player->sendTcpCommand( cp );
-	}
-}
-
-void SVPlayerManager::sendUdpCommand( IComPacket* cp )
-{
-	NET_MUTEX_LOCK( mMutexPlayerTable );
-	for( PlayerTable::iterator iter = mPlayerTable.begin();
-		iter != mPlayerTable.end(); ++iter )
-	{
-		ServerPlayer* player = *iter;
-		player->sendUdpCommand( cp );
-	}
+	return result;
 }
 
 void SVPlayerManager::insertPlayer( ServerPlayer* player , char const* name , PlayerType type )
@@ -1117,18 +1088,16 @@ void ServerClientManager::updateSocket( long time , NetSelectSet& netSelect)
 #if SERVER_USE_CONNECTED_UDP
 	if (CVarSvUseConnectedUDP)
 	{
-		for (SessionMap::iterator iter = mSessionMap.begin();
-			iter != mSessionMap.end(); ++iter)
+		for (auto& pair : mSessionMap)
 		{
-			NetClientData* client = iter->second;
+			NetClientData* client = pair.second;
 			client->updateUdpSocket(time, netSelect);
 		}
 	}
 #endif
-	for( SessionMap::iterator iter = mSessionMap.begin();
-		iter != mSessionMap.end(); ++iter )
+	for (auto& pair : mSessionMap)
 	{
-		NetClientData* client = iter->second;
+		NetClientData* client = pair.second;
 		client->tcpChannel.updateSocket( time , netSelect);
 	}
 #else
@@ -1136,18 +1105,16 @@ void ServerClientManager::updateSocket( long time , NetSelectSet& netSelect)
 #if SERVER_USE_CONNECTED_UDP
 	if (CVarSvUseConnectedUDP)
 	{
-		for (SessionMap::iterator iter = mSessionMap.begin();
-			iter != mSessionMap.end(); ++iter)
+		for (auto& pair : mSessionMap)
 		{
-			NetClientData* client = iter->second;
+			NetClientData* client = pair.second;
 			client->updateUdpSocket(time);
 		}
 	}
 #endif
-	for (SessionMap::iterator iter = mSessionMap.begin();
-		iter != mSessionMap.end(); ++iter)
+	for (auto& pair : mSessionMap)
 	{
-		NetClientData* client = iter->second;
+		NetClientData* client = pair.second;
 		client->tcpChannel.updateSocket(time);
 	}
 #endif
@@ -1291,13 +1258,12 @@ void LocalWorker::procClockSynd( IComPacket* cp)
 
 void LocalWorker::postChangeState( NetActionState oldState )
 {
-
 	CSPPlayerState com;
 	com.playerId = mPlayerMgr->getUserID();
 	com.state    = getActionState();
 	sendTcpCommand( &com );
-
 }
+
 void LocalWorker::doUpdate(long time)
 {
 	//MUTEX_LOCK(mMutexBuffer);
@@ -1340,10 +1306,11 @@ void LocalWorker::update_NetThread(long time)
 
 }
 
-void LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
+bool LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
 {
 	//MUTEX_LOCK(mMutexBuffer);
 	FNetCommand::Write( mSendBuffer , cp );
+	return true;
 }
 
 void LocalWorker::recvCommand(IComPacket* cp)

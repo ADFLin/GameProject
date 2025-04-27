@@ -353,13 +353,13 @@ void ExpressionParser::convertCode( UnitCodes& infixCode , UnitCodes& postfixCod
 bool ExpressionParser::parse( char const* expr , SymbolTable const& table )
 {
 	ParseResult result;
-	if ( !analyzeTokenUnit( expr , table , result.mIFCodes) )
+	if ( !analyzeTokenUnit( expr , table , result.mTreeData.codes) )
 		return false;
 
 	ExprTreeBuilder builder;
 	try
 	{
-		builder.build(result.mTreeNodes, &result.mIFCodes[0], result.mIFCodes.size());
+		builder.build(result.mTreeData);
 	}
 	catch( ExprParseException& e )
 	{
@@ -375,7 +375,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 
 	result.mSymbolDefine = &table;
 
-	if ( !analyzeTokenUnit( expr , table , result.mIFCodes ) ) 
+	if ( !analyzeTokenUnit( expr , table , result.mTreeData.codes ) )
 		return false;
 
 #if _DEBUG
@@ -385,7 +385,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	ExprTreeBuilder builder;
 	try 
 	{
-		builder.build( result.mTreeNodes , &result.mIFCodes[0] , result.mIFCodes.size() );
+		builder.build( result.mTreeData );
 	}
 	catch ( ExprParseException& e )
 	{
@@ -419,6 +419,25 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	return true;
 }
 
+
+bool ExpressionParser::parse(char const* expr, SymbolTable const& table, ExpressionTreeData& outTreeData)
+{
+	if (!analyzeTokenUnit(expr, table, outTreeData.codes))
+		return false;
+
+	ExprTreeBuilder builder;
+	try
+	{
+		builder.build(outTreeData);
+	}
+	catch (ExprParseException& e)
+	{
+		mErrorMsg = e.what();
+		return false;
+	}
+
+	return true;
+}
 
 bool ParseResult::isUsingVar( char const* name ) const
 {
@@ -858,18 +877,21 @@ bool ParseResult::optimizeZeroValue( int index )
 	return hadChange;
 }
 
-void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*throw ParseException */
+void ExprTreeBuilder::build(ExpressionTreeData& treeData) /*throw ParseException */
 {
-	mExprCodes = exprCode;
+	NodeVec& nodes = treeData.nodes;
+	TArrayView< Unit > exprCodes = treeData.codes;
 
-	mIdxOpNext.resize( numUnit );
+	mExprCodes = exprCodes.data();
+
+	mIdxOpNext.resize(exprCodes.size());
 	TArray< int > idxDepthStack;
 
 	int numNode = 0;
-	int idxNext = numUnit;
-	for( int idx = numUnit - 1  ; idx >= 0 ; --idx )
+	int idxNext = exprCodes.size();
+	for( int idx = int(exprCodes.size()) - 1  ; idx >= 0 ; --idx )
 	{
-		Unit& unit = mExprCodes[ idx ];
+		Unit const& unit = mExprCodes[ idx ];
 
 		mIdxOpNext[ idx ] = idxNext;
 
@@ -907,11 +929,11 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 	mNumNodes  = 1;
 
 	int idxNode = 0;
-	int idxLeft = buildTree_R( idxNode , 0 , numUnit , false );
+	int idxLeft = buildTree_R( idxNode , 0 , exprCodes.size(), false );
 
 	Node& node = mTreeNodes[ idxNode ];
-	node.parent  = 0;
-	node.opUnit  = nullptr;
+	node.indexOp = INDEX_NONE;
+	node.parent  = INDEX_NONE;
 	node.children[ CN_LEFT  ]  = idxLeft;
 	node.children[ CN_RIGHT ]  = 0;
 }
@@ -923,7 +945,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 	
 	if ( idxEnd == idxStart + 1 )
 	{
-		Unit& unit = mExprCodes[idxStart];
+		Unit const& unit = mExprCodes[idxStart];
 
 		if ( !IsValue( unit.type ) )
 			throw ExprParseException( eExprError , "Leaf is not value");
@@ -942,7 +964,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 			idx = mIdxOpNext[ idx ];
 		for(  ; idx < idxEnd ; idx = mIdxOpNext[ idx ] )
 		{
-			Unit& unit = mExprCodes[idx];
+			Unit const& unit = mExprCodes[idx];
 
 			assert( IsOperator( unit.type ) );
 
@@ -961,16 +983,16 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 
 	if ( idxOp != -1 )
 	{
-		Unit& opUnit = mExprCodes[ idxOp ];
+		Unit& op = mExprCodes[ idxOp ];
 		if ( bFuncDef )
 		{
-			if ( opUnit.type != BOP_COMMA )
+			if ( op.type != BOP_COMMA )
 			{
 				bFuncDef = false;
 			}
 			else
 			{
-				opUnit.type = IDT_SEPARETOR;
+				op.type = IDT_SEPARETOR;
 			}
 		}
 
@@ -980,13 +1002,14 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 		int idxRight = buildTree_R( idxNode , idxOp + 1 , idxEnd , bFuncDef );
 
 		Node& node = mTreeNodes[ idxNode ];
+		node.indexOp = idxOp;
 		node.parent  = idxParent;
-		node.opUnit  = &opUnit;
 		node.children[ CN_LEFT  ] = idxLeft;
 		node.children[ CN_RIGHT ] = idxRight;
 		return idxNode;
 	}
 
+	int indexOp = idxStart;
 	Unit& unit = mExprCodes[ idxStart ];
 	if ( ExprParse::IsFunction( unit.type ) )
 	{
@@ -1005,7 +1028,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 
 		Node& node = mTreeNodes[ idxNode ];
 		node.parent  = idxParent;
-		node.opUnit  = &unit;
+		node.indexOp = indexOp;
 		node.children[ CN_LEFT  ] = idxLeft;
 		node.children[ CN_RIGHT ] = 0;
 		return idxNode;
@@ -1042,8 +1065,8 @@ void ExprTreeBuilder::convertPostfixCode_R( UnitCodes& codes , int idxNode )
 	else if ( idxNode == 0 )
 		return;
 
-	Node& node = mTreeNodes[ idxNode ];
-	Unit& unit = *node.opUnit;
+	Node const& node = mTreeNodes[ idxNode ];
+	Unit const& unit = mExprCodes[node.indexOp];
 
 	if ( unit.type == BOP_ASSIGN )
 	{
@@ -1085,7 +1108,7 @@ int ExprTreeBuilder::optimizeNodeOrder_R( int idxNode )
 		depthR = optimizeNodeOrder_R( node.children[ CN_RIGHT ] );
 
 
-	Unit& unit = *node.opUnit;
+	Unit& unit = mExprCodes[node.indexOp];
 	if ( ExprParse::IsBinaryOperator( unit.type ) && ExprParse::CanReverse( unit.type ) )
 	{
 		bool needSwap = false;
@@ -1093,11 +1116,11 @@ int ExprTreeBuilder::optimizeNodeOrder_R( int idxNode )
 		{
 			if ( node.children[ CN_RIGHT ] > 0 )
 			{
-				Unit& unitL = mExprCodes[ node.getLeaf( CN_LEFT ) ];
+				Unit const& unitL = mExprCodes[ node.getLeaf( CN_LEFT ) ];
 				if ( ExprParse::IsValue( unitL.type ) )
 				{				
 					Node& nodeR = mTreeNodes[ node.children[ CN_RIGHT ] ];
-					Unit& unitR = *nodeR.opUnit;
+					Unit& unitR = mExprCodes[nodeR.indexOp]; 
 
 					if ( ExprParse::IsOperator( unitR.type ) || 
 						 ExprParse::IsFunction( unitR.type ) )
@@ -1133,8 +1156,8 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 	if ( idxNode <= 0 )
 		return TREE_NO_ERROR;
 
-	Node& node = mTreeNodes[ idxNode ];
-	Unit& unit = *node.opUnit;
+	Node const& node = mTreeNodes[ idxNode ];
+	Unit const& unit = mExprCodes[node.indexOp];
 
 	if ( ExprParse::IsBinaryOperator( unit.type ) )
 	{
@@ -1163,7 +1186,7 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 		while( idxChild > 0 )
 		{
 			Node& nodeChild = mTreeNodes[ idxChild ];
-			if ( nodeChild.opUnit->type != ExprParse::IDT_SEPARETOR )
+			if ( mExprCodes[nodeChild.indexOp].type != ExprParse::IDT_SEPARETOR )
 				break;
 
 			++numVar;
@@ -1175,8 +1198,16 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 			++numVar;
 		}
 
-		if ( numVar != unit.symbol->func.getArgNum() )
-			return TREE_FUN_PARAM_NUM_NO_MATCH;
+		if (unit.symbol->func.signature)
+		{
+			if (numVar != unit.symbol->func.getArgNum())
+				return TREE_FUN_PARAM_NUM_NO_MATCH;
+		}
+		else
+		{
+			if (numVar != unit.symbol->func.numParams)
+				return TREE_FUN_PARAM_NUM_NO_MATCH;
+		}
 	}
 
 	ErrorCode error;
@@ -1193,8 +1224,8 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 
 bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 {
-	Node& node = mTreeNodes[ idxNode ];
-	Unit& unit = *node.opUnit;
+	Node& node = mTreeNodes[idxNode];
+	Unit& unit = mExprCodes[node.indexOp];
 
 	RealType value = 0;
 
@@ -1205,8 +1236,8 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		if ( node.children[ CN_RIGHT ] >= 0 )
 			return false;
 
-		Unit& unitL = mExprCodes[ node.getLeaf( CN_LEFT ) ];
-		Unit& unitR = mExprCodes[ node.getLeaf( CN_RIGHT ) ];
+		Unit const& unitL = mExprCodes[ node.getLeaf( CN_LEFT ) ];
+		Unit const& unitR = mExprCodes[ node.getLeaf( CN_RIGHT ) ];
 
 		if ( unitL.type == ExprParse::VALUE_CONST )
 		{
@@ -1252,7 +1283,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		if ( node.children[ CN_LEFT ] >= 0 )
 			return false;
 
-		Unit& unitR = mExprCodes[ node.getLeaf(CN_RIGHT) ];
+		Unit const& unitR = mExprCodes[ node.getLeaf(CN_RIGHT) ];
 
 		if ( unitR.type != VALUE_CONST )
 			return false;
@@ -1282,12 +1313,12 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 			{
 				assert( idxParam > 0 );
 				Node& nodeParam = mTreeNodes[ idxParam ];
-				assert( nodeParam.opUnit->type == IDT_SEPARETOR );
+				CHECK(mExprCodes[nodeParam.indexOp].type == IDT_SEPARETOR );
 				
 				if ( nodeParam.children[ CN_RIGHT ] >= 0 )
 					return false;
 
-				Unit& unitVal = mExprCodes[ nodeParam.getLeaf( CN_RIGHT ) ];
+				Unit const& unitVal = mExprCodes[ nodeParam.getLeaf( CN_RIGHT ) ];
 				if ( unitVal.type != VALUE_CONST )
 					return false;
 
@@ -1295,7 +1326,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 				idxParam = nodeParam.children[ CN_LEFT ];
 			}
 
-			Unit& unitVal = mExprCodes[ LEAF_UNIT_INDEX( idxParam ) ];
+			Unit const& unitVal = mExprCodes[ LEAF_UNIT_INDEX( idxParam ) ];
 			if ( unitVal.type != VALUE_CONST )
 				return false;
 
@@ -1341,7 +1372,7 @@ bool ExprTreeBuilder::optimizeNodeBOpOrder( int idxNode )
 	assert( idxNode > 0 );
 
 	Node& node = mTreeNodes[ idxNode ];
-	Unit& unit = *node.opUnit;
+	Unit& unit = mExprCodes[node.indexOp];
 
 	if ( !ExprParse::IsBinaryOperator( unit.type ) || 
 		 !ExprParse::CanExchange( unit.type ) )
@@ -1362,7 +1393,7 @@ void ExprTreeBuilder::printTree_R( int idxNode , int depth )
 	}
 	else if ( idxNode < 0 )
 	{
-		Unit& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
+		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
 
 		printSpace( depth * 4 );
 		std::cout << '[';
@@ -1377,7 +1408,7 @@ void ExprTreeBuilder::printTree_R( int idxNode , int depth )
 
 		printSpace( depth * 4 );
 		std::cout << '[';
-		print( *node.opUnit , *mTable );
+		print( mExprCodes[node.indexOp], *mTable );
 		std::cout << ']' << std::endl;
 
 		printTree_R( node.children[ CN_LEFT ] , depth + 1 );

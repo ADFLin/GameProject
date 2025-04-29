@@ -9,6 +9,8 @@
 #include "RHI/GpuProfiler.h"
 #include "RHI/RHIGraphics2D.h"
 
+#include "Misc/Format.h"
+
 using namespace Render;
 
 class Plot2DStage : public StageBase
@@ -22,11 +24,12 @@ public:
 	ShaderProgram mProgPlot2D;
 
 
+	std::string mFunc = "x * sin(x)";
+	std::string mGradFunc = "sin(x) + x * cos(x)";
+
 	bool generateShader()
 	{
 		std::string code;
-
-
 		std::vector<uint8> codeTemplate;
 		if (!FFileUtility::LoadToBuffer("Shader/Game/Plot2DTemplate.sgc", codeTemplate, true))
 		{
@@ -34,7 +37,22 @@ public:
 		}
 
 		ShaderCompileOption option;
-		option.addCode((char const*)codeTemplate.data());
+		InlineString<512> funcText;
+		funcText.format("return %s;\n", mFunc.c_str());
+		if (mGradFunc.length())
+		{
+			InlineString<512> funcGradText;
+			funcGradText.format("return %s;\n", mGradFunc.c_str());
+			Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()), StringView(funcGradText.c_str()) }, code);
+			option.addDefine(SHADER_PARAM(USE_CUSTOM_GRAD_FUNC), 1);
+		}
+		else
+		{
+			Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()) }, code);
+			option.addDefine(SHADER_PARAM(USE_CUSTOM_GRAD_FUNC), 0);
+		}
+		option.addCode((char const*)code.data());
+
 		if (!ShaderManager::Get().loadFile(mProgPlot2D, nullptr, "ScreenVS", "MainPS", option))
 		{
 			return false;

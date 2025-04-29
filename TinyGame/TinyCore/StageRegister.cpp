@@ -194,6 +194,16 @@ EKeyCode::Type FMiscTestUtil::WaitInputKey()
 	return EKeyCode::None;
 }
 
+std::string FMiscTestUtil::WaitInputText(char const* defaultText)
+{
+	if (GTestCore)
+	{
+		return GTestCore->waitInputText(Thread::GetCurrentThreadId(), defaultText);
+	}
+
+	return "";
+}
+
 IMiscTestCore::IMiscTestCore()
 {
 	if (GTestCore == nullptr)

@@ -1,17 +1,20 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 
+#ifndef USE_CUSTOM_GRAD_FUNC
+#define USE_CUSTOM_GRAD_FUNC 0
+#endif
 float Func(float x, float t)
 {
-	return x * sin(x);
+%s
 }
 
 uniform float E;
 
 float Grad(float x, float t)
 {
-#if 1
-	return sin(x) + x * cos(x);
+#if USE_CUSTOM_GRAD_FUNC
+%s
 #else
 	return (Func(x + E, t) - Func(x - E, t)) /(2 * E);
 #endif

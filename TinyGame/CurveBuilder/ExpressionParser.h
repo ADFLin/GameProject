@@ -167,14 +167,19 @@ struct FuncInfo
 {
 	union 
 	{
-		void* funcPtr;
+		struct  
+		{
+			void* funcPtr;
+		};
 		struct  
 		{
 			int32 symbolId;
-			int32 numParams;
+			int32 numArgs;
 		};
 	};
+
 	FuncSignatureInfo const* signature;
+
 	template< class T >
 	FuncInfo(T func)
 		:funcPtr(func)
@@ -183,9 +188,9 @@ struct FuncInfo
 
 	}
 
-	FuncInfo(int32 symbolId, int32 numParams)
+	FuncInfo(int32 symbolId, int32 numArgs)
 		:symbolId(symbolId)
-		,numParams(numParams)
+		, numArgs(numArgs)
 	{
 
 	}
@@ -375,8 +380,8 @@ public:
 
 	
 	using UnitCodes = TArray<Unit>;
-	static void print( Unit const& unit , SymbolTable const& table );
-	static void print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket );
+	static void Print( Unit const& unit , SymbolTable const& table );
+	static void Print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket );
 
 
 	enum
@@ -389,9 +394,8 @@ public:
 
 	struct Node
 	{
-		int      indexOp;
-		int      parent;
-		intptr_t children[2];
+		int  indexOp;
+		int  children[2];
 
 		int   getLeaf( int idxChild ) const
 		{ 
@@ -560,6 +564,23 @@ struct ExpressionTreeData : public ExprParse
 	NodeVec      nodes;
 	UnitCodes    codes;
 
+	void clear()
+	{
+		nodes.clear();
+		codes.clear();
+	}
+
+
+	void printExpression(SymbolTable const& table)
+	{
+		if (!nodes.empty())
+		{
+			Node& root = nodes[0];
+			printExpression_R(root.children[CN_LEFT], table);
+		}
+	}
+
+	void printExpression_R(int idxNode, SymbolTable const& table);
 
 	template< typename TCodeGenerator >
 	void visitTree(TCodeGenerator& geneartor)
@@ -582,8 +603,8 @@ struct ExpressionTreeData : public ExprParse
 		else if (idxNode == 0)
 			return;
 
-		Node& node = mTreeData.nodes[idxNode];
-		Unit& unit = mTreeData.codes[node.indexOp];
+		Node& node = nodes[idxNode];
+		Unit& unit = codes[node.indexOp];
 		if (unit.type == BOP_ASSIGN)
 		{
 			visitTree_R(geneartor, node.children[CN_RIGHT]);
@@ -629,7 +650,7 @@ private:
 	Node& getNode( int idx ){ return mTreeNodes[ idx ]; }
 	void  printSpace(int num);
 	void  printTree_R(int idxNode, int depth);
-	int   buildTree_R(int idxParent, int idxStart, int idxEnd, bool bFuncDef);
+	int   build_R(int idxStart, int idxEnd, bool bFuncDef);
 	void  convertPostfixCode_R( UnitCodes& codes , int idxNode );
 	ErrorCode   checkTreeError_R( int idxNode );
 	int   optimizeNodeOrder_R( int idxNode );
@@ -713,8 +734,8 @@ public:
 		for ( int i = start; i < end; ++i )
 			mPFCodes[i+move] = mPFCodes[i];
 	}
-	void printInfixCodes(){ ExprParse::print(mTreeData.codes, *mSymbolDefine, false); }
-	void printPostfixCodes(){ ExprParse::print(mPFCodes, *mSymbolDefine, true); }
+	void printInfixCodes(){ ExprParse::Print(mTreeData.codes, *mSymbolDefine, false); }
+	void printPostfixCodes(){ ExprParse::Print(mPFCodes, *mSymbolDefine, true); }
 
 };
 

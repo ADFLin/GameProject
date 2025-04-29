@@ -24,7 +24,7 @@
 
 #include <cmath>
 #include "FileSystem.h"
-#include "CurveBuilder/ExpressionParser.h"
+
 
 extern TINY_API IMiscTestCore* GTestCore;
 
@@ -126,6 +126,34 @@ public:
 			return false;
 		};
 	}
+
+
+	enum
+	{
+		UI_TEXT_INPUT = GFrame::NEXT_UI_ID,
+		NEXT_UI_ID,
+	};
+
+	void addTextInputUI(char const* defaultText)
+	{
+		GTextCtrl* textCtrl = new GTextCtrl(UI_TEXT_INPUT, Vec2i(5, 35), 300, this);
+		textCtrl->setValue(defaultText);
+	}
+
+	virtual bool onChildEvent(int event, int id, GWidget* ui) 
+	{
+		switch (id)
+		{
+		case UI_TEXT_INPUT:
+			if (event == EVT_TEXTCTRL_COMMITTED)
+			{
+				static_cast<MiscTestStage*>(GTestCore)->onPanelTextInput(this, ui->cast<GTextCtrl>()->getValue());
+			}
+			return false;
+		}
+		return BaseClass::onChildEvent(event, id, ui);
+	}
+
 	void setRenderSize(Vec2i const& size)
 	{
 		setSize(Vec2i(5, 25) + size);
@@ -133,10 +161,14 @@ public:
 	void onRender() override
 	{
 		if (SystemPlatform::AtomicRead(&renderFlag) <= 0)
+		{
+			BaseClass::onRender();
 			return;
+		}
 
 		if (mutex && !mutex->tryLock())
 		{
+			BaseClass::onRender();
 			return;
 		}
 		
@@ -269,31 +301,39 @@ MiscRenderScope MiscTestStage::registerRender(uint32 threadId, MiscRenderFunc co
 	{
 		if (exec.thread->getID() == threadId)
 		{
-			auto panel = new ExecutionPanel(UI_EXECUTE_PANEL, Vec2i(0, 0), Vec2i(600, 600), nullptr);
-			panel->thread = exec.thread;
+			auto panel = createExecutionPanel(exec, Vec2i(600, 600), bTheadSafe);
 			panel->renderFunc = func;
-			panel->setRenderSize(size);
-			panel->renderFlag = 0;
-			panel->bThreadSafe = bTheadSafe;
-			exec.panel = panel;
-			if (bTheadSafe == false)
-			{
-				panel->mutex = std::make_unique<Mutex>();
-				if (!exec.thread->hadSuspended())
-				{
-					panel->mutex->lock();
-				}
-			}
-
-			addGameThreadCommnad([panel]
-			{
-				::Global::GUI().addWidget(panel);
-			});
 			return MiscRenderScope(&panel->renderFlag);
 		}
 	}
 
 	return MiscRenderScope();
+}
+
+
+ExecutionPanel* MiscTestStage::createExecutionPanel(ExecutionData& exec, TVector2<int> const& size, bool bTheadSafe)
+{
+	CHECK(exec.panel == nullptr);
+	auto panel = new ExecutionPanel(UI_EXECUTE_PANEL, Vec2i(0, 0), size, nullptr);
+	panel->thread = exec.thread;
+	panel->setRenderSize(size);
+	panel->renderFlag = 0;
+	panel->bThreadSafe = bTheadSafe;
+	exec.panel = panel;
+	if (bTheadSafe == false)
+	{
+		panel->mutex = std::make_unique<Mutex>();
+		if (!exec.thread->hadSuspended())
+		{
+			panel->mutex->lock();
+		}
+	}
+
+	addGameThreadCommnad([panel]
+	{
+		::Global::GUI().addWidget(panel);
+	});
+	return panel;
 }
 
 EKeyCode::Type MiscTestStage::waitInputKey(uint32 threadId)
@@ -303,7 +343,7 @@ EKeyCode::Type MiscTestStage::waitInputKey(uint32 threadId)
 	ExecutionData* exec = findExecutionAssumeLocked(threadId);
 	if (exec && !exec->thread->hadSuspended())
 	{
-		exec->bWaitKey = true;
+		exec->waitType = ExecutionData::eWaitKey;
 		exec->key = EKeyCode::None;
 		mThreadDataMutex.unlock();
 		pauseExecution(*exec);
@@ -313,6 +353,33 @@ EKeyCode::Type MiscTestStage::waitInputKey(uint32 threadId)
 	{
 		mThreadDataMutex.unlock();
 		return EKeyCode::None;
+	}
+}
+
+std::string MiscTestStage::waitInputText(uint32 threadId, char const* defaultText)
+{
+
+	mThreadDataMutex.lock();
+
+	ExecutionData* exec = findExecutionAssumeLocked(threadId);
+	if (exec && !exec->thread->hadSuspended())
+	{
+		exec->waitType = ExecutionData::eWaitText;
+		exec->text = EKeyCode::None;
+
+		if (exec->panel == nullptr)
+		{
+			createExecutionPanel(*exec, Vec2i(400, 35), false);
+		}
+		exec->panel->addTextInputUI(defaultText);
+		mThreadDataMutex.unlock();
+		pauseExecution(*exec);
+		return exec->text;
+	}
+	else
+	{
+		mThreadDataMutex.unlock();
+		return "";
 	}
 }
 
@@ -326,9 +393,9 @@ MsgReply MiscTestStage::onPanelKeyMsg(class ExecutionPanel* panel, KeyMsg const&
 			if (exec.panel != panel)
 				continue;
 			
-			if (exec.bWaitKey && exec.thread->hadSuspended())
+			if (exec.waitType == ExecutionData::eWaitKey && exec.thread->hadSuspended())
 			{
-				exec.bWaitKey = false;
+				exec.waitType = ExecutionData::eNone;
 				exec.key = msg.getCode();
 				exec.thread->resume();
 			}
@@ -337,6 +404,24 @@ MsgReply MiscTestStage::onPanelKeyMsg(class ExecutionPanel* panel, KeyMsg const&
 	}
 
 	return MsgReply::Handled();
+}
+
+void MiscTestStage::onPanelTextInput(class ExecutionPanel* panel, char const* text)
+{
+	Mutex::Locker locker(mThreadDataMutex);
+	for (auto& exec : mRunningExecutions)
+	{
+		if (exec.panel != panel)
+			continue;
+
+		if (exec.waitType == ExecutionData::eWaitText && exec.thread->hadSuspended())
+		{
+			exec.waitType = ExecutionData::eNone;
+			exec.text = text;
+			exec.thread->resume();
+		}
+		break;
+	}
 }
 
 void MiscTestStage::terminateThread(Thread* thread)
@@ -1320,17 +1405,31 @@ void OverwriteFileTest()
 }
 REGISTER_MISC_TEST_ENTRY("Overwrite File Test", OverwriteFileTest);
 
+#include "CurveBuilder/ExpressionParser.h"
+#include "CurveBuilder/DifferentialParser.h"
 
 void DifferentialTest()
 {
+	SymbolTable table;
+	DifferentialParser::DefineFuncSymbol(table);
+
 	ExpressionTreeData exprData;
 	ExpressionParser parser;
-	SymbolTable table;
+
 	table.defineVarInput("x", 0);
 	table.defineVarInput("t", 1);
 	
-	parser.parse("3*x^2 + 2", table, exprData);
+	std::string expr = FMiscTestUtil::WaitInputText("x*x");
+	parser.parse(expr.c_str(), table, exprData);
 
+	exprData.printExpression(table);
+	std::cout << " => ";
+
+	DifferentialParser diffParser(exprData);
+	diffParser.parse();
+
+	diffParser.mOutputData.printExpression(table);
+	std::cout << std::endl;
 }
 
 REGISTER_MISC_TEST_ENTRY("Differential Test", DifferentialTest);

@@ -176,7 +176,6 @@ namespace ParticleLife
 			}
 		}
 
-
 		void interactPart(Paricle& p1, Paricle& p2)
 		{
 			Vector2 offset = getConnectedOffst(p1.pos, p2.pos);

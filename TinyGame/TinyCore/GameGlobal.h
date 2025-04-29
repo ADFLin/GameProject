@@ -106,6 +106,7 @@ public:
 	static TINY_API IGameNetInterface&   GameNet();
 	static TINY_API IDebugInterface&     Debug();
 	static TINY_API PropertySet&         GameConfig();
+
 	static TINY_API GUISystem&           GUI();
 	
 	static TINY_API DrawEngine&    GetDrawEngine();

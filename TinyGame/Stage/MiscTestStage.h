@@ -107,10 +107,13 @@ public:
 	//IMiscTestCore
 	void pauseExecution(uint32 threadId) override;
 	MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe) override;
-	EKeyCode::Type waitInputKey(uint32 threadId) override;
-	//
 
+	EKeyCode::Type waitInputKey(uint32 threadId) override;
+	std::string    waitInputText(uint32 threadId, char const* defaultText) override;
+	//
 	MsgReply onPanelKeyMsg(class ExecutionPanel* panel, KeyMsg const& msg);
+	void     onPanelTextInput(class ExecutionPanel* panel, char const* text);
+
 	void terminateThread(Thread* thread);
 	void resumeThread(Thread* thread);
 	void resumeAllThreads();
@@ -120,11 +123,20 @@ public:
 	{
 		Thread* thread;
 		class ExecutionPanel* panel = nullptr;
-		bool bWaitKey = false;
+
+		enum 
+		{
+			eNone,
+			eWaitKey,
+			eWaitText,
+		};
+		int waitType = ExecutionData::eNone;
 		EKeyCode::Type key;
+		std::string text;
 	};
 	ExecutionData* findExecutionAssumeLocked(uint32 threadId);
 	ExecutionData& registerThread(Thread* thread);
+	ExecutionPanel* createExecutionPanel(ExecutionData& exec, TVector2<int> const& size, bool bTheadSafe);
 
 	void pauseExecution(ExecutionData& exec);
 	void resumeExecution(ExecutionData& exec);

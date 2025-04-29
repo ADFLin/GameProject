@@ -192,6 +192,7 @@ public:
 	virtual void pauseExecution(uint32 threadId) = 0;
 	virtual MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe) = 0;
 	virtual EKeyCode::Type  waitInputKey(uint32 threadId) = 0;
+	virtual std::string     waitInputText(uint32 threadId, char const* defaultText) = 0;
 };
 
 struct TINY_API FMiscTestUtil
@@ -200,6 +201,7 @@ struct TINY_API FMiscTestUtil
 	static void Pause();
 	static MiscRenderScope RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe = true);
 	static EKeyCode::Type  WaitInputKey();
+	static std::string     WaitInputText(char const* defaultText);
 };
 
 #define TEST_CHECK(C)\

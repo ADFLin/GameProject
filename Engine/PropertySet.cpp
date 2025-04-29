@@ -358,6 +358,8 @@ bool PropertyFile::save(char const* path)
 		fs << '[' << section.key << ']' << std::endl;
 		SerializeValues(section.elements);
 	}
+
+	return true;
 }
 
 bool PropertyFile::load(char const* path)

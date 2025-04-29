@@ -7,7 +7,7 @@
 #include <iostream>
 
 
-void ExprParse::print(  Unit const& unit , SymbolTable const& table )
+void ExprParse::Print(  Unit const& unit , SymbolTable const& table )
 {
 	using std::cout;
 
@@ -62,13 +62,13 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 	}
 }
 
-void ExprParse::print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket )
+void ExprParse::Print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket )
 {
 	if (!haveBracket) 
 	{
 		for(auto const& unit : codes)
 		{
-			print( unit , table );
+			Print( unit , table );
 		}
 	}
 	else
@@ -78,7 +78,7 @@ void ExprParse::print( UnitCodes const& codes , SymbolTable const& table , bool 
 			std::cout << "[";
 			if ( IsBinaryOperator( unit.type ) && unit.isReverse )
 				std::cout << "re" ;
-			print( unit , table );
+			Print( unit , table );
 			std::cout << "]";
 		}
 	}
@@ -929,16 +929,15 @@ void ExprTreeBuilder::build(ExpressionTreeData& treeData) /*throw ParseException
 	mNumNodes  = 1;
 
 	int idxNode = 0;
-	int idxLeft = buildTree_R( idxNode , 0 , exprCodes.size(), false );
+	int idxLeft = build_R(0, exprCodes.size(), false);
 
 	Node& node = mTreeNodes[ idxNode ];
 	node.indexOp = INDEX_NONE;
-	node.parent  = INDEX_NONE;
 	node.children[ CN_LEFT  ]  = idxLeft;
 	node.children[ CN_RIGHT ]  = 0;
 }
 
-int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool bFuncDef)
+int ExprTreeBuilder::build_R(int idxStart, int idxEnd, bool bFuncDef)
 {	
 	if ( idxEnd == idxStart )
 		return 0;
@@ -954,7 +953,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 	}
 
 	
-	int   idxOp = -1;
+	int   idxOp = INDEX_NONE;
 	{
 		int const NoOpOrder = PRECEDENCE_MASK;
 		int orderOp  = NoOpOrder;
@@ -981,7 +980,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 		}
 	}
 
-	if ( idxOp != -1 )
+	if ( idxOp != INDEX_NONE )
 	{
 		Unit& op = mExprCodes[ idxOp ];
 		if ( bFuncDef )
@@ -998,12 +997,11 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 
 		int idxNode = mNumNodes++;
 
-		int idxLeft  = buildTree_R( idxNode , idxStart , idxOp , bFuncDef );
-		int idxRight = buildTree_R( idxNode , idxOp + 1 , idxEnd , bFuncDef );
+		int idxLeft  = build_R(idxStart, idxOp, bFuncDef);
+		int idxRight = build_R(idxOp + 1, idxEnd, bFuncDef);
 
 		Node& node = mTreeNodes[ idxNode ];
 		node.indexOp = idxOp;
-		node.parent  = idxParent;
 		node.children[ CN_LEFT  ] = idxLeft;
 		node.children[ CN_RIGHT ] = idxRight;
 		return idxNode;
@@ -1024,10 +1022,9 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 		int idxNode = mNumNodes++;
 
 		++idxStart;
-		int idxLeft  = buildTree_R( idxNode , idxStart , idxEnd , true );
+		int idxLeft  = build_R(idxStart, idxEnd, true);
 
 		Node& node = mTreeNodes[ idxNode ];
-		node.parent  = idxParent;
 		node.indexOp = indexOp;
 		node.children[ CN_LEFT  ] = idxLeft;
 		node.children[ CN_RIGHT ] = 0;
@@ -1042,7 +1039,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool 
 		throw ExprParseException( eExprError , "Error format" );
 
 	++idxStart;
-	return buildTree_R( idxParent , idxStart , idxEnd , false );
+	return build_R(idxStart, idxEnd, false);
 }
 
 void ExprTreeBuilder::convertPostfixCode( UnitCodes& codes )
@@ -1205,7 +1202,7 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 		}
 		else
 		{
-			if (numVar != unit.symbol->func.numParams)
+			if (numVar != unit.symbol->func.numArgs)
 				return TREE_FUN_PARAM_NUM_NO_MATCH;
 		}
 	}
@@ -1397,7 +1394,7 @@ void ExprTreeBuilder::printTree_R( int idxNode , int depth )
 
 		printSpace( depth * 4 );
 		std::cout << '[';
-		print( unit , *mTable );
+		Print( unit , *mTable );
 		std::cout << ']' << std::endl;
 	}
 	else
@@ -1408,7 +1405,7 @@ void ExprTreeBuilder::printTree_R( int idxNode , int depth )
 
 		printSpace( depth * 4 );
 		std::cout << '[';
-		print( mExprCodes[node.indexOp], *mTable );
+		Print( mExprCodes[node.indexOp], *mTable );
 		std::cout << ']' << std::endl;
 
 		printTree_R( node.children[ CN_LEFT ] , depth + 1 );
@@ -1536,4 +1533,47 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 		++index;
 	}
 	return index;
+}
+
+void ExpressionTreeData::printExpression_R(int idxNode, SymbolTable const& table)
+{
+	if (idxNode < 0)
+	{
+		Unit const& code = codes[LEAF_UNIT_INDEX(idxNode)];
+		Print(code, table);
+		return;
+	}
+	else if (idxNode == 0)
+		return;
+
+	Node& node = nodes[idxNode];
+	Unit& unit = codes[node.indexOp];
+
+	if (ExprParse::IsFunction(unit.type))
+	{
+		Print(unit, table);
+		std::cout << '(';
+		printExpression_R(node.children[CN_LEFT], table);
+		if (node.children[CN_RIGHT] > 0)
+		{
+			std::cout << ',';
+			printExpression_R(node.children[CN_RIGHT], table);
+		}
+		std::cout << ')';
+	}
+	else if (ExprParse::IsBinaryOperator(unit.type))
+	{
+		std::cout << '(';
+		printExpression_R(node.children[CN_LEFT], table);
+		Print(unit, table);
+		printExpression_R(node.children[CN_RIGHT], table);
+		std::cout << ')';
+	}
+	else
+	{
+		Print(unit, table);
+		std::cout << '(';
+		printExpression_R(node.children[CN_LEFT], table);
+		std::cout << ')';
+	}
 }

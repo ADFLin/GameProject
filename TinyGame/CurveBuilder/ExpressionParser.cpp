@@ -47,7 +47,16 @@ void ExprParse::Print(  Unit const& unit , SymbolTable const& table )
 			if ( name )
 				cout << name;
 			else
-				cout << "unknowFun";
+				cout << "unknowFunc";
+		}
+		break;
+	case FUNC_SYMBOL:
+		{
+			char const* name = table.getFuncName(unit.funcSymbol);
+			if (name)
+				cout << name;
+			else
+				cout << "unknowFunc";
 		}
 		break;
 	case VALUE_VARIABLE:
@@ -85,6 +94,24 @@ void ExprParse::Print( UnitCodes const& codes , SymbolTable const& table , bool 
 	std::cout << '\n';
 }
 
+
+bool ExprParse::IsValueEqual(Unit const& a, Unit const& b)
+{
+	CHECK(IsValue(a.type) && IsValue(b.type));
+	if (a.type != b.type)
+	{
+		switch (a.type)
+		{
+		case VALUE_CONST:
+			return a.constValue == b.constValue;
+		case VALUE_VARIABLE:
+			return a.symbol->varValue.ptr == b.symbol->varValue.ptr;
+		case VALUE_INPUT:
+			return a.symbol->input.index == b.symbol->input.index;
+		}
+	}
+	return false;
+}
 
 bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& table , UnitCodes& infixCode )
 {
@@ -240,6 +267,12 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 					{
 						type = VALUE_INPUT;
 						infixCode.emplace_back(type, symbol);
+					}
+					break;
+				case SymbolEntry::eFunctionSymbol:
+					{
+						type = FUNC_SYMBOL;
+						infixCode.emplace_back(symbol->funcSymbol);
 					}
 					break;
 				}
@@ -1195,14 +1228,14 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 			++numVar;
 		}
 
-		if (unit.symbol->func.signature)
+		if (unit.symbol->type == SymbolEntry::eFunction)
 		{
 			if (numVar != unit.symbol->func.getArgNum())
 				return TREE_FUN_PARAM_NUM_NO_MATCH;
 		}
 		else
 		{
-			if (numVar != unit.symbol->func.numArgs)
+			if (numVar != unit.symbol->funcSymbol.numArgs)
 				return TREE_FUN_PARAM_NUM_NO_MATCH;
 		}
 	}
@@ -1436,6 +1469,17 @@ char const* SymbolTable::getFuncName(FuncInfo const& info) const
 	{
 		if( pair.second.type == SymbolEntry::eFunction &&
 		    pair.second.func == info )
+			return pair.first.c_str();
+	}
+	return nullptr;
+}
+
+char const* SymbolTable::getFuncName(FuncSymbolInfo const& info) const
+{
+	for (auto const& pair : mNameToEntryMap)
+	{
+		if (pair.second.type == SymbolEntry::eFunctionSymbol &&
+			pair.second.funcSymbol.id == info.id)
 			return pair.first.c_str();
 	}
 	return nullptr;

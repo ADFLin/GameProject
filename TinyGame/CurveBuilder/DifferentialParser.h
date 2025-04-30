@@ -38,44 +38,41 @@ public:
 	ExpressionTreeData mOutputData;
 	static constexpr int IDENTITY_INDEX = MaxInt32;
 
+
+
+#define DEFAULT_FUNC_SYMBOL_LIST(op)\
+		op(Exp, "exp", 1)\
+		op(Ln, "ln", 1)\
+		op(Sin, "sin", 1)\
+		op(Cos, "cos", 1)\
+		op(Tan, "tan", 1)\
+		op(Cot, "cot", 1)\
+		op(Sec, "sec", 1)\
+		op(Csc, "csc", 1)
+
 	enum EFuncSymbol
 	{
-		Exp,
-		Ln,
-		Sin,
-		Cos,
-		Tan,
-		Cot,
-		Sec,
-		Csc,
+	#define ENUM_OP(SYMBOL, NAME, NUM_ARG) SYMBOL,
+		DEFAULT_FUNC_SYMBOL_LIST(ENUM_OP)
+	#undef ENUM_OP
 	};
 
-	static SymbolEntry const* GetFuncSymbolEntry(EFuncSymbol symbol)
+	static FuncSymbolInfo const& GetFuncSymbolEntry(EFuncSymbol symbol)
 	{
-		static SymbolEntry StaticMap[] =
+	#define FUNC_INFO_OP(SYMBOL, NAME, NUM_ARG) FuncSymbolInfo{EFuncSymbol::SYMBOL , NUM_ARG},
+		static FuncSymbolInfo StaticMap[] =
 		{
-			FuncInfo{EFuncSymbol::Exp , 1},
-			FuncInfo{EFuncSymbol::Ln , 1},
-			FuncInfo{EFuncSymbol::Sin , 1},
-			FuncInfo{EFuncSymbol::Cos , 1},
-			FuncInfo{EFuncSymbol::Tan , 1},
-			FuncInfo{EFuncSymbol::Cot , 1},
-			FuncInfo{EFuncSymbol::Sec , 1},
-			FuncInfo{EFuncSymbol::Csc , 1},
+			DEFAULT_FUNC_SYMBOL_LIST(FUNC_INFO_OP)
 		};
-		return &StaticMap[symbol];
+	#undef FUNC_INFO_OP
+		return StaticMap[symbol];
 	}
 
 	static void DefineFuncSymbol(SymbolTable& table)
 	{
-		table.defineFuncSymbol("exp", EFuncSymbol::Exp);
-		table.defineFuncSymbol("ln", EFuncSymbol::Ln);
-		table.defineFuncSymbol("sin", EFuncSymbol::Sin);
-		table.defineFuncSymbol("cos", EFuncSymbol::Cos);
-		table.defineFuncSymbol("tan", EFuncSymbol::Tan);
-		table.defineFuncSymbol("cot", EFuncSymbol::Cot);
-		table.defineFuncSymbol("sec", EFuncSymbol::Sec);
-		table.defineFuncSymbol("csc", EFuncSymbol::Csc);
+#define DEFINE_FUNC_OP(SYMBOL, NAME, NUM_ARG) table.defineFuncSymbol(NAME, EFuncSymbol::SYMBOL, NUM_ARG);
+		DEFAULT_FUNC_SYMBOL_LIST(DEFINE_FUNC_OP)
+#undef DEFINE_FUNC_OP
 	}
 
 	struct Index
@@ -120,14 +117,14 @@ public:
 
 		if (ExprParse::IsFunction(op.type))
 		{
-			CHECK(op.symbol->func.numArgs == 1);
+			CHECK(op.funcSymbol.numArgs == 1);
 			int indexArg = node.children[CN_LEFT];
 
 			Index indexArgEval = evalExpr(indexArg);
 			if (indexArgEval != 0)
 			{
 				Index indexFuncEval = Index::Zero();
-				switch (op.symbol->func.symbolId)
+				switch (op.funcSymbol.id)
 				{
 				case EFuncSymbol::Exp:
 					indexFuncEval = emitFuncSymbol(EFuncSymbol::Exp, emitExpr(indexArg));
@@ -262,7 +259,7 @@ public:
 		auto entry = GetFuncSymbolEntry(symbol);
 
 		int indexFuncOp = mOutputData.codes.size();
-		mOutputData.codes.push_back(Unit{ FUNC_DEF, entry });
+		mOutputData.codes.push_back(Unit{ entry });
 
 		int indexFuncNode = mOutputData.nodes.size();
 		Node node;
@@ -279,7 +276,7 @@ public:
 		auto entry = GetFuncSymbolEntry(symbol);
 
 		int indexFuncOp = mOutputData.codes.size();
-		mOutputData.codes.push_back(Unit{ FUNC_DEF, entry });
+		mOutputData.codes.push_back(Unit{ entry });
 
 		int indexFuncNode = mOutputData.nodes.size();
 		Node node;
@@ -303,6 +300,11 @@ public:
 
 	Index emitConst(RealType value)
 	{
+		if (value == RealType(1))
+		{
+			return Index::Identity();
+		}
+
 		int indexCode = mOutputData.codes.size();
 		mOutputData.codes.push_back(Unit{ VALUE_CONST, ConstValueInfo(value)});
 		return Index { -(indexCode + 1) , true };
@@ -310,11 +312,18 @@ public:
 
 	Index emitExpr(int index)
 	{
+		CHECK(index != IDENTITY_INDEX);
 		if (index == 0)
 			return Index::Zero();
 
-		if (index == IDENTITY_INDEX)
-			return Index::Identity();
+		return emitExprInternal<false>(index);
+	}
+
+
+	Index emitExprConditional(int index, bool bNeedEmit)
+	{
+		if (!bNeedEmit || index == 0)
+			return Index::Zero();
 
 		return emitExprInternal<false>(index);
 	}
@@ -404,11 +413,14 @@ public:
 
 	int emitIfNeed(Index index)
 	{
+		CHECK(index.value != 0);
 		if (index.bOutput)
 			return index.value;
 
-
-		CHECK(index.value != 0 && index.value != IDENTITY_INDEX);
+		if (index.value == IDENTITY_INDEX)
+		{
+			return emitConst(1.0).value;
+		}
 
 		Unit const& unit = mEvalData.codes[LEAF_UNIT_INDEX(index.value)];
 		int indexOutput = mOutputData.codes.size();
@@ -442,6 +454,36 @@ public:
 		code.type = op;
 		code.isReverse = false;
 
+		auto leftValue = getValue(indexLeft);
+		auto rightValue = getValue(indexRight);
+
+		if (leftValue.type == VALUE_CONST && rightValue.type == VALUE_CONST)
+		{
+			RealType resultValue = 0.0;
+			switch (op)
+			{
+			case ExprParse::BOP_ADD:
+				resultValue = leftValue.constValue.asReal + rightValue.constValue.asReal;
+				break;
+			case ExprParse::BOP_SUB:
+				resultValue = leftValue.constValue.asReal - rightValue.constValue.asReal;
+				break;
+			case ExprParse::BOP_MUL:
+				resultValue = leftValue.constValue.asReal * rightValue.constValue.asReal;
+				break;
+			case ExprParse::BOP_DIV:
+				resultValue = leftValue.constValue.asReal / rightValue.constValue.asReal;
+				break;
+			case ExprParse::BOP_POW:
+				resultValue = pow(leftValue.constValue.asReal,rightValue.constValue.asReal);
+				break;
+			default:
+				NEVER_REACH("");
+			}
+
+			return emitConst(resultValue);
+		}
+
 		int indexCode = mOutputData.codes.size();
 		mOutputData.codes.push_back(code);
 
@@ -471,8 +513,6 @@ public:
 		{
 			if (indexRight != 0) //L+R
 			{
-				indexLeft = emitIdentityIfNeed(indexLeft);
-				indexRight = emitIdentityIfNeed(indexRight);
 				return emitBop(BOP_ADD, indexLeft , indexRight);
 			}
 			else //L
@@ -497,8 +537,6 @@ public:
 				if (indexLeft == IDENTITY_INDEX && indexRight == IDENTITY_INDEX)
 					return Index::Zero();
 
-				indexLeft = emitIdentityIfNeed(indexLeft);
-				indexRight = emitIdentityIfNeed(indexRight);
 				return emitBop(BOP_SUB, indexLeft, indexRight);
 			}
 			else //L
@@ -514,12 +552,14 @@ public:
 		return Index::Zero();
 	}
 
-
-	Unit const& getValue(Index index)
+	Unit getValue(Index index)
 	{
+		if (index == IDENTITY_INDEX)
+		{
+			return Unit(VALUE_CONST, ConstValueInfo{RealType(1.0)});
+		}
 		int indexCode = LEAF_UNIT_INDEX(index.value);
 		return index.bOutput ? mOutputData.codes[indexCode] : mEvalData.codes[indexCode];
-
 	}
 
 	bool isEqualValue(Index indexLeft, Index indexRight)
@@ -534,20 +574,7 @@ public:
 		{
 			Unit valueL = getValue(indexLeft);
 			Unit valueR = getValue(indexRight);
-
-			if (valueL.type != valueR.type )
-				return false;
-
-
-			switch (valueL.type)
-			{
-			case VALUE_CONST:
-				return valueL.constValue == valueR.constValue;
-			case VALUE_VARIABLE:
-				return valueL.symbol->varValue.ptr == valueL.symbol->varValue.ptr;
-			case VALUE_INPUT:
-				return valueL.symbol->input.index == valueL.symbol->input.index;
-			}
+			return IsValueEqual(valueL, valueR);
 		}
 
 		return false;
@@ -588,7 +615,6 @@ public:
 					return Index::Identity();
 				}
 
-				indexLeft = emitIdentityIfNeed(indexLeft);
 				return emitBop(BOP_DIV, indexLeft, indexRight);
 			}
 			else
@@ -611,7 +637,6 @@ public:
 		{
 			if (indexRight != IDENTITY_INDEX)
 			{
-				indexLeft = emitIdentityIfNeed(indexLeft);
 				return emitBop(BOP_POW, indexLeft, indexRight);
 			}
 			else

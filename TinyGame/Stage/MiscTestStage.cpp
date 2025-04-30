@@ -1410,24 +1410,22 @@ REGISTER_MISC_TEST_ENTRY("Overwrite File Test", OverwriteFileTest);
 
 void DifferentialTest()
 {
+	static std::string LastExprText = "x*x";
+	std::string expr = FMiscTestUtil::WaitInputText(LastExprText.c_str());
+	LastExprText = expr;
+
 	SymbolTable table;
-	DifferentialParser::DefineFuncSymbol(table);
-
-	ExpressionTreeData exprData;
-	ExpressionParser parser;
-
 	table.defineVarInput("x", 0);
 	table.defineVarInput("t", 1);
-	
-	std::string expr = FMiscTestUtil::WaitInputText("x*x");
-	parser.parse(expr.c_str(), table, exprData);
 
+	DifferentialParser::DefineFuncSymbol(table);
+	ExpressionTreeData exprData;
+	ExpressionParser parser;
+	parser.parse(expr.c_str(), table, exprData);
 	exprData.printExpression(table);
 	std::cout << " => ";
-
 	DifferentialParser diffParser(exprData);
 	diffParser.parse();
-
 	diffParser.mOutputData.printExpression(table);
 	std::cout << std::endl;
 }

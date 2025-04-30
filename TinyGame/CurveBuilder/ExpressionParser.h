@@ -9,7 +9,6 @@
 #include <cmath>
 #include <cassert>
 
-
 class CodeTemplate;
 class SymbolTable;
 struct SymbolEntry;
@@ -163,34 +162,22 @@ struct TGetFuncSignature< RT (*)(Args...) >
 };
 
 
+struct FuncSymbolInfo
+{
+	int32 id;
+	int32 numArgs;
+};
+
+
 struct FuncInfo
 {
-	union 
-	{
-		struct  
-		{
-			void* funcPtr;
-		};
-		struct  
-		{
-			int32 symbolId;
-			int32 numArgs;
-		};
-	};
-
+	void* funcPtr;
 	FuncSignatureInfo const* signature;
 
 	template< class T >
 	FuncInfo(T func)
 		:funcPtr(func)
 		,signature( &TGetFuncSignature<T>::Result() )
-	{
-
-	}
-
-	FuncInfo(int32 symbolId, int32 numArgs)
-		:symbolId(symbolId)
-		, numArgs(numArgs)
 	{
 
 	}
@@ -341,6 +328,7 @@ public:
 		UOP_DEC_PRE      = 0x000904 | TOKEN_UNARY_OP ,
 
 		FUNC_DEF         = 0x000a01 | TOKEN_FUNC ,
+		FUNC_SYMBOL      = 0x000a02 | TOKEN_FUNC,
 
 		VALUE_CONST      = 0x000001 | TOKEN_VALUE ,
 		VALUE_VARIABLE   = 0x000002 | TOKEN_VALUE ,
@@ -367,6 +355,8 @@ public:
 			:type(type),constValue(val){}
 		Unit(TokenType type,SymbolEntry const* symbol)
 			:type(type), symbol(symbol){}
+		Unit(FuncSymbolInfo funcSymbol)
+			:type(FUNC_SYMBOL), funcSymbol(funcSymbol){}
 
 
 		TokenType    type;
@@ -375,6 +365,7 @@ public:
 			SymbolEntry const* symbol;
 			bool            isReverse;
 			ConstValueInfo  constValue;
+			FuncSymbolInfo  funcSymbol;
 		};
 	};
 
@@ -423,6 +414,7 @@ public:
 			switch (unit.type & TOKEN_MASK)
 			{
 			case TOKEN_FUNC:
+				CHECK(unit.symbol->type == SymbolEntry::eFunction);
 				generator.codeFunction(unit.symbol->func);
 				break;
 			case TOKEN_UNARY_OP:
@@ -434,6 +426,9 @@ public:
 			}
 		}
 	}
+
+
+	static bool IsValueEqual(Unit const& a, Unit const& b);
 };
 
 
@@ -442,6 +437,7 @@ struct SymbolEntry
 	enum Type
 	{
 		eFunction,
+		eFunctionSymbol,
 		eConstValue,
 		eVariable,
 		eInputVar,
@@ -452,6 +448,7 @@ struct SymbolEntry
 	{
 		InputInfo      input;
 		FuncInfo       func;
+		FuncSymbolInfo funcSymbol;
 		ConstValueInfo constValue;
 		VariableInfo   varValue;
 	};
@@ -480,6 +477,12 @@ struct SymbolEntry
 		,input(value)
 	{
 	}
+
+	SymbolEntry(FuncSymbolInfo value)
+		:type(eFunctionSymbol)
+		, funcSymbol(value)
+	{
+	}
 };
 
 class SymbolTable
@@ -493,7 +496,7 @@ public:
 	template< class T>
 	void            defineFunc(char const* name, T func) { mNameToEntryMap[name] = FuncInfo{ func }; }
 
-	void            defineFuncSymbol(char const* name, int32 symbolId, int32 numParams = 1) { mNameToEntryMap[name] = FuncInfo{ symbolId, numParams }; }
+	void            defineFuncSymbol(char const* name, int32 symbolId, int32 numParams = 1) { mNameToEntryMap[name] = FuncSymbolInfo{ symbolId, numParams }; }
 
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = InputInfo{ inputIndex }; }
 	
@@ -503,6 +506,7 @@ public:
 	InputInfo const*      findInput(char const* name) const;
 
 	char const*     getFuncName(FuncInfo const& info) const;
+	char const*     getFuncName(FuncSymbolInfo const& info) const;
 	char const*     getVarName(void* varPtr) const;
 	char const*     getInputName(int index) const;
 
@@ -515,7 +519,11 @@ public:
 
 	SymbolEntry const* findSymbol(char const* name) const
 	{
-		auto iter = mNameToEntryMap.find(name);
+		HashString key;
+		if (!HashString::Find(name, key))
+			return nullptr;
+
+		auto iter = mNameToEntryMap.find(key);
 		if( iter != mNameToEntryMap.end() )
 			return &iter->second;
 			
@@ -523,6 +531,10 @@ public:
 	}
 	SymbolEntry const* findSymbol(char const* name, SymbolEntry::Type type) const
 	{
+		HashString key;
+		if (!HashString::Find(name, key))
+			return nullptr;
+
 		auto iter = mNameToEntryMap.find(name);
 		if( iter != mNameToEntryMap.end() )
 		{

@@ -6,92 +6,27 @@
 #include <cctype>
 #include <iostream>
 
-
-void ExprParse::Print(  Unit const& unit , SymbolTable const& table )
-{
-	using std::cout;
-
-	switch( unit.type )
-	{
-	case TOKEN_LBAR:cout<<"(";  break;
-	case TOKEN_RBAR:cout<<")";  break;
-	case IDT_SEPARETOR:cout<<";";  break;
-	case BOP_COMMA:  cout<<",";  break;
-	case BOP_BIG:    cout<<">";  break;
-	case BOP_BIGEQU: cout<<">="; break;
-	case BOP_SML:    cout<<"<";  break;
-	case BOP_SMLEQU: cout<<"<="; break;
-	case BOP_EQU:    cout<<"=="; break;
-	case BOP_NEQU:   cout<<"!="; break;
-	case BOP_ADD:    cout<<"+";  break;
-	case BOP_SUB:    cout<<"-";  break;
-	case BOP_MUL:    cout<<"*";  break;
-	case BOP_DIV:    cout<<"/";  break;
-	case BOP_POW:    cout<<"^";  break;
-	case UOP_MINS:   cout<<"-";  break;
-	case BOP_ASSIGN: cout<<"=";  break;
-	case VALUE_CONST: cout << unit.constValue.asReal ; break;
-	case VALUE_INPUT:
-		{
-			char const* name = table.getInputName(unit.symbol->input.index);
-			if (name)
-				cout << name;
-			else
-				cout << "unknowInput";
-
-		}
-		break;
-	case FUNC_DEF:
-		{
-			char const* name = table.getFuncName( unit.symbol->func );
-			if ( name )
-				cout << name;
-			else
-				cout << "unknowFunc";
-		}
-		break;
-	case FUNC_SYMBOL:
-		{
-			char const* name = table.getFuncName(unit.funcSymbol);
-			if (name)
-				cout << name;
-			else
-				cout << "unknowFunc";
-		}
-		break;
-	case VALUE_VARIABLE:
-		{
-			char const* name = table.getVarName( unit.symbol->varValue.ptr );
-			if ( name )
-				cout << name;
-			else
-				cout << "unknowVar";
-		}
-		break;
-	}
-}
-
-void ExprParse::Print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket )
+void ExprParse::Print(ExprOutputContext& context, UnitCodes const& codes,  bool haveBracket)
 {
 	if (!haveBracket) 
 	{
 		for(auto const& unit : codes)
 		{
-			Print( unit , table );
+			context.output(unit);
 		}
 	}
 	else
 	{
 		for(auto const& unit : codes)
 		{
-			std::cout << "[";
+			context.output("[");
 			if ( IsBinaryOperator( unit.type ) && unit.isReverse )
-				std::cout << "re" ;
-			Print( unit , table );
-			std::cout << "]";
+				context.output("re");
+			context.output(unit);
+			context.output("]");
 		}
 	}
-	std::cout << '\n';
+	context.output('\n');
 }
 
 
@@ -1413,53 +1348,48 @@ bool ExprTreeBuilder::optimizeNodeBOpOrder( int idxNode )
 	return false;
 }
 
-void ExprTreeBuilder::printTree_R( int idxNode , int depth )
+void ExprTreeBuilder::printTree_R(ExprOutputContext& context, int idxNode , int depth )
 {
 	
 	if ( idxNode == 0 )
 	{
-		printSpace( depth * 4 );
-		std::cout << "[]" << std::endl;
+		context.outputSpace( depth * 4 );
+		context.output("[]");
+		context.outputEOL();
 	}
 	else if ( idxNode < 0 )
 	{
 		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
 
-		printSpace( depth * 4 );
-		std::cout << '[';
-		Print( unit , *mTable );
-		std::cout << ']' << std::endl;
+		context.outputSpace( depth * 4 );
+		context.output('[');
+		context.output(unit);
+		context.output(']');
+		context.outputEOL();
 	}
 	else
 	{
 		Node const& node = mTreeNodes[ idxNode ];
 
-		printTree_R( node.children[ CN_RIGHT ] , depth + 1 );
+		printTree_R(context, node.children[ CN_RIGHT ] , depth + 1 );
 
-		printSpace( depth * 4 );
-		std::cout << '[';
-		Print( mExprCodes[node.indexOp], *mTable );
-		std::cout << ']' << std::endl;
-
-		printTree_R( node.children[ CN_LEFT ] , depth + 1 );
+		context.outputSpace( depth * 4 );
+		context.output('[');
+		context.output(mExprCodes[node.indexOp]);
+		context.output(']');
+		context.outputEOL();
+		printTree_R(context, node.children[ CN_LEFT ] , depth + 1 );
 	}
 }
 
-void ExprTreeBuilder::printSpace(int num)
-{
-	for ( int i = 0 ; i < num ; ++i )
-	{
-		std::cout << ' '; 
-	}
-}
 
 void ExprTreeBuilder::printTree(SymbolTable const& table)
 {
-	mTable = &table;
 	if ( mNumNodes != 0 )
 	{
+		ExprOutputContext context(table);
 		Node& root = mTreeNodes[ 0 ];
-		printTree_R( root.children[ CN_LEFT ] , 0 );
+		printTree_R(context, root.children[ CN_LEFT ] , 0 );
 	}
 }
 
@@ -1579,12 +1509,12 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 	return index;
 }
 
-void ExpressionTreeData::printExpression_R(int idxNode, SymbolTable const& table)
+void ExpressionTreeData::printExpression_R(ExprOutputContext& context, Node const& parent, int idxNode)
 {
 	if (idxNode < 0)
 	{
 		Unit const& code = codes[LEAF_UNIT_INDEX(idxNode)];
-		Print(code, table);
+		context.output(code);
 		return;
 	}
 	else if (idxNode == 0)
@@ -1595,29 +1525,135 @@ void ExpressionTreeData::printExpression_R(int idxNode, SymbolTable const& table
 
 	if (ExprParse::IsFunction(unit.type))
 	{
-		Print(unit, table);
-		std::cout << '(';
-		printExpression_R(node.children[CN_LEFT], table);
+		context.output(unit);
+		context.output('(');
+		printExpression_R(context, node, node.children[CN_LEFT]);
 		if (node.children[CN_RIGHT] > 0)
 		{
-			std::cout << ',';
-			printExpression_R(node.children[CN_RIGHT], table);
+			context.output(';');
+			printExpression_R(context, node, node.children[CN_RIGHT]);
 		}
-		std::cout << ')';
+		context.output(')');
 	}
 	else if (ExprParse::IsBinaryOperator(unit.type))
 	{
-		std::cout << '(';
-		printExpression_R(node.children[CN_LEFT], table);
-		Print(unit, table);
-		printExpression_R(node.children[CN_RIGHT], table);
-		std::cout << ')';
+		bool bNeedBracket = true;
+
+		Unit const& opParent = codes[node.indexOp];
+		if (IsBinaryOperator(opParent.type) && ExprParse::PrecedeceOrder(opParent.type) <= ExprParse::PrecedeceOrder(unit.type))
+		{
+			bNeedBracket = false;
+		}
+
+		if (bNeedBracket)
+			context.output('(');
+		printExpression_R(context, node, node.children[CN_LEFT]);
+		context.output(unit);
+		printExpression_R(context, node, node.children[CN_RIGHT]);
+		if (bNeedBracket)
+			context.output(')');
 	}
 	else
 	{
-		Print(unit, table);
-		std::cout << '(';
-		printExpression_R(node.children[CN_LEFT], table);
-		std::cout << ')';
+		bool bNeedBracket = true;
+
+		if (IsLeaf(node.children[CN_LEFT]))
+		{
+			bNeedBracket = false;
+		}
+
+		context.output(unit);
+		if (bNeedBracket)
+			context.output('(');
+		printExpression_R(context, node, node.children[CN_LEFT]);
+		if (bNeedBracket)
+			context.output(')');
 	}
+}
+
+void ExprOutputContext::output(Unit const& unit)
+{
+	using std::cout;
+
+	switch (unit.type)
+	{
+	case TOKEN_LBAR:cout << "(";  break;
+	case TOKEN_RBAR:cout << ")";  break;
+	case IDT_SEPARETOR:cout << ";";  break;
+	case BOP_COMMA:  cout << ",";  break;
+	case BOP_BIG:    cout << ">";  break;
+	case BOP_BIGEQU: cout << ">="; break;
+	case BOP_SML:    cout << "<";  break;
+	case BOP_SMLEQU: cout << "<="; break;
+	case BOP_EQU:    cout << "=="; break;
+	case BOP_NEQU:   cout << "!="; break;
+	case BOP_ADD:    cout << "+";  break;
+	case BOP_SUB:    cout << "-";  break;
+	case BOP_MUL:    cout << "*";  break;
+	case BOP_DIV:    cout << "/";  break;
+	case BOP_POW:    cout << "^";  break;
+	case UOP_MINS:   cout << "-";  break;
+	case BOP_ASSIGN: cout << "=";  break;
+	case VALUE_CONST: cout << unit.constValue.asReal; break;
+	case VALUE_INPUT:
+		{
+			char const* name = table.getInputName(unit.symbol->input.index);
+			if (name)
+				cout << name;
+			else
+				cout << "unknowInput";
+
+		}
+		break;
+	case FUNC_DEF:
+		{
+			char const* name = table.getFuncName(unit.symbol->func);
+			if (name)
+				cout << name;
+			else
+				cout << "unknowFunc";
+		}
+		break;
+	case FUNC_SYMBOL:
+		{
+			char const* name = table.getFuncName(unit.funcSymbol);
+			if (name)
+				cout << name;
+			else
+				cout << "unknowFunc";
+		}
+		break;
+	case VALUE_VARIABLE:
+		{
+			char const* name = table.getVarName(unit.symbol->varValue.ptr);
+			if (name)
+				cout << name;
+			else
+				cout << "unknowVar";
+		}
+		break;
+	}
+}
+
+void ExprOutputContext::output(char c)
+{
+	std::cout << c;
+}
+
+void ExprOutputContext::output(char const* str)
+{
+	std::cout << str;
+}
+
+void ExprOutputContext::outputSpace(int num)
+{
+	for (int i = 0; i < num; ++i)
+	{
+		std::cout << ' ';
+	}
+}
+
+void ExprOutputContext::outputEOL()
+{
+	std::cout << "\n";
 }

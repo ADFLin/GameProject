@@ -284,6 +284,7 @@ using FuncType3 = RealType (__cdecl *)(RealType,RealType,RealType);
 using FuncType4 = RealType (__cdecl *)(RealType,RealType,RealType,RealType);
 using FuncType5 = RealType (__cdecl *)(RealType,RealType,RealType,RealType,RealType);
 
+class ExprOutputContext;
 class ExprParse
 {
 public:
@@ -371,8 +372,7 @@ public:
 
 	
 	using UnitCodes = TArray<Unit>;
-	static void Print( Unit const& unit , SymbolTable const& table );
-	static void Print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket );
+	static void Print(ExprOutputContext& context, UnitCodes const& codes, bool haveBracket);
 
 
 	enum
@@ -429,6 +429,24 @@ public:
 
 
 	static bool IsValueEqual(Unit const& a, Unit const& b);
+};
+
+
+class ExprOutputContext : ExprParse
+{
+public:
+	ExprOutputContext(SymbolTable const& table)
+		:table(table)
+	{
+	}
+
+	SymbolTable const& table;
+
+	void output(char c);
+	void output(char const* str);
+	void output(Unit const& unit);
+	void outputSpace(int num);
+	void outputEOL();
 };
 
 
@@ -587,12 +605,13 @@ struct ExpressionTreeData : public ExprParse
 	{
 		if (!nodes.empty())
 		{
+			ExprOutputContext context(table);
 			Node& root = nodes[0];
-			printExpression_R(root.children[CN_LEFT], table);
+			printExpression_R(context, root, root.children[CN_LEFT]);
 		}
 	}
 
-	void printExpression_R(int idxNode, SymbolTable const& table);
+	void printExpression_R(ExprOutputContext& context, Node const& parent, int idxNode);
 
 	template< typename TCodeGenerator >
 	void visitTree(TCodeGenerator& geneartor)
@@ -660,8 +679,8 @@ public:
 private:
 
 	Node& getNode( int idx ){ return mTreeNodes[ idx ]; }
-	void  printSpace(int num);
-	void  printTree_R(int idxNode, int depth);
+
+	void  printTree_R(ExprOutputContext& context, int idxNode, int depth);
 	int   build_R(int idxStart, int idxEnd, bool bFuncDef);
 	void  convertPostfixCode_R( UnitCodes& codes , int idxNode );
 	ErrorCode   checkTreeError_R( int idxNode );
@@ -704,7 +723,6 @@ private:
 	}
 
 	TArray< int > mIdxOpNext;
-	SymbolTable const* mTable;
 	Node*  mTreeNodes;
 	int    mNumNodes;
 	Unit*  mExprCodes;
@@ -746,8 +764,8 @@ public:
 		for ( int i = start; i < end; ++i )
 			mPFCodes[i+move] = mPFCodes[i];
 	}
-	void printInfixCodes(){ ExprParse::Print(mTreeData.codes, *mSymbolDefine, false); }
-	void printPostfixCodes(){ ExprParse::Print(mPFCodes, *mSymbolDefine, true); }
+	void printInfixCodes() { ExprOutputContext constext(*mSymbolDefine);  ExprParse::Print(constext, mTreeData.codes, false); }
+	void printPostfixCodes(){ ExprOutputContext constext(*mSymbolDefine); ExprParse::Print(constext, mPFCodes, true); }
 
 };
 

@@ -31,14 +31,13 @@ public:
 			node.indexOp = INDEX_NONE;
 			mOutputData.nodes.push_back(node);
 			Index index = evalExpr(mEvalData.nodes[0].children[CN_LEFT]);
-			mOutputData.nodes[0].children[CN_LEFT] = emitIdentityIfNeed(index).value;
+			mOutputData.nodes[0].children[CN_LEFT] = outputIfNeed(index);
 		}
 	}
-	ExpressionTreeData mEvalData;
+
+	ExpressionTreeData& mEvalData;
 	ExpressionTreeData mOutputData;
 	static constexpr int IDENTITY_INDEX = MaxInt32;
-
-
 
 #define DEFAULT_FUNC_SYMBOL_LIST(op)\
 		op(Exp, "exp", 1)\
@@ -173,10 +172,11 @@ public:
 				return emitSub(indexEvalL, indexEvalR);
 			case BOP_MUL:
 				{
-					//(d(L*R) = dL*R + L*dR
-					return emitAdd(
-						(indexEvalR == 0) ? Index::Zero() : emitMul(emitExpr(indexLeft), indexEvalR), 
-						(indexEvalL == 0) ? Index::Zero() : emitMul(indexEvalL, emitExpr(indexRight))
+					//(d(L*R) = L*dR + dL*R 
+					return emitAdd
+					(
+						(indexEvalL == 0) ? Index::Zero() : emitMul(indexEvalL, emitExpr(indexRight)),
+						(indexEvalR == 0) ? Index::Zero() : emitMul(emitExpr(indexLeft), indexEvalR)
 					);
 				}
 			case BOP_DIV:
@@ -186,13 +186,13 @@ public:
 						// dL / R
 						return (indexEvalL == 0) ? Index::Zero() : emitDiv(indexEvalL, emitExpr(indexRight));
 					}
-					//(d(L/R) = (dL*R - L*dR) / R^2
-					return emitDiv(
-						emitSub(
-							(indexEvalR == 0) ? Index::Zero() : emitMul(emitExpr(indexLeft), indexEvalR),
-							(indexEvalL == 0) ? Index::Zero() : emitMul(indexEvalL, emitExpr(indexRight))
-						),
-						emitPow(emitExpr(indexRight), emitConst(2))
+					//(d(L/R) = dL/R - L*dR/R^2
+					return emitSub(
+						indexEvalL == 0 ? Index::Zero() : emitDiv(indexEvalL, emitExpr(indexRight)),
+						indexEvalR == 0 ? Index::Zero() : emitDiv(
+							emitMul(emitExpr(indexLeft), indexEvalR),
+							emitPow(emitExpr(indexRight), emitConst(2))
+						)
 					);
 				}
 			case BOP_POW:
@@ -200,7 +200,8 @@ public:
 					if (indexEvalR == 0)
 					{
 						// R * L^(R - 1) * [dL]
-						return emitMul(
+						return emitMul
+						(
 							emitMul(
 								emitExpr(indexRight),
 								emitPow(emitExpr(indexLeft), emitSub(emitExpr(indexRight), Index::Identity()))
@@ -212,7 +213,8 @@ public:
 					//d(L^R) = L^R * [In(L)*dR + R/L* dL]
 					return emitMul(
 						emitPow(emitExpr(indexLeft), emitExpr(indexRight)),
-						emitAdd(
+						emitAdd
+						(
 							(indexEvalR == 0) ? Index::Zero() : emitMul(
 								emitFuncSymbol(EFuncSymbol::Ln, emitExpr(indexLeft)),
 								indexEvalR
@@ -264,8 +266,8 @@ public:
 		int indexFuncNode = mOutputData.nodes.size();
 		Node node;
 		node.indexOp = indexFuncOp;
-		node.children[0] = emitIfNeed(indexArg);
-		node.children[1] = 0;
+		node.children[CN_LEFT] = outputIfNeed(indexArg);
+		node.children[CN_RIGHT] = 0;
 		mOutputData.nodes.push_back(node);
 
 		return Index{ indexFuncNode , true };
@@ -281,8 +283,8 @@ public:
 		int indexFuncNode = mOutputData.nodes.size();
 		Node node;
 		node.indexOp = indexFuncOp;
-		node.children[0] = 0;
-		node.children[1] = 0;
+		node.children[CN_LEFT] = 0;
+		node.children[CN_RIGHT] = 0;
 		mOutputData.nodes.push_back(node);
 
 
@@ -304,10 +306,14 @@ public:
 		{
 			return Index::Identity();
 		}
+		return Index { outputConst(value) , true };
+	}
 
+	int outputConst(RealType value)
+	{
 		int indexCode = mOutputData.codes.size();
-		mOutputData.codes.push_back(Unit{ VALUE_CONST, ConstValueInfo(value)});
-		return Index { -(indexCode + 1) , true };
+		mOutputData.codes.push_back(Unit{ VALUE_CONST, ConstValueInfo(value) });
+		return -(indexCode + 1);
 	}
 
 	Index emitExpr(int index)
@@ -320,9 +326,10 @@ public:
 	}
 
 
-	Index emitExprConditional(int index, bool bNeedEmit)
+	Index emitExprConditional(int index, bool bCondition)
 	{
-		if (!bNeedEmit || index == 0)
+		CHECK(index != 0);
+		if (!bCondition)
 			return Index::Zero();
 
 		return emitExprInternal<false>(index);
@@ -369,17 +376,16 @@ public:
 			return Index{ -(indexOutput + 1) , true };
 		}
 
-		return Index{ emitNodeAndChildren<bOutput>(index), true };
+		return Index{ outputNodeAndChildren<bOutput>(index), true };
 	}
 
 	template< bool bOutput >
-	int emitNodeAndChildren(int index)
+	int outputNodeAndChildren(int index)
 	{
 		ExpressionTreeData const& readData = bOutput ? mOutputData : mEvalData;
 
 		Node const& nodeCopy = readData.nodes[index];
 		Unit const& opCopy = readData.codes[nodeCopy.indexOp];
-
 
 		int indexOp = mOutputData.codes.size();
 		mOutputData.codes.push_back(opCopy);
@@ -388,13 +394,13 @@ public:
 		mOutputData.nodes.push_back(nodeCopy);
 
 		mOutputData.nodes[indexNode].indexOp = indexOp;
-		mOutputData.nodes[indexNode].children[0] = emitTree_R<bOutput>(nodeCopy.children[0]);
-		mOutputData.nodes[indexNode].children[1] = emitTree_R<bOutput>(nodeCopy.children[1]);
+		mOutputData.nodes[indexNode].children[0] = outputTree_R<bOutput>(nodeCopy.children[0]);
+		mOutputData.nodes[indexNode].children[1] = outputTree_R<bOutput>(nodeCopy.children[1]);
 		return indexNode;
 	}
 
 	template< bool bOutput >
-	int emitTree_R(int index)
+	int outputTree_R(int index)
 	{
 		if (index == 0)
 			return 0;
@@ -408,10 +414,10 @@ public:
 			return -(indexOutput + 1);
 		}
 
-		return emitNodeAndChildren<bOutput>(index);
+		return outputNodeAndChildren<bOutput>(index);
 	}
 
-	int emitIfNeed(Index index)
+	int outputIfNeed(Index index)
 	{
 		CHECK(index.value != 0);
 		if (index.bOutput)
@@ -419,7 +425,7 @@ public:
 
 		if (index.value == IDENTITY_INDEX)
 		{
-			return emitConst(1.0).value;
+			return outputConst(1.0);
 		}
 
 		Unit const& unit = mEvalData.codes[LEAF_UNIT_INDEX(index.value)];
@@ -430,6 +436,7 @@ public:
 
 	Index emitUop(TokenType op, Index index)
 	{
+		CHECK(IsUnaryOperator(op));
 		Unit code;
 		code.type = op;
 		code.isReverse = false;
@@ -439,7 +446,7 @@ public:
 
 		Node node;
 		node.indexOp = indexCode;
-		node.children[CN_LEFT] = emitIfNeed(index);
+		node.children[CN_LEFT] = outputIfNeed(index);
 		node.children[CN_RIGHT] = 0;
 
 		int indexNode = mOutputData.nodes.size();
@@ -450,6 +457,7 @@ public:
 
 	Index emitBop(TokenType op, Index indexLeft, Index indexRight)
 	{
+		CHECK(IsBinaryOperator(op));
 		Unit code;
 		code.type = op;
 		code.isReverse = false;
@@ -489,8 +497,8 @@ public:
 
 		Node node;
 		node.indexOp = indexCode;
-		node.children[CN_LEFT] = emitIfNeed(indexLeft);
-		node.children[CN_RIGHT] = emitIfNeed(indexRight);
+		node.children[CN_LEFT] = outputIfNeed(indexLeft);
+		node.children[CN_RIGHT] = outputIfNeed(indexRight);
 
 		int indexNode = mOutputData.nodes.size();
 		mOutputData.nodes.push_back(node);
@@ -498,15 +506,7 @@ public:
 		return Index{ indexNode, true };
 	}
 
-	Index emitIdentityIfNeed(Index index)
-	{
-		if (index == IDENTITY_INDEX)
-		{
-			return emitConst(1.0);
-		}
-		return index;
-	}
-	
+
 	Index emitAdd(Index indexLeft, Index indexRight)
 	{
 		if (indexLeft != 0)
@@ -546,17 +546,29 @@ public:
 		}
 		else if (indexRight != 0) //R
 		{
-			return indexRight;
+			return emitUop(UOP_MINS, indexRight);
 		}
 
 		return Index::Zero();
 	}
+	static Unit GetZeroValue()
+	{
+		return Unit(VALUE_CONST, ConstValueInfo{ RealType(0) });
+	}
+	static Unit GetIdentityValue()
+	{
+		return Unit(VALUE_CONST, ConstValueInfo{ RealType(1) });
+	}
 
 	Unit getValue(Index index)
 	{
+		if (index == 0)
+		{
+			return GetZeroValue();
+		}
 		if (index == IDENTITY_INDEX)
 		{
-			return Unit(VALUE_CONST, ConstValueInfo{RealType(1.0)});
+			return GetIdentityValue();
 		}
 		int indexCode = LEAF_UNIT_INDEX(index.value);
 		return index.bOutput ? mOutputData.codes[indexCode] : mEvalData.codes[indexCode];

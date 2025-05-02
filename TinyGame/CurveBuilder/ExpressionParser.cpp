@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <sstream>
 
 void ExprParse::Print(ExprOutputContext& context, UnitCodes const& codes,  bool haveBracket)
 {
@@ -33,7 +34,7 @@ void ExprParse::Print(ExprOutputContext& context, UnitCodes const& codes,  bool 
 bool ExprParse::IsValueEqual(Unit const& a, Unit const& b)
 {
 	CHECK(IsValue(a.type) && IsValue(b.type));
-	if (a.type != b.type)
+	if (a.type == b.type)
 	{
 		switch (a.type)
 		{
@@ -1509,7 +1510,31 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 	return index;
 }
 
-void ExpressionTreeData::printExpression_R(ExprOutputContext& context, Node const& parent, int idxNode)
+void ExpressionTreeData::printExpression(SymbolTable const& table)
+{
+	if (!nodes.empty())
+	{
+		ExprOutputContext context(table);
+		Node& root = nodes[0];
+		output_R(context, root, root.children[CN_LEFT]);
+	}
+}
+
+std::string ExpressionTreeData::getExpressionText(SymbolTable const& table)
+{
+	if (!nodes.empty())
+	{
+		std::stringstream ss;
+		ExprOutputContext context(table, ss);
+		Node& root = nodes[0];
+		output_R(context, root, root.children[CN_LEFT]);
+
+		return ss.str();
+	}
+	return "";
+}
+
+void ExpressionTreeData::output_R(ExprOutputContext& context, Node const& parent, int idxNode)
 {
 	if (idxNode < 0)
 	{
@@ -1527,11 +1552,11 @@ void ExpressionTreeData::printExpression_R(ExprOutputContext& context, Node cons
 	{
 		context.output(unit);
 		context.output('(');
-		printExpression_R(context, node, node.children[CN_LEFT]);
+		output_R(context, node, node.children[CN_LEFT]);
 		if (node.children[CN_RIGHT] > 0)
 		{
 			context.output(';');
-			printExpression_R(context, node, node.children[CN_RIGHT]);
+			output_R(context, node, node.children[CN_RIGHT]);
 		}
 		context.output(')');
 	}
@@ -1539,17 +1564,31 @@ void ExpressionTreeData::printExpression_R(ExprOutputContext& context, Node cons
 	{
 		bool bNeedBracket = true;
 
-		Unit const& opParent = codes[node.indexOp];
-		if (IsBinaryOperator(opParent.type) && ExprParse::PrecedeceOrder(opParent.type) <= ExprParse::PrecedeceOrder(unit.type))
+		if (parent.indexOp != INDEX_NONE)
+		{
+			Unit const& opParent = codes[parent.indexOp];
+			if (IsFunction(opParent.type))
+			{
+				bNeedBracket = false;
+			}
+			else if (IsBinaryOperator(opParent.type))
+			{
+				if (ExprParse::PrecedeceOrder(opParent.type) <= ExprParse::PrecedeceOrder(unit.type))
+				{
+					bNeedBracket = false;
+				}
+			}
+		}
+		else
 		{
 			bNeedBracket = false;
 		}
 
 		if (bNeedBracket)
 			context.output('(');
-		printExpression_R(context, node, node.children[CN_LEFT]);
+		output_R(context, node, node.children[CN_LEFT]);
 		context.output(unit);
-		printExpression_R(context, node, node.children[CN_RIGHT]);
+		output_R(context, node, node.children[CN_RIGHT]);
 		if (bNeedBracket)
 			context.output(')');
 	}
@@ -1561,47 +1600,60 @@ void ExpressionTreeData::printExpression_R(ExprOutputContext& context, Node cons
 		{
 			bNeedBracket = false;
 		}
+		else
+		{
+			Node const& nodeChild = nodes[node.children[CN_LEFT]];
+			Unit const& childOp = codes[nodeChild.indexOp];
+			if (IsFunction(childOp.type))
+			{
+				bNeedBracket = false;
+			}
+		}
 
 		context.output(unit);
 		if (bNeedBracket)
 			context.output('(');
-		printExpression_R(context, node, node.children[CN_LEFT]);
+		output_R(context, node, node.children[CN_LEFT]);
 		if (bNeedBracket)
 			context.output(')');
 	}
 }
 
+ExprOutputContext::ExprOutputContext(SymbolTable const& table) 
+	:ExprOutputContext(table, std::cout)
+{
+
+}
+
 void ExprOutputContext::output(Unit const& unit)
 {
-	using std::cout;
-
 	switch (unit.type)
 	{
-	case TOKEN_LBAR:cout << "(";  break;
-	case TOKEN_RBAR:cout << ")";  break;
-	case IDT_SEPARETOR:cout << ";";  break;
-	case BOP_COMMA:  cout << ",";  break;
-	case BOP_BIG:    cout << ">";  break;
-	case BOP_BIGEQU: cout << ">="; break;
-	case BOP_SML:    cout << "<";  break;
-	case BOP_SMLEQU: cout << "<="; break;
-	case BOP_EQU:    cout << "=="; break;
-	case BOP_NEQU:   cout << "!="; break;
-	case BOP_ADD:    cout << "+";  break;
-	case BOP_SUB:    cout << "-";  break;
-	case BOP_MUL:    cout << "*";  break;
-	case BOP_DIV:    cout << "/";  break;
-	case BOP_POW:    cout << "^";  break;
-	case UOP_MINS:   cout << "-";  break;
-	case BOP_ASSIGN: cout << "=";  break;
-	case VALUE_CONST: cout << unit.constValue.asReal; break;
+	case TOKEN_LBAR:mStream << "(";  break;
+	case TOKEN_RBAR:mStream << ")";  break;
+	case IDT_SEPARETOR:mStream << ";";  break;
+	case BOP_COMMA:  mStream << ",";  break;
+	case BOP_BIG:    mStream << ">";  break;
+	case BOP_BIGEQU: mStream << ">="; break;
+	case BOP_SML:    mStream << "<";  break;
+	case BOP_SMLEQU: mStream << "<="; break;
+	case BOP_EQU:    mStream << "=="; break;
+	case BOP_NEQU:   mStream << "!="; break;
+	case BOP_ADD:    mStream << "+";  break;
+	case BOP_SUB:    mStream << "-";  break;
+	case BOP_MUL:    mStream << "*";  break;
+	case BOP_DIV:    mStream << "/";  break;
+	case BOP_POW:    mStream << "^";  break;
+	case UOP_MINS:   mStream << "-";  break;
+	case BOP_ASSIGN: mStream << "=";  break;
+	case VALUE_CONST: mStream << unit.constValue.asReal; break;
 	case VALUE_INPUT:
 		{
 			char const* name = table.getInputName(unit.symbol->input.index);
 			if (name)
-				cout << name;
+				mStream << name;
 			else
-				cout << "unknowInput";
+				mStream << "unknowInput";
 
 		}
 		break;
@@ -1609,27 +1661,27 @@ void ExprOutputContext::output(Unit const& unit)
 		{
 			char const* name = table.getFuncName(unit.symbol->func);
 			if (name)
-				cout << name;
+				mStream << name;
 			else
-				cout << "unknowFunc";
+				mStream << "unknowFunc";
 		}
 		break;
 	case FUNC_SYMBOL:
 		{
 			char const* name = table.getFuncName(unit.funcSymbol);
 			if (name)
-				cout << name;
+				mStream << name;
 			else
-				cout << "unknowFunc";
+				mStream << "unknowFunc";
 		}
 		break;
 	case VALUE_VARIABLE:
 		{
 			char const* name = table.getVarName(unit.symbol->varValue.ptr);
 			if (name)
-				cout << name;
+				mStream << name;
 			else
-				cout << "unknowVar";
+				mStream << "unknowVar";
 		}
 		break;
 	}
@@ -1637,23 +1689,23 @@ void ExprOutputContext::output(Unit const& unit)
 
 void ExprOutputContext::output(char c)
 {
-	std::cout << c;
+	mStream << c;
 }
 
 void ExprOutputContext::output(char const* str)
 {
-	std::cout << str;
+	mStream << str;
 }
 
 void ExprOutputContext::outputSpace(int num)
 {
 	for (int i = 0; i < num; ++i)
 	{
-		std::cout << ' ';
+		mStream << ' ';
 	}
 }
 
 void ExprOutputContext::outputEOL()
 {
-	std::cout << "\n";
+	mStream << "\n";
 }

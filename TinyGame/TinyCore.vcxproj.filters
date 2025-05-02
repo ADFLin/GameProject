@@ -98,9 +98,6 @@
     <ClInclude Include="CurveBuilder\ColorMap.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
-    <ClInclude Include="CurveBuilder\DifferentialParser.h">
-      <Filter>CurveBuilder</Filter>
-    </ClInclude>
     <ClInclude Include="CurveBuilder\Expression.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
@@ -152,6 +149,12 @@
     <ClInclude Include="Misc\NeuralNetworkRenderer.h">
       <Filter>Misc</Filter>
     </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionUtils.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\DifferentialEvaluator.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -188,9 +191,6 @@
       <Filter>SuperFractial</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\ColorMap.cpp">
-      <Filter>CurveBuilder</Filter>
-    </ClCompile>
-    <ClCompile Include="CurveBuilder\DifferentialParser.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\Expression.cpp">
@@ -240,6 +240,12 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
       <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionUtils.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\DifferentialEvaluator.cpp">
+      <Filter>CurveBuilder</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

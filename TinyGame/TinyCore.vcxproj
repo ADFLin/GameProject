@@ -126,7 +126,7 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <XMLDocumentationFileName>$(IntDir)</XMLDocumentationFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ForcedIncludeFiles>TinyGamePCH.h</ForcedIncludeFiles>
       <BrowseInformation>false</BrowseInformation>
@@ -186,9 +186,10 @@
     <ClInclude Include="CurveBuilder\Base.h" />
     <ClInclude Include="CurveBuilder\ColorMap.h" />
     <ClInclude Include="CurveBuilder\CurveRenderer.h" />
-    <ClInclude Include="CurveBuilder\DifferentialParser.h" />
+    <ClInclude Include="CurveBuilder\DifferentialEvaluator.h" />
     <ClInclude Include="CurveBuilder\Expression.h" />
     <ClInclude Include="CurveBuilder\ExpressionParser.h" />
+    <ClInclude Include="CurveBuilder\ExpressionUtils.h" />
     <ClInclude Include="CurveBuilder\FPUCompiler.h" />
     <ClInclude Include="CurveBuilder\FunctionParser.h" />
     <ClInclude Include="CurveBuilder\RenderData.h" />
@@ -233,9 +234,10 @@
     <ClCompile Include="..\OtherLib\minisat\utils\System.cc" />
     <ClCompile Include="CurveBuilder\ColorMap.cpp" />
     <ClCompile Include="CurveBuilder\CurveRenderer.cpp" />
-    <ClCompile Include="CurveBuilder\DifferentialParser.cpp" />
+    <ClCompile Include="CurveBuilder\DifferentialEvaluator.cpp" />
     <ClCompile Include="CurveBuilder\Expression.cpp" />
     <ClCompile Include="CurveBuilder\ExpressionParser.cpp" />
+    <ClCompile Include="CurveBuilder\ExpressionUtils.cpp" />
     <ClCompile Include="CurveBuilder\FPUCompiler.cpp" />
     <ClCompile Include="CurveBuilder\FunctionParser.cpp" />
     <ClCompile Include="CurveBuilder\RenderData.cpp" />

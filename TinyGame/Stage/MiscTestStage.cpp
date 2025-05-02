@@ -438,6 +438,9 @@ void MiscTestStage::resumeThread(Thread* thread)
 		if (exec.thread != thread)
 			continue;
 
+		if (exec.waitType != ExecutionData::eNone)
+			return;
+
 		if (thread->hadSuspended())
 		{
 			resumeExecution(exec);
@@ -1405,29 +1408,15 @@ void OverwriteFileTest()
 }
 REGISTER_MISC_TEST_ENTRY("Overwrite File Test", OverwriteFileTest);
 
-#include "CurveBuilder/ExpressionParser.h"
-#include "CurveBuilder/DifferentialParser.h"
-
+#include "CurveBuilder/ExpressionUtils.h"
 void DifferentialTest()
 {
 	static std::string LastExprText = "x*x";
 	std::string expr = FMiscTestUtil::WaitInputText(LastExprText.c_str());
 	LastExprText = expr;
 
-	SymbolTable table;
-	table.defineVarInput("x", 0);
-	table.defineVarInput("t", 1);
-
-	DifferentialParser::DefineFuncSymbol(table);
-	ExpressionTreeData exprData;
-	ExpressionParser parser;
-	parser.parse(expr.c_str(), table, exprData);
-	exprData.printExpression(table);
-	std::cout << " => ";
-	DifferentialParser diffParser(exprData);
-	diffParser.parse();
-	diffParser.mOutputData.printExpression(table);
-	std::cout << std::endl;
+	auto exprDiff = FExpressUtils::Differentiate(expr.c_str(), "x");
+	std::cout << expr << " => " << exprDiff << std::endl;
 }
 
 REGISTER_MISC_TEST_ENTRY("Differential Test", DifferentialTest);

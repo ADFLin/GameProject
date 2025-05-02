@@ -295,6 +295,8 @@ public:
 	static unsigned const ASSOC_LR_BIT      = 0x004000;
 	static unsigned const EXCHANGE_BIT      = 0x008000;
 
+	#define PRECEDENCE(ORDER) ((ORDER) << 8)
+
 	enum TokenType
 	{
 		TOKEN_TYPE_ERROR = -1,
@@ -309,33 +311,34 @@ public:
 
 		IDT_SEPARETOR    = 0x070001 ,
 
-		BOP_COMMA        = 0x000001 | TOKEN_BINARY_OP ,
-		BOP_ASSIGN       = 0x000102 | TOKEN_BINARY_OP | ASSOC_LR_BIT ,
-		BOP_BIG          = 0x000203 | TOKEN_BINARY_OP ,
-		BOP_BIGEQU       = 0x000204 | TOKEN_BINARY_OP ,
-		BOP_SML          = 0x000205 | TOKEN_BINARY_OP ,
-		BOP_SMLEQU       = 0x000206 | TOKEN_BINARY_OP ,
-		BOP_EQU          = 0x000207 | TOKEN_BINARY_OP ,
-		BOP_NEQU         = 0x000208 | TOKEN_BINARY_OP ,
-		BOP_ADD          = 0x000309 | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
-		BOP_SUB          = 0x00030a | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
-		BOP_MUL          = 0x00060b | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
-		BOP_DIV          = 0x00060c | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
-		BOP_POW          = 0x00080d | TOKEN_BINARY_OP ,
+		BOP_COMMA        = 0x000001 | PRECEDENCE(0) | TOKEN_BINARY_OP ,
+		BOP_ASSIGN       = 0x000002 | PRECEDENCE(1) | TOKEN_BINARY_OP | ASSOC_LR_BIT ,
+		BOP_BIG          = 0x000003 | PRECEDENCE(2) | TOKEN_BINARY_OP ,
+		BOP_BIGEQU       = 0x000004 | PRECEDENCE(2) | TOKEN_BINARY_OP ,
+		BOP_SML          = 0x000005 | PRECEDENCE(2) | TOKEN_BINARY_OP ,
+		BOP_SMLEQU       = 0x000006 | PRECEDENCE(2) | TOKEN_BINARY_OP ,
+		BOP_EQU          = 0x000007 | PRECEDENCE(2) | TOKEN_BINARY_OP ,
+		BOP_NEQU         = 0x000008 | PRECEDENCE(2) | TOKEN_BINARY_OP ,
+		BOP_ADD          = 0x000009 | PRECEDENCE(3) | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
+		BOP_SUB          = 0x00000a | PRECEDENCE(3) | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
+		BOP_MUL          = 0x00000b | PRECEDENCE(6) | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
+		BOP_DIV          = 0x00000c | PRECEDENCE(6) | TOKEN_BINARY_OP | REVERSE_BIT | EXCHANGE_BIT ,
+		BOP_POW          = 0x00000d | PRECEDENCE(8) | TOKEN_BINARY_OP ,
 
-		UOP_MINS         = 0x000901 | TOKEN_UNARY_OP | ASSOC_LR_BIT ,
-		UOP_PLUS         = 0x000902 | TOKEN_UNARY_OP | ASSOC_LR_BIT ,
-		UOP_INC_PRE      = 0x000903 | TOKEN_UNARY_OP ,
-		UOP_DEC_PRE      = 0x000904 | TOKEN_UNARY_OP ,
+		UOP_MINS         = 0x000001 | PRECEDENCE(9) | TOKEN_UNARY_OP | ASSOC_LR_BIT ,
+		UOP_PLUS         = 0x000002 | PRECEDENCE(9) | TOKEN_UNARY_OP | ASSOC_LR_BIT ,
+		UOP_INC_PRE      = 0x000003 | PRECEDENCE(9) | TOKEN_UNARY_OP ,
+		UOP_DEC_PRE      = 0x000004 | PRECEDENCE(9) | TOKEN_UNARY_OP ,
 
-		FUNC_DEF         = 0x000a01 | TOKEN_FUNC ,
-		FUNC_SYMBOL      = 0x000a02 | TOKEN_FUNC,
+		FUNC_DEF         = 0x000001 | PRECEDENCE(10) | TOKEN_FUNC ,
+		FUNC_SYMBOL      = 0x000002 | PRECEDENCE(10) | TOKEN_FUNC,
 
 		VALUE_CONST      = 0x000001 | TOKEN_VALUE ,
 		VALUE_VARIABLE   = 0x000002 | TOKEN_VALUE ,
 		VALUE_INPUT      = 0x000003 | TOKEN_VALUE ,
 	};
 
+	#undef PRECEDENCE
 	inline static int  PrecedeceOrder( TokenType token ){ return token & PRECEDENCE_MASK; }
 	inline static bool IsFunction(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_FUNC; }
 	inline static bool IsBinaryOperator(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_BINARY_OP; }
@@ -435,11 +438,14 @@ public:
 class ExprOutputContext : ExprParse
 {
 public:
-	ExprOutputContext(SymbolTable const& table)
+	ExprOutputContext(SymbolTable const& table);
+	ExprOutputContext(SymbolTable const& table, std::ostream& stream)
 		:table(table)
+		,mStream(stream)
 	{
 	}
 
+	std::ostream& mStream;
 	SymbolTable const& table;
 
 	void output(char c);
@@ -594,24 +600,46 @@ struct ExpressionTreeData : public ExprParse
 	NodeVec      nodes;
 	UnitCodes    codes;
 
+
+	template< typename TFunc >
+	int  addOpCode(Unit const& code, TFunc Func)
+	{
+		int indexCode = codes.size();
+		codes.push_back(code);
+
+		int indexNode = nodes.size();
+		Node node;
+		node.indexOp = indexCode;
+		nodes.push_back(node);
+
+		Func(indexNode);
+		return indexNode;
+	}
+
+	int  addLeafCode(Unit const& code)
+	{
+		CHECK(IsValue(code.type));
+		int indexOutput = codes.size();
+		codes.push_back(code);
+		return -(indexOutput + 1);
+	}
+
+	Unit const& getLeafCode(int index) const
+	{
+		CHECK(IsLeaf(index));
+		return codes[LEAF_UNIT_INDEX(index)];
+	}
+
 	void clear()
 	{
 		nodes.clear();
 		codes.clear();
 	}
 
+	void printExpression(SymbolTable const& table);
+	std::string getExpressionText(SymbolTable const& table);
 
-	void printExpression(SymbolTable const& table)
-	{
-		if (!nodes.empty())
-		{
-			ExprOutputContext context(table);
-			Node& root = nodes[0];
-			printExpression_R(context, root, root.children[CN_LEFT]);
-		}
-	}
-
-	void printExpression_R(ExprOutputContext& context, Node const& parent, int idxNode);
+	void output_R(ExprOutputContext& context, Node const& parent, int idxNode);
 
 	template< typename TCodeGenerator >
 	void visitTree(TCodeGenerator& geneartor)
@@ -628,7 +656,7 @@ struct ExpressionTreeData : public ExprParse
 	{
 		if (idxNode < 0)
 		{
-			Process(geneartor, mTreeData.codes[LEAF_UNIT_INDEX(idxNode)]);
+			Process(geneartor, codes[LEAF_UNIT_INDEX(idxNode)]);
 			return;
 		}
 		else if (idxNode == 0)

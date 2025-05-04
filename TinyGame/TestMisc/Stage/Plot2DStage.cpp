@@ -10,6 +10,7 @@
 #include "RHI/RHIGraphics2D.h"
 
 #include "Misc/Format.h"
+#include "CurveBuilder/ExpressionUtils.h"
 
 using namespace Render;
 
@@ -24,9 +25,9 @@ public:
 	ShaderProgram mProgPlot2D;
 
 
-	std::string mFunc = "x * sin(x)";
-	std::string mGradFunc = "sin(x) + x * cos(x)";
-
+	std::string mFunc = "x*sin(x)-cos(x)";
+	//std::string mGradFunc = "sin(x) + x * cos(x)";
+	std::string mGradFunc = "";
 	bool generateShader()
 	{
 		std::string code;
@@ -39,8 +40,15 @@ public:
 		ShaderCompileOption option;
 		InlineString<512> funcText;
 		funcText.format("return %s;\n", mFunc.c_str());
-		if (mGradFunc.length())
+
+		bool bUseGradFunc = true;
+		if (bUseGradFunc)
 		{
+			if (mGradFunc.empty())
+			{
+				mGradFunc = FExpressUtils::Differentiate(mFunc.c_str(), "x");
+				LogMsg("GradFunc = %s", mGradFunc.c_str());
+			}
 			InlineString<512> funcGradText;
 			funcGradText.format("return %s;\n", mGradFunc.c_str());
 			Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()), StringView(funcGradText.c_str()) }, code);
@@ -68,6 +76,16 @@ public:
 
 		auto frame = WidgetUtility::CreateDevFrame();
 		FWidgetProperty::Bind(frame->addSlider("Width") , mWidth , 0.02 , 1 );
+		FWidgetProperty::Bind(frame->addTextCtrl("Func"), mFunc, 
+			[this](std::string const& valueRef, bool bCommitted)
+			{
+				if (bCommitted)
+				{
+					mGradFunc.clear();
+					generateShader();
+				}
+			}
+		);
 		restart();
 		return true;
 	}
@@ -109,7 +127,7 @@ public:
 
 		g.endRender();
 
-
+		if (mProgPlot2D.isVaild())
 		{
 			GPU_PROFILE("Plot2D");
 

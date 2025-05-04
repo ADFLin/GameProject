@@ -4,6 +4,7 @@
 #ifndef USE_CUSTOM_GRAD_FUNC
 #define USE_CUSTOM_GRAD_FUNC 0
 #endif
+
 float Func(float x, float t)
 {
 %s
@@ -36,7 +37,8 @@ PS_ENTRY_END(MainPS)
 
 	float f = Func(p.x, Time);
 	float df = Grad(p.x, Time);
-	float e = abs( p.y - f ) / sqrt( 1 + df * df );
+
+	float e = abs( f - p.y ) / sqrt( 1 + df * df );
 
 	if (e > HalfWidth)
 	{

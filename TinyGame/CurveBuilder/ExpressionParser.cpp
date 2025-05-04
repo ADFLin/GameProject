@@ -1510,22 +1510,29 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 	return index;
 }
 
+struct TreeExprOutputContext : ExprOutputContext
+{
+	using ExprOutputContext::ExprOutputContext;
+	ExprParse::Node* nodeOpLeft = nullptr;
+};
+
 void ExpressionTreeData::printExpression(SymbolTable const& table)
 {
 	if (!nodes.empty())
 	{
-		ExprOutputContext context(table);
+		TreeExprOutputContext context(table);
 		Node& root = nodes[0];
 		output_R(context, root, root.children[CN_LEFT]);
 	}
 }
+
 
 std::string ExpressionTreeData::getExpressionText(SymbolTable const& table)
 {
 	if (!nodes.empty())
 	{
 		std::stringstream ss;
-		ExprOutputContext context(table, ss);
+		TreeExprOutputContext context(table, ss);
 		Node& root = nodes[0];
 		output_R(context, root, root.children[CN_LEFT]);
 
@@ -1534,7 +1541,7 @@ std::string ExpressionTreeData::getExpressionText(SymbolTable const& table)
 	return "";
 }
 
-void ExpressionTreeData::output_R(ExprOutputContext& context, Node const& parent, int idxNode)
+void ExpressionTreeData::output_R(TreeExprOutputContext& context, Node const& parent, int idxNode)
 {
 	if (idxNode < 0)
 	{
@@ -1552,10 +1559,11 @@ void ExpressionTreeData::output_R(ExprOutputContext& context, Node const& parent
 	{
 		context.output(unit);
 		context.output('(');
+		context.nodeOpLeft = &node;
 		output_R(context, node, node.children[CN_LEFT]);
 		if (node.children[CN_RIGHT] > 0)
 		{
-			context.output(';');
+			context.output(context.funcArgSeparetor);
 			output_R(context, node, node.children[CN_RIGHT]);
 		}
 		context.output(')');
@@ -1573,7 +1581,12 @@ void ExpressionTreeData::output_R(ExprOutputContext& context, Node const& parent
 			}
 			else if (IsBinaryOperator(opParent.type))
 			{
-				if (ExprParse::PrecedeceOrder(opParent.type) <= ExprParse::PrecedeceOrder(unit.type))
+				if (ExprParse::PrecedeceOrder(opParent.type) < ExprParse::PrecedeceOrder(unit.type))
+				{
+					bNeedBracket = false;
+				}
+				else if (ExprParse::PrecedeceOrder(opParent.type) == ExprParse::PrecedeceOrder(unit.type) &&
+					(opParent.type != BOP_SUB && opParent.type != BOP_DIV))
 				{
 					bNeedBracket = false;
 				}
@@ -1588,31 +1601,30 @@ void ExpressionTreeData::output_R(ExprOutputContext& context, Node const& parent
 			context.output('(');
 		output_R(context, node, node.children[CN_LEFT]);
 		context.output(unit);
+		context.nodeOpLeft = &node;
 		output_R(context, node, node.children[CN_RIGHT]);
 		if (bNeedBracket)
 			context.output(')');
 	}
 	else
 	{
-		bool bNeedBracket = true;
-
-		if (IsLeaf(node.children[CN_LEFT]))
+		bool bNeedBracket = false;
+		if (context.nodeOpLeft)
 		{
-			bNeedBracket = false;
-		}
-		else
-		{
-			Node const& nodeChild = nodes[node.children[CN_LEFT]];
-			Unit const& childOp = codes[nodeChild.indexOp];
-			if (IsFunction(childOp.type))
+			Unit const& opLS = codes[context.nodeOpLeft->indexOp];
+			if ( (unit.type == UOP_PLUS && opLS.type == BOP_ADD) ||
+				 (unit.type == UOP_MINS && opLS.type == BOP_SUB) )
 			{
-				bNeedBracket = false;
+				//context.output(' ');
+				bNeedBracket = true;
 			}
 		}
 
-		context.output(unit);
 		if (bNeedBracket)
 			context.output('(');
+
+		context.output(unit);
+		context.nodeOpLeft = &node;
 		output_R(context, node, node.children[CN_LEFT]);
 		if (bNeedBracket)
 			context.output(')');
@@ -1631,7 +1643,7 @@ void ExprOutputContext::output(Unit const& unit)
 	{
 	case TOKEN_LBAR:mStream << "(";  break;
 	case TOKEN_RBAR:mStream << ")";  break;
-	case IDT_SEPARETOR:mStream << ";";  break;
+	case IDT_SEPARETOR:mStream << funcArgSeparetor;  break;
 	case BOP_COMMA:  mStream << ",";  break;
 	case BOP_BIG:    mStream << ">";  break;
 	case BOP_BIGEQU: mStream << ">="; break;
@@ -1646,7 +1658,14 @@ void ExprOutputContext::output(Unit const& unit)
 	case BOP_POW:    mStream << "^";  break;
 	case UOP_MINS:   mStream << "-";  break;
 	case BOP_ASSIGN: mStream << "=";  break;
-	case VALUE_CONST: mStream << unit.constValue.asReal; break;
+	case VALUE_CONST: 
+		switch (unit.constValue.layout)
+		{
+		case ValueLayout::Double: mStream << unit.constValue.asDouble; break;
+		case ValueLayout::Float:  mStream << unit.constValue.asFloat; break;
+		case ValueLayout::Int32:  mStream << unit.constValue.asInt32; break;
+		}
+		break;
 	case VALUE_INPUT:
 		{
 			char const* name = table.getInputName(unit.symbol->input.index);

@@ -42,10 +42,21 @@ struct FWidgetProperty
 		return FStringConv::To<T>(widget->getValue() , (int)FCString::Strlen(widget->getValue()));
 	}
 
+	template<>
+	static std::string Get< std::string >(GTextCtrl* widget)
+	{
+		return widget->getValue();
+	}
+
 	template< class T >
 	static void Set(GTextCtrl* widget, T value)
 	{
 		widget->setValue( FStringConv::From(value) );
+	}
+
+	static void Set(GTextCtrl* widget, std::string const& value)
+	{
+		widget->setValue(value.c_str());
 	}
 
 	template< class T >
@@ -60,7 +71,8 @@ struct FWidgetProperty
 	static void Bind(GSlider* widget, int& valueRef, int min, int max );
 	static void Bind(GSlider* widget, int& valueRef, int min, int max, std::function< void(int) > inDelegate);
 
-	template< class T >
+
+	template< typename T>
 	static void Bind(GTextCtrl* widget, T& valueRef, T min, T max)
 	{
 		FWidgetProperty::Set(widget, valueRef);
@@ -68,10 +80,11 @@ struct FWidgetProperty
 		{
 			FWidgetProperty::Set(widget->cast<GTextCtrl>(), valueRef);
 		};
+
 		widget->onEvent = [&valueRef, min, max](int event, GWidget* widget)
 		{
 			T value = FWidgetProperty::Get<T>(widget->cast<GTextCtrl>());
-			valueRef = Math::Clamp(value, min , max );
+			valueRef = Math::Clamp(value, min, max);
 			if (value != valueRef)
 			{
 				FWidgetProperty::Set(widget->cast<GTextCtrl>(), valueRef);
@@ -80,7 +93,25 @@ struct FWidgetProperty
 		};
 	}
 
-	template< class T >
+	template< typename T, typename TFunc >
+	static void Bind(GTextCtrl* widget, T& valueRef, TFunc inDelegate)
+	{
+		FWidgetProperty::Set(widget, valueRef);
+		widget->onRefresh = [&valueRef](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GTextCtrl>(), valueRef);
+		};
+
+		widget->onEvent = [&valueRef, inDelegate](int event, GWidget* widget)
+		{
+			T value = FWidgetProperty::Get<T>(widget->cast<GTextCtrl>());
+			valueRef = value;
+			inDelegate(valueRef, event == EVT_TEXTCTRL_COMMITTED);
+			return false;
+		};
+	}
+
+	template< typename T >
 	static void Bind(GCheckBox* widget, T& valueRef)
 	{
 		FWidgetProperty::Set(widget, valueRef);
@@ -95,7 +126,7 @@ struct FWidgetProperty
 		};
 	}
 
-	template< class T , class TFunc >
+	template< typename T , typename TFunc >
 	static void Bind(GCheckBox* widget, T& valueRef, TFunc inDelegate )
 	{
 		FWidgetProperty::Set(widget, valueRef);

@@ -445,6 +445,8 @@ public:
 	{
 	}
 
+
+	char funcArgSeparetor = ',';
 	std::ostream& mStream;
 	SymbolTable const& table;
 
@@ -639,7 +641,7 @@ struct ExpressionTreeData : public ExprParse
 	void printExpression(SymbolTable const& table);
 	std::string getExpressionText(SymbolTable const& table);
 
-	void output_R(ExprOutputContext& context, Node const& parent, int idxNode);
+	void output_R(class TreeExprOutputContext& context, Node const& parent, int idxNode);
 
 	template< typename TCodeGenerator >
 	void visitTree(TCodeGenerator& geneartor)

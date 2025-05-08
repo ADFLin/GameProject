@@ -197,18 +197,34 @@ namespace CB
 	{
 		if( !mTranslucentDraw.empty() )
 		{
-			auto DrawFunc = [this](RHICommandList& commandList)
+			if (bEnableOIT)
 			{
-				RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHI());
-				mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
-				mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-				for( auto& func : mTranslucentDraw )
+				auto DrawFunc = [this](RHICommandList& commandList)
+				{
+					RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHI());
+					mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
+					mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
+					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+					for (auto& func : mTranslucentDraw)
+					{
+						func(commandList);
+					}
+				};
+				mOITTech.renderInternal(*mCommandList, mViewInfo, DrawFunc, nullptr);
+
+			}
+			else
+			{
+				RHISetRasterizerState(*mCommandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+				RHICommandList& commandList = *mCommandList;
+				RHISetShaderProgram(commandList, mProgCurveMesh->getRHI());
+				mViewInfo.setupShader(commandList, *mProgCurveMesh);
+				for(auto& func : mTranslucentDraw)
 				{
 					func(commandList);
 				}
-			};
-			mOITTech.renderInternal(*mCommandList , mViewInfo, DrawFunc, nullptr);
+			}
 		}
 	}
 
@@ -221,7 +237,7 @@ namespace CB
 
 		RHICommandList& commandList = *mCommandList;
 
-		bool bDrawContour = true;
+		bool bDrawContour = false;
 		if (bDrawContour)
 		{
 			glEnable(GL_POLYGON_OFFSET_FILL);
@@ -256,22 +272,26 @@ namespace CB
 
 		if( surface.isShowMesh() )
 		{
-			if( surface.getColor().a < 1.0 )
+			if( surface.getColor().a < 1.0)
 			{
 				mTranslucentDraw.emplace_back([this, &surface](RHICommandList& commandList)
 				{
-
 					drawMesh(surface);
 				});
 			}
 			else
 			{
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+#if 1
 				RHISetShaderProgram(commandList, mProgCurveMesh->getRHI());
 				mViewInfo.setupShader(commandList, *mProgCurveMesh);
+#else
+				RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip);
+#endif
 				drawMesh(surface);
 			}
 		}
-		if( surface.isShowNormal() )
+		if( surface.isShowNormal())
 		{
 			drawMeshNormal(surface, 0.5);
 		}
@@ -324,10 +344,7 @@ namespace CB
 		{
 			LineDrawer<false>::Draw(surface , color);
 		}
-
-
 #else
-
 		Vector3* pPositionData = (Vector3*)( data->getVertexData() + data->getPositionOffset());
 
 		int    numDataU = surface.getParamU().getNumData();
@@ -540,9 +557,8 @@ namespace CB
 
 	void CurveRenderer::reloadShader()
 	{
-		ShaderManager::Get().reloadShader(*mProgCurveMesh);
-		ShaderManager::Get().reloadShader(*mProgCurveMeshOIT);
-		ShaderManager::Get().reloadShader(*mProgMeshNormalVisualize);
+		mOITTech.reloadShader();
+		ShaderManager::ReloadShader(*mProgCurveMesh, *mProgCurveMeshOIT, *mProgMeshNormalVisualize);
 	}
 
 	void CurveRenderer::drawShape(ShapeBase& shape)

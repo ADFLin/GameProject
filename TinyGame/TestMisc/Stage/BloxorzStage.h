@@ -139,7 +139,7 @@ namespace Bloxorz
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::OpenGL;
 		}
 		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 		virtual bool setupRenderResource(ERenderSystem systemName) override;

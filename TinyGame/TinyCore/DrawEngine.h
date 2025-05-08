@@ -113,7 +113,7 @@ public:
 	GameWindow& getWindow(){ return *mGameWindow; }
 	TINY_API void* getWindowHandle();
 
-	TINY_API void  drawProfile(Vec2i const& pos);
+	TINY_API void  drawProfile(Vec2i const& pos, char const* category = nullptr);
 	TINY_API void  toggleGraphics();
 
 	bool          isRHIEnabled() const { return mSystemName != ERenderSystem::None; }

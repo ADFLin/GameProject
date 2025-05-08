@@ -11,9 +11,6 @@ namespace CB
 	class ShapeMeshBuilder;
 
 	class ShapeVisitor;
-	class ShapeFuncVisitor;
-
-
 	class ShapeFuncBase;
 
 	class ShapeBase

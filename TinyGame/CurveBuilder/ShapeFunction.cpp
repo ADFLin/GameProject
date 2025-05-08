@@ -6,7 +6,6 @@
 namespace CB
 {
 
-
 	bool SurfaceXYFunc::parseExpression(FunctionParser& parser)
 	{
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
@@ -24,12 +23,6 @@ namespace CB
 	{
 		return new SurfaceXYFunc(*this);
 	}
-
-	void SurfaceXYFunc::acceptVisit(ShapeFuncVisitor& visitor)
-	{
-		visitor.visit(*this);
-	}
-
 
 	void SurfaceUVFunc::evalExpr(Vector3& out, float u, float v)
 	{
@@ -69,20 +62,9 @@ namespace CB
 		return new SurfaceUVFunc(*this);
 	}
 
-	void SurfaceUVFunc::acceptVisit(ShapeFuncVisitor& visitor)
-	{
-		visitor.visit(*this);
-	}
-
-
 	Curve3DFunc* Curve3DFunc::clone()
 	{
 		return new Curve3DFunc(*this);
-	}
-
-	void Curve3DFunc::acceptVisit(ShapeFuncVisitor& visitor)
-	{
-		visitor.visit(*this);
 	}
 
 	bool Curve3DFunc::parseExpression(FunctionParser& parser)
@@ -108,6 +90,16 @@ namespace CB
 	{
 		assert(isParsed());
 		out.setValue(mCoordExpr[0].eval(s), mCoordExpr[1].eval(s), mCoordExpr[2].eval(s));
+	}
+
+	NativeSurfaceXYFunc* NativeSurfaceXYFunc::clone()
+	{
+		return new NativeSurfaceXYFunc(*this);
+	}
+
+	NativeSurfaceUVFunc* NativeSurfaceUVFunc::clone()
+	{
+		return new NativeSurfaceUVFunc(*this);
 	}
 
 }//namespace CB

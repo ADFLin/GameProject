@@ -1,5 +1,5 @@
 #include "MiscTestRegister.h"
-#include "CurveBuilder/FPUCompiler.h"
+#include "CurveBuilder/ExpressionCompiler.h"
 #include <cmath>
 
 namespace
@@ -79,7 +79,7 @@ void AsmTest()
 }
 REGISTER_MISC_TEST_ENTRY("Asm Test", AsmTest);
 
-void TestFPUCompile()
+void TestExprCompile()
 {
 	double x = 1;
 	double y = 2;
@@ -99,14 +99,14 @@ void TestFPUCompile()
 	ExecutableCode code;
 
 	ValueLayout layouts[] = { ValueLayout::Double , ValueLayout::Double ,ValueLayout::Float };
-	FPUCompiler comiler;
+	ExpressionCompiler compiler;
 	SymbolTable table;
 	table.defineVarInput("x", 0);
 	table.defineVarInput("y", 1);
 	table.defineVarInput("z", 2);
 	table.defineFunc("sin", static_cast<double(*)(double)>(sin));
 	table.defineFunc("foo", static_cast<double(*)(double)>(foo));
-	if (!comiler.compile("sin(x)", table, code, ARRAY_SIZE(layouts) , layouts))
+	if (!compiler.compile("sin(x)", table, code, ARRAY_SIZE(layouts) , layouts))
 	{
 		return;
 	}
@@ -116,4 +116,4 @@ void TestFPUCompile()
 	LogMsg("%lf %lf", value , z);
 }
 
-REGISTER_MISC_TEST_ENTRY("FPU Compile Test", TestFPUCompile);
+REGISTER_MISC_TEST_ENTRY("Expr Compile Test", TestExprCompile);

@@ -680,11 +680,12 @@ public:
 class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw >
 {
 public:
-	ProfileTextDraw(IGraphics2D& g, Vec2i const& pos)
-		:mGraphics2D(g), mTextPos(pos)
+	ProfileTextDraw(IGraphics2D& g, Vec2i const& pos, char const* category)
+		:mGraphics2D(g), mTextPos(pos), mCategory(category)
 	{
 
-}
+	}
+
 	void onRoot(VisitContext& context)
 	{
 		SampleNode* node = context.node;
@@ -742,10 +743,20 @@ public:
 	}
 	bool filterNode(SampleNode* node)
 	{
+		if (mCategory)
+		{
+			if (node->mCategory == nullptr || strcmp(node->mCategory, mCategory) != 0)
+			{
+				if (node->getChild() == nullptr)
+					return false;
+			}
+		}
 		return true;
 	}
 	static int const OffsetX = 20;
 	static int const OffsetY = 15;
+
+	char const*  mCategory;
 	Vec2i        mTextPos;
 	IGraphics2D& mGraphics2D;
 };
@@ -762,13 +773,13 @@ void* DrawEngine::getWindowHandle()
 
 TConsoleVariable< int > CVarProfileDrawType(0 , "Profile.DrawType");
 
-void DrawEngine::drawProfile(Vec2i const& pos)
+void DrawEngine::drawProfile(Vec2i const& pos, char const* category)
 {
 	IGraphics2D& g = getIGraphics();
 	if (CVarProfileDrawType == 0 || CVarProfileDrawType == 2)
 	{
 		g.setTextColor(Color3ub(255, 255, 0));
-		ProfileTextDraw draw(g, pos);
+		ProfileTextDraw draw(g, pos, category);
 		draw.visitNodes();
 	}
 	if (CVarProfileDrawType == 1 || CVarProfileDrawType == 2)

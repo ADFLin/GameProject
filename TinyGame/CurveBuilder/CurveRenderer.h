@@ -69,6 +69,8 @@ namespace CB
 		void reloadShader();
 	private:
 
+		bool bEnableOIT = true;
+
 		FrameAllocator mAllocaator;
 		SampleParam mAxis[3];
 		ViewInfo mViewInfo;

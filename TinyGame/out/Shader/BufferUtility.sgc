@@ -13,10 +13,10 @@
 uniform restrict writeonly image3D TargetRWTexture;
 uniform float4 ClearValue;
 
-layout(local_size_x = SIZE_X, local_size_y = SIZE_Y, local_size_z = SIZE_Z) in;
-void BufferClearCS()
+CS_NUM_THREADS(SIZE_X, SIZE_Y, SIZE_Z)
+CS_ENTRY(BufferClearCS)
 {
-	int3 uvw = int3(gl_GlobalInvocationID.xyz);
+	int3 uvw = int3(SvDispatchThreadID.xyz);
 	imageStore(TargetRWTexture, uvw, ClearValue);
 }
 

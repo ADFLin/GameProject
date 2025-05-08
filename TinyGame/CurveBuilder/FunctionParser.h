@@ -1,7 +1,7 @@
 #ifndef FunctionParser_H
 #define FunctionParser_H
 
-#include "FPUCompiler.h"
+#include "ExpressionCompiler.h"
 
 namespace CB
 {
@@ -34,7 +34,7 @@ namespace CB
 		}
 
 	private:
-		FPUCompiler  mCompiler;
+		ExpressionCompiler  mCompiler;
 		SymbolTable  mSymbolDefine;
 	};
 }//namespace CB

@@ -66,6 +66,7 @@ namespace
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarLockFPS{ true, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
+	TConsoleVariable<std::string> CVarShowProifleCategory{ "", "ShowProfileCategory"};
 	TConsoleVariable<bool> CVarShowGPUProifle{ true, "ShowGPUProfile" , CVF_TOGGLEABLE };
 	TConsoleVariable<float> CVarTimeDilation{ 1.0 , "Slomo" };
 	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
@@ -1459,7 +1460,7 @@ void TinyGameApp::render( float dframe )
 		if (CVarShowProifle)
 		{
 			RenderUtility::SetFont(g, FONT_S10);
-			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
+			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10), CVarShowProifleCategory.mValue.empty() ? nullptr : CVarShowProifleCategory.mValue.c_str());
 		}
 
 		if (CVarShowGPUProifle)

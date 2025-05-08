@@ -30,7 +30,7 @@ DifferentialEvaluator::Index DifferentialEvaluator::evalExpr(int index)
 		case VALUE_CONST:
 			break;
 		case VALUE_INPUT:
-			if (unit.symbol->input.index == 0)
+			if (unit.input.index == 0)
 				return Index::Identity();
 			break;
 		case VALUE_VARIABLE:
@@ -53,30 +53,35 @@ DifferentialEvaluator::Index DifferentialEvaluator::evalExpr(int index)
 			Index indexFuncEval = Index::Zero();
 			switch (op.funcSymbol.id)
 			{
-			case EFuncSymbol::Exp:
+			case EFuncSymbol::Exp: //d(e^x) = e^x * dx
 				indexFuncEval = emitFuncSymbol(EFuncSymbol::Exp, emitExpr(indexArg));
 				break;
-			case EFuncSymbol::Ln:
+			case EFuncSymbol::Ln: //d(ln(x)) = 1/x * dx
 				indexFuncEval = emitDiv(Index::Identity(), emitExpr(indexArg));
 				break;
-			case EFuncSymbol::Sin:
+			case EFuncSymbol::Sin: //d(sin(x)) = cos(x) * dx
 				indexFuncEval = emitFuncSymbol(EFuncSymbol::Cos, emitExpr(indexArg));
 				break;
-			case EFuncSymbol::Cos:
+			case EFuncSymbol::Cos: //d(cos(x)) = -sin(x) * dx
 				indexFuncEval = emitMins(emitFuncSymbol(EFuncSymbol::Sin, emitExpr(indexArg)));
 				break;
-			case EFuncSymbol::Tan:
+			case EFuncSymbol::Tan: //d(tan(x)) = sec^2(x) * dx
 				indexFuncEval = emitPow(emitFuncSymbol(EFuncSymbol::Sec, emitExpr(indexArg)), emitConst(2));
 				break;
-			case EFuncSymbol::Cot:
-				indexFuncEval = emitMins(emitPow(emitFuncSymbol(EFuncSymbol::Sec, emitExpr(indexArg)), emitConst(2)));
+			case EFuncSymbol::Cot: //d(cot(x)) = -csc^2(x) * dx
+				indexFuncEval = emitMins(emitPow(emitFuncSymbol(EFuncSymbol::Csc, emitExpr(indexArg)), emitConst(2)));
 				break;
-			case EFuncSymbol::Sec:
+			case EFuncSymbol::Sec: //d(sec(x)) = sec(x) * tan(x) * dx
 				indexFuncEval = emitMul(emitFuncSymbol(EFuncSymbol::Sec, emitExpr(indexArg)), emitFuncSymbol(EFuncSymbol::Tan, emitExpr(indexArg)));
 				break;
-			case EFuncSymbol::Csc:
+			case EFuncSymbol::Csc: //d(csc(x)) = csc(x) * cot(x) * dx
 				indexFuncEval = emitMins(emitMul(emitFuncSymbol(EFuncSymbol::Csc, emitExpr(indexArg)), emitFuncSymbol(EFuncSymbol::Cot, emitExpr(indexArg))));
 				break;
+			case EFuncSymbol::Sqrt:
+				indexFuncEval = emitMul(emitConst(0.5), emitPow(emitExpr(indexArg), emitConst(-0.5)));
+				break;
+			default:
+				LogWarning(0,"Undefined Func Symbol");
 			}
 
 			return emitMul(indexFuncEval, indexArgEval);
@@ -113,7 +118,7 @@ DifferentialEvaluator::Index DifferentialEvaluator::evalExpr(int index)
 				// dL / R
 				return (indexEvalL == 0) ? Index::Zero() : emitDiv(indexEvalL, emitExpr(indexRight));
 			}
-			//(d(L/R) = dL/R - L*dR/R^2
+			// d(L/R) = dL/R - L*dR/R^2
 			return emitSub(
 				indexEvalL == 0 ? Index::Zero() : emitDiv(indexEvalL, emitExpr(indexRight)),
 				indexEvalR == 0 ? Index::Zero() : emitDiv(
@@ -126,7 +131,7 @@ DifferentialEvaluator::Index DifferentialEvaluator::evalExpr(int index)
 		{
 			if (indexEvalR == 0)
 			{
-				// R * L^(R - 1) * [dL]
+				// R * L^(R - 1) * dL
 				return emitMul
 				(
 					emitMul(
@@ -140,16 +145,15 @@ DifferentialEvaluator::Index DifferentialEvaluator::evalExpr(int index)
 			//d(L^R) = L^R * [In(L)*dR + R/L* dL]
 			return emitMul(
 				emitPow(emitExpr(indexLeft), emitExpr(indexRight)),
-				emitAdd
-				(
-				(indexEvalR == 0) ? Index::Zero() : emitMul(
-					emitFuncSymbol(EFuncSymbol::Ln, emitExpr(indexLeft)),
-					indexEvalR
-				),
-				(indexEvalL == 0) ? Index::Zero() : emitMul(
-					emitDiv(emitExpr(indexRight), emitExpr(indexLeft)),
-					indexEvalL
-				)
+				emitAdd(
+					(indexEvalR == 0) ? Index::Zero() : emitMul(
+						emitFuncSymbol(EFuncSymbol::Ln, emitExpr(indexLeft)),
+						indexEvalR
+					),
+					(indexEvalL == 0) ? Index::Zero() : emitMul(
+						emitDiv(emitExpr(indexRight), emitExpr(indexLeft)),
+						indexEvalL
+					)
 				)
 			);
 		}
@@ -384,6 +388,92 @@ DifferentialEvaluator::Index DifferentialEvaluator::emitBop(TokenType op, Index 
 		}
 	);
 	return Index{ indexNode, true };
+}
+
+
+struct ExprTreeCompare : ExprParse
+{
+	ExprTreeCompare(ExpressionTreeData const& treeA, ExpressionTreeData const& treeB)
+		:mTreeA(treeA), mTreeB(treeB) {}
+
+	bool isEqual(int indexA, int indexB)
+	{
+		bool bLeafA = ExprParse::IsLeaf(indexA);
+		bool bLeafB = ExprParse::IsLeaf(indexB);
+
+		if (bLeafA != bLeafB)
+			return false;
+
+		if (bLeafA)
+		{
+			Unit const& valueA = mTreeA.getLeafCode(indexA);
+			Unit const& valueB = mTreeB.getLeafCode(indexA);
+			return IsValueEqual(valueA, valueB);
+		}
+		else
+		{
+			Node const& nodeA = mTreeA.nodes[indexA];
+			Node const& nodeB = mTreeB.nodes[indexB];
+
+			Unit const& opA = mTreeA.codes[nodeA.indexOp];
+			Unit const& opB = mTreeB.codes[nodeB.indexOp];
+			if (opA.type != opB.type)
+				return false;
+
+			if (nodeA.children[CN_LEFT] != 0)
+			{
+				if (nodeB.children[CN_LEFT] == 0)
+					return false;
+
+				if (!isEqual(nodeA.children[CN_LEFT], nodeB.children[CN_LEFT]))
+					return false;
+			}
+			else
+			{
+				if (nodeB.children[CN_LEFT] != 0)
+					return false;
+			}
+
+			if (nodeA.children[CN_RIGHT] != 0)
+			{
+				if (nodeB.children[CN_RIGHT] == 0)
+					return false;
+
+				if (!isEqual(nodeA.children[CN_RIGHT], nodeB.children[CN_RIGHT]))
+					return false;
+			}
+			else
+			{
+				if (nodeB.children[CN_RIGHT] != 0)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	ExpressionTreeData const& mTreeA;
+	ExpressionTreeData const& mTreeB;
+};
+bool DifferentialEvaluator::isEqualValue(Index indexLeft, Index indexRight)
+{
+	if (isValue(indexLeft) != isValue(indexRight))
+		return false;
+
+	if (isValue(indexLeft))
+	{
+		Unit valueL = getValue(indexLeft);
+		Unit valueR = getValue(indexRight);
+		return IsValueEqual(valueL, valueR);
+	}
+	else
+	{
+		ExprTreeCompare treeCompare(
+			indexLeft.bOutput ? *mOutputData : *mEvalData,
+			indexRight.bOutput ? *mOutputData : *mEvalData);
+		return treeCompare.isEqual(indexLeft.value, indexRight.value);
+	}
+	return false;
 }
 
 DifferentialEvaluator::Index DifferentialEvaluator::emitUop(TokenType op, Index index)

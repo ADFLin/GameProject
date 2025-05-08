@@ -56,7 +56,6 @@ namespace CB
 		float getIncrement() const { return (range.Max - range.Min) / numData; }
 	};
 
-	class ShapeFuncVisitor;
 
 	class ShapeFuncBase
 	{
@@ -65,7 +64,8 @@ namespace CB
 		virtual bool   parseExpression(FunctionParser& parser) = 0;
 		virtual bool   isParsed() = 0;
 		virtual int    getFuncType() = 0;
-		virtual void   acceptVisit(ShapeFuncVisitor& visitor) = 0;
+		virtual bool   isNative(){ return false; }
+
 		bool    isDynamic() { return mbDynamic; }
 		virtual ShapeFuncBase* clone() = 0;
 		uint8   getUsedInputMask() const { return mUsedInputMask; }

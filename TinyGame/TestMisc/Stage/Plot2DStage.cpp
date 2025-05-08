@@ -25,9 +25,12 @@ public:
 	ShaderProgram mProgPlot2D;
 
 
-	std::string mFunc = "x*sin(x)-cos(x)";
-	//std::string mGradFunc = "sin(x) + x * cos(x)";
-	std::string mGradFunc = "";
+	bool bUse2Order = true;
+	std::string mFunc = "x * sin(x)";
+	std::string mFuncDif;
+	std::string mFuncDif2;
+	//std::string mFuncDif = "sin(x) + x * cos(x)";
+	//std::string mFuncDif2 = "cos(x) + cos(x) - x * sin(x)";
 	bool generateShader()
 	{
 		std::string code;
@@ -41,26 +44,41 @@ public:
 		InlineString<512> funcText;
 		funcText.format("return %s;\n", mFunc.c_str());
 
-		bool bUseGradFunc = true;
-		if (bUseGradFunc)
+		bool bUseCustomDifFunc = true;
+
+		if (bUseCustomDifFunc)
 		{
-			if (mGradFunc.empty())
+			option.addDefine(SHADER_PARAM(USE_CUSTOM_DIF_FUNC), 1);
+
+			InlineString<512> funcDifText;
+			if (mFuncDif.empty())
 			{
-				mGradFunc = FExpressUtils::Differentiate(mFunc.c_str(), "x");
-				LogMsg("GradFunc = %s", mGradFunc.c_str());
+				mFuncDif = FExpressUtils::Differentiate(mFunc.c_str(), "x");
 			}
-			InlineString<512> funcGradText;
-			funcGradText.format("return %s;\n", mGradFunc.c_str());
-			Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()), StringView(funcGradText.c_str()) }, code);
-			option.addDefine(SHADER_PARAM(USE_CUSTOM_GRAD_FUNC), 1);
+			funcDifText.format("return %s;\n", mFuncDif.c_str());
+
+			if (bUse2Order)
+			{
+				option.addDefine(SHADER_PARAM(USE_DIF_2_ORDER), 1);
+				InlineString<512> funcDif2Text;
+				if (mFuncDif2.empty())
+				{
+					mFuncDif2 = FExpressUtils::Differentiate(mFuncDif.c_str(), "x");
+				}
+				funcDif2Text.format("return %s;\n", mFuncDif2.c_str());
+				Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()), StringView(funcDifText.c_str()) , StringView(funcDif2Text.c_str()) }, code);
+			}
+			else
+			{
+				Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()), StringView(funcDifText.c_str()) }, code);
+			}
 		}
 		else
 		{
+			option.addDefine(SHADER_PARAM(USE_CUSTOM_DIF_FUNC), 0);
 			Text::Format((char const*)codeTemplate.data(), { StringView(funcText.c_str()) }, code);
-			option.addDefine(SHADER_PARAM(USE_CUSTOM_GRAD_FUNC), 0);
 		}
 		option.addCode((char const*)code.data());
-
 		if (!ShaderManager::Get().loadFile(mProgPlot2D, nullptr, "ScreenVS", "MainPS", option))
 		{
 			return false;
@@ -76,12 +94,18 @@ public:
 
 		auto frame = WidgetUtility::CreateDevFrame();
 		FWidgetProperty::Bind(frame->addSlider("Width") , mWidth , 0.02 , 1 );
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use 2 Order"), bUse2Order, 
+		[this](bool)
+		{
+			generateShader();
+		});
 		FWidgetProperty::Bind(frame->addTextCtrl("Func"), mFunc, 
 			[this](std::string const& valueRef, bool bCommitted)
 			{
 				if (bCommitted)
 				{
-					mGradFunc.clear();
+					mFuncDif.clear();
+					mFuncDif2.clear();
 					generateShader();
 				}
 			}
@@ -95,7 +119,10 @@ public:
 		BaseClass::onEnd();
 	}
 
-	void restart() {}
+	void restart()
+	{
+
+	}
 
 	void onUpdate(GameTimeSpan deltaTime) override
 	{

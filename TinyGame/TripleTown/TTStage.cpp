@@ -58,7 +58,7 @@ namespace TripleTown
 
 		float scaleItem = 0.8f;
 
-		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1), 1, 1.0);
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1), 1);
 
 		struct Vertex
 		{

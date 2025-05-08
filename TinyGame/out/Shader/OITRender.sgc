@@ -118,4 +118,29 @@ void ClearStoragePS()
 
 #endif //PIXEL_SHADER
 
+#if COMPUTE_SHADER
+
+#if COMPILER_HLSL
+RWBuffer<int> CounterBuffer;
+#else
+layout(std430) buffer CounterBuffer
+{
+	int Counter;
+};
+#endif
+
+CS_NUM_THREADS(1, 1, 1)
+CS_ENTRY(ResetCounterCS)
+{
+#if COMPILER_HLSL
+	CounterBuffer[0] = 0;
+#else
+	Counter = 0;
+#endif
+}
+
+#endif //COMPUTE_SHADER
+
+
+
 

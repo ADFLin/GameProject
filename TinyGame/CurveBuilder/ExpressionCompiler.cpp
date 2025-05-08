@@ -1,8 +1,10 @@
-#include "FPUCompiler.h"
+#include "ExpressionCompiler.h"
 #include <iostream>
 #include <cassert>
 #include <cmath>
 #include <algorithm>
+
+#if ENABLE_FPU_CODE
 
 #include "Assembler.h"
 #include "PlatformConfig.h"
@@ -76,13 +78,12 @@ static void  FreeExecutableMemory(void* ptr)
 //#include "FPUCode.h"
 using namespace Asmeta;
 
-class AsmCodeGenerator : public Asmeta::AssemblerT< FPUCodeGeneratorV0 >
+class AsmCodeGenerator : public Asmeta::AssemblerT< AsmCodeGenerator >
 	                   , public ExprParse
 {
 public:
 
-	using Asm = AssemblerT< FPUCodeGeneratorV0 >;
-
+	using Asm = AssemblerT< AsmCodeGenerator >;
 	void   emitByte(uint8 byte1) { mData->pushCode(byte1); }
 	void   emitWord(uint16 val) { mData->pushCodeT(val); }
 	void   emitWord(uint8 byte1, uint8 byte2) { mData->pushCode(byte1, byte2); }
@@ -542,6 +543,7 @@ public:
 				{
 					mNumInstruction += emitStoreValueWithLayout(mPrevValue.var->layout, mPrevValue.var->ptr);
 				}
+				break;
 			}		
 		}
 		else
@@ -835,12 +837,371 @@ protected:
 
 };
 
-FPUCompiler::FPUCompiler()
+#elif ENALBE_BYTE_CODE
+
+#define EBC_USE_FIXED_SIZE 2
+
+namespace EExprByteCode
+{
+	enum Enum
+	{
+		Const,
+		Input,
+		Variable,
+
+		Add,
+		Sub,
+		SubR,
+		Mul,
+		Div,
+		DivR,
+
+		Mins,
+
+		FuncSymbol,
+		FuncCall0,
+		FuncCall1,
+		FuncCall2,
+		FuncCall3,
+		FuncCall4,
+		FuncCall5,
+	};
+}
+
+
+int constexpr BlockSize = 8;
+
+#define DUFF_DEVICE( DIM , OP )\
+	{\
+		int blockCount = ((DIM) + BlockSize - 1) / BlockSize;\
+		switch ((DIM) % BlockSize)\
+		{\
+		case 0: do { OP;\
+		case 7: OP;\
+		case 6: OP;\
+		case 5: OP;\
+		case 4: OP;\
+		case 3: OP;\
+		case 2: OP;\
+		case 1: OP;\
+			} while (--blockCount > 0);\
+		}\
+	}
+
+
+void ByteCodeExecutor::doExecute(ExecutableCode const& code)
+{
+	mCode = &code;
+
+	int index = 0;
+	int numCodes = code.mCodes.size();
+	uint8 const* pCode = code.mCodes.data();
+	uint8 const* pCodeEnd = pCode + numCodes;
+#if 0
+#if EBC_USE_FIXED_SIZE
+#define OP execCode(pCode); pCode += EBC_USE_FIXED_SIZE
+	DUFF_DEVICE(code.mCodes.size() / EBC_USE_FIXED_SIZE, OP);
+#undef  OP
+#else
+	while (pCode < pCodeEnd)
+	{
+		int len = pCodeEnd - pCode;
+		int step;
+		step = ((len + 1) / 2) % 8;
+			
+		switch (step)
+		{
+		case 0: pCode += execCode(pCode);
+		case 7: pCode += execCode(pCode);
+		case 6: pCode += execCode(pCode);
+		case 5: pCode += execCode(pCode);
+		case 4: pCode += execCode(pCode);
+		case 3: pCode += execCode(pCode);
+		case 2: pCode += execCode(pCode);
+		case 1: pCode += execCode(pCode);
+		}
+	}
+#endif
+#else
+#if EBC_USE_FIXED_SIZE
+	while (pCode < pCodeEnd)
+	{
+		execCode(pCode);
+		pCode += EBC_USE_FIXED_SIZE;
+	}
+#else
+	while (pCode < pCodeEnd)
+	{
+		pCode += execCode(pCode);
+	}
+#endif
+#endif
+}
+
+int ByteCodeExecutor::execCode(uint8 const* pCode)
+{
+	switch (*pCode)
+	{
+	case EExprByteCode::Const:
+		pushStack(mCode->mConstValues[pCode[1]]);
+		return 2;
+	case EExprByteCode::Input:
+		pushStack(*(RealType*)mInputs[pCode[1]]);
+		return 2;
+	case EExprByteCode::Variable:
+		pushStack(*(RealType*)mCode->mPointers[pCode[1]]);
+		return 2;
+	case EExprByteCode::Add:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			pushStack(lhs + rhs);
+		}
+		return 1;
+	case EExprByteCode::Sub:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			pushStack(lhs - rhs);
+		}
+		return 1;
+	case EExprByteCode::SubR:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			pushStack(rhs - lhs);
+		}
+		return 1;
+	case EExprByteCode::Mul:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			pushStack(lhs * rhs);
+		}
+		return 1;
+	case EExprByteCode::Div:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			pushStack(lhs / rhs);
+		}
+		return 1;
+	case EExprByteCode::DivR:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			pushStack(rhs / lhs);
+		}
+		return 1;
+	case EExprByteCode::Mins:
+		{
+			RealType lhs = popStack();
+			pushStack(-lhs);
+		}
+		return 1;
+	case EExprByteCode::FuncSymbol:
+		{
+			switch (pCode[1])
+			{
+			case EFuncSymbol::Exp:  pushStack(exp(popStack())); break;
+			case EFuncSymbol::Ln:   pushStack(log(popStack())); break;
+			case EFuncSymbol::Sin:  pushStack(sin(popStack())); break;
+			case EFuncSymbol::Cos:  pushStack(cos(popStack())); break;
+			case EFuncSymbol::Tan:  pushStack(tan(popStack())); break;
+			case EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); break;
+			case EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); break;
+			case EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); break;
+			case EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); break;
+			}
+		}
+		return 2;
+	case EExprByteCode::FuncCall0:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			pushStack((*static_cast<FuncType0>(funcPtr))());
+		}
+		return 2;
+	case EExprByteCode::FuncCall1:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[1];
+			params[0] = popStack();
+			pushStack((*static_cast<FuncType1>(funcPtr))(params[0]));
+		}
+		return 2;
+	case EExprByteCode::FuncCall2:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[2];
+			params[0] = popStack();
+			params[1] = popStack();
+			pushStack((*static_cast<FuncType2>(funcPtr))(params[0],params[1]));
+		}
+		return 2;
+	case EExprByteCode::FuncCall3:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[3];
+			params[0] = popStack();
+			params[1] = popStack();
+			params[2] = popStack();
+			pushStack((*static_cast<FuncType3>(funcPtr))(params[0], params[1], params[2]));
+		}
+		return 2;
+	case EExprByteCode::FuncCall4:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[4];
+			params[0] = popStack();
+			params[1] = popStack();
+			params[2] = popStack();
+			params[3] = popStack();
+			pushStack((*static_cast<FuncType4>(funcPtr))(params[0], params[1], params[2], params[3]));
+		}
+		return 2;
+	case EExprByteCode::FuncCall5:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[5];
+			params[0] = popStack();
+			params[1] = popStack();
+			params[2] = popStack();
+			params[3] = popStack();
+			params[4] = popStack();
+			pushStack((*static_cast<FuncType5>(funcPtr))(params[0], params[1], params[2], params[3], params[4]));
+		}
+		return 2;
+	}
+
+	return 1;
+}
+
+
+struct ExprByteCodeCompiler : public ExprParse
+{
+	ExecutableCode& mOutput;
+
+	ExprByteCodeCompiler(ExecutableCode& output)
+		:mOutput(output)
+	{
+
+	}
+	using TokenType = ParseResult::TokenType;
+
+	void codeInit(int numInput, ValueLayout inputLayouts[])
+	{
+
+	}
+	void codeConstValue(ConstValueInfo const&val)
+	{
+		CHECK(val.layout == ValueLayout::Real);
+		int index = mOutput.mConstValues.findIndex(val.asReal);
+		if ( index == INDEX_NONE )
+		{
+			index = mOutput.mConstValues.size();
+			mOutput.mConstValues.push_back(val.asReal);
+		}
+		CHECK(index < 255);
+		outputCmd(EExprByteCode::Const, index);
+	}
+
+	void codeVar(VariableInfo const& varInfo)
+	{
+		CHECK(varInfo.layout == ValueLayout::Real);
+		int index = mOutput.mPointers.findIndex(varInfo.ptr);
+		if (index == INDEX_NONE)
+		{
+			index = mOutput.mPointers.size();
+			mOutput.mPointers.push_back(varInfo.ptr);
+		}
+		CHECK(index < 255);
+		outputCmd(EExprByteCode::Variable, index);
+	}
+
+	void codeInput(InputInfo const& input)
+	{
+		outputCmd(EExprByteCode::Input, input.index);
+	}
+
+	void codeFunction(FuncInfo const& info)
+	{
+		int index = mOutput.mPointers.findIndex(info.funcPtr);
+		if (index == INDEX_NONE)
+		{
+			index = mOutput.mPointers.size();
+			mOutput.mPointers.push_back(info.funcPtr);
+		}
+		CHECK(index < 255);
+		outputCmd(EExprByteCode::FuncCall0 + info.getArgNum(), index);
+	}
+
+	void codeFunction(FuncSymbolInfo const& info)
+	{
+		outputCmd(EExprByteCode::FuncSymbol, info.id);
+	}
+
+	void codeBinaryOp(TokenType type, bool isReverse)
+	{
+		switch (type)
+		{
+		case BOP_ADD: outputCmd(EExprByteCode::Add); break;
+		case BOP_SUB: outputCmd(isReverse ? EExprByteCode::SubR : EExprByteCode::Sub); break;
+		case BOP_MUL: outputCmd(EExprByteCode::Mul); break;
+		case BOP_DIV: outputCmd(isReverse ? EExprByteCode::DivR : EExprByteCode::Div); break;
+		}
+	}
+	
+	void codeUnaryOp(TokenType type)
+	{
+		switch (type)
+		{
+		case UOP_MINS: mOutput.mCodes.push_back(EExprByteCode::Mins); break;
+		}
+		mOutput.mCodes.push_back(0);
+	}
+
+	void outputCmd(uint8 a)
+	{
+		mOutput.mCodes.push_back(a);
+#if EBC_USE_FIXED_SIZE >= 2
+		mOutput.mCodes.push_back(0);
+#endif
+#if EBC_USE_FIXED_SIZE >= 3
+		mOutput.mCodes.push_back(0);
+#endif
+	}
+	void outputCmd(uint8 a, uint8 b)
+	{
+		mOutput.mCodes.push_back(a);
+		mOutput.mCodes.push_back(b);
+#if EBC_USE_FIXED_SIZE >= 3
+		mOutput.mCodes.push_back(0);
+#endif
+	}
+	void outputCmd(uint8 a, uint8 b, uint c)
+	{
+		mOutput.mCodes.push_back(a);
+		mOutput.mCodes.push_back(b);
+		mOutput.mCodes.push_back(c);
+	}
+
+	void codeEnd()
+	{
+
+
+	}
+};
+
+
+
+#endif
+
+ExpressionCompiler::ExpressionCompiler()
 {
 	mOptimization = true;
 }
 
-bool FPUCompiler::compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput , ValueLayout inputLayouts[] )
+bool ExpressionCompiler::compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput , ValueLayout inputLayouts[] )
 {
 	try
 	{
@@ -850,10 +1211,16 @@ bool FPUCompiler::compile( char const* expr , SymbolTable const& table , Executa
 
 		if (mOptimization)
 			mResult.optimize();
-
+#if ENABLE_FPU_CODE
 		FPUCodeGeneratorV0 generator;
 		generator.setCodeData( &data );
 		mResult.generateCode(generator , numInput, inputLayouts);
+#elif ENALBE_BYTE_CODE
+		ExprByteCodeCompiler generator(data);
+		mResult.generateCode(generator, numInput, inputLayouts);
+#else
+		data.mCodes = mResult.getPostfixCodes();
+#endif
 		return true;
 	}
 	catch ( ExprParseException& e)
@@ -867,6 +1234,7 @@ bool FPUCompiler::compile( char const* expr , SymbolTable const& table , Executa
 	}
 }
 
+#if ENABLE_FPU_CODE
 
 void ExecutableCode::setCode( unsigned pos , uint8 byte )
 {
@@ -932,21 +1300,28 @@ void ExecutableCode::printCode()
 	std::cout << std::dec << std::endl;
 }
 
+#endif
+
 
 ExecutableCode::ExecutableCode( int size )
 {
+#if ENABLE_FPU_CODE
 	mMaxCodeSize = ( size ) ? size : 64;
 	mCode = ( uint8* ) AllocExecutableMemory( mMaxCodeSize );
 	assert( mCode );
 	clearCode();
+#endif
 }
 
 
 ExecutableCode::~ExecutableCode()
 {
+#if ENABLE_FPU_CODE
 	FreeExecutableMemory( mCode );
+#endif
 }
 
+#if ENABLE_FPU_CODE
 void ExecutableCode::checkCodeSize( int freeSize )
 {
 	int codeNum = getCodeLength();
@@ -966,9 +1341,19 @@ void ExecutableCode::checkCodeSize( int freeSize )
 	mCodeEnd = mCode + codeNum;
 	mMaxCodeSize = newSize;
 }
+#endif
 
 void ExecutableCode::clearCode()
 {
+#if ENABLE_FPU_CODE
 	FMemory::Set(mCode, 0, mMaxCodeSize);
 	mCodeEnd = mCode;
+#elif ENALBE_BYTE_CODE
+	mCodes.clear();
+	mPointers.clear();
+	mConstValues.clear();
+#else
+	mCodes.clear();
+#endif
 }
+

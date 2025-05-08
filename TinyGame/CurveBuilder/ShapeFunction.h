@@ -31,7 +31,6 @@ namespace CB
 		}
 
 		Curve3DFunc* clone() override;
-		void acceptVisit(ShapeFuncVisitor& visitor) override;
 	private:
 
 		Expression   mCoordExpr[3];
@@ -39,7 +38,28 @@ namespace CB
 
 	class SurfaceFunc : public ShapeFuncBase
 	{
+	public:
+		bool   parseExpression(FunctionParser& parser){ return true; }
+		bool   isParsed(){ return true; }
+		int    getFuncType() override { return TYPE_SURFACE_XY; }
+	};
 
+	class NativeSurfaceXYFunc : public SurfaceFunc
+	{
+	public:
+		NativeSurfaceXYFunc()
+		{
+			setDynamic(true);
+			mUsedInputMask = BIT(0) | BIT(1);
+		}
+		virtual bool isNative() { return true; }
+		int  getFuncType() override { return TYPE_SURFACE_XY; }
+		void evalExpr(Vector3& out, float x, float y)
+		{
+			out.setValue(x, y, (float)(*mPtr)(x,y));
+		}
+		NativeSurfaceXYFunc* clone() override;
+		FuncType2 mPtr;
 	};
 
 	class SurfaceXYFunc : public SurfaceFunc
@@ -58,8 +78,6 @@ namespace CB
 		}
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
 		std::string const& getExprString() { return mExpr.getExprString(); }
-
-		void acceptVisit(ShapeFuncVisitor& visitor) override;
 		SurfaceXYFunc* clone() override;
 	private:
 		Expression   mExpr;
@@ -85,12 +103,30 @@ namespace CB
 			return mAixsExpr[axis].getExprString();
 		}
 		SurfaceUVFunc* clone() override;
-		void acceptVisit(ShapeFuncVisitor& visitor) override;
 	private:
 		Expression   mAixsExpr[3];
-
 	};
 
+	class NativeSurfaceUVFunc : public SurfaceFunc
+	{
+	public:
+		NativeSurfaceUVFunc() :SurfaceFunc() {}
+
+		int  getFuncType() override { return TYPE_SURFACE_UV; }
+		bool parseExpression(FunctionParser& parser) override { return true; }
+		bool isParsed() override { return true; }
+		void evalExpr(Vector3& out, float u, float v)
+		{
+			out = Vector3(
+				(*mAixsExpr[0])(u, v),
+				(*mAixsExpr[1])(u, v),
+				(*mAixsExpr[2])(u, v));
+		}
+
+		NativeSurfaceUVFunc* clone() override;
+	private:
+		FuncType2   mAixsExpr[3];
+	};
 	class SFImplicitFun : public SurfaceFunc
 	{
 	private:
@@ -103,6 +139,8 @@ namespace CB
 		virtual void visit(SurfaceUVFunc& func) = 0;
 		virtual void visit(SurfaceXYFunc& func) = 0;
 		virtual void visit(Curve3DFunc& func) = 0;
+		virtual void visit(NativeSurfaceXYFunc& func) = 0;
+		virtual void visit(NativeSurfaceUVFunc& func) = 0;
 	};
 
 }//namespace CB

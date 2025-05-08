@@ -4,9 +4,66 @@
 #include "ExpressionParser.h"
 #include "Core/IntegerType.h"
 
-class FPUCompiler;
+#define ENABLE_FPU_CODE 0
+
+#if ENABLE_FPU_CODE
+#else
+#define ENALBE_BYTE_CODE 1
+#include "ExpressionUtils.h"
+#endif
+
+
+class ExpressionCompiler;
 class FPUCodeGeneratorV0;
 class FPUCodeGeneratorV1;
+
+#if ENALBE_BYTE_CODE
+
+class ExecutableCode;
+class ByteCodeExecutor
+{
+public:
+
+	template< typename RT>
+	RT execute(ExecutableCode const& code)
+	{
+		ExprEvaluatorBase evaluator;
+		doExecute(code);
+		return RT(evaluator.popStack());
+	}
+
+	template< typename RT, class ...Args >
+	RT execute(ExecutableCode const& code, Args ...args)
+	{
+		ExprEvaluatorBase evaluator;
+		void* inputs[] = { &args... };
+		mInputs = inputs;
+		doExecute(code);
+		return RT(popStack());
+	}
+
+	void pushStack(RealType value)
+	{
+		mValueStack.push_back(value);
+	}
+
+	RealType popStack()
+	{
+		CHECK(mValueStack.empty() == false);
+		RealType result = mValueStack.back();
+		mValueStack.pop_back();
+		return result;
+	}
+
+	void doExecute(ExecutableCode const& code);
+	int  execCode(uint8 const* pCode);
+
+	ExecutableCode const* mCode;
+	TArrayView<void*> mInputs;
+	TArray<RealType, TInlineAllocator<32> > mValueStack;
+
+};
+#endif
 
 class ExecutableCode
 {
@@ -17,15 +74,31 @@ public:
 	template< class RT , class ...Args >
 	FORCEINLINE RT evalT(Args ...args) const
 	{
+#if ENABLE_FPU_CODE
 		using EvalFunc = RT (*)(Args...);
 		return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
+#elif ENALBE_BYTE_CODE
+		ByteCodeExecutor executor;
+		return executor.execute<RT>(*this, args...);
+#else
+		return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
+#endif
 	}
 
 	void   printCode();
 	void   clearCode();
-	int    getCodeLength() const { return int(mCodeEnd - mCode); }
+	int    getCodeLength() const 
+	{ 
+#if ENABLE_FPU_CODE
+		return int(mCodeEnd - mCode); 
+#else
+		return mCodes.size();
+#endif
+	}
 
 protected:
+
+#if ENABLE_FPU_CODE
 	void pushCode(uint8 byte);
 	void pushCode(uint8 byte1,uint8 byte2);
 	void pushCode(uint8 byte1,uint8 byte2,uint8 byte3 );
@@ -48,7 +121,6 @@ protected:
 	}
 	void   pushCodeInternal(uint8 byte);
 	__declspec(noinline)  void  checkCodeSize( int freeSize );
-
 	uint8*  mCode;
 	uint8*  mCodeEnd;
 	int     mMaxCodeSize;
@@ -58,13 +130,24 @@ protected:
 	friend class AsmCodeGenerator;
 	friend class FPUCodeGeneratorV0;
 	friend class FPUCodeGeneratorV1;
-	friend class FPUCompiler;
+	friend class ExpressionCompiler;
+
+#else
+public:
+	#if ENALBE_BYTE_CODE
+		TArray<uint8>    mCodes;
+		TArray<void*>    mPointers;
+		TArray<RealType> mConstValues;
+	#else
+		TArray<ExprParse::Unit> mCodes;
+	#endif
+#endif
 };
 
-class FPUCompiler
+class ExpressionCompiler
 {
 public:
-	FPUCompiler();
+	ExpressionCompiler();
 	bool compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput = 0 , ValueLayout inputLayouts[] = nullptr);
 	void enableOpimization(bool enable = true){	mOptimization = enable;	}
 	bool isUsingVar(char const* varName) const

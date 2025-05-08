@@ -190,7 +190,7 @@
     <ClInclude Include="CurveBuilder\Expression.h" />
     <ClInclude Include="CurveBuilder\ExpressionParser.h" />
     <ClInclude Include="CurveBuilder\ExpressionUtils.h" />
-    <ClInclude Include="CurveBuilder\FPUCompiler.h" />
+    <ClInclude Include="CurveBuilder\ExpressionCompiler.h" />
     <ClInclude Include="CurveBuilder\FunctionParser.h" />
     <ClInclude Include="CurveBuilder\RenderData.h" />
     <ClInclude Include="CurveBuilder\ShapeCommon.h" />
@@ -238,7 +238,7 @@
     <ClCompile Include="CurveBuilder\Expression.cpp" />
     <ClCompile Include="CurveBuilder\ExpressionParser.cpp" />
     <ClCompile Include="CurveBuilder\ExpressionUtils.cpp" />
-    <ClCompile Include="CurveBuilder\FPUCompiler.cpp" />
+    <ClCompile Include="CurveBuilder\ExpressionCompiler.cpp" />
     <ClCompile Include="CurveBuilder\FunctionParser.cpp" />
     <ClCompile Include="CurveBuilder\RenderData.cpp" />
     <ClCompile Include="CurveBuilder\ShapeFunction.cpp" />

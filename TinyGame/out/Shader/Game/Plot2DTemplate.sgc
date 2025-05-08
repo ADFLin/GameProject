@@ -1,9 +1,15 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 
-#ifndef USE_CUSTOM_GRAD_FUNC
-#define USE_CUSTOM_GRAD_FUNC 0
+#ifndef USE_CUSTOM_DIF_FUNC
+#define USE_CUSTOM_DIF_FUNC 0
 #endif
+
+#ifndef USE_DIF_2_ORDER
+#define USE_DIF_2_ORDER 0
+#endif
+
+
 
 float Func(float x, float t)
 {
@@ -12,14 +18,21 @@ float Func(float x, float t)
 
 uniform float E;
 
-float Grad(float x, float t)
+float DF(float x, float t)
 {
-#if USE_CUSTOM_GRAD_FUNC
+#if USE_CUSTOM_DIF_FUNC
 %s
 #else
 	return (Func(x + E, t) - Func(x - E, t)) /(2 * E);
 #endif
 }
+
+#if USE_DIF_2_ORDER
+float D2F(float x, float t)
+{
+%s
+}
+#endif
 
 uniform float4 OffsetAndScale;
 uniform float Time;
@@ -36,10 +49,25 @@ PS_ENTRY_END(MainPS)
 	float2 p = OffsetAndScale.xy + VSOutput.UVs *  OffsetAndScale.zw;
 
 	float f = Func(p.x, Time);
-	float df = Grad(p.x, Time);
-
-	float e = abs( f - p.y ) / sqrt( 1 + df * df );
-
+	float df = DF(p.x, Time);
+#if USE_DIF_2_ORDER
+	float d2f = D2F(p.x, Time);
+	float a = 0.5 * abs(d2f);
+	float b = sqrt(1 + df * df);
+	float c = -abs(p.y - f);
+	float e;
+	if (a == 0)
+	{
+		e = -c / b;
+	}
+	else
+	{
+		e = abs((-b + sqrt( b*b - 4*a*c ) ) / (2*a));
+	}
+#else
+	float e = abs(p.y - f) / sqrt(1 + df * df);
+#endif
+	
 	if (e > HalfWidth)
 	{
 		OutColor = float4(0,0,0,0);
@@ -49,7 +77,3 @@ PS_ENTRY_END(MainPS)
 		OutColor = Color;
 	}
 }
-
-
-
-

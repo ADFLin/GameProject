@@ -8,7 +8,7 @@
 #include "CurveBuilder/Surface.h"
 
 #include "CurveBuilder/CurveRenderer.h"
-#include "CurveBuilder/FPUCompiler.h"
+#include "CurveBuilder/ExpressionCompiler.h"
 
 #include "Async/AsyncWork.h"
 #include "RHI/RHIGraphics2D.h"
@@ -29,6 +29,12 @@
 namespace CB
 {
 	using namespace Render;
+
+	static RealType GTime;
+	RealType MyFunc(RealType x, RealType y)
+	{
+		return sin(sqrt(x*x + y*y) + 0.1*GTime);
+	}
 
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
@@ -56,6 +62,8 @@ namespace CB
 			systemConfigs.screenHeight = 800;
 			systemConfigs.numSamples = 4;
 		}
+
+
 
 		bool onInit() override
 		{
@@ -89,23 +97,33 @@ namespace CB
 			::Global::GUI().cleanupWidget();
 
 			{
-				Surface3D* surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 0.3));
+				Surface3D* surface;
+				surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				surface = createSurfaceXY("sin(sqrt(x*x+y*y) + 0.1*t)", Color4f(1, 0.6, 0.4, 0.5));
+				surface = createSurfaceXY("sin(sqrt(x*x+y*y) + 0.1*t)", Color4f(1, 0.6, 0.4, 0.3));
+				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
+				//surface = createSurfaceXY("sin(sqrt(x*x+y*y))", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 
 				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
-				textCtrl->setValue( static_cast<SurfaceXYFunc*>( surface->getFunction() )->getExprString().c_str());
-				textCtrl->onEvent = [surface,this](int event, GWidget* widget)
+				if (surface->getFunction()->isNative())
 				{
-					if ( event == EVT_TEXTCTRL_COMMITTED )
+					textCtrl->setValue("Native Func");
+				}
+				else
+				{
+					textCtrl->setValue(static_cast<SurfaceXYFunc*>(surface->getFunction())->getExprString().c_str());
+					textCtrl->onEvent = [surface, this](int event, GWidget* widget)
 					{
-						SurfaceXYFunc* func = (SurfaceXYFunc*)surface->getFunction();
-						func->setExpr(widget->cast<GTextCtrl>()->getValue());
-						surface->addUpdateBits(RUF_FUNCTION);
-					}
-					return false;
-				};
+						if (event == EVT_TEXTCTRL_COMMITTED)
+						{
+							SurfaceXYFunc* func = (SurfaceXYFunc*)surface->getFunction();
+							func->setExpr(widget->cast<GTextCtrl>()->getValue());
+							surface->addUpdateBits(RUF_FUNCTION);
+						}
+						return false;
+					};
+				}
 
 				::Global::GUI().addWidget(textCtrl);
 			}
@@ -115,6 +133,33 @@ namespace CB
 			return true;
 		}
 
+
+		Surface3D* createSurfaceXY(FuncType2 funcPtr, Color4f const& color)
+		{
+			Surface3D* surface = new Surface3D;
+			NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
+			surface->setFunction(func);
+			func->mPtr = funcPtr;
+
+
+			double Max = 10, Min = -10;
+			surface->setRangeU(Range(Min, Max));
+			surface->setRangeV(Range(Min, Max));
+
+#if _DEBUG && 0
+			int NumX = 20, NumY = 20;
+#else
+			int NumX = 300, NumY = 300;
+#endif
+
+			surface->setDataSampleNum(NumX, NumY);
+			surface->setColor(color);
+			surface->visible(true);
+			surface->addUpdateBits(RUF_ALL_UPDATE_BIT);
+			mSurfaceList.push_back(surface);
+
+			return surface;
+		}
 		Surface3D* createSurfaceXY(char const* expr , Color4f const& color )
 		{
 			Surface3D* surface = new Surface3D;
@@ -126,7 +171,7 @@ namespace CB
 			surface->setRangeU(Range(Min, Max));
 			surface->setRangeV(Range(Min, Max));
 
-#if _DEBUG
+#if _DEBUG && 0
 			int NumX = 20, NumY = 20;
 #else
 			int NumX = 300, NumY = 300;
@@ -155,10 +200,10 @@ namespace CB
 			static float t = 0;
 			t += 1;
 			mMeshBuilder->setTime(t);
+			GTime = t;
 
 			{
-				PROFILE_ENTRY("Update Surface");
-
+				PROFILE_ENTRY("Update Surface", "CB");
 #if USE_PARALLEL_UPDATE
 				for (ShapeBase* current : mSurfaceList)
 				{
@@ -185,16 +230,20 @@ namespace CB
 
 			Vec2i screenSize = ::Global::GetScreenSize();
 
+			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, 
-				&LinearColor(0.7f, 0.7f, 0.7f, 1), 1, 1);
+				&LinearColor(0.7f, 0.7f, 0.7f, 1), 1);
 
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
-			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::DegToRad(45.0f) , float(screenSize.x) / screenSize.y, 0.1f, 1000.0f) );
+
+			Matrix4 matProj = PerspectiveMatrixZBuffer(Math::DegToRad(45.0f), float(screenSize.x) / screenSize.y, 0.1f, 1000.0f);
 			mRenderer->getViewInfo().setupTransform(mCamera.getPos(), mCamera.getRotation(), matProj);
+			mRenderer->getViewInfo().updateRHIResource();
+
 			mRenderer->beginRender(commandList);
 			{
 				mRenderer->drawAxis();
@@ -208,9 +257,12 @@ namespace CB
 			}
 			mRenderer->endRender();
 
+
+#if 0
 			g.beginRender();
 			//::Global::GetDrawEngine().drawProfile(Vec2i(400, 20));
 			g.endRender();
+#endif
 		}
 
 		MsgReply onMouse(MouseMsg const& msg) override
@@ -273,6 +325,12 @@ namespace CB
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::OpenGL;
+		}
+
 	protected:
 	};
 

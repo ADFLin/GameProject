@@ -45,14 +45,20 @@ namespace CB
 		mSymbolDefine.defineVarInput("y", 1);
 		mSymbolDefine.defineVarInput("u", 0);
 		mSymbolDefine.defineVarInput("v", 1);
+#if 0
+		mSymbolDefine.defineFunc("sin", static_cast< RealType(*)(RealType) >(sin));
+		mSymbolDefine.defineFunc("sqrt", static_cast<RealType(*)(RealType)>(sqrt));
+#else
+		mSymbolDefine.defineFuncSymbol("sin", EFuncSymbol::Sin);
+		mSymbolDefine.defineFuncSymbol("sqrt", EFuncSymbol::Sqrt);
+#endif
 
-		mSymbolDefine.defineFunc("sin", static_cast< RealType (*)(RealType) >(sin));
 		mSymbolDefine.defineFunc("cos", static_cast< RealType(*)(RealType) >(cos));
 		mSymbolDefine.defineFunc("tan", static_cast< RealType(*)(RealType) >(tan));
 		mSymbolDefine.defineFunc("exp", static_cast< RealType(*)(RealType) >(exp));
 		mSymbolDefine.defineFunc("ln", static_cast< RealType(*)(RealType) >(log));
 		mSymbolDefine.defineFunc("log", static_cast< RealType(*)(RealType) >(log10));
-		mSymbolDefine.defineFunc("sqrt", static_cast< RealType(*)(RealType) >(sqrt));
+
 		mSymbolDefine.defineFunc("pow", static_cast< RealType(*)(RealType, RealType) >(pow));
 	}
 

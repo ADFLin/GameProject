@@ -104,9 +104,6 @@
     <ClInclude Include="CurveBuilder\ExpressionParser.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
-    <ClInclude Include="CurveBuilder\FPUCompiler.h">
-      <Filter>CurveBuilder</Filter>
-    </ClInclude>
     <ClInclude Include="CurveBuilder\FunctionParser.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
@@ -155,6 +152,9 @@
     <ClInclude Include="CurveBuilder\DifferentialEvaluator.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionCompiler.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -197,9 +197,6 @@
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\ExpressionParser.cpp">
-      <Filter>CurveBuilder</Filter>
-    </ClCompile>
-    <ClCompile Include="CurveBuilder\FPUCompiler.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\FunctionParser.cpp">
@@ -245,6 +242,9 @@
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\DifferentialEvaluator.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionCompiler.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
   </ItemGroup>

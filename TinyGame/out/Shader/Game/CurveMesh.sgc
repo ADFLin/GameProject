@@ -18,39 +18,43 @@ struct OutputVSParam
 };
 
 #if VERTEX_SHADER
-
-layout(location = ATTRIBUTE_POSITION) in float3 InPos;
-layout(location = ATTRIBUTE_COLOR) in float4 InColor;
-layout(location = ATTRIBUTE_NORMAL) in float3 InNormal;
-
-out OutputVSParam OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
 	OutputVS.pos = InPos;
 	OutputVS.normal = InNormal;
 	OutputVS.color = InColor;
-	SvPosition = mul( View.worldToClip , float4(InPos, 1.0) );
-}
 
+	float4 clipPos = mul(View.worldToClip, float4(InPos, 1.0));
+	SvPosition = clipPos;
+}
 #endif //VERTEX_SHADER
 
 
 #if PIXEL_SHADER
-in OutputVSParam OutputVS;
-
 
 #if USE_OIT
 PS_EARLY_DEPTH_TEST
-#else
-layout(location = 0) out float4 OutColor;
 #endif
-
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
+	PS_INPUT_IS_FRONT_FACE
+#if USE_OIT
+#else
+	PS_OUTPUT(float4 OutColor, 0)
+#endif
+PS_ENTRY_END(MainPS)
 {
 	float3 normal = normalize(OutputVS.normal);
 	float3 color = dot(normal, float3(0, 0, 1)) * OutputVS.color.rgb;
 	color = 0.5 * normal + 0.5;
 	float alpha = OutputVS.color.a;
+	if (!SvIsFrontFace)
+	 normal = -normal;
 #if USE_OIT
 	float pixelDepth = -(View.worldToView * float4(OutputVS.pos, 1)).z;
 	OITProcessPS(float4(color , alpha), pixelDepth);

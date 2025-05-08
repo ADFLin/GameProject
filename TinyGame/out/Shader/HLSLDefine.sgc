@@ -121,6 +121,7 @@ void GroupMemoryBarrierWithGroupSync();
 #define PS_INPUT_STRUCT(TYPE_DECL, LOC) in TYPE_DECL,
 #define PS_INPUT_VIEWPORT_INDEX         in uint SvViewportIndex : SV_ViewportArrayIndex,
 #define PS_INPUT_RENDERTARGET_IDNEX     in uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
+#define PS_INPUT_IS_FRONT_FACE          in bool SvIsFrontFace : SV_IsFrontFace,
 #define PS_OUTPUT(TYPE_DECL, LOC)       out TYPE_DECL : SV_Target##LOC,
 #define PS_OUTPUT_DEPTH                 out float SvDepth : SV_Depth,
 #define PS_ENTRY_END(NAME)              in float4 SvPosition : SV_POSITION)

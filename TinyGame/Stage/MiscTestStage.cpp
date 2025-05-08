@@ -26,6 +26,7 @@
 #include "FileSystem.h"
 
 
+
 extern TINY_API IMiscTestCore* GTestCore;
 
 bool MiscTestStage::onInit()
@@ -1420,6 +1421,29 @@ void DifferentialTest()
 }
 
 REGISTER_MISC_TEST_ENTRY("Differential Test", DifferentialTest);
+
+#include "CurveBuilder/ExpressionParser.h"
+
+void ExprEvalTest()
+{
+	static std::string LastExprText = "x*x";
+	std::string expr = FMiscTestUtil::WaitInputText(LastExprText.c_str());
+	LastExprText = expr;
+
+	SymbolTable table;
+	table.defineVarInput("x", 0);
+
+	ExpressionTreeData exprData;
+	ExpressionParser parser;
+	if (parser.parse(expr.c_str(), table, exprData))
+	{
+		ExprTreeEvaluator evaluator;
+		RealType evalResult = evaluator.eval(exprData, RealType(1.0));
+		LogMsg("Expr %s eval %lf", expr.c_str(), evalResult);
+	}
+}
+
+REGISTER_MISC_TEST_ENTRY("Expr Eval Test", ExprEvalTest);
 
 #if 0
 #include "Meta/Concept.h"

@@ -7,15 +7,10 @@
 
 #include "ProfileSystem.h"
 #include "SystemPlatform.h"
+#include "Renderer/MeshUtility.h"
 
 namespace CB
 {
-
-	static void CalcNormal(Vector3& outValue, Vector3 const& v1,Vector3 const& v2, Vector3 const& v3)
-	{
-		outValue = (v2 - v1).cross(v3 - v1);
-		outValue.normalize();
-	}
 
 	ShapeMeshBuilder::ShapeMeshBuilder()
 		:mColorMap(1000)
@@ -101,6 +96,170 @@ namespace CB
 		}
 	}
 
+	template< typename TSurfaceUVFunc >
+	void ShapeMeshBuilder::updatePositionData_SurfaceUV(TSurfaceUVFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data)
+	{
+		uint8* posData = data.getVertexData() + data.getPositionOffset();
+
+		float du = paramU.getIncrement();
+		float dv = paramV.getIncrement();
+
+		switch( func->getUsedInputMask() )
+		{
+		case BIT(0):
+			{
+				for( int i = 0; i < paramU.numData; ++i )
+				{
+					float u = paramU.getRangeMin() + i * du;
+					Vector3 value;
+					func->evalExpr(value, u, 0);
+					for( int j = 0; j < paramV.numData; ++j )
+					{
+						float v = paramV.getRangeMin() + j * dv;
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						*pPos = value;
+					}
+				}
+			}
+			break;
+		case BIT(1):
+			{
+				for( int j = 0; j < paramV.numData; ++j )
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					Vector3 value;
+					func->evalExpr(value, 0, v);
+					for( int i = 0; i < paramU.numData; ++i )
+					{
+						float u = paramU.getRangeMin() + i * du;
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						*pPos = value;
+					}
+				}
+			}
+			break;
+		case BIT(0) | BIT(1):
+			{
+				for( int j = 0; j < paramV.numData; ++j )
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					for( int i = 0; i < paramU.numData; ++i )
+					{
+						float u = paramU.getRangeMin() + i * du;		
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						func->evalExpr(*pPos, u, v);
+					}
+				}
+			}
+			break;
+		default:
+			{
+				Vector3 value;
+				func->evalExpr(value, 0, 0);
+				for( int j = 0; j < paramV.numData; ++j )
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					for( int i = 0; i < paramU.numData; ++i )
+					{
+						float u = paramU.getRangeMin() + i * du;
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						*pPos = value;
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	template< typename TSurfaceXYFunc >
+	void ShapeMeshBuilder::updatePositionData_SurfaceXY(TSurfaceXYFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data)
+	{
+		uint8* posData = data.getVertexData() + data.getPositionOffset();
+
+		float du = paramU.getIncrement();
+		float dv = paramV.getIncrement();
+
+		switch (func->getUsedInputMask())
+		{
+		case BIT(0):
+			{
+				for (int i = 0; i < paramU.numData; ++i)
+				{
+					float u = paramU.getRangeMin() + i * du;
+					Vector3 value;
+					func->evalExpr(value, u, 0);
+
+					for (int j = 0; j < paramV.numData; ++j)
+					{
+						float v = paramV.getRangeMin() + j * dv;
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						pPos->setValue(u, v, value.z);
+					}
+				}
+			}
+			break;
+		case BIT(1):
+			{
+				for (int j = 0; j < paramV.numData; ++j)
+				{
+					float v = paramV.getRangeMin() + j * dv;
+
+					Vector3 value;
+					func->evalExpr(value, 0, v);
+
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						float u = paramU.getRangeMin() + i * du;
+
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						pPos->setValue(u, v, value.z);
+					}
+				}
+			}
+			break;
+		case BIT(0) | BIT(1):
+			{
+				for (int j = 0; j < paramV.numData; ++j)
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						float u = paramU.getRangeMin() + i * du;
+
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						func->evalExpr(*pPos, u, v);
+					}
+				}
+			}
+			break;
+		default:
+			{
+				Vector3 value;
+				func->evalExpr(value, 0, 0);
+				for (int j = 0; j < paramV.numData; ++j)
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						float u = paramU.getRangeMin() + i * du;
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
+						pPos->setValue(u, v, value.z);
+					}
+				}
+			}
+			break;
+		}
+	}
+
+
 	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV)
 	{
 		PROFILE_ENTRY("UpdateSurfaceData");
@@ -112,6 +271,9 @@ namespace CB
 		int vertexNum = paramU.numData * paramV.numData;
 		int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 
+
+		bool bUpdateIndices = false;
+
 		if( flags & RUF_DATA_SAMPLE )
 		{
 			if( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum )
@@ -120,234 +282,81 @@ namespace CB
 				data->create(vertexNum, indexNum, true);
 			}
 			flags |= (RUF_GEOM | RUF_COLOR);
+			bUpdateIndices = true;
+		}
+
+		uint32*  pIndexData = data->getIndexData();
+		if (bUpdateIndices)
+		{
+			int nu = paramU.numData;
+			int nv = paramV.numData;
+
+			uint32*  pIndex = pIndexData;
+			for (int i = 0; i < nu - 1; ++i)
+			{
+				for (int j = 0; j < nv - 1; ++j)
+				{
+					int index = nv * i + j;
+
+					pIndex[0] = index;
+					pIndex[1] = index + 1;
+					pIndex[2] = index + nv + 1;
+
+					pIndex[3] = index;
+					pIndex[4] = index + nv + 1;
+					pIndex[5] = index + nv;
+
+					pIndex += 6;
+				}
+			}
 		}
 
 		if( flags & RUF_GEOM )
 		{
-			uint8* posData = data->getVertexData() + data->getPositionOffset();
-
-			float du = paramU.getIncrement();
-			float dv = paramV.getIncrement();
-
 			if( context.func->getFuncType() == TYPE_SURFACE_UV )
 			{
 				SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
 
-				switch( func->getUsedInputMask() )
+				if (context.func->isNative())
 				{
-				case BIT(0):
-					{
-						for( int i = 0; i < paramU.numData; ++i )
-						{
-							float u = paramU.getRangeMin() + i * du;
-							Vector3 value;
-							func->evalExpr(value, u, 0);
-							for( int j = 0; j < paramV.numData; ++j )
-							{
-								float v = paramV.getRangeMin() + j * dv;
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								*pPos = value;
-							}
-						}
-					}
-					break;
-				case BIT(1):
-					{
-						for( int j = 0; j < paramV.numData; ++j )
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							Vector3 value;
-							func->evalExpr(value, 0, v);
-							for( int i = 0; i < paramU.numData; ++i )
-							{
-								float u = paramU.getRangeMin() + i * du;
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								*pPos = value;
-							}
-						}
-					}
-					break;
-				case BIT(0) | BIT(1):
-					{
-						for( int j = 0; j < paramV.numData; ++j )
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							for( int i = 0; i < paramU.numData; ++i )
-							{
-								float u = paramU.getRangeMin() + i * du;		
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								func->evalExpr(*pPos, u, v);
-							}
-						}
-					}
-					break;
-				default:
-					{
-						Vector3 value;
-						func->evalExpr(value, 0, 0);
-						for( int j = 0; j < paramV.numData; ++j )
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							for( int i = 0; i < paramU.numData; ++i )
-							{
-								float u = paramU.getRangeMin() + i * du;
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								*pPos = value;
-							}
-						}
-
-					}
-					break;
+					NativeSurfaceUVFunc* func = static_cast<NativeSurfaceUVFunc*>(context.func);
+					updatePositionData_SurfaceUV(func, paramU, paramV, *data);
+				}
+				else
+				{
+					SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
+					updatePositionData_SurfaceUV(func, paramU, paramV, *data);
 				}
 			}
 			else if( context.func->getFuncType() == TYPE_SURFACE_XY )
 			{
-				SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
-
-				switch( func->getUsedInputMask() )
+				PROFILE_ENTRY("Update Position", "CB");
+				if (context.func->isNative())
 				{
-				case BIT(0):
-					{
-						for( int i = 0; i < paramU.numData; ++i )	
-						{
-							float u = paramU.getRangeMin() + i * du;
-							Vector3 value;
-							func->evalExpr(value, u, 0);
-
-							for( int j = 0; j < paramV.numData; ++j )
-							{
-								float v = paramV.getRangeMin() + j * dv;
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								pPos->setValue( u , v , value.z);
-							}
-						}
-					}
-					break;
-				case BIT(1):
-					{
-						for( int j = 0; j < paramV.numData; ++j )
-						{
-							float v = paramV.getRangeMin() + j * dv;
-
-							Vector3 value;
-							func->evalExpr(value, 0, v);
-
-							for( int i = 0; i < paramU.numData; ++i )
-							{
-								float u = paramU.getRangeMin() + i * du;
-
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								pPos->setValue( u , v , value.z);
-							}
-						}
-					}
-					break;
-				case BIT(0) | BIT(1):
-					{
-						for( int j = 0; j < paramV.numData; ++j )
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							for( int i = 0; i < paramU.numData; ++i )
-							{
-								float u = paramU.getRangeMin() + i * du;
-
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								func->evalExpr(*pPos, u, v);
-							}
-						}
-					}
-					break;
-				default:
-					{
-						Vector3 value;
-						func->evalExpr(value, 0, 0);
-						for( int j = 0; j < paramV.numData; ++j )
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							for( int i = 0; i < paramU.numData; ++i )
-							{
-								float u = paramU.getRangeMin() + i * du;
-								int idx = paramU.numData * j + i;
-								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								pPos->setValue(u, v, value.z);
-							}
-						}
-
-					}
-					break;
+					NativeSurfaceXYFunc* func = static_cast<NativeSurfaceXYFunc*>(context.func);
+					updatePositionData_SurfaceXY(func, paramU, paramV, *data);
 				}
-			}
-
-			uint32*  pIndexData = data->getIndexData();
-			int nu = paramU.numData;
-			int nv = paramV.numData;
-
-			int count = 0;
-			for( int i = 0; i < nu - 1; ++i )
-			{
-				for( int j = 0; j < nv - 1; ++j )
+				else
 				{
-					int index = nv * i + j;
-
-					pIndexData[count++] = index;
-					pIndexData[count++] = index + 1;
-					pIndexData[count++] = index + nv + 1;
-
-					pIndexData[count++] = index;
-					pIndexData[count++] = index + nv + 1;
-					pIndexData[count++] = index + nv;
+					SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
+					updatePositionData_SurfaceXY(func, paramU, paramV, *data);
 				}
 			}
 
 			if( data->getNormalOffset() != INDEX_NONE )
 			{
-#if USE_PARALLEL_UPDATE
-				std::vector< Vector3 > mCacheNormal;
-				std::vector< int >     mCacheCount;
-#endif
-				mCacheCount.resize(vertexNum, 0);
-				mCacheNormal.resize(vertexNum, Vector3(0, 0, 0));
+				using namespace Render;
+				PROFILE_ENTRY("Update Normal", "CB");
 
+				uint8* posData = data->getVertexData() + data->getPositionOffset();
 				uint8* normalData = data->getVertexData() + data->getNormalOffset();
 
-				for( int i = 0; i < indexNum; i += 3 )
-				{
-					int idx0 = pIndexData[i];
-					int idx1 = pIndexData[i + 1];
-					int idx2 = pIndexData[i + 2];
-
-					Vector3* pPos0 = (Vector3*)(posData + idx0 * data->getVertexSize());
-					Vector3* pPos1 = (Vector3*)(posData + idx1 * data->getVertexSize());
-					Vector3* pPos2 = (Vector3*)(posData + idx2 * data->getVertexSize());
-					Vector3 normal;
-					CalcNormal(normal, *pPos0, *pPos1, *pPos2);
-					//normal = -normal;
-
-					mCacheNormal[idx0] += normal;
-					mCacheNormal[idx1] += normal;
-					mCacheNormal[idx2] += normal;
-
-					mCacheCount[idx0] += 1;
-					mCacheCount[idx1] += 1;
-					mCacheCount[idx2] += 1;
-				}
-
-				for( int i = 0; i < vertexNum; ++i )
-				{
-					Vector3* pNoraml = (Vector3*)(normalData + i * data->getVertexSize());
-					*pNoraml = (1.0 / mCacheCount[i]) *mCacheNormal[i];
-					(*pNoraml).normalize();
-				}
-
+				MeshUtility::FillNormal_TriangleList(
+					VertexElementReader{ posData , data->getVertexSize() }, 
+					VertexElementWriter{ normalData , data->getVertexSize() }, 
+					data->getVertexNum(), data->getIndexData(), data->getIndexNum(), true
+				);
 			}
-
 		}
 
 		if( flags & RUF_COLOR )

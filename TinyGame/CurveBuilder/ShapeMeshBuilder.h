@@ -37,20 +37,26 @@ namespace CB
 
 		void  updateCurveData(ShapeUpdateContext const& context, SampleParam const& paramS) override;
 		void  updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV) override;
+
+
+
 		bool  parseFunction(ShapeFuncBase& func) override;
 		void  setTime(float t) { mVarTime = t; }
 
 	private:
 		void  setColor(float p, float* color);
 
+		template< typename TSurfaceUVFunc >
+		void updatePositionData_SurfaceUV(TSurfaceUVFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data);
+		template< typename TSurfaceXYFunc >
+		void updatePositionData_SurfaceXY(TSurfaceXYFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data);
+
+
 		RealType        mVarTime;
 		ColorMap        mColorMap;
 
 #if USE_PARALLEL_UPDATE
 		Mutex            mParserLock;
-#else
-		TArray< Vector3 > mCacheNormal;
-		TArray< int >     mCacheCount;
 #endif
 		FunctionParser   mParser;
 

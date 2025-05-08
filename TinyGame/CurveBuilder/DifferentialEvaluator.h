@@ -1,8 +1,7 @@
 #ifndef DifferentialEvaluator_h__
 #define DifferentialEvaluator_h__
 
-#include "FunctionParser.h"
-
+#include "ExpressionParser.h"
 
 class DifferentialEvaluator : public ExprParse
 {
@@ -25,23 +24,6 @@ public:
 	ExpressionTreeData const* mEvalData;
 	ExpressionTreeData* mOutputData;
 	static constexpr int IDENTITY_INDEX = MaxInt32;
-
-#define DEFAULT_FUNC_SYMBOL_LIST(op)\
-		op(Exp, "exp", 1)\
-		op(Ln, "ln", 1)\
-		op(Sin, "sin", 1)\
-		op(Cos, "cos", 1)\
-		op(Tan, "tan", 1)\
-		op(Cot, "cot", 1)\
-		op(Sec, "sec", 1)\
-		op(Csc, "csc", 1)
-
-	enum EFuncSymbol
-	{
-	#define ENUM_OP(SYMBOL, NAME, NUM_ARG) SYMBOL,
-		DEFAULT_FUNC_SYMBOL_LIST(ENUM_OP)
-	#undef ENUM_OP
-	};
 
 	static FuncSymbolInfo const& GetFuncSymbolEntry(EFuncSymbol symbol)
 	{
@@ -222,10 +204,13 @@ public:
 
 	int outputIfNeed(Index index)
 	{
-		CHECK(index.value != 0);
 		if (index.bOutput)
 			return index.value;
 
+		if (index.value == 0)
+		{
+			return outputConst(0);
+		}
 		if (index.value == IDENTITY_INDEX)
 		{
 			return outputConst(1.0);
@@ -237,27 +222,18 @@ public:
 
 	int outputConst(RealType value)
 	{
-		return mOutputData->addLeafCode(Unit{ VALUE_CONST, ConstValueInfo(value) });
-	}
-
-	static Unit GetZeroValue()
-	{
-		return Unit(VALUE_CONST, ConstValueInfo{ RealType(0) });
-	}
-	static Unit GetIdentityValue()
-	{
-		return Unit(VALUE_CONST, ConstValueInfo{ RealType(1) });
+		return mOutputData->addLeafCode(Unit::ConstValue(value));
 	}
 
 	Unit getValue(Index index)
 	{
 		if (index == 0)
 		{
-			return GetZeroValue();
+			return Unit::ConstValue(RealType(0));
 		}
 		if (index == IDENTITY_INDEX)
 		{
-			return GetIdentityValue();
+			return Unit::ConstValue(RealType(1));
 		}
 		return index.bOutput ? mOutputData->getLeafCode(index.value) : mEvalData->getLeafCode(index.value);
 	}
@@ -271,20 +247,7 @@ public:
 		return ExprParse::IsLeaf(index.value);
 	}
 
-	bool isEqualValue(Index indexLeft, Index indexRight)
-	{
-		if (isValue(indexLeft) != isValue(indexRight))
-			return false;
-
-		if (isValue(indexLeft))
-		{
-			Unit valueL = getValue(indexLeft);
-			Unit valueR = getValue(indexRight);
-			return IsValueEqual(valueL, valueR);
-		}
-
-		return false;
-	}
+	bool isEqualValue(Index indexLeft, Index indexRight);
 };
 
 

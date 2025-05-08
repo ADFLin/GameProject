@@ -41,9 +41,9 @@ bool ExprParse::IsValueEqual(Unit const& a, Unit const& b)
 		case VALUE_CONST:
 			return a.constValue == b.constValue;
 		case VALUE_VARIABLE:
-			return a.symbol->varValue.ptr == b.symbol->varValue.ptr;
+			return a.variable.ptr == b.variable.ptr;
 		case VALUE_INPUT:
-			return a.symbol->input.index == b.symbol->input.index;
+			return a.input.index == b.input.index;
 		}
 	}
 	return false;
@@ -187,28 +187,28 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 						infixCode.emplace_back(type, symbol);
 					}
 					break;
+				case SymbolEntry::eFunctionSymbol:
+					{
+						type = FUNC_SYMBOL;
+						infixCode.emplace_back(symbol->funcSymbol);
+					}
+					break;
 				case SymbolEntry::eConstValue:
 					{
 						type = VALUE_CONST;
-						infixCode.emplace_back(type, symbol->constValue);
+						infixCode.emplace_back(symbol->constValue);
 					}
 					break;
 				case SymbolEntry::eVariable:
 					{
 						type = VALUE_VARIABLE;
-						infixCode.emplace_back(type, symbol);
+						infixCode.emplace_back(symbol->varValue);
 					}
 					break;
 				case SymbolEntry::eInputVar:
 					{
 						type = VALUE_INPUT;
-						infixCode.emplace_back(type, symbol);
-					}
-					break;
-				case SymbolEntry::eFunctionSymbol:
-					{
-						type = FUNC_SYMBOL;
-						infixCode.emplace_back(symbol->funcSymbol);
+						infixCode.emplace_back(symbol->input);
 					}
 					break;
 				}
@@ -220,7 +220,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 				if( *ptrEnd == '\0' )
 				{
 					type = VALUE_CONST;
-					infixCode.emplace_back(type, val);
+					infixCode.emplace_back(Unit::ConstValue(val));
 				}
 			}
 		}
@@ -413,11 +413,11 @@ bool ParseResult::isUsingVar( char const* name ) const
 	if( mSymbolDefine )
 	{
 		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
-		if( symbol )
+		if( symbol && symbol->type == SymbolEntry::eVariable )
 		{
 			for( auto const& unit : mPFCodes )
 			{
-				if( unit.type == VALUE_VARIABLE && unit.symbol == symbol )
+				if( unit.type == VALUE_VARIABLE && unit.variable.ptr == symbol->varValue.ptr )
 					return true;
 			}
 		}
@@ -430,11 +430,11 @@ bool ParseResult::isUsingInput(char const* name) const
 	if( mSymbolDefine )
 	{
 		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
-		if( symbol )
+		if( symbol && symbol->type == SymbolEntry::eInputVar )
 		{
 			for (auto const& unit : mPFCodes)
 			{
-				if( unit.type == VALUE_INPUT && unit.symbol == symbol )
+				if( unit.type == VALUE_INPUT && unit.input.index == symbol->input.index )
 					return true;
 			}
 		}
@@ -713,8 +713,7 @@ bool ParseResult::optimizeConstValue( int index )
 			}
 			if (done)
 			{
-
-				elem = Unit( VALUE_CONST , ConstValueInfo( val ) );
+				elem = Unit::ConstValue(val);
 
 				MoveElement(index,mPFCodes.size() ,-2);
 				mPFCodes.pop_back();
@@ -748,7 +747,7 @@ bool ParseResult::optimizeConstValue( int index )
 
 			if (done)
 			{
-				elem = Unit(VALUE_CONST,val);
+				elem = Unit::ConstValue(val);
 
 				MoveElement(index,mPFCodes.size() ,-1);
 				mPFCodes.pop_back();
@@ -763,6 +762,9 @@ bool ParseResult::optimizeConstValue( int index )
 	}
 	else if ( IsFunction( elem.type ) )
 	{
+		if (elem.type == FUNC_SYMBOL)
+			return false;
+
 		RealType val[5];
 		int num = elem.symbol->func.getArgNum();
 		void* funPtr = elem.symbol->func.funcPtr;
@@ -799,7 +801,7 @@ bool ParseResult::optimizeConstValue( int index )
 				val[0] = (*(FuncType5)funPtr)(val[4],val[3],val[2],val[1],val[0]);
 				break;
 			}
-			elem = Unit(VALUE_CONST,val[0]);
+			elem = Unit::ConstValue(val[0]);
 			for(int n = index-num ;n< mPFCodes.size()-num;++n)
 				mPFCodes[n] = mPFCodes[n+num];
 
@@ -1164,14 +1166,14 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 			++numVar;
 		}
 
-		if (unit.symbol->type == SymbolEntry::eFunction)
+		if (unit.type == FUNC_DEF)
 		{
 			if (numVar != unit.symbol->func.getArgNum())
 				return TREE_FUN_PARAM_NUM_NO_MATCH;
 		}
 		else
 		{
-			if (numVar != unit.symbol->funcSymbol.numArgs)
+			if (numVar != unit.funcSymbol.numArgs)
 				return TREE_FUN_PARAM_NUM_NO_MATCH;
 		}
 	}
@@ -1326,10 +1328,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		return false;
 	}
 
-
-	unit.type       = ExprParse::VALUE_CONST;
-	unit.constValue.layout = ValueLayout::Real;
-	unit.constValue.asReal = value;
+	unit = Unit::ConstValue(value);
 	return true;
 }
 
@@ -1668,7 +1667,7 @@ void ExprOutputContext::output(Unit const& unit)
 		break;
 	case VALUE_INPUT:
 		{
-			char const* name = table.getInputName(unit.symbol->input.index);
+			char const* name = table.getInputName(unit.input.index);
 			if (name)
 				mStream << name;
 			else
@@ -1696,7 +1695,7 @@ void ExprOutputContext::output(Unit const& unit)
 		break;
 	case VALUE_VARIABLE:
 		{
-			char const* name = table.getVarName(unit.symbol->varValue.ptr);
+			char const* name = table.getVarName(unit.variable.ptr);
 			if (name)
 				mStream << name;
 			else

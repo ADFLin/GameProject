@@ -355,12 +355,25 @@ public:
 		Unit(){}
 		Unit(TokenType type)
 			:type(type),isReverse(false){}
-		Unit(TokenType type, ConstValueInfo val)
-			:type(type),constValue(val){}
-		Unit(TokenType type,SymbolEntry const* symbol)
-			:type(type), symbol(symbol){}
+
 		Unit(FuncSymbolInfo funcSymbol)
 			:type(FUNC_SYMBOL), funcSymbol(funcSymbol){}
+
+		Unit(InputInfo val)
+			:type(VALUE_INPUT), input(val) {}
+		Unit(ConstValueInfo val)
+			:type(VALUE_CONST), constValue(val) {}
+		Unit(VariableInfo val)
+			:type(VALUE_VARIABLE), variable(val) {}
+
+		Unit(TokenType type, SymbolEntry const* symbol)
+			:type(type), symbol(symbol) {}
+
+		template< typename T >
+		static Unit ConstValue(T value)
+		{
+			return Unit(ConstValueInfo{ value });
+		}
 
 
 		TokenType    type;
@@ -369,7 +382,9 @@ public:
 			SymbolEntry const* symbol;
 			bool            isReverse;
 			ConstValueInfo  constValue;
+			VariableInfo    variable;
 			FuncSymbolInfo  funcSymbol;
+			InputInfo       input;
 		};
 	};
 
@@ -408,18 +423,19 @@ public:
 			generator.codeConstValue(unit.constValue);
 			break;
 		case ExprParse::VALUE_VARIABLE:
-			generator.codeVar(unit.symbol->varValue);
+			generator.codeVar(unit.variable);
 			break;
 		case ExprParse::VALUE_INPUT:
-			generator.codeInput(unit.symbol->input);
+			generator.codeInput(unit.input);
 			break;
+		case ExprParse::FUNC_DEF:
+			generator.codeFunction(unit.symbol->func);
+			break;
+		case ExprParse::FUNC_SYMBOL:
+			generator.codeFunction(unit.funcSymbol);
 		default:
 			switch (unit.type & TOKEN_MASK)
 			{
-			case TOKEN_FUNC:
-				CHECK(unit.symbol->type == SymbolEntry::eFunction);
-				generator.codeFunction(unit.symbol->func);
-				break;
 			case TOKEN_UNARY_OP:
 				generator.codeUnaryOp(unit.type);
 				break;
@@ -455,6 +471,25 @@ public:
 	void output(Unit const& unit);
 	void outputSpace(int num);
 	void outputEOL();
+};
+
+
+#define DEFAULT_FUNC_SYMBOL_LIST(op)\
+		op(Exp, "exp", 1)\
+		op(Ln, "ln", 1)\
+		op(Sin, "sin", 1)\
+		op(Cos, "cos", 1)\
+		op(Tan, "tan", 1)\
+		op(Cot, "cot", 1)\
+		op(Sec, "sec", 1)\
+		op(Csc, "csc", 1)\
+		op(Sqrt, "sqrt", 1)
+
+enum EFuncSymbol
+{
+#define ENUM_OP(SYMBOL, NAME, NUM_ARG) SYMBOL,
+	DEFAULT_FUNC_SYMBOL_LIST(ENUM_OP)
+#undef ENUM_OP
 };
 
 
@@ -597,6 +632,8 @@ public:
 	EExprErrorCode errorCode;
 };
 
+
+
 struct ExpressionTreeData : public ExprParse
 {
 	NodeVec      nodes;
@@ -642,48 +679,323 @@ struct ExpressionTreeData : public ExprParse
 	std::string getExpressionText(SymbolTable const& table);
 
 	void output_R(class TreeExprOutputContext& context, Node const& parent, int idxNode);
+};
 
-	template< typename TCodeGenerator >
-	void visitTree(TCodeGenerator& geneartor)
+
+
+template< typename TVisitor >
+class ExprTreeVisitOp : ExprParse
+{
+public:
+	ExprTreeVisitOp(ExpressionTreeData& tree, TVisitor& visitor)
+		:mTree(tree), mVisitor(visitor) {}
+
+
+
+	void execute()
 	{
-		if (!nodes.empty())
+		if (!mTree.nodes.empty())
 		{
-			Node& root = nodes[0];
-			visitTree_R(geneartor, root.children[CN_LEFT]);
+			Node& root = mTree.nodes[0];
+			execute_R(root.children[CN_LEFT]);
 		}
 	}
 
-	template< typename TCodeGenerator >
-	void visitTree_R(TCodeGenerator& geneartor, int idxNode)
+	void execute_R(int idxNode)
 	{
-		if (idxNode < 0)
-		{
-			Process(geneartor, codes[LEAF_UNIT_INDEX(idxNode)]);
-			return;
-		}
-		else if (idxNode == 0)
+		if (idxNode == 0)
 			return;
 
-		Node& node = nodes[idxNode];
-		Unit& unit = codes[node.indexOp];
+		if (idxNode < 0)
+		{
+			mVisitor.visitValue(mTree.codes[LEAF_UNIT_INDEX(idxNode)]);
+			return;
+		}
+
+		Node& node = mTree.nodes[idxNode];
+		Unit& unit = mTree.codes[node.indexOp];
 		if (unit.type == BOP_ASSIGN)
 		{
-			visitTree_R(geneartor, node.children[CN_RIGHT]);
-			visitTree_R(geneartor, node.children[CN_LEFT]);
-			Process(geneartor, unit);
+			execute_R(node.children[CN_RIGHT]);
+			execute_R(node.children[CN_LEFT]);
+			mVisitor.visitOp(unit);
 		}
 		else
 		{
-			visitTree_R(geneartor, node.children[CN_LEFT]);
-			visitTree_R(geneartor, node.children[CN_RIGHT]);
+			execute_R(node.children[CN_LEFT]);
+			execute_R(node.children[CN_RIGHT]);
 			if (unit.type != IDT_SEPARETOR)
 			{
-				Process(geneartor, unit);
+				mVisitor.visitOp(unit);
 			}
 		}
 	}
+
+	ExpressionTreeData& mTree;
+	TVisitor& mVisitor;
 };
 
+#define USE_FIXED_VALUE 0
+
+class ExprEvaluatorBase : ExprParse
+{
+public:
+	void visitValue(Unit const& unit)
+	{
+	#if USE_FIXED_VALUE
+		mValueStack.push_back(getValue(unit));
+	#else
+		mValueStack.push_back(unit);
+	#endif
+	}
+
+	void visitOp(Unit const& unit)
+	{
+		switch (unit.type)
+		{
+		case TOKEN_FUNC:
+			if (unit.type == FUNC_DEF)
+			{
+				FuncInfo const& funcInfo = unit.symbol->func;
+				RealType params[5];
+				int   numParam = funcInfo.getArgNum();
+				void* funcPtr = funcInfo.funcPtr;
+
+				RealType value;
+				switch (numParam)
+				{
+				case 0:
+					value = (*static_cast<FuncType0>(funcPtr))();
+					break;
+				case 1:
+					params[0] = popStack();
+					value = (*static_cast<FuncType1>(funcPtr))(params[0]);
+					break;
+				case 2:
+					params[0] = popStack();
+					params[1] = popStack();
+					value = (*static_cast<FuncType2>(funcPtr))(params[1], params[0]);
+					break;
+				case 3:
+					params[0] = popStack();
+					params[1] = popStack();
+					params[2] = popStack();
+					value = (*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]);
+					break;
+				case 4:
+					params[0] = popStack();
+					params[1] = popStack();
+					params[2] = popStack();
+					params[3] = popStack();
+					value = (*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]);
+					break;
+				case 5:
+					params[0] = popStack();
+					params[1] = popStack();
+					params[2] = popStack();
+					params[3] = popStack();
+					params[4] = popStack();
+					value = (*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]);
+					break;
+				}
+				pushStack(value);
+			}
+			else
+			{
+				switch (unit.funcSymbol.id)
+				{
+				case EFuncSymbol::Exp:  pushStack(exp(popStack())); break;
+				case EFuncSymbol::Ln:   pushStack(log(popStack())); break;
+				case EFuncSymbol::Sin:  pushStack(sin(popStack())); break;
+				case EFuncSymbol::Cos:  pushStack(cos(popStack())); break;
+				case EFuncSymbol::Tan:  pushStack(tan(popStack())); break;
+				case EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); break;
+				case EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); break;
+				case EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); break;
+				case EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); break;
+				}
+			}
+			break;
+		case TOKEN_UNARY_OP:
+			{
+				RealType lhs = popStack();
+				switch (unit.type)
+				{
+				case UOP_MINS: pushStack(-lhs); break;
+				}
+			}
+			break;
+		case TOKEN_BINARY_OP:
+		{
+			RealType lhs = popStack();
+			RealType rhs = popStack();
+			
+			switch (unit.type)
+			{
+			case BOP_ADD: pushStack(lhs + rhs); break;
+			case BOP_SUB: if (unit.isReverse) pushStack(rhs - lhs); else pushStack(lhs - rhs); break;
+			case BOP_MUL: pushStack(lhs * rhs); break;
+			case BOP_DIV: if (unit.isReverse) pushStack(rhs / lhs); else pushStack(lhs / rhs); break;
+			}
+		}
+		break;
+		}
+	}
+
+	void exec(Unit const& unit)
+	{
+		switch (unit.type)
+		{
+		case VALUE_CONST:
+		case VALUE_INPUT:
+		case VALUE_VARIABLE:
+			visitValue(unit);
+			break;
+		case FUNC_DEF:
+			{
+				FuncInfo const& funcInfo = unit.symbol->func;
+				RealType params[5];
+				int   numParam = funcInfo.getArgNum();
+				void* funcPtr = funcInfo.funcPtr;
+
+				RealType value;
+				switch (numParam)
+				{
+				case 0:
+					value = (*static_cast<FuncType0>(funcPtr))();
+					break;
+				case 1:
+					params[0] = popStack();
+					value = (*static_cast<FuncType1>(funcPtr))(params[0]);
+					break;
+				case 2:
+					params[0] = popStack();
+					params[1] = popStack();
+					value = (*static_cast<FuncType2>(funcPtr))(params[1], params[0]);
+					break;
+				case 3:
+					params[0] = popStack();
+					params[1] = popStack();
+					params[2] = popStack();
+					value = (*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]);
+					break;
+				case 4:
+					params[0] = popStack();
+					params[1] = popStack();
+					params[2] = popStack();
+					params[3] = popStack();
+					value = (*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]);
+					break;
+				case 5:
+					params[0] = popStack();
+					params[1] = popStack();
+					params[2] = popStack();
+					params[3] = popStack();
+					params[4] = popStack();
+					value = (*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]);
+					break;
+				}
+				pushStack(value);
+			}
+			break;
+		case BOP_ADD: 
+			{
+				RealType lhs = popStack();
+				RealType rhs = popStack();
+				pushStack(lhs + rhs);
+			}
+			break;
+		case BOP_SUB: 
+			{
+				RealType lhs = popStack();
+				RealType rhs = popStack(); 
+				if (unit.isReverse) pushStack(rhs - lhs); else pushStack(lhs - rhs); 
+			}
+			break;
+		case BOP_MUL: 
+			{
+				RealType lhs = popStack();
+				RealType rhs = popStack();
+				pushStack(lhs * rhs); 
+			}
+			break;
+		case BOP_DIV: 
+			{
+				RealType lhs = popStack();
+				RealType rhs = popStack(); 
+				if (unit.isReverse) pushStack(rhs / lhs); else pushStack(lhs / rhs);
+			}
+			break;
+		case UOP_MINS: 
+			{
+				RealType lhs = popStack();
+				pushStack(-lhs); break;
+			}
+			break;
+		}
+	}
+
+	void pushStack(RealType value)
+	{
+#if USE_FIXED_VALUE
+		mValueStack.push_back(value);
+#else
+		mValueStack.push_back(Unit::ConstValue(value));
+#endif
+	}
+
+	RealType popStack()
+	{
+		CHECK(mValueStack.empty() == false);
+
+#if USE_FIXED_VALUE
+		RealType result = mValueStack.back();
+		mValueStack.pop_back();
+#else
+		RealType result = getValue(mValueStack.back());
+		mValueStack.pop_back();
+#endif
+		return result;
+	}
+
+	RealType getValue(Unit const& valueCode)
+	{
+		switch (valueCode.type)
+		{
+		case VALUE_CONST:
+			CHECK(valueCode.constValue.layout == ValueLayout::Real);
+			return valueCode.constValue.asReal;
+		case VALUE_VARIABLE:
+			CHECK(valueCode.variable.layout == ValueLayout::Real);
+			return *((RealType*)valueCode.variable.ptr);
+		case VALUE_INPUT:
+			return *((RealType*)mInputs[valueCode.input.index]);
+		}
+		NEVER_REACH("");
+		return 0;
+	}
+
+	TArrayView<void*> mInputs;
+#if USE_FIXED_VALUE
+	TArray<RealType, TInlineAllocator<32> > mValueStack;
+#else
+	TArray<Unit, TInlineAllocator<32> > mValueStack;
+#endif
+};
+
+class ExprTreeEvaluator : public ExprEvaluatorBase
+{
+public:
+	template < typename ...Ts >
+	RealType eval(ExpressionTreeData& tree, Ts... input)
+	{
+		void* inputs[] = { &input... };
+		mInputs = inputs;
+		ExprTreeVisitOp op(tree, *this);
+		op.execute();
+		return popStack();
+	}
+};
 
 class ExprTreeBuilder : public ExprParse
 {

@@ -381,7 +381,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 #	endif
 
 
-#if _DEBUG
+#if _DEBUG || true
 	result.printPostfixCodes();
 #endif
 	return true;

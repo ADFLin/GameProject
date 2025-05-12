@@ -841,6 +841,7 @@ protected:
 
 #define EBC_USE_FIXED_SIZE 2
 #define EBC_USE_COMPOSITIVE_CODE 1
+
 namespace EExprByteCode
 {
 	enum Enum
@@ -1196,38 +1197,38 @@ FORCEINLINE int ByteCodeExecutor::execCode(uint8 const* pCode, RealType*& pValue
 		return 2;
 	case EExprByteCode::Add:
 		{
-			RealType rhs = popStack();
-			topValue = topValue + rhs;
+			RealType lhs = popStack();
+			topValue = lhs + topValue;
 		}
 		return 1;
 	case EExprByteCode::Sub:
 		{
-			RealType rhs = popStack();
-			topValue = topValue - rhs;
+			RealType lhs = popStack();
+			topValue = lhs - topValue;
 		}
 		return 1;
 	case EExprByteCode::SubR:
 		{
-			RealType rhs = popStack();
-			topValue = rhs - topValue;
+			RealType lhs = popStack();
+			topValue = topValue - lhs;
 		}
 		return 1;
 	case EExprByteCode::Mul:
 		{
-			RealType rhs = popStack();
-			topValue = topValue * rhs;
+			RealType lhs = popStack();
+			topValue = lhs * topValue;
 		}
 		return 1;
 	case EExprByteCode::Div:
 		{
-			RealType rhs = popStack();
-			topValue = topValue / rhs;
+			RealType lhs = popStack();
+			topValue = lhs / topValue;
 		}
 		return 1;
 	case EExprByteCode::DivR:
 		{
-			RealType rhs = popStack();
-			topValue = rhs / topValue;
+			RealType lhs = popStack();
+			topValue = topValue / lhs;
 		}
 		return 1;
 	case EExprByteCode::Mins:
@@ -1239,110 +1240,110 @@ FORCEINLINE int ByteCodeExecutor::execCode(uint8 const* pCode, RealType*& pValue
 #if EBC_USE_COMPOSITIVE_CODE
 	case EExprByteCode::CAdd:
 	{
-		RealType rhs = mCode->mConstValues[pCode[1]];
-		topValue = topValue + rhs;
+		RealType lhs = mCode->mConstValues[pCode[1]];
+		topValue = lhs + topValue;
 	}
 	return 2;
 	case EExprByteCode::CSub:
 	{
-		RealType rhs = mCode->mConstValues[pCode[1]];
-		topValue = topValue - rhs;
+		RealType lhs = mCode->mConstValues[pCode[1]];
+		topValue = lhs - topValue;
 	}
 	return 2;
 	case EExprByteCode::CSubR:
 	{
-		RealType rhs = mCode->mConstValues[pCode[1]];
-		topValue = rhs - topValue;
+		RealType lhs = mCode->mConstValues[pCode[1]];
+		topValue = topValue - lhs;
 	}
 	return 2;
 	case EExprByteCode::CMul:
 	{
-		RealType rhs = mCode->mConstValues[pCode[1]];
-		topValue = topValue * rhs;
+		RealType lhs = mCode->mConstValues[pCode[1]];
+		topValue = lhs * topValue;
 	}
 	return 2;
 	case EExprByteCode::CDiv:
 	{
-		RealType rhs = mCode->mConstValues[pCode[1]];
-		topValue = topValue / rhs;
+		RealType lhs = mCode->mConstValues[pCode[1]];
+		topValue = lhs / topValue;
 	}
 	return 2;
 	case EExprByteCode::CDivR:
 	{
-		RealType rhs = mCode->mConstValues[pCode[1]];
-		topValue = rhs / topValue;
+		RealType lhs = mCode->mConstValues[pCode[1]];
+		topValue = topValue / lhs;
 	}
 	return 2;
 	case EExprByteCode::IAdd:
 	{
-		RealType rhs = *(RealType*)mInputs[pCode[1]];
-		topValue = topValue + rhs;
+		RealType lhs = *(RealType*)mInputs[pCode[1]];
+		topValue = lhs + topValue;
 	}
 	return 2;
 	case EExprByteCode::ISub:
 	{
-		RealType rhs = *(RealType*)mInputs[pCode[1]];
-		topValue = topValue - rhs;
+		RealType lhs = *(RealType*)mInputs[pCode[1]];
+		topValue = lhs - topValue;
 	}
 	return 2;
 	case EExprByteCode::ISubR:
 	{
-		RealType rhs = *(RealType*)mInputs[pCode[1]];
-		topValue = rhs - topValue;
+		RealType lhs = *(RealType*)mInputs[pCode[1]];
+		topValue = topValue - lhs;
 	}
 	return 2;
 	case EExprByteCode::IMul:
 	{
-		RealType rhs = *(RealType*)mInputs[pCode[1]];
-		topValue = topValue * rhs;
+		RealType lhs = *(RealType*)mInputs[pCode[1]];
+		topValue = lhs * topValue;
 	}
 	return 2;
 	case EExprByteCode::IDiv:
 	{
-		RealType rhs = *(RealType*)mInputs[pCode[1]];
-		topValue = topValue / rhs;
+		RealType lhs = *(RealType*)mInputs[pCode[1]];
+		topValue = lhs / topValue;
 	}
 	return 2;
 	case EExprByteCode::IDivR:
 	{
-		RealType rhs = *(RealType*)mInputs[pCode[1]];
-		topValue = rhs / topValue;
+		RealType lhs = *(RealType*)mInputs[pCode[1]];
+		topValue = topValue / lhs;
 	}
 	return 2;
 	case EExprByteCode::VAdd:
 	{
-		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
-		topValue = topValue + rhs;
+		RealType lhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = lhs + topValue;
 	}
 	return 2;
 	case EExprByteCode::VSub:
 	{
-		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
-		topValue = topValue - rhs;
+		RealType lhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = lhs - topValue;
 	}
 	return 2;
 	case EExprByteCode::VSubR:
 	{
-		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
-		topValue = rhs - topValue;
+		RealType lhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = topValue - lhs;
 	}
 	return 2;
 	case EExprByteCode::VMul:
 	{
-		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
-		topValue = topValue * rhs;
+		RealType lhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = lhs * topValue;
 	}
 	return 2;
 	case EExprByteCode::VDiv:
 	{
-		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
-		topValue = topValue / rhs;
+		RealType lhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = lhs / topValue;
 	}
 	return 2;
 	case EExprByteCode::VDivR:
 	{
-		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
-		topValue = rhs / topValue;
+		RealType lhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = topValue / lhs;
 	}
 	return 2;
 #endif
@@ -1427,43 +1428,44 @@ int ByteCodeExecutor::execCode(uint8 const* pCode)
 		return 2;
 	case EExprByteCode::Add:
 	{
-		RealType lhs = popStack();
 		RealType rhs = popStack();
+		RealType lhs = popStack();
+
 		pushStack(lhs + rhs);
 	}
 	return 1;
 	case EExprByteCode::Sub:
 	{
-		RealType lhs = popStack();
 		RealType rhs = popStack();
+		RealType lhs = popStack();
 		pushStack(lhs - rhs);
 	}
 	return 1;
 	case EExprByteCode::SubR:
-	{
-		RealType lhs = popStack();
+	{		
 		RealType rhs = popStack();
+		RealType lhs = popStack();
 		pushStack(rhs - lhs);
 	}
 	return 1;
 	case EExprByteCode::Mul:
 	{
-		RealType lhs = popStack();
 		RealType rhs = popStack();
+		RealType lhs = popStack();
 		pushStack(lhs * rhs);
 	}
 	return 1;
 	case EExprByteCode::Div:
 	{
-		RealType lhs = popStack();
 		RealType rhs = popStack();
+		RealType lhs = popStack();
 		pushStack(lhs / rhs);
 	}
 	return 1;
 	case EExprByteCode::DivR:
 	{
-		RealType lhs = popStack();
 		RealType rhs = popStack();
+		RealType lhs = popStack();
 		pushStack(rhs / lhs);
 	}
 	return 1;
@@ -1605,7 +1607,7 @@ struct ExprByteCodeCompiler : public ExprParse
 		CHECK(index < 255);
 
 #if EBC_USE_COMPOSITIVE_CODE
-		if (info.getArgNum() > 1)
+		if (info.getArgNum() >= 1)
 		{
 			for (int i = 0; i < info.getArgNum(); ++i)
 			{
@@ -1656,14 +1658,13 @@ struct ExprByteCodeCompiler : public ExprParse
 	void codeBinaryOp(TokenType type, bool isReverse)
 	{
 #if EBC_USE_COMPOSITIVE_CODE
-
-		auto leftValue = mStacks[mStacks.size() - 2];
-		if (leftValue.byteCode != EExprByteCode::Dummy)
+		auto rightValue = mStacks.back();
+		auto leftValue  = mStacks[mStacks.size() - 2];
+		if (rightValue.byteCode != EExprByteCode::Dummy)
 		{
-			outputCmd(leftValue.byteCode, leftValue.index);
+			outputCmd(rightValue.byteCode, rightValue.index);
 		}
 
-		auto rightValue = mStacks.back();
 		uint8 opCode;
 		switch (type)
 		{
@@ -1673,13 +1674,13 @@ struct ExprByteCodeCompiler : public ExprParse
 		case BOP_DIV: opCode = isReverse ? EExprByteCode::DivR : EExprByteCode::Div; break;
 		}
 
-		if (rightValue.byteCode == EExprByteCode::Dummy)
+		if (leftValue.byteCode == EExprByteCode::Dummy)
 		{
 			outputCmd(opCode);
 		}
 		else
 		{
-			outputCmd(opCode + rightValue.byteCode, rightValue.index);
+			outputCmd(opCode + leftValue.byteCode, leftValue.index);
 		}
 
 		mStacks.pop_back();

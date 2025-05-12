@@ -828,9 +828,9 @@ public:
 			break;
 		case TOKEN_BINARY_OP:
 		{
-			RealType lhs = popStack();
 			RealType rhs = popStack();
-			
+			RealType lhs = popStack();
+
 			switch (unit.type)
 			{
 			case BOP_ADD: pushStack(lhs + rhs); break;
@@ -901,29 +901,29 @@ public:
 			break;
 		case BOP_ADD: 
 			{
-				RealType lhs = popStack();
 				RealType rhs = popStack();
+				RealType lhs = popStack();
 				pushStack(lhs + rhs);
 			}
 			break;
 		case BOP_SUB: 
 			{
+				RealType rhs = popStack();
 				RealType lhs = popStack();
-				RealType rhs = popStack(); 
 				if (unit.isReverse) pushStack(rhs - lhs); else pushStack(lhs - rhs); 
 			}
 			break;
 		case BOP_MUL: 
 			{
-				RealType lhs = popStack();
 				RealType rhs = popStack();
+				RealType lhs = popStack();
 				pushStack(lhs * rhs); 
 			}
 			break;
 		case BOP_DIV: 
 			{
+				RealType rhs = popStack();
 				RealType lhs = popStack();
-				RealType rhs = popStack(); 
 				if (unit.isReverse) pushStack(rhs / lhs); else pushStack(lhs / rhs);
 			}
 			break;

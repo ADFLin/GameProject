@@ -100,9 +100,10 @@ namespace CB
 				Surface3D* surface;
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				surface = createSurfaceXY("sin(sqrt(x*x+y*y) + 0.1*t)", Color4f(1, 0.6, 0.4, 0.3));
+				//surface = createSurfaceXY("sin(sqrt(x*x+y*y) + 0.1*t)", Color4f(1, 0.6, 0.4, 0.3));
 
-				//surface = createSurfaceXY("1+(2+(3+(4+(5+x))))", Color4f(1, 0.6, 0.4, 0.3));
+				surface = createSurfaceXY("5 - sqrt(x*x + y*y) * sin(0.1*t)", Color4f(1, 0.6, 0.4, 0.3));
+				//surface = createSurfaceXY("(5 - x)*sin(t)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
 				//surface = createSurfaceXY("sin(sqrt(x*x+y*y))", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );

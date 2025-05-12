@@ -1267,6 +1267,12 @@ namespace Render
 	void ShaderProgramManagedData::getDependentFilePaths(TArray<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
+#if 0
+		if (!sourceFile.empty())
+		{
+			filePathSet.insert(sourceFile.c_str());
+		}
+#endif
 		for( ShaderCompileDesc const& desc : descList )
 		{
 			if ( desc.filePath.empty() )
@@ -1292,6 +1298,12 @@ namespace Render
 	void ShaderManagedData::getDependentFilePaths(TArray<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
+#if 0
+		if (!sourceFile.empty())
+		{
+			filePathSet.insert(sourceFile.c_str());
+		}
+#endif
 		if (!desc.filePath.empty())
 		{
 			filePathSet.insert(desc.filePath);

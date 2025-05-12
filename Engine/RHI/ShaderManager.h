@@ -85,6 +85,18 @@ namespace Render
 
 		static CORE_API ShaderManager& Get();
 
+		template< typename TShader, typename ...TShaderArgs>
+		static void ReloadShader(TShader& shader , TShaderArgs& ...shaders)
+		{
+			Get().reloadShader(shader);
+			ReloadShader(shaders...);
+		}
+		template< typename TShader>
+		static void ReloadShader(TShader& shader)
+		{
+			Get().reloadShader(shader);
+		}
+
 		bool initialize(ShaderFormat& shaderFormat);
 
 		void setBaseDir(char const* dir){  mBaseDir = dir;  }

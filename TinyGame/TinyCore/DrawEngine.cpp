@@ -677,7 +677,12 @@ public:
 	IGraphics2D& mGraphics2D;
 };
 
-class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw >
+
+struct NodeContentData 
+{
+	bool bShow;
+};
+class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw, NodeContentData >
 {
 public:
 	ProfileTextDraw(IGraphics2D& g, Vec2i const& pos, char const* category)
@@ -698,9 +703,25 @@ public:
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
 	}
+
 	void onNode(VisitContext& context)
 	{
 		SampleNode* node = context.node;
+		context.bShow = true;
+		if (mCategory)
+		{
+			if (node->mCategory == nullptr)
+			{
+				context.bShow = false;
+				return;
+			}
+			if (strcmp(node->mCategory, mCategory) != 0)
+			{
+				context.bShow = false;
+				return;
+			}
+		}
+
 		InlineString<512> str;
 		str.format("|-> %s (%.2lf %%) :: %.3lf(%.3lf) ms / frame (%d calls)",
 			node->getName(),
@@ -713,11 +734,16 @@ public:
 	}
 	bool onEnterChild(VisitContext const& context)
 	{
-		mTextPos += Vec2i(OffsetX, 0);
+		if (context.bShow)
+		{
+			mTextPos += Vec2i(OffsetX, 0);
+		}
 		return true;
 	}
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
 	{
+		if (!context.bShow)
+			return;
 		SampleNode* node = context.node;
 		int    numChildren = childContext.indexNode;
 		double timeAcc = childContext.totalTimeAcc;
@@ -743,18 +769,13 @@ public:
 	}
 	bool filterNode(SampleNode* node)
 	{
-		if (mCategory)
-		{
-			if (node->mCategory == nullptr || strcmp(node->mCategory, mCategory) != 0)
-			{
-				if (node->getChild() == nullptr)
-					return false;
-			}
-		}
+		//return node->getLastFrame() + 1 == ProfileSystem::Get().getFrameCountSinceReset();
 		return true;
 	}
 	static int const OffsetX = 20;
 	static int const OffsetY = 15;
+
+	bool bShowChildren;
 
 	char const*  mCategory;
 	Vec2i        mTextPos;

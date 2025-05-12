@@ -262,7 +262,7 @@ namespace CB
 
 	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV)
 	{
-		PROFILE_ENTRY("UpdateSurfaceData");
+		PROFILE_ENTRY("UpdateSurfaceData", "CB");
 
 		CHECK(isSurface(context.func->getFuncType()));
 

@@ -3,7 +3,10 @@
 #define ProfileSampleVisitor_H_36B36769_BE47_4E96_B0F8_62F7B221D4CF
 #include "ProfileSystem.h"
 
-template < typename T >
+
+struct EmptyData{};
+
+template < typename T , typename ContextExtraData = EmptyData >
 class ProfileNodeVisitorT
 {
 	T* _this() { return static_cast<T*>(this); }
@@ -11,7 +14,7 @@ public:
 
 	using SampleNode = ProfileSampleNode;
 
-	struct VisitContext
+	struct VisitContext : ContextExtraData
 	{
 		SampleNode* node;
 		double      timeTotalParent;
@@ -25,6 +28,7 @@ public:
 
 	void onRoot(VisitContext& context) {}
 	void onNode(VisitContext& context) {}
+	void onLeaveNode(VisitContext& context) {}
 	bool onEnterChild(VisitContext const& context) { return true; }
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext) {}
 	bool filterNode(SampleNode* node)
@@ -73,13 +77,12 @@ public:
 
 	void visitRecursive(VisitContext& context)
 	{
-
 		_this()->onNode(context);
 
-		if (!_this()->onEnterChild(context))
-			return;
+		if (_this()->onEnterChild(context))
+			visitChildren(context);
 
-		visitChildren(context);
+		_this()->onLeaveNode(context);
 	}
 
 };

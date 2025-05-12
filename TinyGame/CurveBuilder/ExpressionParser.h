@@ -408,7 +408,7 @@ public:
 
 		int   getLeaf( int idxChild ) const
 		{ 
-			CHECK(IsLeaf(idxChild));
+			CHECK(IsLeaf(children[idxChild]));
 			return LEAF_UNIT_INDEX( children[ idxChild ] ); 
 		}
 	};
@@ -490,6 +490,7 @@ enum EFuncSymbol
 #define ENUM_OP(SYMBOL, NAME, NUM_ARG) SYMBOL,
 	DEFAULT_FUNC_SYMBOL_LIST(ENUM_OP)
 #undef ENUM_OP
+	COUNT,
 };
 
 

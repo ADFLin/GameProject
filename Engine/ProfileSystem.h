@@ -20,12 +20,10 @@
 
 
 #if USE_PROFILE
-#	define	PROFILE_ENTRY( name )         ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( name );
-#	define	PROFILE_ENTRY2( name , flag ) ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( name , flag );
+#	define	PROFILE_ENTRY( NAME , ... )    ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( NAME, ##__VA_ARGS__);
 #   define	PROFILE_FUNCTION()             ProfileSampleScope ANONYMOUS_VARIABLE(ProflieFunc)( __FUNCTION__);
 #else
-#	define	PROFILE_ENTRY( name )
-#	define	PROFILE_ENTRY2( name , flag )
+#	define	PROFILE_ENTRY( NAME )
 #   define	PROFILE_FUNCTION()
 #endif //USE_PROFILE
 
@@ -87,6 +85,8 @@ public:
 	CORE_API static int GetReadIndex();
 	CORE_API static int GetWriteIndex();
 
+	char const*         mCategory = nullptr;
+
 protected:
 
 
@@ -143,7 +143,8 @@ protected:
 	uint64              mLastRecordFrame;
 	uint64           	mStartTime;
 
-	const char *	    mName;
+	char const*	        mName;
+
 
 	int				    mRecursionCounter;
 	bool                mIsShowChild;
@@ -194,7 +195,8 @@ public:
 class  ProfileSampleScope
 {
 public:
-	CORE_API  ProfileSampleScope( const char * name , unsigned flag = 0 );
+	CORE_API  ProfileSampleScope(const char * name, unsigned flag = 0);
+	CORE_API  ProfileSampleScope(const char * name, char const* category, unsigned flag = 0);
 	CORE_API ~ProfileSampleScope( void );
 };
 

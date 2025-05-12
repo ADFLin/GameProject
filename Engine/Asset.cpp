@@ -428,7 +428,7 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 		{
 			if (entry->viewers.empty())
 			{
-				mFileModifyMonitor->removeDirectoryPath(entry->dir.c_str(), false);
+				mFileModifyMonitor->removeDirectoryPath(entry->dir.c_str(), true);
 				mAssetMonitorMap.erase(iter);
 				delete entry;
 			}

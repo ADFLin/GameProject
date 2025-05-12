@@ -330,7 +330,6 @@ namespace Render
 	void OpenGLSystem::RHIEndRender(bool bPresent)
 	{
 		::glFlush();
-
 		if( bPresent )
 			mGLContext.swapBuffer();
 	}

@@ -32,7 +32,7 @@ public:
 
 
 	void resetSample(uint64 tick);
-	void tryStartTiming(const char * name, unsigned flag);
+	void tryStartTiming(const char * name, char const* category, unsigned flag);
 	void stopTiming();
 	void setName(char const* name)
 	{
@@ -264,7 +264,15 @@ ProfileSampleScope::ProfileSampleScope(const char * name, unsigned flag)
 	if (!GSystem.canSampling())
 		return;
 
-	ProfileSystemImpl::GetCurrentThreadData()->tryStartTiming(name, flag);
+	ProfileSystemImpl::GetCurrentThreadData()->tryStartTiming(name, nullptr, flag);
+}
+
+ProfileSampleScope::ProfileSampleScope(const char * name, char const* category, unsigned flag /*= 0*/)
+{
+	if (!GSystem.canSampling())
+		return;
+
+	ProfileSystemImpl::GetCurrentThreadData()->tryStartTiming(name, category, flag);
 }
 
 ProfileSampleScope::~ProfileSampleScope(void)
@@ -590,7 +598,7 @@ void ThreadProfileData::resetSample(uint64 tick)
 	mRootSample->mStartTime = tick;
 }
 
-void ThreadProfileData::tryStartTiming(const char* name, unsigned flag)
+void ThreadProfileData::tryStartTiming(const char* name, char const* category, unsigned flag)
 {
 	if( flag & PROF_FORCCE_ENABLE )
 	{
@@ -641,6 +649,7 @@ void ThreadProfileData::tryStartTiming(const char* name, unsigned flag)
 		if( node == nullptr )
 		{
 			node = CreateNode(name, mCurSample);
+			node->mCategory = category;
 			mCurSample->addSubNode(node);
 		}
 		mCurSample = node;

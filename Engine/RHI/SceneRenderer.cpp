@@ -823,7 +823,7 @@ namespace Render
 		nodeHeadTexture = RHICreateTexture2D(ETexture::R32U, screenSize.x, screenSize.y);
 		VERIFY_RETURN_FALSE(nodeHeadTexture.isValid());
 
-		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_CpuAccessWrite );
+		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_CreateUAV );
 		VERIFY_RETURN_FALSE(storageUsageCounter.isValid());
 
 		return true;
@@ -873,6 +873,47 @@ namespace Render
 
 	IMPLEMENT_SHADER_PROGRAM(BMAResolveProgram);
 
+
+	class ReestCounterProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(ReestCounterProgram, Global);
+		using BaseClass = GlobalShaderProgram;
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BaseClass::bindParameters(parameterMap);
+			mParamCounterBuffer.bind(parameterMap, SHADER_PARAM(CounterBuffer));
+		}
+
+		void setParameters(RHICommandList& commandList, RHIBuffer& buffer)
+		{
+			setStorageBuffer(commandList, mParamCounterBuffer, buffer, EAccessOp::WriteOnly);
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/OITRender";
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo entries[] =
+			{
+				{ EShader::Compute , SHADER_ENTRY(ResetCounterCS) },
+			};
+			return entries;
+		}
+		ShaderParameter mParamCounterBuffer;
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(ReestCounterProgram);
+
 	bool OITTechnique::init(IntVector2 const& size)
 	{
 		VERIFY_RETURN_FALSE(mShaderData.init(OIT_StorageSize, size));
@@ -912,6 +953,10 @@ namespace Render
 				return false;
 		}
 
+		mShaderResetCounter = ShaderManager::Get().getGlobalShaderT< ReestCounterProgram >(true);
+		if (mShaderResetCounter == nullptr)
+			return false;
+
 		VERIFY_RETURN_FALSE( mFrameBuffer = RHICreateFrameBuffer());
 		mFrameBuffer->addTexture(*mShaderData.colorStorageTexture);
 		mFrameBuffer->addTexture(*mShaderData.nodeAndDepthStorageTexture);
@@ -930,9 +975,9 @@ namespace Render
 
 		renderInternal(commandList, view, DrawFunc , sceneRenderTargets );
 
-		if( 1 )
+		if(0)
 		{
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			//#TODO : Remove ViewportSaveScope, MatrixSaveScope
 			ViewportSaveScope vpScope(commandList);
 			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
@@ -941,7 +986,7 @@ namespace Render
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
 	}
@@ -976,24 +1021,24 @@ namespace Render
 
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Identity());
 			mesh.draw(commandList);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(10,0,0)));
 			mesh.draw(commandList);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(-10, 0, 0)));
 			mesh.draw(commandList);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			
 		};
 
 		renderInternal(commandList, view, DrawFunc);
 
 
-		if (1)
+		if (0)
 		{
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			//#TODO : Remove ViewportSaveScope, MatrixSaveScope
 			ViewportSaveScope vpScope(commandList);
 			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
@@ -1001,18 +1046,20 @@ namespace Render
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
 
 	}
 
-	void OITTechnique::reload()
+	void OITTechnique::reloadShader()
 	{
 		ShaderManager::Get().reloadShader(mShaderBassPassTest);
 		ShaderManager::Get().reloadShader(*mShaderResolve);
 		for(auto shader : mShaderBMAResolves)
 			ShaderManager::Get().reloadShader(*shader);
+
+		ShaderManager::Get().reloadShader(*mShaderResetCounter);
 	}
 
 	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFuncion , FrameRenderTargets* sceneRenderTargets )
@@ -1048,7 +1095,7 @@ namespace Render
 			}
 
 			ShaderHelper::Get().clearBuffer(commandList, *mShaderData.nodeHeadTexture, clearValueC);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		}
 
 		if( sceneRenderTargets )
@@ -1081,16 +1128,22 @@ namespace Render
 			GPU_PROFILE("BasePass");
 			RHISetBlendState(commandList, TStaticBlendState<CWM_None>::GetRHI());
 
+#if 0
 			uint32* value = (uint32*)RHILockBuffer(mShaderData.storageUsageCounter , ELockAccess::WriteOnly);
 			*value = 0;
 			RHIUnlockBuffer(mShaderData.storageUsageCounter);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+#else
+			RHISetShaderProgram(commandList, mShaderResetCounter->getRHI());
+			mShaderResetCounter->setParameters(commandList, *mShaderData.storageUsageCounter);
+			RHIDispatchCompute(commandList, 1, 1, 1);
+#endif
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			drawFuncion(commandList);
 
 			RHIFlushCommand(commandList);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
 

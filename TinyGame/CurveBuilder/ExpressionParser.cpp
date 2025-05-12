@@ -368,7 +368,6 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 #	endif
 
 	auto error = builder.checkTreeError();
-
 	if ( error != ExprTreeBuilder::TREE_NO_ERROR )
 	{
 		return false;

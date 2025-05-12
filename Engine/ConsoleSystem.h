@@ -243,6 +243,62 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 };
 
 
+template <>
+struct TVariableConsoleCommad<std::string> : public VariableConsoleCommadBase
+{
+	std::string* mPtr;
+
+	TVariableConsoleCommad(char const* inName, std::string* inPtr, uint32 flags = 0)
+		:VariableConsoleCommadBase(inName, GetArg(), flags)
+		, mPtr(inPtr)
+	{
+
+	}
+
+	virtual std::type_index getTypeIndex() const override
+	{
+		return typeid(Meta::RemoveCVRef<std::string>::Type);
+	}
+	virtual std::string toString() const override
+	{
+		return *mPtr;
+	}
+
+	virtual bool setFromString(StringView const& str) override
+	{
+		*mPtr = str.toStdString();
+		return true;
+	}
+
+	static TArrayView< ConsoleArgTypeInfo const > GetArg()
+	{
+		static ConsoleArgTypeInfo const sArg = TCommandArgTypeTraits<char*>::GetInfo();
+		return TArrayView< ConsoleArgTypeInfo const >(&sArg, 1);
+	}
+	
+	virtual void execute(void* argsData[]) override
+	{
+		*mPtr = *(char const**)argsData[0];
+	}
+
+	virtual void getValue(void* pDest) override
+	{
+		//FTypeMemoryOp::Assign((Type*)pDest, *mPtr);
+	}
+
+	virtual void setValue(void* pDest)
+	{
+		//FTypeMemoryOp::Assign(mPtr, *(Type*)pDest);
+	}
+
+	virtual bool setFromInt(int inValue) { return false; }
+	virtual int  getAsInt() const { return 0; }
+
+	virtual bool  setFromFloat(float inValue) {  return false; }
+	virtual float getAsFloat() const { return 0; }
+};
+
+
 template < class Type >
 struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 {

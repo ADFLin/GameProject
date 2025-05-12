@@ -355,6 +355,7 @@ bool PropertyFile::save(char const* path)
 
 	for (auto const& section : mSections)
 	{
+		fs << std::endl;
 		fs << '[' << section.key << ']' << std::endl;
 		SerializeValues(section.elements);
 	}

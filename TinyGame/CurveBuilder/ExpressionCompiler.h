@@ -28,8 +28,7 @@ public:
 	RT execute(ExecutableCode const& code)
 	{
 		ExprEvaluatorBase evaluator;
-		doExecute(code);
-		return RT(evaluator.popStack());
+		return RT(doExecute(code));
 	}
 
 	template< typename RT, class ...Args >
@@ -38,10 +37,18 @@ public:
 		ExprEvaluatorBase evaluator;
 		void* inputs[] = { &args... };
 		mInputs = inputs;
-		doExecute(code);
-		return RT(popStack());
+		return RT(doExecute(code));
 	}
 
+	RealType doExecute(ExecutableCode const& code);
+
+#define USE_STACK_INPUT 2
+
+#if USE_STACK_INPUT == 1
+	int  execCode(uint8 const* pCode, RealType*& pValueStack);
+#elif USE_STACK_INPUT == 2
+	int  execCode(uint8 const* pCode, RealType*& pValueStack, RealType& topValue);
+#else
 	void pushStack(RealType value)
 	{
 		mValueStack.push_back(value);
@@ -54,14 +61,11 @@ public:
 		mValueStack.pop_back();
 		return result;
 	}
-
-	void doExecute(ExecutableCode const& code);
 	int  execCode(uint8 const* pCode);
-
+	TArray<RealType, TInlineAllocator<32> > mValueStack;
+#endif
 	ExecutableCode const* mCode;
 	TArrayView<void*> mInputs;
-	TArray<RealType, TInlineAllocator<32> > mValueStack;
-
 };
 #endif
 

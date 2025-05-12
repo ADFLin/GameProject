@@ -10,6 +10,10 @@ namespace Render
 {
 	struct VertexElementReader
 	{
+		VertexElementReader() = default;
+		VertexElementReader(uint8 const* pData, int32 stride)
+			:pVertexData(pData),vertexDataStride(stride){}
+
 		template< class T = Vector3 >
 		T const& get(int idx) const
 		{
@@ -30,6 +34,10 @@ namespace Render
 
 	struct VertexElementWriter
 	{
+		VertexElementWriter() = default;
+		VertexElementWriter(uint8* pData, int32 stride)
+			:pVertexData(pData), vertexDataStride(stride) {}
+
 		template< class T = Vector3 >
 		T& get(int idx) const
 		{

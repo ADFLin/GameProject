@@ -300,11 +300,10 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScalar const*
 }
 #define USE_DUFF_DEVICE 1
 int constexpr BlockSize = 8;
-
-#define DUFF_DEVICE( DIM , BLOCK_SIZE , OP )\
+#define DUFF_DEVICE(DIM , OP)\
 	{\
-		int blockCount = (DIM + BLOCK_SIZE - 1) / BLOCK_SIZE;\
-		switch (DIM % BLOCK_SIZE)\
+		int blockCount = (DIM + BlockSize - 1) / BlockSize;\
+		switch (DIM % BlockSize)\
 		{\
 		case 0: do { OP;\
 		case 7: OP;\
@@ -322,7 +321,7 @@ void FNNCalc::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 {
 #if USE_DUFF_DEVICE
 #define OP	*a += *b; ++a; ++b;
-	DUFF_DEVICE(dim, BlockSize, OP);
+	DUFF_DEVICE(dim, OP);
 #undef OP
 #else
 	for (int i = 0; i < dim; ++i)
@@ -336,7 +335,7 @@ void FNNCalc::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RES
 {
 #if USE_DUFF_DEVICE
 #define OP	*out = *a + *b; ++out; ++a; ++b;
-	DUFF_DEVICE(dim, BlockSize, OP);
+	DUFF_DEVICE(dim, OP);
 #undef OP
 #else
 	for (int i = 0; i < dim; ++i)
@@ -400,7 +399,7 @@ NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 	NNScalar result = 0;
 #if USE_DUFF_DEVICE
 #define OP	result += *a * *b; ++a; b += bStride;
-	DUFF_DEVICE(dim, BlockSize, OP);
+	DUFF_DEVICE(dim, OP);
 #undef OP
 #else
 	for (; dim; --dim)
@@ -418,7 +417,7 @@ NNScalar FNNCalc::VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar con
 	NNScalar result = 0;
 #if USE_DUFF_DEVICE
 #define OP	result += (*a++) * (*b++);
-	DUFF_DEVICE(dim, BlockSize, OP);
+	DUFF_DEVICE(dim, OP);
 #undef OP
 #else
 	for (; dim; --dim)
@@ -433,7 +432,7 @@ void FNNCalc::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRIC
 {
 #if USE_DUFF_DEVICE
 #define OP	*out = *b + VectorDot(dimCol, m, v); ++out; ++b; m += dimCol;
-	DUFF_DEVICE(dimRow, BlockSize, OP);
+	DUFF_DEVICE(dimRow, OP);
 #undef OP
 #else
 	for (int row = 0; row < dimRow; ++row)

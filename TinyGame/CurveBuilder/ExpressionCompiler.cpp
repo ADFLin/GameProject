@@ -840,14 +840,47 @@ protected:
 #elif ENALBE_BYTE_CODE
 
 #define EBC_USE_FIXED_SIZE 2
-
+#define EBC_USE_COMPOSITIVE_CODE 1
 namespace EExprByteCode
 {
 	enum Enum
 	{
+		Dummy,
 		Const,
 		Input,
 		Variable,
+
+#if EBC_USE_COMPOSITIVE_CODE
+		Add,
+		CAdd,
+		IAdd,
+		VAdd,
+
+		Sub,
+		CSub,
+		ISub,
+		VSub,
+
+		SubR,
+		CSubR,
+		ISubR,
+		VSubR,
+
+		Mul,
+		CMul,
+		IMul,
+		VMul,
+
+		Div,
+		CDiv,
+		IDiv,
+		VDiv,
+
+		DivR,
+		CDivR,
+		IDivR,
+		VDivR,
+#else
 
 		Add,
 		Sub,
@@ -855,11 +888,13 @@ namespace EExprByteCode
 		Mul,
 		Div,
 		DivR,
-
+#endif
 		Mins,
 
 		FuncSymbol,
-		FuncCall0,
+		FuncSymbolEnd = FuncSymbol + EFuncSymbol::COUNT,
+
+		FuncCall0 = FuncSymbolEnd,
 		FuncCall1,
 		FuncCall2,
 		FuncCall3,
@@ -889,7 +924,7 @@ int constexpr BlockSize = 8;
 	}
 
 
-void ByteCodeExecutor::doExecute(ExecutableCode const& code)
+RealType ByteCodeExecutor::doExecute(ExecutableCode const& code)
 {
 	mCode = &code;
 
@@ -897,9 +932,48 @@ void ByteCodeExecutor::doExecute(ExecutableCode const& code)
 	int numCodes = code.mCodes.size();
 	uint8 const* pCode = code.mCodes.data();
 	uint8 const* pCodeEnd = pCode + numCodes;
+#if USE_STACK_INPUT
+	RealType stackValues[32];
+	RealType* stackValue = stackValues;
+
+#if USE_STACK_INPUT == 1
+#define EXECUTE_CODE() execCode(pCode, stackValue)
+#elif USE_STACK_INPUT == 2
+	RealType  topValue = 0;
+	switch (*pCode)
+	{
+	case EExprByteCode::Const:
+		topValue = mCode->mConstValues[pCode[1]];
+		break;
+	case EExprByteCode::Input:
+		topValue = *(RealType*)mInputs[pCode[1]];
+		break;
+	case EExprByteCode::Variable:
+		topValue = *(RealType*)mCode->mPointers[pCode[1]];
+		break;
+	case EExprByteCode::FuncCall0:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		topValue = (*static_cast<FuncType0>(funcPtr))();
+	}
+	break;
+	default:
+		return RealType(0);
+	}
+#if EBC_USE_FIXED_SIZE
+	pCode += EBC_USE_FIXED_SIZE;
+#else
+	pCode += 2
+#endif
+#define EXECUTE_CODE() execCode(pCode, stackValue, topValue)
+#endif
+#else
+#define EXECUTE_CODE() execCode(pCode)
+#endif
+
 #if 0
 #if EBC_USE_FIXED_SIZE
-#define OP execCode(pCode); pCode += EBC_USE_FIXED_SIZE
+#define OP EXECUTE_CODE(); pCode += EBC_USE_FIXED_SIZE
 	DUFF_DEVICE(code.mCodes.size() / EBC_USE_FIXED_SIZE, OP);
 #undef  OP
 #else
@@ -911,14 +985,14 @@ void ByteCodeExecutor::doExecute(ExecutableCode const& code)
 			
 		switch (step)
 		{
-		case 0: pCode += execCode(pCode);
-		case 7: pCode += execCode(pCode);
-		case 6: pCode += execCode(pCode);
-		case 5: pCode += execCode(pCode);
-		case 4: pCode += execCode(pCode);
-		case 3: pCode += execCode(pCode);
-		case 2: pCode += execCode(pCode);
-		case 1: pCode += execCode(pCode);
+		case 0: pCode += EXECUTE_CODE();
+		case 7: pCode += EXECUTE_CODE();
+		case 6: pCode += EXECUTE_CODE();
+		case 5: pCode += EXECUTE_CODE();
+		case 4: pCode += EXECUTE_CODE();
+		case 3: pCode += EXECUTE_CODE();
+		case 2: pCode += EXECUTE_CODE();
+		case 1: pCode += EXECUTE_CODE();
 		}
 	}
 #endif
@@ -926,18 +1000,418 @@ void ByteCodeExecutor::doExecute(ExecutableCode const& code)
 #if EBC_USE_FIXED_SIZE
 	while (pCode < pCodeEnd)
 	{
-		execCode(pCode);
+		EXECUTE_CODE();
 		pCode += EBC_USE_FIXED_SIZE;
 	}
 #else
 	while (pCode < pCodeEnd)
 	{
-		pCode += execCode(pCode);
+		pCode += EXECUTE_CODE();
 	}
 #endif
 #endif
+#if USE_STACK_INPUT == 1
+	return stackValues[0];
+#elif USE_STACK_INPUT == 2
+	return topValue;
+#else
+	return popStack();
+#endif
 }
 
+
+#if USE_STACK_INPUT == 1
+FORCEINLINE int ByteCodeExecutor::execCode(uint8 const* pCode, RealType*& pValueStack)
+{
+	auto pushStack = [&pValueStack](RealType value)
+	{
+		*pValueStack = value;
+		++pValueStack;
+	};
+
+	auto popStack = [&pValueStack]()
+	{
+		--pValueStack;
+		return *pValueStack;
+	};
+
+	switch (*pCode)
+	{
+	case EExprByteCode::Const:
+		pushStack(mCode->mConstValues[pCode[1]]);
+		return 2;
+	case EExprByteCode::Input:
+		pushStack(*(RealType*)mInputs[pCode[1]]);
+		return 2;
+	case EExprByteCode::Variable:
+		pushStack(*(RealType*)mCode->mPointers[pCode[1]]);
+		return 2;
+	case EExprByteCode::Add:
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs + rhs);
+	}
+	return 1;
+	case EExprByteCode::Sub:
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs - rhs);
+	}
+	return 1;
+	case EExprByteCode::SubR:
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(rhs - lhs);
+	}
+	return 1;
+	case EExprByteCode::Mul:
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs * rhs);
+	}
+	return 1;
+	case EExprByteCode::Div:
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs / rhs);
+	}
+	return 1;
+	case EExprByteCode::DivR:
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(rhs / lhs);
+	}
+	return 1;
+	case EExprByteCode::Mins:
+	{
+		RealType lhs = popStack();
+		pushStack(-lhs);
+	}
+	return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  pushStack(exp(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   pushStack(log(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sin:  pushStack(sin(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Cos:  pushStack(cos(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Tan:  pushStack(tan(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); return 1;
+	return 2;
+	case EExprByteCode::FuncCall0:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		pushStack((*static_cast<FuncType0>(funcPtr))());
+	}
+	return 2;
+	case EExprByteCode::FuncCall1:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[1];
+		params[0] = popStack();
+		pushStack((*static_cast<FuncType1>(funcPtr))(params[0]));
+	}
+	return 2;
+	case EExprByteCode::FuncCall2:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[2];
+		params[0] = popStack();
+		params[1] = popStack();
+		pushStack((*static_cast<FuncType2>(funcPtr))(params[1], params[0]));
+	}
+	return 2;
+	case EExprByteCode::FuncCall3:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[3];
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		pushStack((*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]));
+	}
+	return 2;
+	case EExprByteCode::FuncCall4:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[4];
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		params[3] = popStack();
+		pushStack((*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]));
+	}
+	return 2;
+	case EExprByteCode::FuncCall5:
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[5];
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		params[3] = popStack();
+		params[4] = popStack();
+		pushStack((*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]));
+	}
+	return 2;
+	}
+
+	return 1;
+}
+#elif USE_STACK_INPUT == 2
+FORCEINLINE int ByteCodeExecutor::execCode(uint8 const* pCode, RealType*& pValueStack, RealType& topValue)
+{
+	auto pushStack = [&pValueStack](RealType value)
+	{
+		*pValueStack = value;
+		++pValueStack;
+	};
+
+	auto popStack = [&pValueStack]()
+	{
+		--pValueStack;
+		return *pValueStack;
+	};
+
+
+	switch (*pCode)
+	{
+	case EExprByteCode::Const:
+		pushStack(topValue);
+		topValue = mCode->mConstValues[pCode[1]];
+		return 2;
+	case EExprByteCode::Input:
+		pushStack(topValue);
+		topValue = *(RealType*)mInputs[pCode[1]];
+		return 2;
+	case EExprByteCode::Variable:
+		pushStack(topValue);
+		topValue = *(RealType*)mCode->mPointers[pCode[1]];
+		return 2;
+	case EExprByteCode::Add:
+		{
+			RealType rhs = popStack();
+			topValue = topValue + rhs;
+		}
+		return 1;
+	case EExprByteCode::Sub:
+		{
+			RealType rhs = popStack();
+			topValue = topValue - rhs;
+		}
+		return 1;
+	case EExprByteCode::SubR:
+		{
+			RealType rhs = popStack();
+			topValue = rhs - topValue;
+		}
+		return 1;
+	case EExprByteCode::Mul:
+		{
+			RealType rhs = popStack();
+			topValue = topValue * rhs;
+		}
+		return 1;
+	case EExprByteCode::Div:
+		{
+			RealType rhs = popStack();
+			topValue = topValue / rhs;
+		}
+		return 1;
+	case EExprByteCode::DivR:
+		{
+			RealType rhs = popStack();
+			topValue = rhs / topValue;
+		}
+		return 1;
+	case EExprByteCode::Mins:
+		{
+			topValue = -topValue;
+		}
+		return 1;
+
+#if EBC_USE_COMPOSITIVE_CODE
+	case EExprByteCode::CAdd:
+	{
+		RealType rhs = mCode->mConstValues[pCode[1]];
+		topValue = topValue + rhs;
+	}
+	return 2;
+	case EExprByteCode::CSub:
+	{
+		RealType rhs = mCode->mConstValues[pCode[1]];
+		topValue = topValue - rhs;
+	}
+	return 2;
+	case EExprByteCode::CSubR:
+	{
+		RealType rhs = mCode->mConstValues[pCode[1]];
+		topValue = rhs - topValue;
+	}
+	return 2;
+	case EExprByteCode::CMul:
+	{
+		RealType rhs = mCode->mConstValues[pCode[1]];
+		topValue = topValue * rhs;
+	}
+	return 2;
+	case EExprByteCode::CDiv:
+	{
+		RealType rhs = mCode->mConstValues[pCode[1]];
+		topValue = topValue / rhs;
+	}
+	return 2;
+	case EExprByteCode::CDivR:
+	{
+		RealType rhs = mCode->mConstValues[pCode[1]];
+		topValue = rhs / topValue;
+	}
+	return 2;
+	case EExprByteCode::IAdd:
+	{
+		RealType rhs = *(RealType*)mInputs[pCode[1]];
+		topValue = topValue + rhs;
+	}
+	return 2;
+	case EExprByteCode::ISub:
+	{
+		RealType rhs = *(RealType*)mInputs[pCode[1]];
+		topValue = topValue - rhs;
+	}
+	return 2;
+	case EExprByteCode::ISubR:
+	{
+		RealType rhs = *(RealType*)mInputs[pCode[1]];
+		topValue = rhs - topValue;
+	}
+	return 2;
+	case EExprByteCode::IMul:
+	{
+		RealType rhs = *(RealType*)mInputs[pCode[1]];
+		topValue = topValue * rhs;
+	}
+	return 2;
+	case EExprByteCode::IDiv:
+	{
+		RealType rhs = *(RealType*)mInputs[pCode[1]];
+		topValue = topValue / rhs;
+	}
+	return 2;
+	case EExprByteCode::IDivR:
+	{
+		RealType rhs = *(RealType*)mInputs[pCode[1]];
+		topValue = rhs / topValue;
+	}
+	return 2;
+	case EExprByteCode::VAdd:
+	{
+		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = topValue + rhs;
+	}
+	return 2;
+	case EExprByteCode::VSub:
+	{
+		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = topValue - rhs;
+	}
+	return 2;
+	case EExprByteCode::VSubR:
+	{
+		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = rhs - topValue;
+	}
+	return 2;
+	case EExprByteCode::VMul:
+	{
+		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = topValue * rhs;
+	}
+	return 2;
+	case EExprByteCode::VDiv:
+	{
+		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = topValue / rhs;
+	}
+	return 2;
+	case EExprByteCode::VDivR:
+	{
+		RealType rhs = *(RealType*)mCode->mPointers[pCode[1]];
+		topValue = rhs / topValue;
+	}
+	return 2;
+#endif
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  topValue = exp(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   topValue = log(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sin:  topValue = sin(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Cos:  topValue = cos(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Tan:  topValue = tan(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Cot:  topValue = 1.0 / tan(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  topValue = 1.0 / cos(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  topValue = 1.0 / sin(topValue); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: topValue = sqrt(topValue); return 1;
+	case EExprByteCode::FuncCall0:
+		{
+			pushStack(topValue);
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			topValue = (*static_cast<FuncType0>(funcPtr))();
+		}
+		return 2;
+	case EExprByteCode::FuncCall1:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			topValue = (*static_cast<FuncType1>(funcPtr))(topValue);
+		}
+		return 2;
+#if 0
+	case EExprByteCode::FuncCall2:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[1];
+			params[0] = popStack();
+			topValue = (*static_cast<FuncType2>(funcPtr))(params[0], topValue);
+		}
+		return 2;
+	case EExprByteCode::FuncCall3:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[2];
+			params[0] = popStack();
+			params[1] = popStack();
+			topValue = (*static_cast<FuncType3>(funcPtr))(params[1], params[0], topValue);
+		}
+		return 2;
+	case EExprByteCode::FuncCall4:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[3];
+			params[0] = popStack();
+			params[1] = popStack();
+			params[2] = popStack();
+			topValue = (*static_cast<FuncType4>(funcPtr))(params[2], params[1], params[0], topValue);
+		}
+		return 2;
+	case EExprByteCode::FuncCall5:
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			RealType params[4];
+			params[0] = popStack();
+			params[1] = popStack();
+			params[2] = popStack();
+			params[3] = popStack();
+			topValue = (*static_cast<FuncType5>(funcPtr))(params[3], params[2], params[1], params[0], topValue);
+		}
+		return 2;
+#endif
+	}
+	return 1;
+}
+#else
 int ByteCodeExecutor::execCode(uint8 const* pCode)
 {
 	switch (*pCode)
@@ -952,129 +1426,125 @@ int ByteCodeExecutor::execCode(uint8 const* pCode)
 		pushStack(*(RealType*)mCode->mPointers[pCode[1]]);
 		return 2;
 	case EExprByteCode::Add:
-		{
-			RealType lhs = popStack();
-			RealType rhs = popStack();
-			pushStack(lhs + rhs);
-		}
-		return 1;
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs + rhs);
+	}
+	return 1;
 	case EExprByteCode::Sub:
-		{
-			RealType lhs = popStack();
-			RealType rhs = popStack();
-			pushStack(lhs - rhs);
-		}
-		return 1;
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs - rhs);
+	}
+	return 1;
 	case EExprByteCode::SubR:
-		{
-			RealType lhs = popStack();
-			RealType rhs = popStack();
-			pushStack(rhs - lhs);
-		}
-		return 1;
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(rhs - lhs);
+	}
+	return 1;
 	case EExprByteCode::Mul:
-		{
-			RealType lhs = popStack();
-			RealType rhs = popStack();
-			pushStack(lhs * rhs);
-		}
-		return 1;
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs * rhs);
+	}
+	return 1;
 	case EExprByteCode::Div:
-		{
-			RealType lhs = popStack();
-			RealType rhs = popStack();
-			pushStack(lhs / rhs);
-		}
-		return 1;
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(lhs / rhs);
+	}
+	return 1;
 	case EExprByteCode::DivR:
-		{
-			RealType lhs = popStack();
-			RealType rhs = popStack();
-			pushStack(rhs / lhs);
-		}
-		return 1;
+	{
+		RealType lhs = popStack();
+		RealType rhs = popStack();
+		pushStack(rhs / lhs);
+	}
+	return 1;
 	case EExprByteCode::Mins:
-		{
-			RealType lhs = popStack();
-			pushStack(-lhs);
-		}
-		return 1;
-	case EExprByteCode::FuncSymbol:
-		{
-			switch (pCode[1])
-			{
-			case EFuncSymbol::Exp:  pushStack(exp(popStack())); break;
-			case EFuncSymbol::Ln:   pushStack(log(popStack())); break;
-			case EFuncSymbol::Sin:  pushStack(sin(popStack())); break;
-			case EFuncSymbol::Cos:  pushStack(cos(popStack())); break;
-			case EFuncSymbol::Tan:  pushStack(tan(popStack())); break;
-			case EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); break;
-			case EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); break;
-			case EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); break;
-			case EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); break;
-			}
-		}
-		return 2;
+	{
+		RealType lhs = popStack();
+		pushStack(-lhs);
+	}
+	return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  pushStack(exp(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   pushStack(log(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sin:  pushStack(sin(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Cos:  pushStack(cos(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Tan:  pushStack(tan(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); return 1;
+	case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); return 1;
 	case EExprByteCode::FuncCall0:
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			pushStack((*static_cast<FuncType0>(funcPtr))());
-		}
-		return 2;
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		pushStack((*static_cast<FuncType0>(funcPtr))());
+	}
+	return 2;
 	case EExprByteCode::FuncCall1:
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			RealType params[1];
-			params[0] = popStack();
-			pushStack((*static_cast<FuncType1>(funcPtr))(params[0]));
-		}
-		return 2;
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[1];
+		params[0] = popStack();
+		pushStack((*static_cast<FuncType1>(funcPtr))(params[0]));
+	}
+	return 2;
 	case EExprByteCode::FuncCall2:
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			RealType params[2];
-			params[0] = popStack();
-			params[1] = popStack();
-			pushStack((*static_cast<FuncType2>(funcPtr))(params[0],params[1]));
-		}
-		return 2;
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[2];
+		params[0] = popStack();
+		params[1] = popStack();
+		pushStack((*static_cast<FuncType2>(funcPtr))(params[1], params[0]));
+	}
+	return 2;
 	case EExprByteCode::FuncCall3:
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			RealType params[3];
-			params[0] = popStack();
-			params[1] = popStack();
-			params[2] = popStack();
-			pushStack((*static_cast<FuncType3>(funcPtr))(params[0], params[1], params[2]));
-		}
-		return 2;
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[3];
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		pushStack((*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]));
+	}
+	return 2;
 	case EExprByteCode::FuncCall4:
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			RealType params[4];
-			params[0] = popStack();
-			params[1] = popStack();
-			params[2] = popStack();
-			params[3] = popStack();
-			pushStack((*static_cast<FuncType4>(funcPtr))(params[0], params[1], params[2], params[3]));
-		}
-		return 2;
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[4];
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		params[3] = popStack();
+		pushStack((*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]));
+	}
+	return 2;
 	case EExprByteCode::FuncCall5:
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			RealType params[5];
-			params[0] = popStack();
-			params[1] = popStack();
-			params[2] = popStack();
-			params[3] = popStack();
-			params[4] = popStack();
-			pushStack((*static_cast<FuncType5>(funcPtr))(params[0], params[1], params[2], params[3], params[4]));
-		}
-		return 2;
+	{
+		void* funcPtr = mCode->mPointers[pCode[1]];
+		RealType params[5];
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		params[3] = popStack();
+		params[4] = popStack();
+		pushStack((*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]));
+	}
+	return 2;
 	}
 
 	return 1;
 }
+
+#endif
+
 
 
 struct ExprByteCodeCompiler : public ExprParse
@@ -1090,7 +1560,7 @@ struct ExprByteCodeCompiler : public ExprParse
 
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
-
+		mStacks.clear();
 	}
 	void codeConstValue(ConstValueInfo const&val)
 	{
@@ -1102,7 +1572,7 @@ struct ExprByteCodeCompiler : public ExprParse
 			mOutput.mConstValues.push_back(val.asReal);
 		}
 		CHECK(index < 255);
-		outputCmd(EExprByteCode::Const, index);
+		pushValue(EExprByteCode::Const, index);
 	}
 
 	void codeVar(VariableInfo const& varInfo)
@@ -1115,13 +1585,14 @@ struct ExprByteCodeCompiler : public ExprParse
 			mOutput.mPointers.push_back(varInfo.ptr);
 		}
 		CHECK(index < 255);
-		outputCmd(EExprByteCode::Variable, index);
+		pushValue(EExprByteCode::Variable, index);
 	}
 
 	void codeInput(InputInfo const& input)
 	{
-		outputCmd(EExprByteCode::Input, input.index);
+		pushValue(EExprByteCode::Input, input.index);
 	}
+
 
 	void codeFunction(FuncInfo const& info)
 	{
@@ -1132,16 +1603,87 @@ struct ExprByteCodeCompiler : public ExprParse
 			mOutput.mPointers.push_back(info.funcPtr);
 		}
 		CHECK(index < 255);
+
+#if EBC_USE_COMPOSITIVE_CODE
+		if (info.getArgNum() > 1)
+		{
+			for (int i = 0; i < info.getArgNum(); ++i)
+			{
+				auto argValue = mStacks[mStacks.size() - 2 + info.getArgNum() - i];
+				if (argValue.byteCode != EExprByteCode::Dummy)
+				{
+					outputCmd(argValue.byteCode, argValue.index);
+				}
+			}
+			for(int i = 0; i < info.getArgNum(); ++i)
+			{
+				mStacks.pop_back();
+			}
+			outputCmd(EExprByteCode::FuncCall0 + info.getArgNum(), index);
+		}
+		else
+		{
+			outputCmd(EExprByteCode::FuncCall0, index);
+		}
+
+		mStacks.push_back({ EExprByteCode::Dummy, 0 });
+#else
 		outputCmd(EExprByteCode::FuncCall0 + info.getArgNum(), index);
+#endif
 	}
 
 	void codeFunction(FuncSymbolInfo const& info)
 	{
-		outputCmd(EExprByteCode::FuncSymbol, info.id);
+		outputCmd(EExprByteCode::FuncSymbol + info.id);
 	}
+
+	void pushValue(uint8 byteCode, uint8 index)
+	{
+#if EBC_USE_COMPOSITIVE_CODE
+		mStacks.push_back({byteCode, index});
+#else
+		outputCmd(byteCode, index);
+#endif
+	}
+
+	struct StackData 
+	{
+		uint8 byteCode;
+		uint8 index;
+	};
+	TArray< StackData > mStacks;
 
 	void codeBinaryOp(TokenType type, bool isReverse)
 	{
+#if EBC_USE_COMPOSITIVE_CODE
+
+		auto leftValue = mStacks[mStacks.size() - 2];
+		if (leftValue.byteCode != EExprByteCode::Dummy)
+		{
+			outputCmd(leftValue.byteCode, leftValue.index);
+		}
+
+		auto rightValue = mStacks.back();
+		uint8 opCode;
+		switch (type)
+		{
+		case BOP_ADD: opCode = EExprByteCode::Add; break;
+		case BOP_SUB: opCode = isReverse ? EExprByteCode::SubR : EExprByteCode::Sub; break;
+		case BOP_MUL: opCode = EExprByteCode::Mul; break;
+		case BOP_DIV: opCode = isReverse ? EExprByteCode::DivR : EExprByteCode::Div; break;
+		}
+
+		if (rightValue.byteCode == EExprByteCode::Dummy)
+		{
+			outputCmd(opCode);
+		}
+		else
+		{
+			outputCmd(opCode + rightValue.byteCode, rightValue.index);
+		}
+
+		mStacks.pop_back();
+#else
 		switch (type)
 		{
 		case BOP_ADD: outputCmd(EExprByteCode::Add); break;
@@ -1149,15 +1691,31 @@ struct ExprByteCodeCompiler : public ExprParse
 		case BOP_MUL: outputCmd(EExprByteCode::Mul); break;
 		case BOP_DIV: outputCmd(isReverse ? EExprByteCode::DivR : EExprByteCode::Div); break;
 		}
+#endif
+
+#if EBC_USE_COMPOSITIVE_CODE
+		mStacks.push_back({EExprByteCode::Dummy, 0});
+#endif
 	}
 	
 	void codeUnaryOp(TokenType type)
 	{
+#if EBC_USE_COMPOSITIVE_CODE
+		auto leftValue = mStacks.back();
+		if (leftValue.byteCode != EExprByteCode::Dummy)
+		{
+			outputCmd(leftValue.byteCode, leftValue.index);
+		}
+
+		mStacks.pop_back();
+#endif
 		switch (type)
 		{
-		case UOP_MINS: mOutput.mCodes.push_back(EExprByteCode::Mins); break;
+		case UOP_MINS: outputCmd(EExprByteCode::Mins); break;
 		}
-		mOutput.mCodes.push_back(0);
+#if EBC_USE_COMPOSITIVE_CODE
+		mStacks.push_back({ EExprByteCode::Dummy, 0 });
+#endif
 	}
 
 	void outputCmd(uint8 a)
@@ -1209,8 +1767,10 @@ bool ExpressionCompiler::compile( char const* expr , SymbolTable const& table , 
 		if (!parser.parse(expr, table, mResult))
 			return false;
 
+#if 0
 		if (mOptimization)
 			mResult.optimize();
+#endif
 #if ENABLE_FPU_CODE
 		FPUCodeGeneratorV0 generator;
 		generator.setCodeData( &data );

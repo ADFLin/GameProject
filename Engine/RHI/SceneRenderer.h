@@ -364,7 +364,7 @@ namespace Render
 
 		void render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender , FrameRenderTargets* sceneRenderTargets );
 		void renderTest(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
-		void reload();
+		void reloadShader();
 
 		void renderInternal(RHICommandList& commandList, ViewInfo& view , std::function< void(RHICommandList&) > drawFuncion , FrameRenderTargets* sceneRenderTargets = nullptr );
 
@@ -385,7 +385,7 @@ namespace Render
 		ShaderProgram mShaderBassPassTest;
 		class BMAResolveProgram* mShaderResolve;
 		class BMAResolveProgram* mShaderBMAResolves[NumBMALevel];
-
+		class ReestCounterProgram* mShaderResetCounter;
 		OITShaderData mShaderData;
 
 		Mesh mScreenMesh;

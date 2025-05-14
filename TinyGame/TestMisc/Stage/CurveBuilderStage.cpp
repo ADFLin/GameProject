@@ -20,7 +20,7 @@
 #include "RHI/ShaderManager.h"
 #include "Renderer/SimpleCamera.h"
 
-#include "GL/wglew.h"
+#include "FunctionTraits.h"
 #include <memory>
 
 
@@ -31,10 +31,19 @@ namespace CB
 	using namespace Render;
 
 	static RealType GTime;
+	char const* TestExpr = "sin(sqrt(x*x+y*y) - 0.1*t)";
+
+#define t GTime
 	RealType MyFunc(RealType x, RealType y)
 	{
-		return sin(sqrt(x*x + y*y) + 0.1*GTime);
+		return sin(sqrt(x*x + y*y) - 0.1*t) + cos(sqrt(x*x + y*y) + 0.3*t);
+		//return sin(sqrt(x*x + y*y) - 0.1*GTime);
 	}
+	FloatVector MyFunc2(FloatVector x, FloatVector y)
+	{
+		return sin(sqrt(x*x + y*y) - 0.1*t) + cos(sqrt(x*x + y*y) + 0.3*t);
+	}
+#undef t
 
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
@@ -90,45 +99,25 @@ namespace CB
 
 			mMeshBuilder = std::make_unique<ShapeMeshBuilder>();
 
-			wglSwapIntervalEXT(0);
-			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-
 			::Global::GUI().cleanupWidget();
 
 			{
 				Surface3D* surface;
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
-				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				//surface = createSurfaceXY("sin(sqrt(x*x+y*y) + 0.1*t)", Color4f(1, 0.6, 0.4, 0.3));
-
-				surface = createSurfaceXY("5 - sqrt(x*x + y*y) * sin(0.1*t)", Color4f(1, 0.6, 0.4, 0.3));
+	
+				surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
+				//surface = createSurfaceXY("sin(sqrt(x*x+y*y) - 0.1*t) + cos(sqrt(x*x+y*y) + 0.3*t)", Color4f(1, 0.6, 0.4, 0.85));
+				//surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
+				//surface = createSurfaceXY("sqrt(x*x + y*y)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("(5 - x)*sin(t)", Color4f(1, 0.6, 0.4, 0.3));
-				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
 				//surface = createSurfaceXY("sin(sqrt(x*x+y*y))", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
+				mSurface = surface;
 
-				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
-				if (surface->getFunction()->isNative())
-				{
-					textCtrl->setValue("Native Func");
-				}
-				else
-				{
-					textCtrl->setValue(static_cast<SurfaceXYFunc*>(surface->getFunction())->getExprString().c_str());
-					textCtrl->onEvent = [surface, this](int event, GWidget* widget)
-					{
-						if (event == EVT_TEXTCTRL_COMMITTED)
-						{
-							SurfaceXYFunc* func = (SurfaceXYFunc*)surface->getFunction();
-							func->setExpr(widget->cast<GTextCtrl>()->getValue());
-							surface->addUpdateBits(RUF_FUNCTION);
-						}
-						return false;
-					};
-				}
+				mTextCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
+				updateUI();
 
-				::Global::GUI().addWidget(textCtrl);
+				::Global::GUI().addWidget(mTextCtrl);
 			}
 
 			ProfileSystem::Get().resetSample();
@@ -136,14 +125,43 @@ namespace CB
 			return true;
 		}
 
+		Surface3D* mSurface;
+		GTextCtrl* mTextCtrl;
 
-		Surface3D* createSurfaceXY(FuncType2 funcPtr, Color4f const& color)
+		void updateUI()
+		{
+
+			if (mSurface->getFunction()->isNative())
+			{
+				mTextCtrl->setValue("Native Func");
+				mTextCtrl->onEvent = nullptr;
+			}
+			else
+			{
+				mTextCtrl->setValue(static_cast<SurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
+				mTextCtrl->onEvent = [this](int event, GWidget* widget)
+				{
+					if (event == EVT_TEXTCTRL_COMMITTED)
+					{
+						SurfaceXYFunc* func = (SurfaceXYFunc*)mSurface->getFunction();
+						func->setExpr(widget->cast<GTextCtrl>()->getValue());
+						mSurface->addUpdateBits(RUF_FUNCTION);
+					}
+					return false;
+				};
+			}
+
+		}
+
+		template< typename TFunc >
+		Surface3D* createSurfaceXY(TFunc funcPtr, Color4f const& color)
 		{
 			Surface3D* surface = new Surface3D;
 			NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
-			surface->setFunction(func);
 			func->mPtr = funcPtr;
+			func->bSupportSIMD = std::is_same_v< Meta::FuncTraits<TFunc>::ResultType, FloatVector>;
 
+			surface->setFunction(func);
 
 			double Max = 10, Min = -10;
 			surface->setRangeU(Range(Min, Max));
@@ -167,8 +185,10 @@ namespace CB
 		{
 			Surface3D* surface = new Surface3D;
 			SurfaceXYFunc* func = new SurfaceXYFunc;
-			surface->setFunction(func);
 			func->setExpr(expr);
+
+			surface->setFunction(func);
+
 
 			double Max = 10, Min = -10;
 			surface->setRangeU(Range(Min, Max));
@@ -304,6 +324,23 @@ namespace CB
 				case EKeyCode::F5: mRenderer->reloadShader(); break;
 				case EKeyCode::Add: modifyParamIncrement(0.5); break;
 				case EKeyCode::Subtract: modifyParamIncrement(2); break;
+				case EKeyCode::Q:
+					{
+						if (mSurface->getFunction()->isNative())
+						{
+							SurfaceXYFunc* func = new SurfaceXYFunc;
+							func->setExpr(TestExpr);
+							mSurface->setFunction(func);
+						}
+						else
+						{
+							NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
+							func->mPtr = MyFunc;
+							mSurface->setFunction(func);
+						}
+						updateUI();
+					}
+					break;
 				}
 			}
 			return BaseClass::onKey(msg);

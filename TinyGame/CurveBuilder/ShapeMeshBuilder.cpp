@@ -63,7 +63,7 @@ namespace CB
 			if( data->getVertexNum() < paramS.numData )
 			{
 				data->release();
-				data->create(paramS.numData, 0, false);
+				data->create(paramS.numData, 1, 0, false);
 			}
 			flag |= (RUF_GEOM | RUF_COLOR);
 		}
@@ -94,6 +94,24 @@ namespace CB
 				colorData += data->getVertexSize();
 			}
 		}
+	}
+
+	int constexpr DUFF_BLOCK_SIZE = 8;
+#define DUFF_DEVICE( DIM , OP )\
+	{\
+		int blockCount = ((DIM) + DUFF_BLOCK_SIZE - 1) / DUFF_BLOCK_SIZE;\
+		switch ((DIM) % DUFF_BLOCK_SIZE)\
+		{\
+		case 0: do { OP;\
+		case 7: OP;\
+		case 6: OP;\
+		case 5: OP;\
+		case 4: OP;\
+		case 3: OP;\
+		case 2: OP;\
+		case 1: OP;\
+			} while (--blockCount > 0);\
+		}\
 	}
 
 	template< typename TSurfaceUVFunc >
@@ -174,6 +192,8 @@ namespace CB
 			break;
 		}
 	}
+	int constexpr CacheAlign = 32;
+
 
 	template< typename TSurfaceXYFunc >
 	void ShapeMeshBuilder::updatePositionData_SurfaceXY(TSurfaceXYFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data)
@@ -225,40 +245,92 @@ namespace CB
 			break;
 		case BIT(0) | BIT(1):
 			{
-				for (int j = 0; j < paramV.numData; ++j)
+#define REORDER_CACHE 0
+				uint8* pPos = posData;
+				int numData = paramV.numData * paramU.numData;
+				if (func->bSupportSIMD)
 				{
-					float v = paramV.getRangeMin() + j * dv;
-					for (int i = 0; i < paramU.numData; ++i)
+#if REORDER_CACHE
+					float const* pUV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+#else
+					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+#endif
+					int numBlock = numData / FloatVector::Size;
+					for (int i = 0; i < numBlock; ++i)
 					{
-						float u = paramU.getRangeMin() + i * du;
+#if REORDER_CACHE
+						FloatVector x{ pUV , EAligned::Value };
+						FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
+#else
+#if SIMD_USE_AVX
+						FloatVector x{ pUV[0].x, pUV[1].x, pUV[2].x, pUV[3].x, pUV[4].x, pUV[5].x, pUV[6].x, pUV[7].x };
+						FloatVector y{ pUV[0].y, pUV[1].y, pUV[2].y, pUV[3].y, pUV[4].y, pUV[5].y, pUV[6].y, pUV[7].y };
+#else
+						FloatVector x{ pUV[0].x , pUV[1].x, pUV[2].x, pUV[3].x };
+						FloatVector y{ pUV[0].y , pUV[1].y, pUV[2].y, pUV[3].y };
+#endif
+#endif
 
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
-						func->evalExpr(*pPos, u, v);
+						FloatVector z;
+						func->evalExpr(x, y, z);
+#define SET_POS(INDEX)\
+	((Vector3*)pPos)->setValue(x[INDEX], y[INDEX], z[INDEX]);\
+	pPos += data.getVertexSize();
+
+						SET_POS(0);
+						SET_POS(1);
+						SET_POS(2);
+						SET_POS(3);
+#if SIMD_USE_AVX
+						SET_POS(4);
+						SET_POS(5);
+						SET_POS(6);
+						SET_POS(7);
+#endif
+
+#if REORDER_CACHE
+						pUV += 2 * FloatVector::Size;
+#else
+						pUV += FloatVector::Size;
+#endif
 					}
 				}
+				else
+				{
+					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+#if 0
+#define OP 	func->evalExpr(*(Vector3*)pPos, pUV->x, pUV->y);pPos += data.getVertexSize(); ++pUV;
+					DUFF_DEVICE(numData, OP);
+#undef OP
+#else
+					for (int i = 0; i < numData; ++i)
+					{
+						func->evalExpr(*(Vector3*)pPos, pUV->x, pUV->y);
+						pPos += data.getVertexSize();
+						++pUV;
+					}
+#endif
+				}
+
 			}
 			break;
 		default:
 			{
 				Vector3 value;
 				func->evalExpr(value, 0, 0);
-				for (int j = 0; j < paramV.numData; ++j)
+				Vector2 const* pUV = (Vector2*)data.getCachedData();
+				uint8* pPos = posData;
+				int numData = paramV.numData * paramU.numData;
+				for (int i = 0; i < numData; ++i)
 				{
-					float v = paramV.getRangeMin() + j * dv;
-					for (int i = 0; i < paramU.numData; ++i)
-					{
-						float u = paramU.getRangeMin() + i * du;
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
-						pPos->setValue(u, v, value.z);
-					}
+					((Vector3*)pPos)->setValue(pUV->x, pUV->y, value.z);
+					pPos += data.getVertexSize();
+					++pUV;
 				}
 			}
 			break;
 		}
 	}
-
 
 	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV)
 	{
@@ -269,20 +341,21 @@ namespace CB
 		RenderData* data = context.data;
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
-		int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
-
 
 		bool bUpdateIndices = false;
-
+		bool bUpdateCachedData = false;
 		if( flags & RUF_DATA_SAMPLE )
 		{
+			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
+			bool bSupportSIMD = context.func->bSupportSIMD;
 			if( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum )
 			{
 				data->release();
-				data->create(vertexNum, indexNum, true);
+				data->create(vertexNum, bSupportSIMD ? FloatVector::Size : 1, indexNum, true);
 			}
 			flags |= (RUF_GEOM | RUF_COLOR);
 			bUpdateIndices = true;
+			bUpdateCachedData = true;
 		}
 
 		uint32*  pIndexData = data->getIndexData();
@@ -307,6 +380,79 @@ namespace CB
 					pIndex[5] = index + nv;
 
 					pIndex += 6;
+				}
+			}
+		}
+
+		if (bUpdateCachedData)
+		{
+			bool bSupportSIMD = context.func->bSupportSIMD;
+			int num = vertexNum;
+			if (bSupportSIMD)
+			{
+				num = Math::AlignUp(num, FloatVector::Size);
+#if REORDER_CACHE
+				TArray<Vector2> tempData;
+				tempData.resize(num);
+
+				Vector2* pUV = tempData.data();
+
+				float du = paramU.getIncrement();
+				float dv = paramV.getIncrement();
+				for (int j = 0; j < paramV.numData; ++j)
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						float u = paramU.getRangeMin() + i * du;
+						int idx = paramU.numData * j + i;
+						pUV[idx] = Vector2(u, v);
+					}
+				}
+
+
+				data->setCachedDataSize(num * sizeof(Vector2) + CacheAlign - 1);
+
+				int const Align = 32;
+				float* pValue = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), Align);
+				pUV = tempData.data();
+				int numBlock = num / FloatVector::Size;
+
+				for (int i = 0; i < numBlock; ++i)
+				{
+					for( int n = 0; n < FloatVector::Size; ++n )	
+					{
+						*pValue = pUV[n].x;
+						++pValue;
+					}
+					for (int n = 0; n < FloatVector::Size; ++n)
+					{
+						*pValue = pUV[n].y;
+						++pValue;
+					}
+					pUV += FloatVector::Size;
+				}
+			}
+			else
+#else
+			}
+#endif
+			{
+				data->setCachedDataSize(num * sizeof(Vector2));
+
+				Vector2* pUV = (Vector2*)data->getCachedData();
+
+				float du = paramU.getIncrement();
+				float dv = paramV.getIncrement();
+				for (int j = 0; j < paramV.numData; ++j)
+				{
+					float v = paramV.getRangeMin() + j * dv;
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						float u = paramU.getRangeMin() + i * du;
+						int idx = paramU.numData * j + i;
+						pUV[idx] = Vector2(u, v);
+					}
 				}
 			}
 		}

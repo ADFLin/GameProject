@@ -54,7 +54,7 @@ void FExpressUtils::DoEvalate(ExprEvaluatorBase &evaluator, TArrayView<ExprParse
 	}
 #else
 
-#if 1
+#if 0
 	int index = 0;
 	int numCodes = codes.size();
 #define OP evaluator.exec(codes[index]); ++index;

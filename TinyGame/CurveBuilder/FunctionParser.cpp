@@ -45,20 +45,22 @@ namespace CB
 		mSymbolDefine.defineVarInput("y", 1);
 		mSymbolDefine.defineVarInput("u", 0);
 		mSymbolDefine.defineVarInput("v", 1);
-#if 0
-		mSymbolDefine.defineFunc("sin", static_cast< RealType(*)(RealType) >(sin));
-		mSymbolDefine.defineFunc("sqrt", static_cast<RealType(*)(RealType)>(sqrt));
-#else
+#if 1
 		mSymbolDefine.defineFuncSymbol("sin", EFuncSymbol::Sin);
+		mSymbolDefine.defineFuncSymbol("cos", EFuncSymbol::Cos);
+		mSymbolDefine.defineFuncSymbol("tan", EFuncSymbol::Tan);
+		mSymbolDefine.defineFuncSymbol("exp", EFuncSymbol::Exp);
+		mSymbolDefine.defineFuncSymbol("ln", EFuncSymbol::Ln);
 		mSymbolDefine.defineFuncSymbol("sqrt", EFuncSymbol::Sqrt);
+#else
+		mSymbolDefine.defineFunc("sin", static_cast<RealType(*)(RealType)>(sin));
+		mSymbolDefine.defineFunc("cos", static_cast<RealType(*)(RealType)>(cos));
+		mSymbolDefine.defineFunc("tan", static_cast<RealType(*)(RealType)>(tan));
+		mSymbolDefine.defineFunc("exp", static_cast<RealType(*)(RealType)>(exp));
+		mSymbolDefine.defineFunc("ln", static_cast<RealType(*)(RealType)>(log));
+		mSymbolDefine.defineFunc("sqrt", static_cast<RealType(*)(RealType)>(sqrt));
 #endif
-
-		mSymbolDefine.defineFunc("cos", static_cast< RealType(*)(RealType) >(cos));
-		mSymbolDefine.defineFunc("tan", static_cast< RealType(*)(RealType) >(tan));
-		mSymbolDefine.defineFunc("exp", static_cast< RealType(*)(RealType) >(exp));
-		mSymbolDefine.defineFunc("ln", static_cast< RealType(*)(RealType) >(log));
 		mSymbolDefine.defineFunc("log", static_cast< RealType(*)(RealType) >(log10));
-
 		mSymbolDefine.defineFunc("pow", static_cast< RealType(*)(RealType, RealType) >(pow));
 	}
 

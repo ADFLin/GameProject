@@ -51,7 +51,7 @@ namespace CB
 	{
 		if( mUpdateBits & RUF_FUNCTION )
 		{
-			TIME_SCOPE("Pares Shape Function");
+			TIME_SCOPE("Parse Shape Function");
 			mUpdateBits &= ~RUF_FUNCTION;
 			if( !getFunction()->isParsed() )
 			{

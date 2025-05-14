@@ -146,6 +146,13 @@ namespace Math
 		T p = a + b + 1;
 		return (p * p - p % 2) / 4 + Math::Min(a, b);
 	}
+
+	template< typename T >
+	T  AlignUp(T  value, T  align)
+	{
+		return (value + align - 1) & ~(align - 1);
+	}
+
 }//namespace Math
 
 

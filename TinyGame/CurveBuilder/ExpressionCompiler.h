@@ -4,68 +4,76 @@
 #include "ExpressionParser.h"
 #include "Core/IntegerType.h"
 
+#include "Math/SIMD.h"
+#define SIMD_USE_AVX 0
+#if SIMD_USE_AVX
+using FloatVector = SIMD::TFloatVector<8>;
+#else
+using FloatVector = SIMD::TFloatVector<4>;
+#endif
+
+
 #define ENABLE_FPU_CODE 0
 
 #if ENABLE_FPU_CODE
 #else
-#define ENALBE_BYTE_CODE 1
+#define ENABLE_BYTE_CODE 1
 #include "ExpressionUtils.h"
 #endif
 
+
+#ifndef ENABLE_BYTE_CODE
+#define ENABLE_BYTE_CODE 0
+#endif
 
 class ExpressionCompiler;
 class FPUCodeGeneratorV0;
 class FPUCodeGeneratorV1;
 
-#if ENALBE_BYTE_CODE
+#if ENABLE_BYTE_CODE
 
 class ExecutableCode;
-class ByteCodeExecutor
+
+template<typename TValue>
+class TByteCodeExecutor
+{
+public:
+	TValue doExecute(ExecutableCode const& code);
+	int  execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue);
+
+	ExecutableCode const* mCode;
+	TArrayView<TValue const> mInputs;
+};
+
+class ByteCodeExecutor : public TByteCodeExecutor<RealType>
 {
 public:
 
 	template< typename RT>
 	RT execute(ExecutableCode const& code)
 	{
-		ExprEvaluatorBase evaluator;
 		return RT(doExecute(code));
 	}
 
 	template< typename RT, class ...Args >
 	RT execute(ExecutableCode const& code, Args ...args)
 	{
-		ExprEvaluatorBase evaluator;
-		void* inputs[] = { &args... };
+		RealType inputs[] = { args... };
 		mInputs = inputs;
 		return RT(doExecute(code));
 	}
+};
 
-	RealType doExecute(ExecutableCode const& code);
-
-#define USE_STACK_INPUT 2
-
-#if USE_STACK_INPUT == 1
-	int  execCode(uint8 const* pCode, RealType*& pValueStack);
-#elif USE_STACK_INPUT == 2
-	int  execCode(uint8 const* pCode, RealType*& pValueStack, RealType& topValue);
-#else
-	void pushStack(RealType value)
+class ByteCodeExecutorSIMD : public TByteCodeExecutor<FloatVector>
+{
+public:
+	template< class ...Args >
+	FloatVector execute(ExecutableCode const& code, Args ...args)
 	{
-		mValueStack.push_back(value);
+		FloatVector inputs[] = { args... };
+		mInputs = inputs;
+		return doExecute(code);
 	}
-
-	RealType popStack()
-	{
-		CHECK(mValueStack.empty() == false);
-		RealType result = mValueStack.back();
-		mValueStack.pop_back();
-		return result;
-	}
-	int  execCode(uint8 const* pCode);
-	TArray<RealType, TInlineAllocator<32> > mValueStack;
-#endif
-	ExecutableCode const* mCode;
-	TArrayView<void*> mInputs;
 };
 #endif
 
@@ -75,18 +83,38 @@ public:
 	explicit ExecutableCode( int size = 0 );
 	~ExecutableCode();
 
+#if ENABLE_FPU_CODE
+	static bool constexpr IsSupportSIMD = false;
+#elif ENABLE_BYTE_CODE
+	static bool constexpr IsSupportSIMD = true;
+#else
+	static bool constexpr IsSupportSIMD = false;
+#endif
+
 	template< class RT , class ...Args >
 	FORCEINLINE RT evalT(Args ...args) const
 	{
-#if ENABLE_FPU_CODE
-		using EvalFunc = RT (*)(Args...);
-		return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
-#elif ENALBE_BYTE_CODE
-		ByteCodeExecutor executor;
-		return executor.execute<RT>(*this, args...);
+		if constexpr (std::is_same_v< RT, FloatVector >)
+		{
+#if ENABLE_BYTE_CODE
+			ByteCodeExecutorSIMD executor;
+			return executor.execute(*this, args...);
 #else
-		return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
+			return 0.0f;
 #endif
+		}
+		else
+		{
+#if ENABLE_FPU_CODE
+			using EvalFunc = RT(*)(Args...);
+			return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
+#elif ENABLE_BYTE_CODE
+			ByteCodeExecutor executor;
+			return executor.execute<RT>(*this, args...);
+#else
+			return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
+#endif
+		}
 	}
 
 	void   printCode();
@@ -137,14 +165,16 @@ protected:
 	friend class ExpressionCompiler;
 
 #else
+
 public:
-	#if ENALBE_BYTE_CODE
-		TArray<uint8>    mCodes;
-		TArray<void*>    mPointers;
-		TArray<RealType> mConstValues;
-	#else
-		TArray<ExprParse::Unit> mCodes;
-	#endif
+#if ENABLE_BYTE_CODE
+	TArray<uint8>    mCodes;
+	TArray<void*>    mPointers;
+	TArray<RealType> mConstValues;
+#else
+	TArray<ExprParse::Unit> mCodes;
+#endif
+
 #endif
 };
 

@@ -15,12 +15,6 @@ NNScalar* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
 	return result;
 }
 
-template< typename T >
-T  AlignUp(T  value, T  align)
-{
-	return (value + align - 1) & ~(align - 1);
-}
-
 #if CPP_COMPILER_MSVC
 #define ALLOCA _alloca
 #else

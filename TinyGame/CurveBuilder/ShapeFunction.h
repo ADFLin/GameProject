@@ -4,6 +4,7 @@
 
 #include "ShapeCommon.h"
 #include "Expression.h"
+#include "Math/SIMD.h"
 
 #define USE_VALUE_INPUT 1
 
@@ -56,16 +57,27 @@ namespace CB
 		int  getFuncType() override { return TYPE_SURFACE_XY; }
 		void evalExpr(Vector3& out, float x, float y)
 		{
-			out.setValue(x, y, (float)(*mPtr)(x,y));
+			out.setValue(x, y, (float)((*static_cast<FuncType2>(mPtr))(x,y)));
 		}
+
+		void evalExpr(FloatVector const& x, FloatVector const& y, FloatVector& outZ)
+		{
+			outZ = (*static_cast<FloatVector (*)(FloatVector , FloatVector )>(mPtr))(x,y);
+		}
+
 		NativeSurfaceXYFunc* clone() override;
-		FuncType2 mPtr;
+		void* mPtr;
+		bool  bSupportSIMD = false;
 	};
 
 	class SurfaceXYFunc : public SurfaceFunc
 	{
 	public:
-		SurfaceXYFunc():SurfaceFunc() {}
+		SurfaceXYFunc():SurfaceFunc() 
+		{
+			bSupportSIMD = ExecutableCode::IsSupportSIMD;
+			//bSupportSIMD = false;
+		}
 		virtual ~SurfaceXYFunc() {}
 
 		int  getFuncType() override { return TYPE_SURFACE_XY; }
@@ -76,6 +88,12 @@ namespace CB
 			assert(isParsed());
 			out.setValue(x, y, (float)mExpr.eval(x, y));
 		}
+
+		void evalExpr(FloatVector const& x, FloatVector const& y, FloatVector& outZ)
+		{
+			outZ = mExpr.eval(x, y);
+		}
+
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
 		std::string const& getExprString() { return mExpr.getExprString(); }
 		SurfaceXYFunc* clone() override;

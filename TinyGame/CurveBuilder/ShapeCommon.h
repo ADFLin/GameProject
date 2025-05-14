@@ -70,6 +70,8 @@ namespace CB
 		virtual ShapeFuncBase* clone() = 0;
 		uint8   getUsedInputMask() const { return mUsedInputMask; }
 
+		bool bSupportSIMD = false;
+
 	protected:
 		uint8   mUsedInputMask;
 		void    setDynamic(bool bDynamic) { mbDynamic = bDynamic; }

@@ -10,22 +10,17 @@ namespace CB
 
 	}
 
-	RenderData::RenderData(int numVertices, int numIndex, bool useNormal)
-	{
-		create(numVertices, numIndex, useNormal);
-	}
-
 	RenderData::~RenderData()
 	{
 		release();
 	}
 
-	void RenderData::create(int numVertices, int numIndex, bool bUseNormal)
+	void RenderData::create(int numVertices, int numAlign, int numIndex, bool bUseNormal)
 	{
 		mbNormalOwned = bUseNormal;
 		mVertexNum = numVertices;
 		mVertexSize = sizeof(float) * (7 + (bUseNormal ? 3 : 0));
-		mVertexBuffer.resize(mVertexSize * mVertexNum);
+		mVertexBuffer.resize(Math::AlignUp(mVertexNum, numAlign) * mVertexSize);
 		mIndexBuffer.resize(numIndex);
 	}
 

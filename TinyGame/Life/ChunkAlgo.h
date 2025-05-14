@@ -10,7 +10,7 @@
 namespace Life
 {
 	template< typename T >
-	T  AlignUp(T  value, T  align)
+	T  AlignCount(T  value, T  align)
 	{
 		return (value + align - 1) / align;
 	}
@@ -20,7 +20,7 @@ namespace Life
 	public:
 		ChunkAlgo(int32 x, int32 y)
 		{
-			mChunkMap.resize(AlignUp(x, ChunkLength), AlignUp(y, ChunkLength));
+			mChunkMap.resize(AlignCount(x, ChunkLength), AlignCount(y, ChunkLength));
 			mChunkMap.fillValue(nullptr);
 			mChunkBound.invalidate();
 		}

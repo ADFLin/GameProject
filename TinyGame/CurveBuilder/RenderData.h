@@ -13,10 +13,9 @@ namespace CB
 	{
 	public:
 		RenderData();
-		RenderData(int numVertices, int numIndex, bool useNormal);
 		~RenderData();
 
-		void        create(int numVertices, int numIndex, bool bUseNormal);
+		void        create(int numVertices, int numAlign, int numIndex, bool bUseNormal);
 		void        release();
 
 		uint8*      getVertexData() { return (mVertexBuffer.empty()) ? nullptr : &mVertexBuffer[0]; }
@@ -30,6 +29,9 @@ namespace CB
 		int         getIndexNum() const { return (int)mIndexBuffer.size(); }
 		uint32*     getIndexData() { return mIndexBuffer.empty() ? nullptr : &mIndexBuffer[0]; }
 
+		void       setCachedDataSize(int size){ mCachedBuffer.resize(size);}
+		uint8*     getCachedData(){ return mCachedBuffer.data(); }
+
 	private:
 
 
@@ -37,7 +39,8 @@ namespace CB
 		int         mVertexSize;
 		bool        mbNormalOwned;
 
-		TArray< uint8 > mVertexBuffer;
+		TArray< uint8 >  mCachedBuffer;
+		TArray< uint8 >  mVertexBuffer;
 		TArray< uint32 > mIndexBuffer;
 	};
 

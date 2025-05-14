@@ -23,7 +23,7 @@ public:
 	static RT EvalutePosfixCodes(TArrayView<ExprParse::Unit const> codes, Args ...args)
 	{
 		ExprEvaluatorBase evaluator;
-		void* inputs[] = { &args... };
+		RealType inputs[] = { args... };
 		evaluator.mInputs = inputs;
 		DoEvalate(evaluator, codes);
 		return RT(evaluator.popStack());

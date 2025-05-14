@@ -27,6 +27,11 @@ namespace CB
 		FORCEINLINE double eval(double p0, double p1) const { return mEvalCode.evalT<double>(p0,p1); }
 		FORCEINLINE double eval(double p0, double p1, double p2) const { return mEvalCode.evalT<double>(p0,p1,p2); }
 
+
+		FORCEINLINE FloatVector eval(FloatVector const& p0) const { return mEvalCode.evalT<FloatVector>(p0); }
+		FORCEINLINE FloatVector eval(FloatVector const& p0, FloatVector const& p1) const { return mEvalCode.evalT<FloatVector>(p0, p1); }
+		FORCEINLINE FloatVector eval(FloatVector const& p0, FloatVector const& p1, FloatVector const& p2) const { return mEvalCode.evalT<FloatVector>(p0, p1, p2); }
+
 	private:
 		bool           mIsParsed;
 		std::string    mStrExpr;

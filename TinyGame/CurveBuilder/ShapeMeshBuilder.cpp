@@ -624,30 +624,39 @@ namespace CB
 
 		if (flags & RUF_GEOM)
 		{
+			GPU_PROFILE("Update Position");
+			PROFILE_ENTRY("Update Position", "CB");
+
+			GenParamsData params;
+
+			params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
+			params.gridCountU = paramU.getNumData();
+			params.vertexCount = data->vertexBuffer->getNumElements();
+			params.vertexSize = data->vertexBuffer->getElementSize() / sizeof(float);
+			params.offset = Vector2(paramU.getRangeMin(), paramV.getRangeMin());
+			params.posOffset = 0;
+			params.time = mVarTime;
+			mGenParamBuffer.updateBuffer(params);
+
+			ShaderProgram* shader = nullptr;
 			if (context.func->getFuncType() == TYPE_SURFACE_UV)
 			{
+				auto myFunc = static_cast<GPUSurfaceUVFunc*>(context.func);
+				shader = &myFunc->mShader;
 			}
 			else if (context.func->getFuncType() == TYPE_SURFACE_XY)
 			{
-				GPU_PROFILE("Update Position");
-				PROFILE_ENTRY("Update Position", "CB");
 				auto myFunc = static_cast<GPUSurfaceXYFunc*>(context.func);
+				shader = &myFunc->mShader;
+			}
+
+			if (shader)
+			{
 				auto& commandList = RHICommandList::GetImmediateList();
-				RHISetShaderProgram(commandList, myFunc->mShader.getRHI());
-
-				GenParamsData params;
-
-				params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
-				params.gridCountU = paramU.getNumData();
-				params.vertexCount = data->vertexBuffer->getNumElements();
-				params.vertexSize = data->vertexBuffer->getElementSize() / sizeof(float);
-				params.offset = Vector2(paramU.getRangeMin(), paramV.getRangeMin());
-				params.posOffset = 0;
-				params.time = mVarTime;
-				mGenParamBuffer.updateBuffer(params);
-				SetStructuredUniformBuffer(commandList, myFunc->mShader, mGenParamBuffer);
-				myFunc->mShader.setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer) , *data->vertexBuffer);
-				RHIDispatchCompute(commandList, Math::AlignUp( vertexNum , 8 ) , 1, 1);
+				RHISetShaderProgram(commandList, shader->getRHI());
+				SetStructuredUniformBuffer(commandList, *shader, mGenParamBuffer);
+				shader->setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer), *data->vertexBuffer);
+				RHIDispatchCompute(commandList, Math::AlignUp(vertexNum, 16), 1, 1);
 			}
 
 			if (data->getNormalOffset() != INDEX_NONE)
@@ -676,33 +685,45 @@ namespace CB
 					return false;
 			}
 
+			ShaderCompileOption option;
+
+			option.addDefine(SHADER_PARAM(FUNC_TYPE), func.getFuncType());
+
+			std::string code;
+			std::vector<uint8> codeTemplate;
+			ShaderProgram* shader;
+			if (!FFileUtility::LoadToBuffer("Shader/Game/CurveMeshGenTemplate.sgc", codeTemplate, true))
+			{
+				return false;
+			}
 
 			if (func.getFuncType() == TYPE_SURFACE_XY)
 			{
 				auto& myFunc = static_cast<GPUSurfaceXYFunc&>(func);
-
-				std::string code;
-				std::vector<uint8> codeTemplate;
-				if (!FFileUtility::LoadToBuffer("Shader/Game/CurveMeshGenTemplate.sgc", codeTemplate, true))
-				{
-					return false;
-				}
-
 				Text::Format((char const*)codeTemplate.data(), { StringView(myFunc.mExpr) }, code);
-
-				ShaderCompileOption option;
-
-				option.addCode((char const*)code.data());
-				ShaderEntryInfo entries[] =
-				{
-					{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
-				};
-				if (!ShaderManager::Get().loadFile(myFunc.mShader, nullptr, entries, option))
-				{
-					return false;
-				}
-
+				shader = &myFunc.mShader;
 			}
+			else if (func.getFuncType() == TYPE_SURFACE_UV)
+			{
+				auto& myFunc = static_cast<GPUSurfaceUVFunc&>(func);
+				Text::Format((char const*)codeTemplate.data(), { StringView(myFunc.mAixsExpr[0]), StringView(myFunc.mAixsExpr[1]), StringView(myFunc.mAixsExpr[2]) }, code);
+				shader = &myFunc.mShader;
+			}
+			else
+			{
+				return false;
+			}
+
+			option.addCode((char const*)code.data());
+			ShaderEntryInfo entries[] =
+			{
+				{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
+			};
+			if (!ShaderManager::Get().loadFile(*shader, nullptr, entries, option))
+			{
+				return false;
+			}
+
 			return true;
 		}
 

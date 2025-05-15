@@ -139,35 +139,20 @@ namespace CB
 				mTextCtrl->setValue("Native Func");
 				mTextCtrl->onEvent = nullptr;
 			}
-			else if(mSurface->getFunction()->getEvalType() == EEvalType::CPU)
+			else
 			{
-				mTextCtrl->setValue(static_cast<SurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
+				mTextCtrl->setValue(static_cast<RTSurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
 				mTextCtrl->onEvent = [this](int event, GWidget* widget)
 				{
 					if (event == EVT_TEXTCTRL_COMMITTED)
 					{
-						SurfaceXYFunc* func = (SurfaceXYFunc*)mSurface->getFunction();
+						auto func = (RTSurfaceXYFunc*)mSurface->getFunction();
 						func->setExpr(widget->cast<GTextCtrl>()->getValue());
 						mSurface->addUpdateBits(RUF_FUNCTION);
 					}
 					return false;
 				};
 			}
-			else if (mSurface->getFunction()->getEvalType() == EEvalType::GPU)
-			{
-				mTextCtrl->setValue(static_cast<GPUSurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
-				mTextCtrl->onEvent = [this](int event, GWidget* widget)
-				{
-					if (event == EVT_TEXTCTRL_COMMITTED)
-					{
-						GPUSurfaceXYFunc* func = (GPUSurfaceXYFunc*)mSurface->getFunction();
-						func->setExpr(widget->cast<GTextCtrl>()->getValue());
-						mSurface->addUpdateBits(RUF_FUNCTION);
-					}
-					return false;
-				};
-			}
-
 		}
 
 		template< typename TFunc >

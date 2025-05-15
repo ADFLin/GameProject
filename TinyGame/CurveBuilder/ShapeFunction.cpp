@@ -19,11 +19,6 @@ namespace CB
 		return isParsed();
 	}
 
-	SurfaceXYFunc* SurfaceXYFunc::clone()
-	{
-		return new SurfaceXYFunc(*this);
-	}
-
 	bool GPUSurfaceXYFunc::parseExpression(FunctionParser& parser)
 	{
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
@@ -40,7 +35,14 @@ namespace CB
 		return false;
 	}
 
-	CB::GPUSurfaceXYFunc* GPUSurfaceXYFunc::clone()
+
+	SurfaceXYFunc* SurfaceXYFunc::clone()
+	{
+		return new SurfaceXYFunc(*this);
+	}
+
+
+	GPUSurfaceXYFunc* GPUSurfaceXYFunc::clone()
 	{
 		return new GPUSurfaceXYFunc(*this);
 	}
@@ -54,7 +56,7 @@ namespace CB
 	bool SurfaceUVFunc::parseExpression(FunctionParser& parser)
 	{
 		bool bDynamic = false;
-
+		mUsedInputMask = 0;
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };	
 		for( int i = 0; i < 3; ++i )
 		{
@@ -62,12 +64,10 @@ namespace CB
 				return false;
 
 			bDynamic |= parser.isUsingVar("t");
+			mUsedInputMask |= parser.isUsingInput("u") ? BIT(0) : 0;
+			mUsedInputMask |= parser.isUsingInput("v") ? BIT(1) : 0;
 		}
 
-		mUsedInputMask = 0;
-		mUsedInputMask |= parser.isUsingInput("u") ? BIT(0) : 0;
-		mUsedInputMask |= parser.isUsingInput("v") ? BIT(1) : 0;
-		
 		setDynamic(bDynamic);
 		return isParsed();
 	}
@@ -77,6 +77,30 @@ namespace CB
 		return mAixsExpr[0].isParsed() && mAixsExpr[1].isParsed() && mAixsExpr[2].isParsed();
 	}
 
+	GPUSurfaceUVFunc* GPUSurfaceUVFunc::clone()
+	{
+		return new GPUSurfaceUVFunc(*this);
+	}
+
+	bool GPUSurfaceUVFunc::parseExpression(FunctionParser& parser)
+	{
+		bool bDynamic = false;
+		mUsedInputMask = 0;
+		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
+		for (int i = 0; i < 3; ++i)
+		{
+			ParseResult parseResult;
+			if (!parser.parse(mAixsExpr[i].c_str(), ARRAY_SIZE(inputLayouts), inputLayouts, parseResult))
+				return false;
+
+			bDynamic |= parseResult.isUsingVar("t");
+			mUsedInputMask |= parseResult.isUsingInput("u") ? BIT(0) : 0;
+			mUsedInputMask |= parseResult.isUsingInput("v") ? BIT(1) : 0;
+		}
+
+		setDynamic(bDynamic);
+		return true;
+	}
 
 	SurfaceUVFunc* SurfaceUVFunc::clone()
 	{
@@ -122,5 +146,7 @@ namespace CB
 	{
 		return new NativeSurfaceUVFunc(*this);
 	}
+
+
 
 }//namespace CB

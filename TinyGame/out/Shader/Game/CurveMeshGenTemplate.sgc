@@ -1,5 +1,13 @@
 #include "Common.sgc"
 
+
+#define TYPE_SURFACE_XY 1
+#define TYPE_SURFACE_UV 2
+
+#ifndef FUNC_TYPE
+#define FUNC_TYPE TYPE_SURFACE_XY
+#endif
+
 struct GenParamsData
 {
 	float2 delata;
@@ -21,10 +29,25 @@ layout(std140) cbuffer GenParamsDataBlock
 uniform GenParamsData GenParams;
 #endif
 
-float FuncXY(float x, float y, float t)
+#if FUNC_TYPE == TYPE_SURFACE_XY
+float Func(float x, float y, float t)
+#else
+float FuncX(float u, float v, float t)
+#endif
 {
 	return %s;
 }
+
+#if FUNC_TYPE == TYPE_SURFACE_UV
+float FuncY(float u, float v, float t)
+{
+	return %s;
+}
+float FuncZ(float u, float v, float t)
+{
+	return %s;
+}
+#endif
 
 #if COMPUTE_SHADER
 
@@ -37,7 +60,7 @@ layout(std430) buffer VertexOutputBuffer
 };
 #endif
 
-CS_NUM_THREADS(8, 1, 1)
+CS_NUM_THREADS(16, 1, 1)
 CS_ENTRY(GenVertexCS)
 {
 	uint vertexId = SvDispatchThreadID.x;
@@ -48,9 +71,15 @@ CS_ENTRY(GenVertexCS)
 	float2 uv = GenParams.offset + float2( vertexId / GenParams.gridCountU, vertexId % GenParams.gridCountU) * GenParams.delata;
 	uint vertexIndex = vertexId * GenParams.vertexSize + GenParams.posOffset;
 
+#if FUNC_TYPE == TYPE_SURFACE_XY
 	VertexOutput[vertexIndex + 0] = uv.x;
 	VertexOutput[vertexIndex + 1] = uv.y;
-	VertexOutput[vertexIndex + 2] = FuncXY(uv.x, uv.y, GenParams.time);
+	VertexOutput[vertexIndex + 2] = Func(uv.x, uv.y, GenParams.time);
+#elif FUNC_TYPE == TYPE_SURFACE_UV
+	VertexOutput[vertexIndex + 0] = FuncX(uv.x, uv.y, GenParams.time);
+	VertexOutput[vertexIndex + 1] = FuncY(uv.x, uv.y, GenParams.time);
+	VertexOutput[vertexIndex + 2] = FuncZ(uv.x, uv.y, GenParams.time);
+#endif
 }
 
 #endif

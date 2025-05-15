@@ -11,7 +11,6 @@
 
 namespace CB
 {
-
 	class Curve3DFunc : public ShapeFuncBase
 	{
 	public:
@@ -78,8 +77,15 @@ namespace CB
 		bool  bSupportSIMD = false;
 	};
 
+	class RTSurfaceXYFunc : public SurfaceFunc
+	{
+	public:
 
-	class GPUSurfaceXYFunc : public SurfaceFunc
+		virtual void setExpr(std::string const& expr) = 0;
+		virtual std::string const& getExprString() = 0;
+	};
+
+	class GPUSurfaceXYFunc : public RTSurfaceXYFunc
 	{
 	public:
 		GPUSurfaceXYFunc()
@@ -87,9 +93,10 @@ namespace CB
 			bSupportSIMD = false;
 		}
 		virtual ~GPUSurfaceXYFunc() {}
+		int       getFuncType() override { return TYPE_SURFACE_XY; }
+		EEvalType getEvalType() override { return EEvalType::GPU; }
+
 		bool parseExpression(FunctionParser& parser) override;
-		int  getFuncType() override { return TYPE_SURFACE_XY; }
-		virtual EEvalType getEvalType() { return EEvalType::GPU; }
 		bool isParsed() override
 		{
 			return mShader.isVaild();
@@ -102,6 +109,7 @@ namespace CB
 		}
 		std::string const& getExprString() { return mExpr; }
 		GPUSurfaceXYFunc* clone() override;
+
 	private:
 
 		friend class ShapeMeshBuilder;
@@ -109,16 +117,14 @@ namespace CB
 		Render::ShaderProgram mShader;
 	};
 
-	class SurfaceXYFunc : public SurfaceFunc
+	class SurfaceXYFunc : public RTSurfaceXYFunc
 	{
 	public:
-		SurfaceXYFunc():SurfaceFunc() 
+		SurfaceXYFunc()
 		{
 			bSupportSIMD = ExecutableCode::IsSupportSIMD;
-			//bSupportSIMD = false;
 		}
 		virtual ~SurfaceXYFunc() {}
-
 		int  getFuncType() override { return TYPE_SURFACE_XY; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override { return mExpr.isParsed(); }
@@ -140,10 +146,46 @@ namespace CB
 		Expression   mExpr;
 	};
 
+	class GPUSurfaceUVFunc : public SurfaceFunc
+	{
+	public:
+		GPUSurfaceUVFunc()
+		{
+			bSupportSIMD = false;
+		}
+
+		int  getFuncType() override { return TYPE_SURFACE_UV; }
+		EEvalType getEvalType() override { return EEvalType::GPU; }
+
+		bool parseExpression(FunctionParser& parser) override;
+		bool isParsed() override { return mShader.isVaild(); }
+		void setExpr(int axis, std::string const& expr)
+		{
+			assert(axis >= 0 && axis < 3);
+			mAixsExpr[axis] = expr;
+			mShader.releaseRHI();
+		}
+		std::string const& getExprString(int axis)
+		{
+			assert(axis >= 0 && axis < 3);
+			return mAixsExpr[axis];
+		}
+		GPUSurfaceUVFunc* clone() override;
+
+	private:
+
+		friend class ShapeMeshBuilder;
+		std::string   mAixsExpr[3];
+		Render::ShaderProgram mShader;
+	};
+
 	class SurfaceUVFunc : public SurfaceFunc
 	{
 	public:
-		SurfaceUVFunc() :SurfaceFunc() {}
+		SurfaceUVFunc() :SurfaceFunc() 
+		{
+			bSupportSIMD = ExecutableCode::IsSupportSIMD;
+		}
 
 		int  getFuncType() override { return TYPE_SURFACE_UV; }
 		bool parseExpression(FunctionParser& parser) override;
@@ -184,7 +226,9 @@ namespace CB
 	private:
 		FuncType2   mAixsExpr[3];
 	};
-	class SFImplicitFun : public SurfaceFunc
+
+
+	class SFImplicitFunc : public SurfaceFunc
 	{
 	private:
 		Expression mExpr;

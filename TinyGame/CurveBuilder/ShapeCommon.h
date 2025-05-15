@@ -56,6 +56,13 @@ namespace CB
 		float getIncrement() const { return (range.Max - range.Min) / numData; }
 	};
 
+	enum class EEvalType
+	{
+		CPU,
+		GPU,
+		Native,
+	};
+
 
 	class ShapeFuncBase
 	{
@@ -64,7 +71,7 @@ namespace CB
 		virtual bool   parseExpression(FunctionParser& parser) = 0;
 		virtual bool   isParsed() = 0;
 		virtual int    getFuncType() = 0;
-		virtual bool   isNative(){ return false; }
+		virtual EEvalType getEvalType(){ return EEvalType::CPU; }
 
 		bool    isDynamic() { return mbDynamic; }
 		virtual ShapeFuncBase* clone() = 0;

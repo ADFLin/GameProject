@@ -304,6 +304,62 @@ namespace Render
 		return true;
 	}
 
+	void MeshUtility::BuildVertexSharedTriangleInfo(uint32 const* triIndices, int numTirangle, int numVertices, TArray<SharedTriangleInfo>& outInfos, TArray<uint32>& outTriangles)
+	{
+		struct Pair
+		{
+			uint32 vertexId;
+			uint32 triangleId;
+		};
+		TArray<Pair, FixedSizeAllocator> pairs;
+		pairs.reserve( 3 * numTirangle);
+
+		uint32 const* pTri = triIndices;
+		for (uint32 i = 0; i < numTirangle; ++i)
+		{
+			pairs.push_back({ pTri[0] , i });
+			pairs.push_back({ pTri[1] , i });
+			pairs.push_back({ pTri[2] , i });
+
+			pTri += 3;
+		}
+
+		std::sort(pairs.begin(), pairs.end(), [](Pair const& a, Pair const& b)
+		{
+			if (a.vertexId != b.vertexId)
+				return a.vertexId < b.vertexId;
+			return a.triangleId < b.triangleId;
+		});
+
+		uint32 curVertexId = 0;
+		uint32 count = 0;
+		uint32 offset = 0;
+		for (auto const& pair : pairs)
+		{
+			if (curVertexId != pair.vertexId)
+			{
+				outInfos.push_back({ (int)offset , (int)count });
+				for (uint32 vertexId = curVertexId + 1; vertexId < pair.vertexId; ++vertexId)
+				{
+					outInfos.push_back({ 0 , 0 });
+				}
+
+				curVertexId = pair.vertexId;
+				count = 0;
+				offset = outTriangles.size();
+			}
+
+			outTriangles.push_back(pair.triangleId);
+			++count;
+		}
+
+		outInfos.push_back({ (int)offset , (int)count });
+		for (uint32 vertexId = curVertexId + 1; vertexId < numVertices; ++vertexId)
+		{
+			outInfos.push_back({ 0 , 0 });
+		}
+	}
+
 	void MeshUtility::BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, TArray<int>& outResult)
 	{
 		class MyRenderBuffer : public nv::RenderBuffer

@@ -5,6 +5,7 @@
 #include "ShapeCommon.h"
 #include "Expression.h"
 #include "Math/SIMD.h"
+#include "RHI/ShaderProgram.h"
 
 #define USE_VALUE_INPUT 1
 
@@ -53,7 +54,14 @@ namespace CB
 			setDynamic(true);
 			mUsedInputMask = BIT(0) | BIT(1);
 		}
-		virtual bool isNative() { return true; }
+		virtual EEvalType getEvalType() { return EEvalType::Native; }
+
+		template< typename TFunc >
+		void setFunc(TFunc funcPtr)
+		{
+			mPtr = funcPtr;
+			bSupportSIMD = std::is_same_v< Meta::FuncTraits<TFunc>::ResultType, FloatVector>;
+		}
 		int  getFuncType() override { return TYPE_SURFACE_XY; }
 		void evalExpr(Vector3& out, float x, float y)
 		{
@@ -68,6 +76,37 @@ namespace CB
 		NativeSurfaceXYFunc* clone() override;
 		void* mPtr;
 		bool  bSupportSIMD = false;
+	};
+
+
+	class GPUSurfaceXYFunc : public SurfaceFunc
+	{
+	public:
+		GPUSurfaceXYFunc()
+		{
+			bSupportSIMD = false;
+		}
+		virtual ~GPUSurfaceXYFunc() {}
+		bool parseExpression(FunctionParser& parser) override;
+		int  getFuncType() override { return TYPE_SURFACE_XY; }
+		virtual EEvalType getEvalType() { return EEvalType::GPU; }
+		bool isParsed() override
+		{
+			return mShader.isVaild();
+		}
+
+		void setExpr(std::string const& expr) 
+		{
+			mExpr = expr;
+			mShader.releaseRHI();
+		}
+		std::string const& getExprString() { return mExpr; }
+		GPUSurfaceXYFunc* clone() override;
+	private:
+
+		friend class ShapeMeshBuilder;
+		std::string  mExpr;
+		Render::ShaderProgram mShader;
 	};
 
 	class SurfaceXYFunc : public SurfaceFunc

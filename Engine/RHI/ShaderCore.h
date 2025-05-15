@@ -327,16 +327,16 @@ namespace Render
 	};
 
 #define DECLARE_UNIFORM_BUFFER_STRUCT( NAME)\
-	static StructuredBufferInfo& GetStructInfo()\
+	static Render::StructuredBufferInfo& GetStructInfo()\
 	{\
-		static StructuredBufferInfo sMyStruct( #NAME , nullptr );\
+		static Render::StructuredBufferInfo sMyStruct( #NAME , nullptr );\
 		return sMyStruct;\
 	}
 
 #define DECLARE_BUFFER_STRUCT( VAR )\
-	static StructuredBufferInfo& GetStructInfo()\
+	static Render::StructuredBufferInfo& GetStructInfo()\
 	{\
-		static StructuredBufferInfo sMyStruct( #VAR"Block" , #VAR );\
+		static Render::StructuredBufferInfo sMyStruct( #VAR"Block" , #VAR );\
 		return sMyStruct;\
 	}
 

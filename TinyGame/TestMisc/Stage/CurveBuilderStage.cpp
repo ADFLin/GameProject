@@ -24,24 +24,26 @@
 #include <memory>
 
 
+#define STR_INNER(A) #A
+#define STR(A) STR_INNER(A)
 
 
 namespace CB
 {
 	using namespace Render;
 
+	#define TEST_EXPR sin(sqrt(x*x+y*y) - 0.1*t) + cos(sqrt(x*x+y*y) + 0.3*t)
 	static RealType GTime;
-	char const* TestExpr = "sin(sqrt(x*x+y*y) - 0.1*t)";
+	char const* TestExpr = STR(TEST_EXPR);
 
 #define t GTime
 	RealType MyFunc(RealType x, RealType y)
 	{
-		return sin(sqrt(x*x + y*y) - 0.1*t) + cos(sqrt(x*x + y*y) + 0.3*t);
-		//return sin(sqrt(x*x + y*y) - 0.1*GTime);
+		return TEST_EXPR;
 	}
 	FloatVector MyFunc2(FloatVector x, FloatVector y)
 	{
-		return sin(sqrt(x*x + y*y) - 0.1*t) + cos(sqrt(x*x + y*y) + 0.3*t);
+		return TEST_EXPR;
 	}
 #undef t
 
@@ -98,6 +100,7 @@ namespace CB
 			mCamera.setViewDir(Vector3(-1, -1, -1), Vector3(0, 0, 1));
 
 			mMeshBuilder = std::make_unique<ShapeMeshBuilder>();
+			mMeshBuilder->initializeRHI();
 
 			::Global::GUI().cleanupWidget();
 
@@ -105,8 +108,8 @@ namespace CB
 				Surface3D* surface;
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 	
-				surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
-				//surface = createSurfaceXY("sin(sqrt(x*x+y*y) - 0.1*t) + cos(sqrt(x*x+y*y) + 0.3*t)", Color4f(1, 0.6, 0.4, 0.85));
+				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
+				surface = createSurfaceXY(TestExpr, Color4f(1, 0.6, 0.4, 1.0), true);
 				//surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("sqrt(x*x + y*y)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("(5 - x)*sin(t)", Color4f(1, 0.6, 0.4, 0.3));
@@ -114,7 +117,7 @@ namespace CB
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 				mSurface = surface;
 
-				mTextCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
+				mTextCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 300, nullptr);
 				updateUI();
 
 				::Global::GUI().addWidget(mTextCtrl);
@@ -131,12 +134,12 @@ namespace CB
 		void updateUI()
 		{
 
-			if (mSurface->getFunction()->isNative())
+			if (mSurface->getFunction()->getEvalType() == EEvalType::Native)
 			{
 				mTextCtrl->setValue("Native Func");
 				mTextCtrl->onEvent = nullptr;
 			}
-			else
+			else if(mSurface->getFunction()->getEvalType() == EEvalType::CPU)
 			{
 				mTextCtrl->setValue(static_cast<SurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
 				mTextCtrl->onEvent = [this](int event, GWidget* widget)
@@ -150,46 +153,51 @@ namespace CB
 					return false;
 				};
 			}
+			else if (mSurface->getFunction()->getEvalType() == EEvalType::GPU)
+			{
+				mTextCtrl->setValue(static_cast<GPUSurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
+				mTextCtrl->onEvent = [this](int event, GWidget* widget)
+				{
+					if (event == EVT_TEXTCTRL_COMMITTED)
+					{
+						GPUSurfaceXYFunc* func = (GPUSurfaceXYFunc*)mSurface->getFunction();
+						func->setExpr(widget->cast<GTextCtrl>()->getValue());
+						mSurface->addUpdateBits(RUF_FUNCTION);
+					}
+					return false;
+				};
+			}
 
 		}
 
 		template< typename TFunc >
 		Surface3D* createSurfaceXY(TFunc funcPtr, Color4f const& color)
 		{
-			Surface3D* surface = new Surface3D;
 			NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
-			func->mPtr = funcPtr;
-			func->bSupportSIMD = std::is_same_v< Meta::FuncTraits<TFunc>::ResultType, FloatVector>;
-
-			surface->setFunction(func);
-
-			double Max = 10, Min = -10;
-			surface->setRangeU(Range(Min, Max));
-			surface->setRangeV(Range(Min, Max));
-
-#if _DEBUG && 0
-			int NumX = 20, NumY = 20;
-#else
-			int NumX = 300, NumY = 300;
-#endif
-
-			surface->setDataSampleNum(NumX, NumY);
-			surface->setColor(color);
-			surface->visible(true);
-			surface->addUpdateBits(RUF_ALL_UPDATE_BIT);
-			mSurfaceList.push_back(surface);
-
-			return surface;
+			func->setFunc(funcPtr);
+			return createSurface(func, color);
 		}
-		Surface3D* createSurfaceXY(char const* expr , Color4f const& color )
+
+		Surface3D* createSurfaceXY(char const* expr, Color4f const& color, bool bGPU = false)
+		{
+			if (bGPU)
+			{
+				GPUSurfaceXYFunc* func = new GPUSurfaceXYFunc;
+				func->setExpr(expr);
+				return createSurface(func, color);
+			}
+			else
+			{
+				SurfaceXYFunc* func = new SurfaceXYFunc;
+				func->setExpr(expr);
+				return createSurface(func, color);
+			}
+		}
+
+		Surface3D* createSurface(SurfaceFunc* func, Color4f const& color)
 		{
 			Surface3D* surface = new Surface3D;
-			SurfaceXYFunc* func = new SurfaceXYFunc;
-			func->setExpr(expr);
-
 			surface->setFunction(func);
-
-
 			double Max = 10, Min = -10;
 			surface->setRangeU(Range(Min, Max));
 			surface->setRangeV(Range(Min, Max));
@@ -199,7 +207,6 @@ namespace CB
 #else
 			int NumX = 300, NumY = 300;
 #endif
-
 			surface->setDataSampleNum(NumX, NumY);
 			surface->setColor(color);
 			surface->visible(true);
@@ -239,6 +246,8 @@ namespace CB
 #else
 				for (ShapeBase* current : mSurfaceList)
 				{
+					if (current->getFunction()->getEvalType() == EEvalType::GPU)
+						continue;
 					current->update(*mMeshBuilder);
 				}
 #endif
@@ -248,6 +257,15 @@ namespace CB
 		void onRender(float dFrame) override
 		{
 			PROFILE_ENTRY("Stage.Render");
+			
+			for (ShapeBase* current : mSurfaceList)
+			{
+				if (current->getFunction()->getEvalType() != EEvalType::GPU)
+					continue;
+				current->update(*mMeshBuilder);
+			}
+
+			
 			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -326,20 +344,26 @@ namespace CB
 				case EKeyCode::Subtract: modifyParamIncrement(2); break;
 				case EKeyCode::Q:
 					{
-						if (mSurface->getFunction()->isNative())
+						switch (mSurface->getFunction()->getEvalType())
 						{
-							SurfaceXYFunc* func = new SurfaceXYFunc;
-							func->setExpr(TestExpr);
-							mSurface->setFunction(func);
+						case EEvalType::Native:
+							{
+								SurfaceXYFunc* func = new SurfaceXYFunc;
+								func->setExpr(TestExpr);
+								mSurface->setFunction(func);
+							}
+							break;
+						case EEvalType::CPU:
+							{
+								NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
+								func->setFunc(MyFunc);
+								mSurface->setFunction(func);
+							}
+							break;
+						default:
+							break;
 						}
-						else
-						{
-							NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
-							func->mPtr = MyFunc;
-							mSurface->setFunction(func);
-						}
-						updateUI();
-					}
+					} 
 					break;
 				}
 			}

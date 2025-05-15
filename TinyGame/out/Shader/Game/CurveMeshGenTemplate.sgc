@@ -1,0 +1,56 @@
+#include "Common.sgc"
+
+struct GenParamsData
+{
+	float2 delata;
+	float2 offset;
+	uint   gridCountU;
+	uint   vertexCount;
+	uint   vertexSize;
+	uint   posOffset;
+	float  time;
+	float3 dummy;
+};
+
+#if SHADER_COMPILING
+layout(std140) cbuffer GenParamsDataBlock
+{
+	GenParamsData GenParams;
+};
+#else
+uniform GenParamsData GenParams;
+#endif
+
+float FuncXY(float x, float y, float t)
+{
+	return %s;
+}
+
+#if COMPUTE_SHADER
+
+#if COMPILER_HLSL
+RWBuffer<float> VertexOutput;
+#else
+layout(std430) buffer VertexOutputBuffer
+{
+	float VertexOutput[];
+};
+#endif
+
+CS_NUM_THREADS(8, 1, 1)
+CS_ENTRY(GenVertexCS)
+{
+	uint vertexId = SvDispatchThreadID.x;
+
+	if (vertexId >= GenParams.vertexCount)
+		return;
+
+	float2 uv = GenParams.offset + float2( vertexId / GenParams.gridCountU, vertexId % GenParams.gridCountU) * GenParams.delata;
+	uint vertexIndex = vertexId * GenParams.vertexSize + GenParams.posOffset;
+
+	VertexOutput[vertexIndex + 0] = uv.x;
+	VertexOutput[vertexIndex + 1] = uv.y;
+	VertexOutput[vertexIndex + 2] = FuncXY(uv.x, uv.y, GenParams.time);
+}
+
+#endif

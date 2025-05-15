@@ -59,6 +59,13 @@ namespace Render
 			return diff.x < error && diff.y < error && diff.z < error;
 		}
 
+		struct SharedTriangleInfo
+		{
+			int offset;
+			int count;
+		};
+		static void BuildVertexSharedTriangleInfo(uint32 const* triIndices, int numTirangle, int numVertices, TArray<SharedTriangleInfo>& outInfos, TArray<uint32>& outTriangles);
+
 		static void BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, TArray<int>& outResult);
 		static void BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, TArray<int>& outResult);
 		static void OptimizeVertexCache(void* pIndices, int numIndex, bool bIntType);

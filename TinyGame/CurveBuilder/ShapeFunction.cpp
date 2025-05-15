@@ -24,6 +24,27 @@ namespace CB
 		return new SurfaceXYFunc(*this);
 	}
 
+	bool GPUSurfaceXYFunc::parseExpression(FunctionParser& parser)
+	{
+		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
+		ParseResult parserResult;
+		if (parser.parse(mExpr.c_str(), ARRAY_SIZE(inputLayouts), inputLayouts, parserResult))
+		{
+			mUsedInputMask = 0;
+			mUsedInputMask |= parserResult.isUsingInput("x") ? BIT(0) : 0;
+			mUsedInputMask |= parserResult.isUsingInput("y") ? BIT(1) : 0;
+			setDynamic(parserResult.isUsingVar("t"));
+			return true;
+		}
+
+		return false;
+	}
+
+	CB::GPUSurfaceXYFunc* GPUSurfaceXYFunc::clone()
+	{
+		return new GPUSurfaceXYFunc(*this);
+	}
+
 	void SurfaceUVFunc::evalExpr(Vector3& out, float u, float v)
 	{
 		assert(isParsed());

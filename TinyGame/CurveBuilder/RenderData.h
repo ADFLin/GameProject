@@ -5,6 +5,7 @@
 #include "Base.h"
 #include "Color.h"
 #include "DataStructure/Array.h"
+#include "RHI/RHICommon.h"
 
 namespace CB
 {
@@ -32,8 +33,13 @@ namespace CB
 		void       setCachedDataSize(int size){ mCachedBuffer.resize(size);}
 		uint8*     getCachedData(){ return mCachedBuffer.data(); }
 
+
+		Render::RHIBufferRef vertexBuffer;
+		Render::RHIBufferRef indexBuffer;
+
 	private:
 
+		friend class ShapeMeshBuilder;
 
 		int         mVertexNum;
 		int         mVertexSize;

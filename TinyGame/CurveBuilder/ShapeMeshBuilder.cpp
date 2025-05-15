@@ -8,6 +8,11 @@
 #include "ProfileSystem.h"
 #include "SystemPlatform.h"
 #include "Renderer/MeshUtility.h"
+#include "RHI/RHICommand.h"
+#include "RHI/ShaderManager.h"
+#include "FileSystem.h"
+#include "Misc/Format.h"
+#include "RHI/GpuProfiler.h"
 
 namespace CB
 {
@@ -338,6 +343,12 @@ namespace CB
 
 		CHECK(isSurface(context.func->getFuncType()));
 
+		if (context.func->getEvalType() == EEvalType::GPU)
+		{
+			updateSurfaceDataGPU(context, paramU , paramV);
+			return;
+		}
+
 		RenderData* data = context.data;
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
@@ -463,29 +474,40 @@ namespace CB
 			{
 				SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
 
-				if (context.func->isNative())
+				switch(context.func->getEvalType())
 				{
-					NativeSurfaceUVFunc* func = static_cast<NativeSurfaceUVFunc*>(context.func);
-					updatePositionData_SurfaceUV(func, paramU, paramV, *data);
-				}
-				else
-				{
-					SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
-					updatePositionData_SurfaceUV(func, paramU, paramV, *data);
+				case EEvalType::Native:
+					{
+						NativeSurfaceUVFunc* func = static_cast<NativeSurfaceUVFunc*>(context.func);
+						updatePositionData_SurfaceUV(func, paramU, paramV, *data);
+					}
+					break;
+				case EEvalType::CPU:
+					{
+						SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
+						updatePositionData_SurfaceUV(func, paramU, paramV, *data);
+					}
+					break;
 				}
 			}
 			else if( context.func->getFuncType() == TYPE_SURFACE_XY )
 			{
 				PROFILE_ENTRY("Update Position", "CB");
-				if (context.func->isNative())
+
+				switch(context.func->getEvalType())
 				{
-					NativeSurfaceXYFunc* func = static_cast<NativeSurfaceXYFunc*>(context.func);
-					updatePositionData_SurfaceXY(func, paramU, paramV, *data);
-				}
-				else
-				{
-					SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
-					updatePositionData_SurfaceXY(func, paramU, paramV, *data);
+				case EEvalType::Native:
+					{
+						NativeSurfaceXYFunc* func = static_cast<NativeSurfaceXYFunc*>(context.func);
+						updatePositionData_SurfaceXY(func, paramU, paramV, *data);
+					}
+					break;
+				case EEvalType::CPU:
+					{
+						SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
+						updatePositionData_SurfaceXY(func, paramU, paramV, *data);
+					}
+					break;
 				}
 			}
 
@@ -520,15 +542,177 @@ namespace CB
 				colorData += data->getVertexSize();
 			}
 		}
+
+	}
+
+	void ShapeMeshBuilder::initializeRHI()
+	{
+		using namespace Render;
+		mGenParamBuffer.initializeResource(1, EStructuredBufferType::Const);
+	}
+
+	void ShapeMeshBuilder::releaseRHI()
+	{
+
+	}
+
+
+	void ShapeMeshBuilder::updateSurfaceDataGPU(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV)
+	{
+		using namespace Render;
+
+		PROFILE_ENTRY("UpdateSurfaceData", "CB");
+
+		CHECK(isSurface(context.func->getFuncType()));
+
+		RenderData* data = context.data;
+		unsigned flags = context.flags;
+		int vertexNum = paramU.numData * paramV.numData;
+
+		bool bUpdateIndices = false;
+		if (flags & RUF_DATA_SAMPLE)
+		{
+			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
+
+			if (!data->vertexBuffer.isValid() || data->vertexBuffer->getNumElements() != vertexNum)
+			{
+				data->mbNormalOwned = false;
+				data->vertexBuffer = RHICreateVertexBuffer(7 * sizeof(float), vertexNum, BCF_DefalutValue | BCF_CreateUAV);
+			}
+
+			flags |= (RUF_GEOM | RUF_COLOR);
+			bUpdateIndices = true;
+		}
+
+		if (bUpdateIndices)
+		{
+			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
+			TArray< uint32 > indices;
+			indices.resize(indexNum);
+
+			uint32*  pIndexData = indices.data();
+			int nu = paramU.numData;
+			int nv = paramV.numData;
+
+			uint32*  pIndex = pIndexData;
+			for (int i = 0; i < nu - 1; ++i)
+			{
+				for (int j = 0; j < nv - 1; ++j)
+				{
+					int index = nv * i + j;
+
+					pIndex[0] = index;
+					pIndex[1] = index + 1;
+					pIndex[2] = index + nv + 1;
+
+					pIndex[3] = index;
+					pIndex[4] = index + nv + 1;
+					pIndex[5] = index + nv;
+
+					pIndex += 6;
+				}
+			}
+			data->indexBuffer = RHICreateIndexBuffer(indexNum, true, BCF_DefalutValue, indices.data());
+
+
+			TArray<MeshUtility::SharedTriangleInfo> sharedTriangleInfos;
+			TArray<uint32> triangleIds;
+			MeshUtility::BuildVertexSharedTriangleInfo(indices.data(), indexNum / 3 , vertexNum, sharedTriangleInfos, triangleIds);
+
+			int i = 1;
+		}
+
+		if (flags & RUF_GEOM)
+		{
+			if (context.func->getFuncType() == TYPE_SURFACE_UV)
+			{
+			}
+			else if (context.func->getFuncType() == TYPE_SURFACE_XY)
+			{
+				GPU_PROFILE("Update Position");
+				PROFILE_ENTRY("Update Position", "CB");
+				auto myFunc = static_cast<GPUSurfaceXYFunc*>(context.func);
+				auto& commandList = RHICommandList::GetImmediateList();
+				RHISetShaderProgram(commandList, myFunc->mShader.getRHI());
+
+				GenParamsData params;
+
+				params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
+				params.gridCountU = paramU.getNumData();
+				params.vertexCount = data->vertexBuffer->getNumElements();
+				params.vertexSize = data->vertexBuffer->getElementSize() / sizeof(float);
+				params.offset = Vector2(paramU.getRangeMin(), paramV.getRangeMin());
+				params.posOffset = 0;
+				params.time = mVarTime;
+				mGenParamBuffer.updateBuffer(params);
+				SetStructuredUniformBuffer(commandList, myFunc->mShader, mGenParamBuffer);
+				myFunc->mShader.setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer) , *data->vertexBuffer);
+				RHIDispatchCompute(commandList, Math::AlignUp( vertexNum , 8 ) , 1, 1);
+			}
+
+			if (data->getNormalOffset() != INDEX_NONE)
+			{
+				using namespace Render;
+				PROFILE_ENTRY("Update Normal", "CB");
+			}
+		}
+
+		if (flags & RUF_COLOR)
+		{
+
+		}
 	}
 
 	bool ShapeMeshBuilder::parseFunction(ShapeFuncBase& func)
 	{
+		if (func.getEvalType() == EEvalType::GPU)
+		{
+			using namespace Render;
+			{
 #if USE_PARALLEL_UPDATE
-		Mutex::Locker locker(mParserLock);
+				Mutex::Locker locker(mParserLock);
 #endif
-		if( !func.parseExpression(mParser) )
-			return false;
+				if (!func.parseExpression(mParser))
+					return false;
+			}
+
+
+			if (func.getFuncType() == TYPE_SURFACE_XY)
+			{
+				auto& myFunc = static_cast<GPUSurfaceXYFunc&>(func);
+
+				std::string code;
+				std::vector<uint8> codeTemplate;
+				if (!FFileUtility::LoadToBuffer("Shader/Game/CurveMeshGenTemplate.sgc", codeTemplate, true))
+				{
+					return false;
+				}
+
+				Text::Format((char const*)codeTemplate.data(), { StringView(myFunc.mExpr) }, code);
+
+				ShaderCompileOption option;
+
+				option.addCode((char const*)code.data());
+				ShaderEntryInfo entries[] =
+				{
+					{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
+				};
+				if (!ShaderManager::Get().loadFile(myFunc.mShader, nullptr, entries, option))
+				{
+					return false;
+				}
+
+			}
+			return true;
+		}
+
+		{
+#if USE_PARALLEL_UPDATE
+			Mutex::Locker locker(mParserLock);
+#endif
+			if (!func.parseExpression(mParser))
+				return false;
+		}
 
 		return true;
 	}

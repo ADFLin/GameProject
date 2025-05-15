@@ -24,6 +24,7 @@ namespace CB
 		SymbolTable& getSymbolDefine() { return mSymbolDefine; }
 		bool         checkValid(char const* expr);
 		bool         parse(Expression& expr , int numInput = 0 , ValueLayout inputLayouts[] = nullptr);
+		bool         parse(char const* exprStr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult);
 		bool		 isUsingVar(char const* varName) const
 		{
 			return mCompiler.isUsingVar(varName);

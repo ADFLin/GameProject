@@ -376,6 +376,14 @@ namespace CB
 		RenderData* data = surface.getRenderData();
 		assert(data);
 
+		if (surface.getFunction()->getEvalType() == EEvalType::GPU)
+		{
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *data->vertexBuffer, *data->indexBuffer, data->indexBuffer->getNumElements());
+			return;
+		}
+
+
+
 		uint8* vertexData = data->getVertexData();
 		assert(vertexData);
 

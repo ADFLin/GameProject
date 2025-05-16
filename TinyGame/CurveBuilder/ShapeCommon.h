@@ -52,8 +52,15 @@ namespace CB
 		int   getNumData() const { return numData; }
 		float getRangeMax() const { return range.Max; }
 		float getRangeMin() const { return range.Min; }
-		void  setIncrement(float increment) { numData = int((range.Max - range.Min) / increment); }
-		float getIncrement() const { return (range.Max - range.Min) / numData; }
+		void  setIncrement(float increment) 
+		{ 
+			numData = 1;
+			if (increment > 0.0) 
+			{
+				numData += Math::Floor((range.Max - range.Min) / increment);
+			}
+		}
+		float getIncrement() const { return (numData > 1) ? (range.Max - range.Min) / (numData - 1 ) : 0.0f; }
 	};
 
 	enum class EEvalType

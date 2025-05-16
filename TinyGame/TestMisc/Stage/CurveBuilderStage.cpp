@@ -32,7 +32,7 @@ namespace CB
 {
 	using namespace Render;
 
-	#define TEST_EXPR sin(sqrt(x*x+y*y) - 0.1*t) + cos(sqrt(x*x+y*y) + 0.3*t)
+	#define TEST_EXPR sin(sqrt(x*x+y*y) - 0.01*t) + cos(sqrt(x*x+y*y) + 0.03*t)
 	static RealType GTime;
 	char const* TestExpr = STR(TEST_EXPR);
 
@@ -109,13 +109,15 @@ namespace CB
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 	
 				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
-				surface = createSurfaceXY(TestExpr, Color4f(1, 0.6, 0.4, 1.0), true);
+				surface = createSurfaceXY(TestExpr, Color4f(1, 0.6, 0.4, 0.9), true);
 				//surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("sqrt(x*x + y*y)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("(5 - x)*sin(t)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("sin(sqrt(x*x+y*y))", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 				mSurface = surface;
+
+				createSphareSurface(Color4f(0.2, 0.6, 0.1, 0.3), true);
 
 				mTextCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 300, nullptr);
 				updateUI();
@@ -161,6 +163,51 @@ namespace CB
 			NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
 			func->setFunc(funcPtr);
 			return createSurface(func, color);
+		}
+
+
+		Surface3D* createSphareSurface(Color4f const& color, bool bGPU = false)
+		{
+			char const* exprList[] = 
+			{
+				"10 * cos(u) * sin(v)",
+				"10 * sin(u) * sin(v)",
+				"10 * cos(v)",
+			};
+
+			Surface3D* surface = new Surface3D;
+
+			double Max = 10, Min = -10;
+			surface->setRangeU(Range(0, 2 * Math::PI));
+			surface->setRangeV(Range(-Math::PI, Math::PI));
+
+			if (bGPU)
+			{
+				GPUSurfaceUVFunc* func = new GPUSurfaceUVFunc;
+				for( int i = 0 ; i < 3; ++i)
+					func->setExpr(i , exprList[i]);
+				surface->setFunction(func);
+			}
+			else
+			{
+				SurfaceUVFunc* func = new SurfaceUVFunc;
+				for (int i = 0; i < 3; ++i)
+					func->setExpr(i, exprList[i]);
+				surface->setFunction(func);
+			}
+
+#if _DEBUG && 0
+			int NumX = 20, NumY = 20;
+#else
+			int NumX = 300, NumY = 300;
+#endif
+			surface->setDataSampleNum(NumX, NumY);
+			surface->setColor(color);
+			surface->visible(true);
+			surface->addUpdateBits(RUF_ALL_UPDATE_BIT);
+			mSurfaceList.push_back(surface);
+
+			return surface;
 		}
 
 		Surface3D* createSurfaceXY(char const* expr, Color4f const& color, bool bGPU = false)

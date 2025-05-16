@@ -374,19 +374,25 @@ namespace CB
 	void CurveRenderer::drawMesh(Surface3D& surface)
 	{
 		RenderData* data = surface.getRenderData();
-		assert(data);
+		CHECK(data);
 
-		if (surface.getFunction()->getEvalType() == EEvalType::GPU)
+		if (data->resource)
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *data->vertexBuffer, *data->indexBuffer, data->indexBuffer->getNumElements());
+			auto& resource = *data->resource;
+			if (data->getNormalOffset() != INDEX_NONE)
+			{
+				TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *resource.vertexBuffer, *resource.indexBuffer, resource.indexBuffer->getNumElements());
+			}
+			else
+			{
+				TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *resource.vertexBuffer, *resource.indexBuffer, resource.indexBuffer->getNumElements());
+			}
+	
 			return;
 		}
 
-
-
 		uint8* vertexData = data->getVertexData();
-		assert(vertexData);
-
+		CHECK(vertexData);
 		int const stride = data->getVertexSize();
 		if( data->getNormalOffset() != INDEX_NONE )
 		{

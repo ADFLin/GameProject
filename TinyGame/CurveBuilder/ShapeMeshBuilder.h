@@ -34,22 +34,30 @@ namespace CB
 
 	};
 
-
-
-	struct GenParamsData
+	struct VertexGenParamsData
 	{
-		DECLARE_UNIFORM_BUFFER_STRUCT(GenParamsDataBlock);
+		DECLARE_UNIFORM_BUFFER_STRUCT(VertexGenParamsDataBlock);
 
 		Vector2 delata;
 		Vector2 offset;
-		uint    gridCountU;
-		uint    vertexCount;
-		uint    vertexSize;
-		uint    posOffset;
+		uint32  gridCountU;
+		uint32  vertexCount;
+		uint32  vertexSize;
+		uint32  posOffset;
+		Color4f color;
 		float   time;
 		Vector3 dummy;
+		
 	};
 
+	struct NormalGenParamsData
+	{
+		DECLARE_UNIFORM_BUFFER_STRUCT(NormalGenParamsDataBlock);
+		uint32   totalCount;
+		uint32   vertexSize;
+		uint32   posOffset;
+		uint32   normalOffset;
+	};
 
 	class ShapeMeshBuilder : public IShapeMeshBuilder
 	{
@@ -58,9 +66,6 @@ namespace CB
 
 		void  updateCurveData(ShapeUpdateContext const& context, SampleParam const& paramS) override;
 		void  updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV) override;
-
-
-
 
 		bool  parseFunction(ShapeFuncBase& func) override;
 		void  setTime(float t) { mVarTime = t; }
@@ -80,9 +85,10 @@ namespace CB
 		void updatePositionData_SurfaceXY(TSurfaceXYFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data);
 
 
-		Render::TStructuredBuffer<GenParamsData> mGenParamBuffer;
+		Render::TStructuredBuffer<VertexGenParamsData> mVertexGenParamBuffer;
+		Render::TStructuredBuffer<NormalGenParamsData> mNoramlGenParamBuffer;
 
-
+		class GenNormalCS* mShaderGenNormal;
 
 		RealType        mVarTime;
 		ColorMap        mColorMap;

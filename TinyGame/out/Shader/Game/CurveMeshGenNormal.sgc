@@ -1,0 +1,123 @@
+#include "Common.sgc"
+
+
+#ifndef USE_SHARE_TRIANGLE_INFO
+#define USE_SHARE_TRIANGLE_INFO 1
+#endif
+
+#if COMPUTE_SHADER
+
+
+struct NormalGenParamsData
+{
+	uint   totalCount;
+	uint   vertexSize;
+	uint   posOffset;
+	uint   normalOffset;
+};
+
+
+#if SHADER_COMPILING
+layout(std140) cbuffer NormalGenParamsDataBlock
+{
+	NormalGenParamsData GenParams;
+};
+#else
+uniform NormalGenParamsData GenParams;
+#endif
+
+#if COMPILER_HLSL
+RWBuffer<float> VertexOutput;
+Buffer<uint>    TriangleIndices;
+#else
+layout(std430) buffer VertexOutputBuffer
+{
+	float VertexOutput[];
+};
+
+layout(std430) readonly buffer TriangleIndicesBuffer
+{
+	uint TriangleIndices[];
+};
+
+#if USE_SHARE_TRIANGLE_INFO
+layout(std430) readonly buffer ShareTriangleInfoBuffer
+{
+	uint ShareTriangleInfos[];
+};
+layout(std430) readonly buffer TriangleIdListBuffer
+{
+	uint TriangleIdList[];
+};
+#endif
+#endif
+
+
+float3 ReadPosition(uint vertexId)
+{
+	uint posIndex = vertexId * GenParams.vertexSize + GenParams.posOffset;
+	return float3(VertexOutput[posIndex + 0], VertexOutput[posIndex + 1], VertexOutput[posIndex + 2]);
+}
+
+void WriteNormal(uint vertexId, float3 N)
+{
+	uint normalIndex = vertexId * GenParams.vertexSize + GenParams.normalOffset;
+#if USE_SHARE_TRIANGLE_INFO
+	VertexOutput[normalIndex + 0] = N.x;
+	VertexOutput[normalIndex + 1] = N.y;
+	VertexOutput[normalIndex + 2] = N.z;
+#else
+	VertexOutput[normalIndex + 0] = VertexOutput[normalIndex + 0] + N.x;
+	VertexOutput[normalIndex + 1] = VertexOutput[normalIndex + 1] + N.y;
+	VertexOutput[normalIndex + 2] = VertexOutput[normalIndex + 2] + N.z;
+#endif
+}
+
+
+float3 CalcNormal(uint triangleId)
+{
+	uint v0 = TriangleIndices[3 * triangleId + 0];
+	uint v1 = TriangleIndices[3 * triangleId + 1];
+	uint v2 = TriangleIndices[3 * triangleId + 2];
+
+	float3 p0 = ReadPosition(v0);
+	float3 p1 = ReadPosition(v1);
+	float3 p2 = ReadPosition(v2);
+
+	return normalize(cross(p1 - p0, p2 - p0));
+}
+
+
+CS_NUM_THREADS(16, 1, 1)
+CS_ENTRY(MainCS)
+{
+#if USE_SHARE_TRIANGLE_INFO
+
+	uint vertexIndex = SvDispatchThreadID.x;
+	if (vertexIndex >= GenParams.totalCount)
+		return;
+	uint triIndexOffset = ShareTriangleInfos[2 * vertexIndex + 0];
+	uint numTri = ShareTriangleInfos[2 * vertexIndex + 1];
+
+	float3 N = float3(0, 0, 0);
+	for (uint i = 0; i < numTri; ++i)
+	{
+		uint triangleId = TriangleIdList[triIndexOffset + i];
+		N += CalcNormal(triangleId);
+	}
+
+	WriteNormal(vertexIndex, N);
+#else
+	uint triangleId = SvDispatchThreadID.x;
+	if (triangleId >= GenParams.totalCount)
+		return;
+
+	float3 N = CalcNormal(triangleId);
+
+	WriteNormal(v0, N);
+	WriteNormal(v1, N);
+	WriteNormal(v2, N);
+#endif
+}
+
+#endif

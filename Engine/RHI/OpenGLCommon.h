@@ -432,7 +432,7 @@ namespace Render
 
 		void updateData(uint32 start, uint32 numElements, void* data)
 		{
-			CHECK((start + numElements) * mDesc.elementSize < getSize());
+			CHECK((start + numElements) * mDesc.elementSize <= getSize());
 			glNamedBufferSubData(getHandle(), start * mDesc.elementSize, mDesc.elementSize * numElements, data);
 		}
 	};

@@ -119,6 +119,8 @@ namespace CB
 		}\
 	}
 
+#define REORDER_CACHE 0
+
 	template< typename TSurfaceUVFunc >
 	void ShapeMeshBuilder::updatePositionData_SurfaceUV(TSurfaceUVFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data)
 	{
@@ -165,15 +167,68 @@ namespace CB
 			break;
 		case BIT(0) | BIT(1):
 			{
-				for( int j = 0; j < paramV.numData; ++j )
+				uint8* pPos = posData;
+				int numData = paramV.numData * paramU.numData;
+				if (func->bSupportSIMD)
 				{
-					float v = paramV.getRangeMin() + j * dv;
-					for( int i = 0; i < paramU.numData; ++i )
+#if REORDER_CACHE
+					float const* pUV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+#else
+					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+#endif
+					int numBlock = numData / FloatVector::Size;
+					for (int i = 0; i < numBlock; ++i)
 					{
-						float u = paramU.getRangeMin() + i * du;		
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * data.getVertexSize());
-						func->evalExpr(*pPos, u, v);
+#if REORDER_CACHE
+						FloatVector u{ pUV , EAligned::Value };
+						FloatVector v{ pUV + FloatVector::Size , EAligned::Value };
+#else
+#if SIMD_USE_AVX
+						FloatVector u{ pUV[0].x, pUV[1].x, pUV[2].x, pUV[3].x, pUV[4].x, pUV[5].x, pUV[6].x, pUV[7].x };
+						FloatVector v{ pUV[0].y, pUV[1].y, pUV[2].y, pUV[3].y, pUV[4].y, pUV[5].y, pUV[6].y, pUV[7].y };
+#else
+						FloatVector u{ pUV[0].x , pUV[1].x, pUV[2].x, pUV[3].x };
+						FloatVector v{ pUV[0].y , pUV[1].y, pUV[2].y, pUV[3].y };
+#endif
+#endif
+
+						FloatVector x;
+						FloatVector y;
+						FloatVector z;
+						if constexpr (!std::is_same_v<TSurfaceUVFunc, NativeSurfaceUVFunc>)
+						{
+							func->evalExpr(u, v, x, y, z);
+						}
+#define SET_POS(INDEX)\
+	((Vector3*)pPos)->setValue(x[INDEX], y[INDEX], z[INDEX]);\
+	pPos += data.getVertexSize();
+
+						SET_POS(0);
+						SET_POS(1);
+						SET_POS(2);
+						SET_POS(3);
+#if SIMD_USE_AVX
+						SET_POS(4);
+						SET_POS(5);
+						SET_POS(6);
+						SET_POS(7);
+#endif
+
+#if REORDER_CACHE
+						pUV += 2 * FloatVector::Size;
+#else
+						pUV += FloatVector::Size;
+#endif
+					}
+				}
+				else
+				{
+					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+					for (int i = 0; i < numData; ++i)
+					{
+						func->evalExpr(*(Vector3*)pPos, pUV->x, pUV->y);
+						pPos += data.getVertexSize();
+						++pUV;
 					}
 				}
 			}
@@ -250,7 +305,6 @@ namespace CB
 			break;
 		case BIT(0) | BIT(1):
 			{
-#define REORDER_CACHE 0
 				uint8* pPos = posData;
 				int numData = paramV.numData * paramU.numData;
 				if (func->bSupportSIMD)
@@ -316,7 +370,6 @@ namespace CB
 					}
 #endif
 				}
-
 			}
 			break;
 		default:
@@ -545,15 +598,39 @@ namespace CB
 
 	}
 
+	using namespace Render;
+
+	class GenNormalCS : public Render::GlobalShader
+	{
+	public:
+		DECLARE_SHADER(GenNormalCS, Global);
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+			option.addDefine(SHADER_PARAM(USE_SHARE_TRIANGLE_INFO), USE_SHARE_TRIANGLE_INFO);
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/CurveMeshGenNormal";
+		}
+	};
+
+	IMPLEMENT_SHADER(GenNormalCS, EShader::Compute, SHADER_ENTRY(MainCS));
+
 	void ShapeMeshBuilder::initializeRHI()
 	{
 		using namespace Render;
-		mGenParamBuffer.initializeResource(1, EStructuredBufferType::Const);
+		mVertexGenParamBuffer.initializeResource(1, EStructuredBufferType::Const);
+		mNoramlGenParamBuffer.initializeResource(1, EStructuredBufferType::Const);
+		mShaderGenNormal = ShaderManager::Get().getGlobalShaderT<GenNormalCS>();
 	}
 
 	void ShapeMeshBuilder::releaseRHI()
 	{
-
+		mVertexGenParamBuffer.releaseResource();
+		mNoramlGenParamBuffer.releaseResource();
+		mShaderGenNormal = nullptr;
 	}
 
 
@@ -561,11 +638,19 @@ namespace CB
 	{
 		using namespace Render;
 
+
 		PROFILE_ENTRY("UpdateSurfaceData", "CB");
 
 		CHECK(isSurface(context.func->getFuncType()));
 
+
 		RenderData* data = context.data;
+		if (data->resource == nullptr)
+		{
+			data->resource = new RenderResource;
+		}
+		auto& resource = *data->resource;
+
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
 
@@ -574,10 +659,10 @@ namespace CB
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 
-			if (!data->vertexBuffer.isValid() || data->vertexBuffer->getNumElements() != vertexNum)
+			if (!resource.vertexBuffer.isValid() || resource.vertexBuffer->getNumElements() != vertexNum)
 			{
-				data->mbNormalOwned = false;
-				data->vertexBuffer = RHICreateVertexBuffer(7 * sizeof(float), vertexNum, BCF_DefalutValue | BCF_CreateUAV);
+				data->mbNormalOwned = true;
+				resource.vertexBuffer = RHICreateVertexBuffer(10 * sizeof(float), vertexNum, BCF_DefalutValue | BCF_CreateUAV);
 			}
 
 			flags |= (RUF_GEOM | RUF_COLOR);
@@ -612,33 +697,21 @@ namespace CB
 					pIndex += 6;
 				}
 			}
-			data->indexBuffer = RHICreateIndexBuffer(indexNum, true, BCF_DefalutValue, indices.data());
+			resource.indexBuffer = RHICreateIndexBuffer(indexNum, true, BCF_DefalutValue | BCF_CreateUAV, indices.data());
 
-
+#if USE_SHARE_TRIANGLE_INFO
 			TArray<MeshUtility::SharedTriangleInfo> sharedTriangleInfos;
 			TArray<uint32> triangleIds;
 			MeshUtility::BuildVertexSharedTriangleInfo(indices.data(), indexNum / 3 , vertexNum, sharedTriangleInfos, triangleIds);
 
-			int i = 1;
+			resource.sharedTriangleInfoBuffer = RHICreateBuffer(sizeof(uint32), 2 * sharedTriangleInfos.size(), BCF_CreateUAV, sharedTriangleInfos.data());
+			resource.triangleIdBuffer = RHICreateBuffer( sizeof(uint32) , triangleIds.size(), BCF_CreateUAV, triangleIds.data() );
+#endif
 		}
 
 		if (flags & RUF_GEOM)
 		{
-			GPU_PROFILE("Update Position");
-			PROFILE_ENTRY("Update Position", "CB");
-
-			GenParamsData params;
-
-			params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
-			params.gridCountU = paramU.getNumData();
-			params.vertexCount = data->vertexBuffer->getNumElements();
-			params.vertexSize = data->vertexBuffer->getElementSize() / sizeof(float);
-			params.offset = Vector2(paramU.getRangeMin(), paramV.getRangeMin());
-			params.posOffset = 0;
-			params.time = mVarTime;
-			mGenParamBuffer.updateBuffer(params);
-
-			ShaderProgram* shader = nullptr;
+			Shader* shader = nullptr;
 			if (context.func->getFuncType() == TYPE_SURFACE_UV)
 			{
 				auto myFunc = static_cast<GPUSurfaceUVFunc*>(context.func);
@@ -652,17 +725,53 @@ namespace CB
 
 			if (shader)
 			{
+				GPU_PROFILE("Update Position");
+				PROFILE_ENTRY("Update Position", "CB");
+
+				VertexGenParamsData params;
+				params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
+				params.gridCountU = paramU.getNumData();
+				params.vertexCount = resource.vertexBuffer->getNumElements();
+				params.vertexSize = resource.vertexBuffer->getElementSize() / sizeof(float);
+				params.offset = Vector2(paramU.getRangeMin(), paramV.getRangeMin());
+				params.posOffset = 0;
+				params.color = context.color;
+				params.time = mVarTime;
+				mVertexGenParamBuffer.updateBuffer(params);
+
 				auto& commandList = RHICommandList::GetImmediateList();
-				RHISetShaderProgram(commandList, shader->getRHI());
-				SetStructuredUniformBuffer(commandList, *shader, mGenParamBuffer);
-				shader->setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer), *data->vertexBuffer);
+				RHISetComputeShader(commandList, shader->getRHI());
+				SetStructuredUniformBuffer(commandList, *shader, mVertexGenParamBuffer);
+				shader->setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer), *resource.vertexBuffer);
 				RHIDispatchCompute(commandList, Math::AlignUp(vertexNum, 16), 1, 1);
 			}
 
 			if (data->getNormalOffset() != INDEX_NONE)
 			{
-				using namespace Render;
+				GPU_PROFILE("Update Normal");
 				PROFILE_ENTRY("Update Normal", "CB");
+
+				NormalGenParamsData params;
+#if USE_SHARE_TRIANGLE_INFO
+				params.totalCount = resource.indexBuffer->getNumElements() / 3;
+#else
+				params.totalCount = vertexNum;
+#endif
+				params.posOffset = 0;
+				params.normalOffset = 7;
+				params.vertexSize = resource.vertexBuffer->getElementSize() / sizeof(float);
+				mNoramlGenParamBuffer.updateBuffer(params);
+
+				auto& commandList = RHICommandList::GetImmediateList();
+				RHISetComputeShader(commandList, mShaderGenNormal->getRHI());
+				SetStructuredUniformBuffer(commandList, *mShaderGenNormal, mNoramlGenParamBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer), *resource.vertexBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(TriangleIndicesBuffer), *resource.indexBuffer);
+#if USE_SHARE_TRIANGLE_INFO
+				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(TriangleIdListBuffer), *resource.triangleIdBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(ShareTriangleInfoBuffer), *resource.sharedTriangleInfoBuffer);
+#endif
+				RHIDispatchCompute(commandList, Math::AlignUp(params.totalCount, 16u), 1, 1);
 			}
 		}
 
@@ -671,6 +780,7 @@ namespace CB
 
 		}
 	}
+
 
 	bool ShapeMeshBuilder::parseFunction(ShapeFuncBase& func)
 	{
@@ -689,40 +799,31 @@ namespace CB
 
 			option.addDefine(SHADER_PARAM(FUNC_TYPE), func.getFuncType());
 
-			std::string code;
-			std::vector<uint8> codeTemplate;
-			ShaderProgram* shader;
-			if (!FFileUtility::LoadToBuffer("Shader/Game/CurveMeshGenTemplate.sgc", codeTemplate, true))
+			ShaderEntryInfo entries[] =
 			{
-				return false;
-			}
-
+				{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
+			};
 			if (func.getFuncType() == TYPE_SURFACE_XY)
 			{
 				auto& myFunc = static_cast<GPUSurfaceXYFunc&>(func);
-				Text::Format((char const*)codeTemplate.data(), { StringView(myFunc.mExpr) }, code);
-				shader = &myFunc.mShader;
+				if (!LoadRuntimeShader(myFunc.mShader, "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries, { StringView(myFunc.mExpr) } , option))
+				{
+					return false;
+				}
 			}
 			else if (func.getFuncType() == TYPE_SURFACE_UV)
 			{
 				auto& myFunc = static_cast<GPUSurfaceUVFunc&>(func);
-				Text::Format((char const*)codeTemplate.data(), { StringView(myFunc.mAixsExpr[0]), StringView(myFunc.mAixsExpr[1]), StringView(myFunc.mAixsExpr[2]) }, code);
-				shader = &myFunc.mShader;
+				if (!LoadRuntimeShader(myFunc.mShader, "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries, { StringView(myFunc.mAixsExpr[0]), StringView(myFunc.mAixsExpr[1]), StringView(myFunc.mAixsExpr[2]) }, option))
+				{
+					return false;
+				}
 			}
 			else
 			{
 				return false;
 			}
 
-			option.addCode((char const*)code.data());
-			ShaderEntryInfo entries[] =
-			{
-				{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
-			};
-			if (!ShaderManager::Get().loadFile(*shader, nullptr, entries, option))
-			{
-				return false;
-			}
 
 			return true;
 		}

@@ -8,7 +8,7 @@
 #define FUNC_TYPE TYPE_SURFACE_XY
 #endif
 
-struct GenParamsData
+struct VertexGenParamsData
 {
 	float2 delata;
 	float2 offset;
@@ -16,17 +16,18 @@ struct GenParamsData
 	uint   vertexCount;
 	uint   vertexSize;
 	uint   posOffset;
+	float4 color;
 	float  time;
 	float3 dummy;
 };
 
 #if SHADER_COMPILING
-layout(std140) cbuffer GenParamsDataBlock
+layout(std140) cbuffer VertexGenParamsDataBlock
 {
-	GenParamsData GenParams;
+	VertexGenParamsData GenParams;
 };
 #else
-uniform GenParamsData GenParams;
+uniform VertexGenParamsData GenParams;
 #endif
 
 #if FUNC_TYPE == TYPE_SURFACE_XY
@@ -80,6 +81,15 @@ CS_ENTRY(GenVertexCS)
 	VertexOutput[vertexIndex + 1] = FuncY(uv.x, uv.y, GenParams.time);
 	VertexOutput[vertexIndex + 2] = FuncZ(uv.x, uv.y, GenParams.time);
 #endif
+	//Color
+	VertexOutput[vertexIndex + 3] = GenParams.color.r;
+	VertexOutput[vertexIndex + 4] = GenParams.color.g;
+	VertexOutput[vertexIndex + 5] = GenParams.color.b;
+	VertexOutput[vertexIndex + 6] = GenParams.color.a;
+	//Reset Normal
+	VertexOutput[vertexIndex + 7] = 0;
+	VertexOutput[vertexIndex + 8] = 0;
+	VertexOutput[vertexIndex + 9] = 0;
 }
 
 #endif

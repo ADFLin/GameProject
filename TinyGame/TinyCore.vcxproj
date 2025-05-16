@@ -209,6 +209,8 @@
     <ClInclude Include="Widget\WidgetUtility.h" />
     <None Include="out\Shader\Game\CurveContour.sgc" />
     <None Include="out\Shader\Game\CurveMesh.sgc" />
+    <None Include="out\Shader\Game\CurveMeshGenNormal.sgc" />
+    <None Include="out\Shader\Game\CurveMeshGenVertexTemplate.sgc" />
     <None Include="out\Shader\Game\MeshNormalVisualize.sgc" />
     <None Include="TinyCore\ColorName.h" />
     <ClInclude Include="TinyCore\DataStreamBuffer.h" />

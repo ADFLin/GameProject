@@ -187,7 +187,9 @@ namespace Render
 	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
+
 	RHI_API bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0);
+	RHI_API void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
 
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
@@ -388,6 +390,7 @@ namespace Render
 		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
 
 		RHI_FUNC(bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth));
+		RHI_FUNC(void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data));
 
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));
@@ -471,22 +474,32 @@ namespace Render
 		RHIBuffer* getRHI() { return mResource; }
 		bool updateBuffer(T const& updatedData)
 		{
+#if 0
 			T* pData = lock();
 			if (pData == nullptr)
 				return false;
 			std::copy(&updatedData, &updatedData + 1, pData);
 			unlock();
 			return true;
+#else
+			RHIUpdateBuffer(*mResource, 0 , 1 , const_cast<T*>(&updatedData));
+			return true;
+#endif
 		}
 		bool updateBuffer(TArray<T> const& updatedData) { return updateBuffer(MakeConstView(updatedData)); }
 		bool updateBuffer(TArrayView<const T> const& updatedData)
 		{
 			CHECK(updatedData.size() <= getElementNum());
+
+#if 0
 			T* pData = lock();
 			if (pData == nullptr)
 				return false;
 			std::copy(updatedData.data(), updatedData.data() + updatedData.size(), pData);
 			unlock();
+#else
+			RHIUpdateBuffer(*mResource, 0, updatedData.size(), const_cast<T*>(updatedData.data()));
+#endif
 			return true;
 		}
 

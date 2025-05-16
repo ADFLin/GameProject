@@ -98,7 +98,7 @@ void BassPassPS()
 	float  pixelAlpha = materialOutput.opacity;
 	pixelAlpha = 0.4;
 	//float  pixelDepth = materialParameters.screenPos.z;
-	float  pixelDepth = -(View.worldToView * float4(materialParameters.worldPos, 1)).z;
+	float  pixelDepth = (View.worldToView * float4(materialParameters.worldPos, 1)).z;
 #else //USE_MATERIAL
 	float3 pixelColor = OutputVS.color.rgb;
 	float  pixelAlpha = OutputVS.color.a;

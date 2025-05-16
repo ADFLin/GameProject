@@ -1342,7 +1342,20 @@ struct ExprByteCodeCompiler : public ExprParse
 
 	void codeFunction(FuncSymbolInfo const& info)
 	{
+#if EBC_USE_COMPOSITIVE_CODE
+		auto leftValue = mStacks.back();
+		if (leftValue.byteCode != EExprByteCode::Dummy)
+		{
+			outputCmd(leftValue.byteCode, leftValue.index);
+		}
+
+		mStacks.pop_back();
+#endif
 		outputCmd(EExprByteCode::Type(EExprByteCode::FuncSymbol + info.id));
+
+#if EBC_USE_COMPOSITIVE_CODE
+		mStacks.push_back({ EExprByteCode::Dummy, 0 });
+#endif
 	}
 
 	void pushValue(EExprByteCode::Type byteCode, uint8 index)
@@ -1379,8 +1392,6 @@ struct ExprByteCodeCompiler : public ExprParse
 		case BOP_MUL: opCode = EExprByteCode::Mul; break;
 		case BOP_DIV: opCode = isReverse ? EExprByteCode::DivR : EExprByteCode::Div; break;
 		}
-
-	
 
 		if (leftValue.byteCode == EExprByteCode::Dummy)
 		{

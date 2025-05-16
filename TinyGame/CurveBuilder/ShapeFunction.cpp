@@ -49,8 +49,16 @@ namespace CB
 
 	void SurfaceUVFunc::evalExpr(Vector3& out, float u, float v)
 	{
-		assert(isParsed());
+		CHECK(isParsed());
 		out.setValue(mAixsExpr[0].eval(u,v), mAixsExpr[1].eval(u,v), mAixsExpr[2].eval(u,v));
+	}
+
+	void SurfaceUVFunc::evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ)
+	{
+		CHECK(isParsed());
+		outX = mAixsExpr[0].eval(u, v);
+		outY = mAixsExpr[1].eval(u, v);
+		outZ = mAixsExpr[2].eval(u, v);
 	}
 
 	bool SurfaceUVFunc::parseExpression(FunctionParser& parser)

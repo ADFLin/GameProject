@@ -49,18 +49,17 @@ class ByteCodeExecutor : public TByteCodeExecutor<RealType>
 {
 public:
 
-	template< typename RT>
-	RT execute(ExecutableCode const& code)
+	RealType execute(ExecutableCode const& code)
 	{
-		return RT(doExecute(code));
+		return doExecute(code);
 	}
 
-	template< typename RT, class ...Args >
-	RT execute(ExecutableCode const& code, Args ...args)
+	template< class ...Args >
+	RealType execute(ExecutableCode const& code, Args ...args)
 	{
 		RealType inputs[] = { args... };
 		mInputs = inputs;
-		return RT(doExecute(code));
+		return doExecute(code);
 	}
 };
 
@@ -110,7 +109,7 @@ public:
 			return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
 #elif ENABLE_BYTE_CODE
 			ByteCodeExecutor executor;
-			return executor.execute<RT>(*this, args...);
+			return RT(executor.execute(*this, args...));
 #else
 			return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
 #endif

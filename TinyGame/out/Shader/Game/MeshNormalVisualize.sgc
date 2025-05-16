@@ -81,7 +81,7 @@ layout(location = 0) out float4 OutColor;
 void MainPS()
 {
 #if USE_OIT
-	float pixelDepth = -(View.worldToView * float4(OutputVS.pos, 1)).z;
+	float pixelDepth = (View.worldToView * float4(OutputVS.pos, 1)).z;
 	OITProcessPS(OutputGS.color, pixelDepth);
 #else
 	OutColor = float4(1,0,0,1);

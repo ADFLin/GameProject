@@ -366,6 +366,11 @@ namespace Render
 		return EXECUTE_RHI_FUNC(RHIUpdateTexture(texture, ox, oy, w, h, data, level, dataWidth));
 	}
 
+	void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		return EXECUTE_RHI_FUNC(RHIUpdateBuffer(buffer, start, numElements, data));
+	}
+
 	//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
 	//{
 	//	return EXECUTE_RHI_FUNC(RHILockTexture(texture, access, offset, size));

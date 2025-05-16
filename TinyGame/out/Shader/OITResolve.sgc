@@ -27,7 +27,11 @@ layout(location = 0) out float4 OutColor;
 
 bool CompareFunc(float a, float b)
 {
+#if USE_INVERSE_ZBUFFER
+	return a > b;
+#else
 	return a < b;
+#endif
 }
 
 

@@ -114,7 +114,7 @@ namespace CB
 
 		friend class ShapeMeshBuilder;
 		std::string  mExpr;
-		Render::ShaderProgram mShader;
+		Render::Shader mShader;
 	};
 
 	class SurfaceXYFunc : public RTSurfaceXYFunc
@@ -176,7 +176,7 @@ namespace CB
 
 		friend class ShapeMeshBuilder;
 		std::string   mAixsExpr[3];
-		Render::ShaderProgram mShader;
+		Render::Shader mShader;
 	};
 
 	class SurfaceUVFunc : public SurfaceFunc
@@ -185,12 +185,15 @@ namespace CB
 		SurfaceUVFunc() :SurfaceFunc() 
 		{
 			bSupportSIMD = ExecutableCode::IsSupportSIMD;
+			bSupportSIMD = false;
 		}
 
 		int  getFuncType() override { return TYPE_SURFACE_UV; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
 		void evalExpr(Vector3& out, float u, float v);
+		void evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ);
+
 		void setExpr(int axis, std::string const& expr)
 		{
 			assert(axis >= 0 && axis < 3);

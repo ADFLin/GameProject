@@ -487,6 +487,11 @@ namespace Render
 		OpenGLCast::To(&texture)->unbind();
 	}
 
+	void OpenGLSystem::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		OpenGLCast::To(buffer).updateData(start, numElements, data);
+	}
+
 	//void* OpenGLSystem::RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size)
 	//{
 	//	switch (texture->getType())

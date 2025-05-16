@@ -9,10 +9,12 @@
 #include "AssetViewer.h"
 
 #include "InlineString.h"
+#include "Misc/Format.h"
 
 #include <unordered_map>
 #include <map>
 #include <unordered_set>
+
 
 namespace CPP
 {
@@ -271,6 +273,41 @@ namespace Render
 
 	};
 
+	template< typename TShaderType >
+	static bool LoadRuntimeShader(TShaderType& shader, char const* path, TArrayView< ShaderEntryInfo const > entries, TArrayView< StringView > codes, ShaderCompileOption& option)
+	{
+		std::string code;
+		std::vector<uint8> codeTemplate;
+		if (!FFileUtility::LoadToBuffer(path, codeTemplate, true))
+		{
+			return false;
+		}
+		Text::Format((char const*)codeTemplate.data(), codes, code);
+		option.addCode((char const*)code.data());
+
+		if constexpr (std::is_base_of_v<TShaderType, Shader>)
+		{
+			if (!ShaderManager::Get().loadFile(shader, nullptr, entries[0], option))
+			{
+				return false;
+			}
+		}
+		else
+		{
+			if (!ShaderManager::Get().loadFile(shader, nullptr, entries, option))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	template< typename TShaderType >
+	bool LoadRuntimeShader(TShaderType& shader, char const* path, TArray< StringView > codes, ShaderCompileOption& option)
+	{
+		return LoadRuntimeShader(shader, TShaderType::GetShaderFileName(), TShaderType::GetShaderEntries(), codes, option);
+	}
 }
 
 

@@ -478,6 +478,7 @@ namespace Render
 		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
 		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);

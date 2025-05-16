@@ -34,6 +34,9 @@ namespace CB
 		mVertexNum = 0;
 		mVertexSize = 0;
 		mbNormalOwned = false;
+
+		delete resource;
+		resource = nullptr;
 	}
 
 }//namespace CB

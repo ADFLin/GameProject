@@ -937,6 +937,18 @@ namespace Render
 		);
 	}
 
+	void D3D12System::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
+
+		void* pData = RHILockBuffer(&buffer, ELockAccess::WriteOnly, buffer.getElementSize() * start, buffer.getElementSize() * numElements);
+		if (pData)
+		{
+			FMemory::Copy(pData , data , buffer.getElementSize() * numElements);
+			RHIUnlockBuffer(&buffer);
+		}
+	}
+
 	RHIFrameBuffer* D3D12System::RHICreateFrameBuffer()
 	{
 		return new D3D12FrameBuffer;

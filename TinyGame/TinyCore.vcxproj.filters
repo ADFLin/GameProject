@@ -261,5 +261,11 @@
     <None Include="out\Shader\Game\CurveContour.sgc">
       <Filter>CurveBuilder\Shader</Filter>
     </None>
+    <None Include="out\Shader\Game\CurveMeshGenNormal.sgc">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\CurveMeshGenVertexTemplate.sgc">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1483,6 +1483,7 @@ namespace Shadertoy
 			}
 
 			ShaderEntryInfo entry = bUseComputeShader ? ShaderEntryInfo{ EShader::Compute, "MainCS" } : ShaderEntryInfo{ EShader::Pixel, "MainPS" };
+
 			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, entry, option))
 				return false;
 

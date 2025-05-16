@@ -10,6 +10,19 @@
 namespace CB
 {
 
+#define USE_SHARE_TRIANGLE_INFO 1
+
+
+	struct RenderResource
+	{
+		Render::RHIBufferRef vertexBuffer;
+		Render::RHIBufferRef indexBuffer;
+#if USE_SHARE_TRIANGLE_INFO
+		Render::RHIBufferRef sharedTriangleInfoBuffer;
+		Render::RHIBufferRef triangleIdBuffer;
+#endif
+	};
+
 	class RenderData
 	{
 	public:
@@ -33,9 +46,7 @@ namespace CB
 		void       setCachedDataSize(int size){ mCachedBuffer.resize(size);}
 		uint8*     getCachedData(){ return mCachedBuffer.data(); }
 
-
-		Render::RHIBufferRef vertexBuffer;
-		Render::RHIBufferRef indexBuffer;
+		class RenderResource* resource = nullptr;
 
 	private:
 

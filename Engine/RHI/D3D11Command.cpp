@@ -671,6 +671,12 @@ namespace Render
 		return true;
 	}
 
+	void D3D11System::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		auto& bufferImpl = static_cast<D3D11Buffer&>(buffer);
+		bufferImpl.updateData(*mDeviceContextImmdiate, start, numElements, data);
+	}
+
 	RHIFrameBuffer* D3D11System::RHICreateFrameBuffer()
 	{
 		return new D3D11FrameBuffer;

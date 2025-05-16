@@ -810,18 +810,12 @@ namespace Render
 		ID3D11ShaderResourceView* mSRV;
 		ID3D11UnorderedAccessView* mUAV;
 
-		void  updateData(uint32 start, uint32 numElements, void* data)
+		void  updateData(ID3D11DeviceContext& context, uint32 start, uint32 numElements, void* data)
 		{
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-
-			TComPtr<ID3D11DeviceContext> context;
-			device->GetImmediateContext(&context);
-
 			D3D11_BOX box = { 0 };
 			box.left = start * mDesc.elementSize;
 			box.right = start + numElements * mDesc.elementSize;
-			context->UpdateSubresource(mResource, 0, &box, data, 0, 0);
+			context.UpdateSubresource(mResource, 0, &box, data, 0, 0);
 		}
 	};
 

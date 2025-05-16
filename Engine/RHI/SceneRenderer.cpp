@@ -1128,10 +1128,17 @@ namespace Render
 			GPU_PROFILE("BasePass");
 			RHISetBlendState(commandList, TStaticBlendState<CWM_None>::GetRHI());
 
-#if 0
+#if 1
+
+#if 1
+			uint32 value = 0;
+			RHIUpdateBuffer(*mShaderData.storageUsageCounter, 0, 1, &value);
+#else
 			uint32* value = (uint32*)RHILockBuffer(mShaderData.storageUsageCounter , ELockAccess::WriteOnly);
 			*value = 0;
 			RHIUnlockBuffer(mShaderData.storageUsageCounter);
+#endif
+
 #else
 			RHISetShaderProgram(commandList, mShaderResetCounter->getRHI());
 			mShaderResetCounter->setParameters(commandList, *mShaderData.storageUsageCounter);

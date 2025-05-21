@@ -32,7 +32,7 @@ namespace CB
 {
 	using namespace Render;
 
-	#define TEST_EXPR sin(sqrt(x*x+y*y) - 0.01*t) + cos(sqrt(x*x+y*y) + 0.03*t)
+	#define TEST_EXPR sin(sqrt(x*x + y*y) - 1*t) + cos(sqrt(x*x + y*y) + 3*t)
 	static RealType GTime;
 	char const* TestExpr = STR(TEST_EXPR);
 
@@ -74,7 +74,11 @@ namespace CB
 			systemConfigs.numSamples = 4;
 		}
 
-
+		static RealType Test(RealType x, RealType  y)
+		{
+			return x + y;
+			//LogMsg("x = %f, y = %f", x , y);
+		}
 
 		bool onInit() override
 		{
@@ -99,9 +103,13 @@ namespace CB
 			mCamera.setPos(Vector3(20, 20, 20));
 			mCamera.setViewDir(Vector3(-1, -1, -1), Vector3(0, 0, 1));
 
-			mMeshBuilder = std::make_unique<ShapeMeshBuilder>();
-			mMeshBuilder->initializeRHI();
+			GTime = 0.0f;
 
+			mMeshBuilder = std::make_unique<ShapeMeshBuilder>();
+			mMeshBuilder->bindTime(GTime);
+			mMeshBuilder->initializeRHI();
+			mMeshBuilder->getSymbolDefine().defineFunc("Test", Test);
+	
 			::Global::GUI().cleanupWidget();
 
 			{
@@ -110,6 +118,7 @@ namespace CB
 	
 				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
 				surface = createSurfaceXY(TestExpr, Color4f(1, 0.6, 0.4, 0.9), true);
+				//surface = createSurfaceXY("Test(1,x + y)", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("sqrt(x*x + y*y)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("(5 - x)*sin(t)", Color4f(1, 0.6, 0.4, 0.3));
@@ -117,7 +126,7 @@ namespace CB
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 				mSurface = surface;
 
-				createSphareSurface(Color4f(0.2, 0.6, 0.1, 0.3), true);
+				createSphareSurface(Color4f(0.2, 0.6, 0.1, 0.3), false);
 
 				mTextCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 300, nullptr);
 				updateUI();
@@ -125,10 +134,17 @@ namespace CB
 				::Global::GUI().addWidget(mTextCtrl);
 			}
 
+
+			auto frame = WidgetUtility::CreateDevFrame();
+			frame->addCheckBox("Pause", bPauseTime);
+
 			ProfileSystem::Get().resetSample();
 			restart();
 			return true;
 		}
+
+
+		bool bPauseTime = false;
 
 		Surface3D* mSurface;
 		GTextCtrl* mTextCtrl;
@@ -260,9 +276,10 @@ namespace CB
 			BaseClass::onUpdate(deltaTime);
 
 			static float t = 0;
-			t += 1;
-			mMeshBuilder->setTime(t);
-			GTime = t;
+			if (!bPauseTime)
+			{
+				GTime += deltaTime.value;
+			}
 
 			{
 				PROFILE_ENTRY("Update Surface", "CB");

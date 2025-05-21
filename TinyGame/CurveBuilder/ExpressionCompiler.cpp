@@ -4,6 +4,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "Meta/IndexList.h"
+
 #if ENABLE_FPU_CODE
 
 #include "Assembler.h"
@@ -411,7 +413,8 @@ public:
 };
 
 
-class FPUCodeGeneratorV0 : public FPUCodeGeneratorBase
+class FPUCodeGeneratorV0 : public TCodeGenerator<FPUCodeGeneratorV0>
+						 , public FPUCodeGeneratorBase
 {
 	
 	using BaseClass = FPUCodeGeneratorBase;
@@ -883,8 +886,11 @@ namespace EExprByteCode
 		IDivR,
 		VDivR,
 
-		TAdd,
-		TMul,
+#if 0
+		MulAdd,
+		AddMul,
+#endif
+		SelfMul,
 #else
 
 		Add,
@@ -966,6 +972,39 @@ TValue TByteCodeExecutor<TValue>::doExecute(ExecutableCode const& code)
 	return topValue;
 }
 
+
+
+template< typename TValue, typename RT, typename ...Args>
+FORCEINLINE TValue Invoke(RT (*func)(Args...), TValue args[])
+{
+	return InvokeInternal(func, args, TIndexRange<0, sizeof...(Args)>());
+}
+
+template< typename TValue, typename RT, typename ...Args, size_t ...Is>
+FORCEINLINE TValue InvokeInternal(RT (*func)(Args...), TValue args[], TIndexList<Is...>)
+{
+	if constexpr (std::is_same_v<TValue, FloatVector>)
+	{
+		TValue result;
+		result[0] = (*func)(args[Is][0]...);
+		result[1] = (*func)(args[Is][1]...);
+		result[2] = (*func)(args[Is][2]...);
+		result[3] = (*func)(args[Is][3]...);
+		if constexpr (FloatVector::Size > 4)
+		{
+			result[4] = (*func)(args[Is][4]...);
+			result[5] = (*func)(args[Is][5]...);
+			result[6] = (*func)(args[Is][6]...);
+			result[7] = (*func)(args[Is][7]...);
+		}
+		return result;
+	}
+	else
+	{
+		return (*func)(args[Is]...);
+	}
+}
+
 template<typename TValue>
 FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue)
 {
@@ -1038,12 +1077,7 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	return 1;
 
 #if EBC_USE_COMPOSITIVE_CODE
-	case EExprByteCode::TAdd:
-	{
-		topValue = topValue + topValue;
-	}
-	return 1;
-	case EExprByteCode::TMul:
+	case EExprByteCode::SelfMul:
 	{
 		topValue = topValue * topValue;
 	}
@@ -1166,7 +1200,6 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  topValue = 1.0 / cos(topValue); return 1;
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  topValue = 1.0 / sin(topValue); return 1;
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: topValue = sqrt(topValue); return 1;
-#if 0
 	case EExprByteCode::FuncCall0:
 		{
 			pushStack(topValue);
@@ -1175,71 +1208,55 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 		}
 		return 2;
 	case EExprByteCode::FuncCall1:
-		if constexpr (std::is_same_v<TValue, RealType>)
 		{
 			void* funcPtr = mCode->mPointers[pCode[1]];
-			topValue = (*static_cast<FuncType1>(funcPtr))(topValue);
-		}
-		else
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			topValue = FloatVector(
-				(*static_cast<FuncType1>(funcPtr))(topValue[0]),
-				(*static_cast<FuncType1>(funcPtr))(topValue[1]),
-				(*static_cast<FuncType1>(funcPtr))(topValue[2]),
-				(*static_cast<FuncType1>(funcPtr))(topValue[3]));
+			TValue params[1];
+			params[0] = topValue;
+			topValue = Invoke(static_cast<FuncType1>(funcPtr), params);
 		}
 		return 2;
 	case EExprByteCode::FuncCall2:
-		if constexpr (std::is_same_v<TValue, RealType>)
 		{
 			void* funcPtr = mCode->mPointers[pCode[1]];
-			RealType params[1];
+			TValue params[2];
+			params[1] = topValue;
 			params[0] = popStack();
-			topValue = (*static_cast<FuncType2>(funcPtr))(params[0], topValue);
-		}
-		else
-		{
-			void* funcPtr = mCode->mPointers[pCode[1]];
-			FloatVector params[1];
-			params[0] = popStack();
-			topValue = FloatVector(
-				(*static_cast<FuncType2>(funcPtr))(params[0][0], topValue[0]),
-				(*static_cast<FuncType2>(funcPtr))(params[0][1], topValue[1]),
-				(*static_cast<FuncType2>(funcPtr))(params[0][2], topValue[2]),
-				(*static_cast<FuncType2>(funcPtr))(params[0][3], topValue[3]));
+			topValue = Invoke(static_cast<FuncType2>(funcPtr), params);
 		}
 		return 2;
+#if 0
 	case EExprByteCode::FuncCall3:
-	{
-		void* funcPtr = mCode->mPointers[pCode[1]];
-		RealType params[2];
-		params[0] = popStack();
-		params[1] = popStack();
-		topValue = (*static_cast<FuncType3>(funcPtr))(params[1], params[0], topValue);
-	}
-	return 2;
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			TValue params[3];
+			params[2] = topValue;
+			params[1] = popStack();
+			params[0] = popStack();
+			topValue = Invoke(static_cast<FuncType3>(funcPtr), params);
+		}
+		return 2;
 	case EExprByteCode::FuncCall4:
-	{
-		void* funcPtr = mCode->mPointers[pCode[1]];
-		RealType params[3];
-		params[0] = popStack();
-		params[1] = popStack();
-		params[2] = popStack();
-		topValue = (*static_cast<FuncType4>(funcPtr))(params[2], params[1], params[0], topValue);
-	}
-	return 2;
+		{
+			void* funcPtr = mCode->mPointers[pCode[1]];
+			TValue params[4];
+			params[3] = topValue;
+			params[2] = popStack();
+			params[1] = popStack();
+			params[0] = popStack();
+			topValue = Invoke(static_cast<FuncType4>(funcPtr), params);
+		}
+		return 2;
 	case EExprByteCode::FuncCall5:
-	{
-		void* funcPtr = mCode->mPointers[pCode[1]];
-		RealType params[4];
-		params[0] = popStack();
-		params[1] = popStack();
-		params[2] = popStack();
-		params[3] = popStack();
-		topValue = (*static_cast<FuncType5>(funcPtr))(params[3], params[2], params[1], params[0], topValue);
-	}
-	return 2;
+		{
+			TValue params[5];
+			params[4] = topValue;
+			params[3] = popStack();
+			params[2] = popStack();
+			params[1] = popStack();
+			params[0] = popStack();
+			topValue = Invoke(static_cast<FuncType5>(funcPtr), params);
+		}
+		return 2;
 #endif
 	}
 	return 1;
@@ -1248,7 +1265,7 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 template RealType TByteCodeExecutor<RealType>::doExecute(ExecutableCode const& code);
 template FloatVector TByteCodeExecutor<FloatVector>::doExecute(ExecutableCode const& code);
 
-struct ExprByteCodeCompiler : public ExprParse
+struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, public ExprParse
 {
 	ExecutableCode& mOutput;
 	int mNumCmd = 0;
@@ -1296,10 +1313,6 @@ struct ExprByteCodeCompiler : public ExprParse
 		pushValue(EExprByteCode::Input, input.index);
 	}
 
-	int mNumInputUsed = 0;
-	int mNumVarUsed = 0;
-
-
 	void codeFunction(FuncInfo const& info)
 	{
 		int index = mOutput.mPointers.findIndex(info.funcPtr);
@@ -1311,30 +1324,22 @@ struct ExprByteCodeCompiler : public ExprParse
 		CHECK(index < 255);
 
 #if EBC_USE_COMPOSITIVE_CODE
-		if (info.getArgNum() >= 1)
+		if (info.getArgNum() > 0)
 		{
-			for (int i = 0; i < info.getArgNum(); ++i)
+			auto argValue = mStacks.back();
+			if (argValue.byteCode != EExprByteCode::Dummy)
 			{
-				auto argValue = mStacks[mStacks.size() - 2 + info.getArgNum() - i];
-				if (argValue.byteCode != EExprByteCode::Dummy)
-				{
-					outputCmd(argValue.byteCode, argValue.index);
-				}
+				outputCmd(argValue.byteCode, argValue.index);
 			}
-
+			mStacks.pop_back();
 			outputCmd(EExprByteCode::Type(EExprByteCode::FuncCall0 + info.getArgNum()), index);
-
-			for (int i = 0; i < info.getArgNum(); ++i)
-			{
-				mStacks.pop_back();
-			}
 		}
 		else
 		{
 			outputCmd(EExprByteCode::FuncCall0, index);
 		}
 
-		mStacks.push_back({ EExprByteCode::Dummy, 0 });
+		pushResultValue();
 #else
 		outputCmd(EExprByteCode::Type(EExprByteCode::FuncCall0 + info.getArgNum()), index);
 #endif
@@ -1354,8 +1359,26 @@ struct ExprByteCodeCompiler : public ExprParse
 		outputCmd(EExprByteCode::Type(EExprByteCode::FuncSymbol + info.id));
 
 #if EBC_USE_COMPOSITIVE_CODE
-		mStacks.push_back({ EExprByteCode::Dummy, 0 });
+		pushResultValue();
 #endif
+	}
+
+	void visitSeparetor()
+	{
+#if EBC_USE_COMPOSITIVE_CODE
+		auto leftValue = mStacks.back();
+		if (leftValue.byteCode != EExprByteCode::Dummy)
+		{
+			outputCmd(leftValue.byteCode, leftValue.index);
+		}
+
+		mStacks.pop_back();
+#endif
+	}
+
+	void pushResultValue()
+	{
+		mStacks.push_back({ EExprByteCode::Dummy, 0 });
 	}
 
 	void pushValue(EExprByteCode::Type byteCode, uint8 index)
@@ -1400,9 +1423,9 @@ struct ExprByteCodeCompiler : public ExprParse
 		else
 		{
 			if (leftValue.byteCode == rightValue.byteCode && leftValue.index == rightValue.index &&
-			    (type == BOP_ADD || type == BOP_MUL))
+			    (type == BOP_MUL))
 			{
-				outputCmd(type == BOP_ADD ? EExprByteCode::TAdd : EExprByteCode::TMul);
+				outputCmd(EExprByteCode::SelfMul);
 			}
 			else
 			{
@@ -1423,7 +1446,7 @@ struct ExprByteCodeCompiler : public ExprParse
 #endif
 
 #if EBC_USE_COMPOSITIVE_CODE
-		mStacks.push_back({EExprByteCode::Dummy, 0});
+		pushResultValue();
 #endif
 	}
 	
@@ -1443,7 +1466,7 @@ struct ExprByteCodeCompiler : public ExprParse
 		case UOP_MINS: outputCmd(EExprByteCode::Mins); break;
 		}
 #if EBC_USE_COMPOSITIVE_CODE
-		mStacks.push_back({ EExprByteCode::Dummy, 0 });
+		pushResultValue();
 #endif
 	}
 
@@ -1515,8 +1538,7 @@ struct ExprByteCodeCompiler : public ExprParse
 			case EExprByteCode::VMul:debugMeg += "V*"; break;
 			case EExprByteCode::VDiv:debugMeg += "V/"; break;
 			case EExprByteCode::VDivR:debugMeg += "V/r"; break;
-			case EExprByteCode::TAdd:debugMeg += "T+"; break;
-			case EExprByteCode::TMul:debugMeg += "T*"; break;
+			case EExprByteCode::SelfMul:debugMeg += "T*"; break;
 #endif
 			case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  debugMeg += "exp"; break;
 			case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   debugMeg += "ln"; break;
@@ -1527,6 +1549,13 @@ struct ExprByteCodeCompiler : public ExprParse
 			case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  debugMeg += "sec"; break;
 			case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  debugMeg += "csc"; break;
 			case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: debugMeg += "sqrt"; break;
+
+			case EExprByteCode::FuncCall0: debugMeg += "call0"; break;
+			case EExprByteCode::FuncCall1: debugMeg += "call1"; break;
+			case EExprByteCode::FuncCall2: debugMeg += "call2"; break;
+			case EExprByteCode::FuncCall3: debugMeg += "call3"; break;
+			case EExprByteCode::FuncCall4: debugMeg += "call4"; break;
+			case EExprByteCode::FuncCall5: debugMeg += "call5"; break;
 			}
 			debugMeg += "]";
 		}
@@ -1564,7 +1593,7 @@ bool ExpressionCompiler::compile( char const* expr , SymbolTable const& table , 
 		ExprByteCodeCompiler generator(data);
 		mResult.generateCode(generator, numInput, inputLayouts);
 #else
-		data.mCodes = mResult.getPostfixCodes();
+		data.mCodes = mResult.genratePosifxCodes();
 #endif
 		return true;
 	}

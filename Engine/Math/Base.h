@@ -150,8 +150,15 @@ namespace Math
 	template< typename T >
 	T  AlignUp(T  value, T  align)
 	{
-		return (value + align - 1) & ~(align - 1);
+		return (value + align - T(1)) & ~(align - T(1));
 	}
+
+	template< typename T >
+	static T  AlignCount(T size, T  align)
+	{
+		return (size + align - T(1)) / align;
+	}
+
 
 }//namespace Math
 

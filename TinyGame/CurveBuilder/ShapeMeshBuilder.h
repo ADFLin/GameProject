@@ -68,11 +68,14 @@ namespace CB
 		void  updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV) override;
 
 		bool  parseFunction(ShapeFuncBase& func) override;
-		void  setTime(float t) { mVarTime = t; }
+
+		void  bindTime(RealType& time);
 
 		void initializeRHI();
 
 		void releaseRHI();
+
+		SymbolTable& getSymbolDefine(){ return mParser.getSymbolDefine(); }
 
 	private:
 		void  setColor(float p, float* color);
@@ -90,8 +93,8 @@ namespace CB
 
 		class GenNormalCS* mShaderGenNormal;
 
-		RealType        mVarTime;
-		ColorMap        mColorMap;
+		ColorMap         mColorMap;
+		RealType*        mTimePtr;
 
 #if USE_PARALLEL_UPDATE
 		Mutex            mParserLock;

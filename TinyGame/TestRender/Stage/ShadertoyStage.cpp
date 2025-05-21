@@ -23,10 +23,6 @@
 
 namespace Shadertoy
 {
-	static uint32 AlignCount(uint32 size, uint32 alignment)
-	{
-		return (size + alignment - 1) / alignment;
-	}
 
 	using namespace Render;
 	struct GPU_ALIGN InputParam
@@ -393,7 +389,7 @@ namespace Shadertoy
 					}
 
 					int const GROUP_SIZE = 8;
-					RHIDispatchCompute(commandList, AlignCount(viewportSize.x, GROUP_SIZE), AlignCount(viewportSize.y, GROUP_SIZE), 1);
+					RHIDispatchCompute(commandList, Math::AlignCount(viewportSize.x, GROUP_SIZE), Math::AlignCount(viewportSize.y, GROUP_SIZE), 1);
 				}
 
 				index = 0;
@@ -438,7 +434,7 @@ namespace Shadertoy
 
 			int blockFrame = SoundTextureSize * SoundTextureSize;
 
-			int numBlocks = AlignCount(sampleCount, blockFrame);
+			int numBlocks = Math::AlignCount(sampleCount, blockFrame);
 
 			if (passShader.getType() == EShader::Compute)
 			{
@@ -456,7 +452,7 @@ namespace Shadertoy
 					passShader.setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
 
 					int const GROUP_SIZE = 8;
-					RHIDispatchCompute(commandList, AlignCount(SoundTextureSize, GROUP_SIZE), AlignCount(SoundTextureSize, GROUP_SIZE), 1);
+					RHIDispatchCompute(commandList, Math::AlignCount(SoundTextureSize, GROUP_SIZE), Math::AlignCount(SoundTextureSize, GROUP_SIZE), 1);
 					RHIFlushCommand(commandList);
 
 					int numRead = Math::Min(sampleCount - indexBlock * blockFrame, blockFrame);

@@ -185,7 +185,6 @@ namespace CB
 		SurfaceUVFunc() :SurfaceFunc() 
 		{
 			bSupportSIMD = ExecutableCode::IsSupportSIMD;
-			bSupportSIMD = false;
 		}
 
 		int  getFuncType() override { return TYPE_SURFACE_UV; }
@@ -220,14 +219,21 @@ namespace CB
 		void evalExpr(Vector3& out, float u, float v)
 		{
 			out = Vector3(
-				(*mAixsExpr[0])(u, v),
-				(*mAixsExpr[1])(u, v),
-				(*mAixsExpr[2])(u, v));
+				(*static_cast<FuncType2>(mAixsExpr[0]))(u, v),
+				(*static_cast<FuncType2>(mAixsExpr[1]))(u, v),
+				(*static_cast<FuncType2>(mAixsExpr[2]))(u, v));
+		}
+
+		void evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ)
+		{
+			outX = (*static_cast<FloatVector(*)(FloatVector, FloatVector)>(mAixsExpr[0]))(u, v);
+			outY = (*static_cast<FloatVector(*)(FloatVector, FloatVector)>(mAixsExpr[1]))(u, v);
+			outZ = (*static_cast<FloatVector(*)(FloatVector, FloatVector)>(mAixsExpr[2]))(u, v);
 		}
 
 		NativeSurfaceUVFunc* clone() override;
 	private:
-		FuncType2   mAixsExpr[3];
+		void* mAixsExpr[3];
 	};
 
 

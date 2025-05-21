@@ -394,6 +394,7 @@
     <ClInclude Include="Memory\BuddyAllocator.h" />
     <ClInclude Include="Memory\CacheAllocator.h" />
     <ClInclude Include="Memory\FrameAllocator.h" />
+    <ClInclude Include="Meta\BoolBranch.h" />
     <ClInclude Include="Meta\EnableIf.h" />
     <ClInclude Include="Meta\FunctionCall.h" />
     <ClInclude Include="Meta\IndexList.h" />

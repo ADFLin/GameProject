@@ -509,21 +509,21 @@ namespace CB
 		Vector2* pVX = pVertices;
 		for (int i = 0; i < axis1.getNumData(); ++i)
 		{
-			x1 += d1;
 			pVX->setValue(x1, axis2.getRangeMin());
 			++pVX;
 			pVX->setValue(x1, axis2.getRangeMax());
 			++pVX;
+			x1 += d1;
 		}
 
 		float x2 = axis2.getRangeMin();
 		for (int i = 0; i < axis2.getNumData(); ++i)
 		{
-			x2 += d2;
 			pVX->setValue(axis1.getRangeMin(), x2);
 			++pVX;
 			pVX->setValue(axis1.getRangeMax(), x2);
 			++pVX;
+			x2 += d2;
 		}
 
 		TRenderRT< RTVF_XY >::Draw(*mCommandList, EPrimitive::LineList, pVertices, numVertices);

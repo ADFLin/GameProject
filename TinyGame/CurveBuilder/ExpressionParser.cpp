@@ -374,7 +374,6 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	}
 
 	builder.optimizeNodeOrder();
-	builder.convertPostfixCode( result.mPFCodes );
 
 #	if _DEBUG
 	builder.printTree( table );
@@ -414,7 +413,7 @@ bool ParseResult::isUsingVar( char const* name ) const
 		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
 		if( symbol && symbol->type == SymbolEntry::eVariable )
 		{
-			for( auto const& unit : mPFCodes )
+			for( auto const& unit : mTreeData.codes )
 			{
 				if( unit.type == VALUE_VARIABLE && unit.variable.ptr == symbol->varValue.ptr )
 					return true;
@@ -431,7 +430,7 @@ bool ParseResult::isUsingInput(char const* name) const
 		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
 		if( symbol && symbol->type == SymbolEntry::eInputVar )
 		{
-			for (auto const& unit : mPFCodes)
+			for (auto const& unit : mTreeData.codes)
 			{
 				if( unit.type == VALUE_INPUT && unit.input.index == symbol->input.index )
 					return true;
@@ -442,10 +441,25 @@ bool ParseResult::isUsingInput(char const* name) const
 }
 
 
-void ParseResult::optimize()
+ExprParse::UnitCodes ParseResult::genratePosifxCodes() const
+{
+	struct Visitor
+	{
+		void visitValue(Unit const& unit) { codes.push_back(unit); }
+		void visitOp(Unit const& unit) { codes.push_back(unit); }
+		UnitCodes codes;
+	};
+
+	Visitor visitor;
+	TExprTreeVisitOp<Visitor> op(mTreeData, visitor);
+	op.execute();
+	return visitor.codes;
+}
+
+void PostfixCodeOptimizer::optimize()
 {
 #ifdef _DEBUG
-	printPostfixCodes();
+	printCodes();
 #endif
 	int bIndex = 0;
 	for(int index=0;index<mPFCodes.size();++index)
@@ -466,7 +480,7 @@ void ParseResult::optimize()
 //     |___________
 //                 |                   re
 //     x  4 * 2 + [3] (-r)        [ x 3 - ] 4 +
-bool ParseResult::optimizeValueOrder( int index )
+bool PostfixCodeOptimizer::optimizeValueOrder( int index )
 {
 	if ( !(index < mPFCodes.size()) ) 
 		return false;
@@ -512,7 +526,7 @@ bool ParseResult::optimizeValueOrder( int index )
 			hadChange = true;
 #ifdef _DEBUG
 			std::cout << "optimizeValueOrder :"<< std::endl;
-			printPostfixCodes();
+			printCodes();
 #endif
 			optimizeValueOrder(index);
 		}
@@ -538,7 +552,7 @@ bool ParseResult::optimizeValueOrder( int index )
 //                |____________
 //                             |
 //   trans:  x 3  2 (+) 5 (-) [-] 3 *
-bool ParseResult::optimizeOperatorOrder( int index )
+bool PostfixCodeOptimizer::optimizeOperatorOrder( int index )
 {
 	if ( !(index < mPFCodes.size()) ) 
 		return false;
@@ -598,7 +612,7 @@ bool ParseResult::optimizeOperatorOrder( int index )
 		mPFCodes[moveIndex] = temp;
 #ifdef _DEBUG
 		std::cout << "optimizeOperatorOrder :" << std::endl;
-		printPostfixCodes();
+		printCodes();
 #endif
 		optimizeConstValue(index+1);
 		hadChange = true;
@@ -612,7 +626,7 @@ bool ParseResult::optimizeOperatorOrder( int index )
 //              |
 //   trans:  x [y +] 3 -  2 -  3 *
 
-bool ParseResult::optimizeVarOrder( int index )
+bool PostfixCodeOptimizer::optimizeVarOrder( int index )
 {
 	if ( ! (index+1 < mPFCodes.size() ) ) 
 		return false;
@@ -650,7 +664,7 @@ bool ParseResult::optimizeVarOrder( int index )
 
 #ifdef _DEBUG
 		std::cout << "optimizeVarOrder :"<< std::endl;
-		printPostfixCodes();
+		printCodes();
 #endif
 		return true;
 	}
@@ -667,7 +681,7 @@ bool ParseResult::optimizeVarOrder( int index )
 //   x 3 [-r] 2 +     x  2 / 3 *
 //
 //   x 
-bool ParseResult::optimizeConstValue( int index )
+bool PostfixCodeOptimizer::optimizeConstValue( int index )
 {
 	if ( !(index < mPFCodes.size()) ) 
 		return false;
@@ -719,7 +733,7 @@ bool ParseResult::optimizeConstValue( int index )
 				mPFCodes.pop_back();
 #ifdef _DEBUG
 				std::cout << "optimizeConstValue :"<< std::endl;
-				printPostfixCodes();
+				printCodes();
 #endif
 				optimizeConstValue(index-2);
 				hadChange = true;
@@ -752,7 +766,7 @@ bool ParseResult::optimizeConstValue( int index )
 				mPFCodes.pop_back();
 #ifdef _DEBUG
 				std::cout << "optimizeConstValue :"<< std::endl;
-				printPostfixCodes();
+				printCodes();
 #endif
 				optimizeConstValue(index-1);
 				hadChange = true;
@@ -808,7 +822,7 @@ bool ParseResult::optimizeConstValue( int index )
 				mPFCodes.pop_back();
 #ifdef _DEBUG
 			std::cout << "optimizeConstValue :"<< std::endl;
-			printPostfixCodes();
+			printCodes();
 #endif
 			optimizeConstValue(index-num);
 			hadChange = true;
@@ -822,7 +836,7 @@ bool ParseResult::optimizeConstValue( int index )
 //                _|
 //               |
 //   trans:  x  [ ] 2 -
-bool ParseResult::optimizeZeroValue( int index )
+bool PostfixCodeOptimizer::optimizeZeroValue( int index )
 {
 	if ( !(index < mPFCodes.size()) ) 
 		return false;
@@ -840,7 +854,7 @@ bool ParseResult::optimizeZeroValue( int index )
 			hadChange = true;
 #ifdef _DEBUG
 			std::cout << "optimizeZeroValue :"<< std::endl;
-			printPostfixCodes();
+			printCodes();
 #endif
 		}
 	}
@@ -1010,46 +1024,6 @@ int ExprTreeBuilder::build_R(int idxStart, int idxEnd, bool bFuncDef)
 
 	++idxStart;
 	return build_R(idxStart, idxEnd, false);
-}
-
-void ExprTreeBuilder::convertPostfixCode( UnitCodes& codes )
-{
-	codes.clear();
-	if ( mNumNodes != 0 )
-	{
-		Node& root = mTreeNodes[ 0 ];
-		convertPostfixCode_R( codes , root.children[ CN_LEFT ] );
-	}
-}
-
-void ExprTreeBuilder::convertPostfixCode_R( UnitCodes& codes , int idxNode )
-{
-	if ( idxNode < 0 )
-	{
-		codes.push_back( mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ] );
-		return;
-	}
-	else if ( idxNode == 0 )
-		return;
-
-	Node const& node = mTreeNodes[ idxNode ];
-	Unit const& unit = mExprCodes[node.indexOp];
-
-	if ( unit.type == BOP_ASSIGN )
-	{
-		convertPostfixCode_R( codes , node.children[ CN_RIGHT ] );
-		convertPostfixCode_R( codes , node.children[ CN_LEFT ] );
-		codes.push_back( unit );
-	}
-	else
-	{
-		convertPostfixCode_R( codes , node.children[ CN_LEFT ] );
-		convertPostfixCode_R( codes , node.children[ CN_RIGHT ] );
-		if ( unit.type != IDT_SEPARETOR )
-		{
-			codes.push_back( unit );
-		}
-	}
 }
 
 void ExprTreeBuilder::optimizeNodeOrder()

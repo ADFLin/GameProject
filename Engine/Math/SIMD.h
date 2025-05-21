@@ -263,13 +263,23 @@ namespace SIMD
 		{
 			reg = _mm256_set_ps(s, r, q, p, w, z, y, x);
 		}
+
+		FORCEINLINE TFloatVector(std::initializer_list<float> elements)
+		{
+			reg = _mm256_set_ps(
+				elements.begin()[7], elements.begin()[6], elements.begin()[5], elements.begin()[4],
+				elements.begin()[3], elements.begin()[2], elements.begin()[1], elements.begin()[0]);
+		}
 		FORCEINLINE TFloatVector(__m256 val) : reg(val) {}
 
 		FORCEINLINE TFloatVector(float const* v) { reg = _mm256_loadu_ps(v); }
 		FORCEINLINE TFloatVector(float const* v, EAligned) { reg = _mm256_load_ps(v); }
 		FORCEINLINE TFloatVector(float val) { reg = _mm256_set1_ps(val); }
 
-		float operator [](int index) const { return reg.m256_f32[index]; }
+		static TFloatVector Zero() { return TFloatVector(0.0); }
+
+		float  operator [](int index) const { return reg.m256_f32[index]; }
+		float& operator [](int index) { return reg.m256_f32[index]; }
 
 		FORCEINLINE TFloatVector operator * (TFloatVector const& rhs) const { return _mm256_mul_ps(reg, rhs.reg); }
 		FORCEINLINE TFloatVector operator / (TFloatVector const& rhs) const { return _mm256_div_ps(reg, rhs.reg); }
@@ -343,12 +353,21 @@ namespace SIMD
 		operator __m128 () const { return reg; }
 
 		FORCEINLINE TFloatVector(float x, float y, float z, float w) { reg = _mm_set_ps(w, z, y, x); }
+
+		FORCEINLINE TFloatVector(std::initializer_list<float> elements)
+		{
+			reg = _mm_set_ps(elements.begin()[3], elements.begin()[2], elements.begin()[1], elements.begin()[0]);
+		}
+
 		FORCEINLINE TFloatVector(__m128 val) : reg(val) {}
 		FORCEINLINE TFloatVector(float const* v) { reg = _mm_loadu_ps(v); }
 		FORCEINLINE TFloatVector(float const* v, EAligned) { reg = _mm_load_ps(v); }
 		FORCEINLINE TFloatVector(float val) { reg = _mm_set1_ps(val); }
 
-		float operator [](int index) const { return reg.m128_f32[index]; }
+		static TFloatVector Zero() { return TFloatVector(0.0); }
+
+		float  operator [](int index) const { return reg.m128_f32[index]; }
+		float& operator [](int index){ return reg.m128_f32[index]; }
 
 		FORCEINLINE TFloatVector operator * (TFloatVector const& rhs) const { return _mm_mul_ps(reg, rhs.reg); }
 		FORCEINLINE TFloatVector operator / (TFloatVector const& rhs) const { return _mm_div_ps(reg, rhs.reg); }

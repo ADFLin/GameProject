@@ -22,10 +22,10 @@ namespace CB
 		}
 		ExecutableCode&  getEvalData() { return mEvalCode; }
 		std::string const& getExprString() const { return mStrExpr; }
-		FORCEINLINE double eval() const { return mEvalCode.evalT<double>(); }
-		FORCEINLINE double eval(double p0) const { return mEvalCode.evalT<double>(p0); }
-		FORCEINLINE double eval(double p0, double p1) const { return mEvalCode.evalT<double>(p0,p1); }
-		FORCEINLINE double eval(double p0, double p1, double p2) const { return mEvalCode.evalT<double>(p0,p1,p2); }
+		FORCEINLINE RealType eval() const { return mEvalCode.evalT<RealType>(); }
+		FORCEINLINE RealType eval(RealType p0) const { return mEvalCode.evalT<RealType>(p0); }
+		FORCEINLINE RealType eval(RealType p0, RealType p1) const { return mEvalCode.evalT<RealType>(p0,p1); }
+		FORCEINLINE RealType eval(RealType p0, RealType p1, RealType p2) const { return mEvalCode.evalT<RealType>(p0,p1,p2); }
 
 
 		FORCEINLINE FloatVector eval(FloatVector const& p0) const { return mEvalCode.evalT<FloatVector>(p0); }

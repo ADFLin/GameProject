@@ -9,6 +9,7 @@
 #include "TemplateMisc.h"
 
 #include "Algo/DLX.h"
+#include "Meta/BoolBranch.h"
 
 #define SBLOCK_LOG_SOLVE_INFO 0
 
@@ -1511,34 +1512,6 @@ NoCombineSolve:
 		{
 			++solver.mSolutionCount;
 		}
-	}
-
-	template< bool... Is>
-	struct TBoolList {};
-
-	template< typename TFunc, bool ...Is , typename ...Args >
-	FORCEINLINE auto BoolBranch(TBoolList<Is...>, bool p0, Args... args)
-	{
-		if (p0)
-		{
-			return BoolBranch<TFunc>(TBoolList<Is..., true>(), args...);
-		}
-		else
-		{
-			return BoolBranch<TFunc>(TBoolList<Is..., false>(), args...);
-		}
-	}
-
-	template< typename TFunc, bool ...Is >
-	FORCEINLINE auto BoolBranch(TBoolList<Is...>)
-	{
-		return TFunc::template Exec<Is...>();
-	}	
-
-	template< typename TFunc, typename ...Args >
-	FORCEINLINE auto BoolBranch(Args... args)
-	{
-		return BoolBranch<TFunc>(TBoolList<>(), args...);
 	}
 
 	struct FSolveImpl

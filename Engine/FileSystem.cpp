@@ -23,6 +23,7 @@
 #undef GetFileAttributesEx
 #undef MoveFile
 #undef GetFullPathName
+#undef FindNextFile
 
 template< class T >
 struct TWindowsType {};
@@ -57,6 +58,15 @@ struct FWinApi
 	static HANDLE FindFirstFile(wchar_t const* lpFileName, WIN32_FIND_DATAW* data)
 	{
 		return ::FindFirstFileW(lpFileName, data);
+	}
+
+	static BOOL FindNextFile(HANDLE hFindFile, LPWIN32_FIND_DATAA lpFindFileData)
+	{
+		return FindNextFileA(hFindFile, lpFindFileData);
+	}
+	static BOOL FindNextFile(HANDLE hFindFile, LPWIN32_FIND_DATAW lpFindFileData)
+	{
+		return FindNextFileW(hFindFile, lpFindFileData);
 	}
 
 	static BOOL CreateDirectory(char const* lpFileName, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
@@ -188,6 +198,15 @@ struct FWindowsFileSystem
 		return !!FWinApi::MoveFile(path, newPath);
 	}
 
+
+	template< class CharT >
+	static bool MoveFile(CharT const* path, CharT const* newFileDir)
+	{
+		TInlineString< MAX_PATH, CharT > newPath;
+		newPath.format(STRING_LITERAL(CharT, "%s/%s"), newFileDir, FFileUtility::GetFileName(path));
+		return !!FWinApi::MoveFile(path, newPath);
+	}
+
 	template< class CharT >
 	static std::basic_string<CharT> ConvertToFullPath(CharT const* path)
 	{
@@ -277,12 +296,13 @@ bool FFileSystem::CreateDirectorySequence(char const* pathDir)
 	return true;
 }
 
-bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
+template< class CharT >
+bool FFileSystem::FindFiles(CharT const* dir , CharT const* subName , TFileIterator<CharT>& iter )
 {
 	PROFILE_ENTRY("FineFiles");
 #if SYS_PLATFORM_WIN
 
-	InlineString< MAX_PATH > szDir;
+	TInlineString< MAX_PATH, CharT > szDir;
 	// Check that the input path plus 3 is not longer than MAX_PATH.
 	// Three characters are for the "\*" plus NULL appended below.
 	size_t length_of_arg = FCString::Strlen(dir);
@@ -294,15 +314,15 @@ bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterato
 	// string to a buffer, then append '\*' to the directory name.
 	szDir = dir;
 	if (length_of_arg == 0)
-		szDir += "*";
+		szDir += STRING_LITERAL(CharT,"*");
 	else
-		szDir += "\\*";
+		szDir += STRING_LITERAL(CharT, "\\*");
 
 	if ( subName )
 		szDir += subName;
 
 	// Find the first file in the directory.
-	iter.mhFind = FindFirstFileA( szDir, &iter.mFindData );
+	iter.mhFind = FWinApi::FindFirstFile( szDir, &iter.mFindData );
 
 	if ( iter.mhFind == INVALID_HANDLE_VALUE )
 		return false;
@@ -407,6 +427,22 @@ bool FFileSystem::RenameFile(wchar_t const* path, wchar_t const* newFileName)
 }
 
 
+bool FFileSystem::MoveFile(char const* path, char const* newFileDir)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::MoveFile(path, newFileDir);
+#endif
+	return false;
+}
+
+bool FFileSystem::MoveFile(wchar_t const* path, wchar_t const* newFileDir)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::MoveFile(path, newFileDir);
+#endif
+	return false;
+}
+
 bool FFileSystem::CopyFile(char const* path, char const* newFilePath, bool bFailIfExists)
 {
 #if SYS_PLATFORM_WIN
@@ -479,33 +515,34 @@ bool FFileSystem::OverwriteFile(char const* srcPath, char const* destPath, uint6
 }
 
 #if SYS_PLATFORM_WIN
-FileIterator::FileIterator()
+template < class CharT >
+TFileIterator<CharT>::TFileIterator()
 {
 	mhFind = INVALID_HANDLE_VALUE;
 }
-
-FileIterator::~FileIterator()
+template < class CharT >
+TFileIterator<CharT>::~TFileIterator()
 {
 	if ( mhFind != INVALID_HANDLE_VALUE )
 		::FindClose( mhFind );
 }
-
-DateTime FileIterator::getLastModifyDate() const
+template < class CharT >
+DateTime TFileIterator<CharT>::getLastModifyDate() const
 {
 	SYSTEMTIME systemTime = { 0 };
 	::FileTimeToSystemTime(&mFindData.ftLastWriteTime, &systemTime);
 	return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 }
-
-bool FileIterator::isDirectory() const
+template < class CharT >
+bool TFileIterator<CharT>::isDirectory() const
 {
 	return ( mFindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
 }
-
-void FileIterator::goNext()
+template < class CharT >
+void TFileIterator<CharT>::goNext()
 {
 	PROFILE_ENTRY("FindNextFileA");
-	mHaveMore = ( FindNextFileA( mhFind , &mFindData ) == TRUE );
+	mHaveMore = ( FWinApi::FindNextFile( mhFind , &mFindData ) == TRUE );
 }
 #endif
 
@@ -712,3 +749,7 @@ bool FFileUtility::LoadToString(char const* path, std::string& outString)
 
 template class TFileUtility<char>;
 template class TFileUtility<wchar_t>;
+template class TFileIterator<char>;
+template class TFileIterator<wchar_t>;
+template bool FFileSystem::FindFiles<char>(char const* dir, char const* subName, TFileIterator<char>& iterator);
+template bool FFileSystem::FindFiles<wchar_t>(wchar_t const* dir, wchar_t const* subName, TFileIterator<wchar_t>& iterator);

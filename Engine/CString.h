@@ -96,7 +96,7 @@ struct FCString
 		return ::vsprintf(str, fmt, al);
 #endif
 	}
-	template< int N >
+
 	FORCEINLINE static int    PrintfV(wchar_t* str, int size, wchar_t const* fmt, va_list al) 
 	{
 #if STRING_FUNC_S_SUPPORTED

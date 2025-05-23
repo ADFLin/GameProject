@@ -451,7 +451,7 @@
     <ClCompile Include="TestMisc\Stage\CSGTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CurveBuilderStage.cpp" />
     <ClCompile Include="TestMisc\Stage\DeviceInfoStage.cpp" />
-    <ClCompile Include="TestMisc\Stage\FileNameConvStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\FileToolStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FontDrawStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FractialRenderStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />

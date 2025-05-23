@@ -13,8 +13,10 @@
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
+#undef MoveFile
 #endif
 #include "TemplateMisc.h"
+#include "Meta/Select.h"
 
 
 template < class CharT >
@@ -74,15 +76,17 @@ private:
 
 using FilePath = TFilePath<TChar>;
 
-class FileIterator : public Noncopyable
+
+template< class CharT >
+class TFileIterator : public Noncopyable
 {
 #if SYS_PLATFORM_WIN
 
 public:
-	FileIterator();
-	~FileIterator();
+	TFileIterator();
+	~TFileIterator();
 
-	char const* getFileName() const { return mFindData.cFileName; }
+	CharT const* getFileName() const { return mFindData.cFileName; }
 	DateTime getLastModifyDate() const;
 	bool   isDirectory() const;
 	bool   haveMore(){ return mHaveMore; }
@@ -90,15 +94,18 @@ public:
 
 private:
 	friend class FFileSystem;
-
+	using FindDataType = typename TSelect< std::is_same_v< CharT, wchar_t >, WIN32_FIND_DATAW, WIN32_FIND_DATAA >::Type;
 	bool   mHaveMore;
 	HANDLE mhFind;
-	WIN32_FIND_DATAA mFindData;
+	FindDataType mFindData;
 #else
 
 
 #endif
 };
+
+using FileIterator = TFileIterator<TChar>;
+using FileIteratorW = TFileIterator<wchar_t>;
 
 struct FileAttributes
 {
@@ -109,7 +116,14 @@ struct FileAttributes
 class FFileSystem
 {
 public:
-	static bool FindFiles( char const* dir , char const* subName , FileIterator& iterator );
+	template< class CharT >
+	static bool FindFiles(CharT const* dir , CharT const* subName , TFileIterator<CharT>& iterator );
+
+	template< class CharT >
+	static bool FindFiles(CharT const* dir, TFileIterator<CharT>& iterator)
+	{
+		return FindFiles<CharT>(dir, nullptr, iterator);
+	}
 
 	template< class CharT >
 	static bool IsExist( TFilePath< CharT > const& path ){ return IsExist( path.getString() ); }
@@ -133,6 +147,9 @@ public:
 
 	static bool RenameFile(char const* path, char const* newFileName);
 	static bool RenameFile(wchar_t const* path, wchar_t const* newFileName);
+
+	static bool MoveFile(char const* path, char const* newFileDir);
+	static bool MoveFile(wchar_t const* path, wchar_t const* newFileDir);
 
 	static bool CopyFile(char const* path, char const* newFilePath, bool bFailIfExists = false);
 	static bool CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists = false);

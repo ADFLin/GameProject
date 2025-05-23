@@ -552,7 +552,7 @@ namespace Go
 		FileIterator fileIter;
 		InlineString<256> path;
 		path.format("%s/%s" , InstallDir , LEELA_NET_DIR_NAME );
-		if( !FFileSystem::FindFiles(path, nullptr, fileIter) )
+		if( !FFileSystem::FindFiles<char>(path, fileIter) )
 		{
 			return "";
 		}

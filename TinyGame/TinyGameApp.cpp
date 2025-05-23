@@ -1057,7 +1057,7 @@ void TinyGameApp::loadModules()
 #define TEST_PREFEX "Test"
 
 	FileIterator fileIter;
-	if (FFileSystem::FindFiles(moduleDir, ".dll", fileIter))
+	if (FFileSystem::FindFiles<char>(moduleDir, ".dll", fileIter))
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{

@@ -243,16 +243,6 @@ namespace CB
 		Expression mExpr;
 	};
 
-	class ShapeFuncVisitor
-	{
-	public:
-		virtual void visit(SurfaceUVFunc& func) = 0;
-		virtual void visit(SurfaceXYFunc& func) = 0;
-		virtual void visit(Curve3DFunc& func) = 0;
-		virtual void visit(NativeSurfaceXYFunc& func) = 0;
-		virtual void visit(NativeSurfaceUVFunc& func) = 0;
-	};
-
 }//namespace CB
 
 #endif // ShapeFun_H_883010A1_0C8F_40DA_A88C_32FBDE06AF1D

@@ -143,7 +143,7 @@ void ContentPanel::render()
 						newFolderPath += mFolderSeq[i].toCString();
 					}
 					FileIterator fileIter;
-					if (FFileSystem::FindFiles(newFolderPath.c_str(), nullptr, fileIter))
+					if (FFileSystem::FindFiles(newFolderPath.c_str(), fileIter))
 					{
 						for (; fileIter.haveMore(); fileIter.goNext())
 						{
@@ -293,7 +293,7 @@ void ContentPanel::renderFolderTree(char const* name, char const* path, int leve
 			folderInfo->subFolders.clear();
 
 			FileIterator fileIter;
-			if (FFileSystem::FindFiles(path, nullptr, fileIter))
+			if (FFileSystem::FindFiles(path, fileIter))
 			{
 				for (; fileIter.haveMore(); fileIter.goNext())
 				{
@@ -408,7 +408,7 @@ void ContentPanel::updateContent()
 	mCurrentFiles.clear();
 
 	FileIterator fileIter;
-	if (FFileSystem::FindFiles(mCurrentFolderPath.c_str(), nullptr, fileIter))
+	if (FFileSystem::FindFiles(mCurrentFolderPath.c_str(), fileIter))
 	{
 		for (; fileIter.haveMore(); fileIter.goNext())
 		{

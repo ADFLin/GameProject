@@ -50,7 +50,7 @@ namespace Go
 		dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME);
 
 		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
-		if( FFileSystem::FindFiles(dir, nullptr, fileIter) )
+		if( FFileSystem::FindFiles<char>(dir, fileIter) )
 		{
 			for( ; fileIter.haveMore(); fileIter.goNext() )
 			{

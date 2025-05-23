@@ -30,6 +30,11 @@ namespace CB
 		RenderData*        getRenderData() { return &mRenderData; }
 		void               addUpdateBits(unsigned bits) { mUpdateBits |= bits; }
 
+		void setTransform(Matrix4 const& inXForm)
+		{
+			mTransform = inXForm;
+		}
+		Matrix4 const& getTransform(){ return mTransform; }
 	public:
 		virtual int        getShapeType() = 0;
 		virtual ShapeBase* clone() = 0;
@@ -47,6 +52,9 @@ namespace CB
 		Color4f        mColor;
 		RenderData     mRenderData;
 		unsigned       mUpdateBits;
+
+
+		Matrix4 mTransform = Matrix4::Identity();
 
 	};
 
@@ -87,8 +95,11 @@ namespace CB
 		void showLine(bool beNeed) { mbShowLine = beNeed; }
 
 
+
 	protected:
 		Surface3D(Surface3D const& rhs);
+
+
 		int  mCurType;
 		bool mbShowMesh;
 		bool mbShowNormal;

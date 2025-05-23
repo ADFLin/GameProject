@@ -13,6 +13,7 @@
 #include "FileSystem.h"
 #include "Misc/Format.h"
 #include "RHI/GpuProfiler.h"
+#include "Expression.h"
 
 namespace CB
 {
@@ -372,6 +373,16 @@ namespace CB
 #else
 					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
 #endif
+
+
+#if EBC_MERGE_CONST_INPUT
+					FloatVector valueBuffer[64];
+					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc> )
+					{
+						func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);		
+					}
+#endif
+
 					int numBlock = Math::AlignCount(numData, FloatVector::Size);
 					for (int i = 0; i < numBlock; ++i)
 					{
@@ -384,7 +395,19 @@ namespace CB
 #endif
 
 						FloatVector z;
-						func->evalExpr(x, y, z);
+#if EBC_MERGE_CONST_INPUT
+						if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
+						{
+							valueBuffer[0] = x;
+							valueBuffer[1] = y;
+							func->evalExpr(TArrayView<FloatVector const>(valueBuffer), z);
+						}
+						else
+#endif
+						{
+							func->evalExpr(x, y, z);
+						}
+
 						SIMD_ELEMENT_LIST(SET_POS_OP);
 
 #if REORDER_CACHE
@@ -654,21 +677,36 @@ namespace CB
 					data->getVertexNum(), data->getIndexData(), data->getIndexNum(), true
 				);
 			}
+
+			flags |= RUF_COLOR;
 		}
 
 		if( flags & RUF_COLOR )
 		{
+			PROFILE_ENTRY("Update Color", "CB");
+
+			int vertexSize = data->getVertexSize();
 			uint8* colorData = data->getVertexData() + data->getColorOffset();
+			uint8* posData = data->getVertexData() + data->getPositionOffset();
 			for( int i = 0; i < vertexNum; ++i )
 			{
 				Color4f* pColor = (Color4f*)(colorData);
-				//BYTE temp[3];
-				//float z = pVertex[3*i+2].z;
-				//m_ColorMap.getColor((z-datamin)/(datamax-datamin),temp);
-				//setColor((z-datamin)/(datamax-datamin),&m_pColorData[4*i]);
+				BYTE temp[3];
+#if 0
+				float z = reinterpret_cast<Vector3*>(posData)->z;
+				float zMax = 20;
+				float zMin = 10;
+				float posColor = (z - zMin) / (zMax - zMin);
+				Color3f color;
+				mColorMap.getColor(posColor, color);
+				*pColor = Color4f(color, context.color.a);
+				posData += vertexSize;
+#else
 
 				*pColor = context.color;
-				colorData += data->getVertexSize();
+#endif
+				colorData += vertexSize;
+
 			}
 		}
 
@@ -790,19 +828,18 @@ namespace CB
 			Shader* shader = nullptr;
 			if (context.func->getFuncType() == TYPE_SURFACE_UV)
 			{
-				auto myFunc = static_cast<GPUSurfaceUVFunc*>(context.func);
-				shader = &myFunc->mShader;
+				auto myFunc = static_cast<SurfaceUVFunc*>(context.func);
+				shader = &myFunc->getShaderResrouce();
 			}
 			else if (context.func->getFuncType() == TYPE_SURFACE_XY)
 			{
-				auto myFunc = static_cast<GPUSurfaceXYFunc*>(context.func);
-				shader = &myFunc->mShader;
+				auto myFunc = static_cast<SurfaceXYFunc*>(context.func);
+				shader = &myFunc->getShaderResrouce();
 			}
 
 			if (shader)
 			{
 				GPU_PROFILE("Update Position");
-				PROFILE_ENTRY("Update Position", "CB");
 
 				VertexGenParamsData params;
 				params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
@@ -825,7 +862,6 @@ namespace CB
 			if (data->getNormalOffset() != INDEX_NONE)
 			{
 				GPU_PROFILE("Update Normal");
-				PROFILE_ENTRY("Update Normal", "CB");
 
 				NormalGenParamsData params;
 #if USE_SHARE_TRIANGLE_INFO
@@ -857,59 +893,56 @@ namespace CB
 		}
 	}
 
-
-	bool ShapeMeshBuilder::parseFunction(ShapeFuncBase& func)
+	bool ShapeMeshBuilder::compileFuncShader(ShapeFuncBase& func)
 	{
-		if (func.getEvalType() == EEvalType::GPU)
+		CHECK(func.getEvalType() == EEvalType::GPU);
+		using namespace Render;
+
+		ShaderCompileOption option;
+		option.addDefine(SHADER_PARAM(FUNC_TYPE), func.getFuncType());
+		ShaderEntryInfo entries[] =
 		{
-			using namespace Render;
-			{
-#if USE_PARALLEL_UPDATE
-				Mutex::Locker locker(mParserLock);
-#endif
-				if (!func.parseExpression(mParser))
-					return false;
-			}
+			{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
+		};
 
-			ShaderCompileOption option;
-
-			option.addDefine(SHADER_PARAM(FUNC_TYPE), func.getFuncType());
-
-			ShaderEntryInfo entries[] =
-			{
-				{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
-			};
-			if (func.getFuncType() == TYPE_SURFACE_XY)
-			{
-				auto& myFunc = static_cast<GPUSurfaceXYFunc&>(func);
-				if (!LoadRuntimeShader(myFunc.mShader, "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries, { StringView(myFunc.mExpr) } , option))
-				{
-					return false;
-				}
-			}
-			else if (func.getFuncType() == TYPE_SURFACE_UV)
-			{
-				auto& myFunc = static_cast<GPUSurfaceUVFunc&>(func);
-				if (!LoadRuntimeShader(myFunc.mShader, "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries, { StringView(myFunc.mAixsExpr[0]), StringView(myFunc.mAixsExpr[1]), StringView(myFunc.mAixsExpr[2]) }, option))
-				{
-					return false;
-				}
-			}
-			else
+		if (func.getFuncType() == TYPE_SURFACE_XY)
+		{
+			auto& myFunc = static_cast<SurfaceXYFunc&>(func);
+			if (!LoadRuntimeShader(myFunc.mExpr.GetOrCreateEvalResource<Shader>(), "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries, { StringView(myFunc.mExpr.getExprString()) }, option))
 			{
 				return false;
 			}
-
-
-			return true;
+		}
+		else if (func.getFuncType() == TYPE_SURFACE_UV)
+		{
+			auto& myFunc = static_cast<SurfaceUVFunc&>(func);
+			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].GetOrCreateEvalResource<Shader>(), "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries,
+				{ StringView(myFunc.mAixsExpr[0].getExprString()), StringView(myFunc.mAixsExpr[1].getExprString()), StringView(myFunc.mAixsExpr[2].getExprString()) }, option))
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return false;
 		}
 
+		return true;
+	}
+
+	bool ShapeMeshBuilder::parseFunction(ShapeFuncBase& func)
+	{
 		{
 #if USE_PARALLEL_UPDATE
 			Mutex::Locker locker(mParserLock);
 #endif
 			if (!func.parseExpression(mParser))
 				return false;
+		}
+
+		if (func.getEvalType() == EEvalType::GPU)
+		{	
+			return compileFuncShader(func);
 		}
 
 		return true;

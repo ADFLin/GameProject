@@ -33,16 +33,17 @@ namespace CB
 		return true;
 	}
 
-	bool FunctionParser::parse(Expression& expr , int numInput , ValueLayout inputLayouts[])
+	bool FunctionParser::compile(Expression& expr, int numInput , ValueLayout inputLayouts[])
 	{
-		expr.mIsParsed = mCompiler.compile(expr.getExprString().c_str(), mSymbolDefine, expr.getEvalData(), numInput , inputLayouts);
+		expr.mIsParsed = mCompiler.compile(expr.getExprString().c_str(), mSymbolDefine, expr.GetOrCreateEvalResource<ExecutableCode>(), numInput , inputLayouts);
 		return expr.mIsParsed;
 	}
 
-	bool FunctionParser::parse(char const* exprStr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult)
+	bool FunctionParser::parse(Expression& expr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult)
 	{
 		ExpressionParser parser;
-		return parser.parse(exprStr, mSymbolDefine, parseResult);
+		expr.mIsParsed = parser.parse(expr.getExprString().c_str(), mSymbolDefine, parseResult);
+		return expr.mIsParsed;
 	}
 
 	FunctionParser::FunctionParser()

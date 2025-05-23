@@ -207,7 +207,7 @@ namespace CB
 					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 					for (auto& func : mTranslucentDraw)
 					{
-						func(commandList);
+						func(commandList, *mProgCurveMeshOIT);
 					}
 				};
 				mOITTech.renderInternal(*mCommandList, mViewInfo, DrawFunc, nullptr);
@@ -222,7 +222,7 @@ namespace CB
 				mViewInfo.setupShader(commandList, *mProgCurveMesh);
 				for(auto& func : mTranslucentDraw)
 				{
-					func(commandList);
+					func(commandList, *mProgCurveMesh);
 				}
 			}
 		}
@@ -237,17 +237,39 @@ namespace CB
 
 		RHICommandList& commandList = *mCommandList;
 
+
+
+		struct SurfaceRender
+		{
+			SurfaceRender(Surface3D& surface)
+				:surface(surface)
+			{
+				float det;
+				surface.getTransform().inverseAffine(worldToLocal, det);
+			}
+
+			void setupShader(RHICommandList& commandList, ShaderProgram& shader) const
+			{
+				shader.setParam(commandList, SHADER_PARAM(LocalToWorld), surface.getTransform());
+				shader.setParam(commandList, SHADER_PARAM(WorldToLocal), worldToLocal);
+			}
+			Surface3D& surface;
+			Matrix4    worldToLocal;
+		};
+
+		SurfaceRender surfaceRender(surface);
+
 		bool bDrawContour = false;
 		if (bDrawContour)
 		{
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1, 1);
 
-			RHISetShaderProgram(commandList, mProgCurveContour->getRHI());
-			mViewInfo.setupShader(commandList, *mProgCurveContour);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-
+			RHISetShaderProgram(commandList, mProgCurveContour->getRHI());
+			mViewInfo.setupShader(commandList, *mProgCurveContour);
+			surfaceRender.setupShader(commandList, *mProgCurveContour);
 			mProgCurveContour->setParameters(commandList, LinearColor(1, 1, 1, 0), Vector4(0.25, 0.04, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 1));
 
 			drawMesh(surface);
@@ -262,7 +284,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip, color);
+			RHISetFixedShaderPipelineState(commandList, surface.getTransform() * mViewInfo.worldToClip, color);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 			//drawMeshLine(surface, color);
@@ -274,9 +296,10 @@ namespace CB
 		{
 			if( surface.getColor().a < 1.0)
 			{
-				mTranslucentDraw.emplace_back([this, &surface](RHICommandList& commandList)
+				mTranslucentDraw.emplace_back([this, surfaceRender](RHICommandList& commandList, ShaderProgram& shader)
 				{
-					drawMesh(surface);
+					surfaceRender.setupShader(commandList, shader);
+					drawMesh(surfaceRender.surface);
 				});
 			}
 			else
@@ -285,15 +308,29 @@ namespace CB
 #if 1
 				RHISetShaderProgram(commandList, mProgCurveMesh->getRHI());
 				mViewInfo.setupShader(commandList, *mProgCurveMesh);
+				surfaceRender.setupShader(commandList, *mProgCurveMesh);
 #else
-				RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, surface.getTransform() * mViewInfo.worldToClip);
 #endif
 				drawMesh(surface);
 			}
 		}
 		if( surface.isShowNormal())
 		{
-			drawMeshNormal(surface, 0.5);
+			RenderData* data = surface.getRenderData();
+			assert(data);
+
+			float length = 0.5;
+
+			if (data->getNormalOffset() != INDEX_NONE)
+			{
+				int d = std::max(1, int(1.0f / surface.getMeshLineDensity()));
+				RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHI());
+				mProgMeshNormalVisualize->setParameters(commandList, Vector4(1, 0, 0, 1), length, d, surface.getParamU().getNumData());
+				surfaceRender.setupShader(commandList, *mProgMeshNormalVisualize);
+				mViewInfo.setupShader(commandList, *mProgMeshNormalVisualize);
+				TRenderRT< RTVF_XYZ_CA_N >::Draw(commandList, EPrimitive::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+			}
 		}
 	}
 	template< bool bHaveNormal >
@@ -371,39 +408,35 @@ namespace CB
 #endif
 	}
 
+	RHIInputLayout& GetInputLayout(RenderData* data)
+	{
+		if (data->getNormalOffset() != INDEX_NONE)
+		{
+			return TRenderRT< RTVF_XYZ_CA_N >::GetInputLayout();
+		}
+		return TRenderRT< RTVF_XYZ_CA >::GetInputLayout();
+	}
+
 	void CurveRenderer::drawMesh(Surface3D& surface)
 	{
 		RenderData* data = surface.getRenderData();
 		CHECK(data);
 
+
+		RHIInputLayout& inputlayout = GetInputLayout(data);
+
 		if (data->resource)
 		{
 			auto& resource = *data->resource;
-			if (data->getNormalOffset() != INDEX_NONE)
-			{
-				TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *resource.vertexBuffer, *resource.indexBuffer, resource.indexBuffer->getNumElements());
-			}
-			else
-			{
-				TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *resource.vertexBuffer, *resource.indexBuffer, resource.indexBuffer->getNumElements());
-			}
-	
-			return;
-		}
-
-		uint8* vertexData = data->getVertexData();
-		CHECK(vertexData);
-		int const stride = data->getVertexSize();
-		if( data->getNormalOffset() != INDEX_NONE )
-		{
-			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , surface.getColor() , data->getVertexSize());
+			FRenderRT::DrawIndexed(*mCommandList, &inputlayout, EPrimitive::TriangleList, *resource.vertexBuffer, *resource.indexBuffer, resource.indexBuffer->getNumElements(), resource.vertexBuffer->getElementSize());
 		}
 		else
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), surface.getColor() , data->getVertexSize());
+			uint8* vertexData = data->getVertexData();
+			CHECK(vertexData);
+			FRenderRT::DrawIndexed(*mCommandList, &inputlayout, EPrimitive::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
 		}
 	}
-
 
 	void CurveRenderer::drawAxis()
 	{
@@ -475,25 +508,6 @@ namespace CB
 		RenderData* data = shape.getRenderData();
 		assert(data);
 		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, EPrimitive::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
-	}
-
-
-	void CurveRenderer::drawMeshNormal(Surface3D& surface , float length )
-	{
-		RHICommandList& commandList = *mCommandList;
-		RenderData* data = surface.getRenderData();
-		assert(data);
-
-		if( data->getNormalOffset() == INDEX_NONE )
-			return;
-
-
-		int d = std::max(1, int(1.0f / surface.getMeshLineDensity()));
-		RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHI());
-		mProgMeshNormalVisualize->setParameters(commandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
-		mViewInfo.setupShader(commandList, *mProgMeshNormalVisualize);
-		TRenderRT< RTVF_XYZ_CA_N >::Draw(commandList, EPrimitive::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
-
 	}
 
 	void CurveRenderer::drawCoordinates(SampleParam const& axis1, SampleParam const& axis2)

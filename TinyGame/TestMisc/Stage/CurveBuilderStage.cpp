@@ -116,17 +116,18 @@ namespace CB
 				Surface3D* surface;
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 	
-				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 1.0));
-				surface = createSurfaceXY(TestExpr, Color4f(1, 0.6, 0.4, 0.9), true);
+				//surface = createSurfaceXY(MyFunc2, Color4f(1, 0.6, 0.4, 1.0));
+				surface = createSurfaceXY(TestExpr, Color4f(0.2, 0.6, 1.0, 0.9));
+				surface->setTransform(Matrix4::Translate(0,0,1));
 				//surface = createSurfaceXY("Test(1,x + y)", Color4f(0.2, 0.6, 0.4, 0.3));
-				//surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
+				//surface = createSurfaceXY("10 - x", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("sqrt(x*x + y*y)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("(5 - x)*sin(t)", Color4f(1, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("sin(sqrt(x*x+y*y))", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 				mSurface = surface;
 
-				createSphareSurface(Color4f(0.2, 0.6, 0.1, 0.3), false);
+				//createSphareSurface(Color4f(0.2, 0.6, 0.1, 0.3), false);
 
 				mTextCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 300, nullptr);
 				updateUI();
@@ -159,12 +160,12 @@ namespace CB
 			}
 			else
 			{
-				mTextCtrl->setValue(static_cast<RTSurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
+				mTextCtrl->setValue(static_cast<SurfaceXYFunc*>(mSurface->getFunction())->getExprString().c_str());
 				mTextCtrl->onEvent = [this](int event, GWidget* widget)
 				{
 					if (event == EVT_TEXTCTRL_COMMITTED)
 					{
-						auto func = (RTSurfaceXYFunc*)mSurface->getFunction();
+						auto func = (SurfaceXYFunc*)mSurface->getFunction();
 						func->setExpr(widget->cast<GTextCtrl>()->getValue());
 						mSurface->addUpdateBits(RUF_FUNCTION);
 					}
@@ -182,7 +183,7 @@ namespace CB
 		}
 
 
-		Surface3D* createSphareSurface(Color4f const& color, bool bGPU = false)
+		Surface3D* createSphareSurface(Color4f const& color, bool bUseGPU = false)
 		{
 			char const* exprList[] = 
 			{
@@ -197,20 +198,10 @@ namespace CB
 			surface->setRangeU(Range(0, 2 * Math::PI));
 			surface->setRangeV(Range(-Math::PI, Math::PI));
 
-			if (bGPU)
-			{
-				GPUSurfaceUVFunc* func = new GPUSurfaceUVFunc;
-				for( int i = 0 ; i < 3; ++i)
-					func->setExpr(i , exprList[i]);
-				surface->setFunction(func);
-			}
-			else
-			{
-				SurfaceUVFunc* func = new SurfaceUVFunc;
-				for (int i = 0; i < 3; ++i)
-					func->setExpr(i, exprList[i]);
-				surface->setFunction(func);
-			}
+			SurfaceUVFunc* func = new SurfaceUVFunc(bUseGPU);
+			for (int i = 0; i < 3; ++i)
+				func->setExpr(i, exprList[i]);
+			surface->setFunction(func);
 
 #if _DEBUG && 0
 			int NumX = 20, NumY = 20;
@@ -226,20 +217,11 @@ namespace CB
 			return surface;
 		}
 
-		Surface3D* createSurfaceXY(char const* expr, Color4f const& color, bool bGPU = false)
+		Surface3D* createSurfaceXY(char const* expr, Color4f const& color, bool bUseGPU = false)
 		{
-			if (bGPU)
-			{
-				GPUSurfaceXYFunc* func = new GPUSurfaceXYFunc;
-				func->setExpr(expr);
-				return createSurface(func, color);
-			}
-			else
-			{
-				SurfaceXYFunc* func = new SurfaceXYFunc;
-				func->setExpr(expr);
-				return createSurface(func, color);
-			}
+			SurfaceXYFunc* func = new SurfaceXYFunc(bUseGPU);
+			func->setExpr(expr);
+			return createSurface(func, color);
 		}
 
 		Surface3D* createSurface(SurfaceFunc* func, Color4f const& color)
@@ -271,6 +253,8 @@ namespace CB
 
 		void restart() {}
 
+
+		bool bGPUUpdateRequired = false;
 		void onUpdate(GameTimeSpan deltaTime) override
 		{
 			BaseClass::onUpdate(deltaTime);
@@ -279,6 +263,7 @@ namespace CB
 			if (!bPauseTime)
 			{
 				GTime += deltaTime.value;
+				bGPUUpdateRequired = true;
 			}
 
 			{
@@ -307,14 +292,17 @@ namespace CB
 		{
 			PROFILE_ENTRY("Stage.Render");
 			
-			for (ShapeBase* current : mSurfaceList)
+			if (bGPUUpdateRequired)
 			{
-				if (current->getFunction()->getEvalType() != EEvalType::GPU)
-					continue;
-				current->update(*mMeshBuilder);
+				bGPUUpdateRequired = false;
+				for (ShapeBase* current : mSurfaceList)
+				{
+					if (current->getFunction()->getEvalType() != EEvalType::GPU)
+						continue;
+					current->update(*mMeshBuilder);
+				}
 			}
 
-			
 			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -397,7 +385,7 @@ namespace CB
 						{
 						case EEvalType::Native:
 							{
-								SurfaceXYFunc* func = new SurfaceXYFunc;
+								SurfaceXYFunc* func = new SurfaceXYFunc(false);
 								func->setExpr(TestExpr);
 								mSurface->setFunction(func);
 							}

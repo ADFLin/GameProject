@@ -9,72 +9,86 @@ namespace CB
 	bool SurfaceXYFunc::parseExpression(FunctionParser& parser)
 	{
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
-		if( parser.parse(mExpr , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
+
+		if (mbUseGPU)
 		{
-			mUsedInputMask = 0;
-			mUsedInputMask |= parser.isUsingInput("x") ? BIT(0) : 0;
-			mUsedInputMask |= parser.isUsingInput("y") ? BIT(1) : 0;
-			setDynamic(parser.isUsingVar("t"));
+			ParseResult parserResult;
+			if (parser.parse(mExpr, ARRAY_SIZE(inputLayouts), inputLayouts, parserResult))
+			{
+				mUsedInputMask = 0;
+				mUsedInputMask |= parserResult.isUsingInput("x") ? BIT(0) : 0;
+				mUsedInputMask |= parserResult.isUsingInput("y") ? BIT(1) : 0;
+				setDynamic(parserResult.isUsingVar("t"));
+			}
+		}
+		else
+		{
+			if (parser.compile(mExpr, ARRAY_SIZE(inputLayouts), inputLayouts))
+			{
+				mUsedInputMask = 0;
+				mUsedInputMask |= parser.isUsingInput("x") ? BIT(0) : 0;
+				mUsedInputMask |= parser.isUsingInput("y") ? BIT(1) : 0;
+				setDynamic(parser.isUsingVar("t"));
+			}
 		}
 		return isParsed();
 	}
-
-	bool GPUSurfaceXYFunc::parseExpression(FunctionParser& parser)
-	{
-		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
-		ParseResult parserResult;
-		if (parser.parse(mExpr.c_str(), ARRAY_SIZE(inputLayouts), inputLayouts, parserResult))
-		{
-			mUsedInputMask = 0;
-			mUsedInputMask |= parserResult.isUsingInput("x") ? BIT(0) : 0;
-			mUsedInputMask |= parserResult.isUsingInput("y") ? BIT(1) : 0;
-			setDynamic(parserResult.isUsingVar("t"));
-			return true;
-		}
-
-		return false;
-	}
-
 
 	SurfaceXYFunc* SurfaceXYFunc::clone()
 	{
 		return new SurfaceXYFunc(*this);
 	}
 
-
-	GPUSurfaceXYFunc* GPUSurfaceXYFunc::clone()
-	{
-		return new GPUSurfaceXYFunc(*this);
-	}
-
 	void SurfaceUVFunc::evalExpr(Vector3& out, float u, float v)
 	{
 		CHECK(isParsed());
-		out.setValue(mAixsExpr[0].eval(u,v), mAixsExpr[1].eval(u,v), mAixsExpr[2].eval(u,v));
+		out.setValue(
+			mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<RealType>(u,v),
+			mAixsExpr[1].GetEvalResource<ExecutableCode>().evalT<RealType>(u,v), 
+			mAixsExpr[2].GetEvalResource<ExecutableCode>().evalT<RealType>(u,v)
+		);
 	}
 
 	void SurfaceUVFunc::evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ)
 	{
 		CHECK(isParsed());
-		outX = mAixsExpr[0].eval(u, v);
-		outY = mAixsExpr[1].eval(u, v);
-		outZ = mAixsExpr[2].eval(u, v);
+		outX = mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
+		outY = mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
+		outZ = mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
 	}
 
 	bool SurfaceUVFunc::parseExpression(FunctionParser& parser)
 	{
 		bool bDynamic = false;
 		mUsedInputMask = 0;
-		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };	
-		for( int i = 0; i < 3; ++i )
-		{
-			if( !parser.parse(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts) )
-				return false;
+		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
 
-			bDynamic |= parser.isUsingVar("t");
-			mUsedInputMask |= parser.isUsingInput("u") ? BIT(0) : 0;
-			mUsedInputMask |= parser.isUsingInput("v") ? BIT(1) : 0;
+		if (mbUseGPU)
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				ParseResult parseResult;
+				if (!parser.parse(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts, parseResult))
+					return false;
+
+				bDynamic |= parseResult.isUsingVar("t");
+				mUsedInputMask |= parseResult.isUsingInput("u") ? BIT(0) : 0;
+				mUsedInputMask |= parseResult.isUsingInput("v") ? BIT(1) : 0;
+			}
 		}
+		else
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				if (!parser.compile(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts))
+					return false;
+
+				bDynamic |= parser.isUsingVar("t");
+				mUsedInputMask |= parser.isUsingInput("u") ? BIT(0) : 0;
+				mUsedInputMask |= parser.isUsingInput("v") ? BIT(1) : 0;
+			}
+		}
+
 
 		setDynamic(bDynamic);
 		return isParsed();
@@ -85,30 +99,6 @@ namespace CB
 		return mAixsExpr[0].isParsed() && mAixsExpr[1].isParsed() && mAixsExpr[2].isParsed();
 	}
 
-	GPUSurfaceUVFunc* GPUSurfaceUVFunc::clone()
-	{
-		return new GPUSurfaceUVFunc(*this);
-	}
-
-	bool GPUSurfaceUVFunc::parseExpression(FunctionParser& parser)
-	{
-		bool bDynamic = false;
-		mUsedInputMask = 0;
-		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
-		for (int i = 0; i < 3; ++i)
-		{
-			ParseResult parseResult;
-			if (!parser.parse(mAixsExpr[i].c_str(), ARRAY_SIZE(inputLayouts), inputLayouts, parseResult))
-				return false;
-
-			bDynamic |= parseResult.isUsingVar("t");
-			mUsedInputMask |= parseResult.isUsingInput("u") ? BIT(0) : 0;
-			mUsedInputMask |= parseResult.isUsingInput("v") ? BIT(1) : 0;
-		}
-
-		setDynamic(bDynamic);
-		return true;
-	}
 
 	SurfaceUVFunc* SurfaceUVFunc::clone()
 	{
@@ -126,7 +116,7 @@ namespace CB
 		ValueLayout inputLayouts[] = { ValueLayout::Real };
 		for( int i = 0; i < 3; ++i )
 		{
-			if( parser.parse(mCoordExpr[i] , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
+			if( parser.compile(mCoordExpr[i] , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
 				bDynamic |= parser.isUsingVar("t");
 		}
 
@@ -142,7 +132,11 @@ namespace CB
 	void Curve3DFunc::evalExpr(Vector3& out, float s)
 	{
 		assert(isParsed());
-		out.setValue(mCoordExpr[0].eval(s), mCoordExpr[1].eval(s), mCoordExpr[2].eval(s));
+		out.setValue(
+			mCoordExpr[0].GetEvalResource<ExecutableCode>().evalT<RealType>(s),
+			mCoordExpr[1].GetEvalResource<ExecutableCode>().evalT<RealType>(s),
+			mCoordExpr[2].GetEvalResource<ExecutableCode>().evalT<RealType>(s)
+		);
 	}
 
 	NativeSurfaceXYFunc* NativeSurfaceXYFunc::clone()

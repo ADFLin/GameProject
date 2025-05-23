@@ -366,7 +366,7 @@ namespace Render
 		void renderTest(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
 		void reloadShader();
 
-		void renderInternal(RHICommandList& commandList, ViewInfo& view , std::function< void(RHICommandList&) > drawFuncion , FrameRenderTargets* sceneRenderTargets = nullptr );
+		void renderInternal(RHICommandList& commandList, ViewInfo& view , std::function< void(RHICommandList&) > drawFunction, FrameRenderTargets* sceneRenderTargets = nullptr );
 
 		
 		static constexpr int BMA_MaxPixelCounts[] =

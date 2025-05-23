@@ -82,6 +82,7 @@ namespace CB
 
 		void  updateSurfaceDataGPU(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV);
 
+		bool  compileFuncShader(ShapeFuncBase& func);
 		template< typename TSurfaceUVFunc >
 		void updatePositionData_SurfaceUV(TSurfaceUVFunc* func, SampleParam const &paramU, SampleParam const &paramV, RenderData& data);
 		template< typename TSurfaceXYFunc >

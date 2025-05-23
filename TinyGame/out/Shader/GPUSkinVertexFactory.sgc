@@ -131,13 +131,13 @@ VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
 	intermediates.normal = noramlFactor * float4(VERTEX_INPUT(normal), 0) * worldToLocal;
 	intermediates.tangent = noramlFactor * float4(VERTEX_INPUT(tangent).xyz, 0) * worldToLocal;
 	intermediates.tangent.w = VERTEX_INPUT(tangent).w;
-	intermediates.worldPos = worldToLocal * VERTEX_INPUT(position);
+	intermediates.worldPos = localToWorld * VERTEX_INPUT(position);
 	intermediates.vertexColor = VERTEX_INPUT(color);
 #else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * Primitive.worldToLocal;
 	intermediates.tangent = noramlFactor * float4(gl_Tangent.xyz, 0) * Primitive.worldToLocal;
 	intermediates.tangent.w = gl_Tangent.w;
-	intermediates.worldPos = worldToLocal * gl_Vertex;
+	intermediates.worldPos = localToWorld * gl_Vertex;
 	intermediates.vertexColor = gl_Color;
 #endif //USE_VERTEX_ATTRIBUTE_INDEX
 

@@ -200,6 +200,54 @@ namespace Render
 #undef VERTEX_ELEMENT_COUNT
 #undef USE_SEMANTIC
 
+	class FRenderRT
+	{
+	public:
+		FORCEINLINE static void Draw(RHICommandList& commandList, RHIInputLayout* inputLayout, EPrimitive type, void const* vetrices, int numVertices, int vertexStride)
+		{
+			DrawInstanced(commandList, inputLayout, type, vetrices, numVertices, 1, vertexStride);
+		}
+
+		FORCEINLINE static void DrawInstanced(RHICommandList& commandList, RHIInputLayout* inputLayout, EPrimitive type, void const* vetrices, int numVertices, uint32 numInstance, int vertexStride)
+		{
+			RHISetInputStream(commandList, inputLayout, nullptr, 0);
+			RHIDrawPrimitiveUP(commandList, type, vetrices, numVertices, vertexStride, numInstance);
+		}
+
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, RHIInputLayout* inputLayout, EPrimitive type, void const* vetrices, int numVertices, uint32 const* indices, int nIndex, int vertexStride)
+		{
+			DrawIndexedInstanced(commandList, inputLayout, type, vetrices, numVertices, indices, nIndex, 1, vertexStride);
+		}
+
+		FORCEINLINE static void DrawIndexedInstanced(RHICommandList& commandList, RHIInputLayout* inputLayout, EPrimitive type, void const* vetrices, int numVertices, uint32 const* indices, int nIndex, uint32 numInstance, int vertexStride)
+		{
+			RHISetInputStream(commandList, inputLayout, nullptr, 0);
+			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, numVertices, vertexStride, indices, nIndex, numInstance);
+		}
+
+		FORCEINLINE static void Draw(RHICommandList& commandList, RHIInputLayout* inputLayout, EPrimitive type, RHIBuffer& buffer, int numVertices, int vertexStride)
+		{
+			InputStreamInfo inputStream;
+			inputStream.buffer = &buffer;
+			inputStream.offset = 0;
+			inputStream.stride = vertexStride;
+			RHISetInputStream(commandList, inputLayout, &inputStream, 1);
+			RHIDrawPrimitive(commandList, type, 0, numVertices);
+		}
+
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, RHIInputLayout* inputLayout, EPrimitive type, RHIBuffer& vertexbuffer, RHIBuffer& indexbuffer, int nIndex, int vertexStride)
+		{
+			InputStreamInfo inputStream;
+			inputStream.buffer = &vertexbuffer;
+			inputStream.offset = 0;
+			inputStream.stride = vertexStride;
+			RHISetInputStream(commandList, inputLayout, &inputStream, 1);
+			RHISetIndexBuffer(commandList, &indexbuffer);
+			RHIDrawIndexedPrimitive(commandList, type, 0, nIndex);
+		}
+
+	};
+
 	template < uint32 VertexFormat >
 	class TRenderRT
 	{
@@ -207,24 +255,22 @@ namespace Render
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, int vertexStride = GetVertexSize())
 		{
-			DrawInstanced(commandList, type, vetrices, numVertices, 1 , vertexStride);
+			FRenderRT::DrawInstanced(commandList, &GetInputLayout(), type, vetrices, numVertices, 1u, vertexStride);
 		}
 
 		FORCEINLINE static void DrawInstanced(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, uint32 numInstance, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, &GetInputLayout(), nullptr, 0);
-			RHIDrawPrimitiveUP(commandList, type, vetrices, numVertices, vertexStride, numInstance);
+			FRenderRT::DrawInstanced(commandList, &GetInputLayout(), type, vetrices, numVertices, numInstance, vertexStride);
 		}
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, uint32 const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
-			DrawIndexedInstanced(commandList, type, vetrices, numVertices, indices, nIndex, 1, vertexStride);
+			FRenderRT::DrawIndexedInstanced(commandList, &GetInputLayout(), type, vetrices, numVertices, indices, nIndex, 1u, vertexStride);
 		}
 
 		FORCEINLINE static void DrawIndexedInstanced(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, uint32 const* indices, int nIndex, uint32 numInstance, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, &GetInputLayout(), nullptr, 0);
-			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, numVertices, vertexStride, indices, nIndex, numInstance);
+			FRenderRT::DrawIndexedInstanced(commandList, &GetInputLayout(), type, vetrices, numVertices, indices, nIndex, numInstance, vertexStride);
 		}
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, LinearColor const& color, int vertexStride = GetVertexSize())
@@ -265,25 +311,13 @@ namespace Render
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, RHIBuffer& buffer, int numVertices, int vertexStride = GetVertexSize())
 		{
-			InputStreamInfo inputStream;
-			inputStream.buffer = &buffer;
-			inputStream.offset = 0;
-			inputStream.stride = vertexStride;
-			RHISetInputStream(commandList, &GetInputLayout(), &inputStream, 1);
-			RHIDrawPrimitive(commandList, type, 0, numVertices);
+			FRenderRT::Draw(commandList, &GetInputLayout(), type, buffer, numVertices, vertexStride);
 		}
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, RHIBuffer& vertexbuffer, RHIBuffer& indexbuffer, int nIndex, int vertexStride = GetVertexSize())
 		{
-			InputStreamInfo inputStream;
-			inputStream.buffer = &vertexbuffer;
-			inputStream.offset = 0;
-			inputStream.stride = vertexStride;
-			RHISetInputStream(commandList, &GetInputLayout(), &inputStream, 1);
-			RHISetIndexBuffer(commandList, &indexbuffer);
-			RHIDrawIndexedPrimitive(commandList, type, 0, nIndex);
+			FRenderRT::DrawIndexed(commandList, &GetInputLayout(), type , vertexbuffer , indexbuffer, nIndex, vertexStride);
 		}
-
 
 		FORCEINLINE static int GetVertexSize()
 		{

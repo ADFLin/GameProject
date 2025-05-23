@@ -5,6 +5,11 @@
 
 namespace CB
 {
+
+	struct IEvalResource
+	{
+		virtual ~IEvalResource(){}
+	};
 	class Expression
 	{
 	public:
@@ -20,22 +25,37 @@ namespace CB
 			mStrExpr = ExprStr;
 			mIsParsed = false;
 		}
-		ExecutableCode&  getEvalData() { return mEvalCode; }
+
 		std::string const& getExprString() const { return mStrExpr; }
-		FORCEINLINE RealType eval() const { return mEvalCode.evalT<RealType>(); }
-		FORCEINLINE RealType eval(RealType p0) const { return mEvalCode.evalT<RealType>(p0); }
-		FORCEINLINE RealType eval(RealType p0, RealType p1) const { return mEvalCode.evalT<RealType>(p0,p1); }
-		FORCEINLINE RealType eval(RealType p0, RealType p1, RealType p2) const { return mEvalCode.evalT<RealType>(p0,p1,p2); }
 
+		template< typename T >
+		class TTypedResource : public IEvalResource
+		{
+		public:
+			T instance;
+		};
+		template< typename T >
+		T&  GetOrCreateEvalResource()
+		{
+			if (mEvalResource == nullptr)
+			{
+				mEvalResource = new TTypedResource<T>;
+			}
+			return static_cast<TTypedResource<T>*>(mEvalResource)->instance;
+		}
 
-		FORCEINLINE FloatVector eval(FloatVector const& p0) const { return mEvalCode.evalT<FloatVector>(p0); }
-		FORCEINLINE FloatVector eval(FloatVector const& p0, FloatVector const& p1) const { return mEvalCode.evalT<FloatVector>(p0, p1); }
-		FORCEINLINE FloatVector eval(FloatVector const& p0, FloatVector const& p1, FloatVector const& p2) const { return mEvalCode.evalT<FloatVector>(p0, p1, p2); }
+		template< typename T >
+		T&  GetEvalResource()
+		{
+			CHECK(mEvalResource);
+			return static_cast<TTypedResource<T>*>(mEvalResource)->instance;
+		}
 
 	private:
 		bool           mIsParsed;
 		std::string    mStrExpr;
-		ExecutableCode mEvalCode;
+		IEvalResource* mEvalResource = nullptr;
+
 		friend class FunctionParser;
 	};
 

@@ -12,7 +12,7 @@ namespace CB
 	public:
 		virtual ~IFunctionParser() = default;
 		virtual bool checkValid(char const* expr) = 0;
-		virtual bool parse(Expression& expr, int numInput = 0, ValueLayout inputLayouts[] = nullptr) = 0;
+		virtual bool compile(Expression& expr, int numInput = 0, ValueLayout inputLayouts[] = nullptr) = 0;
 		virtual bool isUsingVar(char const* varName) const = 0;
 		virtual bool isUsingInput(char const* varName) const = 0;
 	};
@@ -23,8 +23,8 @@ namespace CB
 		FunctionParser();
 		SymbolTable& getSymbolDefine() { return mSymbolDefine; }
 		bool         checkValid(char const* expr);
-		bool         parse(Expression& expr , int numInput = 0 , ValueLayout inputLayouts[] = nullptr);
-		bool         parse(char const* exprStr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult);
+		bool         compile(Expression& expr, int numInput, ValueLayout inputLayouts[] = nullptr);
+		bool         parse(Expression& expr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult);
 		bool		 isUsingVar(char const* varName) const
 		{
 			return mCompiler.isUsingVar(varName);

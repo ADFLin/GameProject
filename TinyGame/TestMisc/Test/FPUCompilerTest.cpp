@@ -96,8 +96,9 @@ void TestExprCompile()
 	}
 #endif
 
-	ExecutableCode code;
 
+#if ENABLE_FPU_CODE
+	ExecutableCode code;
 	ValueLayout layouts[] = { ValueLayout::Double , ValueLayout::Double ,ValueLayout::Float };
 	ExpressionCompiler compiler;
 	SymbolTable table;
@@ -114,6 +115,7 @@ void TestExprCompile()
 
 	double value = code.evalT< double >(x,y,z);
 	LogMsg("%lf %lf", value , z);
+#endif
 }
 
 REGISTER_MISC_TEST_ENTRY("Expr Compile Test", TestExprCompile);

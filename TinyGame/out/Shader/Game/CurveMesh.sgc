@@ -12,10 +12,14 @@
 
 struct OutputVSParam
 {
-	float3 pos;
+	float3 localPos;
+	float3 worldPos;
 	float4 color;
 	float3 normal;
 };
+
+uniform float4x4 LocalToWorld;
+uniform float4x4 WorldToLocal;
 
 #if VERTEX_SHADER
 VS_ENTRY_START(MainVS)
@@ -25,11 +29,15 @@ VS_ENTRY_START(MainVS)
 	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
 VS_ENTRY_END(MainVS)
 {
-	OutputVS.pos = InPos;
-	OutputVS.normal = InNormal;
+
+	float4 worldPos = mul(LocalToWorld, float4(InPos, 1.0));
+	OutputVS.localPos = InPos;
+	OutputVS.worldPos = worldPos.xyz;
+
+	OutputVS.normal = mul( float4(InNormal, 0.0) , WorldToLocal).xyz;
 	OutputVS.color = InColor;
 
-	float4 clipPos = mul(View.worldToClip, float4(InPos, 1.0));
+	float4 clipPos = mul(View.worldToClip, worldPos);
 	SvPosition = clipPos;
 }
 #endif //VERTEX_SHADER
@@ -49,15 +57,20 @@ PS_ENTRY_START(MainPS)
 #endif
 PS_ENTRY_END(MainPS)
 {
-	float3 normal = normalize(OutputVS.normal);
+	float3 N = normalize(OutputVS.normal);
+#if 1
 	if (!SvIsFrontFace)
-		normal = -normal;
+		N = -N;
+#endif
+	float3 V = normalize(View.worldPos - OutputVS.worldPos);
+	float NoL = saturate(dot(N, float3(0, 0, 1)));
+	float NoV = saturate(dot(N, V));
 
-	float3 color = dot(normal, float3(0, 0, 1)) * OutputVS.color.rgb;
+	float3 color = ( 0.5 * NoV + NoL) * OutputVS.color.rgb;
 	float alpha = OutputVS.color.a;
 	//color = (0.5 * normal + 0.5);
 #if USE_OIT
-	float pixelDepth = (View.worldToView * float4(OutputVS.pos, 1)).z;
+	float pixelDepth = (View.worldToView * float4(OutputVS.worldPos, 1)).z;
 	OITProcessPS(float4(color , alpha), pixelDepth);
 #else
 	OutColor = float4(color, alpha);

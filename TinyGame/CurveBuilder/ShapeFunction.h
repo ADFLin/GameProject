@@ -77,117 +77,61 @@ namespace CB
 		bool  bSupportSIMD = false;
 	};
 
-	class RTSurfaceXYFunc : public SurfaceFunc
+
+	class SurfaceXYFunc : public SurfaceFunc
 	{
 	public:
-
-		virtual void setExpr(std::string const& expr) = 0;
-		virtual std::string const& getExprString() = 0;
-	};
-
-	class GPUSurfaceXYFunc : public RTSurfaceXYFunc
-	{
-	public:
-		GPUSurfaceXYFunc()
+		SurfaceXYFunc(bool bUseGPU)
+			:mbUseGPU(bUseGPU)
 		{
-			bSupportSIMD = false;
-		}
-		virtual ~GPUSurfaceXYFunc() {}
-		int       getFuncType() override { return TYPE_SURFACE_XY; }
-		EEvalType getEvalType() override { return EEvalType::GPU; }
-
-		bool parseExpression(FunctionParser& parser) override;
-		bool isParsed() override
-		{
-			return mShader.isVaild();
-		}
-
-		void setExpr(std::string const& expr) 
-		{
-			mExpr = expr;
-			mShader.releaseRHI();
-		}
-		std::string const& getExprString() { return mExpr; }
-		GPUSurfaceXYFunc* clone() override;
-
-	private:
-
-		friend class ShapeMeshBuilder;
-		std::string  mExpr;
-		Render::Shader mShader;
-	};
-
-	class SurfaceXYFunc : public RTSurfaceXYFunc
-	{
-	public:
-		SurfaceXYFunc()
-		{
-			bSupportSIMD = ExecutableCode::IsSupportSIMD;
+			bSupportSIMD = ExecutableCode::IsSupportSIMD && !bUseGPU;
 		}
 		virtual ~SurfaceXYFunc() {}
 		int  getFuncType() override { return TYPE_SURFACE_XY; }
+		EEvalType getEvalType() override { return mbUseGPU ? EEvalType::GPU : EEvalType::CPU; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override { return mExpr.isParsed(); }
 		void evalExpr(Vector3& out, float x, float y)
 		{
 			assert(isParsed());
-			out.setValue(x, y, (float)mExpr.eval(x, y));
+			out.setValue(x, y, mExpr.GetEvalResource<ExecutableCode>().evalT<RealType>(x, y));
 		}
 
 		void evalExpr(FloatVector const& x, FloatVector const& y, FloatVector& outZ)
 		{
-			outZ = mExpr.eval(x, y);
+			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<FloatVector>(x, y);
+		}
+
+		template< typename T>
+		void evalExpr(TArrayView<T const> valueBuffers, T& outZ)
+		{
+			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<T>(valueBuffers);
 		}
 
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
 		std::string const& getExprString() { return mExpr.getExprString(); }
+
+		Render::Shader& getShaderResrouce() { return mExpr.GetEvalResource<Render::Shader>(); }
+
 		SurfaceXYFunc* clone() override;
 	private:
+		friend class ShapeMeshBuilder;
+		bool         mbUseGPU;
 		Expression   mExpr;
 	};
 
-	class GPUSurfaceUVFunc : public SurfaceFunc
-	{
-	public:
-		GPUSurfaceUVFunc()
-		{
-			bSupportSIMD = false;
-		}
-
-		int  getFuncType() override { return TYPE_SURFACE_UV; }
-		EEvalType getEvalType() override { return EEvalType::GPU; }
-
-		bool parseExpression(FunctionParser& parser) override;
-		bool isParsed() override { return mShader.isVaild(); }
-		void setExpr(int axis, std::string const& expr)
-		{
-			assert(axis >= 0 && axis < 3);
-			mAixsExpr[axis] = expr;
-			mShader.releaseRHI();
-		}
-		std::string const& getExprString(int axis)
-		{
-			assert(axis >= 0 && axis < 3);
-			return mAixsExpr[axis];
-		}
-		GPUSurfaceUVFunc* clone() override;
-
-	private:
-
-		friend class ShapeMeshBuilder;
-		std::string   mAixsExpr[3];
-		Render::Shader mShader;
-	};
 
 	class SurfaceUVFunc : public SurfaceFunc
 	{
 	public:
-		SurfaceUVFunc() :SurfaceFunc() 
+		SurfaceUVFunc(bool bUseGPU) :SurfaceFunc()
+			,mbUseGPU(bUseGPU)
 		{
-			bSupportSIMD = ExecutableCode::IsSupportSIMD;
+			bSupportSIMD = ExecutableCode::IsSupportSIMD && !bUseGPU;
 		}
 
 		int  getFuncType() override { return TYPE_SURFACE_UV; }
+		EEvalType getEvalType() override { return mbUseGPU ? EEvalType::GPU : EEvalType::CPU; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
 		void evalExpr(Vector3& out, float u, float v);
@@ -204,7 +148,11 @@ namespace CB
 			return mAixsExpr[axis].getExprString();
 		}
 		SurfaceUVFunc* clone() override;
+
+		Render::Shader& getShaderResrouce(){ return mAixsExpr[0].GetEvalResource<Render::Shader>(); }
 	private:
+		friend class ShapeMeshBuilder;
+		bool         mbUseGPU;
 		Expression   mAixsExpr[3];
 	};
 

@@ -844,55 +844,92 @@ protected:
 
 #define EBC_USE_FIXED_SIZE 2
 #define EBC_USE_COMPOSITIVE_CODE 1
+#define EBC_USE_COMPOSITIVE_OP_CODE 1
+#define EBC_MAX_FUNC_ARG_NUM 0
+
 
 namespace EExprByteCode
 {
 	enum Type : uint8
 	{
-		Dummy,
+		None,
+#if !EBC_MERGE_CONST_INPUT
 		Const,
+#endif
 		Input,
 		Variable,
+		Dummy,
 
 #if EBC_USE_COMPOSITIVE_CODE
 
 		Add,
+#if !EBC_MERGE_CONST_INPUT
 		CAdd,
+#endif
 		IAdd,
 		VAdd,
 
 		Sub,
+#if !EBC_MERGE_CONST_INPUT
 		CSub,
+#endif
 		ISub,
 		VSub,
 
 		SubR,
+#if !EBC_MERGE_CONST_INPUT
 		CSubR,
+#endif
 		ISubR,
 		VSubR,
 
 		Mul,
+#if !EBC_MERGE_CONST_INPUT
 		CMul,
+#endif
 		IMul,
 		VMul,
 
 		Div,
+#if !EBC_MERGE_CONST_INPUT
 		CDiv,
+#endif
 		IDiv,
 		VDiv,
 
 		DivR,
+#if !EBC_MERGE_CONST_INPUT
 		CDivR,
+#endif
 		IDivR,
 		VDivR,
 
-#if 0
-		MulAdd,
-		AddMul,
-#endif
 		SelfMul,
-#else
 
+#if EBC_USE_COMPOSITIVE_OP_CODE
+		MulAdd,
+#if !EBC_MERGE_CONST_INPUT
+		CMulAdd,
+#endif
+		IMulAdd,
+		VMulAdd,
+
+		AddMul,
+#if !EBC_MERGE_CONST_INPUT
+		CAddMul,
+#endif
+		IAddMul,
+		VAddMul,
+		
+		MulSub,
+#if !EBC_MERGE_CONST_INPUT
+		CMulSub,
+#endif
+		IMulSub,
+		VMulSub,
+#endif
+
+#else
 		Add,
 		Sub,
 		SubR,
@@ -932,9 +969,11 @@ TValue TByteCodeExecutor<TValue>::doExecute(ExecutableCode const& code)
 	TValue  topValue;
 	switch (*pCode)
 	{
+#if !EBC_MERGE_CONST_INPUT
 	case EExprByteCode::Const:
 		topValue = GET_CONST(pCode[1]);
 		break;
+#endif
 	case EExprByteCode::Input:
 		topValue = GET_INPUT(pCode[1]);
 		break;
@@ -983,7 +1022,7 @@ FORCEINLINE TValue Invoke(RT (*func)(Args...), TValue args[])
 template< typename TValue, typename RT, typename ...Args, size_t ...Is>
 FORCEINLINE TValue InvokeInternal(RT (*func)(Args...), TValue args[], TIndexList<Is...>)
 {
-	if constexpr (std::is_same_v<TValue, FloatVector>)
+	if constexpr (std::is_same_v<TValue, FloatVector> && !std::is_same_v<TValue, RT>)
 	{
 		TValue result;
 		result[0] = (*func)(args[Is][0]...);
@@ -1022,10 +1061,12 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 
 	switch (*pCode)
 	{
+#if !EBC_MERGE_CONST_INPUT
 	case EExprByteCode::Const:
 		pushStack(topValue);
 		topValue = GET_CONST(pCode[1]);
 		return 2;
+#endif
 	case EExprByteCode::Input:
 		pushStack(topValue);
 		topValue = GET_INPUT(pCode[1]);
@@ -1077,119 +1118,215 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	return 1;
 
 #if EBC_USE_COMPOSITIVE_CODE
+
+#if !EBC_MERGE_CONST_INPUT
+	case EExprByteCode::CAdd:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		topValue = topValue + rhs;
+	}
+	return 2;
+	case EExprByteCode::CSub:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		topValue = topValue - rhs;
+	}
+	return 2;
+	case EExprByteCode::CSubR:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		topValue = rhs - topValue;
+	}
+	return 2;
+	case EExprByteCode::CMul:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		topValue = topValue * rhs;
+	}
+	return 2;
+	case EExprByteCode::CDiv:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		topValue = topValue / rhs;
+	}
+	return 2;
+	case EExprByteCode::CDivR:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		topValue = rhs / topValue;
+	}
+	return 2;
+#endif
+	case EExprByteCode::IAdd:
+	{
+		auto const& rhs = GET_INPUT(pCode[1]);
+		topValue = topValue + rhs;
+	}
+	return 2;
+	case EExprByteCode::ISub:
+	{
+		auto const& rhs = GET_INPUT(pCode[1]);
+		topValue = topValue - rhs;
+	}
+	return 2;
+	case EExprByteCode::ISubR:
+	{
+		auto const& rhs = GET_INPUT(pCode[1]);
+		topValue = rhs - topValue;
+	}
+	return 2;
+	case EExprByteCode::IMul:
+	{
+		auto const& rhs = GET_INPUT(pCode[1]);
+		topValue = topValue * rhs;
+	}
+	return 2;
+	case EExprByteCode::IDiv:
+	{
+		auto const& rhs = GET_INPUT(pCode[1]);
+		topValue = topValue / rhs;
+	}
+	return 2;
+	case EExprByteCode::IDivR:
+	{
+		auto const& rhs = GET_INPUT(pCode[1]);
+		topValue = rhs / topValue;
+	}
+	return 2;
+	case EExprByteCode::VAdd:
+	{
+		auto rhs = GET_VAR(pCode[1]);
+		topValue = topValue + rhs;
+	}
+	return 2;
+	case EExprByteCode::VSub:
+	{
+		auto rhs = GET_VAR(pCode[1]);
+		topValue = topValue - rhs;
+	}
+	return 2;
+	case EExprByteCode::VSubR:
+	{
+		auto rhs = GET_VAR(pCode[1]);
+		topValue = rhs - topValue;
+	}
+	return 2;
+	case EExprByteCode::VMul:
+	{
+		auto rhs = GET_VAR(pCode[1]);
+		topValue = topValue * rhs;
+	}
+	return 2;
+	case EExprByteCode::VDiv:
+	{
+		auto rhs = GET_VAR(pCode[1]);
+		topValue = topValue / rhs;
+	}
+	return 2;
+	case EExprByteCode::VDivR:
+	{
+		auto rhs = GET_VAR(pCode[1]);
+		topValue = rhs / topValue;
+	}
+	return 2;
 	case EExprByteCode::SelfMul:
 	{
 		topValue = topValue * topValue;
 	}
 	return 1;
-	case EExprByteCode::CAdd:
+#if EBC_USE_COMPOSITIVE_OP_CODE
+	case EExprByteCode::MulAdd:
 	{
-		auto lhs = GET_CONST(pCode[1]);
-		topValue = lhs + topValue;
+		auto rhs = popStack();
+		auto lhs = popStack();
+		topValue = lhs + topValue * rhs;
+	}
+	return 1;
+#if !EBC_MERGE_CONST_INPUT
+	case EExprByteCode::CMulAdd:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs + topValue * rhs;
 	}
 	return 2;
-	case EExprByteCode::CSub:
+#endif
+	case EExprByteCode::IMulAdd:
 	{
-		auto lhs = GET_CONST(pCode[1]);
-		topValue = lhs - topValue;
+		auto rhs = GET_INPUT(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs + topValue * rhs;
 	}
 	return 2;
-	case EExprByteCode::CSubR:
+	case EExprByteCode::VMulAdd:
 	{
-		auto lhs = GET_CONST(pCode[1]);
-		topValue = topValue - lhs;
+		auto rhs = GET_VAR(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs + topValue * rhs;
 	}
 	return 2;
-	case EExprByteCode::CMul:
+	case EExprByteCode::MulSub:
 	{
-		auto lhs = GET_CONST(pCode[1]);
-		topValue = lhs * topValue;
+		auto rhs = popStack();
+		auto lhs = popStack();
+		topValue = lhs - topValue * rhs;
+	}
+	return 1;
+#if !EBC_MERGE_CONST_INPUT
+	case EExprByteCode::CMulSub:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs - topValue * rhs;
 	}
 	return 2;
-	case EExprByteCode::CDiv:
+#endif
+	case EExprByteCode::IMulSub:
 	{
-		auto lhs = GET_CONST(pCode[1]);
-		topValue = lhs / topValue;
+		auto rhs = GET_INPUT(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs - topValue * rhs;
 	}
 	return 2;
-	case EExprByteCode::CDivR:
+	case EExprByteCode::VMulSub:
 	{
-		auto lhs = GET_CONST(pCode[1]);
-		topValue = topValue / lhs;
+		auto rhs = GET_VAR(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs - topValue * rhs;
 	}
 	return 2;
-	case EExprByteCode::IAdd:
+	case EExprByteCode::AddMul:
 	{
-		auto const& lhs = GET_INPUT(pCode[1]);
-		topValue = lhs + topValue;
+		auto rhs = popStack();
+		auto lhs = popStack();
+		topValue = lhs * (topValue + rhs);
+	}
+	return 1;
+#if !EBC_MERGE_CONST_INPUT
+	case EExprByteCode::CAddMul:
+	{
+		auto rhs = GET_CONST(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs * (topValue + rhs);
 	}
 	return 2;
-	case EExprByteCode::ISub:
+#endif
+	case EExprByteCode::IAddMul:
 	{
-		auto const& lhs = GET_INPUT(pCode[1]);
-		topValue = lhs - topValue;
+		auto rhs = GET_INPUT(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs * (topValue + rhs);
 	}
 	return 2;
-	case EExprByteCode::ISubR:
+	case EExprByteCode::VAddMul:
 	{
-		auto const& lhs = GET_INPUT(pCode[1]);
-		topValue = topValue - lhs;
+		auto rhs = GET_VAR(pCode[1]);
+		auto lhs = popStack();
+		topValue = lhs * (topValue + rhs);
 	}
 	return 2;
-	case EExprByteCode::IMul:
-	{
-		auto const& lhs = GET_INPUT(pCode[1]);
-		topValue = lhs * topValue;
-	}
-	return 2;
-	case EExprByteCode::IDiv:
-	{
-		auto const& lhs = GET_INPUT(pCode[1]);
-		topValue = lhs / topValue;
-	}
-	return 2;
-	case EExprByteCode::IDivR:
-	{
-		auto const& lhs = GET_INPUT(pCode[1]);
-		topValue = topValue / lhs;
-	}
-	return 2;
-	case EExprByteCode::VAdd:
-	{
-		auto lhs = GET_VAR(pCode[1]);
-		topValue = lhs + topValue;
-	}
-	return 2;
-	case EExprByteCode::VSub:
-	{
-		auto lhs = GET_VAR(pCode[1]);
-		topValue = lhs - topValue;
-	}
-	return 2;
-	case EExprByteCode::VSubR:
-	{
-		auto lhs = GET_VAR(pCode[1]);
-		topValue = topValue - lhs;
-	}
-	return 2;
-	case EExprByteCode::VMul:
-	{
-		auto lhs = GET_VAR(pCode[1]);
-		topValue = lhs * topValue;
-	}
-	return 2;
-	case EExprByteCode::VDiv:
-	{
-		auto lhs = GET_VAR(pCode[1]);
-		topValue = lhs / topValue;
-	}
-	return 2;
-	case EExprByteCode::VDivR:
-	{
-		auto lhs = GET_VAR(pCode[1]);
-		topValue = topValue / lhs;
-	}
-	return 2;
+#endif
+
 #endif
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  topValue = exp(topValue); return 1;
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   topValue = log(topValue); return 1;
@@ -1200,6 +1337,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  topValue = 1.0 / cos(topValue); return 1;
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  topValue = 1.0 / sin(topValue); return 1;
 	case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: topValue = sqrt(topValue); return 1;
+
+#if EBC_MAX_FUNC_ARG_NUM >= 1 
 	case EExprByteCode::FuncCall0:
 		{
 			pushStack(topValue);
@@ -1207,6 +1346,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 			topValue = (*static_cast<FuncType0>(funcPtr))();
 		}
 		return 2;
+#endif
+#if EBC_MAX_FUNC_ARG_NUM >= 1 
 	case EExprByteCode::FuncCall1:
 		{
 			void* funcPtr = mCode->mPointers[pCode[1]];
@@ -1215,6 +1356,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 			topValue = Invoke(static_cast<FuncType1>(funcPtr), params);
 		}
 		return 2;
+#endif
+#if EBC_MAX_FUNC_ARG_NUM >= 2
 	case EExprByteCode::FuncCall2:
 		{
 			void* funcPtr = mCode->mPointers[pCode[1]];
@@ -1224,7 +1367,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 			topValue = Invoke(static_cast<FuncType2>(funcPtr), params);
 		}
 		return 2;
-#if 0
+#endif
+#if EBC_MAX_FUNC_ARG_NUM >= 3
 	case EExprByteCode::FuncCall3:
 		{
 			void* funcPtr = mCode->mPointers[pCode[1]];
@@ -1235,6 +1379,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 			topValue = Invoke(static_cast<FuncType3>(funcPtr), params);
 		}
 		return 2;
+#endif
+#if EBC_MAX_FUNC_ARG_NUM >= 4
 	case EExprByteCode::FuncCall4:
 		{
 			void* funcPtr = mCode->mPointers[pCode[1]];
@@ -1246,6 +1392,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 			topValue = Invoke(static_cast<FuncType4>(funcPtr), params);
 		}
 		return 2;
+#endif
+#if EBC_MAX_FUNC_ARG_NUM >= 5
 	case EExprByteCode::FuncCall5:
 		{
 			TValue params[5];
@@ -1277,10 +1425,16 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 	}
 	using TokenType = ParseResult::TokenType;
 
+	int mNumInput = 0;
+
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
 		mStacks.clear();
+		mNumInput = numInput;
 		mNumCmd = 0;
+#if EBC_USE_COMPOSITIVE_OP_CODE
+		mNumDeferredOutCodes = 0;
+#endif
 	}
 	void codeConstValue(ConstValueInfo const&val)
 	{
@@ -1292,7 +1446,11 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 			mOutput.mConstValues.push_back(val.asReal);
 		}
 		CHECK(index < 255);
+#if EBC_MERGE_CONST_INPUT
+		pushValue(EExprByteCode::Input, index + mNumInput);
+#else
 		pushValue(EExprByteCode::Const, index);
+#endif
 	}
 
 	void codeVar(VariableInfo const& varInfo)
@@ -1315,6 +1473,10 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 
 	void codeFunction(FuncInfo const& info)
 	{
+		if ( info.getArgNum() > EBC_MAX_FUNC_ARG_NUM)
+		{
+			LogError("Func Arg greater than EBC_MAX_FUNC_ARG_NUM. please change value");
+		}
 		int index = mOutput.mPointers.findIndex(info.funcPtr);
 		if (index == INDEX_NONE)
 		{
@@ -1327,7 +1489,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		if (info.getArgNum() > 0)
 		{
 			auto argValue = mStacks.back();
-			if (argValue.byteCode != EExprByteCode::Dummy)
+			if (argValue.byteCode != EExprByteCode::None)
 			{
 				outputCmd(argValue.byteCode, argValue.index);
 			}
@@ -1349,7 +1511,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 	{
 #if EBC_USE_COMPOSITIVE_CODE
 		auto leftValue = mStacks.back();
-		if (leftValue.byteCode != EExprByteCode::Dummy)
+		if (leftValue.byteCode != EExprByteCode::None)
 		{
 			outputCmd(leftValue.byteCode, leftValue.index);
 		}
@@ -1363,48 +1525,15 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 #endif
 	}
 
-	void visitSeparetor()
-	{
-#if EBC_USE_COMPOSITIVE_CODE
-		auto leftValue = mStacks.back();
-		if (leftValue.byteCode != EExprByteCode::Dummy)
-		{
-			outputCmd(leftValue.byteCode, leftValue.index);
-		}
-
-		mStacks.pop_back();
-#endif
-	}
-
-	void pushResultValue()
-	{
-		mStacks.push_back({ EExprByteCode::Dummy, 0 });
-	}
-
-	void pushValue(EExprByteCode::Type byteCode, uint8 index)
-	{
-#if EBC_USE_COMPOSITIVE_CODE
-		mStacks.push_back({byteCode, index});
-#else
-		outputCmd(byteCode, index);
-#endif
-	}
-
-	struct StackData 
-	{
-		EExprByteCode::Type byteCode;
-		uint8 index;
-	};
-	TArray< StackData > mStacks;
 
 	void codeBinaryOp(TokenType type, bool isReverse)
 	{
 #if EBC_USE_COMPOSITIVE_CODE
 		auto rightValue = mStacks.back();
-		auto leftValue  = mStacks[mStacks.size() - 2];
-		if (rightValue.byteCode != EExprByteCode::Dummy)
+		auto leftValue = mStacks[mStacks.size() - 2];
+		if (leftValue.byteCode != EExprByteCode::None)
 		{
-			outputCmd(rightValue.byteCode, rightValue.index);
+			outputCmd(leftValue.byteCode, leftValue.index);
 		}
 
 		EExprByteCode::Type opCode;
@@ -1416,20 +1545,95 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		case BOP_DIV: opCode = isReverse ? EExprByteCode::DivR : EExprByteCode::Div; break;
 		}
 
-		if (leftValue.byteCode == EExprByteCode::Dummy)
+		if (rightValue.byteCode == EExprByteCode::None)
 		{
-			outputCmd(opCode);
+#if EBC_USE_COMPOSITIVE_OP_CODE
+			if (mNumDeferredOutCodes)
+			{
+				if (opCode == EExprByteCode::Mul)
+				{
+					switch (mDeferredOutputCodes[0])
+					{
+					case EExprByteCode::Add:  opCode = EExprByteCode::AddMul; break;
+#if !EBC_MERGE_CONST_INPUT
+					case EExprByteCode::CAdd: opCode = EExprByteCode::CAddMul; break;
+#endif
+					case EExprByteCode::IAdd: opCode = EExprByteCode::IAddMul; break;
+					case EExprByteCode::VAdd: opCode = EExprByteCode::VAddMul; break;
+					}
+					if (opCode != EExprByteCode::Mul)
+					{
+						mDeferredOutputCodes[0] = opCode;
+						ouputDeferredCmdChecked();
+					}
+					else
+					{
+						outputCmd(opCode);
+					}
+				}
+				else if (opCode == EExprByteCode::Add)
+				{
+					switch (mDeferredOutputCodes[0])
+					{
+					case EExprByteCode::Mul:  opCode = EExprByteCode::MulAdd; break;
+#if !EBC_MERGE_CONST_INPUT
+					case EExprByteCode::CMul: opCode = EExprByteCode::CMulAdd; break;
+#endif
+					case EExprByteCode::IMul: opCode = EExprByteCode::IMulAdd; break;
+					case EExprByteCode::VMul: opCode = EExprByteCode::VMulAdd; break;
+					}
+					if (opCode != EExprByteCode::Add)
+					{
+						mDeferredOutputCodes[0] = opCode;
+						ouputDeferredCmdChecked();
+					}
+					else
+					{
+						outputCmd(opCode);
+					}
+				}
+				else if (opCode == EExprByteCode::Sub)
+				{
+					switch (mDeferredOutputCodes[0])
+					{
+					case EExprByteCode::Mul:  opCode = EExprByteCode::MulSub; break;
+#if !EBC_MERGE_CONST_INPUT
+					case EExprByteCode::CMul: opCode = EExprByteCode::CMulSub; break;
+#endif
+					case EExprByteCode::IMul: opCode = EExprByteCode::IMulSub; break;
+					case EExprByteCode::VMul: opCode = EExprByteCode::VMulSub; break;
+					}
+					if (opCode != EExprByteCode::Sub)
+					{
+						mDeferredOutputCodes[0] = opCode;
+						ouputDeferredCmdChecked();
+					}
+					else
+					{
+						outputCmd(opCode);
+					}
+				}
+				else
+				{
+					outputCmd(opCode);
+				}
+			}
+			else
+#endif
+			{
+				outputCmd(opCode);
+			}
 		}
 		else
 		{
 			if (leftValue.byteCode == rightValue.byteCode && leftValue.index == rightValue.index &&
-			    (type == BOP_MUL))
+				(type == BOP_MUL))
 			{
 				outputCmd(EExprByteCode::SelfMul);
 			}
 			else
 			{
-				outputCmd(EExprByteCode::Type(opCode + leftValue.byteCode), leftValue.index);
+				outputCmdDeferred(EExprByteCode::Type(opCode + rightValue.byteCode), rightValue.index);
 			}
 		}
 
@@ -1449,12 +1653,13 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		pushResultValue();
 #endif
 	}
-	
+
 	void codeUnaryOp(TokenType type)
 	{
+
 #if EBC_USE_COMPOSITIVE_CODE
 		auto leftValue = mStacks.back();
-		if (leftValue.byteCode != EExprByteCode::Dummy)
+		if (leftValue.byteCode != EExprByteCode::None)
 		{
 			outputCmd(leftValue.byteCode, leftValue.index);
 		}
@@ -1463,14 +1668,131 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 #endif
 		switch (type)
 		{
-		case UOP_MINS: outputCmd(EExprByteCode::Mins); break;
+		case UOP_MINS: 	checkOuputDeferredCmd(); outputCmd(EExprByteCode::Mins); break;
 		}
 #if EBC_USE_COMPOSITIVE_CODE
 		pushResultValue();
 #endif
 	}
 
+
+#if EBC_USE_COMPOSITIVE_OP_CODE
+	int   mNumDeferredOutCodes;
+	uint8 mDeferredOutputCodes[3];
+
+	void outputCmdDeferred(EExprByteCode::Type a)
+	{
+		checkOuputDeferredCmd();
+		mNumDeferredOutCodes = 1;
+		mDeferredOutputCodes[0] = a;
+	}
+	void outputCmdDeferred(EExprByteCode::Type a, uint8 b)
+	{
+		checkOuputDeferredCmd();
+		mNumDeferredOutCodes = 2;
+		mDeferredOutputCodes[0] = a;
+		mDeferredOutputCodes[1] = b;
+	}
+	void outputCmdDeferred(EExprByteCode::Type a, uint8 b, uint c)
+	{
+		checkOuputDeferredCmd();
+		mNumDeferredOutCodes = 3;
+		mDeferredOutputCodes[0] = a;
+		mDeferredOutputCodes[1] = b;
+		mDeferredOutputCodes[2] = c;
+	}
+
+	void checkOuputDeferredCmd()
+	{
+		if (mNumDeferredOutCodes == 0)
+			return;
+
+		ouputDeferredCmdChecked();
+	}
+
+	void ouputDeferredCmdChecked()
+	{
+		CHECK(mNumDeferredOutCodes > 0);
+		switch (mNumDeferredOutCodes)
+		{
+		case 1: outputCmdActual((EExprByteCode::Type)mDeferredOutputCodes[0]); break;
+		case 2: outputCmdActual((EExprByteCode::Type)mDeferredOutputCodes[0], mDeferredOutputCodes[1]); break;
+		case 3: outputCmdActual((EExprByteCode::Type)mDeferredOutputCodes[0], mDeferredOutputCodes[1], mDeferredOutputCodes[2]); break;
+		}
+		mNumDeferredOutCodes = 0;
+	}
+#else
+	void outputCmdDeferred(EExprByteCode::Type a)
+	{
+		outputCmdActual(a);
+	}
+	void outputCmdDeferred(EExprByteCode::Type a, uint8 b)
+	{
+		outputCmdActual(a, b);
+	}
+	void outputCmdDeferred(EExprByteCode::Type a, uint8 b, uint c)
+	{
+		outputCmdActual(a, b, c);
+	}
+
+	void checkOuputDeferredCmd()
+	{
+	}
+#endif
+	void visitSeparetor()
+	{
+#if EBC_USE_COMPOSITIVE_CODE
+		auto leftValue = mStacks.back();
+		if (leftValue.byteCode != EExprByteCode::None)
+		{
+			checkOuputDeferredCmd();
+			outputCmd(leftValue.byteCode, leftValue.index);
+		}
+
+		mStacks.pop_back();
+#endif
+	}
+
+	void pushResultValue()
+	{
+		mStacks.push_back({ EExprByteCode::None, 0 });
+	}
+
+	void pushValue(EExprByteCode::Type byteCode, uint8 index)
+	{
+#if EBC_USE_COMPOSITIVE_CODE
+		mStacks.push_back({byteCode, index});
+#else
+		outputCmd(byteCode, index);
+#endif
+	}
+
+	struct StackData 
+	{
+		EExprByteCode::Type byteCode;
+		uint8 index;
+	};
+	TArray< StackData > mStacks;
+
+
 	void outputCmd(EExprByteCode::Type a)
+	{
+		checkOuputDeferredCmd();
+		outputCmdActual(a);
+	}
+	void outputCmd(EExprByteCode::Type a, uint8 b)
+	{
+		checkOuputDeferredCmd();
+		outputCmdActual(a, b);
+	}
+	void outputCmd(EExprByteCode::Type a, uint8 b, uint c)
+	{
+		checkOuputDeferredCmd();
+		outputCmdActual(a, b, c);
+	}
+
+
+	void outputCmdActual(EExprByteCode::Type a)
 	{
 		++mNumCmd;
 		mOutput.mCodes.push_back(a);
@@ -1481,7 +1803,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		mOutput.mCodes.push_back(0);
 #endif
 	}
-	void outputCmd(EExprByteCode::Type a, uint8 b)
+	void outputCmdActual(EExprByteCode::Type a, uint8 b)
 	{
 		++mNumCmd;
 		mOutput.mCodes.push_back(a);
@@ -1490,7 +1812,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		mOutput.mCodes.push_back(0);
 #endif
 	}
-	void outputCmd(EExprByteCode::Type a, uint8 b, uint c)
+	void outputCmdActual(EExprByteCode::Type a, uint8 b, uint c)
 	{
 		++mNumCmd;
 		mOutput.mCodes.push_back(a);
@@ -1500,67 +1822,102 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 
 	void codeEnd()
 	{
+		checkOuputDeferredCmd();
+
 		LogMsg("Num Cmd = %d" , mNumCmd);
+
 #if EBC_USE_FIXED_SIZE
 		std::string debugMeg;
 		for( int i = 0 ; i < mOutput.mCodes.size(); i += EBC_USE_FIXED_SIZE )
 		{
 			debugMeg += "[";
-			
-			switch (mOutput.mCodes[i])
-			{
-			case EExprByteCode::Const: debugMeg += "C"; break;
-			case EExprByteCode::Input: debugMeg += "I"; break;
-			case EExprByteCode::Variable:  debugMeg += "V"; break;
-			case EExprByteCode::Add: debugMeg += "+"; break;
-			case EExprByteCode::Sub: debugMeg += "-"; break;
-			case EExprByteCode::SubR: debugMeg += "-r"; break;
-			case EExprByteCode::Mul: debugMeg += "*"; break;
-			case EExprByteCode::Div: debugMeg += "/"; break;
-			case EExprByteCode::DivR: debugMeg += "/r"; break;
-			case EExprByteCode::Mins: debugMeg += "Mins"; break;
-#if EBC_USE_COMPOSITIVE_CODE
-			case EExprByteCode::CAdd: debugMeg += "C+"; break;
-			case EExprByteCode::CSub: debugMeg += "C-"; break;
-			case EExprByteCode::CSubR:debugMeg += "C-r"; break;
-			case EExprByteCode::CMul: debugMeg += "C*"; break;
-			case EExprByteCode::CDiv: debugMeg += "C/"; break;
-			case EExprByteCode::CDivR:debugMeg += "C/r"; break;
-			case EExprByteCode::IAdd: debugMeg += "I+"; break;
-			case EExprByteCode::ISub: debugMeg += "I-"; break;
-			case EExprByteCode::ISubR:debugMeg += "I-r"; break;
-			case EExprByteCode::IMul: debugMeg += "I*"; break;
-			case EExprByteCode::IDiv: debugMeg += "I/"; break;
-			case EExprByteCode::IDivR:debugMeg += "I/r"; break;
-			case EExprByteCode::VAdd: debugMeg += "V+"; break;
-			case EExprByteCode::VSub:debugMeg += "V-"; break;
-			case EExprByteCode::VSubR:debugMeg += "V-r"; break;
-			case EExprByteCode::VMul:debugMeg += "V*"; break;
-			case EExprByteCode::VDiv:debugMeg += "V/"; break;
-			case EExprByteCode::VDivR:debugMeg += "V/r"; break;
-			case EExprByteCode::SelfMul:debugMeg += "T*"; break;
-#endif
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  debugMeg += "exp"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   debugMeg += "ln"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Sin:  debugMeg += "sin"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Cos:  debugMeg += "cos"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Tan:  debugMeg += "tan"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Cot:  debugMeg += "cot"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  debugMeg += "sec"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  debugMeg += "csc"; break;
-			case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: debugMeg += "sqrt"; break;
-
-			case EExprByteCode::FuncCall0: debugMeg += "call0"; break;
-			case EExprByteCode::FuncCall1: debugMeg += "call1"; break;
-			case EExprByteCode::FuncCall2: debugMeg += "call2"; break;
-			case EExprByteCode::FuncCall3: debugMeg += "call3"; break;
-			case EExprByteCode::FuncCall4: debugMeg += "call4"; break;
-			case EExprByteCode::FuncCall5: debugMeg += "call5"; break;
-			}
+			debugMeg += GetOpString(mOutput.mCodes[i]);			
 			debugMeg += "]";
 		}
 		LogMsg("Cmd = %s", debugMeg.c_str());
 #endif
+	}
+
+
+	static char const* GetOpString(uint8 opCode)
+	{
+		switch (opCode)
+		{
+#if !EBC_MERGE_CONST_INPUT
+		case EExprByteCode::Const: return "C";
+#endif
+		case EExprByteCode::Input: return "I";
+		case EExprByteCode::Variable:  return "V";
+		case EExprByteCode::Add: return "+";
+		case EExprByteCode::Sub: return "-";
+		case EExprByteCode::SubR: return "-r";
+		case EExprByteCode::Mul: return "*";
+		case EExprByteCode::Div: return "/";
+		case EExprByteCode::DivR: return "/r";
+		case EExprByteCode::Mins: return "Mins";
+#if EBC_USE_COMPOSITIVE_CODE
+
+#if !EBC_MERGE_CONST_INPUT
+		case EExprByteCode::CAdd: return "C+";
+		case EExprByteCode::CSub: return "C-";
+		case EExprByteCode::CSubR:return "C-r";
+		case EExprByteCode::CMul: return "C*";
+		case EExprByteCode::CDiv: return "C/";
+		case EExprByteCode::CDivR:return "C/r";
+#endif
+		case EExprByteCode::IAdd: return "I+";
+		case EExprByteCode::ISub: return "I-";
+		case EExprByteCode::ISubR:return "I-r";
+		case EExprByteCode::IMul: return "I*";
+		case EExprByteCode::IDiv: return "I/";
+		case EExprByteCode::IDivR:return "I/r";
+		case EExprByteCode::VAdd: return "V+";
+		case EExprByteCode::VSub:return "V-";
+		case EExprByteCode::VSubR:return "V-r";
+		case EExprByteCode::VMul:return "V*";
+		case EExprByteCode::VDiv:return "V/";
+		case EExprByteCode::VDivR:return "V/r";
+		case EExprByteCode::SelfMul:return "S*";
+
+#if EBC_USE_COMPOSITIVE_OP_CODE
+
+#if !EBC_MERGE_CONST_INPUT
+		case EExprByteCode::CAddMul: return "C+*";
+		case EExprByteCode::CMulAdd: return "C*+";
+		case EExprByteCode::CMulSub: return "C*-";
+#endif
+
+		case EExprByteCode::AddMul: return "+*";
+		case EExprByteCode::IAddMul: return "I+*";
+		case EExprByteCode::VAddMul: return "V+*";
+		case EExprByteCode::MulAdd: return "*+";
+		case EExprByteCode::IMulAdd: return "I*+";
+		case EExprByteCode::VMulAdd: return "V*+";
+		case EExprByteCode::MulSub: return "*-";
+		case EExprByteCode::IMulSub: return "I*-";
+		case EExprByteCode::VMulSub: return "V*-";
+#endif
+
+#endif
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  return "exp";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   return "ln";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Sin:  return "sin";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Cos:  return "cos";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Tan:  return "tan";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Cot:  return "cot";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  return "sec";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  return "csc";
+		case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: return "sqrt";
+
+		case EExprByteCode::FuncCall0: return "call0";
+		case EExprByteCode::FuncCall1: return "call1";
+		case EExprByteCode::FuncCall2: return "call2";
+		case EExprByteCode::FuncCall3: return "call3";
+		case EExprByteCode::FuncCall4: return "call4";
+		case EExprByteCode::FuncCall5: return "call5";
+		}
+
+		return "?";
 	}
 };
 

@@ -34,6 +34,8 @@ class FPUCodeGeneratorV1;
 
 class ExecutableCode;
 
+#define EBC_MERGE_CONST_INPUT 1
+
 template<typename TValue>
 class TByteCodeExecutor
 {
@@ -41,38 +43,27 @@ public:
 	TValue doExecute(ExecutableCode const& code);
 	int  execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue);
 
+	TValue execute(ExecutableCode const& code)
+	{
+		return doExecute(code);
+	}
+
+	template< class ...Args >
+	TValue execute(ExecutableCode const& code, Args ...args)
+	{
+		TValue inputs[] = { args... };
+		mInputs = inputs;
+		return doExecute(code);
+	}
+
+	TValue execute(ExecutableCode const& code, TArrayView<TValue const> valueBuffers)
+	{
+		mInputs = valueBuffers;
+		return doExecute(code);
+	}
+
 	ExecutableCode const* mCode;
 	TArrayView<TValue const> mInputs;
-};
-
-class ByteCodeExecutor : public TByteCodeExecutor<RealType>
-{
-public:
-
-	RealType execute(ExecutableCode const& code)
-	{
-		return doExecute(code);
-	}
-
-	template< class ...Args >
-	RealType execute(ExecutableCode const& code, Args ...args)
-	{
-		RealType inputs[] = { args... };
-		mInputs = inputs;
-		return doExecute(code);
-	}
-};
-
-class ByteCodeExecutorSIMD : public TByteCodeExecutor<FloatVector>
-{
-public:
-	template< class ...Args >
-	FloatVector execute(ExecutableCode const& code, Args ...args)
-	{
-		FloatVector inputs[] = { args... };
-		mInputs = inputs;
-		return doExecute(code);
-	}
 };
 #endif
 
@@ -90,32 +81,34 @@ public:
 	static bool constexpr IsSupportSIMD = false;
 #endif
 
-	template< class RT , class ...Args >
+	template< typename RT , typename ...Args >
 	FORCEINLINE RT evalT(Args ...args) const
 	{
-		if constexpr (std::is_same_v< RT, FloatVector >)
-		{
-#if ENABLE_BYTE_CODE
-			ByteCodeExecutorSIMD executor;
-			return executor.execute(*this, args...);
-#else
-			return 0.0f;
-#endif
-		}
-		else
-		{
 #if ENABLE_FPU_CODE
-			using EvalFunc = RT(*)(Args...);
-			return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
+		using EvalFunc = RT(*)(Args...);
+		return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
 #elif ENABLE_BYTE_CODE
-			ByteCodeExecutor executor;
-			return RT(executor.execute(*this, args...));
+		TByteCodeExecutor<RT> executor;
+		return executor.execute(*this, args...);
 #else
-			return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
+		return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
 #endif
-		}
 	}
 
+#if ENABLE_BYTE_CODE
+	template< typename T >
+	void initValueBuffer(T buffer[], int numInput)
+	{
+		std::copy(mConstValues.begin(), mConstValues.end(), buffer + numInput);
+	}
+
+	template< typename RT >
+	FORCEINLINE RT evalT(TArrayView< RT > valueBuffers) const
+	{
+		TByteCodeExecutor<RT> executor;
+		return executor.execute(*this, valueBuffers);
+	}
+#endif
 	void   printCode();
 	void   clearCode();
 	int    getCodeLength() const 

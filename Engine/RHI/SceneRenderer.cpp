@@ -1062,7 +1062,7 @@ namespace Render
 		ShaderManager::Get().reloadShader(*mShaderResetCounter);
 	}
 
-	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFuncion , FrameRenderTargets* sceneRenderTargets )
+	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFunction , FrameRenderTargets* sceneRenderTargets )
 	{
 		GPU_PROFILE("OIT");
 		
@@ -1139,7 +1139,7 @@ namespace Render
 			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
-			drawFuncion(commandList);
+			drawFunction(commandList);
 
 			RHIFlushCommand(commandList);
 			//glMemoryBarrier(GL_ALL_BARRIER_BITS);

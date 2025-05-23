@@ -38,14 +38,17 @@ namespace CB
 		void endRender();
 
 		void drawVertexPoint(ShapeBase& shape);
-		void drawShape( ShapeBase& shape);
+		void drawShape(ShapeBase& shape);
+
 
 		void drawSurface(Surface3D& surface);
 		void drawCurve3D(Curve3D& curve);
 
+
+
+
 		void drawMesh(Surface3D& surface);
 		void drawMeshLine(Surface3D& surface , LinearColor const& color );
-		void drawMeshNormal(Surface3D& surface , float length );
 
 
 		void drawAxis();
@@ -78,7 +81,7 @@ namespace CB
 		class CurveMeshOITProgram* mProgCurveMeshOIT;
 		class CurveContourProgram* mProgCurveContour;
 		class MeshNormalVisualizeProgram* mProgMeshNormalVisualize;
-		std::vector< std::function< void(RHICommandList&) > > mTranslucentDraw;
+		std::vector< std::function< void (RHICommandList&, ShaderProgram&) > > mTranslucentDraw;
 		OITTechnique mOITTech;
 		RHICommandList* mCommandList;
 	};

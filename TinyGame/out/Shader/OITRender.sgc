@@ -36,7 +36,7 @@ layout(location = 0) out VertexOutputParameters OutputVS;
 
 out OutputVSParam OutputVS;
 uniform float4 BaseColor;
-uniform mat4   WorldTransform;
+uniform float4x4 WorldTransform;
 layout(location = ATTRIBUTE_POSITION) in float3 InPosition;
 layout(location = ATTRIBUTE_NORMAL) in float3 InNoraml;
 

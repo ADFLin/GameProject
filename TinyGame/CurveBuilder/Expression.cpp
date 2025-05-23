@@ -5,7 +5,7 @@ namespace CB
 
 	Expression::Expression(std::string const& ExprStr /*= ""*/)
 		:mStrExpr(ExprStr)
-		, mIsParsed(false)
+		,mIsParsed(false)
 	{
 
 	}
@@ -13,20 +13,22 @@ namespace CB
 	Expression::Expression(Expression const& rhs)
 		:mStrExpr(rhs.mStrExpr)
 		, mIsParsed(rhs.mIsParsed)
-		, mEvalCode()
 	{
+		mEvalResource = nullptr;
 		mIsParsed = false;
 	}
 
 	Expression::~Expression()
 	{
-
+		delete mEvalResource;
 	}
 
 	Expression& Expression::operator=(const Expression& expr)
 	{
 		mStrExpr = expr.mStrExpr;
-		mEvalCode.clearCode();
+
+		delete mEvalResource;
+		mEvalResource = nullptr;
 		mIsParsed = false;
 		return *this;
 	}

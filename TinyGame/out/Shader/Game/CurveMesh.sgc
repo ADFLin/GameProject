@@ -34,7 +34,7 @@ VS_ENTRY_END(MainVS)
 	OutputVS.localPos = InPos;
 	OutputVS.worldPos = worldPos.xyz;
 
-	OutputVS.normal = mul( float4(InNormal, 0.0) , WorldToLocal).xyz;
+	OutputVS.normal = mul( float4(normalize(InNormal), 0.0) , WorldToLocal).xyz;
 	OutputVS.color = InColor;
 
 	float4 clipPos = mul(View.worldToClip, worldPos);

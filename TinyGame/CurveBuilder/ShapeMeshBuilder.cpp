@@ -107,24 +107,6 @@ namespace CB
 		getSymbolDefine().defineVar("t", mTimePtr);
 	}
 
-	int constexpr DUFF_BLOCK_SIZE = 8;
-#define DUFF_DEVICE( DIM , OP )\
-	{\
-		int blockCount = ((DIM) + DUFF_BLOCK_SIZE - 1) / DUFF_BLOCK_SIZE;\
-		switch ((DIM) % DUFF_BLOCK_SIZE)\
-		{\
-		case 0: do { OP;\
-		case 7: OP;\
-		case 6: OP;\
-		case 5: OP;\
-		case 4: OP;\
-		case 3: OP;\
-		case 2: OP;\
-		case 1: OP;\
-			} while (--blockCount > 0);\
-		}\
-	}
-
 #define REORDER_CACHE 0
 
 #if SIMD_USE_AVX
@@ -375,7 +357,7 @@ namespace CB
 #endif
 
 
-#if EBC_MERGE_CONST_INPUT
+#if EBC_USE_VALUE_BUFFER
 					FloatVector valueBuffer[64];
 					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc> )
 					{
@@ -395,7 +377,7 @@ namespace CB
 #endif
 
 						FloatVector z;
-#if EBC_MERGE_CONST_INPUT
+#if EBC_USE_VALUE_BUFFER
 						if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
 						{
 							valueBuffer[0] = x;
@@ -499,14 +481,15 @@ namespace CB
 				for (int j = 0; j < nv - 1; ++j)
 				{
 					int index = nv * i + j;
+					int indexN = index + nv;
 
 					pIndex[0] = index;
 					pIndex[1] = index + 1;
-					pIndex[2] = index + nv + 1;
+					pIndex[2] = indexN + 1;
 
-					pIndex[3] = index;
-					pIndex[4] = index + nv + 1;
-					pIndex[5] = index + nv;
+					pIndex[3] = indexN + 1;
+					pIndex[4] = indexN;
+					pIndex[5] = index;
 
 					pIndex += 6;
 				}
@@ -666,16 +649,57 @@ namespace CB
 			if( data->getNormalOffset() != INDEX_NONE )
 			{
 				using namespace Render;
+				VertexElementReader posReader{ data->getVertexData() + data->getPositionOffset() , data->getVertexSize() };
+				VertexElementWriter normalWriter{ data->getVertexData() + data->getNormalOffset() , data->getVertexSize() };
+
 				PROFILE_ENTRY("Update Normal", "CB");
+				if (context.func->getFuncType() == TYPE_SURFACE_XY)
+				{
+					uint32 const* pIndexData = data->getIndexData();
+					uint32 numTriangles = data->getIndexNum() / 3;
+					float du = paramU.getIncrement();
+					float dv = paramV.getIncrement();
+					for (int i = 0; i < vertexNum; ++i)
+					{
+						normalWriter[i] = Vector3::Zero();
+					}
 
-				uint8* posData = data->getVertexData() + data->getPositionOffset();
-				uint8* normalData = data->getVertexData() + data->getNormalOffset();
+					for (int i = 0; i < numTriangles; ++i)
+					{
+						float sign = (i & 0x1) ? -1.0f : 1.0f;
+						uint32 i0 = pIndexData[0];
+						uint32 i1 = pIndexData[1];
+						uint32 i2 = pIndexData[2];
+						pIndexData += 3;
 
-				MeshUtility::FillNormal_TriangleList(
-					VertexElementReader{ posData , data->getVertexSize() }, 
-					VertexElementWriter{ normalData , data->getVertexSize() }, 
-					data->getVertexNum(), data->getIndexData(), data->getIndexNum(), true
-				);
+						Vector3 const& p0 = posReader[i0];
+						Vector3 const& p1 = posReader[i1];
+						Vector3 const& p2 = posReader[i2];
+
+						CHECK(p0.y == p1.y);
+						float Nx = sign * (p1.z - p0.z) / du;
+						CHECK(p1.x == p2.x);
+						float Ny = sign * (p2.z - p1.z) / dv;
+
+						SIMD::SVector3 vNormal = SIMD::SVector3(Nx, Ny, 1.0f);
+						vNormal.normalize();
+						Vector3 normal = { vNormal.v[0], vNormal.v[1], vNormal.v[2] };
+						normalWriter[i0] += normal;
+						normalWriter[i1] += normal;
+						normalWriter[i2] += normal;
+					}
+				}
+				else
+				{
+
+					uint8* posData = data->getVertexData() + data->getPositionOffset();
+					uint8* normalData = data->getVertexData() + data->getNormalOffset();
+
+					MeshUtility::FillNormal_TriangleList(posReader , normalWriter,
+						data->getVertexNum(), data->getIndexData(), data->getIndexNum(), true, false
+					);				
+				}
+
 			}
 
 			flags |= RUF_COLOR;
@@ -722,6 +746,9 @@ namespace CB
 		static void SetupShaderCompileOption(ShaderCompileOption& option) 
 		{
 			option.addDefine(SHADER_PARAM(USE_SHARE_TRIANGLE_INFO), USE_SHARE_TRIANGLE_INFO);
+#if USE_SHARE_TRIANGLE_INFO
+			option.addDefine(SHADER_PARAM(USE_COMPACTED_SHARE_TRIANGLE_INFO), USE_COMPACTED_SHARE_TRIANGLE_INFO);
+#endif
 		}
 
 		static char const* GetShaderFileName()
@@ -813,12 +840,26 @@ namespace CB
 			}
 			resource.indexBuffer = RHICreateIndexBuffer(indexNum, true, BCF_DefalutValue | BCF_CreateUAV, indices.data());
 
+
 #if USE_SHARE_TRIANGLE_INFO
+
 			TArray<MeshUtility::SharedTriangleInfo> sharedTriangleInfos;
 			TArray<uint32> triangleIds;
 			MeshUtility::BuildVertexSharedTriangleInfo(indices.data(), indexNum / 3 , vertexNum, sharedTriangleInfos, triangleIds);
 
+#if USE_COMPACTED_SHARE_TRIANGLE_INFO
+			TArray<uint32> compactedSharedTriangleInfos;
+			compactedSharedTriangleInfos.resize(sharedTriangleInfos.size());
+			for (int i = 0; i < compactedSharedTriangleInfos.size(); ++i)
+			{
+				auto const& info = sharedTriangleInfos[i];
+				CHECK(info.count < (1u << 4));
+				compactedSharedTriangleInfos[i] = (info.offset << 4) | info.count;
+			}
+			resource.sharedTriangleInfoBuffer = RHICreateBuffer(sizeof(uint32), compactedSharedTriangleInfos.size(), BCF_CreateUAV, compactedSharedTriangleInfos.data());
+#else
 			resource.sharedTriangleInfoBuffer = RHICreateBuffer(sizeof(uint32), 2 * sharedTriangleInfos.size(), BCF_CreateUAV, sharedTriangleInfos.data());
+#endif
 			resource.triangleIdBuffer = RHICreateBuffer( sizeof(uint32) , triangleIds.size(), BCF_CreateUAV, triangleIds.data() );
 #endif
 		}

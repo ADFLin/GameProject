@@ -148,6 +148,14 @@ namespace SIMD
 				_mm_mul_ps(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 1, 0, 2)), _mm_shuffle_ps(rhs.reg, rhs.reg, _MM_SHUFFLE(3, 0, 2, 1)))
 			);
 		}
+
+		FORCEINLINE SScalar normalize()
+		{
+			SScalar len = length();
+			reg = _mm_div_ps(reg, _mm_set1_ps(len));
+			return len;
+		}
+
 		SVector3(SBase const& rhs) :SVectorBase(rhs) {}
 	};
 

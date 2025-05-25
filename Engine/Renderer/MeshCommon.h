@@ -20,6 +20,13 @@ namespace Render
 			return *(T const*)(pVertexData + idx * vertexDataStride);
 		}
 
+		template< class T = Vector3 >
+		T const* getPtr(int idx) const
+		{
+			return (T const*)(pVertexData + idx * vertexDataStride);
+		}
+
+
 		Vector3 const& operator[](int idx) const { return get(idx); }
 
 
@@ -42,6 +49,12 @@ namespace Render
 		T& get(int idx) const
 		{
 			return *(T*)(pVertexData + idx * vertexDataStride);
+		}
+
+		template< class T = Vector3 >
+		T* getPtr(int idx) const
+		{
+			return (T*)(pVertexData + idx * vertexDataStride);
 		}
 
 		Vector3& operator[](int idx) const { return get(idx); }

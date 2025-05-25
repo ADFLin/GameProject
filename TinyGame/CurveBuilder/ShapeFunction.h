@@ -103,9 +103,9 @@ namespace CB
 		}
 
 		template< typename T>
-		void evalExpr(TArrayView<T const> valueBuffers, T& outZ)
+		void evalExpr(TArrayView<T const> valueBuffer, T& outZ)
 		{
-			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<T>(valueBuffers);
+			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<T>(valueBuffer);
 		}
 
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }

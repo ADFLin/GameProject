@@ -61,8 +61,8 @@ namespace Render
 
 		struct SharedTriangleInfo
 		{
-			int offset;
-			int count;
+			uint32 offset;
+			uint32 count;
 		};
 		static void BuildVertexSharedTriangleInfo(uint32 const* triIndices, int numTirangle, int numVertices, TArray<SharedTriangleInfo>& outInfos, TArray<uint32>& outTriangles);
 
@@ -91,7 +91,7 @@ namespace Render
 		static void ComputeTangent(Vector3 const& v0, Vector2 const& uv0, Vector3 const& v1, Vector2 const& uv1, Vector3 const& v2, Vector2 const& uv2, Vector3& tangent, Vector3& binormal);
 
 		static void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int numVerteices, uint32* indices, int numIndices, int normalAttrib = EVertex::ATTRIBUTE_NORMAL, bool bNeedClear = false);
-		static void FillNormal_TriangleList(VertexElementReader const& positionReader, VertexElementWriter& normalWriter, int numVerteices, uint32* idx, int numIndices, bool bNeedClear = false);
+		static void FillNormal_TriangleList(VertexElementReader const& positionReader, VertexElementWriter& normalWriter, int numVerteices, uint32* idx, int numIndices, bool bNeedClear = false, bool bNormalize = true);
 
 		template< class IndexType >
 		static uint32* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, TArray< uint32 >& outConvertBuffer, int& outNumTriangle);

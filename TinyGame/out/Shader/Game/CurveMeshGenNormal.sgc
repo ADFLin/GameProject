@@ -1,3 +1,4 @@
+
 #include "Common.sgc"
 
 
@@ -5,6 +6,9 @@
 #define USE_SHARE_TRIANGLE_INFO 1
 #endif
 
+#ifndef USE_COMPACTED_SHARE_TRIANGLE_INFO
+#define USE_COMPACTED_SHARE_TRIANGLE_INFO 1
+#endif
 #if COMPUTE_SHADER
 
 
@@ -96,9 +100,15 @@ CS_ENTRY(MainCS)
 	uint vertexIndex = SvDispatchThreadID.x;
 	if (vertexIndex >= GenParams.totalCount)
 		return;
+
+#if USE_COMPACTED_SHARE_TRIANGLE_INFO
+	uint shareValue = ShareTriangleInfos[vertexIndex];
+	uint triIndexOffset = shareValue >> 4;
+	uint numTri = shareValue & 0xf;
+#else
 	uint triIndexOffset = ShareTriangleInfos[2 * vertexIndex + 0];
 	uint numTri = ShareTriangleInfos[2 * vertexIndex + 1];
-
+#endif
 	float3 N = float3(0, 0, 0);
 	for (uint i = 0; i < numTri; ++i)
 	{
@@ -114,6 +124,9 @@ CS_ENTRY(MainCS)
 
 	float3 N = CalcNormal(triangleId);
 
+	uint v0 = TriangleIndices[3 * triangleId + 0];
+	uint v1 = TriangleIndices[3 * triangleId + 1];
+	uint v2 = TriangleIndices[3 * triangleId + 2];
 	WriteNormal(v0, N);
 	WriteNormal(v1, N);
 	WriteNormal(v2, N);

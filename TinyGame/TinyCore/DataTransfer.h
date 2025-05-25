@@ -12,7 +12,7 @@ struct CGetSendSizeCallable
 	template< typename T , typename Ret = int >
 	static auto Requires(T& t , Ret& ret) -> decltype 
 	(
-		ret = data.getSendSize()
+		ret = t.getSendSize()
 	);
 };
 

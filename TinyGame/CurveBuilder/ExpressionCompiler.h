@@ -5,6 +5,7 @@
 #include "Core/IntegerType.h"
 
 #include "Math/SIMD.h"
+
 #define SIMD_USE_AVX 0
 #if SIMD_USE_AVX
 using FloatVector = SIMD::TFloatVector<8>;
@@ -34,7 +35,7 @@ class FPUCodeGeneratorV1;
 
 class ExecutableCode;
 
-#define EBC_MERGE_CONST_INPUT 1
+#define EBC_USE_VALUE_BUFFER 1
 
 template<typename TValue>
 class TByteCodeExecutor
@@ -48,8 +49,8 @@ public:
 		return doExecute(code);
 	}
 
-	template< class ...Args >
-	TValue execute(ExecutableCode const& code, Args ...args)
+	template< class ...TArgs >
+	TValue execute(ExecutableCode const& code, TArgs ...args)
 	{
 		TValue inputs[] = { args... };
 		mInputs = inputs;
@@ -81,8 +82,8 @@ public:
 	static bool constexpr IsSupportSIMD = false;
 #endif
 
-	template< typename RT , typename ...Args >
-	FORCEINLINE RT evalT(Args ...args) const
+	template< typename RT , typename ...TArgs >
+	FORCEINLINE RT evalT(TArgs ...args) const
 	{
 #if ENABLE_FPU_CODE
 		using EvalFunc = RT(*)(Args...);
@@ -95,18 +96,27 @@ public:
 #endif
 	}
 
-#if ENABLE_BYTE_CODE
+#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
 	template< typename T >
 	void initValueBuffer(T buffer[], int numInput)
 	{
 		std::copy(mConstValues.begin(), mConstValues.end(), buffer + numInput);
+
+		T* pValue = buffer + numInput + mConstValues.size();
+		RealType** pVar = mVars.data();
+		for (int i = mVars.size(); i ; --i)
+		{
+			*pValue = **pVar;
+			++pValue;
+			++pVar;
+		}
 	}
 
 	template< typename RT >
-	FORCEINLINE RT evalT(TArrayView< RT > valueBuffers) const
+	FORCEINLINE RT evalT(TArrayView< RT > valueBuffer) const
 	{
 		TByteCodeExecutor<RT> executor;
-		return executor.execute(*this, valueBuffers);
+		return executor.execute(*this, valueBuffer);
 	}
 #endif
 	void   printCode();
@@ -160,9 +170,12 @@ protected:
 
 public:
 #if ENABLE_BYTE_CODE
-	TArray<uint8>    mCodes;
-	TArray<void*>    mPointers;
-	TArray<RealType> mConstValues;
+	TArray<uint8>     mCodes;
+	TArray<void*>     mPointers;
+	TArray<RealType>  mConstValues;
+#if EBC_USE_VALUE_BUFFER
+	TArray<RealType*> mVars;
+#endif
 #else
 	TArray<ExprParse::Unit> mCodes;
 #endif

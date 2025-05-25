@@ -116,8 +116,9 @@ namespace CB
 				Surface3D* surface;
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 	
-				//surface = createSurfaceXY(MyFunc2, Color4f(1, 0.6, 0.4, 1.0));
-				surface = createSurfaceXY(TestExpr, Color4f(0.2, 0.6, 1.0, 0.9));
+				surface = createSurfaceXY(MyFunc2, Color4f(1, 0.6, 0.4, 0.95));
+
+				//surface = createSurfaceXY(TestExpr, Color4f(0.2, 0.6, 1.0, 0.9));
 				surface->setTransform(Matrix4::Translate(0,0,1));
 				//surface = createSurfaceXY("Test(1,x + y)", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("10 - x", Color4f(0.2, 0.6, 0.4, 0.3));
@@ -182,10 +183,40 @@ namespace CB
 			return createSurface(func, color);
 		}
 
+		Surface3D* createSurfaceXY(char const* expr, Color4f const& color, bool bUseGPU = false)
+		{
+			SurfaceXYFunc* func = new SurfaceXYFunc(bUseGPU);
+			func->setExpr(expr);
+			return createSurface(func, color);
+		}
+
+		Surface3D* createSurface(SurfaceFunc* func, Color4f const& color)
+		{
+			Surface3D* surface = new Surface3D;
+			surface->setFunction(func);
+			double Max = 10, Min = -10;
+			surface->setRangeU(Range(Min, Max));
+			surface->setRangeV(Range(Min, Max));
+
+#if _DEBUG && 0
+			int NumX = 20, NumY = 20;
+#else
+			int NumX = 1000, NumY = 1000;
+#endif
+
+			surface->setDataSampleNum(NumX, NumY);
+			surface->setColor(color);
+			surface->visible(true);
+			surface->addUpdateBits(RUF_ALL_UPDATE_BIT);
+			mSurfaceList.push_back(surface);
+
+			return surface;
+		}
+
 
 		Surface3D* createSphareSurface(Color4f const& color, bool bUseGPU = false)
 		{
-			char const* exprList[] = 
+			char const* exprList[] =
 			{
 				"10 * cos(u) * sin(v)",
 				"10 * sin(u) * sin(v)",
@@ -208,6 +239,7 @@ namespace CB
 #else
 			int NumX = 300, NumY = 300;
 #endif
+
 			surface->setDataSampleNum(NumX, NumY);
 			surface->setColor(color);
 			surface->visible(true);
@@ -217,34 +249,6 @@ namespace CB
 			return surface;
 		}
 
-		Surface3D* createSurfaceXY(char const* expr, Color4f const& color, bool bUseGPU = false)
-		{
-			SurfaceXYFunc* func = new SurfaceXYFunc(bUseGPU);
-			func->setExpr(expr);
-			return createSurface(func, color);
-		}
-
-		Surface3D* createSurface(SurfaceFunc* func, Color4f const& color)
-		{
-			Surface3D* surface = new Surface3D;
-			surface->setFunction(func);
-			double Max = 10, Min = -10;
-			surface->setRangeU(Range(Min, Max));
-			surface->setRangeV(Range(Min, Max));
-
-#if _DEBUG && 0
-			int NumX = 20, NumY = 20;
-#else
-			int NumX = 300, NumY = 300;
-#endif
-			surface->setDataSampleNum(NumX, NumY);
-			surface->setColor(color);
-			surface->visible(true);
-			surface->addUpdateBits(RUF_ALL_UPDATE_BIT);
-			mSurfaceList.push_back(surface);
-
-			return surface;
-		}
 
 		void onEnd() override
 		{

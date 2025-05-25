@@ -11,7 +11,7 @@ namespace CB
 {
 
 #define USE_SHARE_TRIANGLE_INFO 1
-
+#define USE_COMPACTED_SHARE_TRIANGLE_INFO 1
 
 	struct RenderResource
 	{

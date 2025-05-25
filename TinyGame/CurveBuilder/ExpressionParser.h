@@ -3,6 +3,7 @@
 
 #include "Template\ArrayView.h"
 #include "DataStructure\Array.h"
+#include "Meta\Concept.h"
 
 #include <string>
 #include <unordered_map>
@@ -1032,10 +1033,29 @@ public:
 	}
 };
 
+struct CPreLoadConstCallable
+{
+	template< typename T>
+	static auto Requires(T& t, ConstValueInfo const& value) -> decltype
+	(
+		t.preLoadConst(value)
+	);
 
+};
 template< class TCodeGenerator >
 void ParseResult::generateCode( TCodeGenerator& generator , int numInput, ValueLayout inputLayouts[] )
 {
+	if constexpr (TCheckConcept< CPreLoadConstCallable, TCodeGenerator >::Value)
+	{
+		for (Unit const& code : mTreeData.codes)
+		{
+			if (code.type == VALUE_CONST)
+			{
+				generator.preLoadConst(code.constValue);
+			}
+		}
+	}
+
 	generator.codeInit(numInput , inputLayouts);
 	TExprTreeVisitOp<TCodeGenerator, true> op(mTreeData,  generator);
 	op.execute();

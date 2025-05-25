@@ -24,6 +24,7 @@
 #include <memory>
 #include <fstream>
 #include <algorithm>
+#include "Math/SIMD.h"
 
 
 #define DF_BUILD_USE_KDTREE 1
@@ -338,7 +339,7 @@ namespace Render
 		{
 			if (curVertexId != pair.vertexId)
 			{
-				outInfos.push_back({ (int)offset , (int)count });
+				outInfos.push_back({ offset , count });
 				for (uint32 vertexId = curVertexId + 1; vertexId < pair.vertexId; ++vertexId)
 				{
 					outInfos.push_back({ 0 , 0 });
@@ -353,7 +354,7 @@ namespace Render
 			++count;
 		}
 
-		outInfos.push_back({ (int)offset , (int)count });
+		outInfos.push_back({ offset , count });
 		for (uint32 vertexId = curVertexId + 1; vertexId < numVertices; ++vertexId)
 		{
 			outInfos.push_back({ 0 , 0 });
@@ -1534,7 +1535,7 @@ namespace Render
 		FillNormal_TriangleList(MakeReader(desc, pVertex, EVertex::ATTRIBUTE_POSITION), MakeWriter(desc, pVertex, EVertex::Attribute (normalAttrib)), numVerteices, indices, numIndices, bNeedClear);
 	}
 
-	void MeshUtility::FillNormal_TriangleList(VertexElementReader const& positionReader , VertexElementWriter& normalWriter, int numVerteices, uint32* indices, int numIndices , bool bNeedClear)
+	void MeshUtility::FillNormal_TriangleList(VertexElementReader const& positionReader , VertexElementWriter& normalWriter, int numVerteices, uint32* indices, int numIndices , bool bNeedClear, bool bNormalize)
 	{
 		int numTriangles = numIndices / 3;
 
@@ -1546,6 +1547,8 @@ namespace Render
 			}
 		}
 
+
+
 		uint32* pCur = indices;
 		for (int i = 0; i < numTriangles; ++i)
 		{
@@ -1553,7 +1556,31 @@ namespace Render
 			uint32 i1 = pCur[1];
 			uint32 i2 = pCur[2];
 			pCur += 3;
+#if 1
+			SIMD::SVector3 p0{ positionReader.getPtr<float>(i0) };
+			SIMD::SVector3 p1{ positionReader.getPtr<float>(i1) };
+			SIMD::SVector3 p2{ positionReader.getPtr<float>(i2) };
 
+			SIMD::SVector3 d1 = p1 - p0;
+			SIMD::SVector3 d2 = p2 - p0;
+			SIMD::SVector3 vNormal = d1.cross(d2);
+			vNormal.normalize();
+
+			SIMD::SVector3 wN;
+			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i0) }; 
+			wN = wN + vNormal;
+			normalWriter[i0] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
+
+			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i1) }; 
+			wN = wN + vNormal;
+			normalWriter[i1] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
+
+			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i2) }; 
+			wN = wN + vNormal;
+			normalWriter[i2] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
+
+
+#else
 			Vector3 const& p0 = positionReader[i0];
 			Vector3 const& p1 = positionReader[i1];
 			Vector3 const& p2 = positionReader[i2];
@@ -1564,11 +1591,17 @@ namespace Render
 			normalWriter[i0] += normal;
 			normalWriter[i1] += normal;
 			normalWriter[i2] += normal;
+#endif
 		}
 
-		for (int i = 0; i < numVerteices; ++i)
+
+
+		if (bNormalize)
 		{
-			normalWriter[i].normalize();
+			for (int i = 0; i < numVerteices; ++i)
+			{
+				normalWriter[i].normalize();
+			}
 		}
 	}
 

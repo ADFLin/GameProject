@@ -4,14 +4,6 @@
 #include "ExpressionParser.h"
 #include "Core/IntegerType.h"
 
-#include "Math/SIMD.h"
-
-#define SIMD_USE_AVX 0
-#if SIMD_USE_AVX
-using FloatVector = SIMD::TFloatVector<8>;
-#else
-using FloatVector = SIMD::TFloatVector<4>;
-#endif
 
 
 #define ENABLE_FPU_CODE 0
@@ -32,40 +24,7 @@ class FPUCodeGeneratorV0;
 class FPUCodeGeneratorV1;
 
 #if ENABLE_BYTE_CODE
-
-class ExecutableCode;
-
-#define EBC_USE_VALUE_BUFFER 1
-
-template<typename TValue>
-class TByteCodeExecutor
-{
-public:
-	TValue doExecute(ExecutableCode const& code);
-	int  execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue);
-
-	TValue execute(ExecutableCode const& code)
-	{
-		return doExecute(code);
-	}
-
-	template< class ...TArgs >
-	TValue execute(ExecutableCode const& code, TArgs ...args)
-	{
-		TValue inputs[] = { args... };
-		mInputs = inputs;
-		return doExecute(code);
-	}
-
-	TValue execute(ExecutableCode const& code, TArrayView<TValue const> valueBuffers)
-	{
-		mInputs = valueBuffers;
-		return doExecute(code);
-	}
-
-	ExecutableCode const* mCode;
-	TArrayView<TValue const> mInputs;
-};
+#include "ExprByteCode.h"
 #endif
 
 class ExecutableCode
@@ -90,7 +49,7 @@ public:
 		return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
 #elif ENABLE_BYTE_CODE
 		TByteCodeExecutor<RT> executor;
-		return executor.execute(*this, args...);
+		return executor.execute(mByteCodeData, args...);
 #else
 		return FExpressUtils::template EvalutePosfixCodes<RT>(mCodes, args...);
 #endif
@@ -100,11 +59,11 @@ public:
 	template< typename T >
 	void initValueBuffer(T buffer[], int numInput)
 	{
-		std::copy(mConstValues.begin(), mConstValues.end(), buffer + numInput);
+		std::copy(mByteCodeData.constValues.begin(), mByteCodeData.constValues.end(), buffer + numInput);
 
-		T* pValue = buffer + numInput + mConstValues.size();
-		RealType** pVar = mVars.data();
-		for (int i = mVars.size(); i ; --i)
+		T* pValue = buffer + numInput + mByteCodeData.constValues.size();
+		RealType** pVar = mByteCodeData.vars.data();
+		for (int i = mByteCodeData.vars.size(); i ; --i)
 		{
 			*pValue = **pVar;
 			++pValue;
@@ -116,7 +75,7 @@ public:
 	FORCEINLINE RT evalT(TArrayView< RT > valueBuffer) const
 	{
 		TByteCodeExecutor<RT> executor;
-		return executor.execute(*this, valueBuffer);
+		return executor.execute(mByteCodeData, valueBuffer);
 	}
 #endif
 	void   printCode();
@@ -124,7 +83,9 @@ public:
 	int    getCodeLength() const 
 	{ 
 #if ENABLE_FPU_CODE
-		return int(mCodeEnd - mCode); 
+		return int(mCodeEnd - mCode);
+#elif ENABLE_BYTE_CODE
+		return mByteCodeData.codes.size();
 #else
 		return mCodes.size();
 #endif
@@ -170,12 +131,7 @@ protected:
 
 public:
 #if ENABLE_BYTE_CODE
-	TArray<uint8>     mCodes;
-	TArray<void*>     mPointers;
-	TArray<RealType>  mConstValues;
-#if EBC_USE_VALUE_BUFFER
-	TArray<RealType*> mVars;
-#endif
+	ExprByteCodeExecData mByteCodeData;
 #else
 	TArray<ExprParse::Unit> mCodes;
 #endif

@@ -1141,7 +1141,7 @@ namespace Render
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			drawFunction(commandList);
 
-			RHIFlushCommand(commandList);
+			//RHIFlushCommand(commandList);
 			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}

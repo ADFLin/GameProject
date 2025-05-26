@@ -134,6 +134,7 @@ void RHIGraphics2D::beginRender()
 
 void RHIGraphics2D::endRender()
 {
+	PROFILE_ENTRY("RHIGraphics2D.endRender");
 	flush();
 }
 

@@ -14,6 +14,7 @@
 #include "Misc/Format.h"
 #include "RHI/GpuProfiler.h"
 #include "Expression.h"
+#include "Misc/DuffDevice.h"
 
 namespace CB
 {
@@ -298,7 +299,7 @@ namespace CB
 			break;
 		case BIT(1):
 			{
-				if (func->bSupportSIMD && false)
+				if (func->bSupportSIMD)
 				{
 					float const* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
 					int numBlock = Math::AlignCount(paramV.numData, FloatVector::Size);
@@ -359,9 +360,9 @@ namespace CB
 
 #if EBC_USE_VALUE_BUFFER
 					FloatVector valueBuffer[64];
-					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc> )
+					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
 					{
-						func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);		
+						func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
 					}
 #endif
 
@@ -402,18 +403,54 @@ namespace CB
 				else
 				{
 					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
-#if 0
-#define OP 	func->evalExpr(*(Vector3*)pPos, pUV->x, pUV->y);pPos += vertexSize; ++pUV;
-					DUFF_DEVICE(numData, OP);
-#undef OP
-#else
-					for (int i = 0; i < numData; ++i)
+
+#if EBC_USE_VALUE_BUFFER
+					RealType valueBuffer[64];
+					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
 					{
-						func->evalExpr(*reinterpret_cast<Vector3*>(pPos), pUV->x, pUV->y);
-						pPos += vertexSize;
-						++pUV;
-					}
+						func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
+
+#if 0
+						RealType z;
+
+#define EVAL_OP 		valueBuffer[0] = pUV->x;\
+						valueBuffer[1] = pUV->y;\
+						func->evalExpr(TArrayView<RealType const>(valueBuffer), z);\
+						*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);\
+						pPos += vertexSize;\
+						++pUV;\
+
+						DUFF_DEVICE_4(numData, EVAL_OP);
+#undef EVAL_OP
+#else
+						for (int i = 0; i < numData; ++i)
+						{
+							valueBuffer[0] = pUV->x;
+							valueBuffer[1] = pUV->y;
+							RealType z;
+							func->evalExpr(TArrayView<RealType const>(valueBuffer), z);
+							*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
+							pPos += vertexSize;
+							++pUV;
+						}
 #endif
+					}
+					else
+#endif
+					{
+#if 1
+#define EVAL_OP 	func->evalExpr(*(Vector3*)pPos, pUV->x, pUV->y);pPos += vertexSize; ++pUV;
+						DUFF_DEVICE_4(numData, EVAL_OP);
+#undef EVAL_OP
+#else
+						for (int i = 0; i < numData; ++i)
+						{
+							func->evalExpr(*reinterpret_cast<Vector3*>(pPos), pUV->x, pUV->y);
+							pPos += vertexSize;
+							++pUV;
+						}
+#endif
+					}
 				}
 			}
 			break;
@@ -450,6 +487,7 @@ namespace CB
 		}
 
 		RenderData* data = context.data;
+
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
 
@@ -462,16 +500,25 @@ namespace CB
 			if( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum )
 			{
 				data->release();
-				data->create(vertexNum, bSupportSIMD ? FloatVector::Size : 1, indexNum, true);
+				data->create(vertexNum, bSupportSIMD ? FloatVector::Size : 1, indexNum, true, true);
 			}
 			flags |= (RUF_GEOM | RUF_COLOR);
 			bUpdateIndices = true;
 			bUpdateCachedData = true;
 		}
 
-		uint32*  pIndexData = data->getIndexData();
 		if (bUpdateIndices)
 		{
+			uint32*  pIndexData;
+			if (data->resource)
+			{
+				pIndexData = (uint32*)RHILockBuffer(data->resource->indexBuffer, Render::ELockAccess::WriteDiscard);
+			}
+			else
+			{
+				pIndexData = data->getIndexData();
+			}
+
 			int nu = paramU.numData;
 			int nv = paramV.numData;
 
@@ -494,6 +541,11 @@ namespace CB
 					pIndex += 6;
 				}
 			}
+
+			if (data->resource)
+			{
+				RHIUnlockBuffer(data->resource->indexBuffer);
+			}
 		}
 
 		if (bUpdateCachedData)
@@ -510,13 +562,8 @@ namespace CB
 #endif
 			}
 
-			if (REORDER_CACHE && bNeedReorderCache)
+			auto GenerateGirdPos = [&](Vector2* pUV)
 			{
-				TArray<Vector2> tempData;
-				tempData.resize(num);
-
-				Vector2* pUV = tempData.data();
-
 				float du = paramU.getIncrement();
 				float dv = paramV.getIncrement();
 				for (int j = 0; j < paramV.numData; ++j)
@@ -529,11 +576,19 @@ namespace CB
 						pUV[idx] = Vector2(u, v);
 					}
 				}
+			};
 
+			if (REORDER_CACHE && bNeedReorderCache)
+			{
+				// x y x y x y x y -> x x x x y y y y
+				TArray<Vector2> tempData;
+				tempData.resize(num);
+
+				Vector2* pUV = tempData.data();
+				GenerateGirdPos(tempData.data());
 
 				data->setCachedDataSize(num * sizeof(Vector2) + CacheAlign - 1);
 				float* pValue = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
-				pUV = tempData.data();
 				int numBlock = num / FloatVector::Size;
 
 				for (int i = 0; i < numBlock; ++i)
@@ -584,23 +639,16 @@ namespace CB
 						data->setCachedDataSize(num * sizeof(Vector2));
 
 						Vector2* pUV = (Vector2*)data->getCachedData();
-
-						float du = paramU.getIncrement();
-						float dv = paramV.getIncrement();
-						for (int j = 0; j < paramV.numData; ++j)
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							for (int i = 0; i < paramU.numData; ++i)
-							{
-								float u = paramU.getRangeMin() + i * du;
-								int idx = paramU.numData * j + i;
-								pUV[idx] = Vector2(u, v);
-							}
-						}
+						GenerateGirdPos(pUV);
 					}
 					break;
 				}
 			}
+		}
+
+		if (flags & (RUF_COLOR | RUF_GEOM) )
+		{
+			data->lockVertexResource();
 		}
 
 		if( flags & RUF_GEOM )
@@ -648,6 +696,15 @@ namespace CB
 
 			if( data->getNormalOffset() != INDEX_NONE )
 			{
+				uint32* pIndexData;
+				if (data->resource)
+				{
+					pIndexData = (uint32*)RHILockBuffer(data->resource->indexBuffer, Render::ELockAccess::ReadOnly);
+				}
+				else
+				{
+					pIndexData = data->getIndexData();
+				}
 				using namespace Render;
 				VertexElementReader posReader{ data->getVertexData() + data->getPositionOffset() , data->getVertexSize() };
 				VertexElementWriter normalWriter{ data->getVertexData() + data->getNormalOffset() , data->getVertexSize() };
@@ -655,7 +712,6 @@ namespace CB
 				PROFILE_ENTRY("Update Normal", "CB");
 				if (context.func->getFuncType() == TYPE_SURFACE_XY)
 				{
-					uint32 const* pIndexData = data->getIndexData();
 					uint32 numTriangles = data->getIndexNum() / 3;
 					float du = paramU.getIncrement();
 					float dv = paramV.getIncrement();
@@ -696,8 +752,13 @@ namespace CB
 					uint8* normalData = data->getVertexData() + data->getNormalOffset();
 
 					MeshUtility::FillNormal_TriangleList(posReader , normalWriter,
-						data->getVertexNum(), data->getIndexData(), data->getIndexNum(), true, false
+						data->getVertexNum(), pIndexData, data->getIndexNum(), true, false
 					);				
+				}
+
+				if (data->resource)
+				{
+					RHIUnlockBuffer(data->resource->indexBuffer);
 				}
 
 			}
@@ -734,6 +795,10 @@ namespace CB
 			}
 		}
 
+		if (flags & (RUF_COLOR | RUF_GEOM))
+		{
+			data->unlockVertexResource();
+		}
 	}
 
 	using namespace Render;

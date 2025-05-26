@@ -29,10 +29,10 @@ namespace CB
 		RenderData();
 		~RenderData();
 
-		void        create(int numVertices, int numAlign, int numIndex, bool bUseNormal);
+		void        create(int numVertices, int numAlign, int numIndex, bool bUseNormal, bool bUseResource = false);
 		void        release();
 
-		uint8*      getVertexData() { return (mVertexBuffer.empty()) ? nullptr : &mVertexBuffer[0]; }
+		uint8*      getVertexData() { return mVertexDataPtr; }
 		int         getPositionOffset()  const { return 0 * sizeof(float); }
 		int         getColorOffset() const { return 3 * sizeof(float); }
 		int         getNormalOffset() const { return mbNormalOwned ? (7 * sizeof(float)) : INDEX_NONE; }
@@ -40,11 +40,17 @@ namespace CB
 		int         getVertexNum() const { return mVertexNum; }
 		int         getVertexSize() const {  return mVertexSize;  }
 
-		int         getIndexNum() const { return (int)mIndexBuffer.size(); }
-		uint32*     getIndexData() { return mIndexBuffer.empty() ? nullptr : &mIndexBuffer[0]; }
+		int         getIndexNum() const { return mIndexNum; }
+		uint32*     getIndexData() { return mIndexDataPtr; }
 
 		void       setCachedDataSize(int size){ mCachedBuffer.resize(size);}
 		uint8*     getCachedData(){ return mCachedBuffer.data(); }
+
+
+		void lockVertexResource();
+		void unlockVertexResource();
+
+
 
 		class RenderResource* resource = nullptr;
 
@@ -52,8 +58,12 @@ namespace CB
 
 		friend class ShapeMeshBuilder;
 
+		uint8*      mVertexDataPtr = nullptr;
+		uint32*     mIndexDataPtr = nullptr;
+
 		int         mVertexNum;
 		int         mVertexSize;
+		int         mIndexNum;
 		bool        mbNormalOwned;
 
 		TArray< uint8 >  mCachedBuffer;

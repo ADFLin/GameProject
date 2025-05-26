@@ -57,6 +57,7 @@
 
 int    GDevMsgLevel = -1;
 int64  GRenderFrame = 0;
+int    GShowProfileYOffset = 0;
 
 namespace
 {
@@ -1180,6 +1181,26 @@ MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 
 	result = getCurStage()->onMouse(msg);
 	InputManager::Get().procMouseEvent(msg);
+
+	if (result.isHandled())
+		return result;
+
+
+	if (CVarProfileCPU)
+	{
+		if (InputManager::Get().isKeyDown(EKeyCode::Control))
+		{
+			if (msg.onWheelFront())
+			{
+				GShowProfileYOffset += 10;
+			}
+			else if (msg.onWheelBack())
+			{
+				GShowProfileYOffset -= 10;
+			}
+		}
+	}
+
 	return result;
 }
 
@@ -1378,6 +1399,7 @@ void TinyGameApp::render( float dframe )
 	}
 
 	{
+		PROFILE_ENTRY("Draw Stats");
 
 		auto DrawBackgroundRect = [&g](Vec2i rectPos, Vec2i rectSize)
 		{
@@ -1457,10 +1479,11 @@ void TinyGameApp::render( float dframe )
 			}
 		}
 
+
 		if (CVarShowProifle)
 		{
 			RenderUtility::SetFont(g, FONT_S10);
-			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10), CVarProifleShowCategory.mValue.empty() ? nullptr : CVarProifleShowCategory.mValue.c_str());
+			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10 + GShowProfileYOffset), CVarProifleShowCategory.mValue.empty() ? nullptr : CVarProifleShowCategory.mValue.c_str());
 		}
 
 		if (CVarShowGPUProifle)
@@ -1522,7 +1545,10 @@ void TinyGameApp::render( float dframe )
 			GpuProfiler::Get().endFrame();
 	}
 
-	drawEngine.endFrame();
+	{
+		PROFILE_ENTRY("DrawEngine.endFrame");
+		drawEngine.endFrame();
+	}
 }
 
 void TinyGameApp::importUserProfile()

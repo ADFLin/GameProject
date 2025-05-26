@@ -1,7 +1,12 @@
 #include "RenderData.h"
 
+#include "RHI/RHICommand.h"
+
 namespace CB
 {
+
+	using namespace Render;
+
 	RenderData::RenderData()
 		:mVertexNum(0)
 		,mVertexSize(0)
@@ -15,13 +20,31 @@ namespace CB
 		release();
 	}
 
-	void RenderData::create(int numVertices, int numAlign, int numIndex, bool bUseNormal)
+	void RenderData::create(int numVertices, int numAlign, int numIndex, bool bUseNormal, bool bUseResource)
 	{
 		mbNormalOwned = bUseNormal;
 		mVertexNum = numVertices;
 		mVertexSize = sizeof(float) * (7 + (bUseNormal ? 3 : 0));
-		mVertexBuffer.resize(Math::AlignUp(mVertexNum, numAlign) * mVertexSize);
-		mIndexBuffer.resize(numIndex);
+		mIndexNum = numIndex;
+
+		if (bUseResource)
+		{
+			if (resource == nullptr)
+			{
+				resource = new RenderResource;
+			}
+
+			resource->vertexBuffer = RHICreateVertexBuffer(mVertexSize, Math::AlignUp(mVertexNum, numAlign));
+			resource->indexBuffer = RHICreateIndexBuffer(numIndex, true);
+		}
+		else
+		{
+			mVertexBuffer.resize(Math::AlignUp(mVertexNum, numAlign) * mVertexSize);
+			mIndexBuffer.resize(numIndex);
+
+			mVertexDataPtr = mVertexBuffer.data();
+			mIndexDataPtr = mIndexBuffer.data();
+		}
 	}
 
 	void RenderData::release()
@@ -37,6 +60,24 @@ namespace CB
 
 		delete resource;
 		resource = nullptr;
+	}
+
+	void RenderData::lockVertexResource()
+	{
+		if ( resource == nullptr )
+			return;
+
+		mVertexDataPtr = (uint8*)RHILockBuffer(resource->vertexBuffer, ELockAccess::ReadWrite);
+	}
+
+	void RenderData::unlockVertexResource()
+	{
+		if (resource == nullptr)
+			return;
+
+
+		RHIUnlockBuffer(resource->vertexBuffer);
+		mVertexDataPtr = nullptr;
 	}
 
 }//namespace CB

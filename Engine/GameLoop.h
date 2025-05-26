@@ -72,7 +72,6 @@ void GameLoopT< T , PP >::run()
 		if ( intervalTime < mUpdateTime )
 		{
 			_this()->handleGameIdle( (mUpdateTime - intervalTime) / 1000 );
-
 		}
 		else
 		{

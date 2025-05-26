@@ -871,8 +871,6 @@ namespace EExprByteCode
 		VAdd,
 #endif
 
-
-
 		Sub,
 		ISub,
 #if !EBC_USE_VALUE_BUFFER
@@ -880,14 +878,12 @@ namespace EExprByteCode
 		VSub,
 #endif
 
-
 		SubR,
 		ISubR,
 #if !EBC_USE_VALUE_BUFFER
 		CSubR,
 		VSubR,
 #endif
-
 
 		Mul,
 		IMul,

@@ -491,23 +491,20 @@ namespace CB
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
 
-		bool bUpdateIndices = false;
-		bool bUpdateCachedData = false;
-		if( flags & RUF_DATA_SAMPLE )
+
+		if( flags & (RUF_DATA_SAMPLE | RUF_DATA_TYPE) )
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 			bool bSupportSIMD = context.func->bSupportSIMD;
-			if( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum )
+			if ( (flags & RUF_DATA_TYPE) || ( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum ) )
 			{
 				data->release();
 				data->create(vertexNum, bSupportSIMD ? FloatVector::Size : 1, indexNum, true, true);
 			}
-			flags |= (RUF_GEOM | RUF_COLOR);
-			bUpdateIndices = true;
-			bUpdateCachedData = true;
+			flags |= (RUF_GEOM | RUF_COLOR | RUF_INDEX_DATA | RUF_CACHE_DATA);
 		}
 
-		if (bUpdateIndices)
+		if (flags & RUF_INDEX_DATA)
 		{
 			uint32*  pIndexData;
 			if (data->resource)
@@ -548,7 +545,7 @@ namespace CB
 			}
 		}
 
-		if (bUpdateCachedData)
+		if (flags & RUF_CACHE_DATA)
 		{
 			bool bSupportSIMD = context.func->bSupportSIMD;
 			int num = vertexNum;
@@ -860,8 +857,7 @@ namespace CB
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
 
-		bool bUpdateIndices = false;
-		if (flags & RUF_DATA_SAMPLE)
+		if (flags & (RUF_DATA_SAMPLE|RUF_DATA_TYPE))
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 
@@ -871,11 +867,10 @@ namespace CB
 				resource.vertexBuffer = RHICreateVertexBuffer(10 * sizeof(float), vertexNum, BCF_DefalutValue | BCF_CreateUAV);
 			}
 
-			flags |= (RUF_GEOM | RUF_COLOR);
-			bUpdateIndices = true;
+			flags |= (RUF_GEOM | RUF_COLOR | RUF_INDEX_DATA);
 		}
 
-		if (bUpdateIndices)
+		if (flags | RUF_INDEX_DATA)
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 			TArray< uint32 > indices;

@@ -33,9 +33,13 @@ namespace CB
 	{
 		delete mShapeFunc;
 	}
-
+	bool IsGPUBase(EEvalType type) { return type == EEvalType::GPU; }
 	void ShapeBase::setFunctionInternal(ShapeFuncBase* FunData)
 	{
+		if (mShapeFunc && mShapeFunc->getEvalType() != FunData->getEvalType())
+		{
+			mUpdateBits |= RUF_DATA_TYPE | RUF_INDEX_DATA | RUF_CACHE_DATA;
+		}
 		delete mShapeFunc;
 		mShapeFunc = FunData;
 		mUpdateBits |= RUF_FUNCTION;
@@ -53,10 +57,12 @@ namespace CB
 		{
 			TIME_SCOPE("Parse Shape Function");
 			mUpdateBits &= ~RUF_FUNCTION;
+			mRenderData.releaseResource();
 			if( !getFunction()->isParsed() )
 			{
 				if( !builder.parseFunction(*getFunction()) )
 					return false;
+
 				mUpdateBits |= RUF_GEOM;
 			}
 		}

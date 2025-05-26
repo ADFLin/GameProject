@@ -51,6 +51,12 @@ namespace CB
 		void unlockVertexResource();
 
 
+		void releaseResource()
+		{
+			delete resource;
+			resource = nullptr;
+		}
+
 
 		class RenderResource* resource = nullptr;
 

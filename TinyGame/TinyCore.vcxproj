@@ -178,6 +178,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ForcedIncludeFiles>TinyGamePCH.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -187,6 +188,7 @@
     <ClInclude Include="CurveBuilder\ColorMap.h" />
     <ClInclude Include="CurveBuilder\CurveRenderer.h" />
     <ClInclude Include="CurveBuilder\DifferentialEvaluator.h" />
+    <ClInclude Include="CurveBuilder\ExprByteCode.h" />
     <ClInclude Include="CurveBuilder\Expression.h" />
     <ClInclude Include="CurveBuilder\ExpressionParser.h" />
     <ClInclude Include="CurveBuilder\ExpressionUtils.h" />
@@ -237,6 +239,7 @@
     <ClCompile Include="CurveBuilder\ColorMap.cpp" />
     <ClCompile Include="CurveBuilder\CurveRenderer.cpp" />
     <ClCompile Include="CurveBuilder\DifferentialEvaluator.cpp" />
+    <ClCompile Include="CurveBuilder\ExprByteCode.cpp" />
     <ClCompile Include="CurveBuilder\Expression.cpp" />
     <ClCompile Include="CurveBuilder\ExpressionParser.cpp" />
     <ClCompile Include="CurveBuilder\ExpressionUtils.cpp" />

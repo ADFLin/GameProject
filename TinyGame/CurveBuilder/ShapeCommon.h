@@ -97,8 +97,11 @@ namespace CB
 	{
 		RUF_FUNCTION = 1 << 0,
 		RUF_DATA_SAMPLE = 1 << 1,
-		RUF_GEOM = 1 << 2,
-		RUF_COLOR = 1 << 3,
+		RUF_DATA_TYPE  = 1 << 2,
+		RUF_GEOM = 1 << 3,
+		RUF_COLOR = 1 << 4,
+		RUF_INDEX_DATA = 1 << 5,
+		RUF_CACHE_DATA = 1 << 6,
 		RUF_ALL_UPDATE_BIT = 0xffffffff,
 	};
 

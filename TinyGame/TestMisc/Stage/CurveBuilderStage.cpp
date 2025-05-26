@@ -388,6 +388,13 @@ namespace CB
 						{
 						case EEvalType::Native:
 							{
+								SurfaceXYFunc* func = new SurfaceXYFunc(true);
+								func->setExpr(TestExpr);
+								mSurface->setFunction(func);
+							}
+							break;
+						case EEvalType::GPU:
+							{
 								SurfaceXYFunc* func = new SurfaceXYFunc(false);
 								func->setExpr(TestExpr);
 								mSurface->setFunction(func);
@@ -396,13 +403,14 @@ namespace CB
 						case EEvalType::CPU:
 							{
 								NativeSurfaceXYFunc* func = new NativeSurfaceXYFunc;
-								func->setFunc(MyFunc);
+								func->setFunc(MyFuncV);
 								mSurface->setFunction(func);
 							}
 							break;
 						default:
 							break;
 						}
+						updateUI();
 					} 
 					break;
 				}

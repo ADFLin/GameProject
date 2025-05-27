@@ -73,6 +73,10 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) { return false; }
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam){ return false; }
+		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam)
+		{
+			return false;
+		}
 		
 		ShaderParameterMap mParameterMap;
 		VK_RESOURCE_TYPE(VkShaderModule)        mModule;
@@ -89,7 +93,12 @@ namespace Render
 		{
 			return false;
 		}
+
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) override
+		{
+			return false;
+		}
+		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam)
 		{
 			return false;
 		}

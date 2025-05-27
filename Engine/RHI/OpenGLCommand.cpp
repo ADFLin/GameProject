@@ -220,6 +220,9 @@ namespace Render
 		if( glewInit() != GLEW_OK )
 			return false;
 
+		char const* versionStr = (char const*) glGetString(GL_VERSION);
+		LogMsg("Opengl Version = %s", versionStr);
+
 		char const* vendorStr = (char const*) glGetString(GL_VENDOR);
 
 		if( FCString::StrStr(vendorStr, "NVIDIA") != nullptr )

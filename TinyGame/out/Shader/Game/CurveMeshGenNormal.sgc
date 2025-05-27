@@ -15,9 +15,9 @@
 struct NormalGenParamsData
 {
 	uint   totalCount;
-	uint   vertexSize;
-	uint   posOffset;
+	uint   vertexStride;
 	uint   normalOffset;
+	uint   padding;
 };
 
 
@@ -30,50 +30,50 @@ layout(std140) cbuffer NormalGenParamsDataBlock
 uniform NormalGenParamsData GenParams;
 #endif
 
-#if COMPILER_HLSL
-RWBuffer<float> VertexOutput;
-Buffer<uint>    TriangleIndices;
-#else
-layout(std430) buffer VertexOutputBuffer
-{
-	float VertexOutput[];
-};
-
-layout(std430) readonly buffer TriangleIndicesBuffer
-{
-	uint TriangleIndices[];
-};
-
 #if USE_SHARE_TRIANGLE_INFO
-layout(std430) readonly buffer ShareTriangleInfoBuffer
+DEFINE_STRUCTURED_BUFFER(float, VertexOutput);
+#else
+
+DEFINE_STRUCTURED_BUFFER(float, VertexInput);
+DEFINE_STRUCTURED_BUFFER(uint, VertexOutput);
+void UpdateValue(uint index, float Add)
 {
-	uint ShareTriangleInfos[];
-};
-layout(std430) readonly buffer TriangleIdListBuffer
-{
-	uint TriangleIdList[];
-};
-#endif
+	for (;;)
+	{
+		uint oldValue = VertexOutput[index];
+		uint newValue = asuint(asfloat(oldValue) + Add);
+		uint value = atomicCompSwap(VertexOutput[index], oldValue, newValue);
+		if (value == oldValue)
+			break;
+	}
+}
 #endif
 
+DEFINE_STRUCTURED_BUFFER(uint, TriangleIndices);
+DEFINE_STRUCTURED_BUFFER(uint, ShareTriangleInfos);
+DEFINE_STRUCTURED_BUFFER(uint, TriangleIdList);
 
 float3 ReadPosition(uint vertexId)
 {
-	uint posIndex = vertexId * GenParams.vertexSize + GenParams.posOffset;
+	uint posIndex = vertexId * GenParams.vertexStride;
+#if USE_SHARE_TRIANGLE_INFO
 	return float3(VertexOutput[posIndex + 0], VertexOutput[posIndex + 1], VertexOutput[posIndex + 2]);
+#else
+	return float3(VertexInput[posIndex + 0], VertexInput[posIndex + 1], VertexInput[posIndex + 2]);
+#endif
 }
 
 void WriteNormal(uint vertexId, float3 N)
 {
-	uint normalIndex = vertexId * GenParams.vertexSize + GenParams.normalOffset;
+	uint normalIndex = vertexId * GenParams.vertexStride + GenParams.normalOffset;
 #if USE_SHARE_TRIANGLE_INFO
 	VertexOutput[normalIndex + 0] = N.x;
 	VertexOutput[normalIndex + 1] = N.y;
 	VertexOutput[normalIndex + 2] = N.z;
 #else
-	VertexOutput[normalIndex + 0] = VertexOutput[normalIndex + 0] + N.x;
-	VertexOutput[normalIndex + 1] = VertexOutput[normalIndex + 1] + N.y;
-	VertexOutput[normalIndex + 2] = VertexOutput[normalIndex + 2] + N.z;
+	UpdateValue(normalIndex + 0, N.x);
+	UpdateValue(normalIndex + 1, N.y);
+	UpdateValue(normalIndex + 2, N.z);
 #endif
 }
 

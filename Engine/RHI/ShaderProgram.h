@@ -37,7 +37,7 @@ namespace Render
 		RHIResourceType* getRHI() { return mRHIResource; }
 		void releaseRHI()
 		{
-			mBoundedBlocks.clear();
+			mCachedParams.clear();
 			mRHIResource.release(); 
 		}
 
@@ -160,75 +160,74 @@ namespace Render
 		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer);
 		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer);
 
-		struct StructuredBlockInfo
+		void setStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& structInfo, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly)
 		{
 			ShaderParameter param;
-			StructuredBufferInfo* structInfo = nullptr;
+			if (mRHIResource->getResourceParameter(EShaderResourceType::Storage, structInfo, param))
+			{
+				setStorageBuffer(commandList, param, buffer, op);
+			}
+		}
+
+		struct CachedParameter : public ShaderParameter
+		{
+			void* ptr;
 		};
 
 		template< class TStruct >
 		void setStructuredUniformBufferT(RHICommandList& commandList, RHIBuffer& buffer)
 		{
-			auto& bufferStruct = TStruct::GetStructInfo();
-			for (auto const& block : mBoundedBlocks)
+			auto& structInfo = TStruct::GetStructInfo();
+			for (auto const& param : mCachedParams)
 			{
-				if (block.structInfo == &bufferStruct)
+				if (param.ptr == &structInfo)
 				{
-					setUniformBuffer(commandList, block.param, buffer);
+					setUniformBuffer(commandList, param, buffer);
 					return;
 				}
 			}
 
-			StructuredBlockInfo block;
-			block.structInfo = &bufferStruct;
-			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Uniform, bufferStruct);
-			if (name && mRHIResource->getResourceParameter(EShaderResourceType::Uniform, name, block.param))
+			CachedParameter param;
+			if (mRHIResource->getResourceParameter(EShaderResourceType::Uniform, structInfo, param))
 			{
-				mBoundedBlocks.push_back(block);
-				setUniformBuffer(commandList, block.param, buffer);
+				param.ptr = &structInfo;
+				mCachedParams.push_back(param);
+				setUniformBuffer(commandList, param, buffer);
 			}
 		}
 
 		template< class TStruct >
 		void setStructuredStorageBufferT(RHICommandList& commandList, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly)
 		{
-			auto& bufferStruct = TStruct::GetStructInfo();
-			for (auto const& block : mBoundedBlocks)
+			auto& structInfo = TStruct::GetStructInfo();
+			for (auto const& param : mCachedParams)
 			{
-				if (block.structInfo == &bufferStruct)
+				if (param.ptr == &structInfo)
 				{
-					setStorageBuffer(commandList, block.param, buffer, op);
+					setStorageBuffer(commandList, param, buffer, op);
 					return;
 				}
 			}
 
-			StructuredBlockInfo block;
-			block.structInfo = &bufferStruct;
-			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Storage, bufferStruct);
-			if (name && mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, block.param))
+			CachedParameter param;
+			if (mRHIResource->getResourceParameter(EShaderResourceType::Storage, structInfo, param))
 			{
-				mBoundedBlocks.push_back(block);
-				setStorageBuffer(commandList, block.param, buffer, op);
-			}
-		}
-
-		void setStructuredStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& info, RHIBuffer& buffer, EAccessOp op = EAccessOp::ReadOnly)
-		{
-			ShaderParameter param;
-			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Storage, info);
-			if (name && mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, param))
-			{
+				param.ptr = &structInfo;
+				mCachedParams.push_back(param);
 				setStorageBuffer(commandList, param, buffer, op);
 			}
 		}
+
+
+
 		bool getParameter(char const* name, ShaderParameter& outParam);
 
 		void preInitialize()
 		{
-			mBoundedBlocks.clear();
+			mCachedParams.clear();
 		}
 
-		TArray< StructuredBlockInfo > mBoundedBlocks;
+		TArray< CachedParameter > mCachedParams;
 
 	public:
 		TRefCountPtr< RHIResourceType > mRHIResource;

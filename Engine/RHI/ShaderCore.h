@@ -326,6 +326,8 @@ namespace Render
 		}
 	};
 
+#define MAKE_STRUCTUREED_BUFFER_INFO( NAME ) Render::StructuredBufferInfo{ #NAME"Block" , #NAME }
+
 #define DECLARE_UNIFORM_BUFFER_STRUCT( NAME)\
 	static Render::StructuredBufferInfo& GetStructInfo()\
 	{\
@@ -354,7 +356,7 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
-		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
+		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) = 0;
 	};
 
 	class RHIShader : public RHIShaderObject

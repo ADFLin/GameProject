@@ -870,7 +870,7 @@ namespace CB
 			flags |= (RUF_GEOM | RUF_COLOR | RUF_INDEX_DATA);
 		}
 
-		if (flags | RUF_INDEX_DATA)
+		if (flags & RUF_INDEX_DATA)
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 			TArray< uint32 > indices;
@@ -946,9 +946,8 @@ namespace CB
 				params.delata = Vector2(paramU.getIncrement(), paramV.getIncrement());
 				params.gridCountU = paramU.getNumData();
 				params.vertexCount = resource.vertexBuffer->getNumElements();
-				params.vertexSize = resource.vertexBuffer->getElementSize() / sizeof(float);
+				params.vertexStride = resource.vertexBuffer->getElementSize() / sizeof(float);
 				params.offset = Vector2(paramU.getRangeMin(), paramV.getRangeMin());
-				params.posOffset = 0;
 				params.color = context.color;
 				params.time = *mTimePtr;
 				mVertexGenParamBuffer.updateBuffer(params);
@@ -956,7 +955,7 @@ namespace CB
 				auto& commandList = RHICommandList::GetImmediateList();
 				RHISetComputeShader(commandList, shader->getRHI());
 				SetStructuredUniformBuffer(commandList, *shader, mVertexGenParamBuffer);
-				shader->setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer), *resource.vertexBuffer);
+				shader->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput), *resource.vertexBuffer);
 				RHIDispatchCompute(commandList, Math::AlignCount(vertexNum, 16), 1, 1);
 			}
 
@@ -966,23 +965,24 @@ namespace CB
 
 				NormalGenParamsData params;
 #if USE_SHARE_TRIANGLE_INFO
-				params.totalCount = resource.indexBuffer->getNumElements() / 3;
-#else
 				params.totalCount = vertexNum;
+#else
+				params.totalCount = resource.indexBuffer->getNumElements() / 3;
 #endif
-				params.posOffset = 0;
 				params.normalOffset = 7;
-				params.vertexSize = resource.vertexBuffer->getElementSize() / sizeof(float);
+				params.vertexStride = resource.vertexBuffer->getElementSize() / sizeof(float);
 				mNoramlGenParamBuffer.updateBuffer(params);
 
 				auto& commandList = RHICommandList::GetImmediateList();
 				RHISetComputeShader(commandList, mShaderGenNormal->getRHI());
 				SetStructuredUniformBuffer(commandList, *mShaderGenNormal, mNoramlGenParamBuffer);
-				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(VertexOutputBuffer), *resource.vertexBuffer);
-				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(TriangleIndicesBuffer), *resource.indexBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput), *resource.vertexBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIndices), *resource.indexBuffer);
 #if USE_SHARE_TRIANGLE_INFO
-				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(TriangleIdListBuffer), *resource.triangleIdBuffer);
-				mShaderGenNormal->setStorageBuffer(commandList, SHADER_PARAM(ShareTriangleInfoBuffer), *resource.sharedTriangleInfoBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIdList), *resource.triangleIdBuffer);
+				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(ShareTriangleInfos), *resource.sharedTriangleInfoBuffer);
+#else
+				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(VertexInput), *resource.vertexBuffer);
 #endif
 				RHIDispatchCompute(commandList, Math::AlignCount(params.totalCount, 16u), 1, 1);
 			}

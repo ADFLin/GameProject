@@ -117,7 +117,7 @@ namespace CB
 				//surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 1.0));
 	
 				//surface = createSurfaceXY(MyFunc, Color4f(1, 0.6, 0.4, 0.95));
-				surface = createSurfaceXY(TestExpr, Color4f(0.2, 0.6, 1.0, 0.9), true);
+				surface = createSurfaceXY(TestExpr, Color4f(0.2, 0.6, 1.0, 0.95), true);
 				surface->setTransform(Matrix4::Translate(0,0,1));
 				//surface = createSurfaceXY("Test(1,x + y)", Color4f(0.2, 0.6, 0.4, 0.3));
 				//surface = createSurfaceXY("10 - x", Color4f(0.2, 0.6, 0.4, 0.3));
@@ -200,7 +200,7 @@ namespace CB
 #if _DEBUG && 0
 			int NumX = 20, NumY = 20;
 #else
-			int NumX = 300, NumY = 300;
+			int NumX = 1000, NumY = 1000;
 #endif
 
 			surface->setDataSampleNum(NumX, NumY);
@@ -295,7 +295,7 @@ namespace CB
 		{
 			PROFILE_ENTRY("Stage.Render");
 			
-			if (bGPUUpdateRequired)
+			if (bGPUUpdateRequired || true)
 			{
 				bGPUUpdateRequired = false;
 				for (ShapeBase* current : mSurfaceList)

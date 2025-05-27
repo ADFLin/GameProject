@@ -12,13 +12,11 @@ struct VertexGenParamsData
 {
 	float2 delata;
 	float2 offset;
+	float4 color;
 	uint   gridCountU;
 	uint   vertexCount;
-	uint   vertexSize;
-	uint   posOffset;
-	float4 color;
+	uint   vertexStride;
 	float  time;
-	float3 dummy;
 };
 
 #if SHADER_COMPILING
@@ -52,14 +50,7 @@ float FuncZ(float u, float v, float t)
 
 #if COMPUTE_SHADER
 
-#if COMPILER_HLSL
-RWBuffer<float> VertexOutput;
-#else
-layout(std430) buffer VertexOutputBuffer
-{
-	float VertexOutput[];
-};
-#endif
+DEFINE_STRUCTURED_BUFFER(float , VertexOutput);
 
 CS_NUM_THREADS(16, 1, 1)
 CS_ENTRY(GenVertexCS)
@@ -69,8 +60,8 @@ CS_ENTRY(GenVertexCS)
 	if (vertexId >= GenParams.vertexCount)
 		return;
 
-	float2 uv = GenParams.offset + float2( vertexId / GenParams.gridCountU, vertexId % GenParams.gridCountU) * GenParams.delata;
-	uint vertexIndex = vertexId * GenParams.vertexSize + GenParams.posOffset;
+	float2 uv = GenParams.offset + float2(vertexId / GenParams.gridCountU, vertexId % GenParams.gridCountU) * GenParams.delata;
+	uint vertexIndex = vertexId * GenParams.vertexStride;
 
 #if FUNC_TYPE == TYPE_SURFACE_XY
 	VertexOutput[vertexIndex + 0] = uv.x;

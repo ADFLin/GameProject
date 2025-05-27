@@ -68,17 +68,13 @@ namespace Render
 		{ 
 			return outParam.bind(mParameterMap, name);
 		}
-		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam)
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) final
 		{
 			return outParam.bind(mParameterMap , name);
 		}
-		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) final
 		{
-			if (resourceType == EShaderResourceType::Storage)
-			{
-				return structInfo.variableName;
-			}
-			return structInfo.blockName;
+			return getResourceParameter(resourceType, resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName, outParam);
 		}
 
 		static bool GenerateParameterMap(TArrayView<uint8 const> const& byteCode, ShaderParameterMap& parameterMap, D3DShaderParamInfo& outParamInfo);
@@ -110,14 +106,10 @@ namespace Render
 		}
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam);
-		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam);
-		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) final;
+		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) final
 		{
-			if (resourceType == EShaderResourceType::Storage)
-			{
-				return structInfo.variableName;
-			}
-			return structInfo.blockName; 
+			return getResourceParameter(resourceType, resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName, outParam);
 		}
 		virtual void releaseResource();
 

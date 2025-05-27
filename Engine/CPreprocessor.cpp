@@ -429,6 +429,9 @@ namespace CPP
 		mInput.skipSpaceInLine();
 
 		MarcoSymbol marco;
+		marco.vaArgs.indexArg = INDEX_NONE;
+		marco.vaArgs.offset = -1;
+
 		if (mInput.tokenChar('('))
 		{
 			if (!bSupportMarcoArg)
@@ -444,22 +447,42 @@ namespace CPP
 
 				mInput.skipSpaceInLine();
 
-				StringView arg;
-				if (!mInput.tokenIdentifier(arg))
+				if (mInput.getCur()[0] == '.')
 				{
-					return false;
-				}
+					mInput.advance();
 
-				mInput.skipSpaceInLine();
+					if (!mInput.tokenChar('.') )
+						return false;
+					if (!mInput.tokenChar('.'))
+						return false;
 
-				argList.push_back(arg);
-				if (mInput.tokenChar(')'))
+
+					mInput.skipSpaceInLine();
+					if (!mInput.tokenChar(')'))
+						return false;
+					
+					marco.vaArgs.indexArg = argList.size();
 					break;
-
-
-				if (!mInput.tokenChar(','))
+				}
+				else
 				{
-					return false;
+					StringView arg;
+					if (!mInput.tokenIdentifier(arg))
+					{
+						return false;
+					}
+
+					mInput.skipSpaceInLine();
+
+					argList.push_back(arg);
+					if (mInput.tokenChar(')'))
+						break;
+
+
+					if (!mInput.tokenChar(','))
+					{
+						return false;
+					}
 				}
 			}
 
@@ -499,33 +522,35 @@ namespace CPP
 					}
 				}
 
+
 				if (mInput.tokenIdentifier(exprUnit))
 				{
-					int idxArg = FindArg(exprUnit);
-					if (idxArg != INDEX_NONE)
+					if (bHadArgString)
+						marco.expr += '\"';
+
+					if (marco.vaArgs.indexArg != INDEX_NONE && exprUnit == "__VA_ARGS__")
 					{
-						MarcoSymbol::ArgEntry entry;
-						entry.indexArg = idxArg;
-
-						if (bHadArgString)
-							marco.expr += '\"';
-
-						entry.offset = marco.expr.size();
-						marco.argEntries.push_back(entry);
-
-						if (bHadArgString)
-							marco.expr += '\"';
+						marco.vaArgs.offset = marco.expr.size();
+						marco.bVaEatComma = bHadConcatArg;
 					}
 					else
 					{
-						if (bHadArgString)
-							marco.expr += '\"';
-
-						marco.expr.append(exprUnit.begin(), exprUnit.end());
-
-						if (bHadArgString)
-							marco.expr += '\"';
+						int idxArg = FindArg(exprUnit);
+						if (idxArg != INDEX_NONE)
+						{
+							MarcoSymbol::ArgEntry entry;
+							entry.indexArg = idxArg;
+							entry.offset = marco.expr.size();
+							marco.argEntries.push_back(entry);
+						}
+						else
+						{
+							marco.expr.append(exprUnit.begin(), exprUnit.end());
+						}
 					}
+
+					if (bHadArgString)
+						marco.expr += '\"';
 				}
 				else
 				{
@@ -1264,7 +1289,7 @@ namespace CPP
 				}
 
 
-				if (marco->numArgs != argList.size())
+				if (marco->numArgs != argList.size() && marco->vaArgs.indexArg == INDEX_NONE)
 				{
 					PARSE_WARNING("Marco Args Count is not match");
 				}
@@ -1277,7 +1302,26 @@ namespace CPP
 						auto itStart = marco->expr.begin() + lastAppendOffset;
 						auto itEnd = marco->expr.begin() + inOffset;
 						outText.append(itStart, itEnd);
+
+						lastAppendOffset = inOffset;
 					}
+				};
+
+
+				auto OutputArg = [&](StringView const& arg)
+				{
+#if 1
+					std::string expandText;
+					LineStringViewCode codeView(arg);
+					if (!expandMarcoInternal(codeView, expandText, outResult))
+					{
+						PARSE_ERROR("Expand Arg Error : %s", arg.toCString());
+						return false;
+					}
+					outText += expandText;
+#else
+					outText.append(arg.begin(), arg.end());
+#endif
 				};
 
 				for (auto const& entry : marco->argEntries)
@@ -1287,20 +1331,40 @@ namespace CPP
 					if (entry.indexArg < argList.size())
 					{
 						auto const& arg = argList[entry.indexArg];
-#if 1
-						std::string expandText;
-						LineStringViewCode codeView(arg);
-						if (!expandMarcoInternal(codeView, expandText, outResult))
-						{
-							PARSE_ERROR("Expand Arg Error : %s" , arg.toCString());
-							return false;
-						}
-						outText += expandText;
-#else
-						outText.append(arg.begin(), arg.end());
-#endif
+						OutputArg(arg);
 					}
-					lastAppendOffset = entry.offset;
+				}
+
+				if (marco->vaArgs.indexArg != INDEX_NONE && marco->vaArgs.offset >= 0 )
+				{
+					CheckAppendPrevExpr(marco->vaArgs.offset);
+
+					if (marco->vaArgs.indexArg < argList.size())
+					{
+						for (int indexArg = marco->vaArgs.indexArg; indexArg < argList.size(); ++indexArg)
+						{
+							auto const& arg = argList[indexArg];
+
+							if (indexArg != marco->vaArgs.indexArg)
+								outText += ",";
+
+							OutputArg(arg);
+						}
+					}
+					else if (marco->bVaEatComma)
+					{
+						for( auto index = outText.size() - 1; index ; --index)
+						{
+							if (outText[index] == ',')
+							{
+								outText.erase(index);
+								break;
+							}
+
+							if (!FCString::IsSpace(outText[index]))
+								break;
+						}
+					}
 				}
 
 				CheckAppendPrevExpr(marco->expr.size());

@@ -665,6 +665,8 @@ namespace CPP
 				int offset;
 			};
 			TArray< ArgEntry > argEntries;
+			ArgEntry vaArgs;
+			bool bVaEatComma;
 
 			int cachedEvalValue;
 			int evalFrame;

@@ -40,23 +40,20 @@ namespace CB
 
 		Vector2 delata;
 		Vector2 offset;
+		Color4f color;
 		uint32  gridCountU;
 		uint32  vertexCount;
-		uint32  vertexSize;
-		uint32  posOffset;
-		Color4f color;
+		uint32  vertexStride;
 		float   time;
-		Vector3 dummy;
-		
 	};
 
 	struct NormalGenParamsData
 	{
 		DECLARE_UNIFORM_BUFFER_STRUCT(NormalGenParamsDataBlock);
 		uint32   totalCount;
-		uint32   vertexSize;
-		uint32   posOffset;
+		uint32   vertexStride;
 		uint32   normalOffset;
+		uint32   padding;
 	};
 
 	class ShapeMeshBuilder : public IShapeMeshBuilder

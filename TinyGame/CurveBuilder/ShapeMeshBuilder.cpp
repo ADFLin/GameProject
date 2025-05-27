@@ -821,6 +821,43 @@ namespace CB
 
 	IMPLEMENT_SHADER(GenNormalCS, EShader::Compute, SHADER_ENTRY(MainCS));
 
+
+	class GenVertexCS : public Shader
+	{
+	public:
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamVertexOutput.bind(parameterMap, getParameterName(EShaderResourceType::Storage, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput)));
+			mParamParamData.bind(parameterMap, getParameterName(EShaderResourceType::Uniform, VertexGenParamsData::GetStructInfo()));
+		}
+
+
+		void setParameters(RHICommandList& commandList, RHIBuffer& ParamBuffer, RHIBuffer& vertexBuffer)
+		{
+			setUniformBuffer(commandList, mParamParamData, ParamBuffer);
+			setStorageBuffer(commandList, mParamVertexOutput, vertexBuffer);
+		}
+
+		ShaderParameter mParamVertexOutput;
+		ShaderParameter mParamParamData;
+
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/CurveMeshGenVertexTemplate";
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const enties[] =
+			{
+				{ EShader::Compute , SHADER_PARAM(GenVertexCS) } ,
+			};
+			return enties;
+		};
+	};
+
 	void ShapeMeshBuilder::initializeRHI()
 	{
 		using namespace Render;
@@ -926,16 +963,16 @@ namespace CB
 
 		if (flags & RUF_GEOM)
 		{
-			Shader* shader = nullptr;
+			GenVertexCS* shader = nullptr;
 			if (context.func->getFuncType() == TYPE_SURFACE_UV)
 			{
 				auto myFunc = static_cast<SurfaceUVFunc*>(context.func);
-				shader = &myFunc->getShaderResrouce();
+				shader = (GenVertexCS*)&myFunc->getShaderResrouce();
 			}
 			else if (context.func->getFuncType() == TYPE_SURFACE_XY)
 			{
 				auto myFunc = static_cast<SurfaceXYFunc*>(context.func);
-				shader = &myFunc->getShaderResrouce();
+				shader = (GenVertexCS*)&myFunc->getShaderResrouce();
 			}
 
 			if (shader)
@@ -954,8 +991,7 @@ namespace CB
 
 				auto& commandList = RHICommandList::GetImmediateList();
 				RHISetComputeShader(commandList, shader->getRHI());
-				SetStructuredUniformBuffer(commandList, *shader, mVertexGenParamBuffer);
-				shader->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput), *resource.vertexBuffer);
+				shader->setParameters(commandList, *mVertexGenParamBuffer.getRHI(), *resource.vertexBuffer);
 				RHIDispatchCompute(commandList, Math::AlignCount(vertexNum, 16), 1, 1);
 			}
 
@@ -994,6 +1030,7 @@ namespace CB
 		}
 	}
 
+
 	bool ShapeMeshBuilder::compileFuncShader(ShapeFuncBase& func)
 	{
 		CHECK(func.getEvalType() == EEvalType::GPU);
@@ -1009,7 +1046,7 @@ namespace CB
 		if (func.getFuncType() == TYPE_SURFACE_XY)
 		{
 			auto& myFunc = static_cast<SurfaceXYFunc&>(func);
-			if (!LoadRuntimeShader(myFunc.mExpr.GetOrCreateEvalResource<Shader>(), "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries, { StringView(myFunc.mExpr.getExprString()) }, option))
+			if (!LoadRuntimeShader(myFunc.mExpr.GetOrCreateEvalResource<GenVertexCS>(), { StringView(myFunc.mExpr.getExprString()) }, option))
 			{
 				return false;
 			}
@@ -1017,7 +1054,7 @@ namespace CB
 		else if (func.getFuncType() == TYPE_SURFACE_UV)
 		{
 			auto& myFunc = static_cast<SurfaceUVFunc&>(func);
-			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].GetOrCreateEvalResource<Shader>(), "Shader/Game/CurveMeshGenVertexTemplate.sgc", entries,
+			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].GetOrCreateEvalResource<GenVertexCS>(), 
 				{ StringView(myFunc.mAixsExpr[0].getExprString()), StringView(myFunc.mAixsExpr[1].getExprString()), StringView(myFunc.mAixsExpr[2].getExprString()) }, option))
 			{
 				return false;

@@ -357,6 +357,7 @@ namespace Render
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) = 0;
+		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) = 0;
 	};
 
 	class RHIShader : public RHIShaderObject

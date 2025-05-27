@@ -22,10 +22,13 @@ namespace Render
 		};
 		virtual void bindParameters(ShaderParameterMap const& parameterMap) {}
 
+
 		virtual ~ShaderObject(){}
 
 		std::string  shaderName;
 	};
+
+
 
 	template< class RHIResourceType >
 	class TShaderFuncHelper : public ShaderObject
@@ -39,6 +42,11 @@ namespace Render
 		{
 			mCachedParams.clear();
 			mRHIResource.release(); 
+		}
+
+		char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			return mRHIResource->getParameterName(resourceType, structInfo);
 		}
 
 		void setParam(RHICommandList& commandList, char const* name, int32 v1) { setParamT(commandList, name, v1); }

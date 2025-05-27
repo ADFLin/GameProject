@@ -285,7 +285,7 @@ namespace Render
 		Text::Format((char const*)codeTemplate.data(), codes, code);
 		option.addCode((char const*)code.data());
 
-		if constexpr (std::is_base_of_v<TShaderType, Shader>)
+		if constexpr (std::is_base_of_v<Shader, TShaderType>)
 		{
 			if (!ShaderManager::Get().loadFile(shader, nullptr, entries[0], option))
 			{
@@ -304,9 +304,9 @@ namespace Render
 	}
 
 	template< typename TShaderType >
-	bool LoadRuntimeShader(TShaderType& shader, char const* path, TArray< StringView > codes, ShaderCompileOption& option)
+	bool LoadRuntimeShader(TShaderType& shader, TArray< StringView > codes, ShaderCompileOption& option)
 	{
-		return LoadRuntimeShader(shader, TShaderType::GetShaderFileName(), TShaderType::GetShaderEntries(), codes, option);
+		return LoadRuntimeShader(shader, InlineString<>::Make( "%s%s" , TShaderType::GetShaderFileName() , SHADER_FILE_SUBNAME ), TShaderType::GetShaderEntries(), codes, option);
 	}
 }
 

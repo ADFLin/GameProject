@@ -94,6 +94,11 @@ namespace Render
 			return getResourceParameter(resourceType, resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName, outParam);
 		}
 
+		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			return resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName;
+		}
+
 		ShaderParameterMap   mParameterMap;
 	};
 
@@ -112,6 +117,11 @@ namespace Render
 		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) final
 		{
 			return getResourceParameter(resourceType, resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName, outParam);
+		}
+
+		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			return resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName;
 		}
 
 		void initializeParameterMap(TComPtr<IDxcLibrary>& library)

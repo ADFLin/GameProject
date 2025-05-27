@@ -74,6 +74,11 @@ namespace Render
 			return getResourceParameter(resourceType, structInfo.blockName, outParam);
 		}
 
+		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			return structInfo.blockName;
+		}
+
 		void    generateParameterMap(ShaderParameterMap& parameterMap)
 		{
 			FOpenGLShader::GenerateParameterMap(getHandle(), parameterMap);
@@ -120,6 +125,11 @@ namespace Render
 		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) final
 		{
 			return getResourceParameter(resourceType, structInfo.blockName, outParam);
+		}
+
+		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			return structInfo.blockName;
 		}
 
 		void    generateParameterMap(ShaderParameterMap& parameterMap)

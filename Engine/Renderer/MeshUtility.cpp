@@ -1547,8 +1547,6 @@ namespace Render
 			}
 		}
 
-
-
 		uint32* pCur = indices;
 		for (int i = 0; i < numTriangles; ++i)
 		{
@@ -1578,8 +1576,6 @@ namespace Render
 			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i2) }; 
 			wN = wN + vNormal;
 			normalWriter[i2] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
-
-
 #else
 			Vector3 const& p0 = positionReader[i0];
 			Vector3 const& p1 = positionReader[i1];

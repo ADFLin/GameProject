@@ -210,7 +210,7 @@
     <ClInclude Include="Widget\WidgetLayout.h" />
     <ClInclude Include="Widget\WidgetUtility.h" />
     <None Include="out\Shader\Game\CurveContour.sgc" />
-    <None Include="out\Shader\Game\CurveMesh.sgc" />
+    <None Include="out\Shader\Game\CurveMeshRender.sgc" />
     <None Include="out\Shader\Game\CurveMeshGenNormal.sgc" />
     <None Include="out\Shader\Game\CurveMeshGenVertexTemplate.sgc" />
     <None Include="out\Shader\Game\MeshNormalVisualize.sgc" />

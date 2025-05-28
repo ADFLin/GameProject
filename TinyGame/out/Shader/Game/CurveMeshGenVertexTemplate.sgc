@@ -60,7 +60,7 @@ CS_ENTRY(GenVertexCS)
 	if (vertexId >= GenParams.vertexCount)
 		return;
 
-	float2 uv = GenParams.offset + float2(vertexId / GenParams.gridCountU, vertexId % GenParams.gridCountU) * GenParams.delata;
+	float2 uv = GenParams.offset + float2(vertexId % GenParams.gridCountU, vertexId / GenParams.gridCountU) * GenParams.delata;
 	uint vertexIndex = vertexId * GenParams.vertexStride;
 
 #if FUNC_TYPE == TYPE_SURFACE_XY

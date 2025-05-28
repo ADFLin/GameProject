@@ -258,9 +258,6 @@
     <None Include="TinyCore\ColorName.h">
       <Filter>Common</Filter>
     </None>
-    <None Include="out\Shader\Game\CurveMesh.sgc">
-      <Filter>CurveBuilder\Shader</Filter>
-    </None>
     <None Include="out\Shader\Game\MeshNormalVisualize.sgc">
       <Filter>CurveBuilder\Shader</Filter>
     </None>
@@ -271,6 +268,9 @@
       <Filter>CurveBuilder\Shader</Filter>
     </None>
     <None Include="out\Shader\Game\CurveMeshGenVertexTemplate.sgc">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\CurveMeshRender.sgc">
       <Filter>CurveBuilder\Shader</Filter>
     </None>
   </ItemGroup>

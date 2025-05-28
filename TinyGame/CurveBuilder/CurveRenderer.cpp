@@ -19,7 +19,7 @@ namespace CB
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
 		{
-			return "Shader/Game/CurveMesh";
+			return "Shader/Game/CurveMeshRender";
 		}
 
 

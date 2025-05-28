@@ -501,11 +501,11 @@ namespace CB
 		{
 			for (int i = 0; i < nx - 1; ++i)
 			{
-				int index = nx * i + j;
+				int index = nx * j + i;
 				int indexN = index + nx;
 
 				pIndex[0] = index;
-				pIndex[1] = index + 1;
+				pIndex[1] = index  + 1;
 				pIndex[2] = indexN + 1;
 
 				pIndex[3] = indexN + 1;

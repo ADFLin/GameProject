@@ -111,7 +111,8 @@ namespace CB
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
 		std::string const& getExprString() { return mExpr.getExprString(); }
 
-		Render::Shader& getShaderResrouce() { return mExpr.GetEvalResource<Render::Shader>(); }
+		template<typename TShaderType>
+		TShaderType& getEvalShader() { return mExpr.GetEvalResource<TShaderType>(); }
 
 		SurfaceXYFunc* clone() override;
 	private:
@@ -149,7 +150,9 @@ namespace CB
 		}
 		SurfaceUVFunc* clone() override;
 
-		Render::Shader& getShaderResrouce(){ return mAixsExpr[0].GetEvalResource<Render::Shader>(); }
+		template<typename TShaderType>
+		TShaderType& getEvalShader() { return mAixsExpr[0].GetEvalResource<TShaderType>(); }
+
 	private:
 		friend class ShapeMeshBuilder;
 		bool         mbUseGPU;
@@ -174,9 +177,10 @@ namespace CB
 
 		void evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ)
 		{
-			outX = (*static_cast<FloatVector(*)(FloatVector, FloatVector)>(mAixsExpr[0]))(u, v);
-			outY = (*static_cast<FloatVector(*)(FloatVector, FloatVector)>(mAixsExpr[1]))(u, v);
-			outZ = (*static_cast<FloatVector(*)(FloatVector, FloatVector)>(mAixsExpr[2]))(u, v);
+			using MyFunc = FloatVector(*)(FloatVector, FloatVector);
+			outX = (*static_cast<MyFunc>(mAixsExpr[0]))(u, v);
+			outY = (*static_cast<MyFunc>(mAixsExpr[1]))(u, v);
+			outZ = (*static_cast<MyFunc>(mAixsExpr[2]))(u, v);
 		}
 
 		NativeSurfaceUVFunc* clone() override;

@@ -21,7 +21,7 @@ namespace CB
 
 	public:
 
-		bool               update(IShapeMeshBuilder& builder);
+		bool               update(IShapeMeshBuilder& builder, bool bPauseTime = false);
 		void               visible(bool visable) { mbVisible = visable; }
 		bool               isVisible() { return mbVisible; }
 		ShapeFuncBase*     getFunction() const { return mShapeFunc; }

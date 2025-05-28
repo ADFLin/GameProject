@@ -69,6 +69,12 @@ PS_ENTRY_END(MainPS)
 	float3 color = ( 0.5 * NoV + NoL) * OutputVS.color.rgb;
 	float alpha = OutputVS.color.a;
 	//color = (0.5 * normal + 0.5);
+
+
+	color = float3(1,0,0);
+	if (!SvIsFrontFace)
+		color = float3(0,0,1);
+	alpha = 0.5;
 #if USE_OIT
 	float pixelDepth = (View.worldToView * float4(OutputVS.worldPos, 1)).z;
 	OITProcessPS(float4(color , alpha), pixelDepth);

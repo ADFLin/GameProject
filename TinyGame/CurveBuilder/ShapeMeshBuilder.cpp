@@ -474,6 +474,50 @@ namespace CB
 		}
 	}
 
+
+
+	void GenerateGirdMeshPos(Vector2* pUV , SampleParam const& paramU, SampleParam const& paramV)
+	{
+		float du = paramU.getIncrement();
+		float dv = paramV.getIncrement();
+		for (int j = 0; j < paramV.numData; ++j)
+		{
+			float v = paramV.getRangeMin() + j * dv;
+			for (int i = 0; i < paramU.numData; ++i)
+			{
+				float u = paramU.getRangeMin() + i * du;
+				int idx = paramU.numData * j + i;
+				pUV[idx] = Vector2(u, v);
+			}
+		}
+	}
+
+
+	void FillGirdMeshIndices(uint32* pIndexData, int nx, int ny)
+	{
+		uint32*  pIndex = pIndexData;
+
+		for (int j = 0; j < ny - 1; ++j)
+		{
+			for (int i = 0; i < nx - 1; ++i)
+			{
+				int index = nx * i + j;
+				int indexN = index + nx;
+
+				pIndex[0] = index;
+				pIndex[1] = index + 1;
+				pIndex[2] = indexN + 1;
+
+				pIndex[3] = indexN + 1;
+				pIndex[4] = indexN;
+				pIndex[5] = index;
+
+				pIndex += 6;
+			}
+		}
+	}
+
+
 	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV)
 	{
 		PROFILE_ENTRY("UpdateSurfaceData", "CB");
@@ -516,28 +560,7 @@ namespace CB
 				pIndexData = data->getIndexData();
 			}
 
-			int nu = paramU.numData;
-			int nv = paramV.numData;
-
-			uint32*  pIndex = pIndexData;
-			for (int i = 0; i < nu - 1; ++i)
-			{
-				for (int j = 0; j < nv - 1; ++j)
-				{
-					int index = nv * i + j;
-					int indexN = index + nv;
-
-					pIndex[0] = index;
-					pIndex[1] = index + 1;
-					pIndex[2] = indexN + 1;
-
-					pIndex[3] = indexN + 1;
-					pIndex[4] = indexN;
-					pIndex[5] = index;
-
-					pIndex += 6;
-				}
-			}
+			FillGirdMeshIndices(pIndexData, paramU.numData, paramV.numData);
 
 			if (data->resource)
 			{
@@ -559,21 +582,6 @@ namespace CB
 #endif
 			}
 
-			auto GenerateGirdPos = [&](Vector2* pUV)
-			{
-				float du = paramU.getIncrement();
-				float dv = paramV.getIncrement();
-				for (int j = 0; j < paramV.numData; ++j)
-				{
-					float v = paramV.getRangeMin() + j * dv;
-					for (int i = 0; i < paramU.numData; ++i)
-					{
-						float u = paramU.getRangeMin() + i * du;
-						int idx = paramU.numData * j + i;
-						pUV[idx] = Vector2(u, v);
-					}
-				}
-			};
 
 			if (REORDER_CACHE && bNeedReorderCache)
 			{
@@ -582,7 +590,7 @@ namespace CB
 				tempData.resize(num);
 
 				Vector2* pUV = tempData.data();
-				GenerateGirdPos(tempData.data());
+				GenerateGirdMeshPos(tempData.data(), paramU , paramV);
 
 				data->setCachedDataSize(num * sizeof(Vector2) + CacheAlign - 1);
 				float* pValue = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
@@ -636,7 +644,7 @@ namespace CB
 						data->setCachedDataSize(num * sizeof(Vector2));
 
 						Vector2* pUV = (Vector2*)data->getCachedData();
-						GenerateGirdPos(pUV);
+						GenerateGirdMeshPos(pUV, paramU, paramV);
 					}
 					break;
 				}
@@ -707,7 +715,7 @@ namespace CB
 				VertexElementWriter normalWriter{ data->getVertexData() + data->getNormalOffset() , data->getVertexSize() };
 
 				PROFILE_ENTRY("Update Normal", "CB");
-				if (context.func->getFuncType() == TYPE_SURFACE_XY)
+				if (context.func->getFuncType() == TYPE_SURFACE_XY && false)
 				{
 					uint32 numTriangles = data->getIndexNum() / 3;
 					float du = paramU.getIncrement();
@@ -800,10 +808,47 @@ namespace CB
 
 	using namespace Render;
 
-	class GenNormalCS : public Render::GlobalShader
+	class GenNormalCS : public GlobalShader
 	{
 	public:
 		DECLARE_SHADER(GenNormalCS, Global);
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamParamsData.bind(parameterMap, NormalGenParamsData::GetStructInfo().getParameterName(EShaderResourceType::Uniform));
+			mParamVertexOutput.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput).getParameterName(EShaderResourceType::Storage));
+			mParamVertexInput.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(VertexInput).getParameterName(EShaderResourceType::Storage));
+			mParamTriangleIndices.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIndices).getParameterName(EShaderResourceType::Storage));
+#if USE_SHARE_TRIANGLE_INFO
+			mParamTriangleIdList.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIdList).getParameterName(EShaderResourceType::Storage));
+			mParamShareTriangleInfos.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(ShareTriangleInfos).getParameterName(EShaderResourceType::Storage));
+#endif
+		}
+
+		void setParameters(RHICommandList& commandList, RHIBuffer& ParamsBuffer, RHIBuffer& vertexBuffer, RHIBuffer& indexBuffer)
+		{
+			setUniformBuffer(commandList, mParamParamsData, ParamsBuffer);
+			setStorageBuffer(commandList, mParamVertexInput, vertexBuffer, EAccessOp::ReadOnly);
+			setStorageBuffer(commandList, mParamVertexOutput, vertexBuffer, EAccessOp::ReadAndWrite);
+			setStorageBuffer(commandList, mParamTriangleIndices, indexBuffer, EAccessOp::ReadOnly);
+		}
+
+		ShaderParameter mParamParamsData;
+		ShaderParameter mParamVertexOutput;
+		ShaderParameter mParamVertexInput;
+		ShaderParameter mParamTriangleIndices;
+
+#if USE_SHARE_TRIANGLE_INFO
+		void setSharedInfoParameters(RHICommandList& commandList, RHIBuffer& triangleIdBuffer, RHIBuffer& sharedTriangleInfoBuffer)
+		{
+			setStorageBuffer(commandList, mParamTriangleIdList, triangleIdBuffer, EAccessOp::ReadOnly);
+			setStorageBuffer(commandList, mParamShareTriangleInfos, sharedTriangleInfoBuffer, EAccessOp::ReadOnly);
+		}
+		ShaderParameter mParamTriangleIdList;
+		ShaderParameter mParamShareTriangleInfos;
+#endif
+
+
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option) 
 		{
@@ -828,20 +873,18 @@ namespace CB
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamVertexOutput.bind(parameterMap, getParameterName(EShaderResourceType::Storage, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput)));
-			mParamParamData.bind(parameterMap, getParameterName(EShaderResourceType::Uniform, VertexGenParamsData::GetStructInfo()));
+			mParamParamsData.bind(parameterMap, VertexGenParamsData::GetStructInfo().getParameterName(EShaderResourceType::Uniform));
+			mParamVertexOutput.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput).getParameterName(EShaderResourceType::Storage));
 		}
 
-
-		void setParameters(RHICommandList& commandList, RHIBuffer& ParamBuffer, RHIBuffer& vertexBuffer)
+		void setParameters(RHICommandList& commandList, RHIBuffer& ParamsBuffer, RHIBuffer& vertexBuffer)
 		{
-			setUniformBuffer(commandList, mParamParamData, ParamBuffer);
+			setUniformBuffer(commandList, mParamParamsData, ParamsBuffer);
 			setStorageBuffer(commandList, mParamVertexOutput, vertexBuffer);
 		}
 
+		ShaderParameter mParamParamsData;
 		ShaderParameter mParamVertexOutput;
-		ShaderParameter mParamParamData;
-
 
 		static char const* GetShaderFileName()
 		{
@@ -914,29 +957,8 @@ namespace CB
 			indices.resize(indexNum);
 
 			uint32*  pIndexData = indices.data();
-			int nu = paramU.numData;
-			int nv = paramV.numData;
-
-			uint32*  pIndex = pIndexData;
-			for (int i = 0; i < nu - 1; ++i)
-			{
-				for (int j = 0; j < nv - 1; ++j)
-				{
-					int index = nv * i + j;
-
-					pIndex[0] = index;
-					pIndex[1] = index + 1;
-					pIndex[2] = index + nv + 1;
-
-					pIndex[3] = index;
-					pIndex[4] = index + nv + 1;
-					pIndex[5] = index + nv;
-
-					pIndex += 6;
-				}
-			}
+			FillGirdMeshIndices(pIndexData, paramU.numData, paramV.numData);
 			resource.indexBuffer = RHICreateIndexBuffer(indexNum, true, BCF_DefalutValue | BCF_CreateUAV, indices.data());
-
 
 #if USE_SHARE_TRIANGLE_INFO
 
@@ -967,12 +989,12 @@ namespace CB
 			if (context.func->getFuncType() == TYPE_SURFACE_UV)
 			{
 				auto myFunc = static_cast<SurfaceUVFunc*>(context.func);
-				shader = (GenVertexCS*)&myFunc->getShaderResrouce();
+				shader = &myFunc->getEvalShader<GenVertexCS>();
 			}
 			else if (context.func->getFuncType() == TYPE_SURFACE_XY)
 			{
 				auto myFunc = static_cast<SurfaceXYFunc*>(context.func);
-				shader = (GenVertexCS*)&myFunc->getShaderResrouce();
+				shader = &myFunc->getEvalShader<GenVertexCS>();
 			}
 
 			if (shader)
@@ -1011,14 +1033,9 @@ namespace CB
 
 				auto& commandList = RHICommandList::GetImmediateList();
 				RHISetComputeShader(commandList, mShaderGenNormal->getRHI());
-				SetStructuredUniformBuffer(commandList, *mShaderGenNormal, mNoramlGenParamBuffer);
-				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput), *resource.vertexBuffer);
-				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIndices), *resource.indexBuffer);
+				mShaderGenNormal->setParameters(commandList, *mNoramlGenParamBuffer.getRHI(), *resource.vertexBuffer, *resource.indexBuffer);
 #if USE_SHARE_TRIANGLE_INFO
-				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIdList), *resource.triangleIdBuffer);
-				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(ShareTriangleInfos), *resource.sharedTriangleInfoBuffer);
-#else
-				mShaderGenNormal->setStorageBuffer(commandList, MAKE_STRUCTUREED_BUFFER_INFO(VertexInput), *resource.vertexBuffer);
+				mShaderGenNormal->setSharedInfoParameters(commandList, *resource.triangleIdBuffer, *resource.sharedTriangleInfoBuffer);
 #endif
 				RHIDispatchCompute(commandList, Math::AlignCount(params.totalCount, 16u), 1, 1);
 			}
@@ -1034,7 +1051,6 @@ namespace CB
 	bool ShapeMeshBuilder::compileFuncShader(ShapeFuncBase& func)
 	{
 		CHECK(func.getEvalType() == EEvalType::GPU);
-		using namespace Render;
 
 		ShaderCompileOption option;
 		option.addDefine(SHADER_PARAM(FUNC_TYPE), func.getFuncType());

@@ -34,8 +34,8 @@ namespace CB
 				resource = new RenderResource;
 			}
 
-			resource->vertexBuffer = RHICreateVertexBuffer(mVertexSize, Math::AlignUp(mVertexNum, numAlign));
-			resource->indexBuffer = RHICreateIndexBuffer(numIndex, true);
+			resource->vertexBuffer = RHICreateVertexBuffer(mVertexSize, Math::AlignUp(mVertexNum, numAlign), BCF_CpuAccessRead | BCF_CpuAccessWrite);
+			resource->indexBuffer = RHICreateIndexBuffer(numIndex, true, BCF_CpuAccessWrite);
 		}
 		else
 		{

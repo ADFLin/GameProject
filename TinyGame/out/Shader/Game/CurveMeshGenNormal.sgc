@@ -30,11 +30,12 @@ layout(std140) cbuffer NormalGenParamsDataBlock
 uniform NormalGenParamsData GenParams;
 #endif
 
+
+DEFINE_STRUCTURED_BUFFER(float, VertexInput);
+
 #if USE_SHARE_TRIANGLE_INFO
 DEFINE_STRUCTURED_BUFFER(float, VertexOutput);
 #else
-
-DEFINE_STRUCTURED_BUFFER(float, VertexInput);
 DEFINE_STRUCTURED_BUFFER(uint, VertexOutput);
 void UpdateValue(uint index, float Add)
 {
@@ -56,11 +57,7 @@ DEFINE_STRUCTURED_BUFFER(uint, TriangleIdList);
 float3 ReadPosition(uint vertexId)
 {
 	uint posIndex = vertexId * GenParams.vertexStride;
-#if USE_SHARE_TRIANGLE_INFO
-	return float3(VertexOutput[posIndex + 0], VertexOutput[posIndex + 1], VertexOutput[posIndex + 2]);
-#else
 	return float3(VertexInput[posIndex + 0], VertexInput[posIndex + 1], VertexInput[posIndex + 2]);
-#endif
 }
 
 void WriteNormal(uint vertexId, float3 N)
@@ -116,7 +113,7 @@ CS_ENTRY(MainCS)
 		N += CalcNormal(triangleId);
 	}
 
-	WriteNormal(vertexIndex, N);
+	WriteNormal(vertexIndex, normalize(N));
 #else
 	uint triangleId = SvDispatchThreadID.x;
 	if (triangleId >= GenParams.totalCount)

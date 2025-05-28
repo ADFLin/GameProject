@@ -7,6 +7,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
 #include "ProfileSystem.h"
+#include "Meta/Concept.h"
 
 namespace CB
 {
@@ -36,6 +37,13 @@ namespace CB
 	class CurveMeshProgram : public CurveMeshBaseProgram
 	{
 		DECLARE_SHADER_PROGRAM(CurveMeshProgram, Global)
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, LocalToWorld);
+			BIND_SHADER_PARAM(parameterMap, WorldToLocal);
+		}
+
 		using BaseClass = CurveMeshBaseProgram;
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
@@ -46,6 +54,9 @@ namespace CB
 			};
 			return enties;
 		}
+
+		DEFINE_SHADER_PARAM(LocalToWorld);
+		DEFINE_SHADER_PARAM(WorldToLocal);
 	};
 
 	class CurveMeshOITProgram : public CurveMeshProgram
@@ -230,6 +241,29 @@ namespace CB
 
 
 
+	ACCESS_SHADER_MEMBER_PARAM(LocalToWorld);
+	ACCESS_SHADER_MEMBER_PARAM(WorldToLocal);
+
+	struct SurfaceRender
+	{
+		SurfaceRender(Surface3D& surface)
+			:surface(surface)
+		{
+			float det;
+			surface.getTransform().inverseAffine(worldToLocal, det);
+		}
+
+		template< typename TShaderType >
+		void setupShader(RHICommandList& commandList, TShaderType& shader) const
+		{
+			SET_SHADER_PARAM_VALUE(commandList, shader, LocalToWorld, surface.getTransform());
+			SET_SHADER_PARAM_VALUE(commandList, shader, WorldToLocal, worldToLocal);
+		}
+		Surface3D& surface;
+		Matrix4    worldToLocal;
+	};
+
+
 	void CurveRenderer::drawSurface(Surface3D& surface)
 	{
 		if( !surface.getFunction()->isParsed() )
@@ -239,23 +273,6 @@ namespace CB
 
 
 
-		struct SurfaceRender
-		{
-			SurfaceRender(Surface3D& surface)
-				:surface(surface)
-			{
-				float det;
-				surface.getTransform().inverseAffine(worldToLocal, det);
-			}
-
-			void setupShader(RHICommandList& commandList, ShaderProgram& shader) const
-			{
-				shader.setParam(commandList, SHADER_PARAM(LocalToWorld), surface.getTransform());
-				shader.setParam(commandList, SHADER_PARAM(WorldToLocal), worldToLocal);
-			}
-			Surface3D& surface;
-			Matrix4    worldToLocal;
-		};
 
 		SurfaceRender surfaceRender(surface);
 
@@ -298,7 +315,15 @@ namespace CB
 			{
 				mTranslucentDraw.emplace_back([this, surfaceRender](RHICommandList& commandList, ShaderProgram& shader)
 				{
-					surfaceRender.setupShader(commandList, shader);
+					if (&shader == mProgCurveMesh)
+					{
+						surfaceRender.setupShader(commandList, *mProgCurveMesh);
+					}
+					else
+					{
+						surfaceRender.setupShader(commandList, *mProgCurveMeshOIT);
+					}
+
 					drawMesh(surfaceRender.surface);
 				});
 			}

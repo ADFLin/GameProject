@@ -6,8 +6,14 @@
 #include "ShaderFormat.h"
 #include "InlineString.h"
 
+#include "CoreShare.h"
+
 namespace Render
 {
+
+#if CORE_SHARE_CODE
+	CORE_API StructuredBufferInfo::GetParameterNameFunc StructuredBufferInfo::StaticGetParameterNameFunc = nullptr;
+#endif
 
 	char const* const GShaderNames[] =
 	{

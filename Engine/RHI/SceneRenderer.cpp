@@ -1010,11 +1010,7 @@ namespace Render
 
 			RHISetShaderProgram(commandList, mShaderBassPassTest.getRHI());
 			view.setupShader(commandList, mShaderBassPassTest);
-			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, 0, EAccessOp::WriteOnly);
-			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, 0, EAccessOp::ReadAndWrite);
-			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, 0, EAccessOp::ReadAndWrite);
-			mShaderBassPassTest.setAtomicCounterBuffer(commandList, SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
-
+			mShaderBassPassTest.mParamOIT.setParameters(commandList, mShaderBassPassTest, mShaderData);
 
 			//
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(BaseColor), color[0]);
@@ -1235,14 +1231,6 @@ namespace Render
 
 		OITCommonParameter mParamOITCommon;
 	};
-
-	void OITTechnique::setupShader(RHICommandList& commandList, ShaderProgram& program)
-	{
-		program.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, 0, EAccessOp::WriteOnly);
-		program.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, 0, EAccessOp::ReadAndWrite);
-		program.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, 0, EAccessOp::ReadAndWrite);
-		program.setAtomicCounterBuffer(commandList, SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
-	}
 
 	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{

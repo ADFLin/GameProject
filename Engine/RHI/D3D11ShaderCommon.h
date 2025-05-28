@@ -72,14 +72,7 @@ namespace Render
 		{
 			return outParam.bind(mParameterMap , name);
 		}
-		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) final
-		{
-			return getResourceParameter(resourceType, resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName, outParam);
-		}
-		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
-		{
-			return resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName;
-		}
+
 		static bool GenerateParameterMap(TArrayView<uint8 const> const& byteCode, ShaderParameterMap& parameterMap, D3DShaderParamInfo& outParamInfo);
 		D3D11ShaderData      mResource;
 		ShaderParameterMap   mParameterMap;
@@ -110,14 +103,7 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam);
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) final;
-		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) final
-		{
-			return getResourceParameter(resourceType, resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName, outParam);
-		}
-		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
-		{
-			return resourceType == EShaderResourceType::Storage ? structInfo.variableName : structInfo.blockName;
-		}
+
 		virtual void releaseResource();
 
 		template< class TFunc >

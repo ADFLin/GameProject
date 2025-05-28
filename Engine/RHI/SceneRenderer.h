@@ -353,6 +353,18 @@ namespace Render
 	class Mesh;
 
 
+	class OITBasePassTest : public ShaderProgram
+	{
+	public:
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamOIT.bindParameters(parameterMap);
+		}
+
+		OITCommonParameter mParamOIT;
+	};
+
 	class OITTechnique :  public RenderTechnique
 	{
 
@@ -382,7 +394,7 @@ namespace Render
 		static int const NumBMALevel = sizeof( BMA_MaxPixelCounts ) / sizeof( BMA_MaxPixelCounts[0] );
 		int BMA_InternalValMin[NumBMALevel];
 
-		ShaderProgram mShaderBassPassTest;
+		OITBasePassTest mShaderBassPassTest;
 		class BMAResolveProgram* mShaderResolve;
 		class BMAResolveProgram* mShaderBMAResolves[NumBMALevel];
 		class ReestCounterProgram* mShaderResetCounter;
@@ -392,7 +404,6 @@ namespace Render
  
 		RHIFrameBufferRef mFrameBuffer;
 
-		void setupShader(RHICommandList& commandList, ShaderProgram& program);
 		MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
 		void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) override;
 

@@ -44,11 +44,6 @@ namespace Render
 			mRHIResource.release(); 
 		}
 
-		char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
-		{
-			return mRHIResource->getParameterName(resourceType, structInfo);
-		}
-
 		void setParam(RHICommandList& commandList, char const* name, int32 v1) { setParamT(commandList, name, v1); }
 
 
@@ -258,7 +253,6 @@ namespace Render
 		EShader::Type getType() { return mRHIResource->getType(); }
 	};
 
-
 #define SHADER_MEMBER_PARAM( NAME ) mParam##NAME
 #define DEFINE_SHADER_PARAM( NAME ) ShaderParameter SHADER_MEMBER_PARAM( NAME )
 #define DEFINE_TEXTURE_PARAM( NAME )\
@@ -339,6 +333,39 @@ namespace Render
 	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), TEXTURE, (SHADER).SHADER_MEMBER_PARAM(NAME##Sampler), SAMPLER )
 #define CLEAR_SHADER_TEXTURE(COMMANDLIST, SHADER, NAME)\
 	 ClearShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME) )
+
+
+#define CSHADER_MEMBER_PARAM_ACCESSIABLE(NAME) CShaderMemberParamAccessiable_##NAME
+#define ACCESS_SHADER_MEMBER_PARAM(NAME)\
+	struct CSHADER_MEMBER_PARAM_ACCESSIABLE(NAME)\
+	{\
+		template< typename T >\
+		static auto Requires(T& t) -> decltype\
+		(\
+			t.SHADER_MEMBER_PARAM(NAME)\
+		);\
+		template< typename T >\
+		static auto Get(T& t){ return t.SHADER_MEMBER_PARAM(NAME); }\
+	};
+
+	template< typename TShaderParamAccessor, typename TShaderType, typename T>
+	FORCEINLINE void SetShaderParamValueInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, T const& value)
+	{
+		if constexpr (TCheckConcept< TShaderParamAccessor, TShaderType >::Value)
+		{
+			shader.setParam(commandList, TShaderParamAccessor::Get(shader), value);
+		}
+		else
+		{
+			shader.setParam(commandList, paramName, value);
+		}
+	}
+
+#define SET_SHADER_PARAM_VALUE(COMMANDLIST, SHADER , PARAM_NAME, VALUE)\
+		SetShaderParamValueInternal<CSHADER_MEMBER_PARAM_ACCESSIABLE(PARAM_NAME)>(COMMANDLIST, SHADER, #PARAM_NAME, VALUE)
+		
+
+
 }//namespace Render
 
 

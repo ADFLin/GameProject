@@ -51,7 +51,7 @@ namespace CB
 		addUpdateBits(RUF_COLOR);
 	}
 
-	bool ShapeBase::update(IShapeMeshBuilder& builder)
+	bool ShapeBase::update(IShapeMeshBuilder& builder, bool bPauseTime)
 	{
 		if( mUpdateBits & RUF_FUNCTION )
 		{
@@ -70,7 +70,7 @@ namespace CB
 		if( !getFunction()->isParsed() )
 			return false;
 
-		if( getFunction()->isDynamic() && isVisible() )
+		if( getFunction()->isDynamic() && isVisible() && !bPauseTime)
 		{
 			mUpdateBits |= RUF_GEOM;
 		}

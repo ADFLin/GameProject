@@ -15,6 +15,7 @@
 #include "Module/ModularFeature.cpp"
 #include "Module/ModuleManager.cpp"
 
+#include "RHI/ShaderCore.cpp"
 #include "RHI/RHICommon.cpp"
 #include "RHI/ShaderManager.cpp"
 #include "RHI/MaterialShader.cpp"

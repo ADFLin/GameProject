@@ -314,6 +314,13 @@ namespace Render
 	};
 
 
+	enum class EShaderResourceType
+	{
+		Uniform,
+		Storage,
+		AtomicCounter,
+	};
+
 	struct StructuredBufferInfo
 	{
 		char const* blockName;
@@ -324,6 +331,13 @@ namespace Render
 			,variableName(varName)
 		{
 		}
+
+		char const* getParameterName(EShaderResourceType resourceType) const
+		{
+			return (*StaticGetParameterNameFunc)(*this, resourceType);
+		}
+		using GetParameterNameFunc = char const* (*)(StructuredBufferInfo const& structInfo, EShaderResourceType resourceType);
+		CORE_API static GetParameterNameFunc StaticGetParameterNameFunc;
 	};
 
 #define MAKE_STRUCTUREED_BUFFER_INFO( NAME ) Render::StructuredBufferInfo{ #NAME"Block" , #NAME }
@@ -342,13 +356,6 @@ namespace Render
 		return sMyStruct;\
 	}
 
-	enum class EShaderResourceType
-	{
-		Uniform ,
-		Storage ,
-		AtomicCounter ,
-	};
-
 	class RHIShaderObject : public RHIResource
 	{
 	public:
@@ -356,8 +363,11 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
-		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) = 0;
-		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) = 0;
+
+		FORCEINLINE bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) 
+		{
+			return getResourceParameter(resourceType, structInfo.getParameterName(resourceType), outParam);
+		}
 	};
 
 	class RHIShader : public RHIShaderObject

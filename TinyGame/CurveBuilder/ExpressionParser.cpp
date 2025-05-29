@@ -1,11 +1,13 @@
 #include "ExpressionParser.h"
 
 #include "StringParse.h"
+#include "ProfileSystem.h"
 
 #include <algorithm>
 #include <cctype>
 #include <iostream>
 #include <sstream>
+
 
 void ExprParse::Print(ExprOutputContext& context, UnitCodes const& codes,  bool haveBracket)
 {
@@ -343,9 +345,11 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 {
 
 	result.mSymbolDefine = &table;
-
-	if ( !analyzeTokenUnit( expr , table , result.mTreeData.codes ) )
-		return false;
+	{
+		TIME_SCOPE("Analyze Token");
+		if (!analyzeTokenUnit(expr, table, result.mTreeData.codes))
+			return false;
+	}
 
 #if _DEBUG
 	result.printInfixCodes();
@@ -354,6 +358,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	ExprTreeBuilder builder;
 	try 
 	{
+		TIME_SCOPE("Build Expr Tree");
 		builder.build( result.mTreeData );
 	}
 	catch ( ExprParseException& e )
@@ -363,21 +368,22 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	}
 
 
-#	if _DEBUG
+#if _DEBUG
 	builder.printTree( table );
-#	endif
+#endif
 
-	auto error = builder.checkTreeError();
-	if ( error != ExprTreeBuilder::TREE_NO_ERROR )
 	{
-		return false;
+		TIME_SCOPE("Check Expr Error");
+		auto error = builder.checkTreeError();
+		if (error != ExprTreeBuilder::TREE_NO_ERROR)
+		{
+			return false;
+		}
 	}
 
-	builder.optimizeNodeOrder();
-
-#	if _DEBUG
+#if _DEBUG
 	builder.printTree( table );
-#	endif
+#endif
 
 
 #if _DEBUG || true
@@ -1026,62 +1032,6 @@ int ExprTreeBuilder::build_R(int idxStart, int idxEnd, bool bFuncDef)
 	return build_R(idxStart, idxEnd, false);
 }
 
-void ExprTreeBuilder::optimizeNodeOrder()
-{
-	if ( mNumNodes == 0 )
-		return;
-
-	Node& root = mTreeNodes[0];
-	if ( root.children[ CN_LEFT ] > 0 )
-		optimizeNodeOrder_R( root.children[ CN_LEFT ] );
-}
-
-int ExprTreeBuilder::optimizeNodeOrder_R( int idxNode )
-{
-	Node& node = mTreeNodes[ idxNode ];
-
-	int depthL = 0;
-	if ( node.children[ CN_LEFT ] > 0 )
-		depthL = optimizeNodeOrder_R( node.children[ CN_LEFT ] );
-
-	int depthR = 0;
-	if ( node.children[ CN_RIGHT ] > 0 )
-		depthR = optimizeNodeOrder_R( node.children[ CN_RIGHT ] );
-
-
-	Unit& unit = mExprCodes[node.indexOp];
-	if ( ExprParse::IsBinaryOperator( unit.type ) && ExprParse::CanReverse( unit.type ) )
-	{
-		bool needSwap = false;
-		if ( node.children[ CN_LEFT ] < 0 )
-		{
-			if ( node.children[ CN_RIGHT ] > 0 )
-			{
-				Unit const& unitL = mExprCodes[ node.getLeaf( CN_LEFT ) ];
-				if ( ExprParse::IsValue( unitL.type ) )
-				{				
-					Node& nodeR = mTreeNodes[ node.children[ CN_RIGHT ] ];
-					Unit& unitR = mExprCodes[nodeR.indexOp]; 
-
-					if ( ExprParse::IsOperator( unitR.type ) || 
-						 ExprParse::IsFunction( unitR.type ) )
-					{
-						std::swap( node.children[ CN_LEFT ] , node.children[ CN_RIGHT ] );
-						unit.isReverse = !unit.isReverse;
-					}
-				}
-			}
-		}
-		else if ( depthL < depthR )
-		{
-			std::swap( node.children[ CN_LEFT ] , node.children[ CN_RIGHT ] );
-			unit.isReverse = !unit.isReverse;
-		}
-	}
-
-	return (( depthL > depthR ) ? depthL : depthR ) + 1 ;
-}
-
 ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError()
 {
 	if ( mNumNodes != 0 )
@@ -1163,7 +1113,116 @@ ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 	return TREE_NO_ERROR;
 }
 
-bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
+void ExprTreeBuilder::printTree_R(ExprOutputContext& context, int idxNode , int depth )
+{
+	
+	if ( idxNode == 0 )
+	{
+		context.outputSpace( depth * 4 );
+		context.output("[]");
+		context.outputEOL();
+	}
+	else if ( idxNode < 0 )
+	{
+		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
+
+		context.outputSpace( depth * 4 );
+		context.output('[');
+		context.output(unit);
+		context.output(']');
+		context.outputEOL();
+	}
+	else
+	{
+		Node const& node = mTreeNodes[ idxNode ];
+
+		printTree_R(context, node.children[ CN_RIGHT ] , depth + 1 );
+
+		context.outputSpace( depth * 4 );
+		context.output('[');
+		context.output(mExprCodes[node.indexOp]);
+		context.output(']');
+		context.outputEOL();
+		printTree_R(context, node.children[ CN_LEFT ] , depth + 1 );
+	}
+}
+
+
+void ExprTreeBuilder::printTree(SymbolTable const& table)
+{
+	if ( mNumNodes != 0 )
+	{
+		ExprOutputContext context(table);
+		Node& root = mTreeNodes[ 0 ];
+		printTree_R(context, root.children[ CN_LEFT ] , 0 );
+	}
+}
+
+void ExprTreeOptimizer::optimize(ExpressionTreeData& treeData)
+{
+	mTreeNodes = treeData.nodes.data();
+	mNumNodes = treeData.nodes.size();
+	mExprCodes = treeData.codes.data();
+	optimizeNodeOrder();
+}
+
+void ExprTreeOptimizer::optimizeNodeOrder()
+{
+	if ( mNumNodes == 0 )
+		return;
+
+	Node& root = mTreeNodes[0];
+	if ( root.children[ CN_LEFT ] > 0 )
+		optimizeNodeOrder_R( root.children[ CN_LEFT ] );
+}
+
+int ExprTreeOptimizer::optimizeNodeOrder_R( int idxNode )
+{
+	Node& node = mTreeNodes[ idxNode ];
+
+	int depthL = 0;
+	if ( node.children[ CN_LEFT ] > 0 )
+		depthL = optimizeNodeOrder_R( node.children[ CN_LEFT ] );
+
+	int depthR = 0;
+	if ( node.children[ CN_RIGHT ] > 0 )
+		depthR = optimizeNodeOrder_R( node.children[ CN_RIGHT ] );
+
+
+	Unit& unit = mExprCodes[node.indexOp];
+	if ( ExprParse::IsBinaryOperator( unit.type ) && ExprParse::CanReverse( unit.type ) )
+	{
+		bool needSwap = false;
+		if ( node.children[ CN_LEFT ] < 0 )
+		{
+			if ( node.children[ CN_RIGHT ] > 0 )
+			{
+				Unit const& unitL = mExprCodes[ node.getLeaf( CN_LEFT ) ];
+				if ( ExprParse::IsValue( unitL.type ) )
+				{				
+					Node& nodeR = mTreeNodes[ node.children[ CN_RIGHT ] ];
+					Unit& unitR = mExprCodes[nodeR.indexOp]; 
+
+					if ( ExprParse::IsOperator( unitR.type ) || 
+						 ExprParse::IsFunction( unitR.type ) )
+					{
+						std::swap( node.children[ CN_LEFT ] , node.children[ CN_RIGHT ] );
+						unit.isReverse = !unit.isReverse;
+					}
+				}
+			}
+		}
+		else if ( depthL < depthR )
+		{
+			std::swap( node.children[ CN_LEFT ] , node.children[ CN_RIGHT ] );
+			unit.isReverse = !unit.isReverse;
+		}
+	}
+
+	return (( depthL > depthR ) ? depthL : depthR ) + 1 ;
+}
+
+bool ExprTreeOptimizer::optimizeNodeConstValue( int idxNode )
 {
 	Node& node = mTreeNodes[idxNode];
 	Unit& unit = mExprCodes[node.indexOp];
@@ -1305,7 +1364,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 	return true;
 }
 
-bool ExprTreeBuilder::optimizeNodeBOpOrder( int idxNode )
+bool ExprTreeOptimizer::optimizeNodeBOpOrder( int idxNode )
 {
 	assert( idxNode > 0 );
 
@@ -1319,51 +1378,6 @@ bool ExprTreeBuilder::optimizeNodeBOpOrder( int idxNode )
 
 
 	return false;
-}
-
-void ExprTreeBuilder::printTree_R(ExprOutputContext& context, int idxNode , int depth )
-{
-	
-	if ( idxNode == 0 )
-	{
-		context.outputSpace( depth * 4 );
-		context.output("[]");
-		context.outputEOL();
-	}
-	else if ( idxNode < 0 )
-	{
-		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
-
-		context.outputSpace( depth * 4 );
-		context.output('[');
-		context.output(unit);
-		context.output(']');
-		context.outputEOL();
-	}
-	else
-	{
-		Node const& node = mTreeNodes[ idxNode ];
-
-		printTree_R(context, node.children[ CN_RIGHT ] , depth + 1 );
-
-		context.outputSpace( depth * 4 );
-		context.output('[');
-		context.output(mExprCodes[node.indexOp]);
-		context.output(']');
-		context.outputEOL();
-		printTree_R(context, node.children[ CN_LEFT ] , depth + 1 );
-	}
-}
-
-
-void ExprTreeBuilder::printTree(SymbolTable const& table)
-{
-	if ( mNumNodes != 0 )
-	{
-		ExprOutputContext context(table);
-		Node& root = mTreeNodes[ 0 ];
-		printTree_R(context, root.children[ CN_LEFT ] , 0 );
-	}
 }
 
 char const* SymbolTable::getFuncName(FuncInfo const& info) const

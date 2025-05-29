@@ -3,25 +3,308 @@
 #include "Meta/IndexList.h"
 #include "Misc/DuffDevice.h"
 
+
+constexpr int GetOpCmdSizeConstexpr(EExprByteCode::Type op)
+{
+	switch (op)
+	{
+	case EExprByteCode::Input:
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::Const:
+	case EExprByteCode::Variable:
+#endif
+#if EBC_USE_COMPOSITIVE_CODE
+	case EExprByteCode::IAdd:
+	case EExprByteCode::ISub:
+	case EExprByteCode::ISubR:
+	case EExprByteCode::IMul:
+	case EExprByteCode::IDiv:
+	case EExprByteCode::IDivR:
+
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CAdd:
+	case EExprByteCode::CSub:
+	case EExprByteCode::CSubR:
+	case EExprByteCode::CMul:
+	case EExprByteCode::CDiv:
+	case EExprByteCode::CDivR:
+	case EExprByteCode::VAdd:
+	case EExprByteCode::VSub:
+	case EExprByteCode::VSubR:
+	case EExprByteCode::VMul:
+	case EExprByteCode::VDiv:
+	case EExprByteCode::VDivR:
+#endif
+
+#if EBC_USE_COMPOSITIVE_OP_CODE
+
+#if EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CSMulAdd:
+	case EExprByteCode::CSMulSub:
+	case EExprByteCode::CSMulMul:
+	case EExprByteCode::CSMulDiv:
+#endif
+
+
+	case EExprByteCode::IMulAdd:
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CMulAdd:
+	case EExprByteCode::VMulAdd:
+#endif
+	case EExprByteCode::IMulSub:
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CMulSub:
+	case EExprByteCode::VMulSub:
+#endif
+	case EExprByteCode::IAddMul:
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CAddMul:
+	case EExprByteCode::VAddMul:
+#endif
+
+#endif
+
+#endif
+
+	case EExprByteCode::FuncCall0:
+	case EExprByteCode::FuncCall1:
+	case EExprByteCode::FuncCall2:
+	case EExprByteCode::FuncCall3:
+	case EExprByteCode::FuncCall4:
+	case EExprByteCode::FuncCall5:
+		return 2;
+	}
+
+	return 1;
+}
+
+template< size_t ...Is >
+TArrayView< int const > MakeOpCmdSizeMap(TIndexList<Is...>)
+{
+	static constexpr int Result[] = { GetOpCmdSizeConstexpr(EExprByteCode::Type(Is))... };
+	return TArrayView< int const >(Result);
+}
+
+
+int GetOpCmdSize(EExprByteCode::Type op)
+{
+	static TArrayView< int const > StaticSizeMap = MakeOpCmdSizeMap(TIndexRange<0, EExprByteCode::COUNT - 1>());
+	return StaticSizeMap[op];
+}
+
+int GetNextOpCmdOffset(EExprByteCode::Type op)
+{
+#if EBC_USE_FIXED_SIZE
+	return EBC_USE_FIXED_SIZE;
+#else
+	return GetOpCmdSize(op);
+#endif
+}
+
+#if EBC_USE_COMPOSITIVE_OP_CODE
+
+EExprByteCode::Type tryMergeOp(EExprByteCode::Type leftOp, EExprByteCode::Type rightOp)
+{
+	switch (leftOp)
+	{
+	case EExprByteCode::Add:
+		switch (rightOp)
+		{
+		case EExprByteCode::Mul:  return EExprByteCode::AddMul;
+		}
+		break;
+	case EExprByteCode::Sub:
+		break;
+	case EExprByteCode::Mul:
+		switch (rightOp)
+		{
+		case EExprByteCode::Add:  return EExprByteCode::MulAdd;
+		case EExprByteCode::Sub:  return EExprByteCode::MulSub;
+		}
+		break;
+	case EExprByteCode::Div:
+		break;
+	case EExprByteCode::IMul:
+		switch (rightOp)
+		{
+		case EExprByteCode::Add:  return EExprByteCode::IMulAdd;
+		case EExprByteCode::Sub:  return EExprByteCode::IMulSub;
+		}
+		break;
+	case EExprByteCode::IAdd:
+		switch (rightOp)
+		{
+		case EExprByteCode::Mul:  return EExprByteCode::IAddMul;
+		}
+		break;
+	case EExprByteCode::SMul:
+		switch (rightOp)
+		{
+		case EExprByteCode::Add:  return EExprByteCode::SMulAdd;
+		case EExprByteCode::Sub:  return EExprByteCode::SMulSub;
+		case EExprByteCode::Mul:  return EExprByteCode::SMulMul;
+		case EExprByteCode::Div:  return EExprByteCode::SMulDiv;
+		}
+		break;
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CMul:
+		switch (rightOp)
+		{
+		case EExprByteCode::Add:  return EExprByteCode::CMulAdd;
+		case EExprByteCode::Sub:  return EExprByteCode::CMulSub;
+		}
+		break;
+	case EExprByteCode::VMul:
+		switch (rightOp)
+		{
+		case EExprByteCode::Add:  return EExprByteCode::VMulAdd;
+		case EExprByteCode::Sub:  return EExprByteCode::VMulSub;
+		}
+		break;
+	case EExprByteCode::CAdd:
+		switch (rightOp)
+		{
+		case EExprByteCode::Mul:  return EExprByteCode::CAddMul;
+		}
+		break;
+	case EExprByteCode::VAdd:
+		switch (rightOp)
+		{
+		case EExprByteCode::Mul:  return EExprByteCode::VAddMul;
+		}
+		break;
+#endif
+	default:
+		break;
+	}
+
+	return EExprByteCode::None;
+}
+
+
+int tryMergeOpCmd(uint8* pCodeL, uint8* pCodeR, uint8* pMergeCode)
+{
+	auto opMerged = tryMergeOp(EExprByteCode::Type(*pCodeL), EExprByteCode::Type(*pCodeR));
+	if (opMerged == EExprByteCode::None)
+		return 0;
+
+	pMergeCode[0] = opMerged;
+	switch (opMerged)
+	{
+	case EExprByteCode::AddMul:
+	case EExprByteCode::MulAdd:
+	case EExprByteCode::MulSub:  
+		return 1;
+	case EExprByteCode::IMulAdd: 
+	case EExprByteCode::IMulSub: 
+	case EExprByteCode::IAddMul:
+		pMergeCode[1] = pCodeL[1]; 
+		return 2;
+	case EExprByteCode::SMulAdd:
+	case EExprByteCode::SMulSub:
+	case EExprByteCode::SMulMul:
+	case EExprByteCode::SMulDiv:
+		return 1;
+#if !EBC_USE_VALUE_BUFFER
+	case EExprByteCode::CMulAdd:
+	case EExprByteCode::CMulSub:
+	case EExprByteCode::VMulAdd:
+	case EExprByteCode::VMulSub:
+	case EExprByteCode::CAddMul:
+	case EExprByteCode::VAddMul:
+		pMergeCode[1] = pCodeL[1];
+		return 2;
+#endif
+	default:
+		break;
+	}
+
+}
+#endif
+
+
 void ExprByteCodeCompiler::codeInit(int numInput, ValueLayout inputLayouts[])
 {
 	mStacks.clear();
 
 	mNumCmd = 0;
-#if EBC_USE_COMPOSITIVE_OP_CODE
-	mNumDeferredOutCodes = 0;
-#endif
-
 #if EBC_USE_VALUE_BUFFER
 	mNumInput = numInput;
 #endif
 }
 
+
 void ExprByteCodeCompiler::codeEnd()
 {
-	checkOuputDeferredCmd();
-
 	LogMsg("Num Cmd = %d", mNumCmd);
+
+#if EBC_USE_COMPOSITIVE_OP_CODE
+
+	uint8* pCodeWrite = mOutput.codes.data();
+	uint8* pCodeEnd = mOutput.codes.data() + mOutput.codes.size();
+
+	uint8* pCodeL = mOutput.codes.data();
+	int nextCodeOffset = GetNextOpCmdOffset(EExprByteCode::Type(*pCodeL));
+	uint8* pCodeR = mOutput.codes.data() + nextCodeOffset;
+
+
+	auto WriteCode = [&](uint8* pCode, int num)
+	{
+		CHECK(num > 0);
+		do { *(pCodeWrite++) = *(pCode++); --num; } while (num);
+	};
+
+	while( pCodeR < pCodeEnd)
+	{
+		uint8 codeMerged[8];
+		int num = tryMergeOpCmd(pCodeL, pCodeR, codeMerged);
+
+		if (num)
+		{
+#if EBC_USE_FIXED_SIZE
+			for (int i = num; i < EBC_USE_FIXED_SIZE; ++i)
+				codeMerged[i] = 0;
+			num = EBC_USE_FIXED_SIZE;
+#endif
+			pCodeL = pCodeWrite;
+			WriteCode(codeMerged, num);
+			pCodeWrite -= num;
+
+			nextCodeOffset = num;
+			pCodeR += GetNextOpCmdOffset(EExprByteCode::Type(*pCodeR));
+		}
+		else
+		{
+			if (pCodeWrite != pCodeL)
+			{
+				WriteCode(pCodeL, nextCodeOffset);
+			}
+			else
+			{
+				pCodeWrite += nextCodeOffset;
+			}
+
+			pCodeL = pCodeR;
+			nextCodeOffset = GetNextOpCmdOffset(EExprByteCode::Type(*pCodeL));
+			pCodeR += nextCodeOffset;
+		}
+	}
+
+	if (pCodeWrite != pCodeL)
+	{
+		WriteCode(pCodeL, nextCodeOffset);
+	}
+	else
+	{
+		pCodeWrite += nextCodeOffset;
+	}
+
+	if ( pCodeWrite != pCodeEnd)
+	{
+		mOutput.codes.resize(pCodeWrite - mOutput.codes.data());
+	}
+#endif
+
 
 #if EBC_USE_FIXED_SIZE
 	std::string debugMeg;
@@ -161,37 +444,18 @@ void ExprByteCodeCompiler::codeBinaryOp(TokenType type, bool isReverse)
 
 	if (rightValue.byteCode == EExprByteCode::None)
 	{
-#if EBC_USE_COMPOSITIVE_OP_CODE
-		if (mNumDeferredOutCodes)
-		{
-			auto codeMerged = tryMergeOp((EExprByteCode::Type)mDeferredOutputCodes[0], opCode);
-
-			if (codeMerged != EExprByteCode::None)
-			{
-				mDeferredOutputCodes[0] = codeMerged;
-				ouputDeferredCmdChecked();
-			}
-			else
-			{
-				outputCmd(opCode);
-			}
-		}
-		else
-#endif
-		{
-			outputCmd(opCode);
-		}
+		outputCmd(opCode);
 	}
 	else
 	{
 		if (leftValue.byteCode == rightValue.byteCode && leftValue.index == rightValue.index &&
 			(type == BOP_MUL))
 		{
-			outputCmdDeferred(EExprByteCode::SMul);
+			outputCmd(EExprByteCode::SMul);
 		}
 		else
 		{
-			outputCmdDeferred(EExprByteCode::Type(opCode + rightValue.byteCode), rightValue.index);
+			outputCmd(EExprByteCode::Type(opCode + rightValue.byteCode), rightValue.index);
 		}
 	}
 
@@ -225,7 +489,7 @@ void ExprByteCodeCompiler::codeUnaryOp(TokenType type)
 #endif
 	switch (type)
 	{
-	case UOP_MINS: 	checkOuputDeferredCmd(); outputCmd(EExprByteCode::Mins); break;
+	case UOP_MINS: outputCmd(EExprByteCode::Mins); break;
 	}
 #if EBC_USE_COMPOSITIVE_CODE
 	pushResultValue();
@@ -535,25 +799,25 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 		auto lhs = popStack();
 		topValue = lhs + topValue * topValue;
 	}
-	return 2;
+	return 1;
 	case EExprByteCode::SMulSub:
 	{
 		auto lhs = popStack();
 		topValue = lhs - topValue * topValue;
 	}
-	return 2;
+	return 1;
 	case EExprByteCode::SMulMul:
 	{
 		auto lhs = popStack();
 		topValue = lhs * (topValue * topValue);
 	}
-	return 2;
+	return 1;
 	case EExprByteCode::SMulDiv:
 	{
 		auto lhs = popStack();
 		topValue = lhs / (topValue * topValue);
 	}
-	return 2;
+	return 1;
 	case EExprByteCode::MulAdd:
 	{
 		auto rhs = popStack();

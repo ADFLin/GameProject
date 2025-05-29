@@ -12,7 +12,7 @@ using FloatVector = SIMD::TFloatVector<8>;
 using FloatVector = SIMD::TFloatVector<4>;
 #endif
 
-#define EBC_USE_VALUE_BUFFER 0
+#define EBC_USE_VALUE_BUFFER 1
 
 #define EBC_USE_FIXED_SIZE 2
 #define EBC_USE_COMPOSITIVE_CODE 1
@@ -84,6 +84,13 @@ namespace EExprByteCode
 		SMulMul,
 		SMulDiv,
 
+#if EBC_USE_VALUE_BUFFER
+		CSMulAdd,
+		CSMulSub,
+		CSMulMul,
+		CSMulDiv,
+#endif
+
 		MulAdd,
 		IMulAdd,
 #if !EBC_USE_VALUE_BUFFER
@@ -128,8 +135,11 @@ namespace EExprByteCode
 		FuncCall3,
 		FuncCall4,
 		FuncCall5,
+
+		COUNT,
 	};
 }
+
 
 
 struct ExprByteCodeExecData
@@ -189,164 +199,19 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 
 	void codeFunction(FuncSymbolInfo const& info);
 
-#if EBC_USE_COMPOSITIVE_OP_CODE
 
-	EExprByteCode::Type tryMergeOp(EExprByteCode::Type leftOp, EExprByteCode::Type rightOp)
-	{
-		switch (leftOp)
-		{
-		case EExprByteCode::Add:
-			switch (rightOp)
-			{
-			case EExprByteCode::Mul:  return EExprByteCode::AddMul;
-			}
-			break;
-		case EExprByteCode::Sub:
-			break;
-		case EExprByteCode::Mul:
-			switch (rightOp)
-			{
-			case EExprByteCode::Add:  return EExprByteCode::MulAdd;
-			case EExprByteCode::Sub:  return EExprByteCode::MulSub;
-			}
-			break;
-		case EExprByteCode::Div:
-			break;
-		case EExprByteCode::IMul:
-			switch (rightOp)
-			{
-			case EExprByteCode::Add:  return EExprByteCode::IMulAdd;
-			case EExprByteCode::Sub:  return EExprByteCode::IMulSub;
-			}
-			break;
-		case EExprByteCode::IAdd:
-			switch (rightOp)
-			{
-			case EExprByteCode::Mul:  return EExprByteCode::IAddMul;
-			}
-			break;
-		case EExprByteCode::SMul:
-			switch (rightOp)
-			{
-			case EExprByteCode::Add:  return EExprByteCode::SMulAdd;
-			case EExprByteCode::Sub:  return EExprByteCode::SMulSub;
-			case EExprByteCode::Mul:  return EExprByteCode::SMulMul;
-			case EExprByteCode::Div:  return EExprByteCode::SMulDiv;
-			}
-			break;
-#if !EBC_USE_VALUE_BUFFER
-		case EExprByteCode::CMul:
-			switch (rightOp)
-			{
-			case EExprByteCode::Add:  return EExprByteCode::CMulAdd;
-			case EExprByteCode::Sub:  return EExprByteCode::CMulSub;
-			}
-			break;
-		case EExprByteCode::VMul:
-			switch (rightOp)
-			{
-			case EExprByteCode::Add:  return EExprByteCode::VMulAdd;
-			case EExprByteCode::Sub:  return EExprByteCode::VMulSub;
-			}
-			break;
-		case EExprByteCode::CAdd:
-			switch (rightOp)
-			{
-			case EExprByteCode::Mul:  return EExprByteCode::CAddMul;
-			}
-			break;
-		case EExprByteCode::VAdd:
-			switch (rightOp)
-			{
-			case EExprByteCode::Mul:  return EExprByteCode::VAddMul;
-			}
-			break;
-#endif
-		default:
-			break;
-		}
-
-		return EExprByteCode::None;
-
-	}
-
-#endif
 
 	void codeBinaryOp(TokenType type, bool isReverse);
 
 	void codeUnaryOp(TokenType type);
 
 
-#if EBC_USE_COMPOSITIVE_OP_CODE
-	int   mNumDeferredOutCodes;
-	uint8 mDeferredOutputCodes[3];
-
-	void outputCmdDeferred(EExprByteCode::Type a)
-	{
-		checkOuputDeferredCmd();
-		mNumDeferredOutCodes = 1;
-		mDeferredOutputCodes[0] = a;
-	}
-	void outputCmdDeferred(EExprByteCode::Type a, uint8 b)
-	{
-		checkOuputDeferredCmd();
-		mNumDeferredOutCodes = 2;
-		mDeferredOutputCodes[0] = a;
-		mDeferredOutputCodes[1] = b;
-	}
-	void outputCmdDeferred(EExprByteCode::Type a, uint8 b, uint c)
-	{
-		checkOuputDeferredCmd();
-		mNumDeferredOutCodes = 3;
-		mDeferredOutputCodes[0] = a;
-		mDeferredOutputCodes[1] = b;
-		mDeferredOutputCodes[2] = c;
-	}
-
-	void checkOuputDeferredCmd()
-	{
-		if (mNumDeferredOutCodes == 0)
-			return;
-
-		ouputDeferredCmdChecked();
-	}
-
-	void ouputDeferredCmdChecked()
-	{
-		CHECK(mNumDeferredOutCodes > 0);
-		switch (mNumDeferredOutCodes)
-		{
-		case 1: outputCmdActual((EExprByteCode::Type)mDeferredOutputCodes[0]); break;
-		case 2: outputCmdActual((EExprByteCode::Type)mDeferredOutputCodes[0], mDeferredOutputCodes[1]); break;
-		case 3: outputCmdActual((EExprByteCode::Type)mDeferredOutputCodes[0], mDeferredOutputCodes[1], mDeferredOutputCodes[2]); break;
-		}
-		mNumDeferredOutCodes = 0;
-	}
-#else
-	void outputCmdDeferred(EExprByteCode::Type a)
-	{
-		outputCmdActual(a);
-	}
-	void outputCmdDeferred(EExprByteCode::Type a, uint8 b)
-	{
-		outputCmdActual(a, b);
-	}
-	void outputCmdDeferred(EExprByteCode::Type a, uint8 b, uint c)
-	{
-		outputCmdActual(a, b, c);
-	}
-
-	void checkOuputDeferredCmd()
-	{
-	}
-#endif
 	void visitSeparetor()
 	{
 #if EBC_USE_COMPOSITIVE_CODE
 		auto leftValue = mStacks.back();
 		if (leftValue.byteCode != EExprByteCode::None)
 		{
-			checkOuputDeferredCmd();
 			outputCmd(leftValue.byteCode, leftValue.index);
 		}
 
@@ -378,17 +243,14 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 
 	void outputCmd(EExprByteCode::Type a)
 	{
-		checkOuputDeferredCmd();
 		outputCmdActual(a);
 	}
 	void outputCmd(EExprByteCode::Type a, uint8 b)
 	{
-		checkOuputDeferredCmd();
 		outputCmdActual(a, b);
 	}
 	void outputCmd(EExprByteCode::Type a, uint8 b, uint c)
 	{
-		checkOuputDeferredCmd();
 		outputCmdActual(a, b, c);
 	}
 

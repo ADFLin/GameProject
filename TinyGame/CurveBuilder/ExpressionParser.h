@@ -833,9 +833,6 @@ public:
 	};
 	ErrorCode checkTreeError();
 
-	void  optimizeNodeOrder();
-	bool  optimizeNodeConstValue(int idxNode );
-	bool  optimizeNodeBOpOrder( int idxNode );
 
 	void  printTree( SymbolTable const& table );
 private:
@@ -845,7 +842,6 @@ private:
 	void  printTree_R(ExprOutputContext& context, int idxNode, int depth);
 	int   build_R(int idxStart, int idxEnd, bool bFuncDef);
 	ErrorCode   checkTreeError_R( int idxNode );
-	int   optimizeNodeOrder_R( int idxNode );
 
 	bool  canExchangeNode( int idxNode , TokenType type )
 	{
@@ -861,29 +857,64 @@ private:
 		return true;
 	}
 
-	unsigned haveConstValueChild( int idxNode )
+	TArray< int > mIdxOpNext;
+	Node*  mTreeNodes;
+	int    mNumNodes;
+	Unit*  mExprCodes;
+};
+
+class ExprTreeOptimizer : public ExprParse
+{
+	using Unit = ExprParse::Unit;
+public:
+
+	void optimize(ExpressionTreeData& treeData);
+
+	void  optimizeNodeOrder();
+	bool  optimizeNodeConstValue(int idxNode);
+	bool  optimizeNodeBOpOrder(int idxNode);
+
+private:
+
+	Node& getNode(int idx) { return mTreeNodes[idx]; }
+
+	int   optimizeNodeOrder_R(int idxNode);
+	bool  canExchangeNode(int idxNode, TokenType type)
 	{
-		CHECK( idxNode > 0 );
-		Node& node = mTreeNodes[ idxNode ];
+		CHECK(idxNode < 0);
+		CHECK(CanExchange(type));
+		Unit const& unit = mExprCodes[LEAF_UNIT_INDEX(idxNode)];
+
+		if (!IsBinaryOperator(unit.type))
+			return false;
+		if (PrecedeceOrder(type) != PrecedeceOrder(unit.type))
+			return false;
+
+		return true;
+	}
+
+	unsigned haveConstValueChild(int idxNode)
+	{
+		CHECK(idxNode > 0);
+		Node& node = mTreeNodes[idxNode];
 		int result = 0;
-		if ( isConstValueNode( node.children[ CN_LEFT ] ) )
-			result |= ( 1 << CN_LEFT );
-		if ( isConstValueNode( node.children[ CN_RIGHT ] ) )
-			result |= ( 1 << CN_RIGHT );
+		if (isConstValueNode(node.children[CN_LEFT]))
+			result |= (1 << CN_LEFT);
+		if (isConstValueNode(node.children[CN_RIGHT]))
+			result |= (1 << CN_RIGHT);
 		return result;
 	}
 
-	bool  isConstValueNode( int idxNode )
+	bool  isConstValueNode(int idxNode)
 	{
-		if ( idxNode >= 0 )
+		if (idxNode >= 0)
 			return false;
-		Unit const& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
-		if ( unit.type != VALUE_CONST )
+		Unit const& unit = mExprCodes[LEAF_UNIT_INDEX(idxNode)];
+		if (unit.type != VALUE_CONST)
 			return false;
 		return true;
 	}
 
-	TArray< int > mIdxOpNext;
 	Node*  mTreeNodes;
 	int    mNumNodes;
 	Unit*  mExprCodes;
@@ -901,6 +932,13 @@ public:
 	void   generateCode(TCodeGenerator& generator, int numInput, ValueLayout inputLayouts[]);
 
 	UnitCodes genratePosifxCodes() const;
+
+
+	void optimize()
+	{
+		ExprTreeOptimizer optimizer;
+		optimizer.optimize(mTreeData);
+	}
 
 private:
 

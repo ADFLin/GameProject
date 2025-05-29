@@ -22,10 +22,10 @@ namespace CB
 	static RealType GEmptyTime = 0.0;
 	ShapeMeshBuilder::ShapeMeshBuilder()
 		:mColorMap(1000)
-		,mParser()
+		, mParser()
 	{
 		mColorMap.addPoint(0, Color3ub(0, 7, 100));
-		mColorMap.addPoint(640 / 4, Color3ub( 32, 107, 203) );
+		mColorMap.addPoint(640 / 4, Color3ub(32, 107, 203));
 		mColorMap.addPoint(1680 / 4, Color3ub(237, 255, 255));
 		mColorMap.addPoint(2570 / 4, Color3ub(255, 170, 0));
 		mColorMap.addPoint(3430 / 4, Color3ub(0, 2, 0));
@@ -39,7 +39,7 @@ namespace CB
 	void ShapeMeshBuilder::setColor(float p, float* color)
 	{
 		float r, g, b;
-		if( p < 0.5f )
+		if (p < 0.5f)
 		{
 			r = 0;
 			g = 2 * p;
@@ -64,9 +64,9 @@ namespace CB
 
 		unsigned flag = context.flags;
 
-		if( flag & RUF_DATA_SAMPLE )
+		if (flag & RUF_DATA_SAMPLE)
 		{
-			if( data->getVertexNum() < paramS.numData )
+			if (data->getVertexNum() < paramS.numData)
 			{
 				data->release();
 				data->create(paramS.numData, 1, 0, false);
@@ -74,7 +74,7 @@ namespace CB
 			flag |= (RUF_GEOM | RUF_COLOR);
 		}
 
-		if( flag & RUF_GEOM )
+		if (flag & RUF_GEOM)
 		{
 			float ds = paramS.getIncrement();
 			float s = paramS.getRangeMin();
@@ -82,18 +82,18 @@ namespace CB
 			Curve3DFunc* func = static_cast<Curve3DFunc*>(context.func);
 
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
-			for( int i = 0; i < paramS.numData; ++i )
+			for (int i = 0; i < paramS.numData; ++i)
 			{
-				Vector3* pPos = (Vector3*)( posData );
+				Vector3* pPos = (Vector3*)(posData);
 				func->evalExpr(*pPos, s);
 				s += ds;
 				posData += data->getVertexSize();
 			}
 		}
-		if( flag & RUF_COLOR )
+		if (flag & RUF_COLOR)
 		{
 			uint8* colorData = data->getVertexData() + data->getColorOffset();
-			for( int i = 0; i < paramS.numData; ++i )
+			for (int i = 0; i < paramS.numData; ++i)
 			{
 				Color4f* pColor = (Color4f*)(colorData);
 				*pColor = context.color;
@@ -135,106 +135,161 @@ namespace CB
 		float const dv = paramV.getIncrement();
 		int const vertexSize = data.getVertexSize();
 
-		switch( func->getUsedInputMask() )
+		switch (func->getUsedInputMask())
 		{
 		case BIT(0):
+		{
+			if (func->bSupportSIMD)
 			{
-				for( int i = 0; i < paramU.numData; ++i )
+				float const* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+				int numBlock = Math::AlignCount(paramU.numData, FloatVector::Size);
+				for (int i = 0; i < numBlock; ++i)
+				{
+					FloatVector u{ pU , EAligned::Value };
+
+					FloatVector x;
+					FloatVector y;
+					FloatVector z;
+					func->evalExpr(u, FloatVector::Zero(), x, y, z);
+					for (int j = 0; j < paramV.numData; ++j)
+					{
+						int idx = paramU.numData * j + i * FloatVector::Size;
+						uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NY_OP(INDEX)\
+	*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], y[INDEX], z[INDEX]);\
+	pPos += vertexSize;
+						SIMD_ELEMENT_LIST(SET_POS_NY_OP);
+#undef  SET_POS_NY_OP
+					}
+					pU += FloatVector::Size;
+				}
+			}
+			else
+			{
+				for (int i = 0; i < paramU.numData; ++i)
 				{
 					float u = paramU.getRangeMin() + i * du;
 					Vector3 value;
-					func->evalExpr(value, u, 0);
-					for( int j = 0; j < paramV.numData; ++j )
+					func->evalExpr(u, 0, value);
+					for (int j = 0; j < paramV.numData; ++j)
 					{
 						float v = paramV.getRangeMin() + j * dv;
 						int idx = paramU.numData * j + i;
 						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-						value.y = v;
 						*pPos = value;
 					}
 				}
 			}
-			break;
+		}
+		break;
 		case BIT(1):
+		{
+			if (func->bSupportSIMD)
 			{
-				for( int j = 0; j < paramV.numData; ++j )
+				float const* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+				int numBlock = Math::AlignCount(paramV.numData, FloatVector::Size);
+				for (int j = 0; j < numBlock; ++j)
+				{
+					FloatVector v{ pV , EAligned::Value };
+
+					FloatVector x;
+					FloatVector y;
+					FloatVector z;
+					func->evalExpr(FloatVector::Zero(), v, x, y, z);
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						int idx = paramU.numData * FloatVector::Size * j + i;
+						uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NX_OP(INDEX)\
+		*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], y[INDEX], z[INDEX]);\
+		pPos += paramU.numData * vertexSize;
+						SIMD_ELEMENT_LIST(SET_POS_NX_OP);
+#undef  SET_POS_NX_OP
+					}
+					pV += FloatVector::Size;
+				}
+			}
+			else
+			{
+				for (int j = 0; j < paramV.numData; ++j)
 				{
 					float v = paramV.getRangeMin() + j * dv;
 					Vector3 value;
-					func->evalExpr(value, 0, v);
-					for( int i = 0; i < paramU.numData; ++i )
+					func->evalExpr(0, v, value);
+					for (int i = 0; i < paramU.numData; ++i)
 					{
 						float u = paramU.getRangeMin() + i * du;
 						int idx = paramU.numData * j + i;
 						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-						value.x = u;
 						*pPos = value;
 					}
 				}
 			}
-			break;
+
+		}
+		break;
 		case BIT(0) | BIT(1):
+		{
+			uint8* pPos = posData;
+			int numData = paramV.numData * paramU.numData;
+			if (func->bSupportSIMD)
 			{
-				uint8* pPos = posData;
-				int numData = paramV.numData * paramU.numData;
-				if (func->bSupportSIMD)
+#if REORDER_CACHE
+				float const* pUV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+#else
+				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+#endif
+				int numBlock = numData / FloatVector::Size;
+				for (int i = 0; i < numBlock; ++i)
 				{
 #if REORDER_CACHE
-					float const* pUV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+					FloatVector u{ pUV , EAligned::Value };
+					FloatVector v{ pUV + FloatVector::Size , EAligned::Value };
 #else
-					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+					FloatVector u{ SIMD_ELEMENT_LIST(UV_X_OP) };
+					FloatVector v{ SIMD_ELEMENT_LIST(UV_Y_OP) };
 #endif
-					int numBlock = numData / FloatVector::Size;
-					for (int i = 0; i < numBlock; ++i)
-					{
-#if REORDER_CACHE
-						FloatVector u{ pUV , EAligned::Value };
-						FloatVector v{ pUV + FloatVector::Size , EAligned::Value };
-#else
-						FloatVector u{ SIMD_ELEMENT_LIST(UV_X_OP) };
-						FloatVector v{ SIMD_ELEMENT_LIST(UV_Y_OP) };
-#endif
-						FloatVector x,y,z;
-						func->evalExpr(u, v, x, y, z);
-						SIMD_ELEMENT_LIST(SET_POS_OP);
+					FloatVector x, y, z;
+					func->evalExpr(u, v, x, y, z);
+					SIMD_ELEMENT_LIST(SET_POS_OP);
 
 #if REORDER_CACHE
-						pUV += 2 * FloatVector::Size;
+					pUV += 2 * FloatVector::Size;
 #else
-						pUV += FloatVector::Size;
+					pUV += FloatVector::Size;
 #endif
-					}
-				}
-				else
-				{
-					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
-					for (int i = 0; i < numData; ++i)
-					{
-						func->evalExpr(*reinterpret_cast<Vector3*>(pPos), pUV->x, pUV->y);
-						pPos += vertexSize;
-						++pUV;
-					}
 				}
 			}
-			break;
-		default:
+			else
 			{
-				Vector3 value;
-				func->evalExpr(value, 0, 0);
-
-				Vector2 const* pUV = (Vector2*)data.getCachedData();
-				uint8* pPos = posData;
-				int numData = paramV.numData * paramU.numData;
+				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
 				for (int i = 0; i < numData; ++i)
 				{
-					value.x = pUV->x;
-					value.y = pUV->y;
-					*reinterpret_cast<Vector3*>(pPos) = value;
+					func->evalExpr(pUV->x, pUV->y, *reinterpret_cast<Vector3*>(pPos));
 					pPos += vertexSize;
 					++pUV;
 				}
 			}
-			break;
+		}
+		break;
+		default:
+		{
+			Vector3 value;
+			func->evalExpr(0, 0, value);
+
+			Vector2 const* pUV = (Vector2*)data.getCachedData();
+			uint8* pPos = posData;
+			int numData = paramV.numData * paramU.numData;
+			for (int i = 0; i < numData; ++i)
+			{
+				*reinterpret_cast<Vector3*>(pPos) = value;
+				pPos += vertexSize;
+				++pUV;
+			}
+		}
+		break;
 		}
 	}
 	int constexpr CacheAlign = 32;
@@ -252,231 +307,242 @@ namespace CB
 		switch (func->getUsedInputMask())
 		{
 		case BIT(0):
+		{
+			if (func->bSupportSIMD)
 			{
-				if (func->bSupportSIMD)
+				float const* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+				int numBlock = Math::AlignCount(paramU.numData, FloatVector::Size);
+				for (int i = 0; i < numBlock; ++i)
 				{
-					float const* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
-					int numBlock = Math::AlignCount(paramU.numData , FloatVector::Size);
-					for (int i = 0; i < numBlock; ++i)
+					FloatVector x{ pU , EAligned::Value };
+					FloatVector z;
+					func->evalExpr(x, FloatVector::Zero(), z);
+					for (int j = 0; j < paramV.numData; ++j)
 					{
-						FloatVector x{ pU , EAligned::Value };
-						FloatVector z;
-						func->evalExpr(x, FloatVector::Zero(), z);
-						for (int j = 0; j < paramV.numData; ++j)
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							int idx = paramU.numData * j + i * FloatVector::Size;
-							uint8* pPos = posData + idx * vertexSize;
+						float v = paramV.getRangeMin() + j * dv;
+						int idx = paramU.numData * j + i * FloatVector::Size;
+						uint8* pPos = posData + idx * vertexSize;
 
 #define SET_POS_NY_OP(INDEX)\
 	*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], v, z[INDEX]);\
 	pPos += vertexSize;
-							SIMD_ELEMENT_LIST(SET_POS_NY_OP);
+						SIMD_ELEMENT_LIST(SET_POS_NY_OP);
 #undef  SET_POS_NY_OP
-						}
-						pU += FloatVector::Size;
 					}
-				}
-				else
-				{
-					for (int i = 0; i < paramU.numData; ++i)
-					{
-						float u = paramU.getRangeMin() + i * du;
-						Vector3 value;
-						func->evalExpr(value, u, 0);
-
-						for (int j = 0; j < paramV.numData; ++j)
-						{
-							float v = paramV.getRangeMin() + j * dv;
-							int idx = paramU.numData * j + i;
-							Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-							value.y = v;
-							*pPos = value;
-						}
-					}
+					pU += FloatVector::Size;
 				}
 			}
-			break;
-		case BIT(1):
+			else
 			{
-				if (func->bSupportSIMD)
+				for (int i = 0; i < paramU.numData; ++i)
 				{
-					float const* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
-					int numBlock = Math::AlignCount(paramV.numData, FloatVector::Size);
-					for (int j = 0; j < numBlock; ++j)
-					{
-						FloatVector y{ pV , EAligned::Value };
-						FloatVector z;
-						func->evalExpr(FloatVector::Zero(), y,  z);
-						for (int i = 0; i < paramU.numData; ++i)
-						{
-							float u = paramU.getRangeMin() + i * du;
-							int idx = paramU.numData * FloatVector::Size * j + i;
-							uint8* pPos = posData + idx * vertexSize;
+					float u = paramU.getRangeMin() + i * du;
+					Vector3 value;
+					value.x = u;
+					value.y = 0;
+					func->evalExpr(value.x, value.y, value.z);
 
-	#define SET_POS_NX_OP(INDEX)\
-		*reinterpret_cast<Vector3*>(pPos) = Vector3(u, y[INDEX], z[INDEX]);\
-		pPos += paramU.numData * vertexSize;
-							SIMD_ELEMENT_LIST(SET_POS_NX_OP);
-	#undef  SET_POS_NX_OP
-						}
-						pV += FloatVector::Size;
-					}
-				}
-				else
-				{
 					for (int j = 0; j < paramV.numData; ++j)
 					{
 						float v = paramV.getRangeMin() + j * dv;
-
-						Vector3 value;
-						func->evalExpr(value, 0, v);
-
-						for (int i = 0; i < paramU.numData; ++i)
-						{
-							float u = paramU.getRangeMin() + i * du;
-
-							int idx = paramU.numData * j + i;
-							Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-							value.x = u;
-							*pPos = value;
-						}
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+						value.y = v;
+						*pPos = value;
 					}
 				}
 			}
-			break;
-		case BIT(0) | BIT(1):
+		}
+		break;
+		case BIT(1):
+		{
+			if (func->bSupportSIMD)
 			{
-				uint8* pPos = posData;
-				int numData = paramV.numData * paramU.numData;
-				if (func->bSupportSIMD)
+				float const* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+				int numBlock = Math::AlignCount(paramV.numData, FloatVector::Size);
+				for (int j = 0; j < numBlock; ++j)
 				{
-#if REORDER_CACHE
-					float const* pUV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
-#else
-					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
-#endif
-
-
-#if EBC_USE_VALUE_BUFFER
-					FloatVector valueBuffer[64];
-					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
+					FloatVector y{ pV , EAligned::Value };
+					FloatVector z;
+					func->evalExpr(FloatVector::Zero(), y, z);
+					for (int i = 0; i < paramU.numData; ++i)
 					{
-						func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
+						float u = paramU.getRangeMin() + i * du;
+						int idx = paramU.numData * FloatVector::Size * j + i;
+						uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NX_OP(INDEX)\
+		*reinterpret_cast<Vector3*>(pPos) = Vector3(u, y[INDEX], z[INDEX]);\
+		pPos += paramU.numData * vertexSize;
+						SIMD_ELEMENT_LIST(SET_POS_NX_OP);
+#undef  SET_POS_NX_OP
 					}
-#endif
+					pV += FloatVector::Size;
+				}
+			}
+			else
+			{
+				for (int j = 0; j < paramV.numData; ++j)
+				{
+					float v = paramV.getRangeMin() + j * dv;
 
-					int numBlock = Math::AlignCount(numData, FloatVector::Size);
-					for (int i = 0; i < numBlock; ++i)
+					Vector3 value;
+					value.x = 0;
+					value.y = v;
+					func->evalExpr(value.x, value.y, value.z);
+
+					for (int i = 0; i < paramU.numData; ++i)
 					{
-#if REORDER_CACHE
-						FloatVector x{ pUV , EAligned::Value };
-						FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
-#else
-						FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
-						FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
-#endif
+						float u = paramU.getRangeMin() + i * du;
 
-						FloatVector z;
-#if EBC_USE_VALUE_BUFFER
-						if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
-						{
-							valueBuffer[0] = x;
-							valueBuffer[1] = y;
-							func->evalExpr(TArrayView<FloatVector const>(valueBuffer), z);
-						}
-						else
-#endif
-						{
-							func->evalExpr(x, y, z);
-						}
-
-						SIMD_ELEMENT_LIST(SET_POS_OP);
-
-#if REORDER_CACHE
-						pUV += 2 * FloatVector::Size;
-#else
-						pUV += FloatVector::Size;
-#endif
+						int idx = paramU.numData * j + i;
+						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+						value.x = u;
+						*pPos = value;
 					}
 				}
-				else
-				{
-					Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+			}
+		}
+		break;
+		case BIT(0) | BIT(1):
+		{
+			uint8* pPos = posData;
+			int numData = paramV.numData * paramU.numData;
+			if (func->bSupportSIMD)
+			{
+#if REORDER_CACHE
+				float const* pUV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
+#else
+				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+#endif
+
 
 #if EBC_USE_VALUE_BUFFER
-					RealType valueBuffer[64];
+				FloatVector valueBuffer[64];
+				if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
+				{
+					func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
+				}
+#endif
+
+				int numBlock = Math::AlignCount(numData, FloatVector::Size);
+				for (int i = 0; i < numBlock; ++i)
+				{
+#if REORDER_CACHE
+					FloatVector x{ pUV , EAligned::Value };
+					FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
+#else
+					FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
+					FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
+#endif
+
+					FloatVector z;
+#if EBC_USE_VALUE_BUFFER
 					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
 					{
-						func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
-
-#if 0
-						RealType z;
-
-#define EVAL_OP 		valueBuffer[0] = pUV->x;\
-						valueBuffer[1] = pUV->y;\
-						func->evalExpr(TArrayView<RealType const>(valueBuffer), z);\
-						*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);\
-						pPos += vertexSize;\
-						++pUV;\
-
-						DUFF_DEVICE_4(numData, EVAL_OP);
-#undef EVAL_OP
-#else
-						for (int i = 0; i < numData; ++i)
-						{
-							valueBuffer[0] = pUV->x;
-							valueBuffer[1] = pUV->y;
-							RealType z;
-							func->evalExpr(TArrayView<RealType const>(valueBuffer), z);
-							*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
-							pPos += vertexSize;
-							++pUV;
-						}
-#endif
+						valueBuffer[0] = x;
+						valueBuffer[1] = y;
+						func->evalExpr(TArrayView<FloatVector const>(valueBuffer), z);
 					}
 					else
 #endif
 					{
-#if 1
-#define EVAL_OP 	func->evalExpr(*(Vector3*)pPos, pUV->x, pUV->y);pPos += vertexSize; ++pUV;
-						DUFF_DEVICE_4(numData, EVAL_OP);
+						func->evalExpr(x, y, z);
+					}
+
+					SIMD_ELEMENT_LIST(SET_POS_OP);
+
+#if REORDER_CACHE
+					pUV += 2 * FloatVector::Size;
+#else
+					pUV += FloatVector::Size;
+#endif
+				}
+			}
+			else
+			{
+				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
+
+#if EBC_USE_VALUE_BUFFER
+				RealType valueBuffer[64];
+				if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
+				{
+					func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
+
+#if 0
+					float z;
+
+#define EVAL_OP     valueBuffer[0] = pUV->x;\
+					valueBuffer[1] = pUV->y;\
+					func->evalExpr(TArrayView<RealType const>(valueBuffer), z);\
+					*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);\
+					pPos += vertexSize;\
+					++pUV;\
+
+					DUFF_DEVICE_4(numData, EVAL_OP);
 #undef EVAL_OP
 #else
-						for (int i = 0; i < numData; ++i)
-						{
-							func->evalExpr(*reinterpret_cast<Vector3*>(pPos), pUV->x, pUV->y);
-							pPos += vertexSize;
-							++pUV;
-						}
-#endif
+					for (int i = 0; i < numData; ++i)
+					{
+						valueBuffer[0] = pUV->x;
+						valueBuffer[1] = pUV->y;
+						RealType z;
+						func->evalExpr(TArrayView<RealType const>(valueBuffer), z);
+						*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
+						pPos += vertexSize;
+						++pUV;
 					}
+#endif
 				}
-			}
-			break;
-		default:
-			{
-				Vector3 value;
-				func->evalExpr(value, 0, 0);
-				Vector2 const* pUV = (Vector2*)data.getCachedData();
-				uint8* pPos = posData;
-				int numData = paramV.numData * paramU.numData;
-				for (int i = 0; i < numData; ++i)
+				else
+#endif
 				{
-					value.x = pUV->x;
-					value.y = pUV->y;
-					*reinterpret_cast<Vector3*>(pPos) = value;
-					pPos += vertexSize;
-					++pUV;
+
+					float z;
+#if 1
+
+#define EVAL_OP 	func->evalExpr(pUV->x, pUV->y, z);\
+					*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);\
+					pPos += vertexSize; ++pUV;
+					DUFF_DEVICE_4(numData, EVAL_OP);
+#undef EVAL_OP
+#else
+					for (int i = 0; i < numData; ++i)
+					{
+						func->evalExpr(pUV->x, pUV->y, z);
+						*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
+						pPos += vertexSize;
+						++pUV;
+					}
+#endif
 				}
 			}
-			break;
+		}
+		break;
+		default:
+		{
+			Vector3 value = Vector3::Zero();
+			func->evalExpr(value.x, value.y, value.z);
+
+			Vector2 const* pUV = (Vector2*)data.getCachedData();
+			uint8* pPos = posData;
+			int numData = paramV.numData * paramU.numData;
+			for (int i = 0; i < numData; ++i)
+			{
+				value.x = pUV->x;
+				value.y = pUV->y;
+				*reinterpret_cast<Vector3*>(pPos) = value;
+				pPos += vertexSize;
+				++pUV;
+			}
+		}
+		break;
 		}
 	}
 
 
 
-	void GenerateGirdMeshPos(Vector2* pUV , SampleParam const& paramU, SampleParam const& paramV)
+	void GenerateGirdMeshPos(Vector2* pUV, SampleParam const& paramU, SampleParam const& paramV)
 	{
 		float du = paramU.getIncrement();
 		float dv = paramV.getIncrement();
@@ -505,7 +571,7 @@ namespace CB
 				int indexN = index + nx;
 
 				pIndex[0] = index;
-				pIndex[1] = index  + 1;
+				pIndex[1] = index + 1;
 				pIndex[2] = indexN + 1;
 
 				pIndex[3] = indexN + 1;
@@ -526,7 +592,7 @@ namespace CB
 
 		if (context.func->getEvalType() == EEvalType::GPU)
 		{
-			updateSurfaceDataGPU(context, paramU , paramV);
+			updateSurfaceDataGPU(context, paramU, paramV);
 			return;
 		}
 
@@ -536,14 +602,17 @@ namespace CB
 		int vertexNum = paramU.numData * paramV.numData;
 
 
-		if( flags & (RUF_DATA_SAMPLE | RUF_DATA_TYPE) )
+		if (flags & (RUF_DATA_SAMPLE | RUF_DATA_TYPE))
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 			bool bSupportSIMD = context.func->bSupportSIMD;
-			if ( (flags & RUF_DATA_TYPE) || ( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum ) )
+			if ((flags & RUF_DATA_TYPE) || (data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum))
 			{
 				data->release();
-				data->create(vertexNum, bSupportSIMD ? FloatVector::Size : 1, indexNum, true, true);
+
+				bool bUseResource = false;
+				bool bUseNormal = true;
+				data->create(vertexNum, bSupportSIMD ? FloatVector::Size : 1, indexNum, bUseNormal, bUseResource);
 			}
 			flags |= (RUF_GEOM | RUF_COLOR | RUF_INDEX_DATA | RUF_CACHE_DATA);
 		}
@@ -578,7 +647,7 @@ namespace CB
 			{
 				num = Math::AlignUp(num, FloatVector::Size);
 #if REORDER_CACHE
-				bNeedReorderCache = (context.func->getUsedInputMask() == BIT(0)|BIT(1) ) || (context.func->getUsedInputMask() == BIT(0));
+				bNeedReorderCache = (context.func->getUsedInputMask() == BIT(0) | BIT(1)) || (context.func->getUsedInputMask() == BIT(0));
 #endif
 			}
 
@@ -590,7 +659,7 @@ namespace CB
 				tempData.resize(num);
 
 				Vector2* pUV = tempData.data();
-				GenerateGirdMeshPos(tempData.data(), paramU , paramV);
+				GenerateGirdMeshPos(tempData.data(), paramU, paramV);
 
 				data->setCachedDataSize(num * sizeof(Vector2) + CacheAlign - 1);
 				float* pValue = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
@@ -598,7 +667,7 @@ namespace CB
 
 				for (int i = 0; i < numBlock; ++i)
 				{
-					for( int n = 0; n < FloatVector::Size; ++n )	
+					for (int n = 0; n < FloatVector::Size; ++n)
 					{
 						*pValue = pUV[n].x;
 						++pValue;
@@ -616,90 +685,90 @@ namespace CB
 				switch (context.func->getUsedInputMask())
 				{
 				case BIT(0):
+				{
+					data->setCachedDataSize(Math::AlignUp(paramU.getNumData(), FloatVector::Size) * sizeof(float) + CacheAlign - 1);
+					float* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
+					float du = paramU.getIncrement();
+					for (int i = 0; i < paramU.numData; ++i)
 					{
-						data->setCachedDataSize( Math::AlignUp(paramU.getNumData(), FloatVector::Size) * sizeof(float) + CacheAlign - 1);
-						float* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
-						float du = paramU.getIncrement();
-						for (int i = 0; i < paramU.numData; ++i)
-						{
-							float u = paramU.getRangeMin() + i * du;
-							pU[i] = u;
-						}
+						float u = paramU.getRangeMin() + i * du;
+						pU[i] = u;
 					}
-					break;
+				}
+				break;
 				case BIT(1):
+				{
+					data->setCachedDataSize(Math::AlignUp(paramV.getNumData(), FloatVector::Size) * sizeof(float) + CacheAlign - 1);
+					float* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
+					float dv = paramV.getIncrement();
+					for (int i = 0; i < paramV.numData; ++i)
 					{
-						data->setCachedDataSize( Math::AlignUp(paramV.getNumData(), FloatVector::Size) * sizeof(float) + CacheAlign - 1);
-						float* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data->getCachedData(), CacheAlign);
-						float dv = paramV.getIncrement();
-						for (int i = 0; i < paramV.numData; ++i)
-						{
-							float v = paramV.getRangeMin() + i * dv;
-							pV[i] = v;
-						}
+						float v = paramV.getRangeMin() + i * dv;
+						pV[i] = v;
 					}
-					break;
+				}
+				break;
 				default:
-					{
-						data->setCachedDataSize(num * sizeof(Vector2));
+				{
+					data->setCachedDataSize(num * sizeof(Vector2));
 
-						Vector2* pUV = (Vector2*)data->getCachedData();
-						GenerateGirdMeshPos(pUV, paramU, paramV);
-					}
-					break;
+					Vector2* pUV = (Vector2*)data->getCachedData();
+					GenerateGirdMeshPos(pUV, paramU, paramV);
+				}
+				break;
 				}
 			}
 		}
 
-		if (flags & (RUF_COLOR | RUF_GEOM) )
+		if (flags & (RUF_COLOR | RUF_GEOM))
 		{
 			data->lockVertexResource();
 		}
 
-		if( flags & RUF_GEOM )
+		if (flags & RUF_GEOM)
 		{
-			if( context.func->getFuncType() == TYPE_SURFACE_UV )
+			if (context.func->getFuncType() == TYPE_SURFACE_UV)
 			{
 				SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
 
-				switch(context.func->getEvalType())
+				switch (context.func->getEvalType())
 				{
 				case EEvalType::Native:
-					{
-						NativeSurfaceUVFunc* func = static_cast<NativeSurfaceUVFunc*>(context.func);
-						updatePositionData_SurfaceUV(func, paramU, paramV, *data);
-					}
-					break;
+				{
+					NativeSurfaceUVFunc* func = static_cast<NativeSurfaceUVFunc*>(context.func);
+					updatePositionData_SurfaceUV(func, paramU, paramV, *data);
+				}
+				break;
 				case EEvalType::CPU:
-					{
-						SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
-						updatePositionData_SurfaceUV(func, paramU, paramV, *data);
-					}
-					break;
+				{
+					SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
+					updatePositionData_SurfaceUV(func, paramU, paramV, *data);
+				}
+				break;
 				}
 			}
-			else if( context.func->getFuncType() == TYPE_SURFACE_XY )
+			else if (context.func->getFuncType() == TYPE_SURFACE_XY)
 			{
 				PROFILE_ENTRY("Update Position", "CB");
 
-				switch(context.func->getEvalType())
+				switch (context.func->getEvalType())
 				{
 				case EEvalType::Native:
-					{
-						NativeSurfaceXYFunc* func = static_cast<NativeSurfaceXYFunc*>(context.func);
-						updatePositionData_SurfaceXY(func, paramU, paramV, *data);
-					}
-					break;
+				{
+					NativeSurfaceXYFunc* func = static_cast<NativeSurfaceXYFunc*>(context.func);
+					updatePositionData_SurfaceXY(func, paramU, paramV, *data);
+				}
+				break;
 				case EEvalType::CPU:
-					{
-						SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
-						updatePositionData_SurfaceXY(func, paramU, paramV, *data);
-					}
-					break;
+				{
+					SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
+					updatePositionData_SurfaceXY(func, paramU, paramV, *data);
+				}
+				break;
 				}
 			}
 
-			if( data->getNormalOffset() != INDEX_NONE )
+			if (data->getNormalOffset() != INDEX_NONE)
 			{
 				uint32* pIndexData;
 				if (data->resource)
@@ -736,15 +805,25 @@ namespace CB
 						Vector3 const& p0 = posReader[i0];
 						Vector3 const& p1 = posReader[i1];
 						Vector3 const& p2 = posReader[i2];
-
 						CHECK(p0.y == p1.y);
-						float Nx = sign * (p1.z - p0.z) / du;
 						CHECK(p1.x == p2.x);
+#if 0
+						SIMD::SVector2 duv = { du , dv };
+						SIMD::SVector2 dp = { p1.z - p0.z , p2.z - p1.z };
+						SIMD::SVector2 N = SIMD::SVector2(sign) * dp / duv;
+						SIMD::SVector3 vNormal = SIMD::SVector3(N.v[0], N.v[1], 1.0f);
+#else
+						float Nx = sign * (p1.z - p0.z) / du;
 						float Ny = sign * (p2.z - p1.z) / dv;
-
 						SIMD::SVector3 vNormal = SIMD::SVector3(Nx, Ny, 1.0f);
+#endif
+#if 0
 						vNormal.normalize();
 						Vector3 normal = { vNormal.v[0], vNormal.v[1], vNormal.v[2] };
+#else
+						Vector3 normal = { Nx, Ny, 1.0f };
+						normal.normalize();
+#endif
 						normalWriter[i0] += normal;
 						normalWriter[i1] += normal;
 						normalWriter[i2] += normal;
@@ -756,9 +835,9 @@ namespace CB
 					uint8* posData = data->getVertexData() + data->getPositionOffset();
 					uint8* normalData = data->getVertexData() + data->getNormalOffset();
 
-					MeshUtility::FillNormal_TriangleList(posReader , normalWriter,
+					MeshUtility::FillNormal_TriangleList(posReader, normalWriter,
 						data->getVertexNum(), pIndexData, data->getIndexNum(), true, false
-					);				
+					);
 				}
 
 				if (data->resource)
@@ -771,14 +850,14 @@ namespace CB
 			flags |= RUF_COLOR;
 		}
 
-		if( flags & RUF_COLOR )
+		if (flags & RUF_COLOR)
 		{
 			PROFILE_ENTRY("Update Color", "CB");
 
 			int vertexSize = data->getVertexSize();
 			uint8* colorData = data->getVertexData() + data->getColorOffset();
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
-			for( int i = 0; i < vertexNum; ++i )
+			for (int i = 0; i < vertexNum; ++i)
 			{
 				Color4f* pColor = (Color4f*)(colorData);
 				BYTE temp[3];
@@ -850,7 +929,7 @@ namespace CB
 
 
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			option.addDefine(SHADER_PARAM(USE_SHARE_TRIANGLE_INFO), USE_SHARE_TRIANGLE_INFO);
 #if USE_SHARE_TRIANGLE_INFO
@@ -937,7 +1016,7 @@ namespace CB
 		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
 
-		if (flags & (RUF_DATA_SAMPLE|RUF_DATA_TYPE))
+		if (flags & (RUF_DATA_SAMPLE | RUF_DATA_TYPE))
 		{
 			int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 
@@ -964,7 +1043,7 @@ namespace CB
 
 			TArray<MeshUtility::SharedTriangleInfo> sharedTriangleInfos;
 			TArray<uint32> triangleIds;
-			MeshUtility::BuildVertexSharedTriangleInfo(indices.data(), indexNum / 3 , vertexNum, sharedTriangleInfos, triangleIds);
+			MeshUtility::BuildVertexSharedTriangleInfo(indices.data(), indexNum / 3, vertexNum, sharedTriangleInfos, triangleIds);
 
 #if USE_COMPACTED_SHARE_TRIANGLE_INFO
 			TArray<uint32> compactedSharedTriangleInfos;
@@ -979,7 +1058,7 @@ namespace CB
 #else
 			resource.sharedTriangleInfoBuffer = RHICreateBuffer(sizeof(uint32), 2 * sharedTriangleInfos.size(), BCF_CreateUAV, sharedTriangleInfos.data());
 #endif
-			resource.triangleIdBuffer = RHICreateBuffer( sizeof(uint32) , triangleIds.size(), BCF_CreateUAV, triangleIds.data() );
+			resource.triangleIdBuffer = RHICreateBuffer(sizeof(uint32), triangleIds.size(), BCF_CreateUAV, triangleIds.data());
 #endif
 		}
 
@@ -1027,7 +1106,7 @@ namespace CB
 #else
 				params.totalCount = resource.indexBuffer->getNumElements() / 3;
 #endif
-				params.normalOffset = 7;
+				params.normalOffset = data->getNormalOffset() / sizeof(float);
 				params.vertexStride = resource.vertexBuffer->getElementSize() / sizeof(float);
 				mNoramlGenParamBuffer.updateBuffer(params);
 
@@ -1070,7 +1149,7 @@ namespace CB
 		else if (func.getFuncType() == TYPE_SURFACE_UV)
 		{
 			auto& myFunc = static_cast<SurfaceUVFunc&>(func);
-			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].GetOrCreateEvalResource<GenVertexCS>(), 
+			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].GetOrCreateEvalResource<GenVertexCS>(),
 				{ StringView(myFunc.mAixsExpr[0].getExprString()), StringView(myFunc.mAixsExpr[1].getExprString()), StringView(myFunc.mAixsExpr[2].getExprString()) }, option))
 			{
 				return false;
@@ -1095,7 +1174,7 @@ namespace CB
 		}
 
 		if (func.getEvalType() == EEvalType::GPU)
-		{	
+		{
 			return compileFuncShader(func);
 		}
 
@@ -1106,7 +1185,7 @@ namespace CB
 	static bool calcDiv(float v, float v0, float v1, float& out) // throw( RealNanException )
 	{
 		float dv = v1 - v0;
-		if( dv == 0 )
+		if (dv == 0)
 			return false;
 		out = (v - v0) / dv;
 		return true;

@@ -4,6 +4,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "ProfileSystem.h"
+
 #if ENABLE_FPU_CODE
 
 #include "Assembler.h"
@@ -11,8 +13,6 @@
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
-
-
 
 class ExecutableHeapManager
 {
@@ -861,20 +861,25 @@ bool ExpressionCompiler::compile( char const* expr , SymbolTable const& table , 
 		if (!parser.parse(expr, table, mResult))
 			return false;
 
-#if 0
+#if 1
 		if (mOptimization)
 			mResult.optimize();
 #endif
+
+
+		{
+			TIME_SCOPE("Generate Code");
 #if ENABLE_FPU_CODE
-		FPUCodeGeneratorV0 generator;
-		generator.setCodeData( &data );
-		mResult.generateCode(generator , numInput, inputLayouts);
+			FPUCodeGeneratorV0 generator;
+			generator.setCodeData(&data);
+			mResult.generateCode(generator, numInput, inputLayouts);
 #elif ENABLE_BYTE_CODE
-		ExprByteCodeCompiler generator(data.mByteCodeData);
-		mResult.generateCode(generator, numInput, inputLayouts);
+			ExprByteCodeCompiler generator(data.mByteCodeData);
+			mResult.generateCode(generator, numInput, inputLayouts);
 #else
-		data.mCodes = mResult.genratePosifxCodes();
+			data.mCodes = mResult.genratePosifxCodes();
 #endif
+		}
 		return true;
 	}
 	catch ( ExprParseException& e)

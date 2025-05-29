@@ -62,9 +62,10 @@ namespace CB
 			bSupportSIMD = std::is_same_v< Meta::FuncTraits<TFunc>::ResultType, FloatVector>;
 		}
 		int  getFuncType() override { return TYPE_SURFACE_XY; }
-		void evalExpr(Vector3& out, float x, float y)
+
+		void evalExpr(float x, float y, float& outZ)
 		{
-			out.setValue(x, y, (float)((*static_cast<FuncType2>(mPtr))(x,y)));
+			outZ = (float)((*static_cast<FuncType2>(mPtr))(x,y));
 		}
 
 		void evalExpr(FloatVector const& x, FloatVector const& y, FloatVector& outZ)
@@ -91,14 +92,16 @@ namespace CB
 		EEvalType getEvalType() override { return mbUseGPU ? EEvalType::GPU : EEvalType::CPU; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override { return mExpr.isParsed(); }
-		void evalExpr(Vector3& out, float x, float y)
+		
+		void evalExpr(float x, float y, float& outZ)
 		{
-			assert(isParsed());
-			out.setValue(x, y, mExpr.GetEvalResource<ExecutableCode>().evalT<RealType>(x, y));
+			CHECK(isParsed());
+			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<RealType>(x, y);
 		}
 
 		void evalExpr(FloatVector const& x, FloatVector const& y, FloatVector& outZ)
 		{
+			CHECK(isParsed());
 			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<FloatVector>(x, y);
 		}
 
@@ -135,7 +138,7 @@ namespace CB
 		EEvalType getEvalType() override { return mbUseGPU ? EEvalType::GPU : EEvalType::CPU; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
-		void evalExpr(Vector3& out, float u, float v);
+		void evalExpr(float u, float v, Vector3& out);
 		void evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ);
 
 		void setExpr(int axis, std::string const& expr)
@@ -167,7 +170,7 @@ namespace CB
 		int  getFuncType() override { return TYPE_SURFACE_UV; }
 		bool parseExpression(FunctionParser& parser) override { return true; }
 		bool isParsed() override { return true; }
-		void evalExpr(Vector3& out, float u, float v)
+		void evalExpr(float u, float v, Vector3& out)
 		{
 			out = Vector3(
 				(*static_cast<FuncType2>(mAixsExpr[0]))(u, v),

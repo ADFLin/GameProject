@@ -39,7 +39,7 @@ namespace CB
 		return new SurfaceXYFunc(*this);
 	}
 
-	void SurfaceUVFunc::evalExpr(Vector3& out, float u, float v)
+	void SurfaceUVFunc::evalExpr(float u, float v, Vector3& out)
 	{
 		CHECK(isParsed());
 		out.setValue(

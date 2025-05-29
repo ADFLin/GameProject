@@ -1554,7 +1554,7 @@ namespace Render
 			uint32 i1 = pCur[1];
 			uint32 i2 = pCur[2];
 			pCur += 3;
-#if 1
+#if 0
 			SIMD::SVector3 p0{ positionReader.getPtr<float>(i0) };
 			SIMD::SVector3 p1{ positionReader.getPtr<float>(i1) };
 			SIMD::SVector3 p2{ positionReader.getPtr<float>(i2) };
@@ -1565,15 +1565,17 @@ namespace Render
 			vNormal.normalize();
 
 			SIMD::SVector3 wN;
-			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i0) }; 
+			float* pNormal;
+			pNormal = normalWriter.getPtr<float>(i0);
+			wN = SIMD::SVector3{ pNormal[0], pNormal[1], pNormal[2] };
 			wN = wN + vNormal;
 			normalWriter[i0] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
-
-			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i1) }; 
+			pNormal = normalWriter.getPtr<float>(i1);
+			wN = SIMD::SVector3{ pNormal[0], pNormal[1], pNormal[2] };
 			wN = wN + vNormal;
 			normalWriter[i1] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
-
-			wN = SIMD::SVector3{ normalWriter.getPtr<float>(i2) }; 
+			pNormal = normalWriter.getPtr<float>(i2);
+			wN = SIMD::SVector3{ pNormal[0], pNormal[1], pNormal[2] };
 			wN = wN + vNormal;
 			normalWriter[i2] = Vector3(wN.v[0], wN.v[1], wN.v[2]);
 #else

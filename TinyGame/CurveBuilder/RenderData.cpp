@@ -35,7 +35,7 @@ namespace CB
 			}
 
 			resource->vertexBuffer = RHICreateVertexBuffer(mVertexSize, Math::AlignUp(mVertexNum, numAlign), BCF_CpuAccessRead | BCF_CpuAccessWrite);
-			resource->indexBuffer = RHICreateIndexBuffer(numIndex, true, BCF_CpuAccessWrite);
+			resource->indexBuffer = RHICreateIndexBuffer(numIndex, true, BCF_CpuAccessRead | BCF_CpuAccessWrite);
 		}
 		else
 		{

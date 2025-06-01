@@ -43,18 +43,18 @@ namespace CB
 	{
 		CHECK(isParsed());
 		out.setValue(
-			mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<RealType>(u,v),
-			mAixsExpr[1].GetEvalResource<ExecutableCode>().evalT<RealType>(u,v), 
-			mAixsExpr[2].GetEvalResource<ExecutableCode>().evalT<RealType>(u,v)
+			mAixsExpr[0].getEvalResource<ExecutableCode>().evalT<RealType>(u,v),
+			mAixsExpr[1].getEvalResource<ExecutableCode>().evalT<RealType>(u,v), 
+			mAixsExpr[2].getEvalResource<ExecutableCode>().evalT<RealType>(u,v)
 		);
 	}
 
 	void SurfaceUVFunc::evalExpr(FloatVector const& u, FloatVector const& v, FloatVector& outX, FloatVector& outY, FloatVector& outZ)
 	{
 		CHECK(isParsed());
-		outX = mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
-		outY = mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
-		outZ = mAixsExpr[0].GetEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
+		outX = mAixsExpr[0].getEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
+		outY = mAixsExpr[0].getEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
+		outZ = mAixsExpr[0].getEvalResource<ExecutableCode>().evalT<FloatVector>(u, v);
 	}
 
 	bool SurfaceUVFunc::parseExpression(FunctionParser& parser)
@@ -133,9 +133,9 @@ namespace CB
 	{
 		assert(isParsed());
 		out.setValue(
-			mCoordExpr[0].GetEvalResource<ExecutableCode>().evalT<RealType>(s),
-			mCoordExpr[1].GetEvalResource<ExecutableCode>().evalT<RealType>(s),
-			mCoordExpr[2].GetEvalResource<ExecutableCode>().evalT<RealType>(s)
+			mCoordExpr[0].getEvalResource<ExecutableCode>().evalT<RealType>(s),
+			mCoordExpr[1].getEvalResource<ExecutableCode>().evalT<RealType>(s),
+			mCoordExpr[2].getEvalResource<ExecutableCode>().evalT<RealType>(s)
 		);
 	}
 

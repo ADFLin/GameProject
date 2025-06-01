@@ -1,24 +1,16 @@
 #ifndef ExprByteCode_h__
 #define ExprByteCode_h__
 
-#include "ExpressionParser.h"
+#include "../ExpressionParser.h"
 
-#include "Math/SIMD.h"
-
-#define SIMD_USE_AVX 0
-#if SIMD_USE_AVX
-using FloatVector = SIMD::TFloatVector<8>;
-#else
-using FloatVector = SIMD::TFloatVector<4>;
-#endif
 
 #define EBC_USE_VALUE_BUFFER 1
-
-#define EBC_USE_FIXED_SIZE 2
-#define EBC_USE_COMPOSITIVE_CODE 1
-#define EBC_USE_COMPOSITIVE_OP_CODE 1
+#define EBC_MAX_OP_CMD_SZIE 3
+#define EBC_USE_FIXED_OP_CMD_SIZE EBC_MAX_OP_CMD_SZIE
+//#define EBC_USE_FIXED_OP_CMD_SIZE 0
+#define EBC_USE_COMPOSITIVE_CODE_LEVEL 1
+#define EBC_USE_LAZY_STACK_PUSH 1
 #define EBC_MAX_FUNC_ARG_NUM 0
-
 
 namespace EExprByteCode
 {
@@ -32,7 +24,7 @@ namespace EExprByteCode
 		Variable,
 #endif
 
-#if EBC_USE_COMPOSITIVE_CODE
+#if EBC_USE_COMPOSITIVE_CODE_LEVEL
 
 		Add,
 		IAdd,
@@ -78,17 +70,25 @@ namespace EExprByteCode
 
 
 		SMul,
-#if EBC_USE_COMPOSITIVE_OP_CODE
+#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
 		SMulAdd,
 		SMulSub,
 		SMulMul,
 		SMulDiv,
 
 #if EBC_USE_VALUE_BUFFER
-		CSMulAdd,
-		CSMulSub,
-		CSMulMul,
-		CSMulDiv,
+		ISMul,
+		ISMulAdd,
+		ISMulSub,
+		ISMulMul,
+		ISMulDiv,
+
+#if EBC_MAX_OP_CMD_SZIE >= 3
+		IIAdd,
+		IISub,
+		IIMul,
+		IIDiv,
+#endif
 #endif
 
 		MulAdd,
@@ -144,11 +144,29 @@ namespace EExprByteCode
 
 struct ExprByteCodeExecData
 {
+
 	TArray<uint8>     codes;
 	TArray<void*>     pointers;
 	TArray<RealType>  constValues;
+
 #if EBC_USE_VALUE_BUFFER
+	int               numInput;
 	TArray<RealType*> vars;
+
+	template< typename T >
+	void initValueBuffer(T buffer[])
+	{
+		std::copy(constValues.begin(), constValues.end(), buffer + numInput);
+
+		T* pValue = buffer + numInput + constValues.size();
+		RealType** pVar = vars.data();
+		for (int i = vars.size(); i; --i)
+		{
+			*pValue = **pVar;
+			++pValue;
+			++pVar;
+		}
+	}
 #endif
 
 	void clear()
@@ -158,6 +176,7 @@ struct ExprByteCodeExecData
 		constValues.clear();
 #if EBC_USE_VALUE_BUFFER
 		vars.clear();
+		numInput = 0;
 #endif
 	}
 };
@@ -172,17 +191,14 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 	{
 
 	}
-	using TokenType = ParseResult::TokenType;
-
+	using TokenType = ExprParse::TokenType;
 
 #if EBC_USE_VALUE_BUFFER
-	int mNumInput = 0;
 	TArray<int> mVarIndexPosList;
 #endif
 	void codeInit(int numInput, ValueLayout inputLayouts[]);
 
 	void codeEnd();
-
 
 	void preLoadConst(ConstValueInfo const& value)
 	{
@@ -190,25 +206,16 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 	}
 
 	void codeConstValue(ConstValueInfo const& value);
-
 	void codeVar(VariableInfo const& varInfo);
-
 	void codeInput(InputInfo const& input);
-
 	void codeFunction(FuncInfo const& info);
-
 	void codeFunction(FuncSymbolInfo const& info);
-
-
-
 	void codeBinaryOp(TokenType type, bool isReverse);
-
 	void codeUnaryOp(TokenType type);
 
-
+#if EBC_USE_LAZY_STACK_PUSH
 	void visitSeparetor()
 	{
-#if EBC_USE_COMPOSITIVE_CODE
 		auto leftValue = mStacks.back();
 		if (leftValue.byteCode != EExprByteCode::None)
 		{
@@ -216,21 +223,10 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		}
 
 		mStacks.pop_back();
-#endif
 	}
-
 	void pushResultValue()
 	{
 		mStacks.push_back({ EExprByteCode::None, 0 });
-	}
-
-	void pushValue(EExprByteCode::Type byteCode, uint8 index)
-	{
-#if EBC_USE_COMPOSITIVE_CODE
-		mStacks.push_back({ byteCode, index });
-#else
-		outputCmd(byteCode, index);
-#endif
 	}
 
 	struct StackData
@@ -240,6 +236,16 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 	};
 	TArray< StackData > mStacks;
 
+#endif
+
+	void pushValue(EExprByteCode::Type byteCode, uint8 index)
+	{
+#if EBC_USE_LAZY_STACK_PUSH
+		mStacks.push_back({ byteCode, index });
+#else
+		outputCmd(byteCode, index);
+#endif
+	}
 
 	void outputCmd(EExprByteCode::Type a)
 	{
@@ -258,10 +264,10 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 	{
 		++mNumCmd;
 		mOutput.codes.push_back(a);
-#if EBC_USE_FIXED_SIZE >= 2
+#if EBC_USE_FIXED_OP_CMD_SIZE >= 2
 		mOutput.codes.push_back(0);
 #endif
-#if EBC_USE_FIXED_SIZE >= 3
+#if EBC_USE_FIXED_OP_CMD_SIZE >= 3
 		mOutput.codes.push_back(0);
 #endif
 	}
@@ -271,7 +277,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		++mNumCmd;
 		mOutput.codes.push_back(a);
 		mOutput.codes.push_back(b);
-#if EBC_USE_FIXED_SIZE >= 3
+#if EBC_USE_FIXED_OP_CMD_SIZE >= 3
 		mOutput.codes.push_back(0);
 #endif
 	}
@@ -283,104 +289,12 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		mOutput.codes.push_back(b);
 		mOutput.codes.push_back(c);
 	}
-
-
-	static char const* GetOpString(uint8 opCode)
-	{
-		switch (opCode)
-		{
-		case EExprByteCode::Input: return "I";
-#if !EBC_USE_VALUE_BUFFER
-		case EExprByteCode::Const: return "C";
-		case EExprByteCode::Variable:  return "V";
-#endif
-
-		case EExprByteCode::Add: return "+";
-		case EExprByteCode::Sub: return "-";
-		case EExprByteCode::SubR: return "-r";
-		case EExprByteCode::Mul: return "*";
-		case EExprByteCode::Div: return "/";
-		case EExprByteCode::DivR: return "/r";
-		case EExprByteCode::Mins: return "Mins";
-#if EBC_USE_COMPOSITIVE_CODE
-
-		case EExprByteCode::IAdd: return "I+";
-		case EExprByteCode::ISub: return "I-";
-		case EExprByteCode::ISubR:return "I-r";
-		case EExprByteCode::IMul: return "I*";
-		case EExprByteCode::IDiv: return "I/";
-		case EExprByteCode::IDivR:return "I/r";
-
-#if !EBC_USE_VALUE_BUFFER
-		case EExprByteCode::CAdd: return "C+";
-		case EExprByteCode::CSub: return "C-";
-		case EExprByteCode::CSubR:return "C-r";
-		case EExprByteCode::CMul: return "C*";
-		case EExprByteCode::CDiv: return "C/";
-		case EExprByteCode::CDivR:return "C/r";
-		case EExprByteCode::VAdd: return "V+";
-		case EExprByteCode::VSub:return "V-";
-		case EExprByteCode::VSubR:return "V-r";
-		case EExprByteCode::VMul:return "V*";
-		case EExprByteCode::VDiv:return "V/";
-		case EExprByteCode::VDivR:return "V/r";
-#endif
-
-		case EExprByteCode::SMul:return "S*";
-
-#if EBC_USE_COMPOSITIVE_OP_CODE
-		case EExprByteCode::SMulAdd:return "S*+";
-		case EExprByteCode::SMulSub:return "S*-";
-		case EExprByteCode::SMulMul:return "S**";
-		case EExprByteCode::SMulDiv:return "S*/";
-
-		case EExprByteCode::AddMul: return "+*";
-		case EExprByteCode::IAddMul: return "I+*";
-		case EExprByteCode::MulAdd: return "*+";
-		case EExprByteCode::IMulAdd: return "I*+";
-		case EExprByteCode::MulSub: return "*-";
-		case EExprByteCode::IMulSub: return "I*-";
-
-#if !EBC_USE_VALUE_BUFFER
-		case EExprByteCode::CAddMul: return "C+*";
-		case EExprByteCode::CMulAdd: return "C*+";
-		case EExprByteCode::CMulSub: return "C*-";
-		case EExprByteCode::VAddMul: return "V+*";
-		case EExprByteCode::VMulAdd: return "V*+";
-		case EExprByteCode::VMulSub: return "V*-";
-#endif
-
-#endif
-
-#endif
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Exp:  return "exp";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Ln:   return "ln";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Sin:  return "sin";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Cos:  return "cos";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Tan:  return "tan";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Cot:  return "cot";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Sec:  return "sec";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Csc:  return "csc";
-		case EExprByteCode::FuncSymbol + EFuncSymbol::Sqrt: return "sqrt";
-
-		case EExprByteCode::FuncCall0: return "call0";
-		case EExprByteCode::FuncCall1: return "call1";
-		case EExprByteCode::FuncCall2: return "call2";
-		case EExprByteCode::FuncCall3: return "call3";
-		case EExprByteCode::FuncCall4: return "call4";
-		case EExprByteCode::FuncCall5: return "call5";
-		}
-
-		return "?";
-	}
 };
 
 template<typename TValue>
 class TByteCodeExecutor
 {
 public:
-	TValue doExecute(ExprByteCodeExecData const& execData);
-	int  execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue);
 
 	TValue execute(ExprByteCodeExecData const& execData)
 	{
@@ -400,6 +314,10 @@ public:
 		mInputs = valueBuffers;
 		return doExecute(execData);
 	}
+
+private:
+	TValue doExecute(ExprByteCodeExecData const& execData);
+	int  execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue);
 
 	ExprByteCodeExecData const* mExecData;
 	TArrayView<TValue const> mInputs;

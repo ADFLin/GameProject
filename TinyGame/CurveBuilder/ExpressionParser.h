@@ -10,6 +10,17 @@
 #include <cmath>
 #include <cassert>
 
+
+//TODO
+#include "Math/SIMD.h"
+#define SIMD_USE_AVX 0
+#if SIMD_USE_AVX
+using FloatVector = SIMD::TFloatVector<8>;
+#else
+using FloatVector = SIMD::TFloatVector<4>;
+#endif
+
+
 class CodeTemplate;
 class SymbolTable;
 struct SymbolEntry;

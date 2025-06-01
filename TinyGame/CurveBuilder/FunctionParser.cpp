@@ -35,7 +35,7 @@ namespace CB
 
 	bool FunctionParser::compile(Expression& expr, int numInput , ValueLayout inputLayouts[])
 	{
-		expr.mIsParsed = mCompiler.compile(expr.getExprString().c_str(), mSymbolDefine, expr.GetOrCreateEvalResource<ExecutableCode>(), numInput , inputLayouts);
+		expr.mIsParsed = mCompiler.compile(expr.getExprString().c_str(), mSymbolDefine, expr.acquireEvalResource<ExecutableCode>(), numInput , inputLayouts);
 		return expr.mIsParsed;
 	}
 

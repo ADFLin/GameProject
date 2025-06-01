@@ -17,12 +17,27 @@ public:
 
 #define CONFIG_SECTION "FileTool"
 
-	struct ReplaceInfo
-	{
-		std::string from;
-		std::string to;
-	};
 
+	std::unordered_map< std::string, std::string > mReplaceMap;
+	std::unordered_map< std::string, std::string > mChangeNameMap;
+
+
+	std::unordered_map< std::string, int > mFormatDigitMap;
+
+	void loadConfigMap(char const* keyName, std::unordered_map< std::string, std::string >& outMap)
+	{
+		TArray<char const*> names;
+		::Global::GameConfig().getStringValues(keyName, CONFIG_SECTION, names);
+		for (auto str : names)
+		{
+			StringView key;
+			if (FStringParse::StringToken(str, ",", key))
+			{
+				++str;
+				outMap[key.toStdString()] = str;
+			}
+		}
+	}
 
 	bool onInit() override
 	{
@@ -32,21 +47,22 @@ public:
 
 		auto frame = WidgetUtility::CreateDevFrame();
 
-		TArray<char const*> replaceNames;
-		::Global::GameConfig().getStringValues("Replace", CONFIG_SECTION, replaceNames);
-		for (auto str : replaceNames)
+		loadConfigMap("Replace", mReplaceMap);
+		loadConfigMap("ChangeName", mChangeNameMap);
+
 		{
-			StringView from;
-			if (FStringParse::StringToken(str, ",", from))
+			TArray<char const*> formatDigits;
+			::Global::GameConfig().getStringValues("FormatDigit", CONFIG_SECTION, formatDigits);
+			for (auto str : formatDigits)
 			{
-				ReplaceInfo info;
-				info.from = from.toCString();
-				++str;
-				info.to = str;
-				mReplaces.push_back(std::move(info));
+				StringView key;
+				if (FStringParse::StringToken(str, ",", key))
+				{
+					++str;
+					mFormatDigitMap[key.toStdString()] = atoi(str);
+				}
 			}
 		}
-
 		frame->addButton("Conv Path", [this](int event, GWidget*)
 		{
 			char const* dirPath = ::Global::GameConfig().getStringValue("Dir", CONFIG_SECTION, "");
@@ -92,20 +108,35 @@ public:
 		});
 
 
+		frame->addButton("Check Change Name", [this](int event, GWidget*)
+		{
+			TArray<char const*> checkFolders;
+			::Global::GameConfig().getStringValues("CheckDir", CONFIG_SECTION, checkFolders);
+
+			mFolderNameSet.clear();
+			for (auto path : checkFolders)
+			{
+				LogMsg("=Check Folder : %s", path);
+				checkChangeName(path);
+			}
+			return true;
+		});
+
+
 		restart();
 		return true;
 	}
 
 	bool replaceName(std::string& inoutStr)
 	{
-		for (auto const& info : mReplaces)
+		auto iter = mReplaceMap.find(inoutStr);
+
+		if (iter != mReplaceMap.end())
 		{
-			if (inoutStr == info.from)
-			{
-				inoutStr = info.to;
-				return true;
-			}
+			inoutStr = iter->second;
+			return true;
 		}
+
 		return false;
 	}
 
@@ -123,9 +154,6 @@ public:
 		int partNumber;
 		bool b8K;
 	};
-
-
-	TArray<ReplaceInfo> mReplaces;
 
 
 
@@ -161,6 +189,92 @@ public:
 		}
 	}
 
+	bool changeName(std::string const& str, std::string& outNewName)
+	{
+		auto iter = mChangeNameMap.find(str);
+
+		if (iter != mChangeNameMap.end())
+		{
+			outNewName = iter->second;
+			return true;
+		}
+
+		return false;
+	}
+	void checkChangeName(char const* dirPath)
+	{
+		std::regex regex(CODE_STRING(([\w]+)-([\d]+|[\d]+[A-Z])$));
+
+		int changeCount = 0;
+		FileIterator fileIter;
+		if (FFileSystem::FindFiles(dirPath, fileIter))
+		{
+			for (; fileIter.haveMore(); fileIter.goNext())
+			{
+				if (!fileIter.isDirectory())
+					continue;
+
+				if (IsSystemFolder(fileIter.getFileName()))
+					continue;
+
+				std::smatch matches;
+				std::string fileName(fileIter.getFileName());
+
+				if (fileName.back() == 'U')
+					fileName.pop_back();
+				if (fileName.back() == 'B')
+					fileName.pop_back();
+				if (fileName.back() == 'K')
+					fileName.pop_back();
+
+				if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
+					continue;
+
+				std::string newCodeName;
+				if (!changeName(matches[1].str(), newCodeName))
+					continue;
+
+
+				std::string newFolderName = fileIter.getFileName();
+				newFolderName.replace(0, matches[1].length(), newCodeName);
+
+				std::string newSubFileName = fileIter.getFileName();
+				newSubFileName.replace(0, matches[1].length(), newCodeName);
+
+				InlineString<256> folderPath;
+				folderPath.format("%s\\%s", dirPath, fileIter.getFileName());
+				LogMsg("Change Folder Name: %s => %s", folderPath.c_str(), newFolderName.c_str());
+
+				FileIterator subFileIter;
+				if (FFileSystem::FindFiles(folderPath.c_str(), subFileIter))
+				{
+					for (; subFileIter.haveMore(); subFileIter.goNext())
+					{
+						if (subFileIter.isDirectory())
+							continue;
+
+						if (FCString::CompareN(subFileIter.getFileName(), fileName.c_str(), fileName.length()) != 0)
+							continue;
+
+
+						std::string newName = subFileIter.getFileName();
+						newName.replace(0, fileName.length(), newSubFileName);
+
+						std::string oldSubFilePath = std::string(folderPath) + "\\" + subFileIter.getFileName();
+						LogMsg("Change File Name: %s => %s", subFileIter.getFileName(), newName.c_str());
+						FFileSystem::RenameFile(oldSubFilePath.c_str(), newName.c_str());
+					}
+				}
+
+				FFileSystem::RenameFile(folderPath.c_str(), newFolderName.c_str());
+				++changeCount;
+			}
+		}
+
+
+		LogMsg("==Check Complete, %u Folders", changeCount);
+	}
+
 	void checkImage(char const* dirPath)
 	{
 		FileIterator fileIter;
@@ -193,6 +307,15 @@ public:
 		}
 	}
 
+	int getDigitCount(std::string const& name)
+	{
+		auto iter = mFormatDigitMap.find(name);
+		if ( iter != mFormatDigitMap.end())
+			return iter->second;
+
+		return 3;
+	}
+
 	void convFileName(char const* dirPath)
 	{ 
 
@@ -212,11 +335,14 @@ public:
 				if (parseFileName(dirPath, fileIter.getFileName(), desc))
 				{
 					replaceName(desc.code);
+
+					int digit = getDigitCount(desc.code);
+
 					InlineString<256> newName;
 					if (desc.partNumber)
-						newName.format("%s-%03d-%c.%s", desc.code.c_str(), desc.number, 'A' + (desc.partNumber-1), subName);
+						newName.format("%s-%0*d-%c.%s", desc.code.c_str(), digit, desc.number, 'A' + (desc.partNumber-1), subName);
 					else
-						newName.format("%s-%03d.%s", desc.code.c_str(), desc.number, subName);
+						newName.format("%s-%0*d.%s", desc.code.c_str(), digit, desc.number, subName);
 
 					//LogMsg("%s => %s %d %d %s", fileIiter.getFileName(), desc.code.c_str(), desc.number, desc.partNumber, desc.b8K ? "true" : "false");
 
@@ -231,7 +357,7 @@ public:
 					}
 
 					InlineString<256> newDir;
-					newDir.format("%s/%s-%03d%s", dirPath, desc.code.c_str(), desc.number, desc.b8K ? "K" : "");
+					newDir.format("%s/%s-%0*d%s", dirPath, desc.code.c_str(), digit, desc.number, desc.b8K ? "K" : "");
 					if (!FFileSystem::IsExist(newDir))
 					{
 						if (!FFileSystem::CreateDirectory(newDir))
@@ -262,9 +388,12 @@ public:
 				{
 					char const* subName = FFileUtility::GetExtension(fileIter.getFileName());
 
+					int digit = getDigitCount(desc.code);
+					auto iter = mFormatDigitMap.find(desc.code);
+
 					replaceName(desc.code);
 					InlineString<256> newName;
-					newName.format("%s-%03d.%s", desc.code.c_str(), desc.number, subName);
+					newName.format("%s-%0*d.%s", desc.code.c_str(), digit, desc.number, subName);
 
 					InlineString<256> filePath;
 					filePath.format("%s/%s", dirPath, fileIter.getFileName());
@@ -277,10 +406,10 @@ public:
 					}
 
 					InlineString<256> newDir;
-					newDir.format("%s/%s-%03d", dirPath, desc.code.c_str(), desc.number);
+					newDir.format("%s/%s-%0*d", dirPath, desc.code.c_str(), digit, desc.number);
 					if (!FFileSystem::IsExist(newDir))
 					{
-						newDir.format("%s/%s-%03dK", dirPath, desc.code.c_str(), desc.number);
+						newDir.format("%s/%s-%0*dK", dirPath, desc.code.c_str(), digit, desc.number);
 						if (!FFileSystem::IsExist(newDir))
 						{
 							continue;

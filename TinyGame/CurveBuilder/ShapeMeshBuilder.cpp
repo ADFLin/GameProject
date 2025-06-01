@@ -417,11 +417,11 @@ namespace CB
 #endif
 
 
-#if EBC_USE_VALUE_BUFFER
+#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
 				FloatVector valueBuffer[64];
 				if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
+					func->mExpr.getEvalResource<ExecutableCode>().initValueBuffer(valueBuffer);
 				}
 #endif
 
@@ -437,7 +437,7 @@ namespace CB
 #endif
 
 					FloatVector z;
-#if EBC_USE_VALUE_BUFFER
+#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
 					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
 					{
 						valueBuffer[0] = x;
@@ -463,12 +463,11 @@ namespace CB
 			{
 				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
 
-#if EBC_USE_VALUE_BUFFER
-				RealType valueBuffer[64];
-				if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
+#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
+				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					func->mExpr.GetEvalResource<ExecutableCode>().initValueBuffer(valueBuffer, 2);
-
+					RealType valueBuffer[64];
+					func->mExpr.getEvalResource<ExecutableCode>().initValueBuffer(valueBuffer);
 #if 0
 					float z;
 
@@ -1141,7 +1140,7 @@ namespace CB
 		if (func.getFuncType() == TYPE_SURFACE_XY)
 		{
 			auto& myFunc = static_cast<SurfaceXYFunc&>(func);
-			if (!LoadRuntimeShader(myFunc.mExpr.GetOrCreateEvalResource<GenVertexCS>(), { StringView(myFunc.mExpr.getExprString()) }, option))
+			if (!LoadRuntimeShader(myFunc.mExpr.acquireEvalResource<GenVertexCS>(), { StringView(myFunc.mExpr.getExprString()) }, option))
 			{
 				return false;
 			}
@@ -1149,7 +1148,7 @@ namespace CB
 		else if (func.getFuncType() == TYPE_SURFACE_UV)
 		{
 			auto& myFunc = static_cast<SurfaceUVFunc&>(func);
-			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].GetOrCreateEvalResource<GenVertexCS>(),
+			if (!LoadRuntimeShader(myFunc.mAixsExpr[0].acquireEvalResource<GenVertexCS>(),
 				{ StringView(myFunc.mAixsExpr[0].getExprString()), StringView(myFunc.mAixsExpr[1].getExprString()), StringView(myFunc.mAixsExpr[2].getExprString()) }, option))
 			{
 				return false;

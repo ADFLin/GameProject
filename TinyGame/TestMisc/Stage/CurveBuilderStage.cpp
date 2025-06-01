@@ -200,7 +200,8 @@ namespace CB
 #if _DEBUG && 0
 			int NumX = 20, NumY = 20;
 #else
-			int NumX = 1000, NumY = 1000;
+			int NumX = 300, NumY = 300;
+			//int NumX = 1000, NumY = 1000;
 #endif
 
 			surface->setDataSampleNum(NumX, NumY);

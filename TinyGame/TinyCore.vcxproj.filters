@@ -33,6 +33,9 @@
     <Filter Include="OtherLib\minisat">
       <UniqueIdentifier>{de678c99-0afe-4d40-8a23-a62d130aafb2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CurveBuilder\Backend">
+      <UniqueIdentifier>{c489f894-49a0-4253-a85c-c0d88aa0047c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TinyCore\DataTransfer.h">
@@ -88,12 +91,6 @@
     </ClInclude>
     <ClInclude Include="SuperFractial\SelectRectBase.h">
       <Filter>SuperFractial</Filter>
-    </ClInclude>
-    <ClInclude Include="CurveBuilder\AsmetaBase.h">
-      <Filter>CurveBuilder</Filter>
-    </ClInclude>
-    <ClInclude Include="CurveBuilder\Assembler.h">
-      <Filter>CurveBuilder</Filter>
     </ClInclude>
     <ClInclude Include="CurveBuilder\ColorMap.h">
       <Filter>CurveBuilder</Filter>
@@ -155,8 +152,17 @@
     <ClInclude Include="CurveBuilder\ExpressionCompiler.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
-    <ClInclude Include="CurveBuilder\ExprByteCode.h">
-      <Filter>CurveBuilder</Filter>
+    <ClInclude Include="CurveBuilder\Backend\ExprByteCode.h">
+      <Filter>CurveBuilder\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Backend\FPUCode.h">
+      <Filter>CurveBuilder\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Backend\AsmetaBase.h">
+      <Filter>CurveBuilder\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Backend\Assembler.h">
+      <Filter>CurveBuilder\Backend</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -250,8 +256,11 @@
     <ClCompile Include="CurveBuilder\ExpressionCompiler.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
-    <ClCompile Include="CurveBuilder\ExprByteCode.cpp">
-      <Filter>CurveBuilder</Filter>
+    <ClCompile Include="CurveBuilder\Backend\ExprByteCode.cpp">
+      <Filter>CurveBuilder\Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Backend\FPUCode.cpp">
+      <Filter>CurveBuilder\Backend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

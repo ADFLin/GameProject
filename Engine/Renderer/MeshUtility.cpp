@@ -1554,7 +1554,7 @@ namespace Render
 			uint32 i1 = pCur[1];
 			uint32 i2 = pCur[2];
 			pCur += 3;
-#if 0
+#if 1
 			SIMD::SVector3 p0{ positionReader.getPtr<float>(i0) };
 			SIMD::SVector3 p1{ positionReader.getPtr<float>(i1) };
 			SIMD::SVector3 p2{ positionReader.getPtr<float>(i2) };

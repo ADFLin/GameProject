@@ -96,26 +96,26 @@ namespace CB
 		void evalExpr(float x, float y, float& outZ)
 		{
 			CHECK(isParsed());
-			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<RealType>(x, y);
+			outZ = mExpr.getEvalResource<ExecutableCode>().evalT<RealType>(x, y);
 		}
 
 		void evalExpr(FloatVector const& x, FloatVector const& y, FloatVector& outZ)
 		{
 			CHECK(isParsed());
-			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<FloatVector>(x, y);
+			outZ = mExpr.getEvalResource<ExecutableCode>().evalT<FloatVector>(x, y);
 		}
 
 		template< typename T>
 		void evalExpr(TArrayView<T const> valueBuffer, T& outZ)
 		{
-			outZ = mExpr.GetEvalResource<ExecutableCode>().evalT<T>(valueBuffer);
+			outZ = mExpr.getEvalResource<ExecutableCode>().evalT<T>(valueBuffer);
 		}
 
 		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
 		std::string const& getExprString() { return mExpr.getExprString(); }
 
 		template<typename TShaderType>
-		TShaderType& getEvalShader() { return mExpr.GetEvalResource<TShaderType>(); }
+		TShaderType& getEvalShader() { return mExpr.getEvalResource<TShaderType>(); }
 
 		SurfaceXYFunc* clone() override;
 	private:
@@ -154,7 +154,7 @@ namespace CB
 		SurfaceUVFunc* clone() override;
 
 		template<typename TShaderType>
-		TShaderType& getEvalShader() { return mAixsExpr[0].GetEvalResource<TShaderType>(); }
+		TShaderType& getEvalShader() { return mAixsExpr[0].getEvalResource<TShaderType>(); }
 
 	private:
 		friend class ShapeMeshBuilder;

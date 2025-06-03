@@ -8,9 +8,9 @@
 #define EBC_MAX_OP_CMD_SZIE 3
 #define EBC_USE_FIXED_OP_CMD_SIZE EBC_MAX_OP_CMD_SZIE
 //#define EBC_USE_FIXED_OP_CMD_SIZE 0
-#define EBC_USE_COMPOSITIVE_CODE_LEVEL 1
+#define EBC_USE_COMPOSITIVE_CODE_LEVEL 2
 #define EBC_USE_LAZY_STACK_PUSH 1
-#define EBC_MAX_FUNC_ARG_NUM 0
+#define EBC_MAX_FUNC_ARG_NUM 5
 
 namespace EExprByteCode
 {
@@ -181,7 +181,7 @@ struct ExprByteCodeExecData
 	}
 };
 
-struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, public ExprParse
+struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>
 {
 	ExprByteCodeExecData& mOutput;
 	int mNumCmd = 0;
@@ -249,19 +249,6 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 
 	void outputCmd(EExprByteCode::Type a)
 	{
-		outputCmdActual(a);
-	}
-	void outputCmd(EExprByteCode::Type a, uint8 b)
-	{
-		outputCmdActual(a, b);
-	}
-	void outputCmd(EExprByteCode::Type a, uint8 b, uint c)
-	{
-		outputCmdActual(a, b, c);
-	}
-
-	void outputCmdActual(EExprByteCode::Type a)
-	{
 		++mNumCmd;
 		mOutput.codes.push_back(a);
 #if EBC_USE_FIXED_OP_CMD_SIZE >= 2
@@ -271,8 +258,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		mOutput.codes.push_back(0);
 #endif
 	}
-
-	void outputCmdActual(EExprByteCode::Type a, uint8 b)
+	void outputCmd(EExprByteCode::Type a, uint8 b)
 	{
 		++mNumCmd;
 		mOutput.codes.push_back(a);
@@ -281,14 +267,14 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>, publi
 		mOutput.codes.push_back(0);
 #endif
 	}
-
-	void outputCmdActual(EExprByteCode::Type a, uint8 b, uint c)
+	void outputCmd(EExprByteCode::Type a, uint8 b, uint c)
 	{
 		++mNumCmd;
 		mOutput.codes.push_back(a);
 		mOutput.codes.push_back(b);
 		mOutput.codes.push_back(c);
 	}
+
 };
 
 template<typename TValue>

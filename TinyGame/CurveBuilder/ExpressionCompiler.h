@@ -97,18 +97,9 @@ class ExpressionCompiler
 {
 public:
 	ExpressionCompiler();
-	bool compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput = 0 , ValueLayout inputLayouts[] = nullptr);
+	bool compile( char const* expr, SymbolTable const& table, ParseResult&  parseResult, ExecutableCode& data, int numInput = 0, ValueLayout inputLayouts[] = nullptr);
 	void enableOpimization(bool enable = true){	mOptimization = enable;	}
-	bool isUsingVar(char const* varName) const
-	{
-		return mResult.isUsingVar(varName);
-	}
-	bool isUsingInput(char const* varName) const
-	{
-		return mResult.isUsingInput(varName);
-	}
 protected:
-	ParseResult  mResult;
 	bool         mOptimization;
 };
 

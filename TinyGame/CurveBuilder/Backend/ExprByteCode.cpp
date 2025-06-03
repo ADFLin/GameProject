@@ -224,128 +224,47 @@ int GetNextOpCmdOffset(EExprByteCode::Type op)
 
 constexpr EExprByteCode::Type tryMergeOpConstexpr(EExprByteCode::Type leftOp, EExprByteCode::Type rightOp)
 {
-	switch (leftOp)
-	{
-	case EExprByteCode::Input:
 
-		switch (rightOp)
-		{
+#define MERGE_OP(L, R , M)\
+		if (leftOp == EExprByteCode::L && rightOp == EExprByteCode::R ) return EExprByteCode::M;
+
 #if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
+
 #if EBC_USE_VALUE_BUFFER
-		case EExprByteCode::SMul:  return EExprByteCode::ISMul;
+	MERGE_OP(Input, SMul, ISMul)
+	MERGE_OP(ISMul, Add, ISMulAdd)
+	MERGE_OP(ISMul, Sub, ISMulSub)
+	MERGE_OP(ISMul, Mul, ISMulMul)
+	MERGE_OP(ISMul, Div, ISMulDiv)
+
 #if EBC_MAX_OP_CMD_SZIE >= 3
-		case EExprByteCode::IAdd:  return EExprByteCode::IIAdd;
-		case EExprByteCode::ISub:  return EExprByteCode::IISub;
-		case EExprByteCode::IMul:  return EExprByteCode::IIMul;
-		case EExprByteCode::IDiv:  return EExprByteCode::IIDiv;
+	MERGE_OP(Input, IAdd, IIAdd)
+	MERGE_OP(Input, ISub, IISub)
+	MERGE_OP(Input, IMul, IIMul)
+	MERGE_OP(Input, IDiv, IIDiv)
 #endif
 #endif
+	MERGE_OP(Add, Mul, AddMul)
+	MERGE_OP(Mul, Add,  MulAdd)
+	MERGE_OP(Mul, Sub,  MulSub)
+	MERGE_OP(IMul, Add, IMulAdd)
+	MERGE_OP(IMul, Sub, IMulSub)
+	MERGE_OP(IAdd, Mul, IAddMul)
+	MERGE_OP(SMul, Add, SMulAdd)
+	MERGE_OP(SMul, Sub, SMulSub)
+	MERGE_OP(SMul, Mul, SMulMul)
+	MERGE_OP(SMul, Div, SMulDiv)
 #endif
-		default:
-			break;
-		}
-		break;
 #if !EBC_USE_VALUE_BUFFER
-	case EExprByteCode::Const:
-	case EExprByteCode::Variable:
-		break;
+	MERGE_OP(CMul, Add, CMulAdd)
+	MERGE_OP(CMul, Sub, CMulSub)
+	MERGE_OP(CAdd, Mul, CAddMul)
+	MERGE_OP(VMul, Add, VMulAdd)
+	MERGE_OP(VMul, Sub, VMulSub)
+	MERGE_OP(VAdd, Mul, VAddMul)
 #endif
 
-	case EExprByteCode::Add:
-		switch (rightOp)
-		{
-#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
-		case EExprByteCode::Mul:  return EExprByteCode::AddMul;
-#endif
-		}
-		break;
-	case EExprByteCode::Sub:
-		break;
-	case EExprByteCode::Mul:
-		switch (rightOp)
-		{
-#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
-		case EExprByteCode::Add:  return EExprByteCode::MulAdd;
-		case EExprByteCode::Sub:  return EExprByteCode::MulSub;
-#endif
-		}
-		break;
-	case EExprByteCode::Div:
-		break;
-	case EExprByteCode::IMul:
-		switch (rightOp)
-		{
-#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
-		case EExprByteCode::Add:  return EExprByteCode::IMulAdd;
-		case EExprByteCode::Sub:  return EExprByteCode::IMulSub;
-#endif
-		}
-		break;
-	case EExprByteCode::IAdd:
-		switch (rightOp)
-		{
-#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
-		case EExprByteCode::Mul:  return EExprByteCode::IAddMul;
-#endif
-		}
-		break;
-	case EExprByteCode::SMul:
-		switch (rightOp)
-		{
-#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
-		case EExprByteCode::Add:  return EExprByteCode::SMulAdd;
-		case EExprByteCode::Sub:  return EExprByteCode::SMulSub;
-		case EExprByteCode::Mul:  return EExprByteCode::SMulMul;
-		case EExprByteCode::Div:  return EExprByteCode::SMulDiv;
-#endif
-		}
-		break;
-#if !EBC_USE_VALUE_BUFFER
-	case EExprByteCode::CMul:
-		switch (rightOp)
-		{
-		case EExprByteCode::Add:  return EExprByteCode::CMulAdd;
-		case EExprByteCode::Sub:  return EExprByteCode::CMulSub;
-		}
-		break;
-	case EExprByteCode::VMul:
-		switch (rightOp)
-		{
-		case EExprByteCode::Add:  return EExprByteCode::VMulAdd;
-		case EExprByteCode::Sub:  return EExprByteCode::VMulSub;
-		}
-		break;
-	case EExprByteCode::CAdd:
-		switch (rightOp)
-		{
-		case EExprByteCode::Mul:  return EExprByteCode::CAddMul;
-		}
-		break;
-	case EExprByteCode::VAdd:
-		switch (rightOp)
-		{
-		case EExprByteCode::Mul:  return EExprByteCode::VAddMul;
-		}
-		break;
-#endif
-#if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
-#if EBC_USE_VALUE_BUFFER
-	case EExprByteCode::ISMul:
-		switch (rightOp)
-		{
-
-		case EExprByteCode::Add:  return EExprByteCode::ISMulAdd;
-		case EExprByteCode::Sub:  return EExprByteCode::ISMulSub;
-		case EExprByteCode::Mul:  return EExprByteCode::ISMulMul;
-		case EExprByteCode::Div:  return EExprByteCode::ISMulDiv;
-
-		}
-		break;
-#endif
-#endif
-	default:
-		break;
-	}
+#undef MERGE_OP
 
 	return EExprByteCode::None;
 }
@@ -893,16 +812,14 @@ TValue TByteCodeExecutor<TValue>::doExecute(ExprByteCodeExecData const& execData
 	return topValue;
 }
 
-
-
 template< typename TValue, typename RT, typename ...Args>
-FORCEINLINE TValue Invoke(RT(*func)(Args...), TValue args[])
+FORCEINLINE TValue Invoke(RT(*func)(Args...), TValue* args)
 {
 	return InvokeInternal(func, args, TIndexRange<0, sizeof...(Args)>());
 }
 
 template< typename TValue, typename RT, typename ...Args, size_t ...Is>
-FORCEINLINE TValue InvokeInternal(RT(*func)(Args...), TValue args[], TIndexList<Is...>)
+FORCEINLINE TValue InvokeInternal(RT(*func)(Args...), TValue* args, TIndexList<Is...>)
 {
 	if constexpr (std::is_same_v<TValue, FloatVector> && !std::is_same_v<TValue, RT>)
 	{
@@ -1328,9 +1245,8 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncCall1:
 		{
 			void* funcPtr = mExecData->pointers[pCode[1]];
-			TValue params[1];
-			params[0] = topValue;
-			topValue = Invoke(static_cast<FuncType1>(funcPtr), params);
+			*pValueStack = topValue;
+			topValue = Invoke(static_cast<FuncType1>(funcPtr), pValueStack);
 		}
 		return 2;
 #endif
@@ -1338,10 +1254,10 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncCall2:
 		{
 			void* funcPtr = mExecData->pointers[pCode[1]];
-			TValue params[2];
-			params[1] = topValue;
-			params[0] = popStack();
-			topValue = Invoke(static_cast<FuncType2>(funcPtr), params);
+
+			*pValueStack = topValue;
+			topValue = Invoke(static_cast<FuncType2>(funcPtr), pValueStack);
+			pValueStack -= 1;
 		}
 		return 2;
 #endif
@@ -1349,11 +1265,9 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncCall3:
 		{
 			void* funcPtr = mExecData->pointers[pCode[1]];
-			TValue params[3];
-			params[2] = topValue;
-			params[1] = popStack();
-			params[0] = popStack();
-			topValue = Invoke(static_cast<FuncType3>(funcPtr), params);
+			*pValueStack = topValue;
+			topValue = Invoke(static_cast<FuncType3>(funcPtr), pValueStack);
+			pValueStack -= 2;
 		}
 		return 2;
 #endif
@@ -1361,12 +1275,9 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncCall4:
 		{
 			void* funcPtr = mExecData->pointers[pCode[1]];
-			TValue params[4];
-			params[3] = topValue;
-			params[2] = popStack();
-			params[1] = popStack();
-			params[0] = popStack();
-			topValue = Invoke(static_cast<FuncType4>(funcPtr), params);
+			*pValueStack = topValue;
+			topValue = Invoke(static_cast<FuncType4>(funcPtr), pValueStack);
+			pValueStack -= 3;
 		}
 		return 2;
 #endif
@@ -1374,13 +1285,9 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 	case EExprByteCode::FuncCall5:
 		{
 			void* funcPtr = mExecData->pointers[pCode[1]];
-			TValue params[5];
-			params[4] = topValue;
-			params[3] = popStack();
-			params[2] = popStack();
-			params[1] = popStack();
-			params[0] = popStack();
-			topValue = Invoke(static_cast<FuncType5>(funcPtr), params);
+			*pValueStack = topValue;
+			topValue = Invoke(static_cast<FuncType5>(funcPtr), pValueStack);
+			pValueStack -= 4;
 		}
 		return 2;
 #endif

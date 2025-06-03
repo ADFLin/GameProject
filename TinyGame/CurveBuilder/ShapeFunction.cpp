@@ -10,9 +10,10 @@ namespace CB
 	{
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
 
+
+		ParseResult parserResult;
 		if (mbUseGPU)
 		{
-			ParseResult parserResult;
 			if (parser.parse(mExpr, ARRAY_SIZE(inputLayouts), inputLayouts, parserResult))
 			{
 				mUsedInputMask = 0;
@@ -23,12 +24,12 @@ namespace CB
 		}
 		else
 		{
-			if (parser.compile(mExpr, ARRAY_SIZE(inputLayouts), inputLayouts))
+			if (parser.compile(mExpr, ARRAY_SIZE(inputLayouts), inputLayouts, parserResult))
 			{
 				mUsedInputMask = 0;
-				mUsedInputMask |= parser.isUsingInput("x") ? BIT(0) : 0;
-				mUsedInputMask |= parser.isUsingInput("y") ? BIT(1) : 0;
-				setDynamic(parser.isUsingVar("t"));
+				mUsedInputMask |= parserResult.isUsingInput("x") ? BIT(0) : 0;
+				mUsedInputMask |= parserResult.isUsingInput("y") ? BIT(1) : 0;
+				setDynamic(parserResult.isUsingVar("t"));
 			}
 		}
 		return isParsed();
@@ -62,12 +63,11 @@ namespace CB
 		bool bDynamic = false;
 		mUsedInputMask = 0;
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
-
+		ParseResult parseResult;
 		if (mbUseGPU)
 		{
 			for (int i = 0; i < 3; ++i)
 			{
-				ParseResult parseResult;
 				if (!parser.parse(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts, parseResult))
 					return false;
 
@@ -80,12 +80,12 @@ namespace CB
 		{
 			for (int i = 0; i < 3; ++i)
 			{
-				if (!parser.compile(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts))
+				if (!parser.compile(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts, parseResult))
 					return false;
 
-				bDynamic |= parser.isUsingVar("t");
-				mUsedInputMask |= parser.isUsingInput("u") ? BIT(0) : 0;
-				mUsedInputMask |= parser.isUsingInput("v") ? BIT(1) : 0;
+				bDynamic |= parseResult.isUsingVar("t");
+				mUsedInputMask |= parseResult.isUsingInput("u") ? BIT(0) : 0;
+				mUsedInputMask |= parseResult.isUsingInput("v") ? BIT(1) : 0;
 			}
 		}
 
@@ -114,10 +114,11 @@ namespace CB
 	{
 		bool bDynamic = false;
 		ValueLayout inputLayouts[] = { ValueLayout::Real };
+		ParseResult parseResult;
 		for( int i = 0; i < 3; ++i )
 		{
-			if( parser.compile(mCoordExpr[i] , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
-				bDynamic |= parser.isUsingVar("t");
+			if( parser.compile(mCoordExpr[i] , ARRAY_SIZE(inputLayouts) , inputLayouts, parseResult) )
+				bDynamic |= parseResult.isUsingVar("t");
 		}
 
 		setDynamic(bDynamic);

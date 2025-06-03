@@ -1,5 +1,6 @@
 #include "FunctionParser.h"
 #include "Expression.h"
+#include "ExpressionCompiler.h"
 
 #include <cmath>
 
@@ -33,9 +34,10 @@ namespace CB
 		return true;
 	}
 
-	bool FunctionParser::compile(Expression& expr, int numInput , ValueLayout inputLayouts[])
+	bool FunctionParser::compile(Expression& expr, int numInput , ValueLayout inputLayouts[], ParseResult& parseResult)
 	{
-		expr.mIsParsed = mCompiler.compile(expr.getExprString().c_str(), mSymbolDefine, expr.acquireEvalResource<ExecutableCode>(), numInput , inputLayouts);
+		ExpressionCompiler  compiler;
+		expr.mIsParsed = compiler.compile(expr.getExprString().c_str(), mSymbolDefine, parseResult, expr.acquireEvalResource<ExecutableCode>(), numInput , inputLayouts);
 		return expr.mIsParsed;
 	}
 

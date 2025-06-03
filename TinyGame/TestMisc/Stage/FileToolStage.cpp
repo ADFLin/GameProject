@@ -24,6 +24,19 @@ public:
 
 	std::unordered_map< std::string, int > mFormatDigitMap;
 
+
+	struct PatternDesc
+	{
+		std::string regexText;
+		std::regex  regex;
+		int indexCode;
+		int indexNumber;
+		int indexPartNumber;
+		int indexFormat;
+		int indexFileFormat;
+	};
+
+
 	void loadConfigMap(char const* keyName, std::unordered_map< std::string, std::string >& outMap)
 	{
 		TArray<char const*> names;
@@ -62,6 +75,55 @@ public:
 					mFormatDigitMap[key.toStdString()] = atoi(str);
 				}
 			}
+		}
+
+		{
+			TArray<char const*> patterns;
+			::Global::GameConfig().getStringValues("Patten", CONFIG_SECTION, patterns);
+			for (auto str : patterns)
+			{
+				PatternDesc desc;
+				StringView key;
+				if (!FStringParse::StringToken(str, ",", key))
+					continue;
+				
+				try
+				{
+					desc.regex = std::regex(key.toStdString());
+				}
+				catch (std::regex_error&)
+				{
+					continue;
+				}
+
+				++str;
+				if (!FStringParse::StringToken(str, ",", key))
+					continue;
+				desc.indexCode = key.toValue<int>();
+
+				++str;
+				if (!FStringParse::StringToken(str, ",", key))
+					continue;
+				desc.indexNumber = key.toValue<int>();
+
+				++str;
+				if (!FStringParse::StringToken(str, ",", key))
+					continue;
+				desc.indexPartNumber = key.toValue<int>();
+
+				++str;
+				if (!FStringParse::StringToken(str, ",", key))
+					continue;
+				desc.indexFormat = key.toValue<int>();
+
+				++str;
+				if (!FStringParse::StringToken(str, ",", key))
+					continue;
+				desc.indexFileFormat = key.toValue<int>();
+
+				mPatternList.push_back(std::move(desc));
+			}
+
 		}
 		frame->addButton("Conv Path", [this](int event, GWidget*)
 		{
@@ -427,15 +489,8 @@ public:
 		}
 	}
 
-	struct PatternDesc
-	{
-		char const* regexText;
-		int indexCode;
-		int indexNumber;
-		int indexPartNumber;
-		int indexFormat;
-		int indexFileFormat;
-	};
+	TArray<PatternDesc> mPatternList;
+#if 0
 	static constexpr PatternDesc PatternList[] =
 	{
 		{ CODE_STRING(([\w]+)-([\d]+).([\w]+)$), 0 , 1 , INDEX_NONE, INDEX_NONE, 3 },
@@ -444,14 +499,14 @@ public:
 		{ CODE_STRING(([\w]+)-([\d]+)([\a-zA-Z])-([\w.]+).([\w]+)$), 0 , 1 , 2, 3, 4 },
 		{ CODE_STRING(([\w]+)-([\d]+)-([\d+|\a-zA-Z])[_|-]([\w.]+).([\w]+)$), 0 , 1 , 2, 3, 4 },
 	};
+#endif
 
-	bool parseFileName(std::string const& dirPath, std::string const fileName, FileDesc& outDesc)
+	bool parseFileName(std::string const& dirPath, std::string const& fileName, FileDesc& outDesc)
 	{
-		for (auto pattern : PatternList)
+		for (auto const& pattern : mPatternList)
 		{
-			std::regex regex(pattern.regexText);
 			std::smatch matches;
-			if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
+			if (!std::regex_search(fileName, matches, pattern.regex, std::regex_constants::match_continuous))
 				continue;
 
 			std::string code = matches[pattern.indexCode + 1].str();

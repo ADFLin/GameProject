@@ -98,6 +98,7 @@ void TestExprCompile()
 
 
 #if ENABLE_FPU_CODE
+	ParseResult parseResult;
 	ExecutableCode code;
 	ValueLayout layouts[] = { ValueLayout::Double , ValueLayout::Double ,ValueLayout::Float };
 	ExpressionCompiler compiler;
@@ -107,7 +108,7 @@ void TestExprCompile()
 	table.defineVarInput("z", 2);
 	table.defineFunc("sin", static_cast<double(*)(double)>(sin));
 	table.defineFunc("foo", static_cast<double(*)(double)>(foo));
-	if (!compiler.compile("sin(x)", table, code, ARRAY_SIZE(layouts) , layouts))
+	if (!compiler.compile("sin(x)", table, parseResult, code, ARRAY_SIZE(layouts) , layouts))
 	{
 		return;
 	}

@@ -45,6 +45,8 @@ public:
 	void  waitAllThreadIdle();
 	void  waitAllWorkComplete();
 
+	void  cencelAllWorks();
+
 	int   getQueuedWorkNum() { return (int)mQueuedWorks.size(); }
 	int   getAllThreadNum() { return (int)mAllThreads.size(); }
 	int   getIdleThreadNum() { return (int)mQueuedThreads.size();  }

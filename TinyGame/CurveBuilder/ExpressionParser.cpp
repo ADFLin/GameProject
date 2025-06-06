@@ -1719,171 +1719,14 @@ void ExprEvaluatorBase::visitOp(Unit const& unit)
 {
 	switch (unit.type)
 	{
-	case TOKEN_FUNC:
-		if (unit.type == FUNC_DEF)
-		{
-			FuncInfo const& funcInfo = unit.symbol->func;
-			RealType params[5];
-			int   numParam = funcInfo.getArgNum();
-			void* funcPtr = funcInfo.funcPtr;
-
-			RealType value;
-			switch (numParam)
-			{
-			case 0:
-				value = (*static_cast<FuncType0>(funcPtr))();
-				break;
-			case 1:
-				params[0] = popStack();
-				value = (*static_cast<FuncType1>(funcPtr))(params[0]);
-				break;
-			case 2:
-				params[0] = popStack();
-				params[1] = popStack();
-				value = (*static_cast<FuncType2>(funcPtr))(params[1], params[0]);
-				break;
-			case 3:
-				params[0] = popStack();
-				params[1] = popStack();
-				params[2] = popStack();
-				value = (*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]);
-				break;
-			case 4:
-				params[0] = popStack();
-				params[1] = popStack();
-				params[2] = popStack();
-				params[3] = popStack();
-				value = (*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]);
-				break;
-			case 5:
-				params[0] = popStack();
-				params[1] = popStack();
-				params[2] = popStack();
-				params[3] = popStack();
-				params[4] = popStack();
-				value = (*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]);
-				break;
-			}
-			pushStack(value);
-		}
-		else
-		{
-			switch (unit.funcSymbol.id)
-			{
-			case EFuncSymbol::Exp:  pushStack(exp(popStack())); break;
-			case EFuncSymbol::Ln:   pushStack(log(popStack())); break;
-			case EFuncSymbol::Sin:  pushStack(sin(popStack())); break;
-			case EFuncSymbol::Cos:  pushStack(cos(popStack())); break;
-			case EFuncSymbol::Tan:  pushStack(tan(popStack())); break;
-			case EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); break;
-			case EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); break;
-			case EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); break;
-			case EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); break;
-			}
-		}
-		break;
-	case TOKEN_UNARY_OP:
-	{
-		RealType lhs = popStack();
-		switch (unit.type)
-		{
-		case UOP_MINS: pushStack(-lhs); break;
-		}
-	}
-	break;
-	case TOKEN_BINARY_OP:
-	{
-		RealType rhs = popStack();
-		RealType lhs = popStack();
-
-		switch (unit.type)
-		{
-		case BOP_ADD: pushStack(lhs + rhs); break;
-		case BOP_SUB: if (unit.isReverse) pushStack(rhs - lhs); else pushStack(lhs - rhs); break;
-		case BOP_MUL: pushStack(lhs * rhs); break;
-		case BOP_DIV: if (unit.isReverse) pushStack(rhs / lhs); else pushStack(lhs / rhs); break;
-		}
-	}
-	break;
-	default:
-	{
-#if _DEBUG
-		LogWarning(0, "Unknow Code %d", unit.type);
-#endif
-	}
-	}
-}
-
-void ExprEvaluatorBase::exec(Unit const& unit)
-{
-	switch (unit.type)
-	{
-	case VALUE_CONST:
-	case VALUE_INPUT:
-	case VALUE_VARIABLE:
-		pushStack(unit);
-		break;
 	case FUNC_DEF:
 	{
-		FuncInfo const& funcInfo = unit.symbol->func;
-		RealType params[5];
-		int   numParam = funcInfo.getArgNum();
-		void* funcPtr = funcInfo.funcPtr;
-
-		RealType value;
-		switch (numParam)
-		{
-		case 0:
-			value = (*static_cast<FuncType0>(funcPtr))();
-			break;
-		case 1:
-			params[0] = popStack();
-			value = (*static_cast<FuncType1>(funcPtr))(params[0]);
-			break;
-		case 2:
-			params[0] = popStack();
-			params[1] = popStack();
-			value = (*static_cast<FuncType2>(funcPtr))(params[1], params[0]);
-			break;
-		case 3:
-			params[0] = popStack();
-			params[1] = popStack();
-			params[2] = popStack();
-			value = (*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]);
-			break;
-		case 4:
-			params[0] = popStack();
-			params[1] = popStack();
-			params[2] = popStack();
-			params[3] = popStack();
-			value = (*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]);
-			break;
-		case 5:
-			params[0] = popStack();
-			params[1] = popStack();
-			params[2] = popStack();
-			params[3] = popStack();
-			params[4] = popStack();
-			value = (*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]);
-			break;
-		}
-		pushStack(value);
+		execFuncCall(unit.symbol->func);
 	}
 	break;
 	case FUNC_SYMBOL:
 	{
-		switch (unit.funcSymbol.id)
-		{
-		case EFuncSymbol::Exp:  pushStack(exp(popStack())); break;
-		case EFuncSymbol::Ln:   pushStack(log(popStack())); break;
-		case EFuncSymbol::Sin:  pushStack(sin(popStack())); break;
-		case EFuncSymbol::Cos:  pushStack(cos(popStack())); break;
-		case EFuncSymbol::Tan:  pushStack(tan(popStack())); break;
-		case EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); break;
-		case EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); break;
-		case EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); break;
-		case EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); break;
-		}
+		execFuncCall(unit.funcSymbol);
 	}
 	break;
 	case BOP_ADD:
@@ -1926,5 +1769,129 @@ void ExprEvaluatorBase::exec(Unit const& unit)
 		LogWarning(0, "Unknow Code %d", unit.type);
 #endif
 	}
+	}
+}
+
+void ExprEvaluatorBase::exec(Unit const& unit)
+{
+	switch (unit.type)
+	{
+	case VALUE_CONST:
+	case VALUE_INPUT:
+	case VALUE_VARIABLE:
+		pushStack(unit);
+		break;
+	case FUNC_DEF:
+	{
+		execFuncCall(unit.symbol->func);
+	}
+	break;
+	case FUNC_SYMBOL:
+	{
+		execFuncCall(unit.funcSymbol);
+	}
+	break;
+	case BOP_ADD:
+	{
+		RealType rhs = popStack();
+		RealType lhs = popStack();
+		pushStack(lhs + rhs);
+	}
+	break;
+	case BOP_SUB:
+	{
+		RealType rhs = popStack();
+		RealType lhs = popStack();
+		if (unit.isReverse) pushStack(rhs - lhs); else pushStack(lhs - rhs);
+	}
+	break;
+	case BOP_MUL:
+	{
+		RealType rhs = popStack();
+		RealType lhs = popStack();
+		pushStack(lhs * rhs);
+	}
+	break;
+	case BOP_DIV:
+	{
+		RealType rhs = popStack();
+		RealType lhs = popStack();
+		if (unit.isReverse) pushStack(rhs / lhs); else pushStack(lhs / rhs);
+	}
+	break;
+	case UOP_MINS:
+	{
+		RealType lhs = popStack();
+		pushStack(-lhs); break;
+	}
+	break;
+	default:
+	{
+#if _DEBUG
+		LogWarning(0, "Unknow Code %d", unit.type);
+#endif
+	}
+	}
+}
+
+void ExprEvaluatorBase::execFuncCall(FuncInfo const& funcInfo)
+{
+	RealType params[5];
+	int   numParam = funcInfo.getArgNum();
+	void* funcPtr = funcInfo.funcPtr;
+
+	RealType value;
+	switch (numParam)
+	{
+	case 0:
+		value = (*static_cast<FuncType0>(funcPtr))();
+		break;
+	case 1:
+		params[0] = popStack();
+		value = (*static_cast<FuncType1>(funcPtr))(params[0]);
+		break;
+	case 2:
+		params[0] = popStack();
+		params[1] = popStack();
+		value = (*static_cast<FuncType2>(funcPtr))(params[1], params[0]);
+		break;
+	case 3:
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		value = (*static_cast<FuncType3>(funcPtr))(params[2], params[1], params[0]);
+		break;
+	case 4:
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		params[3] = popStack();
+		value = (*static_cast<FuncType4>(funcPtr))(params[3], params[2], params[1], params[0]);
+		break;
+	case 5:
+		params[0] = popStack();
+		params[1] = popStack();
+		params[2] = popStack();
+		params[3] = popStack();
+		params[4] = popStack();
+		value = (*static_cast<FuncType5>(funcPtr))(params[4], params[3], params[2], params[1], params[0]);
+		break;
+	}
+	pushStack(value);
+}
+
+void ExprEvaluatorBase::execFuncCall(FuncSymbolInfo const& funcSymbol)
+{
+	switch (funcSymbol.id)
+	{
+	case EFuncSymbol::Exp:  pushStack(exp(popStack())); break;
+	case EFuncSymbol::Ln:   pushStack(log(popStack())); break;
+	case EFuncSymbol::Sin:  pushStack(sin(popStack())); break;
+	case EFuncSymbol::Cos:  pushStack(cos(popStack())); break;
+	case EFuncSymbol::Tan:  pushStack(tan(popStack())); break;
+	case EFuncSymbol::Cot:  pushStack(1.0 / tan(popStack())); break;
+	case EFuncSymbol::Sec:  pushStack(1.0 / cos(popStack())); break;
+	case EFuncSymbol::Csc:  pushStack(1.0 / sin(popStack())); break;
+	case EFuncSymbol::Sqrt: pushStack(sqrt(popStack())); break;
 	}
 }

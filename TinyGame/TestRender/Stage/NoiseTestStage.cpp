@@ -6,7 +6,7 @@
 #include "Image/ImageData.h"
 #include "Math/GeometryAlgo2D.h"
 #include "DataStructure/Grid2D.h"
-#include "PerlinNoise.h"
+#include "Math/PerlinNoise.h"
 
 
 namespace Geom2D

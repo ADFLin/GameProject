@@ -7,233 +7,236 @@
 
 #include "WindowsHeader.h"
 #include "OpenGLHeader.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/GpuProfiler.h"
+#include "RHI/SimpleRenderState.h"
+
+#include "Async/AsyncWork.h"
+#include "RenderUtility.h"
 
 namespace Cube
 {
+	using namespace Render;
 
 	RenderEngine::RenderEngine( int w , int h )
 	{
 		mClientWorld = NULL;
-		mBlockRenderer = new BlockRenderer;
 		mAspect        = float( w ) / h ;
 
-		mBlockRenderer->mMesh = &mMesh;
 
 		mRenderWidth  = 0;
 		mRenderHeight = ChunkBlockMaxHeight;
 		mRenderDepth  = 0;
 
-		glDisable( GL_TEXTURE );
-		//glDisable( GL_CULL_FACE );
-
-
-		glEnable( GL_CULL_FACE );
-		glCullFace( GL_BACK );
+		mGereatePool = new QueueThreadPool;
+		mGereatePool->init(1);
 	}
 
-	void RenderEngine::setupWorld( World& world )
+	RenderEngine::~RenderEngine()
+	{
+		cleanupRenderData();
+		delete mGereatePool;
+	}
+
+	void RenderEngine::setupWorld(World& world)
 	{
 		if ( mClientWorld )
 			mClientWorld->removeListener( *this );
 
 		mClientWorld = &world;
+		mClientWorld->mChunkProvider->mListener = this;
 		mClientWorld->addListener( *this );
-
-		mBlockRenderer->mBlockAccess = &world;
 	}
 
-	void RenderEngine::renderWorld( ICamera& camera )
+
+	void RenderEngine::onChunkAdded(Chunk* chunk)
 	{
-		World& world = *mClientWorld;
-
-		glMatrixMode( GL_PROJECTION );
-		glLoadIdentity();
-		gluPerspective( 45.0f , mAspect , 0.01 , 1000.0 );
-
-		Vec3f camPos  = camera.getPos();
-		Vec3f viewPos = camPos + camera.getViewDir();
-		Vec3f upDir   = camera.getUpDir();
-
-		glMatrixMode( GL_MODELVIEW );
-		glLoadIdentity();
-		gluLookAt( camPos.x , camPos.y , camPos.z , 
-			       viewPos.x , viewPos.y , viewPos.z , 0 , 0 , 1.0 );
-
-
+		for (int i = 0; i < 4; ++i)
 		{
-			
-			glPushMatrix();
-
-			glTranslatef( 0 , 10 , 0 );
-
-			float len = 10;
-			drawCroodAxis(len);
-
-
-			glPopMatrix();
-		}
-
-#if 0
-		glColor3f (1.0, 1.0, 0.0);//
-		glBegin ( GL_TRIANGLES );//
-		glVertex3f( 0 , 0 , 0  );// 
-		glVertex3f(0 ,0.5 , 0 );
-		glVertex3f(0 ,0.5 , 0.5  );
-		glEnd ();
-
-		mMesh.clearBuffer();
-		mMesh.setVertexOffset( Vec3f(0,0,0) );
-		mMesh.setColor( 0 , 255 , 0 );
-		mMesh.addVertex( 0 , 0 , 0  );
-		mMesh.addVertex( 0 ,0.5 , 0 );
-		mMesh.addVertex( 0 ,0.5 , 0.5  );
-		mMesh.addTriangle( 0 , 1 , 2 );
-		mMesh.render();
-
-		for( int i = 0 ; i < 1 ; ++i )
-		{
-			//glTranslatef( 0 , 1 , 0 );
-			mBlockRenderer->drawUnknown( 0xffffffff );
-		}
-		mMesh.render();
-#endif
-
-
-		int bx = Math::floor( camPos.x );
-		int by = Math::floor( camPos.y );
-
-		ChunkPos cPos;
-		cPos.setBlockPos( bx , by );
-		int len = 1;
-
-		//glPolygonMode(GL_FRONT, GL_LINE);
-		for( int i = -len ; i <= len ; ++i )
-		{
-			for( int j = -len ; j <= len ; ++j )
+			Vec3i offset = GetFaceOffset(FaceSide(i));
+			ChunkPos chunkPos = ChunkPos{ chunk->getPos() + Vec2i(offset.x, offset.y) };
+			ChunkDataMap::iterator iter = mChunkMap.find(chunkPos.hash_value());
+			if (iter != mChunkMap.end())
 			{
-				ChunkPos curPos;
-				curPos.x = cPos.x + i;
-				curPos.y = cPos.y + j;
-
-				WDMap::iterator iter = mWDMap.find( curPos.hash_value() );
-				WorldData* data = NULL;
-				if ( iter == mWDMap.end() )
+				ChunkRenderData* data = iter->second;
+				if (data->state != EDataState::Unintialized)
 				{
-					Chunk* chunk = world.getChunk( curPos );
 
-					if ( !chunk )
-						continue;
 
-					data = new WorldData;
-					data->needUpdate = true;
-					data->drawList[0] = glGenLists( WorldData::NumPass );
-					for( int i = 1 ; i < WorldData::NumPass ; ++i )
-					{
-						data->drawList[i] = data->drawList[0] + i;
-					}
-					mWDMap.insert( std::make_pair( curPos.hash_value() , data ) );
-				}
-				else
-				{
-					data = iter->second;
+
 				}
 
-				if ( data->needUpdate )
-				{
-					Chunk* chunk = world.getChunk( curPos );
-
-					assert( chunk );
-
-					glPushMatrix();
-					glLoadIdentity();
-
-					for( int i = 0 ; i < WorldData::NumPass ; ++i )
-					{
-						mMesh.clearBuffer();
-						chunk->render( *mBlockRenderer );
-
-						glNewList( data->drawList[i] , GL_COMPILE );
-						mMesh.render();
-						glEndList();
-					}
-					glPopMatrix();
-					data->needUpdate = false;
-				}
-				else
-				{
-					glPushMatrix();
-					int bx = ChunkSize * curPos.x;
-					int by = ChunkSize * curPos.y;
-					glTranslatef( bx , by , 0 );
-					glCallLists( WorldData::NumPass , GL_UNSIGNED_INT , data->drawList );
-					glPopMatrix();
-				}
 			}
 		}
 
+	}
+
+	struct RnederContext
+	{
+
+		Matrix4 worldToClip;
+		TransformStack stack;
+
+		void setupShader(RHICommandList& commandList, LinearColor const& color = LinearColor(1,1,1,1))
+		{
+			RHISetFixedShaderPipelineState(commandList, stack.get() * worldToClip, color);
+		}
+	};
+
+
+
+	void RenderEngine::renderWorld( ICamera& camera )
+	{
+		GPU_PROFILE("Render World");
+
+		World& world = *mClientWorld;
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0,0,0,1), 1);
+
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Back , EFillMode::Wireframe >::GetRHI());
+
+		Vec3f camPos = camera.getPos();
+		Vec3f viewPos = camPos + camera.getViewDir();
+		Vec3f upDir = camera.getUpDir();
+
+
+		Matrix4 worldToView = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
+		Matrix4 projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 1000);
+
+		RnederContext context;
+		context.worldToClip = AdjProjectionMatrixForRHI(worldToView * projectMatrix);
+
+		{
+			context.stack.push();
+			context.stack.translate(Vector3(0,10,0));
+			float len = 10;
+			context.setupShader(commandList);
+			DrawUtility::AixsLine(commandList, len);
+			context.stack.pop();
+		}
+
+		int bx = Math::FloorToInt( camPos.x );
+		int by = Math::FloorToInt( camPos.y );
+
+		ChunkPos cPos;
+		cPos.setBlockPos( bx , by );
+		int len = 10;
+
+		auto ProcessChunk = [&](ChunkPos chunkPos)
+		{
+			ChunkDataMap::iterator iter = mChunkMap.find(chunkPos.hash_value());
+			ChunkRenderData* data = NULL;
+			if (iter == mChunkMap.end())
+			{
+				Chunk* chunk = world.getChunk(chunkPos, true);
+				if (!chunk)
+					return;
+
+				data = new ChunkRenderData;
+				data->state = EDataState::Unintialized;
+				mChunkMap.insert(std::make_pair(chunkPos.hash_value(), data));
+				RangeChunkAccess chunkAccess(*mClientWorld, chunkPos);
+				mGereatePool->addFunctionWork(
+					[this, chunk, data, chunkAccess]()
+					{
+						data->state = EDataState::Generating;
+						data->mesh.clearBuffer();
+
+						BlockRenderer renderer;
+
+						int const ColorMap[] =
+						{
+							EColor::Red,
+							EColor::Green,
+							EColor::Blue,
+							EColor::Cyan,
+							EColor::Magenta,
+							EColor::Yellow,
+
+							EColor::Orange,
+							EColor::Purple,
+							EColor::Pink,
+							EColor::Brown,
+							EColor::Gold,
+						};
+						renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
+						renderer.mBlockAccess = const_cast<RangeChunkAccess*>(&chunkAccess);
+						renderer.mMesh = &data->mesh;
+						chunk->render(renderer);
+						data->state = EDataState::Ok;
+					}
+				);
+			}
+			else
+			{
+				data = iter->second;
+			}
+
+			if (data && data->state == EDataState::Ok)
+			{
+				context.stack.push();
+				int bx = ChunkSize * chunkPos.x;
+				int by = ChunkSize * chunkPos.y;
+				context.stack.translate(Vector3(bx, by, 0));
+				context.setupShader(commandList);
+				TRenderRT<RTVF_XYZ_CA8>::DrawIndexed(commandList, EPrimitive::TriangleList, data->mesh.mVtxBuffer.data(), data->mesh.mVtxBuffer.size(), data->mesh.mIndexBuffer.data(), data->mesh.mIndexBuffer.size());
+				context.stack.pop();
+			}
+		};
+
+		ProcessChunk(cPos);
+
+		for( int n = 1 ; n <= len ; ++n )
+		{
+			for (int i = -(n - 1); i <= (n - 1); ++i)
+			{
+				ProcessChunk(cPos + Vec2i(i, n));
+				ProcessChunk(cPos + Vec2i(i, -n));
+				ProcessChunk(cPos + Vec2i(n, i));
+				ProcessChunk(cPos + Vec2i(-n, i));
+			}
+
+			ProcessChunk(cPos + Vec2i( n,  n));
+			ProcessChunk(cPos + Vec2i(-n,  n));
+			ProcessChunk(cPos + Vec2i( n, -n));
+			ProcessChunk(cPos + Vec2i(-n, -n));
+		}
+
+#if 1
 		BlockPosInfo info;
 		BlockId id = world.rayBlockTest( camPos , camera.getViewDir() , 100 , &info );
 		if ( id )
 		{
-			glPushMatrix();
-			glTranslatef( info.x  , info.y , info.z );
-			glColor3f ( 1 , 1 , 1 );
-			glBegin( GL_LINE_LOOP );
+			context.stack.push();
+			context.stack.translate(Vector3(info.x, info.y, info.z) + 0.1 * Vec3f(GetFaceOffset(info.face)));
 
-			switch( info.face )
+			static Vector3 FaceVertexMap[FaceSide::COUNT][4] =
 			{
-			case FACE_X:
-				glVertex3f( 1 , 0 , 0 );
-				glVertex3f( 1 , 1 , 0 );
-				glVertex3f( 1 , 1 , 1 );
-				glVertex3f( 1 , 0 , 1 );
-				break;
-			case FACE_NX:
-				glVertex3f( 0 , 0 , 0 );
-				glVertex3f( 0 , 1 , 0 );
-				glVertex3f( 0 , 1 , 1 );
-				glVertex3f( 0 , 0 , 1 );
-				break;
-			case FACE_Y:
-				glVertex3f( 0 , 1 , 0 );
-				glVertex3f( 1 , 1 , 0 );
-				glVertex3f( 1 , 1 , 1 );
-				glVertex3f( 0 , 1 , 1 );
-				break;
-			case FACE_NY:
-				glVertex3f( 0 , 0 , 0 );
-				glVertex3f( 1 , 0 , 0 );
-				glVertex3f( 1 , 0 , 1 );
-				glVertex3f( 0 , 0 , 1 );
-				break;
-			case FACE_Z:
-				glVertex3f( 0 , 0 , 1 );
-				glVertex3f( 1 , 0 , 1 );
-				glVertex3f( 1 , 1 , 1 );
-				glVertex3f( 0 , 1 , 1 );
-				break;
-			case FACE_NZ:
-				glVertex3f( 0 , 0 , 0 );
-				glVertex3f( 1 , 0 , 0 );
-				glVertex3f( 1 , 1 , 0 );
-				glVertex3f( 0 , 1 , 0 );
-				break;
-			}
-
-			glEnd();
-			glPopMatrix();
+				{ Vector3(1 , 0 , 0), Vector3(1 , 1 , 0), Vector3(1 , 1 , 1), Vector3(1 , 0 , 1) },
+				{ Vector3(0 , 0 , 0), Vector3(0 , 1 , 0), Vector3(0 , 1 , 1), Vector3(0 , 0 , 1) },
+				{ Vector3(0 , 1 , 0), Vector3(1 , 1 , 0), Vector3(1 , 1 , 1), Vector3(0 , 1 , 1) },
+				{ Vector3(0 , 0 , 0), Vector3(1 , 0 , 0), Vector3(1 , 0 , 1), Vector3(0 , 0 , 1) },
+				{ Vector3(0 , 0 , 1), Vector3(1 , 0 , 1), Vector3(1 , 1 , 1), Vector3(0 , 1 , 1) },
+				{ Vector3(0 , 0 , 0), Vector3(1 , 0 , 0), Vector3(1 , 1 , 0), Vector3(0 , 1 , 0) },
+			};
+			context.setupShader(commandList, LinearColor(1,1,1,1));
+			TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineLoop, FaceVertexMap[info.face], 4);
+			context.stack.pop();
 		}
-
+#endif
 	}
 
 	void RenderEngine::beginRender()
 	{
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 	}
 
 	void RenderEngine::endRender()
 	{
-		glFlush();
+
 	}
 
 	void RenderEngine::onModifyBlock( int bx , int by , int bz )
@@ -241,47 +244,29 @@ namespace Cube
 		ChunkPos cPos; 
 		{
 			cPos.setBlockPos( bx + 1 , by );
-			WDMap::iterator iter = mWDMap.find( cPos.hash_value() );
-			if ( iter != mWDMap.end() )
+			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
+			if ( iter != mChunkMap.end() )
 				iter->second->needUpdate = true;
 		}
 		{
 			cPos.setBlockPos( bx - 1 , by );
-			WDMap::iterator iter = mWDMap.find( cPos.hash_value() );
-			if ( iter != mWDMap.end() )
+			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
+			if ( iter != mChunkMap.end() )
 				iter->second->needUpdate = true;
 		}
 		{
 			cPos.setBlockPos( bx , by + 1 );
-			WDMap::iterator iter = mWDMap.find( cPos.hash_value() );
-			if ( iter != mWDMap.end() )
+			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
+			if ( iter != mChunkMap.end() )
 				iter->second->needUpdate = true;
 		}
 		{
 			cPos.setBlockPos( bx , by - 1 );
-			WDMap::iterator iter = mWDMap.find( cPos.hash_value() );
-			if ( iter != mWDMap.end() )
+			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
+			if ( iter != mChunkMap.end() )
 				iter->second->needUpdate = true;
 		}
 	}
 
-	void RenderEngine::drawCroodAxis( float len )
-	{
-		glBegin( GL_LINES );
-		glColor3f ( 1 , 0,  0  );
-		glVertex3f( 0 , 0 , 0  );
-		glVertex3f( len , 0 , 0 );
-		glEnd();
-		glBegin( GL_LINES );
-		glColor3f ( 0 , 1,  0  );
-		glVertex3f( 0 , 0 , 0  );
-		glVertex3f( 0 , len , 0 );
-		glEnd();
-		glBegin( GL_LINES );
-		glColor3f ( 0 , 0,  1  );
-		glVertex3f( 0 , 0 , 0  );
-		glVertex3f( 0 , 0 , len );
-		glEnd();
-	}
 
 }//namespace Cube

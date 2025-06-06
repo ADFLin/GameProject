@@ -29,9 +29,9 @@ namespace Cube
 		bool    isSolid(){ return mbSolid; }
 		Block&  setSolid( bool beS = true ){ mbSolid = beS; return *this; }
 
-		virtual unsigned    calcRenderFaceMask( IBlockAccess& blockAccess , int bx , int by , int bz );
+		virtual unsigned    calcRenderFaceMask( IBlockAccess& blockAccess , Vec3i const& blockPos);
 		virtual bool        canPlaceItem( FaceSide face , ItemId itemId ){ return false; }
-		virtual void        onNeighborBlockModify( IBlockAccess& blockAccess , int bx , int by , int bz , FaceSide face ){}
+		virtual void        onNeighborBlockModify( IBlockAccess& blockAccess , Vec3i const& blockPos, FaceSide face ){}
 		virtual AABB const* getCollisionBox( AABB& aabb );
 	private:
 		BlockId mId;
@@ -46,8 +46,8 @@ namespace Cube
 		LiquidBlock( BlockId id )
 			:BaseClass( id ){}
 
-		unsigned calcRenderFaceMask( IBlockAccess& blockAccess , int bx , int by , int bz );
-		virtual void onNeighborBlockModify( IBlockAccess& blockAccess , int bx , int by , int bz , FaceSide face );
+		unsigned calcRenderFaceMask( IBlockAccess& blockAccess , Vec3i const& blockPos);
+		virtual void onNeighborBlockModify( IBlockAccess& blockAccess , Vec3i const& blockPos, FaceSide face );
 	};
 
 }//namespace Cube

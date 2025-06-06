@@ -14,7 +14,7 @@ namespace Cube
 		mCamera.setPos( Vec3f( -10 , 0 , 0 ) );
 
 
-		Level::init();
+		Level::InitializeData();
 
 		mLevel = new Level;
 		mLevel->setupWorld();

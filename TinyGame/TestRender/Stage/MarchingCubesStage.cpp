@@ -3,7 +3,7 @@
 #include "RHI/DrawUtility.h"
 #include "Renderer/MeshUtility.h"
 
-#include "PerlinNoise.h"
+#include "Math/PerlinNoise.h"
 #include "ProfileSystem.h"
 #include "Async/AsyncWork.h"
 #include "RHI/RHIGraphics2D.h"

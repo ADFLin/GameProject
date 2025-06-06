@@ -32,23 +32,24 @@ namespace Cube
 
 	}
 
-	unsigned Block::calcRenderFaceMask( IBlockAccess& blockAccess , int bx , int by , int bz  )
+	bool IsOpaqueBlock(BlockId id)
+	{
+		return id != BLOCK_NULL;
+	}
+
+	unsigned Block::calcRenderFaceMask( IBlockAccess& blockAccess , Vec3i const& blockPos)
 	{
 		unsigned mask = 0;
 
-		if ( !blockAccess.isOpaqueBlock( bx + 1 , by , bz ) )
-			mask |= BIT( FACE_X );
-		if ( !blockAccess.isOpaqueBlock( bx  , by + 1 , bz ) )
-			mask |= BIT( FACE_Y );
-		if ( !blockAccess.isOpaqueBlock( bx  , by , bz + 1 ) )
-			mask |= BIT( FACE_Z );
-		if ( !blockAccess.isOpaqueBlock( bx - 1 , by , bz ) )
-			mask |= BIT( FACE_NX );
-		if ( !blockAccess.isOpaqueBlock( bx , by - 1 , bz ) )
-			mask |= BIT( FACE_NY );
-		if ( !blockAccess.isOpaqueBlock( bx , by , bz - 1 ) )
-			mask |= BIT( FACE_NZ );
-
+		BlockId ids[FaceSide::COUNT];
+		blockAccess.getNeighborBlockIds(blockPos, ids);
+		for (int i = 0; i < FaceSide::COUNT; ++i)
+		{
+			if (!IsOpaqueBlock(ids[i]))
+			{
+				mask |= BIT(i);
+			}
+		}	 
 		return mask;
 	}
 
@@ -59,29 +60,25 @@ namespace Cube
 		return &gDefaultAABB;
 	}
 
-
-	unsigned LiquidBlock::calcRenderFaceMask( IBlockAccess& blockAccess , int bx , int by , int bz )
+	unsigned LiquidBlock::calcRenderFaceMask( IBlockAccess& blockAccess , Vec3i const& blockPos)
 	{
 		unsigned mask = 0;
-		if ( blockAccess.getBlockId( bx + 1 , by , bz ) != getId() )
-			mask |= BIT( FACE_X );
-		if ( blockAccess.getBlockId( bx , by + 1 , bz ) != getId() )
-			mask |= BIT( FACE_Y );
-		if ( blockAccess.getBlockId( bx , by , bz + 1 ) != getId() )
-			mask |= BIT( FACE_Z );
-		if ( blockAccess.getBlockId( bx - 1 , by , bz ) != getId() )
-			mask |= BIT( FACE_NX );
-		if ( blockAccess.getBlockId( bx , by - 1 , bz ) != getId() )
-			mask |= BIT( FACE_NY );
-		if ( blockAccess.getBlockId( bx , by , bz - 1 ) != getId() )
-			mask |= BIT( FACE_NZ );
 
+		BlockId ids[FaceSide::COUNT];
+		blockAccess.getNeighborBlockIds(blockPos, ids);
+		for (int i = 0; i < FaceSide::COUNT; ++i)
+		{
+			if (ids[i] != getId())
+			{
+				mask |= BIT(i);
+			}
+		}
 		return mask;
 	}
 
-	void LiquidBlock::onNeighborBlockModify( IBlockAccess& blockAccess , int bx , int by , int bz , FaceSide face )
+	void LiquidBlock::onNeighborBlockModify( IBlockAccess& blockAccess , Vec3i const& blockPos, FaceSide face )
 	{
-		unsigned meta = blockAccess.getBlockMeta( bx , by , bz );
+		unsigned meta = blockAccess.getBlockMeta(blockPos.x , blockPos.y , blockPos.z );
 	}
 
 }//namespace Cube

@@ -11,9 +11,10 @@ namespace Cube
 		Level();
 		~Level();
 
-		static void init();
+		static void InitializeData();
 		void    setupWorld();
 
+		void    tick(float deltaTime);
 		World&   getWorld(){ return *mWorld; }
 	private:
 		World* mWorld;

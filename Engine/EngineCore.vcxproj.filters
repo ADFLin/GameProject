@@ -1041,6 +1041,9 @@
     <ClInclude Include="Meta\BoolBranch.h">
       <Filter>Meta</Filter>
     </ClInclude>
+    <ClInclude Include="Math\PerlinNoise.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

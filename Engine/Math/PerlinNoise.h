@@ -3,6 +3,7 @@
 #define PerlinNoise_H_204A661F_E041_467A_A923_5E706259A855
 
 #include "Core/IntegerType.h"
+#include "Vector2.h"
 
 uint8 const DefaultPerm[256] =
 {
@@ -24,12 +25,10 @@ uint8 const DefaultPerm[256] =
 	222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
 };
 
-template< int bRepeat = false >
-class TPerlinNoise
+class PerlinNoiseBase
 {
 public:
-
-	TPerlinNoise()
+	PerlinNoiseBase()
 	{
 		for (int i = 0; i < 256; ++i)
 		{
@@ -37,9 +36,19 @@ public:
 
 			float s, c;
 			Math::SinCos(2 * Math::PI * i / 256, s, c);
-			mDir[i] = Vector2(c, s);
+			mDir[i] = Math::Vector2(c, s);
 		}
 	}
+
+	uint32  mValue[512];
+	Math::Vector2 mDir[256];
+};
+
+
+template< int bRepeat = false >
+class TPerlinNoise : public PerlinNoiseBase
+{
+public:
 
 	template< class T >
 	T getValue(T x)
@@ -199,8 +208,8 @@ public:
 		}
 		return 0;
 #endif
-
 	}
+
 	template < class T >
 	static T Fade(T x)
 	{
@@ -213,8 +222,6 @@ public:
 		return a + t * (b - a);
 	}
 
-	uint32  mValue[512];
-	Vector2 mDir[256];
 
 };
 

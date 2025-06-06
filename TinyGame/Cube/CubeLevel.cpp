@@ -7,7 +7,7 @@
 namespace Cube
 {
 
-	void Level::init()
+	void Level::InitializeData()
 	{
 		Block::InitList();
 	}
@@ -28,6 +28,11 @@ namespace Cube
 			delete mWorld;
 
 		mWorld = new World;
+	}
+
+	void Level::tick(float deltaTime)
+	{
+		mWorld->update(deltaTime);
 	}
 
 }//namespace Cube

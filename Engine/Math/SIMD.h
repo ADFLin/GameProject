@@ -77,6 +77,10 @@ namespace SIMD
 		FORCEINLINE SVectorBase(float x, float y, float z, float w)
 			:SBase(x, y, z, w) {}
 
+		FORCEINLINE SVectorBase(float x)
+		{
+			reg = _mm_set_ps1(x);
+		}
 		FORCEINLINE SVectorBase operator * (SVectorBase const& rhs) const { return _mm_mul_ps(reg, rhs.reg); }
 		FORCEINLINE SVectorBase operator / (SVectorBase const& rhs) const { return _mm_div_ps(reg, rhs.reg); }
 		FORCEINLINE SVectorBase operator + (SVectorBase const& rhs) const { return _mm_add_ps(reg, rhs.reg); }
@@ -163,6 +167,10 @@ namespace SIMD
 	{
 	public:
 		SVector2() {}
+		explicit SVector2(float x)
+			:SVectorBase(x)
+		{
+		}
 		SVector2(float x, float y)
 			:SVectorBase(x, y, 0, 0)
 		{

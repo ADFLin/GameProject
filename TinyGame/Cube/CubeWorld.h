@@ -4,6 +4,11 @@
 #include "CubeBase.h"
 #include "CubeRandom.h"
 
+#include "Math/PerlinNoise.h"
+#include "Math/TVector2.h"
+
+#include "Async/AsyncWork.h"
+
 #include <unordered_map>
 
 namespace Cube
@@ -19,7 +24,7 @@ namespace Cube
 	public:
 		virtual BlockId  getBlockId( int bx , int by , int bz ) = 0;
 		virtual MetaType getBlockMeta( int bx , int by , int bz ) = 0;
-		virtual bool     isOpaqueBlock( int bx , int by , int bz ) = 0;
+		virtual void     getNeighborBlockIds(Vec3i const& blockPos, BlockId outIds[]) = 0;
 	};
 
 	unsigned const ChunkBit  = 4;
@@ -30,10 +35,10 @@ namespace Cube
 
 
 
-	struct ChunkPos
+	struct ChunkPos : public TVector2<int>
 	{
-		int x;
-		int y;
+		using TVector2::TVector2;
+
 		void   setBlockPos( int bx , int by )
 		{
 			x = bx >> ChunkBit;
@@ -47,10 +52,12 @@ namespace Cube
 	};
 
 
-
 	class Chunk
 	{
 	public:
+		EDataState state;
+
+
 		Chunk( ChunkPos const& pos );
 
 		BlockId  getBlockId( int x , int y , int z );
@@ -92,21 +99,6 @@ namespace Cube
 	};
 
 
-	class SingleChunkAccess : public IBlockAccess
-	{
-	public:
-
-		virtual BlockId getBlockId( int x , int y , int z ){ return mChunk.getBlockId( x , y , z ); }
-		virtual bool    isOpaqueBlock( int x , int y , int z )
-		{ 
-			BlockId id = mChunk.getBlockId( x , y , z );
-			if ( id == BLOCK_NULL )
-				return false;
-			return true;
-		}
-		Chunk& mChunk;
-	};
-
 
 	class TerrainGenerator
 	{
@@ -116,24 +108,52 @@ namespace Cube
 	};
 
 
-	class FlatPlaneGenerater : public TerrainGenerator
+	class LandGenerater : public TerrainGenerator
 	{
 
 	public:
 		virtual bool generate( Chunk& chunk , Random& rand );
 
 		int height;
+		TPerlinNoise<false> mNoise;
+	};
+
+
+	class IChunkEventListener
+	{
+	public:
+		virtual void onChunkAdded(Chunk* chunk) = 0;
+		virtual void onPrevRemovChunk(Chunk* chunk) = 0;
 	};
 
 
 	class ChunkProvider
 	{
 	public:
+		ChunkProvider()
+		{
+			mGeneratePool = new QueueThreadPool();
+			mGeneratePool->init(4);
+		}
+
+		~ChunkProvider()
+		{
+			delete mGeneratePool;
+		}
 		Chunk* getChunk( int x , int y );
 
-		Chunk* getChunk( ChunkPos const& pos );
+		Chunk* getChunk( ChunkPos const& pos, bool bGneRequest = false);
+
+		void update(float deltaTime);
+
 		typedef std::unordered_map< uint64 , Chunk* > ChunkMap;
 		ChunkMap mMap;
+
+		Mutex mMutexPendingAdd;
+		TArray<Chunk*> mPendingAddChunks;
+
+		IChunkEventListener* mListener;
+		QueueThreadPool* mGeneratePool;
 	};
 
 
@@ -152,7 +172,7 @@ namespace Cube
 
 		BlockId  getBlockId( int bx , int by , int bz ) final;
 		MetaType getBlockMeta( int bx , int by , int bz ) final;
-		bool     isOpaqueBlock( int x , int y , int z ) final;
+		void     getNeighborBlockIds(Vec3i const& blockPos, BlockId outIds[]);
 
 		void     setBlock( int bx , int by , int bz , BlockId id );
 		void     setBlockNotify( int bx , int by , int bz , BlockId id );
@@ -162,7 +182,7 @@ namespace Cube
 			ChunkPos cPos; cPos.setBlockPos( bx , by );
 			return mChunkProvider->getChunk( cPos ); 
 		}
-		Chunk*  getChunk( ChunkPos const& pos ){ return mChunkProvider->getChunk( pos ); }
+		Chunk*  getChunk( ChunkPos const& pos, bool bGneRequest = false){ return mChunkProvider->getChunk( pos , bGneRequest); }
 
 
 		BlockId rayBlockTest( Vec3f const& pos , Vec3f const& dir , float maxDist ,  BlockPosInfo* info );
@@ -172,11 +192,88 @@ namespace Cube
 		void    removeListener( IWorldEventListener& listener );
 		void    notifyBlockModified( int bx , int by , int bz );
 
+		void update(float deltaTime)
+		{
+
+			mChunkProvider->update(deltaTime);
+		}
+
 
 		typedef std::list< IWorldEventListener* > ListenerList;
 		ListenerList   mListeners;
 		ChunkProvider* mChunkProvider;
 		Random         mRandom;
+	};
+
+
+	class RangeChunkAccess : public IBlockAccess
+	{
+	public:
+		RangeChunkAccess(World& world, ChunkPos const& pos)
+		{
+			mChunk = world.getChunk(pos);
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec3i offset = GetFaceOffset(FaceSide(i));
+				mNeighborChunks[i] = world.getChunk(ChunkPos(pos + Vec2i(offset.x, offset.y)));
+			}
+
+			mChunkOffset =ChunkSize * pos; 
+		}
+
+		Chunk* getChunk(int x, int y)
+		{
+			Vec2i offset = Vec2i(x, y) - mChunkOffset;
+			if (offset.x >= ChunkSize)
+			{
+				return mNeighborChunks[FaceSide::FACE_X];
+			}
+			if (offset.x < 0)
+			{
+				return mNeighborChunks[FaceSide::FACE_NX];
+			}
+			if (offset.y >= ChunkSize)
+			{
+				return mNeighborChunks[FaceSide::FACE_Y];
+			}
+			if (offset.y < 0)
+			{
+				return mNeighborChunks[FaceSide::FACE_NY];
+			}
+			return mChunk;
+		}
+
+		virtual BlockId  getBlockId(int x, int y, int z) final
+		{
+			auto chunk = getChunk(x, y);
+			if (chunk == nullptr)
+				return BLOCK_NULL;
+
+			return chunk->getBlockId(x, y, z);
+		}
+		virtual MetaType getBlockMeta(int x, int y, int z)
+		{
+			auto chunk = getChunk(x, y);
+			if (chunk == nullptr)
+				return 0;
+
+			return chunk->getBlockMeta(x, y, z);
+		}
+
+		void  getNeighborBlockIds(Vec3i const& pos, BlockId outIds[])
+		{
+			for (int i = 0; i < FaceSide::COUNT; ++i)
+			{
+				Vec3i offset = GetFaceOffset(FaceSide(i));
+				outIds[i] = getBlockId(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
+			}
+		}
+
+
+		Vec2i  mChunkOffset;
+
+		Chunk* mChunk;
+		Chunk* mNeighborChunks[4];
 	};
 
 

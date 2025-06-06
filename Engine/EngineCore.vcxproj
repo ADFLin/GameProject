@@ -384,6 +384,7 @@
     <ClInclude Include="Math\GeometryAlgo2D.h" />
     <ClInclude Include="Math\GeometryPrimitive.h" />
     <ClInclude Include="Math\Matrix2.h" />
+    <ClInclude Include="Math\PerlinNoise.h" />
     <ClInclude Include="Math\PrimitiveTest.h" />
     <ClInclude Include="Math\SIMD.h" />
     <ClInclude Include="Math\TVector2.h" />

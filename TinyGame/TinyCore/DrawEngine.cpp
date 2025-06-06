@@ -502,7 +502,7 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 			bRHIShutdownDeferred = true;
 		}
 
-		if (mSystemName == ERenderSystem::D3D12 /*|| mSystemName == ERenderSystem::D3D11*/)
+		if (true || mSystemName == ERenderSystem::D3D12 /*|| mSystemName == ERenderSystem::D3D11*/|| mSystemName == ERenderSystem::OpenGL)
 		{
 			bReconsructWindow = true;
 		}

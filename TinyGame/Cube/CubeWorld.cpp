@@ -6,10 +6,10 @@
 #include "CubeBlockType.h"
 
 #include "CubeBlockRenderer.h"
-
 #include "IWorldEventListener.h"
 
 #include <algorithm>
+
 
 namespace Cube
 {
@@ -94,16 +94,22 @@ namespace Cube
 				continue;
 
 			int zOff = n * LayerSize;
-			for( int i = 0 ; i < ChunkSize ; ++i )
+
+			Vec3i offset;
+			for(offset.x = 0 ; offset.x < ChunkSize ; ++offset.x )
 			{
-				for ( int j = 0 ; j < ChunkSize ; ++j )
+				for (offset.y = 0 ; offset.y < ChunkSize ; ++offset.y )
 				{
-					BlockId* pBlockMap = &layer->blockMap[i][j][0];
+					BlockId* pBlockMap = &layer->blockMap[offset.x][offset.y][0];
 					for( int k = 0 ; k < LayerSize ; ++k )
 					{
 						BlockId id = pBlockMap[k];
-						if ( id )
-							renderer.draw(  i , j , zOff + k ,  pBlockMap[k] );
+						if (id)
+						{
+							offset.z = zOff + k;
+							renderer.draw(offset, id);
+						}
+
 					}
 				}
 			}
@@ -118,27 +124,95 @@ namespace Cube
 		return getChunk( cPos );
 	}
 
-	Chunk* ChunkProvider::getChunk( ChunkPos const& pos )
+
+	class ChunkGenerateWork : public IQueuedWork
+	{
+	public:
+
+		virtual void executeWork()
+		{
+			chunk->state = EDataState::Generating;
+			LandGenerater gen;
+			gen.height = 64;
+			Random rand;
+			rand.setSeed(0);
+			gen.generate(*chunk, rand);
+			chunk->state = EDataState::Ok;
+
+		}
+		virtual void abandon()
+		{
+			chunk->state = EDataState::Unintialized;
+		}
+
+		virtual void release()
+		{
+			delete this;
+		}
+
+		ChunkProvider* provider;
+		Chunk* chunk;
+	};
+
+
+	Chunk* ChunkProvider::getChunk(ChunkPos const& pos, bool bGneRequest)
 	{
 		uint64 value = pos.hash_value();
 
 		ChunkMap::iterator iter = mMap.find( value );
 		if ( iter == mMap.end() )
 		{
-			Chunk* chunk = new Chunk( pos );
+			if (bGneRequest)
+			{
+				{
+					Mutex::Locker locker(mMutexPendingAdd);
+					for (auto chunk : mPendingAddChunks)
+					{
+						if (chunk->getPos() == pos)
+							return nullptr;
+					}
+				}
+				Chunk* chunk = new Chunk(pos);
+				chunk->state = EDataState::Unintialized;
+				ChunkGenerateWork* work = new ChunkGenerateWork;
+				work->chunk = chunk;
+				work->provider = this;
+				mGeneratePool->addWork(work);
 
-			FlatPlaneGenerater gen;
-			gen.height = 64;
-			Random rand;
-			rand.setSeed( 0 );
-			gen.generate( *chunk , rand );
+				Mutex::Locker locker(mMutexPendingAdd);
+				mPendingAddChunks.push_back(chunk);
 
-			mMap.insert( std::make_pair( value , chunk ) );
-			return chunk;
+			}
+
+			return nullptr;
 		}
+
+		if (iter->second->state != EDataState::Ok)
+			return nullptr;
+
 		return iter->second;
 	}
 
+
+	void ChunkProvider::update(float deltaTime)
+	{
+		{
+			Mutex::Locker locker(mMutexPendingAdd);
+			for (int index = 0; index < mPendingAddChunks.size(); ++index)
+			{
+				Chunk* chunk = mPendingAddChunks[index];
+
+				if (chunk->state == EDataState::Ok)
+				{
+					uint64 value = chunk->getPos().hash_value();
+					mMap.insert(std::make_pair(value, chunk));
+					mListener->onChunkAdded(chunk);
+					mPendingAddChunks.removeIndexSwap(index);
+					--index;
+				}
+			}
+		}
+	}
 
 	World::World()
 	{
@@ -161,6 +235,23 @@ namespace Cube
 		return chunk->getBlockMeta( bx , by , bz );
 	}
 
+	void World::getNeighborBlockIds(Vec3i const& blockPos, BlockId outIds[])
+	{
+		for (int i = 0; i < FaceSide::COUNT; ++i)
+		{
+			Vec3i pos = blockPos + GetFaceOffset(FaceSide(i));
+
+			Chunk* chunk = mChunkProvider->getChunk(pos.x, pos.y);
+			if (chunk)
+			{
+				outIds[i] = chunk->getBlockId(pos.x, pos.y, pos.z);
+			}
+			else
+			{
+				outIds[i] = BLOCK_NULL;
+			}
+		}
+	}
 
 	void World::setBlock( int bx , int by , int bz , BlockId id )
 	{
@@ -170,63 +261,57 @@ namespace Cube
 		chunk->setBlockId( bx , by , bz , id );
 	}
 
-	bool World::isOpaqueBlock( int x , int y , int z )
-	{
-		if ( z < 0 )
-			return true;
-
-		BlockId id = getBlockId( x , y , z );
-		if ( id == BLOCK_NULL )
-			return false;
-		return true;
-	}
-
 
 	BlockId World::rayBlockTest( Vec3f const& pos , Vec3f const& dir , float maxDist , BlockPosInfo* info )
 	{
 		Vec3f nDir = dir;
-		if ( nDir.normalize() < 1e-3 )
+		if ( nDir.normalize() < 1e-4 )
 			return BLOCK_NULL;
 
 		int curPos[3];
-		int nextOffset[3];
+		float distStep[3];
+		float nextDist[3];
+		int posOffset[3];
+
 		for( int i = 0 ; i < 3 ; ++i )
 		{
-			if ( Math::abs( nDir[i] ) < 1e-7 )
-				nextOffset[i] = 0;
+			curPos[i] = Math::FloorToInt(pos[i]);
+			if ( Math::Abs( nDir[i] ) < 1e-7 )
+			{
+				posOffset[i] = 0;
+				distStep[i] = 0.0;
+				nextDist[i] = 0;
+			}
 			else if ( nDir[i] > 0 )
-				nextOffset[i] = 1;
+			{ 
+				posOffset[i] = 1;
+				distStep[i] = 1.0 / nDir[i];
+				nextDist[i] = (1.0 - (pos[i] - curPos[i])) / nDir[i];
+			}
 			else
-				nextOffset[i] = -1;
-			curPos[i] = Math::floor( pos[i] ) + ( nextOffset[i] == 1  ? 1 : 0 );
+			{ 
+				posOffset[i] = -1;
+				distStep[i] = 1.0 / -nDir[i];
+				nextDist[i] = -(pos[i] - curPos[i]) / nDir[i];
+			}
 		}
 
-		float offset[3];
-		for( int i = 0 ; i < 3 ; ++i )
-		{
-			if ( nextOffset[i] )
-				offset[i] = ( float( curPos[i] + nextOffset[i] ) - pos[i] ) / nDir[i];
-		}
+		float dist = 0.0;
 
-		int count = 0;
 		int const MaxIterCount = 100;
-		while( 1 )
+		for( int iter = 0; iter < MaxIterCount ; ++iter)
 		{
-			++count;
-			if ( count > MaxIterCount )
-				break;
-
 			int idxMin = -1;
 			for ( int i = 0 ; i < 3 ; ++i )
 			{
-				if ( nextOffset[i] )
+				if ( posOffset[i] )
 				{
-					if ( idxMin == -1 || offset[i] < offset[idxMin] )
+					if ( idxMin == -1 || nextDist[i] < nextDist[idxMin] )
 						idxMin = i;
 				}
 			}
 
-			curPos[ idxMin ] += nextOffset[ idxMin ];
+			curPos[ idxMin ] += posOffset[ idxMin ];
 
 			BlockId id = getBlockId( curPos[0] , curPos[1] , curPos[2] );
 			if ( id )
@@ -234,24 +319,31 @@ namespace Cube
 				Block* block = Block::Get( id );
 				if ( block )
 				{
-
 					if ( info )
 					{
 						info->x = curPos[0];
 						info->y = curPos[1];
 						info->z = curPos[2];
-						info->face = getFaceSide( idxMin , nextOffset[idxMin] == 1 );
+						info->face = getFaceSide( idxMin , posOffset[idxMin] == 1 );
 					}
 					return id;
 				}
 			}
 
-			float dist = Math::abs( offset[idxMin] / nDir[ idxMin ] );
+			float deltaDist = nextDist[idxMin];
+			dist += deltaDist;
 			if ( dist > maxDist )
 				break;
 
-		
-			offset[ idxMin ] = ( float( curPos[idxMin] + nextOffset[idxMin] ) - pos[idxMin] ) / nDir[idxMin];
+			for (int i = 0; i < 3; ++i)
+			{
+				if (posOffset[i])
+				{
+					nextDist[i] -= deltaDist;
+				}
+			}
+
+			nextDist[idxMin] = distStep[idxMin];
 		}
 
 		return BLOCK_NULL;
@@ -289,7 +381,7 @@ namespace Cube
 			FaceSide curFace;
 
 			float len = max[ axis ] - min[ axis ];
-			int num = 2 + Math::floor( len );
+			int num = 2 + Math::FloorToInt( len );
 			float offset = len / ( num - 1 );
 
 			Vec3f const& pos = min;
@@ -322,7 +414,7 @@ namespace Cube
 		notifyBlockModified( bx , by , bz );
 	}
 
-	void World::notifyBlockModified( int bx , int by , int bz )
+	void World::notifyBlockModified(int bx, int by, int bz)
 	{
 		for( ListenerList::iterator iter = mListeners.begin();
 			iter != mListeners.end() ; ++iter )
@@ -344,16 +436,21 @@ namespace Cube
 		mListeners.push_back( &listener );
 	}
 
-	bool FlatPlaneGenerater::generate( Chunk& chunk , Random& rand )
+	bool LandGenerater::generate( Chunk& chunk , Random& rand )
 	{
-	    int chunkHeight = height + chunk.getPos().x + chunk.getPos().y;
-		for( int k = 0 ; k < chunkHeight ; ++k )
+	    //int chunkHeight = height + chunk.getPos().x + chunk.getPos().y;
+		Vec2i offset = ChunkSize * chunk.getPos();
+
+		for( int i = 0 ; i < ChunkSize ; ++i )
 		{
-			for( int i = 0 ; i < ChunkSize ; ++i )
+			for( int j = 0 ; j < ChunkSize ; ++j )
 			{
-				for( int j = 0 ; j < ChunkSize ; ++j )
+				float scale = 24.0f / (256.0f * 10);
+				float nH = mNoise.getValue(float(offset.x + i) * scale, float(offset.y + j) * scale);
+				int chunkHeight = Math::FloorToInt(height + 50 * nH);
+				for (int k = 0; k < chunkHeight; ++k)
 				{
-					chunk.setBlockId( i , j , k , BLOCK_DIRT );
+					chunk.setBlockId(i, j, k, BLOCK_DIRT);
 				}
 			}
 		}
@@ -361,12 +458,12 @@ namespace Cube
 	}
 
 
-	class PerlinNoiseFun
+	class PerlinNoiseFunc
 	{
 	
 	};
 
-	class OctaveNoiseFun
+	class OctaveNoiseFunc
 	{
 	public:
 		void generate( float* );

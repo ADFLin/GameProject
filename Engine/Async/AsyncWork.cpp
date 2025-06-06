@@ -54,17 +54,7 @@ void QueueThreadPool::init(int numThread, uint32 stackSize)
 
 void QueueThreadPool::cleanup()
 {
-	{
-		Mutex::Locker locker(mQueueMutex);
-
-		for( IQueuedWork* work : mQueuedWorks )
-		{
-			work->abandon();
-			work->release();
-		}
-		mQueuedWorks.clear();
-	}
-
+	cencelAllWorks();
 	waitAllThreadIdle();
 
 	{
@@ -144,6 +134,18 @@ void QueueThreadPool::waitAllWorkComplete()
 		}
 #endif
 	}
+}
+
+void QueueThreadPool::cencelAllWorks()
+{
+	Mutex::Locker locker(mQueueMutex);
+
+	for (IQueuedWork* work : mQueuedWorks)
+	{
+		work->abandon();
+		work->release();
+	}
+	mQueuedWorks.clear();
 }
 
 IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)

@@ -56,21 +56,4 @@ namespace Cube
 		mCurVertex.color[3] = 255;
 	}
 
-	void Mesh::render()
-	{
-
-		glEnableClientState( GL_VERTEX_ARRAY );
-		glEnableClientState( GL_COLOR_ARRAY );
-		//glEnableClientState( GL_INDEX_ARRAY );
-
-		glVertexPointer( 3 , GL_FLOAT , sizeof( Vertex ) , &mVtxBuffer[0].pos );
-		glColorPointer( 4 , GL_UNSIGNED_BYTE , sizeof( Vertex ) , &mVtxBuffer[0].color );
-		//glIndexPointer( GL_INT , sizeof( int32 ) , &mIndexBuffer[0] );
-		glDrawElements( GL_TRIANGLES ,  (int)mIndexBuffer.size() , GL_UNSIGNED_INT , &mIndexBuffer[0] );
-
-		glDisableClientState( GL_VERTEX_ARRAY );
-		glDisableClientState( GL_COLOR_ARRAY );
-		//glDisableClientState( GL_INDEX_ARRAY );
-	}
-
 }//namespace Cube

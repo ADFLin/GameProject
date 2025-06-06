@@ -757,7 +757,8 @@ public:
 	void visitOp(Unit const& unit);
 
 	void exec(Unit const& unit);
-
+	void execFuncCall(FuncInfo const& funcInfo);
+	void execFuncCall(FuncSymbolInfo const& funcSymbol);
 	void pushStack(Unit const& unit)
 	{
 #if USE_FIXED_VALUE
@@ -961,12 +962,14 @@ public:
 
 	void printInfixCodes() 
 	{ 
-		ExprOutputContext constext(*mSymbolDefine);  ExprParse::Print(constext, mTreeData.codes, false); 
+		ExprOutputContext constext(*mSymbolDefine);
+		ExprParse::Print(constext, mTreeData.codes, false); 
 	}
 	
 	void printPostfixCodes()
 	{ 
-		ExprOutputContext constext(*mSymbolDefine); ExprParse::Print(constext, genratePosifxCodes(), true); 
+		ExprOutputContext constext(*mSymbolDefine); 
+		ExprParse::Print(constext, genratePosifxCodes(), true); 
 	}
 
 };

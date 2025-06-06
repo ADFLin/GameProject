@@ -13,14 +13,14 @@
 
 namespace Cube
 {
-	void BlockRenderer::draw( int ox , int oy , int oz , BlockId id )
+	void BlockRenderer::draw(Vec3i const& offset, BlockId id )
 	{
 		Block* block = Block::Get( id );
-		unsigned faceMask = block->calcRenderFaceMask( *mBlockAccess , mBasePos.x + ox , mBasePos.y + oy , mBasePos.z + oz );
+		unsigned faceMask = block->calcRenderFaceMask( *mBlockAccess , mBasePos + offset);
 		if ( !faceMask )
 			return;
 
-		getMesh().setVertexOffset( Vec3f( ox , oy , oz ) );
+		getMesh().setVertexOffset(Vec3f(offset));
 
 		switch( id )
 		{
@@ -34,7 +34,8 @@ namespace Cube
 	{
 		Mesh& mesh = getMesh();
 
-		mesh.setColor( 0 , 255 , 0 );
+		mesh.setColor(mDebugColor);
+		//mesh.setColor( 0 , 255 , 0 );
 		if ( faceMask & BIT( FACE_Z ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );

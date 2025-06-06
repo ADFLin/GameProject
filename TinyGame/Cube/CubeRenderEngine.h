@@ -3,9 +3,14 @@
 
 #include "CubeBase.h"
 #include "CubeMesh.h"
+#include "CubeWorld.h"
+
 #include "IWorldEventListener.h"
 
+#include "Async/AsyncWork.h"
+
 #include <unordered_map>
+
 
 namespace Cube
 {
@@ -34,55 +39,54 @@ namespace Cube
 		Texture2D* createTexture( int w , int h , void* data );
 	};
 
-	class RenderEngine : public IWorldEventListener
+	struct ChunkRenderData
+	{
+		EDataState state;
+		bool     needUpdate;
+		Mesh     mesh;
+	};
+
+	class RenderEngine : public IWorldEventListener , public IChunkEventListener
 	{
 	public:
 		RenderEngine( int w , int h );
-
+		~RenderEngine();
 		void beginRender();
 		void renderWorld( ICamera& camera );
 
-		void drawCroodAxis( float len );
-
 		void endRender();
 
-		BlockRenderer& getBlockRenderer(){ return *mBlockRenderer; }
 
 		void onModifyBlock( int bx , int by , int bz );
 
 		void setupWorld( World& world );
 	private:
-		BlockRenderer* mBlockRenderer;
-
-
-		struct WorldData
+		void cleanupRenderData()
 		{
-			static int const NumPass = 1;
-			bool     needUpdate;
-			uint32   drawList[ NumPass ];
-		};
-		void cleanupWorldData()
-		{
-
-
-
-
-
+			mGereatePool->cencelAllWorks();
+			mGereatePool->waitAllWorkComplete();
+			for (auto const& pair : mChunkMap)
+			{
+				delete pair.second;
+			}
+			mChunkMap.clear();
 		}
 
-		typedef std::unordered_map< uint64 , WorldData* > WDMap;
+		virtual void onChunkAdded(Chunk* chunk){}
+		virtual void onPrevRemovChunk(Chunk* chunk){}
 
-		typedef std::vector< WorldData* > WorldDataVec;
+		typedef std::unordered_map< uint64 , ChunkRenderData* > ChunkDataMap;
 
-		WorldDataVec mWorldDataVec;
-		WorldDataVec mSortedWorldDataVec;
+		typedef std::vector< ChunkRenderData* > WorldDataVec;
+
+
+		QueueThreadPool* mGereatePool;
 		World* mClientWorld;
 		int    mRenderDepth;
 		int    mRenderHeight;
 		int    mRenderWidth;
-		WDMap  mWDMap;
+		ChunkDataMap  mChunkMap;
 		float  mAspect;
-		Mesh   mMesh;
 	};
 
 

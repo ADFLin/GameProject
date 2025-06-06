@@ -1,6 +1,8 @@
 #ifndef CubeBase_h__
 #define CubeBase_h__
 
+#include "Core/IntegerType.h"
+
 #include "Math/Vector3.h"
 #include "Math/Quaternion.h"
 
@@ -11,19 +13,14 @@
 
 namespace Cube
 {
-	typedef ::Math::Vector3    Vec3f;
-	typedef ::Math::Quaternion Quat;
+	using Vec3f = ::Math::Vector3;
+	using Quat = ::Math::Quaternion;
 
-	typedef TVector3< int >    Vec3i;
+	using Vec3i = TVector3<int>;
+	using Vec2i = TVector2<int>;
 
-	typedef          __int32 int32;
-	typedef          __int16 int16;
-	typedef unsigned __int8  uint8;
-	typedef unsigned __int32 uint32;
-	typedef unsigned __int64 uint64;
-
-	typedef uint8 BlockId;
-	typedef int16 ItemId;
+	using BlockId = uint8;
+	using ItemId = int16;
 
 #define final
 
@@ -46,6 +43,8 @@ namespace Cube
 		FACE_NY = 3,
 		FACE_Z  = 4,
 		FACE_NZ = 5,
+
+		COUNT,
 	};
 
 	inline FaceSide getFaceSide( int idxAxis , bool beN )
@@ -53,15 +52,21 @@ namespace Cube
 		return FaceSide( 2 * idxAxis + ( beN ? 1 : 0 ) );
 	}
 
-
-	class Math
+	FORCEINLINE Vec3i GetFaceOffset(FaceSide face)
 	{
-	public:
-		static float floor( float value ){ return ::floorf( value );  }
-		static float ceil( float value ) { return ::ceilf( value ); }
-		static float cos( float value )  { return ::cosf( value ); }
-		static float sin( float value )  { return ::sinf( value ); }
-		static float abs( float value )  { return ::fabs( value ); }
+		static constexpr Vec3i OffsetMap[] =
+		{
+			Vec3i(1,0,0),Vec3i(-1,0,0),Vec3i(0,1,0),Vec3i(0,-1,0),Vec3i(0,0,1),Vec3i(0,0,-1)
+		};
+
+		return OffsetMap[face];
+	}
+
+	enum class EDataState : uint8
+	{
+		Unintialized,
+		Generating,
+		Ok,
 	};
 
 }//namespace Cube

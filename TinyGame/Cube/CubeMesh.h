@@ -2,7 +2,9 @@
 #define CubeMesh_h__
 
 #include "CubeBase.h"
-#include <vector>
+
+#include "Core/Color.h"
+#include "DataStructure/Array.h"
 
 namespace Cube
 {
@@ -21,6 +23,10 @@ namespace Cube
 		void addQuad( int o1 , int o2 , int o3 , int o4 );
 
 		void setColor( uint8 r , uint8 g , uint8 b );
+		void setColor(Color4ub const& color)
+		{
+			mCurVertex.color = color;
+		}
 
 		void clearBuffer()
 		{
@@ -28,15 +34,14 @@ namespace Cube
 			mIndexBuffer.clear();
 		}
 
-		void render();
 		struct Vertex
 		{
-			float  pos[3];
-			uint8  color[4];
+			float pos[3];
+			Color4ub  color;
 		};
 
-		std::vector< Vertex > mVtxBuffer;
-		std::vector< uint32 >  mIndexBuffer;
+		TArray< Vertex > mVtxBuffer;
+		TArray< uint32 >  mIndexBuffer;
 
 		Vec3f   mVertexOffset;
 		int     mIndexBase;

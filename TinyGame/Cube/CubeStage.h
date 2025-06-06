@@ -9,6 +9,7 @@
 
 #include "WinGLPlatform.h"
 #include "GameRenderSetup.h"
+#include "RHI/RHIGraphics2D.h"
 
 namespace Cube
 {
@@ -49,10 +50,10 @@ namespace Cube
 		virtual Vec3f getPos(){ return mPos; }
 		virtual Vec3f getViewDir()
 		{
-			float cy = Math::cos( mYaw );
-			float sy = Math::sin( mYaw ); 
-			float cp = Math::cos( mPitch );
-			float sp = Math::sin( mPitch ); 
+			float cy = Math::Cos( mYaw );
+			float sy = Math::Sin( mYaw ); 
+			float cp = Math::Cos( mPitch );
+			float sp = Math::Sin( mPitch ); 
 			return Vec3f( cy * sp , sy * sp , cp );
 		}
 
@@ -95,12 +96,22 @@ namespace Cube
 		{
 			BaseClass::onUpdate(deltaTime);
 
+			mLevel->tick(deltaTime);
 		}
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::GetGraphics2D();
+
+			Vector2 screenSize = ::Global::GetScreenSize();
 			mScene->render( mCamera );
+
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
+			g.beginRender();
+
+			Vector2 crosschairSize = Vector2(5,5);
+			RenderUtility::SetBrush(g, EColor::Red);
+			g.drawRect( 0.5f * (screenSize - crosschairSize), crosschairSize);
+			g.endRender();
 		}
 
 		void restart()
@@ -144,6 +155,12 @@ namespace Cube
 			}
 			return BaseClass::onKey(msg);
 		}
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D11;
+		}
+
 	protected:
 
 		SimpleCamera mCamera;

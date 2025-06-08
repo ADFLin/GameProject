@@ -660,7 +660,7 @@ namespace Render
 					float det;
 					projecParam.shadowMatrixTest.inverse(projectMatrixInv, det);
 					Vector3 vertices[8];
-					ViewInfo::GetFrustumVertices(projectMatrixInv, vertices, true);
+					FViewUtils::GetFrustumVertices(projectMatrixInv, vertices, true);
 					for (int i = 0; i < 8; ++i)
 					{
 						vertices[i] += projecParam.shadowOffset;

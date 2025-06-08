@@ -14,6 +14,13 @@ namespace Render
 	class RHICommandList;
 	struct StructuredBufferInfo;
 
+
+	struct FViewUtils
+	{
+		static void GetFrustumVertices(Matrix4 const& projectionMatrixInverse, Vector3 outVertices[], bool bAdjRHI = false);
+		static int IsVisible(Plane clipPlanes[], Math::TAABBox<Vector3> const& AABB);
+	};
+
 	struct ViewInfo
 	{
 		Matrix4 worldToClip;
@@ -85,7 +92,7 @@ namespace Render
 
 		void updateFrustumPlanes();
 
-		static void GetFrustumVertices(Matrix4 const& projectionMatrixInverse, Vector3 outVertices[], bool bAdjRHI = false);
+
 	};
 
 }

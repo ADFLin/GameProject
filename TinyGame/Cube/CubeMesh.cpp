@@ -14,20 +14,19 @@ namespace Cube
 		mIndexBuffer.reserve( 3 * 2 * 1000 );
 		mIndexBase = 0;
 		mVertexOffset.setValue( 0 , 0 , 0 );
+		bound.invalidate();
 	}
 
 	void Mesh::addVertex( Vec3f const& pos )
 	{
-		addVertex( pos.x , pos.y , pos.z );
+		mCurVertex.pos = mVertexOffset + pos;
+		mVtxBuffer.push_back(mCurVertex);
+		bound += mCurVertex.pos;
 	}
 
 	void Mesh::addVertex( float x , float y , float z )
 	{
-		mCurVertex.pos[0] = mVertexOffset.x + x;
-		mCurVertex.pos[1] = mVertexOffset.y + y;
-		mCurVertex.pos[2] = mVertexOffset.z + z;
-		mVtxBuffer.push_back( mCurVertex );
-
+		addVertex(Vec3f(x,y,z));
 	}
 
 	void Mesh::setIndexBase( int index )

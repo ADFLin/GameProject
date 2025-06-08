@@ -79,7 +79,7 @@ public:
 
 		{
 			TArray<char const*> patterns;
-			::Global::GameConfig().getStringValues("Patten", CONFIG_SECTION, patterns);
+			::Global::GameConfig().getStringValues("Pattern", CONFIG_SECTION, patterns);
 			for (auto str : patterns)
 			{
 				PatternDesc desc;

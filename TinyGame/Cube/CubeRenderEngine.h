@@ -6,10 +6,11 @@
 #include "CubeWorld.h"
 
 #include "IWorldEventListener.h"
-
+#include "RHI/PrimitiveBatch.h"
 #include "Async/AsyncWork.h"
 
 #include <unordered_map>
+
 
 
 namespace Cube
@@ -41,9 +42,20 @@ namespace Cube
 
 	struct ChunkRenderData
 	{
-		EDataState state;
-		bool     needUpdate;
-		Mesh     mesh;
+		enum EState
+		{
+			eNone,
+			eMeshGenerating,
+			eMesh,
+		};
+
+
+		EState   state;
+		bool     bNeedUpdate = false;
+		Chunk*   chunk;
+		Math::TAABBox< Vec3f > bound;
+		Vec3f    posOffset;
+		MeshData mesh;
 	};
 
 	class RenderEngine : public IWorldEventListener , public IChunkEventListener
@@ -60,6 +72,8 @@ namespace Cube
 		void onModifyBlock( int bx , int by , int bz );
 
 		void setupWorld( World& world );
+
+		void tick(float deltaTime);
 	private:
 		void cleanupRenderData()
 		{
@@ -72,13 +86,25 @@ namespace Cube
 			mChunkMap.clear();
 		}
 
-		virtual void onChunkAdded(Chunk* chunk){}
+		virtual void onChunkAdded(Chunk* chunk);
 		virtual void onPrevRemovChunk(Chunk* chunk){}
+
+		void updateRenderData(ChunkRenderData* data);
 
 		typedef std::unordered_map< uint64 , ChunkRenderData* > ChunkDataMap;
 
 		typedef std::vector< ChunkRenderData* > WorldDataVec;
 
+		struct UpdatedRenderData
+		{
+			Mesh mesh;
+			ChunkRenderData* chunkData;
+		};
+	public:
+		ICamera* mDebugCamera = nullptr;
+
+		Mutex mMutexPedingAdd;
+		TArray< UpdatedRenderData > mPendingAddList;
 
 		QueueThreadPool* mGereatePool;
 		World* mClientWorld;
@@ -86,6 +112,7 @@ namespace Cube
 		int    mRenderHeight;
 		int    mRenderWidth;
 		ChunkDataMap  mChunkMap;
+		Render::PrimitivesCollection mDebugPrimitives;
 		float  mAspect;
 	};
 

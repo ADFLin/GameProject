@@ -13,6 +13,13 @@
 
 #include "Async/AsyncWork.h"
 #include "RenderUtility.h"
+#include "RHI/RHICommand.h"
+#include "Math/GeometryPrimitive.h"
+
+
+#include "GameGlobal.h"
+#include "Renderer/SceneView.h"
+#include "RHI/RHIGraphics2D.h"
 
 namespace Cube
 {
@@ -30,6 +37,8 @@ namespace Cube
 
 		mGereatePool = new QueueThreadPool;
 		mGereatePool->init(1);
+
+		mDebugPrimitives.initializeRHI();
 	}
 
 	RenderEngine::~RenderEngine()
@@ -49,6 +58,28 @@ namespace Cube
 	}
 
 
+	void RenderEngine::tick(float deltaTime)
+	{
+		{
+			Mutex::Locker locker(mMutexPedingAdd);
+			for (auto const& updateData : mPendingAddList)
+			{
+				auto data = updateData.chunkData;
+				auto& mesh = updateData.mesh;
+				using namespace Render;
+				data->mesh.vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), mesh.mVtxBuffer.size(), BCF_DefalutValue, (void*)mesh.mVtxBuffer.data());
+				data->mesh.indexBuffer = RHICreateIndexBuffer(mesh.mIndexBuffer.size(), true, BCF_DefalutValue, (void*)mesh.mIndexBuffer.data());
+
+				data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
+				data->state = ChunkRenderData::eMesh;
+				data->bound = mesh.bound;
+				data->bound.translate(data->posOffset);
+
+			}
+			mPendingAddList.clear();
+		}
+	}
+
 	void RenderEngine::onChunkAdded(Chunk* chunk)
 	{
 		for (int i = 0; i < 4; ++i)
@@ -59,16 +90,150 @@ namespace Cube
 			if (iter != mChunkMap.end())
 			{
 				ChunkRenderData* data = iter->second;
-				if (data->state != EDataState::Unintialized)
-				{
-
-
-
-				}
-
+				updateRenderData(data);
 			}
 		}
 
+	}
+
+
+	class NeighborChunkAccess : public IBlockAccess
+	{
+	public:
+		NeighborChunkAccess(World& world, Chunk* chunk)
+		{
+			mChunk = chunk;
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec3i offset = GetFaceOffset(FaceSide(i));
+				mNeighborChunks[i] = world.getChunk(ChunkPos(chunk->getPos() + Vec2i(offset.x, offset.y)), true);
+			}
+
+			mChunkOffset = ChunkSize * chunk->getPos();
+		}
+
+		Chunk* getChunk(int x, int y)
+		{
+			Vec2i offset = Vec2i(x, y) - mChunkOffset;
+			if (offset.x >= ChunkSize)
+			{
+				return mNeighborChunks[FaceSide::FACE_X];
+			}
+			if (offset.x < 0)
+			{
+				return mNeighborChunks[FaceSide::FACE_NX];
+			}
+			if (offset.y >= ChunkSize)
+			{
+				return mNeighborChunks[FaceSide::FACE_Y];
+			}
+			if (offset.y < 0)
+			{
+				return mNeighborChunks[FaceSide::FACE_NY];
+			}
+			return mChunk;
+		}
+
+		bool IsInRange(Chunk* chunk, int x, int y)
+		{
+			Vec2i offset = Vec2i(x, y) - ChunkSize * chunk->getPos();
+			return 0 <= offset.x && offset.x < ChunkSize &&
+				0 <= offset.y && offset.y < ChunkSize;
+		}
+
+		virtual BlockId  getBlockId(int x, int y, int z) final
+		{
+			if (x == -17 && y == 0)
+			{
+
+				int aa = 1;
+			}
+			auto chunk = getChunk(x, y);
+			if (chunk == nullptr)
+				return BLOCK_NULL;
+
+
+			CHECK(IsInRange(chunk, x, y));
+
+			return chunk->getBlockId(x, y, z);
+		}
+		virtual MetaType getBlockMeta(int x, int y, int z)
+		{
+			auto chunk = getChunk(x, y);
+			if (chunk == nullptr)
+				return 0;
+			CHECK(IsInRange(chunk, x, y));
+			return chunk->getBlockMeta(x, y, z);
+		}
+
+		void  getNeighborBlockIds(Vec3i const& pos, BlockId outIds[])
+		{
+			for (int i = 0; i < FaceSide::COUNT; ++i)
+			{
+				Vec3i nPos = pos + GetFaceOffset(FaceSide(i));
+				outIds[i] = getBlockId(nPos.x, nPos.y, nPos.z);
+			}
+		}
+
+
+		Vec2i  mChunkOffset;
+
+		Chunk* mChunk;
+		Chunk* mNeighborChunks[4];
+	};
+
+	void RenderEngine::updateRenderData(ChunkRenderData* data)
+	{
+		if (data->state != ChunkRenderData::eNone)
+			return;
+
+		NeighborChunkAccess chunkAccess(*mClientWorld, data->chunk);
+		for (int i = 0; i < 4; ++i)
+		{
+			if (chunkAccess.mNeighborChunks[i] == nullptr)
+				return;
+		}
+
+		mGereatePool->addFunctionWork(
+			[this, data, chunkAccess]()
+			{
+				Chunk* chunk = data->chunk;
+				data->state = ChunkRenderData::eMeshGenerating;
+
+				Mesh mesh;
+				BlockRenderer renderer;
+
+				int const ColorMap[] =
+				{
+					EColor::Red,
+					EColor::Green,
+					EColor::Blue,
+					EColor::Cyan,
+					EColor::Magenta,
+					EColor::Yellow,
+
+					EColor::Orange,
+					EColor::Purple,
+					EColor::Pink,
+					EColor::Brown,
+					EColor::Gold,
+				};
+
+				UpdatedRenderData updateData;
+				updateData.chunkData = data;
+				renderer.mMesh = &updateData.mesh;
+
+
+				renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
+				renderer.mBlockAccess = const_cast<NeighborChunkAccess*>(&chunkAccess);
+				chunk->render(renderer);
+
+				{
+					Mutex::Locker locker(mMutexPedingAdd);
+					mPendingAddList.push_back(std::move(updateData));
+				}
+			}
+		);
 	}
 
 	struct RnederContext
@@ -83,6 +248,25 @@ namespace Cube
 		}
 	};
 
+	using Math::Plane;
+
+	static void GetFrustomPlanes(Vector3 const& worldPos, Vector3 const& viewDir,  Matrix4 const& clipToWorld, Plane outPlanes[])
+	{
+		Vector3 centerNearPos = (Vector4(0, 0, FRHIZBuffer::NearPlane, 1) * clipToWorld).dividedVector();
+		Vector3 centerFarPos = (Vector4(0, 0, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+
+		Vector3 posRT = (Vector4(1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posLB = (Vector4(-1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posRB = (Vector4(1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posLT = (Vector4(-1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+
+		outPlanes[0] = Plane(viewDir, centerNearPos); //ZFar
+		outPlanes[1] = Plane(-viewDir, centerFarPos); //ZNear
+		outPlanes[2] = Plane(worldPos, posRT, posLT); //top
+		outPlanes[3] = Plane(worldPos, posLB, posRB); //bottom
+		outPlanes[4] = Plane(worldPos, posRB, posRT); //right
+		outPlanes[5] = Plane(worldPos, posLT, posLB); //left
+	}
 
 
 	void RenderEngine::renderWorld( ICamera& camera )
@@ -99,16 +283,54 @@ namespace Cube
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Back , EFillMode::Wireframe >::GetRHI());
 
+
 		Vec3f camPos = camera.getPos();
 		Vec3f viewPos = camPos + camera.getViewDir();
 		Vec3f upDir = camera.getUpDir();
 
-
-		Matrix4 worldToView = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
+		ICamera* cameraRender = mDebugCamera ? mDebugCamera : &camera;
 		Matrix4 projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 1000);
+		Matrix4 worldToView = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
+		Matrix4 worldToClip = worldToView * projectMatrix;
+
+		Matrix4 worldToViewRender;
+		Matrix4 worldToClipRender;
+		if (mDebugCamera)
+		{
+			worldToViewRender = LookAtMatrix(mDebugCamera->getPos(), mDebugCamera->getViewDir(), mDebugCamera->getUpDir());
+			worldToClipRender = worldToViewRender * projectMatrix;
+		}
+		else
+		{
+			worldToViewRender = worldToView;
+			worldToClipRender = worldToClip;
+		}
+
+		Matrix4 clipToWorld;
+		float det;
+		worldToClip.inverse(clipToWorld, det);
+
+		Plane clipPlanes[6];
+		GetFrustomPlanes(camPos, camera.getViewDir(), clipToWorld, clipPlanes);
 
 		RnederContext context;
-		context.worldToClip = AdjProjectionMatrixForRHI(worldToView * projectMatrix);
+		context.worldToClip = AdjProjectionMatrixForRHI(worldToViewRender * projectMatrix);
+
+		if (mDebugCamera)
+		{
+			mDebugPrimitives.addCubeLine(camPos, Quaternion{ BasisMaterix::FromZY(camera.getViewDir(), camera.getUpDir()) }, Vec3f(0.5,0.5,0.5), LinearColor(1, 0, 0, 1), 4);
+
+
+			Vector3 vertices[8];
+			FViewUtils::GetFrustumVertices(clipToWorld, vertices, false);
+			for (int i = 0; i < 4; ++i)
+			{
+				mDebugPrimitives.addLine(vertices[i], vertices[4 + i], Color3f(1, 0.5, 0), 2);
+				mDebugPrimitives.addLine(vertices[i], vertices[(i + 1) % 4], Color3f(1, 0.5, 0), 2);
+				mDebugPrimitives.addLine(vertices[i + 4], vertices[4 + (i + 1) % 4], Color3f(1, 0.5, 0), 2);
+			}
+
+		}
 
 		{
 			context.stack.push();
@@ -124,7 +346,9 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos( bx , by );
-		int len = 10;
+		int viewDist = 100;
+
+		int chunkRenderCount = 0;
 
 		auto ProcessChunk = [&](ChunkPos chunkPos)
 		{
@@ -137,60 +361,49 @@ namespace Cube
 					return;
 
 				data = new ChunkRenderData;
-				data->state = EDataState::Unintialized;
+				data->state = ChunkRenderData::eNone;
+				data->chunk = chunk;
 				mChunkMap.insert(std::make_pair(chunkPos.hash_value(), data));
-				RangeChunkAccess chunkAccess(*mClientWorld, chunkPos);
-				mGereatePool->addFunctionWork(
-					[this, chunk, data, chunkAccess]()
-					{
-						data->state = EDataState::Generating;
-						data->mesh.clearBuffer();
-
-						BlockRenderer renderer;
-
-						int const ColorMap[] =
-						{
-							EColor::Red,
-							EColor::Green,
-							EColor::Blue,
-							EColor::Cyan,
-							EColor::Magenta,
-							EColor::Yellow,
-
-							EColor::Orange,
-							EColor::Purple,
-							EColor::Pink,
-							EColor::Brown,
-							EColor::Gold,
-						};
-						renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
-						renderer.mBlockAccess = const_cast<RangeChunkAccess*>(&chunkAccess);
-						renderer.mMesh = &data->mesh;
-						chunk->render(renderer);
-						data->state = EDataState::Ok;
-					}
-				);
+				updateRenderData(data);
 			}
 			else
 			{
 				data = iter->second;
 			}
 
-			if (data && data->state == EDataState::Ok)
+			if (data == nullptr || data->state != ChunkRenderData::eMesh)
+				return;
+
+
+			int visibilityType = FViewUtils::IsVisible(clipPlanes, data->bound);
+			if ( mDebugCamera )
 			{
-				context.stack.push();
-				int bx = ChunkSize * chunkPos.x;
-				int by = ChunkSize * chunkPos.y;
-				context.stack.translate(Vector3(bx, by, 0));
-				context.setupShader(commandList);
-				TRenderRT<RTVF_XYZ_CA8>::DrawIndexed(commandList, EPrimitive::TriangleList, data->mesh.mVtxBuffer.data(), data->mesh.mVtxBuffer.size(), data->mesh.mIndexBuffer.data(), data->mesh.mIndexBuffer.size());
-				context.stack.pop();
+				int const ColorMap[] =
+				{
+					EColor::Red,
+					EColor::Green,
+					EColor::Blue,
+				};
+
+				mDebugPrimitives.addCubeLine(data->bound.getCenter(), Quaternion::Identity(), data->bound.getSize(), LinearColor(RenderUtility::GetColor(ColorMap[visibilityType])), 2);
 			}
+
+			if (visibilityType == 0)
+				return;
+
+			context.stack.push();
+			context.stack.translate(data->posOffset);
+			context.setupShader(commandList);
+			TRenderRT<RTVF_XYZ_CA8>::DrawIndexed(commandList, EPrimitive::TriangleList, *data->mesh.vertexBuffer, *data->mesh.indexBuffer, data->mesh.indexBuffer->getNumElements());
+			context.stack.pop();
+
+
+			++chunkRenderCount;
 		};
 
 		ProcessChunk(cPos);
 
-		for( int n = 1 ; n <= len ; ++n )
+		for( int n = 1 ; n <= viewDist ; ++n )
 		{
 			for (int i = -(n - 1); i <= (n - 1); ++i)
 			{
@@ -228,6 +441,20 @@ namespace Cube
 			context.stack.pop();
 		}
 #endif
+
+		{
+			mDebugPrimitives.drawDynamic(commandList, ::Global::GetScreenSize(), worldToClipRender, cameraRender->getViewDir().cross(cameraRender->getUpDir()), cameraRender->getUpDir());
+		}
+
+		mDebugPrimitives.clear();
+
+
+
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+		g.beginRender();
+		g.drawTextF(Vector2(10,10), "chunkRenderCount = %d", chunkRenderCount);
+		g.endRender();
+		//::LogMsg("chunkRenderCount = %d", chunkRenderCount);
 	}
 
 	void RenderEngine::beginRender()
@@ -246,25 +473,25 @@ namespace Cube
 			cPos.setBlockPos( bx + 1 , by );
 			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
 			if ( iter != mChunkMap.end() )
-				iter->second->needUpdate = true;
+				iter->second->bNeedUpdate = true;
 		}
 		{
 			cPos.setBlockPos( bx - 1 , by );
 			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
 			if ( iter != mChunkMap.end() )
-				iter->second->needUpdate = true;
+				iter->second->bNeedUpdate = true;
 		}
 		{
 			cPos.setBlockPos( bx , by + 1 );
 			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
 			if ( iter != mChunkMap.end() )
-				iter->second->needUpdate = true;
+				iter->second->bNeedUpdate = true;
 		}
 		{
 			cPos.setBlockPos( bx , by - 1 );
 			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
 			if ( iter != mChunkMap.end() )
-				iter->second->needUpdate = true;
+				iter->second->bNeedUpdate = true;
 		}
 	}
 

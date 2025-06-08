@@ -76,7 +76,7 @@ namespace Render
 		mVertexBuffer.release();
 	}
 
-	void SimpleElementRenderer::draw(RHICommandList& commandList, ViewInfo& view,  SimpleVertex* vertices, int numVertices)
+	void SimpleElementRenderer::draw(RHICommandList& commandList, Matrix4 const& worldToClip, SimpleVertex* vertices, int numVertices)
 	{
 		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteDiscard);
 		if (pData == nullptr)
@@ -86,7 +86,7 @@ namespace Render
 		RHIUnlockBuffer(mVertexBuffer);
 
 		RHISetShaderProgram(commandList, mProgram->getRHI());
-		mProgram->setParam(commandList, SHADER_PARAM(VertexTransform), view.worldToClip);
+		mProgram->setParam(commandList, SHADER_PARAM(VertexTransform), worldToClip);
 
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;
@@ -155,6 +155,26 @@ namespace Render
 		GSimpleElementRender.releaseRHI();
 	}
 
+	void PrimitivesCollection::addCubeLine(Vector3 const& pos, Quaternion const& rotation, Vector3 const& extents, LinearColor const& color, float thickness /*= 1*/)
+	{
+		static Vector3 const v[] =
+		{
+			Vector3(1,0,0),Vector3(1,1,0),Vector3(1,1,0),Vector3(1,1,1),
+			Vector3(1,1,1),Vector3(1,0,1),Vector3(1,0,1),Vector3(1,0,0),
+			Vector3(0,0,0),Vector3(0,1,0),Vector3(0,1,0),Vector3(0,1,1),
+			Vector3(0,1,1),Vector3(0,0,1),Vector3(0,0,1),Vector3(0,0,0),
+			Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
+			Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
+		};
+
+		for (int i = 0; i < ARRAY_SIZE(v); i += 2)
+		{
+			Vector3 p0 = pos + rotation.rotate(extents * (v[i] - Vector3(0.5, 0.5, 0.5)));
+			Vector3 p1 = pos + rotation.rotate(extents * (v[i + 1] - Vector3(0.5, 0.5, 0.5)));
+			addLine(p0, p1, color, thickness);
+		}
+	}
+
 	void PrimitivesCollection::drawDynamic(RenderContext& context)
 	{
 		drawDynamic(context.getCommnadList(), context.getView());
@@ -162,20 +182,21 @@ namespace Render
 
 	void PrimitivesCollection::drawDynamic(RHICommandList& commandList, ViewInfo& view)
 	{
+		drawDynamic(commandList, view.getViewportSize(), view.worldToClip, view.getViewRightDir(), view.getViewUpDir());
+	}
 
+	void PrimitivesCollection::drawDynamic(RHICommandList& commandList, IntVector2 const& screenSize, Matrix4 const& worldToClip, Vector3 const& cameraX, Vector3 const& cameraY)
+	{
 		if (!mLineBatchs.empty())
 		{
 			auto& cachedBuffer = GSimpleElementRender.cachedBuffer;
 			cachedBuffer.clear();
 
-			Vector3 cameraX = view.getViewRightDir();
-			Vector3 cameraY = view.getViewUpDir();
-
-			IntVector2 screenSize = view.getViewportSize();
-
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 			{
+				auto worldToClipRHI = AdjProjectionMatrixForRHI(worldToClip);
+
 				int idxLine = 0;
 				for (; idxLine < mLineBatchs.size(); ++idxLine)
 				{
@@ -183,7 +204,7 @@ namespace Render
 
 					if (cachedBuffer.size() + LineVertexCount > SimpleElementRenderer::MaxVertexSize)
 					{
-						GSimpleElementRender.draw(commandList, view, cachedBuffer.data(), cachedBuffer.size());
+						GSimpleElementRender.draw(commandList, worldToClipRHI, cachedBuffer.data(), cachedBuffer.size());
 						cachedBuffer.clear();
 					}
 
@@ -197,8 +218,8 @@ namespace Render
 
 					if (bScreenSpace)
 					{
-						float posWS = (Vector4(line.start, 1) * view.worldToClip).w;
-						float posWE = (Vector4(line.end, 1) * view.worldToClip).w;
+						float posWS = (Vector4(line.start, 1) * worldToClip).w;
+						float posWE = (Vector4(line.end, 1) * worldToClip).w;
 
 						offsetScaleS *= 0.5 * posWS / float(screenSize.x);
 						offsetScaleE *= 0.5 * posWE / float(screenSize.x);
@@ -238,7 +259,7 @@ namespace Render
 				}
 				if (cachedBuffer.size())
 				{
-					GSimpleElementRender.draw(commandList, view, &cachedBuffer[0], cachedBuffer.size());
+					GSimpleElementRender.draw(commandList, worldToClipRHI, &cachedBuffer[0], cachedBuffer.size());
 				}
 
 			}

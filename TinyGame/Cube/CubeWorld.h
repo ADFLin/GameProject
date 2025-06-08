@@ -27,13 +27,11 @@ namespace Cube
 		virtual void     getNeighborBlockIds(Vec3i const& blockPos, BlockId outIds[]) = 0;
 	};
 
-	unsigned const ChunkBit  = 4;
-	unsigned const ChunkSize = 1 << ChunkBit;
-	unsigned const ChunkMask = ( 1 << ChunkBit ) - 1;
+	int const ChunkBit  = 4;
+	int const ChunkSize = 1 << ChunkBit;
+	int const ChunkMask = ( 1 << ChunkBit ) - 1;
 
-	unsigned const ChunkBlockMaxHeight = 256;
-
-
+	int const ChunkBlockMaxHeight = 256;
 
 	struct ChunkPos : public TVector2<int>
 	{
@@ -51,11 +49,17 @@ namespace Cube
 			return ( uint64(cx) << 32 ) | uint64( cy ); }
 	};
 
+	enum class EChunkLoadState : uint8
+	{
+		Unintialized,
+		Generating,
+		Ok,
+	};
 
 	class Chunk
 	{
 	public:
-		EDataState state;
+		EChunkLoadState state;
 
 
 		Chunk( ChunkPos const& pos );
@@ -203,77 +207,6 @@ namespace Cube
 		ListenerList   mListeners;
 		ChunkProvider* mChunkProvider;
 		Random         mRandom;
-	};
-
-
-	class RangeChunkAccess : public IBlockAccess
-	{
-	public:
-		RangeChunkAccess(World& world, ChunkPos const& pos)
-		{
-			mChunk = world.getChunk(pos);
-			for (int i = 0; i < 4; ++i)
-			{
-				Vec3i offset = GetFaceOffset(FaceSide(i));
-				mNeighborChunks[i] = world.getChunk(ChunkPos(pos + Vec2i(offset.x, offset.y)));
-			}
-
-			mChunkOffset =ChunkSize * pos; 
-		}
-
-		Chunk* getChunk(int x, int y)
-		{
-			Vec2i offset = Vec2i(x, y) - mChunkOffset;
-			if (offset.x >= ChunkSize)
-			{
-				return mNeighborChunks[FaceSide::FACE_X];
-			}
-			if (offset.x < 0)
-			{
-				return mNeighborChunks[FaceSide::FACE_NX];
-			}
-			if (offset.y >= ChunkSize)
-			{
-				return mNeighborChunks[FaceSide::FACE_Y];
-			}
-			if (offset.y < 0)
-			{
-				return mNeighborChunks[FaceSide::FACE_NY];
-			}
-			return mChunk;
-		}
-
-		virtual BlockId  getBlockId(int x, int y, int z) final
-		{
-			auto chunk = getChunk(x, y);
-			if (chunk == nullptr)
-				return BLOCK_NULL;
-
-			return chunk->getBlockId(x, y, z);
-		}
-		virtual MetaType getBlockMeta(int x, int y, int z)
-		{
-			auto chunk = getChunk(x, y);
-			if (chunk == nullptr)
-				return 0;
-
-			return chunk->getBlockMeta(x, y, z);
-		}
-
-		void  getNeighborBlockIds(Vec3i const& pos, BlockId outIds[])
-		{
-			for (int i = 0; i < FaceSide::COUNT; ++i)
-			{
-				Vec3i offset = GetFaceOffset(FaceSide(i));
-				outIds[i] = getBlockId(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
-			}
-		}
-
-
-		Vec2i  mChunkOffset;
-
-		Chunk* mChunk;
-		Chunk* mNeighborChunks[4];
 	};
 
 

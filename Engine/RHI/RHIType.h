@@ -246,7 +246,7 @@ namespace Render
 		{
 			Vector3 x0 = xAxis;
 			Vector3 x1 = yAxis;
-			x1 -= Projection(x1, x0);
+			x1 -= Math::Projection(x1, x0);
 			Vector3 x2 = x0.cross(x1);
 			return BasisMaterix(x0, x1, x2);
 		}
@@ -255,7 +255,7 @@ namespace Render
 		{
 			Vector3 x0 = yAxis;
 			Vector3 x1 = zAxis;
-			x1 -= Projection(x1, x0);
+			x1 -= Math::Projection(x1, x0);
 			Vector3 x2 = x0.cross(x1);
 			return BasisMaterix(x2, x0, x1);
 		}
@@ -264,16 +264,20 @@ namespace Render
 		{
 			Vector3 x0 = zAxis;
 			Vector3 x1 = xAxis;
-			x1 -= Projection(x1, x0);
+			x1 -= Math::Projection(x1, x0);
 			Vector3 x2 = x0.cross(x1);
 			return BasisMaterix(x1, x2, x0);
 		}
-	private:
-		//#MOVE
-		FORCEINLINE static Vector3 Projection(Vector3 v, Vector3 dir)
+
+		FORCEINLINE static Matrix4 FromZY(Vector3 const& zAxis, Vector3 const& yAxis)
 		{
-			return v - (dir.dot(v) / dir.length2()) * dir;
+			Vector3 x0 = zAxis;
+			Vector3 x1 = yAxis;
+			x1 -= Math::Projection(x1, x0);
+			Vector3 x2 = x1.cross(x0);
+			return BasisMaterix(x2, x1, x0);
 		}
+	private:
 
 		FORCEINLINE static Vector3 AnyOrthoVector(Vector3 v)
 		{

@@ -176,8 +176,8 @@ namespace Render
 		Vector3 posRB = (Vector4(1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
 		Vector3 posLT = (Vector4(-1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
 
-		frustumPlanes[0] = Plane(-direction, centerNearPos); //ZFar;
-		frustumPlanes[1] = Plane(direction, centerFarPos); //ZNear
+		frustumPlanes[0] = Plane(direction, centerNearPos); //ZFar
+		frustumPlanes[1] = Plane(-direction, centerFarPos); //ZNear
 		frustumPlanes[2] = Plane(worldPos, posRT, posLT); //top
 		frustumPlanes[3] = Plane(worldPos, posLB, posRB); //bottom
 		frustumPlanes[4] = Plane(worldPos, posRB, posRT); //right
@@ -214,7 +214,7 @@ namespace Render
 	}
 
 
-	void ViewInfo::GetFrustumVertices(Matrix4 const& projectionMatrixInverse, Vector3 outVertices[], bool bAdjRHI)
+	void FViewUtils::GetFrustumVertices(Matrix4 const& projectionMatrixInverse, Vector3 outVertices[], bool bAdjRHI)
 	{
 		float nearDepth;
 		float farDepth;
@@ -246,6 +246,34 @@ namespace Render
 		outVertices[5] = (Vector4(1, -1, farDepth, 1) * projectionMatrixInverse).dividedVector();
 		outVertices[6] = (Vector4(1, 1, farDepth, 1) * projectionMatrixInverse).dividedVector();
 		outVertices[7] = (Vector4(-1, 1, farDepth, 1) * projectionMatrixInverse).dividedVector();
+	}
+
+	int FViewUtils::IsVisible(Plane clipPlanes[], Math::TAABBox<Vector3> const& AABB)
+	{
+		bool bIntersecting = false;
+		for (int i = 0; i < 6; ++i)
+		{
+			auto const& plane = clipPlanes[i];
+			Vector3 minPoint, maxPoint;
+			for (int j = 0; j < 3; ++j)
+			{
+				if (plane.getNormal()[j] >= 0.0f)
+				{
+					minPoint[j] = AABB.min[j];
+					maxPoint[j] = AABB.max[j];
+				}
+				else
+				{
+					minPoint[j] = AABB.max[j];
+					maxPoint[j] = AABB.min[j];
+				}
+			}
+			if (plane.calcDistance(maxPoint) < 0.0f)
+				return 0;
+			if (plane.calcDistance(minPoint) <= 0.0f)
+				bIntersecting = true;
+		}
+		return bIntersecting ? 1 : 2;
 	}
 
 }

@@ -55,16 +55,16 @@ namespace Render
 	{
 		Vector3 start;
 		Vector3 end;
-		Vector3 color;
+		LinearColor color;
 		float   thickness;
 	};
 
 	struct SimpleVertex
 	{
 		Vector4 pos;
-		Vector4 color;
+		LinearColor color;
 
-		SimpleVertex(Vector3 const& inPos, Vector3 const& inColor)
+		SimpleVertex(Vector3 const& inPos, LinearColor const& inColor)
 			:pos(inPos,1), color(inColor){}
 	};
 
@@ -76,7 +76,7 @@ namespace Render
 
 		bool initializeRHI();
 		void releaseRHI();
-		void draw(RHICommandList& commandList, ViewInfo& view, SimpleVertex* vertices, int numVertices);
+		void draw(RHICommandList& commandList, Matrix4 const& worldToClip, SimpleVertex* vertices, int numVertices);
 
 		ShaderProgram*     mProgram = nullptr;
 		RHIInputLayoutRef  mInputLayout;
@@ -90,7 +90,7 @@ namespace Render
 		{
 			mMeshBatchs.push_back(meshBatch);
 		}
-		void addLine(Vector3 const& posStart, Vector3 const& posEnd , Vector3 const& color , float thickness = 1)
+		void addLine(Vector3 const& posStart, Vector3 const& posEnd , LinearColor const& color , float thickness = 1)
 		{
 			LineBatch line;
 			line.start = posStart;
@@ -99,6 +99,9 @@ namespace Render
 			line.thickness = thickness;
 			mLineBatchs.push_back(line);
 		}
+
+		void addCubeLine(Vector3 const& pos, Quaternion const& rotation, Vector3 const& extents, LinearColor const& color, float thickness = 1);
+
 		void clear()
 		{
 			mMeshBatchs.clear();
@@ -107,7 +110,7 @@ namespace Render
 
 		void drawDynamic(RenderContext& context);
 		void drawDynamic(RHICommandList& commandList, ViewInfo& view);
-
+		void drawDynamic(RHICommandList& commandList, IntVector2 const& screenSize, Matrix4 const& worldToClip, Vector3 const& cameraX, Vector3 const& cameraY);
 
 		bool initializeRHI();
 		void releaseRHI();

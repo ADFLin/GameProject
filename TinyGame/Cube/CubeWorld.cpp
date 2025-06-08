@@ -21,8 +21,11 @@ namespace Cube
 
 	BlockId Chunk::getBlockId( int x , int y , int z )
 	{
-		if ( z < 0 ||z >= ChunkBlockMaxHeight )
+		if (z < 0)
+			return BLOCK_BASE;
+		if (z >= ChunkBlockMaxHeight)
 			return BLOCK_NULL;
+
 		LayerData* layer = getLayer( z );
 		if ( !layer )
 			return BLOCK_NULL;
@@ -131,18 +134,18 @@ namespace Cube
 
 		virtual void executeWork()
 		{
-			chunk->state = EDataState::Generating;
+			chunk->state = EChunkLoadState::Generating;
 			LandGenerater gen;
 			gen.height = 64;
 			Random rand;
 			rand.setSeed(0);
 			gen.generate(*chunk, rand);
-			chunk->state = EDataState::Ok;
+			chunk->state = EChunkLoadState::Ok;
 
 		}
 		virtual void abandon()
 		{
-			chunk->state = EDataState::Unintialized;
+			chunk->state = EChunkLoadState::Unintialized;
 		}
 
 		virtual void release()
@@ -173,7 +176,7 @@ namespace Cube
 					}
 				}
 				Chunk* chunk = new Chunk(pos);
-				chunk->state = EDataState::Unintialized;
+				chunk->state = EChunkLoadState::Unintialized;
 				ChunkGenerateWork* work = new ChunkGenerateWork;
 				work->chunk = chunk;
 				work->provider = this;
@@ -187,7 +190,7 @@ namespace Cube
 			return nullptr;
 		}
 
-		if (iter->second->state != EDataState::Ok)
+		if (iter->second->state != EChunkLoadState::Ok)
 			return nullptr;
 
 		return iter->second;
@@ -202,7 +205,7 @@ namespace Cube
 			{
 				Chunk* chunk = mPendingAddChunks[index];
 
-				if (chunk->state == EDataState::Ok)
+				if (chunk->state == EChunkLoadState::Ok)
 				{
 					uint64 value = chunk->getPos().hash_value();
 					mMap.insert(std::make_pair(value, chunk));

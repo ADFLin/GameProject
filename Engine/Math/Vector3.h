@@ -259,6 +259,10 @@ namespace Math
 			Clamp(v.z, min.z, max.z));
 	}
 
+	FORCEINLINE Vector3 Projection(Vector3 v, Vector3 dir)
+	{
+		return (dir.dot(v) / dir.length2()) * dir;
+	}
 
 }//namespace Math
 #endif // Vector3_h__

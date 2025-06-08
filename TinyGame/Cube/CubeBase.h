@@ -62,13 +62,6 @@ namespace Cube
 		return OffsetMap[face];
 	}
 
-	enum class EDataState : uint8
-	{
-		Unintialized,
-		Generating,
-		Ok,
-	};
-
 }//namespace Cube
 
 #endif // CubeBase_h__

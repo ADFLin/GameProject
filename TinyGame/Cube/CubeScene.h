@@ -30,6 +30,12 @@ namespace Cube
 			mRenderEngine->endRender();
 		}
 
+		void tick(float deltaTime)
+		{
+
+			mRenderEngine->tick(deltaTime);
+		}
+
 		World*        mWorld;
 		RenderEngine* mRenderEngine;
 	};

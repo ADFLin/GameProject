@@ -5,6 +5,7 @@ namespace Cube
 {
 	enum BlockType
 	{
+		BLOCK_BASE = 255,
 		BLOCK_DIRT = 1 ,
 		BLOCK_WATER ,
 	};

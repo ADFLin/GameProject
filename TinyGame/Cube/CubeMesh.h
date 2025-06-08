@@ -5,9 +5,17 @@
 
 #include "Core/Color.h"
 #include "DataStructure/Array.h"
+#include "RHI/RHICommon.h"
+#include "Math/GeometryPrimitive.h"
 
 namespace Cube
 {
+	struct MeshData
+	{
+		Render::RHIBufferRef vertexBuffer;
+		Render::RHIBufferRef indexBuffer;
+	};
+
 
 	class Mesh
 	{
@@ -32,13 +40,16 @@ namespace Cube
 		{
 			mVtxBuffer.clear();
 			mIndexBuffer.clear();
+			bound.invalidate();
 		}
 
 		struct Vertex
 		{
-			float pos[3];
+			Vec3f     pos;
 			Color4ub  color;
 		};
+
+		Math::TAABBox< Vec3f > bound;
 
 		TArray< Vertex > mVtxBuffer;
 		TArray< uint32 >  mIndexBuffer;
@@ -46,8 +57,6 @@ namespace Cube
 		Vec3f   mVertexOffset;
 		int     mIndexBase;
 		Vertex  mCurVertex;
-
-
 	};
 }
 #endif // CubeMesh_h__

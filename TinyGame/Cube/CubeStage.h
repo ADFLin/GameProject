@@ -10,77 +10,16 @@
 #include "WinGLPlatform.h"
 #include "GameRenderSetup.h"
 #include "RHI/RHIGraphics2D.h"
+#include "Renderer/SimpleCamera.h"
 
 namespace Cube
 {
-	class SimpleCamera : public ICamera
+	class Camera : public Render::SimpleCamera, public ICamera
 	{
 	public:
-		SimpleCamera()
-			:mPos(0,0,0)
-			,mYaw( 0 )
-			,mPitch( 0 )
-			,mRoll( 0 )
-		{
-			mRotation.setEulerZYX( mYaw , mPitch , mRoll );
-			mRotateSpeed = 0.01;
-		}
-		void setPos( Vec3f const& pos ){ mPos = pos; }
-		void setYaw( float yaw ){ mYaw = yaw; }
-		void setPitch( float pitch ){ mYaw = pitch; }
-
-		float Deg2Rad( float val )
-		{ 
-			float const PI = 3.141592654f;
-			return val * PI / 180.0f; 
-		}
-		void rotateByMouse( int dx , int dy )
-		{
-			mYaw   -= mRotateSpeed * float( dx );
-			mPitch += mRotateSpeed * float( dy );
-
-
-			if ( mPitch < 0 )
-				mPitch = 0;
-			else if ( mPitch > Deg2Rad(180) )
-				mPitch = Deg2Rad(180);
-
-			mRotation.setEulerZYX( mYaw , mPitch , mRoll );
-		}
-		virtual Vec3f getPos(){ return mPos; }
-		virtual Vec3f getViewDir()
-		{
-			float cy = Math::Cos( mYaw );
-			float sy = Math::Sin( mYaw ); 
-			float cp = Math::Cos( mPitch );
-			float sp = Math::Sin( mPitch ); 
-			return Vec3f( cy * sp , sy * sp , cp );
-		}
-
-		virtual Vec3f getUpDir()
-		{
-			return Vec3f( 0 , 0 , 1 );
-		}
-
-		void moveFront( float dist )
-		{
-			mPos += dist * getViewDir();
-		}
-
-		void moveRight( float dist )
-		{
-			Vec3f off = mRotation.rotate( Vec3f( 1 , 0 , 0 ) );
-			mPos += dist * off;
-		}
-
-
-		Vec3f sLocalViewDir;
-		float mRotateSpeed;
-		Quat  mRotation;
-		Vec3f mPos;
-		float mYaw;
-		float mPitch;
-		float mRoll;
+		virtual Vec3f getPos() { return Render::SimpleCamera::getPos(); }
+		virtual Vec3f getViewDir() { return Render::SimpleCamera::getViewDir(); }
+		virtual Vec3f getUpDir() { return Render::SimpleCamera::getUpDir(); }
 	};
 
 	class TestStage : public StageBase
@@ -96,7 +35,12 @@ namespace Cube
 		{
 			BaseClass::onUpdate(deltaTime);
 
+			mCamera.updatePosition(deltaTime);
+			mDebugCamera.updatePosition(deltaTime);
+
+
 			mLevel->tick(deltaTime);
+			mScene->tick(deltaTime);
 		}
 
 		void onRender( float dFrame )
@@ -121,13 +65,17 @@ namespace Cube
 
 		MsgReply onMouse( MouseMsg const& msg )
 		{
-			if ( msg.onMoving() )
+			Camera& cameraCtrl = mScene->mRenderEngine->mDebugCamera ? mDebugCamera : mCamera;
+
+			static Vec2i oldPos = msg.getPos();
+			if (msg.onMoving())
 			{
-				static Vec2i oldPos = msg.getPos();
-				Vec2i off = msg.getPos() - oldPos;
-				mCamera.rotateByMouse( off.x , off.y );
+				float rotateSpeed = 0.01;
+				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
+				cameraCtrl.rotateByMouse(off.x, off.y);
 				oldPos = msg.getPos();
 			}
+
 			if ( msg.onLeftDown() )
 			{
 				BlockPosInfo info;
@@ -143,14 +91,26 @@ namespace Cube
 
 		MsgReply onKey(KeyMsg const& msg)
 		{
+			Camera& cameraCtrl = mScene->mRenderEngine->mDebugCamera ? mDebugCamera : mCamera;
 			if ( msg.isDown() )
 			{
 				switch (msg.getCode())
 				{
 				case EKeyCode::R: restart(); break;
-				case EKeyCode::W: mCamera.moveFront(0.5); break;
-				case EKeyCode::S: mCamera.moveFront(-0.5); break;
-				case EKeyCode::Up: mCamera.setPos(mCamera.getPos() + Vec3f(0, 0, 2)); break;
+				case EKeyCode::W: cameraCtrl.moveFront(0.5); break;
+				case EKeyCode::S: cameraCtrl.moveFront(-0.5); break;
+				case EKeyCode::Up: cameraCtrl.setPos(mCamera.getPos() + Vec3f(0, 0, 2)); break;
+				case EKeyCode::Q:  
+					if (mScene->mRenderEngine->mDebugCamera)
+					{
+						mScene->mRenderEngine->mDebugCamera = nullptr;
+					}
+					else
+					{
+						mScene->mRenderEngine->mDebugCamera = &mDebugCamera;
+						mDebugCamera.setPos(mCamera.getPos());
+					}
+					break;
 				}
 			}
 			return BaseClass::onKey(msg);
@@ -162,8 +122,8 @@ namespace Cube
 		}
 
 	protected:
-
-		SimpleCamera mCamera;
+		Camera mDebugCamera;
+		Camera mCamera;
 		Level*       mLevel;
 		Scene*       mScene;
 

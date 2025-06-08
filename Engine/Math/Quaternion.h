@@ -18,6 +18,7 @@ namespace Math
 		Quaternion(){ setValue( 0,0,0,1); }
 		Quaternion(EForceInit) { setValue(0, 0, 0, 1); }
 		Quaternion(Matrix3 const& m) { setMatrix(m); }
+		Quaternion(Matrix4 const& m) { setMatrix(m); }
 		Quaternion( float sx , float sy, float sz , float sw ){ setValue( sx , sy , sz , sw ); }
 
 		static Quaternion Identity() { return Quaternion(0, 0, 0, 1); }

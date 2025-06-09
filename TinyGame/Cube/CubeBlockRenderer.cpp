@@ -39,7 +39,7 @@ namespace Cube
 		if ( faceMask & BIT( FACE_Z ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );
-
+			mesh.setNormal(Vec3f(0,0,1));
 			mesh.addVertex( 0 , 0 , 1 );
 			mesh.addVertex( 1 , 0 , 1 );
 			mesh.addVertex( 1 , 1 , 1 );
@@ -51,6 +51,7 @@ namespace Cube
 		if ( faceMask & BIT( FACE_NZ ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );
+			mesh.setNormal(Vec3f(0, 0, -1));
 			mesh.addVertex( 0 , 1 , 0 );
 			mesh.addVertex( 1 , 1 , 0 );
 			mesh.addVertex( 1 , 0 , 0 );
@@ -61,6 +62,7 @@ namespace Cube
 		if ( faceMask & BIT( FACE_X ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );
+			mesh.setNormal(Vec3f(1, 0, 0));
 			mesh.addVertex( 1 , 0 , 0 );
 			mesh.addVertex( 1 , 1 , 0 );
 			mesh.addVertex( 1 , 1 , 1 );
@@ -71,6 +73,7 @@ namespace Cube
 		if ( faceMask & BIT( FACE_NX ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );
+			mesh.setNormal(Vec3f(-1, 0, 0));
 			mesh.addVertex( 0 , 0 , 1 );
 			mesh.addVertex( 0 , 1 , 1 );
 			mesh.addVertex( 0 , 1 , 0 );
@@ -81,6 +84,7 @@ namespace Cube
 		if ( faceMask & BIT( FACE_Y ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );
+			mesh.setNormal(Vec3f(0, 1, 0));
 			mesh.addVertex( 0 , 1 , 1 );
 			mesh.addVertex( 1 , 1 , 1 );
 			mesh.addVertex( 1 , 1 , 0 );
@@ -91,6 +95,7 @@ namespace Cube
 		if ( faceMask & BIT( FACE_NY ) )
 		{
 			mesh.setIndexBase( mesh.getVertexNum() );
+			mesh.setNormal(Vec3f(0, -1, 0));
 			mesh.addVertex( 0 , 0 , 0 );
 			mesh.addVertex( 1 , 0 , 0 );
 			mesh.addVertex( 1 , 0 , 1 );

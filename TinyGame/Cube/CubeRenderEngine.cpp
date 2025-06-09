@@ -20,6 +20,7 @@
 #include "GameGlobal.h"
 #include "Renderer/SceneView.h"
 #include "RHI/RHIGraphics2D.h"
+#include "ProfileSystem.h"
 
 namespace Cube
 {
@@ -67,8 +68,8 @@ namespace Cube
 				auto data = updateData.chunkData;
 				auto& mesh = updateData.mesh;
 				using namespace Render;
-				data->mesh.vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), mesh.mVtxBuffer.size(), BCF_DefalutValue, (void*)mesh.mVtxBuffer.data());
-				data->mesh.indexBuffer = RHICreateIndexBuffer(mesh.mIndexBuffer.size(), true, BCF_DefalutValue, (void*)mesh.mIndexBuffer.data());
+				data->mesh.vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), mesh.mVertices.size(), BCF_DefalutValue, (void*)mesh.mVertices.data());
+				data->mesh.indexBuffer = RHICreateIndexBuffer(mesh.mIndices.size(), true, BCF_DefalutValue, (void*)mesh.mIndices.data());
 
 				data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
 				data->state = ChunkRenderData::eMesh;
@@ -227,7 +228,10 @@ namespace Cube
 				renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
 				renderer.mBlockAccess = const_cast<NeighborChunkAccess*>(&chunkAccess);
 				chunk->render(renderer);
-
+				{
+					TIME_SCOPE(mMergeTimeAcc);
+					updateData.mesh.merge();
+				}
 				{
 					Mutex::Locker locker(mMutexPedingAdd);
 					mPendingAddList.push_back(std::move(updateData));
@@ -236,6 +240,8 @@ namespace Cube
 		);
 	}
 
+
+	double GTriTime = 0.0;
 	struct RnederContext
 	{
 
@@ -346,9 +352,10 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos( bx , by );
-		int viewDist = 100;
+		int viewDist = 10;
 
 		int chunkRenderCount = 0;
+		int triangleCount = 0;
 
 		auto ProcessChunk = [&](ChunkPos chunkPos)
 		{
@@ -391,32 +398,41 @@ namespace Cube
 			if (visibilityType == 0)
 				return;
 
+
+			auto& meshData = data->mesh;
 			context.stack.push();
 			context.stack.translate(data->posOffset);
 			context.setupShader(commandList);
-			TRenderRT<RTVF_XYZ_CA8>::DrawIndexed(commandList, EPrimitive::TriangleList, *data->mesh.vertexBuffer, *data->mesh.indexBuffer, data->mesh.indexBuffer->getNumElements());
+			{
+				PROFILE_ENTRY("Draw Call");
+				TRenderRT<RTVF_XYZ_CA8 | RTVF_N >::DrawIndexed(commandList, EPrimitive::TriangleList, *meshData.vertexBuffer, *meshData.indexBuffer, meshData.indexBuffer->getNumElements());
+			}
 			context.stack.pop();
 
-
+			triangleCount += meshData.indexBuffer->getNumElements() / 3;
 			++chunkRenderCount;
 		};
 
-		ProcessChunk(cPos);
-
-		for( int n = 1 ; n <= viewDist ; ++n )
 		{
-			for (int i = -(n - 1); i <= (n - 1); ++i)
-			{
-				ProcessChunk(cPos + Vec2i(i, n));
-				ProcessChunk(cPos + Vec2i(i, -n));
-				ProcessChunk(cPos + Vec2i(n, i));
-				ProcessChunk(cPos + Vec2i(-n, i));
-			}
+			PROFILE_ENTRY("Render Chunks");
 
-			ProcessChunk(cPos + Vec2i( n,  n));
-			ProcessChunk(cPos + Vec2i(-n,  n));
-			ProcessChunk(cPos + Vec2i( n, -n));
-			ProcessChunk(cPos + Vec2i(-n, -n));
+			ProcessChunk(cPos);
+
+			for (int n = 1; n <= viewDist; ++n)
+			{
+				for (int i = -(n - 1); i <= (n - 1); ++i)
+				{
+					ProcessChunk(cPos + Vec2i(i, n));
+					ProcessChunk(cPos + Vec2i(i, -n));
+					ProcessChunk(cPos + Vec2i(n, i));
+					ProcessChunk(cPos + Vec2i(-n, i));
+				}
+
+				ProcessChunk(cPos + Vec2i(n, n));
+				ProcessChunk(cPos + Vec2i(-n, n));
+				ProcessChunk(cPos + Vec2i(n, -n));
+				ProcessChunk(cPos + Vec2i(-n, -n));
+			}
 		}
 
 #if 1
@@ -452,9 +468,11 @@ namespace Cube
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
-		g.drawTextF(Vector2(10,10), "chunkRenderCount = %d", chunkRenderCount);
+		g.drawTextF(Vector2(10, 10), "chunkRenderCount = %d", chunkRenderCount);
+		g.drawTextF(Vector2(10, 20), "triangleCount = %d", triangleCount);
+		g.drawTextF(Vector2(10, 30), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
 		g.endRender();
-		//::LogMsg("chunkRenderCount = %d", chunkRenderCount);
+
 	}
 
 	void RenderEngine::beginRender()

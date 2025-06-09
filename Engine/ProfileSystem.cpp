@@ -705,12 +705,22 @@ TimeScope::TimeScope(char const* name, bool bUseStack)
 	Profile_GetTicks(&startTime);
 }
 
+TimeScope::TimeScope(double& varAcc)
+{
+	mAccTime = &varAcc;
+	Profile_GetTicks(&startTime);
+}
+
 TimeScope::~TimeScope()
 {
 	uint64 endTime;
 	Profile_GetTicks(&endTime);
 
-	if (mResult)
+	if (mAccTime)
+	{
+		*mAccTime += (endTime - startTime) / 1000.0;
+	}
+	else if (mResult)
 	{
 		mResult->duration = endTime - startTime;
 		auto& stack = GetResultStack();

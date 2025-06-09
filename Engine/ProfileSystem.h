@@ -203,6 +203,7 @@ public:
 struct TimeScopeResult;
 struct TimeScope
 {
+	TimeScope(double& varAcc);
 	TimeScope(char const* name , bool bUseStack = true);
 	~TimeScope();
 
@@ -210,12 +211,11 @@ private:
 	uint64 startTime;
 	CORE_API TArray< TimeScopeResult* >& GetResultStack();
 
+	double* mAccTime = nullptr;
 	char const* mName;
 	TimeScopeResult* mResult;
 };
 
-#define TIME_SCOPE( NAME , ... ) TimeScope ANONYMOUS_VARIABLE(timeScope)( NAME , ##__VA_ARGS__ );
-
-
+#define TIME_SCOPE(...) TimeScope ANONYMOUS_VARIABLE(timeScope)( ##__VA_ARGS__ );
 
 #endif // ProfileSystem_H_246AD834_B5C3_4C3C_B24C_D6ECCC926F75

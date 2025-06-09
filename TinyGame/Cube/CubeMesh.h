@@ -23,7 +23,7 @@ namespace Cube
 		Mesh();
 
 		void setVertexOffset( Vec3f const& offset ){ mVertexOffset = offset; }
-		int  getVertexNum(){ return (int)mVtxBuffer.size(); }
+		int  getVertexNum(){ return (int)mVertices.size(); }
 		void addVertex( Vec3f const& pos );
 		void addVertex( float x , float y , float z );
 		void setIndexBase( int index );
@@ -35,11 +35,15 @@ namespace Cube
 		{
 			mCurVertex.color = color;
 		}
+		void setNormal(Vec3f const& noraml)
+		{
+			mCurVertex.normal = noraml;
+		}
 
 		void clearBuffer()
 		{
-			mVtxBuffer.clear();
-			mIndexBuffer.clear();
+			mVertices.clear();
+			mIndices.clear();
 			bound.invalidate();
 		}
 
@@ -47,16 +51,31 @@ namespace Cube
 		{
 			Vec3f     pos;
 			Color4ub  color;
+			Vec3f     normal;
+
+			bool operator == (Vertex const& rhs) const
+			{
+				return pos == rhs.pos && /*color == rhs.color &&*/ normal == rhs.normal;
+			}
+
+			uint32 getTypeHash() const 
+			{
+				uint32 result = HashValues(pos.x, pos.y, pos.z, /*color.r, color.g, color.b, color.a ,*/ normal.x, normal.y , normal.z);
+				return result;
+			}
 		};
 
 		Math::TAABBox< Vec3f > bound;
 
-		TArray< Vertex > mVtxBuffer;
-		TArray< uint32 >  mIndexBuffer;
+		TArray< Vertex > mVertices;
+		TArray< uint32 > mIndices;
 
 		Vec3f   mVertexOffset;
 		int     mIndexBase;
 		Vertex  mCurVertex;
+
+
+		void merge();
 	};
 }
 #endif // CubeMesh_h__

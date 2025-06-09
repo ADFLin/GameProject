@@ -114,6 +114,10 @@ namespace Cube
 		ChunkDataMap  mChunkMap;
 		Render::PrimitivesCollection mDebugPrimitives;
 		float  mAspect;
+
+
+		double mMergeTimeAcc = 0;
+
 	};
 
 

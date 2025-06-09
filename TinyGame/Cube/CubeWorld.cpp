@@ -451,6 +451,8 @@ namespace Cube
 				float scale = 24.0f / (256.0f * 10);
 				float nH = mNoise.getValue(float(offset.x + i) * scale, float(offset.y + j) * scale);
 				int chunkHeight = Math::FloorToInt(height + 50 * nH);
+
+				//chunkHeight = height;
 				for (int k = 0; k < chunkHeight; ++k)
 				{
 					chunk.setBlockId(i, j, k, BLOCK_DIRT);

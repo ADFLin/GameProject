@@ -35,7 +35,6 @@ namespace Cube
 		Mesh& mesh = getMesh();
 
 		mesh.setColor(mDebugColor);
-
 		//mesh.setColor( 0 , 255 , 0 );
 
 		for (int face = 0; face < FaceSide::COUNT; ++face)

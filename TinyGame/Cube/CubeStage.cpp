@@ -11,7 +11,9 @@ namespace Cube
 	{
 		::Global::GUI().cleanupWidget();
 
-		mCamera.setPos( Vec3f( 0 , 0 , 80 ) );
+		int posX = 23 * ChunkSize;
+		int posY = -30 * ChunkSize;
+		mCamera.setPos( Vec3f(posX, posY, 80 ) );
 		mDebugCamera.setPos(Vec3f(0, 0, 80));
 
 		Level::InitializeData();

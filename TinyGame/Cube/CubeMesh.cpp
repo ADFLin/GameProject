@@ -96,9 +96,8 @@ namespace Cube
 		bool IsConvex(Vector3 const& p1, Vector3 const& p2, Vector3 const& p3)
 		{
 			Vector3 n = Math::Cross(p2 - p1, p3 - p1);
-			return Math::Dot(mNoraml, n) * mNormalFactor > 0;
+			return Math::Dot(mNoraml, n) > 0;
 		}
-
 
 		bool IsInside(Vector3 const& p1, Vector3 const& p2, Vector3 const& p3, Vector3 const& p)
 		{
@@ -257,7 +256,10 @@ namespace Cube
 
 
 	extern double GTriTime;
-
+	uint64 MakeKey(uint32 a, uint32 b)
+	{
+		return (uint64(a) << 32) | uint64(b);
+	}
 
 	void Mesh::merge()
 	{
@@ -275,10 +277,6 @@ namespace Cube
 		for (uint32 i = 0; i < mVertices.size(); ++i)
 		{
 			auto const& v = mVertices[i];
-			if (i == 67)
-			{
-				int aa = 1;
-			}
 			auto iter = vertexIdMap.find(v);
 			if (iter != vertexIdMap.end())
 			{
@@ -350,6 +348,8 @@ namespace Cube
 		};
 
 		std::unordered_map< uint64, int > edgePairMap;
+		edgePairMap.reserve(edges.size());
+
 		bool bHadMergeEdge = false;
 		auto TryMergeEdge = [&](int indexEdge)
 		{
@@ -368,7 +368,7 @@ namespace Cube
 			if (1 - Math::Abs(dot) > 1e-4 )
 				return false;
 
-			auto iter = edgePairMap.find((uint64(edge.verticeIds[1]) << 32) | uint64(edge.verticeIds[0]));
+			auto iter = edgePairMap.find(MakeKey(edge.verticeIds[1], edge.verticeIds[0]));
 			if (iter != edgePairMap.end())
 			{
 				edgePairMap.erase(iter);
@@ -389,17 +389,17 @@ namespace Cube
 			return true;
 		};
 
-		bool bHadRemoveEdge = false;
+
 		auto TryRemoveEdge = [&](int i, int j) -> bool
 		{
 			auto& ei = edges[i];
 			auto& ej = edges[j];
+
 			if (ej.links[0] == INDEX_NONE)
 				return false;
 
-			if (ei.verticeIds[0] != ej.verticeIds[1] ||
-				ei.verticeIds[1] != ej.verticeIds[0])
-				return false;
+			CHECK(ei.verticeIds[0] == ej.verticeIds[1] &&
+				  ei.verticeIds[1] == ej.verticeIds[0]);
 
 			ConnectLink(ei.links[0], ej.links[1]);
 			ConnectLink(ej.links[0], ei.links[1]);
@@ -416,49 +416,25 @@ namespace Cube
 
 			ei.links[0] = INDEX_NONE;
 			ej.links[0] = INDEX_NONE;
-			bHadRemoveEdge = true;
+
 			return true;
 		};
 
 
+		bool bHadRemoveEdge = false;
 		for (int i = 0; i < edges.size(); ++i)
 		{
 			if (edges[i].links[0] == INDEX_NONE)
 				continue;
 			
-			uint64 key = (uint64(edges[i].verticeIds[0]) << 32 )| uint64(edges[i].verticeIds[1]);
-
-			auto iter = edgePairMap.find(key);
-			if (iter != edgePairMap.end())
+			auto iter = edgePairMap.find(MakeKey(edges[i].verticeIds[0], edges[i].verticeIds[1]));
+			if (iter == edgePairMap.end() || !TryRemoveEdge(i , iter->second))
 			{
-				auto& ei = edges[i];
-				auto& ej = edges[iter->second];
-
-				CHECK(ej.links[0] != INDEX_NONE);
-
-				CHECK(ei.verticeIds[0] == ej.verticeIds[1] &&
-				   	ei.verticeIds[1] == ej.verticeIds[0]);
-
-				ConnectLink(ei.links[0], ej.links[1]);
-				ConnectLink(ej.links[0], ei.links[1]);
-
-#if 0
-				CheckVaild(ei.links[0]);
-				CheckVaild(ei.links[1]);
-				CheckVaild(ej.links[0]);
-				CheckVaild(ej.links[1]);
-#endif
-
-				TryMergeEdge(ei.links[0]);
-				TryMergeEdge(ej.links[0]);
-
-				ei.links[0] = INDEX_NONE;
-				ej.links[0] = INDEX_NONE;
-				bHadRemoveEdge = true;
+				edgePairMap[MakeKey(edges[i].verticeIds[1], edges[i].verticeIds[0])] = i;
 			}
 			else
 			{
-				edgePairMap[(uint64(edges[i].verticeIds[1]) << 32) | uint64(edges[i].verticeIds[0]) ] = i;
+				bHadRemoveEdge = true;
 			}
 		}
 
@@ -472,59 +448,18 @@ namespace Cube
 
 			for (int i = 0; i < edges.size(); ++i)
 			{
-				if (edges[i].links[0] == INDEX_NONE || edges[i].bNeedCheck == false)
+				if (edges[i].bNeedCheck == false)
+					continue;
+				edges[i].bNeedCheck = false;
+
+				if (edges[i].links[0] == INDEX_NONE)
 					continue;
 
-				edges[i].bNeedCheck = false;
-#if 1
-				uint64 key = (uint64(edges[i].verticeIds[0]) << 32) | uint64(edges[i].verticeIds[1]);
-
-				auto iter = edgePairMap.find(key);
-				if (iter != edgePairMap.end())
+				auto iter = edgePairMap.find(MakeKey(edges[i].verticeIds[0], edges[i].verticeIds[1]));
+				if (iter == edgePairMap.end() || !TryRemoveEdge(i, iter->second))
 				{
-					auto& ei = edges[i];
-					auto& ej = edges[iter->second];
-					if (ej.links[0] == INDEX_NONE)
-					{
-						edgePairMap[(uint64(edges[i].verticeIds[1]) << 32) | uint64(edges[i].verticeIds[0])] = i;
-						continue;
-					}
-
-					CHECK(ej.links[0] != INDEX_NONE);
-
-					CHECK(ei.verticeIds[0] == ej.verticeIds[1] &&
-						  ei.verticeIds[1] == ej.verticeIds[0]);
-
-					ConnectLink(ei.links[0], ej.links[1]);
-					ConnectLink(ej.links[0], ei.links[1]);
-
-#if 0
-					CheckVaild(ei.links[0]);
-					CheckVaild(ei.links[1]);
-					CheckVaild(ej.links[0]);
-					CheckVaild(ej.links[1]);
-#endif
-
-					TryMergeEdge(ei.links[0]);
-					TryMergeEdge(ej.links[0]);
-
-					ei.links[0] = INDEX_NONE;
-					ej.links[0] = INDEX_NONE;
-					bHadRemoveEdge = true;
+					edgePairMap[MakeKey(edges[i].verticeIds[1], edges[i].verticeIds[0])] = i;
 				}
-				else
-				{
-					edgePairMap[(uint64(edges[i].verticeIds[1]) << 32) | uint64(edges[i].verticeIds[0])] = i;
-				}
-#else
-				for (int j = 0; j < edges.size(); ++j)
-				{
-					if (i == j)
-						continue;
-					if (TryRemoveEdge(i, j))
-						break;;
-				}
-#endif
 			}
 		}
 
@@ -541,7 +476,6 @@ namespace Cube
 
 			TriangulateAlgorithm algo;
 			algo.mNoraml = mVertices[edges[i].verticeIds[0]].normal;
-			algo.mNormalFactor = 1.0f;
 			do
 			{	auto& edge = edges[indexEdge];
 
@@ -551,7 +485,9 @@ namespace Cube
 				indexEdge = edge.links[1];
 			}
 			while( indexEdge != i);
+
 			{
+				TIME_SCOPE(GTriTime);
 				algo.run(count, (uint8*)(verticesNew.data()), sizeof(Vertex), indicesNew, indexOffset, nullptr);
 			}
 		}

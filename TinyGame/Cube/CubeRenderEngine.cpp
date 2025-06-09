@@ -1,7 +1,7 @@
 #include "CubePCH.h"
 #include "CubeRenderEngine.h"
 
-#include "CubeBlockRenderer.h"
+#include "CubeBlockRender.h"
 
 #include "CubeWorld.h"
 
@@ -352,7 +352,7 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos( bx , by );
-		int viewDist = 10;
+		int viewDist = 96;
 
 		int chunkRenderCount = 0;
 		int triangleCount = 0;
@@ -441,19 +441,9 @@ namespace Cube
 		if ( id )
 		{
 			context.stack.push();
-			context.stack.translate(Vector3(info.x, info.y, info.z) + 0.1 * Vec3f(GetFaceOffset(info.face)));
-
-			static Vector3 FaceVertexMap[FaceSide::COUNT][4] =
-			{
-				{ Vector3(1 , 0 , 0), Vector3(1 , 1 , 0), Vector3(1 , 1 , 1), Vector3(1 , 0 , 1) },
-				{ Vector3(0 , 0 , 0), Vector3(0 , 1 , 0), Vector3(0 , 1 , 1), Vector3(0 , 0 , 1) },
-				{ Vector3(0 , 1 , 0), Vector3(1 , 1 , 0), Vector3(1 , 1 , 1), Vector3(0 , 1 , 1) },
-				{ Vector3(0 , 0 , 0), Vector3(1 , 0 , 0), Vector3(1 , 0 , 1), Vector3(0 , 0 , 1) },
-				{ Vector3(0 , 0 , 1), Vector3(1 , 0 , 1), Vector3(1 , 1 , 1), Vector3(0 , 1 , 1) },
-				{ Vector3(0 , 0 , 0), Vector3(1 , 0 , 0), Vector3(1 , 1 , 0), Vector3(0 , 1 , 0) },
-			};
+			context.stack.translate(Vector3(info.x, info.y, info.z) + 0.1 * GetFaceNoraml(info.face));
 			context.setupShader(commandList, LinearColor(1,1,1,1));
-			TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineLoop, FaceVertexMap[info.face], 4);
+			TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineLoop, GetFaceVertices(info.face), 4);
 			context.stack.pop();
 		}
 #endif

@@ -27,13 +27,13 @@ public:
 
 	struct PatternDesc
 	{
-		std::string regexText;
-		std::regex  regex;
+		char const* regexText;
 		int indexCode;
 		int indexNumber;
 		int indexPartNumber;
 		int indexFormat;
 		int indexFileFormat;
+		//std::regex  regex;
 	};
 
 
@@ -77,6 +77,7 @@ public:
 			}
 		}
 
+#if 0
 		{
 			TArray<char const*> patterns;
 			::Global::GameConfig().getStringValues("Pattern", CONFIG_SECTION, patterns);
@@ -125,6 +126,7 @@ public:
 			}
 
 		}
+#endif
 		frame->addButton("Conv Path", [this](int event, GWidget*)
 		{
 			char const* dirPath = ::Global::GameConfig().getStringValue("Dir", CONFIG_SECTION, "");
@@ -490,7 +492,7 @@ public:
 	}
 
 	TArray<PatternDesc> mPatternList;
-#if 0
+#if 1
 	static constexpr PatternDesc PatternList[] =
 	{
 		{ CODE_STRING(([\w]+)-([\d]+).([\w]+)$), 0 , 1 , INDEX_NONE, INDEX_NONE, 3 },
@@ -503,10 +505,11 @@ public:
 
 	bool parseFileName(std::string const& dirPath, std::string const& fileName, FileDesc& outDesc)
 	{
-		for (auto const& pattern : mPatternList)
+		for (auto const& pattern : PatternList)
 		{
 			std::smatch matches;
-			if (!std::regex_search(fileName, matches, pattern.regex, std::regex_constants::match_continuous))
+			std::regex  regex(pattern.regexText);
+			if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
 				continue;
 
 			std::string code = matches[pattern.indexCode + 1].str();

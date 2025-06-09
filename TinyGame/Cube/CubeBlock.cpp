@@ -1,7 +1,7 @@
 #include "CubePCH.h"
 #include "CubeBlock.h"
 
-#include "CubeBlockRenderer.h"
+#include "CubeBlockRender.h"
 #include "CubeBlockType.h"
 #include "CubeWorld.h"
 

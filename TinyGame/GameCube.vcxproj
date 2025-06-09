@@ -187,7 +187,7 @@
   <ItemGroup>
     <ClInclude Include="Cube\CubeBase.h" />
     <ClInclude Include="Cube\CubeBlock.h" />
-    <ClInclude Include="Cube\CubeBlockRenderer.h" />
+    <ClInclude Include="Cube\CubeBlockRender.h" />
     <ClInclude Include="Cube\CubeBlockType.h" />
     <ClInclude Include="Cube\CubeEntity.h" />
     <ClInclude Include="Cube\CubeGame.h" />
@@ -203,7 +203,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cube\CubeBlock.cpp" />
-    <ClCompile Include="Cube\CubeBlockRenderer.cpp" />
+    <ClCompile Include="Cube\CubeBlockRender.cpp" />
     <ClCompile Include="Cube\CubeGame.cpp" />
     <ClCompile Include="Cube\CubeLevel.cpp" />
     <ClCompile Include="Cube\CubeMesh.cpp" />

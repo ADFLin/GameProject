@@ -1,5 +1,6 @@
-#ifndef CubeBlockRenderer_h__
-#define CubeBlockRenderer_h__
+#pragma once
+#ifndef CubeBlockRender_H_40E60BB2_467B_44A1_98F1_D8076A6291FA
+#define CubeBlockRender_H_40E60BB2_467B_44A1_98F1_D8076A6291FA
 
 #include "CubeBase.h"
 #include "Core/Color.h"
@@ -16,9 +17,6 @@ namespace Cube
 		void     drawUnknown( unsigned faceMask  );
 		void     setBasePos( Vec3i const& pos ){ mBasePos = pos; }
 		Mesh&    getMesh(){ return *mMesh; }
-		IBlockAccess* replaceBlockAccess( IBlockAccess& blockAccess );
-
-
 
 		Color4ub      mDebugColor;
 		Vec3i         mBasePos;
@@ -28,4 +26,4 @@ namespace Cube
 
 }//namespace Cube
 
-#endif // CubeBlockRenderer_h__
+#endif // CubeBlockRender_H_40E60BB2_467B_44A1_98F1_D8076A6291FA

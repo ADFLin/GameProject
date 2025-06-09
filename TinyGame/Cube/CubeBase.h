@@ -61,7 +61,24 @@ namespace Cube
 
 		return OffsetMap[face];
 	}
+	FORCEINLINE Vec3f const* GetFaceVertices(FaceSide face)
+	{
+		static Vec3f constexpr FaceVertexMap[FaceSide::COUNT][4] =
+		{
+			{ Vec3f(1 , 0 , 0), Vec3f(1 , 1 , 0), Vec3f(1 , 1 , 1), Vec3f(1 , 0 , 1) },
+			{ Vec3f(0 , 0 , 0), Vec3f(0 , 1 , 0), Vec3f(0 , 1 , 1), Vec3f(0 , 0 , 1) },
+			{ Vec3f(0 , 1 , 0), Vec3f(1 , 1 , 0), Vec3f(1 , 1 , 1), Vec3f(0 , 1 , 1) },
+			{ Vec3f(0 , 0 , 0), Vec3f(1 , 0 , 0), Vec3f(1 , 0 , 1), Vec3f(0 , 0 , 1) },
+			{ Vec3f(0 , 0 , 1), Vec3f(1 , 0 , 1), Vec3f(1 , 1 , 1), Vec3f(0 , 1 , 1) },
+			{ Vec3f(0 , 0 , 0), Vec3f(1 , 0 , 0), Vec3f(1 , 1 , 0), Vec3f(0 , 1 , 0) },
+		};
+		return FaceVertexMap[face];
+	}
 
+	FORCEINLINE Vec3f const& GetFaceNoraml(FaceSide face)
+	{
+		return Vec3f(GetFaceOffset(face));
+	}
 }//namespace Cube
 
 #endif // CubeBase_h__

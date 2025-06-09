@@ -5,7 +5,7 @@
 #include "CubeRandom.h"
 #include "CubeBlockType.h"
 
-#include "CubeBlockRenderer.h"
+#include "CubeBlockRender.h"
 #include "IWorldEventListener.h"
 
 #include <algorithm>

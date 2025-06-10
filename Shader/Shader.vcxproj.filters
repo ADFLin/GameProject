@@ -251,6 +251,9 @@
     <None Include="..\TinyGame\out\Shader\Game\MultiViewOnePass.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\CubeBlockRender.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

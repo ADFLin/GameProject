@@ -28,4 +28,10 @@ namespace Cube
 		return true;
 	}
 
+	void TestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+	{
+		systemConfigs.screenWidth = 1280;
+		systemConfigs.screenHeight = 800;
+	}
+
 }//namespace Cube

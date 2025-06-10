@@ -171,6 +171,7 @@
     <None Include="..\TinyGame\out\Shader\Game\BumpMapTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Chess.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\ClipCoord.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\CubeBlockRender.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\EnvLightingTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\FS.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Grass.sgc" />

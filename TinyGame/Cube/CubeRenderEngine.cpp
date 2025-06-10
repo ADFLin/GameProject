@@ -21,10 +21,40 @@
 #include "Renderer/SceneView.h"
 #include "RHI/RHIGraphics2D.h"
 #include "ProfileSystem.h"
+#include "RHI/ShaderManager.h"
 
 namespace Cube
 {
 	using namespace Render;
+
+	class BlockRenderShaderProgram : public GlobalShaderProgram
+	{
+	public:
+		DECLARE_SHADER_PROGRAM(BlockRenderShaderProgram, Global);
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/CubeBlockRender";
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+		}
+
+		//DEFINE_SHADER_PARAM(VertexTransform);
+	};
+
+
+	IMPLEMENT_SHADER_PROGRAM(BlockRenderShaderProgram);
 
 	RenderEngine::RenderEngine( int w , int h )
 	{
@@ -40,6 +70,8 @@ namespace Cube
 		mGereatePool->init(1);
 
 		mDebugPrimitives.initializeRHI();
+		mProgBlockRender = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >();
+		
 	}
 
 	RenderEngine::~RenderEngine()
@@ -240,6 +272,8 @@ namespace Cube
 		);
 	}
 
+	ACCESS_SHADER_MEMBER_PARAM(LocalToWorld);
+	ACCESS_SHADER_MEMBER_PARAM(WorldToClip);
 
 	double GTriTime = 0.0;
 	struct RnederContext
@@ -247,6 +281,14 @@ namespace Cube
 
 		Matrix4 worldToClip;
 		TransformStack stack;
+
+
+		template< typename TShader >
+		void setupShader(RHICommandList& commandList, TShader& shader)
+		{
+			SET_SHADER_PARAM_VALUE(commandList, shader, LocalToWorld, stack.get());
+			SET_SHADER_PARAM_VALUE(commandList, shader, WorldToClip, worldToClip);
+		}
 
 		void setupShader(RHICommandList& commandList, LinearColor const& color = LinearColor(1,1,1,1))
 		{
@@ -287,15 +329,14 @@ namespace Cube
 
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Back , EFillMode::Wireframe >::GetRHI());
-
+		RHISetRasterizerState(commandList, GetStaticRasterizerState(ECullMode::Back, /*bWireframeMode ? EFillMode::Wireframe :*/ EFillMode::Solid));
 
 		Vec3f camPos = camera.getPos();
 		Vec3f viewPos = camPos + camera.getViewDir();
 		Vec3f upDir = camera.getUpDir();
 
 		ICamera* cameraRender = mDebugCamera ? mDebugCamera : &camera;
-		Matrix4 projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 1000);
+		Matrix4 projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 2000);
 		Matrix4 worldToView = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
 		Matrix4 worldToClip = worldToView * projectMatrix;
 
@@ -402,7 +443,7 @@ namespace Cube
 			auto& meshData = data->mesh;
 			context.stack.push();
 			context.stack.translate(data->posOffset);
-			context.setupShader(commandList);
+			context.setupShader(commandList, *mProgBlockRender);
 			{
 				PROFILE_ENTRY("Draw Call");
 				TRenderRT<RTVF_XYZ_CA8 | RTVF_N >::DrawIndexed(commandList, EPrimitive::TriangleList, *meshData.vertexBuffer, *meshData.indexBuffer, meshData.indexBuffer->getNumElements());
@@ -415,6 +456,8 @@ namespace Cube
 
 		{
 			PROFILE_ENTRY("Render Chunks");
+
+			RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
 
 			ProcessChunk(cPos);
 

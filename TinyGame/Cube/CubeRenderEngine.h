@@ -115,9 +115,12 @@ namespace Cube
 		Render::PrimitivesCollection mDebugPrimitives;
 		float  mAspect;
 
+		class BlockRenderShaderProgram* mProgBlockRender;
 
+		bool bWireframeMode = false;
 		double mMergeTimeAcc = 0;
 
+		Render::RHITextureRef  mTexBlockAtlas;
 	};
 
 

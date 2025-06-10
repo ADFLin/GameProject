@@ -1,0 +1,49 @@
+#include "Common.sgc"
+
+struct VSOutputParameters
+{
+	float4 color MEMBER_OUT(TEXCOORD0);
+	float3 normal MEMBER_OUT(TEXCOORD1);
+	float3 worldPos MEMBER_OUT(TEXCOORD2);
+};
+
+#if VERTEX_SHADER
+
+uniform float4x4 LocalToWorld;
+uniform float4x4 WorldToClip;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNoraml, ATTRIBUTE_NORMAL)
+	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	float4 worldPos = mul( LocalToWorld, float4(InPos, 1.0));
+	float3 normal = mul(LocalToWorld, float4(InNoraml, 0.0)).xyz;
+	SvPosition = mul( WorldToClip , worldPos);
+	VSOutput.color = InColor;
+	VSOutput.normal = InNoraml;
+	VSOutput.worldPos = worldPos.xyz;
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+
+	float3 N = normalize(VSOutput.normal);
+	float3 L = normalize(float3(0.3,0.2,1.0));
+
+	float NoL = saturate(dot(N,L));
+	OutColor = float4(saturate(NoL + 0.2 ) * VSOutput.color.rgb, 1);
+
+	//OutColor = float4( 0.5 * N + 0.5 , 1.0);
+}
+
+#endif //PIXEL_SHADER

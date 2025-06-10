@@ -52,7 +52,8 @@ namespace Cube
 			Vec3f     pos;
 			Color4ub  color;
 			Vec3f     normal;
-
+			//Vec2f     uv;
+ 
 			bool operator == (Vertex const& rhs) const
 			{
 				return pos == rhs.pos && /*color == rhs.color &&*/ normal == rhs.normal;

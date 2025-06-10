@@ -121,6 +121,9 @@ namespace Cube
 			return ERenderSystem::D3D11;
 		}
 
+
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+
 	protected:
 		Camera mDebugCamera;
 		Camera mCamera;

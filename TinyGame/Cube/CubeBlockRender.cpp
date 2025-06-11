@@ -28,19 +28,34 @@ namespace Cube
 		}
 	}
 
+
+	static uint32 TexPosToMatId(uint32 x, uint32 y)
+	{
+		return x + 64 * y;
+	}
+
 	void BlockRenderer::drawUnknown(unsigned faceMask)
 	{
 		Mesh& mesh = getMesh();
 
 		setColor(mDebugColor);
 		//mesh.setColor( 0 , 255 , 0 );
+		static uint32 const materialIdMap[] =
+		{
+			TexPosToMatId(28,7),
+			TexPosToMatId(28,7),
+			TexPosToMatId(28,7),
+			TexPosToMatId(28,7),
+			TexPosToMatId(29,15),
+			TexPosToMatId(24,2),
+		};
 
 		for (int face = 0; face < FaceSide::COUNT; ++face)
 		{
 			if (faceMask & BIT(face))
 			{
 #if 1
-				addBlockFace(FaceSide(face), 0);
+				addBlockFace(FaceSide(face), materialIdMap[face]);
 #else
 				uint32 indexBase = mesh.getVertexNum();
 				setNormal(GetFaceNoraml(FaceSide(face)));
@@ -599,7 +614,8 @@ namespace Cube
 			dest.pos = src.pos;
 			dest.uv = Vec2f(faceUVVectorMap[src.face][0].dot(src.pos), faceUVVectorMap[src.face][1].dot(src.pos));
 			dest.normal = GetFaceNoraml(FaceSide(src.face));
-			dest.color = mDebugColor;
+			dest.color = Color4ub(255,255,255,255);
+			dest.meta = src.materialId;
 		}
 
 		int indexOffset = mMesh->mIndices.size();

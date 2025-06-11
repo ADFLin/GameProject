@@ -229,6 +229,14 @@ public:
 		drawText(pos, str.c_str());
 	}
 
+	template< typename CharT, typename ...Args >
+	void  drawTextF(Vector2 const& pos, Vector2 const& size, CharT const* format, Args&& ...args)
+	{
+		TInlineString< 512, CharT > str;
+		str.format(format, std::forward<Args>(args)...);
+		drawText(pos, size, str.c_str());
+	}
+
 	void commitRenderState();
 	void restoreRenderState();
 

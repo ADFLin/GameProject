@@ -128,7 +128,7 @@ namespace Cube
 		double mMergeTimeAcc = 0;
 
 		Render::RHIInputLayoutRef mBlockInputLayout;
-		Render::RHITextureRef  mTexBlockAtlas;
+		Render::RHITexture2DRef  mTexBlockAtlas;
 	};
 
 

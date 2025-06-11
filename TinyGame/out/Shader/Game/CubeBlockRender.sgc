@@ -9,7 +9,6 @@ struct VSOutputParameters
 	float2 uv MEMBER_OUT(TEXCOORD1);
 	float3 normal MEMBER_OUT(TEXCOORD2);
 	float3 worldPos MEMBER_OUT(TEXCOORD3);
-	uint2  
 };
 
 #if VERTEX_SHADER
@@ -22,9 +21,9 @@ VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 InNoraml, ATTRIBUTE_NORMAL)
 	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
 	VS_INPUT(float4 InUV, ATTRIBUTE_TEXCOORD)
-	VS_INPUT(uint32 InMeta, ATTRIBUTE_TEXCOORD2)
+	VS_INPUT(uint   InMeta, ATTRIBUTE_TEXCOORD2)
 	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
-	VS_OUTPUT(flat uint2 ouAtlasPos, ATTRIBUTE_TEXCOORD4)
+	VS_OUTPUT(flat uint2 OuAtlasPos, ATTRIBUTE_TEXCOORD4)
 VS_ENTRY_END(MainVS)
 {
 	float4 worldPos = mul( LocalToWorld, float4(InPos, 1.0));
@@ -35,8 +34,8 @@ VS_ENTRY_END(MainVS)
 	VSOutput.worldPos = worldPos.xyz;
 	VSOutput.uv = InUV;
 
-	ouAtlasPos.x = 29;
-	ouAtlasPos.y = 9;
+	OuAtlasPos.x = InMeta % 64;
+	OuAtlasPos.y = InMeta / 64;
 }
 
 #endif //VERTEX_SHADER
@@ -45,7 +44,7 @@ VS_ENTRY_END(MainVS)
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
-	PS_INPUT_STRUCT(flat uint2 inAtlasPos, ATTRIBUTE_TEXCOORD4)
+	PS_INPUT(flat uint2 InAtlasPos, ATTRIBUTE_TEXCOORD4)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
@@ -53,7 +52,7 @@ PS_ENTRY_END(MainPS)
 	float3 N = normalize(VSOutput.normal);
 	float3 L = normalize(float3(0.3,0.2,1.0));
 
-	float2 texUV = float2( (float(inAtlasPos.x) + frac(VSOutput.uv.x)) / 64.0 , (float(inAtlasPos.y) + frac(VSOutput.uv.y)) / 32.0 );
+	float2 texUV = float2( (float(InAtlasPos.x) + frac(VSOutput.uv.x)) / 64.0 , (float(InAtlasPos.y) + frac(VSOutput.uv.y)) / 32.0 );
 	float4 baseColor = TEXTURE_SAMPLE(BlockTexture, texUV);
 
 	float NoL = saturate(dot(N,L));

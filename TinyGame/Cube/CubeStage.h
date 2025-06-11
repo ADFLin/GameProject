@@ -55,6 +55,25 @@ namespace Cube
 			Vector2 crosschairSize = Vector2(5,5);
 			RenderUtility::SetBrush(g, EColor::Red);
 			g.drawRect( 0.5f * (screenSize - crosschairSize), crosschairSize);
+
+
+			if (bDrawBlockTexture)
+			{
+				RenderUtility::SetBrush(g, EColor::White);
+
+				Vector2 girdSize = Vector2(21, 21);
+				Vector2 pos = Vector2(21, 65);
+				Vector2 size = girdSize * Vector2(64, 32);
+				g.drawTexture(*mScene->mRenderEngine->mTexBlockAtlas, pos, size);
+				for (int i = 0; i < 32; ++i)
+				{
+					g.drawTextF(pos + i * Vector2(girdSize.x, 0) - Vector2(0, girdSize.y), girdSize, "%d", i);
+					g.drawTextF(pos + (i + 32) * Vector2(girdSize.x, 0) - Vector2(0, girdSize.y), girdSize, "%d", (i +32) );
+					g.drawTextF(pos + i * Vector2(0, girdSize.y) - Vector2(girdSize.x, 0), girdSize, "%d", i);
+				}
+			}
+
+
 			g.endRender();
 		}
 
@@ -62,6 +81,10 @@ namespace Cube
 		{
 
 		}
+
+
+		bool bDrawBlockTexture = false;
+
 
 		MsgReply onMouse( MouseMsg const& msg )
 		{
@@ -96,6 +119,7 @@ namespace Cube
 			{
 				switch (msg.getCode())
 				{
+				case EKeyCode::B: bDrawBlockTexture = !bDrawBlockTexture; break;
 				case EKeyCode::R: restart(); break;
 				case EKeyCode::W: cameraCtrl.moveFront(0.5); break;
 				case EKeyCode::S: cameraCtrl.moveFront(-0.5); break;

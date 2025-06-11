@@ -1608,6 +1608,7 @@ namespace Render
 	void D3D11Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		commitGraphicsShaderState();
+		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		if (numCommand > 1)
 		{
 			int cmdOffset = offset;
@@ -1628,7 +1629,6 @@ namespace Render
 		{
 			mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
 		}
-		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		postDrawPrimitive();
 	}
 

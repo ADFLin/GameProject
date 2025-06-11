@@ -14,6 +14,7 @@
 namespace Cube
 {
 	using Vec3f = ::Math::Vector3;
+	using Vec2f = ::Math::Vector2;
 	using Quat = ::Math::Quaternion;
 
 	using Vec3i = TVector3<int>;

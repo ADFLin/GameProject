@@ -377,33 +377,38 @@ namespace Cube
 
 	BlockId World::offsetBBoxBlockTest( Vec3f const& min , Vec3f const& max , Vec3f const& dir , float dist , BlockPosInfo* info )
 	{
-		unsigned faceBits = calcDirFaceBits( dir );
+		TArray< Vec3f > sampleRayTestList;
+
+		Vec3f boundSize = max - min;
+		Vec3f front;
+		Vec3f back;
+
+		for (int axis = 0; axis < 3; ++axis)
+		{
+			if (dir[axis] >= 0.0f)
+			{
+				front[axis] = max[axis];
+				back[axis] = min[axis];
+			}
+			else
+			{
+				back[axis] = max[axis];
+				front[axis] = min[axis];
+			}
+		}
 
 		for ( int axis = 0 ; axis < 3 ; ++axis )
 		{
 			FaceSide curFace;
 
-			float len = max[ axis ] - min[ axis ];
-			int num = 2 + Math::FloorToInt( len );
+			float len = boundSize[axis];
+			int num = 2 + Math::FloorToInt( len * dir.x );
 			float offset = len / ( num - 1 );
 
 			Vec3f const& pos = min;
 			for ( int i = 0 ; i < num ; ++i )
 			{
 				Vec3f const& pos = min;
-			}
-
-			if ( faceBits & getFaceSide( axis , false ) )
-			{
-
-
-
-			}
-			else if ( faceBits & getFaceSide( axis , true ) )
-			{
-
-
-
 			}
 		}
 

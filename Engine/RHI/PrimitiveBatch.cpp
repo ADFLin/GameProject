@@ -51,6 +51,14 @@ namespace Render
 		{
 			return "Shader/SimpleElement";
 		}
+
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BIND_SHADER_PARAM(parameterMap, VertexTransform);
+		}
+
+		DEFINE_SHADER_PARAM(VertexTransform);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(SimpleElementShaderProgram);
@@ -76,6 +84,8 @@ namespace Render
 		mVertexBuffer.release();
 	}
 
+	ACCESS_SHADER_MEMBER_PARAM(VertexTransform);
+
 	void SimpleElementRenderer::draw(RHICommandList& commandList, Matrix4 const& worldToClip, SimpleVertex* vertices, int numVertices)
 	{
 		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteDiscard);
@@ -86,7 +96,7 @@ namespace Render
 		RHIUnlockBuffer(mVertexBuffer);
 
 		RHISetShaderProgram(commandList, mProgram->getRHI());
-		mProgram->setParam(commandList, SHADER_PARAM(VertexTransform), worldToClip);
+		SET_SHADER_PARAM_VALUE(commandList, *mProgram, VertexTransform, worldToClip);
 
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;

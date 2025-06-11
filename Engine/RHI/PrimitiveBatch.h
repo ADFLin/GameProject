@@ -78,7 +78,7 @@ namespace Render
 		void releaseRHI();
 		void draw(RHICommandList& commandList, Matrix4 const& worldToClip, SimpleVertex* vertices, int numVertices);
 
-		ShaderProgram*     mProgram = nullptr;
+		class SimpleElementShaderProgram* mProgram = nullptr;
 		RHIInputLayoutRef  mInputLayout;
 		RHIBufferRef       mVertexBuffer;
 	};

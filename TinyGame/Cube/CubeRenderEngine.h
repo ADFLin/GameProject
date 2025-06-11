@@ -8,9 +8,9 @@
 #include "IWorldEventListener.h"
 #include "RHI/PrimitiveBatch.h"
 #include "Async/AsyncWork.h"
+#include "Math/GeometryPrimitive.h"
 
 #include <unordered_map>
-
 
 
 namespace Cube
@@ -40,6 +40,12 @@ namespace Cube
 		Texture2D* createTexture( int w , int h , void* data );
 	};
 
+	struct MeshRenderData
+	{
+		Render::RHIBufferRef vertexBuffer;
+		Render::RHIBufferRef indexBuffer;
+	};
+
 	struct ChunkRenderData
 	{
 		enum EState
@@ -55,7 +61,7 @@ namespace Cube
 		Chunk*   chunk;
 		Math::TAABBox< Vec3f > bound;
 		Vec3f    posOffset;
-		MeshData mesh;
+		MeshRenderData mesh;
 	};
 
 	class RenderEngine : public IWorldEventListener , public IChunkEventListener
@@ -99,6 +105,7 @@ namespace Cube
 		{
 			Mesh mesh;
 			ChunkRenderData* chunkData;
+			Math::TAABBox<Vec3f> bound;
 		};
 	public:
 		ICamera* mDebugCamera = nullptr;
@@ -120,6 +127,7 @@ namespace Cube
 		bool bWireframeMode = false;
 		double mMergeTimeAcc = 0;
 
+		Render::RHIInputLayoutRef mBlockInputLayout;
 		Render::RHITextureRef  mTexBlockAtlas;
 	};
 

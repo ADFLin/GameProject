@@ -22,6 +22,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "ProfileSystem.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/RHIUtility.h"
 
 namespace Cube
 {
@@ -48,7 +49,10 @@ namespace Cube
 
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
+			BIND_TEXTURE_PARAM(parameterMap, BlockTexture);
 		}
+
+		DEFINE_TEXTURE_PARAM(BlockTexture);
 
 		//DEFINE_SHADER_PARAM(VertexTransform);
 	};
@@ -71,7 +75,16 @@ namespace Cube
 
 		mDebugPrimitives.initializeRHI();
 		mProgBlockRender = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >();
-		
+
+		mTexBlockAtlas = RHIUtility::LoadTexture2DFromFile("Cube/blocks.png");
+
+		InputLayoutDesc desc;
+		desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::UByte4, true);
+		desc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD2, EVertex::UInt1);
+		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		mBlockInputLayout = RHICreateInputLayout(desc);
 	}
 
 	RenderEngine::~RenderEngine()
@@ -105,7 +118,7 @@ namespace Cube
 
 				data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
 				data->state = ChunkRenderData::eMesh;
-				data->bound = mesh.bound;
+				data->bound = updateData.bound;
 				data->bound.translate(data->posOffset);
 
 			}
@@ -254,6 +267,7 @@ namespace Cube
 
 				UpdatedRenderData updateData;
 				updateData.chunkData = data;
+
 				renderer.mMesh = &updateData.mesh;
 
 
@@ -262,8 +276,9 @@ namespace Cube
 				chunk->render(renderer);
 				{
 					TIME_SCOPE(mMergeTimeAcc);
-					updateData.mesh.merge();
+					renderer.finalizeMesh();
 				}
+				updateData.bound = renderer.bound;
 				{
 					Mutex::Locker locker(mMutexPedingAdd);
 					mPendingAddList.push_back(std::move(updateData));
@@ -288,6 +303,7 @@ namespace Cube
 		{
 			SET_SHADER_PARAM_VALUE(commandList, shader, LocalToWorld, stack.get());
 			SET_SHADER_PARAM_VALUE(commandList, shader, WorldToClip, worldToClip);
+			
 		}
 
 		void setupShader(RHICommandList& commandList, LinearColor const& color = LinearColor(1,1,1,1))
@@ -444,9 +460,17 @@ namespace Cube
 			context.stack.push();
 			context.stack.translate(data->posOffset);
 			context.setupShader(commandList, *mProgBlockRender);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI() );
 			{
 				PROFILE_ENTRY("Draw Call");
-				TRenderRT<RTVF_XYZ_CA8 | RTVF_N >::DrawIndexed(commandList, EPrimitive::TriangleList, *meshData.vertexBuffer, *meshData.indexBuffer, meshData.indexBuffer->getNumElements());
+				InputStreamInfo inputstream;
+				inputstream.buffer = meshData.vertexBuffer;
+				inputstream.offset = 0;
+				inputstream.stride = meshData.vertexBuffer->getElementSize();
+				RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1 );
+				RHISetIndexBuffer(commandList, meshData.indexBuffer);
+				RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0 , meshData.indexBuffer->getNumElements(), 0);
+
 			}
 			context.stack.pop();
 

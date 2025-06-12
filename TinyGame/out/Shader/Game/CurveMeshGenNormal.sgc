@@ -39,13 +39,16 @@ DEFINE_STRUCTURED_BUFFER(float, VertexOutput);
 DEFINE_STRUCTURED_BUFFER(uint, VertexOutput);
 void UpdateValue(uint index, float Add)
 {
+	uint oldValue = VertexOutput[index];
 	for (;;)
 	{
-		uint oldValue = VertexOutput[index];
 		uint newValue = asuint(asfloat(oldValue) + Add);
-		uint value = atomicCompSwap(VertexOutput[index], oldValue, newValue);
+		uint value;
+		InterlockedCompareExchange(VertexOutput[index], oldValue, newValue, value);
 		if (value == oldValue)
 			break;
+
+		oldValue = value;
 	}
 }
 #endif
@@ -77,13 +80,13 @@ void WriteNormal(uint vertexId, float3 N)
 
 float3 CalcNormal(uint triangleId)
 {
-	uint v0 = TriangleIndices[3 * triangleId + 0];
-	uint v1 = TriangleIndices[3 * triangleId + 1];
-	uint v2 = TriangleIndices[3 * triangleId + 2];
+	uint i0 = TriangleIndices[3 * triangleId + 0];
+	uint i1 = TriangleIndices[3 * triangleId + 1];
+	uint i2 = TriangleIndices[3 * triangleId + 2];
 
-	float3 p0 = ReadPosition(v0);
-	float3 p1 = ReadPosition(v1);
-	float3 p2 = ReadPosition(v2);
+	float3 p0 = ReadPosition(i0);
+	float3 p1 = ReadPosition(i1);
+	float3 p2 = ReadPosition(i2);
 
 	return normalize(cross(p1 - p0, p2 - p0));
 }
@@ -121,12 +124,12 @@ CS_ENTRY(MainCS)
 
 	float3 N = CalcNormal(triangleId);
 
-	uint v0 = TriangleIndices[3 * triangleId + 0];
-	uint v1 = TriangleIndices[3 * triangleId + 1];
-	uint v2 = TriangleIndices[3 * triangleId + 2];
-	WriteNormal(v0, N);
-	WriteNormal(v1, N);
-	WriteNormal(v2, N);
+	uint i0 = TriangleIndices[3 * triangleId + 0];
+	uint i1 = TriangleIndices[3 * triangleId + 1];
+	uint i2 = TriangleIndices[3 * triangleId + 2];
+	WriteNormal(i0, N);
+	WriteNormal(i1, N);
+	WriteNormal(i2, N);
 #endif
 }
 

@@ -150,6 +150,8 @@ void GroupMemoryBarrierWithGroupSync();
 	
 #endif //GEOMETRY_SHADER
 
+#define TEXTURE_SAMPLER_NAME( NAME ) NAME##Sampler
+
 #if COMPUTE_SHADER
 
 #define CS_NUM_THREADS(X,Y,Z) [numthreads(X,Y,Z)]
@@ -162,24 +164,25 @@ void GroupMemoryBarrierWithGroupSync();
 
 
 #define TEXTURE_SAMPLE( NAME , UV )\
-	NAME.SampleLevel(NAME##Sampler, UV, 0)
+	NAME.SampleLevel(TEXTURE_SAMPLER_NAME(NAME), UV, 0)
 
 #else //COMPUTE_SHADER
 
 #define TEXTURE_SAMPLE( NAME , UV )\
-	NAME.Sample(NAME##Sampler, UV)
+	NAME.Sample(TEXTURE_SAMPLER_NAME(NAME), UV)
 
 #endif //COMPUTE_SHADER
 
 #define DEFINE_STRUCTURED_BUFFER( TYPE , NAME ) StructuredBuffer< TYPE > NAME
 
+
 #define DEFINE_TEXTURE( TYPE , NAME )\
 	 uniform TYPE NAME;\
-	 uniform SamplerState NAME##Sampler;
+	 uniform SamplerState TEXTURE_SAMPLER_NAME(NAME);
 
 
 #define TEXTURE_SAMPLE_LEVEL( NAME , UV , LOD )\
-	NAME.SampleLevel(NAME##Sampler, UV , LOD )
+	NAME.SampleLevel(TEXTURE_SAMPLER_NAME(NAME), UV , LOD )
 
 float4 TextureLoad(Texture1D inTexture, int UV, int LOD)
 {

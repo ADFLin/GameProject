@@ -12,7 +12,8 @@
 #define DEFERRED_SHADING_USE_BOUND_SHAPE 0
 #endif
 
-#define USE_SHADOW (COMPILER_HLSL == 0)
+#define USE_SHADOW 1 
+//(COMPILER_HLSL == 0)
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 
@@ -181,7 +182,7 @@ PS_ENTRY_START(LightingPassPS)
 
 	OutColor = float4(lighting, 1);
 	float d = GBuffer.sceneDepth / 1000;
-	OutColor = float4(d, d, d, 1);
+	//OutColor = float4(d, d, d, 1);
 }
 
 #endif

@@ -355,6 +355,20 @@ float4 mul(float4 a, float4x4 b) { return a * b; }
 float3 mul(float3 a, float3x3 b) { return a * b; }
 float2 mul(float2 a, float2x2 b) { return a * b; }
 
+#define InterlockedCompareExchange(dest, compare_value, value, original_value)\
+	original_value = atomicCompSwap(dest, compare_value, value)
+
+#define InterlockedExchange(dest, value, original_value)\
+	original_value = atomicExchange(dest, value)
+
+#define InterlockedCompareStore atomicCompSwap
+#define InterlockedAdd atomicAdd
+#define InterlockedAnd atomicAnd
+#define InterlockedOr atomicOr
+#define InterlockedXor atomicXor
+#define InterlockedMax atomicMax
+#define InterlockedMin atomicMin
+
 #if !SHADER_COMPILING
 
 //BUILT-IN CONSTANTS (7.4 p44) 

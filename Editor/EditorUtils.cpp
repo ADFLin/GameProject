@@ -87,8 +87,17 @@ ImTextureID FImGui::IconTextureID()
 
 ImTextureID FImGui::GetTextureID(Render::RHITexture2D& texture)
 {
-	auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
-	return resViewImpl->getResource();
+	if (GRHISystem->getName() == RHISystemName::D3D11)
+	{
+		auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
+		return resViewImpl->getResource();
+	}
+	else if (GRHISystem->getName() == RHISystemName::OpenGL)
+	{
+		return ImTextureID(static_cast<OpenGLTexture2D&>(texture).getHandle());
+	}
+
+	return ImTextureID(0);
 }
 
 bool FImGui::Splitter(char const* pid ,bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size /*= -1.0f*/)
@@ -117,8 +126,11 @@ struct BlendState
 static void DisableBlendCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 {
 	CHECK(!GBlendState.bDisabled);
-	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMGetBlendState(&GBlendState.resurce, GBlendState.factor, &GBlendState.mask);
-	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(nullptr, Vector4(0, 0, 0, 0), 0xffffffff);
+	if (GRHISystem->getName() == RHISystemName::D3D11)
+	{
+		static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMGetBlendState(&GBlendState.resurce, GBlendState.factor, &GBlendState.mask);
+		static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(nullptr, Vector4(0, 0, 0, 0), 0xffffffff);
+	}
 
 	GBlendState.bDisabled = true;
 }
@@ -127,7 +139,11 @@ static void DisableBlendCallback(const ImDrawList* parent_list, const ImDrawCmd*
 static void RestoreBlendCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 {
 	CHECK(GBlendState.bDisabled);
-	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(GBlendState.resurce, GBlendState.factor, GBlendState.mask);
+
+	if (GRHISystem->getName() == RHISystemName::D3D11)
+	{
+		static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(GBlendState.resurce, GBlendState.factor, GBlendState.mask);
+	}
 
 	GBlendState.resurce.reset();
 	GBlendState.bDisabled = false;

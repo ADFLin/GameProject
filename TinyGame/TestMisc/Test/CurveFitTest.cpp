@@ -419,7 +419,7 @@ public:
 			{
 				Vec2i screenSize = ::Global::GetScreenSize();
 				RHISetViewport(commandList, renderPos.x, screenSize.y - (renderPos.y + renderSize.y), renderSize.x, renderSize.y);
-				Matrix4 matProj = AdjProjectionMatrixForRHI(OrthoMatrix(min.x - border.x, max.x + border.x, min.y - border.y, max.y + border.y, -1, 1));
+				Matrix4 matProj = AdjustProjectionMatrixForRHI(OrthoMatrix(min.x - border.x, max.x + border.x, min.y - border.y, max.y + border.y, -1, 1));
 				RHISetFixedShaderPipelineState(commandList, matProj);
 			}
 

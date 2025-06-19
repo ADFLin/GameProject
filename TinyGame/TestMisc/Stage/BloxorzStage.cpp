@@ -568,7 +568,7 @@ namespace Bloxorz
 		}
 		else
 		{
-			mStack.set(AdjProjectionMatrixForRHI(projectionMatrix));
+			mStack.set(AdjustProjectionMatrixForRHI(projectionMatrix));
 			mStack.transform(viewMatrix);
 		}
 

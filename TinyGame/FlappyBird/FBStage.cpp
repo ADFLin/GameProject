@@ -645,7 +645,7 @@ namespace FlappyBird
 		Vec2i screenSize = ::Global::GetScreenSize();
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-		mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1));
+		mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1));
 
 		if ( mbDebugDraw )
 		{

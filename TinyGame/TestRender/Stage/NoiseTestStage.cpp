@@ -713,7 +713,7 @@ namespace Render
 		{
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
+			Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
 		}
 	}

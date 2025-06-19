@@ -307,19 +307,6 @@ namespace Render
 				0, 1, 0, 0,
 				0, 0, 0.5, 0,
 				0, 0, 0.5, 1);
-			Vector3 CubeFaceDir[] =
-			{
-				Vector3(1,0,0),Vector3(-1,0,0),
-				Vector3(0,1,0),Vector3(0,-1,0),
-				Vector3(0,0,1),Vector3(0,0,-1),
-			};
-
-			Vector3 CubeUpDir[] =
-			{
-				Vector3(0,-1,0),Vector3(0,-1,0),
-				Vector3(0,0,1),Vector3(0,0,-1),
-				Vector3(0,-1,0),Vector3(0,-1,0),
-			};
 
 			shadowProjectParam.shadowTexture = mShadowMap;
 
@@ -980,7 +967,7 @@ namespace Render
 			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			//#TODO : Remove ViewportSaveScope, MatrixSaveScope
 			ViewportSaveScope vpScope(commandList);
-			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
+			Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
 			MatrixSaveScope matrixScopt(porjectMatrix);
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
@@ -1037,7 +1024,7 @@ namespace Render
 			//glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			//#TODO : Remove ViewportSaveScope, MatrixSaveScope
 			ViewportSaveScope vpScope(commandList);
-			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
+			Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
 			MatrixSaveScope matrixScopt(porjectMatrix);
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());

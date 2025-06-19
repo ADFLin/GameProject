@@ -814,7 +814,11 @@ namespace Render
 		{
 			D3D11_BOX box = { 0 };
 			box.left = start * mDesc.elementSize;
-			box.right = start + numElements * mDesc.elementSize;
+			box.right = box.left + numElements * mDesc.elementSize;
+			box.top = 0;
+			box.bottom = 1;
+			box.front = 0;
+			box.back = 1;
 			context.UpdateSubresource(mResource, 0, &box, data, 0, 0);
 		}
 	};

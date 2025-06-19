@@ -10,6 +10,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "Reflection.h"
 
+class BitmapDC;
 namespace Render
 {
 	class ITextureShowManager;
@@ -19,7 +20,7 @@ class IEditorRenderContext
 {
 public:
 	virtual ~IEditorRenderContext() = default;
-	virtual void copyToRenderTarget(void* SrcHandle) = 0;
+	virtual void copyToRenderTarget(BitmapDC& bufferDC) = 0;
 	virtual void setRenderTexture(Render::RHITexture2D& texture) = 0;
 };
 

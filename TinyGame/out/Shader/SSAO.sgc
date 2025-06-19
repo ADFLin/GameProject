@@ -70,7 +70,7 @@ const float Weight[] =
 
 void BlurPS()
 {
-	float2 texSizeInv = 1.0 / float2(textureSize(TextureSSAO, 0));
+	float2 texSizeInv = 1.0 / float2(TextureSize(TextureSSAO));
 
 	float3 color = float3(0);
 #if 0

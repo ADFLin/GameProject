@@ -375,6 +375,7 @@
     <ClInclude Include="GameFramework\EntityManager.h" />
     <ClInclude Include="Game\Engine.h" />
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
+    <ClInclude Include="Hardware\DynamicNvAPI.h" />
     <ClInclude Include="Image\GIFLoader.h" />
     <ClInclude Include="Image\ImageData.h" />
     <ClInclude Include="Image\ImageProcessing.h" />

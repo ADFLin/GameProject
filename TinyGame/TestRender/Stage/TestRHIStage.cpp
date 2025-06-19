@@ -83,7 +83,7 @@ namespace Render
 			RHISetFixedShaderPipelineState(commandList, view.worldToClip);
 			DrawUtility::AixsLine(commandList);
 
-			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, view.rectSize.x, 0, view.rectSize.y, -1, 1));
+			Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, view.rectSize.x, 0, view.rectSize.y, -1, 1));
 			//DrawUtility::DrawCubeTexture(commandList, porjectMatrix,  *mTexCube, Vec2i(0, 0), 100);
 
 			DrawUtility::DrawCubeTexture(commandList, porjectMatrix, *mTexCube, Vec2i(0, 0), Vec2i(400,200));

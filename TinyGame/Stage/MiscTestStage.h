@@ -839,7 +839,7 @@ public:
 		systemConfigs.screenHeight = 600;
 		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
-	ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
+	ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::OpenGL; }
 	bool setupRenderResource(ERenderSystem systemName) override;
 	void preShutdownRenderSystem(bool bReInit = false) override;
 

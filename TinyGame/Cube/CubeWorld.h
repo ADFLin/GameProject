@@ -156,7 +156,7 @@ namespace Cube
 		Mutex mMutexPendingAdd;
 		TArray<Chunk*> mPendingAddChunks;
 
-		IChunkEventListener* mListener;
+		IChunkEventListener* mListener = nullptr;
 		QueueThreadPool* mGeneratePool;
 	};
 

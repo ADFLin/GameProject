@@ -79,7 +79,7 @@ PS_ENTRY_END(MainPS)
 #endif
 
 #if USE_MAPPING_PARAMS
-	color.rgb = pow(MappingParams.x * color.rgb + MappingParams.y, MappingParams.z);
+	color.rgb = pow(MappingParams.x * color.rgb + MappingParams.y, MappingParams.zzz);
 #endif
 
 #if USE_COLOR_MASK
@@ -91,18 +91,25 @@ PS_ENTRY_END(MainPS)
 	{
 		color = color * ColorMask;
 	}
-
-	uint4 MaskBits = ColorMask > 0;
+#if COMPILER_GLSL
+	uint4 MaskBits;
+	MaskBits.r = ColorMask.r > 0.0 ? 1 : 0;
+	MaskBits.g = ColorMask.g > 0.0 ? 1 : 0;
+	MaskBits.b = ColorMask.b > 0.0 ? 1 : 0;
+	MaskBits.a = ColorMask.a > 0.0 ? 1 : 0;
+#else
+	uint4 MaskBits = (ColorMask > float4(0.0));
+#endif
 	uint coutMask = MaskBits.r + MaskBits.g + MaskBits.b + MaskBits.a;
 	if (coutMask == 1)
 	{
-		if (MaskBits.r)
+		if (MaskBits.r != 0)
 			color = float4(color.rrr, 1);
-		if (MaskBits.g)
+		if (MaskBits.g != 0)
 			color = float4(color.ggg, 1);
-		if (MaskBits.b)
+		if (MaskBits.b != 0)
 			color = float4(color.bbb, 1);
-		if (MaskBits.a)
+		if (MaskBits.a != 0)
 			color = float4(color.aaa, 1);
 	}
 #endif

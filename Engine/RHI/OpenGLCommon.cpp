@@ -1101,7 +1101,7 @@ namespace Render
 		mStateValue.stencilZFailOp = OpenGLTranslate::To(initializer.zFailOp);
 		mStateValue.stencilZPassOp = OpenGLTranslate::To(initializer.zPassOp);
 
-		mStateValue.stencilFunBack = OpenGLTranslate::To(initializer.stencilFuncBack);
+		mStateValue.stencilFuncBack = OpenGLTranslate::To(initializer.stencilFuncBack);
 		mStateValue.stencilFailOpBack = OpenGLTranslate::To(initializer.stencilFailOpBack);
 		mStateValue.stencilZFailOpBack = OpenGLTranslate::To(initializer.zFailOpBack);
 		mStateValue.stencilZPassOpBack = OpenGLTranslate::To(initializer.zPassOpBack);
@@ -1111,7 +1111,7 @@ namespace Render
 			(mStateValue.stencilZFailOp != mStateValue.stencilZFailOpBack) ||
 			(mStateValue.stencilZPassOp != mStateValue.stencilZPassOpBack);
 
-		mStateValue.bUseSeparateStencilFun = (mStateValue.stencilFunc != mStateValue.stencilFunBack);
+		mStateValue.bUseSeparateStencilFunc = (mStateValue.stencilFunc != mStateValue.stencilFuncBack);
 		mStateValue.stencilReadMask = initializer.stencilReadMask;
 		mStateValue.stencilWriteMask = initializer.stencilWriteMask;
 	}

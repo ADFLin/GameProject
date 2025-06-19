@@ -18,7 +18,7 @@ namespace Cube
 		if ( !faceMask )
 			return;
 
-		setVertexOffset(Vec3f(offset));
+		setVertexOffset(Vec3f(mBasePos + offset));
 
 		switch( id )
 		{

@@ -24,10 +24,10 @@ public:
 	bool    initialize( HDC hDC , BITMAPINFO* info , void** data = 0 );
 	void    release();
 
-	void    bitBltFrom(HDC hDC, int x, int y);
-	void    bitBltTo( HDC hdc, int x = 0,int y = 0 );
-	void    bitBltTo( HDC hdc, int x ,int y , int sx , int sy , int w , int h );
-	void    bitBltTransparent( HDC hdc , COLORREF color , int x = 0,int y = 0 );
+	bool    bitBltFrom(HDC hDC, int x, int y);
+	bool    bitBltTo( HDC hdc, int x = 0,int y = 0 );
+	bool    bitBltTo( HDC hdc, int x ,int y , int sx , int sy , int w , int h );
+	bool    bitBltTransparent( HDC hdc , COLORREF color , int x = 0,int y = 0 );
 	HDC     getHandle() const { return mhDC; }
 	HBITMAP getBitmap(){ return mhBmp ; }
 	void    clear();
@@ -35,6 +35,9 @@ public:
 	int     getHeight()const { return mHeight; }
 
 	operator HDC() { return mhDC; }
+
+
+	bool   readPixels(void* pOutPxiels);
 
 private:
 

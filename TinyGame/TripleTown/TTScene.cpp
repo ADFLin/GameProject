@@ -596,7 +596,7 @@ namespace TripleTown
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		Vec2i screenSize = ::Global::GetScreenSize();
-		mRenderState.baseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -100, 100));
+		mRenderState.baseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -100, 100));
 		mRenderState.sampler = &TStaticSamplerState< ESampler::Bilinear >::GetRHI();
 		float scaleMap = float( TileLength ) / TileImageLength;
 

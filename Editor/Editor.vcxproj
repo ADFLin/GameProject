@@ -102,7 +102,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>Editor</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.20206.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <ProjectName>Editor</ProjectName>
     <ProjectGuid>{4267392D-1D50-4223-A1C1-FC37A80F7D59}</ProjectGuid>
   </PropertyGroup>
@@ -205,7 +205,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../Editor;../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Editor;../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -256,7 +256,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../Editor;../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Editor;../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>

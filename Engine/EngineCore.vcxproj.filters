@@ -1044,6 +1044,9 @@
     <ClInclude Include="Math\PerlinNoise.h">
       <Filter>Math</Filter>
     </ClInclude>
+    <ClInclude Include="Hardware\DynamicNvAPI.h">
+      <Filter>Hardware</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

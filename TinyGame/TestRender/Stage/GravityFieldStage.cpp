@@ -124,7 +124,7 @@ namespace Render
 			Matrix4 uvToWorldPos = Matrix4::Translate(Vector3(0, -1, 0)) * Matrix4::Scale(Vector3(screenSize.x ,-screenSize.y , 1));
 
 			RHISetShaderProgram(commandList, mProgFieldRender->getRHI());
-			SET_SHADER_PARAM(commandList, *mProgFieldRender, UvToWorldPos, AdjProjectionMatrixForRHI( uvToWorldPos ));
+			SET_SHADER_PARAM(commandList, *mProgFieldRender, UvToWorldPos, AdjustProjectionMatrixForRHI( uvToWorldPos ));
 			SET_SHADER_PARAM(commandList, *mProgFieldRender, NumPlants, (int)mPlantList.size());
 			SET_SHADER_PARAM(commandList, *mProgFieldRender, GravityScale, mGravityScale);
 			SET_SHADER_TEXTURE(commandList, *mProgFieldRender, PlantDataTexture, *mPlantDataTexture);

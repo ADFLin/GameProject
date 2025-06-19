@@ -476,6 +476,10 @@ public:
 };
 
 uint32 GRenderThreadId = 0;
+bool IsInRenderThread()
+{
+	return GRenderThreadId == PlatformThread::GetCurrentThreadId();
+}
 
 class RenderThread : public RunnableThreadT<RenderThread>
 {
@@ -514,6 +518,7 @@ public:
 			if (command)
 			{
 				command->execute(context);
+				delete command;
 			}
 			else
 			{
@@ -523,10 +528,8 @@ public:
 
 		return 0; 
 	}
-	void exit() 
-	{
-		GRenderThreadId = 0;
-	}
+
+	static bool IsRunning(){ return GRenderThreadId != 0; }
 
 	static void Initialzie()
 	{
@@ -540,6 +543,7 @@ public:
 
 		FlushCommands();
 		StaticInstance->bRunning = false;
+		GRenderThreadId = 0;
 		StaticInstance->join();
 
 		delete StaticInstance;
@@ -1336,15 +1340,6 @@ void TinyGameApp::render( float dframe )
 
 	PROFILE_ENTRY("Render");
 
-#if TINY_WITH_EDITOR
-	if (mEditor)
-	{
-		PROFILE_ENTRY("Editor Render");
-		GPU_PROFILE("Editor Render");
-		mEditor->render();
-	}
-#endif
-
 	DrawEngine& drawEngine = Global::GetDrawEngine();
 
 	if (!drawEngine.beginFrame())
@@ -1393,6 +1388,8 @@ void TinyGameApp::render( float dframe )
 
 	g.beginRender();
 
+	//RenderUtility::SetBrush(g, EColor::Red);
+	//g.drawRect(Vector2(0,0), ::Global::GetScreenSize());
 	if( mConsoleShowMode == ConsoleShowMode::Screen )
 	{
 		GLogPrinter.render(Vec2i(5, 25));
@@ -1549,6 +1546,16 @@ void TinyGameApp::render( float dframe )
 		PROFILE_ENTRY("DrawEngine.endFrame");
 		drawEngine.endFrame();
 	}
+
+
+#if TINY_WITH_EDITOR
+	if (mEditor)
+	{
+		PROFILE_ENTRY("Editor Render");
+		GPU_PROFILE("Editor Render");
+		mEditor->render();
+	}
+#endif
 }
 
 void TinyGameApp::importUserProfile()

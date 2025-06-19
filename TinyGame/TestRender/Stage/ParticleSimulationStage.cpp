@@ -766,7 +766,7 @@ namespace Render
 				permutationVector.set<SplineProgram::SplineType>(mSplineType);
 				SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(permutationVector);
 				RHISetShaderProgram(commandList, progSpline->getRHI());
-				progSpline->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
+				progSpline->setParam(commandList, SHADER_PARAM(XForm), AdjustProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
 				progSpline->setParam(commandList, SHADER_PARAM(TessFactor), TessFactor1);
 
 				if (mSplineType == 0)
@@ -806,7 +806,7 @@ namespace Render
 				Matrix4 worldToLocal;
 				float det;
 				localToWorld.inverseAffine(worldToLocal, det);
-				program->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI( OrthoMatrix(0, width, 0, height, -100, 100) ) );
+				program->setParam(commandList, SHADER_PARAM(XForm), AdjustProjectionMatrixForRHI( OrthoMatrix(0, width, 0, height, -100, 100) ) );
 				program->setTexture(commandList, SHADER_PARAM(BaseTexture), *mBaseTexture);
 				program->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), localToWorld );
 				program->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), worldToLocal );

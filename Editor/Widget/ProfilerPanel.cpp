@@ -286,13 +286,14 @@ void ProfilerPanel::render()
 	data.windowPos = FImGuiConv::To(ImGui::GetWindowPos() - ImGui::GetWindowViewport()->Pos);
 	data.windowSize = FImGuiConv::To(ImGui::GetWindowSize());
 	data.viewport = ImGui::GetWindowViewport();
-	
+
 	ImGui::SetCursorPosX(scale * 1000);
 	EditorRenderGloabal::Get().addCustomFunc([data, this](const ImDrawList* parentlist, const ImDrawCmd* cmd)
 	{
+		using namespace Render;
+
 		ImDrawData* drawData = data.viewport->DrawData;
 		PROFILE_ENTRY("Profiler.RenderNodes");
-		using namespace Render;
 
 		RHIBeginRender();
 
@@ -302,7 +303,6 @@ void ProfilerPanel::render()
 		g.beginRender();
 
 		g.beginClip(data.windowPos - Vector2(1, 0), data.windowSize);
-
 		static ProfileFrameVisualizeDraw drawer(g);
 		drawer.mRenderTexts.clear();
 

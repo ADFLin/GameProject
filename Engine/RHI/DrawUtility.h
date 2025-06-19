@@ -386,7 +386,7 @@ namespace Render
 		{
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
-			glLoadMatrixf( AdjProjectionMatrixForRHI(projMat) );
+			glLoadMatrixf( AdjustProjectionMatrixForRHI(projMat) );
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glLoadMatrixf(viewMat);
@@ -396,7 +396,7 @@ namespace Render
 		{
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
-			glLoadMatrixf( AdjProjectionMatrixForRHI(projMat) );
+			glLoadMatrixf( AdjustProjectionMatrixForRHI(projMat) );
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glLoadIdentity();

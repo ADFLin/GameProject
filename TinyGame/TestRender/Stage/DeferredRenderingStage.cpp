@@ -401,10 +401,10 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 			Matrix4 shadowProject;
-			shadowProject = PerspectiveMatrixZBuffer(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
+			shadowProject = PerspectiveMatrix(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
 
 			Matrix4 worldToLight = LookAtMatrix(Vector3::Zero(), light.dir, GetUpDir(light.dir));
-			Matrix4 shadowMatrix = worldToLight * AdjProjectionMatrixForRHI(shadowProject);
+			Matrix4 shadowMatrix = worldToLight * AdjustProjectionMatrixForRHI(shadowProject);
 
 
 			MeshProcesserShadowDepth processer(commandList, mView);
@@ -474,7 +474,7 @@ namespace Render
 
 			Matrix4 shadowProject = PerspectiveMatrix(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
 			Matrix4 worldToLight = LookAtMatrix(Vector3::Zero(), light.dir, GetUpDir(light.dir));
-			Matrix4 shadowMatrix = worldToLight * AdjProjectionMatrixForRHI(shadowProject);
+			Matrix4 shadowMatrix = worldToLight * AdjustProjectionMatrixForRHI(shadowProject);
 
 			MeshProcesserShadowDepth processer(commandList, mView);
 			processer.shadowOffset = light.pos;
@@ -694,7 +694,7 @@ namespace Render
 				RHISetShaderProgram(commandList, nullptr);
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-				Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1));
+				Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1));
 				mSceneRenderTargets.getGBuffer().drawTextures(commandList, porjectMatrix, screenSize / 4, IntVector2(2, 2));
 			}
 

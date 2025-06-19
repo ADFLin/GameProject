@@ -151,7 +151,7 @@ public:
 		{
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
-			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
+			Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
 			DrawUtility::DrawCubeTexture(commandList, porjectMatrix, *mCubeImage, Vector2(0, 0), 250);
 		}
 	}

@@ -609,9 +609,9 @@ namespace MV
 
 		float width = mViewWidth;
 		float height = width * screenSize.y / screenSize.x;
-		Matrix4  projectMatrix = OrthoMatrixZBuffer(width, height, -100, 100);
+		Matrix4  projectMatrix = OrthoMatrix(width, height, -100, 100);
 
-		Matrix4  projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
+		Matrix4  projectMatrixRHI = AdjustProjectionMatrixForRHI(projectMatrix);
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
@@ -642,8 +642,8 @@ namespace MV
 
 				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 				
-				projectMatrix = OrthoMatrixZBuffer(0, screenSize.x, 0, screenSize.y, -1, 1);
-				projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
+				projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
+				projectMatrixRHI = AdjustProjectionMatrixForRHI(projectMatrix);
 				RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 				Vector2 v[] = 
 				{
@@ -663,8 +663,8 @@ namespace MV
 				if ( bCameraView )
 				{
 					float aspect = float( screenSize.x ) / screenSize.y;
-					projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
-					projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
+					projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / aspect), aspect, 0.01, 1000);
+					projectMatrixRHI = AdjustProjectionMatrixForRHI(projectMatrix);
 					matView = mCamera.getViewMatrix();
 				}
 				else

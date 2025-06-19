@@ -11,6 +11,7 @@
 #include "Math/GeometryPrimitive.h"
 
 #include <unordered_map>
+#include "Memory/BuddyAllocator.h"
 
 
 namespace Cube
@@ -46,6 +47,27 @@ namespace Cube
 		Render::RHIBufferRef indexBuffer;
 	};
 
+	struct DrawCmdArgs
+	{
+		uint indexCountPerInstance;
+		uint instanceCount;
+		uint startIndexLocation;
+		int  baseVertexLocation;
+		uint startInstanceLocation;
+	};
+
+	struct MeshRenderPoolData : MeshRenderData
+	{
+		BuddyAllocatorBase vertexAllocator;
+		BuddyAllocatorBase indexAllocator;
+
+		bool initialize();
+
+		int drawFrame;
+		TArray< DrawCmdArgs > drawCmdList;
+		int cmdOffset;
+	};
+
 	struct ChunkRenderData
 	{
 		enum EState
@@ -62,6 +84,11 @@ namespace Cube
 		Math::TAABBox< Vec3f > bound;
 		Vec3f    posOffset;
 		MeshRenderData mesh;
+
+		MeshRenderPoolData* meshPool;
+		uint32 indicesCount;
+		BuddyAllocatorBase::Allocation vertexAllocation;
+		BuddyAllocatorBase::Allocation indexAlloction;
 	};
 
 	class RenderEngine : public IWorldEventListener , public IChunkEventListener
@@ -129,6 +156,15 @@ namespace Cube
 
 		Render::RHIInputLayoutRef mBlockInputLayout;
 		Render::RHITexture2DRef  mTexBlockAtlas;
+
+		TArray< MeshRenderPoolData* > mMeshPool;
+
+		MeshRenderPoolData* acquireMeshRenderData(Mesh const& mesh);
+
+		Render::RHIBufferRef mCmdBuffer;
+		int mRenderFrame = 0;
+
+
 	};
 
 

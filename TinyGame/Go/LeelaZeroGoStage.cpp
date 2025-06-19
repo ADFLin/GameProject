@@ -1091,7 +1091,7 @@ namespace Go
 			float const xMax = (mGame.getInstance().getCurrentStep() + 1) / 2 + 1;
 			float const yMin = 0;
 			float const yMax = 100;
-			Matrix4 matProj = AdjProjectionMatrixForRHI( OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1) );
+			Matrix4 matProj = AdjustProjectionMatrixForRHI( OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1) );
 
 			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
 			float alpha[2] = { 0.4 , 0.4 };

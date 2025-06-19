@@ -169,7 +169,7 @@ namespace Render
 		return format;
 	}
 
-	DeviceVendorName FD3DUtils::GetDevicVenderName(UINT vendorId)
+	DeviceVendorName FD3DUtils::GetDeivceVenderName(UINT vendorId)
 	{
 		switch (vendorId)
 		{

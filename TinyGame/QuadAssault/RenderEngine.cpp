@@ -117,7 +117,7 @@ void RenderEngine::renderScene(RenderConfig const& config)
 	param.renderHeight = mFrameHeight * param.scaleFactor;
 	param.worldToView = RenderTransform2D::LookAt(Vector2(mFrameWidth, mFrameHeight),
 		param.camera->getPos() + (0.5f * param.scaleFactor) * Vector2(mFrameWidth, mFrameHeight), Vector2(0, -1), mFrameWidth / param.renderWidth);
-	param.worldToClipRHI = AdjProjectionMatrixForRHI(param.worldToView.toMatrix4()  * OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1));
+	param.worldToClipRHI = AdjustProjectionMatrixForRHI(param.worldToView.toMatrix4() * OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1));
 	ViewParams* viewParams = mViewBuffer.lock();
 	if (viewParams)
 	{

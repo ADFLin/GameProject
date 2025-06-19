@@ -476,7 +476,7 @@ namespace Render
 		bool   bEnableDepthTest;
 		bool   bEnableStencilTest;
 		bool   bWriteDepth;
-		bool   bUseSeparateStencilFun;
+		bool   bUseSeparateStencilFunc;
 		bool   bUseSeparateStencilOp;
 
 		GLenum depthFun;
@@ -486,7 +486,7 @@ namespace Render
 		GLenum stencilZFailOp;
 		GLenum stencilZPassOp;
 
-		GLenum stencilFunBack;
+		GLenum stencilFuncBack;
 		GLenum stencilFailOpBack;
 		GLenum stencilZFailOpBack;
 		GLenum stencilZPassOpBack;
@@ -504,11 +504,11 @@ namespace Render
 			bEnableStencilTest = false;
 			bWriteDepth = false;
 			bUseSeparateStencilOp = false;
-			bUseSeparateStencilFun = false;
+			bUseSeparateStencilFunc = false;
 
 			depthFun = GL_LESS;
 
-			stencilFunc = stencilFunBack = GL_ALWAYS;
+			stencilFunc = stencilFuncBack = GL_ALWAYS;
 			stencilFailOp = stencilFailOpBack = GL_KEEP;
 			stencilZFailOp = stencilZFailOpBack = GL_KEEP;
 			stencilZPassOp = stencilZPassOpBack = GL_KEEP;

@@ -375,12 +375,12 @@ namespace Render
 			mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(0, 3, 0, Offset));
 			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0, 4);
 
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
 			DrawUtility::AixsLine(commandList, 10);
 
 
 			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1);
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 0, 0, 1));
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(projectMatrix), LinearColor(1, 0, 0, 1));
 			{
 
 				Vector2 v[] = { Vector2(1,1) , Vector2(100,100), Vector2(1,100), Vector2(100,1) };

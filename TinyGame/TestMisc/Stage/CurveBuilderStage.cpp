@@ -322,7 +322,7 @@ namespace CB
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 
-			Matrix4 matProj = PerspectiveMatrixZBuffer(Math::DegToRad(45.0f), float(screenSize.x) / screenSize.y, 0.1f, 1000.0f);
+			Matrix4 matProj = PerspectiveMatrix(Math::DegToRad(45.0f), float(screenSize.x) / screenSize.y, 0.1f, 1000.0f);
 			mRenderer->getViewInfo().setupTransform(mCamera.getPos(), mCamera.getRotation(), matProj);
 			mRenderer->getViewInfo().updateRHIResource();
 

@@ -62,7 +62,7 @@ namespace MV
 		{
 			using namespace Render;
 			RHICommandList& commandList = getCommandList();
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(stack.get() * view->worldToClip), mColor);
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(stack.get() * view->worldToClip), mColor);
 		}
 
 		void setSimpleShader(float depthBias)
@@ -76,7 +76,7 @@ namespace MV
 				0, 0, 1, 0,
 				0, 0, depthBias, 1,
 			};
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(stack.get() * view->worldToView * depthOffset * view->viewToClip), mColor);
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(stack.get() * view->worldToView * depthOffset * view->viewToClip), mColor);
 		}
 
 		RHICommandList& getCommandList() { return *mCommandList; }

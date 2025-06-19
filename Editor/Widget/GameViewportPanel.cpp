@@ -9,6 +9,7 @@
 
 #include "EditorUtils.h"
 #include "ProfileSystem.h"
+#include "BitmapDC.h"
 
 using namespace Render;
 
@@ -17,15 +18,28 @@ REGISTER_EDITOR_PANEL(GameViewportPanel, GameViewportPanel::ClassName, false, fa
 class EditorRenderContext final : public IEditorRenderContext
 {
 public:
-	void copyToRenderTarget(void* SrcHandle) override
+	void copyToRenderTarget(BitmapDC& bufferDC) override
 	{
-		static_cast<D3D11Texture2D*>(texture)->bitbltFromDevice((HDC)SrcHandle);
+#if 0
+		if (GRHISystem->getName() == RHISystemName::D3D11)
+		{
+			static_cast<D3D11Texture2D*>(texture)->bitbltFromDevice(bufferDC);
+		}
+		else if (GRHISystem->getName() == RHISystemName::OpenGL)
+#endif
+		{
+			TArray<uint8> pixels;
+			pixels.resize(4 * texture->getSizeX() * texture->getSizeY());
+			bufferDC.readPixels(pixels.data());
+			RHIUpdateTexture(*texture, 0, 0, texture->getSizeX(), texture->getSizeY(), pixels.data());
+		}
 	}
 	void setRenderTexture(Render::RHITexture2D& inTexture) override
 	{
 		texture = &inTexture;
 	}
 	RHITexture2D* texture;
+	GameViewportPanel* mPanel;
 };
 
 void GameViewportPanel::onOpen()
@@ -47,6 +61,7 @@ void GameViewportPanel::render()
 
 	EditorRenderContext context;
 	context.texture = mTexture;
+	context.mPanel = this;
 	mViewport->renderViewport(context);
 
 	FImGui::DisableBlend();

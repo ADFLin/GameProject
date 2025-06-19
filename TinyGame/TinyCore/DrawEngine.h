@@ -136,6 +136,8 @@ public:
 	bool        bUsePlatformBuffer = true;
 	bool        bBlockRender = false;
 	bool        bWasUsedPlatformGraphics = false;
+
+	BitmapDC&   getBufferDC(){ return mBufferDC; }
 private:
 	void        setupBuffer( int w , int h );
 	bool        setupSystemInternal(ERenderSystem systemName, bool bForceRHI, bool bSetupDeferred = false);

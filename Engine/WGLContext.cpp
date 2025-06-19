@@ -156,7 +156,7 @@ int ChoiceMultiSamplePixelFormat(HDC hDC, WGLPixelFormat const& setting, bool bW
 	{
 		WGL_DRAW_TO_WINDOW_ARB, bWindowed ? GL_TRUE : GL_FALSE ,
 		WGL_SUPPORT_OPENGL_ARB,GL_TRUE,
-		//WGL_SUPPORT_GDI_ARB , GL_TRUE,
+		WGL_SUPPORT_GDI_ARB , GL_TRUE,
 		WGL_ACCELERATION_ARB , WGL_FULL_ACCELERATION_ARB,
 		WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
 		WGL_COLOR_BITS_ARB,setting.colorBits,
@@ -220,7 +220,7 @@ int ChooseFullscreenPixelFormat(HDC hDC, WGLPixelFormat const& setting, PIXELFOR
 	return false;
 #endif
 
-	pfd.dwFlags    = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.dwFlags    = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_SUPPORT_GDI;
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.iLayerType = PFD_MAIN_PLANE;
 	pfd.cColorBits = GetDeviceCaps(hDC, BITSPIXEL);
@@ -292,7 +292,7 @@ bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting
 	{
 		if( bWindowed )
 		{
-			pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_DRAW_TO_WINDOW;
+			pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_DRAW_TO_WINDOW | PFD_SUPPORT_GDI;
 			pfd.iPixelType = PFD_TYPE_RGBA;
 			pfd.iLayerType = PFD_MAIN_PLANE;
 

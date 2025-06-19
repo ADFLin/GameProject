@@ -260,6 +260,27 @@ namespace Render
 			}
 		}
 
+		void beginRender()
+		{
+			resetBindIndex();
+
+			mLastIndexBuffer = nullptr;
+			mLastFrameBuffer = nullptr;
+			mLastShaderPipeline = nullptr;
+			mLastShaderProgram = nullptr;
+			mLastActiveShader = nullptr;
+			mLastComputeShader = nullptr;
+
+			mInputLayoutPending = nullptr;
+			mInputStreamCountPending = 0;
+		}
+
+		void endRender()
+		{
+			unbindCommitedInputLayout();
+			mInputLayoutCommitted = nullptr;
+		}
+
 		TOpenGLObject<GLFactory::FrameBuffer> mResolveFrameBuffers[2];
 
 		enum EBufferBindingType
@@ -330,12 +351,16 @@ namespace Render
 		RHIShaderProgramRef mLastShaderProgram;
 		int                 mUsageShaderCount = 0;
 
-		void clearShader(bool bUseShaderPipeline);
+		void clearShaderState(bool bWillUseShaderPipeline);
 		bool checkInputStreamStateDirty(bool bForceDirty = false);
+
+		void unbindCommitedInputLayout();
 
 		RHIFrameBufferRef   mLastFrameBuffer;
 		OpenGLDeviceState   mDeviceState;
 
+
+		IntVector2 mViewportSize;
 
 
 		bool mbUseShaderPath = true;

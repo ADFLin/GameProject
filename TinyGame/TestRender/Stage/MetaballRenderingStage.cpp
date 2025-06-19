@@ -133,7 +133,7 @@ namespace Render
 			RHIDrawPrimitive(commandList, EPrimitive::TriangleStrip, 0, 4);
 
 
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
 			DrawUtility::AixsLine(commandList, 10);
 
 			RHIFlushCommand(commandList);

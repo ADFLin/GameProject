@@ -24,7 +24,7 @@ namespace Render
 
 	struct FD3DUtils
 	{
-		static DeviceVendorName GetDevicVenderName(UINT vendorId);
+		static DeviceVendorName GetDeivceVenderName(UINT vendorId);
 
 	};
 

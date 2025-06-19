@@ -73,30 +73,61 @@ namespace Render
 		}
 	};
 
-	FORCEINLINE Matrix4 AdjProjectionMatrixForRHI(Matrix4 const& inProjection)
-	{
-		Matrix4 clipTranslateAndScaleMatrix
-		{
-			1,                   0,                0, 0,
-			0, GRHIProjectionYSign,                0, 0,
-			0,                   0, 1 - GRHIClipZMin, 0,
-			0,                   0,     GRHIClipZMin, 1
-		};
+	//Reversed Matrix (p,q)[M] = (q-p,q) 
+	//  M = [-1 0]   Inv(M) = [-1  0]
+	//      [ 1 1]            [ 1  1]
 
-		return inProjection * clipTranslateAndScaleMatrix;
+	FORCEINLINE Matrix4 AdjustProjectionMatrixForRHI(Matrix4 const& inProjection)
+	{
+		if (FRHIZBuffer::IsInverted)
+		{
+			Matrix4 clipTranslateAndScaleMatrix
+			{
+				1,                   0,                0, 0,
+				0, GRHIProjectionYSign,                0, 0,
+				0,                   0, GRHIClipZMin - 1, 0,
+				0,                   0,                1, 1
+			};
+			return inProjection * clipTranslateAndScaleMatrix;
+		}
+		else
+		{
+			Matrix4 clipTranslateAndScaleMatrix
+			{
+				1,                   0,                0, 0,
+				0, GRHIProjectionYSign,                0, 0,
+				0,                   0, 1 - GRHIClipZMin, 0,
+				0,                   0,     GRHIClipZMin, 1
+			};
+			return inProjection * clipTranslateAndScaleMatrix;
+		}
 	}
 
-	FORCEINLINE Matrix4 AdjProjectionMatrixInverseForRHI(Matrix4 const& inProjectionInverse)
+	FORCEINLINE Matrix4 AdjustProjectionMatrixInverseForRHI(Matrix4 const& inProjectionInverse)
 	{
-		Matrix4 clipTranslateAndScaleMatrix
+		CHECK(GRHIProjectionYSign == 1.0f || GRHIProjectionYSign == -1.0f);
+		if (FRHIZBuffer::IsInverted)
 		{
-			1,                   0,                                0, 0,
-			0, GRHIProjectionYSign,                                0, 0,
-			0,                   0,             1/(1 - GRHIClipZMin), 0,
-			0,                   0, -GRHIClipZMin/(1 - GRHIClipZMin), 1
-		};
-
-		return clipTranslateAndScaleMatrix * inProjectionInverse;
+			Matrix4 clipTranslateAndScaleMatrix
+			{
+				1,                   0,                           0, 0,
+				0, GRHIProjectionYSign,                           0, 0,
+				0,                   0,  -1.0f / (1 - GRHIClipZMin), 0,
+				0,                   0,   1.0f / (1 - GRHIClipZMin), 1
+			};
+			return clipTranslateAndScaleMatrix * inProjectionInverse;
+		}
+		else
+		{
+			Matrix4 clipTranslateAndScaleMatrix
+			{
+				1,                   0,                                  0, 0,
+				0, GRHIProjectionYSign,                                  0, 0,
+				0,                   0,             1 / (1 - GRHIClipZMin), 0,
+				0,                   0, -GRHIClipZMin / (1 - GRHIClipZMin), 1
+			};
+			return clipTranslateAndScaleMatrix * inProjectionInverse;
+		}
 	}
 
 	class PerspectiveMatrix : public Matrix4
@@ -109,7 +140,7 @@ namespace Render
 			setValue(
 				f / aspect, 0,                       0,  0,
 				         0, f,                       0,  0,
-				         0, 0,         zFar * zFactor,   1,
+				         0, 0,          zFar * zFactor,  1,
 				         0, 0, -zFar * zNear * zFactor,  0);
 		}
 
@@ -143,7 +174,6 @@ namespace Render
 				         0, 0, zFar * zNear * zFactor,  0);
 		}
 
-		//#FIXME
 		FORCEINLINE ReversedZPerspectiveMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
 		{
 			float xFactor = 1 / (right - left);
@@ -213,10 +243,6 @@ namespace Render
 				-(left + right) * xFactor, -(top + bottom) * yFactor,   zFar * zFactor, 1);
 		}
 	};
-
-	using OrthoMatrixZBuffer = TSelect< FRHIZBuffer::IsInverted, ReversedZOrthoMatrix, OrthoMatrix >::Type;
-	using PerspectiveMatrixZBuffer = TSelect< FRHIZBuffer::IsInverted, ReversedZPerspectiveMatrix, PerspectiveMatrix >::Type;
-
 
 	class BasisMaterix : public Matrix4
 	{

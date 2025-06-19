@@ -873,8 +873,9 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 	float angle = mAngle + mSpeed * dFrame * gDefaultTickTime;
 
 	RenderUtility::SetBrush(g, EColor::White);
-
+	g.beginClip(Vector2(0, 100), Vector2(200, 200));
 #if 1
+
 	g.pushXForm();
 	g.translateXForm(300, 300);
 	g.rotateXForm(angle);
@@ -882,6 +883,7 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 	g.setSampler(TStaticSamplerState< ESampler::Trilinear , ESampler::Clamp , ESampler::Clamp >::GetRHI());
 	g.drawTexture(*mTexture, Vector2(0, 0), Vector2(600, 600));
 	g.popXForm();
+
 #endif
 	RenderUtility::SetPen(g, EColor::Red);
 	g.setPenWidth(5);
@@ -890,6 +892,7 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 		g.drawArcLine(Vector2(100, 100), 100, Math::DegToRad(45 + i * 90), Math::DegToRad(90));
 	}
 
+	g.endClip();
 	g.endRender();
 
 #if 0

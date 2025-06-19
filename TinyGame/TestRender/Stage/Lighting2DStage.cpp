@@ -126,7 +126,7 @@ namespace Render
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 
-		Matrix4 projectMatrixRHI = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1));
+		Matrix4 projectMatrixRHI = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1));
 
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);

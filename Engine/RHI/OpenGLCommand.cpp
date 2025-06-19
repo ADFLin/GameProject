@@ -325,8 +325,12 @@ namespace Render
 
 	bool OpenGLSystem::RHIBeginRender()
 	{
+#if 0
 		if( !mGLContext.makeCurrent() )
 			return false;
+#endif
+
+		mDrawContext.beginRender();
 
 		if( 1 )
 		{
@@ -341,6 +345,8 @@ namespace Render
 
 	void OpenGLSystem::RHIEndRender(bool bPresent)
 	{
+		mDrawContext.endRender();
+
 		::glFlush();
 		if( bPresent )
 			mGLContext.swapBuffer();
@@ -664,6 +670,7 @@ namespace Render
 	{
 		glViewport(viewport.x, viewport.y, viewport.w, viewport.h);
 		glDepthRange(viewport.zNear, viewport.zFar);
+		mViewportSize = IntVector2(viewport.w, viewport.h);
 	}
 
 	void OpenGLContext::RHISetViewports(ViewportInfo const viewports[], int numViewports)
@@ -674,11 +681,13 @@ namespace Render
 			glViewportIndexedf(i, vp.x, vp.y, vp.w, vp.h);
 			glDepthRangeIndexed(i, vp.zNear, vp.zFar);
 		}
+
+		mViewportSize = IntVector2(viewports[0].w, viewports[0].h);
 	}
 
 	void OpenGLContext::RHISetScissorRect(int x, int y, int w, int h)
 	{
-		glScissor(x, y, w, h);
+		glScissor(x, mViewportSize.y - (y + h), w, h);
 	}
 
 	void OpenGLContext::RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
@@ -1051,7 +1060,7 @@ namespace Render
 
 	void OpenGLContext::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
-		clearShader(false);
+		clearShaderState(false);
 
 		if( shaderProgram )
 		{
@@ -1070,7 +1079,7 @@ namespace Render
 
 	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
-		clearShader(true);
+		clearShaderState(true);
 		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(stateDesc);
 		if (shaderpipeline)
 		{	
@@ -1087,7 +1096,7 @@ namespace Render
 
 	void OpenGLContext::RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
 	{
-		clearShader(true);
+		clearShaderState(true);
 		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(stateDesc);
 		if (shaderpipeline)
 		{
@@ -1104,7 +1113,7 @@ namespace Render
 
 	void OpenGLContext::RHISetComputeShader(RHIShader* shader)
 	{
-		clearShader(false);
+		clearShaderState(false);
 
 		if (shader)
 		{
@@ -1115,7 +1124,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::clearShader(bool bUseShaderPipeline)
+	void OpenGLContext::clearShaderState(bool bWillUseShaderPipeline)
 	{
 		if (!mbUseShaderPath)
 			return;
@@ -1730,7 +1739,7 @@ namespace Render
 			}
 
 			bool bForceRestFunc = false;
-			if (GL_CHECK_STATE_DIRTY(bUseSeparateStencilFun))
+			if (GL_CHECK_STATE_DIRTY(bUseSeparateStencilFunc))
 			{
 				bForceRestFunc = true;
 			}
@@ -1759,16 +1768,16 @@ namespace Render
 					glStencilOp(pendingValue.stencilFailOp, pendingValue.stencilZFailOp, pendingValue.stencilZPassOp);
 				}
 			}
-			if (pendingValue.bUseSeparateStencilFun)
+			if (pendingValue.bUseSeparateStencilFunc)
 			{
-				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFunc) || GL_IS_STATE_DIRTY(stencilFunBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
+				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFunc) || GL_IS_STATE_DIRTY(stencilFuncBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
 				{
 					GL_COMMIT_STATE_VALUE(stencilFunc);
-					GL_COMMIT_STATE_VALUE(stencilFunBack);
+					GL_COMMIT_STATE_VALUE(stencilFuncBack);
 					GL_COMMIT_STATE_VALUE(stencilReadMask);
 					committedValue.stencilRef = mDeviceState.stencilRefPending;
 					glStencilFuncSeparate(GL_FRONT, pendingValue.stencilFunc, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
-					glStencilFuncSeparate(GL_BACK, pendingValue.stencilFunBack, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
+					glStencilFuncSeparate(GL_BACK, pendingValue.stencilFuncBack, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 				}
 			}
 			else
@@ -1861,7 +1870,7 @@ namespace Render
 	{
 		bool bDirty = bForceDirty || mInputLayoutPending != mInputLayoutCommitted || mbUseShaderPath != mWasBindAttrib;
 
-		int inputStreamCountCommitted = mInputStreamStateCommttied.inputStreamCount;
+
 		if (mbHasInputStreamPendingSetted)
 		{
 			bDirty |= mInputStreamStateCommttied.update(mInputStreamsPending, mInputStreamCountPending);
@@ -1869,30 +1878,35 @@ namespace Render
 
 		if (bDirty)
 		{
-			if (mInputLayoutCommitted.isValid())
-			{
-				if (mVAOCommitted)
-				{
-					glBindVertexArray(0);
-					mVAOCommitted = 0;
-				}
-				else
-				{
-					if (mWasBindAttrib)
-					{
-						OpenGLCast::To(mInputLayoutCommitted)->unbindAttrib(inputStreamCountCommitted);
-					}
-					else
-					{
-						OpenGLCast::To(mInputLayoutCommitted)->unbindPointer();
-					}
-				}
-			}
-
+			unbindCommitedInputLayout();
 			mInputLayoutCommitted = mInputLayoutPending;
 		}
 
 		return bDirty;
+	}
+
+	void OpenGLContext::unbindCommitedInputLayout()
+	{
+		if (mInputLayoutCommitted.isValid())
+		{
+			if (mVAOCommitted)
+			{
+				glBindVertexArray(0);
+				mVAOCommitted = 0;
+			}
+			else
+			{
+				if (mWasBindAttrib)
+				{
+					int inputStreamCountCommitted = mInputStreamStateCommttied.inputStreamCount;
+					OpenGLCast::To(mInputLayoutCommitted)->unbindAttrib(inputStreamCountCommitted);
+				}
+				else
+				{
+					OpenGLCast::To(mInputLayoutCommitted)->unbindPointer();
+				}
+			}
+		}
 	}
 
 	void OpenGLContext::commitFixedShaderState()

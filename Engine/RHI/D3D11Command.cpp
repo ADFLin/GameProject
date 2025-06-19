@@ -10,6 +10,7 @@
 #endif
 #include "BitUtility.h"
 #include "RHIMisc.h"
+#include "Hardware/DynamicNvAPI.h"
 
 namespace Render
 {
@@ -232,6 +233,104 @@ namespace Render
 		TComPtr<ID3D11Device> mDevice;
 	};
 
+
+
+
+
+	using MultiDrawInstancedIndirectFunc = void(*)(
+		__in ID3D11DeviceContext *pDevContext11,
+		__in NvU32                drawCount,
+		__in ID3D11Buffer        *pBuffer,
+		__in NvU32                alignedByteOffsetForArgs,
+		__in NvU32                alignedByteStrideForArgs
+		);
+
+	using MultiDrawIndexedInstancedIndirectFunc = void(*)(
+		__in ID3D11DeviceContext *pDevContext11,
+		__in NvU32                drawCount,
+		__in ID3D11Buffer        *pBuffer,
+		__in NvU32                alignedByteOffsetForArgs,
+		__in NvU32                alignedByteStrideForArgs
+		);
+
+	static MultiDrawInstancedIndirectFunc GMultiDrawInstancedIndirect = nullptr;
+	static MultiDrawIndexedInstancedIndirectFunc GMultiDrawIndexedInstancedIndirect = nullptr;
+
+
+	class DeviceVendorFeature
+	{
+	public:
+		virtual ~DeviceVendorFeature() = default;
+		virtual bool initialize() { return true; }
+		virtual void finalize() {}
+	};
+
+
+	DeviceVendorFeature* GDeviceVendorFeature = nullptr;
+	static NvAPI_Status(__cdecl *NvAPI_D3D11_MultiDrawInstancedIndirect)(
+		__in ID3D11DeviceContext *pDevContext11,
+		__in NvU32                drawCount,
+		__in ID3D11Buffer        *pBuffer,
+		__in NvU32                alignedByteOffsetForArgs,
+		__in NvU32                alignedByteStrideForArgs);
+
+	static NvAPI_Status(__cdecl *NvAPI_D3D11_MultiDrawIndexedInstancedIndirect)(
+		__in ID3D11DeviceContext *pDevContext11,
+		__in NvU32                drawCount,
+		__in ID3D11Buffer        *pBuffer,
+		__in NvU32                alignedByteOffsetForArgs,
+		__in NvU32                alignedByteStrideForArgs);
+
+	class DeviceVendorFeature_NVIDIA : public DeviceVendorFeature
+									 , public DyanmicNvAPI
+	{
+	public:
+
+		bool initialize()
+		{
+			DyanmicNvAPI::initialize();
+#define QUERY_INTERFACE( NAME )\
+	if ( !queryInterface(ID_##NAME , NAME) )\
+		return false;
+
+			QUERY_INTERFACE(NvAPI_D3D11_MultiDrawInstancedIndirect);
+			QUERY_INTERFACE(NvAPI_D3D11_MultiDrawIndexedInstancedIndirect);
+#undef QUERY_INTERFACE
+
+			GMultiDrawInstancedIndirect = MultiDrawInstancedIndirect;
+			GMultiDrawIndexedInstancedIndirect = MultiDrawIndexedInstancedIndirect;
+			return true;
+		}
+
+		void finalize()
+		{
+			GMultiDrawInstancedIndirect = nullptr;
+			GMultiDrawIndexedInstancedIndirect = nullptr;
+			DyanmicNvAPI::release();
+		}
+
+		static void MultiDrawInstancedIndirect(
+			__in ID3D11DeviceContext *pDevContext11,
+			__in NvU32                drawCount,
+			__in ID3D11Buffer        *pBuffer,
+			__in NvU32                alignedByteOffsetForArgs,
+			__in NvU32                alignedByteStrideForArgs)
+		{
+			NvAPI_D3D11_MultiDrawInstancedIndirect(pDevContext11, drawCount, pBuffer, alignedByteOffsetForArgs, alignedByteStrideForArgs);
+		}
+
+		static void MultiDrawIndexedInstancedIndirect(
+			__in ID3D11DeviceContext *pDevContext11,
+			__in NvU32                drawCount,
+			__in ID3D11Buffer        *pBuffer,
+			__in NvU32                alignedByteOffsetForArgs,
+			__in NvU32                alignedByteStrideForArgs)
+		{
+			NvAPI_D3D11_MultiDrawIndexedInstancedIndirect(pDevContext11, drawCount, pBuffer, alignedByteOffsetForArgs, alignedByteStrideForArgs);
+		}
+	};
+
+
 	bool D3D11System::initialize(RHISystemInitParams const& initParam)
 	{
 		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
@@ -267,7 +366,17 @@ namespace Render
 		DXGI_ADAPTER_DESC adapterDesc;
 		VERIFY_D3D_RESULT_RETURN_FALSE(pDXGIAdapter->GetDesc(&adapterDesc));
 
-		GRHIDeviceVendorName = FD3DUtils::GetDevicVenderName(adapterDesc.VendorId);
+		GRHIDeviceVendorName = FD3DUtils::GetDeivceVenderName(adapterDesc.VendorId);
+		if (GRHIDeviceVendorName == DeviceVendorName::NVIDIA)
+		{
+			GDeviceVendorFeature = new DeviceVendorFeature_NVIDIA;
+		}
+
+		if (GDeviceVendorFeature && !GDeviceVendorFeature->initialize())
+		{
+			delete GDeviceVendorFeature;
+			GDeviceVendorFeature = nullptr;
+		}
 
 		mbVSyncEnable = initParam.bVSyncEnable;
 
@@ -299,6 +408,13 @@ namespace Render
 
 	void D3D11System::shutdown()
 	{
+		if (GDeviceVendorFeature)
+		{
+			GDeviceVendorFeature->finalize();
+			delete GDeviceVendorFeature;
+			GDeviceVendorFeature = nullptr;
+		}
+
 		mInputLayoutMap.clear();
 		mRenderContext.release();
 		mSwapChain.release();
@@ -1611,18 +1727,23 @@ namespace Render
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		if (numCommand > 1)
 		{
-			int cmdOffset = offset;
-			for (int i = 0; i < numCommand; ++i)
+
+			if (commandStride == 0)
 			{
-				if (commandStride == 0)
+				commandStride = commandBuffer->getElementSize();
+			}
+			if (GMultiDrawInstancedIndirect)
+			{
+				GMultiDrawInstancedIndirect(mDeviceContext, numCommand, D3D11Cast::GetResource(*commandBuffer), offset, commandStride);
+			}
+			else
+			{
+				int cmdOffset = offset;
+				for (int i = 0; i < numCommand; ++i)
 				{
-					cmdOffset += commandBuffer->getElementSize();
-				}
-				else
-				{
+					mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), cmdOffset);
 					cmdOffset += commandStride;
 				}
-				mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), cmdOffset);
 			}
 		}
 		else
@@ -1634,22 +1755,27 @@ namespace Render
 
 	void D3D11Context::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
+
 		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		if (numCommand > 1)
 		{
-			int cmdOffset = offset;
-			for(int i = 0 ; i < numCommand; ++i)
+			if (commandStride == 0)
 			{
-				if (commandStride == 0)
+				commandStride = commandBuffer->getElementSize();
+			}
+			if (GMultiDrawIndexedInstancedIndirect)
+			{
+				GMultiDrawIndexedInstancedIndirect(mDeviceContext, numCommand, D3D11Cast::GetResource(*commandBuffer), offset, commandStride);
+			}
+			else
+			{
+				int cmdOffset = offset;
+				for (int i = 0; i < numCommand; ++i)
 				{
-					cmdOffset += commandBuffer->getElementSize();
-				}
-				else
-				{
+					mDeviceContext->DrawIndexedInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), cmdOffset);
 					cmdOffset += commandStride;
 				}
-				mDeviceContext->DrawIndexedInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), cmdOffset);
 			}
 		}
 		else
@@ -1768,7 +1894,7 @@ namespace Render
 			if( indexBuffer )
 			{
 				mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-				if (numInstance != 1)
+				if (numInstance > 1)
 				{
 					mDeviceContext->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
 				}
@@ -1780,7 +1906,7 @@ namespace Render
 			else
 			{
 				mDeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
-				if (numInstance != 1)
+				if (numInstance > 1)
 				{
 					mDeviceContext->DrawInstanced(numVertices, numInstance, 0, 0);
 				}
@@ -1804,7 +1930,7 @@ namespace Render
 		uint32 vertexBufferSize = 0;
 		for( int i = 0; i < numVertexData; ++i )
 		{
-			vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+			vertexBufferSize += AlignArbitrary<uint32>(dataInfos[i].size, D3D11BUFFER_ALIGN);
 		}
 
 		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
@@ -1821,9 +1947,8 @@ namespace Render
 				strides[i] = dataInfos[i].stride;
 				offsets[i] = dataOffset;
 				vertexBuffers[i] = vertexBuffer;
-
 				FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
-				dataOffset += (D3D11BUFFER_ALIGN * info.size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+				dataOffset += AlignArbitrary<uint32>(dataInfos[i].size, D3D11BUFFER_ALIGN);
 			}
 
 			mDynamicVBuffer.unlock(mDeviceContext);
@@ -1835,7 +1960,7 @@ namespace Render
 
 			mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-			if (numInstance != 1)
+			if (numInstance > 1)
 			{
 				mDeviceContext->DrawIndexedInstanced(numDrawIndex, numInstance, 0, 0, 0);
 			}

@@ -209,7 +209,10 @@ namespace Cube
 				{
 					uint64 value = chunk->getPos().hash_value();
 					mMap.insert(std::make_pair(value, chunk));
-					mListener->onChunkAdded(chunk);
+					if (mListener)
+					{
+						mListener->onChunkAdded(chunk);
+					}
 					mPendingAddChunks.removeIndexSwap(index);
 					--index;
 				}

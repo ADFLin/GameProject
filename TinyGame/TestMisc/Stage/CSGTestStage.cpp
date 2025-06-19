@@ -1431,7 +1431,7 @@ namespace CSG
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			initializeRenderState();
 
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
 			DrawUtility::AixsLine(commandList, 10);
 #if 0
 			Draw(commandList, mCubePlane, LinearColor(1, 0, 0, 1));

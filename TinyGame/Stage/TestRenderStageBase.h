@@ -255,7 +255,7 @@ namespace Render
 	public:
 		Matrix4 getPerspectiveMatrix()
 		{
-			return PerspectiveMatrixZBuffer(mYFov, mAspect, mNear, mFar);
+			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);
 		}
 
 		bool  bLeftHandCoord = false;

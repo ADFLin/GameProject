@@ -19,7 +19,7 @@
 
 #include "RHI/D3D11Command.h"
 #include "RHI/D3D12Command.h"
-
+#include "RHI/OpenGLCommand.h"
 
 using namespace Render;
 
@@ -296,19 +296,16 @@ public:
 	public:
 		bool initRenderResource(EditorWindow& window)
 		{
+			WGLPixelFormat format;
+			mContext.init(window.getHDC(), format, true);
+			if (!wglShareLists(static_cast<OpenGLSystem*>(GRHISystem)->mGLContext.getHandle(), mContext.getHandle()))
+			{
+			}
 			return true;
 		}
 
-		bool createRenderTarget(ID3D12DeviceRHI* device)
-		{
 
-			return true;
-		}
-
-		void cleanupRenderTarget()
-		{
-
-		}
+		WindowsGLContext mContext;
 	};
 
 	virtual bool initialize(EditorWindow& mainWindow)
@@ -341,12 +338,19 @@ public:
 
 	void renderWindow(EditorWindow& window)
 	{
+		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 
+		renderData->mContext.makeCurrent();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClearColor(0,0,0,1);
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		renderData->mContext.swapBuffer();
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
 	{
-
+		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 	}
 };
 

@@ -91,6 +91,20 @@ void BitmapDC::clear()
 }
 
 
+bool BitmapDC::readPixels(void* pOutPxiels)
+{
+	BITMAPINFO bmi;
+	ZeroMemory(&bmi, sizeof(bmi));
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = mWidth;
+	bmi.bmiHeader.biHeight = -mHeight; // Top-down DIB
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32; // 32 bits per pixel
+	bmi.bmiHeader.biCompression = BI_RGB;
+	int result = GetDIBits(mhDC, mhBmp, 0, mHeight, pOutPxiels, &bmi, DIB_RGB_COLORS);
+	return result > 0;
+}
+
 bool BitmapDC::initialize( HDC hDC , int w , int h )
 {
 	assert(mhDC == NULL);
@@ -168,24 +182,24 @@ void BitmapDC::release()
 }
 
 
-void BitmapDC::bitBltTo(HDC hdc, int x, int y)
+bool BitmapDC::bitBltTo(HDC hdc, int x, int y)
 {
-	::BitBlt(hdc, x, y, mWidth, mHeight, mhDC, 0, 0, SRCCOPY);
+	return ::BitBlt(hdc, x, y, mWidth, mHeight, mhDC, 0, 0, SRCCOPY);
 }
 
-void BitmapDC::bitBltTo(HDC hdc, int x, int y, int sx, int sy, int w, int h)
+bool BitmapDC::bitBltTo(HDC hdc, int x, int y, int sx, int sy, int w, int h)
 {
-	::BitBlt(hdc, x, y, w, h, mhDC, sx, sy, SRCCOPY);
+	return ::BitBlt(hdc, x, y, w, h, mhDC, sx, sy, SRCCOPY);
 }
 
-void BitmapDC::bitBltFrom(HDC hDC, int x, int y)
+bool BitmapDC::bitBltFrom(HDC hDC, int x, int y)
 {
-	::BitBlt(mhDC, x, y, mWidth , mHeight, hDC, 0, 0, SRCCOPY);
+	return ::BitBlt(mhDC, x, y, mWidth , mHeight, hDC, 0, 0, SRCCOPY);
 }
 
-void BitmapDC::bitBltTransparent( HDC hdc , COLORREF colorKey , int x /*= 0*/,int y /*= 0 */ )
+bool BitmapDC::bitBltTransparent( HDC hdc , COLORREF colorKey , int x /*= 0*/,int y /*= 0 */ )
 {
-	::TransparentBlt( hdc , x , y , mWidth , mHeight, mhDC, 0,0 , mWidth , mHeight , colorKey );
+	return ::TransparentBlt( hdc , x , y , mWidth , mHeight, mhDC, 0,0 , mWidth , mHeight , colorKey );
 }
 
 void BitmapDC::cleanup()

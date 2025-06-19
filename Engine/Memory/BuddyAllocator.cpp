@@ -12,6 +12,19 @@ bool BuddyAllocatorBase::canAllocate(uint32 order)
 	return false;
 }
 
+bool BuddyAllocatorBase::canAllocate(uint32 size, uint32 alignment)
+{
+	uint32 allocateSize = size;
+	if (alignment != 0 && mBlockSize % alignment != 0)
+	{
+		allocateSize = size + alignment;
+	}
+
+	uint32 uSize = SizeToUnitSize(allocateSize);
+	uint32 order = UnitSizeToOrder(uSize);
+	return canAllocate(order);
+}
+
 bool BuddyAllocatorBase::alloc(uint32 size, uint32 alignment, Allocation& allocation)
 {
 	uint32 allocateSize = size;

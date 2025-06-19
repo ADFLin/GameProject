@@ -128,12 +128,7 @@ float3 SimplePCF(Texture2D shadowTexture, float2 shadowUV, float depth)
 	const float factor = 0;
 	float count = 0;
 
-	float2 texSize;
-#if COMPILER_HLSL
-	shadowTexture.GetDimensions(texSize.x, texSize.y);
-#else
-	texSize = float2(textureSize(shadowTexture, 0));
-#endif
+	float2 texSize = TextureSize(shadowTexture);
 	float2 dUV = 1.0 / texSize;
 	//dUV.x /= NumCascade;
 	count += ShadowCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV).r, depth, 1.0, factor);

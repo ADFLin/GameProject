@@ -202,7 +202,7 @@ void TextureViewerPanel::render()
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-				Matrix4 xForm = AdjProjectionMatrixForRHI(OrthoMatrix(0, drawData->DisplaySize.x, drawData->DisplaySize.y, 0, 1, -1));
+				Matrix4 xForm = AdjustProjectionMatrixForRHI(OrthoMatrix(0, drawData->DisplaySize.x, drawData->DisplaySize.y, 0, 1, -1));
 				if ( bVFlip )
 				{
 					Vector2 pos = data.clientPos + Vector2(0 , renderSize.y);

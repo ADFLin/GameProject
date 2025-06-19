@@ -21,10 +21,9 @@ bool TinyGameApp::initializeEditor()
 	return true;
 }
 
-
 bool TinyGameApp::initializeEditorRender()
 {
-	ERenderSystem renderSystem = ERenderSystem::D3D11;
+	ERenderSystem renderSystem = ERenderSystem::OpenGL;
 	char const* moduleName = "D3D11RHI.dll";
 	switch (renderSystem)
 	{
@@ -50,7 +49,10 @@ bool TinyGameApp::initializeEditorRender()
 	configs.bDebugMode = true;
 	configs.bVSyncEnable = true;
 	configs.numSamples = 1;
-	::Global::GetDrawEngine().lockSystem(renderSystem, configs);
+	if (!::Global::GetDrawEngine().lockSystem(renderSystem, configs))
+	{
+		return false;
+	}
 
 	mEditor->initializeRender();
 	mEditor->addGameViewport(this);
@@ -82,12 +84,20 @@ void TinyGameApp::renderViewport(IEditorRenderContext& context)
 {
 	if (::Global::GetDrawEngine().isRHIEnabled())
 	{
-		static_cast<D3D11System*>(GRHISystem)->mSwapChain->getBackBufferTexture();
-		context.setRenderTexture(*static_cast<D3D11System*>(GRHISystem)->mSwapChain->getBackBufferTexture());
+		if (GRHISystem->getName() == RHISystemName::D3D11)
+		{
+			static_cast<D3D11System*>(GRHISystem)->mSwapChain->getBackBufferTexture();
+			context.setRenderTexture(*static_cast<D3D11System*>(GRHISystem)->mSwapChain->getBackBufferTexture());
+		}
+		else
+		{
+
+
+		}
 	}
 	else
 	{
-		context.copyToRenderTarget((void*) ::Global::GetDrawEngine().getPlatformGraphics().getTargetDC());
+		context.copyToRenderTarget(::Global::GetDrawEngine().getBufferDC());
 	}
 }
 

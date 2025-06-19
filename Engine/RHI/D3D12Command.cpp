@@ -246,7 +246,7 @@ namespace Render
 			DXGI_ADAPTER_DESC1 adapterDesc;
 			if (SUCCEEDED(hardwareAdapter->GetDesc1(&adapterDesc)))
 			{
-				GRHIDeviceVendorName = FD3DUtils::GetDevicVenderName(adapterDesc.VendorId);
+				GRHIDeviceVendorName = FD3DUtils::GetDeivceVenderName(adapterDesc.VendorId);
 			}
 		}
 
@@ -1829,7 +1829,7 @@ namespace Render
 			D3D12_INDIRECT_ARGUMENT_DESC args[1];
 			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
 			D3D12_COMMAND_SIGNATURE_DESC desc;
-			desc.ByteStride = 36;
+			desc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
 			desc.NumArgumentDescs = ARRAY_SIZE(args);
 			desc.pArgumentDescs = args;
 			mDevice->CreateCommandSignature(&desc, NULL, IID_PPV_ARGS(&mDrawCmdSignature));
@@ -1838,7 +1838,7 @@ namespace Render
 			D3D12_INDIRECT_ARGUMENT_DESC args[1];
 			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
 			D3D12_COMMAND_SIGNATURE_DESC desc;
-			desc.ByteStride = 36;
+			desc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 			desc.NumArgumentDescs = ARRAY_SIZE(args);
 			desc.pArgumentDescs   = args;
 			mDevice->CreateCommandSignature(&desc, NULL, IID_PPV_ARGS(&mDrawIndexedCmdSignature));
@@ -1987,9 +1987,9 @@ namespace Render
 		{
 			D3D12_RECT& scissorRect = mScissorRects[i];
 			scissorRect.left = x;
-			scissorRect.top = mViewportRects[i].bottom - ( y + h );
+			scissorRect.top = y;
 			scissorRect.right = x + w;
-			scissorRect.bottom = mViewportRects[i].bottom - y;
+			scissorRect.bottom = y + h;
 		}
 		mGraphicsCmdList->RSSetScissorRects(mNumViewports, mScissorRects);
 	}

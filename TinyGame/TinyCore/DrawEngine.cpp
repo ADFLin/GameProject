@@ -188,7 +188,22 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 {
 	mWindowProvider = &provider;
 	mGameWindow = &provider.getMainWindow();
-	mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
+
+	BITMAPINFO bmpInfo;
+	bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmpInfo.bmiHeader.biWidth = mGameWindow->getWidth();
+	bmpInfo.bmiHeader.biHeight = mGameWindow->getHeight();
+	bmpInfo.bmiHeader.biPlanes = 1;
+	bmpInfo.bmiHeader.biBitCount = 32;
+	bmpInfo.bmiHeader.biCompression = BI_RGB;
+	bmpInfo.bmiHeader.biXPelsPerMeter = 0;
+	bmpInfo.bmiHeader.biYPelsPerMeter = 0;
+	bmpInfo.bmiHeader.biSizeImage = 0;
+	if (!mBufferDC.initialize(getWindow().getHDC(), &bmpInfo))
+	{
+
+	}
+	//mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
 	mPlatformGraphics = std::make_unique< Graphics2D >( mBufferDC.getHandle() );
 
 	mPlatformProxy = std::make_unique< TGraphics2DProxy< Graphics2D > >(*mPlatformGraphics);
@@ -361,8 +376,8 @@ bool DrawEngine::lockSystem(ERenderSystem systemLocked, RenderSystemConfigs cons
 	initParam.numSamples = configs.numSamples;
 	initParam.bVSyncEnable = configs.bVSyncEnable;
 	initParam.bDebugMode = configs.bDebugMode;
-	initParam.hWnd = NULL;
-	initParam.hDC = NULL;
+	initParam.hWnd = getWindow().getHWnd();
+	initParam.hDC = getWindow().getHDC();
 	initParam.bMultithreadingSupported = configs.bMultithreadingSupported;
 	VERIFY_RETURN_FALSE(RHISystemInitialize(ConvTo(systemLocked), initParam));
 	
@@ -485,6 +500,10 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 	}
 	else
 	{
+		if (mGLContext)
+		{
+			mGLContext = nullptr;
+		}
 		if (mSwapChain)
 		{
 			mSwapChain.release();
@@ -557,6 +576,11 @@ bool DrawEngine::beginFrame()
 
 	if ( isRHIEnabled() )
 	{
+		if (mGLContext)
+		{
+			mGLContext->makeCurrent();
+		}
+
 		if( !RHIBeginRender() )
 			return false;
 
@@ -840,7 +864,7 @@ void DrawEngine::changetViewportSize(int w, int h)
 void DrawEngine::setupBuffer( int w , int h )
 {
 	mBufferDC.release();
-	if ( isRHIEnabled() )
+	if ( isRHIEnabled() || true )
 	{
 		int bitsPerPixel = GetDeviceCaps( getWindow().getHDC() , BITSPIXEL );
 

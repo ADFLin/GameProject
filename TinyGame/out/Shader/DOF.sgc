@@ -103,7 +103,7 @@ void MainBlurV()
 	float radius = DefaultRadius;
 
 
-	float2 duv = float2(radius) / textureSize(Texture, 0).xy;
+	float2 duv = float2(radius) / TextureSize(Texture, 0).xy;
 	float4 resultR = float4(0, 0, 0, 0);
 	float4 resultG = float4(0, 0, 0, 0);
 	float4 resultB = float4(0, 0, 0, 0);
@@ -141,7 +141,7 @@ void MainBlurHAndCombine()
 	float2 ScreenUVs = VSOutput.UVs;
 	float radius = DefaultRadius;
 
-	float2 duv = float2(radius) / textureSize(TextureR, 0).xy;
+	float2 duv = float2(radius) / TextureSize(TextureR).xy;
 
 	float4 accR = float4(0, 0, 0, 0);
 	float4 accG = float4(0, 0, 0, 0);

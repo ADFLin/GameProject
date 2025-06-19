@@ -498,7 +498,7 @@ namespace Render
 			TestFFT(commandList);
 
 
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
 			DrawUtility::AixsLine(commandList, 10);
 
 #if 0

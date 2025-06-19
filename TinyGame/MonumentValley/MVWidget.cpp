@@ -41,7 +41,7 @@ namespace MV
 		{
 			float width = 2;
 			float height = width * size.y / size.x;
-			Mat4 matProj = OrthoMatrixZBuffer( width , width , -10 , 10 );
+			Mat4 matProj = OrthoMatrix( width , width , -10 , 10 );
 			Mat4 matView = LookAtMatrix( Vec3f(0,0,0) , -Vec3f( FDir::ParallaxOffset(0) ) , Vector3(0,0,1) );
 			Render::MatrixSaveScope Scope( matProj , matView );
 			

@@ -824,7 +824,7 @@ namespace Render
 	{
 		mWidth = width;
 		mHeight = height;
-		mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
+		mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
 	}
 
 	void BatchedRender::flushGroup()

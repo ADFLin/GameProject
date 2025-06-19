@@ -205,7 +205,7 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 			{
-				auto worldToClipRHI = AdjProjectionMatrixForRHI(worldToClip);
+				auto worldToClipRHI = AdjustProjectionMatrixForRHI(worldToClip);
 
 				int idxLine = 0;
 				for (; idxLine < mLineBatchs.size(); ++idxLine)

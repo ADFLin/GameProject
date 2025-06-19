@@ -60,6 +60,9 @@ namespace Cube
 
 	IMPLEMENT_SHADER_PROGRAM(BlockRenderShaderProgram);
 
+
+
+
 	RenderEngine::RenderEngine( int w , int h )
 	{
 		mClientWorld = NULL;
@@ -85,6 +88,8 @@ namespace Cube
 		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD2, EVertex::UInt1);
 		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 		mBlockInputLayout = RHICreateInputLayout(desc);
+
+		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), 4096 * 16, BCF_DrawIndirectArgs);
 	}
 
 	RenderEngine::~RenderEngine()
@@ -96,13 +101,17 @@ namespace Cube
 	void RenderEngine::setupWorld(World& world)
 	{
 		if ( mClientWorld )
+		{
 			mClientWorld->removeListener( *this );
+			mClientWorld->mChunkProvider->mListener = nullptr;
+		}
 
 		mClientWorld = &world;
 		mClientWorld->mChunkProvider->mListener = this;
 		mClientWorld->addListener( *this );
 	}
 
+#define USE_INDIRECT_DRAW 1
 
 	void RenderEngine::tick(float deltaTime)
 	{
@@ -113,13 +122,28 @@ namespace Cube
 				auto data = updateData.chunkData;
 				auto& mesh = updateData.mesh;
 				using namespace Render;
+#if USE_INDIRECT_DRAW
+
+				auto meshData = acquireMeshRenderData(mesh);
+
+				if (meshData == nullptr)
+					continue;
+
+				data->meshPool = meshData;
+				data->indicesCount = mesh.mIndices.size();
+				meshData->vertexAllocator.alloc(mesh.mVertices.size(), 0, data->vertexAllocation);
+				meshData->indexAllocator.alloc(mesh.mIndices.size(), 0, data->indexAlloction);
+				RHIUpdateBuffer(*meshData->vertexBuffer, data->vertexAllocation.pos, mesh.mVertices.size(), (void*)mesh.mVertices.data());
+				RHIUpdateBuffer(*meshData->indexBuffer, data->indexAlloction.pos, mesh.mIndices.size(), (void*)mesh.mIndices.data());
+#else
 				data->mesh.vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), mesh.mVertices.size(), BCF_DefalutValue, (void*)mesh.mVertices.data());
 				data->mesh.indexBuffer = RHICreateIndexBuffer(mesh.mIndices.size(), true, BCF_DefalutValue, (void*)mesh.mIndices.data());
+#endif
 
-				data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
+				//data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
 				data->state = ChunkRenderData::eMesh;
 				data->bound = updateData.bound;
-				data->bound.translate(data->posOffset);
+				//data->bound.translate(data->posOffset);
 
 			}
 			mPendingAddList.clear();
@@ -287,6 +311,24 @@ namespace Cube
 		);
 	}
 
+	MeshRenderPoolData* RenderEngine::acquireMeshRenderData(Mesh const& mesh)
+	{
+		for (auto meshData : mMeshPool)
+		{
+			if (!meshData->vertexAllocator.canAllocate(mesh.mVertices.size(), 0))
+				continue;
+			if (!meshData->indexAllocator.canAllocate(mesh.mIndices.size(), 0))
+				continue;
+			return meshData;
+		}
+
+
+		auto meshData = new MeshRenderPoolData;
+		meshData->initialize();
+		mMeshPool.push_back(meshData);
+		return meshData;
+	}
+
 	ACCESS_SHADER_MEMBER_PARAM(LocalToWorld);
 	ACCESS_SHADER_MEMBER_PARAM(WorldToClip);
 
@@ -316,13 +358,13 @@ namespace Cube
 
 	static void GetFrustomPlanes(Vector3 const& worldPos, Vector3 const& viewDir,  Matrix4 const& clipToWorld, Plane outPlanes[])
 	{
-		Vector3 centerNearPos = (Vector4(0, 0, FRHIZBuffer::NearPlane, 1) * clipToWorld).dividedVector();
-		Vector3 centerFarPos = (Vector4(0, 0, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 centerNearPos = (Vector4(0, 0, 0, 1) * clipToWorld).dividedVector();
+		Vector3 centerFarPos = (Vector4(0, 0, 1, 1) * clipToWorld).dividedVector();
 
-		Vector3 posRT = (Vector4(1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
-		Vector3 posLB = (Vector4(-1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
-		Vector3 posRB = (Vector4(1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
-		Vector3 posLT = (Vector4(-1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posRT = (Vector4(1, 1, 1, 1) * clipToWorld).dividedVector();
+		Vector3 posLB = (Vector4(-1, -1, 1, 1) * clipToWorld).dividedVector();
+		Vector3 posRB = (Vector4(1, -1, 1, 1) * clipToWorld).dividedVector();
+		Vector3 posLT = (Vector4(-1, 1, 1, 1) * clipToWorld).dividedVector();
 
 		outPlanes[0] = Plane(viewDir, centerNearPos); //ZFar
 		outPlanes[1] = Plane(-viewDir, centerFarPos); //ZNear
@@ -336,6 +378,8 @@ namespace Cube
 	void RenderEngine::renderWorld( ICamera& camera )
 	{
 		GPU_PROFILE("Render World");
+
+		++mRenderFrame;
 
 		World& world = *mClientWorld;
 
@@ -352,7 +396,7 @@ namespace Cube
 		Vec3f upDir = camera.getUpDir();
 
 		ICamera* cameraRender = mDebugCamera ? mDebugCamera : &camera;
-		Matrix4 projectMatrix = PerspectiveMatrixZBuffer(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 2000);
+		Matrix4 projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 2000);
 		Matrix4 worldToView = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
 		Matrix4 worldToClip = worldToView * projectMatrix;
 
@@ -377,7 +421,7 @@ namespace Cube
 		GetFrustomPlanes(camPos, camera.getViewDir(), clipToWorld, clipPlanes);
 
 		RnederContext context;
-		context.worldToClip = AdjProjectionMatrixForRHI(worldToViewRender * projectMatrix);
+		context.worldToClip = AdjustProjectionMatrixForRHI(worldToViewRender * projectMatrix);
 
 		if (mDebugCamera)
 		{
@@ -456,13 +500,31 @@ namespace Cube
 				return;
 
 
-			auto& meshData = data->mesh;
-			context.stack.push();
-			context.stack.translate(data->posOffset);
+#if USE_INDIRECT_DRAW
+
+			if ( data->meshPool->drawFrame != mRenderFrame )
+			{
+				data->meshPool->drawCmdList.clear();
+				data->meshPool->drawFrame = mRenderFrame;
+			}
+
+			DrawCmdArgs args;
+			args.baseVertexLocation = data->vertexAllocation.pos;
+			args.startIndexLocation = data->indexAlloction.pos;
+			args.indexCountPerInstance = data->indicesCount;
+			args.instanceCount = 1;
+			args.startInstanceLocation = 0;
+			data->meshPool->drawCmdList.push_back(args);
+
+			triangleCount += data->indicesCount / 3;
+#else
+
+			//context.stack.translate(data->posOffset);
 			context.setupShader(commandList, *mProgBlockRender);
-			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI() );
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI());
 			{
 				PROFILE_ENTRY("Draw Call");
+				auto& meshData = data->mesh;
 				InputStreamInfo inputstream;
 				inputstream.buffer = meshData.vertexBuffer;
 				inputstream.offset = 0;
@@ -470,14 +532,18 @@ namespace Cube
 				RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1 );
 				RHISetIndexBuffer(commandList, meshData.indexBuffer);
 				RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0 , meshData.indexBuffer->getNumElements(), 0);
+				triangleCount += meshData.indexBuffer->getNumElements() / 3;
+
 
 			}
-			context.stack.pop();
+#endif
 
-			triangleCount += meshData.indexBuffer->getNumElements() / 3;
 			++chunkRenderCount;
 		};
 
+
+
+		int chunkMeshCount = 0;
 		{
 			PROFILE_ENTRY("Render Chunks");
 
@@ -500,6 +566,41 @@ namespace Cube
 				ProcessChunk(cPos + Vec2i(n, -n));
 				ProcessChunk(cPos + Vec2i(-n, -n));
 			}
+#if USE_INDIRECT_DRAW
+			TArray< DrawCmdArgs > drawCmdList;
+			for (auto mesh : mMeshPool)
+			{
+				if (mesh->drawFrame != mRenderFrame)
+					continue;
+
+				mesh->cmdOffset = sizeof(DrawCmdArgs) * drawCmdList.size();
+				drawCmdList.append(mesh->drawCmdList);
+			}
+
+			if ( !drawCmdList.empty() )
+			{
+				RHIUpdateBuffer(*mCmdBuffer, 0, drawCmdList.size(), drawCmdList.data());
+
+				context.setupShader(commandList, *mProgBlockRender);
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI());
+				for (auto mesh : mMeshPool)
+				{
+					if (mesh->drawFrame != mRenderFrame)
+						continue;
+
+					InputStreamInfo inputstream;
+					inputstream.buffer = mesh->vertexBuffer;
+					inputstream.offset = 0;
+					inputstream.stride = mesh->vertexBuffer->getElementSize();
+
+					RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
+					RHISetIndexBuffer(commandList, mesh->indexBuffer);
+
+					RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, mesh->drawCmdList.size());
+					++chunkMeshCount;
+				}
+			}
+#endif
 		}
 
 #if 1
@@ -526,8 +627,9 @@ namespace Cube
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
 		g.drawTextF(Vector2(10, 10), "chunkRenderCount = %d", chunkRenderCount);
-		g.drawTextF(Vector2(10, 20), "triangleCount = %d", triangleCount);
-		g.drawTextF(Vector2(10, 30), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
+		g.drawTextF(Vector2(10, 25), "triangleCount = %d", triangleCount);
+		g.drawTextF(Vector2(10, 40), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
+		g.drawTextF(Vector2(10, 55), "chunkMeshCount = %d", chunkMeshCount);
 		g.endRender();
 
 	}
@@ -570,5 +672,16 @@ namespace Cube
 		}
 	}
 
+	bool MeshRenderPoolData::initialize()
+	{
+		uint32 MaxVerticesCount = 131072 * 8;
+		uint32 MaxIndicesCount = FBitUtility::NextNumberOfPow2(6 * (MaxVerticesCount / 4));
+		vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), MaxVerticesCount, BCF_DefalutValue);
+		indexBuffer = RHICreateIndexBuffer(MaxIndicesCount, true, BCF_DefalutValue);
+		vertexAllocator.initialize(MaxVerticesCount, 32);
+		indexAllocator.initialize(MaxIndicesCount, 64);
+
+		return true;
+	}
 
 }//namespace Cube

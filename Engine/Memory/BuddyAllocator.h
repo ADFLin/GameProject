@@ -53,6 +53,7 @@ public:
 	};
 
 	bool canAllocate(uint32 order);
+	bool canAllocate(uint32 size, uint32 alignment);
 
 	bool alloc(uint32 size, uint32 alignment, Allocation& allocation);
 

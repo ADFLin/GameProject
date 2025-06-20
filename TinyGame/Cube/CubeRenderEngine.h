@@ -63,7 +63,7 @@ namespace Cube
 
 		bool initialize();
 
-		int drawFrame;
+		int drawFrame = 0;
 		TArray< DrawCmdArgs > drawCmdList;
 		int cmdOffset;
 	};
@@ -85,8 +85,18 @@ namespace Cube
 		Vec3f    posOffset;
 		MeshRenderData mesh;
 
+		struct Layer
+		{
+			int indexLayer;
+			Math::TAABBox< Vec3f > bound;
+			uint32 indexOffset;
+			uint32 indexCount;
+		};
+		Layer layers[Chunk::NumLayer];
+		int numLayer;
+
 		MeshRenderPoolData* meshPool;
-		uint32 indicesCount;
+		uint32 indexCount;
 		BuddyAllocatorBase::Allocation vertexAllocation;
 		BuddyAllocatorBase::Allocation indexAlloction;
 	};
@@ -96,6 +106,10 @@ namespace Cube
 	public:
 		RenderEngine( int w , int h );
 		~RenderEngine();
+
+		bool initializeRHI();
+		void releaseRHI();
+
 		void beginRender();
 		void renderWorld( ICamera& camera );
 

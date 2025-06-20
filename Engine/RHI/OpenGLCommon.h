@@ -613,6 +613,7 @@ namespace Render
 			uint8  streamIndex;
 			uint8  attribute;
 			uint8  componentNum;
+			bool   bIntType;
 			bool   bNormalized;
 			bool   bInstanceData;	
 		};

@@ -1142,6 +1142,7 @@ namespace Render
 			element.instanceStepRate = e.instanceStepRate;
 			element.componentNum = EVertex::GetComponentNum(e.format);
 			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
+			element.bIntType = !e.bNormalized && EVertex::IsIntType(EVertex::GetComponentType(e.format));
 			element.stride = desc.getVertexSize(e.streamIndex);
 			element.offset = e.offset;
 
@@ -1206,7 +1207,14 @@ namespace Render
 		{
 			auto const& e = mElements[index];
 			glEnableVertexAttribArray(e.attribute);
-			glVertexAttribFormat(e.attribute, e.componentNum, e.componentType, e.bNormalized, e.offset);
+			if (e.bIntType)
+			{
+				glVertexAttribIFormat(e.attribute, e.componentNum, e.componentType, e.offset);
+			}
+			else
+			{
+				glVertexAttribFormat(e.attribute, e.componentNum, e.componentType, e.bNormalized, e.offset);
+			}
 			glVertexAttribBinding(e.attribute, e.streamIndex);
 			if (e.bInstanceData)
 			{

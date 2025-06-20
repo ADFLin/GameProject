@@ -75,7 +75,16 @@ namespace Cube
 
 		mGereatePool = new QueueThreadPool;
 		mGereatePool->init(1);
+	}
 
+	RenderEngine::~RenderEngine()
+	{
+		cleanupRenderData();
+		delete mGereatePool;
+	}
+
+	bool RenderEngine::initializeRHI()
+	{
 		mDebugPrimitives.initializeRHI();
 		mProgBlockRender = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >();
 
@@ -90,12 +99,17 @@ namespace Cube
 		mBlockInputLayout = RHICreateInputLayout(desc);
 
 		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), 4096 * 16, BCF_DrawIndirectArgs);
+
+		return true;
 	}
 
-	RenderEngine::~RenderEngine()
+	void RenderEngine::releaseRHI()
 	{
-		cleanupRenderData();
-		delete mGereatePool;
+		mDebugPrimitives.releaseRHI();
+		mProgBlockRender = nullptr;
+		mTexBlockAtlas.release();
+		mBlockInputLayout.release();
+		mCmdBuffer.release();
 	}
 
 	void RenderEngine::setupWorld(World& world)
@@ -111,7 +125,6 @@ namespace Cube
 		mClientWorld->addListener( *this );
 	}
 
-#define USE_INDIRECT_DRAW 1
 
 	void RenderEngine::tick(float deltaTime)
 	{
@@ -122,8 +135,6 @@ namespace Cube
 				auto data = updateData.chunkData;
 				auto& mesh = updateData.mesh;
 				using namespace Render;
-#if USE_INDIRECT_DRAW
-
 				auto meshData = acquireMeshRenderData(mesh);
 
 				if (meshData == nullptr)
@@ -135,10 +146,7 @@ namespace Cube
 				meshData->indexAllocator.alloc(mesh.mIndices.size(), 0, data->indexAlloction);
 				RHIUpdateBuffer(*meshData->vertexBuffer, data->vertexAllocation.pos, mesh.mVertices.size(), (void*)mesh.mVertices.data());
 				RHIUpdateBuffer(*meshData->indexBuffer, data->indexAlloction.pos, mesh.mIndices.size(), (void*)mesh.mIndices.data());
-#else
-				data->mesh.vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), mesh.mVertices.size(), BCF_DefalutValue, (void*)mesh.mVertices.data());
-				data->mesh.indexBuffer = RHICreateIndexBuffer(mesh.mIndices.size(), true, BCF_DefalutValue, (void*)mesh.mIndices.data());
-#endif
+
 
 				//data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
 				data->state = ChunkRenderData::eMesh;
@@ -389,7 +397,7 @@ namespace Cube
 
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		RHISetRasterizerState(commandList, GetStaticRasterizerState(ECullMode::Back, /*bWireframeMode ? EFillMode::Wireframe :*/ EFillMode::Solid));
+		RHISetRasterizerState(commandList, GetStaticRasterizerState(ECullMode::Back, bWireframeMode ? EFillMode::Wireframe : EFillMode::Solid));
 
 		Vec3f camPos = camera.getPos();
 		Vec3f viewPos = camPos + camera.getViewDir();
@@ -453,7 +461,7 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos( bx , by );
-		int viewDist = 96;
+		int viewDist = 100;
 
 		int chunkRenderCount = 0;
 		int triangleCount = 0;
@@ -499,9 +507,6 @@ namespace Cube
 			if (visibilityType == 0)
 				return;
 
-
-#if USE_INDIRECT_DRAW
-
 			if ( data->meshPool->drawFrame != mRenderFrame )
 			{
 				data->meshPool->drawCmdList.clear();
@@ -517,30 +522,8 @@ namespace Cube
 			data->meshPool->drawCmdList.push_back(args);
 
 			triangleCount += data->indicesCount / 3;
-#else
-
-			//context.stack.translate(data->posOffset);
-			context.setupShader(commandList, *mProgBlockRender);
-			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI());
-			{
-				PROFILE_ENTRY("Draw Call");
-				auto& meshData = data->mesh;
-				InputStreamInfo inputstream;
-				inputstream.buffer = meshData.vertexBuffer;
-				inputstream.offset = 0;
-				inputstream.stride = meshData.vertexBuffer->getElementSize();
-				RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1 );
-				RHISetIndexBuffer(commandList, meshData.indexBuffer);
-				RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0 , meshData.indexBuffer->getNumElements(), 0);
-				triangleCount += meshData.indexBuffer->getNumElements() / 3;
-
-
-			}
-#endif
-
 			++chunkRenderCount;
 		};
-
 
 
 		int chunkMeshCount = 0;
@@ -566,7 +549,7 @@ namespace Cube
 				ProcessChunk(cPos + Vec2i(n, -n));
 				ProcessChunk(cPos + Vec2i(-n, -n));
 			}
-#if USE_INDIRECT_DRAW
+
 			TArray< DrawCmdArgs > drawCmdList;
 			for (auto mesh : mMeshPool)
 			{
@@ -600,7 +583,6 @@ namespace Cube
 					++chunkMeshCount;
 				}
 			}
-#endif
 		}
 
 #if 1
@@ -626,7 +608,7 @@ namespace Cube
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
-		g.drawTextF(Vector2(10, 10), "chunkRenderCount = %d", chunkRenderCount);
+		g.drawTextF(Vector2(10, 10), "chunkCount = %d, chunkRenderCount = %d", mChunkMap.size(), chunkRenderCount);
 		g.drawTextF(Vector2(10, 25), "triangleCount = %d", triangleCount);
 		g.drawTextF(Vector2(10, 40), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
 		g.drawTextF(Vector2(10, 55), "chunkMeshCount = %d", chunkMeshCount);
@@ -674,7 +656,7 @@ namespace Cube
 
 	bool MeshRenderPoolData::initialize()
 	{
-		uint32 MaxVerticesCount = 131072 * 8;
+		uint32 MaxVerticesCount = 131072 * 64;
 		uint32 MaxIndicesCount = FBitUtility::NextNumberOfPow2(6 * (MaxVerticesCount / 4));
 		vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), MaxVerticesCount, BCF_DefalutValue);
 		indexBuffer = RHICreateIndexBuffer(MaxIndicesCount, true, BCF_DefalutValue);

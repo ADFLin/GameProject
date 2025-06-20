@@ -50,6 +50,22 @@ class TPerlinNoise : public PerlinNoiseBase
 {
 public:
 
+	int hashValue(int xi)
+	{
+		auto& p = mValue;
+		return p[xi & 0xff];
+	}
+	int hashValue(int xi, int yi)
+	{
+		auto& p = mValue;
+		return p[p[xi & 0xff] + (yi & 0xff)];
+	}
+	int hashValue(int xi, int yi, int zi)
+	{
+		auto& p = mValue;
+		return p[p[p[xi & 0xff] + (yi & 0xff)] + (zi & 0xff)];
+	}
+
 	template< class T >
 	T getValue(T x)
 	{
@@ -64,8 +80,8 @@ public:
 
 		T u = Fade(x);
 		int a, b;
-		a = p[xi];
-		b = p[inc(xi)];
+		a = hashValue(xi);
+		b = hashValue(inc(xi));
 		return 	Lerp(u, Grad<T>(a, x),
 			Grad<T>(b, x - 1));
 	}
@@ -91,10 +107,10 @@ public:
 		T v = Fade(y);
 
 		int aa, ab, ba, bb;
-		aa = p[p[xi] + yi];
-		ba = p[p[inc(xi)] + yi];
-		ab = p[p[xi] + inc(yi)];
-		bb = p[p[inc(xi)] + inc(yi)];
+		aa = hashValue(xi, yi); 
+		ba = hashValue(inc(xi), yi);
+		ab = hashValue(xi, inc(yi));
+		bb = hashValue(inc(xi), inc(yi));
 
 		return Lerp(
 			v,
@@ -105,6 +121,8 @@ public:
 		);
 	}
 
+
+
 	template< class T >
 	T getValue(T x, T y, T z)
 	{
@@ -113,10 +131,9 @@ public:
 		int yi = Math::FloorToInt(y);
 		int zi = Math::FloorToInt(z);
 
-		x -= xi; xi &= 0xff;
-		y -= yi; yi &= 0xff;
-		z -= zi; zi &= 0xff;
-
+		x -= xi;
+		y -= yi; 
+		z -= zi;
 
 		if (bRepeat && repeat)
 		{
@@ -130,15 +147,14 @@ public:
 		T w = Fade(z);
 
 		int aaa, aba, aab, abb, baa, bba, bab, bbb;
-		aaa = p[p[p[xi] + yi] + zi];
-		aba = p[p[p[xi] + inc(yi)] + zi];
-		aab = p[p[p[xi] + yi] + inc(zi)];
-		abb = p[p[p[xi] + inc(yi)] + inc(zi)];
-		baa = p[p[p[inc(xi)] + yi] + zi];
-		bba = p[p[p[inc(xi)] + inc(yi)] + zi];
-		bab = p[p[p[inc(xi)] + yi] + inc(zi)];
-		bbb = p[p[p[inc(xi)] + inc(yi)] + inc(zi)];
-
+		aaa = hashValue(xi, yi, zi);
+		aba = hashValue(xi, inc(yi), zi); 
+		aab = hashValue(xi, yi, inc(zi));
+		abb = hashValue(xi, inc(yi), inc(zi));
+		baa = hashValue(inc(xi), yi, zi);
+		bba = hashValue(inc(xi), inc(yi), zi);
+		bab = hashValue(inc(xi), yi, inc(zi));
+		bbb = hashValue(inc(xi), inc(yi), inc(zi));
 		return Lerp(
 			w,
 			Lerp(v, Lerp(u, Grad(aaa, x, y, z),

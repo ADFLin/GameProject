@@ -48,7 +48,12 @@ namespace Cube
 		COUNT,
 	};
 
-	inline FaceSide getFaceSide( int idxAxis , bool beN )
+	FORCEINLINE int GetFaceAxis(FaceSide face)
+	{
+		return face / 2;
+	}
+
+	FORCEINLINE FaceSide getFaceSide( int idxAxis , bool beN )
 	{
 		return FaceSide( 2 * idxAxis + ( beN ? 1 : 0 ) );
 	}

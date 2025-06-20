@@ -14,6 +14,14 @@ namespace Cube
 		{
 			mWorld = NULL;
 			mRenderEngine = new RenderEngine( w , h );
+
+			mRenderEngine->initializeRHI();
+		}
+
+		~Scene()
+		{
+			mRenderEngine->releaseRHI();
+			delete mRenderEngine;
 		}
 
 		void changeWorld( World& world )

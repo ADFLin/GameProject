@@ -21,8 +21,8 @@ namespace Cube
 		{
 			struct
 			{
-				uint32    face : 4;
-				uint32    materialId : 28;
+				uint32    face  : 4;
+				uint32    matId : 28;
 			};
 			uint32 meta;
 		};
@@ -49,7 +49,8 @@ namespace Cube
 		}
 
 		void     draw(Vec3i const& offset, BlockId id );
-		void     drawUnknown( unsigned faceMask  );
+		void     drawSimple(unsigned faceMask, uint32 matId);
+		void     drawUnknown(unsigned faceMask);
 		void     setBasePos( Vec3i const& pos ){ mBasePos = pos; }
 		Mesh&    getMesh(){ return *mMesh; }
 
@@ -61,8 +62,13 @@ namespace Cube
 		void setVertexOffset(Vec3f const& offset) { mVertexOffset = offset; }
 
 
-
-		void addBlockFace(FaceSide face, uint32 materialId);
+		struct BlockSurfaceQuad 
+		{
+			FaceSide face;
+			uint32   matId;
+			Vec3f    offset;
+		};
+		void addBlockFace(FaceSide face, uint32 matId);
 
 
 		void addMeshVertex(Vec3f const& pos);
@@ -110,9 +116,10 @@ namespace Cube
 		Vec3f   mVertexOffset;
 		Mesh::Vertex mCurVertex;
 		Math::TAABBox< Vec3f > bound;
-
+		TArray< BlockSurfaceQuad > mQuads;
 		TArray< BlockVertex > mVertices;
 		TArray< uint32 >      mIndices;
+
 	};
 
 }//namespace Cube

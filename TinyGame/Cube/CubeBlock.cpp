@@ -12,7 +12,9 @@ namespace Cube
 
 	void Block::InitList()
 	{
-		(*new Block( BLOCK_DIRT )).setSolid( true );
+		(*new Block(BLOCK_DIRT)).setSolid(true);
+		(*new Block(BLOCK_BASE)).setSolid(true);
+		(*new Block(BLOCK_ROCK)).setSolid(true);
 		(*new LiquidBlock( BLOCK_WATER ) ).setSolid( false );
 	}
 

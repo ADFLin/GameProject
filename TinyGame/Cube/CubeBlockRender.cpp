@@ -11,6 +11,13 @@
 
 namespace Cube
 {
+
+	static uint32 TexPosToMatId(uint32 x, uint32 y)
+	{
+		return x + 64 * y;
+	}
+
+
 	void BlockRenderer::draw(Vec3i const& offset, BlockId id )
 	{
 		Block* block = Block::Get( id );
@@ -22,22 +29,32 @@ namespace Cube
 
 		switch( id )
 		{
+		case BLOCK_BASE:
+			drawSimple(faceMask, TexPosToMatId(11,0));
+			break;
+		case BLOCK_ROCK:
+			drawSimple(faceMask, TexPosToMatId(22, 7));
+			break;
 		case BLOCK_DIRT:
 		default:
-			drawUnknown( faceMask );
+			drawUnknown(faceMask);
 		}
 	}
 
-
-	static uint32 TexPosToMatId(uint32 x, uint32 y)
+	void BlockRenderer::drawSimple(unsigned faceMask, uint32 matId)
 	{
-		return x + 64 * y;
+		setColor(mDebugColor);
+		for (int face = 0; face < FaceSide::COUNT; ++face)
+		{
+			if (faceMask & BIT(face))
+			{
+				addBlockFace(FaceSide(face), matId);
+			}
+		}
 	}
 
 	void BlockRenderer::drawUnknown(unsigned faceMask)
 	{
-		Mesh& mesh = getMesh();
-
 		setColor(mDebugColor);
 		//mesh.setColor( 0 , 255 , 0 );
 		static uint32 const materialIdMap[] =
@@ -54,38 +71,41 @@ namespace Cube
 		{
 			if (faceMask & BIT(face))
 			{
-#if 1
-				addBlockFace(FaceSide(face), materialIdMap[face]);
-#else
-				uint32 indexBase = mesh.getVertexNum();
-				setNormal(GetFaceNoraml(FaceSide(face)));
-				auto faceVertices = GetFaceVertices(FaceSide(face));
-				addMeshVertex(faceVertices[0]);
-				addMeshVertex(faceVertices[1]);
-				addMeshVertex(faceVertices[2]);
-				addMeshVertex(faceVertices[3]);
-
-				addMeshQuad(indexBase + 0, indexBase + 1, indexBase + 2, indexBase + 3);
-#endif
+				int matId = materialIdMap[face];
+				if ( GetFaceAxis(FaceSide(face)) != 2 && (faceMask & BIT(FaceSide::FACE_Z)) == 0 )
+				{
+					matId = TexPosToMatId(4, 15);
+				}
+				addBlockFace(FaceSide(face), matId);
 			}
 		}
 	}
 
+#define USE_QUAD 1
 
-	void BlockRenderer::addBlockFace(FaceSide face, uint32 materialId)
+
+	void BlockRenderer::addBlockFace(FaceSide face, uint32 matId)
 	{
+#if USE_QUAD
+		BlockSurfaceQuad quad;
+		quad.face = face;
+		quad.offset = mVertexOffset;
+		quad.matId = matId;
+		mQuads.push_back(quad);
+#else
 		uint32 indexBase = mVertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
 			BlockVertex v;
 			v.face = face;
 			v.pos = mVertexOffset + GetFaceVertices(face)[i];
-			v.materialId = materialId;
+			v.matId = matId;
 
 			mVertices.push_back(v);
 			bound += v.pos;
 		}
 		addBlockQuad(indexBase + 0, indexBase + 1, indexBase + 2, indexBase + 3);
+#endif
 	}
 
 	void BlockRenderer::addMeshVertex(Vec3f const& pos)
@@ -137,31 +157,35 @@ namespace Cube
 		return Math::Abs(v.x) < ZeroError && Math::Abs(v.y) < ZeroError && Math::Abs(v.z) < ZeroError;
 	}
 
+
+	struct Edge
+	{
+		uint32 vertexId;
+		Edge*  prev;
+		Edge*  next;
+		union
+		{
+			bool   bNeedCheck;
+			struct
+			{
+				Vector3 p;
+				bool    isEar;
+				float   angle;
+			};
+		};
+	};
+
 	class TriangulateAlgorithm
 	{
 	public:
 
-		struct Edge
-		{
-			bool bNeedCheck;
-			uint32 verticeId;
-			Edge* prev;
-			Edge* next;
-		};
 
-		struct PartitionVertex
-		{
-			Vector3 p;
-			int32   idx;
-			bool    isEar;
-			float   angle;
+		using PartitionVertex = Edge;
 
-			PartitionVertex* prev;
-			PartitionVertex* next;
-		};
 
 		Vector3 mNoraml;
 		TArray< PartitionVertex > mVertices;
+		PartitionVertex* mHead;
 
 		bool IsConvex(Vector3 const& p1, Vector3 const& p2, Vector3 const& p3)
 		{
@@ -198,25 +222,24 @@ namespace Cube
 			if (isConvex)
 			{
 				v.isEar = true;
-				for (int i = 0; i < mVertices.size(); i++)
+				for( auto vertex = mHead; vertex->next != mHead; vertex = vertex->next)
 				{
-					if (mVertices[i].prev == nullptr)
-						continue;
+					CHECK(vertex->prev != nullptr);
 #if 0
-					if (IsNearlyZero(mVertices[i].p - v.p) ||
-						IsNearlyZero(mVertices[i].p - v1->p) ||
-						IsNearlyZero(mVertices[i].p - v3->p))
+					if (IsNearlyZero(vertex->p - v.p) ||
+						IsNearlyZero(vertex->p - v1->p) ||
+						IsNearlyZero(vertex->p - v3->p))
 						continue;
 #else
-					if (i == &v - mVertices.data())
+					if (vertex == &v)
 						continue;
-					if (i == v1 - mVertices.data())
+					if (vertex == v1)
 						continue;
-					if (i == v3 - mVertices.data())
+					if (vertex == v3)
 						continue;
 #endif
 
-					if (IsInside(v1->p, v.p, v3->p, mVertices[i].p))
+					if (IsInside(v1->p, v.p, v3->p, vertex->p))
 					{
 						v.isEar = false;
 						break;
@@ -228,9 +251,7 @@ namespace Cube
 				v.isEar = false;
 			}
 		}
-
-
-		bool run(int numVertices, uint8* verticesData, int dataStride, TArray< uint32 >& triList, int indexOffset, int* pIndices)
+		bool run(int numVertices, uint8* verticesData, int dataStride, int indexOffset, int* pIndices, TArray< uint32 >& outTriList)
 		{
 			if (numVertices < 3)
 				return false;
@@ -239,19 +260,18 @@ namespace Cube
 			{
 				if (pIndices)
 				{
-					triList.push_back(indexOffset + pIndices[0]);
-					triList.push_back(indexOffset + pIndices[1]);
-					triList.push_back(indexOffset + pIndices[2]);
+					outTriList.push_back(indexOffset + pIndices[0]);
+					outTriList.push_back(indexOffset + pIndices[1]);
+					outTriList.push_back(indexOffset + pIndices[2]);
 				}
 				else
 				{
-					triList.push_back(indexOffset + 0);
-					triList.push_back(indexOffset + 1);
-					triList.push_back(indexOffset + 2);
+					outTriList.push_back(indexOffset + 0);
+					outTriList.push_back(indexOffset + 1);
+					outTriList.push_back(indexOffset + 2);
 				}
 				return true;
 			}
-
 
 			mVertices.resize(numVertices);
 			PartitionVertex* prev = &mVertices[numVertices - 1];
@@ -264,7 +284,7 @@ namespace Cube
 					idx += i;
 
 				PartitionVertex& v = mVertices[i];
-				v.idx = idx;
+				v.vertexId = idx;
 				v.p = *reinterpret_cast<Vector3*>(verticesData + idx * dataStride);
 				v.prev = prev;
 				v.next = mVertices.data() + (i + 1);
@@ -272,48 +292,62 @@ namespace Cube
 			}
 			prev->next = mVertices.data();
 
+			mHead = &mVertices[0];
+			return runInternal(numVertices, outTriList);
+		}
 
-			for (int i = 0; i < numVertices; ++i)
+		bool run(PartitionVertex* head, int numVertices, TArray< uint32 >& outTriList)
+		{
+			if (numVertices < 3)
+				return false;
+
+			mHead = head;
+			if (numVertices == 3)
 			{
-				updateVertex(mVertices[i]);
+				outTriList.push_back(head->prev->vertexId);
+				outTriList.push_back(head->vertexId);
+				outTriList.push_back(head->next->vertexId);
+				return true;
 			}
+			return runInternal(numVertices, outTriList);
+		}
 
+		bool runInternal(int numVertices, TArray< uint32 >& outTriList)
+		{
+
+			for(auto vertex = mHead; vertex->next != mHead; vertex = vertex->next )
+			{
+				updateVertex(*vertex);
+			}
 
 			for (int i = 0; i < numVertices - 3; ++i)
 			{
-				PartitionVertex* ear = nullptr;
+				PartitionVertex* ear = mHead;
 				//find the most extruded ear
-				for (int j = 0; j < numVertices; ++j)
-				{
-					if (mVertices[j].prev == nullptr)
-						continue;
-					if (!mVertices[j].isEar)
-						continue;
 
-					if (ear == nullptr)
+				for (auto vertex = mHead->next; vertex->next != mHead; vertex = vertex->next)
+				{
+					CHECK(vertex->prev != nullptr);
+					if (vertex->angle > ear->angle)
 					{
-						ear = &(mVertices[j]);
-					}
-					else
-					{
-						if (mVertices[j].angle > ear->angle)
-						{
-							ear = &(mVertices[j]);
-						}
+						ear = vertex;
 					}
 				}
-				if (ear == nullptr)
-				{
-					return false;
-				}
 
-				triList.push_back(ear->prev->idx);
-				triList.push_back(ear->idx);
-				triList.push_back(ear->next->idx);
+				CHECK(ear);
+
+				outTriList.push_back(ear->prev->vertexId);
+				outTriList.push_back(ear->vertexId);
+				outTriList.push_back(ear->next->vertexId);
 
 				ear->prev->next = ear->next;
 				ear->next->prev = ear->prev;
 				ear->prev = nullptr;
+				if (ear == mHead)
+				{
+					mHead = mHead->next;
+				}
+
 				if (i == numVertices - 4)
 					break;
 
@@ -321,17 +355,9 @@ namespace Cube
 				updateVertex(*ear->next);
 			}
 
-			for (int i = 0; i < numVertices; ++i)
-			{
-				if (mVertices[i].prev)
-				{
-					triList.push_back(mVertices[i].prev->idx);
-					triList.push_back(mVertices[i].idx);
-					triList.push_back(mVertices[i].next->idx);
-					break;
-				}
-			}
-
+			outTriList.push_back(mHead->prev->vertexId);
+			outTriList.push_back(mHead->vertexId);
+			outTriList.push_back(mHead->next->vertexId);
 			return true;
 		}
 
@@ -346,68 +372,59 @@ namespace Cube
 
 	void BlockRenderer::mergeBlockPrimitives()
 	{
-		struct Edge
-		{
-			bool bNeedCheck;
-			uint32 verticeId;
-			Edge* prev;
-			Edge* next;
-		};
-
-		std::vector< Edge > edges;
-		std::vector<uint32> vertexIdRemap;
-		vertexIdRemap.resize(mVertices.size());
+		TArray< Edge > edges;
 		std::unordered_map< BlockVertex, uint32, MemberFuncHasher > vertexIdMap;
-		for (uint32 i = 0; i < mVertices.size(); ++i)
+
+		edges.resize(mQuads.size() * 4);
+		Edge* pEdge = edges.data();
+		for (auto const& quad : mQuads)
 		{
-			auto const& v = mVertices[i];
-			auto iter = vertexIdMap.find(v);
-			if (iter != vertexIdMap.end())
+			uint32 quadIndices[4];
+			for( int i = 0 ; i < 4 ; ++i )
 			{
-				vertexIdRemap[i] = iter->second;
+				BlockVertex v;
+				v.face = quad.face;
+				v.pos = quad.offset + GetFaceVertices(quad.face)[i];
+				v.matId = quad.matId;
+
+				auto iter = vertexIdMap.find(v);
+				if (iter != vertexIdMap.end())
+				{
+					quadIndices[i] = iter->second;
+				}
+				else
+				{
+					quadIndices[i] = mVertices.size();
+					mVertices.push_back(v);
+					vertexIdMap.emplace(v , quadIndices[i]);
+					bound += v.pos;
+				}
 			}
-			else
-			{
-				vertexIdRemap[i] = i;
-				vertexIdMap[v] = i;
-			}
-		}
 
-		auto RemapVertexId = [&](uint32 vertexId)
-		{
-			return vertexIdRemap[vertexId];
-		};
-
-		auto CheckVaild = [&](int indexEdge)
-		{
-			auto& edge = edges[indexEdge];
-			CHECK(edge.prev != nullptr);
-		};
-
-		edges.resize(mIndices.size());
-		for (int i = 0; i < mIndices.size(); i += 3)
-		{
-			uint32 i0 = RemapVertexId(mIndices[i + 0]);
-			uint32 i1 = RemapVertexId(mIndices[i + 1]);
-			uint32 i2 = RemapVertexId(mIndices[i + 2]);
-
-			Edge& e0 = edges[i];
-			Edge& e1 = edges[i + 1];
-			Edge& e2 = edges[i + 2];
+			Edge& e0 = pEdge[0];
+			Edge& e1 = pEdge[1];
+			Edge& e2 = pEdge[2];
+			Edge& e3 = pEdge[3];
 			e0.bNeedCheck = false;
-			e0.verticeId = i0;
-			e0.prev = &e2;
+			e0.vertexId = quadIndices[0];
+			e0.prev = &e3;
 			e0.next = &e1;
 
 			e1.bNeedCheck = false;
-			e1.verticeId = i1;
+			e1.vertexId = quadIndices[1];
 			e1.prev = &e0;
 			e1.next = &e2;
 
 			e2.bNeedCheck = false;
-			e2.verticeId = i2;
+			e2.vertexId = quadIndices[2];
 			e2.prev = &e1;
-			e2.next = &e0;
+			e2.next = &e3;
+
+			e3.bNeedCheck = false;
+			e3.vertexId = quadIndices[3];
+			e3.prev = &e2;
+			e3.next = &e0;
+			pEdge += 4;
 		}
 
 		auto GetPosition = [&](uint32 vertexId)
@@ -429,8 +446,8 @@ namespace Cube
 		{
 			Edge& edgeNext = *edge.next;
 
-			Vector3 d1 = GetPosition(edge.next->verticeId) - GetPosition(edge.verticeId);
-			Vector3 d2 = GetPosition(edgeNext.next->verticeId) - GetPosition(edgeNext.verticeId);
+			Vector3 d1 = GetPosition(edge.next->vertexId) - GetPosition(edge.vertexId);
+			Vector3 d2 = GetPosition(edgeNext.next->vertexId) - GetPosition(edgeNext.vertexId);
 
 			float l1 = d1.normalize();
 			float l2 = d2.normalize();
@@ -440,7 +457,7 @@ namespace Cube
 			if (1 - Math::Abs(dot) > 1e-4)
 				return false;
 
-			auto iter = edgePairMap.find(MakeKey(edge.next->verticeId, edge.verticeId));
+			auto iter = edgePairMap.find(MakeKey(edge.next->vertexId, edge.vertexId));
 			if (iter != edgePairMap.end())
 			{
 				edgePairMap.erase(iter);
@@ -494,10 +511,10 @@ namespace Cube
 			if (edge.prev == nullptr)
 				continue;
 
-			auto iter = edgePairMap.find(MakeKey(edge.verticeId, edge.next->verticeId));
+			auto iter = edgePairMap.find(MakeKey(edge.vertexId, edge.next->vertexId));
 			if (iter == edgePairMap.end() || !TryRemoveEdge(edge, *iter->second))
 			{
-				edgePairMap[MakeKey(edge.next->verticeId, edge.verticeId)] = &edge;
+				edgePairMap[MakeKey(edge.next->vertexId, edge.vertexId)] = &edge;
 			}
 			else
 			{
@@ -506,8 +523,20 @@ namespace Cube
 		}
 
 		if (!bHadRemoveEdge)
+		{
+			mIndices.reserve(6 * mQuads.size());
+			Edge* pEdge = edges.data();
+			for( int i = 0 ; i < mQuads.size(); ++i)
+			{
+				Edge& e0 = pEdge[0];
+				Edge& e1 = pEdge[1];
+				Edge& e2 = pEdge[2];
+				Edge& e3 = pEdge[3];
+				addBlockQuad(e0.vertexId, e1.vertexId, e2.vertexId, e3.vertexId);
+				pEdge += 4;
+			}
 			return;
-
+		}
 
 		while (bHadMergeEdge)
 		{
@@ -523,41 +552,17 @@ namespace Cube
 				if (edge.prev == nullptr)
 					continue;
 
-				auto iter = edgePairMap.find(MakeKey(edge.verticeId, edge.next->verticeId));
+				auto iter = edgePairMap.find(MakeKey(edge.vertexId, edge.next->vertexId));
 				if (iter == edgePairMap.end() || !TryRemoveEdge(edge, *iter->second))
 				{
-					edgePairMap[MakeKey(edge.next->verticeId, edge.verticeId)] = &edge;
+					edgePairMap[MakeKey(edge.next->vertexId, edge.vertexId)] = &edge;
 				}
 			}
 		}
 
-#if 0
-		std::unordered_multimap<uint32, int> vertexEdgeMap;
 
-		for (int i = 0; i < edges.size(); ++i)
-		{
-			if (edges[i].prev == nullptr)
-				continue;
-
-			vertexEdgeMap.emplace(edges[i].verticeIds[0], i);
-			vertexEdgeMap.emplace(edges[i].verticeIds[1], i);
-		}
-
-		for (int i = 0; i < edges.size(); ++i)
-		{
-			if (edges[i].prev == nullptr)
-				continue;
-
-			vertexEdgeMap.find(edges[i].verticeIds[0]);
-
-
-
-
-
-		}
-#endif	
-
-
+		TArray< int > vertexIdRemap;
+		vertexIdRemap.resize((int)mVertices.size(), INDEX_NONE);
 		TArray< BlockVertex > verticesNew;
 		TArray< uint32 > indicesNew;
 		for (int i = 0; i < edges.size(); ++i)
@@ -571,11 +576,36 @@ namespace Cube
 			int indexEdge = i;
 
 			TriangulateAlgorithm algo;
-			algo.mNoraml = GetFaceNoraml( FaceSide(mVertices[edge.verticeId].face) );
+			algo.mNoraml = GetFaceNoraml( FaceSide(mVertices[edge.vertexId].face) );
 			Edge* curEdge = &edge;
+#if 1
 			do
 			{
-				verticesNew.push_back(mVertices[curEdge->verticeId]);
+				auto const& v = mVertices[curEdge->vertexId];
+				if (vertexIdRemap[curEdge->vertexId] == INDEX_NONE)
+				{
+					vertexIdRemap[curEdge->vertexId] = verticesNew.size();
+					verticesNew.push_back(v);
+				}
+				curEdge->vertexId = vertexIdRemap[curEdge->vertexId];
+				++count;
+				//curEdge->prev = nullptr;
+				curEdge->p = v.pos;
+				curEdge = curEdge->next;
+
+			} while (curEdge != &edge);
+
+			{
+				TIME_SCOPE(GTriTime);
+				algo.run(&edge, count, indicesNew);
+				algo.mHead->prev->prev = nullptr;
+				algo.mHead->next->prev = nullptr;
+				algo.mHead->prev = nullptr;
+			}
+#else
+			do
+			{
+				verticesNew.push_back(mVertices[curEdge->vertexId]);
 				++count;
 				curEdge->prev = nullptr;
 				curEdge = curEdge->next;
@@ -583,8 +613,9 @@ namespace Cube
 
 			{
 				TIME_SCOPE(GTriTime);
-				algo.run(count, (uint8*)(verticesNew.data()), sizeof(BlockVertex), indicesNew, indexOffset, nullptr);
+				algo.run(count, (uint8*)(verticesNew.data()), sizeof(BlockVertex), indexOffset, nullptr, indicesNew);
 			}
+#endif
 		}
 
 		mVertices = std::move(verticesNew);
@@ -615,7 +646,7 @@ namespace Cube
 			dest.uv = Vec2f(faceUVVectorMap[src.face][0].dot(src.pos), faceUVVectorMap[src.face][1].dot(src.pos));
 			dest.normal = GetFaceNoraml(FaceSide(src.face));
 			dest.color = Color4ub(255,255,255,255);
-			dest.meta = src.materialId;
+			dest.meta = src.matId;
 		}
 
 		int indexOffset = mMesh->mIndices.size();

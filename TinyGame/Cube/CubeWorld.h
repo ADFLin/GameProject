@@ -27,11 +27,11 @@ namespace Cube
 		virtual void     getNeighborBlockIds(Vec3i const& blockPos, BlockId outIds[]) = 0;
 	};
 
-	int const ChunkBit  = 4;
-	int const ChunkSize = 1 << ChunkBit;
-	int const ChunkMask = ( 1 << ChunkBit ) - 1;
+	int const ChunkBitCount  = 4;
+	int const ChunkSize = 1 << ChunkBitCount;
+	int const ChunkMask = ( 1 << ChunkBitCount ) - 1;
 
-	int const ChunkBlockMaxHeight = 256;
+	int const ChunkBlockMaxHeight = 2048;
 
 	struct ChunkPos : public TVector2<int>
 	{
@@ -39,8 +39,8 @@ namespace Cube
 
 		void   setBlockPos( int bx , int by )
 		{
-			x = bx >> ChunkBit;
-			y = by >> ChunkBit;
+			x = bx >> ChunkBitCount;
+			y = by >> ChunkBitCount;
 		}
 		uint64 hash_value() const 
 		{ 
@@ -72,20 +72,18 @@ namespace Cube
 
 		ChunkPos const& getPos(){ return mPos; }
 
-		static unsigned const LayerBit  = 5;
-		static unsigned const LayerSize = 1 << LayerBit;
-		static unsigned const LayerMask = ( 1 << LayerBit ) - 1;
+		static unsigned const LayerBitCount  = 6;
+		static unsigned const LayerSize = 1 << LayerBitCount;
+		static unsigned const LayerMask = ( 1 << LayerBitCount ) - 1;
 
-		static unsigned const NumLayer = ChunkBlockMaxHeight >> LayerBit;
+		static unsigned const NumLayer = ChunkBlockMaxHeight >> LayerBitCount;
 
 
 		struct LayerData
 		{
 			LayerData()
 			{
-				std::fill_n( &blockMap[0][0][0] , ChunkSize * ChunkSize * LayerSize , 0 );
-				std::fill_n( &lightMap[0][0][0] , ChunkSize * ChunkSize * LayerSize , 0 );
-				std::fill_n( &meta[0][0][0] , ChunkSize * ChunkSize * LayerSize / 2 , 0 );
+				FMemory::Zero(this, sizeof(*this));
 			}
 			BlockId  blockMap[ ChunkSize ][ ChunkSize ][ LayerSize ];
 			uint8    meta[ ChunkSize ][ ChunkSize ][ LayerSize / 2 ];
@@ -94,7 +92,7 @@ namespace Cube
 
 		LayerData* getLayer( int z )
 		{
-			return mLayer[ z >> LayerBit ];
+			return mLayer[ z >> LayerBitCount ];
 		}
 
 		void render( BlockRenderer& renderer );
@@ -137,7 +135,7 @@ namespace Cube
 		ChunkProvider()
 		{
 			mGeneratePool = new QueueThreadPool();
-			mGeneratePool->init(4);
+			mGeneratePool->init(8);
 		}
 
 		~ChunkProvider()

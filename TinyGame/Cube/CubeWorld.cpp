@@ -47,7 +47,7 @@ namespace Cube
 			if ( id == BLOCK_NULL )
 				return;
 			layer = new LayerData;
-			mLayer[ z >> LayerBit ] = layer;
+			mLayer[ z >> LayerBitCount ] = layer;
 		}
 
 		layer->blockMap[ x & ChunkMask ][ y & ChunkMask ][ z & LayerMask ] = id;
@@ -75,7 +75,7 @@ namespace Cube
 		if ( !layer )
 		{
 			layer = new LayerData;
-			mLayer[ z >> LayerBit ] = layer;
+			mLayer[ z >> LayerBitCount ] = layer;
 		}
 
 		uint8& holdMeta = layer->meta[ x & ChunkMask ][ y & ChunkMask ][ z & LayerMask ];
@@ -119,6 +119,32 @@ namespace Cube
 		}
 	}
 
+	struct NoiseFunc
+	{
+		void setSeed(uint64 seed)
+		{
+
+
+		}
+		float get()
+		{
+
+
+
+		}
+
+		TPerlinNoise<false> mNoise;
+	};
+
+	struct GenerateContext
+	{
+
+
+
+
+
+	};
+
 
 	Chunk* ChunkProvider::getChunk( int x , int y )
 	{
@@ -136,12 +162,15 @@ namespace Cube
 		{
 			chunk->state = EChunkLoadState::Generating;
 			LandGenerater gen;
-			gen.height = 64;
+			gen.height = 256;
 			Random rand;
 			rand.setSeed(0);
 			gen.generate(*chunk, rand);
-			chunk->state = EChunkLoadState::Ok;
 
+
+
+
+			chunk->state = EChunkLoadState::Ok;
 		}
 		virtual void abandon()
 		{
@@ -458,37 +487,34 @@ namespace Cube
 			{
 				float scale = 24.0f / (256.0f * 10);
 				float nH = mNoise.getValue(float(offset.x + i) * scale, float(offset.y + j) * scale);
-				int chunkHeight = Math::FloorToInt(height + 50 * nH);
+				nH += 0.5 * mNoise.getValue(float(offset.x + i) * 2 * scale, float(offset.y + j) * 2 * scale);
+				nH += 0.25 * mNoise.getValue(float(offset.x + i) * 4 * scale, float(offset.y + j) * 4 * scale);
+				nH = 0.5 + 0.5 * (nH  / 1.75f);
+
+				int chunkHeight = 128 + Math::FloorToInt(height * nH);
 
 				//chunkHeight = height;
 				for (int k = 0; k < chunkHeight; ++k)
 				{
+					float scale = 24.0f / (256.0f * 2);
+					float v = mNoise.getValue(float(offset.x + i) * scale, float(offset.y + j) * scale, float(k) * scale);
+					float ZDepth = chunkHeight - k;
+
 					chunk.setBlockId(i, j, k, BLOCK_DIRT);
+					float cave = Math::Abs(v) * Math::Lerp(4.0f, 1.0f, Math::Min(ZDepth / 15.0f, 1.0f));
+					if (cave < 0.10)
+					{
+						chunk.setBlockId(i, j, k, BLOCK_NULL);
+					}
+					else if (cave < 2 * 0.10)
+					{
+						chunk.setBlockId(i, j, k, BLOCK_ROCK);
+					}
 				}
+				chunk.setBlockId(i, j, 0, BLOCK_BASE);
 			}
 		}
 		return true;
 	}
-
-
-	class PerlinNoiseFunc
-	{
-	
-	};
-
-	class OctaveNoiseFunc
-	{
-	public:
-		void generate( float* );
-
-
-
-
-
-
-
-
-
-	};
 
 }//namespace Cube

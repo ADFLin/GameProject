@@ -617,6 +617,10 @@ namespace Render
 		{
 			return EComponentType(format >> 2);
 		}
+		static bool IsIntType(EComponentType type)
+		{
+			return type == CVT_Int || type == CVT_UInt || type == CVT_Short || type == CVT_UShort || type == CVT_Byte || type == CVT_UByte;
+		}
 
 		enum Format
 		{

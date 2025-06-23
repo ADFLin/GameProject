@@ -86,16 +86,18 @@ namespace Cube
 			holdMeta = ( meta << 4 ) | ( holdMeta & 0xf);
 	}
 
-	void Chunk::render( BlockRenderer& renderer )
+	void Chunk::render( BlockRenderer& renderer, int indexLayer, int layerCount)
 	{
-		renderer.setBasePos( Vec3i( mPos.x * ChunkSize , mPos.y * ChunkSize , 0 ) );
-
-		for( int n = 0 ; n < NumLayer ; ++n )
+		int layerSize = (Chunk::NumLayer + layerCount - 1) / layerCount;
+		int indexLayerStart = indexLayer * layerSize;
+		int indexLayerEnd   = Math::Min(indexLayerStart + layerSize , (int)Chunk::NumLayer);
+		for( int n = indexLayerStart; n < indexLayerEnd; ++n )
 		{
 			LayerData* layer = mLayer[ n ];
 			if ( !layer )
 				continue;
 
+			renderer.setBasePos(Vec3i(mPos.x * ChunkSize, mPos.y * ChunkSize, 0));
 			int zOff = n * LayerSize;
 
 			Vec3i offset;

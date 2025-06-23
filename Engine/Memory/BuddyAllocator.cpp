@@ -46,11 +46,13 @@ bool BuddyAllocatorBase::alloc(uint32 size, uint32 alignment, Allocation& alloca
 		pos = AlignArbitrary(pos, alignment);
 	}
 
-	mSizeUsed += mBlockSize * uSize;
+	uint32 sizeAllocated = mBlockSize * uSize;
+	mSizeUsed += sizeAllocated;
 
 	allocation.pos = pos;
 	allocation.order = order;
 	allocation.offset = offset;
+	allocation.maxSize = sizeAllocated;
 
 	return true;
 }

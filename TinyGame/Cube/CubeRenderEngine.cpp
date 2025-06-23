@@ -141,7 +141,7 @@ namespace Cube
 					continue;
 
 				data->meshPool = meshData;
-				data->indicesCount = mesh.mIndices.size();
+				data->indexCount = mesh.mIndices.size();
 				meshData->vertexAllocator.alloc(mesh.mVertices.size(), 0, data->vertexAllocation);
 				meshData->indexAllocator.alloc(mesh.mIndices.size(), 0, data->indexAlloction);
 				RHIUpdateBuffer(*meshData->vertexBuffer, data->vertexAllocation.pos, mesh.mVertices.size(), (void*)mesh.mVertices.data());
@@ -305,11 +305,24 @@ namespace Cube
 
 				renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
 				renderer.mBlockAccess = const_cast<NeighborChunkAccess*>(&chunkAccess);
-				chunk->render(renderer);
+				for (int indexLayer = 0; indexLayer < ChunkRenderData::MaxLayerCount; ++indexLayer)
 				{
-					TIME_SCOPE(mMergeTimeAcc);
-					renderer.finalizeMesh();
+					int indexStart = updateData.mesh.mIndices.size();
+					chunk->render(renderer, indexLayer, ChunkRenderData::MaxLayerCount);
+					{
+						TIME_SCOPE(mMergeTimeAcc);
+						renderer.finalizeMesh();
+					}
+
+					if (indexStart != updateData.mesh.mIndices.size())
+					{
+
+
+
+					}
 				}
+
+	
 				updateData.bound = renderer.bound;
 				{
 					Mutex::Locker locker(mMutexPedingAdd);
@@ -516,12 +529,12 @@ namespace Cube
 			DrawCmdArgs args;
 			args.baseVertexLocation = data->vertexAllocation.pos;
 			args.startIndexLocation = data->indexAlloction.pos;
-			args.indexCountPerInstance = data->indicesCount;
+			args.indexCountPerInstance = data->indexCount;
 			args.instanceCount = 1;
 			args.startInstanceLocation = 0;
 			data->meshPool->drawCmdList.push_back(args);
 
-			triangleCount += data->indicesCount / 3;
+			triangleCount += data->indexCount / 3;
 			++chunkRenderCount;
 		};
 

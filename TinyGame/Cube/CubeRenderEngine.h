@@ -83,7 +83,8 @@ namespace Cube
 		Chunk*   chunk;
 		Math::TAABBox< Vec3f > bound;
 		Vec3f    posOffset;
-		MeshRenderData mesh;
+
+		static int constexpr MaxLayerCount = 4;
 
 		struct Layer
 		{
@@ -92,7 +93,7 @@ namespace Cube
 			uint32 indexOffset;
 			uint32 indexCount;
 		};
-		Layer layers[Chunk::NumLayer];
+		Layer layers[MaxLayerCount];
 		int numLayer;
 
 		MeshRenderPoolData* meshPool;
@@ -147,6 +148,12 @@ namespace Cube
 			Mesh mesh;
 			ChunkRenderData* chunkData;
 			Math::TAABBox<Vec3f> bound;
+
+			struct Layer
+			{
+
+				Math::TAABBox<Vec3f> bound;
+			};
 		};
 	public:
 		ICamera* mDebugCamera = nullptr;

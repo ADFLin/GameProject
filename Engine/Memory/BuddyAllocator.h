@@ -50,6 +50,7 @@ public:
 	struct Allocation : AllocationBlock
 	{
 		uint32 pos;
+		uint32 maxSize;
 	};
 
 	bool canAllocate(uint32 order);

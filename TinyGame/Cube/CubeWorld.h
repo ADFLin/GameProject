@@ -95,7 +95,7 @@ namespace Cube
 			return mLayer[ z >> LayerBitCount ];
 		}
 
-		void render( BlockRenderer& renderer );
+		void render( BlockRenderer& renderer, int indexLayer, int layerCount);
 		LayerData* mLayer[ NumLayer ];
 		ChunkPos   mPos;
 	};

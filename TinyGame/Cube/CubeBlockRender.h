@@ -110,6 +110,10 @@ namespace Cube
 		{
 			mergeBlockPrimitives();
 			fillBlockPrimitivesToMesh();
+
+			mQuads.clear();
+			mVertices.clear();
+			mIndices.clear();
 		}
 
 

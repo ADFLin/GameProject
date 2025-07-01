@@ -148,8 +148,11 @@ namespace Render
 		TEX_PREVIEW_3D,
 		TEX_PREVIEW_CUBE,
 		TEX_PREVIEW_CUBE_PROJECTION,
+		TEX_PREVIEW_DEPTH,
+
 		TEX_PREVIEW_COUNT ,
 	};
+
 	class TexturePreviewProgram : public GlobalShaderProgram
 	{
 	public:
@@ -593,6 +596,14 @@ namespace Render
 	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size)
 	{
 		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE_PROJECTION, xForm, texCube))
+			return;
+		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+	}
+
+	void DrawUtility::DrawDepthTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, float minDistance, float maxDistance)
+	{
+		Vector3 params = Vector3(minDistance, maxDistance, 0);
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_DEPTH, xForm, texture, &sampler, nullptr, &params) )
 			return;
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}

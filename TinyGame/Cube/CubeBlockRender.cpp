@@ -505,6 +505,7 @@ namespace Cube
 
 
 		bool bHadRemoveEdge = false;
+#if 0
 		for (int i = 0; i < edges.size(); ++i)
 		{
 			auto& edge = edges[i];
@@ -521,6 +522,7 @@ namespace Cube
 				bHadRemoveEdge = true;
 			}
 		}
+#endif
 
 		if (!bHadRemoveEdge)
 		{

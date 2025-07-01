@@ -721,7 +721,7 @@ namespace Render
 		mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0 , 0 , 0 , 0 , D3D11Cast::GetResource(texture), level, nullptr);
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		mDeviceContextImmdiate->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
-		memcpy(outData.data(), mappedResource.pData, outData.size());
+		FMemory::Copy(outData.data(), mappedResource.pData, outData.size());
 		mDeviceContextImmdiate->Unmap(stagingTexture, level);
 	}
 
@@ -790,6 +790,16 @@ namespace Render
 	void D3D11System::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
 	{
 		auto& bufferImpl = static_cast<D3D11Buffer&>(buffer);
+		if ( bufferImpl.isDyanmic() )
+		{
+			void* dstData = RHILockBuffer(&buffer, ELockAccess::WriteDiscard, start * buffer.getElementSize(), numElements * buffer.getElementSize());
+			if (dstData )
+			{
+				FMemory::Copy(dstData, data , numElements * buffer.getElementSize());
+				RHIUnlockBuffer(&buffer);
+			}
+			return;
+		}
 		bufferImpl.updateData(*mDeviceContextImmdiate, start, numElements, data);
 	}
 
@@ -1556,26 +1566,44 @@ namespace Render
 			{
 				mBoundedSRVResources[index] == nullptr;
 				mBoundedSRVs[index] = nullptr;
-				mSRVDirtyMask &= ~BIT(index);
-				ID3D11ShaderResourceView* emptySRV = nullptr;
 
 				if (mMaxSRVBoundIndex == index)
 					--mMaxSRVBoundIndex;
-
+#if 0
+				mSRVDirtyMask &= ~BIT(index);
+				ID3D11ShaderResourceView* emptySRV = nullptr;
 				D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, 1, &emptySRV);
+#else
+				mSRVDirtyMask |= BIT(index);
+#endif
 			}
 		}
 	}
 	template< EShader::Type TypeValue >
 	void D3D11ResourceBoundState::clearSRVResource(ID3D11DeviceContext* context)
 	{
+#if 0
 		for (int index = 0; index <= mMaxSRVBoundIndex; ++index)
 		{
 			mBoundedSRVs[index] = nullptr;
+			mBoundedSRVResources[index] == nullptr;
 		}
 		mSRVDirtyMask = 0;
-		mMaxSRVBoundIndex = INDEX_NONE;
+
 		D3D11ShaderTraits<TypeValue>::SetShaderResources(context, 0, MaxSimulatedBoundedSRVNum, mBoundedSRVs);
+#else
+
+		for (int index = 0; index <= mMaxSRVBoundIndex; ++index)
+		{
+			if (mBoundedSRVs[index])
+			{
+				mBoundedSRVs[index] = nullptr;
+				mBoundedSRVResources[index] == nullptr;
+				mSRVDirtyMask |= BIT(index);
+			}
+		}
+#endif
+		mMaxSRVBoundIndex = INDEX_NONE;
 	}
 
 	template< EShader::Type TypeValue >

@@ -23,6 +23,7 @@
 #include "ProfileSystem.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHIUtility.h"
+#include "RenderDebug.h"
 
 namespace Cube
 {
@@ -33,8 +34,20 @@ namespace Cube
 	public:
 		DECLARE_SHADER_PROGRAM(BlockRenderShaderProgram, Global);
 
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		SHADER_PERMUTATION_TYPE_BOOL(DepthPass, SHADER_PARAM(DEPTH_PASS));
+		using PermutationDomain = TShaderPermutationDomain<DepthPass>;
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
+			if (domain.get< DepthPass >())
+			{
+				static ShaderEntryInfo const entries[] =
+				{
+					{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				};
+				return entries;
+			}
+
 			static ShaderEntryInfo const entries[] =
 			{
 				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
@@ -62,11 +75,13 @@ namespace Cube
 
 
 
+	bool GPreRenderDepth = true;
 
 	RenderEngine::RenderEngine( int w , int h )
 	{
 		mClientWorld = NULL;
 		mAspect        = float( w ) / h ;
+		mViewSize = Vec2i(w, h);
 
 
 		mRenderWidth  = 0;
@@ -74,7 +89,7 @@ namespace Cube
 		mRenderDepth  = 0;
 
 		mGereatePool = new QueueThreadPool;
-		mGereatePool->init(1);
+		mGereatePool->init(4);
 	}
 
 	RenderEngine::~RenderEngine()
@@ -85,8 +100,14 @@ namespace Cube
 
 	bool RenderEngine::initializeRHI()
 	{
+		ShaderHelper::Get().init();
+
 		mDebugPrimitives.initializeRHI();
 		mProgBlockRender = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >();
+
+		BlockRenderShaderProgram::PermutationDomain permutationVector;
+		permutationVector.set< BlockRenderShaderProgram::DepthPass >(true);
+		mProgBlockRenderDepth = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >(permutationVector);
 
 		mTexBlockAtlas = RHIUtility::LoadTexture2DFromFile("Cube/blocks.png");
 
@@ -100,6 +121,9 @@ namespace Cube
 
 		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), 4096 * 16, BCF_DrawIndirectArgs);
 
+		mSceneFrameBuffer = RHICreateFrameBuffer();
+		resizeRenderTarget();
+
 		return true;
 	}
 
@@ -110,6 +134,9 @@ namespace Cube
 		mTexBlockAtlas.release();
 		mBlockInputLayout.release();
 		mCmdBuffer.release();
+		mSceneFrameBuffer.release();
+		mSceneTexture.release();
+		mSceneDepthTexture.release();
 	}
 
 	void RenderEngine::setupWorld(World& world)
@@ -128,33 +155,52 @@ namespace Cube
 
 	void RenderEngine::tick(float deltaTime)
 	{
+
+		if (!mPendingAddList.empty())
 		{
-			Mutex::Locker locker(mMutexPedingAdd);
-			for (auto const& updateData : mPendingAddList)
+			mMutexPedingAdd.lock();
+			TArray<UpdatedRenderData> localAddList( std::move(mPendingAddList) );
+			mMutexPedingAdd.unlock();
+
+			for (auto const& updateData : localAddList)
 			{
 				auto data = updateData.chunkData;
 				auto& mesh = updateData.mesh;
 				using namespace Render;
-				auto meshData = acquireMeshRenderData(mesh);
 
-				if (meshData == nullptr)
-					continue;
+				data->bound.invalidate();
+				data->numLayer = updateData.numLayer;
 
-				data->meshPool = meshData;
-				data->indexCount = mesh.mIndices.size();
-				meshData->vertexAllocator.alloc(mesh.mVertices.size(), 0, data->vertexAllocation);
-				meshData->indexAllocator.alloc(mesh.mIndices.size(), 0, data->indexAlloction);
-				RHIUpdateBuffer(*meshData->vertexBuffer, data->vertexAllocation.pos, mesh.mVertices.size(), (void*)mesh.mVertices.data());
-				RHIUpdateBuffer(*meshData->indexBuffer, data->indexAlloction.pos, mesh.mIndices.size(), (void*)mesh.mIndices.data());
+				for (int i = 0; i < data->numLayer; ++i)
+				{
+					auto const& updateLayer = updateData.layers[i];
+					auto& layer = data->layers[i];
 
+					auto meshData = acquireMeshRenderData(updateLayer.vertexCount, updateLayer.indexCount);
+					if (meshData == nullptr)
+						continue;
+
+					layer.meshPool = meshData;
+					layer.bound = updateLayer.bound;
+
+					meshData->vertexAllocator.alloc(updateLayer.vertexCount, 0, layer.vertexAllocation);
+					meshData->indexAllocator.alloc(updateLayer.indexCount, 0, layer.indexAlloction);
+					RHIUpdateBuffer(*meshData->vertexBuffer, layer.vertexAllocation.pos, updateLayer.vertexCount, (void*)(mesh.mVertices.data() + updateLayer.vertexOffset));
+					RHIUpdateBuffer(*meshData->indexBuffer, layer.indexAlloction.pos, updateLayer.indexCount, (void*)(mesh.mIndices.data() + updateLayer.indexOffset));
+
+					layer.args.baseVertexLocation = int(layer.vertexAllocation.pos) - int(updateLayer.vertexOffset);
+					layer.args.startIndexLocation = layer.indexAlloction.pos;
+					layer.args.indexCountPerInstance = updateLayer.indexCount;
+					layer.args.instanceCount = 1;
+					layer.args.startInstanceLocation = 0;
+
+					data->bound += layer.bound;
+				}
 
 				//data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
-				data->state = ChunkRenderData::eMesh;
-				data->bound = updateData.bound;
 				//data->bound.translate(data->posOffset);
-
+				data->state = ChunkRenderData::eMesh;
 			}
-			mPendingAddList.clear();
 		}
 	}
 
@@ -299,15 +345,15 @@ namespace Cube
 
 				UpdatedRenderData updateData;
 				updateData.chunkData = data;
-
+				updateData.numLayer = 0;
 				renderer.mMesh = &updateData.mesh;
-
 
 				renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
 				renderer.mBlockAccess = const_cast<NeighborChunkAccess*>(&chunkAccess);
 				for (int indexLayer = 0; indexLayer < ChunkRenderData::MaxLayerCount; ++indexLayer)
 				{
 					int indexStart = updateData.mesh.mIndices.size();
+					int vertexStart = updateData.mesh.mVertices.size();
 					chunk->render(renderer, indexLayer, ChunkRenderData::MaxLayerCount);
 					{
 						TIME_SCOPE(mMergeTimeAcc);
@@ -316,14 +362,20 @@ namespace Cube
 
 					if (indexStart != updateData.mesh.mIndices.size())
 					{
+						auto& layer = updateData.layers[updateData.numLayer];
+						updateData.numLayer += 1;
 
-
-
+						layer.bound = renderer.bound;
+						layer.index = indexLayer;
+						layer.vertexOffset = vertexStart;
+						layer.vertexCount = updateData.mesh.mVertices.size() - layer.vertexOffset;
+						layer.indexOffset = indexStart;
+						layer.indexCount = updateData.mesh.mIndices.size() - layer.indexOffset;
 					}
+
+					renderer.bound.invalidate();
 				}
 
-	
-				updateData.bound = renderer.bound;
 				{
 					Mutex::Locker locker(mMutexPedingAdd);
 					mPendingAddList.push_back(std::move(updateData));
@@ -332,13 +384,41 @@ namespace Cube
 		);
 	}
 
+	void RenderEngine::resizeRenderTarget()
+	{
+		int numSamples = 1;
+		mSceneTexture = RHICreateTexture2D(ETexture::FloatRGBA, mViewSize.x, mViewSize.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
+		mSceneTexture->setDebugName("SceneTexture");
+		mSceneDepthTexture = RHICreateTexture2D(ETexture::D32FS8, mViewSize.x, mViewSize.y, 1, numSamples, TCF_CreateSRV);
+		mSceneFrameBuffer->setTexture(0, *mSceneTexture);
+		mSceneFrameBuffer->setDepth(*mSceneDepthTexture);
+
+		mHZBTexture = RHICreateTexture2D(ETexture::D32FS8, mViewSize.x, mViewSize.y, 4, numSamples, TCF_CreateSRV | TCF_CreateUAV);
+
+		GTextureShowManager.registerTexture("SceneTexture", mSceneTexture);
+	}
+
+	void RenderEngine::notifyViewSizeChanged(Vec2i const& newSize)
+	{
+		if (mSceneTexture.isValid() && mViewSize == newSize )
+			return;
+
+		mViewSize = newSize;
+		resizeRenderTarget();
+	}
+
 	MeshRenderPoolData* RenderEngine::acquireMeshRenderData(Mesh const& mesh)
+	{
+		return acquireMeshRenderData(mesh.mVertices.size(), mesh.mIndices.size());
+	}
+
+	MeshRenderPoolData* RenderEngine::acquireMeshRenderData(uint32 vertexSize, uint32 indexSize)
 	{
 		for (auto meshData : mMeshPool)
 		{
-			if (!meshData->vertexAllocator.canAllocate(mesh.mVertices.size(), 0))
+			if (!meshData->vertexAllocator.canAllocate(vertexSize, 0))
 				continue;
-			if (!meshData->indexAllocator.canAllocate(mesh.mIndices.size(), 0))
+			if (!meshData->indexAllocator.canAllocate(indexSize, 0))
 				continue;
 			return meshData;
 		}
@@ -405,7 +485,9 @@ namespace Cube
 		World& world = *mClientWorld;
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		RHISetFrameBuffer(commandList, nullptr);
+
+		RHISetFrameBuffer(commandList, mSceneFrameBuffer);
+		RHISetViewport(commandList, 0, 0, mViewSize.x, mViewSize.y);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0,0,0,1), 1);
 
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
@@ -474,10 +556,15 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos( bx , by );
-		int viewDist = 100;
+		int viewDist = 20;
 
 		int chunkRenderCount = 0;
 		int triangleCount = 0;
+
+
+
+
+		TArray<ChunkRenderData::Layer*> layerDrawList;
 
 		auto ProcessChunk = [&](ChunkPos chunkPos)
 		{
@@ -504,7 +591,7 @@ namespace Cube
 				return;
 
 
-			int visibilityType = FViewUtils::IsVisible(clipPlanes, data->bound);
+			int chunkVisibility = FViewUtils::IsVisible(clipPlanes, data->bound);
 			if ( mDebugCamera )
 			{
 				int const ColorMap[] =
@@ -514,36 +601,35 @@ namespace Cube
 					EColor::Blue,
 				};
 
-				mDebugPrimitives.addCubeLine(data->bound.getCenter(), Quaternion::Identity(), data->bound.getSize(), LinearColor(RenderUtility::GetColor(ColorMap[visibilityType])), 2);
+				mDebugPrimitives.addCubeLine(data->bound.getCenter(), Quaternion::Identity(), data->bound.getSize(), LinearColor(RenderUtility::GetColor(ColorMap[chunkVisibility])), 2);
 			}
 
-			if (visibilityType == 0)
+			if (chunkVisibility == 0)
 				return;
 
-			if ( data->meshPool->drawFrame != mRenderFrame )
+			for (int i = 0; i < data->numLayer; ++i)
 			{
-				data->meshPool->drawCmdList.clear();
-				data->meshPool->drawFrame = mRenderFrame;
+				auto& layer = data->layers[i];
+				if (layer.meshPool == nullptr)
+					continue;
+
+				int layerVisibility = FViewUtils::IsVisible(clipPlanes, layer.bound);
+				if (layerVisibility == 0)
+					continue;
+
+				layerDrawList.push_back(&layer);
 			}
 
-			DrawCmdArgs args;
-			args.baseVertexLocation = data->vertexAllocation.pos;
-			args.startIndexLocation = data->indexAlloction.pos;
-			args.indexCountPerInstance = data->indexCount;
-			args.instanceCount = 1;
-			args.startInstanceLocation = 0;
-			data->meshPool->drawCmdList.push_back(args);
-
-			triangleCount += data->indexCount / 3;
 			++chunkRenderCount;
 		};
 
 
 		int chunkMeshCount = 0;
+		int chunkLayerCount = 0;
+		int chunkLayerDepthPrepassCount = 0;
 		{
 			PROFILE_ENTRY("Render Chunks");
 
-			RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
 
 			ProcessChunk(cPos);
 
@@ -564,6 +650,73 @@ namespace Cube
 			}
 
 			TArray< DrawCmdArgs > drawCmdList;
+			for (auto layer : layerDrawList)
+			{
+				Vector3 center = layer->bound.getCenter();
+				float radiusSquare = layer->bound.getSize().length2() / 4;
+				float GMinScreenRadiusForDepthPrepass = 0.1f;
+				if (radiusSquare > (center - camPos).length2() * GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass)
+				{
+					auto meshPool = layer->meshPool;
+					if (meshPool->drawFrame != mRenderFrame)
+					{
+						meshPool->drawCmdList.clear();
+						meshPool->drawFrame = mRenderFrame;
+					}
+					meshPool->drawCmdList.push_back(layer->args);
+					triangleCount += layer->args.indexCountPerInstance / 3;
+				}
+			}
+
+			drawCmdList.clear();
+			for (auto mesh : mMeshPool)
+			{
+				if (mesh->drawFrame != mRenderFrame)
+					continue;
+
+				mesh->cmdOffset = sizeof(DrawCmdArgs) * drawCmdList.size();
+				drawCmdList.append(mesh->drawCmdList);
+			}
+
+			if (!drawCmdList.empty())
+			{
+				chunkLayerDepthPrepassCount = drawCmdList.size();
+				RHIUpdateBuffer(*mCmdBuffer, 0, drawCmdList.size(), drawCmdList.data());
+
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNearEqual>::GetRHI());
+				RHISetShaderProgram(commandList, mProgBlockRenderDepth->getRHI());
+				context.setupShader(commandList, *mProgBlockRenderDepth);
+
+				for (auto mesh : mMeshPool)
+				{
+					if (mesh->drawFrame != mRenderFrame)
+						continue;
+
+					InputStreamInfo inputstream;
+					inputstream.buffer = mesh->vertexBuffer;
+					inputstream.offset = 0;
+					inputstream.stride = mesh->vertexBuffer->getElementSize();
+
+					RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
+					RHISetIndexBuffer(commandList, mesh->indexBuffer);
+					RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, mesh->drawCmdList.size());
+				}
+			}
+
+			++mRenderFrame;
+			for (auto layer : layerDrawList)
+			{
+				auto meshPool = layer->meshPool;
+				if (meshPool->drawFrame != mRenderFrame)
+				{
+					meshPool->drawCmdList.clear();
+					meshPool->drawFrame = mRenderFrame;
+				}
+				meshPool->drawCmdList.push_back(layer->args);
+				triangleCount += layer->args.indexCountPerInstance / 3;		
+			}
+
+			drawCmdList.clear();
 			for (auto mesh : mMeshPool)
 			{
 				if (mesh->drawFrame != mRenderFrame)
@@ -575,8 +728,11 @@ namespace Cube
 
 			if ( !drawCmdList.empty() )
 			{
+				chunkLayerCount = drawCmdList.size();
 				RHIUpdateBuffer(*mCmdBuffer, 0, drawCmdList.size(), drawCmdList.data());
 
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNearEqual>::GetRHI());
+				RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
 				context.setupShader(commandList, *mProgBlockRender);
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI());
 				for (auto mesh : mMeshPool)
@@ -598,6 +754,9 @@ namespace Cube
 			}
 		}
 
+
+
+
 #if 1
 		BlockPosInfo info;
 		BlockId id = world.rayBlockTest( camPos , camera.getViewDir() , 100 , &info );
@@ -612,11 +771,20 @@ namespace Cube
 #endif
 
 		{
-			mDebugPrimitives.drawDynamic(commandList, ::Global::GetScreenSize(), worldToClipRender, cameraRender->getViewDir().cross(cameraRender->getUpDir()), cameraRender->getUpDir());
+			mDebugPrimitives.drawDynamic(commandList,  mViewSize, worldToClipRender, cameraRender->getViewDir().cross(cameraRender->getUpDir()), cameraRender->getUpDir());
 		}
 
 		mDebugPrimitives.clear();
 
+		RHIResourceTransition(commandList, { mSceneTexture }, EResourceTransition::SRV);
+		RHISetFrameBuffer(commandList, nullptr);
+		RHISetViewport(commandList, 0, 0, mViewSize.x, mViewSize.y);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
+
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
+		ShaderHelper::Get().copyTextureToBuffer(commandList, *mSceneTexture);
 
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
@@ -624,7 +792,18 @@ namespace Cube
 		g.drawTextF(Vector2(10, 10), "chunkCount = %d, chunkRenderCount = %d", mChunkMap.size(), chunkRenderCount);
 		g.drawTextF(Vector2(10, 25), "triangleCount = %d", triangleCount);
 		g.drawTextF(Vector2(10, 40), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
-		g.drawTextF(Vector2(10, 55), "chunkMeshCount = %d", chunkMeshCount);
+		g.drawTextF(Vector2(10, 55), "chunkMeshCount = %d %d %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
+
+
+		g.drawCustomFunc([this, &g](RHICommandList& commandList, RenderBatchedElement& element)	
+		{
+			DrawUtility::DrawDepthTexture(commandList, g.getBaseTransform(), *mSceneDepthTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 200), Vector2(400, 200), 0, 100 );
+		});
+
+		g.drawCustomFunc([this, &g](RHICommandList& commandList, RenderBatchedElement& element)
+		{
+			DrawUtility::DrawTexture(commandList, g.getBaseTransform(), *mSceneTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 500), Vector2(400, 200));
+		});
 		g.endRender();
 
 	}
@@ -669,7 +848,7 @@ namespace Cube
 
 	bool MeshRenderPoolData::initialize()
 	{
-		uint32 MaxVerticesCount = 131072 * 64;
+		uint32 MaxVerticesCount = 131072 * 64 * 4;
 		uint32 MaxIndicesCount = FBitUtility::NextNumberOfPow2(6 * (MaxVerticesCount / 4));
 		vertexBuffer = RHICreateVertexBuffer(sizeof(Mesh::Vertex), MaxVerticesCount, BCF_DefalutValue);
 		indexBuffer = RHICreateIndexBuffer(MaxIndicesCount, true, BCF_DefalutValue);

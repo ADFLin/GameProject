@@ -1,5 +1,8 @@
 #include "Common.sgc"
 
+#ifndef DEPTH_PASS
+#define DEPTH_PASS 0
+#endif
 
 DEFINE_TEXTURE(Texture2D, BlockTexture);
 
@@ -42,6 +45,7 @@ VS_ENTRY_END(MainVS)
 
 #if PIXEL_SHADER
 
+PS_EARLY_DEPTH_TEST
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_INPUT(flat uint2 InAtlasPos, 4)

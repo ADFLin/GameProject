@@ -790,6 +790,11 @@ namespace Render
 		}
 
 
+		bool isDyanmic() const
+		{
+			return !!(getDesc().creationFlags & BCF_CpuAccessWrite);
+		}
+
 #if RHI_USE_RESOURCE_TRACE
 		virtual void setTraceData(ResTraceInfo const& trace)
 		{

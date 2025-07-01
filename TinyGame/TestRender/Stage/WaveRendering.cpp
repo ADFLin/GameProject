@@ -374,6 +374,7 @@ namespace Render
 			RHIClearSRVResource(commandList, mFFTTextures[0]);
 			RHIClearSRVResource(commandList, mFFTTextures[1]);
 
+			RHIResourceTransition(commandList, { mFFTTextures[0] , mFFTTextures[1] } , EResourceTransition::UAV);
 			RHISetComputeShader(commandList, mFillValueCS->getRHI());
 			mFillValueCS->setTexture(commandList, SHADER_PARAM(TexSource), mFFTTestTex);
 			mFillValueCS->setRWTexture(commandList, SHADER_PARAM(TexDest), *mFFTTextures[0] , 0, EAccessOp::WriteOnly);
@@ -387,6 +388,8 @@ namespace Render
 			}
 
 			RHIClearSRVResource(commandList, mFFTResultTex);
+			RHIResourceTransition(commandList, { mFFTResultTex }, EResourceTransition::UAV);
+			
 			RHISetComputeShader(commandList, mNormalizeCS->getRHI());
 			mNormalizeCS->setTexture(commandList, SHADER_PARAM(TexIn), *mFFTTextures[readIndex]);
 			mNormalizeCS->setRWTexture(commandList, SHADER_PARAM(TexResult), *mFFTResultTex, 0, EAccessOp::WriteOnly);
@@ -394,6 +397,8 @@ namespace Render
 			RHIDispatchCompute(commandList, mFFTTestTex->getSizeX() / NormailizeCS::GroupSize, mFFTTestTex->getSizeY() / NormailizeCS::GroupSize, 1);
 			mNormalizeCS->clearTexture(commandList, SHADER_PARAM(TexIn));
 			mNormalizeCS->clearRWTexture(commandList, SHADER_PARAM(TexResult));
+
+			RHIResourceTransition(commandList, { mFFTResultTex }, EResourceTransition::SRV);
 
 			{
 				GPU_PROFILE("IFFT");

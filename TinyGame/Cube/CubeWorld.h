@@ -46,7 +46,8 @@ namespace Cube
 		{ 
 			uint32 cx = uint32( x );
 			uint32 cy = uint32( y );
-			return ( uint64(cx) << 32 ) | uint64( cy ); }
+			return ( uint64(cx) << 32 ) | uint64( cy ); 
+		}
 	};
 
 	enum class EChunkLoadState : uint8

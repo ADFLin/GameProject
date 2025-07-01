@@ -93,7 +93,7 @@ namespace Cube
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 
 

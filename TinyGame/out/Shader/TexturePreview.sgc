@@ -6,6 +6,7 @@
 #define TEX_PREVIEW_3D   2
 #define TEX_PREVIEW_CUBE 3
 #define TEX_PREVIEW_CUBE_PROJECTION 4
+#define TEX_PREVIEW_DEPTH 5
 
 #ifndef TEX_PREVIEW
 #define TEX_PREVIEW TEX_PREVIEW_2D
@@ -22,7 +23,7 @@
 #if TEX_PREVIEW == TEX_PREVIEW_1D
 #define UVType float2
 #define TextureType Texture1D
-#elif TEX_PREVIEW == TEX_PREVIEW_2D
+#elif TEX_PREVIEW == TEX_PREVIEW_2D || TEX_PREVIEW == TEX_PREVIEW_DEPTH 
 #define UVType float2
 #define TextureType Texture2D
 #elif TEX_PREVIEW == TEX_PREVIEW_3D
@@ -78,6 +79,18 @@ PS_ENTRY_END(MainPS)
 	float4 color = TEXTURE_SAMPLE_LEVEL(Texture, VSOutput.UVs, PreviewLevel);
 #endif
 
+
+#if TEX_PREVIEW == TEX_PREVIEW_DEPTH
+#if USE_INVERSE_ZBUFFER
+	float linearDepth = 1.0 / (1 - color.x);
+#else
+	float linearDepth = 1.0 / color.x;
+#endif
+	float c = saturate( (linearDepth - MappingParams.x ) / (MappingParams.y - MappingParams.x) );
+	c = color.x;
+	color = float4(c,c,c, 1.0);
+#else
+
 #if USE_MAPPING_PARAMS
 	color.rgb = pow(MappingParams.x * color.rgb + MappingParams.y, MappingParams.zzz);
 #endif
@@ -112,6 +125,8 @@ PS_ENTRY_END(MainPS)
 		if (MaskBits.a != 0)
 			color = float4(color.aaa, 1);
 	}
+#endif
+
 #endif
 	//color.rgb = pow(color.rgb, 0.2);
 	//OutColor = float4(VSOutput.UVs, 0, 1);

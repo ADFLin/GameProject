@@ -199,7 +199,7 @@ namespace Cube
 			if (bGneRequest)
 			{
 				{
-					Mutex::Locker locker(mMutexPendingAdd);
+					//Mutex::Locker locker(mMutexPendingAdd);
 					for (auto chunk : mPendingAddChunks)
 					{
 						if (chunk->getPos() == pos)
@@ -213,7 +213,7 @@ namespace Cube
 				work->provider = this;
 				mGeneratePool->addWork(work);
 
-				Mutex::Locker locker(mMutexPendingAdd);
+				//Mutex::Locker locker(mMutexPendingAdd);
 				mPendingAddChunks.push_back(chunk);
 
 			}
@@ -230,8 +230,8 @@ namespace Cube
 
 	void ChunkProvider::update(float deltaTime)
 	{
+		if (!mPendingAddChunks.empty())
 		{
-			Mutex::Locker locker(mMutexPendingAdd);
 			for (int index = 0; index < mPendingAddChunks.size(); ++index)
 			{
 				Chunk* chunk = mPendingAddChunks[index];
@@ -498,11 +498,12 @@ namespace Cube
 				//chunkHeight = height;
 				for (int k = 0; k < chunkHeight; ++k)
 				{
-					float scale = 24.0f / (256.0f * 2);
-					float v = mNoise.getValue(float(offset.x + i) * scale, float(offset.y + j) * scale, float(k) * scale);
-					float ZDepth = chunkHeight - k;
 
 					chunk.setBlockId(i, j, k, BLOCK_DIRT);
+#if 1
+					float scale = 24.0f / (256.0f * 2);
+					float ZDepth = chunkHeight - k;
+					float v = mNoise.getValue(float(offset.x + i) * scale, float(offset.y + j) * scale, float(k) * scale);
 					float cave = Math::Abs(v) * Math::Lerp(4.0f, 1.0f, Math::Min(ZDepth / 15.0f, 1.0f));
 					if (cave < 0.10)
 					{
@@ -512,7 +513,9 @@ namespace Cube
 					{
 						chunk.setBlockId(i, j, k, BLOCK_ROCK);
 					}
+#endif
 				}
+
 				chunk.setBlockId(i, j, 0, BLOCK_BASE);
 			}
 		}

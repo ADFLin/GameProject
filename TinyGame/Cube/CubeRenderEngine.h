@@ -84,22 +84,21 @@ namespace Cube
 		Math::TAABBox< Vec3f > bound;
 		Vec3f    posOffset;
 
-		static int constexpr MaxLayerCount = 4;
+		static int constexpr MaxLayerCount = 32;
 
 		struct Layer
 		{
-			int indexLayer;
+			int index;
 			Math::TAABBox< Vec3f > bound;
-			uint32 indexOffset;
-			uint32 indexCount;
+
+			MeshRenderPoolData* meshPool;
+			DrawCmdArgs args;
+
+			BuddyAllocatorBase::Allocation vertexAllocation;
+			BuddyAllocatorBase::Allocation indexAlloction;
 		};
 		Layer layers[MaxLayerCount];
 		int numLayer;
-
-		MeshRenderPoolData* meshPool;
-		uint32 indexCount;
-		BuddyAllocatorBase::Allocation vertexAllocation;
-		BuddyAllocatorBase::Allocation indexAlloction;
 	};
 
 	class RenderEngine : public IWorldEventListener , public IChunkEventListener
@@ -151,9 +150,17 @@ namespace Cube
 
 			struct Layer
 			{
+				int index;
+				Math::TAABBox< Vec3f > bound;
 
-				Math::TAABBox<Vec3f> bound;
+				uint32 vertexOffset;
+				uint32 vertexCount;
+				uint32 indexOffset;
+				uint32 indexCount;
 			};
+
+			Layer layers[ChunkRenderData::MaxLayerCount];
+			int numLayer;
 		};
 	public:
 		ICamera* mDebugCamera = nullptr;
@@ -169,9 +176,10 @@ namespace Cube
 		ChunkDataMap  mChunkMap;
 		Render::PrimitivesCollection mDebugPrimitives;
 		float  mAspect;
+		Vec2i  mViewSize;
 
 		class BlockRenderShaderProgram* mProgBlockRender;
-
+		class BlockRenderShaderProgram* mProgBlockRenderDepth;
 		bool bWireframeMode = false;
 		double mMergeTimeAcc = 0;
 
@@ -180,8 +188,18 @@ namespace Cube
 
 		TArray< MeshRenderPoolData* > mMeshPool;
 
-		MeshRenderPoolData* acquireMeshRenderData(Mesh const& mesh);
+		Render::RHITexture2DRef mHZBTexture;
+		Render::RHITexture2DRef mSceneTexture;
+		Render::RHITexture2DRef mSceneDepthTexture;
+		Render::RHIFrameBufferRef mSceneFrameBuffer;
 
+
+		void resizeRenderTarget();
+
+		void notifyViewSizeChanged(Vec2i const& newSize);
+
+		MeshRenderPoolData* acquireMeshRenderData(Mesh const& mesh);
+		MeshRenderPoolData* acquireMeshRenderData(uint32 vertexSize, uint32 indexSize);
 		Render::RHIBufferRef mCmdBuffer;
 		int mRenderFrame = 0;
 

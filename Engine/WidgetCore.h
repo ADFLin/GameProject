@@ -79,7 +79,6 @@ public:
 
 	T*             getParent() { return static_cast<T*>( mParent ); }
 	TWidgetManager<T>* getManager() { return mManager; }
-	int            getChildrenNum() { return mNumChild; }
 	int            getLevel();
 	int            getOrder();
 
@@ -219,7 +218,6 @@ protected:
 
 	Vec2i          mCacheWorldPos;
 	uint32         mFlag;
-	int            mNumChild;
 	Rect           mBoundRect;
 };
 

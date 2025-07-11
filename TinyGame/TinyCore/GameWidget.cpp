@@ -180,7 +180,7 @@ void GWidget::removeMotionTask()
 
 void GWidget::refresh()
 {
-	if (onRefresh)
+	if (canRefresh() && onRefresh)
 	{
 		onRefresh(this);
 	}
@@ -575,7 +575,7 @@ void GChoice::onRender()
 	}
 }
 
-void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
+void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool bSelected )
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
 
@@ -587,7 +587,7 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 	g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
 	g.endBlend();
 
-	if ( beLight )
+	if ( bSelected )
 		g.setTextColor(Color3ub(255 , 255 , 255) );
 	else
 		g.setTextColor(Color3ub(0, 0 , 0) );
@@ -667,13 +667,13 @@ GListCtrl::GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* p
 	setColorName( EColor::Blue );
 }
 
-void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
+void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool bSelected )
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i size( getSize().x , getItemHeight() );
 
-	if ( beSelected )
+	if (bSelected)
 	{
 		g.beginBlend( pos , size , 0.8f );
 		RenderUtility::SetPen( g , EColor::Black );

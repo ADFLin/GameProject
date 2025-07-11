@@ -227,7 +227,7 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 
 	int genertatedSampleFrame = 0;
 
-	WaveSampleBuffer::SampleHandle sampleHandle = mSampleBuffer.fetchSampleData();
+	WaveSampleBuffer::SampleHandle sampleHandle = mSampleBuffer.acquireSampleData();
 	WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(sampleHandle);
 	assert(sampleData->data.empty());
 	for (;;)
@@ -235,7 +235,8 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 		DWORD dwFlags = 0;
 		TComPtr<IMFSample> pSample;
 		// Read the next sample.
-		hr = mSourceReader->ReadSample(MF_SOURCE_READER_FIRST_AUDIO_STREAM, 0, NULL, &dwFlags, NULL, &pSample);
+		LONGLONG TimeStamp;
+		hr = mSourceReader->ReadSample(MF_SOURCE_READER_FIRST_AUDIO_STREAM, 0, NULL, &dwFlags, &TimeStamp, &pSample);
 
 		if (FAILED(hr))
 		{
@@ -260,6 +261,11 @@ EAudioStreamStatus MFAudioStreamSource::generatePCMData(int64 samplePos, AudioSt
 			result = EAudioStreamStatus::NoSample;
 			break;
 		}
+
+		LONGLONG sampleTime;
+		HRESULT hrA = pSample->GetSampleTime(&sampleTime);
+		LONGLONG sampleDuration;
+		HRESULT hrB = pSample->GetSampleDuration(&sampleDuration);
 
 		auto ReadBuffer = [&](TComPtr<IMFMediaBuffer>& buffer)
 		{

@@ -120,6 +120,7 @@ public:
 	using WidgetRefreshDelegate = std::function< void(GWidget*) >;
 	WidgetRefreshDelegate onRefresh;
 	TINY_API void  refresh();
+	virtual bool   canRefresh() { return true; }
 
 	TINY_API void  setRenderCallback( RenderCallBack* cb );
 
@@ -379,6 +380,17 @@ public:
 
 	void renderValue( GWidget* widget );
 
+	bool canRefresh(){ return !bDragingTip; }
+	void onDragTipStart() 
+	{
+		bDragingTip = true;
+		
+	}
+	void onDragTipEnd() 
+	{
+		bDragingTip = false;
+	}
+	bool bDragingTip = false;
 	virtual void onRender();
 };
 
@@ -430,7 +442,7 @@ public:
 	TINY_API void onRender();
 
 	void onItemSelect( unsigned select ){  sendEvent( EVT_CHOICE_SELECT );  }
-	void doRenderItem( Vec2i const& pos , Item& item , bool beLight );
+	void doRenderItem( Vec2i const& pos , Item& item , bool bSelected);
 	void doRenderMenuBG( Menu* menu );
 	int  getMenuItemHeight(){ return 20; }
 
@@ -444,7 +456,7 @@ public:
 
 	void onItemSelect( unsigned pos ){ ensureVisible(pos); sendEvent( EVT_LISTCTRL_SELECT ); }
 	void onItemLDClick( unsigned pos ){ sendEvent( EVT_LISTCTRL_DCLICK ); }
-	void doRenderItem( Vec2i const& pos , Item& item , bool beSelected );
+	void doRenderItem( Vec2i const& pos , Item& item , bool bSelected);
 	void doRenderBackground( Vec2i const& pos , Vec2i const& size );
 	int  getItemHeight(){ return 20; }
 };

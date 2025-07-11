@@ -27,7 +27,7 @@ public:
 	AudioStreamSample allocSamples(uint32 size)
 	{
 		AudioStreamSample result;
-		result.handle = fetchSampleData();
+		result.handle = acquireSampleData();
 		SampleData* sampleData = getSampleData(result.handle);
 		sampleData->data.resize(size);
 		result.data = sampleData->data.data();
@@ -35,7 +35,7 @@ public:
 		return result;
 	}
 
-	SampleHandle fetchSampleData()
+	SampleHandle acquireSampleData()
 	{
 		uint32 result;
 		if (!mFreeSampleDataIndices.empty())

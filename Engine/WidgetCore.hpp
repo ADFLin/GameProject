@@ -28,9 +28,8 @@ WidgetCoreT<T>::WidgetCoreT()
 template< class T >
 void WidgetCoreT< T >::init()
 {
-	mParent = NULL;
-	mNumChild = 0;
-	mManager = NULL;
+	mParent = nullptr;
+	mManager = nullptr;
 	mFlag = 0;
 }
 
@@ -105,7 +104,6 @@ void WidgetCoreT<T>::unlinkInternal( bool bRemove )
 
 	if( mParent )
 	{
-		--mParent->mNumChild;
 		mParent = nullptr;
 	}
 
@@ -125,7 +123,6 @@ void WidgetCoreT<T>::linkChildInternal( WidgetCoreT* ui )
 	if ( mManager )
 		ui->setManager( mManager );
 
-	++mNumChild;
 }
 
 template< class T >

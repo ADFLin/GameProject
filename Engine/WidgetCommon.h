@@ -152,7 +152,7 @@ public:
 		TipWidget( Vec2i const& size , CoreImpl* parent )
 			:CoreImpl( Vec2i(0,0) , size , parent ){}
 		MsgReply onMouseMsg( MouseMsg const& msg );
-		WSliderT* getSlider(){ return  static_cast< WSliderT*>( getParent() ); }
+		Impl* getSlider(){ return  static_cast<Impl*>( getParent() ); }
 	};
 
 
@@ -160,6 +160,9 @@ public:
 	void onScrollChange( int value ){}
 	void doRenderTip( TipWidget* ui ){}
 	void doRenderBackground(){}
+
+	void onDragTipStart(){}
+	void onDragTipEnd(){}
 	/////////////////////////////////////////
 
 	void  updateValue();
@@ -409,7 +412,7 @@ public:
 
 	///////// override function ////////
 	void onItemSelect( unsigned select ){}
-	void doRenderItem( Vec2i const& pos , Item& item , bool beLight ){}
+	void doRenderItem( Vec2i const& pos , Item& item , bool bSelected){}
 	void doRenderMenuBG( Menu* menu ){}
 	int  getMenuItemHeight(){ return 15; }
 	/////////////////////////////////////////////////////////////////
@@ -443,7 +446,7 @@ public:
 	///////// override function ////////
 	void onItemSelect( unsigned pos ){}
 	void onItemLDClick( unsigned pos ){}
-	void doRenderItem( Vec2i const& pos , Item& item , bool beSelected ){}
+	void doRenderItem( Vec2i const& pos , Item& item , bool bSelected){}
 	void doRenderBackground( Vec2i const& pos , Vec2i const& size ){}
 	int  getItemHeight(){ return 15; }
 	/////////////////////////////////////

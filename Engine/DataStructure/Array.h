@@ -147,7 +147,22 @@ struct TDynamicArrayData
 
 	void  shrinkTofit(size_t size)
 	{
+		if (size == 0 || size == mMaxSize)
+			return;
 
+		if (FMemory::Expand(mStorage, size) != nullptr)
+		{
+			mMaxSize = size;
+			return;
+		}
+
+		void* newAlloc = FMemory::Alloc(size);
+		CHECK_ALLOC_PTR(newAlloc);
+		FTypeMemoryOp::MoveSequence((T*)newAlloc, size, (T*)mStorage);
+		FMemory::Free(mStorage);
+
+		mStorage = newAlloc;
+		mMaxSize = size;
 	}
 
 	size_t getMaxSize() const { return mMaxSize; }

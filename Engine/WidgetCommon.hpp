@@ -387,10 +387,12 @@ MsgReply WSliderT<Impl, CoreImpl>::TipWidget::onMouseMsg( MouseMsg const& msg )
 		getManager()->captureMouse( this );
 		x = msg.x();
 		y = msg.y();
+		getSlider()->onDragTipStart();
 	}
 	else if ( msg.onLeftUp() )
 	{
 		getManager()->releaseMouse();
+		getSlider()->onDragTipEnd();
 	}
 	if ( msg.isLeftDown() && msg.isDraging() )
 	{

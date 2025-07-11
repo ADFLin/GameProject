@@ -270,7 +270,7 @@ public:
 	SoundWave    mSoundWave;
 
 	AudioHandle  mAudioHandle;
-	GSlider* mTimeWidget;
+	DevFrame* mDevFrame;
 	float prevRadius;
 	float nextRadius;
 	Vector2 prevPos;
@@ -390,7 +390,7 @@ bool AudioTestStage::onInit()
 #else
 	{
 		TIME_SCOPE("Init Stream Source");
-		mAudioStreamSource.initialize("Sounds/gem2.mp3");
+		mAudioStreamSource.initialize("Sounds/gem.mp3");
 		//mSoundWave.setupStream(&mSineWaveStreamSource);
 		mSoundWave.setupStream(&mAudioStreamSource, true);
 	}
@@ -440,6 +440,20 @@ bool AudioTestStage::onInit()
 		mAudioStreamSource.setCurrentTime(double(value) / 100.0 * mAudioStreamSource.getDuration());
 		return false;
 	};
+	sliderPos->onRefresh = [this](GWidget* ui)
+	{
+		ActiveSound* sound = mAudioDevice->getActiveSound(mAudioHandle);
+		if (sound && !sound->playingInstances.empty())
+		{
+			auto myWidget = GUI::CastFast<GSlider>(ui);
+			SoundInstance* soundInstance = sound->playingInstances[0];
+			auto const& format = soundInstance->soundwave->format;
+			double timePos = double(soundInstance->samplesPlayed) / format.sampleRate;
+
+			//LogMsg("%lld", soundInstance->samplesPlayed);
+			myWidget->setValue(timePos / soundInstance->soundwave->getDuration() * (myWidget->getMaxValue() - myWidget->getMinValue()));
+		}
+	};
 
 	frame->addButton("Reset pitch", [&, sliderPitch](int event, GWidget* ui)-> bool
 	{
@@ -448,13 +462,10 @@ bool AudioTestStage::onInit()
 		return false;
 	});
 
-
-	mTimeWidget = frame->addSlider(UI_ANY);
-	mTimeWidget->setRange(0, 1000);
-
 	frame->addText("Freq");
 	FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSineWaveStreamSource.mWaveGenerator.freq, 20, 15100, 2);
-
+	
+	mDevFrame = frame;
 
 	restart();
 	return true;
@@ -466,6 +477,9 @@ void AudioTestStage::onUpdate(GameTimeSpan deltaTime)
 
 	mAudioDevice->update(deltaTime);
 	mTime += deltaTime;
+
+	mDevFrame->refresh();
+
 	ActiveSound* sound = mAudioDevice->getActiveSound(mAudioHandle);
 	if( sound && !sound->playingInstances.empty() )
 	{
@@ -473,9 +487,6 @@ void AudioTestStage::onUpdate(GameTimeSpan deltaTime)
 		SoundInstance* soundInstance = sound->playingInstances[0];
 		auto const& format = soundInstance->soundwave->format;
 		double timePos = double(soundInstance->samplesPlayed) / format.sampleRate;
-
-		//LogMsg("%lld", soundInstance->samplesPlayed);
-		mTimeWidget->setValue(timePos / soundInstance->soundwave->getDuration() * (mTimeWidget->getMaxValue() - mTimeWidget->getMinValue()));
 
 		if( CalcFrequencySpectrum(*soundInstance->soundwave, timePos, 1024 * 8, mNumFreqGroup, mFreqValues) )
 		{

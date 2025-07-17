@@ -273,7 +273,7 @@ namespace Big2 {
 				drawOtherPlayer( g , pos , tPos , ( numCard + 3 ) / 4 , false );
 
 				int num = numCard / 4;
-				pos = mOwnCardsUI->getBasePos() - Vec2i( ( ( 13 - 1 ) * CardListUI::NextOffset + mCardSize.x ) / 2 , -CardListUI::SelectOffect );
+				pos = mOwnCardsUI->getBasePos() - Vec2i( ( (PlayerCardNum - 1 ) * CardListUI::NextOffset + mCardSize.x ) / 2 , -CardListUI::SelectOffect );
 				for( int i = 0 ; i < num ; ++i )
 				{
 					mCardDraw->draw( g , pos , Card( int( mCards[i] ) ) );
@@ -389,7 +389,7 @@ namespace Big2 {
 		}
 		int offset = 15;
 		Vec2i lPos;
-		lPos.x = -( (( beCenterPos ) ? numCard : 13 ) * offset + mCardSize.x ) / 2;
+		lPos.x = -( (( beCenterPos ) ? numCard : PlayerCardNum ) * offset + mCardSize.x ) / 2;
 		lPos.y = 0;
 
 		g.setBrush(Color3ub::White());
@@ -425,9 +425,9 @@ namespace Big2 {
 		switch( tPos )
 		{
 		case TPOS_ME:     angle = 0.0f; break;
-		case TPOS_LEFT:   angle = 90.0f * PI / 180.0f; break;
-		case TPOS_FRONT:  angle = 180.0f * PI / 180.0f; break; 
-		case TPOS_RIGHT:  angle = 270.0f * PI / 180.0f; break;
+		case TPOS_LEFT:   angle = 90.0f * Math::PI / 180.0f; break;
+		case TPOS_FRONT:  angle = 180.0f * Math::PI / 180.0f; break;
+		case TPOS_RIGHT:  angle = 270.0f * Math::PI / 180.0f; break;
 		}
 		drawShowCard( g , pos + Vec2i( mShowCardOffset[ tPos ] ) + 5 * gTablePosOffset[ tPos ] , angle , *info , beFoucs );
 	}
@@ -486,7 +486,7 @@ namespace Big2 {
 		g.drawRect( Vec2i(-1,-1) , Vec2i( mShowCardBmp.getWidth() + 2 , mShowCardBmp.getHeight() + 2 ) );
 
 		refreshUI( true );
-		std::copy( initData.card , initData.card + 13 , mCards );
+		std::copy( initData.card , initData.card + PlayerCardNum, mCards );
 
 		mDealCardNum = 0;
 		changeState( eDEAL_CARD );
@@ -673,7 +673,7 @@ namespace Big2 {
 	{
 		mBasePos = pos;
 		mHaveAnim = false;
-		std::fill_n( mCardSelectOffset , 13 , 0 );
+		std::fill_n( mCardSelectOffset , PlayerCardNum, 0 );
 		mNumSelected = 0;
 		setClientCards( cards );
 		setRerouteMouseMsgUnhandled();
@@ -771,7 +771,7 @@ namespace Big2 {
 		{
 			addUnselectAnim( mIndexSelected[i] );
 		}
-		std::fill_n( mbSelectedMap , 13 , false );
+		std::fill_n( mbSelectedMap , PlayerCardNum, false );
 		mNumSelected = 0;
 	}
 
@@ -812,10 +812,10 @@ namespace Big2 {
 
 	void CardListUI::selectIndex( int pIndex[] , int num )
 	{
-		bool prevSelect[13];
+		bool prevSelect[PlayerCardNum];
 		std::copy( mbSelectedMap , mbSelectedMap + mClinetCards->size() , prevSelect );
 
-		std::fill_n( mbSelectedMap , 13 , false );
+		std::fill_n( mbSelectedMap , PlayerCardNum, false );
 		mNumSelected = num;
 		for( int i = 0 ; i < num ; ++i )
 		{
@@ -869,7 +869,7 @@ namespace Big2 {
 		}
 
 		mNumSelected = 0;
-		std::fill_n( mCardSelectOffset , 13 , 0 );
+		std::fill_n( mCardSelectOffset, PlayerCardNum, 0 );
 	}
 
 	void CardListUI::animFinish()

@@ -435,12 +435,15 @@ void NetRoomStage::onServerEvent( EventID event , unsigned msg )
 
 	switch( event )
 	{
-	case eCON_CLOSE:
+	case ClientListener::eCON_CLOSE:
 		getManager()->changeStage( STAGE_MAIN_MENU );
 		break;
-	case eCON_RESULT:
+	case ClientListener::eLOGIN_RESULT:
 		if ( msg )
+		{
+			mWorker->changeState(NAS_ROOM_WAIT);
 			setupUI(true);
+		}
 		break;
 	}
 	
@@ -483,7 +486,6 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 	switch( com->state )
 	{
 	case NAS_ROOM_ENTER:
-	case NAS_ACCPET:
 		mWorker->changeState( NAS_ROOM_WAIT );
 		break;
 	case NAS_LEVEL_SETUP:
@@ -1360,6 +1362,8 @@ void NetLevelStageMode::onServerEvent(EventID event, unsigned msg)
 	case eCON_CLOSE:
 		str.format("Lost Server %s", "");
 		::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
+		break;
+	case ClientListener::eLOGIN_RESULT:
 		break;
 	}
 }

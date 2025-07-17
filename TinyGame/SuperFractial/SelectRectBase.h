@@ -15,7 +15,7 @@
 
 inline float WrapZeroTo2PI(float angle)
 {
-	return angle - (2 * PI) * Math::Floor( angle * ( 1 / (2 * PI) ) );
+	return angle - (2 * Math::PI) * Math::Floor( angle * ( 1 / (2 * Math::PI) ) );
 }
 
 class SelectRectBase

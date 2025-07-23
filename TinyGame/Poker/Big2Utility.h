@@ -141,7 +141,8 @@ namespace Big2 {
 			int index;
 			unsigned suitMask;
 		};
-		FaceGroup mFaceGroups[ 13 ];
+		static constexpr int MaxCardCount = 13;
+		FaceGroup mFaceGroups[MaxCardCount];
 		int mNumFaceGroup;
 
 		struct DataGroup
@@ -154,7 +155,7 @@ namespace Big2 {
 
 		struct SuitGroup
 		{
-			int index[ 13 ];
+			int index[MaxCardCount];
 			int num;
 		};
 

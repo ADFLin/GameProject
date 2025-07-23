@@ -749,7 +749,7 @@ namespace Tetris
 		PieceTemplateSet& tempSet = PieceTemplateSet::GetClassic();
 		tempSet.setTemplate(Global::Random() % tempSet.getTemplateNum() , spr.piece );
 		spr.piece.rotate(Global::Random() % spr.piece.getDirectionNum() );
-		spr.angle    = RandomFloat() * 2 * PI;
+		spr.angle    = RandomFloat() * 2 * Math::PI;
 		spr.angleVel = RandomFloat( -1 , 1 ) * 5;
 		spr.vel   =  500 * Vector2( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
 		spr.pos   =  Vector2( 400 , 300 ) + 50 * Vector2( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );

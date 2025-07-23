@@ -24,28 +24,8 @@ int const gDefaultGameFPS  = 1000 / gDefaultTickTime;
 int const gDefaultScreenWidth  = 800;
 int const gDefaultScreenHeight = 600;
 
-float const PI = 3.141592653589793238462643383279f;
 #define DEG2RAD( deg ) Math::DegToRad( deg )
 #define RAD2DEG( rad ) Math::RadToDeg( rad )
-
-#define COMBINE_HEX(n) 0x##n##LU
-
-/* 8-bit conversion function */
-#define HEX_TO_BINARY8( n ) \
-	( ( n & 0x0000000fLU)?  1:0 ) + \
-	( ( n & 0x000000f0LU)?  2:0 ) + \
-	( ( n & 0x00000f00LU)?  4:0 ) + \
-	( ( n & 0x0000f000LU)?  8:0 ) + \
-	( ( n & 0x000f0000LU)? 16:0 ) + \
-	( ( n & 0x00f00000LU)? 32:0 ) + \
-	( ( n & 0x0f000000LU)? 64:0 ) + \
-	( ( n & 0xf0000000LU)?128:0 )
-
-#define BINARY8(d) ( (unsigned)HEX_TO_BINARY8( COMBINE_HEX(d) ) )
-#define BINARY32( a , b , c , d ) ( ( BINARY8( a ) << 24) | (BINARY8( b ) << 16) | (BINARY8( c ) << 8) | BINARY8( d ))
-#define ARRAY2BIT4( a , b , c , d ) ( (BINARY8(a)<<12)|(BINARY8(b)<<8)|(BINARY8(c)<<4)|BINARY8(d) ) 
-#define ARRAY2BIT3( a , b , c )     ( (BINARY8(a)<< 6)|(BINARY8(b)<<3)|BINARY8(c) )
-
 
 class DrawEngine;
 class Graphics2D;

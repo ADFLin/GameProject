@@ -17,7 +17,7 @@ namespace Big2 {
 	int const MaxPlayerCardNum = 26;
 	int const PlayerCardNum = 13;
 
-	typedef TInlineArray< Card , 13 > CardDeck;
+	typedef TInlineArray< Card , PlayerCardNum > CardDeck;
 	inline void RemoveCards( CardDeck& cards , int* pIndex , int num )
 	{
 		int temp[ 52 ];
@@ -105,7 +105,7 @@ namespace Big2 {
 	struct SDRoundInit
 	{
 		char startSlot;
-		char card[13];
+		char card[PlayerCardNum];
 	};
 
 	class LevelBase

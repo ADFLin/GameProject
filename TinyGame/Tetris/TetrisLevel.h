@@ -146,7 +146,7 @@ namespace Tetris
 		BlockType*       getLayer( int y )       { return mLayerMap[y].blocks; }
 		BlockType const* getLayer( int y ) const { return mLayerMap[y].blocks; }
 
-		void             removeLayer( int ys[] , int num );
+		void             removeLayers( int ys[] , int num );
 		void             removeLayer( int y );
 
 		bool             isLayerFilled( int y );
@@ -180,6 +180,7 @@ namespace Tetris
 		};
 
 		friend class Scene;
+		int     mMaxFillLayerY;
 		int     mSizeX;
 		int     mSizeY;
 		TArrayHolder< BlockType > mBlockStorage;

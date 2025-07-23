@@ -51,6 +51,7 @@ struct FWinApi
 	{
 		return CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 	}
+
 	static HANDLE FindFirstFile(char const* lpFileName, WIN32_FIND_DATAA* data)
 	{
 		return ::FindFirstFileA(lpFileName, data);
@@ -150,7 +151,6 @@ struct FWindowsFileSystem
 #else
 		return FWinApi::GetFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
 #endif
-
 	}
 
 	template< class CharT >
@@ -207,6 +207,13 @@ struct FWindowsFileSystem
 		return !!FWinApi::MoveFile(path, newPath);
 	}
 
+
+	template< class CharT >
+	static bool RenameAndMoveFile(CharT const* path, CharT const* newPath)
+	{
+		return !!FWinApi::MoveFile(path, newPath);
+	}
+
 	template< class CharT >
 	static std::basic_string<CharT> ConvertToFullPath(CharT const* path)
 	{
@@ -219,6 +226,24 @@ struct FWindowsFileSystem
 	static bool CopyFile(CharT const* path, CharT const* newFilePath, bool bFailIfExists)
 	{
 		return !!FWinApi::CopyFile(path, newFilePath, bFailIfExists);
+	}
+
+	template< class CharT >
+	static bool GetFileAttributes(CharT const* path, FileAttributes& outAttributes)
+	{
+		WIN32_FILE_ATTRIBUTE_DATA fad;
+		if (!::FWinApi::GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
+		{
+			return false;
+		}
+		LARGE_INTEGER temp;
+		temp.HighPart = fad.nFileSizeHigh;
+		temp.LowPart = fad.nFileSizeLow;
+
+		outAttributes.size = temp.QuadPart;
+		SYSTEMTIME systemTime = { 0 };
+		::FileTimeToSystemTime(&fad.ftLastWriteTime, &systemTime);
+		outAttributes.lastWrite = DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 	}
 };
 #else
@@ -261,39 +286,50 @@ bool FFileSystem::CreateDirectory(wchar_t const* pathDir)
 #endif
 }
 
-bool FFileSystem::CreateDirectorySequence(char const* pathDir)
+template< class CharT >
+bool CreateDirectorySequenceImpl(CharT const* pathDir)
 {
-	if( IsExist(pathDir) )
+	if (FFileSystem::IsExist(pathDir))
 		return true;
 
-	InlineString<MAX_PATH> path = pathDir;
-	char* cur = path.data();
-	while( *cur != 0 )
+	TInlineString<MAX_PATH, CharT> path = pathDir;
+	CharT* cur = path.data();
+	while (*cur != 0)
 	{
-		if( *cur == '\\' || *cur == '/' )
+		if (*cur == STRING_LITERAL(CharT, '\\') || *cur == STRING_LITERAL(CharT, '/'))
 		{
-			char temp = *cur;
+			CharT temp = *cur;
 			*cur = 0;
-			if( !IsExist(path) )
+			if (!FFileSystem::IsExist(path))
 			{
-				if( !CreateDirectory(path) )
+				if (!FFileSystem::CreateDirectory(path))
 				{
 					return false;
 				}
 			}
 			*cur = temp;
-			if( cur[1] == '/' || cur[1] == '\\' )
+			if (cur[1] == STRING_LITERAL(CharT, '/') || cur[1] == STRING_LITERAL(CharT, '\\'))
 				++cur;
 		}
 
 		++cur;
 	}
 
-	if( !CreateDirectory(pathDir) )
+	if (!FFileSystem::CreateDirectory(pathDir))
 	{
 		return false;
 	}
 	return true;
+}
+
+bool FFileSystem::CreateDirectorySequence(char const* pathDir)
+{
+	return CreateDirectorySequenceImpl(pathDir);
+}
+
+bool FFileSystem::CreateDirectorySequence(wchar_t const* pathDir)
+{
+	return CreateDirectorySequenceImpl(pathDir);
 }
 
 template< class CharT >
@@ -443,6 +479,20 @@ bool FFileSystem::MoveFile(wchar_t const* path, wchar_t const* newFileDir)
 	return false;
 }
 
+bool FFileSystem::RenameAndMoveFile(char const* path, char const* newPath)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::RenameAndMoveFile(path, newPath);
+#endif
+}
+
+bool FFileSystem::RenameAndMoveFile(wchar_t const* path, wchar_t const* newPath)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::RenameAndMoveFile(path, newPath);
+#endif
+}
+
 bool FFileSystem::CopyFile(char const* path, char const* newFilePath, bool bFailIfExists)
 {
 #if SYS_PLATFORM_WIN
@@ -462,24 +512,18 @@ bool FFileSystem::CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool
 bool FFileSystem::GetFileAttributes(char const* path, FileAttributes& outAttributes)
 {
 #if SYS_PLATFORM_WIN
-	WIN32_FILE_ATTRIBUTE_DATA fad;
-	if( !::GetFileAttributesExA(path, GetFileExInfoStandard, &fad) )
-	{
-		return false;
-	}
-	LARGE_INTEGER temp;
-	temp.HighPart = fad.nFileSizeHigh;
-	temp.LowPart = fad.nFileSizeLow;
-
-	outAttributes.size = temp.QuadPart;
-	SYSTEMTIME systemTime = { 0 };
-	::FileTimeToSystemTime(&fad.ftLastWriteTime, &systemTime);
-	outAttributes.lastWrite = DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
-	return true;
+	return FWindowsFileSystem::GetFileAttributes(path, outAttributes);
 #else
-
 	return false;
+#endif
+}
 
+bool FFileSystem::GetFileAttributes(wchar_t const* path, FileAttributes& outAttributes)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::GetFileAttributes(path, outAttributes);
+#else
+	return false;
 #endif
 }
 

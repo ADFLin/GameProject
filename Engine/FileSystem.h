@@ -135,6 +135,7 @@ public:
 	static bool CreateDirectory(wchar_t const* pathDir);
 
 	static bool CreateDirectorySequence(char const* pathDir);
+	static bool CreateDirectorySequence(wchar_t const* pathDir);
 
 	static std::string  ConvertToFullPath(char const* path);
 	static std::wstring ConvertToFullPath(wchar_t const* path);
@@ -151,11 +152,15 @@ public:
 	static bool MoveFile(char const* path, char const* newFileDir);
 	static bool MoveFile(wchar_t const* path, wchar_t const* newFileDir);
 
+	static bool RenameAndMoveFile(char const* path, char const* newPath);
+	static bool RenameAndMoveFile(wchar_t const* path, wchar_t const* newPath);
+
+
 	static bool CopyFile(char const* path, char const* newFilePath, bool bFailIfExists = false);
 	static bool CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists = false);
 
 	static bool GetFileAttributes(char const* path, FileAttributes& outAttributes);
-
+	static bool GetFileAttributes(wchar_t const* path, FileAttributes& outAttributes);
 
 	static bool OverwriteFile(char const* srcPath, char const* destPath, uint64 num, uint64 offset = 0);
 };

@@ -7,6 +7,8 @@
 
 #include <fstream>
 #include <algorithm>
+#include "Meta/Concept.h"
+#include "Meta/FunctionCall.h"
 
 float KeyValue::getFloat() const
 {
@@ -346,6 +348,9 @@ bool PropertyFile::save(char const* path)
 			case EValueOp::Remove:
 				fs << '-';
 				break;
+			case EValueOp::Comment:
+				fs << value.value << std::endl;
+				continue;
 			}
 			fs << value.key << " = " << value.value << std::endl;
 		}
@@ -403,6 +408,11 @@ int PropertyFile::parseLine(char* buffer, TArray< Element >*& sectionElementsPtr
 	{
 		if (token[1] != '/')
 			return PARSE_UNKONW_RULE;
+
+		Element value;
+		value.op = EValueOp::Comment;
+		value.value = token;
+		sectionElementsPtr->push_back(std::move(value));
 	}
 	else if (token[0] == '[')
 	{
@@ -488,23 +498,34 @@ bool PropertyFile::visit(char const* sectionName, char const* keyName, TFunc&& f
 {
 	auto VisitElement = [keyName, &func](TArray<Element>& elements) -> bool
 	{
-		func(elements);
-		for (int i = 0; i < elements.size(); ++i)
+		if constexpr (TCheckConcept< CFunctionCallable, TFunc, TArray<Element> >::Value)
 		{
-			if (elements[i].key != keyName)
-				continue;
+			func(elements);
+		}
 
-			switch (func(elements[i]))
+		if constexpr (TCheckConcept< CFunctionCallable, TFunc, Element >::Value)
+		{
+			for (int i = 0; i < elements.size(); ++i)
 			{
-			case EVisitOp::Remove:
-				elements.removeIndex(i);
-				--i;
-				break;
-			case EVisitOp::RemoveStop:
-				elements.removeIndex(i);
-				--i;
-			case EVisitOp::Stop:
-				return true;
+				auto& element = elements[i];
+				if (element.op == EValueOp::Comment)
+					continue;
+
+				if (element.key != keyName)
+					continue;
+
+				switch (func(elements[i]))
+				{
+				case EVisitOp::Remove:
+					elements.removeIndex(i);
+					--i;
+					break;
+				case EVisitOp::RemoveStop:
+					elements.removeIndex(i);
+					--i;
+				case EVisitOp::Stop:
+					return true;
+				}
 			}
 		}
 

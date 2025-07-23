@@ -24,18 +24,17 @@ public:
 
 	std::unordered_map< std::string, int > mFormatDigitMap;
 
+	std::string mPictureDir;
 
 	struct PatternDesc
 	{
-		char const* regexText;
+		std::regex  regex;
+
 		int indexCode;
 		int indexNumber;
 		int indexPartNumber;
 		int indexFormat;
-		int indexFileFormat;
-		//std::regex  regex;
 	};
-
 
 	void loadConfigMap(char const* keyName, std::unordered_map< std::string, std::string >& outMap)
 	{
@@ -58,14 +57,18 @@ public:
 			return false;
 		::Global::GUI().cleanupWidget();
 
+		int a = atoi(" 3");
 		auto frame = WidgetUtility::CreateDevFrame();
 
 		loadConfigMap("Replace", mReplaceMap);
 		loadConfigMap("ChangeName", mChangeNameMap);
 
+		auto& config = ::Global::GameConfig();
+		mPictureDir = config.getStringValue("PictureDir", CONFIG_SECTION, "");
+
 		{
 			TArray<char const*> formatDigits;
-			::Global::GameConfig().getStringValues("FormatDigit", CONFIG_SECTION, formatDigits);
+			config.getStringValues("FormatDigit", CONFIG_SECTION, formatDigits);
 			for (auto str : formatDigits)
 			{
 				StringView key;
@@ -77,17 +80,18 @@ public:
 			}
 		}
 
-#if 0
+#if 1
 		{
 			TArray<char const*> patterns;
-			::Global::GameConfig().getStringValues("Pattern", CONFIG_SECTION, patterns);
+			config.getStringValues("Pattern", CONFIG_SECTION, patterns);
+			int index = 0;
 			for (auto str : patterns)
 			{
 				PatternDesc desc;
 				StringView key;
 				if (!FStringParse::StringToken(str, ",", key))
 					continue;
-				
+
 				try
 				{
 					desc.regex = std::regex(key.toStdString());
@@ -97,44 +101,37 @@ public:
 					continue;
 				}
 
-				++str;
-				if (!FStringParse::StringToken(str, ",", key))
-					continue;
-				desc.indexCode = key.toValue<int>();
+				auto TokenInt = [&str](int& outValue) -> bool 
+				{
+					StringView key;
+					if (!FStringParse::StringToken(str, ",", key))
+						return false;
+					key.trimStartAndEnd();
+					outValue = key.toValue<int>();
+					return true;
+				};
 
-				++str;
-				if (!FStringParse::StringToken(str, ",", key))
+				if (!TokenInt(desc.indexCode))
 					continue;
-				desc.indexNumber = key.toValue<int>();
-
-				++str;
-				if (!FStringParse::StringToken(str, ",", key))
+				if (!TokenInt(desc.indexNumber))
 					continue;
-				desc.indexPartNumber = key.toValue<int>();
-
-				++str;
-				if (!FStringParse::StringToken(str, ",", key))
+				if (!TokenInt(desc.indexPartNumber))
 					continue;
-				desc.indexFormat = key.toValue<int>();
-
-				++str;
-				if (!FStringParse::StringToken(str, ",", key))
+				if (!TokenInt(desc.indexFormat))
 					continue;
-				desc.indexFileFormat = key.toValue<int>();
 
 				mPatternList.push_back(std::move(desc));
 			}
-
 		}
 #endif
 		frame->addButton("Conv Path", [this](int event, GWidget*)
 		{
-			char const* dirPath = ::Global::GameConfig().getStringValue("Dir", CONFIG_SECTION, "");
+			char const* dirPath = ::Global::GameConfig().getStringValue("LastDir", CONFIG_SECTION, "");
 			char path[1024];
 			if (SystemPlatform::OpenDirectoryName(path, ARRAYSIZE(path), dirPath , "Select Convert Directory" , ::Global::GetDrawEngine().getWindowHandle()))
 			{
 				TIME_SCOPE("Convert File Name");
-				::Global::GameConfig().setKeyValue("Dir", CONFIG_SECTION, path);
+				::Global::GameConfig().setKeyValue("LastDir", CONFIG_SECTION, path);
 				convFileName(path);
 			}
 
@@ -186,7 +183,26 @@ public:
 			return true;
 		});
 
-
+		GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
+		textCtrl->onEvent = [this](int event, GWidget* widget) -> bool
+		{
+			if (event == EVT_TEXTCTRL_COMMITTED)
+			{
+				auto myWidget = widget->cast<GTextCtrl>();
+				FileDesc desc;
+				int indexPattern = parseFileName(myWidget->getValue(), desc);
+				if (indexPattern != INDEX_NONE)
+				{
+					LogMsg("Parse Success: %s =[%d] %s-%d-%d %s", myWidget->getValue(), indexPattern, desc.code.c_str(), desc.number, desc.partNumber, desc.b8K ? "8k" : "");
+				}
+				else
+				{
+					LogMsg("Parse Fail: %s", myWidget->getValue());
+				}
+			}
+			return false;
+		};
+		::Global::GUI().addWidget(textCtrl);
 		restart();
 		return true;
 	}
@@ -217,6 +233,14 @@ public:
 		int number;
 		int partNumber;
 		bool b8K;
+
+		void getFileName(int digit, char const* subName, InlineString<256>& outName)
+		{
+			if (partNumber)
+				outName.format("%s-%0*d-%c.%s", code.c_str(), digit, number, 'A' + (partNumber - 1), subName);
+			else
+				outName.format("%s-%0*d.%s", code.c_str(), digit, number, subName);
+		}
 	};
 
 
@@ -230,6 +254,7 @@ public:
 			return true;
 		return false;
 	}
+
 	void checkSameNameFolder(char const* dirPath)
 	{
 		FileIterator fileIter;
@@ -248,7 +273,6 @@ public:
 				{
 					LogMsg("=> %s", fileIter.getFileName());
 				}
-
 			}
 		}
 	}
@@ -281,7 +305,6 @@ public:
 				if (IsSystemFolder(fileIter.getFileName()))
 					continue;
 
-				std::smatch matches;
 				std::string fileName(fileIter.getFileName());
 
 				if (fileName.back() == 'U')
@@ -291,6 +314,7 @@ public:
 				if (fileName.back() == 'K')
 					fileName.pop_back();
 
+				std::smatch matches;
 				if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
 					continue;
 
@@ -319,7 +343,6 @@ public:
 
 						if (FCString::CompareN(subFileIter.getFileName(), fileName.c_str(), fileName.length()) != 0)
 							continue;
-
 
 						std::string newName = subFileIter.getFileName();
 						newName.replace(0, fileName.length(), newSubFileName);
@@ -392,33 +415,24 @@ public:
 					continue;
 
 				char const* subName = FFileUtility::GetExtension(fileIter.getFileName());
-				if (FCString::Compare(subName, "jpg") == 0)
+				if (subName == nullptr || FCString::Compare(subName, "jpg") == 0)
 					continue;
 
 				FileDesc desc;
-				if (parseFileName(dirPath, fileIter.getFileName(), desc))
+				std::string fileName = std::string(fileIter.getFileName(), subName - fileIter.getFileName() - 1);
+				if (parseFileName(fileName, desc) != INDEX_NONE)
 				{
 					replaceName(desc.code);
 
 					int digit = getDigitCount(desc.code);
 
 					InlineString<256> newName;
-					if (desc.partNumber)
-						newName.format("%s-%0*d-%c.%s", desc.code.c_str(), digit, desc.number, 'A' + (desc.partNumber-1), subName);
-					else
-						newName.format("%s-%0*d.%s", desc.code.c_str(), digit, desc.number, subName);
+					desc.getFileName(digit, subName, newName);
 
 					//LogMsg("%s => %s %d %d %s", fileIiter.getFileName(), desc.code.c_str(), desc.number, desc.partNumber, desc.b8K ? "true" : "false");
 
 					InlineString<256> filePath;
 					filePath.format("%s/%s", dirPath, fileIter.getFileName());
-
-					if (newName != fileIter.getFileName())
-					{
-						LogMsg("Rename: %s => %s", fileIter.getFileName(), newName.c_str());
-						FFileSystem::RenameFile(filePath, newName);
-						filePath.format("%s/%s", dirPath, newName.c_str());
-					}
 
 					InlineString<256> newDir;
 					newDir.format("%s/%s-%0*d%s", dirPath, desc.code.c_str(), digit, desc.number, desc.b8K ? "K" : "");
@@ -429,8 +443,36 @@ public:
 							continue;
 						}
 					}
-					LogMsg("Move: %s => %s", filePath, newDir);
-					FFileSystem::MoveFile(filePath, newDir);
+
+					if (newName != fileIter.getFileName())
+					{
+						InlineString<256> newPath;
+						newPath.format("%s/%s", newDir.c_str(), newName.c_str());
+						LogMsg("RenameAndMove: %s => %s", filePath.c_str(), newPath.c_str());
+						FFileSystem::RenameAndMoveFile(filePath, newPath);
+					}
+					else
+					{
+						LogMsg("Move: %s => %s", filePath, newDir);
+						FFileSystem::MoveFile(filePath, newDir);
+					}
+
+					if (desc.partNumber == 0 || desc.partNumber == 1)
+					{
+						if (!mPictureDir.empty())
+						{
+							InlineString<256> picName;
+							picName.format("%s-%0*d.%s", desc.code.c_str(), digit, desc.number, "jpg");
+
+							InlineString<256> picPath;
+							picPath.format("%s/%s", mPictureDir.c_str(), picName.c_str());
+							if (FFileSystem::IsExist(picPath))
+							{
+								LogMsg("Move Pic: %s => %s", picPath, newDir);
+								FFileSystem::MoveFile(picPath, newDir);
+							}
+						}
+					}
 				}
 				else
 				{
@@ -448,7 +490,7 @@ public:
 					continue;
 
 				FileDesc desc;
-				if (parseFileName(dirPath, fileIter.getFileName(), desc))
+				if (parseFileName(fileIter.getFileName(), desc) != INDEX_NONE)
 				{
 					char const* subName = FFileUtility::GetExtension(fileIter.getFileName());
 
@@ -492,66 +534,53 @@ public:
 	}
 
 	TArray<PatternDesc> mPatternList;
-#if 1
-	static constexpr PatternDesc PatternList[] =
-	{
-		{ CODE_STRING(([\w]+)-([\d]+).([\w]+)$), 0 , 1 , INDEX_NONE, INDEX_NONE, 3 },
-		{ CODE_STRING(([\w]+)-([\d]+)-([\d+|\a-zA-Z]).([\w]+)$), 0 , 1 , 2, INDEX_NONE, 3 },
-		{ CODE_STRING(([\w]+)-([\d]+)([\a-zA-Z]).([\w]+)$), 0 , 1 , 2, INDEX_NONE, 3 },
-		{ CODE_STRING(([\w]+)-([\d]+)([\a-zA-Z])-([\w.]+).([\w]+)$), 0 , 1 , 2, 3, 4 },
-		{ CODE_STRING(([\w]+)-([\d]+)-([\d+|\a-zA-Z])[_|-]([\w.]+).([\w]+)$), 0 , 1 , 2, 3, 4 },
-	};
-#endif
 
-	bool parseFileName(std::string const& dirPath, std::string const& fileName, FileDesc& outDesc)
+	int parseFileName(std::string const& fileName, FileDesc& outDesc)
 	{
-		for (auto const& pattern : PatternList)
+		for (auto const& pattern : mPatternList)
 		{
 			std::smatch matches;
-			std::regex  regex(pattern.regexText);
-			if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
+			if (!std::regex_search(fileName, matches, pattern.regex, std::regex_constants::match_continuous))
 				continue;
 
-			std::string code = matches[pattern.indexCode + 1].str();
-			std::transform(code.begin(), code.end(), code.begin(), ::toupper);
+			outDesc.code = matches[pattern.indexCode + 1].str();
+			std::transform(outDesc.code.begin(), outDesc.code.end(), outDesc.code.begin(), ::toupper);
 
 			std::string numberText = matches[pattern.indexNumber + 1].str();
-			int number = atoi(numberText.c_str());
+			outDesc.number = atoi(numberText.c_str());
 
-			int partNumber = 0;
+			outDesc.partNumber = 0;
 			if (pattern.indexPartNumber != INDEX_NONE)
 			{
 				std::string partNumberText = matches[pattern.indexPartNumber + 1].str();
-				if (FCString::IsAlpha(partNumberText[0]))
+				if (!partNumberText.empty())
 				{
-					partNumber = FCString::ToUpper(partNumberText[0]) - 'A' + 1;
-				}
-				else
-				{
-					partNumber = atoi(partNumberText.c_str());
+					if (FCString::IsAlpha(partNumberText[0]))
+					{
+						outDesc.partNumber = FCString::ToUpper(partNumberText[0]) - 'A' + 1;
+					}
+					else
+					{
+						outDesc.partNumber = atoi(partNumberText.c_str());
+					}
 				}
 			}
 
-
-			bool b8K = false;
+			outDesc.b8K = false;
 			if (pattern.indexFormat != INDEX_NONE)
 			{
 				std::string formatText = matches[pattern.indexFormat + 1].str();
 				std::transform(formatText.begin(), formatText.end(), formatText.begin(), ::tolower);
 				if (formatText.find("8k") != std::string::npos)
 				{
-					b8K = true;
+					outDesc.b8K = true;
 				}
 			}
 
-			outDesc.code = std::move(code);
-			outDesc.number = number;
-			outDesc.partNumber = partNumber;
-			outDesc.b8K = b8K;
-			return true;
+			return &pattern - mPatternList.data();
 		}
 
-		return false;
+		return INDEX_NONE;
 	}
 
 	void onUpdate(GameTimeSpan deltaTime) override

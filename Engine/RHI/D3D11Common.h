@@ -730,6 +730,11 @@ namespace Render
 		{
 			if (format != getFormat())
 			{
+				if (ETexture::GetComponentCount(format) != ETexture::GetComponentCount(getFormat()))
+				{
+					return false;
+				}
+
 				int i = 1;
 			}
 			TComPtr<ID3D11Device> device;

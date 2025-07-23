@@ -777,8 +777,12 @@ namespace Holdem {
 		int card[52];
 		for (int i = 0 ; i < 52 ; ++i )
 			card[i] = i;
-		for( int i = 0 ; i < 52 ; ++i )
-			std::swap( card[i] , card[ random.getInt() % 52 ] );
+
+		for (int i = 0; i < 52; i++)
+		{
+			int j = i + random.getInt() % (52 - i);
+			std::swap(card[i], card[j]);
+		}
 
 		for (int i = 0 ; i < 52; ++i )
 		{

@@ -156,6 +156,7 @@ public:
 		Add ,
 		Remove,
 		RemoveAll,
+		Comment,
 	};
 
 	struct Element

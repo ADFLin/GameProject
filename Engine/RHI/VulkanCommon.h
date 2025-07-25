@@ -801,7 +801,9 @@ namespace Render
 			createInfo.cullMode = VulkanTranslate::To(initializer.cullMode);
 			createInfo.frontFace = VulkanTranslate::To(initializer.frontFace);
 			createInfo.rasterizerDiscardEnable = VK_FALSE;
-			createInfo.depthBiasEnable = VK_FALSE;
+			createInfo.depthBiasEnable = (initializer.depthBias != 0 && initializer.slopeScaleDepthBias != 0) ? VK_TRUE : VK_FALSE;
+			createInfo.depthBiasSlopeFactor = initializer.slopeScaleDepthBias;
+			createInfo.depthBiasConstantFactor = initializer.depthBias;
 			createInfo.depthClampEnable = VK_FALSE;
 			createInfo.lineWidth = 1.0f;
 

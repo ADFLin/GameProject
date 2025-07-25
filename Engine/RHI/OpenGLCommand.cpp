@@ -1556,6 +1556,20 @@ namespace Render
 				glCullFace(pendingValue.cullFace);
 			}
 		}
+		if (GL_CHECK_STATE_DIRTY(bEnableDepthBias))
+		{
+			EnableGLState(GL_POLYGON_OFFSET_FILL, pendingValue.bEnableDepthBias);
+			EnableGLState(GL_POLYGON_OFFSET_LINE, pendingValue.bEnableDepthBias);
+			EnableGLState(GL_POLYGON_OFFSET_POINT, pendingValue.bEnableDepthBias);
+		}
+
+		if (pendingValue.bEnableDepthBias)
+		{
+			// Warning: this assumes depth bits == 24, and won't be correct with 32.
+			const float BiasScale = float((1 << 24) - 1);
+			float depthBias = pendingValue.depthBias * BiasScale;
+			glPolygonOffset(pendingValue.slopeScaleDepthBias, depthBias);
+		}
 	}
 
 	void OpenGLContext::commitBlendState()

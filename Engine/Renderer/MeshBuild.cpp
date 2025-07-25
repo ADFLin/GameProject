@@ -467,6 +467,46 @@ namespace Render
 		return true;
 	}
 
+	bool FMeshBuild::CubeLineOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
+	{
+		mesh.mInputLayoutDesc.clear();
+		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		struct MyVertex
+		{
+			Vector3 pos;
+		};
+		MyVertex vertices[] =
+		{
+			//x
+			{ halfLen * Vector3(1,1,1)},
+			{ halfLen * Vector3(1,-1,1)},
+			{ halfLen * Vector3(1,-1,-1)},
+			{ halfLen * Vector3(1,1,-1)},
+			//-x
+			{ halfLen * Vector3(-1,1,1)},
+			{ halfLen * Vector3(-1,1,-1)},
+			{ halfLen * Vector3(-1,-1,-1)},
+			{ halfLen * Vector3(-1,-1,1)},
+		};
+		for (auto& v : vertices)
+		{
+			v.pos += offset;
+		}
+
+		uint32 indices[] =
+		{
+			0,1, 1,2, 2,3, 3,0,
+			4,5, 5,6, 6,7, 7,4,
+			0,4, 1,5, 2,6, 3,7,
+		};
+		
+		mesh.mType = EPrimitive::LineList;
+		if (!mesh.createRHIResource(&vertices[0], ARRAY_SIZE(vertices), &indices[0], ARRAY_SIZE(indices)))
+			return false;
+
+		return true;
+	}
+
 	bool FMeshBuild::Cube(Mesh& mesh, float halfLen /*= 1.0f*/)
 	{
 		return CubeOffset(mesh, halfLen, Vector3::Zero());

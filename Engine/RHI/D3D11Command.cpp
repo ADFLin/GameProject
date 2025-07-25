@@ -907,9 +907,9 @@ namespace Render
 		desc.FillMode = D3D11Translate::To(initializer.fillMode);
 		desc.CullMode = D3D11Translate::To(initializer.cullMode);
 		desc.FrontCounterClockwise = initializer.frontFace != EFrontFace::Default;
-		desc.DepthBias = 0;
+		desc.DepthBias = Math::FloorToInt(initializer.depthBias * (float)(1 << 24)); 
 		desc.DepthBiasClamp = 0;
-		desc.SlopeScaledDepthBias = 0;
+		desc.SlopeScaledDepthBias = initializer.slopeScaleDepthBias;
 		desc.DepthClipEnable = FALSE;
 		desc.ScissorEnable = initializer.bEnableScissor;
 		desc.MultisampleEnable = initializer.bEnableMultisample;

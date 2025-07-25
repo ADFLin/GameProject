@@ -10,12 +10,11 @@
 
 namespace Render
 {
-
-	class TransformStack
+	template< bool bContainProjection >
+	class TTransformStack
 	{
 	public:
-
-		TransformStack()
+		TTransformStack()
 		{
 			mCurrent = Matrix4::Identity();
 		}
@@ -43,26 +42,45 @@ namespace Render
 
 		FORCEINLINE void translate(Vector3 const& offset)
 		{
-			// [ I  0 ][ R 0 ] = [ R      0 ]
-			// [ T  1 ][ P 1 ]   [ T*R+P  1 ] 
-			//transform(Matrix4::Translate(offset));
-			mCurrent.translate(Math::MatrixUtility::Rotate(offset, mCurrent));
+			if constexpr (bContainProjection)
+			{
+				transform(Matrix4::Translate(offset));
+			}
+			else
+			{
+				// [ I  0 ][ R 0 ] = [ R      0 ]
+				// [ T  1 ][ P 1 ]   [ T*R+P  1 ] 
+				mCurrent.translate(TransformVector(offset, mCurrent));
+			}
 		}
 
 		FORCEINLINE void rotate(Quaternion const& q)
 		{
-			// [ Q  0 ][ R 0 ] = [ Q*R  0 ]
-			// [ 0  1 ][ P 1 ]   [ P    1 ] 
-			//transform(Matrix4::Rotate(q));
-			Math::MatrixUtility::ApplyLocalRotation(mCurrent, q);
+			if constexpr (bContainProjection)
+			{
+				transform(Matrix4::Rotate(q));
+			}
+			else
+			{
+				// [ Q  0 ][ R 0 ] = [ Q*R  0 ]
+				// [ 0  1 ][ P 1 ]   [ P    1 ] 
+				Math::MatrixUtility::ApplyLocalRotation(mCurrent, q);
+			}
 		}
 
 		FORCEINLINE void scale(Vector3 const& scale)
 		{
-			// [ S  0 ][ R 0 ] = [ S*R  0 ]
-			// [ 0  1 ][ P 1 ]   [ P    1 ] 
-			//transform(Matrix4::Scale(scale));
-			Math::MatrixUtility::ApplyLeftScale( mCurrent , scale );
+			if constexpr (bContainProjection)
+			{
+				transform(Matrix4::Scale(scale));
+
+			}
+			else
+			{
+				// [ S  0 ][ R 0 ] = [ S*R  0 ]
+				// [ 0  1 ][ P 1 ]   [ P    1 ] 
+				Math::MatrixUtility::ApplyLeftScale(mCurrent, scale);
+			}
 		}
 
 		void push()
@@ -81,6 +99,8 @@ namespace Render
 		Matrix4 mCurrent;
 		TArray< Matrix4 > mStack;
 	};
+
+	using TransformStack = TTransformStack<false>;
 
 
 	class SimpleRenderState

@@ -224,8 +224,8 @@ namespace Tetris
 
 	void Scene::renderBlockMap(IGraphics2D& g , Vec2i const& pos )
 	{
-		int extendMapSizeY = mLevel->getBlockStorage().getExtendSizeY();
-		for(int j=0;j < extendMapSizeY ;++j)
+		int yMax = mLevel->getBlockStorage().mMaxFillLayerY;
+		for(int j=0;j <= yMax;++j)
 		{
 			if ( getLevel()->isEmptyLayer( j ) )
 				continue;

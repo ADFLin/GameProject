@@ -1070,7 +1070,7 @@ void NetLevelStageMode::onRestart(uint64& seed)
 	BaseClass::onRestart(seed);
 }
 
-bool NetLevelStageMode::doesAllowChangeState(EGameState state)
+bool NetLevelStageMode::prevChangeState(EGameState state)
 {
 	switch( getGameState() )
 	{
@@ -1359,7 +1359,7 @@ void NetLevelStageMode::onServerEvent(EventID event, unsigned msg)
 
 	switch( event )
 	{
-	case eCON_CLOSE:
+	case ClientListener::eCON_CLOSE:
 		str.format("Lost Server %s", "");
 		::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
 		break;

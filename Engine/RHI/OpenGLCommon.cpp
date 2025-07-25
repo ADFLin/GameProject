@@ -1124,6 +1124,9 @@ namespace Render
 		mStateValue.cullFace = OpenGLTranslate::To(initializer.cullMode);
 		mStateValue.frontFace = initializer.frontFace == EFrontFace::Default ? GL_CW : GL_CCW;
 		mStateValue.fillMode = OpenGLTranslate::To(initializer.fillMode);
+		mStateValue.bEnableDepthBias = initializer.depthBias != 0.0f || initializer.slopeScaleDepthBias != 0.0f;
+		mStateValue.depthBias = initializer.depthBias;
+		mStateValue.slopeScaleDepthBias = initializer.slopeScaleDepthBias;
 	}
 
 	OpenGLInputLayout::OpenGLInputLayout(InputLayoutDesc const& desc)

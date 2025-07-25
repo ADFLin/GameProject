@@ -18,7 +18,7 @@ float GetFFTInValue(const int16 SampleValue, const int16 sampleIndex, const int1
 {
 	float FFTValue = SampleValue;
 	//Hann window
-	FFTValue *= 0.5f * (1 - Math::Cos(2 * PI * sampleIndex / (sampleCount - 1)));
+	FFTValue *= 0.5f * (1 - Math::Cos(2 * Math::PI * sampleIndex / (sampleCount - 1)));
 
 	return FFTValue;
 }

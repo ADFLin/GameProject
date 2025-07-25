@@ -70,6 +70,7 @@ namespace Render
 		static bool SkyBox(Mesh& mesh);
 		static bool CubeShare(Mesh& mesh, float halfLen = 1.0f);
 		static bool CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset);
+		static bool CubeLineOffset(Mesh& mesh, float halfLen, Vector3 const& offset);
 		static bool Cube(Mesh& mesh, float halfLen = 1.0f);
 
 		static bool Cone(Mesh& mesh, float height, int numSide);

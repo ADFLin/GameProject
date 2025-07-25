@@ -281,9 +281,9 @@ namespace Render
 		mDesc.CullMode = D3D12Translate::To(initializer.cullMode);
 		mDesc.FrontCounterClockwise = initializer.frontFace != EFrontFace::Default;
 
-		mDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+		mDesc.DepthBias = Math::FloorToInt(initializer.depthBias * (float)(1 << 24));
 		mDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-		mDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+		mDesc.SlopeScaledDepthBias = initializer.slopeScaleDepthBias;
 		mDesc.DepthClipEnable = TRUE;
 
 		mDesc.MultisampleEnable = initializer.bEnableScissor;

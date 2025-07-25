@@ -13,8 +13,9 @@ namespace Big2 {
 
 #define COMMON_ID_LIST(op)\
 	op(DATA_SDShowFail)\
-	op(DATA_CDPlayerPass)\
-	op(DATA_SDGameOver)
+	op(DATA_SDGameOver)\
+	op(DATA_CDPlayerPass)
+
 
 DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
@@ -577,6 +578,12 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 		case DATA_SDGameOver:
 			{
 				mListener->onGameOver();
+			}
+			break;
+		case DATA_SDShowFail:
+			{
+
+
 			}
 			break;
 		}

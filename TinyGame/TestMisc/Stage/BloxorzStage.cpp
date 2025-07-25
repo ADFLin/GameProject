@@ -37,10 +37,35 @@ namespace Bloxorz
 		std::copy(rhs.mBodiesPos, rhs.mBodiesPos + mNumBodies, mBodiesPos);
 	}
 
+	void Object::initBody(Vec3i const& pos)
+	{
+		CHECK(pos.x >= 0 && pos.y >= 0 && pos.z >= 0);
+		addBody(pos);
+	}
+
+	void Object::growBody(Vec3i const& pos)
+	{
+		Vec3i localPos = pos - mPos;
+		addBody(localPos);
+		if (localPos.x < 0 || localPos.y < 0 || localPos.z < 0)
+		{
+			Vec3i offset;
+			offset.x = Math::Max(0, -localPos.x);
+			offset.y = Math::Max(0, -localPos.y);
+			offset.z = Math::Max(0, -localPos.z);
+			for (int i = 0; i < mNumBodies; ++i)
+			{
+				mBodiesPos[i] += offset;
+			}
+			mPos -= offset;
+		}
+	}
+
 	void Object::addBody(Vec3i const& pos)
 	{
-		assert(mNumBodies < MaxBodyNum);
-		assert(pos.x >= 0 && pos.y >= 0 && pos.z >= 0);
+		CHECK(findBody(pos) == INDEX_NONE);
+		CHECK(mNumBodies < MaxBodyNum);
+
 		mBodiesPos[mNumBodies] = pos;
 		++mNumBodies;
 	}
@@ -55,7 +80,7 @@ namespace Bloxorz
 			for (int i = 0; i < mNumBodies; ++i)
 			{
 				Vec3i& bodyPos = mBodiesPos[i];
-				assert(bodyPos.x >= 0 && bodyPos.y >= 0 && bodyPos.z >= 0);
+				CHECK(bodyPos.x >= 0 && bodyPos.y >= 0 && bodyPos.z >= 0);
 				int offset = bodyPos.z;
 
 				bodyPos.z = bodyPos[idxAxis];
@@ -79,7 +104,7 @@ namespace Bloxorz
 			for (int i = 0; i < mNumBodies; ++i)
 			{
 				Vec3i& bodyPos = mBodiesPos[i];
-				assert(bodyPos.x >= 0 && bodyPos.y >= 0 && bodyPos.z >= 0);
+				CHECK(bodyPos.x >= 0 && bodyPos.y >= 0 && bodyPos.z >= 0);
 				int offset = bodyPos[idxAxis];
 
 				bodyPos[idxAxis] = bodyPos.z;
@@ -137,16 +162,21 @@ namespace Bloxorz
 
 	enum TileID
 	{
+		TILE_NONE = 0,
+		TILE_NORAML,
 		TILE_GOAL,
+		TILE_BLOCK,
+		TILE_GROW,
 	};
 
-#define G 2
-
+#define G TILE_GOAL
+#define B TILE_BLOCK
+#define W TILE_GROW
 	int map[] =
 	{
+		1, 1, 1, W, 1, 1, 1, 1, 1, 1, 0, 0,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
-		1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+		1, 1, 1, B, 0, 0, 1, 1, 1, 1, 0, 0,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
 		1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0,
 		1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0,
@@ -166,6 +196,9 @@ namespace Bloxorz
 		1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0,
 	};
 #undef G
+#undef B
+#undef W
+
 	class RayTraceProgramBase : public GlobalShaderProgram
 	{
 	public:
@@ -269,18 +302,21 @@ namespace Bloxorz
 
 		mTweener.tweenValue< Easing::CLinear >(mSpot, 0.0f, 0.5f, 1.0f).cycle();
 
-		mObject.addBody(Vec3i(0, 0, 1));
-		mObject.addBody(Vec3i(0, 0, 2));
-		mObject.addBody(Vec3i(0, 1, 0));
-		mObject.addBody(Vec3i(0, 1, 1));
-		mObject.addBody(Vec3i(0, 1, 2));
+		//mObject.initBody(Vec3i(0, 0, 0));
+		mObject.initBody(Vec3i(0, 0, 1));
 #if 0
-		mObject.addBody(Vec3i(0, 2, 0));
-		mObject.addBody(Vec3i(0, 2, 1));
-		mObject.addBody(Vec3i(0, 2, 2));
-		mObject.addBody(Vec3i(0, 3, 0));
-		mObject.addBody(Vec3i(0, 3, 1));
-		mObject.addBody(Vec3i(0, 3, 2));
+		mObject.initBody(Vec3i(0, 0, 1));
+		mObject.initBody(Vec3i(0, 0, 2));
+		mObject.initBody(Vec3i(0, 1, 0));
+		mObject.initBody(Vec3i(0, 1, 1));
+		mObject.initBody(Vec3i(0, 1, 2));
+
+		mObject.initBody(Vec3i(0, 2, 0));
+		mObject.initBody(Vec3i(0, 2, 1));
+		mObject.initBody(Vec3i(0, 2, 2));
+		mObject.initBody(Vec3i(0, 3, 0));
+		mObject.initBody(Vec3i(0, 3, 1));
+		mObject.initBody(Vec3i(0, 3, 2));
 #endif
 
 		mMap.resize(12, 20);
@@ -340,24 +376,36 @@ namespace Bloxorz
 
 	bool TestStage::setupRenderResource(ERenderSystem systemName)
 	{
+#if 0
 		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			glEnable(GL_POLYGON_OFFSET_LINE);
 			glPolygonOffset(-0.4f, 0.2f);
 		}
+#endif
 
 		ShaderHelper::Get().init();
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 
 		VERIFY_RETURN_FALSE(FMeshBuild::CubeOffset(mCube, 0.5, Vector3(0.5, 0.5, 0.5)));
+		VERIFY_RETURN_FALSE(FMeshBuild::CubeLineOffset(mCubeLine, 0.5, Vector3(0.5, 0.5, 0.5)));
 		VERIFY_RETURN_FALSE(mObjectBuffer.initializeResource(256, EStructuredBufferType::Buffer));
 		VERIFY_RETURN_FALSE(mMaterialBuffer.initializeResource(32, EStructuredBufferType::Buffer));
 		VERIFY_RETURN_FALSE(mSceneEnvBuffer.initializeResource(1));
 		updateSceneEnvBuffer();
 
 		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
-
+		RasterizerStateInitializer initializer;
+		initializer.fillMode = EFillMode::Wireframe;
+		initializer.cullMode = ECullMode::Back;
+		initializer.frontFace = EFrontFace::Default;
+		initializer.bEnableScissor = false;
+		initializer.bEnableMultisample = false;
+		const float BiasScale = float((1 << 24) - 1);
+		initializer.depthBias = 0.2f / BiasScale;
+		initializer.slopeScaleDepthBias = -0.4f;
+		mLineOffsetRSState = RHICreateRasterizerState(initializer);
 
 		{
 			MaterialData* pMaterial = mMaterialBuffer.lock();
@@ -382,38 +430,16 @@ namespace Bloxorz
 			{
 				for (int i = 0; i < mMap.getSizeX(); ++i)
 				{
-					if (mMap.getData(i, j) != 1)
+					if (mMap.getData(i, j) == TILE_NONE)
 					{
 						manager.productBlock(Vec2i(i, j), Vec2i(1, 1));
 					}
-
 				}
 			}
 			MapTileData* pData = mMapTileBuffer.lock();
 			mNumMapTile = 0;
 			std::string code;
 
-#if 0
-			code += "SDFSceneOut SDFSceneBuiltin(float3 pos)\n";
-			code += "{\n";
-			code += "\tSDFSceneOut data; data.dist = 1e10; data.id = 0;\n";
-			for (Region* region : manager.mRegionList)
-			{
-				Vector2 halfSize = 0.5 * Vector2(region->rect.getSize());
-				Vector2 pos = Vector2(region->rect.getMin()) + halfSize;
-				pData->posAndSize = Vector4(pos.x, pos.y, halfSize.x, halfSize.y);
-				++mNumMapTile;
-				++pData;
-
-				InlineString<512> str;
-				str.format("\tdata = SDF_Union(data, 0 , SDF_Box(pos - float3( %g , %g , -0.25), float3( %g ,  %g , 0.25)));\n", pos.x, pos.y, halfSize.x, halfSize.y);
-				code += str;
-			}
-
-			code += "\treturn data;\n";
-			code += "}\n";
-
-#else
 			std::vector<uint8> codeTemplate;
 			if (!FFileUtility::LoadToBuffer("Shader/Game/SDFSceneTemplate.sgc", codeTemplate, true))
 			{
@@ -434,9 +460,27 @@ namespace Bloxorz
 				str.format("\tSDF_BOX(float3( %g , %g , -0.25), float3( %g ,  %g , 0.25));\r\n", pos.x, pos.y, halfSize.x, halfSize.y);
 				codeBlock += str;
 			}
-			Text::Format((char const*)codeTemplate.data(), TArrayView<std::string const>(&codeBlock, 1) , code);
-#endif
 
+			for (int j = 0; j < mMap.getSizeY(); ++j)
+			{
+				for (int i = 0; i < mMap.getSizeX(); ++i)
+				{
+					if (mMap.getData(i, j) == TILE_BLOCK)
+					{
+						Vector2 halfSize = 0.5 * Vector2(1,1);
+						Vector2 pos = Vector2(i,j) + halfSize;
+						pData->posAndSize = Vector4(pos.x, pos.y, halfSize.x, halfSize.y);
+						++mNumMapTile;
+						++pData;
+
+						InlineString<512> str;
+						str.format("\tSDF_BOX(float3( %g , %g , 0.25), float3( %g ,  %g , 0.25));\r\n", pos.x, pos.y, halfSize.x, halfSize.y);
+						codeBlock += str;
+					}
+				}
+			}
+
+			Text::Format((char const*)codeTemplate.data(), TArrayView<std::string const>(&codeBlock, 1) , code);
 			mMapTileBuffer.unlock();
 
 #if 0
@@ -486,6 +530,7 @@ namespace Bloxorz
 		mFrameBuffer.release();
 
 		mCube.releaseRHIResource();
+		mCubeLine.releaseRHIResource();
 		mView.releaseRHIResource();
 		mMapTileBuffer.releaseResource();
 		mMaterialBuffer.releaseResource();
@@ -519,9 +564,9 @@ namespace Bloxorz
 		if (mMoveCur == DIR_NONE && canInput())
 		{
 			if (InputManager::Get().isKeyDown(EKeyCode::A))
-				requestMove(DIR_NX);
-			else if (InputManager::Get().isKeyDown(EKeyCode::D))
 				requestMove(DIR_X);
+			else if (InputManager::Get().isKeyDown(EKeyCode::D))
+				requestMove(DIR_NX);
 			else if (InputManager::Get().isKeyDown(EKeyCode::S))
 				requestMove(DIR_NY);
 			else if (InputManager::Get().isKeyDown(EKeyCode::W))
@@ -556,50 +601,115 @@ namespace Bloxorz
 		mView.rectOffset = IntVector2(0, 0);
 
 
+		mSceneRenderTargets.prepare(screenSize);
+		mSceneRenderTargets.attachDepthTexture();
+
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 		//viewMatrix = LookAtMatrix(Vector3(10,10,10), Vector3(-1,-1,-1), Vector3(0, 0, 1));
-		mView.setupTransform(viewMatrix, projectionMatrix);
+		//mView.setupTransform(viewMatrix, projectionMatrix);
+
+		CHECK(mStack.mStack.size() == 0);
 		if (bUseRayTrace)
 		{
 			mStack.setIdentity();
 			mObjectList.clear();
-		}
-		else
-		{
-			mStack.set(AdjustProjectionMatrixForRHI(projectionMatrix));
-			mStack.transform(viewMatrix);
-		}
 
-		if (!bUseRayTrace)
-		{
 			for (int i = 0; i < mMap.getSizeX(); ++i)
 			{
 				for (int j = 0; j < mMap.getSizeY(); ++j)
 				{
 					int data = mMap.getData(i, j);
-					if (data == 0)
+					if (data == TILE_NONE)
+						continue;
+
+					if (data == TILE_GROW)
+					{
+						mStack.push();
+						Vec3i posBody = Vec3i(i, j, 0);
+						mStack.translate(Vector3(posBody) + Vector3(0.5));
+						ObjectData object;
+						Matrix4 worldToLocal;
+						float det;
+						mStack.get().inverse(worldToLocal, det);
+						object.worldToLocal = worldToLocal;
+						//object.worldToLocal.translate(Vector3(-0.5));
+						object.type = 0;
+						object.matID = 2;
+						object.typeParams = Vector4(1, 1, 1, 0);
+						mObjectList.push_back(object);
+						mStack.pop();
+					}
+				}
+			}
+		}
+		else
+		{
+			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1);
+
+			mStack.set(viewMatrix * AdjustProjectionMatrixForRHI(projectionMatrix));
+
+			RHISetFixedShaderPipelineState(commandList, mStack.get(), LinearColor(1, 1, 1, 1));
+			DrawUtility::AixsLine(commandList, 100);
+
+			auto GetColor = [&](int tileId) -> LinearColor
+			{
+				switch (tileId)
+				{
+				case TILE_GOAL: return LinearColor(0.9, mSpot, mSpot, 1);
+				}
+				return LinearColor(1, 1, 1, 1);
+			};
+
+
+			auto DrawBlock = [&](LinearColor const& color)
+			{
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Solid >::GetRHI());
+				RHISetFixedShaderPipelineState(commandList, mStack.get(), color);
+				mCube.draw(commandList);
+
+				RHISetRasterizerState(commandList, *mLineOffsetRSState);
+				RHISetFixedShaderPipelineState(commandList, mStack.get(), LinearColor(0, 0, 0, 1));
+				mCube.draw(commandList);
+			};
+
+			for (int i = 0; i < mMap.getSizeX(); ++i)
+			{
+				for (int j = 0; j < mMap.getSizeY(); ++j)
+				{
+					int data = mMap.getData(i, j);
+					if (data == TILE_NONE)
 						continue;
 
 					float h = 0.5;
 					mStack.push();
 					mStack.translate(Vector3(i, j, -h));
-
 					mStack.scale(Vector3(1.0f, 1.0f, h));
-
-					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Solid >::GetRHI());
-					RHISetFixedShaderPipelineState(commandList, mStack.get(), (data == 1) ? LinearColor(1, 1, 1, 1) : LinearColor(0.9, mSpot, mSpot, 1));
-					mCube.draw(commandList);
-
-					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe >::GetRHI());
-					RHISetFixedShaderPipelineState(commandList, mStack.get(), LinearColor(0, 0, 0, 1));
-					mCube.draw(commandList);
-
+					DrawBlock(GetColor(data));
 					mStack.pop();
+
+
+					if (data == TILE_BLOCK)
+					{
+						mStack.push();
+						mStack.translate(Vector3(i, j, 0));
+						mStack.scale(Vector3(1.0f, 1.0f, h));
+						DrawBlock(LinearColor(1, 1, 1, 1));
+						mStack.pop();
+					}
+					else if (data == TILE_GROW)
+					{
+						mStack.push();
+						mStack.translate(Vector3(i, j, 0));
+						DrawBlock(LinearColor(0, 1, 1, 1));
+						mStack.pop();
+					}
 				}
 			}
 		}
+
 
 		mStack.push();
 		{
@@ -624,16 +734,19 @@ namespace Bloxorz
 		}
 		mStack.pop();
 
-		mSceneRenderTargets.prepare(screenSize);
 		if (bUseRayTrace)
 		{
 
 			GPU_PROFILE("Ray Trace");
 			if (mObjectList.size())
 			{
+#if 1
+				mObjectBuffer.updateBuffer(mObjectList);
+#else
 				ObjectData* pData = mObjectBuffer.lock();
 				memcpy(pData, mObjectList.data(), sizeof(ObjectData) * mObjectList.size());
 				mObjectBuffer.unlock();
+#endif
 			}
 
 			RHITexture2DRef   renderBuffers[2];
@@ -645,11 +758,6 @@ namespace Bloxorz
 
 			renderBuffers[0] = static_cast<RHITexture2D*>(GRenderTargetPool.fetchElement(desc)->texture.get());
 			renderBuffers[1] = static_cast<RHITexture2D*>(GRenderTargetPool.fetchElement(desc)->texture.get());
-
-			RayTraceProgram::PermutationDomain permutationVector;
-			permutationVector.set<RayTraceProgram::UseBuiltinScene>( bUseDeferredRending ? false : bUseSceneBuitin);
-			permutationVector.set<RayTraceProgram::UseDeferredRendering>(bUseDeferredRending);
-
 			if (bUseDeferredRending)
 			{
 				mFrameBuffer->setTexture(0, *renderBuffers[0]);
@@ -661,7 +769,15 @@ namespace Bloxorz
 			else
 			{
 				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
+				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 1), 1);
 			}
+
+
+			RayTraceProgram::PermutationDomain permutationVector;
+			permutationVector.set<RayTraceProgram::UseBuiltinScene>( bUseDeferredRending ? false : bUseSceneBuitin);
+			permutationVector.set<RayTraceProgram::UseDeferredRendering>(bUseDeferredRending);
+
+
 			RayTraceProgram* progRayTrace = ShaderManager::Get().getGlobalShaderT< RayTraceProgram >(permutationVector);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None >::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -896,13 +1012,16 @@ namespace Bloxorz
 			GPU_PROFILE("CopyToBackBuffer");
 			RHISetFrameBuffer(commandList, nullptr);
 			RHISetViewport(commandList, 0, 0, screenSize.x , screenSize.y);
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None >::GetRHI());
+
 			ShaderHelper::Get().copyTextureToBuffer(commandList, *postProcessRT);
 			//ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
 		}
 
 		updateRenderTargetShow();
 
-		RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+		RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
 		//DrawUtility::AixsLine(commandList);
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
@@ -915,16 +1034,16 @@ namespace Bloxorz
 		{
 			Vec3i const& posBody = mObject.mBodiesPos[i];
 			mStack.push();
-			mStack.translate(Vector3(posBody));
 
 			if (bUseRayTrace)
 			{
+				mStack.translate(Vector3(posBody) + Vector3(0.5));
 				ObjectData object;
 				Matrix4 worldToLocal;
 				float det;
 				mStack.get().inverse(worldToLocal, det);
 				object.worldToLocal = worldToLocal;
-				object.worldToLocal.translate(Vector3(-0.5));
+				//object.worldToLocal.translate(Vector3(-0.5));
 				object.type = 0;
 				object.matID = 3;
 				object.typeParams = Vector4(1, 1, 1, 0);
@@ -932,11 +1051,12 @@ namespace Bloxorz
 			}
 			else
 			{
+				mStack.translate(Vector3(posBody));
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Solid >::GetRHI());
 				RHISetFixedShaderPipelineState(commandList, mStack.get(), LinearColor(color.x, color.y, color.z, 1));
 				mCube.draw(commandList);
 
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe >::GetRHI());
+				RHISetRasterizerState(commandList, *mLineOffsetRSState);
 				RHISetFixedShaderPipelineState(commandList, mStack.get(), LinearColor(0, 0, 0, 1));
 				mCube.draw(commandList);
 			}
@@ -956,9 +1076,10 @@ namespace Bloxorz
 		State state = checkObjectState(testObj, holeDirMask);
 		switch (state)
 		{
-		case eFall: return;
-		case eGoal: mIsGoal = true; break;
-		case eMove: mIsGoal = false; break;
+		case State::eFall: return;
+		case State::eGoal: mIsGoal = true; break;
+		case State::eMove: mIsGoal = false; break;
+		case State::eBlock: return;
 		}
 
 		mMoveCur = dir;
@@ -995,33 +1116,68 @@ namespace Bloxorz
 	{
 		mObject.move(mMoveCur);
 		mMoveCur = DIR_NONE;
+
+		auto CheckGrow = [&](Vec2i const& tilePos)
+		{
+			if (!mMap.checkRange(tilePos))
+				return;
+
+			int& data = mMap.getData(tilePos.x, tilePos.y);
+			if (data == TILE_GROW)
+			{
+				mObject.growBody(Vec3i(tilePos.x, tilePos.y, 0));
+				data = TILE_NORAML;
+			}
+		};
+
+		Vec3i const& posObj = mObject.getPos();
+		for (int i = 0; i < mObject.MaxBodyNum; ++i)
+		{
+			Vec3i const& posBody = posObj + mObject.getBodyLocalPos(i);
+			if (posBody.z == 0)
+			{
+				static constexpr Vec2i DirOffset[] = { Vec2i(1,0), Vec2i(-1, 0) , Vec2i(0, 1), Vec2i(0, -1) };
+				for (int n = 0; n < 4; ++n)
+				{
+					Vec2i tilePos = Vec2i(posBody.x, posBody.y) + DirOffset[n];
+					CheckGrow(tilePos);
+				}
+			}
+			else if (posBody.z == 1)
+			{
+				Vec2i tilePos = Vec2i(posBody.x, posBody.y);
+				CheckGrow(tilePos);
+			}
+		}
 	}
 
 	TestStage::State TestStage::checkObjectState(Object const& object, uint8& holeDirMask)
 	{
-		Vec2i posAcc = Vec2i::Zero();
+		CHECK(Object::MaxBodyNum >= object.getBodyNum());
+
 		Vec2i holdPos[Object::MaxBodyNum];
 		int numHold = 0;
 		Vec3i const& posObj = object.getPos();
+		Vec2f posCOM = Vec2f::Zero();
 
 		bool isGoal = true;
 		for (int i = 0; i < object.getBodyNum(); ++i)
 		{
-			Vec3i const& posBody = object.getBodyLocalPos(i);
+			Vec3i const& posBody = posObj + object.getBodyLocalPos(i);
 
-			posAcc += 2 * Vec2i(posBody.x, posBody.y);
+			posCOM += Vec2f(posBody.x, posBody.y) + Vec2f(0.5f, 0.5f);
 
-			Vec2i pos;
-			pos.x = posObj.x + posBody.x;
-			pos.y = posObj.y + posBody.y;
-
-			if (mMap.checkRange(pos.x, pos.y))
+			if (posBody.z == 0 && mMap.checkRange(posBody.x, posBody.y))
 			{
-				int data = mMap.getData(pos.x, pos.y);
+				int data = mMap.getData(posBody.x, posBody.y);
 				if (data)
 				{
-					holdPos[numHold].x = 2 * posBody.x;
-					holdPos[numHold].y = 2 * posBody.y;
+
+					if (data == TILE_BLOCK || data == TILE_GROW )
+						return State::eBlock;
+
+					holdPos[numHold].x = posBody.x;
+					holdPos[numHold].y = posBody.y;
 					++numHold;
 
 					if (data != 2)
@@ -1032,31 +1188,24 @@ namespace Bloxorz
 			}
 		}
 
-		Vec2i centerPos;
-		centerPos.x = floor(float(posAcc.x) / object.getBodyNum());
-		if ((posAcc.x % object.getBodyNum()) != 0 && (centerPos.x % 2) == 1)
-			centerPos.x += 1;
-		centerPos.y = floor(float(posAcc.y) / object.getBodyNum());
-		if ((posAcc.y % object.getBodyNum()) != 0 && (centerPos.y % 2) == 1)
-			centerPos.y += 1;
-
+		posCOM /= float(object.getBodyNum());
 		holeDirMask = (BIT(DIR_X) | BIT(DIR_Y) | BIT(DIR_NX) | BIT(DIR_NY));
 		for (int i = 0; i < numHold; ++i)
 		{
 			Vec2i const& pos = holdPos[i];
 
-			if (centerPos.x < pos.x)
+			if (posCOM.x < pos.x)
 				holeDirMask &= ~(BIT(DIR_X));
-			else if (centerPos.x > pos.x)
+			else if (posCOM.x > pos.x + 1)
 				holeDirMask &= ~(BIT(DIR_NX));
 			else
 			{
 				holeDirMask &= ~(BIT(DIR_X) | BIT(DIR_NX));
 			}
 
-			if (centerPos.y < pos.y)
+			if (posCOM.y < pos.y)
 				holeDirMask &= ~(BIT(DIR_Y));
-			else if (centerPos.y > pos.y)
+			else if (posCOM.y > pos.y + 1)
 				holeDirMask &= ~(BIT(DIR_NY));
 			else
 			{
@@ -1065,12 +1214,12 @@ namespace Bloxorz
 		}
 
 		if (holeDirMask != 0)
-			return eFall;
+			return State::eFall;
 
 		if (!isGoal)
-			return eMove;
+			return State::eMove;
 
-		return eGoal;
+		return State::eGoal;
 	}
 
 	MsgReply TestStage::onKey(KeyMsg const& msg)

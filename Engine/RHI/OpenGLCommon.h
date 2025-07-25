@@ -451,6 +451,9 @@ namespace Render
 		bool   bEnableCull;
 		bool   bEnableScissor;
 		bool   bEnableMultisample;
+		bool   bEnableDepthBias;
+		float  depthBias;
+		float  slopeScaleDepthBias;
 
 		GLRasterizerStateValue() {}
 		GLRasterizerStateValue(EForceInit)
@@ -458,9 +461,12 @@ namespace Render
 			bEnableCull = false;
 			bEnableScissor = false;
 			bEnableMultisample = false;
+			bEnableDepthBias = false;
 			fillMode = GL_FILL;
 			cullFace = GL_BACK;
 			frontFace = GL_CW;
+			depthBias = 0.0f;
+			slopeScaleDepthBias = 0.0f;
 		}
 	};
 

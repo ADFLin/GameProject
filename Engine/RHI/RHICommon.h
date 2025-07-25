@@ -1004,6 +1004,9 @@ namespace Render
 		bool       bEnableScissor;
 		bool       bEnableMultisample;
 
+		float      depthBias = 0.0f;
+		float      slopeScaleDepthBias = 0.0f;
+
 		bool operator == (RasterizerStateInitializer const& rhs) const
 		{
 #define MEMBER_OP( M ) if ( M != rhs.M ) return false
@@ -1012,6 +1015,8 @@ namespace Render
 			MEMBER_OP(frontFace);
 			MEMBER_OP(bEnableScissor);
 			MEMBER_OP(bEnableMultisample);
+			MEMBER_OP(depthBias);
+			MEMBER_OP(slopeScaleDepthBias);
 #undef MEMBER_OP
 			return true;
 		}

@@ -236,7 +236,7 @@ namespace Render
 		{
 			for (int i = 0; i < 10; ++i)
 			{
-				mInstancedMesh.addInstance(Vector3(n / 100, n % 100, 12), Vector3(1, 1, 1), Quaternion::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10), Vector4(0, 0, 0, 0));
+				mInstancedMesh.addInstance(Vector3(n / 100, n % 100, 12), Vector3(1, 1, 1), Quaternion::Rotate(Vector3(0, 0, 1), 2 * Math::PI * i / 10), Vector4(0, 0, 0, 0));
 			}
 		}
 
@@ -588,7 +588,7 @@ namespace Render
 							Vector3 pos = Vector3(n / 100, n % 100, 12);
 							for( int i = 0; i < 10; ++i )
 							{
-								progGrass.setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(pos));
+								progGrass.setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * Math::PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(pos));
 								meshUsed.draw(commandList);
 							}
 						}

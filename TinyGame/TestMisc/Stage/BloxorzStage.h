@@ -30,6 +30,7 @@ namespace Bloxorz
 
 	typedef Render::IntVector2 Vec2i;
 	typedef Render::IntVector3 Vec3i;
+	typedef Render::Vector2    Vec2f;
 
 	enum Dir
 	{
@@ -47,8 +48,10 @@ namespace Bloxorz
 	public:
 
 		Object();
-		Object( Object const& rhs );
 
+		Object(Object const& rhs);
+		void initBody(Vec3i const& pos);
+		void growBody(Vec3i const& pos);
 		void addBody( Vec3i const& pos );
 		void move( Dir dir );
 		int  getMaxLocalPosX() const;
@@ -59,6 +62,16 @@ namespace Bloxorz
 
 		Vec3i const& getPos() const { return mPos; }
 		void         setPos( Vec3i const& val ) { mPos = val; }
+
+		int findBody(Vec3i const& pos)
+		{
+			for (int i = 0; i < mNumBodies; ++i)
+			{
+				if ( mBodiesPos[i] == pos )
+					return i;
+			}
+			return INDEX_NONE;
+		}
 		
 		static int const MaxBodyNum = 32;
 
@@ -127,6 +140,8 @@ namespace Bloxorz
 		virtual void onUpdate(GameTimeSpan deltaTime);
 		void onRender( float dFrame );
 
+
+
 		void restart();
 		
 		void requestMove( Dir dir );
@@ -170,12 +185,12 @@ namespace Bloxorz
 		bool   mIsGoal;
 		bool   mbEditMode;
 
-		bool bUseRayTrace = true;
+		bool bUseRayTrace = false;
 		bool bUseSceneBuitin = true;
 		bool bUseDeferredRending = false;
-		bool bFreeView = true;
-		bool bMoveCamera = true;
-		bool bUseBloom = true;
+		bool bFreeView = false;
+		bool bMoveCamera = false;
+		bool bUseBloom = false;
 
 		bool canInput()
 		{
@@ -186,10 +201,10 @@ namespace Bloxorz
 			return true;
 		}
 		SimpleCamera mCamera;
-		TransformStack mStack;
+		TTransformStack<true> mStack;
 		
 		int mNumMapTile;
-		std::vector< ObjectData > mObjectList;
+		TArray< ObjectData > mObjectList;
 		SceneEnvData mSceneEnv;
 
 		class RayTraceLightingProgram* mProgRayTraceLighting;
@@ -202,12 +217,13 @@ namespace Bloxorz
 
 		RHIFrameBufferRef mBloomFrameBuffer;
 		RHITexture2DRef mGirdTexture;
+		RHIRasterizerStateRef mLineOffsetRSState;
 
 
-		std::vector< Vector4 > mWeightData;
-		std::vector< Vector2 > mUVOffsetData;
+		TArray< Vector4 > mWeightData;
+		TArray< Vector2 > mUVOffsetData;
 		float mBloomThreshold = -1.0;
-		float mBloomIntensity = 1.0;
+		float mBloomIntensity = 0.2;
 
 		int generateFliterData(int imageSize , Vector2 const& offsetDir , LinearColor const& bloomTint, float bloomRadius)
 		{
@@ -233,6 +249,7 @@ namespace Bloxorz
 		TonemapProgram*    mProgTonemap;
 		ViewInfo mView;
 		Mesh     mCube;
+		Mesh     mCubeLine;
 
 		float    mRotateAngle;
 		Vector3  mRotateAxis;

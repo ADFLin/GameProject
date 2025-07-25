@@ -404,11 +404,22 @@ int PropertyFile::parseLine(char* buffer, TArray< Element >*& sectionElementsPtr
 	if (token[0] == '\0')
 		return PARSE_SUCCESS;
 
+	bool bComment = false;
 	if (token[0] == '/')
 	{
 		if (token[1] != '/')
 			return PARSE_UNKONW_RULE;
 
+		bComment = true;
+
+	}
+	else if (token[0] == ';')
+	{
+		bComment = true;
+	}
+
+	if (bComment)
+	{
 		Element value;
 		value.op = EValueOp::Comment;
 		value.value = token;
@@ -443,7 +454,6 @@ int PropertyFile::parseLine(char* buffer, TArray< Element >*& sectionElementsPtr
 		{
 			op = EValueOp::Add;
 			++token;
-
 		}
 		else if (*token == '-')
 		{

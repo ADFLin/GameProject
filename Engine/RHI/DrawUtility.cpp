@@ -876,7 +876,6 @@ namespace Render
 		RHISetFrameBuffer(commandList, nullptr);
 	}
 
-
 	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
 #if USE_SEPARATE_SHADER
@@ -887,8 +886,7 @@ namespace Render
 		mCopyTexturePS->setParameters(commandList, copyTexture);
 #else
 		RHISetShaderProgram(commandList, mProgCopyTexture->getRHI());
-		mProgCopyTexture->setParameters(commandList, copyTexture);
-		
+		mProgCopyTexture->setParameters(commandList, copyTexture);	
 #endif
 
 		DrawUtility::ScreenRect(commandList);

@@ -987,7 +987,7 @@ namespace Shadertoy
 
 							if (!loadResource(input, filePath))
 							{
-								LogWarning(0, "LoadResource Fial");
+								LogWarning(0, "LoadResource Fail %s", filePath.c_str());
 								return false;
 							}
 						}

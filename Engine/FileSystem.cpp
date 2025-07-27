@@ -559,17 +559,20 @@ bool FFileSystem::OverwriteFile(char const* srcPath, char const* destPath, uint6
 }
 
 #if SYS_PLATFORM_WIN
+
 template < class CharT >
 TFileIterator<CharT>::TFileIterator()
 {
 	mhFind = INVALID_HANDLE_VALUE;
 }
+
 template < class CharT >
 TFileIterator<CharT>::~TFileIterator()
 {
 	if ( mhFind != INVALID_HANDLE_VALUE )
 		::FindClose( mhFind );
 }
+
 template < class CharT >
 DateTime TFileIterator<CharT>::getLastModifyDate() const
 {
@@ -577,11 +580,13 @@ DateTime TFileIterator<CharT>::getLastModifyDate() const
 	::FileTimeToSystemTime(&mFindData.ftLastWriteTime, &systemTime);
 	return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 }
+
 template < class CharT >
 bool TFileIterator<CharT>::isDirectory() const
 {
 	return ( mFindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
 }
+
 template < class CharT >
 void TFileIterator<CharT>::goNext()
 {

@@ -448,10 +448,8 @@ namespace Bloxorz
 			}
 
 			std::string codeBlock;
-			for (Region* region : manager.mRegionList)
+			auto AddBlock = [&](Vector2 const& pos, Vector2 const& halfSize)
 			{
-				Vector2 halfSize = 0.5 * Vector2(region->rect.getSize());
-				Vector2 pos = Vector2(region->rect.getMin()) + halfSize;
 				pData->posAndSize = Vector4(pos.x, pos.y, halfSize.x, halfSize.y);
 				++mNumMapTile;
 				++pData;
@@ -459,6 +457,13 @@ namespace Bloxorz
 				InlineString<512> str;
 				str.format("\tSDF_BOX(float3( %g , %g , -0.25), float3( %g ,  %g , 0.25));\r\n", pos.x, pos.y, halfSize.x, halfSize.y);
 				codeBlock += str;
+			};
+
+			for (Region* region : manager.mRegionList)
+			{
+				Vector2 halfSize = 0.5 * Vector2(region->rect.getSize());
+				Vector2 pos = Vector2(region->rect.getMin()) + halfSize;
+				AddBlock(pos, halfSize);
 			}
 
 			for (int j = 0; j < mMap.getSizeY(); ++j)

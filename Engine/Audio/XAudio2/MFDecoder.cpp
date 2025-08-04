@@ -7,7 +7,7 @@
 #include <cguid.h>
 #include <propvarutil.h>
 
-bool FMFDecodeUtil::ConfigureAudioStream(IMFSourceReader *pReader, IMFMediaType **ppPCMAudio)
+bool FMFDecodeUtil::ConfigureAudioStream(IMFSourceReader *pReader, IMFMediaType **pOutputType)
 {
 	// Select the first audio stream, and deselect all other streams.
 	CHECK_RETURN(pReader->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, FALSE), false);
@@ -34,8 +34,55 @@ bool FMFDecodeUtil::ConfigureAudioStream(IMFSourceReader *pReader, IMFMediaType 
 
 	// Return the PCM format to the caller.
 
-	*ppPCMAudio = pUncompressedAudioType;
-	(*ppPCMAudio)->AddRef();
+	*pOutputType = pUncompressedAudioType;
+	(*pOutputType)->AddRef();
+	return true;
+}
+
+bool FMFDecodeUtil::ConfigureVideoStream(IMFSourceReader *pReader, /* Pointer to the source reader. */ IMFMediaType **pOutputType)
+{
+	// Select the first audio stream, and deselect all other streams.
+	CHECK_RETURN(pReader->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, FALSE), false);
+
+	int indexStream = MF_SOURCE_READER_FIRST_VIDEO_STREAM;
+	CHECK_RETURN(pReader->SetStreamSelection(indexStream, TRUE), false);
+
+	TComPtr<IMFMediaType> mediaType;
+	pReader->GetNativeMediaType(indexStream, 0, &mediaType);
+	GUID SubType;
+	mediaType->GetGUID(MF_MT_SUBTYPE, &SubType);
+
+	TComPtr< IMFMediaType > pPartialType;
+	// Create a partial media type that specifies uncompressed PCM audio.
+	CHECK_RETURN(MFCreateMediaType(&pPartialType), false);
+
+	CHECK_RETURN(pPartialType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE), false);
+	CHECK_RETURN(pPartialType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video), false);
+	
+	GUID outputFormat = MFVideoFormat_RGB32;
+	if (SubType == MFVideoFormat_VP90 || SubType == MFVideoFormat_VP80)
+	{
+		outputFormat = MFVideoFormat_NV12;
+	}
+	else if (SubType == MFVideoFormat_H264)
+	{
+		outputFormat = MFVideoFormat_NV12;
+	}
+	CHECK_RETURN(pPartialType->SetGUID(MF_MT_SUBTYPE, outputFormat), false);
+
+	// Set this type on the source reader. The source reader will
+	// load the necessary decoder.
+	CHECK_RETURN( pReader->SetCurrentMediaType(indexStream, NULL, pPartialType), false);
+
+	
+	TComPtr< IMFMediaType > outputType;
+	// Get the complete uncompressed format.
+	CHECK_RETURN(pReader->GetCurrentMediaType(indexStream, &outputType), false);
+	// Ensure the stream is selected.
+	CHECK_RETURN(pReader->SetStreamSelection(indexStream, TRUE), false);
+
+	*pOutputType = outputType;
+	(*pOutputType)->AddRef();
 	return true;
 }
 

@@ -12,10 +12,8 @@ class FMFDecodeUtil
 {
 public:
 
-	static bool ConfigureAudioStream(
-		IMFSourceReader *pReader,   // Pointer to the source reader.
-		IMFMediaType **ppPCMAudio   // Receives the audio format.
-	);
+	static bool ConfigureAudioStream(IMFSourceReader *pReader, IMFMediaType **pOutputType);
+	static bool ConfigureVideoStream(IMFSourceReader *pReader, IMFMediaType **pOutputType);
 
 	static void  FillData(WaveFormatInfo& formatInfo, WAVEFORMATEX const& format);
 

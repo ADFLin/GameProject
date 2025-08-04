@@ -116,7 +116,6 @@ void RHIGraphics2D::beginRender()
 	RHICommandList& commandList = getCommandList();
 
 	mRenderStateCommitted.setInit();
-	mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 	mCurTextureSize = Vector2(0, 0);
@@ -148,8 +147,7 @@ void RHIGraphics2D::setupCommittedRenderState()
 void RHIGraphics2D::commitRenderState()
 {
 	mDirtyState.blend |= mRenderStateCommitted.blendMode != mRenderStatePending.blendMode;
-	mDirtyState.rasterizer |= mRenderStateCommitted.bEnableScissor != mRenderStatePending.bEnableScissor || 
-		mRenderStateCommitted.bEnableMultiSample != mRenderStatePending.bEnableMultiSample;
+	mDirtyState.rasterizer |= mRenderStateCommitted.bEnableScissor != mRenderStatePending.bEnableScissor;
 	mDirtyState.pipeline |= mRenderStateCommitted.texture != mRenderStatePending.texture;
 	mDirtyState.pipeline |= mRenderStateCommitted.sampler != mRenderStatePending.sampler;
 	mDirtyState.scissorRect = mRenderStateCommitted.scissorRect != mRenderStatePending.scissorRect;
@@ -168,7 +166,6 @@ void RHIGraphics2D::commitRenderState()
 		}
 		if (mDirtyState.rasterizer)
 		{
-			mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
 			mRenderStateCommitted.bEnableScissor = mRenderStatePending.bEnableScissor;
 		}
 		if (mDirtyState.scissorRect)

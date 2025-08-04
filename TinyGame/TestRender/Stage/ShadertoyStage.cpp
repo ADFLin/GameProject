@@ -1,4 +1,4 @@
-#include "Stage/TestStageHeader.h"
+﻿#include "Stage/TestStageHeader.h"
 #include "GameRenderSetup.h"
 
 #include "RHI/DrawUtility.h"
@@ -20,6 +20,13 @@
 
 #include "Mmreg.h"
 #include "Core/FNV1a.h"
+#include "Audio/XAudio2/MFDecoder.h"
+#include "ProfileSystem.h"
+#include <mfreadwrite.h>
+#include <atomic>
+
+#pragma comment(lib , "mfplat.lib")
+#pragma comment(lib , "mfuuid.lib")
 
 namespace Shadertoy
 {
@@ -108,18 +115,26 @@ namespace Shadertoy
 	class RenderPassShader : public Shader
 	{
 	public:
-		void bindInputParameters(TArray<RenderInput> const& inputs)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			mParamChannelResolution.bind(parameterMap, "iChannelResolution");
+			if (passInfo)
+			{
+				bindInputParameters(passInfo->inputs, parameterMap);
+			}
+		}
+
+		RenderPassInfo const* passInfo = nullptr;
+		void bindInputParameters(TArray<RenderInput> const& inputs, ShaderParameterMap const& parameterMap)
 		{
 			mParamInputs.resize(inputs.size());
 			mParamInputSamplers.resize(inputs.size());
 			int index = 0;
 			for (auto const& input : inputs)
 			{
-				getParameter(InlineString<>::Make("iChannel%d", input.channel), mParamInputs[index]);
+				mParamInputs[index].bind(parameterMap, InlineString<>::Make("iChannel%d", input.channel));
 				++index;
 			}
-
-			getParameter("iChannelResolution", mParamChannelResolution);
 		}
 
 		static RHISamplerState& GetSamplerState(RenderInput const& input)
@@ -211,9 +226,53 @@ namespace Shadertoy
 				setParam(commandList, mParamChannelResolution, channelSize, ARRAY_SIZE(channelSize));
 			}
 		}
+
+		void setSoundParameters(RHICommandList& commandList, float timeOffset, int64 sampleOffset)
+		{
+			setParam(commandList, SHADER_PARAM(iTimeOffset), timeOffset);
+			setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
+		}
+
+		void setCubeParameters(RHICommandList& commandList, IntVector2 const& viewportSize, int subPassIndex = INDEX_NONE)
+		{
+			if (subPassIndex == INDEX_NONE)
+			{
+				Vector3 const* faceDirs = ETexture::GetFaceDirArray();
+				Vector3 const* faceUpDirs = ETexture::GetFaceUpArray();
+
+				static Vector3 const faceRightDirs[ETexture::FaceCount] =
+				{
+					faceDirs[0].cross(faceUpDirs[0]),
+					faceDirs[1].cross(faceUpDirs[1]),
+					faceDirs[2].cross(faceUpDirs[2]),
+					faceDirs[3].cross(faceUpDirs[3]),
+					faceDirs[4].cross(faceUpDirs[4]),
+					faceDirs[5].cross(faceUpDirs[5]),
+				};
+
+				setParam(commandList, SHADER_PARAM(iFaceDirs), faceDirs, ETexture::FaceCount);
+				setParam(commandList, SHADER_PARAM(iFaceVDirs), faceUpDirs, ETexture::FaceCount);
+				setParam(commandList, SHADER_PARAM(iFaceUDirs), faceRightDirs, ETexture::FaceCount);
+			}
+			else
+			{
+				Vector3 faceDir = ETexture::GetFaceDir(ETexture::Face(subPassIndex));
+				Vector3 faceUpDir = ETexture::GetFaceUpDir(ETexture::Face(subPassIndex));
+				setParam(commandList, SHADER_PARAM(iFaceDir), faceDir);
+				setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDir);
+				setParam(commandList, SHADER_PARAM(iFaceUDir), faceDir.cross(faceUpDir));
+				setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
+				setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
+			}
+
+			setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
+			setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
+		};
+
 		ShaderParameter mParamChannelResolution;
 		TArray< ShaderParameter > mParamInputs;
 		TArray< ShaderParameter > mParamInputSamplers;
+		TArray< ShaderParameter > mParamOutputs;
 	};
 
 	RHITexture3D* LoadBinTexture(char const* path, bool bGenMipmap)
@@ -298,8 +357,6 @@ namespace Shadertoy
 			RHISetGraphicsShaderBoundState(commandList, state);
 		}
 
-
-
 		void updateInput(InputParam const& inputParam, uint8 keyboardData[])
 		{
 			mInputBuffer.updateBuffer(inputParam);
@@ -317,60 +374,7 @@ namespace Shadertoy
 			static char const* OutputNames[] = { "OutTexture", "OutTexture1" , "OutTexture2" , "OutTexture3" };
 			return OutputNames[index];
 		}
-
-
-		void renderCubeOnePass(RHICommandList& commandList, RenderPassData& pass, IntVector2 const& viewportSize, TArrayView< PooledRenderTargetRef > outputBuffers)
-		{
-			int index;
-			auto& passShader = pass.shader;
-
-			{
-				RHISetViewport(commandList, 0, 0, viewportSize.x, viewportSize.y);
-
-				index = 0;
-				for (auto const& output : pass.info->outputs)
-				{
-					mFrameBuffer->setTextureArray(output.channel, static_cast<RHITextureCube&>(*outputBuffers[index]->texture));
-					++index;
-				}
-
-				RHISetFrameBuffer(commandList, mFrameBuffer);
-
-				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-
-				GraphicsShaderStateDesc state;
-				state.vertex = mCubeOnePassVS->getRHI();
-				state.pixel = passShader.getRHI();
-				RHISetGraphicsShaderBoundState(commandList, state);
-
-				setInputParameters(commandList, pass);
-
-				Vector3 const* faceDirs = ETexture::GetFaceDirArray();
-				Vector3 const* faceUpDirs = ETexture::GetFaceUpArray();
-
-				static Vector3 const faceRightDirs[ETexture::FaceCount] =
-				{
-					faceDirs[0].cross(faceUpDirs[0]),
-					faceDirs[1].cross(faceUpDirs[1]),
-					faceDirs[2].cross(faceUpDirs[2]),
-					faceDirs[3].cross(faceUpDirs[3]),
-					faceDirs[4].cross(faceUpDirs[4]),
-					faceDirs[5].cross(faceUpDirs[5]),
-				};
-
-				passShader.setParam(commandList, SHADER_PARAM(iFaceDir), faceDirs, ETexture::FaceCount);
-				passShader.setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDirs, ETexture::FaceCount);
-				passShader.setParam(commandList, SHADER_PARAM(iFaceUDir), faceRightDirs, ETexture::FaceCount);
-
-				passShader.setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
-				passShader.setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
-
-				DrawUtility::ScreenRect(commandList, ETexture::FaceCount);
-				RHISetFrameBuffer(commandList, nullptr);
-			}
-		}
+		static constexpr int GROUP_SIZE = 8;
 
 		PooledRenderTargetRef render(RHICommandList& commandList, TArray< std::unique_ptr<RenderPassData> > const& renderPassList, IntVector2 const& screenSize)
 		{
@@ -389,7 +393,7 @@ namespace Shadertoy
 				bool bUseComputeShader = pass->shader.getType() == EShader::Compute;
 				bool bRenderCubeMap = pass->info->passType == EPassType::CubeMap;
 
-				bool bRenderCubeMapOnePass = bRenderCubeMap && bAllowRenderCubeOnePass && bUseComputeShader == false;
+				bool bRenderCubeMapOnePass = bRenderCubeMap && bAllowRenderCubeOnePass;
 
 				TArray< PooledRenderTargetRef, TInlineAllocator<4> > outputBuffers;
 				HashString debugName;
@@ -399,8 +403,13 @@ namespace Shadertoy
 				RenderTargetDesc desc;
 				desc.format = ETexture::RGBA32F;
 				desc.numSamples = 1;
+				if (bUseMultisample && pass->info->passType == EPassType::Image)
+				{
+					desc.numSamples = 8;
+				}
 				desc.size = viewportSize;
 				desc.type = bRenderCubeMap ? ETexture::TypeCube : ETexture::Type2D;
+
 				if (bUseComputeShader)
 				{
 					desc.creationFlags |= TCF_CreateUAV;
@@ -481,6 +490,10 @@ namespace Shadertoy
 				if (pass->info->passType == EPassType::Image)
 				{
 					outImage = outputBuffers[0];
+					if (outImage->desc.numSamples > 1)
+					{
+						outImage->resolve(commandList);
+					}
 				}
 				else
 				{
@@ -496,6 +509,11 @@ namespace Shadertoy
 
 						buffer = outputBuffers[index];
 						buffer->bResvered = true;
+						
+						if (buffer->desc.numSamples > 1)
+						{
+							buffer->resolve(commandList);
+						}
 						++index;
 
 						mInputResources[output.resId] = buffer->resolvedTexture;
@@ -515,13 +533,7 @@ namespace Shadertoy
 			{
 				if (pass.info->passType == EPassType::CubeMap)
 				{
-					Vector3 faceDir = ETexture::GetFaceDir(ETexture::Face(subPassIndex));
-					Vector3 faceUpDir = ETexture::GetFaceUpDir(ETexture::Face(subPassIndex));
-					passShader.setParam(commandList, SHADER_PARAM(iFaceDir), faceDir);
-					passShader.setParam(commandList, SHADER_PARAM(iFaceVDir), faceUpDir);
-					passShader.setParam(commandList, SHADER_PARAM(iFaceUDir), faceDir.cross(faceUpDir));
-					passShader.setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
-					passShader.setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
+					passShader.setCubeParameters(commandList, viewportSize, subPassIndex);
 				}
 			};
 
@@ -555,7 +567,6 @@ namespace Shadertoy
 						}
 					}
 
-					int const GROUP_SIZE = 8;
 					RHIDispatchCompute(commandList, Math::AlignCount(viewportSize.x, GROUP_SIZE), Math::AlignCount(viewportSize.y, GROUP_SIZE), 1);
 				}
 
@@ -595,6 +606,86 @@ namespace Shadertoy
 		}
 
 
+		void renderCubeOnePass(RHICommandList& commandList, RenderPassData& pass, IntVector2 const& viewportSize, TArrayView< PooledRenderTargetRef > outputBuffers)
+		{
+			int index;
+			auto& passShader = pass.shader;
+
+			auto SetCubeParameters = [&](RHICommandList& commandList, IntVector2 const& viewportSize)
+			{				
+				Vector3 const* faceDirs = ETexture::GetFaceDirArray();
+				Vector3 const* faceUpDirs = ETexture::GetFaceUpArray();
+
+				static Vector3 const faceRightDirs[ETexture::FaceCount] =
+				{
+					faceDirs[0].cross(faceUpDirs[0]),
+					faceDirs[1].cross(faceUpDirs[1]),
+					faceDirs[2].cross(faceUpDirs[2]),
+					faceDirs[3].cross(faceUpDirs[3]),
+					faceDirs[4].cross(faceUpDirs[4]),
+					faceDirs[5].cross(faceUpDirs[5]),
+				};
+
+				passShader.setParam(commandList, SHADER_PARAM(iFaceDirs), faceDirs, ETexture::FaceCount);
+				passShader.setParam(commandList, SHADER_PARAM(iFaceVDirs), faceUpDirs, ETexture::FaceCount);
+				passShader.setParam(commandList, SHADER_PARAM(iFaceUDirs), faceRightDirs, ETexture::FaceCount);
+
+				passShader.setParam(commandList, SHADER_PARAM(iOrigin), Vector3(0, 0, 0));
+				passShader.setParam(commandList, SHADER_PARAM(iViewportSize), Vector2(viewportSize));
+			};
+			
+			if (passShader.getType() == EShader::Compute)
+			{
+				RHISetComputeShader(commandList, pass.shader.getRHI());
+				setInputParameters(commandList, pass);
+				passShader.setCubeParameters(commandList, viewportSize);
+
+				index = 0;
+				for (auto const& output : pass.info->outputs)
+				{
+					passShader.setRWTexture(commandList, GetOutputName(output.channel), *outputBuffers[index]->resolvedTexture, 0, EAccessOp::WriteOnly);
+					++index;
+				}
+
+				RHIDispatchCompute(commandList, Math::AlignCount(viewportSize.x, GROUP_SIZE), Math::AlignCount(viewportSize.y, GROUP_SIZE), 6);
+
+				index = 0;
+				for (auto const& output : pass.info->outputs)
+				{
+					passShader.clearRWTexture(commandList, GetOutputName(output.channel));
+					++index;
+				}
+			}
+			else
+			{
+				RHISetViewport(commandList, 0, 0, viewportSize.x, viewportSize.y);
+
+				index = 0;
+				for (auto const& output : pass.info->outputs)
+				{
+					mFrameBuffer->setTextureArray(output.channel, static_cast<RHITextureCube&>(*outputBuffers[index]->texture));
+					++index;
+				}
+
+				RHISetFrameBuffer(commandList, mFrameBuffer);
+
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+				GraphicsShaderStateDesc state;
+				state.vertex = mCubeOnePassVS->getRHI();
+				state.pixel = passShader.getRHI();
+				RHISetGraphicsShaderBoundState(commandList, state);
+
+				setInputParameters(commandList, pass);
+				passShader.setCubeParameters(commandList, viewportSize);
+
+				DrawUtility::ScreenRect(commandList, ETexture::FaceCount);
+				RHISetFrameBuffer(commandList, nullptr);
+			}
+		}
+
 		void renderSound(RHICommandList& commandList, RenderPassData& pass, WaveFormatInfo const& format, int64 samplePos, int sampleCount, AudioStreamSample& outData)
 		{
 			auto& passShader = pass.shader;
@@ -615,11 +706,10 @@ namespace Shadertoy
 				{
 					int64 sampleOffset = samplePos + indexBlock * blockFrame;
 					float timeOffset = float(sampleOffset) / format.sampleRate;
-					passShader.setParam(commandList, SHADER_PARAM(iTimeOffset), timeOffset);
-					passShader.setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
+					passShader.setSoundParameters(commandList, timeOffset, sampleOffset);
 
-					int const GROUP_SIZE = 8;
-					RHIDispatchCompute(commandList, Math::AlignCount(SoundTextureSize, GROUP_SIZE), Math::AlignCount(SoundTextureSize, GROUP_SIZE), 1);
+					int dispatchCount = Math::AlignCount(SoundTextureSize, GROUP_SIZE);
+					RHIDispatchCompute(commandList, dispatchCount, dispatchCount, 1);
 					RHIFlushCommand(commandList);
 
 					int numRead = Math::Min(sampleCount - indexBlock * blockFrame, blockFrame);
@@ -648,8 +738,7 @@ namespace Shadertoy
 				{
 					int64 sampleOffset = samplePos + indexBlock * blockFrame;
 					float timeOffset = float(sampleOffset) / format.sampleRate;
-					passShader.setParam(commandList, SHADER_PARAM(iTimeOffset), timeOffset);
-					passShader.setParam(commandList, SHADER_PARAM(iSampleOffset), (int32)sampleOffset);
+					passShader.setSoundParameters(commandList, timeOffset, sampleOffset);
 
 					DrawUtility::ScreenRect(commandList);
 					RHIFlushCommand(commandList);
@@ -712,85 +801,14 @@ namespace Shadertoy
 			}
 		}
 
-		bool loadResource(RenderInput const& input, std::string const& filePath)
+		void addInputResource(RenderInput const& input, RHITextureBase& texture)
 		{
-			if (mInputResources.isValidIndex(input.resId) && mInputResources[input.resId].isValid())
-				return true;
-
-			std::string loadPath = std::string("Shadertoy") + filePath;
-
-			auto AddResource = [this, &input](RHITextureBase& texture)
+			if (mInputResources.size() < input.resId + 1)
 			{
-				if (mInputResources.size() < input.resId + 1)
-				{
-					mInputResources.resize(input.resId + 1);
-				}
-				mInputResources[input.resId] = &texture;
-				GTextureShowManager.registerTexture(InlineString<>::Make("Res%d", input.resId).c_str(), &texture);
-			};
-
-			switch (input.type)
-			{
-			case EInputType::Keyboard:
-			case EInputType::Webcam:
-			case EInputType::Micrphone:
-			case EInputType::Soundcloud:
-			case EInputType::Buffer:
-				break;
-			case EInputType::Texture:
-				{
-					TextureLoadOption option;
-					option.FlipV(input.bVFlip);
-					option.bAutoMipMap = input.filter == ESampler::Trilinear;
-					RHITexture2DRef texture = RHIUtility::LoadTexture2DFromFile(loadPath.c_str(), option);
-					if (!texture.isValid())
-						return false;
-
-					AddResource(*texture);
-				}
-				break;
-			case EInputType::CubeMap:
-				{
-					char const* extension = FFileUtility::GetExtension(loadPath.c_str());
-					if (extension)
-						--extension;
-
-					StringView pathName = StringView(loadPath.c_str(), extension - loadPath.c_str());
-
-					std::string facePath[5];
-					char const* cubePaths[6];
-					cubePaths[0] = loadPath.c_str();
-					for (int i = 0; i < 5; ++i)
-					{
-						facePath[i] = InlineString<>::Make("%s_%d%s", (char const*)pathName.toMutableCString(), i + 1, extension).c_str();
-						cubePaths[i + 1] = facePath[i].c_str();
-					}
-
-					TextureLoadOption option;
-					option.bAutoMipMap = input.filter == ESampler::Trilinear;
-					RHITextureCubeRef texture = RHIUtility::LoadTextureCubeFromFile(cubePaths, option);
-					if (!texture.isValid())
-						return false;
-
-					AddResource(*texture);
-				}
-				break;
-			case EInputType::Volume:
-				{
-					RHITexture3DRef texture = LoadBinTexture(loadPath.c_str(), input.filter == ESampler::Trilinear);
-
-					if (!texture.isValid())
-						return false;
-
-					AddResource(*texture);
-				}
-				break;
-			case EInputType::Vedio:
-			case EInputType::Music:
-				break;
+				mInputResources.resize(input.resId + 1);
 			}
-
-			return true;
+			mInputResources[input.resId] = &texture;
+			GTextureShowManager.registerTexture(InlineString<>::Make("Res%d", input.resId).c_str(), &texture);
 		}
 
 		bool canUseComputeShader(RenderPassData const& pass)
@@ -840,6 +858,7 @@ namespace Shadertoy
 				{
 					option.addDefine(SHADER_PARAM(COMPUTE_DISCARD_SIM), 1);
 				}
+				option.addDefine(SHADER_PARAM(GROUP_SIZE), GROUP_SIZE);
 			}
 
 			switch (pass.info->passType)
@@ -849,11 +868,11 @@ namespace Shadertoy
 				break;
 			case EPassType::Sound:
 				option.addDefine(SHADER_PARAM(RENDER_SOUND), 1);
-				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), Renderer::SoundTextureSize);
+				option.addDefine(SHADER_PARAM(SOUND_TEXTURE_SIZE), SoundTextureSize);
 				break;
 			case EPassType::CubeMap:
 				option.addDefine(SHADER_PARAM(RENDER_CUBE), 1);
-				if (bAllowRenderCubeOnePass && bUseComputeShader == false)
+				if (bAllowRenderCubeOnePass)
 				{
 					option.addDefine(SHADER_PARAM(RENDER_CUBE_ONE_PASS), 1);
 				}
@@ -864,11 +883,11 @@ namespace Shadertoy
 			}
 
 			ShaderEntryInfo entry = bUseComputeShader ? ShaderEntryInfo{ EShader::Compute, "MainCS" } : ShaderEntryInfo{ EShader::Pixel, "MainPS" };
-
+			
+			pass.shader.passInfo = pass.info;
 			if (!ShaderManager::Get().loadFile(pass.shader, nullptr, entry, option))
 				return false;
 
-			pass.shader.bindInputParameters(pass.info->inputs);
 			return true;
 		}
 
@@ -890,6 +909,261 @@ namespace Shadertoy
 		TStructuredBuffer< InputParam > mInputBuffer;
 		RHITexture2DRef mTexKeyboard;
 		RHITexture2DRef mTexSound;
+	};
+
+
+	class MediaPlayer : public IMFSourceReaderCallback
+	{
+	public:
+		bool load(char const* path)
+		{
+			static MediaFoundationScope MFScope;
+
+			path = "Shadertoy/Assets/aa.mp4";
+#if 1
+			TComPtr< IMFSourceResolver > sourceResolver;
+			CHECK_RETURN(MFCreateSourceResolver(&sourceResolver), false);
+			MF_OBJECT_TYPE objectType;
+			TComPtr<IUnknown> object;
+			CHECK_RETURN(sourceResolver->CreateObjectFromURL(FCString::CharToWChar(path).c_str(), MF_RESOLUTION_MEDIASOURCE | MF_RESOLUTION_READ, nullptr, &objectType, &object), false);
+			object.castTo(mMediaSource);
+			mMediaSource->AddRef();
+
+			TComPtr<IMFAttributes> attributes;
+			CHECK_RETURN(MFCreateAttributes(&attributes, 1), false);
+
+			attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
+#if 1
+			attributes->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, this);
+#endif
+			CHECK_RETURN(MFCreateSourceReaderFromMediaSource(mMediaSource, attributes, &mMFSourceReader), false);
+#else
+			CHECK_RETURN(MFCreateSourceReaderFromURL(FCString::CharToWChar(path).c_str(), NULL, &mMFSourceReader), false);
+#endif
+			FMFDecodeUtil::ConfigureVideoStream(mMFSourceReader, &mVideoType);
+
+			UINT32 DimX,DimY;
+			::MFGetAttributeSize(mVideoType, MF_MT_FRAME_SIZE, &DimX, &DimY);
+			mFrameSize.x = DimX;
+			mFrameSize.y = DimY;
+			mAligendFrameSize.x = Math::AlignUp<int>(DimX, 16);
+			mAligendFrameSize.y = Math::AlignUp<int>(DimY, 16);
+			mTexFrame = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, mFrameSize.x, mFrameSize.y));
+
+			GUID SubType;
+			mVideoType->GetGUID(MF_MT_SUBTYPE, &SubType);
+
+			PROPVARIANT DurationAttrib;
+			mMFSourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &DurationAttrib);
+			const int64 Duration = (DurationAttrib.vt == VT_UI8) ? (int64)DurationAttrib.uhVal.QuadPart : 0;
+			mDuration = double(Duration) / SecondTimeUnit;
+			::PropVariantClear(&DurationAttrib);
+
+			commitPosition(mCurrentTime);
+			mHaveSample = false;
+			return true;
+		}
+		static constexpr int64 SecondTimeUnit = 10000000LL;
+
+		double mDuration = 0.0f;
+		double mPlayRate = 1.0f;
+		double mCurrentTime = 0.0;
+		double mLastSampleTime = -1.0f;
+
+		void commitPosition(double time)
+		{
+			int64 duration = int64(time * SecondTimeUnit);
+			PROPVARIANT var;
+			HRESULT hr = InitPropVariantFromInt64(duration, &var);
+			hr = mMFSourceReader->SetCurrentPosition(GUID_NULL, var);
+			PropVariantClear(&var);
+		}
+		void update(float dt)
+		{
+			mCurrentTime += mPlayRate;
+			if (mHaveSample)
+			{
+				RHIUpdateTexture(*mTexFrame, 0, 0, mFrameSize.x, mFrameSize.y, mFrameColors.data());
+				mHaveSample = false;
+			}
+			else
+			{
+				if (mCurrentTime > mDuration)
+				{
+					mCurrentTime = 0.0;
+					mLastSampleTime = -1.0f;
+					commitPosition(mCurrentTime);
+				}
+
+				if (mCurrentTime > mLastSampleTime)
+				{
+					readSample();
+				}
+			}
+		}
+
+
+		IntVector2 mFrameSize;
+		IntVector2 mAligendFrameSize;
+		static void NV12ToRGB(unsigned char *nv12, Color4ub* outColor, IntVector2 const& frameSize, IntVector2 const& aligendFrameSize)
+		{
+			int uvOffset = aligendFrameSize.x * aligendFrameSize.y;
+
+			for (int j = 0; j < frameSize.y; ++j)
+			{
+				for (int i = 0; i < frameSize.x; ++i)
+				{
+					int yIndex = j * aligendFrameSize.x + i;
+					int uvIndex = (j / 2) * aligendFrameSize.x + (i & (~1)) + uvOffset;
+					int y = nv12[yIndex];
+					int u = nv12[uvIndex];
+					int v = nv12[uvIndex + 1];
+
+					int r = y + (int)(1.402f * (v - 128));
+					int g = y - (int)(0.34414f * (u - 128) + 0.71414f * (v - 128));
+					int b = y + (int)(1.772f * (u - 128));
+
+					r = Math::Clamp(r, 0, 255);
+					g = Math::Clamp(g, 0, 255);
+					b = Math::Clamp(b, 0, 255);
+
+					auto& c = outColor[(frameSize.y - j - 1) * frameSize.x + i];
+					c.r = r;
+					c.g = g;
+					c.b = b;
+					c.a = 0xff;
+				}
+			}
+		}
+		bool readSample()
+		{
+			TIME_SCOPE("Read Video Sample");
+
+			DWORD dwFlags = 0;
+			TComPtr<IMFSample> pSample;
+			DWORD streamIndex;
+			LONGLONG  timestamp;
+			HRESULT hr;
+			hr = mMFSourceReader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, nullptr,nullptr,nullptr,nullptr);
+			//hr = mMFSourceReader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, &streamIndex, &dwFlags, &timestamp, &pSample);
+			if (FAILED(hr)) 
+			{ 
+				return false; 
+			}
+#if 0
+			if (dwFlags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED)
+			{
+				return false;
+			}
+
+			if (dwFlags & MF_SOURCE_READERF_ENDOFSTREAM)
+			{
+				return false;
+			}
+			TComPtr<IMFMediaBuffer> pBuffer;
+			CHECK_RETURN(pSample->ConvertToContiguousBuffer(&pBuffer), false);
+			{
+				DWORD cbBuffer = 0;
+				BYTE *pData = NULL;
+				CHECK_RETURN(pBuffer->Lock(&pData, NULL, &cbBuffer), false);
+				ON_SCOPE_EXIT{ pBuffer->Unlock(); };
+
+				int size = mAligendFrameSize.x * mAligendFrameSize.y * 3 / 2;
+				TArray< Color4ub > colors;
+				colors.resize( mFrameSize.x * mFrameSize.y );
+				NV12ToRGB( pData, colors.data(), mFrameSize, mAligendFrameSize);
+				RHIUpdateTexture(*mTexFrame, 0 , 0 , mFrameSize.x, mFrameSize.y, colors.data());
+
+				mLastSampleTime = double(timestamp) / SecondTimeUnit;
+			}
+#endif
+			return true;
+		}
+
+
+		TArray< Color4ub > mFrameColors;
+		std::atomic<bool>  mHaveSample;
+		virtual HRESULT STDMETHODCALLTYPE OnReadSample(
+			_In_  HRESULT hrStatus,
+			_In_  DWORD dwStreamIndex,
+			_In_  DWORD dwStreamFlags,
+			_In_  LONGLONG llTimestamp,
+			_In_opt_  IMFSample *pSample)
+		{
+			if (pSample == nullptr)
+				return S_OK;
+
+			TComPtr<IMFMediaBuffer> pBuffer;
+			CHECK_RETURN(pSample->ConvertToContiguousBuffer(&pBuffer), E_INVALIDARG);
+			{
+				DWORD cbBuffer = 0;
+				BYTE *pData = NULL;
+				CHECK_RETURN(pBuffer->Lock(&pData, NULL, &cbBuffer), E_INVALIDARG);
+				ON_SCOPE_EXIT{ pBuffer->Unlock(); };
+
+				int size = mAligendFrameSize.x * mAligendFrameSize.y * 3 / 2;
+				mFrameColors.resize(mFrameSize.x * mFrameSize.y);
+				NV12ToRGB(pData, mFrameColors.data(), mFrameSize, mAligendFrameSize);
+				mLastSampleTime = double(llTimestamp) / SecondTimeUnit;
+				mHaveSample = true;
+			}
+
+			return S_OK;
+		}
+
+		virtual HRESULT STDMETHODCALLTYPE OnFlush(
+			/* [annotation][in] */
+			_In_  DWORD dwStreamIndex)
+		{		
+			return S_OK;		
+		}
+
+		virtual HRESULT STDMETHODCALLTYPE OnEvent(
+			/* [annotation][in] */
+			_In_  DWORD dwStreamIndex,
+			/* [annotation][in] */
+			_In_  IMFMediaEvent *pEvent)
+		{
+			return S_OK;		
+		}
+
+		virtual HRESULT STDMETHODCALLTYPE QueryInterface(
+			/* [in] */ REFIID riid,
+			/* [annotation][iid_is][out] */
+			_COM_Outptr_  void **ppvObject)
+		{
+			if (ppvObject == NULL)
+			{
+				return E_INVALIDARG;
+			}
+
+			if ((riid == IID_IUnknown) || (riid == IID_IMFSourceReaderCallback))
+			{
+				*ppvObject = (LPVOID)this;
+				AddRef();
+				return NOERROR;
+			}
+
+			*ppvObject = NULL;
+
+			return E_NOINTERFACE;
+		}
+
+		virtual ULONG STDMETHODCALLTYPE AddRef(void) 
+		{
+			return 1;
+
+		}
+
+		virtual ULONG STDMETHODCALLTYPE Release(void)
+		{
+			return 1;
+		}
+
+		TComPtr< IMFMediaSource > mMediaSource;
+		TComPtr< IMFSourceReader  > mMFSourceReader;
+		TComPtr< IMFMediaType > mVideoType;
+		RHITexture2DRef mTexFrame;
 	};
 
 	class SoundRenderPassStreamSource : public IAudioStreamSource
@@ -1094,7 +1368,7 @@ namespace Shadertoy
 			frame->addCheckBox("Render Cube OnePass", [this](int event, GWidget*)
 			{
 				mRenderer.bAllowRenderCubeOnePass = !mRenderer.bAllowRenderCubeOnePass;
-				compileAllShaders();
+				compileAllShaders(BIT(uint32(EPassType::CubeMap)));
 				return false;
 			})->bChecked = mRenderer.bAllowRenderCubeOnePass;
 			return true;
@@ -1174,6 +1448,15 @@ namespace Shadertoy
 				{
 					input.type = EInputType::Keyboard;
 				}
+				else if (typeName == "video")
+				{
+					input.type = EInputType::Vedio;
+				}
+				else
+				{
+					LogWarning(0,"Unknown type Name %s", typeName.c_str());
+					return false;
+				}
 
 				JsonObject samplerObject = jsonObject.getObject("sampler");
 				if (samplerObject.isVaild())
@@ -1229,12 +1512,14 @@ namespace Shadertoy
 					case EInputType::Texture:
 					case EInputType::CubeMap:
 					case EInputType::Volume:
+					case EInputType::Vedio:
+					case EInputType::Music:
 						{
 							std::string filePath;
 							if (!jsonObject.tryGet("filepath", filePath))
 								return false;
 
-							if (!mRenderer.loadResource(input, filePath))
+							if (!loadResource(input, filePath))
 							{
 								LogWarning(0, "LoadResource Fail %s", filePath.c_str());
 								return false;
@@ -1243,15 +1528,10 @@ namespace Shadertoy
 						break;
 					case EInputType::Keyboard:
 						{
-							if (mRenderer.mInputResources.size() < input.resId + 1)
-							{
-								mRenderer.mInputResources.resize(input.resId + 1);
-							}
-							mRenderer.mInputResources[input.resId] = mRenderer.mTexKeyboard;
+							mRenderer.addInputResource(input, *mRenderer.mTexKeyboard);
 						}
 						break;
-					case EInputType::Vedio:
-					case EInputType::Music:
+
 					case EInputType::Webcam:
 					case EInputType::Micrphone:
 						break;
@@ -1264,7 +1544,7 @@ namespace Shadertoy
 			};
 
 			int bufferIndex = 0;
-			int CubeBufferIndex = 0;
+			int cubeBufferIndex = 0;
 			auto ParseoRenderPassOutput = [&](JsonObject& jsonObject, RenderPassInfo& info) -> bool
 			{
 				TArray<JsonValue> outputArray = jsonObject.getArray("outputs");
@@ -1310,7 +1590,7 @@ namespace Shadertoy
 				else if (typeName == "cubemap")
 				{
 					info.passType = EPassType::CubeMap;
-					info.typeIndex = CubeBufferIndex++;
+					info.typeIndex = cubeBufferIndex++;
 				}
 				else if (typeName == "sound")
 				{
@@ -1432,6 +1712,7 @@ namespace Shadertoy
 				mRenderPassList.clear();
 				mRenderer.mOutputBuffers.clear();
 				mRenderer.mInputResources.clear();
+				clearnupMedia();
 				return false;
 			}
 
@@ -1445,6 +1726,7 @@ namespace Shadertoy
 			mRenderPassList.clear();
 			mRenderer.mOutputBuffers.clear();
 			mRenderer.mInputResources.clear();
+			clearnupMedia();
 			if (mSoundHandle != ERROR_AUDIO_HANDLE)
 			{
 				mAudioDevice->stopSound(mSoundHandle);
@@ -1530,35 +1812,34 @@ namespace Shadertoy
 							{
 								for (auto inputValue : inputValues)
 								{
-									int id = 0;
 									JsonObject inputObject = inputValue.asObject();
-									if (inputObject.isVaild())
+									if (!inputObject.isVaild())
+										continue;
+
+									RenderInput input;
+									std::string typeName;
+									if (inputObject.tryGet("Type", typeName))
 									{
-										RenderInput input;
-										std::string typeName;
-										if (inputObject.tryGet("Type", typeName))
+										if (typeName == "Buffer")
 										{
-											if (typeName == "Buffer")
-											{
-												input.type = EInputType::Buffer;
-											}
-											else if (typeName == "Texture")
-											{
-												input.type = EInputType::Texture;
-											}
-											else if (typeName == "CubeTexture")
-											{
-												input.type = EInputType::CubeMap;
-											}
-											else if (typeName == "Keyboard")
-											{
-												input.type = EInputType::Keyboard;
-											}
+											input.type = EInputType::Buffer;
 										}
-										input.resId = inputObject.getInt("ID", 0);
-										input.channel = inputObject.getInt("Channel", 0);
-										info->inputs.push_back(input);
+										else if (typeName == "Texture")
+										{
+											input.type = EInputType::Texture;
+										}
+										else if (typeName == "CubeTexture")
+										{
+											input.type = EInputType::CubeMap;
+										}
+										else if (typeName == "Keyboard")
+										{
+											input.type = EInputType::Keyboard;
+										}
 									}
+									input.resId = inputObject.getInt("ID", 0);
+									input.channel = inputObject.getInt("Channel", 0);
+									info->inputs.push_back(input);
 								}
 							}
 						}
@@ -1640,17 +1921,17 @@ namespace Shadertoy
 			}
 		}
 
-		bool compileAllShaders()
+		bool compileAllShaders(uint32 filterMask = 0)
 		{
 			int commonIndex = mRenderPassInfos.findIndexPred([](auto const& input)
 			{
 				return input->passType == EPassType::None;
 			});
 
-			return compileAllShaders(commonIndex != INDEX_NONE ? mRenderPassInfos[commonIndex].get() : nullptr);
+			return compileAllShaders(commonIndex != INDEX_NONE ? mRenderPassInfos[commonIndex].get() : nullptr, filterMask);
 		}
 
-		bool compileAllShaders(RenderPassInfo* commonInfo)
+		bool compileAllShaders(RenderPassInfo* commonInfo, uint32 filterMask = 0)
 		{
 			std::vector<uint8> codeTemplate;
 			if (!FFileUtility::LoadToBuffer("Shader/Game/ShadertoyTemplate.sgc", codeTemplate, true))
@@ -1662,15 +1943,108 @@ namespace Shadertoy
 			int indexPass = 0;
 			for (auto& pass : mRenderPassList)
 			{
-				if (!mRenderer.compileShader(*pass, codeTemplate, commonInfo))
+				if (filterMask == 0 || (filterMask & BIT(uint32(pass->info->passType))))
 				{
-					LogWarning(0, "Compile RenderPass Fail index = %d", indexPass);
-					return false;
+					if (!mRenderer.compileShader(*pass, codeTemplate, commonInfo))
+					{
+						LogWarning(0, "Compile RenderPass Fail index = %d", indexPass);
+						return false;
+					}
 				}
 				++indexPass;
 			}
 
 			return true;
+		}
+
+		bool loadResource(RenderInput const& input, std::string const& filePath)
+		{
+			if (mRenderer.mInputResources.isValidIndex(input.resId) && mRenderer.mInputResources[input.resId].isValid())
+				return true;
+
+			std::string loadPath = std::string("Shadertoy") + filePath;
+
+			switch (input.type)
+			{
+			case EInputType::Keyboard:
+			case EInputType::Webcam:
+			case EInputType::Micrphone:
+			case EInputType::Soundcloud:
+			case EInputType::Buffer:
+				break;
+			case EInputType::Texture:
+				{
+					TextureLoadOption option;
+					option.FlipV(input.bVFlip);
+					option.bAutoMipMap = input.filter == ESampler::Trilinear;
+					RHITexture2DRef texture = RHIUtility::LoadTexture2DFromFile(loadPath.c_str(), option);
+					if (!texture.isValid())
+						return false;
+
+					mRenderer.addInputResource(input, *texture);
+				}
+				break;
+			case EInputType::CubeMap:
+				{
+					char const* extension = FFileUtility::GetExtension(loadPath.c_str());
+					if (extension)
+						--extension;
+
+					StringView pathName = StringView(loadPath.c_str(), extension - loadPath.c_str());
+
+					std::string facePath[5];
+					char const* cubePaths[6];
+					cubePaths[0] = loadPath.c_str();
+					for (int i = 0; i < 5; ++i)
+					{
+						facePath[i] = InlineString<>::Make("%s_%d%s", (char const*)pathName.toMutableCString(), i + 1, extension).c_str();
+						cubePaths[i + 1] = facePath[i].c_str();
+					}
+
+					TextureLoadOption option;
+					option.bAutoMipMap = input.filter == ESampler::Trilinear;
+					RHITextureCubeRef texture = RHIUtility::LoadTextureCubeFromFile(cubePaths, option);
+					if (!texture.isValid())
+						return false;
+
+					mRenderer.addInputResource(input, *texture);
+				}
+				break;
+			case EInputType::Volume:
+				{
+					RHITexture3DRef texture = LoadBinTexture(loadPath.c_str(), input.filter == ESampler::Trilinear);
+
+					if (!texture.isValid())
+						return false;
+
+					mRenderer.addInputResource(input, *texture);
+				}
+			break;
+			case EInputType::Vedio:
+				{
+					MediaPlayer* mediaPlayer = new MediaPlayer;
+					mediaPlayer->load(loadPath.c_str());
+					mMediaPlayers.push_back(mediaPlayer);
+
+					mRenderer.addInputResource(input, *mediaPlayer->mTexFrame);
+				}
+				break;
+			case EInputType::Music:
+				break;
+			}
+
+			return true;
+		}
+
+		TArray< MediaPlayer* > mMediaPlayers;
+
+		void clearnupMedia()
+		{
+			for( auto player : mMediaPlayers )
+			{
+				delete player;
+			}
+			mMediaPlayers.clear();
 		}
 
 		std::unique_ptr<AudioDevice> mAudioDevice;
@@ -1704,6 +2078,10 @@ namespace Shadertoy
 			if (bPause == false)
 			{
 				mTime += deltaTime;
+				for( auto player: mMediaPlayers )
+				{
+					player->update(deltaTime);
+				}
 			}
 
 			if (mAudioDevice)

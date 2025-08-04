@@ -244,7 +244,7 @@ namespace Render
 		EFillMode FillMode = EFillMode::Solid,
 		EFrontFace FrontFace = EFrontFace::Default,
 		bool bEnableScissor = false ,
-		bool bEnableMultisample = false
+		bool bEnableMultisample = true
 	>
 	class TStaticRasterizerState : public StaticRHIResourceT<
 		TStaticRasterizerState< CullMode, FillMode, FrontFace, bEnableScissor , bEnableMultisample >,

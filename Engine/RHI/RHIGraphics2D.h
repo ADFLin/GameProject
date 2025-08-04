@@ -94,10 +94,6 @@ public:
 
 	void  setBlendState(ESimpleBlendMode mode);
 	void  setBlendAlpha(float value);
-	void  enableMultisample(bool bEnabled)
-	{
-		mRenderStatePending.bEnableMultiSample = bEnabled;
-	}
 
 	void  drawPixel(Vector2 const& p, Color3Type const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);

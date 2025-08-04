@@ -5,15 +5,22 @@
 #include "LogSystem.h"
 
 #define CHECK_RESULT_CODE( EXPR , CODE )\
-	if( HRESULT hr = (EXPR) < 0 )\
 	{\
-		CODE;\
+		HRESULT hr = EXPR;\
+		if (FAILED(hr))\
+		{\
+			CODE;\
+		}\
 	}
+
 #define CHECK_RETURN( EXPR , RT_VALUE )\
-	if( HRESULT hr = (EXPR) < 0 )\
 	{\
-		::LogWarning(0, "hr = %d", hr);\
-		return RT_VALUE;\
+		HRESULT hr = EXPR;\
+		if (FAILED(hr))\
+		{\
+			::LogWarning(0, "hr = %x", hr); \
+			return RT_VALUE;\
+		}\
 	}
 
 struct ReleaseDeleter

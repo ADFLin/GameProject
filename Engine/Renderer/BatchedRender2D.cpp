@@ -1299,7 +1299,7 @@ namespace Render
 	{
 		RHISetDepthStencilState(commandList, BatchedRender::GraphicsDepthState::GetRHI());
 		RHISetBlendState(commandList, BatchedRender::GetBlendState(state.blendMode));
-		RHISetRasterizerState(commandList, BatchedRender::GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
+		RHISetRasterizerState(commandList, BatchedRender::GetRasterizerState(state.bEnableScissor));
 		if (state.bEnableScissor)
 		{
 			auto const& rect = state.scissorRect;
@@ -1373,21 +1373,9 @@ namespace Render
 		return TStaticBlendState<>::GetRHI();
 	}
 
-	RHIRasterizerState& GraphicsDefinition::GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample)
+	RHIRasterizerState& GraphicsDefinition::GetRasterizerState(bool bEnableScissor)
 	{
-		if (bEnableMultiSample)
-		{
-			if (bEnableScissor)
-			{
-				return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true, true >::GetRHI();
-			}
-			else
-			{
-				return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false, true >::GetRHI();
-			}
-
-		}
-		else if (bEnableScissor)
+		if (bEnableScissor)
 		{
 			return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true >::GetRHI();
 		}

@@ -174,7 +174,7 @@ namespace Render
 			RHITexture2D*    texture;
 			RHISamplerState* sampler;
 			ESimpleBlendMode blendMode;
-			bool bEnableMultiSample;
+
 			bool bEnableScissor;
 
 			Rect scissorRect;
@@ -184,7 +184,6 @@ namespace Render
 				texture = nullptr;
 				sampler = nullptr;
 				blendMode = ESimpleBlendMode::None;
-				bEnableMultiSample = false;
 				bEnableScissor = false;
 			}
 		};
@@ -192,7 +191,7 @@ namespace Render
 
 		static RHIBlendState& GetBlendState(ESimpleBlendMode blendMode);
 
-		static RHIRasterizerState& GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample);
+		static RHIRasterizerState& GetRasterizerState(bool bEnableScissor);
 
 		using GraphicsDepthState = StaticDepthDisableState;
 	};

@@ -911,6 +911,17 @@ namespace Shadertoy
 		RHITexture2DRef mTexSound;
 	};
 
+	class N12ConvertPS : public GlobalShader
+	{
+		DECLARE_SHADER(N12ConvertPS, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/MediaShaders";
+		}
+	};
+
+	IMPLEMENT_SHADER(N12ConvertPS, EShader::Pixel, SHADER_ENTRY(N12ConvertPS));
 
 	class MediaPlayer : public IMFSourceReaderCallback
 	{
@@ -919,13 +930,13 @@ namespace Shadertoy
 		{
 			static MediaFoundationScope MFScope;
 
-			path = "Shadertoy/Assets/aa.mp4";
+			path = "Shadertoy/Assets/dd.mp4";
 #if 1
 			TComPtr< IMFSourceResolver > sourceResolver;
 			CHECK_RETURN(MFCreateSourceResolver(&sourceResolver), false);
 			MF_OBJECT_TYPE objectType;
 			TComPtr<IUnknown> object;
-			CHECK_RETURN(sourceResolver->CreateObjectFromURL(FCString::CharToWChar(path).c_str(), MF_RESOLUTION_MEDIASOURCE | MF_RESOLUTION_READ, nullptr, &objectType, &object), false);
+			CHECK_RETURN(sourceResolver->CreateObjectFromURL(FCString::CharToWChar(path).c_str(), MF_RESOLUTION_MEDIASOURCE, nullptr, &objectType, &object), false);
 			object.castTo(mMediaSource);
 			mMediaSource->AddRef();
 
@@ -948,10 +959,19 @@ namespace Shadertoy
 			mFrameSize.y = DimY;
 			mAligendFrameSize.x = Math::AlignUp<int>(DimX, 16);
 			mAligendFrameSize.y = Math::AlignUp<int>(DimY, 16);
-			mTexFrame = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, mFrameSize.x, mFrameSize.y));
+
 
 			GUID SubType;
 			mVideoType->GetGUID(MF_MT_SUBTYPE, &SubType);
+
+
+			int size = mAligendFrameSize.x * mAligendFrameSize.y * 3 / 2;
+			mSampleData.resize(size);
+
+			mTexFrame  = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, mFrameSize.x, mFrameSize.y));
+			mTexSample = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R8, mAligendFrameSize.x, mAligendFrameSize.y * 3 / 2));
+			mFrameBuffer = RHICreateFrameBuffer();
+			mFrameBuffer->addTexture(*mTexFrame);
 
 			PROPVARIANT DurationAttrib;
 			mMFSourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &DurationAttrib);
@@ -961,12 +981,13 @@ namespace Shadertoy
 
 			commitPosition(mCurrentTime);
 			mHaveSample = false;
+			mbReadSampleRequested = false;
 			return true;
 		}
 		static constexpr int64 SecondTimeUnit = 10000000LL;
 
 		double mDuration = 0.0f;
-		double mPlayRate = 1.0f;
+		double mPlayRate = 2.0f;
 		double mCurrentTime = 0.0;
 		double mLastSampleTime = -1.0f;
 
@@ -978,26 +999,68 @@ namespace Shadertoy
 			hr = mMFSourceReader->SetCurrentPosition(GUID_NULL, var);
 			PropVariantClear(&var);
 		}
+
+		void render(RHICommandList& commandList)
+		{
+			if (!mHaveSample)
+				return;
+
+			RHIUpdateTexture(*mTexSample, 0, 0, mAligendFrameSize.x, mAligendFrameSize.y * 3 / 2, mSampleData.data());
+			RHISetFrameBuffer(commandList, mFrameBuffer);
+			RHISetViewport(commandList, 0, 0, mFrameSize.x, mFrameSize.y);
+
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+			ScreenVS::PermutationDomain domainVector;
+			domainVector.set<ScreenVS::UseTexCoord>(true);
+			auto screenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector, true);
+			auto n12ConvertPS = ShaderManager::Get().getGlobalShaderT<N12ConvertPS>(true);
+
+			GraphicsShaderStateDesc stateDesc;
+			stateDesc.vertex = screenVS->getRHI();
+			stateDesc.pixel = n12ConvertPS->getRHI();
+			RHISetGraphicsShaderBoundState(commandList, stateDesc);
+			n12ConvertPS->setParam(commandList, SHADER_PARAM(UVScale), Vector2(float(mFrameSize.x) / mAligendFrameSize.x, float(mFrameSize.y) / mAligendFrameSize.y));
+			n12ConvertPS->setParam(commandList, SHADER_PARAM(SampleWidth), float(mAligendFrameSize.x));
+			n12ConvertPS->setTexture(commandList, SHADER_PARAM(Texture), *mTexSample, SHADER_SAMPLER(Texture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+
+			Matrix4 const colorTransform = Matrix4(
+				1.16438356164f, 0.000000000000f, 1.792652263418f, 0.000000f,
+				1.16438356164f, -0.213237021569f, -0.533004040142f, 0.000000f,
+				1.16438356164f, 2.112419281991f, 0.000000000000f, 0.000000f,
+				0.000000f, 0.000000f, 0.000000f, 0.000000f
+			) * Matrix4(
+				1.0f, 0.0f, 0.0f, -0.06274509803921568627f,
+				0.0f, 1.0f, 0.0f, -0.5019607843137254902f,
+				0.0f, 0.0f, 1.0f, -0.5019607843137254902f,
+				0.0f, 0.0f, 0.0f, 1.000000f
+			);
+			n12ConvertPS->setParam(commandList, SHADER_PARAM(ColorTransform), colorTransform);
+
+			DrawUtility::ScreenRect(commandList);
+
+			mHaveSample = false;
+		}
+
 		void update(float dt)
 		{
-			mCurrentTime += mPlayRate;
-			if (mHaveSample)
-			{
-				RHIUpdateTexture(*mTexFrame, 0, 0, mFrameSize.x, mFrameSize.y, mFrameColors.data());
-				mHaveSample = false;
-			}
-			else
+			mCurrentTime += mPlayRate * dt;
+			if (!mHaveSample)
 			{
 				if (mCurrentTime > mDuration)
 				{
 					mCurrentTime = 0.0;
 					mLastSampleTime = -1.0f;
+					mHaveSample = false;
+					mbReadSampleRequested = false;
 					commitPosition(mCurrentTime);
 				}
 
 				if (mCurrentTime > mLastSampleTime)
 				{
-					readSample();
+					requestReadSample();
 				}
 			}
 		}
@@ -1005,39 +1068,12 @@ namespace Shadertoy
 
 		IntVector2 mFrameSize;
 		IntVector2 mAligendFrameSize;
-		static void NV12ToRGB(unsigned char *nv12, Color4ub* outColor, IntVector2 const& frameSize, IntVector2 const& aligendFrameSize)
+
+		bool requestReadSample()
 		{
-			int uvOffset = aligendFrameSize.x * aligendFrameSize.y;
-
-			for (int j = 0; j < frameSize.y; ++j)
-			{
-				for (int i = 0; i < frameSize.x; ++i)
-				{
-					int yIndex = j * aligendFrameSize.x + i;
-					int uvIndex = (j / 2) * aligendFrameSize.x + (i & (~1)) + uvOffset;
-					int y = nv12[yIndex];
-					int u = nv12[uvIndex];
-					int v = nv12[uvIndex + 1];
-
-					int r = y + (int)(1.402f * (v - 128));
-					int g = y - (int)(0.34414f * (u - 128) + 0.71414f * (v - 128));
-					int b = y + (int)(1.772f * (u - 128));
-
-					r = Math::Clamp(r, 0, 255);
-					g = Math::Clamp(g, 0, 255);
-					b = Math::Clamp(b, 0, 255);
-
-					auto& c = outColor[(frameSize.y - j - 1) * frameSize.x + i];
-					c.r = r;
-					c.g = g;
-					c.b = b;
-					c.a = 0xff;
-				}
-			}
-		}
-		bool readSample()
-		{
-			TIME_SCOPE("Read Video Sample");
+			if (mbReadSampleRequested)
+				return true;
+				 
 
 			DWORD dwFlags = 0;
 			TComPtr<IMFSample> pSample;
@@ -1045,44 +1081,20 @@ namespace Shadertoy
 			LONGLONG  timestamp;
 			HRESULT hr;
 			hr = mMFSourceReader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, nullptr,nullptr,nullptr,nullptr);
-			//hr = mMFSourceReader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, &streamIndex, &dwFlags, &timestamp, &pSample);
 			if (FAILED(hr)) 
 			{ 
 				return false; 
 			}
-#if 0
-			if (dwFlags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED)
-			{
-				return false;
-			}
 
-			if (dwFlags & MF_SOURCE_READERF_ENDOFSTREAM)
-			{
-				return false;
-			}
-			TComPtr<IMFMediaBuffer> pBuffer;
-			CHECK_RETURN(pSample->ConvertToContiguousBuffer(&pBuffer), false);
-			{
-				DWORD cbBuffer = 0;
-				BYTE *pData = NULL;
-				CHECK_RETURN(pBuffer->Lock(&pData, NULL, &cbBuffer), false);
-				ON_SCOPE_EXIT{ pBuffer->Unlock(); };
-
-				int size = mAligendFrameSize.x * mAligendFrameSize.y * 3 / 2;
-				TArray< Color4ub > colors;
-				colors.resize( mFrameSize.x * mFrameSize.y );
-				NV12ToRGB( pData, colors.data(), mFrameSize, mAligendFrameSize);
-				RHIUpdateTexture(*mTexFrame, 0 , 0 , mFrameSize.x, mFrameSize.y, colors.data());
-
-				mLastSampleTime = double(timestamp) / SecondTimeUnit;
-			}
-#endif
+			mbReadSampleRequested = true;
 			return true;
 		}
 
-
-		TArray< Color4ub > mFrameColors;
+		TArray< uint8 >    mSampleData;
 		std::atomic<bool>  mHaveSample;
+		std::atomic<bool>  mbReadSampleRequested;
+		RHITexture2DRef    mTexSample;
+		RHIFrameBufferRef  mFrameBuffer;
 		virtual HRESULT STDMETHODCALLTYPE OnReadSample(
 			_In_  HRESULT hrStatus,
 			_In_  DWORD dwStreamIndex,
@@ -1090,8 +1102,12 @@ namespace Shadertoy
 			_In_  LONGLONG llTimestamp,
 			_In_opt_  IMFSample *pSample)
 		{
+			mbReadSampleRequested = false;
+
 			if (pSample == nullptr)
 				return S_OK;
+
+			//TIME_SCOPE("Read Video Sample");
 
 			TComPtr<IMFMediaBuffer> pBuffer;
 			CHECK_RETURN(pSample->ConvertToContiguousBuffer(&pBuffer), E_INVALIDARG);
@@ -1100,10 +1116,7 @@ namespace Shadertoy
 				BYTE *pData = NULL;
 				CHECK_RETURN(pBuffer->Lock(&pData, NULL, &cbBuffer), E_INVALIDARG);
 				ON_SCOPE_EXIT{ pBuffer->Unlock(); };
-
-				int size = mAligendFrameSize.x * mAligendFrameSize.y * 3 / 2;
-				mFrameColors.resize(mFrameSize.x * mFrameSize.y);
-				NV12ToRGB(pData, mFrameColors.data(), mFrameSize, mAligendFrameSize);
+				FMemory::Copy(mSampleData.data(), pData, cbBuffer);
 				mLastSampleTime = double(llTimestamp) / SecondTimeUnit;
 				mHaveSample = true;
 			}
@@ -1115,6 +1128,7 @@ namespace Shadertoy
 			/* [annotation][in] */
 			_In_  DWORD dwStreamIndex)
 		{		
+			mHaveSample = false;
 			return S_OK;		
 		}
 
@@ -2102,6 +2116,14 @@ namespace Shadertoy
 		void onRender(float dFrame) override
 		{
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+			{
+				GPU_PROFILE("Media Render");
+				for (auto player : mMediaPlayers)
+				{
+					player->render(commandList);
+				}
+			}
 
 			GRenderTargetPool.freeAllUsedElements();
 			auto screenSize = ::Global::GetScreenSize();

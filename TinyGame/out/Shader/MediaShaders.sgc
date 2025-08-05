@@ -1,0 +1,38 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, Texture);
+
+uniform float2 UVScale;
+uniform float  SampleWidth;
+uniform float4x4 ColorTransform;
+PS_ENTRY_START(N12ConvertPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(N12ConvertPS)
+{
+	float2 uv = VSOutput.UVs;
+	uv.y = 1.0 - uv.y;
+
+	float2 scaledUV = uv * UVScale;
+	float3 yuv;
+
+	float outputWidth = SampleWidth * UVScale.x;
+
+	uint uvOffset = uint(uv * outputWidth * 0.5) * 2;
+
+	float ux = float( uvOffset + 0.5 ) / SampleWidth;
+	float vx = float( uvOffset + 1.5 ) / SampleWidth;
+	float uvy = (scaledUV.y + 2.0) / 3.0;
+	yuv.x = TEXTURE_SAMPLE(Texture, float2(scaledUV.x, scaledUV.y * 2.0 / 3.0)).r;
+	yuv.y = TEXTURE_SAMPLE(Texture, float2(ux, uvy)).r;
+	yuv.z = TEXTURE_SAMPLE(Texture, float2(vx, uvy)).r;
+
+	float3 rgb = mul(float4(yuv, 1.0), ColorTransform).rgb;
+	OutColor = float4(rgb,1);
+}
+
+#endif //PIXEL_SHADER

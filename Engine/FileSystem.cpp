@@ -244,6 +244,7 @@ struct FWindowsFileSystem
 		SYSTEMTIME systemTime = { 0 };
 		::FileTimeToSystemTime(&fad.ftLastWriteTime, &systemTime);
 		outAttributes.lastWrite = DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
+		return true;
 	}
 };
 #else

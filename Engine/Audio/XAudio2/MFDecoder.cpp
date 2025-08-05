@@ -59,7 +59,7 @@ bool FMFDecodeUtil::ConfigureVideoStream(IMFSourceReader *pReader, /* Pointer to
 	CHECK_RETURN(pPartialType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE), false);
 	CHECK_RETURN(pPartialType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video), false);
 	
-	GUID outputFormat = MFVideoFormat_RGB32;
+	GUID outputFormat = MFVideoFormat_NV12;
 	if (SubType == MFVideoFormat_VP90 || SubType == MFVideoFormat_VP80)
 	{
 		outputFormat = MFVideoFormat_NV12;

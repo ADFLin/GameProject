@@ -72,9 +72,6 @@
     <ClCompile Include="TestRender\Stage\MetaballRenderingStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="TestRender\Stage\ShadertoyStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="TestRender\Stage\MathArtStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>

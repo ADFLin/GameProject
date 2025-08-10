@@ -214,6 +214,10 @@ namespace TripleTown
 		{
 			Vector2 min;
 			Vector2 max;
+			Vector2 size;
+
+
+			Vector2 const& getSize() const { return size; }
 		};
 
 		struct TexImageInfo
@@ -222,6 +226,18 @@ namespace TripleTown
 			RHITexture2DRef tex;
 		};
 		std::vector<TexImageInfo> mTexMap;
+
+		void applyAtlasUV(int tID, float& tx, float& ty, float& tw, float& th)
+		{
+			auto const& bounds = mTexMap[tID].atlasUV;
+			Vector2 const& uvMin = bounds.min;
+			Vector2 const& uvMax = bounds.max;
+			Vector2 size = bounds.getSize();
+			tx = uvMin.x + size.x * tx;
+			ty = uvMin.y + size.y * ty;
+			tw *= size.x;
+			th *= size.y;
+		};
 
 		struct ItemImageInfo
 		{

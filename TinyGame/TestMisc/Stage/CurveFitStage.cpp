@@ -37,7 +37,7 @@ public:
 
 
 	FCNNLayout      mLayout;
-	FCNeuralNetwork mFNN;
+	FCNeuralNetwork mFCNN;
 	TArray< NNScalar > mParameters;
 
 	struct TrainData
@@ -86,16 +86,16 @@ public:
 		int size = 24;
 		uint32 topology[] = { 1, size, size, size, size, 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
-		mLayout.setHiddenLayerFunction<ENNFunc::ReLU>();
-		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<ENNFunc::Linear>();
+		mLayout.setHiddenLayerFunction<NNFunc::ReLU>();
+		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
 
-		mFNN.init(mLayout);
+		mFCNN.init(mLayout);
 		mParameters.resize(mLayout.getParameterNum());
-		mFNN.setParamsters(mParameters);
+		mFCNN.setParamsters(mParameters);
 		mRMSPropSqare.resize(mLayout.getParameterNum(), 0);
 
 		bool bUseBatchNormaliztion = false;
-		int workerNum = 30;
+		int workerNum = 12;
 		for (int i = 0; i < workerNum; ++i)
 		{
 			mThreadTrainDatas.push_back(std::make_unique<TrainData>());
@@ -223,14 +223,14 @@ public:
 		NNScalar const* pOutputSignals = trainData.signals.data() + (mLayout.getInputNum() + mLayout.getHiddenNodeNum());
 
 		trainData.signals[0] = sample.input;
-		mFNN.calcForwardPass(trainData.signals.data(), trainData.signals.data() + 1, trainData.netInputs.data());
+		mFCNN.calcForwardPass(trainData.signals.data(), trainData.signals.data() + 1, trainData.netInputs.data());
 
 		NNScalar delta = sample.label - pOutputSignals[0];
 
 		NNScalar lossDerivatives = LossFunc::CalcDevivative(pOutputSignals[0], sample.label);
 		NNScalar loss = LossFunc::Calc(pOutputSignals[0], sample.label);
 
-		mFNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.netInputs.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
+		mFCNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.netInputs.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
 		return loss;
 	}
 
@@ -269,7 +269,7 @@ public:
 				TrainData& trainData = *mThreadTrainDatas[i];
 
 				masterTrainData.loss += trainData.loss;
-				FNNCalc::VectorAdd(
+				FNNMath::VectorAdd(
 					masterTrainData.deltaParameters.size(),
 					masterTrainData.deltaParameters.data(),
 					trainData.deltaParameters.data());
@@ -341,7 +341,7 @@ public:
 		for (auto const& sample : mTestSamples)
 		{
 			NNScalar output;
-			mFNN.calcForwardFeedback(&sample.input, &output);
+			mFCNN.calcForwardFeedback(&sample.input, &output);
 			lossTest += LossFunc::Calc(output, sample.label);
 		}
 		lossTest /= mTestSamples.size();
@@ -391,7 +391,7 @@ public:
 			NNScalar inputs[1];
 			inputs[0] = min + (max - min) * i / float(num - 1);
 			NNScalar outputs[1];
-			mFNN.calcForwardFeedback(inputs, outputs);
+			mFCNN.calcForwardFeedback(inputs, outputs);
 			Vector2& pt = mNNCurvePoints[i];
 			pt.x = inputs[0];
 			pt.y = outputs[0];

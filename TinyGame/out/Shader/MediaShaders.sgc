@@ -2,6 +2,12 @@
 #include "ScreenVertexShader.sgc"
 
 
+#ifndef DO_FLIP_V
+#define DO_FLIP_V 0
+#endif
+
+
+
 #if PIXEL_SHADER
 
 DEFINE_TEXTURE(Texture2D, Texture);
@@ -15,8 +21,9 @@ PS_ENTRY_START(N12ConvertPS)
 PS_ENTRY_END(N12ConvertPS)
 {
 	float2 uv = VSOutput.UVs;
+#if DO_FLIP_V
 	uv.y = 1.0 - uv.y;
-
+#endif
 	float2 scaledUV = uv * UVScale;
 	float3 yuv;
 

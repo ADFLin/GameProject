@@ -248,6 +248,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="TestRender\ShadertoyCore.cpp" />
     <ClCompile Include="TestRender\SplitScreen\Geometry\ConvexPolygon.cpp" />
     <ClCompile Include="TestRender\SplitScreen\Geometry\MaxInscribedCircle.cpp" />
     <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cpp" />
@@ -286,6 +287,7 @@
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
     <ClCompile Include="TestRender\Stage\ShaderConductorTest.cpp" />
+    <ClCompile Include="TestRender\Stage\ShadertoyStage.cpp" />
     <ClCompile Include="TestRender\Stage\SoftwareRenderingStage.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</OpenMPSupport>
@@ -309,6 +311,7 @@
     <ClInclude Include="TestRender\MeshImporterFBX.h" />
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />
+    <ClInclude Include="TestRender\ShadertoyCore.h" />
     <ClInclude Include="TestRender\SplitScreen\Geometry\Circle.h" />
     <ClInclude Include="TestRender\SplitScreen\Geometry\ConvexPolygon.h" />
     <ClInclude Include="TestRender\SplitScreen\Geometry\DelaunayDual.h" />

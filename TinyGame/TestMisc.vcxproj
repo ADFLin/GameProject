@@ -444,6 +444,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\AlphabetRecognizerStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AoWStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AStarStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AudioTestStage.cpp" />
@@ -451,7 +452,9 @@
     <ClCompile Include="TestMisc\Stage\CompressionTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CSGTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CurveBuilderStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\CurveFitStage.cpp" />
     <ClCompile Include="TestMisc\Stage\DeviceInfoStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\DualGridTilemapStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FileToolStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FontDrawStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FractialRenderStage.cpp" />
@@ -486,7 +489,6 @@
     <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp">
       <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
-    <ClCompile Include="TestMisc\Test\CurveFitTest.cpp" />
     <ClCompile Include="TestMisc\Test\HanoiTowerTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />

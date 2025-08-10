@@ -261,7 +261,6 @@
     <ClCompile Include="TestRender\Stage\MathArtStage.cpp" />
     <ClCompile Include="TestRender\Stage\MetaballRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\MultiViewOnePassTest.cpp" />
-    <ClCompile Include="TestRender\Stage\ShadertoyStage.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
     <ClCompile Include="Transport\TPStage.cpp" />

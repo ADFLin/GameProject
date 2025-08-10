@@ -8,6 +8,8 @@
 #include "PropertySet.h"
 #include "StringParse.h"
 #include "ProfileSystem.h"
+#include "Platform/Windows/MediaFoundationHeader.h"
+#include "Platform/Windows/ComUtility.h"
 
 class FileToolStage : public StageBase
 {
@@ -62,6 +64,9 @@ public:
 
 		loadConfigMap("Replace", mReplaceMap);
 		loadConfigMap("ChangeName", mChangeNameMap);
+
+		VideoInfo info;
+		GetVideoInfo("H:\\AAH\\3DSVR-0350\\3DSVR-0350.mp4", info);
 
 		auto& config = ::Global::GameConfig();
 		mPictureDir = config.getStringValue("PictureDir", CONFIG_SECTION, "");
@@ -143,11 +148,14 @@ public:
 			TIME_SCOPE("Check Image");
 			TArray<char const*> checkFolders;
 			::Global::GameConfig().getStringValues("CheckDir", CONFIG_SECTION, checkFolders);
+			int totalCount = 0;
 			for (auto path : checkFolders)
 			{
 				LogMsg("=Check Folder : %s", path);
-				checkImage(path);
+				totalCount += checkImage(path);
 			}
+
+			LogMsg("=No Image Count = %d", totalCount);
 			return true;
 		});
 
@@ -183,6 +191,15 @@ public:
 			return true;
 		});
 
+		frame->addButton("Get Vedio Info", [this](int event, GWidget*)
+		{
+			visitAllSubFolders([this](char const* checkPath, char const* folderName)
+			{
+				checkVideo(checkPath, folderName);
+			});			
+			return true;
+		});
+
 		GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
 		textCtrl->onEvent = [this](int event, GWidget* widget) -> bool
 		{
@@ -206,6 +223,7 @@ public:
 		restart();
 		return true;
 	}
+
 
 	bool replaceName(std::string& inoutStr)
 	{
@@ -247,6 +265,68 @@ public:
 
 	std::unordered_set<std::string> mFolderNameSet;
 
+	struct VideoInfo
+	{
+		Vec2i resolution;
+		float bitRateInMb;
+		float frameRate;
+	};
+
+
+	static bool GetVideoInfo(char const* path, VideoInfo& outInfo)
+	{
+		static MediaFoundationScope MFScope;
+		//TIME_SCOPE("Video Info");
+#if 0
+		TComPtr< IMFSourceResolver > sourceResolver;
+		CHECK_RETURN(MFCreateSourceResolver(&sourceResolver), false);
+		MF_OBJECT_TYPE objectType;
+		TComPtr<IUnknown> object;
+		CHECK_RETURN(sourceResolver->CreateObjectFromURL(FCString::CharToWChar(path).c_str(), MF_RESOLUTION_MEDIASOURCE, nullptr, &objectType, &object), false);
+		TComPtr<IMFMediaSource> mediaSource;
+		object->QueryInterface(&mediaSource);
+
+		TComPtr<IMFPresentationDescriptor> presentationDescriptor;
+		mediaSource->CreatePresentationDescriptor(&presentationDescriptor);
+		DWORD descriptorCount;
+		presentationDescriptor->GetStreamDescriptorCount(&descriptorCount);
+
+		TComPtr< IMFMediaType > videoMediaType;
+		for (int i = 0; i < descriptorCount; ++i)
+		{
+			BOOL bSelected;
+			TComPtr<IMFStreamDescriptor> streamDescriptor;
+			presentationDescriptor->GetStreamDescriptorByIndex(i, &bSelected, &streamDescriptor);
+			TComPtr<IMFMediaTypeHandler> meidaTypeHandler;
+			streamDescriptor->GetMediaTypeHandler(&meidaTypeHandler);
+			GUID majorType;
+			meidaTypeHandler->GetMajorType(&majorType);
+			if (majorType != MFMediaType_Video)
+				continue;
+			DWORD mediaTypeCount;
+			meidaTypeHandler->GetMediaTypeByIndex(0, &videoMediaType);
+			break;
+		}
+#else
+		TComPtr< IMFSourceReader  > sourceReader;
+		// Create the source reader to read the input file.
+		CHECK_RETURN(MFCreateSourceReaderFromURL(FCString::CharToWChar(path).c_str(), NULL, &sourceReader), false);
+
+		TComPtr< IMFMediaType > videoMediaType;
+		CHECK_RETURN(sourceReader->GetNativeMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, &videoMediaType), false);
+
+#endif
+		UINT32 w, h;
+		CHECK_RETURN(MFGetAttributeSize(videoMediaType, MF_MT_FRAME_SIZE, &w, &h), false);
+		UINT32 numerator, denominator;
+		CHECK_RETURN(MFGetAttributeRatio(videoMediaType, MF_MT_FRAME_RATE, &numerator, &denominator), false);
+		outInfo.bitRateInMb = float(MFGetAttributeUINT32(videoMediaType, MF_MT_AVG_BITRATE, 0)) / 1000 / 1000;
+		outInfo.resolution.x = w;
+		outInfo.resolution.y = h;
+		outInfo.frameRate = float(numerator) / denominator;
+		return true;
+	}
+
 	bool IsSystemFolder(char const* path)
 	{
 		if (FCString::Compare(path, ".") == 0 ||
@@ -254,6 +334,35 @@ public:
 			return true;
 		return false;
 	}
+
+	template< typename TFunc >
+	void visitAllSubFolders(TFunc&& func)
+	{
+		TArray<char const*> checkFolders;
+		::Global::GameConfig().getStringValues("CheckDir", CONFIG_SECTION, checkFolders);
+
+		for( auto checkPath : checkFolders)
+		{
+			LogMsg("=Check Folder : %s", checkPath);
+
+			FileIterator fileIter;
+			if (!FFileSystem::FindFiles(checkPath, fileIter))
+				continue;
+
+			for (; fileIter.haveMore(); fileIter.goNext())
+			{
+				if (!fileIter.isDirectory())
+					continue;
+
+				if (IsSystemFolder(fileIter.getFileName()))
+					continue;
+
+				func(checkPath, fileIter.getFileName());
+			}
+		}
+	}
+
+
 
 	void checkSameNameFolder(char const* dirPath)
 	{
@@ -268,19 +377,87 @@ public:
 				if (IsSystemFolder(fileIter.getFileName()))
 					continue;
 
-				auto [iter, bOk] = mFolderNameSet.insert(fileIter.getFileName());
+				std::string fileName(fileIter.getFileName());
+				RemovePostfix(fileName);
+
+				auto [iter, bOk] = mFolderNameSet.insert(fileName);
 				if (!bOk)
 				{
-					LogMsg("=> %s", fileIter.getFileName());
+					LogMsg("=> %s", fileName.c_str());
 				}
 			}
 		}
 	}
 
+	static bool StartWith(char const* s1, StringView const& s2)
+	{
+		return FCString::CompareN(s1, s2.data(), s2.length()) == 0;
+	}
+
+	void checkVideo(char const* checkPath, char const* folderName)
+	{
+		InlineString<256> subFolderPath;
+		subFolderPath.format("%s/%s", checkPath, folderName);
+
+		std::string fileName = folderName;
+		if (!CheckRegularFolder(fileName))
+			return;
+
+		FileIterator fileIter;
+		if (!FFileSystem::FindFiles(subFolderPath.c_str(), ".mp4", fileIter))
+			return;
+
+		int width = 0;
+		int height = 0;
+		bool bSameRes = true;
+		int videoCount = 0;
+		for (; fileIter.haveMore(); fileIter.goNext())
+		{
+			if (!StartWith(fileIter.getFileName(), fileName))
+			{
+				continue;
+			}
+			InlineString<256> videoPath;
+			videoPath.format("%s/%s", subFolderPath, fileIter.getFileName());
+			VideoInfo info;
+			if (!GetVideoInfo(videoPath, info))
+			{
+				LogWarning(0, "Load error = %s", videoPath.c_str());
+			}
+			++videoCount;
+
+			if (width)
+			{
+				if (width != info.resolution.x)
+				{
+					width = Math::Max(width, info.resolution.x);
+					bSameRes = false;
+				}
+			}
+			else
+			{
+				width = info.resolution.x;
+			}
+			if (height)
+			{
+				if (height != info.resolution.y)
+				{
+					height = Math::Max(height, info.resolution.y);
+					bSameRes = false;
+				}
+			}
+			else
+			{
+				height = info.resolution.y;
+			}
+		}
+
+		LogMsg("=> %-10s %d %dx%d%s", folderName, videoCount, width, height, bSameRes ? "" : "(N)");
+	}
+
 	bool changeName(std::string const& str, std::string& outNewName)
 	{
 		auto iter = mChangeNameMap.find(str);
-
 		if (iter != mChangeNameMap.end())
 		{
 			outNewName = iter->second;
@@ -289,10 +466,36 @@ public:
 
 		return false;
 	}
+
+	static void RemovePostfix(std::string& fileName)
+	{
+		if (fileName.back() == 'F')
+			fileName.pop_back();
+		if (fileName.back() == 'U')
+			fileName.pop_back();
+		if (fileName.back() == 'B')
+			fileName.pop_back();
+		if (fileName.back() == 'K')
+			fileName.pop_back();
+	}
+	static bool CheckRegularFolder(std::string& fileName)
+	{
+		std::smatch matches;
+		return CheckRegularFolder(fileName, matches);
+	}
+
+	static bool CheckRegularFolder(std::string& fileName, std::smatch& matches)
+	{		
+		RemovePostfix(fileName);
+		static std::regex regex(CODE_STRING(([\w]+)-([\d]+|[\d]+[A-Z])$));
+		if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
+			return false;
+
+		return true;
+	}
+
 	void checkChangeName(char const* dirPath)
 	{
-		std::regex regex(CODE_STRING(([\w]+)-([\d]+|[\d]+[A-Z])$));
-
 		int changeCount = 0;
 		FileIterator fileIter;
 		if (FFileSystem::FindFiles(dirPath, fileIter))
@@ -306,22 +509,13 @@ public:
 					continue;
 
 				std::string fileName(fileIter.getFileName());
-
-				if (fileName.back() == 'U')
-					fileName.pop_back();
-				if (fileName.back() == 'B')
-					fileName.pop_back();
-				if (fileName.back() == 'K')
-					fileName.pop_back();
-
 				std::smatch matches;
-				if (!std::regex_search(fileName, matches, regex, std::regex_constants::match_continuous))
+				if (!CheckRegularFolder(fileName, matches))
 					continue;
 
 				std::string newCodeName;
 				if (!changeName(matches[1].str(), newCodeName))
 					continue;
-
 
 				std::string newFolderName = fileIter.getFileName();
 				newFolderName.replace(0, matches[1].length(), newCodeName);
@@ -362,8 +556,9 @@ public:
 		LogMsg("==Check Complete, %u Folders", changeCount);
 	}
 
-	void checkImage(char const* dirPath)
+	int checkImage(char const* dirPath)
 	{
+		int count = 0;
 		FileIterator fileIter;
 		if (FFileSystem::FindFiles(dirPath, fileIter))
 		{
@@ -376,22 +571,37 @@ public:
 					continue;
 
 				std::string imageName = fileIter.getFileName();
-				if (imageName.back() =='U')
-					imageName.pop_back();
-				if (imageName.back() == 'B')
-					imageName.pop_back();
-				if (imageName.back() == 'K')
-					imageName.pop_back();
+				if ( !CheckRegularFolder(imageName) )
+					continue;
 
 				InlineString<256> imagePath;
 				imagePath.format("%s\\%s\\%s.jpg", dirPath, fileIter.getFileName(), imageName.c_str());
 
-				if (!FFileSystem::IsExist(imagePath))
+				if (FFileSystem::IsExist(imagePath))
+					continue;
+
+				if (!mPictureDir.empty())
 				{
-					LogMsg("=> %s", imageName.c_str());
+					InlineString<256> picName;
+					picName.format("%s.%s", imageName.c_str(), "jpg");
+
+					InlineString<256> picPath;
+					picPath.format("%s/%s", mPictureDir.c_str(), picName.c_str());
+					if (FFileSystem::IsExist(picPath))
+					{
+						std::string newDir = std::string(dirPath) + "/" + fileIter.getFileName();
+						LogMsg("Move Pic: %s => %s", picPath, newDir.c_str());
+						FFileSystem::MoveFile(picPath, newDir.c_str());
+						continue;
+					}
 				}
+
+				++count;
+				LogMsg("=> %s", imageName.c_str());
 			}
 		}
+
+		return count;
 	}
 
 	int getDigitCount(std::string const& name)

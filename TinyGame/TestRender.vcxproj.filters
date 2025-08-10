@@ -114,6 +114,7 @@
     <ClInclude Include="TestRender\SplitScreen\Geometry\Triangle.h">
       <Filter>SplitScreen\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="TestRender\ShadertoyCore.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestRender\SceneScript.cpp" />
@@ -220,6 +221,10 @@
       <Filter>SplitScreen\Voronoi</Filter>
     </ClCompile>
     <ClCompile Include="TestRender\Stage\ParticleLifeStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\ShadertoyCore.cpp" />
+    <ClCompile Include="TestRender\Stage\ShadertoyStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>

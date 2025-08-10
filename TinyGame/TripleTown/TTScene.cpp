@@ -344,6 +344,7 @@ namespace TripleTown
 			return false;
 
 		mTexAtlas.getRectUV(GetTexImageId(textureId), texRes.atlasUV.min, texRes.atlasUV.max);
+		texRes.atlasUV.size = texRes.atlasUV.max - texRes.atlasUV.min;
 		return true;
 	}
 
@@ -639,13 +640,7 @@ namespace TripleTown
 						float tx = 0;
 						float ty = -th;
 #if USE_TEXTURE_ATLAS
-						Vector2 const& uvMin = mTexMap[TID_GAME_TILES].atlasUV.min;
-						Vector2 const& uvMax = mTexMap[TID_GAME_TILES].atlasUV.max;
-						Vector2 size = uvMax - uvMin;
-						tx = uvMin.x + size.x * tx;
-						ty = uvMin.y + size.y * ty;
-						tw *= size.x;
-						th *= size.y;
+						applyAtlasUV(TID_GAME_TILES, tx, ty, tw, th);
 #endif
 						drawQuad(Vector2(TileImageLength, TileImageLength), Vector2(tx , ty) , Vector2(tx, ty) + Vector2(tw , th));
 					}
@@ -1074,15 +1069,9 @@ namespace TripleTown
 				}
 			}
 #if USE_TEXTURE_ATLAS
-			Vector2 const& uvMin = mTexMap[TID_GAME_TILES].atlasUV.min;
-			Vector2 const& uvMax = mTexMap[TID_GAME_TILES].atlasUV.max;
-			Vector2 size = uvMax - uvMin;
-			tx = uvMin.x + size.x * tx;
-			ty = uvMin.y + size.y * ty;
-			tw *= size.x;
-			th *= size.y;
-#endif
 
+			applyAtlasUV(TID_GAME_TILES, tx, ty, tw, th);
+#endif
 			auto& dirData = data.dirMap[dir];
 			dirData.bSpecial = bSpecical;
 			dirData.uv1 = Vector2(tx, ty);

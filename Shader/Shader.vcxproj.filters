@@ -254,6 +254,7 @@
     <None Include="..\TinyGame\out\Shader\Game\CubeBlockRender.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\MediaShaders.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

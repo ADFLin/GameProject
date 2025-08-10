@@ -154,7 +154,10 @@ namespace Render
 
 			if(mDesc.numMipLevel > 1)
 			{
-				glGenerateMipmap(TypeEnumGL);
+				if (mDesc.creationFlags & TCF_GenerateMips)
+				{
+					glGenerateMipmap(TypeEnumGL);
+				}
 				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			}
 			else
@@ -240,7 +243,10 @@ namespace Render
 
 			if(mDesc.numMipLevel > 1)
 			{
-				glGenerateMipmap(TypeEnumGL);
+				if (mDesc.creationFlags & TCF_GenerateMips)
+				{
+					glGenerateMipmap(TypeEnumGL);
+				}
 				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			}
 			else
@@ -276,7 +282,10 @@ namespace Render
 
 		if(mDesc.numMipLevel > 1)
 		{
-			glGenerateMipmap(TypeEnumGL);
+			if (mDesc.creationFlags & TCF_GenerateMips)
+			{
+				glGenerateMipmap(TypeEnumGL);
+			}
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		}
 		else
@@ -327,7 +336,10 @@ namespace Render
 
 			if(mDesc.numMipLevel > 1 )
 			{
-				glGenerateMipmap(TypeEnumGL);
+				if (mDesc.creationFlags & TCF_GenerateMips)
+				{
+					glGenerateMipmap(TypeEnumGL);
+				}
 				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			}
 			else

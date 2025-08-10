@@ -4,6 +4,13 @@
 #include "CompilerConfig.h"
 #include "MarcoCommon.h"
 
+
+#if CPP_COMPILER_MSVC
+#define ALLOCA _alloca
+#else
+#define ALLOCA alloca
+#endif
+
 #if USE_DUFF_DEVICE
 #include "Misc/DuffDevice.h"
 #endif
@@ -18,285 +25,7 @@ NNScalar* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
 	return result;
 }
 
-#if CPP_COMPILER_MSVC
-#define ALLOCA _alloca
-#else
-#define ALLOCA alloca
-#endif
-void FCNeuralNetwork::calcForwardFeedback(NNScalar const inputs[], NNScalar outputs[])
-{
-	FCNNLayout const& NNLayout = getLayout();
-
-	if (NNLayout.mLayers.size() == 1)
-	{
-		NNLayout.mLayers[0].frontFeedback(mParameters, NNLayout.getInputNum(), inputs, outputs);
-	}
-	else
-	{
-		NNScalar* tempInputs = (NNScalar*)(ALLOCA((2 * NNLayout.getMaxLayerNodeNum()) * sizeof(NNScalar)));
-		NNScalar* tempOutputs = tempInputs + NNLayout.getMaxLayerNodeNum();
-		NNLayout.mLayers[0].frontFeedback(mParameters, NNLayout.getInputNum(), inputs, tempInputs);
-		int curInputNum = NNLayout.mLayers[0].numNode;
-		for (int i = 1; i < NNLayout.mLayers.size() - 1; ++i)
-		{
-			auto& layer = NNLayout.mLayers[i];
-			layer.frontFeedback(mParameters, curInputNum, tempInputs, tempOutputs);
-			curInputNum = layer.numNode;
-			std::swap(tempInputs, tempOutputs);
-		}
-		NNLayout.mLayers.back().frontFeedback(mParameters, curInputNum, tempInputs, outputs);
-	}
-
-	//_freea(tempInputs);
-}
-
-void FCNeuralNetwork::calcForwardFeedbackSignal(NNScalar const inInputs[], NNScalar outActivations[])
-{
-	FCNNLayout const& NNLayout = getLayout();
-
-
-	int curInputNum = NNLayout.getInputNum();
-	NNScalar const* inputs = inInputs;
-	NNScalar* outputs = outActivations;
-	for (const NeuralFullConLayer& layer : NNLayout.mLayers)
-	{
-		//NNMatrixView weights = getWeights(layer);
-		layer.frontFeedback(mParameters, curInputNum, inputs, outputs);
-		curInputNum = layer.numNode;
-		inputs = outputs;
-		outputs += curInputNum;
-	}
-}
-
-void FCNeuralNetwork::calcForwardPassBatch(int batchSize, NNScalar const inInputs[], NNScalar outActivations[], NNScalar outNetInputs[]) const
-{
-	FCNNLayout const& NNLayout = getLayout();
-
-	int curInputNum = batchSize * NNLayout.getInputNum();
-	NNScalar const* inputs = inInputs;
-	NNScalar* outputs = outActivations;
-	for (const NeuralFullConLayer& layer : NNLayout.mLayers)
-	{
-		layer.frontFeedbackBatch(batchSize, mParameters, curInputNum, inputs, outputs, outNetInputs);
-
-		curInputNum = batchSize * layer.numNode;
-		inputs = outputs;
-		outputs += curInputNum;
-		outNetInputs += curInputNum;
-	}
-}
-void FCNeuralNetwork::calcForwardPass(NNScalar const inInputs[], NNScalar outActivations[], NNScalar outNetInputs[]) const
-{
-	FCNNLayout const& NNLayout = getLayout();
-
-	int curInputNum = NNLayout.getInputNum();
-	NNScalar const* inputs = inInputs;
-	NNScalar* outputs = outActivations;
-	for (const NeuralFullConLayer& layer : NNLayout.mLayers)
-	{
-		layer.frontFeedback(mParameters, curInputNum, inputs, outputs, outNetInputs);
-
-		curInputNum = layer.numNode;
-		inputs = outputs;
-		outputs += curInputNum;
-		outNetInputs += curInputNum;
-	}
-}
-
-void FCNeuralNetwork::calcBackwardPass(
-	NNScalar const inLossDerivatives[],
-	NNScalar const inSignals[], 
-	NNScalar const inNetInputs[], 
-	NNScalar outLossGrads[], 
-	NNScalar outDeltaWeights[]) const
-{
-	// l-1          l
-	//             b[l,n] 
-	//     w[l,n,k]   z[l,n]          w[l+1,m,n] z[l+1,m]
-	// a[k] ------  +  -----> [F] a[l,n]----> + -------->
-	//            /   dc/dz             \ 
-	//           / w[l,n,k+1]            \ w[l+1,m+1,n]
-	//          /                         \      z[l+1,m+1]
-	// a[k+1]  /                           \ + -------->
-	// tn : output
-	// L : output Layer index
-	// z[l,n] : NetworkInput   
-	// a[l,n] : Signal 
-	// dC/dz[l,n] : Sensitivity Value
-
-	// z[l,n] = £Uk( w[l,n,k]*a[l-1,k] ) + b[l,n]
-	// C = sum( 0.5 *( t[n] - a[L,n] )^2 )
-	// dC/da[L,n] = -( t[n] - a[L,n]) 
-
-	// dC/dz[L,n] = da/dz * dC/da =  F'(z[L,n]) * dC/da[L,n] = - F'(z[L,n]) * (t[n] - a[L,n]) 
-	// dC/dz[l,n] = da/dz * dC/da =  F'(z[l,n]) * £Uk( dC/dz[l+1,k] * w[l+1,k,n] )
-
-	// dC/dw[l,n,k] = dC/dz * dz/dw = dC/dz[l,n] * a[l-1,k]
-	// dC/db[l,n] = dC/dz * dz/db = dC/dz[l,n]
-	// w'[l,n,k] = w[l,n,k] + learnRate * dC/dw[l,n,k]
-	// b'[l,n] = b[l,n] + learnRate * dC/db[l,n] 
-
-	int totalNodeCount = mLayout->getHiddenNodeNum() + mLayout->getOutputNum();
-
-	NNScalar* pLossGrad = outLossGrads + totalNodeCount;
-	NNScalar const* pNetworkInputs = inNetInputs + totalNodeCount;
-	NNScalar const* pInputSignals = inSignals + (mLayout->getInputNum() + mLayout->getHiddenNodeNum());
-
-
-	{
-		int idxLayer = mLayout->getHiddenLayerNum();
-		auto const& layer = mLayout->getLayer(idxLayer);
-
-		pNetworkInputs -= layer.numNode;
-		CHECK(pNetworkInputs = inNetInputs + mLayout->getNetInputOffset(idxLayer));
-
-		pLossGrad -= layer.numNode;
-		CHECK(pLossGrad = outLossGrads + mLayout->getNetInputOffset(idxLayer));
-
-		int numNodeWeiget = mLayout->getLayerNodeWeigetNum(idxLayer);
-		pInputSignals -= numNodeWeiget;
-		CHECK(pInputSignals = inSignals + mLayout->getInputSignalOffset(idxLayer));
-
-
-		NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
-		NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			NNScalar z_ln = pNetworkInputs[idxNode];
-			NNScalar dCdz = layer.funcDerivative(z_ln) * inLossDerivatives[idxNode];
-
-			pLossGrad[idxNode] = dCdz;
-			NNScalar dCdb = dCdz;
-			*pDeltaBiasLayer += dCdb;
-			++pDeltaBiasLayer;
-			for (int k = 0; k < numNodeWeiget; ++k)
-			{
-				NNScalar dCdw = dCdz * pInputSignals[k];
-				*pDeltaWeightLayer += dCdw;
-				++pDeltaWeightLayer;
-			}
-		}
-	}
-
-	for (int idxLayer = mLayout->getHiddenLayerNum() - 1; idxLayer >= 0; --idxLayer)
-	{
-		auto const& layer = mLayout->getLayer(idxLayer);
-		auto const& nextLayer = mLayout->getLayer(idxLayer + 1);
-
-		pNetworkInputs -= layer.numNode;
-		CHECK(pNetworkInputs = inNetInputs + mLayout->getNetInputOffset(idxLayer));
-		NNScalar* pSensivityNextLayer = pLossGrad;
-		pLossGrad -= layer.numNode;
-		CHECK(pLossGrad = outLossGrads + mLayout->getNetInputOffset(idxLayer));
-
-		int numNodeWeiget = mLayout->getLayerNodeWeigetNum(idxLayer);
-		pInputSignals -= numNodeWeiget;
-		CHECK(pInputSignals = inSignals + mLayout->getInputSignalOffset(idxLayer));
-
-		NNScalar* pWeightNext = mParameters + nextLayer.weightOffset;
-		int weightStride = nextLayer.numNode;
-
-		NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
-		NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			NNScalar z_ln = pNetworkInputs[idxNode];
-			NNScalar dCdz = layer.funcDerivative(z_ln) * FNNCalc::VectorDot(nextLayer.numNode, pSensivityNextLayer, pWeightNext + idxNode, weightStride);
-
-			pLossGrad[idxNode] = dCdz;
-			
-			NNScalar dCdb = dCdz;
-			*pDeltaBiasLayer += dCdb;
-			++pDeltaBiasLayer;
-			for (int k = 0; k < numNodeWeiget; ++k)
-			{
-				NNScalar dCdw = dCdz * pInputSignals[k];
-				*pDeltaWeightLayer += dCdw;
-				++pDeltaWeightLayer;
-			}
-		}
-	}
-}
-
-
-void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScalar const* RESTRICT weightData, int numSliceInput, int inputSize[], NNScalar const* RESTRICT inputs, NNScalar* RESTRICT outputs)
-{
-
-	int const nx = inputSize[0] - layer.convSize + 1;
-	int const ny = inputSize[1] - layer.convSize + 1;
-
-	int const sliceInputSize = inputSize[0] * inputSize[1];
-	int const convLen = layer.convSize * layer.convSize;
-	int const sliceOutputSize = nx * ny;
-	int const inputStride = inputSize[0];
-
-	NNScalar const* pWeight = weightData + layer.weightOffset;
-	NNScalar const* pInput = inputs;
-	NNScalar* pOutput = outputs;
-
-	for( int idxNode = 0; idxNode < layer.numNode; ++idxNode )
-	{
-#if 0	
-		NNScalar const* pSliceWeight = pWeight;
-		NNScalar const* pSliceInput = pInput;
-
-		for( int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice )
-		{
-			NNScalar* pSliceOutput = pOutput;
-
-			std::fill_n(pSliceOutput, sliceOutputSize, *pSliceWeight);
-			++pSliceWeight;
-
-			for( int j = 0; j < ny; ++j )
-			{
-				for( int i = 0; i < nx; ++i )
-				{
-					int idx = i + inputSize[0] * j;
-					*pSliceOutput += AreaConv(layer.convSize, inputStride, pSliceInput + idx , pSliceWeight);
-					++pSliceOutput;
-				}
-			}
-
-			pSliceWeight += convLen;
-			pSliceInput += sliceInputSize;
-			
-		}
-#else
-		NNScalar* pSliceOutput = outputs;
-		for( int j = 0; j < ny; ++j )
-		{
-			for( int i = 0; i < nx; ++i )
-			{
-				int idx = i + inputSize[0] * j;
-
-				NNScalar const* pSliceWeight = pWeight;
-				NNScalar const* pSliceInput = pInput + idx;
-
-				NNScalar value = *pSliceWeight;
-				++pSliceWeight;
-				for( int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice )
-				{
-					value += AreaConv(layer.convSize, inputStride, pSliceInput, pSliceWeight);
-					pSliceWeight += convLen;
-					pSliceInput += sliceInputSize;
-				}
-				*pSliceOutput = value;
-			}
-		}
-#endif
-
-		pOutput += sliceOutputSize;
-	}
-
-
-	if( layer.funcTransform )
-	{
-		int num = sliceOutputSize * layer.numNode;
-		(*layer.funcTransform)(outputs, num);
-	}
-}
-
-void FNNCalc::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b)
+void FNNMath::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b)
 {
 #if USE_DUFF_DEVICE
 #define OP	*a += *b; ++a; ++b;
@@ -310,7 +39,7 @@ void FNNCalc::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 #endif
 }
 
-void FNNCalc::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
+void FNNMath::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
 #if USE_DUFF_DEVICE
 #define OP	*out = *a + *b; ++out; ++a; ++b;
@@ -324,7 +53,7 @@ void FNNCalc::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RES
 #endif
 }
 
-NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
+NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
 #if USE_MATH_SIMD  && 0
 	if constexpr (Meta::IsSameType< NNScalar, float >::Value)
@@ -373,7 +102,7 @@ NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 }
 
 
-NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride)
+NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride)
 {
 	NNScalar result = 0;
 #if USE_DUFF_DEVICE
@@ -391,7 +120,7 @@ NNScalar FNNCalc::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 	return result;
 }
 
-NNScalar FNNCalc::VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
+NNScalar FNNMath::VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
 	NNScalar result = 0;
 #if USE_DUFF_DEVICE
@@ -407,7 +136,7 @@ NNScalar FNNCalc::VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar con
 	return result;
 }
 
-void FNNCalc::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
+void FNNMath::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
 #if USE_DUFF_DEVICE
 #define OP	*out = *b + VectorDot(dimCol, m, v); ++out; ++b; m += dimCol;
@@ -422,7 +151,7 @@ void FNNCalc::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRIC
 #endif
 }
 
-void FNNCalc::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
+void FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
 {
 	NNScalar sum = 0.0;
 	for (int i = 0; i < dim; ++i)
@@ -548,27 +277,35 @@ int FCNNLayout::getParameterNum() const
 	return result;
 }
 
-void NeuralFullConLayer::frontFeedback(NNScalar const* RESTRICT parameterData, int numInput, NNScalar const* RESTRICT inputs, NNScalar* RESTRICT outputs) const
-{
-	FNNCalc::MatrixMulAddVector(numNode, numInput,  parameterData + weightOffset, inputs, parameterData + biasOffset, outputs);
 
-	if (funcTransform)
+void FNNAlgo::ForwardFeedback(
+	NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters,
+	int numInput, NNScalar const* RESTRICT inputs,
+	NNScalar* RESTRICT outputs)
+{
+	FNNMath::MatrixMulAddVector(layer.numNode, numInput, parameters + layer.weightOffset, inputs, parameters + layer.biasOffset, outputs);
+
+	if (layer.funcTransform)
 	{
-		(*funcTransform)(outputs, numNode);
+		(*layer.funcTransform)(outputs, layer.numNode);
 	}
 }
 
-void NeuralFullConLayer::frontFeedback(NNScalar const* RESTRICT parameterData, int numInput, NNScalar const* RESTRICT inputs, NNScalar* RESTRICT outputs, NNScalar* RESTRICT outNetInputs) const
+void FNNAlgo::ForwardFeedback(
+	NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters, 
+	int numInput, NNScalar const* RESTRICT inputs, 
+	NNScalar* RESTRICT outputs, 
+	NNScalar* RESTRICT outNetInputs)
 {
-	NNScalar const* pWeight = parameterData + weightOffset;
-	NNScalar const* pBias = parameterData + biasOffset;
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
 	NNScalar const* pInput = inputs;
 	NNScalar* pOutput = outputs;
 	NNScalar* pNetInput = outNetInputs;
 
-	for (int i = 0; i < numNode; ++i)
+	for (int i = 0; i < layer.numNode; ++i)
 	{
-		NNScalar value = pBias[0] + FNNCalc::VectorDot(numInput, pWeight, pInput);
+		NNScalar value = pBias[0] + FNNMath::VectorDot(numInput, pWeight, pInput);
 		pWeight += numInput;
 		pBias += 1;
 
@@ -578,29 +315,281 @@ void NeuralFullConLayer::frontFeedback(NNScalar const* RESTRICT parameterData, i
 		++pOutput;
 	}
 
-	if (funcTransform)
+	if (layer.funcTransform)
 	{
-		(*funcTransform)(outputs, numNode);
+		(*layer.funcTransform)(outputs, layer.numNode);
 	}
 }
 
-void NeuralFullConLayer::frontFeedbackBatch(
-	int batchSize, NNScalar const* RESTRICT parameterData, 
-	int numInput, NNScalar const* RESTRICT inputs, 
-	NNScalar* RESTRICT outputs, NNScalar* RESTRICT outNetInputs) const
+void FNNAlgo::ForwardFeedbackBatch(
+	NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters,
+	int numInput, NNScalar const* RESTRICT inputs,
+	int batchSize,
+	NNScalar* RESTRICT outputs, 
+	NNScalar* RESTRICT outNetInputs)
 {
-	NNScalar const* pWeight = parameterData + weightOffset;
-	NNScalar const* pBias = parameterData + biasOffset;
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
 	NNScalar const* pInput = inputs;
 	NNScalar* pOutput = outputs;
 	NNScalar* pNetInput = outNetInputs;
 
-	FNNCalc::MatrixMulTMatrixRT(numNode, numInput, parameterData + weightOffset, batchSize, inputs, pNetInput);
+	FNNMath::MatrixMulTMatrixRT(layer.numNode, numInput, parameters + layer.weightOffset, batchSize, inputs, pNetInput);
+	FNNMath::VectorCopy(batchSize * layer.numNode, pNetInput, outputs);
 
-	FNNCalc::VectorCopy(batchSize * numNode, pNetInput, outputs);
-
-	if (funcTransform)
+	if (layer.funcTransform)
 	{
-		(*funcTransform)(outputs, batchSize * numNode);
+		(*layer.funcTransform)(outputs, batchSize * layer.numNode);
+	}
+}
+
+void FNNAlgo::ForwardPassBatch(
+	FCNNLayout const& layout, NNScalar const* parameters,
+	NNScalar const inInputs[], int batchSize,
+	NNScalar outActivations[],
+	NNScalar outNetInputs[])
+{
+
+	int curInputNum = batchSize * layout.getInputNum();
+	NNScalar const* inputs = inInputs;
+	NNScalar* outputs = outActivations;
+	for (const NeuralFullConLayer& layer : layout.mLayers)
+	{
+		ForwardFeedbackBatch(layer, parameters, curInputNum, inputs, batchSize, outputs, outNetInputs);
+
+		curInputNum = batchSize * layer.numNode;
+		inputs = outputs;
+		outputs += curInputNum;
+		outNetInputs += curInputNum;
+	}
+}
+
+void FNNAlgo::ForwardFeedback(
+	FCNNLayout const& layout, NNScalar const* parameters, 
+	NNScalar const inputs[], 
+	NNScalar outputs[])
+{
+	if (layout.mLayers.size() == 1)
+	{
+		ForwardFeedback(layout.mLayers[0], parameters, layout.getInputNum(), inputs, outputs);
+	}
+	else
+	{
+		NNScalar* tempInputs = (NNScalar*)(ALLOCA((2 * layout.getMaxLayerNodeNum()) * sizeof(NNScalar)));
+		NNScalar* tempOutputs = tempInputs + layout.getMaxLayerNodeNum();
+		ForwardFeedback(layout.mLayers[0], parameters, layout.getInputNum(), inputs, tempInputs);
+		int curInputNum = layout.mLayers[0].numNode;
+		for (int i = 1; i < layout.mLayers.size() - 1; ++i)
+		{
+			auto& layer = layout.mLayers[i];
+			ForwardFeedback(layer, parameters, curInputNum, tempInputs, tempOutputs);
+			curInputNum = layer.numNode;
+			std::swap(tempInputs, tempOutputs);
+		}
+		ForwardFeedback(layout.mLayers.back(), parameters, curInputNum, tempInputs, outputs);
+	}
+
+	//_freea(tempInputs);
+}
+
+void FNNAlgo::ForwardFeedbackSignal(
+	FCNNLayout const& layout, NNScalar const* parameters,
+	NNScalar const inInputs[],
+	NNScalar outActivations[])
+{
+	int curInputNum = layout.getInputNum();
+	NNScalar const* inputs = inInputs;
+	NNScalar* outputs = outActivations;
+	for (const NeuralFullConLayer& layer : layout.mLayers)
+	{
+		//NNMatrixView weights = getWeights(layer);
+		ForwardFeedback(layer, parameters, curInputNum, inputs, outputs);
+		curInputNum = layer.numNode;
+		inputs = outputs;
+		outputs += curInputNum;
+	}
+}
+
+void FNNAlgo::ForwardPass(
+	FCNNLayout const& layout, NNScalar const* parameters, 
+	NNScalar const inInputs[], 
+	NNScalar outActivations[], 
+	NNScalar outNetInputs[])
+{
+	int curInputNum = layout.getInputNum();
+	NNScalar const* inputs = inInputs;
+	NNScalar* outputs = outActivations;
+	for (const NeuralFullConLayer& layer : layout.mLayers)
+	{
+		ForwardFeedback(layer, parameters, curInputNum, inputs, outputs, outNetInputs);
+
+		curInputNum = layer.numNode;
+		inputs = outputs;
+		outputs += curInputNum;
+		outNetInputs += curInputNum;
+	}
+}
+
+void FNNAlgo::BackwardPass(
+	FCNNLayout const& layout, NNScalar* parameters,
+	NNScalar const inLossDerivatives[],
+	NNScalar const inSignals[],
+	NNScalar const inNetInputs[],
+	NNScalar outLossGrads[],
+	NNScalar outDeltaWeights[])
+{
+	// l-1          l
+	//             b[l,n] 
+	//     w[l,n,k]   z[l,n]          w[l+1,m,n] z[l+1,m]
+	// a[k] ------  +  -----> [F] a[l,n]----> + -------->
+	//            /   dc/dz             \ 
+	//           / w[l,n,k+1]            \ w[l+1,m+1,n]
+	//          /                         \      z[l+1,m+1]
+	// a[k+1]  /                           \ + -------->
+	// tn : output
+	// L : output Layer index
+	// z[l,n] : NetworkInput   
+	// a[l,n] : Signal 
+	// dC/dz[l,n] : Sensitivity Value
+
+	// z[l,n] = £Uk( w[l,n,k]*a[l-1,k] ) + b[l,n]
+	// C = sum( 0.5 *( t[n] - a[L,n] )^2 )
+	// dC/da[L,n] = -( t[n] - a[L,n]) 
+
+	// dC/dz[L,n] = da/dz * dC/da =  F'(z[L,n]) * dC/da[L,n] = - F'(z[L,n]) * (t[n] - a[L,n]) 
+	// dC/dz[l,n] = da/dz * dC/da =  F'(z[l,n]) * £Uk( dC/dz[l+1,k] * w[l+1,k,n] )
+
+	// dC/dw[l,n,k] = dC/dz * dz/dw = dC/dz[l,n] * a[l-1,k]
+	// dC/db[l,n] = dC/dz * dz/db = dC/dz[l,n]
+	// w'[l,n,k] = w[l,n,k] + learnRate * dC/dw[l,n,k]
+	// b'[l,n] = b[l,n] + learnRate * dC/db[l,n] 
+	int totalNodeCount = layout.getHiddenNodeNum() + layout.getOutputNum();
+
+	NNScalar* pLossGrad = outLossGrads + totalNodeCount;
+	NNScalar const* pNetworkInputs = inNetInputs + totalNodeCount;
+	NNScalar const* pInputSignals = inSignals + (layout.getInputNum() + layout.getHiddenNodeNum());
+
+	{
+		int idxLayer = layout.getHiddenLayerNum();
+		auto const& layer = layout.getLayer(idxLayer);
+
+		pNetworkInputs -= layer.numNode;
+		CHECK(pNetworkInputs = inNetInputs + layout.getNetInputOffset(idxLayer));
+
+		pLossGrad -= layer.numNode;
+		CHECK(pLossGrad = outLossGrads + layout.getNetInputOffset(idxLayer));
+
+		int numNodeWeiget = layout.getLayerNodeWeigetNum(idxLayer);
+		pInputSignals -= numNodeWeiget;
+		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer));
+
+
+		NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
+		NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
+		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+		{
+			NNScalar z_ln = pNetworkInputs[idxNode];
+			NNScalar dCdz = layer.funcDerivative(z_ln) * inLossDerivatives[idxNode];
+
+			pLossGrad[idxNode] = dCdz;
+
+			NNScalar dCdb = dCdz;
+			*pDeltaBiasLayer += dCdb;
+			++pDeltaBiasLayer;
+			for (int k = 0; k < numNodeWeiget; ++k)
+			{
+				NNScalar dCdw = dCdz * pInputSignals[k];
+				*pDeltaWeightLayer += dCdw;
+				++pDeltaWeightLayer;
+			}
+		}
+	}
+
+	for (int idxLayer = layout.getHiddenLayerNum() - 1; idxLayer >= 0; --idxLayer)
+	{
+		auto const& layer = layout.getLayer(idxLayer);
+		auto const& nextLayer = layout.getLayer(idxLayer + 1);
+
+		pNetworkInputs -= layer.numNode;
+		CHECK(pNetworkInputs = inNetInputs + layout.getNetInputOffset(idxLayer));
+		NNScalar* pSensivityNextLayer = pLossGrad;
+		pLossGrad -= layer.numNode;
+		CHECK(pLossGrad = outLossGrads + layout.getNetInputOffset(idxLayer));
+
+		int numNodeWeiget = layout.getLayerNodeWeigetNum(idxLayer);
+		pInputSignals -= numNodeWeiget;
+		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer));
+
+		NNScalar* pWeightNext = parameters + nextLayer.weightOffset;
+		int weightStride = nextLayer.numNode;
+
+		NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
+		NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
+		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+		{
+			NNScalar z_ln = pNetworkInputs[idxNode];
+			NNScalar dCdz = layer.funcDerivative(z_ln) * FNNMath::VectorDot(nextLayer.numNode, pSensivityNextLayer, pWeightNext + idxNode, weightStride);
+
+			pLossGrad[idxNode] = dCdz;
+
+			NNScalar dCdb = dCdz;
+			*pDeltaBiasLayer += dCdb;
+			++pDeltaBiasLayer;
+			for (int k = 0; k < numNodeWeiget; ++k)
+			{
+				NNScalar dCdw = dCdz * pInputSignals[k];
+				*pDeltaWeightLayer += dCdw;
+				++pDeltaWeightLayer;
+			}
+		}
+	}
+}
+
+void FNNAlgo::ForwardFeedback(
+	NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
+	int numSliceInput, int inputSize[], NNScalar const* RESTRICT inputs,
+	NNScalar* RESTRICT outputs)
+{
+	CHECK(layer.dataSize[0] == (inputSize[0] - layer.convSize + 1));
+	CHECK(layer.dataSize[1] == (inputSize[1] - layer.convSize + 1));
+	
+	int const nx = layer.dataSize[0];
+	int const ny = layer.dataSize[1];
+
+	int const sliceInputSize = inputSize[0] * inputSize[1];
+	int const convLen = layer.convSize * layer.convSize;
+	int const nodeOutputSize = nx * ny;
+	int const inputStride = inputSize[0];
+
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
+	NNScalar* pNodeOutput = outputs;
+	NNScalar const* pSliceWeight = pWeight;
+	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+	{
+		for (int j = 0; j < ny; ++j)
+		{
+			for (int i = 0; i < nx; ++i)
+			{
+				int idx = i + inputSize[0] * j;
+				NNScalar const* pSliceInput = inputs + idx;
+				NNScalar value = pBias[idxNode];
+				for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
+				{
+					value += FNNMath::AreaConv(layer.convSize, inputStride, pSliceInput, pSliceWeight);
+					pSliceWeight += convLen;
+					pSliceInput += sliceInputSize;
+				}
+
+				pNodeOutput[idx] = value;
+			}
+		}
+
+		pNodeOutput += nodeOutputSize;
+	}
+
+	if (layer.funcTransform)
+	{
+		(*layer.funcTransform)(outputs, nodeOutputSize * layer.numNode);
 	}
 }

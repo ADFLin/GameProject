@@ -8,10 +8,9 @@
 
 namespace Go
 {
-	template< int N >
-	static int StartWith(char const* s1, char const (&s2)[N])
+	static int StartWith(char const* s1, StringView const& s2)
 	{
-		return ::strncmp(s1, s2, N - 1) == 0;
+		return ::strncmp(s1, s2.data(), s2.length()) == 0;
 	}
 
 	template< int N >

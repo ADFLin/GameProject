@@ -342,32 +342,32 @@ namespace Tetris
 		Vec2i pos = Vec2i( 10 , 10 + 30 );
 
 		GSlider* slider;
-		slider = new GSlider( UI_GRAVITY_VALUE_SLIDER , pos , uiSize.x , true , panel );
+		slider = new GSlider( UI_GRAVITY_VALUE_SLIDER , pos , uiSize.x , true, panel );
 		slider->setRange( 0 , ARRAY_SIZE( gPracticeGravityValue ) - 1 );
 		slider->setValue( 20 );
 
-		pos +=  off;
-		slider = new GSlider( UI_LOCK_PIECE_SLIDER  , pos , uiSize.x , true , panel );
+		pos += off;
+		slider = new GSlider( UI_LOCK_PIECE_SLIDER  , pos , uiSize.x , true, panel );
 		slider->setRange( 0 ,  LevelRule::DefaultTimeLockPiece );
 		slider->setValue( level->getLockPieceTime() );
 
-		pos +=  off;
-		slider = new GSlider( UI_ENTRY_DELAY_SLIDER  , pos , uiSize.x , true , panel );
+		pos += off;
+		slider = new GSlider( UI_ENTRY_DELAY_SLIDER  , pos , uiSize.x , true, panel );
 		slider->setRange( 0 ,  LevelRule::DefaultTimeEntryDelay );
 		slider->setValue( level->getEntryDelayTime() );
 
-		pos +=  off;
-		slider = new GSlider( UI_CLEAR_LAYER_SLIDER  , pos , uiSize.x , true , panel );
+		pos += off;
+		slider = new GSlider( UI_CLEAR_LAYER_SLIDER  , pos , uiSize.x , true, panel );
 		slider->setRange( 0 ,  LevelRule::DefaultTimeClearLayer );
 		slider->setValue( level->getClearLayerTime() );
 
-		pos +=  off;
-		slider = new GSlider( UI_MAP_SIZE_X_SLIDER , pos , uiSize.x , true , panel );
+		pos += off;
+		slider = new GSlider( UI_MAP_SIZE_X_SLIDER , pos , uiSize.x , true, panel );
 		slider->setRange( 5 , 20 );
 		slider->setValue( level->getBlockStorage().getSizeX() );
 
-		pos +=  off;
-		slider = new GSlider( UI_MAP_SIZE_Y_SLIDER  , pos , uiSize.x , true , panel );
+		pos += off;
+		slider = new GSlider( UI_MAP_SIZE_Y_SLIDER  , pos , uiSize.x , true, panel );
 		slider->setRange( 5 , 30 );
 		slider->setValue( level->getBlockStorage().getSizeY() );
 	}
@@ -425,33 +425,31 @@ namespace Tetris
 		int x = x0;
 		int y = y0 - d;
 
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		Level* level = getWorld()->getLevelData(0)->getLevel();
 
 		InlineString< 256 > str;
-		RenderUtility::SetFont( g , FONT_S10 );
-		g.setTextColor(Color3ub(255 , 255 , 0) );
+		RenderUtility::SetFont(g, FONT_S10);
+		g.setTextColor(Color3ub(255 , 255 , 0));
 
-		str.format( "Gravity Value = %3d" , mGravityValue );
-		g.drawText( x , y += d , str );
+		str.format("Gravity Value = %3d", mGravityValue );
+		g.drawText(Vector2(x, y += d), str);
 
-		str.format( "Lock Piece Time = %3d" , level->getLockPieceTime() );
-		g.drawText( x , y += d , str );
+		str.format("Lock Piece Time = %3d", level->getLockPieceTime());
+		g.drawText(Vector2(x, y += d), str);
 
-		str.format( "Entry Delay Time = %3d" , level->getEntryDelayTime() );
-		g.drawText( x , y += d , str );
+		str.format("Entry Delay Time = %3d", level->getEntryDelayTime());
+		g.drawText(Vector2(x, y += d), str);
 
-		str.format( "Clear Layer Time = %3d" , level->getClearLayerTime() );
-		g.drawText( x , y += d , str );
+		str.format("Clear Layer Time = %3d", level->getClearLayerTime());
+		g.drawText(Vector2(x, y += d), str);
 
-		str.format( "Map Size X = %3d" , level->getBlockStorage().getSizeX() );
-		g.drawText( x , y += d , str );
+		str.format("Map Size X = %3d", level->getBlockStorage().getSizeX());
+		g.drawText(Vector2(x, y += d), str);
 
-		str.format( "Map Size Y = %3d" , level->getBlockStorage().getSizeY() );
-		g.drawText( x , y += d , str );
-
-
+		str.format("Map Size Y = %3d", level->getBlockStorage().getSizeY());
+		g.drawText(Vector2(x, y += d), str);
 	}
 
 	void PracticeMode::renderStats( GWidget* ui )

@@ -151,7 +151,7 @@ void FNNMath::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRIC
 #endif
 }
 
-void FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
+int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
 {
 	NNScalar sum = 0.0;
 	for (int i = 0; i < dim; ++i)
@@ -159,11 +159,18 @@ void FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* output
 		outputs[i] = exp(inputs[i]);
 		sum += outputs[i];
 	}
-
+	int index = INDEX_NONE;
+	NNScalar maxValue = 0.0f;
 	for (int i = 0; i < dim; ++i)
 	{
 		outputs[i] /= sum;
+		if (maxValue < outputs[i])
+		{
+			index = i;
+			maxValue = outputs[i];
+		}
 	}
+	return index;
 }
 
 void FCNNLayout::init(uint32 const topology[], uint32 dimNum)
@@ -547,7 +554,7 @@ void FNNAlgo::BackwardPass(
 
 void FNNAlgo::ForwardFeedback(
 	NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
-	int numSliceInput, int inputSize[], NNScalar const* RESTRICT inputs,
+	int numSliceInput, int const inputSize[], NNScalar const* RESTRICT inputs,
 	NNScalar* RESTRICT outputs)
 {
 	CHECK(layer.dataSize[0] == (inputSize[0] - layer.convSize + 1));
@@ -564,16 +571,20 @@ void FNNAlgo::ForwardFeedback(
 	NNScalar const* pWeight = parameters + layer.weightOffset;
 	NNScalar const* pBias = parameters + layer.biasOffset;
 	NNScalar* pNodeOutput = outputs;
-	NNScalar const* pSliceWeight = pWeight;
+
 	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 	{
+		NNScalar const* pNodeWeight = pWeight + idxNode * numSliceInput * convLen;
 		for (int j = 0; j < ny; ++j)
 		{
 			for (int i = 0; i < nx; ++i)
 			{
-				int idx = i + inputSize[0] * j;
-				NNScalar const* pSliceInput = inputs + idx;
+				int idxInput = i + inputSize[0] * j;
+				int idxOutput = i + nx * j;
+				NNScalar const* pSliceInput = inputs + idxInput;
+				NNScalar const* pSliceWeight = pNodeWeight;
 				NNScalar value = pBias[idxNode];
+
 				for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
 				{
 					value += FNNMath::AreaConv(layer.convSize, inputStride, pSliceInput, pSliceWeight);
@@ -581,7 +592,7 @@ void FNNAlgo::ForwardFeedback(
 					pSliceInput += sliceInputSize;
 				}
 
-				pNodeOutput[idx] = value;
+				pNodeOutput[idxOutput] = value;
 			}
 		}
 
@@ -591,5 +602,41 @@ void FNNAlgo::ForwardFeedback(
 	if (layer.funcTransform)
 	{
 		(*layer.funcTransform)(outputs, nodeOutputSize * layer.numNode);
+	}
+}
+
+void FNNAlgo::ForwardFeedback(NeuralMaxPooling2DLayer const& layer, int const inputSize[], NNScalar const* RESTRICT inputs, NNScalar* RESTRICT outputs)
+{
+	CHECK(layer.dataSize[0] * layer.poolSize == inputSize[0]);
+	CHECK(layer.dataSize[1] * layer.poolSize == inputSize[1]);
+
+	int const spliceInputLen = inputSize[0] * inputSize[1];
+	int const spliceOutputLen = layer.dataSize[0] * layer.dataSize[1];
+
+	NNScalar const* RESTRICT pNodeInput = inputs;
+	NNScalar* RESTRICT pNodeOutput = outputs;
+	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+	{
+		for (int j = 0; j < layer.dataSize[1]; ++j)
+		{
+			for (int i = 0; i < layer.dataSize[0]; ++i)
+			{
+				int indexInput = layer.poolSize * ( i + j * inputSize[0] );
+				int indexOutput = i + j * layer.dataSize[1];
+				NNScalar value = std::numeric_limits<NNScalar>::lowest();
+				for (int oy = 0; oy < layer.poolSize; ++oy)
+				{
+					for (int ox = 0; ox < layer.poolSize; ++ox)
+					{
+						int indexOffset = ox + oy * inputSize[0];
+						value = Math::Max(value, pNodeInput[indexInput + indexOffset]);
+					}
+				}
+				pNodeOutput[indexOutput] = value;
+			}
+		}
+
+		pNodeInput += spliceInputLen;
+		pNodeOutput += spliceOutputLen;
 	}
 }

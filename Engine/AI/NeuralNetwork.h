@@ -158,7 +158,10 @@ struct NeuralLayer : ActiveLayer
 
 struct NeuralFullConLayer : NeuralLayer
 {
-
+	int getOutputLength() const
+	{
+		return numNode;
+	}
 };
 
 struct NeuralConv2DLayer : NeuralLayer
@@ -166,20 +169,28 @@ struct NeuralConv2DLayer : NeuralLayer
 	int convSize;
 	int dataSize[2];
 
+	int getOutputLength() const
+	{
+		return dataSize[0] * dataSize[1] * numNode;
+	}
+
 	NeuralConv2DLayer()
 	{
 
 	}
 };
 
-struct NerualPool2DLayer : NeuralLayer
+struct NeuralMaxPooling2DLayer
 {
-	int PoolSize;
+	int numNode;
+	int dataSize[2];
+	int poolSize;
 
-
+	int getOutputLength()
+	{
+		return dataSize[0] * dataSize[1] * numNode;
+	}
 };
-
-
 
 
 class FNNMath
@@ -233,7 +244,7 @@ public:
 		}
 	}
 
-	static void SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
+	static int SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
 
 	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT v)
 	{
@@ -412,7 +423,13 @@ public:
 
 	static void ForwardFeedback(
 		NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
-		int numSliceInput, int  inputSize[],
+		int numSliceInput, int const inputSize[],
+		NNScalar const* RESTRICT inputs,
+		NNScalar* RESTRICT outputs);
+
+	static void ForwardFeedback(
+		NeuralMaxPooling2DLayer const& layer,
+		int const inputSize[],
 		NNScalar const* RESTRICT inputs,
 		NNScalar* RESTRICT outputs);
 };

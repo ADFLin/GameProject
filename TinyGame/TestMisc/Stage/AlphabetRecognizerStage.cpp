@@ -354,7 +354,7 @@ namespace AR
 		+.005  , - .0264 , - .0217 , - .0118 , - .1775 , - .0455 , - .0286 , - .0836 , - .4369 , - .1238 , - .0813 , - .0584 , - .0247 , + .0142 , - .0159 , - .0818 , - .8506,
 	};
 
-#if 1
+#if 0
 	NNScalar TestInput[] =
 	{
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -393,9 +393,9 @@ namespace AR
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
+		0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
+		0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
 		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -543,6 +543,7 @@ namespace AR
 			layer7.setFuncionT< NNFunc::Linear >();
 			addParam(layer7, layer6.getOutputLength(), MakeView(Parameters7) );
 
+			mResult.resize(layer7.getOutputLength());
 
 			::Global::GUI().cleanupWidget();
 			auto frame = WidgetUtility::CreateDevFrame();
@@ -558,57 +559,74 @@ namespace AR
 		RHITexture2DRef mTexLayer5;
 		RHITexture2DRef mTexLayer6;
 		RHITexture2DRef mTexLayer7;
+		RHITexture2DRef mTexResult;
+		TArray<NNScalar> mResult;
+
+		RHITexture2DRef mTexLayers[7];
+		NNScalar* mOutputs[7];
 
 		virtual bool setupRenderResource(ERenderSystem systemName)
 		{
+			TArray<NNScalar> outputs;
+			outputs.resize(
+				layer1.getOutputLength() +
+				layer2.getOutputLength() +
+				layer3.getOutputLength() +
+				layer4.getOutputLength() +
+				layer5.getOutputLength() +
+				layer6.getOutputLength() +
+				layer7.getOutputLength());
 
-			TArray<NNScalar> output1;
-			TArray<NNScalar> output2;
-			TArray<NNScalar> output3;
-			TArray<NNScalar> output4;
-			TArray<NNScalar> output5;
-			TArray<NNScalar> output6;
-			TArray<NNScalar> output7;
+			NNScalar* output1 = outputs.data();
+			NNScalar* output2 = output1 + layer1.getOutputLength();
+			NNScalar* output3 = output2 + layer2.getOutputLength();
+			NNScalar* output4 = output3 + layer3.getOutputLength();
+			NNScalar* output5 = output4 + layer4.getOutputLength();
+			NNScalar* output6 = output5 + layer5.getOutputLength();
+			NNScalar* output7 = output6 + layer6.getOutputLength();
 
 			{
 				TIME_SCOPE("ForwardFeedback");
 
-				output1.resize(layer1.getOutputLength());
-				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, TestInput, output1.data());
+				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, TestInput, output1);
+				FNNAlgo::ForwardFeedback(layer2, mParamters.data(), layer1.numNode, layer1.dataSize, output1, output2);
+				FNNAlgo::ForwardFeedback(layer3, layer2.dataSize, output2, output3);
+				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, output3, output4);
+				FNNAlgo::ForwardFeedback(layer5, mParamters.data(), layer4.numNode, layer4.dataSize, output4, output5);
+				FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, output5, output6);
+				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), output6, output7);
 
-				output2.resize(layer2.getOutputLength());
-				FNNAlgo::ForwardFeedback(layer2, mParamters.data(), layer1.numNode, layer1.dataSize, output1.data(), output2.data());
-
-				output3.resize(layer3.getOutputLength());
-				FNNAlgo::ForwardFeedback(layer3, layer2.dataSize, output2.data(), output3.data());
-
-				output4.resize(layer4.getOutputLength());
-				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, output3.data(), output4.data());
-
-				output5.resize(layer5.getOutputLength());
-				FNNAlgo::ForwardFeedback(layer5, mParamters.data(), layer4.numNode, layer4.dataSize, output4.data(), output5.data());
-
-				output6.resize(layer6.getOutputLength());
-				FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, output5.data(), output6.data());
-
-				output7.resize(layer7.numNode);
-				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), output6.data(), output7.data());
-
-				TArray<NNScalar> result;
-				result.resize(output7.size());
-				int index = FNNMath::SoftMax(output7.size(), output7.data(), result.data());
-
-				LogMsg("Answer = %c, pct = %f", 'A' + index, result[index]);
+				int index = FNNMath::SoftMax(layer7.getOutputLength(), output7, mResult.data());
+				LogMsg("Answer = %c, pct = %f", 'A' + index, mResult[index]);
 			}
 
+
+			auto CreateLayerTexture = [](int w, int h, NNScalar* pData)
+			{
+				TArray<LinearColor> colors;
+				colors.resize(w * h);
+
+				for (int i = 0; i < colors.size(); ++i)
+				{
+					float x = pData[i];
+					float r = Math::Cos(2*Math::PI*(.118*x - 2.642))*.5 + .5;
+					float g = Math::Cos(2*Math::PI*(.118*x - 2.392))*.5 + .5;
+					float b = Math::Cos(2*Math::PI*(.118*x - 2.322))*.5 + .5;
+					colors[i] = LinearColor(r, g, b, 1.0f);
+				}
+				//RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode), output1.data());
+				return RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA32F, w, h), colors.data());
+			};
+
 			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, 28, 28), TestInput);
-			mTexLayer1 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode), output1.data());
-			mTexLayer2 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer2.dataSize[0], layer2.dataSize[1] * layer2.numNode), output2.data());
-			mTexLayer3 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer3.dataSize[0], layer3.dataSize[1] * layer3.numNode), output3.data());
-			mTexLayer4 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer4.dataSize[0], layer4.dataSize[1] * layer4.numNode), output4.data());
-			mTexLayer5 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode), output5.data());
-			mTexLayer6 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode), output6.data());
-			mTexLayer7 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, 1, layer7.numNode), output7.data());
+			mTexLayer1 = CreateLayerTexture(layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode, output1);
+			mTexLayer2 = CreateLayerTexture(layer2.dataSize[0], layer2.dataSize[1] * layer2.numNode, output2);
+			mTexLayer3 = CreateLayerTexture(layer3.dataSize[0], layer3.dataSize[1] * layer3.numNode, output3);
+			mTexLayer4 = CreateLayerTexture(layer4.dataSize[0], layer4.dataSize[1] * layer4.numNode, output4);
+			mTexLayer5 = CreateLayerTexture(layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode, output5);
+			mTexLayer6 = CreateLayerTexture(layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode, output6);
+			mTexLayer7 = CreateLayerTexture(1, layer7.getOutputLength(), output7);
+			mTexResult = CreateLayerTexture(1, layer7.getOutputLength(), mResult.data());
 			return true;
 		}
 
@@ -622,7 +640,7 @@ namespace AR
 
 		}
 
-
+		static float constexpr DefaultLen = 60;
 		void onRender(float dFrame) override
 		{
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
@@ -638,24 +656,37 @@ namespace AR
 			RenderUtility::SetBrush(g, EColor::White);
 
 			float x = 10;
-			float len = 72;
-			float offsetX = len + 10; 
 
-			g.drawTexture(*mTexInput, Vector2(x, 10), Vector2(len, len));
-			x += offsetX;
-			g.drawTexture(*mTexLayer1, Vector2(x, 10), Vector2(len, len * layer1.numNode));
-			x += offsetX;
-			g.drawTexture(*mTexLayer2, Vector2(x, 10), Vector2(len, len * layer2.numNode));
-			x += offsetX;
-			g.drawTexture(*mTexLayer3, Vector2(x, 10), Vector2(len, len * layer3.numNode));
-			x += offsetX;
-			g.drawTexture(*mTexLayer4, Vector2(x, 10), Vector2(len, len * layer4.numNode));
-			x += offsetX;
-			g.drawTexture(*mTexLayer5, Vector2(x, 10), Vector2(len, len * layer5.numNode));
-			x += offsetX;
-			g.drawTexture(*mTexLayer6, Vector2(x, 10), Vector2(len, len * layer6.numNode));
-			x += offsetX;
-			g.drawTexture(*mTexLayer7, Vector2(x, 10), 0.5 * Vector2(len, len * layer7.numNode));
+			Vector2 pos = Vector2(10, 10);
+			auto DrawLayer = [&](RHITexture2D& textrue, int num, float len = DefaultLen)
+			{
+				RenderUtility::SetBrush(g, EColor::White);
+				float dV = 1.0 / num;
+				g.setTexture(textrue);
+				g.setSampler(TStaticSamplerState<ESampler::Point>::GetRHI());
+				for (int i = 0; i < num; ++i)
+				{
+					g.drawTexture(pos + Vector2(0 , i * (len + 5)), Vector2(len, len), Vector2(0, (i + 1) * dV), Vector2(1, -dV));
+				}
+
+				RenderUtility::SetPen(g, EColor::White);
+				RenderUtility::SetBrush(g, EColor::Null);
+				for (int i = 0; i < num; ++i)
+				{
+					g.drawRect(pos + Vector2(0, i * (len + 5)), Vector2(len, len));
+				}
+
+				pos.x += len + 10;
+			};
+			DrawLayer(*mTexInput, 1);
+			DrawLayer(*mTexLayer1, layer1.numNode);
+			DrawLayer(*mTexLayer2, layer2.numNode);
+			DrawLayer(*mTexLayer3, layer3.numNode);
+			DrawLayer(*mTexLayer4, layer4.numNode);
+			DrawLayer(*mTexLayer5, layer5.numNode);
+			DrawLayer(*mTexLayer6, layer6.numNode);
+			DrawLayer(*mTexLayer7, layer7.numNode, 15.0);
+			DrawLayer(*mTexResult, layer7.numNode, 15.0);
 			g.endRender();
 		}
 

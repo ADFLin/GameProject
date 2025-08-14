@@ -393,9 +393,9 @@ namespace AR
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
-		0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
-		0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
+		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -544,9 +544,26 @@ namespace AR
 			addParam(layer7, layer6.getOutputLength(), MakeView(Parameters7) );
 
 			mResult.resize(layer7.getOutputLength());
+			mOutputsData.resize(
+				layer1.getOutputLength() +
+				layer2.getOutputLength() +
+				layer3.getOutputLength() +
+				layer4.getOutputLength() +
+				layer5.getOutputLength() +
+				layer6.getOutputLength() +
+				layer7.getOutputLength());
 
 			::Global::GUI().cleanupWidget();
 			auto frame = WidgetUtility::CreateDevFrame();
+
+			mInputData.resize( ImageSize[0] * ImageSize[1] * sizeof(NNScalar));
+			FMemory::Copy(mInputData.data(), TestInput, mInputData.size());
+
+			frame->addButton("Clear", [this](int event, GWidget*) -> bool
+			{
+				clearInput();
+				return false;
+			});
 
 			return true;
 		}
@@ -564,20 +581,36 @@ namespace AR
 
 		RHITexture2DRef mTexLayers[7];
 		NNScalar* mOutputs[7];
+		TArray<NNScalar> mOutputsData;
 
 		virtual bool setupRenderResource(ERenderSystem systemName)
 		{
-			TArray<NNScalar> outputs;
-			outputs.resize(
-				layer1.getOutputLength() +
-				layer2.getOutputLength() +
-				layer3.getOutputLength() +
-				layer4.getOutputLength() +
-				layer5.getOutputLength() +
-				layer6.getOutputLength() +
-				layer7.getOutputLength());
+			auto CreateLayerTexture = [](int w, int h, void* data = nullptr)
+			{
+				return RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA32F, w, h));
+			};
 
-			NNScalar* output1 = outputs.data();
+			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, 28, 28).AddFlags(TCF_RenderTarget | TCF_AllowCPUAccess), mInputData.data());
+			mTexLayer1 = CreateLayerTexture(layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode);
+			mTexLayer2 = CreateLayerTexture(layer2.dataSize[0], layer2.dataSize[1] * layer2.numNode);
+			mTexLayer3 = CreateLayerTexture(layer3.dataSize[0], layer3.dataSize[1] * layer3.numNode);
+			mTexLayer4 = CreateLayerTexture(layer4.dataSize[0], layer4.dataSize[1] * layer4.numNode);
+			mTexLayer5 = CreateLayerTexture(layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode);
+			mTexLayer6 = CreateLayerTexture(layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode);
+			mTexLayer7 = CreateLayerTexture(1, layer7.getOutputLength());
+			mTexResult = CreateLayerTexture(1, layer7.getOutputLength(), mResult.data());
+
+			mFrameBuffer = RHICreateFrameBuffer();
+			mFrameBuffer->addTexture(*mTexInput);
+
+			update();
+			return true;
+		}
+
+		void update()
+		{
+			TIME_SCOPE("Update");
+			NNScalar* output1 = mOutputsData.data();
 			NNScalar* output2 = output1 + layer1.getOutputLength();
 			NNScalar* output3 = output2 + layer2.getOutputLength();
 			NNScalar* output4 = output3 + layer3.getOutputLength();
@@ -588,7 +621,7 @@ namespace AR
 			{
 				TIME_SCOPE("ForwardFeedback");
 
-				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, TestInput, output1);
+				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, (NNScalar*)mInputData.data(), output1);
 				FNNAlgo::ForwardFeedback(layer2, mParamters.data(), layer1.numNode, layer1.dataSize, output1, output2);
 				FNNAlgo::ForwardFeedback(layer3, layer2.dataSize, output2, output3);
 				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, output3, output4);
@@ -601,10 +634,10 @@ namespace AR
 			}
 
 
-			auto CreateLayerTexture = [](int w, int h, NNScalar* pData)
+			auto UpdateLayerTexture = [](RHITexture2D& texture, NNScalar* pData)
 			{
 				TArray<LinearColor> colors;
-				colors.resize(w * h);
+				colors.resize(texture.getSizeX() * texture.getSizeY());
 
 				for (int i = 0; i < colors.size(); ++i)
 				{
@@ -614,20 +647,18 @@ namespace AR
 					float b = Math::Cos(2*Math::PI*(.118*x - 2.322))*.5 + .5;
 					colors[i] = LinearColor(r, g, b, 1.0f);
 				}
-				//RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode), output1.data());
-				return RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA32F, w, h), colors.data());
+
+				RHIUpdateTexture(texture, 0, 0, texture.getSizeX(), texture.getSizeY(), colors.data());
 			};
 
-			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, 28, 28), TestInput);
-			mTexLayer1 = CreateLayerTexture(layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode, output1);
-			mTexLayer2 = CreateLayerTexture(layer2.dataSize[0], layer2.dataSize[1] * layer2.numNode, output2);
-			mTexLayer3 = CreateLayerTexture(layer3.dataSize[0], layer3.dataSize[1] * layer3.numNode, output3);
-			mTexLayer4 = CreateLayerTexture(layer4.dataSize[0], layer4.dataSize[1] * layer4.numNode, output4);
-			mTexLayer5 = CreateLayerTexture(layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode, output5);
-			mTexLayer6 = CreateLayerTexture(layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode, output6);
-			mTexLayer7 = CreateLayerTexture(1, layer7.getOutputLength(), output7);
-			mTexResult = CreateLayerTexture(1, layer7.getOutputLength(), mResult.data());
-			return true;
+			UpdateLayerTexture(*mTexLayer1, output1);
+			UpdateLayerTexture(*mTexLayer2, output2);
+			UpdateLayerTexture(*mTexLayer3, output3);
+			UpdateLayerTexture(*mTexLayer4, output4);
+			UpdateLayerTexture(*mTexLayer5, output5);
+			UpdateLayerTexture(*mTexLayer6, output6);
+			UpdateLayerTexture(*mTexLayer7, output7);
+			UpdateLayerTexture(*mTexResult, mResult.data());
 		}
 
 		virtual void onEnd()
@@ -638,6 +669,43 @@ namespace AR
 		void restart()
 		{
 
+		}
+
+
+		TArray<uint8> mInputData;
+
+		void clearInput()
+		{
+			RHIBeginRender();
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHISetFrameBuffer(commandList, mFrameBuffer);
+			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.0, 0.0, 0.0, 1.0), 1);
+			RHIEndRender(false);
+
+
+			RHIReadTexture(*mTexInput, ETexture::R32F, 0, mInputData);
+			update();
+		}
+
+		void paintInput(Vector2 const& pos)
+		{
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHISetFrameBuffer(commandList, mFrameBuffer);
+
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+			g.setViewportSize( mTexInput->getSizeX() , mTexInput->getSizeY() );
+			g.beginRender();
+			float radius = 1.0;
+
+			RenderUtility::SetPen(g, EColor::White);
+			RenderUtility::SetBrush(g, EColor::White);
+			g.drawCircle(pos, radius);
+			g.endRender();
+			auto screenSize = ::Global::GetScreenSize();
+			g.setViewportSize( screenSize.x, screenSize.y );
+
+			RHIReadTexture(*mTexInput, ETexture::R32F, 0, mInputData);
+			update();
 		}
 
 		static float constexpr DefaultLen = 60;
@@ -678,7 +746,19 @@ namespace AR
 
 				pos.x += len + 10;
 			};
-			DrawLayer(*mTexInput, 1);
+
+			g.pushXForm();
+			g.transformXForm(mXFormInput, false);
+
+			RenderUtility::SetBrush(g, EColor::White);
+			g.drawTexture(*mTexInput, Vector2(0,0));
+
+			RenderUtility::SetPen(g, EColor::White);
+			RenderUtility::SetBrush(g, EColor::Null);
+			g.drawRect(Vector2(0, 0), Vector2(mTexInput->getSizeX(), mTexInput->getSizeY()));
+			g.popXForm();
+
+
 			DrawLayer(*mTexLayer1, layer1.numNode);
 			DrawLayer(*mTexLayer2, layer2.numNode);
 			DrawLayer(*mTexLayer3, layer3.numNode);
@@ -688,6 +768,30 @@ namespace AR
 			DrawLayer(*mTexLayer7, layer7.numNode, 15.0);
 			DrawLayer(*mTexResult, layer7.numNode, 15.0);
 			g.endRender();
+		}
+
+
+		RHIFrameBufferRef mFrameBuffer;
+		RenderTransform2D mXFormInput = RenderTransform2D(Vector2(10,-10), Vector2(600, 410));
+
+
+		MsgReply onMouse(MouseMsg const& msg) override
+		{
+			if (msg.onLeftDown())
+			{
+				Vector2 pos = mXFormInput.transformInvPosition( msg.getPos() );
+				paintInput(pos);
+			}
+			else if (msg.onLeftUp())
+			{
+
+			}
+			else if (msg.isLeftDown() && msg.onMoving())
+			{
+				Vector2 pos = mXFormInput.transformInvPosition(msg.getPos());
+				paintInput(pos);
+			}
+			return BaseClass::onMouse(msg);
 		}
 
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override

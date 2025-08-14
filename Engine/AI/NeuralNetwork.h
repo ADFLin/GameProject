@@ -239,8 +239,8 @@ public:
 	{
 		for (int col = 0; col < dimCol; ++col)
 		{
-			out[col] = VectorDot(dimRow, m, v);
-			m += dimRow;
+			out[col] = VectorDot(dimRow, v, m, dimRow);
+			m += 1;
 		}
 	}
 
@@ -289,25 +289,8 @@ struct TMatrixView
 	}
 };
 
-
-template< typename T >
-struct TTransposedMatrixView
-{
-	T*    mData;
-	int   mRows, mCols;
-
-
-	void mul(TVectorView<T> const& rhs, TVectorView<T>& out)
-	{
-		CHECK(mRows == mRows.mSize && mRows == out.mSize);
-		FNNMath::VectorMulMatrix(mRows, mCols, mData, rhs.mData, out.mData);
-	}
-};
-
 using NNMatrixView = TMatrixView<NNScalar>;
 using NNVectorView = TVectorView<NNScalar>;
-
-
 
 class FCNNLayout
 {

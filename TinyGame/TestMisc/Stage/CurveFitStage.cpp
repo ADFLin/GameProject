@@ -15,7 +15,8 @@
 float TestFunc(float x)
 {
 #if 1
-	return x * x * x - x * x - exp(2 * Math::PI * x);
+	//return x * x * x - x * x - exp(2 * Math::PI * x);
+	return exp(-0.01 * x*x) *( sin(2 * Math::PI * x) + sin(1.131 * Math::PI * x + 0.2) );
 #else
 	if (x < -0.5)
 		return -1;
@@ -84,7 +85,7 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		int size = 24;
-		uint32 topology[] = { 1, size, size, size, size, 1 };
+		uint32 topology[] = { 1, size, size, size, size, size, size, 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
 		mLayout.setHiddenLayerFunction<NNFunc::ReLU>();
 		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
@@ -146,14 +147,24 @@ public:
 	TArray<SampleData> mTestSamples;
 
 	TArray<SampleData*> mOrderedSample;
+
+	NNScalar mMaxX;
+	struct Range
+	{
+		NNScalar min;
+		NNScalar max;
+
+	};
+
+	Range mSampleRange = { -10 , 10 };
 	void importSample()
 	{
 		int sampleNum = 50000;
 		mSamples.resize(sampleNum);
-		mTestSamples.resize(10000);
+		mTestSamples.resize(50000);
 
-		NNScalar delta = 2 / float(sampleNum);
-		NNScalar start = -1;
+		NNScalar delta = (mSampleRange.max - mSampleRange.min) / float(sampleNum);
+		NNScalar start = mSampleRange.min;
 
 		for (auto& sample : mSamples)
 		{
@@ -162,7 +173,7 @@ public:
 			start += delta;
 		}
 
-		NNScalar startTest = -1 + 0.5 * delta;
+		NNScalar startTest = mSampleRange.min + 0.5 * delta;
 		for (auto& sample : mTestSamples)
 		{
 			sample.input = startTest;
@@ -366,36 +377,35 @@ public:
 	TArray< Vector2 > mFuncCurvePoints;
 	TArray< Vector2 > mNNCurvePoints;
 
-	void generateFuncCurve()
+	template< typename TFunc >
+	void generateFuncCurve(TArray< Vector2 >& points, TFunc& func)
 	{
-		float min = -1;
-		float max = 1;
-		int num = 50;
-		mFuncCurvePoints.resize(num);
+		float min = mSampleRange.min;
+		float max = mSampleRange.max;
+		int num = 800;
+		points.resize(num);
 		for (int i = 0; i < num; ++i)
 		{
-			Vector2& pt = mFuncCurvePoints[i];
+			Vector2& pt = points[i];
 			pt.x = min + (max - min) * i / float(num - 1);
-			pt.y = TestFunc(pt.x);
+			pt.y = func(pt.x);
 		}
+	}
+	void generateFuncCurve()
+	{
+		generateFuncCurve(mFuncCurvePoints, TestFunc);
 	}
 
 	void generateNNCurve()
 	{
-		float min = -1;
-		float max = 1;
-		int num = 50;
-		mNNCurvePoints.resize(num);
-		for (int i = 0; i < num; ++i)
+		generateFuncCurve(mNNCurvePoints, [&](float x)
 		{
 			NNScalar inputs[1];
-			inputs[0] = min + (max - min) * i / float(num - 1);
+			inputs[0] = x;
 			NNScalar outputs[1];
 			mFCNN.calcForwardFeedback(inputs, outputs);
-			Vector2& pt = mNNCurvePoints[i];
-			pt.x = inputs[0];
-			pt.y = outputs[0];
-		}
+			return outputs[0];
+		});
 	}
 
 	void onRender(float dFrame)
@@ -490,9 +500,10 @@ public:
 		};
 
 		Diagram diagram;
-
+		diagram.min.x = mSampleRange.min;
+		diagram.max.x = mSampleRange.max;
 		diagram.setup(commandList, Vector2(100, 100), Vector2(400, 400));
-		diagram.drawGird(commandList, Vector2(0,0) , Vector2(0.2,0.2));
+		diagram.drawGird(commandList, Vector2(0,0) , Vector2(2,2));
 
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add >::GetRHI());
 		diagram.drawCurve(commandList, mFuncCurvePoints, LinearColor(1, 0, 0, 1));

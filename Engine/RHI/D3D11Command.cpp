@@ -712,17 +712,52 @@ namespace Render
 			return formatSize;
 		};
 		int formatSize = GetFormatClientSize(format);
-		int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
+
+		int dataRowSize = Math::Max(texture.getSizeX() >> level, 1) * formatSize;
+		int dataHeight = Math::Max(texture.getSizeY() >> level, 1);
+		int dataSize = dataRowSize * dataHeight;
 		outData.resize(dataSize);
 
+
+		ID3D11Texture2D* copyResource = nullptr;
 		TComPtr<ID3D11Texture2D> stagingTexture;
-		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture , level);
-		//mDeviceContextImmdiate->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
-		mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0 , 0 , 0 , 0 , D3D11Cast::GetResource(texture), level, nullptr);
+		//if (texture.getDesc().creationFlags & TCF_AllowCPUAccess)
+		//{
+		//	copyResource = D3D11Cast::GetResource(texture);
+		//}
+		//else
+		{
+			if (!createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture, level))
+			{
+				return;
+			}
+			//mDeviceContextImmdiate->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+			mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, D3D11Cast::GetResource(texture), level, nullptr);
+			copyResource = stagingTexture.get();
+		}
+
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		mDeviceContextImmdiate->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
-		FMemory::Copy(outData.data(), mappedResource.pData, outData.size());
-		mDeviceContextImmdiate->Unmap(stagingTexture, level);
+		HRESULT hr = mDeviceContextImmdiate->Map(copyResource, 0, D3D11_MAP_READ, 0, &mappedResource);
+		if (hr != S_OK)
+		{
+			return;
+		}
+		if (mappedResource.RowPitch == dataRowSize)
+		{
+			FMemory::Copy(outData.data(), mappedResource.pData, outData.size());
+		}
+		else
+		{
+			uint8* pData = outData.data();
+			uint8 const* pCopyData = (uint8*)mappedResource.pData;
+			for (int i = 0; i < dataHeight; ++i)
+			{
+				FMemory::Copy(pData, pCopyData, dataRowSize);
+				pData += dataRowSize;
+				pCopyData += mappedResource.RowPitch;
+			}
+		}
+		mDeviceContextImmdiate->Unmap(copyResource, level);
 	}
 
 	void D3D11System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
@@ -1008,7 +1043,7 @@ namespace Render
 	template< class TD3D11_TEXTURE_DESC >
 	void SetupTextureDesc(TD3D11_TEXTURE_DESC& desc, uint32 creationFlags, bool bDepthFormat = false)
 	{
-		desc.Usage = (creationFlags & TCF_AllowCPUAccess) ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
+		desc.Usage = (creationFlags & TCF_AllowCPUAccess) ? D3D11_USAGE_DEFAULT : D3D11_USAGE_DEFAULT;
 
 		if (bDepthFormat)
 		{

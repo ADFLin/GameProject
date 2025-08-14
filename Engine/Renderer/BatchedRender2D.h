@@ -621,7 +621,7 @@ namespace Render
 
 		BatchedRender();
 
-		CORE_API ShapeVertexCache& GetShapeCache();
+		static CORE_API ShapeVertexCache& GetShapeCache();
 
 		void initializeRHI();
 		void releaseRHI();

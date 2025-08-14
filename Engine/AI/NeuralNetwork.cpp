@@ -436,6 +436,58 @@ void FNNAlgo::ForwardPass(
 		outNetInputs += curInputNum;
 	}
 }
+// l-1          l
+//             b[l,n] 
+//     w[l,n,k]   z[l,n]          w[l+1,m,n] z[l+1,m]
+// a[k] ------  +  -----> [F] a[l,n]----> + -------->
+//            /   dc/dz             \ 
+//           / w[l,n,k+1]            \ w[l+1,m+1,n]
+//          /                         \      z[l+1,m+1]
+// a[k+1]  /                           \ + -------->
+// tn : output
+// L : output Layer index
+// z[l,n] : NetworkInput   
+// a[l,n] : Signal 
+// dC/dz[l,n] : Sensitivity Value
+
+// z[l,n] = £Uk( w[l,n,k]*a[l-1,k] ) + b[l,n]
+// C = sum( 0.5 *( t[n] - a[L,n] )^2 )
+// dC/da[L,n] = -(t[n] - a[L,n]) 
+
+// dC/dz[L,n] = dC/da * da/dz =  F'(z[L,n]) * dC/da[L,n] = F'(z[L,n]) * -(t[n] - a[L,n]) 
+// dC/dz[l,n] = dC/da * da/dz =  F'(z[l,n]) * £Uk( dC/dz[l+1,k] * w[l+1,k,n] )
+
+// dC/dw[l,n,k] = dC/dz * dz/dw = dC/dz[l,n] * a[l-1,k]
+// dC/db[l,n] = dC/dz * dz/db = dC/dz[l,n]
+// w'[l,n,k] = w[l,n,k] + learnRate * dC/dw[l,n,k]
+// b'[l,n] = b[l,n] + learnRate * dC/db[l,n] 
+
+void BackwardFeedback(
+	NeuralFullConLayer const& layer,
+	int numNodeWeiget,
+	NNScalar const* pInputSignals,
+	NNScalar const* pNetworkInputs,
+	NNScalar inoutLossDerivatives[],
+	NNScalar outDeltaWeights[])
+{
+	NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
+	NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
+	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+	{
+		NNScalar z_ln = pNetworkInputs[idxNode];
+		inoutLossDerivatives[idxNode] *= layer.funcDerivative(z_ln);
+		NNScalar dCdz = inoutLossDerivatives[idxNode];
+		NNScalar dCdb = dCdz;
+		*pDeltaBiasLayer += dCdb;
+		++pDeltaBiasLayer;
+		for (int k = 0; k < numNodeWeiget; ++k)
+		{
+			NNScalar dCdw = dCdz * pInputSignals[k];
+			*pDeltaWeightLayer += dCdw;
+			++pDeltaWeightLayer;
+		}
+	}
+}
 
 void FNNAlgo::BackwardPass(
 	FCNNLayout const& layout, NNScalar* parameters,
@@ -445,31 +497,7 @@ void FNNAlgo::BackwardPass(
 	NNScalar outLossGrads[],
 	NNScalar outDeltaWeights[])
 {
-	// l-1          l
-	//             b[l,n] 
-	//     w[l,n,k]   z[l,n]          w[l+1,m,n] z[l+1,m]
-	// a[k] ------  +  -----> [F] a[l,n]----> + -------->
-	//            /   dc/dz             \ 
-	//           / w[l,n,k+1]            \ w[l+1,m+1,n]
-	//          /                         \      z[l+1,m+1]
-	// a[k+1]  /                           \ + -------->
-	// tn : output
-	// L : output Layer index
-	// z[l,n] : NetworkInput   
-	// a[l,n] : Signal 
-	// dC/dz[l,n] : Sensitivity Value
 
-	// z[l,n] = £Uk( w[l,n,k]*a[l-1,k] ) + b[l,n]
-	// C = sum( 0.5 *( t[n] - a[L,n] )^2 )
-	// dC/da[L,n] = -( t[n] - a[L,n]) 
-
-	// dC/dz[L,n] = da/dz * dC/da =  F'(z[L,n]) * dC/da[L,n] = - F'(z[L,n]) * (t[n] - a[L,n]) 
-	// dC/dz[l,n] = da/dz * dC/da =  F'(z[l,n]) * £Uk( dC/dz[l+1,k] * w[l+1,k,n] )
-
-	// dC/dw[l,n,k] = dC/dz * dz/dw = dC/dz[l,n] * a[l-1,k]
-	// dC/db[l,n] = dC/dz * dz/db = dC/dz[l,n]
-	// w'[l,n,k] = w[l,n,k] + learnRate * dC/dw[l,n,k]
-	// b'[l,n] = b[l,n] + learnRate * dC/db[l,n] 
 	int totalNodeCount = layout.getHiddenNodeNum() + layout.getOutputNum();
 
 	NNScalar* pLossGrad = outLossGrads + totalNodeCount;
@@ -490,26 +518,8 @@ void FNNAlgo::BackwardPass(
 		pInputSignals -= numNodeWeiget;
 		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer));
 
-
-		NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
-		NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			NNScalar z_ln = pNetworkInputs[idxNode];
-			NNScalar dCdz = layer.funcDerivative(z_ln) * inLossDerivatives[idxNode];
-
-			pLossGrad[idxNode] = dCdz;
-
-			NNScalar dCdb = dCdz;
-			*pDeltaBiasLayer += dCdb;
-			++pDeltaBiasLayer;
-			for (int k = 0; k < numNodeWeiget; ++k)
-			{
-				NNScalar dCdw = dCdz * pInputSignals[k];
-				*pDeltaWeightLayer += dCdw;
-				++pDeltaWeightLayer;
-			}
-		}
+		FNNMath::VectorCopy(layer.numNode, inLossDerivatives, pLossGrad);
+		BackwardFeedback(layer, numNodeWeiget, pInputSignals, pNetworkInputs, pLossGrad, outDeltaWeights);
 	}
 
 	for (int idxLayer = layout.getHiddenLayerNum() - 1; idxLayer >= 0; --idxLayer)
@@ -528,27 +538,10 @@ void FNNAlgo::BackwardPass(
 		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer));
 
 		NNScalar* pWeightNext = parameters + nextLayer.weightOffset;
-		int weightStride = nextLayer.numNode;
 
-		NNScalar* pDeltaWeightLayer = outDeltaWeights + layer.weightOffset;
-		NNScalar* pDeltaBiasLayer = outDeltaWeights + layer.biasOffset;
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			NNScalar z_ln = pNetworkInputs[idxNode];
-			NNScalar dCdz = layer.funcDerivative(z_ln) * FNNMath::VectorDot(nextLayer.numNode, pSensivityNextLayer, pWeightNext + idxNode, weightStride);
+		FNNMath::VectorMulMatrix(nextLayer.numNode, layer.numNode, pWeightNext, pSensivityNextLayer, pLossGrad);
+		BackwardFeedback(layer, numNodeWeiget, pInputSignals, pNetworkInputs, pLossGrad, outDeltaWeights);
 
-			pLossGrad[idxNode] = dCdz;
-
-			NNScalar dCdb = dCdz;
-			*pDeltaBiasLayer += dCdb;
-			++pDeltaBiasLayer;
-			for (int k = 0; k < numNodeWeiget; ++k)
-			{
-				NNScalar dCdw = dCdz * pInputSignals[k];
-				*pDeltaWeightLayer += dCdw;
-				++pDeltaWeightLayer;
-			}
-		}
 	}
 }
 
@@ -605,7 +598,11 @@ void FNNAlgo::ForwardFeedback(
 	}
 }
 
-void FNNAlgo::ForwardFeedback(NeuralMaxPooling2DLayer const& layer, int const inputSize[], NNScalar const* RESTRICT inputs, NNScalar* RESTRICT outputs)
+void FNNAlgo::ForwardFeedback(
+	NeuralMaxPooling2DLayer const& layer, 
+	int const inputSize[],
+	NNScalar const* RESTRICT inputs,
+	NNScalar* RESTRICT outputs)
 {
 	CHECK(layer.dataSize[0] * layer.poolSize == inputSize[0]);
 	CHECK(layer.dataSize[1] * layer.poolSize == inputSize[1]);

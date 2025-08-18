@@ -370,6 +370,11 @@ namespace Render
 		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
 	}
 
+	void RHIGenerateMips(RHITextureBase& texture)
+	{
+		EXECUTE_RHI_FUNC(RHIGenerateMips(texture));
+	}
+
 	bool  RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
 	{
 		return EXECUTE_RHI_FUNC(RHIUpdateTexture(texture, ox, oy, w, h, data, level, dataWidth));

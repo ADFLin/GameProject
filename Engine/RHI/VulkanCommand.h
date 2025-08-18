@@ -150,6 +150,10 @@ namespace Render
 
 
 		}
+		void RHIGenerateMips(RHITextureBase& texture)
+		{
+
+		}
 		RHIFrameBuffer*  RHICreateFrameBuffer() { return nullptr; }
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);

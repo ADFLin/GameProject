@@ -187,7 +187,7 @@ namespace Render
 	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
-
+	RHI_API void RHIGenerateMips(RHITextureBase& texture);
 	RHI_API bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0);
 	RHI_API void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
 
@@ -391,6 +391,7 @@ namespace Render
 
 		RHI_FUNC(bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth));
 		RHI_FUNC(void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data));
+		RHI_FUNC(void RHIGenerateMips(RHITextureBase& texture));
 
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));

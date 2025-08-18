@@ -479,6 +479,8 @@ namespace Render
 
 		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
+		void RHIGenerateMips(RHITextureBase& texture);
+
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);

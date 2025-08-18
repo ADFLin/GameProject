@@ -441,7 +441,10 @@ namespace Render
 		//void  RHIUnlockTexture(RHITextureBase* texture);
 
 		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
+		void RHIGenerateMips(RHITextureBase& texture)
+		{
 
+		}
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);

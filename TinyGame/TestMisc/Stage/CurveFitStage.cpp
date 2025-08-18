@@ -157,6 +157,8 @@ public:
 	};
 
 	Range mSampleRange = { -10 , 10 };
+	//NNScalar mInputScale = 2.0 / (mSampleRange.max - mSampleRange.min);
+	NNScalar mInputScale = 1.0;
 	void importSample()
 	{
 		int sampleNum = 50000;
@@ -168,16 +170,16 @@ public:
 
 		for (auto& sample : mSamples)
 		{
-			sample.input = start;
-			sample.label = TestFunc(sample.input);
+			sample.input = start * mInputScale;
+			sample.label = TestFunc(start);
 			start += delta;
 		}
 
 		NNScalar startTest = mSampleRange.min + 0.5 * delta;
 		for (auto& sample : mTestSamples)
 		{
-			sample.input = startTest;
-			sample.label = TestFunc(sample.input);
+			sample.input = startTest * mInputScale;
+			sample.label = TestFunc(startTest);
 			startTest += delta;
 		}
 
@@ -195,6 +197,13 @@ public:
 	
 	TArray<NNScalar> mRMSPropSqare;
 	TArray<NNScalar> mMomentum;
+
+	bool save(char const* path)
+	{
+
+
+
+	}
 
 
 	class FRMSELoss
@@ -256,7 +265,10 @@ public:
 			for (int i = 0; i < numWorker; ++i)
 			{
 				int indexSampleStart = i * maxWorkerSampleNum;
-				int numSample = (i == numWorker - 1) ?  samples.size() - indexSampleStart : maxWorkerSampleNum;
+				if (indexSampleStart >= samples.size())
+					break;
+
+				int numSample = Math::Min<int>(samples.size() - indexSampleStart, maxWorkerSampleNum);
 				TrainData& trainData = *mThreadTrainDatas[i];
 				mPool.addFunctionWork(
 					[this, &samples, indexSampleStart, numSample, &trainData]()
@@ -314,10 +326,13 @@ public:
 		return trainResult;
 	}
 
-	int mBatchSize = 1000;
+	int mBatchSize = 100;
 	int mEpoch = 0;
 	TArray< Vector2 > mLossPoints;
 	TArray< Vector2 > mTestLossPoints;
+
+
+
 	void Train()
 	{
 		TIME_SCOPE("Train");
@@ -401,7 +416,7 @@ public:
 		generateFuncCurve(mNNCurvePoints, [&](float x)
 		{
 			NNScalar inputs[1];
-			inputs[0] = x;
+			inputs[0] = x * mInputScale;
 			NNScalar outputs[1];
 			mFCNN.calcForwardFeedback(inputs, outputs);
 			return outputs[0];

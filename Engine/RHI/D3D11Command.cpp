@@ -838,6 +838,19 @@ namespace Render
 		bufferImpl.updateData(*mDeviceContextImmdiate, start, numElements, data);
 	}
 
+	void D3D11System::RHIGenerateMips(RHITextureBase& texture)
+	{
+		if (texture.getType() == ETexture::Type2D)
+		{
+			auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
+
+			if (textureImpl.mSRV.mResource)
+			{
+				mDeviceContextImmdiate->GenerateMips(textureImpl.mSRV.mResource);
+			}
+		}
+	}
+
 	RHIFrameBuffer* D3D11System::RHICreateFrameBuffer()
 	{
 		return new D3D11FrameBuffer;

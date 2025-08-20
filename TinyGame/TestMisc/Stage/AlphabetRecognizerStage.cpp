@@ -10,6 +10,7 @@
 #include "ProfileSystem.h"
 #include "Async/AsyncWork.h"
 #include "RenderDebug.h"
+#include "FileSystem.h"
 
 namespace AR
 {
@@ -343,51 +344,18 @@ namespace AR
 		 0.1524 ,  0.1051 ,  0.0628 ,  0.0849 ,  0.1309 ,  0.1084 ,  0.05   , -0.0264 ,  0.0033 ,  0.1497 ,  0.088  , -0.0125 , -0.0315 , -0.1139 , -0.0065 , -0.033  ,
 		-0.0282 , -0.1585 , -0.2113 , -0.182  ,  0.0426 , -0.1024 , -0.1544 , -0.1329 ,  0.1674 , -0.0064 ,  0.0155 , -0.0542 ,  0.1516 , -0.0611 , -0.2697 , -0.301  ,  0.6181,
 
-		-0.1885 , -0.0965 , -0.0557 , -0.047  , -0.6042 , -0.2396 , -0.1815 , -0.0439 , -0.3279 , -0.2747 , -0.1765 , -0.1197 , -0.1054 , -0.2166 , -0.1971 , -0.074  ,
-		-0.0051 ,  0.0581 ,  0.0868 ,  0.1423 , -0.0831 , -0.0566 ,  0.0497 ,  0.1082 , -0.0712 , -0.1179 , -0.0912 , -0.0371 , -0.0745 , -0.1039 , -0.1642 , -0.1978 ,
-		-0.0645 ,  0.057  ,  0.0334 ,  0.1274 , -0.2449 , -0.316  , -0.0326 ,  0.1114 ,  0.0174 , -0.1335 , -0.1497 , -0.0539 ,  0.0623 ,  0.0253 ,  0.0339 , -0.046  ,
-		-0.058  , -0.0493 ,  0.0804 ,  0.0978 , -0.0141 , -0.1097 ,  0.0223 ,  0.0377 ,  0.0463 , -0.0392 , -0.0896 ,  0.0486 , -0.0189 , -0.0307 , -0.0235 , -0.0966 ,
-		 0.0232 , -0.0293 , -0.0106 ,  0.0565 ,  0.2028 ,  0.0118 , -0.0373 , -0.0226 ,  0.1284 ,  0.0503 ,  0.0184 , -0.2067 ,  0.1802 ,  0.1009 ,  0.1199 ,  0.0152 ,
-		-0.068  , -0.0228 ,  0.0452 ,  0.0825 , -0.1154 , -0.0755 , - 0.    ,  0.0658 ,  0.0724 , -0.029  , -0.1514 , -0.0661 ,  0.1327 ,  0.0618 ,  0.0022 , -0.1261 ,
-		 0.0657 ,  0.0367 ,  0.0618 , -0.0018 ,  0.1465 ,  0.0936 ,  0.0338 , -0.0228 , -0.0295 ,  0.0473 ,  0.0563 ,  0.0554 ,  0.0183 , -0.0729 , -0.2233 , -0.2739 ,
-		-0.1484 , -0.184  , -0.0295 ,  0.0227 , -0.1752 , -0.2507 , -0.2127 , -0.2664 , -0.2136 , -0.096  , -0.1914 , -0.2766 , -0.0186 , -0.0265 , -0.0376 , -0.1263 ,
-		-0.4    , -0.3295 , -0.1216 , -0.2115 ,  0.0261 , -0.0756 , -0.0222 , -0.1928 ,  0.0976 ,  0.0908 ,  0.0895 ,  0.01   , -0.1006 ,  0.0715 ,  0.1235 ,  0.0651 ,
-		 0.005  , -0.0264 , -0.0217 , -0.0118 , -0.1775 , -0.0455 , -0.0286 , -0.0836 , -0.4369 , -0.1238 , -0.0813 , -0.0584 , -0.0247 ,  0.0142 , -0.0159 , -0.0818 , -0.8506,
+-0.1885, -0.0965, -0.0557, -0.047, -0.6042, -0.2396, -0.1815, -0.0439, -0.3279, -0.2747, -0.1765, -0.1197, -0.1054, -0.2166, -0.1971, -0.074,
+-0.0051, 0.0581, 0.0868, 0.1423, -0.0831, -0.0566, 0.0497, 0.1082, -0.0712, -0.1179, -0.0912, -0.0371, -0.0745, -0.1039, -0.1642, -0.1978,
+-0.0645, 0.057, 0.0334, 0.1274, -0.2449, -0.316, -0.0326, 0.1114, 0.0174, -0.1335, -0.1497, -0.0539, 0.0623, 0.0253, 0.0339, -0.046,
+-0.058, -0.0493, 0.0804, 0.0978, -0.0141, -0.1097, 0.0223, 0.0377, 0.0463, -0.0392, -0.0896, 0.0486, -0.0189, -0.0307, -0.0235, -0.0966,
+0.0232, -0.0293, -0.0106, 0.0565, 0.2028, 0.0118, -0.0373, -0.0226, 0.1284, 0.0503, 0.0184, -0.2067, 0.1802, 0.1009, 0.1199, 0.0152,
+-0.068, -0.0228, 0.0452, 0.0825, -0.1154, -0.0755, -0., 0.0658, 0.0724, -0.029, -0.1514, -0.0661, 0.1327, 0.0618, 0.0022, -0.1261,
+0.0657, 0.0367, 0.0618, -0.0018, 0.1465, 0.0936, 0.0338, -0.0228, -0.0295, 0.0473, 0.0563, 0.0554, 0.0183, -0.0729, -0.2233, -0.2739,
+-0.1484, -0.184, -0.0295, 0.0227, -0.1752, -0.2507, -0.2127, -0.2664, -0.2136, -0.096, -0.1914, -0.2766, -0.0186, -0.0265, -0.0376, -0.1263,
+-0.4, -0.3295, -0.1216, -0.2115, 0.0261, -0.0756, -0.0222, -0.1928, 0.0976, 0.0908, 0.0895, 0.01, -0.1006, 0.0715, 0.1235, 0.0651,
+0.005, -0.0264, -0.0217, -0.0118, -0.1775, -0.0455, -0.0286, -0.0836, -0.4369, -0.1238, -0.0813, -0.0584, -0.0247, 0.0142, -0.0159, -0.0818, -0.8506,
 	};
 
-#if 0
-	NNScalar TestInput[] =
-	{
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
-		0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
-		0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	};
-#else
 	NNScalar TestInput[] =
 	{
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -419,7 +387,6 @@ namespace AR
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	};
-#endif
 
 	using namespace Render;
 
@@ -432,10 +399,53 @@ namespace AR
 
 
 		TArray< NNScalar > mParamters;
+		template< typename WinogardCore >
+		void addParamT(NeuralConv2DLayer& inoutlayer, int numSliceInput, TArrayView<NNScalar> parameters)
+		{
+			int constexpr weightLen = WinogardCore::WeightSize * WinogardCore::WeightSize;
+			int numParameters = (numSliceInput * weightLen + 1) * inoutlayer.numNode;
+			inoutlayer.weightOffset = mParamters.size();
+			inoutlayer.biasOffset = mParamters.size() + numSliceInput * weightLen * inoutlayer.numNode;
+			mParamters.resize(mParamters.size() + numParameters);
 
+			NNScalar* pWeight = mParamters.data() + inoutlayer.weightOffset;
+			NNScalar* pBias = mParamters.data() + inoutlayer.biasOffset;
+			NNScalar const* pCopyParams = parameters.data();
+			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
+			{
+				for (int n = 0; n < numSliceInput; ++n)
+				{
+					NNScalar temp[WinogardCore::WeightSize * WinogardCore::ConvSize];
+					FNNMath::MatrixMulMatrix(WinogardCore::WeightSize, WinogardCore::ConvSize, WinogardCore::G, WinogardCore::ConvSize, pCopyParams, temp);
+					FNNMath::MatrixMulMatrixT(WinogardCore::WeightSize, WinogardCore::ConvSize, temp, WinogardCore::WeightSize, WinogardCore::G, pWeight);
+
+					pWeight += weightLen;
+					pCopyParams += WinogardCore::ConvSize * WinogardCore::ConvSize;
+				}
+
+				*pBias = *pCopyParams;
+				pBias += 1;
+				pCopyParams += 1;
+			}
+		}
 
 		void addParam(NeuralConv2DLayer& inoutlayer, int numSliceInput, TArrayView<NNScalar> parameters)
 		{
+			if (inoutlayer.convSize == 3 && (inoutlayer.dataSize[0] % 2) == 0)
+			{
+				if ((inoutlayer.dataSize[0] % 4) == 0)
+				{
+					addParamT<WinogardCore43>(inoutlayer, numSliceInput, parameters);
+					inoutlayer.fastMethod = NeuralConv2DLayer::eF43;
+				}
+				else
+				{
+					addParamT<WinogardCore23>(inoutlayer, numSliceInput, parameters);
+					inoutlayer.fastMethod = NeuralConv2DLayer::eF23;
+				}
+				return;
+			}
+
 			int const convLen = inoutlayer.convSize * inoutlayer.convSize;
 			int const nodeWeightLen = numSliceInput * convLen;
 			int numParameters = (nodeWeightLen + 1) * inoutlayer.numNode;
@@ -443,6 +453,7 @@ namespace AR
 
 			inoutlayer.weightOffset = mParamters.size();
 			inoutlayer.biasOffset = mParamters.size() + nodeWeightLen * inoutlayer.numNode;
+			inoutlayer.fastMethod = NeuralConv2DLayer::eNone;
 
 			mParamters.resize(mParamters.size() + numParameters);
 			
@@ -554,6 +565,14 @@ namespace AR
 				layer6.getOutputLength() +
 				layer7.getOutputLength());
 
+			mOutputs[0] = mOutputsData.data();
+			mOutputs[1] = mOutputs[0] + layer1.getOutputLength();
+			mOutputs[2] = mOutputs[1] + layer2.getOutputLength();
+			mOutputs[3] = mOutputs[2] + layer3.getOutputLength();
+			mOutputs[4] = mOutputs[3] + layer4.getOutputLength();
+			mOutputs[5] = mOutputs[4] + layer5.getOutputLength();
+			mOutputs[6] = mOutputs[5] + layer6.getOutputLength();
+
 			::Global::GUI().cleanupWidget();
 			auto frame = WidgetUtility::CreateDevFrame();
 
@@ -566,6 +585,24 @@ namespace AR
 				return false;
 			});
 
+			frame->addButton("Save Input", [this](int event, GWidget*) -> bool
+			{
+				FFileUtility::SaveFromBuffer("ARInput.bin", mInputData.data(), mInputData.size());
+				return false;
+			});
+
+			frame->addButton("Load Input", [this](int event, GWidget*) -> bool
+			{
+				mInputData.clear();
+				if (FFileUtility::LoadToBuffer("ARInput.bin", mInputData))
+				{
+					RHIUpdateTexture(*mTexInput, 0, 0, mTexInput->getSizeX(), mTexInput->getSizeY(), mInputData.data());
+					copyInputToPaint();
+					update();
+				}
+				return false;
+			});
+
 			FWidgetProperty::Bind(frame->addSlider("Radius"), mPaintRadius, 1 , 100);
 			return true;
 		}
@@ -574,13 +611,6 @@ namespace AR
 		RHITexture2DRef mTexPaint;
 
 		RHITexture2DRef mTexInput;
-		RHITexture2DRef mTexLayer1;
-		RHITexture2DRef mTexLayer2;
-		RHITexture2DRef mTexLayer3;
-		RHITexture2DRef mTexLayer4;
-		RHITexture2DRef mTexLayer5;
-		RHITexture2DRef mTexLayer6;
-		RHITexture2DRef mTexLayer7;
 		RHITexture2DRef mTexResult;
 		TArray<NNScalar> mResult;
 
@@ -602,13 +632,13 @@ namespace AR
 			GTextureShowManager.registerTexture("Paint", mTexPaint);
 			GTextureShowManager.registerTexture("Input", mTexInput);
 
-			mTexLayer1 = CreateLayerTexture(layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode);
-			mTexLayer2 = CreateLayerTexture(layer2.dataSize[0], layer2.dataSize[1] * layer2.numNode);
-			mTexLayer3 = CreateLayerTexture(layer3.dataSize[0], layer3.dataSize[1] * layer3.numNode);
-			mTexLayer4 = CreateLayerTexture(layer4.dataSize[0], layer4.dataSize[1] * layer4.numNode);
-			mTexLayer5 = CreateLayerTexture(layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode);
-			mTexLayer6 = CreateLayerTexture(layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode);
-			mTexLayer7 = CreateLayerTexture(1, layer7.getOutputLength());
+			mTexLayers[0] = CreateLayerTexture(layer1.dataSize[0], layer1.dataSize[1] * layer1.numNode);
+			mTexLayers[1] = CreateLayerTexture(layer2.dataSize[0], layer2.dataSize[1] * layer2.numNode);
+			mTexLayers[2] = CreateLayerTexture(layer3.dataSize[0], layer3.dataSize[1] * layer3.numNode);
+			mTexLayers[3] = CreateLayerTexture(layer4.dataSize[0], layer4.dataSize[1] * layer4.numNode);
+			mTexLayers[4] = CreateLayerTexture(layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode);
+			mTexLayers[5] = CreateLayerTexture(layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode);
+			mTexLayers[6] = CreateLayerTexture(1, layer7.getOutputLength());
 			mTexResult = CreateLayerTexture(1, layer7.getOutputLength(), mResult.data());
 
 			mFrameBufferPaint = RHICreateFrameBuffer();
@@ -617,6 +647,15 @@ namespace AR
 			mFrameBuffer = RHICreateFrameBuffer();
 			mFrameBuffer->addTexture(*mTexInput);
 
+			copyInputToPaint();
+
+
+			update();
+			return true;
+		}
+
+		void copyInputToPaint()
+		{
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
@@ -632,34 +671,27 @@ namespace AR
 			g.endRender();
 			auto screenSize = ::Global::GetScreenSize();
 			g.setViewportSize(screenSize.x, screenSize.y);
-
-			update();
-			return true;
 		}
 
 		void update()
 		{
 			TIME_SCOPE("Update");
-			NNScalar* output1 = mOutputsData.data();
-			NNScalar* output2 = output1 + layer1.getOutputLength();
-			NNScalar* output3 = output2 + layer2.getOutputLength();
-			NNScalar* output4 = output3 + layer3.getOutputLength();
-			NNScalar* output5 = output4 + layer4.getOutputLength();
-			NNScalar* output6 = output5 + layer5.getOutputLength();
-			NNScalar* output7 = output6 + layer6.getOutputLength();
+			#if 1
+				std::fill_n(mOutputsData.data(), mOutputsData.size(), -1000);
+			#endif
 
 			{
 				TIME_SCOPE("ForwardFeedback");
 
-				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, (NNScalar*)mInputData.data(), output1);
-				FNNAlgo::ForwardFeedback(layer2, mParamters.data(), layer1.numNode, layer1.dataSize, output1, output2);
-				FNNAlgo::ForwardFeedback(layer3, layer2.dataSize, output2, output3);
-				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, output3, output4);
-				FNNAlgo::ForwardFeedback(layer5, mParamters.data(), layer4.numNode, layer4.dataSize, output4, output5);
-				FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, output5, output6);
-				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), output6, output7);
+				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, (NNScalar*)mInputData.data(), mOutputs[0]);
+				FNNAlgo::ForwardFeedback(layer2, mParamters.data(), layer1.numNode, layer1.dataSize, mOutputs[0], mOutputs[1]);
+				FNNAlgo::ForwardFeedback(layer3, layer2.dataSize, mOutputs[1], mOutputs[2]);
+				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, mOutputs[2], mOutputs[3]);
+				FNNAlgo::ForwardFeedback(layer5, mParamters.data(), layer4.numNode, layer4.dataSize, mOutputs[3], mOutputs[4]);
+				FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, mOutputs[4], mOutputs[5]);
+				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), mOutputs[5], mOutputs[6]);
 
-				int index = FNNMath::SoftMax(layer7.getOutputLength(), output7, mResult.data());
+				int index = FNNMath::SoftMax(layer7.getOutputLength(), mOutputs[6], mResult.data());
 				LogMsg("Answer = %c, pct = %f", 'A' + index, mResult[index]);
 			}
 
@@ -681,13 +713,10 @@ namespace AR
 				RHIUpdateTexture(texture, 0, 0, texture.getSizeX(), texture.getSizeY(), colors.data());
 			};
 
-			UpdateLayerTexture(*mTexLayer1, output1);
-			UpdateLayerTexture(*mTexLayer2, output2);
-			UpdateLayerTexture(*mTexLayer3, output3);
-			UpdateLayerTexture(*mTexLayer4, output4);
-			UpdateLayerTexture(*mTexLayer5, output5);
-			UpdateLayerTexture(*mTexLayer6, output6);
-			UpdateLayerTexture(*mTexLayer7, output7);
+			for (int i = 0; i < ARRAY_SIZE(mOutputs); ++i)
+			{
+				UpdateLayerTexture(*mTexLayers[i], mOutputs[i]);
+			}
 			UpdateLayerTexture(*mTexResult, mResult.data());
 		}
 
@@ -748,7 +777,7 @@ namespace AR
 			RHISetFrameBuffer(commandList, mFrameBufferPaint);
 			g.setViewportSize(mTexPaint->getSizeX(), mTexPaint->getSizeY());
 			g.beginRender();
-			RenderUtility::SetPen(g, EColor::White);
+			RenderUtility::SetPen(g, EColor::Null);
 			RenderUtility::SetBrush(g, EColor::White);
 			for (auto const& cmd : mPaintCmds)
 			{
@@ -843,14 +872,20 @@ namespace AR
 			g.popXForm();
 
 			DrawLayer(*mTexInput, 1);
-			DrawLayer(*mTexLayer1, layer1.numNode);
-			DrawLayer(*mTexLayer2, layer2.numNode);
-			DrawLayer(*mTexLayer3, layer3.numNode);
-			DrawLayer(*mTexLayer4, layer4.numNode);
-			DrawLayer(*mTexLayer5, layer5.numNode);
-			DrawLayer(*mTexLayer6, layer6.numNode);
-			DrawLayer(*mTexLayer7, layer7.numNode, 15.0);
+			DrawLayer(*mTexLayers[0], layer1.numNode);
+			DrawLayer(*mTexLayers[1], layer2.numNode);
+			DrawLayer(*mTexLayers[2], layer3.numNode);
+			DrawLayer(*mTexLayers[3], layer4.numNode);
+			DrawLayer(*mTexLayers[4], layer5.numNode);
+			DrawLayer(*mTexLayers[5], layer6.numNode);
+			DrawLayer(*mTexLayers[6], layer7.numNode, 15.0);
 			DrawLayer(*mTexResult, layer7.numNode, 15.0);
+
+			g.beginBlend(0.4);
+			RenderUtility::SetPen(g, EColor::Null);
+			RenderUtility::SetBrush(g, EColor::Blue);
+			g.drawCircle(mMousePos, mPaintRadius);
+			g.endBlend();
 			g.endRender();
 		}
 
@@ -861,8 +896,11 @@ namespace AR
 
 
 		Vector2 mPrevPos;
+		Vector2 mMousePos;
 		MsgReply onMouse(MouseMsg const& msg) override
 		{
+			mMousePos = msg.getPos();
+
 			if (msg.onLeftDown())
 			{
 				Vector2 pos = mXFormInput.transformInvPosition( msg.getPos() );

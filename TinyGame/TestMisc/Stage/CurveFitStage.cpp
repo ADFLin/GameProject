@@ -73,6 +73,9 @@ public:
 	bool bUseParallelComputing = false;
 	bool bAutoTrain = true;
 	//bool bShowLog = true;
+	bool bUseBatchNormaliztion = false;
+	TArray< NNScalar > mBatchNormParameters;
+
 
 	QueueThreadPool mPool;
 
@@ -85,7 +88,7 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		int size = 24;
-		uint32 topology[] = { 1, size, size, size, size, size, size, 1 };
+		uint32 topology[] = { 1, size, size, size, size, 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
 		mLayout.setHiddenLayerFunction<NNFunc::ReLU>();
 		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
@@ -95,7 +98,7 @@ public:
 		mFCNN.setParamsters(mParameters);
 		mRMSPropSqare.resize(mLayout.getParameterNum(), 0);
 
-		bool bUseBatchNormaliztion = false;
+
 		int workerNum = 12;
 		for (int i = 0; i < workerNum; ++i)
 		{

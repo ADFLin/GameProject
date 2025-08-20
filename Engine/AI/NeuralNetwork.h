@@ -166,6 +166,14 @@ struct NeuralFullConLayer : NeuralLayer
 
 struct NeuralConv2DLayer : NeuralLayer
 {
+	enum FastMethod
+	{
+		eNone,
+		eF23,
+		eF43,
+	};
+
+	FastMethod fastMethod = FastMethod::eNone;
 	int convSize;
 	int dataSize[2];
 
@@ -200,8 +208,10 @@ public:
 
 
 	static void VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b);
+	static void VectorMul(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b);
 	static void VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
-
+	// out = a * b + c
+	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride);
 	static NNScalar VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
@@ -211,16 +221,6 @@ public:
 		for (int i = 0; i < dim; ++i)
 		{
 			out[i] = v[i];
-		}
-	}
-
-	static void MatrixMulTMatrixRT(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2,  NNScalar const* RESTRICT m2, NNScalar* RESTRICT out)
-	{
-		for (int i = 0; i < dimCol2; ++i)
-		{
-			MatrixMulVector(dimRow, dimCol, m, m2, out);
-			m2 += dimCol;
-			out += dimCol;
 		}
 	}
 
@@ -244,21 +244,162 @@ public:
 		}
 	}
 
-	static int SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
+	static void MatrixMulMatrix(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, NNScalar* RESTRICT out)
+	{
+		for (int row = 0; row < dimRow; ++row)
+		{
+			for (int col = 0; col < dimCol2; ++col)
+			{
+				out[col + row * dimCol2] = VectorDot(dimCol, m, m2 + col, dimCol);
+			}
 
-	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT v)
+			m += dimCol;
+		}
+	}
+
+	static void MatrixMulMatrix(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, int rowStride2, NNScalar* RESTRICT out)
+	{
+		for (int row = 0; row < dimRow; ++row)
+		{
+			for (int col = 0; col < dimCol2; ++col)
+			{
+				out[col + row * dimCol2] = VectorDot(dimCol, m, m2 + col, rowStride2);
+			}
+
+			m += dimCol;
+		}
+	}
+
+	static void MatrixMulMatrixT(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, NNScalar* RESTRICT out)
+	{
+		for (int row = 0; row < dimRow; ++row)
+		{
+			for (int col = 0; col < dimCol2; ++col)
+			{
+				out[col + row * dimCol2] = VectorDot(dimCol, m, m2 + col * dimCol);
+			}
+			m += dimCol;
+		}
+	}
+
+	static int SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
+	static void GetNormalizeParams(int dim, NNScalar const* RESTRICT inputs, NNScalar& outMean, NNScalar& outVariance)
+	{
+		NNScalar mean = 0.0;
+		for( int i = 0; i < dim; ++i)
+		{
+			mean += inputs[i];
+		}
+		mean /= dim;
+
+		NNScalar variance = 0;
+		for (int i = 0; i < dim; ++i)
+		{
+			variance += Math::Square(inputs[i] - mean);
+		}
+		variance /= dim;
+		variance = Math::Sqrt( variance + 1e-5 );
+
+		outMean = mean;
+		outVariance = variance;
+	}
+
+
+	static void Normalize(int dim, NNScalar const* RESTRICT inputs, NNScalar mean, NNScalar variance, NNScalar* output)
+	{
+		for (int i = 0; i < dim; ++i)
+		{
+			output[i] = (inputs[i] - mean) / variance;
+		}
+	}
+
+	static void Normalize(int dim, NNScalar const* RESTRICT inputs, NNScalar* output)
+	{
+		NNScalar mean, variance;
+		GetNormalizeParams(dim, inputs, mean, variance);
+		Normalize(dim, inputs, mean, variance, output);
+	}
+
+
+	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT w)
 	{
 		NNScalar result = 0;
 		for( int i = 0; i < dim; ++i )
 		{
-			result += VectorDot(dim, area, v);
+			result += VectorDot(dim, area, w);
 			area += stride;
-			v += dim;
+			w += dim;
 		}
 		return result;
 	}
+
+	static void AreaConvF23(NNScalar inoutV[], int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT w);
+
+	static void AreaConvF43(NNScalar inoutV[], int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT w);
+
 };
 
+
+
+struct WinogardCore23
+{
+	static int constexpr WeightSize = 4;
+	static int constexpr O = 2;
+	static int constexpr ConvSize = 3;
+
+	static NNScalar constexpr G[] = 
+	{   
+			1,      0,     0,
+		1/2.0,  1/2.0, 1/2.0,
+		1/2.0, -1/2.0, 1/2.0,
+			0,      0,     1,
+	};
+	static NNScalar constexpr At[] =
+	{
+		1, 1,  1, 0,
+		0, 1, -1, -1,
+	};
+	static NNScalar constexpr Bt[] =
+	{
+		1, 0, -1, 0,
+		0, 1,  1, 0,
+		0, -1, 1, 0,
+		0, 1,  0, -1,
+	};
+};
+
+struct WinogardCore43
+{
+	static int constexpr WeightSize = 6;
+	static int constexpr O = 4;
+	static int constexpr ConvSize = 3;
+
+	static NNScalar constexpr G[] =
+	{
+			1/4.0,       0,      0,
+		-1/6.0,  -1/6.0, -1/6.0,
+        -1/6.0,   1/6.0, -1/6.0,
+		1/24.0,  1/12.0,  1/6.0,
+		1/24.0, -1/12.0,  1/6.0,
+			    0,       0,      1,
+	};
+	static NNScalar constexpr At[] =
+	{
+		1, 1,  1, 1,  1, 0,
+		0, 1, -1, 2, -2, 0,
+		0, 1,  1, 4,  4, 0,
+		0, 1, -1, 8, -8, 1,
+	};
+	static NNScalar constexpr Bt[] =
+	{
+		4,  0, -5,  0, 1, 0,
+		0, -4, -4,  1, 1, 0,
+		0,  4, -4, -1, 1, 0,
+		0, -2, -1,  2, 1, 0,
+		0,  2, -1, -2, 1, 0,
+		0,  4,  0, -5, 0, 1,
+	};
+};
 
 
 template< typename T >

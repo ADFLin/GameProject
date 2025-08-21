@@ -399,10 +399,10 @@ namespace AR
 
 
 		TArray< NNScalar > mParamters;
-		template< typename WinogardCore >
+		template< typename TKernel >
 		void addParamT(NeuralConv2DLayer& inoutlayer, int numSliceInput, TArrayView<NNScalar> parameters)
 		{
-			int constexpr weightLen = WinogardCore::WeightSize * WinogardCore::WeightSize;
+			int constexpr weightLen = TKernel::WeightSize * TKernel::WeightSize;
 			int numParameters = (numSliceInput * weightLen + 1) * inoutlayer.numNode;
 			inoutlayer.weightOffset = mParamters.size();
 			inoutlayer.biasOffset = mParamters.size() + numSliceInput * weightLen * inoutlayer.numNode;
@@ -415,12 +415,12 @@ namespace AR
 			{
 				for (int n = 0; n < numSliceInput; ++n)
 				{
-					NNScalar temp[WinogardCore::WeightSize * WinogardCore::ConvSize];
-					FNNMath::MatrixMulMatrix(WinogardCore::WeightSize, WinogardCore::ConvSize, WinogardCore::G, WinogardCore::ConvSize, pCopyParams, temp);
-					FNNMath::MatrixMulMatrixT(WinogardCore::WeightSize, WinogardCore::ConvSize, temp, WinogardCore::WeightSize, WinogardCore::G, pWeight);
+					NNScalar temp[TKernel::WeightSize * TKernel::ConvSize];
+					FNNMath::MatrixMulMatrix(TKernel::WeightSize, TKernel::ConvSize, TKernel::G, TKernel::ConvSize, pCopyParams, temp);
+					FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, pWeight);
 
 					pWeight += weightLen;
-					pCopyParams += WinogardCore::ConvSize * WinogardCore::ConvSize;
+					pCopyParams += TKernel::ConvSize * TKernel::ConvSize;
 				}
 
 				*pBias = *pCopyParams;
@@ -435,12 +435,12 @@ namespace AR
 			{
 				if ((inoutlayer.dataSize[0] % 4) == 0)
 				{
-					addParamT<WinogardCore43>(inoutlayer, numSliceInput, parameters);
+					addParamT<WinogradKernel43>(inoutlayer, numSliceInput, parameters);
 					inoutlayer.fastMethod = NeuralConv2DLayer::eF43;
 				}
 				else
 				{
-					addParamT<WinogardCore23>(inoutlayer, numSliceInput, parameters);
+					addParamT<WinogradKernel23>(inoutlayer, numSliceInput, parameters);
 					inoutlayer.fastMethod = NeuralConv2DLayer::eF23;
 				}
 				return;

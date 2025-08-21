@@ -212,6 +212,7 @@ public:
 	static void VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 	// out = a * b + c
 	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out);
+	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride);
 	static NNScalar VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
@@ -283,6 +284,7 @@ public:
 	}
 
 	static int SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
+
 	static void GetNormalizeParams(int dim, NNScalar const* RESTRICT inputs, NNScalar& outMean, NNScalar& outVariance)
 	{
 		NNScalar mean = 0.0;
@@ -321,27 +323,28 @@ public:
 	}
 
 
-	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT w)
+	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
 	{
 		NNScalar result = 0;
 		for( int i = 0; i < dim; ++i )
 		{
-			result += VectorDot(dim, area, w);
+			result += VectorDot(dim, area, weight);
 			area += stride;
-			w += dim;
+			weight += dim;
 		}
 		return result;
 	}
 
-	static void AreaConvF23(NNScalar inoutV[], int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT w);
-
-	static void AreaConvF43(NNScalar inoutV[], int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT w);
+	static void TranformAreaF23(int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar* RESTRICT outArea);
+	static void AreaConvF23(NNScalar inoutV[], int numSlice, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight);
+	static void TranformAreaF43(int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar* RESTRICT outArea);
+	static void AreaConvF43(NNScalar inoutV[], int numSlice, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight);
 
 };
 
 
 
-struct WinogardCore23
+struct WinogradKernel23
 {
 	static int constexpr WeightSize = 4;
 	static int constexpr O = 2;
@@ -368,7 +371,7 @@ struct WinogardCore23
 	};
 };
 
-struct WinogardCore43
+struct WinogradKernel43
 {
 	static int constexpr WeightSize = 6;
 	static int constexpr O = 4;

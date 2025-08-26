@@ -596,9 +596,7 @@ namespace AR
 				mInputData.clear();
 				if (FFileUtility::LoadToBuffer("ARInput.bin", mInputData))
 				{
-					RHIUpdateTexture(*mTexInput, 0, 0, mTexInput->getSizeX(), mTexInput->getSizeY(), mInputData.data());
-					copyInputToPaint();
-					update();
+					updateFromInput();
 				}
 				return false;
 			});
@@ -627,7 +625,7 @@ namespace AR
 
 
 			mTexPaint = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, ImageSize[0] * 16, ImageSize[1] * 16).MipLevel(5).AddFlags(TCF_RenderTarget | TCF_GenerateMips | TCF_CreateSRV), nullptr);
-			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, ImageSize[0], ImageSize[1]).AddFlags(TCF_RenderTarget | TCF_AllowCPUAccess), mInputData.data());
+			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, ImageSize[0], ImageSize[1]).AddFlags(TCF_RenderTarget | TCF_AllowCPUAccess), nullptr);
 			
 			GTextureShowManager.registerTexture("Paint", mTexPaint);
 			GTextureShowManager.registerTexture("Input", mTexInput);
@@ -639,7 +637,7 @@ namespace AR
 			mTexLayers[4] = CreateLayerTexture(layer5.dataSize[0], layer5.dataSize[1] * layer5.numNode);
 			mTexLayers[5] = CreateLayerTexture(layer6.dataSize[0], layer6.dataSize[1] * layer6.numNode);
 			mTexLayers[6] = CreateLayerTexture(1, layer7.getOutputLength());
-			mTexResult = CreateLayerTexture(1, layer7.getOutputLength(), mResult.data());
+			mTexResult = CreateLayerTexture(1, layer7.getOutputLength(), nullptr);
 
 			mFrameBufferPaint = RHICreateFrameBuffer();
 			mFrameBufferPaint->addTexture(*mTexPaint);
@@ -647,38 +645,13 @@ namespace AR
 			mFrameBuffer = RHICreateFrameBuffer();
 			mFrameBuffer->addTexture(*mTexInput);
 
-			copyInputToPaint();
-
-
-			update();
+			updateFromInput();
 			return true;
-		}
-
-		void copyInputToPaint()
-		{
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-
-			RHISetFrameBuffer(commandList, mFrameBufferPaint);
-			g.setViewportSize(mTexPaint->getSizeX(), mTexPaint->getSizeY());
-			g.beginRender();
-
-			RenderUtility::SetBrush(g, EColor::White);
-			g.setTexture(*mTexInput);
-			g.setSampler(TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-			g.drawTexture(Vector2(0, 0), Vector2(mTexPaint->getSizeX(), mTexPaint->getSizeY()));
-
-			g.endRender();
-			auto screenSize = ::Global::GetScreenSize();
-			g.setViewportSize(screenSize.x, screenSize.y);
 		}
 
 		void update()
 		{
 			TIME_SCOPE("Update");
-			#if 1
-				std::fill_n(mOutputsData.data(), mOutputsData.size(), -1000);
-			#endif
 
 			{
 				TIME_SCOPE("ForwardFeedback");
@@ -737,18 +710,32 @@ namespace AR
 		{
 			RHIBeginRender();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
-			RHISetFrameBuffer(commandList, mFrameBufferPaint);
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.0, 0.0, 0.0, 1.0), 1);
-
-			RHISetFrameBuffer(commandList, mFrameBuffer);
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.0, 0.0, 0.0, 1.0), 1);
-			RHIEndRender(false);
-
-
-			RHIReadTexture(*mTexInput, ETexture::R32F, 0, mInputData);
-			update();
+			std::fill_n(mInputData.data(), mInputData.size(), 0);
+			updateFromInput();
 		}
 
+		void updateFromInput()
+		{
+			RHIUpdateTexture(*mTexInput, 0, 0, mTexInput->getSizeX(), mTexInput->getSizeY(), mInputData.data());
+
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+
+			RHISetFrameBuffer(commandList, mFrameBufferPaint);
+			g.setViewportSize(mTexPaint->getSizeX(), mTexPaint->getSizeY());
+			g.beginRender();
+
+			RenderUtility::SetBrush(g, EColor::White);
+			g.setTexture(*mTexInput);
+			g.setSampler(TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+			g.drawTexture(Vector2(0, 0), Vector2(mTexPaint->getSizeX(), mTexPaint->getSizeY()));
+
+			g.endRender();
+			auto screenSize = ::Global::GetScreenSize();
+			g.setViewportSize(screenSize.x, screenSize.y);
+
+			update();
+		}
 
 		struct PaintCmd
 		{
@@ -893,8 +880,6 @@ namespace AR
 		RHIFrameBufferRef mFrameBuffer;
 		RenderTransform2D mXFormInput = RenderTransform2D(Vector2(1,-1), Vector2(600, 510));
 
-
-
 		Vector2 mPrevPos;
 		Vector2 mMousePos;
 		MsgReply onMouse(MouseMsg const& msg) override
@@ -903,7 +888,7 @@ namespace AR
 
 			if (msg.onLeftDown())
 			{
-				Vector2 pos = mXFormInput.transformInvPosition( msg.getPos() );
+				Vector2 pos = mXFormInput.transformInvPosition(msg.getPos());
 				mPrevPos = pos;
 				paintInput(mPrevPos, pos);
 			}
@@ -914,8 +899,11 @@ namespace AR
 			else if (msg.isLeftDown() && msg.onMoving())
 			{
 				Vector2 pos = mXFormInput.transformInvPosition(msg.getPos());
-				paintInput(mPrevPos, pos);
-				mPrevPos = pos;
+				if (mPrevPos != pos)
+				{
+					paintInput(mPrevPos, pos);
+					mPrevPos = pos;
+				}
 			}
 			return BaseClass::onMouse(msg);
 		}

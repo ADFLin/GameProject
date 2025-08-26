@@ -61,24 +61,6 @@ void FNNMath::VectorMul(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 	}
 }
 
-void FNNMath::VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out)
-{
-	for (int i = 0; i < dim; ++i)
-	{
-		out[i] = a[i] * b[i] + c[i];
-	}
-}
-
-
-void FNNMath::VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout)
-{
-	for (int i = 0; i < dim; ++i)
-	{
-		inout[i] += a[i] * b[i];
-	}
-}
-
-
 NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
 #if USE_MATH_SIMD  && 0
@@ -200,7 +182,7 @@ int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs
 }
 
 
-// Y = At[ (GgGt) * (BtdB) ] A
+// Y = At[ (G g Gt) * (Bt d B) ] A
 template< typename TKernel >
 void AreaConvT(NNScalar inoutV[], int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
 {
@@ -280,11 +262,12 @@ void FNNMath::AreaConvF23(NNScalar inoutV[], int numSlice, NNScalar const* RESTR
 	NNScalar temp2[4 * 4];
 	std::fill_n(temp2, ARRAY_SIZE(temp2) , 0);
 
+	int constexpr WeightLen = WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
 	for (int indexSlice = 0; indexSlice < numSlice; ++indexSlice)
 	{
-		FNNMath::VectorMulAdd(WinogradKernel23::WeightSize * WinogradKernel23::WeightSize, area, weight, temp2);
-		area += WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
-		weight += WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
+		FNNMath::VectorMulAdd(WeightLen, area, weight, temp2);
+		area += WeightLen;
+		weight += WeightLen;
 	}
 
 	NNScalar temp3[2 * 4];
@@ -370,11 +353,12 @@ void FNNMath::AreaConvF43(NNScalar inoutV[], int numSlice, NNScalar const* RESTR
 	NNScalar temp2[6 * 6];
 	std::fill_n(temp2, ARRAY_SIZE(temp2), 0);
 
+	int constexpr WeightLen = WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
 	for (int indexSlice = 0; indexSlice < numSlice; ++indexSlice)
 	{
-		FNNMath::VectorMulAdd(WinogradKernel43::WeightSize * WinogradKernel43::WeightSize, area, weight, temp2);
-		area += WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
-		weight += WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
+		FNNMath::VectorMulAdd(WeightLen, area, weight, temp2);
+		area += WeightLen;
+		weight += WeightLen;
 	}
 
 	NNScalar temp3[4 * 6];
@@ -771,6 +755,72 @@ void FNNAlgo::BackwardPass(
 	}
 }
 
+template< typename TKernel >
+void ForwardFeedbackT(
+	NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
+	int numSliceInput, int const inputSize[], NNScalar const* RESTRICT inputs,
+	NNScalar* RESTRICT outputs)
+{
+	int const nx = layer.dataSize[0];
+	int const ny = layer.dataSize[1];
+
+	int const sliceInputSize = inputSize[0] * inputSize[1];
+	int const nodeOutputSize = nx * ny;
+	int const inputStride = inputSize[0];
+
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
+
+	int const nodeWeightSize = numSliceInput * TKernel::WeightSize * TKernel::WeightSize;
+
+#if 0
+	TArray<NNScalar> inputTransformed;
+	inputTransformed.resize(nodeWeightSize);
+#else
+	NNScalar* inputTransformed = (NNScalar*)ALLOCA(nodeWeightSize * sizeof(NNScalar));
+#endif
+
+	for (int oy = 0; oy < ny; oy += TKernel::O)
+	{
+		for (int ox = 0; ox < nx; ox += TKernel::O)
+		{
+			int idxInput = ox + inputSize[0] * oy;
+			int idxOutput = ox + nx * oy;
+			NNScalar const* pSliceInput = inputs + idxInput;
+
+			TKernel::TranformArea(inputStride, numSliceInput, sliceInputSize, pSliceInput, inputTransformed);
+
+			NNScalar* pNodeOutput = outputs;
+			NNScalar const* pNodeWeight = pWeight;
+
+			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+			{
+				NNScalar values[TKernel::O * TKernel::O];
+				std::fill_n(values, ARRAY_SIZE(values), pBias[idxNode]);
+				
+				TKernel::AreaConv(values, numSliceInput, inputTransformed, pNodeWeight);
+
+				NNScalar* pValue = values;
+				NNScalar* pOutput = &pNodeOutput[idxOutput];
+				for (int n = 0; n < TKernel::O; ++n)
+				{
+					FNNMath::VectorCopy(TKernel::O, pValue, pOutput);
+					pOutput += nx;
+					pValue += TKernel::O;
+				}
+
+				pNodeOutput += nodeOutputSize;
+				pNodeWeight += nodeWeightSize;
+			}
+		}
+	}
+
+	if (layer.funcTransform)
+	{
+		(*layer.funcTransform)(outputs, nodeOutputSize * layer.numNode);
+	}
+}
+
 void FNNAlgo::ForwardFeedback(
 	NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
 	int numSliceInput, int const inputSize[], NNScalar const* RESTRICT inputs,
@@ -778,7 +828,22 @@ void FNNAlgo::ForwardFeedback(
 {
 	CHECK(layer.dataSize[0] == (inputSize[0] - layer.convSize + 1));
 	CHECK(layer.dataSize[1] == (inputSize[1] - layer.convSize + 1));
-	
+
+	if (layer.fastMethod != NeuralConv2DLayer::eNone)
+	{
+		switch (layer.fastMethod)
+		{
+		case NeuralConv2DLayer::eF23:
+			ForwardFeedbackT<WinogradKernel23>(layer, parameters, numSliceInput, inputSize, inputs, outputs);
+			break;;
+		case NeuralConv2DLayer::eF43:
+			ForwardFeedbackT<WinogradKernel43>(layer, parameters, numSliceInput, inputSize, inputs, outputs);
+			break;
+		}
+
+		return;
+	}
+
 	int const nx = layer.dataSize[0];
 	int const ny = layer.dataSize[1];
 
@@ -790,128 +855,38 @@ void FNNAlgo::ForwardFeedback(
 	NNScalar const* pWeight = parameters + layer.weightOffset;
 	NNScalar const* pBias = parameters + layer.biasOffset;
 
-	if (layer.fastMethod == NeuralConv2DLayer::eF43)
+	int const nodeWeightSize = numSliceInput * convLen;
+
+	for (int oy = 0; oy < ny; ++oy)
 	{
-		int const nodeWeightSize = numSliceInput * WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
-
-#if 0
-		TArray<NNScalar> inputTransformed;
-		inputTransformed.resize(nodeWeightSize);
-#else
-		NNScalar* inputTransformed = (NNScalar*)ALLOCA(nodeWeightSize * sizeof(NNScalar));
-#endif
-
-		for (int oy = 0; oy < ny; oy += WinogradKernel43::O)
+		for (int ox = 0; ox < nx; ++ox)
 		{
-			for (int ox = 0; ox < nx; ox += WinogradKernel43::O)
+			NNScalar* pNodeOutput = outputs;
+			NNScalar const* pNodeWeight = pWeight;
+
+			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 			{
 				int idxInput = ox + inputSize[0] * oy;
 				int idxOutput = ox + nx * oy;
+
 				NNScalar const* pSliceInput = inputs + idxInput;
-				FNNMath::TranformAreaF43(inputStride, numSliceInput, sliceInputSize, pSliceInput, inputTransformed);
-
-				NNScalar* pNodeOutput = outputs;
-				NNScalar const* pNodeWeight = pWeight;
-
-				for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+				NNScalar const* pSliceWeight = pNodeWeight;
+				NNScalar value = pBias[idxNode];
+				for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
 				{
-					NNScalar values[WinogradKernel43::O * WinogradKernel43::O];
-					std::fill_n(values, ARRAY_SIZE(values), pBias[idxNode]);
-
-					FNNMath::AreaConvF43(values, numSliceInput, inputTransformed, pNodeWeight);
-
-					NNScalar* pValue = values;
-					NNScalar* pOutput = &pNodeOutput[idxOutput];
-					for (int n = 0; n < WinogradKernel43::O; ++n)
-					{
-						pOutput[0] = pValue[0];
-						pOutput[1] = pValue[1];
-						pOutput[2] = pValue[2];
-						pOutput[3] = pValue[3];
-
-						pOutput += nx;
-						pValue += 4;
-					}
-
-					pNodeOutput += nodeOutputSize;
-					pNodeWeight += nodeWeightSize;
+					value += FNNMath::AreaConv(layer.convSize, inputStride, pSliceInput, pSliceWeight);
+					pSliceWeight += convLen;
+					pSliceInput += sliceInputSize;
 				}
+
+				pNodeOutput[idxOutput] = value;
+
+				pNodeOutput += nodeOutputSize;
+				pNodeWeight += nodeWeightSize;
 			}
 		}
 	}
-	else if (layer.fastMethod == NeuralConv2DLayer::eF23)
-	{
-		int const nodeWeightSize = numSliceInput * WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
-
-#if 0
-		TArray<NNScalar> inputTransformed;
-		inputTransformed.resize(nodeWeightSize);
-#else
-		NNScalar* inputTransformed = (NNScalar*) ALLOCA(nodeWeightSize * sizeof(NNScalar));
-#endif
-
-		for (int oy = 0; oy < ny; oy += WinogradKernel23::O)
-		{
-			for (int ox = 0; ox < nx; ox += WinogradKernel23::O)
-			{
-				int idxInput = ox + inputSize[0] * oy;
-				int idxOutput = ox + nx * oy;
-				NNScalar const* pSliceInput = inputs + idxInput;
-				FNNMath::TranformAreaF23(inputStride, numSliceInput, sliceInputSize, pSliceInput, inputTransformed);
-
-				NNScalar* pNodeOutput = outputs;
-				NNScalar const* pNodeWeight = pWeight;
-
-				for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-				{
-					NNScalar values[WinogradKernel23::O * WinogradKernel23::O];
-					std::fill_n(values, ARRAY_SIZE(values), pBias[idxNode]);
-
-					FNNMath::AreaConvF23(values, numSliceInput, inputTransformed, pNodeWeight);
-
-					pNodeOutput[idxOutput] = values[0];
-					pNodeOutput[idxOutput + 1] = values[1];
-					pNodeOutput[idxOutput + nx] = values[2];
-					pNodeOutput[idxOutput + nx + 1] = values[3];
-
-					pNodeOutput += nodeOutputSize;
-					pNodeWeight += nodeWeightSize;
-				}
-			}
-		}
-	}
-	else
-	{
-		int const nodeWeightSize = numSliceInput * convLen;
-		NNScalar* pNodeOutput = outputs;
-		NNScalar const* pNodeWeight = pWeight;
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			for (int oy = 0; oy < ny; ++oy)
-			{
-				for (int ox = 0; ox < nx; ++ox)
-				{
-					int idxInput = ox + inputSize[0] * oy;
-					int idxOutput = ox + nx * oy;
-
-					NNScalar const* pSliceInput = inputs + idxInput;
-					NNScalar const* pSliceWeight = pNodeWeight;
-					NNScalar value = pBias[idxNode];
-					for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
-					{
-						value += FNNMath::AreaConv(layer.convSize, inputStride, pSliceInput, pSliceWeight);
-						pSliceWeight += convLen;
-						pSliceInput += sliceInputSize;
-					}
-
-					pNodeOutput[idxOutput] = value;
-				}
-			}
-
-			pNodeOutput += nodeOutputSize;
-			pNodeWeight += nodeWeightSize;
-		}
-	}
+	
 
 	if (layer.funcTransform)
 	{

@@ -211,13 +211,27 @@ public:
 	static void VectorMul(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b);
 	static void VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 	// out = a * b + c
-	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out);
-	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout);
+	FORCEINLINE static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out)
+	{
+		for (int i = 0; i < dim; ++i)
+		{
+			out[i] = a[i] * b[i] + c[i];
+		}
+	}
+
+	FORCEINLINE static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout)
+	{
+		for (int i = 0; i < dim; ++i)
+		{
+			inout[i] += a[i] * b[i];
+		}
+	}
+
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride);
 	static NNScalar VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 
-	static void VectorCopy(int dim, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
+	FORCEINLINE static void VectorCopy(int dim, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
 	{
 		for (int i = 0; i < dim; ++i)
 		{
@@ -369,6 +383,15 @@ struct WinogradKernel23
 		0, -1, 1, 0,
 		0, 1,  0, -1,
 	};
+
+	static void TranformArea(int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar* RESTRICT outArea)
+	{
+		FNNMath::TranformAreaF23(rowStride, numSlice, sliceStride, area, outArea);
+	}
+	static void AreaConv(NNScalar inoutV[], int numSlice, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
+	{
+		FNNMath::AreaConvF23(inoutV, numSlice, area, weight);
+	}
 };
 
 struct WinogradKernel43
@@ -379,12 +402,12 @@ struct WinogradKernel43
 
 	static NNScalar constexpr G[] =
 	{
-			1/4.0,       0,      0,
+		 1/4.0,       0,      0,
 		-1/6.0,  -1/6.0, -1/6.0,
         -1/6.0,   1/6.0, -1/6.0,
 		1/24.0,  1/12.0,  1/6.0,
 		1/24.0, -1/12.0,  1/6.0,
-			    0,       0,      1,
+		     0,       0,      1,
 	};
 	static NNScalar constexpr At[] =
 	{
@@ -402,6 +425,15 @@ struct WinogradKernel43
 		0,  2, -1, -2, 1, 0,
 		0,  4,  0, -5, 0, 1,
 	};
+
+	static void TranformArea(int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar* RESTRICT outArea)
+	{
+		FNNMath::TranformAreaF43(rowStride, numSlice, sliceStride, area, outArea);
+	}
+	static void AreaConv(NNScalar inoutV[], int numSlice, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
+	{
+		FNNMath::AreaConvF43(inoutV, numSlice, area, weight);
+	}
 };
 
 

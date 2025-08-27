@@ -136,9 +136,15 @@ struct ActiveLayer
 	void setFuncionT()
 	{
 		funcDerivative = FuncType::Derivative;
-		funcTransform = NNFunc::Trasnform< FuncType::Value >;
+		if constexpr (Meta::IsSameType<FuncType, NNFunc::Linear>::Value)
+		{
+			funcTransform = nullptr;
+		}
+		else
+		{
+			funcTransform = NNFunc::Trasnform< FuncType::Value >;
+		}
 	}
-
 };
 
 struct NeuralLayer : ActiveLayer
@@ -229,6 +235,7 @@ public:
 
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride);
+	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, int aStride, NNScalar const* RESTRICT b, int bStride);
 	static NNScalar VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 
 	FORCEINLINE static void VectorCopy(int dim, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
@@ -261,11 +268,13 @@ public:
 
 	static void MatrixMulMatrix(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, NNScalar* RESTRICT out)
 	{
+		NNScalar* RESTRICT pOut = out;
 		for (int row = 0; row < dimRow; ++row)
 		{
 			for (int col = 0; col < dimCol2; ++col)
 			{
-				out[col + row * dimCol2] = VectorDot(dimCol, m, m2 + col, dimCol);
+				*pOut = VectorDot(dimCol, m, m2 + col, dimCol);
+				++pOut;
 			}
 
 			m += dimCol;
@@ -274,11 +283,13 @@ public:
 
 	static void MatrixMulMatrix(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, int rowStride2, NNScalar* RESTRICT out)
 	{
+		NNScalar* RESTRICT pOut = out;
 		for (int row = 0; row < dimRow; ++row)
 		{
 			for (int col = 0; col < dimCol2; ++col)
 			{
-				out[col + row * dimCol2] = VectorDot(dimCol, m, m2 + col, rowStride2);
+				*pOut = VectorDot(dimCol, m, m2 + col, rowStride2);
+				++pOut;
 			}
 
 			m += dimCol;
@@ -287,11 +298,15 @@ public:
 
 	static void MatrixMulMatrixT(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, NNScalar* RESTRICT out)
 	{
+		NNScalar* RESTRICT pOut = out;
 		for (int row = 0; row < dimRow; ++row)
 		{
+			NNScalar const* RESTRICT pM2 = m2;
 			for (int col = 0; col < dimCol2; ++col)
 			{
-				out[col + row * dimCol2] = VectorDot(dimCol, m, m2 + col * dimCol);
+				*pOut = VectorDot(dimCol, m, pM2);
+				++pOut;
+				pM2 += dimCol;
 			}
 			m += dimCol;
 		}
@@ -320,7 +335,6 @@ public:
 		outVariance = variance;
 	}
 
-
 	static void Normalize(int dim, NNScalar const* RESTRICT inputs, NNScalar mean, NNScalar variance, NNScalar* output)
 	{
 		for (int i = 0; i < dim; ++i)
@@ -335,7 +349,6 @@ public:
 		GetNormalizeParams(dim, inputs, mean, variance);
 		Normalize(dim, inputs, mean, variance, output);
 	}
-
 
 	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
 	{
@@ -499,7 +512,6 @@ public:
 	template< typename FuncType >
 	void setActivationFunction(int idxLayer)
 	{
-		assert(func);
 		mLayers[idxLayer].setFuncionT<FuncType>();
 	}
 
@@ -531,11 +543,10 @@ public:
 class FNNAlgo
 {
 public:
-
 	static void ForwardFeedback(
 		NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters,
 		int numInput, NNScalar const* RESTRICT inputs,
-		NNScalar* RESTRICT outputs);
+		NNScalar* RESTRICT outputs, bool bOutputActiveInput);
 
 	static void ForwardFeedback(
 		FCNNLayout const& layout, NNScalar const* parameters, 
@@ -543,9 +554,9 @@ public:
 		NNScalar outputs[]);
 
 	static void ForwardFeedback(
-		NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters, 
-		int numInput, NNScalar const* RESTRICT inputs, 
-		NNScalar* RESTRICT outputs, 
+		NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters,
+		int numInput, NNScalar const* RESTRICT inputs,
+		NNScalar* RESTRICT outputs,
 		NNScalar* RESTRICT outNetInputs);
 
 	static void ForwardFeedbackBatch(
@@ -574,23 +585,72 @@ public:
 
 	static void BackwardPass(
 		FCNNLayout const& layout, NNScalar* parameters, 
-		NNScalar const inLossDerivatives[], 
 		NNScalar const inSignals[], 
-		NNScalar const inNetInputs[], 
+		NNScalar const inNetInputs[],
+		NNScalar const inLossDerivatives[],
 		NNScalar outLossGrads[], 
+		NNScalar outDeltaWeights[]);
+
+	static void BackwardPassWeight(
+		NeuralFullConLayer const& layer, int numNodeWeiget, 
+		NNScalar const inInput[], 
+		NNScalar const inLossDerivatives[], 
 		NNScalar outDeltaWeights[]);
 
 	static void ForwardFeedback(
 		NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
 		int numSliceInput, int const inputSize[],
 		NNScalar const* RESTRICT inputs,
-		NNScalar* RESTRICT outputs);
+		NNScalar* RESTRICT outputs, bool bOutputActive = false);
+
+	static void BackwardPassLoss(
+		NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
+		int numSliceInput, int const inputSize[],
+		NNScalar const inLossDerivatives[],
+		NNScalar outLossGrads[]);
+
+	static void BackwardPassWeight(
+		NeuralConv2DLayer const& layer,
+		int numSliceInput, int const inputSize[],
+		NNScalar const inSignals[],
+		NNScalar const inNetInputs[],
+		NNScalar inoutLossDerivatives[],
+		NNScalar outDeltaWeights[]);
 
 	static void ForwardFeedback(
 		NeuralMaxPooling2DLayer const& layer,
 		int const inputSize[],
 		NNScalar const* RESTRICT inputs,
 		NNScalar* RESTRICT outputs);
+
+	static void BackwardPass(
+		NeuralMaxPooling2DLayer const& layer,
+		int const inputSize[],
+		NNScalar const inInputs[],
+		NNScalar const inOutputs[],
+		NNScalar const inLossDerivatives[],
+		NNScalar outLossGrads[]);
+
+
+	static void ForwardPass(
+		ActiveLayer const& layer,
+		int numNode,
+		NNScalar const inInputs[],
+		NNScalar outOutputs[]);
+
+
+	static void BackwardPass(
+		ActiveLayer const& layer, 
+		int numNode, 
+		NNScalar const inInputs[], 
+		NNScalar inoutLossDerivatives[]);
+
+	static void BackwardPass(
+		ActiveLayer const& layer,
+		int numNode,
+		NNScalar const inInputs[],
+		NNScalar const inLossDerivatives[],
+		NNScalar outLossGrads[]);
 };
 
 class FCNeuralNetwork
@@ -628,7 +688,7 @@ public:
 	}
 	void calcBackwardPass(NNScalar const inLossDerivatives[], NNScalar const inSignals[], NNScalar const inNetInputs[], NNScalar outLossGrads[], NNScalar outDeltaWeights[]) const
 	{
-		FNNAlgo::BackwardPass(getLayout(), mParameters, inLossDerivatives, inSignals, inNetInputs, outLossGrads, outDeltaWeights);
+		FNNAlgo::BackwardPass(getLayout(), mParameters, inSignals, inNetInputs, inLossDerivatives, outLossGrads, outDeltaWeights);
 	}
 
 	NNMatrixView getLayerWeight(int idxLayer) const

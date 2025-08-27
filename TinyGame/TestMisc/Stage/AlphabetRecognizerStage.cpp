@@ -662,7 +662,7 @@ namespace AR
 				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, mOutputs[2], mOutputs[3]);
 				FNNAlgo::ForwardFeedback(layer5, mParamters.data(), layer4.numNode, layer4.dataSize, mOutputs[3], mOutputs[4]);
 				FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, mOutputs[4], mOutputs[5]);
-				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), mOutputs[5], mOutputs[6]);
+				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), mOutputs[5], mOutputs[6], false);
 
 				int index = FNNMath::SoftMax(layer7.getOutputLength(), mOutputs[6], mResult.data());
 				LogMsg("Answer = %c, pct = %f", 'A' + index, mResult[index]);

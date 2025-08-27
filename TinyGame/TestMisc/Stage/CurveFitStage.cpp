@@ -44,7 +44,6 @@ public:
 	struct TrainData
 	{
 		TArray< NNScalar > signals;
-		TArray< NNScalar > netInputs;
 		TArray< NNScalar > lossGrads;
 		TArray< NNScalar > deltaParameters;
 		TArray< NNScalar > batchNormParameters;
@@ -53,10 +52,8 @@ public:
 		void init(FCNNLayout& layout, int batchSize = 1)
 		{
 			batchSize = 1;
-			signals.resize(batchSize * layout.getSignalNum());
-			netInputs.resize(batchSize * (layout.getHiddenNodeNum() + layout.getOutputNum()));
-			lossGrads.resize(batchSize * (layout.getHiddenNodeNum() + layout.getOutputNum()));
-			
+			signals.resize(batchSize * ( layout.getSignalNum() + layout.getTotalNodeNum() ));
+			lossGrads.resize(batchSize * layout.getTotalNodeNum());
 			deltaParameters.resize(layout.getParameterNum());
 		}
 
@@ -243,17 +240,17 @@ public:
 
 	NNScalar fit(SampleData const& sample, TrainData& trainData)
 	{
-		NNScalar const* pOutputSignals = trainData.signals.data() + (mLayout.getInputNum() + mLayout.getHiddenNodeNum());
+		NNScalar const* pOutputSignals = trainData.signals.data() + (mLayout.getInputNum() + 2 * mLayout.getHiddenNodeNum() + mLayout.getOutputNum());
 
 		trainData.signals[0] = sample.input;
-		mFCNN.calcForwardPass(trainData.signals.data(), trainData.signals.data() + 1, trainData.netInputs.data());
+		mFCNN.calcForwardPass(trainData.signals.data(), trainData.signals.data() + 1);
 
 		NNScalar delta = sample.label - pOutputSignals[0];
 
 		NNScalar lossDerivatives = LossFunc::CalcDevivative(pOutputSignals[0], sample.label);
 		NNScalar loss = LossFunc::Calc(pOutputSignals[0], sample.label);
 
-		mFCNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.netInputs.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
+		mFCNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
 		return loss;
 	}
 

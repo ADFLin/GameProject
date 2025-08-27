@@ -33,7 +33,7 @@ void NeuralNetworkRenderer::draw(IGraphics2D& g)
 	for (int i = 0; i <= NNLayout.getHiddenLayerNum(); ++i)
 	{
 		NeuralFullConLayer const& layer = NNLayout.getLayer(i);
-		int numNodeWeight = NNLayout.getLayerNodeWeigetNum(i);
+		int numNodeWeight = NNLayout.getLayerInputNum(i);
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{
 			Vector2 pos = getLayerNodePos(i, idxNode);

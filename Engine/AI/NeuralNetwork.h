@@ -492,16 +492,17 @@ public:
 	void getTopology(TArray<uint32>& outTopology) const;
 
 
-	int getLayerNodeWeigetNum(int idxLayer) const;
+	int getLayerInputNum(int idxLayer) const;
 
-	int getNetInputOffset(int idxLayer) const;
-	int getInputSignalOffset(int idxLayer) const;
-	int getOutputSignalOffset(int idxLayer) const;
+	int getInputSignalOffset(int idxLayer, bool bHadActiveInput) const;
+	int getOutputSignalOffset(int idxLayer, bool bHadActiveInput) const;
 
 	int getHiddenLayerNum() const { return (int)mLayers.size() - 1; }
 	int getInputNum()  const { return mNumInput; }
 	int getOutputNum() const { return mLayers.back().numNode; }
 	int getSignalNum() const { return getInputNum() + mTotalNodeNum; }
+	int getTotalNodeNum() const { return mTotalNodeNum; }
+
 
 
 	int getHiddenNodeNum() const;
@@ -543,7 +544,7 @@ public:
 class FNNAlgo
 {
 public:
-	static void ForwardFeedback(
+	static NNScalar* ForwardFeedback(
 		NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters,
 		int numInput, NNScalar const* RESTRICT inputs,
 		NNScalar* RESTRICT outputs, bool bOutputActiveInput);
@@ -580,13 +581,11 @@ public:
 	static void ForwardPass(
 		FCNNLayout const& layout, NNScalar const* parameters, 
 		NNScalar const inInputs[], 
-		NNScalar outActivations[], 
-		NNScalar outNetInputs[]);
+		NNScalar outOutputs[]);
 
 	static void BackwardPass(
 		FCNNLayout const& layout, NNScalar* parameters, 
 		NNScalar const inSignals[], 
-		NNScalar const inNetInputs[],
 		NNScalar const inLossDerivatives[],
 		NNScalar outLossGrads[], 
 		NNScalar outDeltaWeights[]);
@@ -597,7 +596,7 @@ public:
 		NNScalar const inLossDerivatives[], 
 		NNScalar outDeltaWeights[]);
 
-	static void ForwardFeedback(
+	static NNScalar* ForwardFeedback(
 		NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
 		int numSliceInput, int const inputSize[],
 		NNScalar const* RESTRICT inputs,
@@ -617,7 +616,7 @@ public:
 		NNScalar inoutLossDerivatives[],
 		NNScalar outDeltaWeights[]);
 
-	static void ForwardFeedback(
+	static NNScalar* ForwardFeedback(
 		NeuralMaxPooling2DLayer const& layer,
 		int const inputSize[],
 		NNScalar const* RESTRICT inputs,
@@ -682,13 +681,13 @@ public:
 	{
 		FNNAlgo::ForwardPassBatch(getLayout(), mParameters, inInputs, batchSize, outActivations, outNetInputs);
 	}
-	void calcForwardPass(NNScalar const inInputs[], NNScalar outActivations[], NNScalar outNetInputs[]) const
+	void calcForwardPass(NNScalar const inInputs[], NNScalar outOutputs[]) const
 	{
-		FNNAlgo::ForwardPass(getLayout(), mParameters, inInputs, outActivations, outNetInputs);
+		FNNAlgo::ForwardPass(getLayout(), mParameters, inInputs, outOutputs);
 	}
-	void calcBackwardPass(NNScalar const inLossDerivatives[], NNScalar const inSignals[], NNScalar const inNetInputs[], NNScalar outLossGrads[], NNScalar outDeltaWeights[]) const
+	void calcBackwardPass(NNScalar const inLossDerivatives[], NNScalar const inSignals[], NNScalar outLossGrads[], NNScalar outDeltaWeights[]) const
 	{
-		FNNAlgo::BackwardPass(getLayout(), mParameters, inSignals, inNetInputs, inLossDerivatives, outLossGrads, outDeltaWeights);
+		FNNAlgo::BackwardPass(getLayout(), mParameters, inSignals, inLossDerivatives, outLossGrads, outDeltaWeights);
 	}
 
 	NNMatrixView getLayerWeight(int idxLayer) const
@@ -697,7 +696,7 @@ public:
 		NNMatrixView result;
 		result.mData = mParameters + layout.weightOffset;
 		result.mRows = layout.numNode;
-		result.mCols = mLayout->getLayerNodeWeigetNum(idxLayer);
+		result.mCols = mLayout->getLayerInputNum(idxLayer);
 		return result;
 	}
 	NNVectorView getLayerBias(int idxLayer) const

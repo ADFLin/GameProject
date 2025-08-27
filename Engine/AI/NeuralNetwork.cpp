@@ -21,7 +21,7 @@ NNScalar* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
 
 	NeuralFullConLayer const& layer = NNLayout.mLayers[idxLayer];
 	NNScalar* result = mParameters + layer.weightOffset;
-	result += idxNode * NNLayout.getLayerNodeWeigetNum(idxLayer);
+	result += idxNode * NNLayout.getLayerInputNum(idxLayer);
 	return result;
 }
 
@@ -469,22 +469,12 @@ void FCNNLayout::getTopology(TArray<uint32>& outTopology) const
 	}
 }
 
-int FCNNLayout::getLayerNodeWeigetNum(int idxLayer) const
+int FCNNLayout::getLayerInputNum(int idxLayer) const
 {
 	return (idxLayer == 0) ? mNumInput : mLayers[idxLayer - 1].numNode;
 }
 
-int FCNNLayout::getNetInputOffset(int idxLayer) const
-{
-	int result = 0;
-	for( int i = 0; i < idxLayer; ++i )
-	{
-		result += mLayers[i].numNode;
-	}
-	return result;
-}
-
-int FCNNLayout::getInputSignalOffset(int idxLayer) const
+int FCNNLayout::getInputSignalOffset(int idxLayer, bool bHadActiveInput) const
 {
 	if (idxLayer == 0)
 		return 0;
@@ -492,17 +482,23 @@ int FCNNLayout::getInputSignalOffset(int idxLayer) const
 	int result = mNumInput;
 	for (int i = 0; i < idxLayer - 1; ++i)
 	{
-		result += mLayers[i].numNode;
+		int num = mLayers[i].numNode;
+		if (bHadActiveInput)
+			num *= 2;
+		result += num;
 	}
 	return result;
 }
 
-int FCNNLayout::getOutputSignalOffset(int idxLayer) const
+int FCNNLayout::getOutputSignalOffset(int idxLayer, bool bHadActiveInput) const
 {
 	int result = mNumInput;
 	for (int i = 0; i < idxLayer; ++i)
 	{
-		result += mLayers[i].numNode;
+		int num = mLayers[i].numNode;
+		if (bHadActiveInput)
+			num *= 2;
+		result += num;
 	}
 	return result;
 }
@@ -526,7 +522,7 @@ int FCNNLayout::getParameterNum() const
 }
 
 
-void FNNAlgo::ForwardFeedback(
+NNScalar* FNNAlgo::ForwardFeedback(
 	NeuralFullConLayer const& layer, NNScalar const* RESTRICT parameters,
 	int numInput, NNScalar const* RESTRICT inputs,
 	NNScalar* RESTRICT outputs, bool bOutputActiveInput)
@@ -546,6 +542,8 @@ void FNNAlgo::ForwardFeedback(
 	{
 		layer.funcTransform(outputs, outputLen);
 	}
+
+	return outputs;
 }
 
 void FNNAlgo::ForwardFeedback(
@@ -598,17 +596,17 @@ void FNNAlgo::ForwardPassBatch(
 	NNScalar outNetInputs[])
 {
 
-	int curInputNum = batchSize * layout.getInputNum();
+	int numInput = batchSize * layout.getInputNum();
 	NNScalar const* inputs = inInputs;
 	NNScalar* outputs = outActivations;
 	for (const NeuralFullConLayer& layer : layout.mLayers)
 	{
-		ForwardFeedbackBatch(layer, parameters, curInputNum, inputs, batchSize, outputs, outNetInputs);
+		ForwardFeedbackBatch(layer, parameters, numInput, inputs, batchSize, outputs, outNetInputs);
 
-		curInputNum = batchSize * layer.numNode;
+		numInput = batchSize * layer.numNode;
 		inputs = outputs;
-		outputs += curInputNum;
-		outNetInputs += curInputNum;
+		outputs += numInput;
+		outNetInputs += numInput;
 	}
 }
 
@@ -643,38 +641,37 @@ void FNNAlgo::ForwardFeedback(
 void FNNAlgo::ForwardFeedbackSignal(
 	FCNNLayout const& layout, NNScalar const* parameters,
 	NNScalar const inInputs[],
-	NNScalar outActivations[])
+	NNScalar outOutputs[])
 {
-	int curInputNum = layout.getInputNum();
+	int numInput = layout.getInputNum();
 	NNScalar const* inputs = inInputs;
-	NNScalar* outputs = outActivations;
+	NNScalar* outputs = outOutputs;
 	for (const NeuralFullConLayer& layer : layout.mLayers)
 	{
 		//NNMatrixView weights = getWeights(layer);
-		ForwardFeedback(layer, parameters, curInputNum, inputs, outputs, false);
-		curInputNum = layer.numNode;
+		ForwardFeedback(layer, parameters, numInput, inputs, outputs, false);
+
+		numInput = layer.numNode;
 		inputs = outputs;
-		outputs += curInputNum;
+		outputs += numInput;
 	}
 }
 
 void FNNAlgo::ForwardPass(
 	FCNNLayout const& layout, NNScalar const* parameters, 
 	NNScalar const inInputs[], 
-	NNScalar outActivations[], 
-	NNScalar outNetInputs[])
+	NNScalar outOutputs[])
 {
-	int curInputNum = layout.getInputNum();
+	int numInput = layout.getInputNum();
 	NNScalar const* inputs = inInputs;
-	NNScalar* outputs = outActivations;
+	NNScalar* outputs = outOutputs;
 	for (const NeuralFullConLayer& layer : layout.mLayers)
 	{
-		ForwardFeedback(layer, parameters, curInputNum, inputs, outputs, outNetInputs);
+		ForwardFeedback(layer, parameters, numInput, inputs, outputs, true);
 
-		curInputNum = layer.numNode;
-		inputs = outputs;
-		outputs += curInputNum;
-		outNetInputs += curInputNum;
+		inputs = outputs + layer.numNode;
+		outputs += 2 * layer.numNode;
+		numInput = layer.numNode;
 	}
 }
 
@@ -710,8 +707,7 @@ void FNNAlgo::ForwardPass(
 
 void FNNAlgo::BackwardPassWeight(
 	NeuralFullConLayer const& layer,
-	int numNodeWeiget,
-	NNScalar const inInput[],
+	int numInput, NNScalar const inInput[],
 	NNScalar const inLossDerivatives[],
 	NNScalar outDeltaWeights[])
 {
@@ -723,7 +719,7 @@ void FNNAlgo::BackwardPassWeight(
 		NNScalar dCdb = dCdz;
 		*pDeltaBiasLayer += dCdb;
 		++pDeltaBiasLayer;
-		for (int k = 0; k < numNodeWeiget; ++k)
+		for (int k = 0; k < numInput; ++k)
 		{
 			NNScalar dCdw = dCdz * inInput[k];
 			*pDeltaWeightLayer += dCdw;
@@ -732,10 +728,11 @@ void FNNAlgo::BackwardPassWeight(
 	}
 }
 
+//PRAGMA_DISABLE_OPTIMIZE
+
 void FNNAlgo::BackwardPass(
 	FCNNLayout const& layout, NNScalar* parameters,
 	NNScalar const inSignals[],
-	NNScalar const inNetInputs[],
 	NNScalar const inLossDerivatives[],
 	NNScalar outLossGrads[],
 	NNScalar outDeltaWeights[])
@@ -744,54 +741,49 @@ void FNNAlgo::BackwardPass(
 	int totalNodeCount = layout.getHiddenNodeNum() + layout.getOutputNum();
 
 	NNScalar* pLossGrad = outLossGrads + totalNodeCount;
-	NNScalar const* pNetworkInputs = inNetInputs + totalNodeCount;
-	NNScalar const* pInputSignals = inSignals + (layout.getInputNum() + layout.getHiddenNodeNum());
+	NNScalar const* pInputSignals = inSignals + (layout.getInputNum() + 2 * layout.getHiddenNodeNum());
 
 	{
 		int idxLayer = layout.getHiddenLayerNum();
 		auto const& layer = layout.getLayer(idxLayer);
 
-		pNetworkInputs -= layer.numNode;
-		CHECK(pNetworkInputs = inNetInputs + layout.getNetInputOffset(idxLayer));
-
 		pLossGrad -= layer.numNode;
-		CHECK(pLossGrad = outLossGrads + layout.getNetInputOffset(idxLayer));
 
-		int numNodeWeiget = layout.getLayerNodeWeigetNum(idxLayer);
-		pInputSignals -= numNodeWeiget;
-		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer));
-
+		NNScalar const* pNetworkInputs = pInputSignals;
 		FNNMath::VectorCopy(layer.numNode, inLossDerivatives, pLossGrad);
 		BackwardPass(static_cast<ActiveLayer const&>(layer), layer.numNode, pNetworkInputs, pLossGrad);
-		BackwardPassWeight(layer, numNodeWeiget, pInputSignals, pLossGrad, outDeltaWeights);
+
+		int numInput = layout.getLayerInputNum(idxLayer);
+		pInputSignals -= numInput;
+		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer, true));
+		BackwardPassWeight(layer, numInput, pInputSignals, pLossGrad, outDeltaWeights);
 	}
 
 	for (int idxLayer = layout.getHiddenLayerNum() - 1; idxLayer >= 0; --idxLayer)
 	{
 		auto const& layer = layout.getLayer(idxLayer);
 		auto const& nextLayer = layout.getLayer(idxLayer + 1);
-
-		pNetworkInputs -= layer.numNode;
-		CHECK(pNetworkInputs = inNetInputs + layout.getNetInputOffset(idxLayer));
+		pInputSignals -= layer.numNode;
+		
 		NNScalar* pSensivityNextLayer = pLossGrad;
 		pLossGrad -= layer.numNode;
-		CHECK(pLossGrad = outLossGrads + layout.getNetInputOffset(idxLayer));
 
-		int numNodeWeiget = layout.getLayerNodeWeigetNum(idxLayer);
-		pInputSignals -= numNodeWeiget;
-		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer));
-
+		NNScalar const* pNetworkInputs = pInputSignals;
 		NNScalar* pWeightNext = parameters + nextLayer.weightOffset;
-
 		FNNMath::VectorMulMatrix(nextLayer.numNode, layer.numNode, pWeightNext, pSensivityNextLayer, pLossGrad);
 		BackwardPass(static_cast<ActiveLayer const&>(layer), layer.numNode, pNetworkInputs, pLossGrad);
-		BackwardPassWeight(layer, numNodeWeiget, pInputSignals, pLossGrad, outDeltaWeights);
 
+		int numInput = layout.getLayerInputNum(idxLayer);
+		pInputSignals -= numInput;
+		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer, true));
+		BackwardPassWeight(layer, numInput, pInputSignals, pLossGrad, outDeltaWeights);
 	}
 }
 
+PRAGMA_ENABLE_OPTIMIZE
+
 template< typename TKernel >
-void ForwardFeedbackT(
+NNScalar*  ForwardFeedbackT(
 	NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
 	int numSliceInput, int const inputSize[], NNScalar const* RESTRICT inputs,
 	NNScalar* RESTRICT outputs, bool bOutputActiveInput)
@@ -861,9 +853,11 @@ void ForwardFeedbackT(
 	{
 		layer.funcTransform(outputs, outputLen);
 	}
+
+	return outputs;
 }
 
-void FNNAlgo::ForwardFeedback(
+NNScalar* FNNAlgo::ForwardFeedback(
 	NeuralConv2DLayer const& layer, NNScalar const* RESTRICT parameters,
 	int numSliceInput, int const inputSize[], 
 	NNScalar const* RESTRICT inputs,
@@ -877,14 +871,14 @@ void FNNAlgo::ForwardFeedback(
 		switch (layer.fastMethod)
 		{
 		case NeuralConv2DLayer::eF23:
-			ForwardFeedbackT<WinogradKernel23>(layer, parameters, numSliceInput, inputSize, inputs, outputs, bOutputActiveInput);
-			break;;
+			return ForwardFeedbackT<WinogradKernel23>(layer, parameters, numSliceInput, inputSize, inputs, outputs, bOutputActiveInput);
+			break;
 		case NeuralConv2DLayer::eF43:
-			ForwardFeedbackT<WinogradKernel43>(layer, parameters, numSliceInput, inputSize, inputs, outputs, bOutputActiveInput);
+			return ForwardFeedbackT<WinogradKernel43>(layer, parameters, numSliceInput, inputSize, inputs, outputs, bOutputActiveInput);
 			break;
 		}
 
-		return;
+		return nullptr;
 	}
 
 	int const nx = layer.dataSize[0];
@@ -941,6 +935,8 @@ void FNNAlgo::ForwardFeedback(
 	{
 		layer.funcTransform(outputs, outputLen);
 	}
+
+	return outputs;
 }
 
 void FNNAlgo::BackwardPassLoss(
@@ -1058,7 +1054,7 @@ void FNNAlgo::BackwardPassWeight(
 
 }
 
-void FNNAlgo::ForwardFeedback(
+NNScalar* FNNAlgo::ForwardFeedback(
 	NeuralMaxPooling2DLayer const& layer, 
 	int const inputSize[],
 	NNScalar const* RESTRICT inputs,
@@ -1096,6 +1092,8 @@ void FNNAlgo::ForwardFeedback(
 		pNodeInput += spliceInputLen;
 		pNodeOutput += spliceOutputLen;
 	}
+
+	return outputs;
 }
 
 

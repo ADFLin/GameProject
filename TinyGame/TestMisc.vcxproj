@@ -461,6 +461,7 @@
     <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
     <ClCompile Include="TestMisc\Stage\MidlineTestStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\NumberRecognizerStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RVOTestStage.cpp" />
@@ -469,7 +470,6 @@
     <ClCompile Include="TestMisc\Stage\TMachineStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp" />
     <ClCompile Include="TestMisc\Stage\VectorGraphicRenderStage.cpp" />
-    <ClCompile Include="TestMisc\Stage\VedioPlayStage.cpp" />
     <ClCompile Include="TestMisc\Stage\VoronoiStage.cpp" />
     <ClCompile Include="TestMisc\TestMisc.cpp" />
     <ClCompile Include="TestMisc\TestMiscPCH.cpp">

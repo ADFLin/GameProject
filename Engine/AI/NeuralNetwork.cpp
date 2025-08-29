@@ -707,7 +707,7 @@ void FNNAlgo::ForwardPass(
 
 void FNNAlgo::BackwardPassWeight(
 	NeuralFullConLayer const& layer,
-	int numInput, NNScalar const inInput[],
+	int numInput, NNScalar const inInputs[],
 	NNScalar const inLossDerivatives[],
 	NNScalar outDeltaWeights[])
 {
@@ -721,12 +721,33 @@ void FNNAlgo::BackwardPassWeight(
 		++pDeltaBiasLayer;
 		for (int k = 0; k < numInput; ++k)
 		{
-			NNScalar dCdw = dCdz * inInput[k];
+			NNScalar dCdw = dCdz * inInputs[k];
 			*pDeltaWeightLayer += dCdw;
 			++pDeltaWeightLayer;
 		}
 	}
 }
+
+
+void FNNAlgo::BackwardPass(
+	NeuralFullConLayer const& layer, NNScalar* parameters,
+	int numInput, NNScalar const inInputs[],
+	NNScalar const inOutputs[],
+	NNScalar  inoutLossGradsInput[], 
+	NNScalar  outDeltaWeights[], 
+	NNScalar* outLossGrads)
+{
+	BackwardPass(static_cast<ActiveLayer const&>(layer), layer.numNode, inOutputs, inoutLossGradsInput);
+
+	BackwardPassWeight(layer, numInput, inInputs, inoutLossGradsInput, outDeltaWeights);
+
+	if (outLossGrads)
+	{
+		NNScalar* pWeight = parameters + layer.weightOffset;
+		FNNMath::VectorMulMatrix(layer.numNode, numInput, pWeight, inoutLossGradsInput, outLossGrads);
+	}
+}
+
 
 //PRAGMA_DISABLE_OPTIMIZE
 
@@ -739,8 +760,39 @@ void FNNAlgo::BackwardPass(
 {
 
 	int totalNodeCount = layout.getHiddenNodeNum() + layout.getOutputNum();
-
 	NNScalar* pLossGrad = outLossGrads + totalNodeCount;
+
+#if 1
+
+	NNScalar* pLossGradsInput;
+	NNScalar const* pInput = inSignals + (layout.getInputNum() + 2 * layout.getHiddenNodeNum());
+
+	{
+		int idxLayer = layout.getHiddenLayerNum();
+		auto const& layer = layout.getLayer(idxLayer);
+		
+		pLossGrad -= layer.numNode;
+		FNNMath::VectorCopy(layer.numNode, inLossDerivatives, pLossGrad);
+		pLossGradsInput = pLossGrad;
+
+		pInput += layer.numNode;
+	}
+
+	for (int idxLayer = layout.getHiddenLayerNum(); idxLayer >= 0; --idxLayer)
+	{
+		auto const& layer = layout.getLayer(idxLayer);
+		int numInput = layout.getLayerInputNum(idxLayer);
+
+		pInput -= layer.numNode;
+		NNScalar const* pOutput = pInput;
+		pInput -= numInput;
+
+		pLossGrad -= numInput;
+		BackwardPass(layer, parameters, numInput, pInput, pOutput, pLossGradsInput, outDeltaWeights, idxLayer != 0 ? pLossGrad : nullptr);
+		pLossGradsInput = pLossGrad;
+	}
+#else
+
 	NNScalar const* pInputSignals = inSignals + (layout.getInputNum() + 2 * layout.getHiddenNodeNum());
 
 	{
@@ -778,6 +830,7 @@ void FNNAlgo::BackwardPass(
 		CHECK(pInputSignals = inSignals + layout.getInputSignalOffset(idxLayer, true));
 		BackwardPassWeight(layer, numInput, pInputSignals, pLossGrad, outDeltaWeights);
 	}
+#endif
 }
 
 PRAGMA_ENABLE_OPTIMIZE
@@ -1177,6 +1230,21 @@ void FNNAlgo::BackwardPass(ActiveLayer const& layer, int numNode, NNScalar const
 	else
 	{
 		FNNMath::VectorCopy(numNode, inLossDerivatives, outLossGrads);
+	}
+}
+
+void FNNAlgo::SoftMaxBackwardPass(int numNode, NNScalar const inInputs[], NNScalar const inOutputs[], NNScalar const inLossDerivatives[], NNScalar outLossGrads[])
+{
+	for (int io = 0; io < numNode; ++io)
+	{
+		NNScalar lossGrad = 0;
+		for (int i = 0; i < numNode; ++i)
+		{
+			lossGrad += ((io == i) ? 1 : 0) * inLossDerivatives[i] * inOutputs[i];
+			lossGrad -= inLossDerivatives[i] * (inOutputs[io] * inOutputs[i]);
+		}
+
+		outLossGrads[io] = lossGrad;
 	}
 }
 

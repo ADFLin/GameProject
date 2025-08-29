@@ -103,6 +103,17 @@ namespace NR
 				layer7.numNode = 10;
 				layer7.setFuncionT< NNFunc::Linear >();
 				addLayer(layer7, layer6.getOutputLength());
+
+
+				addSoftMaxLayer(layer7.numNode);
+			}
+
+			void addSoftMaxLayer(int outputLength)
+			{
+				mOutputOffsets[mNumLayer] = mOutputLength;
+				++mNumLayer;
+				mOutputLength += outputLength;
+				mLossGradLength += outputLength;
 			}
 
 			void addLayer(NeuralConv2DLayer& inoutlayer, int numSliceInput)
@@ -152,7 +163,7 @@ namespace NR
 
 			int mParametersLength = 0;
 			int mOutputLength = 0;
-			int mOutputOffsets[7];
+			int mOutputOffsets[8];
 			int mNumLayer;
 			int mLossGradLength = 0;
 
@@ -164,7 +175,7 @@ namespace NR
 			NeuralMaxPooling2DLayer layer6;
 			NeuralFullConLayer layer7;
 
-			void forwardPass(NNScalar const parameters[], NNScalar const inputs[], NNScalar outOutputs[])
+			int forwardPass(NNScalar const parameters[], NNScalar const inputs[], NNScalar outOutputs[])
 			{
 				NNScalar const* pInput = inputs;
 				pInput = FNNAlgo::ForwardFeedback(layer1, parameters, 1, ImageSize, pInput, outOutputs + mOutputOffsets[0], true);
@@ -175,11 +186,24 @@ namespace NR
 				pInput = FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, pInput, outOutputs + mOutputOffsets[5]);
 				pInput = FNNAlgo::ForwardFeedback(layer7, parameters, layer6.getOutputLength(), pInput, outOutputs + mOutputOffsets[6], true);
 
-				//int index = FNNMath::SoftMax(layer7.getOutputLength(), output + mOutputOffsets[6], mResult.data());
+				int index = FNNMath::SoftMax(layer7.getOutputLength(), pInput, outOutputs + mOutputOffsets[7]);
+				return index;
 			}
 
 			void backwardPass(NNScalar const parameters[], NNScalar const inLossDerivatives[], NNScalar const inputs[], NNScalar const inOutputs[], NNScalar outLossGrads[], NNScalar outDeltaWeights[])
 			{
+				NNScalar const* pInLossGrad = inLossDerivatives;
+				NNScalar* pOutLossGrad = outLossGrads - layer7.getOutputLength();
+				NNScalar const* pInput = inOutputs + mOutputOffsets[6];
+				NNScalar const* pOutput = inOutputs + mOutputOffsets[7];
+				FNNAlgo::SoftMaxBackwardPass(layer7.getOutputLength(), pInput, pOutput, pInLossGrad, pOutLossGrad);
+
+				pInLossGrad = pInLossGrad;
+				pOutLossGrad -= layer6.getOutputLength();
+				pOutput = pInput;
+				pInput = inOutputs + mOutputOffsets[5];
+
+
 
 
 

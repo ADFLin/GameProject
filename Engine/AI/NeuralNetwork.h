@@ -590,8 +590,16 @@ public:
 		NNScalar outLossGrads[], 
 		NNScalar outDeltaWeights[]);
 
+	static void BackwardPass(
+		NeuralFullConLayer const& layer, NNScalar* parameters,
+		int numInput, NNScalar const inInputs[],
+		NNScalar const inOutputs[],
+		NNScalar  inoutLossGradsInput[],
+		NNScalar  outDeltaWeights[],
+		NNScalar* outLossGrads);
+
 	static void BackwardPassWeight(
-		NeuralFullConLayer const& layer, int numNodeWeiget, 
+		NeuralFullConLayer const& layer, int numInput,
 		NNScalar const inInput[], 
 		NNScalar const inLossDerivatives[], 
 		NNScalar outDeltaWeights[]);
@@ -648,6 +656,14 @@ public:
 		ActiveLayer const& layer,
 		int numNode,
 		NNScalar const inInputs[],
+		NNScalar const inLossDerivatives[],
+		NNScalar outLossGrads[]);
+
+
+	static void SoftMaxBackwardPass(
+		int numNode,
+		NNScalar const inInputs[],
+		NNScalar const inOutputs[],
 		NNScalar const inLossDerivatives[],
 		NNScalar outLossGrads[]);
 };

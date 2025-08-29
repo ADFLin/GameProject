@@ -85,7 +85,7 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		int size = 24;
-		uint32 topology[] = { 1, size, size, size, size, 1 };
+		uint32 topology[] = { 1, 5, size, size, size, size, 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
 		mLayout.setHiddenLayerFunction<NNFunc::ReLU>();
 		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
@@ -131,6 +131,7 @@ public:
 
 	void restart() 
 	{
+		::srand(0);
 		Randomize(mParameters);
 		importSample();
 	}
@@ -331,16 +332,13 @@ public:
 	TArray< Vector2 > mLossPoints;
 	TArray< Vector2 > mTestLossPoints;
 
-
+	//std::random_device rd;
 
 	void Train()
 	{
 		TIME_SCOPE("Train");
 
-
-
-		std::random_device rd;
-		std::mt19937 g(rd());
+		std::mt19937 g(::rand());
 		std::shuffle(mOrderedSample.begin(), mOrderedSample.end(), g);
 
 		int iterCount = ( mSamples.size() + mBatchSize - 1 ) / mBatchSize;

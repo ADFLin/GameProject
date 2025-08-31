@@ -207,7 +207,7 @@ namespace Zuma
 
 	void RenderSystemRHI::loadWorldMatrix(Vector2 const& pos, Vector2 const& dir)
 	{
-		mGraphics->transformXForm(RenderTransform2D::Transform(pos, dir), false);
+		mGraphics->transformXForm(RenderTransform2D::Transform(pos, dir), true);
 	}
 
 	void RenderSystemRHI::translateWorld(float x, float y)

@@ -293,7 +293,7 @@ namespace Life
 
 
 		g.pushXForm();
-		g.transformXForm(mViewport.xform, true);
+		g.transformXForm(mViewport.xform, false);
 
 		BoundBox boundViewport = mViewport.getViewBound();
 

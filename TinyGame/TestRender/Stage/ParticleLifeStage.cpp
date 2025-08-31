@@ -390,7 +390,7 @@ namespace ParticleLife
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
 			g.pushXForm();
-			g.transformXForm(mWorldToScreen, false);
+			g.transformXForm(mWorldToScreen, true);
 			RenderUtility::SetPen(g, EColor::Null);
 
 			int ColorMap[] = { EColor::Red , EColor::Green, EColor::Blue, EColor::Yellow };

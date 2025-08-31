@@ -848,7 +848,7 @@ namespace AR
 			};
 
 			g.pushXForm();
-			g.transformXForm(mXFormInput, false);
+			g.transformXForm(mXFormInput, true);
 
 			RenderUtility::SetBrush(g, EColor::White);
 			g.drawTexture(*mTexPaint, Vector2(0,0));

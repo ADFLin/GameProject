@@ -139,7 +139,7 @@ namespace Transport
 			g.beginRender();
 
 			g.beginXForm();
-			g.transformXForm(mViewport.worldToScreen, true);
+			g.transformXForm(mViewport.worldToScreen, false);
 			switch (mEdit.phase)
 			{
 			case 1:

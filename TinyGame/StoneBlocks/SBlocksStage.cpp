@@ -79,7 +79,7 @@ namespace SBlocks
 		g.setBrush(theme.backgroundColor);
 		g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 
-		g.transformXForm(mLevel.mWorldToScreen, true);
+		g.transformXForm(mLevel.mWorldToScreen, false);
 
 		float const MapBorder = 0.3;
 		float const MapFrameWidth = 0.3;
@@ -206,7 +206,7 @@ namespace SBlocks
 		RenderUtility::SetPen(g, EColor::Null);
 
 		g.pushXForm();
-		g.transformXForm(piece.renderXForm, true);
+		g.transformXForm(piece.renderXForm, false);
 		auto DrawPiece = [&]()
 		{
 			for (auto const& block : shapeData.blocks)

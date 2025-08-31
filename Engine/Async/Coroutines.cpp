@@ -213,12 +213,11 @@ namespace Coroutines
 		if (context.mDependenceIndex != INDEX_NONE )
 			return;
 
-		if (context.mInstruction == nullptr || 
-			context.mInstruction->isKeepWaiting() == false)
-		{
-			context.setYeildReturn();
-			executeContextInternal(context);
-		}
+		if (context.mInstruction == nullptr || context.mInstruction->isKeepWaiting() == true)
+			return;
+
+		context.setYeildReturn();
+		executeContextInternal(context);
 	}
 
 	ExecutionHandle ThreadContext::startInternal(std::function< void() > entryFunc)

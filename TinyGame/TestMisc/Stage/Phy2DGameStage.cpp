@@ -99,7 +99,7 @@ namespace P2G
 
 			{
 
-				TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, true);
+				TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, false);
 
 				mWorld.getPhysicsScene()->setupDebug(g);
 				mWorld.getPhysicsScene()->drawDebug();

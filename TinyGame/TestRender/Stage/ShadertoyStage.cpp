@@ -613,7 +613,7 @@ namespace Shadertoy
 				}
 				else if (typeName == "video")
 				{
-					input.type = EInputType::Vedio;
+					input.type = EInputType::Video;
 				}
 				else
 				{
@@ -675,7 +675,7 @@ namespace Shadertoy
 					case EInputType::Texture:
 					case EInputType::CubeMap:
 					case EInputType::Volume:
-					case EInputType::Vedio:
+					case EInputType::Video:
 					case EInputType::Music:
 						{
 							std::string filePath;
@@ -1183,7 +1183,7 @@ namespace Shadertoy
 					mRenderer.addInputResource(input, *texture);
 				}
 			break;
-			case EInputType::Vedio:
+			case EInputType::Video:
 				{
 					MediaPlayer* mediaPlayer = new MediaPlayer;
 					mediaPlayer->open(loadPath.c_str());

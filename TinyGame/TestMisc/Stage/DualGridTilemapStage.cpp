@@ -165,7 +165,7 @@ public:
 		g.beginRender();
 
 		g.pushXForm();
-		g.transformXForm(mView.worldToScreen, false);
+		g.transformXForm(mView.worldToScreen, true);
 
 		RenderUtility::SetBrush(g, EColor::White);
 

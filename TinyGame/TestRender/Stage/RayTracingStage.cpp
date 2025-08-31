@@ -191,7 +191,7 @@ void RayTracingTestStage::onRender(float dFrame)
 
 		if(0)
 		{
-			TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, true);
+			TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, false);
 			RenderUtility::SetPen(g, EColor::White);
 			g.drawCircle(Vector2::Zero(), 100);
 			

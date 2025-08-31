@@ -256,6 +256,8 @@
     <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp" />
     <ClCompile Include="TestMisc\Stage\QuixoStage.cpp" />
     <ClCompile Include="TestMisc\Stage\SRPGTestStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\TwentyFortyEightStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\VideoPlayStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FluidRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\MathArtStage.cpp" />

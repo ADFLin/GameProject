@@ -118,7 +118,7 @@ namespace Render
 		FORCEINLINE static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float zoom, bool bFlipX = false)
 		{
 			Math::Rotation2D rotation;
-			rotation.setYDir(upDir);
+			rotation.setYDir(-upDir);
 			return LookAt(screenSize, lookPos, rotation, zoom, bFlipX);
 		}
 
@@ -321,16 +321,16 @@ namespace Render
 			mCurrent.scaleLocal(scale);
 		}
 
-		void pushTransform(RenderTransform2D const& xform, bool bApplyPrev = true)
+		void pushTransform(RenderTransform2D const& xform, bool bReset = false)
 		{
 			mStack.push_back(mCurrent);
-			if (bApplyPrev)
+			if (bReset)
 			{
-				transform(xform);
+				set(xform);
 			}
 			else
 			{
-				set(xform);
+				transform(xform);
 			}
 		}
 

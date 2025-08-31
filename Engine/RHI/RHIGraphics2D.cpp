@@ -89,15 +89,15 @@ void RHIGraphics2D::scaleXForm(float sx, float sy)
 	mXFormStack.scale(Vector2(sx, sy));
 }
 
-void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool bApplyPrev)
+void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool bReset)
 {
-	if (bApplyPrev)
+	if (bReset)
 	{
-		mXFormStack.transform(xform);
+		mXFormStack.set(xform);
 	}
 	else
 	{
-		mXFormStack.set(xform);
+		mXFormStack.transform(xform);
 	}
 }
 
@@ -440,6 +440,7 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 
 	int charCount = 0;
 	Vector2 extent = mFont->calcTextExtent(str, &charCount);
+	extent = getCurrentTransform().transformInvVector(extent);
 	if (charCount == 0)
 	{
 		return;

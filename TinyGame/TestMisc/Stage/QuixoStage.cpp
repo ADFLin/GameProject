@@ -322,7 +322,7 @@ namespace Quixo
 			Vec2i screenSize = ::Global::GetScreenSize();
 			mWorldToScreen = RenderTransform2D::LookAt(screenSize, 0.5 * Vector2(BoardSize, BoardSize), Vector2(0, 1), screenSize.y / float(BoardSize + 2.5), true);
 			mScreenToWorld = mWorldToScreen.inverse();
-			mGame.mRule = ERule::FourPlayers;
+			mGame.mRule = ERule::TwoPlayers;
 
 			mWinCounts[0] = 0;
 			mWinCounts[1] = 0;
@@ -382,7 +382,7 @@ namespace Quixo
 		}
 
 		template< typename TFunc >
-		void playMoveAnim(Vec2i const& pos, uint8 moveDir, TFunc& func)
+		void playMoveAnim(Vec2i const& pos, uint8 moveDir, TFunc func)
 		{
 			clearAnimOffset();
 
@@ -405,7 +405,7 @@ namespace Quixo
 					mOffsetAlpha = 0;
 					func();
 				}
-			);;
+			);
 		}
 
 		void onRender(float dFrame) override
@@ -419,7 +419,7 @@ namespace Quixo
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
 			g.pushXForm();
-			g.transformXForm(mWorldToScreen, false);
+			g.transformXForm(mWorldToScreen, true);
 
 			RenderUtility::SetBrush(g, EColor::White);
 

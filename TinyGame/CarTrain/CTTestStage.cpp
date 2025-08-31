@@ -340,7 +340,7 @@ namespace CarTrain
 		g.beginRender();
 
 		{
-			TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, true);
+			TRANSFORM_PUSH_SCOPE(g.getTransformStack(), mWorldToScreen, false);
 
 			if (CVarShowDebugDraw)
 			{

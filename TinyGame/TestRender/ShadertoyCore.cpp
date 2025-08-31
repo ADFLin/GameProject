@@ -97,7 +97,7 @@ namespace Shadertoy
 		case EInputType::Webcam:
 		case EInputType::Micrphone:
 		case EInputType::Soundcloud:
-		case EInputType::Vedio:
+		case EInputType::Video:
 		case EInputType::Music:
 			break;
 		}
@@ -689,7 +689,7 @@ namespace Shadertoy
 			case EInputType::Soundcloud:
 			case EInputType::Buffer:
 			case EInputType::Texture:
-			case EInputType::Vedio:
+			case EInputType::Video:
 			case EInputType::Music:
 				channelCode += InlineString<>::Make("uniform sampler2D iChannel%d;\n", input.channel);
 				break;

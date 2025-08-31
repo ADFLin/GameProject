@@ -1359,7 +1359,7 @@ public:
 		RenderTransform2D worldToScreen = RenderTransform2D::LookAt(screenSize, view.pos, Vector2(0, 1), view.zoom, true) * RenderTransform2D::Translate(view.screenOffset);
 
 		g.pushXForm();
-		g.transformXForm(worldToScreen, false);
+		g.transformXForm(worldToScreen, true);
 
 		//RenderUtility::SetBrush(g, view.index == 0 ? EColor::Red : EColor::Green);
 		//g.drawRect(Vector2::Zero(), screenSize);

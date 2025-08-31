@@ -106,6 +106,12 @@
     <ClCompile Include="TestMisc\Stage\SRPGTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\TwentyFortyEightStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\VideoPlayStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />

@@ -406,7 +406,7 @@ namespace SBlocks
 		Vec2i screenPos = getWorldPos();
 		g.pushXForm();
 		g.translateXForm(screenPos.x, screenPos.y);
-		g.transformXForm(mLocalToFrame, true);
+		g.transformXForm(mLocalToFrame, false);
 		Editor::Draw(g, GEditor->mLevel->mTheme, *mShape);
 		g.popXForm();
 	}
@@ -491,7 +491,7 @@ namespace SBlocks
 		for (auto const& shapeInfo : mShapeList)
 		{
 			g.pushXForm();
-			g.transformXForm(shapeInfo.localToFrame, true);
+			g.transformXForm(shapeInfo.localToFrame, false);
 
 
 			Vector2 boundSize = Vector2(shapeInfo.editShape->desc.getBoundSize());

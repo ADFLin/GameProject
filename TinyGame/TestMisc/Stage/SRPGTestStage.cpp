@@ -535,7 +535,7 @@ namespace SRPG
 
 			g.beginRender();
 			g.pushXForm();
-			g.transformXForm(mWorldToScreen, false);
+			g.transformXForm(mWorldToScreen, true);
 
 			for (int j = 0; j < mGame.mMap.getSizeY(); ++j)
 			{

@@ -391,7 +391,7 @@ public:
 
 		g.beginRender();
 		g.pushXForm();
-		g.transformXForm(worldToView, false);
+		g.transformXForm(worldToView, true);
 
 		g.enablePen(true);
 		g.setPenWidth(4);

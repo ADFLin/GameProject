@@ -267,7 +267,7 @@ namespace StoreSim
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
 			g.pushXForm();
-			g.transformXForm(mWorldToScreen, false);
+			g.transformXForm(mWorldToScreen, true);
 
 			auto DrawAreaList = [&](EquipmentClass& equipClass)
 			{
@@ -290,7 +290,7 @@ namespace StoreSim
 			for (auto equip : mEquipments)
 			{
 				g.pushXForm();
-				g.transformXForm(ToRender(equip->transform), true);
+				g.transformXForm(ToRender(equip->transform), false);
 				DrawAreaList(*equip->mClass);
 				g.popXForm();
 
@@ -305,7 +305,7 @@ namespace StoreSim
 			if (mPlaceEquipClass)
 			{
 				g.pushXForm();
-				g.transformXForm(ToRender(mPlaceXForm), true);
+				g.transformXForm(ToRender(mPlaceXForm), false);
 				DrawAreaList(*mPlaceEquipClass);
 				g.popXForm();
 

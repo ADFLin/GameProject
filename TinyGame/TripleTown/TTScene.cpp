@@ -720,7 +720,7 @@ namespace TripleTown
 			if ( mLevel->isMapRange( posTileMouse ) )
 			{
 				//depth offset = 10
-				TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , false);
+				TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , true);
 
 				drawItemCenter( mLevel->getQueueObject() , EItemImage::Normal );
 				//drawItemOutline( *mItemImageMap[ mLevel->getQueueObject() ][ 2 ].texture );
@@ -742,12 +742,12 @@ namespace TripleTown
 
 		if( bShowTexAtlas )
 		{
-			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
+			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), true);
 			drawImageInvTexY(mTexAtlas.getTexture(), 700, 700);
 		}
 		else if ( mPreviewTexture.isValid() && bShowPreviewTexture )
 		{
-			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
+			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), true);
 			drawImageInvTexY(*mPreviewTexture, 700, 700);
 		}
 

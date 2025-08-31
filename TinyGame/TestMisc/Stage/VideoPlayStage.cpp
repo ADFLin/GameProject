@@ -4,11 +4,11 @@
 
 
 
-class VedioPlayStage : public StageBase
+class VideoPlayStage : public StageBase
 {
 	using BaseClass = StageBase;
 public:
-	VedioPlayStage() {}
+	VideoPlayStage() {}
 
 	bool onInit() override
 	{
@@ -70,4 +70,4 @@ protected:
 };
 
 
-REGISTER_STAGE_ENTRY("Veido Play", VedioPlayStage, EExecGroup::Test, "Render");
+REGISTER_STAGE_ENTRY("Video Play", VideoPlayStage, EExecGroup::Test, "Render");

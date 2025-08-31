@@ -194,7 +194,7 @@ namespace Tween
 							mRepeat -= 1;
 						mCurTime -= mRepeatTime;
 					}
-					else // mCurTime > mDuration
+					else // mCurTime >= mDuration
 					{
 						_this()->assignValue( mDuration );
 						CBP::finishCB();
@@ -207,7 +207,7 @@ namespace Tween
 			void assignValue( TimeType t ){}
 
 
-			bool  isFinished() const           { return mRepeat == 0 && mCurTime > mDuration; }
+			bool  isFinished() const           { return mRepeat == 0 && mCurTime >= mDuration; }
 			//T&    finishCallback( FinishCallback func ){ mFinishFunc = func; return *_this(); }
 			T&    repeat( int num )            { mTotalRepeat = mRepeat = num; return *_this(); }
 			T&    delay( TimeType time )       { mDelay = time ; mCurTime = -time; return *_this(); }
@@ -698,8 +698,10 @@ namespace Tween
 				}
 			}
 
-			if ( idx != mActiveComps.size()  )
-				mActiveComps.resize( idx );
+			if (idx != mActiveComps.size())
+			{
+				mActiveComps.resize(idx);
+			}
 
 			return 0;
 		}

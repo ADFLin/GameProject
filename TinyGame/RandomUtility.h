@@ -6,6 +6,12 @@
 
 using Math::Vector3;
 
+// [min , max)
+inline int RandRange(int min, int max)
+{
+	return min + (::rand() % ( max - min ));
+}
+
 inline float RandFloat()
 {
 	return float(::rand()) / RAND_MAX;

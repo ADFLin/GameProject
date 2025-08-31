@@ -61,7 +61,7 @@ public:
 	void  rotateXForm(float angle);
 	void  scaleXForm(float sx, float sy);
 
-	void  transformXForm(Render::RenderTransform2D const& xform, bool bApplyPrev);
+	void  transformXForm(Render::RenderTransform2D const& xform, bool bReset);
 
 	void  beginFrame();
 	void  endFrame();

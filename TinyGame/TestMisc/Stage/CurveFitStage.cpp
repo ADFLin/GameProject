@@ -64,6 +64,18 @@ public:
 		}
 	};
 
+	static void Print(TArrayView<NNScalar const> values)
+	{
+		int numLine = Math::AlignCount<int>(Math::Min<int>(values.size(), 100), 10);
+
+		NNScalar const* pValue = values.data();
+		for (int i = 0; i < numLine - 1; ++i)
+		{
+			LogMsg("%g %g %g %g %g %g %g %g %g %g", pValue[0], pValue[1], pValue[2], pValue[3], pValue[4], pValue[5], pValue[6], pValue[7], pValue[8], pValue[9]);
+			pValue += 10;
+		}
+	}
+
 
 	TArray< std::unique_ptr< TrainData > > mThreadTrainDatas;
 
@@ -133,6 +145,8 @@ public:
 	{
 		::srand(0);
 		Randomize(mParameters);
+		//Print(mParameters);
+
 		importSample();
 	}
 
@@ -241,6 +255,7 @@ public:
 
 	NNScalar fit(SampleData const& sample, TrainData& trainData)
 	{
+
 		NNScalar const* pOutputSignals = trainData.signals.data() + (mLayout.getInputNum() + 2 * mLayout.getHiddenNodeNum() + mLayout.getOutputNum());
 
 		trainData.signals[0] = sample.input;
@@ -252,6 +267,17 @@ public:
 		NNScalar loss = LossFunc::Calc(pOutputSignals[0], sample.label);
 
 		mFCNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
+
+		static int GCount = 0;
+		++GCount;
+		if (GCount == 100)
+		{
+			Print(mParameters);
+			Print(trainData.deltaParameters);
+			Print(trainData.lossGrads);
+			Print(trainData.signals);
+		}
+
 		return loss;
 	}
 
@@ -356,6 +382,12 @@ public:
 			numSampleCheck += numSampleData;
 		}
 		CHECK(numSampleCheck == mSamples.size());
+
+
+		if (mEpoch == 1)
+		{
+			//Print(mParameters);
+		}
 
 		generateNNCurve();
 		mLossPoints.emplace_back(float(mEpoch), log10(loss / mSamples.size()));

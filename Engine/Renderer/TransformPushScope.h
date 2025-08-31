@@ -22,15 +22,15 @@ namespace Render
 		{
 			mStack.push();
 		}
-		FORCEINLINE TScopedTransformPush(StackType& stack, TransformType const& transform, bool bApplyPrev)
+		FORCEINLINE TScopedTransformPush(StackType& stack, TransformType const& transform, bool bReset)
 			: mStack(stack)
 		{
-			mStack.pushTransform(transform, bApplyPrev);
+			mStack.pushTransform(transform, bReset);
 		}
 		FORCEINLINE TScopedTransformPush(StackType& stack, TransformType const& transform)
 			: mStack(stack)
 		{
-			mStack.pushTransform(transform, true);
+			mStack.pushTransform(transform, false);
 		}
 
 		template< typename TFunc , TEnableIf_Type< !std::is_same_v< TFunc , TransformType > , bool > = true >

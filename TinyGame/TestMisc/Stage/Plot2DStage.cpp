@@ -146,7 +146,7 @@ public:
 		
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
-		g.transformXForm(worldToScreen, false);
+		g.transformXForm(worldToScreen, true);
 
 		RenderUtility::SetPen(g, EColor::Black);
 		g.drawLine(Vector2(mRangeX.x, 0) , Vector2(mRangeX.y, 0));

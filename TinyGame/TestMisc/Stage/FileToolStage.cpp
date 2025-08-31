@@ -191,7 +191,7 @@ public:
 			return true;
 		});
 
-		frame->addButton("Get Vedio Info", [this](int event, GWidget*)
+		frame->addButton("Get Video Info", [this](int event, GWidget*)
 		{
 			visitAllSubFolders([this](char const* checkPath, char const* folderName)
 			{

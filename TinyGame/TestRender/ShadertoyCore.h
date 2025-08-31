@@ -52,7 +52,7 @@ namespace Shadertoy
 		Texture,
 		CubeMap,
 		Volume,
-		Vedio,
+		Video,
 		Music,
 
 		COUNT,

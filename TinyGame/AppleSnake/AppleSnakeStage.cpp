@@ -708,7 +708,7 @@ namespace AppleSnake
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
 		g.pushXForm();
-		g.transformXForm(mWorldToScreen, false);
+		g.transformXForm(mWorldToScreen, true);
 
 		auto DrawTiles = [&](int layerOrder)
 		{

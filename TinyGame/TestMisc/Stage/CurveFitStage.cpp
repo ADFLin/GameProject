@@ -3,6 +3,7 @@
 #include "GameRenderSetup.h"
 
 #include "AI/NeuralNetwork.h"
+#include "AI/NNTrain.h"
 
 #include "RHI/RHICommand.h"
 #include "GameGlobal.h"
@@ -11,6 +12,7 @@
 #include "Async/AsyncWork.h"
 
 #include <random>
+
 
 float TestFunc(float x)
 {
@@ -97,7 +99,7 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		int size = 24;
-		uint32 topology[] = { 1, 5, size, size, size, size, 1 };
+		uint32 topology[] = { 1, size, size, size, size, 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
 		mLayout.setHiddenLayerFunction<NNFunc::ReLU>();
 		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
@@ -105,7 +107,7 @@ public:
 		mFCNN.init(mLayout);
 		mParameters.resize(mLayout.getParameterNum());
 		mFCNN.setParamsters(mParameters);
-		mRMSPropSqare.resize(mLayout.getParameterNum(), 0);
+		mOptimizer.init(mLayout.getParameterNum());
 
 
 		int workerNum = 12;
@@ -205,13 +207,8 @@ public:
 		}
 	}
 
-
-	//RMSProp : thi[t,i] = sqrt( alpha * thi[t-1,i]^2 + ( 1- alpha )( g[t,i] ) );
-	//Adam : RMSprop + Momentum
-	//Warm Up: 
+	AdamOptimizer mOptimizer;
 	
-	TArray<NNScalar> mRMSPropSqare;
-	TArray<NNScalar> mMomentum;
 
 	bool save(char const* path)
 	{
@@ -220,30 +217,8 @@ public:
 
 	}
 
-
-	class FRMSELoss
-	{
-	public:
-		//MSE £U(r-s)^2
-		static NNScalar CalcDevivative(NNScalar prediction, NNScalar label)
-		{
-			NNScalar delta = label - prediction;
-			return -delta;
-		}
-
-		static NNScalar Calc(NNScalar prediction, NNScalar label)
-		{
-			NNScalar delta = label - prediction;
-			return  0.5 * delta * delta;;
-		}
-	};
 	
-	class FCrossEntropyLoss
-	{
-		//Cross-Entropy -£Urln(s)
 
-
-	};
 	struct TrainResult
 	{
 		NNScalar loss;
@@ -255,19 +230,14 @@ public:
 
 	NNScalar fit(SampleData const& sample, TrainData& trainData)
 	{
+		NNScalar const* pOutput = mFCNN.calcForwardPass(&sample.input, trainData.signals.data());
 
-		NNScalar const* pOutputSignals = trainData.signals.data() + (mLayout.getInputNum() + 2 * mLayout.getHiddenNodeNum() + mLayout.getOutputNum());
-
-		trainData.signals[0] = sample.input;
-		mFCNN.calcForwardPass(trainData.signals.data(), trainData.signals.data() + 1);
-
-		NNScalar delta = sample.label - pOutputSignals[0];
-
-		NNScalar lossDerivatives = LossFunc::CalcDevivative(pOutputSignals[0], sample.label);
-		NNScalar loss = LossFunc::Calc(pOutputSignals[0], sample.label);
+		NNScalar lossDerivatives = LossFunc::CalcDevivative(pOutput[0], sample.label);
+		NNScalar loss = LossFunc::Calc(pOutput[0], sample.label);
 
 		mFCNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
 
+#if 0
 		static int GCount = 0;
 		++GCount;
 		if (GCount == 100)
@@ -277,6 +247,7 @@ public:
 			Print(trainData.lossGrads);
 			Print(trainData.signals);
 		}
+#endif
 
 		return loss;
 	}
@@ -337,16 +308,8 @@ public:
 		}
 
 		TrainData& mainTrainData = *mThreadTrainDatas[0];
-		{
-			for (int i = 0; i < mParameters.size(); ++i)
-			{
-				NNScalar g = mainTrainData.deltaParameters[i] / NNScalar(samples.size());
-				NNScalar alpha = 0.9;
-				NNScalar thiSquare = /*mRMSPRrop[i] == 0 ? g : */alpha * mRMSPropSqare[i] + (1 - alpha) * Math::Square(g);
-				mParameters[i] -= learnRate / Math::Sqrt(thiSquare + 1e-6) * g;
-				mRMSPropSqare[i] = thiSquare;
-			}
-		}
+
+		mOptimizer.update(mParameters, mainTrainData.deltaParameters, learnRate);
 
 		TrainResult trainResult;
 		trainResult.loss = mainTrainData.loss;

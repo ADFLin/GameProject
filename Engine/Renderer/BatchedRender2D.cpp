@@ -415,8 +415,31 @@ namespace Render
 		return *element;
 	}
 
+	template< typename CharT >
+	RenderBatchedElement& RenderBatchedElementList::addText(Color4Type const& color, Vector2 const& pos, float scale, FontDrawer& front, CharT const* str, int charCount, bool bRemoveScale, bool bRemoveRotation)
+	{
+		CHECK(charCount > 0);
+
+		int verticesCount = 4 * (charCount);
+		TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
+		element->type = RenderBatchedElement::Text;
+		element->payload.color = color;
+		element->payload.vertices = (FontVertex*)mAllocator.alloc(verticesCount * sizeof(FontVertex));
+		element->payload.verticesCount = verticesCount;
+		element->payload.bRemoveScale = bRemoveScale;
+		element->payload.bRemoveRotation = bRemoveRotation;
+		front.generateVertices(pos, str, scale, element->payload.vertices);
+
+		return *element;
+	}
+
+
+
 	template RenderBatchedElement& RenderBatchedElementList::addText<char>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, char const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
 	template RenderBatchedElement& RenderBatchedElementList::addText<wchar_t>(Color4Type const& color, Vector2 const& pos, FontDrawer& front, wchar_t const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
+
+	template RenderBatchedElement& RenderBatchedElementList::addText<char>(Color4Type const& color, Vector2 const& pos, float scale, FontDrawer& front, char const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
+	template RenderBatchedElement& RenderBatchedElementList::addText<wchar_t>(Color4Type const& color, Vector2 const& pos, float scale, FontDrawer& front, wchar_t const* str, int charCount, bool bRemoveScale, bool bRemoveRotation);
 
 	RenderBatchedElement& RenderBatchedElementList::addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
 	{

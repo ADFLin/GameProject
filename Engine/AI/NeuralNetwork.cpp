@@ -194,6 +194,21 @@ int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs
 }
 
 
+int FNNMath::Max(int dim, NNScalar const* inputs)
+{
+	int index = 0;
+	NNScalar maxValue = inputs[0];
+	for (int i = 1; i < dim; ++i)
+	{
+		if (maxValue < inputs[i])
+		{
+			index = i;
+			maxValue = inputs[i];
+		}
+	}
+	return index;
+}
+
 // Y = At[ (G g Gt) * (Bt d B) ] A
 template< typename TKernel >
 void TranformArea(int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar* RESTRICT outArea)

@@ -192,6 +192,13 @@ namespace Render
 		void  generateVertices(Vector2 const& pos, char const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
 		void  generateVertices(Vector2 const& pos, wchar_t const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
 
+
+		void  generateVertices(Vector2 const& pos, char const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+
+		void  generateVertices(Vector2 const& pos, char const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
+
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer);
@@ -201,6 +208,9 @@ namespace Render
 		int     getCharCount(char const* str);
 		Vector2 calcTextExtent(wchar_t const* str, int* outCharCount = nullptr);
 		Vector2 calcTextExtent(char const* str, int* outCharCount = nullptr);
+		Vector2 calcTextExtent(wchar_t const* str, float scale, int* outCharCount = nullptr);
+		Vector2 calcTextExtent(char const* str, float scale, int* outCharCount = nullptr);
+
 		RHITexture2D& getTexture()
 		{
 			return mCharDataSet->getTexture();
@@ -211,18 +221,26 @@ namespace Render
 		
 		template< typename CharT >
 		Vector2 calcTextExtentT(CharT const* str, int* outCharCount);
+		template< typename CharT >
+		Vector2 calcTextExtentT(CharT const* str, float scale, int* outCharCount);
+
 
 		template< typename CharT >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize);
 		template< typename CharT >
+		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize);
+		template< typename CharT >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize);
+		template< typename CharT >
+		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize);
+
 		template< typename CharT, typename TAddQuad >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, TAddQuad& addQuad, Vector2* outBoundSize);
-	
+		template< typename CharT, typename TAddQuad > 
+		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, TAddQuad& addQuad, Vector2* outBoundSize);
 	public:
 		CharDataSet* mCharDataSet;
 	};
-
 
 }
 

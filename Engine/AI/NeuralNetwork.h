@@ -314,6 +314,8 @@ public:
 
 	static int SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
 
+	static int Max(int dim, NNScalar const* inputs);
+
 	static void GetNormalizeParams(int dim, NNScalar const* RESTRICT inputs, NNScalar& outMean, NNScalar& outVariance)
 	{
 		NNScalar mean = 0.0;
@@ -348,6 +350,25 @@ public:
 		NNScalar mean, variance;
 		GetNormalizeParams(dim, inputs, mean, variance);
 		Normalize(dim, inputs, mean, variance, output);
+	}
+
+
+	static void ClipNormalize(int dim, NNScalar* RESTRICT inoutValues, NNScalar maxValue)
+	{
+		NNScalar total = 0.0;
+		for (int i = 0; i < dim; ++i)
+		{
+			total += Math::Square(inoutValues[i]);
+		}
+
+		NNScalar clipCoef = maxValue / (Math::Sqrt(total) + 1e-6);
+		if (clipCoef < 1)
+		{
+			for (int i = 0; i < dim; ++i)
+			{
+				inoutValues[i] *= clipCoef;
+			}
+		}
 	}
 
 	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
@@ -503,7 +524,10 @@ public:
 	int getSignalNum() const { return getInputNum() + mTotalNodeNum; }
 	int getTotalNodeNum() const { return mTotalNodeNum; }
 
-
+	int getPassSignalNum() const
+	{
+		return getSignalNum() + getTotalNodeNum();
+	}
 
 	int getHiddenNodeNum() const;
 
@@ -689,18 +713,25 @@ public:
 	{
 		FNNAlgo::ForwardFeedback(getLayout(), mParameters, inputs, outputs);
 	}
-	void calcForwardFeedbackSignal(NNScalar const inInputs[], NNScalar outActivations[])
+	void calcForwardFeedbackSignal(NNScalar const inInputs[], NNScalar outSignals[])
 	{
+		FNNMath::VectorCopy(mLayout->getInputNum(), inInputs, outSignals);
+		NNScalar* outActivations = outSignals + mLayout->getInputNum();
 		FNNAlgo::ForwardFeedbackSignal(getLayout(), mParameters, inInputs, outActivations);
 	}
 	void calcForwardPassBatch(NNScalar const inInputs[], int batchSize, NNScalar outActivations[], NNScalar outNetInputs[]) const
 	{
 		FNNAlgo::ForwardPassBatch(getLayout(), mParameters, inInputs, batchSize, outActivations, outNetInputs);
 	}
-	void calcForwardPass(NNScalar const inInputs[], NNScalar outOutputs[]) const
+
+	NNScalar* calcForwardPass(NNScalar const inInputs[], NNScalar outSignals[]) const
 	{
+		FNNMath::VectorCopy(mLayout->getInputNum(), inInputs, outSignals);
+		NNScalar* outOutputs = outSignals + mLayout->getInputNum();
 		FNNAlgo::ForwardPass(getLayout(), mParameters, inInputs, outOutputs);
+		return outOutputs + (2 * mLayout->getHiddenNodeNum() + mLayout->getOutputNum());
 	}
+
 	void calcBackwardPass(NNScalar const inLossDerivatives[], NNScalar const inSignals[], NNScalar outLossGrads[], NNScalar outDeltaWeights[]) const
 	{
 		FNNAlgo::BackwardPass(getLayout(), mParameters, inSignals, inLossDerivatives, outLossGrads, outDeltaWeights);

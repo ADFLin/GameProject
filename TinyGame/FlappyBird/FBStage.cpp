@@ -114,8 +114,7 @@ namespace FlappyBird
 
 			if (mAgent->signals)
 			{
-				std::copy_n(inputs, mAgent->FNN.getLayout().getInputNum(), mAgent->signals);
-				mAgent->FNN.calcForwardFeedbackSignal(mAgent->signals, mAgent->signals + mAgent->FNN.getLayout().getInputNum());
+				mAgent->FNN.calcForwardFeedbackSignal(inputs, mAgent->signals);
 			}
 		}
 		void getPipeInputs(NNScalar inputs[], PipeInfo const& pipe)

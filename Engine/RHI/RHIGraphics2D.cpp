@@ -477,6 +477,52 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 		DoDrawText();
 	}
 }
+
+void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str, bool bClip)
+{
+	if (!mFont || !mFont->isValid())
+		return;
+
+	int charCount = 0;
+	Vector2 extent = mFont->calcTextExtent(str, scale, &charCount);
+	extent = getCurrentTransform().transformInvVector(extent);
+	if (charCount == 0)
+	{
+		return;
+	}
+
+	auto DoDrawText = [&]()
+	{
+		Vector2 renderPos = pos + (size - extent) / 2;
+		drawTextImpl(renderPos.x, renderPos.y, scale, str, charCount);
+	};
+
+	if (bClip)
+	{
+		if (mRenderStatePending.bEnableScissor)
+		{
+			Rect rect = Rect::Intersect(mRenderStatePending.scissorRect, { pos , size });
+			if (!rect.isValid())
+				return;
+
+			Rect prevRect = mRenderStatePending.scissorRect;
+			setClipRect(rect.pos, rect.size);
+			DoDrawText();
+			setClipRect(prevRect.pos, prevRect.size);
+		}
+		else
+		{
+			beginClip(pos, size);
+			DoDrawText();
+			endClip();
+		}
+	}
+	else
+	{
+		DoDrawText();
+	}
+}
+
 void SnapValue(float& inoutValue)
 {
 	inoutValue = int(inoutValue);
@@ -520,6 +566,43 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 	}
 
 	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
+	setupElement(element);
+	setBlendState(prevMode);
+}
+
+template< typename CharT >
+void RHIGraphics2D::drawTextImpl(float ox, float oy, float scale, CharT const* str, int charCount)
+{
+	CHECK(mFont);
+	CHECK(charCount > 0 || charCount == INDEX_NONE);
+
+	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+	setBlendState(ESimpleBlendMode::Translucent);
+	setTextureState(&mFont->getTexture());
+	commitRenderState();
+	Vector2 pos = Vector2(ox, oy);
+
+	bool bRemoveScale = false;
+	if (!mXFormStack.get().hadScaledOrRotation())
+	{
+		SnapValue(pos);
+	}
+	else if (mXFormStack.get().hadSacled())
+	{
+		bRemoveScale = bTextRemoveScale;
+	}
+
+	if (charCount == INDEX_NONE)
+	{
+		charCount = mFont->getCharCount(str);
+		if (charCount == 0)
+		{
+			setBlendState(prevMode);
+			return;
+		}
+	}
+
+	auto& element = mElementList.addText(mColorFont, pos, scale, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
 	setupElement(element);
 	setBlendState(prevMode);
 }

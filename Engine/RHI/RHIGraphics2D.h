@@ -116,7 +116,7 @@ public:
 	void  drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
 		Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
-	template< typename TCustomRenderer , typename ...TArgs >
+	template< typename TCustomRenderer, typename ...TArgs >
 	TCustomRenderer*  drawCustom(bool bChangeState, TArgs&& ...args)
 	{
 		commitRenderState();
@@ -213,7 +213,13 @@ public:
 	{
 		drawText(pos, size, str, false);
 	}
+
+	void  drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str)
+	{
+		drawText(pos, size, scale, str, false);
+	}
 	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip);
+	void  drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str, bool bClip);
 	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
 	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
@@ -231,6 +237,14 @@ public:
 		TInlineString< 512, CharT > str;
 		str.format(format, std::forward<Args>(args)...);
 		drawText(pos, size, str.c_str());
+	}
+
+	template< typename CharT, typename ...Args >
+	void  drawTextF(Vector2 const& pos, Vector2 const& size, float scale, CharT const* format, Args&& ...args)
+	{
+		TInlineString< 512, CharT > str;
+		str.format(format, std::forward<Args>(args)...);
+		drawText(pos, size, scale, str.c_str());
 	}
 
 	void commitRenderState();
@@ -268,6 +282,8 @@ private:
 
 	template< typename CharT >
 	void drawTextImpl(float ox, float oy, CharT const* str, int charCount = INDEX_NONE);
+	template< typename CharT >
+	void drawTextImpl(float ox, float oy, float scale, CharT const* str, int charCount = INDEX_NONE);
 
 	void setupCommittedRenderState();
 

@@ -1047,6 +1047,9 @@
     <ClInclude Include="Hardware\DynamicNvAPI.h">
       <Filter>Hardware</Filter>
     </ClInclude>
+    <ClInclude Include="AI\NNTrain.h">
+      <Filter>AI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

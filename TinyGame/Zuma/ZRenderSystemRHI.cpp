@@ -127,7 +127,7 @@ namespace Zuma
 	void RenderSystemRHI::drawBitmapWithinMask(ITexture2D const& tex, ITexture2D const& mask, Vector2 const& pos, unsigned flag)
 	{
 		setupBlend(true, flag);
-		mGraphics->drawCustomFunc([this, &tex, &mask, pos, flag](RHICommandList& commandList, RenderBatchedElement& element)
+		mGraphics->drawCustomFunc([this, &tex, &mask, pos, flag](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
 			PROFILE_ENTRY("drawBitmapWithinMask");
 

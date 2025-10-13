@@ -39,7 +39,7 @@ public:
 	}
 	Vector2 getLayerNodePos(int idxLayer, int idxNode)
 	{
-		NeuralFullConLayer const& layer = FNN.getLayout().getLayer(idxLayer);
+		NNLinearLayer const& layer = FNN.getLayout().getLayer(idxLayer);
 		float offsetY = getOffsetY(idxNode, layer.numNode);
 		return basePos + Vector2((idxLayer + 1) * layerOffset, offsetY);
 	}

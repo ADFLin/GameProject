@@ -19,6 +19,8 @@
 #include "Serialize/FileStream.h"
 #include "Async/AsyncWork.h"
 
+#include "Misc/DiagramRender.h"
+
 namespace TwentyFortyEight
 {
 	class GameTimeControl
@@ -412,27 +414,34 @@ namespace TwentyFortyEight
 			return result;
 		}
 
-		NNScalar playReward(uint8 dir)
+		struct RewardInfo
+		{
+			int values[BoardSize];
+			int count = 0;
+		};
+
+		RewardInfo playReward(uint8 dir)
 		{
 			++step;
 
 			CHECK(canPlay(dir));
 			LineVisit const& visit = GetLineVisit(dir);
-			NNScalar result = 0;
 			int index = visit.index;
+			RewardInfo result;
 			for (int i = 0; i < BoardSize; ++i)
 			{
-				result += playLineReward(index, visit.blockStride);
+				playLineReward(index, visit.blockStride, result);
 				index += visit.lineStrde;
 			}
 
 			return result;
 		}
 
-		NNScalar playLineReward(int indexStart, int blockStride)
+
+
+		void playLineReward(int indexStart, int blockStride, RewardInfo& result)
 		{
 			int index = indexStart;
-			NNScalar result = 0;
 
 			int checkSize = BoardSize;
 
@@ -471,8 +480,9 @@ namespace TwentyFortyEight
 							mBlocks[indexNext].valueLevel = 0;
 
 							score += (1 << mBlocks[index].valueLevel);
-							result += mBlocks[index].valueLevel;
+							result.values[result.count] = mBlocks[index].valueLevel;
 							//result += (1 << mBlocks[index].valueLevel);
+							result.count += 1;
 							index = INDEX_NONE;
 
 							if (indexEmpty == INDEX_NONE)
@@ -497,9 +507,6 @@ namespace TwentyFortyEight
 					indexNext += blockStride;
 				}
 			}
-
-
-			return result;
 		}
 
 		void play(uint8 dir)
@@ -587,14 +594,20 @@ namespace TwentyFortyEight
 
 	};
 
-
+#define STOP_INVALID_ACTION 0
+#define RECORD_INVALID_ACTION 0
+#define SPLIT_LEVEL_VALUE 0
 
 	class DRLModel
 	{
 	public:
 		struct State 
 		{
-			NNScalar blocks[BoardSize * BoardSize];
+#if SPLIT_LEVEL_VALUE
+			NNScalar blocks[BoardSize * BoardSize *(BoardSize * BoardSize + 1)];
+#else
+			NNScalar blocks[BoardSize * BoardSize * ( 1 + 1)];
+#endif
 		};
 
 
@@ -608,6 +621,7 @@ namespace TwentyFortyEight
 			NNScalar reward;
 			int  indexSpawn;
 			bool bDone;
+			bool bValidAction;
 		};
 
 		struct Environment
@@ -634,19 +648,50 @@ namespace TwentyFortyEight
 				}
 			}
 
+			bool isValidAction(Action const& action) const
+			{
+				return !!(playableDirMask & BIT(action.playDir));
+
+			}
+
 			StepResult step(Action const& action)
 			{
 				StepResult result;
+				result.reward = 0.0;
+				result.bValidAction = isValidAction(action);
 
-				if (!(playableDirMask & BIT(action.playDir)))
+				if (!result.bValidAction)
 				{
 					result.reward = 0;
+#if STOP_INVALID_ACTION
+					result.bDone = true;
+#else
 					result.bDone = false;
+#endif
 					result.indexSpawn = INDEX_NONE;
 					return result;
 				}
 
-				result.reward = game.playReward(action.playDir);
+				auto rewardInfo = game.playReward(action.playDir);
+
+				bool bScored = false;
+				for (int i = 0; i < rewardInfo.count; ++i)
+				{
+					if (rewardInfo.values[i] > 10)
+					{
+						result.reward += rewardInfo.values[i] - 10;
+						bScored = true;
+
+					}
+				}
+
+				if (!bScored)
+				{
+					result.reward += (rewardInfo.count - 1) / 8.0;
+
+				}
+
+
 #if 0
 				int emptyCount = 0;
 				for (int i = 0; i < BoardSize * BoardSize; ++i)
@@ -657,6 +702,45 @@ namespace TwentyFortyEight
 					}
 				}
 				result.reward += 0.5 * emptyCount;
+#endif
+
+#if 0
+
+				NNScalar linkScore = 0;
+				for (int i = 0; i < BoardSize * BoardSize; ++i)
+				{
+					int x = i % BoardSize;
+					int y = i % BoardSize;
+
+
+					auto CheckLink = [&](int index) -> NNScalar
+					{
+						int nValue = game.mBlocks[index].valueLevel;
+						if (nValue == 0)
+							return 1;
+
+						int valueDif = Math::Abs(game.mBlocks[i].valueLevel - nValue);
+						if (valueDif == 0)
+						{
+							return 2;
+						}
+						else if (valueDif == 1)
+						{
+							return 1;
+						}
+					};
+
+					if (x < BoardSize)
+					{
+						linkScore += CheckLink(i + 1);
+					}
+					if (y < BoardSize)
+					{
+						linkScore += CheckLink(i + BoardSize);
+					}
+				}
+
+				result.reward += linkScore;
 #endif
 
 				result.indexSpawn = game.spawnRandBlock();
@@ -675,12 +759,27 @@ namespace TwentyFortyEight
 				return result;
 			}
 
+
+
 			void getState(State& outState)
 			{
+#if SPLIT_LEVEL_VALUE
+				FMemory::Zero(&outState, sizeof(State));
 				for (int i = 0; i < BoardSize * BoardSize; ++i)
 				{
-					outState.blocks[i] = game.mBlocks[i].valueLevel;
+					int level = game.mBlocks[i].valueLevel;
+					outState.blocks[i + (BoardSize * BoardSize * (level + 1))] = 1;
+					outState.blocks[i] = (level > 0) ? 1 : 0;
 				}
+#else
+				FMemory::Zero(&outState, sizeof(State));
+				for (int i = 0; i < BoardSize * BoardSize; ++i)
+				{
+					int level = game.mBlocks[i].valueLevel;
+					outState.blocks[i + BoardSize * BoardSize] = NNScalar(level) / 15.0;
+					outState.blocks[i] = (level > 0) ? 1 : 0;
+				}
+#endif
 			}
 		};
 		
@@ -693,336 +792,934 @@ namespace TwentyFortyEight
 		};
 	};
 
+#define DQN_MULTI_STEP 1
+#define DQN_DUALING 0
+#define DQN_DISTRIBUTION 1
+
+
+
 	class DQN
 	{
 	public:
+		DQN()
+		{
+
+		}
+
 		using Action = DRLModel::Action;
 		using Environment = DRLModel::Environment;
 		using State = DRLModel::State;
 		using StepResult = DRLModel::StepResult;
 
+
+#if DQN_DISTRIBUTION
+		using LossFunc = FCrossEntropyLoss;
+		static constexpr int AtomCount = 61;
+#else
+		using LossFunc = FRMSELoss;
+		static constexpr int AtomCount = 1;
+#endif
+
+		static constexpr int ActionNum = 4;
+
+
+#if DQN_DUALING
+		struct NetworkModel
+		{
+		public:
+			NetworkModel()
+			{
+				int len = BoardSize * BoardSize;
+#if SPLIT_LEVEL_VALUE
+				int num = BoardSize * BoardSize;
+				uint32 const topology[] = { len * (num + 1), len * (num + 1), len * (num + 1) };
+#else
+				int num = BoardSize * BoardSize;
+				uint32 const topology[] = { len * 2, len * num, len * num };
+#endif
+
+				int parameterOffset = 0;
+				mFeatureLayer.init(parameterOffset, topology);
+				mFeatureLayer.setHiddenLayerTransform<NNFunc::WeakReLU>();
+				mFeatureLayer.setOutputLayerTransform<NNFunc::WeakReLU>();
+				parameterOffset += mFeatureLayer.getParameterLength();
+
+				uint32 const topologyValue[] = { len * num, len * num, AtomCount };
+				mValueLayer.init(parameterOffset, topologyValue);
+				mValueLayer.setHiddenLayerTransform<NNFunc::WeakReLU>();
+				mValueLayer.setOutputLayerTransform<NNFunc::Linear>();
+				parameterOffset += mValueLayer.getParameterLength();
+
+				uint32 const topologyAction[] = { len * num, len * num, ActionNum * AtomCount };
+				mActionLayer.init(parameterOffset, topologyAction);
+				mActionLayer.setHiddenLayerTransform<NNFunc::WeakReLU>();
+				mActionLayer.setOutputLayerTransform<NNFunc::Linear>();
+			}
+
+			void forwardFeedback(
+				NNScalar const* parameters,
+				NNScalar const inputs[],
+				NNScalar outputs[]) const
+			{
+				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
+				mFeatureLayer.forwardFeedback(parameters, inputs, featureOutputs);
+
+				NNScalar value;
+				mValueLayer.forwardFeedback(parameters, featureOutputs, &value);
+
+				NNScalar actionValues[ActionNum];
+				mActionLayer.forwardFeedback(parameters, featureOutputs, actionValues);
+
+				NNScalar mean = FNNMath::Sum(ActionNum, actionValues) / ActionNum;
+
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					outputs[i] = actionValues[i] - mean + value;
+				}
+			}
+
+
+			NNScalar* forward(
+				NNScalar const* parameters,
+				NNScalar const inputs[],
+				NNScalar outputs[]) const
+			{
+				NNScalar const* pInput = inputs;
+				NNScalar* pOutput = outputs;
+				pInput = mFeatureLayer.forward(parameters, pInput, pOutput);
+				pOutput += mFeatureLayer.getPassOutputLength();
+
+				NNScalar const* pValueOutput = mValueLayer.forward(parameters, pInput, pOutput);
+				pOutput += mValueLayer.getPassOutputLength();
+
+				NNScalar const* pActionOutput = mActionLayer.forward(parameters, pInput, pOutput);
+				pOutput += mActionLayer.getPassOutputLength();
+
+				NNScalar mean = FNNMath::Sum(ActionNum, pActionOutput) / ActionNum;
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					pOutput[i] = pActionOutput[i] - mean + *pValueOutput;
+				}
+
+				CHECK(pOutput = outputs + (getPassOutputLength() - getOutputLength()));
+
+				return pOutput;
+			}
+
+			void backward(
+				NNScalar const* parameters,
+				NNScalar const inInputs[],
+				NNScalar const inOutputs[],
+				NNScalar const inOutputLossGrads[],
+				TArrayView<NNScalar> tempLossGrads,
+				NNScalar inoutParameterGrads[],
+				NNScalar* outLossGrads = nullptr)
+			{
+				TArrayView<NNScalar> layerTempLossGrads(tempLossGrads.data() + 2 * mFeatureLayer.getOutputLength(), tempLossGrads.size() - 2 * mFeatureLayer.getOutputLength());
+
+#if 1
+				NNScalar const* pOutput = inOutputs + getPassOutputLength();
+
+				pOutput -= ActionNum;
+				NNScalar actionLossGrads[ActionNum];
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					actionLossGrads[i] = 0;
+					for (int n = 0; n < ActionNum; ++n)
+					{
+						actionLossGrads[i] += ((i == n ? 1.0 : 0.0) - 1.0 / ActionNum) * inOutputLossGrads[n];
+					}
+				}
+				NNScalar valueLossGrads = FNNMath::Sum(ActionNum, inOutputLossGrads);
+
+				NNScalar* actionInputLossGrads = tempLossGrads.data();
+
+				NNScalar const* pInput = inOutputs + (mFeatureLayer.getPassOutputLength() - mFeatureLayer.getOutputLength());
+				pOutput -= mActionLayer.getPassOutputLength();
+				mActionLayer.backward(parameters, pInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
+
+
+				NNScalar* valueInputLossGrads = tempLossGrads.data() + mFeatureLayer.getOutputLength();
+				pOutput -= mValueLayer.getPassOutputLength();
+				mValueLayer.backward(parameters, pInput, pOutput, &valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
+
+
+				FNNMath::VectorAdd(mFeatureLayer.getOutputLength(), valueInputLossGrads, actionInputLossGrads);
+				CHECK(inOutputs == pOutput - mFeatureLayer.getPassOutputLength());
+
+				mFeatureLayer.backward(parameters, inInputs, inOutputs, valueInputLossGrads, layerTempLossGrads, inoutParameterGrads);
+#endif
+			}
+
+			int getOutputLength() const
+			{
+				return ActionNum;
+			}
+
+			int getPassOutputLength() const
+			{
+				return mFeatureLayer.getPassOutputLength() + mValueLayer.getPassOutputLength() + mActionLayer.getPassOutputLength() + ActionNum;
+			}
+
+			int getParameterLength() const
+			{
+				return mFeatureLayer.getParameterLength() + mValueLayer.getParameterLength() + mActionLayer.getParameterLength();
+			}
+
+			int getTempLossGradLength() const
+			{
+				int length = mFeatureLayer.getTempLossGradLength();
+				length = Math::Max(length, mActionLayer.getTempLossGradLength());
+				length = Math::Max(length, mValueLayer.getTempLossGradLength());
+				length += 2 * mFeatureLayer.getOutputLength();
+				return length;
+			}
+
+			NNFullConLayout mFeatureLayer;
+			NNFullConLayout mValueLayer;
+			NNFullConLayout mActionLayer;
+
+		};
+
+#else
+		struct NetworkModel : public NNFullConLayout
+		{
+
+			int Action;
+			NetworkModel()
+			{
+				int len = BoardSize * BoardSize;
+#if SPLIT_LEVEL_VALUE
+				int num = BoardSize * BoardSize;
+				uint32 const topology[] = { len * (num + 1), len * (num + 1), len * (num + 1), len * (num / 4 + 1), len * (num / 8 + 1), ActionNum * AtomCount };
+#else
+				int num = BoardSize * BoardSize;
+				uint32 const topology[] = { len * 2, 300, 300, 200, 200, 100, 100, ActionNum * AtomCount };
+#endif
+				init(topology);
+				setHiddenLayerTransform<NNFunc::WeakReLU>();
+				setOutputLayerTransform<NNFunc::Linear>();
+#if DQN_DISTRIBUTION
+
+				NNScalar vMin = -5;
+				NNScalar vMax = 5;
+				mSupports.resize(AtomCount);
+				NNScalar vDelta = (vMax - vMin) / (AtomCount - 1);
+				for (int i = 0; i < AtomCount; ++i)
+				{
+					mSupports[i] = vMin + vDelta * i;
+				}
+#endif
+			}
+
+#if DQN_DISTRIBUTION
+
+			void forwardFeedback(
+				NNScalar const* parameters,
+				NNScalar const inputs[],
+				NNScalar outputs[]) const
+			{
+				NNScalar* pDistOutput = (NNScalar*)alloca(sizeof(NNScalar) * NNFullConLayout::getOutputLength());
+				forwardFeedback(parameters, inputs, outputs, pDistOutput);
+			}
+
+			void forwardFeedback(
+				NNScalar const* parameters,
+				NNScalar const inputs[],
+				NNScalar outputs[],
+				NNScalar outDist[]) const
+			{
+				NNFullConLayout::forwardFeedback(parameters, inputs, outDist);
+
+				NNScalar* pActionDist = outDist;
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					FNNMath::SoftMax(AtomCount, pActionDist);
+					outputs[i] = FNNMath::VectorDot(AtomCount, mSupports.data(), pActionDist);
+					pActionDist += AtomCount;
+				}
+			}
+
+			void forwardDistribution(
+				NNScalar const* parameters,
+				NNScalar const inputs[],
+				NNScalar outputs[]) const
+			{
+				NNFullConLayout::forwardFeedback(parameters, inputs, outputs);
+
+				NNScalar* pActionDsitributionOutput = outputs;
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					FNNMath::SoftMax(AtomCount, pActionDsitributionOutput);
+					pActionDsitributionOutput += AtomCount;
+				}
+			}
+
+			static constexpr int ActionNum = 4;
+
+			NNScalar* forward(
+				NNScalar const* parameters,
+				NNScalar const inputs[],
+				NNScalar outputs[]) const
+			{
+				NNScalar const* pInput = inputs;
+				NNScalar* pOutput = outputs;
+				pInput = NNFullConLayout::forward(parameters, inputs, pOutput);
+				pOutput += NNFullConLayout::getPassOutputLength();
+
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					int offset = i * AtomCount;
+					FNNMath::SoftMax(AtomCount, pInput + offset, pOutput + offset);
+				}
+
+				return pOutput;
+			}
+
+			void backward(
+				NNScalar const* parameters,
+				NNScalar const inInputs[],
+				NNScalar const inOutputs[],
+				NNScalar const inOutputLossGrads[],
+				TArrayView<NNScalar> tempLossGrads,
+				NNScalar inoutParameterGrads[],
+				NNScalar* outLossGrads = nullptr)
+			{
+				TArrayView<NNScalar> layerTempLossGrads(tempLossGrads.data() + NNFullConLayout::getOutputLength(), tempLossGrads.size() - NNFullConLayout::getOutputLength());
+
+				NNScalar const* pOutput = inOutputs + getPassOutputLength();
+				pOutput -= NNFullConLayout::getOutputLength();
+				NNScalar const* pInput = pOutput - NNFullConLayout::getOutputLength();
+
+				NNScalar const* pOutputLossGrad = inOutputLossGrads;
+				NNScalar* pLossGrad = tempLossGrads.data();
+
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					int offset = i * AtomCount;
+					FNNAlgo::SoftMaxBackward(AtomCount, pInput + offset, pOutput + offset, pOutputLossGrad + offset, pLossGrad + offset);
+				}
+
+				pOutputLossGrad = pLossGrad;
+				NNFullConLayout::backward(parameters, inInputs, inOutputs, pOutputLossGrad, layerTempLossGrads, inoutParameterGrads, outLossGrads);
+			}
+
+			int getOutputLength() const
+			{
+				return NNFullConLayout::getOutputLength();
+			}
+
+			int getPassOutputLength() const
+			{
+				return NNFullConLayout::getPassOutputLength() + NNFullConLayout::getOutputLength();
+			}
+
+			int getParameterLength() const
+			{
+				return NNFullConLayout::getParameterLength();
+			}
+
+			int getTempLossGradLength() const
+			{
+				int length = NNFullConLayout::getTempLossGradLength();
+				length += NNFullConLayout::getOutputLength() + 1000;
+				return length;
+			}
+
+			TArray<NNScalar> mSupports;
+#endif
+		};
+#endif
+
+		NetworkModel mModel;
+
 		struct Agent
 		{
-			void init(FCNNLayout& NNLayout)
+			void init(NetworkModel& model)
 			{
-				FNN.init(NNLayout);
+				mModel = &model;
+				initParameters();
+			}
+
+			NNScalar mActionValues[ActionNum];
+#if RECORD_INVALID_ACTION
+			uint32 ignorePlayMask = 0;
+#endif
+
+			NNScalar mActionDist[ActionNum * AtomCount];
+			void getAction( State const& state, Environment const& env, float epsilon, Action& outAction)
+			{
+				evalActionValues(state, mActionValues,
+#if DQN_DISTRIBUTION
+					mActionDist
+#endif
+				);
+				if (RandFloat() < epsilon)
+				{
+					int num = 0;
+					int dirs[4];
+					for (int i = 0; i < 4; ++i)
+					{
+						Action action;
+						action.playDir = i;
+						if (env.isValidAction(action))
+						{
+							dirs[num] = i;
+							++num;
+						}
+					}
+					CHECK(num > 0);
+					outAction.playDir = dirs[RandRange(0, num)];
+				}
+				else
+				{
+					int indices[4] = { 0, 1, 2 ,3 };
+					std::sort(indices, indices + 4, [&](int a, int b)
+					{
+						return mActionValues[a] > mActionValues[b];
+					});
+
+					for (int i = 0; i < 4; ++i)
+					{
+#if STOP_INVALID_ACTION
+
+#elif RECORD_INVALID_ACTION
+						if ( !(ignorePlayMask & BIT(indices[i])) )
+#else
+						outAction.playDir = indices[i];
+						if (env.isValidAction(outAction))
+#endif
+						{
+							outAction.playDir = indices[i];
+							break;
+						}
+					}
+				}
+			}
+
+			void update(Action const& action, StepResult const& result)
+			{
+#if RECORD_INVALID_ACTION
+				if (result.bValidAction)
+				{
+					ignorePlayMask = 0;
+				}
+				else
+				{
+					ignorePlayMask |= BIT(action.playDir);
+				}
+#endif
 			}
 
 			void initParameters()
 			{
-				parameters.resize(FNN.getLayout().getParameterNum());
-				NNScalar v = 0.1 * Math::Sqrt( 2.0 / (BoardSize * BoardSize));
+				parameters.resize(mModel->getParameterLength());
+				NNScalar v = 0.05 * Math::Sqrt( 2.0 / (BoardSize * BoardSize));
 				for (NNScalar& x : parameters)
 				{
 					x = RandFloat(1e-4, v);
 				}
-				FNN.setParamsters(parameters);
 			}
 
 			NNScalar evalMaxActionValue(State const& state)
 			{
 				NNScalar outputs[4];
-				FNN.calcForwardFeedback((NNScalar const*)&state, outputs);
+				mModel->forwardFeedback(parameters.data(), (NNScalar const*)&state, outputs);
+				int index = FNNMath::Max(4, outputs);
+				return outputs[index];
+			}
+
+			static NNScalar EvalMaxActionValue(NetworkModel const& model, NNScalar const* parameters, State const& state)
+			{
+				NNScalar outputs[4];
+				model.forwardFeedback(parameters, (NNScalar const*)&state, outputs);
 
 				int index = FNNMath::Max(4, outputs);
 				return outputs[index];
 			}
 
-			static NNScalar EvalMaxActionValue(FCNNLayout const& layout, NNScalar const* parameters, State const& state)
+
+			static NNScalar EvalActionValue(NetworkModel const& model, NNScalar const* parameters, State const& state, Action const& action)
 			{
 				NNScalar outputs[4];
-				FNNAlgo::ForwardFeedback(layout, parameters, (NNScalar const*)&state, outputs);
-
-				int index = FNNMath::Max(4, outputs);
-				return outputs[index];
-			}
-
-
-			static NNScalar EvalActionValue(FCNNLayout const& layout, NNScalar const* parameters, State const& state, Action const& action)
-			{
-				NNScalar outputs[4];
-				FNNAlgo::ForwardFeedback(layout, parameters, (NNScalar const*)&state, outputs);
+				model.forwardFeedback(parameters, (NNScalar const*)&state, outputs);
 				return outputs[action.playDir];
 			}
 
 			void evalActionValues(State const& state, NNScalar outValues[])
 			{
-				FNN.calcForwardFeedback((NNScalar const*)&state, outValues);
+				mModel->forwardFeedback(parameters.data(),(NNScalar const*)&state, outValues);
 			}
 
-			NNScalar evalActionValue(State const& state, Action const& action, NNScalar outSignals[])
+#if DQN_DISTRIBUTION
+			void evalActionValues(State const& state, NNScalar outValues[], NNScalar outDist[])
 			{
-				NNScalar const* outputs = FNN.calcForwardPass((NNScalar const*)&state, outSignals);
-				return outputs[action.playDir];
+				mModel->forwardFeedback(parameters.data(), (NNScalar const*)&state, outValues, outDist);
+			}
+#endif
+
+			NNScalar evalActionValue(State const& state, Action const& action, NNScalar outputs[])
+			{
+				NNScalar const* pOutputs = mModel->forward(parameters.data(), (NNScalar const*)&state, outputs);
+				return pOutputs[action.playDir];
 			}
 
 			NNScalar evalActionValue(State const& state, Action const& action)
 			{
 				NNScalar outputs[4];
-				FNN.calcForwardFeedback((NNScalar const*)&state, outputs);
+				mModel->forwardFeedback(parameters.data(), (NNScalar const*)&state, outputs);
 				return outputs[action.playDir];
 			}
 
-			FCNeuralNetwork FNN;
+			NetworkModel* mModel;
 			TArray<NNScalar> parameters;
 		};
 
 
-		using LossFunc = FRMSELoss;
-
-
-		struct TrainContext
-		{
-			Action action;
-			State  state;
-		};
 		//TD : Temporal Difference
 
-		static NNScalar constexpr DiscountRate = 0.99;
+		static NNScalar constexpr DiscountRate = 0.995;
+		static int constexpr MaxReplaySize = 10000;
+		static int constexpr WarnMemorySize = 500;
+		static int constexpr BatchSize = 32;
+
+		static NNScalar constexpr LearnRate = 0.0001;
+		static constexpr int WorkerThreadNum = 16;
 
 
-
+		static constexpr float EPSILON_START = 1.0;
+		static constexpr float EPSILON_END = 0.05;
+		static constexpr float EPSILON_DECAY = 0.9999;
 
 		struct Train
 		{
-			void init(FCNNLayout& layout)
+			void init(NetworkModel& model)
 			{
-				agent.init(layout);
-				mTargetParameters.resize(layout.getParameterNum());
-				mOptimizer.init(layout.getParameterNum());
+				agent.init(model);
+				mTargetParameters.resize(model.getParameterLength());
+				mOptimizer.init(model.getParameterLength());
 
-				mMainData.init(layout);
-				initThread(layout);
+				mMainData.init(model);
+				initThread(model);
+
+
+				updateTargetParameter();
 			}
 
 			AdamOptimizer mOptimizer;
 
-			NNScalar step(Action const& action, State& inoutState, StepResult& stepResult)
-			{
-#if 0
-				auto OldState = inoutState;
-#endif
-
-				auto actionValue = agent.evalActionValue(inoutState, action, mMainData.signals.data());
-				stepResult = env.step(action);
-
-				env.getState(inoutState);
-
-
-				mMainData.reset();
-
-				NNScalar actionValuesNext[4];
-				agent.evalActionValues(inoutState, actionValuesNext);
-				Action actionNext;
-				actionNext.playDir = FNNMath::Max(4, actionValuesNext);
-
-				NNScalar TDTarget = stepResult.reward + DiscountRate * Agent::EvalActionValue(agent.FNN.getLayout(), mTargetParameters.data(), inoutState, actionNext) * (1 - float(stepResult.bDone));
-
-				NNScalar loss = LossFunc::Calc(actionValue, TDTarget);
-				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
-				lossDerivatives[action.playDir] = LossFunc::CalcDevivative(actionValue, TDTarget);
-				agent.FNN.calcBackwardPass(lossDerivatives, mMainData.signals.data(), mMainData.lossGrads.data(), mMainData.deltaParameters.data());
-
-				FNNMath::ClipNormalize(mMainData.deltaParameters.size(), mMainData.deltaParameters.data(), 1.0);
-
-				for (int i = 0; i < mMainData.deltaParameters.size(); ++i)
-				{
-					agent.parameters[i] -= learnRate * mMainData.deltaParameters[i];
-				}
-#if 0
-				auto actionValueNew = agent.evalActionValue(OldState, action);
-				NNScalar lossNew = LossFunc::Calc(actionValueNew, TDTarget);
-#endif
-
-				return loss;
-			}
-
-
-			static int constexpr MultiStepCount = 3;
-			struct Sample
-			{
-				State    state;
-				Action   action;
-				NNScalar rewards[MultiStepCount];
-				State    stateNext;
-				bool     bDone;
-
-				NNScalar loss = 0;
-			};
-
-			TArray< Sample > memory;
-
-			static int constexpr MaxMemorySize = 10000;
-			static int constexpr WarnMemorySize = 1000;
-			static int constexpr BatchSize = 64;
-
-			int indexStep = 0;
-
-			struct StepSample 
+			struct StepSample
 			{
 				State    state;
 				NNScalar reward;
 			};
-			StepSample stepSamples[MultiStepCount];
 
+
+			struct Sample
+			{
+				Action   action;
+
+#if DQN_MULTI_STEP > 1
+				StepSample steps[DQN_MULTI_STEP];
+#else
+				State    state;
+				NNScalar reward;
+#endif
+				State    stateNext;
+				bool     bDone;
+
+
+			};
+
+			struct ReplayData : Sample
+			{
+				NNScalar loss = 0;
+				float priority;
+				float priorityAcc;
+
+				bool bUsed;
+			};
+
+			float mWeightBeta = 0.4;
+			float mMaxPriority = 1.0;
+
+			static float constexpr WeightBetaInc = 0.01;
+
+			void choiceReplays(ReplayData* outReplays[], float outWeights[], int numReplay)
+			{
+#if 1
+				float totalPriority = 0;
+				for (int i = 0; i < mReplay.size(); ++i)
+				{
+					auto& replay = mReplay[i];
+					replay.bUsed = false;
+					totalPriority += replay.priority;
+					replay.priorityAcc = totalPriority;
+				}
+
+
+				float maxWeight = 0;
+				float curTotalPriority = totalPriority;
+				for (int i = 0; i < numReplay; ++i)
+				{
+					float targtProb = RandFloat() * curTotalPriority;
+
+					if (targtProb == curTotalPriority)
+					{
+						--i;
+						continue;
+					}
+					auto replay = std::lower_bound(mReplay.begin(), mReplay.end(), targtProb, [=](auto const& v, auto value)
+					{
+						return v.priorityAcc < value;
+					});
+
+					if (replay == mReplay.end())
+					{
+						--i;
+						continue;
+					}
+	
+					float prob = replay->priority / curTotalPriority;
+					outWeights[i] = Math::Pow(mReplay.size() * prob, -mWeightBeta);
+					outReplays[i] = replay;
+					maxWeight = Math::Max(maxWeight, outWeights[i]);
+
+					int index = replay - mReplay.data();
+					CHECK(index < mReplay.size());
+					if (!replay->bUsed)
+					{
+						replay->bUsed = true;
+
+						float priorityAcc = mReplay[index].priorityAcc;
+
+						if (index == 0)
+						{
+							mReplay[index].priorityAcc = -1;
+						}
+						else
+						{
+							mReplay[index].priorityAcc = mReplay[index - 1].priorityAcc;
+						}
+
+						int n = index + 1;
+						float priorityAccPrev = mReplay[index].priorityAcc;
+						for (;n < mReplay.size(); ++n)
+						{
+							if ( priorityAcc != mReplay[n].priorityAcc)
+								break;
+
+							mReplay[n].priorityAcc = priorityAccPrev;
+						}
+
+						for (; n < mReplay.size(); ++n)
+						{
+							mReplay[n].priorityAcc -= replay->priority;
+						}
+						curTotalPriority -= replay->priority;
+						if (curTotalPriority < 1e-5)
+						{
+							totalPriority = 0.0f;
+							for (int i = 0; i < mReplay.size(); ++i)
+							{
+								auto& replay = mReplay[i];
+								if (replay.bUsed)
+								{
+									replay.priorityAcc = totalPriority;
+									continue;
+								}
+								totalPriority += replay.priority;
+								replay.priorityAcc = totalPriority;
+							}
+
+							curTotalPriority = totalPriority;
+						}
+					}
+					else
+					{
+	
+						LogError("USED Index = %d %u %g %g %g", index, mReplay.size(), replay->priorityAcc, targtProb, curTotalPriority);
+
+						if (index > 0)
+						{
+
+							LogError("Prev = %g", mReplay[index - 1].priorityAcc);
+						}
+					}
+				}
+
+				mWeightBeta = Math::Min(1.0f, mWeightBeta + WeightBetaInc);
+
+				for (int i = 0; i < numReplay; ++i)
+				{
+					outWeights[i] /= maxWeight;
+				}
+
+#else
+				for (int i = 0; i < numReplay; ++i)
+				{
+					int index = rand() % mReplay.size();
+					outReplays[i] = &mReplay[index];
+				}
+#endif
+			}
+
+
+			TArray< ReplayData > mReplay;
+
+
+#if DQN_MULTI_STEP > 1
+			int mIndexStep = 0;
+			StepSample stepSamples[DQN_MULTI_STEP];
+#endif
 
 
 			void episodeReset(State const& state)
 			{
-				indexStep = 0;
+#if DQN_MULTI_STEP > 1
+				mIndexStep = 0;
+#endif
 			}
 
 
 			struct ThreadData
 			{
-				void init(FCNNLayout& layout)
+				void init(NetworkModel& model)
 				{
-					signals.resize(layout.getSignalNum() + layout.getTotalNodeNum());
-					lossGrads.resize(layout.getTotalNodeNum());
-					deltaParameters.resize(layout.getParameterNum());
+					outputs.resize(model.getPassOutputLength());
+					lossGrads.resize(model.getTempLossGradLength());
+					parameterGrads.resize(model.getParameterLength());
 				}
 
 				void reset()
 				{
-					std::fill_n(deltaParameters.data(), deltaParameters.size(), 0);
+					std::fill_n(parameterGrads.data(), parameterGrads.size(), 0);
 				}
-				TArray<NNScalar> deltaParameters;
-				TArray<NNScalar> signals;
+				TArray<NNScalar> parameterGrads;
+				TArray<NNScalar> outputs;
 				TArray<NNScalar> lossGrads;
 			};
 			QueueThreadPool mPool;
 			TArray< ThreadData > mThreadDatas;
-			static constexpr int WorkerThreadNum = 4;
-			void initThread(FCNNLayout& layout)
+
+
+			void initThread(NetworkModel& model)
 			{
 				mPool.init(WorkerThreadNum);
 				mThreadDatas.resize(WorkerThreadNum);
 				for (int i = 0; i < WorkerThreadNum; ++i)
 				{
-					mThreadDatas[i].init(layout);
+					mThreadDatas[i].init(model);
 				}
 			}
 
 
-			NNScalar fit(Sample& sample, ThreadData& threadData)
+			NNScalar fit(ReplayData& sample, float weight, ThreadData& threadData)
 			{
-				auto actionValue = agent.evalActionValue(sample.state, sample.action, threadData.signals.data());
+#if DQN_MULTI_STEP > 1
+				auto const& state = sample.steps[0].state;
+#else
+				auto const& state = sample.state;
+#endif
 
+#if DQN_DISTRIBUTION
+				NNScalar* actionDist = agent.mModel->forward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data());
+				actionDist += sample.action.playDir * AtomCount;
+#else
+				auto actionValue = agent.evalActionValue(state, sample.action, threadData.outputs.data());
+#endif
+
+
+#if DQN_MULTI_STEP > 1
+				NNScalar TDTarget;
+				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
+				sample.loss = 0;
+				{
+					auto const& stateNext = sample.stateNext;
+					NNScalar actionValuesNext[4];
+					agent.evalActionValues(stateNext, actionValuesNext);
+					Action actionNext;
+					actionNext.playDir = FNNMath::Max(4, actionValuesNext);
+
+					TDTarget = Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), stateNext, actionNext) * (1 - float(sample.bDone));
+
+					for (int i = DQN_MULTI_STEP; i >= 0; --i)
+					{
+						TDTarget *= DiscountRate;
+						TDTarget += sample.steps[i].reward;
+					}
+					lossDerivatives[sample.action.playDir] += LossFunc::CalcDevivative(actionValue, TDTarget);
+
+					sample.loss += LossFunc::Calc(actionValue, TDTarget);
+				}
+#else
 				NNScalar actionValuesNext[4];
 				agent.evalActionValues(sample.stateNext, actionValuesNext);
 				Action actionNext;
 				actionNext.playDir = FNNMath::Max(4, actionValuesNext);
 
-				NNScalar TDTarget;
-				if constexpr (MultiStepCount > 1)
+
+#if DQN_DISTRIBUTION
+				NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+				agent.mModel->forwardDistribution(mTargetParameters.data(), (NNScalar const*)&sample.stateNext, targetDist);
+				targetDist += actionNext.playDir * AtomCount;
+
+				NNScalar targetProjDist[AtomCount];
+				FMemory::Zero(targetProjDist, sizeof(targetProjDist));
+
+				NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
+				NNScalar minV = agent.mModel->mSupports[0];
+
+				if (sample.bDone)
 				{
-					TDTarget = Agent::EvalActionValue(agent.FNN.getLayout(), mTargetParameters.data(), sample.stateNext, actionNext) * (1 - float(sample.bDone));
-					for (int i = MultiStepCount - 1; i >= 0; --i)
+					int aa = 1;
+				}
+				for (int i = 0; i < AtomCount; ++i)
+				{
+					NNScalar t = sample.reward + DiscountRate * agent.mModel->mSupports[i] * (1 - float(sample.bDone));
+					NNScalar b = (t - minV) / deltaV;
+					int l = Math::Clamp(Math::FloorToInt(b), 0 , AtomCount - 2);
+					int u = l + 1;
+					targetProjDist[l] += targetDist[i] * (u - b);
+					targetProjDist[u] += targetDist[i] * (b - l);
+				}
+				sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+
+				NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+				FNNMath::Fill(agent.mModel->ActionNum * AtomCount, lossGrads, LossFunc::CalcDevivative(1, 1));
+				NNScalar* actionLossGrads = lossGrads + AtomCount * sample.action.playDir;
+				for (int i = 0; i < AtomCount; ++i)
+				{
+					if (actionDist[i] < 1e-6)
 					{
-						TDTarget *= DiscountRate;
-						TDTarget += sample.rewards[i];
+						int i = 1;
+
+					}
+					actionLossGrads[i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
+				}
+
+				{
+					NNScalar* pLossGrad = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					NNScalar* pLossGrad2 = (NNScalar*)alloca(sizeof(NNScalar) * AtomCount);
+					NNScalar const* pOutput = threadData.outputs.data() + (agent.mModel->getPassOutputLength() - agent.mModel->getOutputLength());
+					NNScalar const* pInput = pOutput - agent.mModel->getOutputLength();
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						int offset = i * AtomCount;
+						FNNAlgo::SoftMaxBackward(AtomCount, pInput + offset, pOutput + offset, lossGrads + offset, pLossGrad + offset);
+
+					}
+					FNNMath::VectorSub(AtomCount, actionDist, targetProjDist, pLossGrad2);
+
+					int aa = 1;
+				}
+
+
+
+
+#else
+				NNScalar TDTarget;
+				TDTarget = sample.reward + DiscountRate * Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), sample.stateNext, actionNext) * (1 - float(sample.bDone));
+				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
+				lossDerivatives[sample.action.playDir] = weight * LossFunc::CalcDevivative(actionValue, TDTarget);
+				sample.loss = weight * LossFunc::Calc(actionValue, TDTarget);
+
+#endif
+
+#endif
+
+#if DQN_DISTRIBUTION
+				agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossGrads, threadData.lossGrads, threadData.parameterGrads.data());
+#else
+				agent.mModel->backward(agent.parameters.data(),(NNScalar const*)&state, threadData.outputs.data(), lossDerivatives, threadData.lossGrads, threadData.parameterGrads.data());
+#endif
+
+				for (int i = 0; i < threadData.parameterGrads.size(); ++i)
+				{
+					if (threadData.parameterGrads[i] != 0 && !isnormal(threadData.parameterGrads[i]))
+					{
+						int n = 1;
 					}
 				}
-				else
-				{
-					TDTarget = sample.rewards[0] + DiscountRate * Agent::EvalActionValue(agent.FNN.getLayout(), mTargetParameters.data(), sample.stateNext, actionNext) * (1 - float(sample.bDone));
-				}
-
-				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
-				lossDerivatives[sample.action.playDir] = LossFunc::CalcDevivative(actionValue, TDTarget);
-
-				agent.FNN.calcBackwardPass(lossDerivatives, threadData.signals.data(), threadData.lossGrads.data(), threadData.deltaParameters.data());
-				sample.loss = LossFunc::Calc(actionValue, TDTarget);
-
 				return sample.loss;
 			}
 
 
 			int maxLossIndices[8] = { 0 };
 			int indexNext = 0;
-			NNScalar stepBatch(Action const& action, State& inoutState, StepResult& stepResult)
+			void step(Action const& action, State& inoutState, StepResult& stepResult)
 			{
 
 				auto oldState = inoutState;
 				auto actionValue = agent.evalActionValue(inoutState, action);
 				stepResult = env.step(action);
 
-				if constexpr (MultiStepCount > 1)
-				{
-					stepSamples[indexStep].reward = stepResult.reward;
-					stepSamples[indexStep].state = inoutState;
-					++indexStep;
-					if (indexStep == MultiStepCount)
-						indexStep = 0;
-				}
+#if DQN_MULTI_STEP > 1
+				stepSamples[mIndexStep].reward = stepResult.reward;
+				stepSamples[mIndexStep].state = inoutState;
+				++mIndexStep;
+				if (mIndexStep == DQN_MULTI_STEP)
+					mIndexStep = 0;
+#endif
 
 				env.getState(inoutState);
 
-
-				if (memory.size() < MaxMemorySize)
+#if DQN_MULTI_STEP > 1
+				if (mIndexStep == 0)
+#endif
 				{
-					if constexpr (MultiStepCount > 1)
+					if (mReplay.size() < MaxReplaySize)
 					{
-						if (env.game.step >= MultiStepCount)
+#if DQN_MULTI_STEP > 1
+						if (env.game.step >= DQN_MULTI_STEP)
 						{
-							Sample sample;
+							ReplayData sample;
 							sample.bDone = stepResult.bDone;
 							sample.action = action;
 							sample.stateNext = inoutState;
-							sample.state = stepSamples[indexStep].state;
-							for (int i = 0; i < MultiStepCount; ++i)
+							for (int i = 0; i < DQN_MULTI_STEP; ++i)
 							{
-								sample.rewards[i] = stepSamples[(indexStep + i) % MultiStepCount].reward;
+								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
 							}
-							memory.push_back(sample);
+							mReplay.push_back(sample);
 						}
+#else
+						mReplay.push_back({ action , oldState, { stepResult.reward }, inoutState, stepResult.bDone || !stepResult.bValidAction });
+#endif
+						mReplay.back().priority = mMaxPriority;
 					}
 					else
 					{
-						memory.push_back({ oldState, action , { stepResult.reward }, inoutState, stepResult.bDone });
-					}
-				}
-				else
-				{
-					auto& sample = memory[indexNext];
-					if constexpr (MultiStepCount > 1)
-					{
-						if (env.game.step >= MultiStepCount)
+						auto& sample = mReplay[indexNext];
+
+#if DQN_MULTI_STEP > 1
+						if (env.game.step >= DQN_MULTI_STEP)
 						{
 							sample.bDone = stepResult.bDone;
 							sample.action = action;
 							sample.stateNext = inoutState;
-							sample.state = stepSamples[indexStep].state;
-							for (int i = 0; i < MultiStepCount; ++i)
+							for (int i = 0; i < DQN_MULTI_STEP; ++i)
 							{
-								sample.rewards[i] = stepSamples[(indexStep + i) % MultiStepCount].reward;
+								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
 							}
 						}
+#else
+						sample = { action , oldState, stepResult.reward, inoutState, stepResult.bDone || !stepResult.bValidAction };
+#endif			
+
+						sample.priority = mMaxPriority;
+						indexNext += 1;
+						if (indexNext == mReplay.size())
+							indexNext = 0;
 					}
-					else
-					{
-						sample = { oldState, action , { stepResult.reward }, inoutState, stepResult.bDone };
-					}				
-					indexNext += 1;
-					if (indexNext == memory.size())
-						indexNext = 0;
 				}
+			}
 
-
-				if (memory.size() < WarnMemorySize)
-					return 0.0f;
-
-				Sample* samples[BatchSize];
-				for (int i = 0; i < ARRAY_SIZE(maxLossIndices); ++i)
-				{
-					samples[BatchSize - 1 - i] = &memory[maxLossIndices[i]];
-				}
-
-				for (int i = 0; i < BatchSize - ARRAY_SIZE(maxLossIndices); ++i)
-				{
-					int index = rand() % memory.size();
-					samples[i] = &memory[index];
-				}
+			NNScalar optimize()
+			{
+				ReplayData* samples[BatchSize];
+				float weights[BatchSize];
+				choiceReplays(samples, weights, BatchSize);
 
 				NNScalar loss = 0;
 				mMainData.reset();
@@ -1036,12 +1733,13 @@ namespace TwentyFortyEight
 					auto& threadData = mThreadDatas[i];
 					int num = BatchSize / WorkerThreadNum;;
 					int index = i * num;
-					Sample** samplePtr = samples + index;
-					mPool.addFunctionWork([this, samplePtr, num, &threadData]()
+					ReplayData** samplePtr = samples + index;
+					float* weightPtr = weights + index;
+					mPool.addFunctionWork([this, samplePtr, weightPtr, num, &threadData]()
 					{
 						for (int i = 0; i < num; ++i)
 						{
-							fit(*samplePtr[i], threadData);
+							fit(*samplePtr[i], weightPtr[i], threadData);
 						}
 					});
 				}
@@ -1050,43 +1748,37 @@ namespace TwentyFortyEight
 
 				for (int i = 0; i < WorkerThreadNum; ++i)
 				{
-					FNNMath::VectorAdd(mMainData.deltaParameters.size(), mMainData.deltaParameters.data(), mThreadDatas[i].deltaParameters.data());
+					FNNMath::VectorAdd(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), mThreadDatas[i].parameterGrads.data());
 				}
 
 				for (int i = 0; i < BatchSize; ++i)
 				{
-					Sample& sample = *samples[i];
+					ReplayData& sample = *samples[i];
 					//loss += fit(sample, mMainData);
-
 					loss += sample.loss;
 
-					int index = &sample - memory.data();
-					if (std::find(maxLossIndices, maxLossIndices + ARRAY_SIZE(maxLossIndices), index) == (maxLossIndices + ARRAY_SIZE(maxLossIndices)))
+					sample.priority = Math::Max(1e-5f, sample.loss) / weights[i];
+					mMaxPriority = Math::Max(mMaxPriority, sample.priority);
+					if (mMaxPriority > 1000)
 					{
-						for (int n = 0; n < ARRAY_SIZE(maxLossIndices); ++n)
-						{
-							if (sample.loss > memory[maxLossIndices[n]].loss)
-							{
-								maxLossIndices[n] = index;
-								break;
-							}
-						}
+						//LogError("Loss = %g", sample.loss);
+						mMaxPriority = 1000;
 					}
+
 				}
 
-				std::sort(maxLossIndices, maxLossIndices + ARRAY_SIZE(maxLossIndices), [](int a, int b)
+
+#if 1
+				for (int i = 0; i < mMainData.parameterGrads.size(); ++i)
 				{
-					return samples[a].loss < samples[b].loss;
-				});
-				for (int i = 0; i < mMainData.deltaParameters.size(); ++i)
-				{
-					mMainData.deltaParameters[i] /= BatchSize;
+					mMainData.parameterGrads[i] /= BatchSize;
 				}
 				loss /= BatchSize;
+#endif
 
-				FNNMath::ClipNormalize(mMainData.deltaParameters.size(), mMainData.deltaParameters.data(), 10.0);
+				FNNMath::ClipNormalize(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), 1.0);
 
-				mOptimizer.update(agent.parameters, mMainData.deltaParameters, learnRate);
+				mOptimizer.update(agent.parameters, mMainData.parameterGrads, LearnRate);
 				return loss;
 			}
 
@@ -1096,7 +1788,88 @@ namespace TwentyFortyEight
 				FNNMath::VectorCopy(mTargetParameters.size(), agent.parameters.data(), mTargetParameters.data());
 			}
 
-			NNScalar learnRate = 1e-3;
+
+
+			class Monitor
+			{
+			public:
+
+				void OnTrainEpisodeStart(int episode);
+				void OnTrainEpisodeEnd(int episode);
+
+				void OnTrainInput(Action const& action);
+				void OnTrainResult(Action const& action, StepResult const& stepResult);
+			};
+
+
+			int mEpisode = 0;
+			int mStepCount = 0;
+			int mOptimizeCount = 0;
+			NNScalar mLoss = 0.0;
+			NNScalar mActionValues[4];
+
+
+			float mEpsilon;
+
+			template< typename Monitor >
+			void run(Monitor& monitor)
+			{
+				DRLModel::State state;
+
+				mEpisode = 0;
+				mStepCount = 0;
+				mOptimizeCount = 0;
+				mEpsilon = EPSILON_START;
+
+				for (;;)
+				{
+					env.reset();
+					env.getState(state);
+					episodeReset(state);
+
+					monitor.OnTrainEpisodeStart(mEpisode);
+
+					uint32 ignorePlayMask = 0;
+
+					for (;;)
+					{
+						DQN::Action action;
+						agent.getAction(state, env, mEpsilon, action);
+						monitor.OnTrainInput(action);
+
+						bool bValidAction = env.isValidAction(action);
+
+						DQN::StepResult stepResult;
+						step(action, state, stepResult);
+
+						++mStepCount;
+						agent.update(action, stepResult);
+
+						if (mReplay.size() >= WarnMemorySize && mStepCount % 32 == 0)
+						{
+							mLoss = optimize();
+							++mOptimizeCount;
+							if (mEpisode % 500 == 0)
+							{
+								updateTargetParameter();
+							}
+						}
+
+						monitor.OnTrainResult(action, stepResult);
+
+						if (stepResult.bDone)
+						{
+							break;
+						}
+					}
+
+					monitor.OnTrainEpisodeEnd(mEpisode);
+					++mEpisode;
+					mEpsilon = Math::Max(EPSILON_END, mEpsilon * EPSILON_DECAY);
+				}
+			}
+
+
 			TArray<NNScalar> mTargetParameters;
 
 			ThreadData mMainData;
@@ -1106,19 +1879,86 @@ namespace TwentyFortyEight
 		};
 
 
-		DQN()
-		{
-			int len = BoardSize *  BoardSize;
-			uint32 const topology[] = { len, 16 * len, 16 * len, 16 * len, 16 * len, 4 };
-			mNNLayout.init(topology, ARRAY_SIZE(topology));
-			mNNLayout.setHiddenLayerFunction<NNFunc::ReLU>();
-			mNNLayout.getLayer(mNNLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
-		}
 
-		FCNNLayout mNNLayout;
+
+
+
 	};
 
 
+	void BoundTest()
+	{
+		struct Data
+		{
+			int index;
+			float v;
+		};
+
+		TArray<Data> datas;
+		datas.push_back({ 0, 1 });
+		datas.push_back({ 1, 2 });
+		datas.push_back({ 2, 2 });
+		datas.push_back({ 3, 3 });
+		datas.push_back({ 4, 5 });
+		datas.push_back({ 5, 5 });
+		datas.push_back({ 6, 6 });
+		datas.push_back({ 7, 6 });
+
+		auto a = std::lower_bound(datas.begin(), datas.end(), 1.5, [](auto const& a, auto const& b)
+		{
+			return a.v < b;
+		});
+		auto b = std::upper_bound(datas.begin(), datas.end(), 2, [](auto const& a, auto const& b)
+		{
+			return a < b.v;
+		});
+		auto c = std::lower_bound(datas.begin(), datas.end(), 2, [](auto const& a, auto const& b)
+		{
+			return a.v < b;
+		});
+		auto d = std::lower_bound(datas.begin(), datas.end(), 0, [](auto const& a, auto const& b)
+		{
+			return a.v < b;
+		});
+		auto e = std::lower_bound(datas.begin(), datas.end(), 6, [](auto const& a, auto const& b)
+		{
+			return a.v < b;
+		});
+		auto f = std::lower_bound(datas.begin(), datas.end(), 7, [](auto const& a, auto const& b)
+		{
+			return a.v < b;
+		});
+	}
+
+	void ConvTest()
+	{
+		NNScalar m[] =
+		{
+			1,2,3,4,
+			5,6,7,8,
+			9,10,11,12,
+			13,14,15,16,
+		};
+
+		NNScalar w[] =
+		{
+			1,2,3,
+			4,5,6,
+			7,8,9,
+		};
+
+		NNScalar output[6 * 6] = { 0 };
+		FNNMath::Conv(4, 4, m, 3, 3, w, 2, 2, output);
+
+		NNScalar wR[3 * 3];
+		FNNMath::Rotate180(3, 3, w, wR);
+		NNScalar outputRA[6 * 6] = { 0 };
+		FNNMath::Conv(4, 4, m, 3, 3, wR, 2, 2, outputRA);
+		
+		NNScalar outputRB[6 * 6] = { 0 };
+		FNNMath::ConvRotate180(4, 4, m, 3, 3, w, 2, 2, outputRB);
+		int i = 1;
+	}
 
 	using namespace Render;
 
@@ -1135,6 +1975,10 @@ namespace TwentyFortyEight
 			::Global::GUI().cleanupWidget();
 
 			auto frame = WidgetUtility::CreateDevFrame();
+
+
+			//BoundTest();
+			ConvTest();
 
 			frame->addButton("Restart", [this](int event, GWidget*) -> bool
 			{
@@ -1181,6 +2025,7 @@ namespace TwentyFortyEight
 				{
 					serializer.read(mTrain.agent.parameters);
 					mTrain.updateTargetParameter();
+					mTrain.mEpsilon = DQN::EPSILON_END;
 				}
 				return false;
 			});
@@ -1193,9 +2038,8 @@ namespace TwentyFortyEight
 			mScreenToWorld = mWorldToScreen.inverse();
 
 			::srand(100);
-			mTrain.init(mDQN.mNNLayout);
-			mTrain.agent.initParameters();
-			mTrain.updateTargetParameter();
+			mTrain.init(mDQN.mModel);
+
 
 			startTrain();
 			return true;
@@ -1233,6 +2077,8 @@ namespace TwentyFortyEight
 
 		Coroutines::ExecutionHandle mGameHandle;
 
+
+		bool bTraining = true;
 		bool bPauseTrain = false;
 
 		bool bAnimating = false;
@@ -1244,46 +2090,18 @@ namespace TwentyFortyEight
 		GameState mPrevState;
 
 
-		bool bAutoSave = false;
-		DQN mDQN;
-		DQN::Train mTrain;
-		static constexpr float EPSILON_START = 1.0;
-		static constexpr float EPSILON_END = 0.05;
-		static constexpr float 	EPSILON_DECAY = 0.995;
-		void startTrain()
-		{
-			mGameHandle = Coroutines::Start([this]()
-			{
-				mEpisode = 0;
-				mFitCount = 0;
-				epsilon = EPSILON_START;
 
-				for (;;)
-				{
-					trainRound();
-
-					++mEpisode;
-
-
-					epsilon = Math::Max(EPSILON_END, epsilon * EPSILON_DECAY);
-
-					if (bAutoSave && (mFitCount % 5 == 0))
-					{
-						saveWeights();
-					}
-				}
-			});
-		}
 
 
 		void startGame()
 		{
 			mGameHandle = Coroutines::Start([this]()
 			{
-				for(;;)
-				{
 
-					trainRound();
+				for (;;)
+				{
+					gameRound();
+
 #if 0
 					if (bAutoPlay)
 					{
@@ -1292,7 +2110,7 @@ namespace TwentyFortyEight
 					else
 					{
 						InlineString<> str;
-						str.format("Player %s win ! Do you play again?", (mWinner == EBlockSymbol::A) ? "A" : "B");
+						str.format("Do you play again?");
 						GWidget* widget = ::Global::GUI().showMessageBox(UI_ANY, str.c_str(), EMessageButton::YesNo);
 						widget->onEvent = [this](int event, GWidget*)->bool
 						{
@@ -1310,130 +2128,142 @@ namespace TwentyFortyEight
 		}
 
 
-		NNScalar actionValues[4];
+		bool bAutoSave = false;
+		DQN mDQN;
+		DQN::Train mTrain;
 		int mInputDir = 0;
-		float epsilon = 0.1;
-		//float EspilonDecay = 0.995;
-		int mEpisode;
-		int mFitCount = 0;
 
-		NNScalar mLoss;
-		void trainRound()
+		void startTrain()
 		{
-			DQN::State state;
-			Game& game = mTrain.env.game;
-
-			mTrain.env.reset();
-			mTrain.env.getState(state);
-			mTrain.episodeReset(state);
-
-			uint32 ignorePlayMask = 0;
-
-			for (;;)
+			mStep = EStep::ProcPlay;
+			mGameHandle = Coroutines::Start([this]()
 			{
-				mTrain.agent.evalActionValues(state, actionValues);
+				mTrain.run(*this);
+			});
+		}
 
-				uint8 inputDir = 0;
-				if (RandFloat() < epsilon)
+		void OnTrainEpisodeStart(int episode)
+		{
+
+		}
+
+		int mMaxScore = 0;
+		int mMaxStep = 0;
+
+		int mNumPointRes = 0;
+		int mMergeSize = 1;
+		Vector2 mLastPointAcc = Vector2::Zero();
+
+		TArray<Vector2> mScoreCurvePoints;
+		TArray<Vector2> mMaxScoreCurvePoints;
+
+		void OnTrainEpisodeEnd(int episode)
+		{
+			mLastPointAcc += Vector2(episode, mTrain.env.game.score);
+			mNumPointRes = mNumPointRes + 1;
+
+			if (mNumPointRes == 1)
+			{
+				mScoreCurvePoints.push_back(mLastPointAcc);
+				mMaxScoreCurvePoints.push_back(mLastPointAcc);
+			}
+			else
+			{
+				mScoreCurvePoints.back() = mLastPointAcc / float(mNumPointRes);
+				mMaxScoreCurvePoints.back() = Vector2(mScoreCurvePoints.back().x, Math::Max<float>(mTrain.env.game.score, mMaxScoreCurvePoints.back().y));
+			}
+
+			if (mNumPointRes == mMergeSize)
+			{
+				mLastPointAcc = Vector2::Zero();
+				mNumPointRes = 0;
+			}
+
+			int MergeCount = 400;
+			int num = (mNumPointRes == mMergeSize) ? mScoreCurvePoints.size() : mScoreCurvePoints.size() - 1;
+			if (num >= MergeCount)
+			{
+				TArray<Vector2> mergedCurve;
+				TArray<Vector2> mergedMaxCurve;
+				mergedCurve.resize(MergeCount / 2);
+				mergedMaxCurve.resize(MergeCount / 2);
+				for (int i = 0; i < MergeCount; i += 2)
 				{
-					int num = 0;
-					int dirs[4];
-					for (int i = 0; i < 4; ++i)
+					mergedCurve[i / 2] = 0.5 * (mScoreCurvePoints[i] + mScoreCurvePoints[i + 1]);
+					mergedMaxCurve[i / 2] = Vector2(mergedCurve[i / 2].x, Math::Max(mMaxScoreCurvePoints[i].y, mMaxScoreCurvePoints[i + 1].y));
+				}
+
+
+				mScoreCurvePoints = std::move(mergedCurve);
+				mMaxScoreCurvePoints = std::move(mergedMaxCurve);
+				mMergeSize *= 2;
+			}
+
+
+			mMaxScore = Math::Max(mMaxScore, mTrain.env.game.score);
+			mMaxStep = Math::Max(mMaxStep, mTrain.env.game.step);
+		}
+
+		void OnTrainInput(DQN::Action& action)
+		{
+			Game& game = mTrain.env.game;
+			mInputDir = action.playDir;
+
+			if (bPauseTrain)
+			{
+				CO_YEILD(WaitVariable(bPauseTrain, false));
+			}
+
+			uint8 inputDir = action.playDir;
+			bool bCanPlay = mTrain.env.playableDirMask & BIT(inputDir);
+
+			if (bCanPlay)
+			{
+				mNumMoves = game.getMoves(inputDir, mDebugMoves);
+				static bool bCall = false;
+				bCall = false;
+				playMoveAnim(TArrayView<Game::MoveInfo const>(mDebugMoves, mNumMoves), [&]()
+				{
+					CHECK(bCall == false);
+					bCall = true;
+					//CHECK(mStep == EStep::ProcPlay);
+					Coroutines::Resume(mGameHandle);
+				});
+				CO_YEILD(nullptr);
+			}
+
+		}
+
+		void OnTrainResult(DQN::Action const& action, DQN::StepResult const& stepResult)
+		{
+
+			uint8 inputDir = action.playDir;
+			bool bCanPlay = mTrain.env.playableDirMask & BIT(inputDir);
+
+			if (bCanPlay)
+			{
+				Sprite& sprite = mSprites[stepResult.indexSpawn];
+				mTweener.tweenValue< Easing::IOQuad >(sprite.scale, 0.0f, 1.0f, 0.1);
+
+				for (int index = 0; index < mNumMoves; ++index)
+				{
+					auto& move = mDebugMoves[index];
+					Sprite* sprite = &mSprites[move.toIndex];
+					if (move.mergeIndex != INDEX_NONE)
 					{
-						if (mTrain.env.playableDirMask & BIT(i))
-						{
-							dirs[num] = i;
-							++num;
-						}
+						mTweener.tweenValue< Easing::IOQuad >(sprite->scale, 0.0f, 1.0f, 0.1);
 					}
-					CHECK(num > 0);
-					inputDir = dirs[RandRange(0, num)];
 				}
-				else
-				{
-					int indices[4] = { 0, 1, 2 ,3 };
-					std::sort(indices, indices + 4, [&](int a, int b)
-					{
-						return actionValues[a] > actionValues[b];
-					});
+			}
 
-					for (int i = 0; i < 4; ++i)
-					{
-						if (mTrain.env.playableDirMask & BIT(indices[i]))
-						//if ( !(ignorePlayMask & BIT(indices[i])) )
-						{
-							inputDir = indices[i];
-							break;
-						}
-					}
-				}
+			if (bAutoSave && (mTrain.mStepCount % 100 == 0))
+			{
+				saveWeights();
+			}
 
-				if (bPauseTrain)
-				{
-					CO_YEILD(WaitVariable(bPauseTrain, false));
-				}
-
-				CHECK(inputDir < 4);
-
-				mInputDir = inputDir;
-				mStep = EStep::ProcPlay;
-
-
-				bool bCanPlay = mTrain.env.playableDirMask & BIT(inputDir);
-
-				if (bCanPlay)
-				{
-					ignorePlayMask = 0;
-
-					mNumMoves = game.getMoves(inputDir, mDebugMoves);
-					static bool bCall = false;
-					bCall = false;
-					playMoveAnim(TArrayView<Game::MoveInfo const>(mDebugMoves, mNumMoves), [&]()
-					{
-						CHECK(bCall == false);
-						bCall = true;
-						//CHECK(mStep == EStep::ProcPlay);
-						Coroutines::Resume(mGameHandle);
-					});
-					CO_YEILD(nullptr);
-				}
-				else
-				{
-					ignorePlayMask |= BIT(inputDir);
-				}
-
-
-				DQN::Action action;
-				action.playDir = inputDir;
-				DQN::StepResult stepResult;
-				mLoss = mTrain.stepBatch(action, state, stepResult);
-				++mFitCount;
-				if (mFitCount % 100 == 0)
-				{
-					mTrain.updateTargetParameter();
-				}
-
-				if (bCanPlay)
-				{
-					Sprite& sprite = mSprites[stepResult.indexSpawn];
-					mTweener.tweenValue< Easing::IOQuad >(sprite.scale, 0.0f, 1.0f, 0.1);
-
-					for (int index = 0; index < mNumMoves; ++index)
-					{
-						auto& move = mDebugMoves[index];
-						Sprite* sprite = &mSprites[move.toIndex];
-						if (move.mergeIndex != INDEX_NONE)
-						{
-							mTweener.tweenValue< Easing::IOQuad >(sprite->scale, 0.0f, 1.0f, 0.1);
-						}
-					}
-				}
-
-				if (stepResult.bDone)
-				{
-					CO_YEILD(WaitForSeconds(0.4));
-					break;
-				}
+			if (stepResult.bDone)
+			{
+				CO_YEILD(WaitForSeconds(0.4));
 			}
 		}
 
@@ -1457,12 +2287,8 @@ namespace TwentyFortyEight
 				mStep = EStep::ProcPlay;
 
 				mNumMoves = game.getMoves(inputDir, mDebugMoves);
-				static bool bCall = false;
-				bCall = false;
 				playMoveAnim(TArrayView<Game::MoveInfo const>(mDebugMoves, mNumMoves), [&]()
 				{
-					CHECK(bCall == false);
-					bCall = true;
 					//CHECK(mStep == EStep::ProcPlay);
 					Coroutines::Resume(mGameHandle);
 				});
@@ -1573,7 +2399,7 @@ namespace TwentyFortyEight
 			};
 
 			float constexpr gap = 0.04;
-			Color3ub const BlockColorMap[] =
+			static Color3ub constexpr BlockColorMap[] =
 			{
 				Color3ub(214, 205, 196),
 				Color3ub(238, 228, 218),
@@ -1694,25 +2520,84 @@ namespace TwentyFortyEight
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			g.beginRender();
 			g.pushXForm();
-			g.transformXForm(mWorldToScreen, true);
+			if (bTraining)
+			{
+				g.translateXForm(-200, 0);
+				g.transformXForm(mWorldToScreen, false);
 
+			}
+			else
+			{
+				g.transformXForm(mWorldToScreen, true);
+			}
 			renderGame(g, mTrain.env.game);
-
 			g.popXForm();
 
 			g.setTextColor(Color3ub(255, 255, 255));
 			RenderUtility::SetFont(g, FONT_S24);
-			g.drawTextF(Vector2(20, 20), "Score %d", game.score);
-			g.drawTextF(Vector2(20, 60), "Step %d", game.step);
+			g.drawTextF(Vector2(20, 20), "Score %d, Max = %d", game.score, mMaxScore);
+			g.drawTextF(Vector2(20, 60), "Step %d, Max = %d", game.step, mMaxStep);
 
 			RenderUtility::SetFont(g, FONT_S16);
-			g.drawTextF(Vector2(20, 100), "Episode %d", mEpisode);
+			g.drawTextF(Vector2(20, 100), "Episode %d", mTrain.mEpisode);
+
+			auto const& actionValues = mTrain.agent.mActionValues;
+
 			g.drawTextF(Vector2(20, 120), "%g %g %g %g", actionValues[0], actionValues[1], actionValues[2], actionValues[3]);
-			NNScalar mean = ( actionValues[0] + actionValues[1] + actionValues[2] + actionValues[3] ) / 4;
-			g.drawTextF(Vector2(20, 140), "%g %g %g %g", actionValues[0] - mean, actionValues[1] - mean, actionValues[2] - mean, actionValues[3] - mean);
-			g.drawTextF(Vector2(20, 160), "Dir = %d Loss = %g", mInputDir, mLoss);
+			NNScalar valueMin = Math::Min(actionValues[0], Math::Min(actionValues[1], Math::Min(actionValues[2], actionValues[3])));
+			g.drawTextF(Vector2(20, 140), "%g %g %g %g", actionValues[0] - valueMin, actionValues[1] - valueMin, actionValues[2] - valueMin, actionValues[3] - valueMin);
+			g.drawTextF(Vector2(20, 160), "Dir = %d Loss = %g", mInputDir, mTrain.mLoss);
+
+
+#if DQN_DISTRIBUTION
+
+
+			int ColorMap[] = { EColor::Red , EColor::Green, EColor::Blue, EColor::Cyan };
+
+			g.pushXForm();
+			g.translateXForm(20, 580);
+			g.scaleXForm(2.5, -1000);
+
+
+			for (int i = 0; i < DQN::ActionNum; ++i)
+			{
+				g.pushXForm();
+				g.translateXForm(i * (DQN::AtomCount + 2), 0);
+
+				RenderUtility::SetBrush(g, ColorMap[i]);
+				RenderUtility::SetPen(g, EColor::Black);
+				auto pActionDist = mTrain.agent.mActionDist + i * DQN::AtomCount;
+				for (int n = 0; n < DQN::AtomCount; ++n)
+				{
+					g.drawRect(Vector2(n, 0), Vector2(1, pActionDist[n]));
+				}
+				g.popXForm();
+			}
+
+
+			g.popXForm();
+
+
+#endif
+
+
+
 			g.endRender();
+
+
+			Diagram diagram;
+			diagram.min.y = 0;
+			diagram.max.y = 1.2 * mMaxScore;
+			diagram.min.x = 0;
+			diagram.max.x = mTrain.mEpisode + 1;
+			diagram.setup(commandList, Vector2(400, 100), Vector2(400, 400));
+			diagram.drawGird(commandList, Vector2(0, 0), Vector2(mTrain.mEpisode / 10.0f, mMaxScore / 10.0f));
+
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add >::GetRHI());
+			diagram.drawCurve(commandList, mScoreCurvePoints, LinearColor(1, 0, 0, 1));
+			diagram.drawCurve(commandList, mMaxScoreCurvePoints, LinearColor(1, 1, 0, 1));
 		}
+
 
 		struct Sprite
 		{

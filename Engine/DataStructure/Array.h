@@ -104,22 +104,21 @@ struct TDynamicArrayData
 		}
 		else
 		{
-			if (mStorage && FMemory::Expand(mStorage, allocSize) != nullptr)
-			{
-
-			}
-			else
+			if (mStorage == nullptr)
 			{
 				void* newAlloc = FMemory::Alloc(allocSize);
 				CHECK_ALLOC_PTR(newAlloc);
-				if (mStorage)
+				mStorage = newAlloc;
+			}
+			else if (FMemory::Expand(mStorage, allocSize) == nullptr)
+			{
+				void* newAlloc = FMemory::Alloc(allocSize);
+				CHECK_ALLOC_PTR(newAlloc);
+				if (oldSize)
 				{
-					if (oldSize)
-					{
-						FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)mStorage);
-					}
-					FMemory::Free(mStorage);
+					FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)mStorage);
 				}
+				FMemory::Free(mStorage);
 				mStorage = newAlloc;
 			}
 		}

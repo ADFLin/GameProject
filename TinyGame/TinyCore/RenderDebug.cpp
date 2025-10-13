@@ -69,20 +69,20 @@ namespace Render
 			case ETexture::Type2D:
 				{
 					RHITexture2D* texture = static_cast<RHITexture2D*>(handle->texture.get());
-					g.drawCustomFunc([texture, pos, size, &g](RHICommandList& commandList, RenderBatchedElement& element)
+					g.drawCustomFunc([texture, pos, size](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 					{
-						RHISetBlendState(g.getCommandList(), StaticTranslucentBlendState::GetRHI());
-						DrawUtility::DrawTexture(commandList, g.getBaseTransform(), *texture, pos, size);
+						RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+						DrawUtility::DrawTexture(commandList, baseTransform, *texture, pos, size);
 					});
 				}
 				break;
 			case ETexture::TypeCube:
 				{
 					RHITextureCube* texture = static_cast<RHITextureCube*>(handle->texture.get());
-					g.drawCustomFunc([texture, pos, size, &g](RHICommandList& commandList, RenderBatchedElement& element)
+					g.drawCustomFunc([texture, pos, size](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 					{
-						RHISetBlendState(g.getCommandList(), StaticTranslucentBlendState::GetRHI());
-						DrawUtility::DrawCubeTexture(commandList, g.getBaseTransform(), *texture, pos, size);
+						RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+						DrawUtility::DrawCubeTexture(commandList, baseTransform, *texture, pos, size);
 					});
 				}
 				break;

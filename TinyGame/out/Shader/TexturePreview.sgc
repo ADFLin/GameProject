@@ -111,7 +111,7 @@ PS_ENTRY_END(MainPS)
 	MaskBits.b = ColorMask.b > 0.0 ? 1 : 0;
 	MaskBits.a = ColorMask.a > 0.0 ? 1 : 0;
 #else
-	uint4 MaskBits = (ColorMask > float4(0.0));
+	uint4 MaskBits = (ColorMask > float4(0,0,0,0));
 #endif
 	uint coutMask = MaskBits.r + MaskBits.g + MaskBits.b + MaskBits.a;
 	if (coutMask == 1)

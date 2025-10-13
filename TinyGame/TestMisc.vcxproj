@@ -465,6 +465,7 @@
     <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RVOTestStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\SobelTrainStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StackStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TMachineStage.cpp" />

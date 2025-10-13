@@ -2789,7 +2789,7 @@ namespace Render
 	{
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-		bufferDesc.ByteWidth = ( 2048 + 15 ) / 16 * 16;
+		bufferDesc.ByteWidth = ( 2048 + 255 ) / 256 * 256;
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bufferDesc.CPUAccessFlags = 0;

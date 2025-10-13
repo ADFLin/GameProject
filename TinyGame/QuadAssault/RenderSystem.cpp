@@ -136,10 +136,10 @@ public:
 		if (mDrawer)
 		{
 			g.drawCustomFunc(
-				[pos, this, &g](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
+				[pos, this, &g](Render::RHICommandList& commandList, Matrix4 const& baseTransform, Render::RenderBatchedElement& element)
 				{
 					RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
-					mDrawer->draw(commandList, Matrix4::Translate(pos.x, pos.y, 0) * g.getBaseTransform(), mColor, mTextVertices);
+					mDrawer->draw(commandList, Matrix4::Translate(pos.x, pos.y, 0) * baseTransform, mColor, mTextVertices);
 				}
 			);
 		}

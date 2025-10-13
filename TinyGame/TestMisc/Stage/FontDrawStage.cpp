@@ -168,7 +168,7 @@ public:
 
 
 			g.beginRender();
-			g.drawCustomFunc([](RHICommandList& commandList, RenderBatchedElement& element)
+			g.drawCustomFunc([](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 			{
 				Vertex_XY_C vetices[] =
 				{

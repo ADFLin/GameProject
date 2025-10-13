@@ -17,6 +17,7 @@ namespace Coroutines
 	static void ExecuteEntry(YeildType& yeild)
 	{
 		ExecutionContext& context = yeild.get();
+
 		context.mYeild = &yeild;
 		context.mEntryFunc();
 		context.mYeild = nullptr;
@@ -25,7 +26,8 @@ namespace Coroutines
 	ExecutionContext::ExecutionContext(std::function< void() >&& entryFunc)
 		:mEntryFunc(std::move(entryFunc))
 	{
-		mExecution.construct(ExecuteEntry);
+		boost::coroutines2::fixedsize_stack custom_stack(2 * 1024 * 1024);
+		mExecution.construct(custom_stack, ExecuteEntry);
 	}
 
 	ExecutionContext::~ExecutionContext()
@@ -67,6 +69,30 @@ namespace Coroutines
 		return getExecutionOrderIndex(handle.getPointer());
 	}
 
+
+	struct DependencyScope
+	{
+		DependencyScope(ThreadContext& context, ThreadContext::DependencyFlow::Mode mode)
+			:context(context)
+		{
+			CHECK(context.mExecutingContext->mDependenceIndex == INDEX_NONE);
+			flow = context.fetchDependencyFlow();
+			CHECK(flow->executions.empty());
+			flow->mode = mode;
+			context.mExecutingContext->mDependenceIndex = flow - context.mDependencyFlows.data();
+		}
+
+
+		~DependencyScope()
+		{
+			context.removeDependencyFlow(context.mExecutingContext->mDependenceIndex);
+			context.mExecutingContext->mDependenceIndex = INDEX_NONE;
+		}
+		ThreadContext& context;
+		ThreadContext::DependencyFlow* flow;
+
+	};
+
 	void ThreadContext::syncExecutions(std::initializer_list<ExecutionHandle> executions)
 	{
 		TArray<ExecutionContext*> activeExecutions;
@@ -92,17 +118,9 @@ namespace Coroutines
 		}
 #endif
 
-		CHECK(mExecutingContext->mDependenceIndex == INDEX_NONE);
-		DependencyFlow* flow = fetchDependencyFlow();
-		CHECK(flow->executions.empty());
-		flow->mode = DependencyFlow::eSync;
-		flow->executions = std::move(activeExecutions);
-
-		mExecutingContext->mDependenceIndex = flow - mDependencyFlows.data();
-		CHECK(mExecutingContext->mInstruction == nullptr);
+		DependencyScope scopedDependency{ *this, DependencyFlow::eSync };
+		scopedDependency.flow->executions = std::move(activeExecutions);
 		mExecutingContext->doYeild();
-		removeDependencyFlow(mExecutingContext->mDependenceIndex);
-		mExecutingContext->mDependenceIndex = INDEX_NONE;
 		return;
 	}
 
@@ -133,15 +151,19 @@ namespace Coroutines
 					int index = getExecutionOrderIndex(otherHandle);
 					if (index != INDEX_NONE)
 					{
+						auto exec = otherHandle.getPointer();
+						if (exec->mAbandonFunc)
+						{
+							exec->mAbandonFunc();
+						}
 						destroyExecution(index);
 					}
 				}
 				return index;
 			}
 		}
-		DependencyFlow* flow = fetchDependencyFlow();
-		CHECK(flow->executions.empty());
-		flow->mode = DependencyFlow::eRace;
+
+		DependencyScope scopedDependency{ *this, DependencyFlow::eRace };
 #if CO_USE_DEPENDENT_REFCOUNT
 		for (int index = 0; index < executions.size(); ++index)
 		{
@@ -152,16 +174,10 @@ namespace Coroutines
 			}
 		}
 #endif
-		flow->append(executions);
-
-		CHECK(mExecutingContext->mDependenceIndex == INDEX_NONE);
-		mExecutingContext->mDependenceIndex = flow - mDependencyFlows.data();
-		CHECK(mExecutingContext->mInstruction == nullptr);
+		scopedDependency.flow->append(executions);
 		mExecutingContext->doYeild();
 
-		int result = FindIndex(executions, flow->executionLastCompleted);
-		removeDependencyFlow(mExecutingContext->mDependenceIndex);
-		mExecutingContext->mDependenceIndex = INDEX_NONE;
+		int result = FindIndex(executions, scopedDependency.flow->executionLastCompleted);
 		return result;
 	}
 
@@ -175,9 +191,9 @@ namespace Coroutines
 				return index;
 		}
 
-		DependencyFlow* flow = fetchDependencyFlow();
-		CHECK(flow->executions.empty());
-		flow->mode = DependencyFlow::eRush;
+
+		DependencyScope scopedDependency{ *this, DependencyFlow::eRush };
+
 #if CO_USE_DEPENDENT_REFCOUNT
 		for (int index = 0; index < executions.size(); ++index)
 		{
@@ -188,16 +204,9 @@ namespace Coroutines
 			}
 		}
 #endif
-		flow->append(executions);
-
-		CHECK(mExecutingContext->mDependenceIndex == INDEX_NONE);
-		mExecutingContext->mDependenceIndex = flow - mDependencyFlows.data();
-		CHECK(mExecutingContext->mInstruction == nullptr);
+		scopedDependency.flow->append(executions);
 		mExecutingContext->doYeild();
-
-		int result = FindIndex(executions, flow->executionLastCompleted);
-		removeDependencyFlow(mExecutingContext->mDependenceIndex);
-		mExecutingContext->mDependenceIndex = INDEX_NONE;
+		int result = FindIndex(executions, scopedDependency.flow->executionLastCompleted);
 		return result;
 	}
 
@@ -249,64 +258,78 @@ namespace Coroutines
 	bool ThreadContext::postExecuteContext(ExecutionContext& context)
 	{
 		bool bKeep = bool(*context.mExecution) && context.mYeild;
-		if (bKeep == false)
+		if (bKeep)
 		{
-			auto parent = context.mParent;
-			destroyExecution(mExecutions.findIndex(&context));
+			return true;
+		}
 
-			if (parent && parent->mDependenceIndex != INDEX_NONE)
-			{			
-				if (parent->mDependenceIndex != SIMPLE_SYNC_INDEX)
+		auto parent = context.mParent;
+		destroyExecution(mExecutions.findIndex(&context));
+
+		if (parent == nullptr)
+			return false;
+
+		//ensure parent is exist
+		int indexParent = getExecutionOrderIndex(parent);
+		if (indexParent == INDEX_NONE)
+		{
+			return false;
+		}
+
+		if (parent->mDependenceIndex != INDEX_NONE)
+		{			
+			if (parent->mDependenceIndex != SIMPLE_SYNC_INDEX)
+			{
+				auto& flow = mDependencyFlows[parent->mDependenceIndex];
+				flow.executionLastCompleted = &context;
+				flow.executions.removeSwap(&context);
+
+				if (flow.mode == DependencyFlow::eSync)
 				{
-					auto& flow = mDependencyFlows[parent->mDependenceIndex];
-					flow.executionLastCompleted = &context;
-					flow.executions.removeSwap(&context);
-
-					if (flow.mode == DependencyFlow::eSync)
-					{
-						if (!flow.executions.empty())
-						{
-							for (auto exec : flow.executions)
-							{
-								int index = getExecutionOrderIndex(exec);
-								if (index != INDEX_NONE)
-								{
-									return false;
-								}
-							}
-						}
-					}
-					else if (flow.mode == DependencyFlow::eRace)
+					if (!flow.executions.empty())
 					{
 						for (auto exec : flow.executions)
 						{
 							int index = getExecutionOrderIndex(exec);
 							if (index != INDEX_NONE)
 							{
-#if CO_USE_DEPENDENT_REFCOUNT
-								exec->mDependentRefCount -= 1;
-								if (exec->mDependentRefCount <= 0)
-#endif
-								{
-
-									if (exec->mAbandonFunc)
-									{
-										exec->mAbandonFunc();
-									}
-									destroyExecution(index);
-								}
+								return false;
 							}
 						}
 					}
 				}
+				else if (flow.mode == DependencyFlow::eRace)
+				{
+					for (auto exec : flow.executions)
+					{
+						int index = getExecutionOrderIndex(exec);
+						if (index != INDEX_NONE)
+						{
+#if CO_USE_DEPENDENT_REFCOUNT
+							exec->mDependentRefCount -= 1;
+							if (exec->mDependentRefCount <= 0)
+#endif
+							{
 
-				CHECK(parent->mInstruction == nullptr);
-				parent->setYeildReturn();
-				executeContextInternal(*parent);
+								if (exec->mAbandonFunc)
+								{
+									exec->mAbandonFunc();
+								}
+								destroyExecution(index);
+							}
+						}
+					}
+				}
 			}
-		}
 
-		return bKeep;
+			CHECK(parent->mInstruction == nullptr);
+			parent->setYeildReturn();
+			executeContextInternal(*parent);
+
+		}
+		
+
+		return false;
 	}
 
 	void ThreadContext::cleanup()

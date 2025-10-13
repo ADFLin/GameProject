@@ -191,11 +191,9 @@ DifferentialEvaluator::Index DifferentialEvaluator::emitFuncSymbol(EFuncSymbol s
 {
 	auto entry = GetFuncSymbolEntry(symbol);
 	int indexFunc = mOutputData->addOpCode(Unit{ entry },
-		[&](int indexNode)
+		[&](Node& node)
 		{
 			int indexNodeLeft = outputIfNeed(indexArg);
-
-			Node& node = mOutputData->nodes[indexNode];
 			node.children[CN_LEFT] = indexNodeLeft;
 			node.children[CN_RIGHT] = 0;
 		}
@@ -377,12 +375,10 @@ DifferentialEvaluator::Index DifferentialEvaluator::emitBop(TokenType op, Index 
 	code.isReverse = false;
 
 	int indexNode = mOutputData->addOpCode(code,
-		[&](int indexNode)
+		[&](Node& node)
 		{
 			int indexNodeLeft = outputIfNeed(indexLeft);
 			int indexNodeRight = outputIfNeed(indexRight);
-
-			Node& node = mOutputData->nodes[indexNode];
 			node.children[CN_LEFT] = indexNodeLeft;
 			node.children[CN_RIGHT] = indexNodeRight;
 		}
@@ -483,11 +479,9 @@ DifferentialEvaluator::Index DifferentialEvaluator::emitUop(TokenType op, Index 
 	code.type = op;
 	code.isReverse = false;
 	int indexNode = mOutputData->addOpCode(code,
-		[&](int indexNode)
+		[&](Node& node)
 		{
 			int indexNodeLeft = outputIfNeed(index);
-
-			Node& node = mOutputData->nodes[indexNode];
 			node.children[CN_LEFT] = indexNodeLeft;
 			node.children[CN_RIGHT] = 0;
 		}

@@ -258,7 +258,7 @@ namespace Render
 		using RenderState = GraphicsDefinition::RenderState;
 
 		virtual ~ICustomElementRenderer() = default;
-		virtual void render(RHICommandList& commandList, RenderBatchedElement& element, RenderState const& state) = 0;
+		virtual void render(RHICommandList& commandList, Math::Matrix4 const& baseTransform, RenderBatchedElement& element, RenderState const& state) = 0;
 	};
 
 	template< class TPayload >

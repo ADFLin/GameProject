@@ -17,17 +17,17 @@ namespace AI
 		}
 	}
 
-	void TrainAgent::init(FCNNLayout const& layout)
+	void TrainAgent::init(NNFullConLayout const& layout)
 	{
 		FNN.init(layout);
 		GenotypePtr pGT = std::make_shared<Genotype>();
-		pGT->data.resize(layout.getParameterNum());
+		pGT->data.resize(layout.getParameterLength());
 		setGenotype(pGT);
 	}
 
 	void TrainAgent::setGenotype(GenotypePtr inGenotype)
 	{
-		assert(FNN.getLayout().getParameterNum() == inGenotype->data.size());
+		assert(FNN.getLayout().getParameterLength() == inGenotype->data.size());
 		genotype = inGenotype;
 		FNN.setParamsters(inGenotype->data);
 	}
@@ -42,7 +42,7 @@ namespace AI
 	{
 		setting = &inSetting;
 
-		FCNNLayout& netLayout = *inSetting.netLayout;
+		NNFullConLayout& netLayout = *inSetting.netLayout;
 		assert(setting->numAgents > 0);
 		generation = 0;
 		for( int i = 0; i < setting->numAgents; ++i )
@@ -76,7 +76,7 @@ namespace AI
 
 	void TrainData::usePoolData(GenePool& pool)
 	{
-		FCNNLayout const& netLayout = *setting->netLayout;
+		NNFullConLayout const& netLayout = *setting->netLayout;
 
 		assert( setting->numAgents == pool.getDataSet().size() );
 		if( mAgents.size() != setting->numAgents )
@@ -172,7 +172,7 @@ namespace AI
 
 	void TrainData::inputData(IStreamSerializer::ReadOp& op)
 	{
-		FCNNLayout const& netLayout = *setting->netLayout;
+		NNFullConLayout const& netLayout = *setting->netLayout;
 		int numAgentData;
 		op & numAgentData;
 
@@ -328,7 +328,7 @@ namespace AI
 		setting = inSetting;
 		setting.dataSetting.netLayout = &mNNLayout;
 		mGenePool.maxPoolNum = setting.masterPoolNum;
-		mNNLayout.init(topology, numTopology);
+		mNNLayout.init(TArrayView<uint32 const>(topology, numTopology));
 		mWorkRunPool.init(setting.numWorker);
 
 		for (int i = 0; i < setting.numWorker; ++i)
@@ -371,7 +371,7 @@ namespace AI
 
 		TArray<uint32> topology;
 		op & topology;
-		mNNLayout.init(&topology[0], topology.size());
+		mNNLayout.init( TArrayView<uint32 const>(&topology[0], topology.size()) );
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -455,7 +455,7 @@ namespace AI
 		}
 	}
 
-	void TrainManager::OutputData(FCNNLayout const& layout, GenePool const& pool, IStreamSerializer& serializer)
+	void TrainManager::OutputData(NNFullConLayout const& layout, GenePool const& pool, IStreamSerializer& serializer)
 	{
 		TArray<uint32> topology;
 		layout.getTopology(topology);
@@ -476,11 +476,11 @@ namespace AI
 		}
 	}
 
-	void TrainManager::IntputData(FCNNLayout& layout, GenePool& pool, IStreamSerializer& serializer)
+	void TrainManager::IntputData(NNFullConLayout& layout, GenePool& pool, IStreamSerializer& serializer)
 	{
 		TArray<uint32> topology;
 		serializer >> topology;
-		layout.init(&topology[0], topology.size());
+		layout.init(TArrayView<uint32 const>(&topology[0], topology.size()));
 
 		int numPoolData;
 		serializer >> numPoolData;

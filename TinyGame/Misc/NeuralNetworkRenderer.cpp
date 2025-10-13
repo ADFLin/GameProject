@@ -19,7 +19,7 @@ int NeuralNetworkRenderer::getValueColor(NNScalar value)
 
 void NeuralNetworkRenderer::draw(IGraphics2D& g)
 {
-	FCNNLayout const& NNLayout = FNN.getLayout();
+	NNFullConLayout const& NNLayout = FNN.getLayout();
 	for (int i = 0; i < NNLayout.getInputNum(); ++i)
 	{
 		Vector2 pos = getInputNodePos(i);
@@ -32,7 +32,7 @@ void NeuralNetworkRenderer::draw(IGraphics2D& g)
 	int idxPrevLayerSignal = 0;
 	for (int i = 0; i <= NNLayout.getHiddenLayerNum(); ++i)
 	{
-		NeuralFullConLayer const& layer = NNLayout.getLayer(i);
+		NNLinearLayer const& layer = NNLayout.getLayer(i);
 		int numNodeWeight = NNLayout.getLayerInputNum(i);
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{

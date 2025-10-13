@@ -344,16 +344,16 @@ namespace AR
 		 0.1524 ,  0.1051 ,  0.0628 ,  0.0849 ,  0.1309 ,  0.1084 ,  0.05   , -0.0264 ,  0.0033 ,  0.1497 ,  0.088  , -0.0125 , -0.0315 , -0.1139 , -0.0065 , -0.033  ,
 		-0.0282 , -0.1585 , -0.2113 , -0.182  ,  0.0426 , -0.1024 , -0.1544 , -0.1329 ,  0.1674 , -0.0064 ,  0.0155 , -0.0542 ,  0.1516 , -0.0611 , -0.2697 , -0.301  ,  0.6181,
 
--0.1885, -0.0965, -0.0557, -0.047, -0.6042, -0.2396, -0.1815, -0.0439, -0.3279, -0.2747, -0.1765, -0.1197, -0.1054, -0.2166, -0.1971, -0.074,
--0.0051, 0.0581, 0.0868, 0.1423, -0.0831, -0.0566, 0.0497, 0.1082, -0.0712, -0.1179, -0.0912, -0.0371, -0.0745, -0.1039, -0.1642, -0.1978,
--0.0645, 0.057, 0.0334, 0.1274, -0.2449, -0.316, -0.0326, 0.1114, 0.0174, -0.1335, -0.1497, -0.0539, 0.0623, 0.0253, 0.0339, -0.046,
--0.058, -0.0493, 0.0804, 0.0978, -0.0141, -0.1097, 0.0223, 0.0377, 0.0463, -0.0392, -0.0896, 0.0486, -0.0189, -0.0307, -0.0235, -0.0966,
-0.0232, -0.0293, -0.0106, 0.0565, 0.2028, 0.0118, -0.0373, -0.0226, 0.1284, 0.0503, 0.0184, -0.2067, 0.1802, 0.1009, 0.1199, 0.0152,
--0.068, -0.0228, 0.0452, 0.0825, -0.1154, -0.0755, -0., 0.0658, 0.0724, -0.029, -0.1514, -0.0661, 0.1327, 0.0618, 0.0022, -0.1261,
-0.0657, 0.0367, 0.0618, -0.0018, 0.1465, 0.0936, 0.0338, -0.0228, -0.0295, 0.0473, 0.0563, 0.0554, 0.0183, -0.0729, -0.2233, -0.2739,
--0.1484, -0.184, -0.0295, 0.0227, -0.1752, -0.2507, -0.2127, -0.2664, -0.2136, -0.096, -0.1914, -0.2766, -0.0186, -0.0265, -0.0376, -0.1263,
--0.4, -0.3295, -0.1216, -0.2115, 0.0261, -0.0756, -0.0222, -0.1928, 0.0976, 0.0908, 0.0895, 0.01, -0.1006, 0.0715, 0.1235, 0.0651,
-0.005, -0.0264, -0.0217, -0.0118, -0.1775, -0.0455, -0.0286, -0.0836, -0.4369, -0.1238, -0.0813, -0.0584, -0.0247, 0.0142, -0.0159, -0.0818, -0.8506,
+		-0.1885 , -0.0965 , -0.0557 , -0.047  , -0.6042 , -0.2396 , -0.1815 , -0.0439 , -0.3279 , -0.2747 , -0.1765 , -0.1197 , -0.1054 , -0.2166, -0.1971 , -0.074,
+		-0.0051 ,  0.0581 ,  0.0868 ,  0.1423 , -0.0831 , -0.0566 ,  0.0497 ,  0.1082 , -0.0712 , -0.1179 , -0.0912 , -0.0371 , -0.0745 , -0.1039, -0.1642 , -0.1978,
+		-0.0645 ,  0.057  ,  0.0334 ,  0.1274 , -0.2449 , -0.316  , -0.0326 ,  0.1114 ,  0.0174 , -0.1335 , -0.1497 , -0.0539 ,  0.0623 ,  0.0253,  0.0339 , -0.046,
+		-0.058  , -0.0493 ,  0.0804 ,  0.0978 , -0.0141 , -0.1097 ,  0.0223 ,  0.0377 ,  0.0463 , -0.0392 , -0.0896 ,  0.0486 , -0.0189 , -0.0307, -0.0235 , -0.0966,
+		 0.0232 , -0.0293 , -0.0106 ,  0.0565 ,  0.2028 ,  0.0118 , -0.0373 , -0.0226 ,  0.1284 ,  0.0503 ,  0.0184 , -0.2067 ,  0.1802 ,  0.1009,  0.1199 ,  0.0152,
+		-0.068  , -0.0228 ,  0.0452 ,  0.0825 , -0.1154 , -0.0755 , -0.     ,  0.0658 ,  0.0724 , -0.029  , -0.1514 , -0.0661 ,  0.1327 ,  0.0618,  0.0022 , -0.1261,
+		 0.0657 ,  0.0367 ,  0.0618 , -0.0018 ,  0.1465 ,  0.0936 ,  0.0338 , -0.0228 , -0.0295 ,  0.0473 ,  0.0563 ,  0.0554 ,  0.0183 , -0.0729, -0.2233 , -0.2739,
+		-0.1484 , -0.184  , -0.0295 ,  0.0227 , -0.1752 , -0.2507 , -0.2127 , -0.2664 , -0.2136 , -0.096  , -0.1914 , -0.2766 , -0.0186 , -0.0265, -0.0376 , -0.1263,
+		-0.4    , -0.3295 , -0.1216 , -0.2115 ,  0.0261 , -0.0756 , -0.0222 , -0.1928 ,  0.0976 ,  0.0908 ,  0.0895 ,  0.01   , -0.1006 ,  0.0715,  0.1235 ,  0.0651,
+		 0.005  , -0.0264 , -0.0217 , -0.0118 , -0.1775 , -0.0455 , -0.0286 , -0.0836 , -0.4369 , -0.1238 , -0.0813 , -0.0584 , -0.0247 ,  0.0142, -0.0159 , -0.0818, -0.8506,
 	};
 
 	NNScalar TestInput[] =
@@ -395,17 +395,19 @@ namespace AR
 	{
 		typedef StageBase BaseClass;
 	public:
-		TestStage() {}
+		TestStage() 
+		{
+		}
 
 
 		TArray< NNScalar > mParamters;
 		template< typename TKernel >
-		void addParamT(NeuralConv2DLayer& inoutlayer, int numSliceInput, TArrayView<NNScalar> parameters)
+		void addParamT(NNConv2DLayer& inoutlayer, TArrayView<NNScalar> parameters)
 		{
 			int constexpr weightLen = TKernel::WeightSize * TKernel::WeightSize;
-			int numParameters = (numSliceInput * weightLen + 1) * inoutlayer.numNode;
+			int numParameters = (inoutlayer.inputSize.z * weightLen + 1) * inoutlayer.numNode;
 			inoutlayer.weightOffset = mParamters.size();
-			inoutlayer.biasOffset = mParamters.size() + numSliceInput * weightLen * inoutlayer.numNode;
+			inoutlayer.biasOffset = mParamters.size() + inoutlayer.inputSize.z * weightLen * inoutlayer.numNode;
 			mParamters.resize(mParamters.size() + numParameters);
 
 			NNScalar* pWeight = mParamters.data() + inoutlayer.weightOffset;
@@ -413,7 +415,7 @@ namespace AR
 			NNScalar const* pCopyParams = parameters.data();
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
-				for (int n = 0; n < numSliceInput; ++n)
+				for (int n = 0; n < inoutlayer.inputSize.z; ++n)
 				{
 					NNScalar temp[TKernel::WeightSize * TKernel::ConvSize];
 					FNNMath::MatrixMulMatrix(TKernel::WeightSize, TKernel::ConvSize, TKernel::G, TKernel::ConvSize, pCopyParams, temp);
@@ -429,31 +431,31 @@ namespace AR
 			}
 		}
 
-		void addParam(NeuralConv2DLayer& inoutlayer, int numSliceInput, TArrayView<NNScalar> parameters)
+		void addParam(NNConv2DLayer& inoutlayer, TArrayView<NNScalar> parameters)
 		{
-			if (inoutlayer.convSize == 3 && (inoutlayer.dataSize[0] % 2) == 0)
+			if (inoutlayer.convSize == 3 && (inoutlayer.dataSize[0] % 2) == 0 && false)
 			{
 				if ((inoutlayer.dataSize[0] % 4) == 0)
 				{
-					addParamT<WinogradKernel43>(inoutlayer, numSliceInput, parameters);
-					inoutlayer.fastMethod = NeuralConv2DLayer::eF43;
+					addParamT<WinogradKernel43>(inoutlayer, parameters);
+					inoutlayer.fastMethod = NNConv2DLayer::eF43;
 				}
 				else
 				{
-					addParamT<WinogradKernel23>(inoutlayer, numSliceInput, parameters);
-					inoutlayer.fastMethod = NeuralConv2DLayer::eF23;
+					addParamT<WinogradKernel23>(inoutlayer, parameters);
+					inoutlayer.fastMethod = NNConv2DLayer::eF23;
 				}
 				return;
 			}
 
 			int const convLen = inoutlayer.convSize * inoutlayer.convSize;
-			int const nodeWeightLen = numSliceInput * convLen;
+			int const nodeWeightLen = inoutlayer.inputSize.z * convLen;
 			int numParameters = (nodeWeightLen + 1) * inoutlayer.numNode;
 			CHECK(parameters.size() == numParameters);
 
 			inoutlayer.weightOffset = mParamters.size();
 			inoutlayer.biasOffset = mParamters.size() + nodeWeightLen * inoutlayer.numNode;
-			inoutlayer.fastMethod = NeuralConv2DLayer::eNone;
+			inoutlayer.fastMethod = NNConv2DLayer::eNone;
 
 			mParamters.resize(mParamters.size() + numParameters);
 			
@@ -472,13 +474,13 @@ namespace AR
 			}
 		}
 
-		void addParam(NeuralFullConLayer& inoutlayer, int numInput, TArrayView<NNScalar> parameters)
+		void addParam(NNLinearLayer& inoutlayer, TArrayView<NNScalar> parameters)
 		{
-			int numParameters = (numInput + 1) * inoutlayer.numNode;
+			int numParameters = (inoutlayer.inputLength + 1) * inoutlayer.numNode;
 			CHECK(parameters.size() == numParameters);
 
 			inoutlayer.weightOffset = mParamters.size();
-			inoutlayer.biasOffset = mParamters.size() + numInput * inoutlayer.numNode;
+			inoutlayer.biasOffset = mParamters.size() + inoutlayer.inputLength * inoutlayer.numNode;
 
 			mParamters.resize(mParamters.size() + numParameters);
 
@@ -488,72 +490,50 @@ namespace AR
 
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
-				FMemory::Copy(pWeight, pCopyParams, numInput * sizeof(NNScalar));
-				pWeight += numInput;
-				pCopyParams += numInput;
+				FMemory::Copy(pWeight, pCopyParams, inoutlayer.inputLength * sizeof(NNScalar));
+				pWeight += inoutlayer.inputLength;
+				pCopyParams += inoutlayer.inputLength;
 
 				*pBias = *pCopyParams;
 				pBias += 1;
 				pCopyParams += 1;
 			}
 		}
-		NeuralConv2DLayer layer1;
-		NeuralConv2DLayer layer2;
-		NeuralMaxPooling2DLayer layer3;
-		NeuralConv2DLayer layer4;
-		NeuralConv2DLayer layer5;
-		NeuralMaxPooling2DLayer layer6;
-		NeuralFullConLayer layer7;
-
+		NNConv2DLayer layer1;
+		NNConv2DLayer layer2;
+		NNMaxPooling2DLayer layer3;
+		NNConv2DLayer layer4;
+		NNConv2DLayer layer5;
+		NNMaxPooling2DLayer layer6;
+		NNLinearLayer layer7;
+		NNTransformLayer layerReLU;
 		static int constexpr ImageSize[] = { 28 , 28 };
-
 
 		virtual bool onInit()
 		{
 			if (!BaseClass::onInit())
 				return false;
 
-			layer1.numNode = 8;
-			layer1.convSize = 3;
-			layer1.dataSize[0] = ImageSize[0] - layer1.convSize + 1;
-			layer1.dataSize[1] = ImageSize[1] - layer1.convSize + 1;
-			layer1.setFuncionT< NNFunc::ReLU >();
-			addParam(layer1, 1, MakeView(Parameters1));
+			layerReLU.setFuncionT< NNFunc::ReLU >();
 
-			layer2.numNode = 8;
-			layer2.convSize = 3;
-			layer2.dataSize[0] = layer1.dataSize[0] - layer2.convSize + 1;
-			layer2.dataSize[1] = layer1.dataSize[1] - layer2.convSize + 1;
-			layer2.setFuncionT< NNFunc::ReLU >();
-			addParam(layer2, layer1.numNode, MakeView(Parameters2));
+			layer1.init(IntVector3(ImageSize[0], ImageSize[1], 1), 3, 8);
+			addParam(layer1, MakeView(Parameters1));
 
-			layer3.numNode = layer2.numNode;
-			layer3.poolSize = 2;
-			layer3.dataSize[0] = layer2.dataSize[0] / layer3.poolSize;
-			layer3.dataSize[1] = layer2.dataSize[1] / layer3.poolSize;
+			layer2.init(IntVector3(layer1.dataSize[0], layer1.dataSize[1], layer1.numNode), 3, 8);
+			addParam(layer2, MakeView(Parameters2));
 
-			layer4.numNode = 10;
-			layer4.convSize = 3;
-			layer4.dataSize[0] = layer3.dataSize[0] - layer4.convSize + 1;
-			layer4.dataSize[1] = layer3.dataSize[1] - layer4.convSize + 1;
-			layer4.setFuncionT< NNFunc::ReLU >();
-			addParam(layer4, layer3.numNode, MakeView(Parameters4));
+			layer3.init(layer2.getOutputSize(), 2);
 
-			layer5.numNode = 10;
-			layer5.convSize = 3;
-			layer5.dataSize[0] = layer4.dataSize[0] - layer5.convSize + 1;
-			layer5.dataSize[1] = layer4.dataSize[1] - layer5.convSize + 1;
-			layer5.setFuncionT< NNFunc::ReLU >();
-			addParam(layer5, layer4.numNode, MakeView(Parameters5));
+			layer4.init(IntVector3(layer3.dataSize[0], layer3.dataSize[1], layer3.numNode), 3, 10);
+			addParam(layer4, MakeView(Parameters4));
 
-			layer6.numNode = layer5.numNode;
-			layer6.poolSize = 2;
-			layer6.dataSize[0] = layer5.dataSize[0] / layer6.poolSize;
-			layer6.dataSize[1] = layer5.dataSize[1] / layer6.poolSize;
+			layer5.init(IntVector3(layer4.dataSize[0], layer4.dataSize[1], layer4.numNode), 3, 10);
+			addParam(layer5, MakeView(Parameters5));
 
-			layer7.numNode = 26;
-			layer7.setFuncionT< NNFunc::Linear >();
-			addParam(layer7, layer6.getOutputLength(), MakeView(Parameters7) );
+			layer6.init(layer5.getOutputSize(), 2);
+
+			layer7.init(layer6.getOutputLength(), 26);
+			addParam(layer7, MakeView(Parameters7) );
 
 			mResult.resize(layer7.getOutputLength());
 			mOutputsData.resize(
@@ -656,15 +636,21 @@ namespace AR
 			{
 				TIME_SCOPE("ForwardFeedback");
 
-				FNNAlgo::ForwardFeedback(layer1, mParamters.data(), 1, ImageSize, (NNScalar*)mInputData.data(), mOutputs[0]);
-				FNNAlgo::ForwardFeedback(layer2, mParamters.data(), layer1.numNode, layer1.dataSize, mOutputs[0], mOutputs[1]);
-				FNNAlgo::ForwardFeedback(layer3, layer2.dataSize, mOutputs[1], mOutputs[2]);
-				FNNAlgo::ForwardFeedback(layer4, mParamters.data(), layer3.numNode, layer3.dataSize, mOutputs[2], mOutputs[3]);
-				FNNAlgo::ForwardFeedback(layer5, mParamters.data(), layer4.numNode, layer4.dataSize, mOutputs[3], mOutputs[4]);
-				FNNAlgo::ForwardFeedback(layer6, layer5.dataSize, mOutputs[4], mOutputs[5]);
-				FNNAlgo::ForwardFeedback(layer7, mParamters.data(), layer6.getOutputLength(), mOutputs[5], mOutputs[6], false);
+				NNScalar* input = (NNScalar*)mInputData.data();
 
-				int index = FNNMath::SoftMax(layer7.getOutputLength(), mOutputs[6], mResult.data());
+				input = FNNAlgo::Forward(layer1, mParamters.data(), input, mOutputs[0]);
+				FNNAlgo::Forward(layerReLU, layer1.getOutputLength(), const_cast<NNScalar*>(input));
+				input = FNNAlgo::Forward(layer2, mParamters.data(), input, mOutputs[1]);
+				FNNAlgo::Forward(layerReLU, layer2.getOutputLength(), const_cast<NNScalar*>(input));
+				input = FNNAlgo::Forward(layer3, input, mOutputs[2]);
+				input = FNNAlgo::Forward(layer4, mParamters.data(), input, mOutputs[3]);
+				FNNAlgo::Forward(layerReLU, layer4.getOutputLength(), const_cast<NNScalar*>(input));
+				input = FNNAlgo::Forward(layer5, mParamters.data(), input, mOutputs[4]);
+				FNNAlgo::Forward(layerReLU, layer5.getOutputLength(), const_cast<NNScalar*>(input));
+				input = FNNAlgo::Forward(layer6, input, mOutputs[5]);
+				input = FNNAlgo::Forward(layer7, mParamters.data(), input, mOutputs[6]);
+
+				int index = FNNMath::SoftMax(layer7.getOutputLength(), input, mResult.data());
 				LogMsg("Answer = %c, pct = %f", 'A' + index, mResult[index]);
 			}
 

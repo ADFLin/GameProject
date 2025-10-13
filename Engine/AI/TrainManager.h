@@ -50,14 +50,14 @@ namespace AI
 		NNScalar*       signals = nullptr;
 		AgentEntity*    entity = nullptr;
 
-		void init(FCNNLayout const& layout);
+		void init(NNFullConLayout const& layout);
 		void setGenotype(GenotypePtr  inGenotype);
 		void randomizeData(NNRand& random);
 	};
 
 	struct TrainDataSetting
 	{
-		FCNNLayout* netLayout;
+		NNFullConLayout* netLayout;
 
 		int    numAgents;
 		uint64 initWeightSeed;
@@ -206,11 +206,11 @@ namespace AI
 		TrainDataSetting& getDataSetting() { return setting.dataSetting; }
 
 		void stopAllWork();
-		FCNNLayout& getNetLayout() { return mNNLayout; }
+		NNFullConLayout& getNetLayout() { return mNNLayout; }
 
 
-		static void OutputData(FCNNLayout const& layout, GenePool const& pool, IStreamSerializer& serializer);
-		static void IntputData(FCNNLayout& layout, GenePool& pool, IStreamSerializer& serializer);
+		static void OutputData(NNFullConLayout const& layout, GenePool const& pool, IStreamSerializer& serializer);
+		static void IntputData(NNFullConLayout& layout, GenePool& pool, IStreamSerializer& serializer);
 
 
 		TrainWorkSetting setting;
@@ -219,7 +219,7 @@ namespace AI
 	private:
 		
 		TArray< std::unique_ptr<TrainWork> > mWorks;
-		FCNNLayout mNNLayout;
+		NNFullConLayout mNNLayout;
 		Mutex    mPoolMutex;
 		GenePool mGenePool;
 		QueueThreadPool  mWorkRunPool;

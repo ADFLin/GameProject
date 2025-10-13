@@ -173,12 +173,11 @@ public:
 		Unit const& opCopy = readData.codes[nodeCopy.indexOp];
 
 		return mOutputData->addOpCode(opCopy, 
-			[&](int indexNode)
+			[&](Node& node)
 			{
 				int indexNodeLeft = outputTree_R<bOutput>(nodeCopy.children[CN_LEFT]);
 				int indexNodeRight = outputTree_R<bOutput>(nodeCopy.children[CN_RIGHT]);
 
-				Node& node = mOutputData->nodes[indexNode];
 				node.children[CN_LEFT] = indexNodeLeft;
 				node.children[CN_RIGHT] = indexNodeRight;
 			}

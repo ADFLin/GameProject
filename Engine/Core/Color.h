@@ -115,11 +115,11 @@ public:
 	T  r, g, b;
 
 	TColor3() = default;
-	TColor3(T cr, T cg, T cb)
+	constexpr TColor3(T cr, T cg, T cb)
 		:r(cr), g(cg), b(cb)
 	{
 	}
-	TColor3(T const* v)
+	constexpr TColor3(T const* v)
 		:r(v[0]), g(v[1]), b(v[2])
 	{
 	}
@@ -161,8 +161,8 @@ public:
 	using CET = typename TColor3<T>::CET;
 
 	TColor4() = default;
-	TColor4(T cr, T cg, T cb, T ca = CET::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
-	TColor4(TColor3<T> const& rh , T ca = CET::Max()) :TColor3<T>(rh), a(ca) {}
+	constexpr TColor4(T cr, T cg, T cb, T ca = CET::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
+	constexpr TColor4(TColor3<T> const& rh , T ca = CET::Max()) :TColor3<T>(rh), a(ca) {}
 
 	//template< class Q >
 	//TColor4(TColor3<Q> const& rh, Q ca = TColorElementTraits<Q>::Max()) :TColor3<T>(rh), a(ca) {}
@@ -235,7 +235,7 @@ public:
 
 
 	Color3ub() = default;
-	Color3ub(uint8 cr, uint8 cg, uint8 cb)
+	constexpr Color3ub(uint8 cr, uint8 cg, uint8 cb)
 		:TColor3< uint8 >(cr, cg, cb) {}
 
 };

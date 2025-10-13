@@ -370,7 +370,7 @@ void RenderBar(RHIGraphics2D& g, float len , float h , float frac , float alpha 
 	}
 
 	g.beginBlend(alpha, ESimpleBlendMode::Add);
-	g.drawCustomFunc([=](RHICommandList& commandList, RenderBatchedElement& element)
+	g.drawCustomFunc([=](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 	{
 		Vertex v[] =
 		{

@@ -935,7 +935,7 @@ namespace RVO
 
 			g.enablePen(false);
 
-			g.setCustomRenderState([](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
+			g.setCustomRenderState([](Render::RHICommandList& commandList, Matrix4 const& baseTransform, Render::RenderBatchedElement& element)
 			{
 				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<
@@ -954,7 +954,7 @@ namespace RVO
 				drawArea(g, Plane{ relativePosition , rPos + (1 - combinedRadius / dist) * relativePosition });
 			}
 
-			g.setCustomRenderState([](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
+			g.setCustomRenderState([](Render::RHICommandList& commandList, Matrix4 const& baseTransform, Render::RenderBatchedElement& element)
 			{
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<
 					false, ECompareFunc::Always, true, ECompareFunc::Equal,

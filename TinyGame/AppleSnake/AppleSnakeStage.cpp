@@ -22,7 +22,7 @@ namespace AppleSnake
 		{
 			RHIClearRenderTargets(g.getCommandList(), EClearBits::Stencil, nullptr, 0, 0, 0);
 			g.resetRenderState();
-			g.setCustomRenderState([this](RHICommandList& commandList, RenderBatchedElement& element)
+			g.setCustomRenderState([this](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 			{
 				RHISetBlendState(commandList, bShowMask ? TStaticBlendState< CWM_RGBA >::GetRHI() : TStaticBlendState< CWM_None >::GetRHI());
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<
@@ -37,7 +37,7 @@ namespace AppleSnake
 		template< bool bIncluded >
 		void setupState()
 		{
-			g.setCustomRenderState([this](RHICommandList& commandList, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
+			g.setCustomRenderState([this](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
 			{
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<

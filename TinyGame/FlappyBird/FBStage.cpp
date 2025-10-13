@@ -106,7 +106,7 @@ namespace FlappyBird
 			}
 
 			NNScalar output;
-			mAgent->FNN.calcForwardFeedback(inputs, &output);
+			mAgent->FNN.forwardFeedback(inputs, &output);
 			if (output >= 0.5)
 			{
 				bird.fly();
@@ -114,7 +114,7 @@ namespace FlappyBird
 
 			if (mAgent->signals)
 			{
-				mAgent->FNN.calcForwardFeedbackSignal(inputs, mAgent->signals);
+				mAgent->FNN.forwardSignal(inputs, mAgent->signals);
 			}
 		}
 		void getPipeInputs(NNScalar inputs[], PipeInfo const& pipe)

@@ -11,7 +11,10 @@
 #include "ProfileSystem.h"
 #include "Async/AsyncWork.h"
 
+#include "Misc/DiagramRender.h"
+
 #include <random>
+
 
 
 float TestFunc(float x)
@@ -39,29 +42,28 @@ public:
 	CurveFitTestStage() {}
 
 
-	FCNNLayout      mLayout;
-	FCNeuralNetwork mFCNN;
+	NNFullConLayout mLayout;
 	TArray< NNScalar > mParameters;
 
 	struct TrainData
 	{
-		TArray< NNScalar > signals;
+		TArray< NNScalar > outputs;
 		TArray< NNScalar > lossGrads;
-		TArray< NNScalar > deltaParameters;
+		TArray< NNScalar > parameterGrads;
 		TArray< NNScalar > batchNormParameters;
 		NNScalar loss;
 
-		void init(FCNNLayout& layout, int batchSize = 1)
+		void init(NNFullConLayout& layout, int batchSize = 1)
 		{
 			batchSize = 1;
-			signals.resize(batchSize * ( layout.getSignalNum() + layout.getTotalNodeNum() ));
-			lossGrads.resize(batchSize * layout.getTotalNodeNum());
-			deltaParameters.resize(layout.getParameterNum());
+			outputs.resize(batchSize * layout.getPassOutputLength() );
+			lossGrads.resize(batchSize * layout.getTempLossGradLength());
+			parameterGrads.resize(layout.getParameterLength());
 		}
 
 		void reset()
 		{
-			std::fill_n(deltaParameters.data(), deltaParameters.size(), 0);
+			std::fill_n(parameterGrads.data(), parameterGrads.size(), 0);
 			loss = 0;
 		}
 	};
@@ -98,19 +100,18 @@ public:
 
 		::Global::GUI().cleanupWidget();
 
-		int size = 24;
-		uint32 topology[] = { 1, size, size, size, size, 1 };
-		mLayout.init(topology, ARRAY_SIZE(topology));
-		mLayout.setHiddenLayerFunction<NNFunc::ReLU>();
-		mLayout.getLayer(mLayout.getHiddenLayerNum()).setFuncionT<NNFunc::Linear>();
-
-		mFCNN.init(mLayout);
-		mParameters.resize(mLayout.getParameterNum());
-		mFCNN.setParamsters(mParameters);
-		mOptimizer.init(mLayout.getParameterNum());
+		int size = 64;
+		uint32 topology[] = { 1, size,  2 * size, size , 2 * size, size, 1 };
+		mLayout.init(topology);
+		mLayout.setHiddenLayerTransform<NNFunc::ReLU>();
+		mLayout.setOutputLayerTransform<NNFunc::Linear>();
 
 
-		int workerNum = 12;
+		mParameters.resize(mLayout.getParameterLength());
+		mOptimizer.init(mLayout.getParameterLength());
+
+
+		int workerNum = 16;
 		for (int i = 0; i < workerNum; ++i)
 		{
 			mThreadTrainDatas.push_back(std::make_unique<TrainData>());
@@ -163,7 +164,7 @@ public:
 	TArray<SampleData> mSamples;
 	TArray<SampleData> mTestSamples;
 
-	TArray<SampleData*> mOrderedSample;
+	TArray<SampleData*> mOrderedSamples;
 
 	NNScalar mMaxX;
 	struct Range
@@ -178,9 +179,9 @@ public:
 	NNScalar mInputScale = 1.0;
 	void importSample()
 	{
-		int sampleNum = 50000;
+		int sampleNum = 5000;
 		mSamples.resize(sampleNum);
-		mTestSamples.resize(50000);
+		mTestSamples.resize(5000);
 
 		NNScalar delta = (mSampleRange.max - mSampleRange.min) / float(sampleNum);
 		NNScalar start = mSampleRange.min;
@@ -200,10 +201,10 @@ public:
 			startTest += delta;
 		}
 
-		mOrderedSample.resize(sampleNum);
+		mOrderedSamples.resize(sampleNum);
 		for (int i = 0; i < sampleNum; ++i)
 		{
-			mOrderedSample[i] = &mSamples[i];
+			mOrderedSamples[i] = &mSamples[i];
 		}
 	}
 
@@ -230,20 +231,21 @@ public:
 
 	NNScalar fit(SampleData const& sample, TrainData& trainData)
 	{
-		NNScalar const* pOutput = mFCNN.calcForwardPass(&sample.input, trainData.signals.data());
-
-		NNScalar lossDerivatives = LossFunc::CalcDevivative(pOutput[0], sample.label);
+		NNScalar const* pOutput = mLayout.forward(mParameters.data(), &sample.input, trainData.outputs.data());
+		NNScalar lossGrads[1];
+		FNNMath::Fill(1, lossGrads, 0);
+		
+		lossGrads[0] = LossFunc::CalcDevivative(pOutput[0], sample.label);
 		NNScalar loss = LossFunc::Calc(pOutput[0], sample.label);
 
-		mFCNN.calcBackwardPass(&lossDerivatives, trainData.signals.data(), trainData.lossGrads.data(), trainData.deltaParameters.data());
-
+		mLayout.backward(mParameters.data(), &sample.input, trainData.outputs.data(), lossGrads, trainData.lossGrads, trainData.parameterGrads.data());
 #if 0
 		static int GCount = 0;
 		++GCount;
 		if (GCount == 100)
 		{
 			Print(mParameters);
-			Print(trainData.deltaParameters);
+			Print(trainData.parameterGrads);
 			Print(trainData.lossGrads);
 			Print(trainData.signals);
 		}
@@ -254,36 +256,39 @@ public:
 
 	TrainResult trainStep(TArrayView< SampleData* > const& samples, NNScalar learnRate)
 	{
-		NNScalar loss = 0.0;
 		if (bUseParallelComputing)
 		{
 			int numWorker = mPool.getAllThreadNum();
-			int maxWorkerSampleNum = (samples.size() + numWorker - 1) / numWorker;
-			int numSampleCheck = 0;
+			int workerSampleNum = samples.size() / numWorker;
+			int remainingCount = samples.size() % numWorker;
+			int indexSampleStart = 0;
 			for (int i = 0; i < numWorker; ++i)
 			{
-				int indexSampleStart = i * maxWorkerSampleNum;
-				if (indexSampleStart >= samples.size())
-					break;
+				int numSample = workerSampleNum + ((remainingCount > 0) ? 1 : 0);
+				--remainingCount;
 
-				int numSample = Math::Min<int>(samples.size() - indexSampleStart, maxWorkerSampleNum);
 				TrainData& trainData = *mThreadTrainDatas[i];
+
+				SampleData* const* pSamples = samples.data() + indexSampleStart;
 				mPool.addFunctionWork(
-					[this, &samples, indexSampleStart, numSample, &trainData]()
+					[this, pSamples, numSample, &trainData]()
 					{
 						trainData.reset();
 						for (int i = 0; i < numSample; ++i)
 						{
-							SampleData* sample = samples[indexSampleStart + i];
+							SampleData* sample = pSamples[i];
 							trainData.loss += fit(*sample, trainData);
 						}
 					}
 				);
-				numSampleCheck += numSample;
+
+				indexSampleStart += numSample;
 			}
 
-			CHECK(numSampleCheck == samples.size());
+			CHECK(indexSampleStart == samples.size());
 			mPool.waitAllWorkComplete();
+
+
 			TrainData& masterTrainData = *mThreadTrainDatas[0];
 			for (int i = 1; i < numWorker; ++i)
 			{
@@ -291,9 +296,9 @@ public:
 
 				masterTrainData.loss += trainData.loss;
 				FNNMath::VectorAdd(
-					masterTrainData.deltaParameters.size(),
-					masterTrainData.deltaParameters.data(),
-					trainData.deltaParameters.data());
+					masterTrainData.parameterGrads.size(),
+					masterTrainData.parameterGrads.data(),
+					trainData.parameterGrads.data());
 			}
 			
 		}
@@ -309,7 +314,7 @@ public:
 
 		TrainData& mainTrainData = *mThreadTrainDatas[0];
 
-		mOptimizer.update(mParameters, mainTrainData.deltaParameters, learnRate);
+		mOptimizer.update(mParameters, mainTrainData.parameterGrads, learnRate);
 
 		TrainResult trainResult;
 		trainResult.loss = mainTrainData.loss;
@@ -323,12 +328,12 @@ public:
 
 	//std::random_device rd;
 
-	void Train()
+	void train()
 	{
 		TIME_SCOPE("Train");
 
 		std::mt19937 g(::rand());
-		std::shuffle(mOrderedSample.begin(), mOrderedSample.end(), g);
+		std::shuffle(mOrderedSamples.begin(), mOrderedSamples.end(), g);
 
 		int iterCount = ( mSamples.size() + mBatchSize - 1 ) / mBatchSize;
 		NNScalar learnRate = 0.001;
@@ -337,8 +342,8 @@ public:
 		for (int iter = 0; iter < iterCount; ++iter)
 		{
 			int offset = mBatchSize * iter;
-			int numSampleData = (iter == iterCount - 1 ) ? mOrderedSample.size() - offset : mBatchSize;
-			TArrayView< SampleData* > samples = TArrayView< SampleData* >(mOrderedSample.data() + offset, numSampleData);
+			int numSampleData = (iter == iterCount - 1 ) ? mOrderedSamples.size() - offset : mBatchSize;
+			TArrayView< SampleData* > samples = TArrayView< SampleData* >(mOrderedSamples.data() + offset, numSampleData);
 			TrainResult trainResult = trainStep(samples, learnRate);
 
 			loss += trainResult.loss;
@@ -359,9 +364,9 @@ public:
 		NNScalar lossTest = 0.0;
 		for (auto const& sample : mTestSamples)
 		{
-			NNScalar output;
-			mFCNN.calcForwardFeedback(&sample.input, &output);
-			lossTest += LossFunc::Calc(output, sample.label);
+			NNScalar outputs[1];
+			mLayout.forwardFeedback(mParameters.data(), &sample.input, outputs);
+			lossTest += LossFunc::Calc(outputs[0], sample.label);
 		}
 		lossTest /= mTestSamples.size();
 		mTestLossPoints.emplace_back(float(mEpoch), log10(lossTest));
@@ -377,7 +382,7 @@ public:
 
 		if (bAutoTrain)
 		{
-			Train();
+			train();
 		}
 	}
 
@@ -411,7 +416,7 @@ public:
 			NNScalar inputs[1];
 			inputs[0] = x * mInputScale;
 			NNScalar outputs[1];
-			mFCNN.calcForwardFeedback(inputs, outputs);
+			mLayout.forwardFeedback(mParameters.data(), inputs, outputs);
 			return outputs[0];
 		});
 	}
@@ -426,86 +431,6 @@ public:
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
-		struct Diagram
-		{
-
-			Vector2 min = Vector2(-2, -2);
-			Vector2 max = Vector2( 2, 2);
-			Vector2 border = Vector2(0.1, 0.1);
-
-			void setup(RHICommandList& commandList, Vector2 renderPos, Vector2 renderSize)
-			{
-				Vec2i screenSize = ::Global::GetScreenSize();
-				RHISetViewport(commandList, renderPos.x, screenSize.y - (renderPos.y + renderSize.y), renderSize.x, renderSize.y);
-				Matrix4 matProj = AdjustProjectionMatrixForRHI(OrthoMatrix(min.x - border.x, max.x + border.x, min.y - border.y, max.y + border.y, -1, 1));
-				RHISetFixedShaderPipelineState(commandList, matProj);
-			}
-
-			void drawGird(RHICommandList& commandList, Vector2 basePoint, Vector2 size)
-			{
-				static TArray<Vector2> buffer;
-				buffer.clear();
-				float offset = 0.2;
-
-				float v;
-				v = basePoint.x;
-				while (v >= min.x )
-				{
-					buffer.emplace_back(v, min.y);
-					buffer.emplace_back(v, max.y);
-					v -= size.x;
-				}
-
-				v = basePoint.x;
-				while (v <= max.x)
-				{
-					buffer.emplace_back(v, min.y);
-					buffer.emplace_back(v, max.y);
-					v += size.x;
-				}
-
-				v = basePoint.y;
-				while (v >= min.y)
-				{
-					buffer.emplace_back(min.x, v);
-					buffer.emplace_back(max.x, v);
-					v -= size.y;
-				}
-
-				v = basePoint.y;
-				while (v <= max.y)
-				{
-					buffer.emplace_back(min.x, v);
-					buffer.emplace_back(max.x, v);
-					v += size.y;
-				}
-
-				if (!buffer.empty())
-				{
-					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
-					TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &buffer[0], buffer.size(), LinearColor(0, 0, 1));
-				}
-
-				{
-					Vector2 const lines[] =
-					{
-						Vector2(min.x,min.y), Vector2(min.x,max.y),
-						Vector2(max.x,min.y), Vector2(max.x,max.y),
-						Vector2(min.x,min.y) , Vector2(max.x,min.y),
-						Vector2(min.x,max.y) , Vector2(max.x,max.y),
-					};
-					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-					TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 0, 0));
-				}
-
-			}
-
-			void drawCurve(RHICommandList& commandList, TArray< Vector2 > const& points, LinearColor const& color)
-			{
-				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, points.data(), points.size(), color);
-			}
-
-		};
 
 		Diagram diagram;
 		diagram.min.x = mSampleRange.min;
@@ -546,7 +471,7 @@ public:
 			case EKeyCode::R: restart(); break;
 			case EKeyCode::Z: 
 				{
-					Train();
+					train();
 
 				}
 				break;

@@ -631,7 +631,7 @@ struct ExpressionTreeData : public ExprParse
 		node.indexOp = indexCode;
 		nodes.push_back(node);
 
-		Func(indexNode);
+		Func(nodes[indexNode]);
 		return indexNode;
 	}
 

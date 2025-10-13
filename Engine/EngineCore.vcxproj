@@ -304,6 +304,7 @@
     <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h" />
     <ClInclude Include="AI\GeneticAlgorithm.h" />
     <ClInclude Include="AI\NeuralNetwork.h" />
+    <ClInclude Include="AI\NNModel.h" />
     <ClInclude Include="AI\NNTrain.h" />
     <ClInclude Include="AI\TrainManager.h" />
     <ClInclude Include="Algo\AStar.h" />

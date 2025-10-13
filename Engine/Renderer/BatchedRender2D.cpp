@@ -1204,7 +1204,7 @@ namespace Render
 					if (payload.renderer)
 					{
 						mbCustomState = true;
-						payload.renderer->render(*mCommandList, *element, renderState);
+						payload.renderer->render(*mCommandList, mBaseTransform, *element, renderState);
 						FObjectManage::Release(payload.renderer, payload.manageMode);
 					}
 					else
@@ -1225,7 +1225,7 @@ namespace Render
 
 					}
 
-					payload.renderer->render(*mCommandList, *element, renderState);
+					payload.renderer->render(*mCommandList, mBaseTransform, *element, renderState);
 					if (element->type == RenderBatchedElement::CustomRenderAndState)
 					{
 						commitRenderState(*mCommandList, renderState);

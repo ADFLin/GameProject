@@ -1333,7 +1333,7 @@ public:
 		g.setTextureState(nullptr);
 		g.resetRenderState();
 #if 1
-		g.setCustomRenderState([&view](RHICommandList& commandList, RenderBatchedElement& element)
+		g.setCustomRenderState([&view](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
 			RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<
@@ -1367,7 +1367,7 @@ public:
 #if 1
 		g.setTextureState(mTex);
 		//g.setSampler(TStaticSamplerState<ESampler::Trilinear>::GetRHI());
-		g.setCustomRenderState([&](RHICommandList& commandList, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
+		g.setCustomRenderState([&](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
 		{
 			SetupDrawState(commandList);
 			BatchedRender::SetupShaderState(commandList, g.getBaseTransform(), state);
@@ -1384,7 +1384,7 @@ public:
 
 		g.setTextureState(nullptr);
 		g.resetRenderState();
-		g.setCustomRenderState([&](RHICommandList& commandList, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
+		g.setCustomRenderState([&](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
 		{
 			SetupDrawState(commandList);
 		});

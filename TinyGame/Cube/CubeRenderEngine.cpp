@@ -795,14 +795,14 @@ namespace Cube
 		g.drawTextF(Vector2(10, 55), "chunkMeshCount = %d %d %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
 
 
-		g.drawCustomFunc([this, &g](RHICommandList& commandList, RenderBatchedElement& element)	
+		g.drawCustomFunc([this, &g](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
-			DrawUtility::DrawDepthTexture(commandList, g.getBaseTransform(), *mSceneDepthTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 200), Vector2(400, 200), 0, 100 );
+			DrawUtility::DrawDepthTexture(commandList, baseTransform, *mSceneDepthTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 200), Vector2(400, 200), 0, 100 );
 		});
 
-		g.drawCustomFunc([this, &g](RHICommandList& commandList, RenderBatchedElement& element)
+		g.drawCustomFunc([this, &g](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
-			DrawUtility::DrawTexture(commandList, g.getBaseTransform(), *mSceneTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 500), Vector2(400, 200));
+			DrawUtility::DrawTexture(commandList, baseTransform, *mSceneTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 500), Vector2(400, 200));
 		});
 		g.endRender();
 

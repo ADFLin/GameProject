@@ -230,7 +230,7 @@ namespace CarTrain
 		mLevelData->setup(mWorld);
 
 
-		mNNLayout.init(AgentCarEntiy::Topology, ARRAY_SIZE(AgentCarEntiy::Topology));
+		mNNLayout.init(AgentCarEntiy::Topology);
 
 		mTrainSettings.netLayout = &mNNLayout;
 		mTrainSettings.initWeightSeed = GenerateRandSeed();

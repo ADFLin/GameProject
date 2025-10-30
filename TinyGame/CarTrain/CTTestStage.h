@@ -395,7 +395,7 @@ namespace CarTrain
 			}
 
 			NNScalar output;
-			mAgent->FNN.forwardFeedback(inputs, &output);
+			mAgent->inference(inputs, &output);
 			if ( output > 0.6)
 			{
 				turnAngle = -Math::DegToRad(MaxRotateAngle * Math::Clamp<float>( (output - 0.6 ) / 0.4 , 0 , 1 ) );
@@ -536,7 +536,7 @@ namespace CarTrain
 		TrainWorld mWorld;
 		std::unique_ptr< LevelData > mLevelData;
 
-		NNFullConLayout mNNLayout;
+		NNFullConLayout mModel;
 		TrainData mTrainData;
 		GenePool  mGenePool;
 		TrainDataSetting mTrainSettings;

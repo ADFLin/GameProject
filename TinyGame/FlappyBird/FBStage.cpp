@@ -41,9 +41,9 @@ namespace FlappyBird
 			assert(&hostBird == &bird);
 			NNScalar inputs[8];
 			std::fill_n(inputs, ARRAY_SIZE(inputs), NNScalar(0));
-			assert(ARRAY_SIZE(inputs) >= mAgent->FNN.getLayout().getInputNum());
+			assert(ARRAY_SIZE(inputs) >= mAgent->pModel->getInputNum());
 
-			switch (mAgent->FNN.getLayout().getInputNum())
+			switch (mAgent->pModel->getInputNum())
 			{
 			case 2:
 				{
@@ -106,7 +106,7 @@ namespace FlappyBird
 			}
 
 			NNScalar output;
-			mAgent->FNN.forwardFeedback(inputs, &output);
+			mAgent->inference(inputs, &output);
 			if (output >= 0.5)
 			{
 				bird.fly();
@@ -114,7 +114,7 @@ namespace FlappyBird
 
 			if (mAgent->signals)
 			{
-				mAgent->FNN.forwardSignal(inputs, mAgent->signals);
+				mAgent->inferenceSignal(inputs, mAgent->signals);
 			}
 		}
 		void getPipeInputs(NNScalar inputs[], PipeInfo const& pipe)
@@ -731,8 +731,9 @@ namespace FlappyBird
 
 			if( mTrainData->bestAgent )
 			{
-				FCNeuralNetwork& FNN = mTrainData->bestAgent->FNN;
-				NeuralNetworkRenderer renderer(FNN);
+				NNFullConLayout const& model = *mTrainData->bestAgent->pModel;
+				NeuralNetworkRenderer renderer(model);
+				renderer.parameters = mTrainData->bestAgent->genotype->data.data();
 				renderer.basePos = Vector2(400, 300);
 				renderer.signals = mTrainData->getBestSignals();
 				renderer.draw(g);

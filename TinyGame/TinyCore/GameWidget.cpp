@@ -180,9 +180,15 @@ void GWidget::removeMotionTask()
 
 void GWidget::refresh()
 {
-	if (canRefresh() && onRefresh)
+	if (canRefresh())
 	{
-		onRefresh(this);
+		if (onRefresh)
+			onRefresh(this);
+
+		for (auto child = createChildrenIterator(); child; ++child)
+		{
+			child->refresh();
+		}
 	}
 }
 

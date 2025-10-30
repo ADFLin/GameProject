@@ -15,13 +15,153 @@
 #include "AI/NNTrain.h"
 #include "RandomUtility.h"
 
-#if 0
+#define USE_ANNT 1
+#if USE_ANNT
 #include "ANNT/ANNT.hpp"
 #endif
 
 
 #include <random>
 #include "Async/Coroutines.h"
+
+
+#include "C-ATTL3/Cattle.hpp"
+
+void Test_C_ATTL3()
+{
+
+	using namespace cattle;
+	// Load the MNIST data labelled as 'real' into memory so that it can be pre-processed and shuffled.
+	std::string mnist_folder = "mnist/";
+	MNISTDataProvider<float> real_file_train_prov(mnist_folder + "train-images.idx3-ubyte", mnist_folder + "train-labels.idx1-ubyte");
+	Tensor<float, 4> mnist_train_data = real_file_train_prov.get_data(60000).first;
+	mnist_train_data = (mnist_train_data - mnist_train_data.constant(127.5)) / mnist_train_data.constant(127.5);
+	Tensor<float, 4> mnist_train_label = Tensor<float, 4>(60000u, 1u, 1u, 1u).random() * .1f;
+	mnist_train_label += mnist_train_label.constant(.9);
+	MemoryDataProvider<float, 3, false> real_train_prov(
+		TensorPtr<float, 4>(new Tensor<float, 4>(std::move(mnist_train_data))),
+		TensorPtr<float, 4>(new Tensor<float, 4>(std::move(mnist_train_label))));
+	MNISTDataProvider<float> real_file_test_prov(mnist_folder + "t10k-images.idx3-ubyte", mnist_folder + "t10k-labels.idx1-ubyte");
+	Tensor<float, 4> mnist_test_data = real_file_test_prov.get_data(10000).first;
+	mnist_test_data = (mnist_test_data - mnist_test_data.constant(127.5)) / mnist_test_data.constant(127.5);
+	Tensor<float, 4> mnist_test_label = Tensor<float, 4>(10000u, 1u, 1u, 1u).random() * .1f;
+	mnist_test_label += mnist_test_label.constant(.9);
+	MemoryDataProvider<float, 3, false> real_test_prov(
+		TensorPtr<float, 4>(new Tensor<float, 4>(std::move(mnist_test_data))),
+		TensorPtr<float, 4>(new Tensor<float, 4>(std::move(mnist_test_label))));
+	// Create the GAN.
+	auto init = std::make_shared<GaussianParameterInitialization<float>>(2e-2);
+	float lrelu_alpha = .2;
+	float dropout = .3;
+	std::vector<LayerPtr<float, 3>> generator_layers(9);
+	generator_layers[0] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>({ 1u, 1u, 100u }, 256, init));
+	generator_layers[1] = LayerPtr<float, 3>(new LeakyReLUActivationLayer<float, 3>(generator_layers[0]->get_output_dims(), lrelu_alpha));
+	generator_layers[2] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(generator_layers[1]->get_output_dims(), 512, init));
+	generator_layers[3] = LayerPtr<float, 3>(new LeakyReLUActivationLayer<float, 3>(generator_layers[2]->get_output_dims(), lrelu_alpha));
+	generator_layers[4] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(generator_layers[3]->get_output_dims(), 1024, init));
+	generator_layers[5] = LayerPtr<float, 3>(new LeakyReLUActivationLayer<float, 3>(generator_layers[4]->get_output_dims(), lrelu_alpha));
+	generator_layers[6] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(generator_layers[5]->get_output_dims(), 784, init));
+	generator_layers[7] = LayerPtr<float, 3>(new TanhActivationLayer<float, 3>(generator_layers[6]->get_output_dims()));
+	generator_layers[8] = LayerPtr<float, 3>(new ReshapeLayer<float, 3>(generator_layers[7]->get_output_dims(), { 28u, 28u, 1u }));
+	NeuralNetPtr<float, 3, false> generator(new FeedforwardNeuralNetwork<float, 3>(std::move(generator_layers)));
+	std::vector<LayerPtr<float, 3>> discriminator_layers(11);
+	discriminator_layers[0] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(generator->get_output_dims(), 1024, init));
+	discriminator_layers[1] = LayerPtr<float, 3>(new LeakyReLUActivationLayer<float, 3>(discriminator_layers[0]->get_output_dims(), lrelu_alpha));
+	discriminator_layers[2] = LayerPtr<float, 3>(new DropoutLayer<float, 3>(discriminator_layers[1]->get_output_dims(), dropout));
+	discriminator_layers[3] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(discriminator_layers[2]->get_output_dims(), 512, init));
+	discriminator_layers[4] = LayerPtr<float, 3>(new LeakyReLUActivationLayer<float, 3>(discriminator_layers[3]->get_output_dims(), lrelu_alpha));
+	discriminator_layers[5] = LayerPtr<float, 3>(new DropoutLayer<float, 3>(discriminator_layers[4]->get_output_dims(), dropout));
+	discriminator_layers[6] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(discriminator_layers[5]->get_output_dims(), 256, init));
+	discriminator_layers[7] = LayerPtr<float, 3>(new LeakyReLUActivationLayer<float, 3>(discriminator_layers[6]->get_output_dims(), lrelu_alpha));
+	discriminator_layers[8] = LayerPtr<float, 3>(new DropoutLayer<float, 3>(discriminator_layers[7]->get_output_dims(), dropout));
+	discriminator_layers[9] = LayerPtr<float, 3>(new DenseKernelLayer<float, 3>(discriminator_layers[8]->get_output_dims(), 1, init));
+	discriminator_layers[10] = LayerPtr<float, 3>(new SigmoidActivationLayer<float, 3>(discriminator_layers[9]->get_output_dims()));
+	NeuralNetPtr<float, 3, false> discriminator(new FeedforwardNeuralNetwork<float, 3>(std::move(discriminator_layers)));
+	std::vector<NeuralNetPtr<float, 3, false>> modules(2);
+	modules[0] = std::move(generator);
+	modules[1] = std::move(discriminator);
+	StackedNeuralNetwork<float, 3, false> gan(std::move(modules));
+	gan.init();
+	// Define the GAN training hyper-parameters.
+	const unsigned epochs = 100;
+	const unsigned m = 100;
+	const unsigned k = 1;
+	const unsigned l = 4;
+	// Specify the loss functions and the optimizers.
+	auto loss = std::make_shared<BinaryCrossEntropyLoss<float, 3, false>>();
+	float lr = 2e-4;
+	float adam_beta = .5;
+	cattle::AdamOptimizer<float, 3, false> disc_opt(loss, m, lr, adam_beta);
+	cattle::AdamOptimizer<float, 3, false> gen_opt(loss, m, lr, adam_beta);
+	disc_opt.fit(*gan.get_modules()[1]);
+	gen_opt.fit(*gan.get_modules()[0]);
+	PPMCodec<float, P2> ppm_codec;
+	// Execute the GAN optimization algorithm.
+	for (unsigned i = 0; i <= epochs; ++i) {
+		std::string epoch_header = "*   GAN Epoch " + std::to_string(i) + "   *";
+		std::cout << std::endl << std::string(epoch_header.length(), '*') << std::endl <<
+			"*" << std::string(epoch_header.length() - 2, ' ') << "*" << std::endl <<
+			epoch_header << std::endl <<
+			"*" << std::string(epoch_header.length() - 2, ' ') << "*" << std::endl <<
+			std::string(epoch_header.length(), '*') << std::endl;
+		float disc_train_loss = 0;
+		float gen_train_loss = 0;
+		std::size_t total_m = 0;
+		unsigned counter = 0;
+		real_train_prov.reset();
+		while (real_train_prov.has_more()) 
+		{
+			// First optimize the discriminator by using a batch of generated and a batch of real images.
+			auto real_train_data = real_train_prov.get_data(k * m);
+			auto actual_m = real_train_data.first.dimension(0);
+			total_m += actual_m;
+			Tensor<float, 4> train_data = gan.get_modules()[0]->infer(Tensor<float, 4>(actual_m, 1u, 1u, 100u).random())
+				.concatenate(std::move(real_train_data.first), 0);
+			Tensor<float, 4> train_label = Tensor<float, 4>(actual_m, 1u, 1u, 1u).constant(0).concatenate(std::move(real_train_data.second), 0);
+			MemoryDataProvider<float, 3, false, false> disc_train_prov(
+				TensorPtr<float, 4>(new Tensor<float, 4>(std::move(train_data))),
+				TensorPtr<float, 4>(new Tensor<float, 4>(std::move(train_label))));
+			disc_train_loss += disc_opt.train(*gan.get_modules()[1], disc_train_prov, 1) * actual_m;
+			// Then optimize the generator by maximizing the GAN's loss w.r.t. the parameters of the generator.
+			MemoryDataProvider<float, 3, false, false> gen_train_prov(
+				TensorPtr<float, 4>(new Tensor<float, 4>(Tensor<float, 4>(l * actual_m, 1u, 1u, 100u).random())),
+				TensorPtr<float, 4>(new Tensor<float, 4>(Tensor<float, 4>(l * actual_m, 1u, 1u, 1u).constant(1))));
+			gan.get_modules()[1]->set_frozen(true);
+			gen_train_loss += gen_opt.train(gan, gen_train_prov, 1) * actual_m;
+			gan.get_modules()[1]->set_frozen(false);
+			counter++;
+		}
+		std::cout << "\tdiscriminator training loss: " << (disc_train_loss / total_m) << std::endl;
+		std::cout << "\tgenerator training loss: " << (gen_train_loss / total_m) << std::endl;
+		// Perform tests on the GAN.
+		real_test_prov.reset();
+		auto real_test_data = real_test_prov.get_data();
+		auto actual_m = real_test_data.first.dimension(0);
+		Tensor<float, 4> test_data = gan.get_modules()[0]->infer(Tensor<float, 4>(actual_m, 1u, 1u, 100u).random())
+			.concatenate(std::move(real_test_data.first), 0);
+		Tensor<float, 4> test_label = Tensor<float, 4>(actual_m, 1u, 1u, 1u).constant(0).concatenate(std::move(real_test_data.second), 0);
+		MemoryDataProvider<float, 3, false, false> disc_test_prov(
+			TensorPtr<float, 4>(new Tensor<float, 4>(std::move(test_data))),
+			TensorPtr<float, 4>(new Tensor<float, 4>(std::move(test_label))));
+		float disc_test_loss = disc_opt.test(*gan.get_modules()[1], disc_test_prov, false);
+		std::cout << "\tdiscriminator test loss: " << disc_test_loss << std::endl;
+		MemoryDataProvider<float, 3, false, false> gen_test_prov(
+			TensorPtr<float, 4>(new Tensor<float, 4>(Tensor<float, 4>(actual_m, 1u, 1u, 100u).random())),
+			TensorPtr<float, 4>(new Tensor<float, 4>(Tensor<float, 4>(actual_m, 1u, 1u, 1u).constant(1))));
+		gan.get_modules()[1]->set_frozen(true);
+		float gen_test_loss = gen_opt.test(gan, gen_test_prov, false);
+		gan.get_modules()[1]->set_frozen(false);
+		std::cout << "\tgenerator test loss: " << gen_test_loss << std::endl;
+		// Generate some fake image samples to track progress.
+		for (unsigned j = 0; j < 10; ++j) {
+			auto fake_image_sample = gan.get_modules()[0]->infer(Tensor<float, 4>(1u, 1u, 1u, 100u).random());
+			fake_image_sample = (fake_image_sample + fake_image_sample.constant(1)) * fake_image_sample.constant(127.5);
+			ppm_codec.encode(TensorMap<float, 3>(fake_image_sample.data(), { 28u, 28u, 1u }), std::string("GAN/image") +
+				std::to_string(i) + std::string("_") + std::to_string(j) + std::string(".pgm"));
+		}
+	}
+
+}
 
 
 namespace NR
@@ -37,42 +177,30 @@ namespace NR
 
 	void TestANNT()
 	{
-#if 0
+#if USE_ANNT
 		using namespace ANNT;
 		using namespace ANNT::Neuro;
 
-
-
 		fvector_t input =
 		{
-			1, 2, 3, 4, 5, 6,
-			 7, 8, 9,10,11,12,
-			13,14,15,16,17,18,
-			19,20,21,22,23,24,
-			25,26,27,28,29,30,
-			31,32,33,34,35,36,
-			1, 2, 3, 4, 5, 6,
-			 7, 8, 9,10,11,12,
-			13,14,15,16,17,18,
-			19,20,21,22,23,24,
-			25,26,27,28,29,30,
-			31,32,33,34,35,36,
+			1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
+			2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9,
 		};
 
 		fvector_t w =
 		{
-			1, 2, 3, 
-			4, 5, 6,
-			7, 8, 9,
-			11, 12, 13,
-			14, 15, 16,
-			17, 18, 19,
-			0,
+			1.1, 1.2, 1.3, 1.4, 
+			2.1, 2.2, 2.3, 2.4,
+			3.1, 3.2, 3.3, 3.4,
+			4.1, 4.2, 4.3, 4.4,
+			5.1, 5.2, 5.3, 5.4,
+			6.1, 6.2, 6.3, 6.4,
+			0.1, 0.2, 0.3,
 		};
 
-		XConvolutionLayer layer{ 6, 6, 2 , 3 , 3 , 1 };
+		XConvolutionLayer layer{ 3, 3, 2 , 2 , 2 , 3 };
 		fvector_t output;
-		output.resize(4 * 4 * 1);
+		output.resize(2 * 2 * 3);
 		XNetworkContext ctx{ true };
 		std::vector<fvector_t*> outputs = { &output };
 
@@ -81,15 +209,14 @@ namespace NR
 
 		layer.SetWeights(w);
 		fvector_t prevDelta;
-		prevDelta.resize(6 * 6 * 2);
+		prevDelta.resize(3 * 3 * 2);
 		fvector_t gradWeights;
 		gradWeights.resize(w.size());
 		fvector_t delta =
 		{
 			0.1, 0.2, 0.3, 0.4,
 			0.5, 0.6, 0.7, 0.8,
-			0.9, 1.0, 1.1, 1.2,
-			1.3, 1.4, 1.5, 1.6,
+			1.1, 1.2, 1.3, 1.4,
 		};
 		std::vector<fvector_t*> prevDeltas = { &prevDelta };
 
@@ -98,20 +225,29 @@ namespace NR
 
 
 		NNConv2DLayer layer2;
-		layer2.init(IntVector3(6, 6, 2), 3, 1);
+		layer2.init(IntVector3(3, 3, 2), 2, 3);
 		layer2.weightOffset = 0;
-		layer2.biasOffset = 18;
-
-		int inputSize[] = { 6, 6 };
- 		NNScalar output2[4 * 4];
-		NNScalar gradWeights2[19] = { 0 };
-		NNScalar prevDelta2[6 * 6 * 2];
+		layer2.biasOffset = layer2.getWeightLength();
 
 
-		FNNAlgo::Forward(layer2, w.data(), input.data(), output2);
+		fvector_t w2 =
+		{
+			1.1, 1.2, 1.3, 1.4,
+			3.1, 3.2, 3.3, 3.4,
+			5.1, 5.2, 5.3, 5.4,
+			2.1, 2.2, 2.3, 2.4,
+			4.1, 4.2, 4.3, 4.4,
+			6.1, 6.2, 6.3, 6.4,
+			0.1, 0.2, 0.3,
+		};
+
+ 		NNScalar output2[2 * 2 * 3];
+		NNScalar gradWeights2[30] = { 0 };
+		NNScalar prevDelta2[3 * 3 * 2];
+
+		FNNAlgo::Forward(layer2, w2.data(), input.data(), output2);
 		FNNAlgo::BackwardWeight(layer2, input.data(), output2, delta.data(), gradWeights2);
-		FNNAlgo::BackwardLoss(layer2, w.data(), delta.data(), prevDelta2);
-
+		FNNAlgo::BackwardLoss(layer2, w2.data(), delta.data(), prevDelta2);
 
 		XAveragePooling layerB{ 6, 6, 2, 2 };
 		fvector_t deltaB =
@@ -257,6 +393,43 @@ namespace NR
 		int mOutputOffsets[32];
 		int mNumLayer = 0;
 		int mMaxOutputLength = 0;
+
+		static void Randomize(NNConv2DLayer const& layer, TArrayView<NNScalar> parameters)
+		{
+			NNScalar* pWeight = parameters.data() + layer.weightOffset;
+			NNScalar* pBias = parameters.data() + layer.biasOffset;
+
+			float halfRange = sqrt(3.0f / (layer.dataSize[0] * layer.dataSize[1] * layer.inputSize.z));
+			int numWeights = layer.getWeightLength();
+			for (int i = 0; i < numWeights; ++i)
+			{
+				pWeight[i] = (static_cast<float_t>(rand()) / RAND_MAX) * (float_t(2) * halfRange) - halfRange;
+			}
+			for (int i = 0; i < layer.numNode; ++i)
+			{
+				pBias[i] = 0;
+			}
+		}
+
+		static void Randomize(NNLinearLayer const& layer, TArrayView<NNScalar> parameters)
+		{
+			NNScalar* pWeight = parameters.data() + layer.weightOffset;
+			NNScalar* pBias = parameters.data() + layer.biasOffset;
+
+			float_t halfRange = sqrt(float_t(3) / layer.inputLength);
+
+			for (int i = 0, n = layer.getWeightLength(); i < n; ++i)
+			{
+				pWeight[i] = (static_cast<float_t>(rand()) / RAND_MAX) * (float_t(2) * halfRange) - halfRange;
+			}
+			for (int i = 0; i < layer.numNode; ++i)
+			{
+				pBias[i] = 0;
+			}
+
+		}
+
+
 	};
 
 	struct Model : public NNSequenceLayer
@@ -304,6 +477,16 @@ namespace NR
 		NNLinearLayer layer7;
 
 		NNTransformLayer layerReLU;
+
+
+		void randomize(TArrayView<NNScalar> parameters)
+		{
+			Randomize(layer1, parameters);
+			Randomize(layer2, parameters);
+			Randomize(layer4, parameters);
+			Randomize(layer5, parameters);
+			Randomize(layer7, parameters);
+		}
 
 
 		int getParameterLength() const
@@ -377,7 +560,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[7];
-			FNNAlgo::Backward(layerReLU, layer5.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer5.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -387,7 +570,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[5];
-			FNNAlgo::Backward(layerReLU, layer4.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer4.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -402,7 +585,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[2];
-			FNNAlgo::Backward(layerReLU, layer2.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer2.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -412,7 +595,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[0];
-			FNNAlgo::Backward(layerReLU, layer1.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer1.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -430,7 +613,7 @@ namespace NR
 	{
 		ModelB(int const imageSize[], int numCategory)
 		{
-			layerReLU.setFuncionT< NNFunc::WeakReLU >();
+			layerReLU.setFuncionT< NNFunc::LeakyReLU >();
 
 			//28
 			layer1.init(IntVector3(imageSize[0], imageSize[1], 1), 5, 6);
@@ -471,47 +654,13 @@ namespace NR
 
 		NNTransformLayer layerReLU;
 
-		static void Randomize(NNConv2DLayer const& layer, TArrayView<NNScalar> parameters)
-		{
-			NNScalar* pWeight = parameters.data() + layer.weightOffset;
-			NNScalar* pBias = parameters.data() + layer.biasOffset;
-
-			float halfRange = sqrt(3.0f / (layer.dataSize[0] * layer.dataSize[1] * layer.inputSize.z));
-			int numWeights = layer.getWeightLength();
-			for (int i = 0; i < numWeights; ++i)
-			{
-				pWeight[i] = (static_cast<float_t>(rand()) / RAND_MAX) * (float_t(2) * halfRange) - halfRange;
-			}
-			for (int i = 0; i < layer.numNode; ++i)
-			{
-				pBias[i] = 0;
-			}
-		}
-
-		static void Randomize(NNLinearLayer const& layer, TArrayView<NNScalar> parameters, int numInput)
-		{
-			NNScalar* pWeight = parameters.data() + layer.weightOffset;
-			NNScalar* pBias = parameters.data() + layer.biasOffset;
-
-			float_t halfRange = sqrt(float_t(3) / numInput);
-
-			for (int i = 0, n = numInput * layer.numNode; i < n; ++i)
-			{
-				pWeight[i] = (static_cast<float_t>(rand()) / RAND_MAX) * (float_t(2) * halfRange) - halfRange;
-			}
-			for (int i = 0; i < layer.numNode; ++i)
-			{
-				pBias[i] = 0;
-			}
-
-		}
 
 		void randomize(TArrayView<NNScalar> parameters)
 		{
 			Randomize(layer1, parameters);
 			Randomize(layer3, parameters);
 			Randomize(layer5, parameters);
-			Randomize(layer6, parameters, layer5.getOutputLength());
+			Randomize(layer6, parameters);
 		}
 
 		int getParameterLength() const
@@ -581,7 +730,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[6];
-			FNNAlgo::Backward(layerReLU, layer4.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer4.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -596,7 +745,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[3];
-			FNNAlgo::Backward(layerReLU, layer3.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer3.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -611,7 +760,7 @@ namespace NR
 
 			pOutput = pInput;
 			pInput = inOutputs + mOutputOffsets[0];
-			FNNAlgo::Backward(layerReLU, layer1.getOutputLength(), pInput, pLossGrad);
+			FNNAlgo::Backward(layerReLU, layer1.getOutputLength(), pInput, pOutput, pLossGrad);
 
 			std::swap(pOutputLossGrad, pLossGrad);
 			pOutput = pInput;
@@ -621,6 +770,26 @@ namespace NR
 			{
 				FNNAlgo::BackwardLoss(layer1, parameters, pOutputLossGrad, outLossGrads);
 			}
+		}
+	};
+
+
+
+
+
+	class TestThread : public RunnableThreadT< TestThread >
+	{
+	public:
+		unsigned run()
+		{
+			Test_C_ATTL3();
+			return 0;
+		}
+
+		bool init() { return true; }
+		void exit() 
+		{
+			delete this;
 		}
 	};
 
@@ -639,6 +808,10 @@ namespace NR
 		{
 			if (!BaseClass::onInit())
 				return false;
+
+
+			auto thread = new TestThread();
+			thread->start();
 
 			TestANNT();
 			Test();
@@ -684,7 +857,7 @@ namespace NR
 		TArray< SampleData* > mTrainSamples;
 		TArray< SampleData* > mTestSamples;
 		TArray< SampleData* > mOrderedSamples;
-		ModelB mModel;
+		Model mModel;
 		AdamOptimizer mOptimizer;
 
 
@@ -797,14 +970,15 @@ namespace NR
 
 		struct TrainData
 		{
-
 			TArray< NNScalar > outputs;
 			TArray< NNScalar > lossGrads;
 			TArray< NNScalar > parameterGrads;
 			TArray< NNScalar > batchNormParameters;
 			NNScalar loss;
 			int count;
-			void init(ModelB& model, int batchSize = 1)
+
+			template< typename TModel >
+			void init(TModel& model, int batchSize = 1)
 			{
 				batchSize = 1;
 				outputs.resize(batchSize * model.getPassOutputLength());
@@ -820,7 +994,7 @@ namespace NR
 			}
 
 		};
-		bool bAutoTrain = true;
+		bool bAutoTrain = false;
 		TrainData mMainData;
 		void initParameters()
 		{
@@ -837,12 +1011,9 @@ namespace NR
 #endif
 		}
 
-
-
 		NNScalar fit(SampleData const& sample, TrainData& trainData)
 		{
 			NNScalar const* pOutput = mModel.forward(mParameters.data(), sample.image.data(), trainData.outputs.data());
-
 
 			int index = FNNMath::Max(mModel.getOutputLength(), pOutput);
 			if (index == sample.label)
@@ -850,9 +1021,7 @@ namespace NR
 				++trainData.count;
 			}
 
-
 			NNScalar lossGrads[10];
-
 			NNScalar loss = 0;
 			for (int i = 0; i < mModel.getOutputLength(); ++i)
 			{
@@ -933,8 +1102,10 @@ namespace NR
 
 				for (int i = 0; i < numBatch; ++i)
 				{
+					auto pSample = mOrderedSamples.data() + i * BatchSize;
 					int numSample = Math::Min<int>(mOrderedSamples.size() - i * BatchSize, BatchSize);
-					float loss = trainBatch(TArrayView<SampleData*>(mOrderedSamples.data() + i * BatchSize, numSample));
+
+					float loss = trainBatch(TArrayView<SampleData*>(pSample, numSample));
 					LogMsg("%d %d: Loss = %f, %d / %d", mEpoch, i, loss, mMainData.count, numSample);
 
 					if (timeLimit > 0)

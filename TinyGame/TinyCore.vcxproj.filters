@@ -36,6 +36,12 @@
     <Filter Include="CurveBuilder\Backend">
       <UniqueIdentifier>{c489f894-49a0-4253-a85c-c0d88aa0047c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\ANNT">
+      <UniqueIdentifier>{22ca1d2d-e54f-4cd1-a6a3-1b57bf983c37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\Lua">
+      <UniqueIdentifier>{cf6929d6-ab51-49db-8603-254a45573a1b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TinyCore\DataTransfer.h">
@@ -164,6 +170,243 @@
     <ClInclude Include="CurveBuilder\Backend\Assembler.h">
       <Filter>CurveBuilder\Backend</Filter>
     </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Types\Types.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Types\XAlignedAllocator.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\ANNT.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Config.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\CostFunctions\ICostFunction.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\CostFunctions\XAbsoluteCost.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\CostFunctions\XBinaryCrossEntropyCost.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\CostFunctions\XCrossEntropyCost.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\CostFunctions\XMSECost.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\CostFunctions\XNegativeLogLikelihoodCost.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\IActivationLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XEluActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XLeakyReLuActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XLogSoftMaxActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XReLuActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XSigmoidActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XSoftMaxActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Activations\XTanhActivation.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\ILayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\ITrainableLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\LayerIDs.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Processing\IProcessingLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Processing\XAveragePooling.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Processing\XBatchNormalization.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Processing\XDropOutLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\Processing\XMaxPooling.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\XConvolutionLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\XFullyConnectedLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\XGRULayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\XLSTMLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Layers\XRecurrentLayer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Network\XClassificationTrainingHelper.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Network\XNetworkContext.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Network\XNetworkInference.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Network\XNetworkTraining.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Network\XNeuralNetwork.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\INetworkOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\XAdagradOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\XAdamOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\XGradientDescentOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\XMomentumOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\XNesterovMomentumOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Neuro\Optimizers\XRMSpropOptimizer.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\IVectorTools.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XAvxVectorTools.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XCpu.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XDataEncodingTools.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XParallel.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XSseVectorTools.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XVectorize.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ANNT\Tools\XVectorTools.hpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\ltm.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lua.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lua.hpp">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\luaconf.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lualib.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lundump.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lvm.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lzio.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lapi.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lauxlib.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lcode.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lctype.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\ldebug.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\ldo.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lfunc.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lgc.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\ljumptab.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\llex.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\llimits.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lmem.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lobject.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lopcodes.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lopnames.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lparser.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lprefix.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lstate.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\lstring.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Lua\ltable.h">
+      <Filter>OtherLib\Lua</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -261,6 +504,162 @@
     </ClCompile>
     <ClCompile Include="CurveBuilder\Backend\FPUCode.cpp">
       <Filter>CurveBuilder\Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Types\XAlignedAllocator.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\ANNT.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Layers\XConvolutionLayer.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Layers\XFullyConnectedLayer.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Layers\XGRULayer.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Layers\XLSTMLayer.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Layers\XRecurrentLayer.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Network\XClassificationTrainingHelper.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Network\XNetworkContext.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Network\XNetworkInference.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Network\XNetworkTraining.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Neuro\Network\XNeuralNetwork.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Tools\XAvxVectorTools.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Tools\XCpu.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Tools\XDataEncodingTools.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Tools\XSseVectorTools.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Tools\XVectorize.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ANNT\Tools\XVectorTools.cpp">
+      <Filter>OtherLib\ANNT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ltm.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lua.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\luac.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lundump.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lutf8lib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lvm.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lzio.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lapi.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lauxlib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lbaselib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lcode.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lcorolib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lctype.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ldblib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ldebug.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ldo.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ldump.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lfunc.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lgc.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\linit.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\liolib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\llex.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lmathlib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lmem.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\loadlib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lobject.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lopcodes.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\loslib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lparser.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lstate.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lstring.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\lstrlib.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ltable.c">
+      <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Lua\ltablib.c">
+      <Filter>OtherLib\Lua</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

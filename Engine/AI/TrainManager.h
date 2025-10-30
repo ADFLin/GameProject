@@ -45,7 +45,7 @@ namespace AI
 		~TrainAgent();
 
 		int index;
-		FCNeuralNetwork FNN;
+		NNFullConLayout const* pModel;
 		GenotypePtr     genotype;
 		NNScalar*       signals = nullptr;
 		AgentEntity*    entity = nullptr;
@@ -53,11 +53,23 @@ namespace AI
 		void init(NNFullConLayout const& layout);
 		void setGenotype(GenotypePtr  inGenotype);
 		void randomizeData(NNRand& random);
+
+
+		void inference(NNScalar const inputs[], NNScalar outputs[])
+		{
+			pModel->inference(genotype->data.data(), inputs, outputs);
+		}
+		void inferenceSignal(NNScalar const inInputs[], NNScalar outSignals[])
+		{
+			FNNMath::VectorCopy(pModel->getInputNum(), inInputs, outSignals);
+			NNScalar* outActivations = outSignals + pModel->getInputNum();
+			pModel->inferenceSignal(genotype->data.data(), inInputs, outActivations);
+		}
 	};
 
 	struct TrainDataSetting
 	{
-		NNFullConLayout* netLayout;
+		NNFullConLayout* pModel;
 
 		int    numAgents;
 		uint64 initWeightSeed;
@@ -71,7 +83,7 @@ namespace AI
 
 		TrainDataSetting()
 		{
-			netLayout = nullptr;
+			pModel = nullptr;
 
 			numAgents = 200;
 			initWeightSeed = 0;
@@ -206,7 +218,7 @@ namespace AI
 		TrainDataSetting& getDataSetting() { return setting.dataSetting; }
 
 		void stopAllWork();
-		NNFullConLayout& getNetLayout() { return mNNLayout; }
+		NNFullConLayout& getModel() { return mModel; }
 
 
 		static void OutputData(NNFullConLayout const& layout, GenePool const& pool, IStreamSerializer& serializer);
@@ -219,7 +231,7 @@ namespace AI
 	private:
 		
 		TArray< std::unique_ptr<TrainWork> > mWorks;
-		NNFullConLayout mNNLayout;
+		NNFullConLayout mModel;
 		Mutex    mPoolMutex;
 		GenePool mGenePool;
 		QueueThreadPool  mWorkRunPool;

@@ -101,7 +101,6 @@ namespace TwentyFortyEight
 		return StaticOffsets[dir];
 	}
 
-
 	struct GameState
 	{
 		int step;
@@ -840,35 +839,35 @@ namespace TwentyFortyEight
 
 				int parameterOffset = 0;
 				mFeatureLayer.init(parameterOffset, topology);
-				mFeatureLayer.setHiddenLayerTransform<NNFunc::WeakReLU>();
-				mFeatureLayer.setOutputLayerTransform<NNFunc::WeakReLU>();
+				mFeatureLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
+				mFeatureLayer.setOutputLayerTransform<NNFunc::LeakyReLU>();
 				parameterOffset += mFeatureLayer.getParameterLength();
 
 				uint32 const topologyValue[] = { len * num, len * num, AtomCount };
 				mValueLayer.init(parameterOffset, topologyValue);
-				mValueLayer.setHiddenLayerTransform<NNFunc::WeakReLU>();
+				mValueLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				mValueLayer.setOutputLayerTransform<NNFunc::Linear>();
 				parameterOffset += mValueLayer.getParameterLength();
 
 				uint32 const topologyAction[] = { len * num, len * num, ActionNum * AtomCount };
 				mActionLayer.init(parameterOffset, topologyAction);
-				mActionLayer.setHiddenLayerTransform<NNFunc::WeakReLU>();
+				mActionLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				mActionLayer.setOutputLayerTransform<NNFunc::Linear>();
 			}
 
-			void forwardFeedback(
-				NNScalar const* parameters,
+			void inference(
+				NNScalar const parameters[],
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
 				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
-				mFeatureLayer.forwardFeedback(parameters, inputs, featureOutputs);
+				mFeatureLayer.inference(parameters, inputs, featureOutputs);
 
 				NNScalar value;
-				mValueLayer.forwardFeedback(parameters, featureOutputs, &value);
+				mValueLayer.inference(parameters, featureOutputs, &value);
 
 				NNScalar actionValues[ActionNum];
-				mActionLayer.forwardFeedback(parameters, featureOutputs, actionValues);
+				mActionLayer.inference(parameters, featureOutputs, actionValues);
 
 				NNScalar mean = FNNMath::Sum(ActionNum, actionValues) / ActionNum;
 
@@ -880,7 +879,7 @@ namespace TwentyFortyEight
 
 
 			NNScalar* forward(
-				NNScalar const* parameters,
+				NNScalar const parameters[],
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
@@ -907,7 +906,7 @@ namespace TwentyFortyEight
 			}
 
 			void backward(
-				NNScalar const* parameters,
+				NNScalar const parameters[],
 				NNScalar const inInputs[],
 				NNScalar const inOutputs[],
 				NNScalar const inOutputLossGrads[],
@@ -997,7 +996,7 @@ namespace TwentyFortyEight
 				uint32 const topology[] = { len * 2, 300, 300, 200, 200, 100, 100, ActionNum * AtomCount };
 #endif
 				init(topology);
-				setHiddenLayerTransform<NNFunc::WeakReLU>();
+				setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				setOutputLayerTransform<NNFunc::Linear>();
 #if DQN_DISTRIBUTION
 
@@ -1014,22 +1013,22 @@ namespace TwentyFortyEight
 
 #if DQN_DISTRIBUTION
 
-			void forwardFeedback(
-				NNScalar const* parameters,
+			void inference(
+				NNScalar const parameters[],
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
 				NNScalar* pDistOutput = (NNScalar*)alloca(sizeof(NNScalar) * NNFullConLayout::getOutputLength());
-				forwardFeedback(parameters, inputs, outputs, pDistOutput);
+				inference(parameters, inputs, outputs, pDistOutput);
 			}
 
-			void forwardFeedback(
-				NNScalar const* parameters,
+			void inference(
+				NNScalar const parameters[],
 				NNScalar const inputs[],
 				NNScalar outputs[],
 				NNScalar outDist[]) const
 			{
-				NNFullConLayout::forwardFeedback(parameters, inputs, outDist);
+				NNFullConLayout::inference(parameters, inputs, outDist);
 
 				NNScalar* pActionDist = outDist;
 				for (int i = 0; i < ActionNum; ++i)
@@ -1041,11 +1040,11 @@ namespace TwentyFortyEight
 			}
 
 			void forwardDistribution(
-				NNScalar const* parameters,
+				NNScalar const parameters[],
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
-				NNFullConLayout::forwardFeedback(parameters, inputs, outputs);
+				NNFullConLayout::inference(parameters, inputs, outputs);
 
 				NNScalar* pActionDsitributionOutput = outputs;
 				for (int i = 0; i < ActionNum; ++i)
@@ -1058,7 +1057,7 @@ namespace TwentyFortyEight
 			static constexpr int ActionNum = 4;
 
 			NNScalar* forward(
-				NNScalar const* parameters,
+				NNScalar const parameters[],
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
@@ -1077,7 +1076,7 @@ namespace TwentyFortyEight
 			}
 
 			void backward(
-				NNScalar const* parameters,
+				NNScalar const parameters[],
 				NNScalar const inInputs[],
 				NNScalar const inOutputs[],
 				NNScalar const inOutputLossGrads[],
@@ -1224,7 +1223,7 @@ namespace TwentyFortyEight
 			NNScalar evalMaxActionValue(State const& state)
 			{
 				NNScalar outputs[4];
-				mModel->forwardFeedback(parameters.data(), (NNScalar const*)&state, outputs);
+				mModel->inference(parameters.data(), (NNScalar const*)&state, outputs);
 				int index = FNNMath::Max(4, outputs);
 				return outputs[index];
 			}
@@ -1232,7 +1231,7 @@ namespace TwentyFortyEight
 			static NNScalar EvalMaxActionValue(NetworkModel const& model, NNScalar const* parameters, State const& state)
 			{
 				NNScalar outputs[4];
-				model.forwardFeedback(parameters, (NNScalar const*)&state, outputs);
+				model.inference(parameters, (NNScalar const*)&state, outputs);
 
 				int index = FNNMath::Max(4, outputs);
 				return outputs[index];
@@ -1242,19 +1241,19 @@ namespace TwentyFortyEight
 			static NNScalar EvalActionValue(NetworkModel const& model, NNScalar const* parameters, State const& state, Action const& action)
 			{
 				NNScalar outputs[4];
-				model.forwardFeedback(parameters, (NNScalar const*)&state, outputs);
+				model.inference(parameters, (NNScalar const*)&state, outputs);
 				return outputs[action.playDir];
 			}
 
 			void evalActionValues(State const& state, NNScalar outValues[])
 			{
-				mModel->forwardFeedback(parameters.data(),(NNScalar const*)&state, outValues);
+				mModel->inference(parameters.data(),(NNScalar const*)&state, outValues);
 			}
 
 #if DQN_DISTRIBUTION
 			void evalActionValues(State const& state, NNScalar outValues[], NNScalar outDist[])
 			{
-				mModel->forwardFeedback(parameters.data(), (NNScalar const*)&state, outValues, outDist);
+				mModel->inference(parameters.data(), (NNScalar const*)&state, outValues, outDist);
 			}
 #endif
 
@@ -1267,7 +1266,7 @@ namespace TwentyFortyEight
 			NNScalar evalActionValue(State const& state, Action const& action)
 			{
 				NNScalar outputs[4];
-				mModel->forwardFeedback(parameters.data(), (NNScalar const*)&state, outputs);
+				mModel->inference(parameters.data(), (NNScalar const*)&state, outputs);
 				return outputs[action.playDir];
 			}
 

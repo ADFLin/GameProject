@@ -8,14 +8,12 @@
 class NeuralNetworkRenderer
 {
 public:
-	NeuralNetworkRenderer(FCNeuralNetwork& inFNN)
-		:FNN(inFNN)
+	NeuralNetworkRenderer(NNFullConLayout const& model)
+		:model(model)
 	{
 
 
 	}
-
-
 
 	void draw(IGraphics2D& g);
 
@@ -33,24 +31,35 @@ public:
 	}
 	Vector2 getInputNodePos(int idx)
 	{
-		int numInput = FNN.getLayout().getInputNum();
+		int numInput = model.getInputNum();
 		float offsetY = getOffsetY(idx, numInput);
 		return basePos + Vector2(0, offsetY);
 	}
 	Vector2 getLayerNodePos(int idxLayer, int idxNode)
 	{
-		NNLinearLayer const& layer = FNN.getLayout().getLayer(idxLayer);
+		NNLinearLayer const& layer = model.getLayer(idxLayer);
 		float offsetY = getOffsetY(idxNode, layer.numNode);
 		return basePos + Vector2((idxLayer + 1) * layerOffset, offsetY);
 	}
 
 	NNScalar* signals = nullptr;
+
+	NNScalar* parameters = nullptr;
 	bool bShowSignalLink = true;
 	float scaleFactor = 1.5;
 	float layerOffset = scaleFactor * 40;
 	float nodeOffset = scaleFactor * 30;
 	Vector2 basePos = Vector2(0, 0);
-	FCNeuralNetwork& FNN;
+	NNFullConLayout const& model;
+
+
+	NNScalar* getWeights(int idxLayer, int idxNode)
+	{
+		NNLinearLayer const& layer = model.mLayers[idxLayer];
+		NNScalar* result = parameters + layer.weightOffset;
+		result += idxNode * model.getLayerInputNum(idxLayer);
+		return result;
+	}
 };
 
 #endif // NeuralNetworkRenderer_H_0DFFC412_8BC2_45DD_BCFE_8A6C1E8816DE

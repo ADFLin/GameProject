@@ -230,9 +230,9 @@ namespace CarTrain
 		mLevelData->setup(mWorld);
 
 
-		mNNLayout.init(AgentCarEntiy::Topology);
+		mModel.init(AgentCarEntiy::Topology);
 
-		mTrainSettings.netLayout = &mNNLayout;
+		mTrainSettings.pModel = &mModel;
 		mTrainSettings.initWeightSeed = GenerateRandSeed();
 		mTrainSettings.numAgents = 200;
 		mTrainSettings.numTrainDataSelect = 25;
@@ -274,7 +274,7 @@ namespace CarTrain
 
 		if (serializer.open(InlineString<>::Make(CARTRAIN_DIR"/%s.data", name)))
 		{
-			TrainManager::OutputData(mNNLayout, mGenePool, serializer);
+			TrainManager::OutputData(mModel, mGenePool, serializer);
 			LogMsg("Save Train Pool %s Success", name);
 		}
 		else
@@ -288,7 +288,7 @@ namespace CarTrain
 		InputFileSerializer serializer;
 		if (serializer.open(InlineString<>::Make(CARTRAIN_DIR"/%s.data", name)))
 		{
-			TrainManager::IntputData(mNNLayout, mGenePool, serializer);
+			TrainManager::IntputData(mModel, mGenePool, serializer);
 			LogMsg("Load Train Pool  %s Success", name);
 		}
 		else

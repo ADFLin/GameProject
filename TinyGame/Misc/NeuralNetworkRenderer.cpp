@@ -19,8 +19,7 @@ int NeuralNetworkRenderer::getValueColor(NNScalar value)
 
 void NeuralNetworkRenderer::draw(IGraphics2D& g)
 {
-	NNFullConLayout const& NNLayout = FNN.getLayout();
-	for (int i = 0; i < NNLayout.getInputNum(); ++i)
+	for (int i = 0; i < model.getInputNum(); ++i)
 	{
 		Vector2 pos = getInputNodePos(i);
 		RenderUtility::SetPen(g, EColor::Black);
@@ -28,12 +27,12 @@ void NeuralNetworkRenderer::draw(IGraphics2D& g)
 		drawNode(g, pos);
 	}
 
-	int idxSignal = NNLayout.getInputNum();
+	int idxSignal = model.getInputNum();
 	int idxPrevLayerSignal = 0;
-	for (int i = 0; i <= NNLayout.getHiddenLayerNum(); ++i)
+	for (int i = 0; i <= model.getHiddenLayerNum(); ++i)
 	{
-		NNLinearLayer const& layer = NNLayout.getLayer(i);
-		int numNodeWeight = NNLayout.getLayerInputNum(i);
+		NNLinearLayer const& layer = model.getLayer(i);
+		int numNodeWeight = model.getLayerInputNum(i);
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{
 			Vector2 pos = getLayerNodePos(i, idxNode);
@@ -48,7 +47,7 @@ void NeuralNetworkRenderer::draw(IGraphics2D& g)
 			}
 			drawNode(g, pos);
 
-			NNScalar* weights = FNN.getWeights(i, idxNode);
+			NNScalar* weights = getWeights(i, idxNode);
 			for (int n = 0; n < numNodeWeight; ++n)
 			{
 				Vector2 prevPos = (i == 0) ? getInputNodePos(n) : getLayerNodePos(i - 1, n);

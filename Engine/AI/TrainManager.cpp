@@ -17,19 +17,18 @@ namespace AI
 		}
 	}
 
-	void TrainAgent::init(NNFullConLayout const& layout)
+	void TrainAgent::init(NNFullConLayout const& model)
 	{
-		FNN.init(layout);
+		pModel = &model;
 		GenotypePtr pGT = std::make_shared<Genotype>();
-		pGT->data.resize(layout.getParameterLength());
+		pGT->data.resize(model.getParameterLength());
 		setGenotype(pGT);
 	}
 
 	void TrainAgent::setGenotype(GenotypePtr inGenotype)
 	{
-		assert(FNN.getLayout().getParameterLength() == inGenotype->data.size());
+		CHECK(pModel->getParameterLength() == inGenotype->data.size());
 		genotype = inGenotype;
-		FNN.setParamsters(inGenotype->data);
 	}
 
 
@@ -42,19 +41,19 @@ namespace AI
 	{
 		setting = &inSetting;
 
-		NNFullConLayout& netLayout = *inSetting.netLayout;
+		NNFullConLayout& model = *inSetting.pModel;
 		assert(setting->numAgents > 0);
 		generation = 0;
 		for( int i = 0; i < setting->numAgents; ++i )
 		{
 			auto pAgent = std::make_unique< TrainAgent >();
-			pAgent->init(netLayout);
+			pAgent->init(model);
 			pAgent->index = i;
 			pAgent->randomizeData(GA.mRand);
 			mAgents.push_back(std::move(pAgent));
 		}
-		FCNeuralNetwork& FNN = mAgents[0]->FNN;
-		mSignals.resize(netLayout.getSignalNum());
+
+		mSignals.resize(model.getSignalNum());
 	}
 
 	void TrainData::findBestAgnet()
@@ -76,7 +75,7 @@ namespace AI
 
 	void TrainData::usePoolData(GenePool& pool)
 	{
-		NNFullConLayout const& netLayout = *setting->netLayout;
+		NNFullConLayout const& model = *setting->pModel;
 
 		assert( setting->numAgents == pool.getDataSet().size() );
 		if( mAgents.size() != setting->numAgents )
@@ -91,7 +90,7 @@ namespace AI
 				for( int i = 0; i < numNewAgents; ++i )
 				{
 					auto pAgent = std::make_unique< TrainAgent >();
-					pAgent->init(netLayout);
+					pAgent->init(model);
 					mAgents.push_back(std::move(pAgent));
 				}
 			}
@@ -172,7 +171,7 @@ namespace AI
 
 	void TrainData::inputData(IStreamSerializer::ReadOp& op)
 	{
-		NNFullConLayout const& netLayout = *setting->netLayout;
+		NNFullConLayout const& model = *setting->pModel;
 		int numAgentData;
 		op & numAgentData;
 
@@ -190,7 +189,7 @@ namespace AI
 				op & gt->data;
 
 				auto pAgent = std::make_unique< TrainAgent >();
-				pAgent->FNN.init(netLayout);
+				pAgent->pModel = &model;
 				pAgent->setGenotype(gt);
 				mAgents.push_back(std::move(pAgent));
 			}
@@ -326,9 +325,9 @@ namespace AI
 	void TrainManager::init(TrainWorkSetting const& inSetting, uint32 topology[], uint32 numTopology)
 	{
 		setting = inSetting;
-		setting.dataSetting.netLayout = &mNNLayout;
+		setting.dataSetting.pModel = &mModel;
 		mGenePool.maxPoolNum = setting.masterPoolNum;
-		mNNLayout.init(TArrayView<uint32 const>(topology, numTopology));
+		mModel.init(TArrayView<uint32 const>(topology, numTopology));
 		mWorkRunPool.init(setting.numWorker);
 
 		for (int i = 0; i < setting.numWorker; ++i)
@@ -371,7 +370,7 @@ namespace AI
 
 		TArray<uint32> topology;
 		op & topology;
-		mNNLayout.init( TArrayView<uint32 const>(&topology[0], topology.size()) );
+		mModel.init( TArrayView<uint32 const>(&topology[0], topology.size()) );
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -414,7 +413,7 @@ namespace AI
 		IStreamSerializer::WriteOp op(serializer);
 
 		TArray<uint32> topology;
-		mNNLayout.getTopology(topology);
+		mModel.getTopology(topology);
 		op & topology;
 
 		{

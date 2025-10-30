@@ -399,7 +399,7 @@ namespace AR
 		{
 		}
 
-
+#define REORDER_WEIGHT 1
 		TArray< NNScalar > mParamters;
 		template< typename TKernel >
 		void addParamT(NNConv2DLayer& inoutlayer, TArrayView<NNScalar> parameters)
@@ -415,13 +415,16 @@ namespace AR
 			NNScalar const* pCopyParams = parameters.data();
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
-				for (int n = 0; n < inoutlayer.inputSize.z; ++n)
+				for (int i = 0; i < inoutlayer.inputSize.z; ++i)
 				{
 					NNScalar temp[TKernel::WeightSize * TKernel::ConvSize];
 					FNNMath::MatrixMulMatrix(TKernel::WeightSize, TKernel::ConvSize, TKernel::G, TKernel::ConvSize, pCopyParams, temp);
+#if REORDER_WEIGHT
+					FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, pWeight + weightLen * (i * inoutlayer.numNode + idxNode));
+#else
 					FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, pWeight);
-
 					pWeight += weightLen;
+#endif
 					pCopyParams += TKernel::ConvSize * TKernel::ConvSize;
 				}
 
@@ -433,9 +436,9 @@ namespace AR
 
 		void addParam(NNConv2DLayer& inoutlayer, TArrayView<NNScalar> parameters)
 		{
-			if (inoutlayer.convSize == 3 && (inoutlayer.dataSize[0] % 2) == 0 && false)
+			if (inoutlayer.convSize == 3 && (inoutlayer.dataSize[0] % 2) == 0)
 			{
-				if ((inoutlayer.dataSize[0] % 4) == 0)
+				if ((inoutlayer.dataSize[0] % 4) == 0 && false)
 				{
 					addParamT<WinogradKernel43>(inoutlayer, parameters);
 					inoutlayer.fastMethod = NNConv2DLayer::eF43;
@@ -464,9 +467,18 @@ namespace AR
 			NNScalar const* pCopyParams = parameters.data();
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
+#if REORDER_WEIGHT
+				for (int i = 0; i < inoutlayer.inputSize.z; ++i)
+				{
+					FMemory::Copy(pWeight + convLen * (i * inoutlayer.numNode + idxNode), pCopyParams, convLen * sizeof(NNScalar));
+					pCopyParams += convLen;
+				}
+#else
 				FMemory::Copy(pWeight, pCopyParams, nodeWeightLen * sizeof(NNScalar));
 				pWeight += nodeWeightLen;
 				pCopyParams += nodeWeightLen;
+#endif
+
 
 				*pBias = *pCopyParams;
 				pBias += 1;
@@ -490,8 +502,15 @@ namespace AR
 
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
+#if REORDER_WEIGHT
+				for (int i = 0; i < inoutlayer.inputLength; ++i)
+				{
+					pWeight[i * inoutlayer.numNode + idxNode] = pCopyParams[i];
+				}
+#else
 				FMemory::Copy(pWeight, pCopyParams, inoutlayer.inputLength * sizeof(NNScalar));
 				pWeight += inoutlayer.inputLength;
+#endif
 				pCopyParams += inoutlayer.inputLength;
 
 				*pBias = *pCopyParams;

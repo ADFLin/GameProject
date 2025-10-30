@@ -101,7 +101,7 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		int size = 64;
-		uint32 topology[] = { 1, size,  2 * size, size , 2 * size, size, 1 };
+		uint32 topology[] = { 1, size,  2 * size, 2 * size, size, 1 };
 		mLayout.init(topology);
 		mLayout.setHiddenLayerTransform<NNFunc::ReLU>();
 		mLayout.setOutputLayerTransform<NNFunc::Linear>();
@@ -365,7 +365,7 @@ public:
 		for (auto const& sample : mTestSamples)
 		{
 			NNScalar outputs[1];
-			mLayout.forwardFeedback(mParameters.data(), &sample.input, outputs);
+			mLayout.inference(mParameters.data(), &sample.input, outputs);
 			lossTest += LossFunc::Calc(outputs[0], sample.label);
 		}
 		lossTest /= mTestSamples.size();
@@ -416,7 +416,7 @@ public:
 			NNScalar inputs[1];
 			inputs[0] = x * mInputScale;
 			NNScalar outputs[1];
-			mLayout.forwardFeedback(mParameters.data(), inputs, outputs);
+			mLayout.inference(mParameters.data(), inputs, outputs);
 			return outputs[0];
 		});
 	}

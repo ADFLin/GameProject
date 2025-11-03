@@ -16,9 +16,13 @@
 #include "Lua/lua.h"
 #include "Lua/lauxlib.h"
 #include "Lua/lualib.h"
+#include "Lua/lstate.h"
+#include "Lua/lopcodes.h"
+
 #include "DataStructure/Grid2D.h"
 #include "Math/TVector2.h"
 #include "Meta/MetaBase.h"
+
 
 
 namespace TFWR
@@ -54,11 +58,6 @@ namespace TFWR
 	void Move(lua_State* L)
 	{
 		int dir = luaL_checkinteger(L, 1);
-	}
-
-	void LuaHook(lua_State* L, lua_Debug *ar)
-	{
-		lua_yield(L, 0);
 	}
 
 	luaL_Reg CustomLib[] =
@@ -209,6 +208,10 @@ namespace TFWR
 			{
 				arg = lua_tointeger(L, index);
 			}
+			else if constexpr (std::is_enum_v<T>)
+			{
+				arg = (T)lua_tointeger(L, index);
+			}
 			else if constexpr (std::is_floating_point_v<T>)
 			{
 				arg = lua_tonumber(L, index);
@@ -285,10 +288,12 @@ namespace TFWR
 			PushValue(L, std::forward<T>(value));
 		}
 
-		template< typename T >
-		static void PushValue(lua_State* L, T&& value)
+		template< typename Q >
+		static void PushValue(lua_State* L, Q&& value)
 		{
-			if constexpr (std::is_integral_v<T>)
+			using T = std::remove_reference_t<Q>;
+
+			if constexpr (std::is_integral_v<T> || std::is_enum_v<T> )
 			{
 				lua_pushinteger(L, value);
 			}
@@ -591,34 +596,7 @@ namespace TFWR
 	};
 
 
-	class Drone;
-	class GameState;
 
-	struct ExecutionContext
-	{
-		GameState* game;
-		Drone* drone;
-		int iTicks;
-	};
-
-
-	ExecutionContext* GExecContext = nullptr;
-
-	struct ScopedExecutionContext : ExecutionContext
-	{
-		ScopedExecutionContext()
-		{
-			prevContext = GExecContext;
-			GExecContext = this;
-		}
-
-
-		~ScopedExecutionContext()
-		{
-			GExecContext = prevContext;
-		}
-		ExecutionContext* prevContext;
-	};
 
 	class Drone
 	{
@@ -662,12 +640,6 @@ namespace TFWR
 	constexpr int TicksPerSecond = 400;
 
 
-	struct MapTile
-	{
-		Ground* ground;
-		Entity* plant;
-		float  growValue;
-	};
 
 	enum EItem
 	{
@@ -677,11 +649,27 @@ namespace TFWR
 		COUNT,
 	};
 
-	class Item
+	enum EGround
 	{
-
-
+		Grassland,
+		Soil,
 	};
+
+
+	struct MapTile
+	{
+		EGround ground;
+		Entity* plant;
+		float  growValue;
+
+		void reset()
+		{
+			ground = EGround::Grassland;
+			plant = nullptr;
+			growValue = 0;
+		}
+	};
+
 
 	class SimplePlantEntity : public Entity
 	{
@@ -696,7 +684,7 @@ namespace TFWR
 		}
 
 
-		Item* production;
+		EItem production;
 	};
 
 	class CodeFile
@@ -714,6 +702,155 @@ namespace TFWR
 		South,
 	};
 
+	using ScriptHandle = lua_State*;
+
+
+	class Drone;
+	class GameState;
+
+	struct ExecutionContext
+	{
+		GameState* game;
+		Drone* drone;
+		int iTicks;
+	};
+
+
+	ExecutionContext* GExecContext = nullptr;
+
+	struct ScopedExecutionContext : ExecutionContext
+	{
+		ScopedExecutionContext()
+		{
+			prevContext = GExecContext;
+			GExecContext = this;
+		}
+
+		~ScopedExecutionContext()
+		{
+			GExecContext = prevContext;
+		}
+		ExecutionContext* prevContext;
+	};
+
+
+#define OP_CODE_LIST(op)\
+	op(OP_MOVE)\
+	op(OP_LOADI)\
+	op(OP_LOADF)\
+	op(OP_LOADK)\
+	op(OP_LOADKX)\
+	op(OP_LOADFALSE)\
+	op(OP_LFALSESKIP)\
+	op(OP_LOADTRUE)\
+	op(OP_LOADNIL)\
+	op(OP_GETUPVAL)\
+	op(OP_SETUPVAL)\
+	op(OP_GETTABUP)\
+	op(OP_GETTABLE)\
+	op(OP_GETI)\
+	op(OP_GETFIELD)\
+	op(OP_SETTABUP)\
+	op(OP_SETTABLE)\
+	op(OP_SETI)\
+	op(OP_SETFIELD)\
+	op(OP_NEWTABLE)\
+	op(OP_SELF)\
+	op(OP_ADDI)\
+	op(OP_ADDK)\
+	op(OP_SUBK)\
+	op(OP_MULK)\
+	op(OP_MODK)\
+	op(OP_POWK)\
+	op(OP_DIVK)\
+	op(OP_IDIVK)\
+	op(OP_BANDK)\
+	op(OP_BORK)\
+	op(OP_BXORK)\
+	op(OP_SHRI)\
+	op(OP_SHLI)\
+	op(OP_ADD)\
+	op(OP_SUB)\
+	op(OP_MUL)\
+	op(OP_MOD)\
+	op(OP_POW)\
+	op(OP_DIV)\
+	op(OP_IDIV)\
+	op(OP_BAND)\
+	op(OP_BOR)\
+	op(OP_BXOR)\
+	op(OP_SHL)\
+	op(OP_SHR)\
+	op(OP_MMBIN)\
+	op(OP_MMBINI)\
+	op(OP_MMBINK)\
+	op(OP_UNM)\
+	op(OP_BNOT)\
+	op(OP_NOT)\
+	op(OP_LEN)\
+	op(OP_CONCAT)\
+	op(OP_CLOSE)\
+	op(OP_TBC)\
+	op(OP_JMP)\
+	op(OP_EQ)\
+	op(OP_LT)\
+	op(OP_LE)\
+	op(OP_EQK)\
+	op(OP_EQI)\
+	op(OP_LTI)\
+	op(OP_LEI)\
+	op(OP_GTI)\
+	op(OP_GEI)\
+	op(OP_TEST)\
+	op(OP_TESTSET)\
+	op(OP_CALL)\
+	op(OP_TAILCALL)\
+	op(OP_RETURN)\
+	op(OP_RETURN0)\
+	op(OP_RETURN1)\
+	op(OP_FORLOOP)\
+	op(OP_FORPREP)\
+	op(OP_TFORPREP)\
+	op(OP_TFORCALL)\
+	op(OP_TFORLOOP)\
+	op(OP_SETLIST)\
+	op(OP_CLOSURE)\
+	op(OP_VARARG)\
+	op(OP_VARARGPREP)\
+	op(OP_EXTRAARG)\
+
+	struct FScriptAPI
+	{
+
+		static void Wait(int waitTicks)
+		{
+			GExecContext->iTicks -= waitTicks;
+		}
+
+		static void LuaHook(lua_State* L, lua_Debug *ar)
+		{
+			const Instruction* pc = L->ci->u.l.savedpc;
+			int op = *(pc - 1);
+			if (op != OP_CALL && op != OP_TAILCALL && op != OP_TFORCALL)
+			{
+				--GExecContext->iTicks;
+			}
+			if (GExecContext->iTicks <= 0)
+			{
+				GExecContext->drone->iTicksWait -= GExecContext->iTicks;
+				lua_yield(L, 0);
+			}
+#if 0
+#define CASE_OP(op) case op: LogMsg(#op); break;
+			switch (GET_OPCODE(*(pc - 1)))
+			{
+				OP_CODE_LIST(CASE_OP)
+			}
+#endif
+		}
+	};
+
+
 	class GameState
 	{
 	public:
@@ -722,6 +859,8 @@ namespace TFWR
 		{
 			mItems.resize(EItem::COUNT, 0);
 		}
+
+		void init();
 
 		void release()
 		{
@@ -740,9 +879,15 @@ namespace TFWR
 
 		void reset()
 		{
+			for (auto& tile : mTiles)
+			{
+				tile.reset();
+			}
 
-
-
+			for (auto drone : mDrones)
+			{
+				drone->reset();
+			}
 		}
 
 		void update(float deltaTime)
@@ -761,48 +906,58 @@ namespace TFWR
 
 		void update(Drone& drone, float deltaTime, float fTicks)
 		{	
-			ScopedExecutionContext context;
-			context.drone = &drone;
-			context.game = this;
-			context.iTicks = Math::FloorToInt(drone.fTicksAcc);
-
+			if (drone.mExecL == nullptr)
+			{
+				return;
+			}
 			drone.fTicksAcc += fTicks;
-			
-			if (context.iTicks == 0)
+			int iTicks = Math::FloorToInt(drone.fTicksAcc);
+
+			if (iTicks == 0)
 				return;
 
-			drone.fTicksAcc -= context.iTicks;
+			drone.fTicksAcc -= iTicks;
 
 			bool bExecStep = true;
 			if (drone.iTicksWait > 0)
 			{
-				if (context.iTicks >= drone.iTicksWait)
+				if (iTicks >= drone.iTicksWait)
 				{
-					context.iTicks -= drone.iTicksWait;
+					iTicks -= drone.iTicksWait;
 					drone.iTicksWait = 0;
 				}
 				else
 				{
-					drone.iTicksWait -= context.iTicks;
-					context.iTicks = 0;
+					drone.iTicksWait -= iTicks;
 					bExecStep = false;
 				}
 			}
+
 			if (bExecStep)
 			{
+				ScopedExecutionContext context;
+				context.drone = &drone;
+				context.game = this;
+				context.iTicks = iTicks;
+
 				int nres;
 				int status = lua_resume(drone.mExecL, mMainL, 0, &nres);
 
 				if (status == LUA_YIELD)
 				{
+
 				}
 				else if (status == LUA_OK)
 				{
+					drone.mExecL = nullptr;
+					drone.fTicksAcc = 0;
+					drone.iTicksWait = 0;
 				}
 				else
 				{
-
-
+					drone.mExecL = nullptr;
+					drone.fTicksAcc = 0;
+					drone.iTicksWait = 0;
 				}
 			}
 		}
@@ -903,46 +1058,27 @@ namespace TFWR
 	};
 
 
-	namespace GameAPI
+	struct FGameAPI : FScriptAPI
 	{
-
-
-		void Wait(int waitTicks)
-		{
-			GExecContext->iTicks -= waitTicks;
-		}
-
-
-		void LuaHook(lua_State* L, lua_Debug *ar)
-		{
-			//const Instruction* pc = L->ci->u.l.savedpc;
-			--GExecContext->iTicks;
-			if (GExecContext->iTicks <= 0)
-			{
-				GExecContext->drone->iTicksWait -= GExecContext->iTicks;
-				lua_yield(L, 0);
-			}
-		}
-
-		void till()
+		static void till()
 		{
 			GExecContext->game->till(*GExecContext->drone);
 			Wait(200);
 		}
-		bool harvest()
+		static bool harvest()
 		{
 			bool bSuccess = GExecContext->game->harvest(*GExecContext->drone);
 			Wait(bSuccess ? 200 : 1);
 			return bSuccess;
 		}
 
-		bool can_harvest()
+		static bool can_harvest()
 		{
 			Wait(1);
 			return GExecContext->game->canHarvest(*GExecContext->drone);
 		}
 
-		bool plant(Entity* entity)
+		static bool plant(Entity* entity)
 		{
 			bool bSuccess = false;
 			if (entity)
@@ -954,58 +1090,84 @@ namespace TFWR
 			return bSuccess;
 		}
 
-		int get_pos_x()
+		static int get_pos_x()
 		{
 			Wait(1);
 			return GExecContext->drone->pos.x;
 		}
-		int get_pos_y()
+
+		static int get_pos_y()
 		{
 			Wait(1);
 			return GExecContext->drone->pos.y;
 		}
 
-		void Register(lua_State* L)
+		static int  get_world_size()
+		{
+			Wait(1);
+			return GExecContext->game->mTiles.getSizeX();
+		}
+
+
+		//static bool move(EDirection direction)
+		static bool move(int direction)
+		{
+			bool bSuccess = GExecContext->game->move(*GExecContext->drone, (EDirection)direction);
+			Wait(bSuccess ? 200 : 1);
+			return bSuccess;
+		}
+
+		static void Register(lua_State* L)
 		{
 #define REGISTER(FUNC_NAME)\
 	FLuaBinding::Register(L, #FUNC_NAME, FUNC_NAME)
 
 
+			REGISTER(move);
 			REGISTER(till);
 			REGISTER(harvest);
 			REGISTER(can_harvest);
 			REGISTER(plant);
 			REGISTER(get_pos_x);
 			REGISTER(get_pos_y);
+			REGISTER(get_world_size);
 
 #undef REGISTER
 		}
 
-		lua_State* CreateGameState()
+		static lua_State* CreateGameState()
 		{
 			lua_State* L = luaL_newstate();
 			luaL_openlibs(L);
 			LoadLib(L);
 			Register(L);
+			FLuaBinding::Register(L, "TestFunc", TestFunc);
 			return L;
 		}
 
-		lua_State* CreateExecuteState(lua_State* gameL, char const* fileName)
+		static lua_State* CreateExecuteState(lua_State* gameL, char const* fileName)
 		{
 			InlineString<> path;
-			path.format("TFWR/%s", fileName);
+			path.format("TFWR/%s.lua", fileName);
 			lua_State* L = lua_newthread(gameL);
 			lua_sethook(L, LuaHook, LUA_MASKCOUNT, 1);
 			luaL_loadfile(L, path.c_str());
 			return L;
 		}
-	}
+	};
 
+
+	void GameState::init()
+	{
+		mMainL = FGameAPI::CreateGameState();
+		mTiles.resize(3, 3);
+		reset();
+	}
 
 	Drone* GameState::createDrone(CodeFile& file)
 	{
 		Drone* drone = new Drone;
-		drone->mExecL = GameAPI::CreateExecuteState(mMainL, file.name.c_str());
+		drone->mExecL = FGameAPI::CreateExecuteState(mMainL, file.name.c_str());
 		drone->reset();
 
 		mDrones.push_back(drone);
@@ -1024,25 +1186,28 @@ namespace TFWR
 
 		GameState mGmae;
 		
-		lua_State* mMainL;
-		lua_State* mExecL;
+
+		CodeFile codeFile;
+
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
 				return false;
+
+
+
+
 			::Global::GUI().cleanupWidget();
 
+			codeFile.name = "Test";
 
-			mMainL = luaL_newstate();
-			luaL_openlibs(mMainL);
-			LoadLib(mMainL);
-			FLuaBinding::Register(mMainL, "TestFunc", TestFunc);
+			mGmae.init();
+			mGmae.createDrone(codeFile);
 
 
-			mExecL = lua_newthread(mMainL);
-
-			lua_sethook(mExecL, LuaHook, LUA_MASKLINE, 1);
-			luaL_loadfile(mExecL, "TFWR/Test.lua");
+			Vector2 lookPos = 0.5 *  Vector2(mGmae.mTiles.getSize());
+			mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, -1), ::Global::GetScreenSize().x / 10.0f);
+			mScreenToWorld = mWorldToScreen.inverse();
 
 			restart();
 			return true;
@@ -1050,8 +1215,7 @@ namespace TFWR
 
 		void onEnd() override
 		{
-			lua_close(mMainL);
-			BaseClass::onEnd();
+
 		}
 
 		void restart() {}
@@ -1059,7 +1223,12 @@ namespace TFWR
 		void onUpdate(GameTimeSpan deltaTime) override
 		{
 			BaseClass::onUpdate(deltaTime);
+			mGmae.update(deltaTime);
 		}
+
+
+		RenderTransform2D mWorldToScreen;
+		RenderTransform2D mScreenToWorld;
 
 		void onRender(float dFrame) override
 		{
@@ -1067,13 +1236,41 @@ namespace TFWR
 			auto screenSize = ::Global::GetScreenSize();
 
 			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.0, 0.0, 0.0, 0.0), 1);
+			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 0.0), 1);
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-
 			g.beginRender();
-			RenderUtility::SetBrush(g, EColor::White);
+
+			g.pushXForm();
+			g.transformXForm(mWorldToScreen, true);
+
+			g.setTextRemoveRotation(true);
+			g.setTextRemoveScale(true);
+
+			RenderUtility::SetPen(g, EColor::Black);
+			for (int j = 0; j < mGmae.mTiles.getSizeY(); ++j)
+			{
+				for (int i = 0; i < mGmae.mTiles.getSizeX(); ++i)
+				{
+					auto const& tile = mGmae.getTile(Vec2i(i,j));
+
+					RenderUtility::SetBrush(g, tile.ground == EGround::Grassland ? EColor::Green : EColor::Brown, COLOR_LIGHT);
+					g.drawRect(Vector2(i,j), Vector2(1,1));
+					//g.drawTextF(Vector2(i,j), Vector2(1,1), "P = %d, G = %f", ;
+				}
+			}
+
+
+			RenderUtility::SetBrush(g, EColor::Yellow);
+			for (auto drone : mGmae.mDrones)
+			{
+				g.drawCircle( drone->pos + Vector2(0.5,0.5), 0.3 );
+			}
+
+			g.popXForm();
+
+
 			g.endRender();
 		}
 
@@ -1082,27 +1279,6 @@ namespace TFWR
 			return BaseClass::onMouse(msg);
 		}
 
-		bool executeStep()
-		{
-			int nres;
-			int status = lua_resume(mExecL, mMainL, 0, &nres);
-			
-			if (status == LUA_YIELD)
-			{
-				return true;
-			}
-			else if (status == LUA_OK) 
-			{
-				return false;
-			}
-			else 
-			{
-
-
-			}
-
-			return false;
-		}
 		MsgReply onKey(KeyMsg const& msg) override
 		{
 			if (msg.isDown())
@@ -1110,10 +1286,6 @@ namespace TFWR
 				switch (msg.getCode())
 				{
 				case EKeyCode::R: restart(); break;
-				case EKeyCode::Z:
-					{
-						executeStep();
-					}
 				}
 			}
 			return BaseClass::onKey(msg);

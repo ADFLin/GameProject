@@ -16,10 +16,15 @@
 #include "Lua/lua.h"
 #include "Lua/lauxlib.h"
 #include "Lua/lualib.h"
+#include "DataStructure/Grid2D.h"
+#include "Math/TVector2.h"
+#include "Meta/MetaBase.h"
 
 
 namespace TFWR
 {
+	typedef TVector2<int> Vec2i;
+
 	using namespace Render;
 	int Print(lua_State* L)
 	{
@@ -51,7 +56,7 @@ namespace TFWR
 		int dir = luaL_checkinteger(L, 1);
 	}
 
-	void LuaHook(lua_State *L, lua_Debug *ar)
+	void LuaHook(lua_State* L, lua_Debug *ar)
 	{
 		lua_yield(L, 0);
 	}
@@ -68,6 +73,275 @@ namespace TFWR
 		luaL_setfuncs(L, CustomLib, 0);
 		lua_pop(L, 1);
 	}
+
+	int TestFunc(float a, int b, float& c)
+	{
+		c = 2 * a + b;
+		return a + b;
+	}
+
+	template<typename T>
+	constexpr bool IsOutputValue = (std::is_pointer_v<T> || std::is_reference_v<T>) && !std::is_const_v<T> && (::Meta::IsPrimary< std::remove_reference_t< std::remove_cv_t<T>> >::Value);
+
+	struct FLuaBinding
+	{
+		template< typename RT, typename ...TArgs >
+		static void Register(lua_State* L, char const* name, RT(*funcPtr)(TArgs...))
+		{
+			lua_getglobal(L, "_G");
+			lua_pushlightuserdata(L, funcPtr);
+			lua_pushcclosure(L, &StaticFunc< RT, TArgs...>, 1);
+			lua_setfield(L, -2, name);
+			lua_pop(L, 1);
+		}
+
+
+		template< typename RT, typename ...TArgs, typename ...TUpValues >
+		static void Register(lua_State* L, char const* name, RT(*funcPtr)(TArgs...), TUpValues ...upValuses)
+		{
+			lua_getglobal(L, "_G");
+			lua_pushlightuserdata(L, funcPtr);
+			lua_pushcclosure(L, &StaticFunc< RT, TArgs...>, 1);
+			PushValues(L, std::forward<TUpValues>(upValues)...);
+			lua_setfield(L, -(2 + sizeof...(TUpValues)), name);
+			lua_pop(L, 1);
+		}
+
+		template< typename RT, typename ...TArgs >
+		static int StaticFunc(lua_State* L)
+		{
+			using MyFunc = RT(*)(TArgs...);
+			MyFunc funcPtr = (MyFunc)lua_touserdata(L, lua_upvalueindex(1));
+			return Invoke<0, RT, TArgs...>(L, funcPtr, 1);
+		}
+
+		template< typename RT, typename T, typename ...TArgs >
+		struct TMemberFuncCallable
+		{
+			using MyFunc = RT(T::*)(TArgs...);
+			MyFunc funcPtr;
+			T* obj;
+
+			template< typename ...Ts >
+			auto operator()(Ts&& ...ts)
+			{
+				if (obj == nullptr)
+					return RT();
+
+				return (obj->*funcPtr)(std::forward<Ts>(ts)...);
+			}
+		};
+
+		template< typename RT, typename T, typename ...TArgs >
+		static int MemberFunc(lua_State* L)
+		{
+			using MyFunc = RT(T::*)(TArgs...);
+			TMemberFuncCallable callable;
+			callable.obj = LoadObjectPtr(L, 1);
+			callable.funcPtr = (MyFunc)lua_touserdata(L, lua_upvalueindex(1));
+			return Invoke<0, RT, TArgs...>(L, callable, 2);
+		}
+
+		template< int NumUpValues, typename RT, typename ...TArgs, typename TCallable >
+		static int Invoke(lua_State* L, TCallable callable, int index)
+		{
+			int numOutput = 0;
+			if constexpr (sizeof...(TArgs) > 0)
+			{
+				std::tuple< std::remove_reference_t< std::remove_cv_t<TArgs>>... > args;
+				LoadArgs< TArgs... >(L, args, index);
+				if constexpr (std::is_same_v< RT, void >)
+				{
+					std::apply(funcPtr, args);
+				}
+				else
+				{
+					RT result = std::apply(callable, args);
+					PushValue(L, result);
+					numOutput += 1;
+				}
+				numOutput += PushArgOutputs< TArgs... >(L, args);
+			}
+			else
+			{
+				if constexpr (std::is_same_v< RT, void >)
+				{
+					callable();
+				}
+				else
+				{
+					RT result = callable();
+					PushValue(L, result);
+					numOutput += 1;
+				}
+			}
+
+			return numOutput;
+		}
+
+		template< typename ...TArgs , typename T >
+		static void LoadArgs(lua_State* L, T& args, int index = 1)
+		{
+			LoadArgsImpl< 0, TArgs... >(L, args, index);
+		}
+
+		template< int ArgIndex , typename TArg, typename ...TArgs, typename T>
+		static void LoadArgsImpl(lua_State* L, T& args, int index)
+		{
+			index += LoadArg< TArg >(L, std::get<ArgIndex>(args), index);
+			LoadArgsImpl< ArgIndex + 1, TArgs...>(L, args, index);
+		}
+
+		template< int ArgIndex, typename T>
+		static void LoadArgsImpl(lua_State* L, T& args, int index)
+		{
+		}
+
+		template< typename TArg, typename T >
+		static int LoadArg(lua_State* L, T& arg, int index)
+		{
+			if constexpr (IsOutputValue<TArg>)
+			{
+				return 0;
+			}
+
+			if constexpr (std::is_integral_v<T>)
+			{
+				arg = lua_tointeger(L, index);
+			}
+			else if constexpr (std::is_floating_point_v<T>)
+			{
+				arg = lua_tonumber(L, index);
+			}
+			else
+			{
+				arg = T();
+			}
+
+			return 1;
+		}
+
+		template< typename T >
+		static T* LoadObjectPtr(lua_State* L, int index)
+		{
+			if (!lua_isuserdata(L, index))
+			{
+				return nullptr;
+			}
+
+			return (T*)lua_touserdata(L, index);
+		}
+
+		template< typename ...TArgs, typename T>
+		static int PushArgOutputs(lua_State* L, T& args)
+		{
+			return PushArgOutputsImpl<0, TArgs...>(L, args);
+		}
+
+		template< int ArgIndex, typename TArg, typename ...TArgs, typename T>
+		static int PushArgOutputsImpl(lua_State* L, T& args)
+		{
+			int numOutput = PushArgOutput< TArg >(L, std::get<ArgIndex>(args));
+			numOutput += PushArgOutputsImpl<ArgIndex + 1, TArgs...>(L, args);
+			return numOutput;
+		}
+
+		template< int ArgIndex, typename T>
+		static int PushArgOutputsImpl(lua_State* L, T& args)
+		{
+			return 0;
+		}
+
+
+		template< typename TArg, typename T >
+		static int PushArgOutput(lua_State* L, T const& arg)
+		{
+			if constexpr (!IsOutputValue<TArg>)
+			{
+				return 0;
+			}
+
+			PushValue(L, arg);
+			return 1;
+		}
+
+
+		template< typename ...TValues>
+		static void PushValues(lua_State* L, TValues&& ...values)
+		{
+			PushValuesImpl(L, std::forward<T>(values)...);
+		}
+
+		template< typename T, typename ...TValues >
+		static void PushValuesImpl(lua_State* L, T&& value, TValues&& ...values)
+		{
+			PushValue(L, std::forward<T>(value));
+			PushValuesImpl(L, std::forward<T>(values)...);
+		}
+
+		template< typename T>
+		static void PushValuesImpl(lua_State* L, T& value)
+		{
+			PushValue(L, std::forward<T>(value));
+		}
+
+		template< typename T >
+		static void PushValue(lua_State* L, T&& value)
+		{
+			if constexpr (std::is_integral_v<T>)
+			{
+				lua_pushinteger(L, value);
+			}
+			else if constexpr (std::is_floating_point_v<T>)
+			{
+				lua_pushnumber(L, value);
+			}
+			else
+			{
+				lua_pushnil(L);
+			}
+		}
+
+	};
+
+	class LuaBindingCollector
+	{
+		template< typename T >
+		void beginClass(char const* name)
+		{
+
+
+		}
+
+		template< typename T, typename TBase >
+		void addBaseClass()
+		{
+
+
+		}
+
+		template< typename T, typename P >
+		void addProperty(P(T::*memberPtr), char const* name)
+		{
+
+
+
+		}
+
+		template< typename T, typename P, typename ...TMeta >
+		void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta)
+		{
+
+		}
+
+		void endClass()
+		{
+
+
+
+		}
+
+	};
 
 	struct TestData
 	{
@@ -87,10 +361,10 @@ namespace TFWR
 	{
 		typedef struct { T *pT; } userdataType;
 	public:
-		typedef int (T::*mfp)(lua_State *L);
+		typedef int (T::*mfp)(lua_State* L);
 		typedef struct { const char *name; mfp mfunc; } RegType;
 
-		static void Register(lua_State *L)
+		static void Register(lua_State* L)
 		{
 			lua_newtable(L);
 			int methods = lua_gettop(L);
@@ -135,16 +409,8 @@ namespace TFWR
 			lua_pop(L, 2);  // drop metatable and method table
 		}
 
-		static void Register(lua_State *L)
-		{
-			lua_pushstring(L, l->name);
-			lua_pushlightuserdata(L, (void*)l);
-			lua_pushcclosure(L, thunk, 1);
-			lua_settable(L, methods);
-		}
-
 		// call named lua method from userdata method table
-		static int call(lua_State *L, const char *method,
+		static int call(lua_State* L, const char *method,
 			int nargs = 0, int nresults = LUA_MULTRET, int errfunc = 0)
 		{
 			int base = lua_gettop(L) - nargs;  // userdata index
@@ -179,7 +445,7 @@ namespace TFWR
 		}
 
 		// push onto the Lua stack a userdata containing a pointer to T object
-		static int push(lua_State *L, T *obj, bool gc = false)
+		static int push(lua_State* L, T *obj, bool gc = false)
 		{
 			if (!obj) { lua_pushnil(L); return 0; }
 			luaL_getmetatable(L, T::className);  // lookup metatable in Lua registry
@@ -209,7 +475,7 @@ namespace TFWR
 		}
 
 		// get userdata from Lua stack and return pointer to T object
-		static T *check(lua_State *L, int narg)
+		static T *check(lua_State* L, int narg)
 		{
 			userdataType *ud =
 				static_cast<userdataType*>(luaL_checkudata(L, narg, T::className));
@@ -225,7 +491,7 @@ namespace TFWR
 		Lunar();  // hide default constructor
 
 		// member function dispatcher
-		static int thunk(lua_State *L)
+		static int thunk(lua_State* L)
 		{
 			// stack has userdata, followed by method args
 			T *obj = check(L, 1);  // get 'self', or if you prefer, 'this'
@@ -237,7 +503,7 @@ namespace TFWR
 
 		// create a new T object and
 		// push onto the Lua stack a userdata containing a pointer to T object
-		static int new_T(lua_State *L)
+		static int new_T(lua_State* L)
 		{
 			lua_remove(L, 1);   // use classname:new(), instead of classname.new()
 			T *obj = new T(L);  // call constructor for T objects
@@ -246,7 +512,7 @@ namespace TFWR
 		}
 
 		// garbage collection metamethod
-		static int gc_T(lua_State *L)
+		static int gc_T(lua_State* L)
 		{
 			if (luaL_getmetafield(L, 1, "do not trash")) 
 			{
@@ -260,7 +526,7 @@ namespace TFWR
 			return 0;
 		}
 
-		static int tostring_T(lua_State *L)
+		static int tostring_T(lua_State* L)
 		{
 			char buff[32];
 			userdataType *ud = static_cast<userdataType*>(lua_touserdata(L, 1));
@@ -271,14 +537,18 @@ namespace TFWR
 			return 1;
 		}
 
-		static void set(lua_State *L, int table_index, const char *key)
+		static void set(lua_State* L, int table_index, const char *key)
 		{
+#if 0
+			lua_setfield(L, table_index key);
+#else
 			lua_pushstring(L, key);
 			lua_insert(L, -2);  // swap value and key
 			lua_settable(L, table_index);
+#endif
 		}
 
-		static void weaktable(lua_State *L, const char *mode)
+		static void weaktable(lua_State* L, const char *mode)
 		{
 			lua_newtable(L);
 			lua_pushvalue(L, -1);  // table is its own metatable
@@ -288,7 +558,7 @@ namespace TFWR
 			lua_settable(L, -3);   // metatable.__mode = mode
 		}
 
-		static void subtable(lua_State *L, int tindex, const char *name, const char *mode)
+		static void subtable(lua_State* L, int tindex, const char *name, const char *mode)
 		{
 			lua_pushstring(L, name);
 			lua_gettable(L, tindex);
@@ -303,7 +573,7 @@ namespace TFWR
 			}
 		}
 
-		static void *pushuserdata(lua_State *L, void *key, size_t sz)
+		static void *pushuserdata(lua_State* L, void *key, size_t sz)
 		{
 			void *ud = 0;
 			lua_pushlightuserdata(L, key);
@@ -321,44 +591,428 @@ namespace TFWR
 	};
 
 
-	class LuaBindingCollector
+	class Drone;
+	class GameState;
+
+	struct ExecutionContext
 	{
-		template< typename T >
-		void beginClass(char const* name)
+		GameState* game;
+		Drone* drone;
+		int iTicks;
+	};
+
+
+	ExecutionContext* GExecContext = nullptr;
+
+	struct ScopedExecutionContext : ExecutionContext
+	{
+		ScopedExecutionContext()
 		{
-
-
+			prevContext = GExecContext;
+			GExecContext = this;
 		}
 
-		template< typename T, typename TBase >
-		void addBaseClass()
+
+		~ScopedExecutionContext()
 		{
+			GExecContext = prevContext;
+		}
+		ExecutionContext* prevContext;
+	};
 
+	class Drone
+	{
+	public:
 
+		Drone()
+		{
+			reset();
 		}
 
-		template< typename T, typename P >
-		void addProperty(P(T::*memberPtr), char const* name)
+		void reset()
 		{
-
-
-
+			iTicksWait = 0;
+			fTicksAcc = 0;
+			pos = Vec2i(0, 0);
 		}
 
-		template< typename T, typename P, typename ...TMeta >
-		void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta)
-		{
+		int iTicksWait;
 
-		}
+		float fTicksAcc;
 
-		void endClass()
-		{
+		Vec2i pos;
+		lua_State* mExecL;
+	};
 
+	class Ground
+	{
 
-
-		}
 
 	};
+
+	struct MapTile;
+
+	class Entity
+	{
+	public:
+		virtual ~Entity() = default;
+		virtual void grow(MapTile& tile, float deltaTime, float fTicks) = 0;
+	};
+
+	constexpr int TicksPerSecond = 400;
+
+
+	struct MapTile
+	{
+		Ground* ground;
+		Entity* plant;
+		float  growValue;
+	};
+
+	enum EItem
+	{
+
+
+
+		COUNT,
+	};
+
+	class Item
+	{
+
+
+	};
+
+	class SimplePlantEntity : public Entity
+	{
+
+	public:
+
+		void grow(MapTile& tile, float deltaTime, float fTicks)
+		{
+
+
+
+		}
+
+
+		Item* production;
+	};
+
+	class CodeFile
+	{
+	public:
+		std::string name;
+	};
+
+
+	enum EDirection
+	{
+		East,
+		West,
+		North,
+		South,
+	};
+
+	class GameState
+	{
+	public:
+
+		GameState()
+		{
+			mItems.resize(EItem::COUNT, 0);
+		}
+
+		void release()
+		{
+			if (mMainL)
+			{
+				lua_close(mMainL);
+			}
+
+			for (auto drone : mDrones)
+			{
+				delete drone;
+			}
+			mDrones.clear();
+		}
+
+
+		void reset()
+		{
+
+
+
+		}
+
+		void update(float deltaTime)
+		{
+			float fTicks = deltaTime * TicksPerSecond;
+
+			for (Drone* drone : mDrones)
+			{
+				update(*drone, deltaTime, fTicks);
+			}
+			for (auto& tile : mTiles)
+			{
+				update(tile, deltaTime, fTicks);
+			}
+		}
+
+		void update(Drone& drone, float deltaTime, float fTicks)
+		{	
+			ScopedExecutionContext context;
+			context.drone = &drone;
+			context.game = this;
+			context.iTicks = Math::FloorToInt(drone.fTicksAcc);
+
+			drone.fTicksAcc += fTicks;
+			
+			if (context.iTicks == 0)
+				return;
+
+			drone.fTicksAcc -= context.iTicks;
+
+			bool bExecStep = true;
+			if (drone.iTicksWait > 0)
+			{
+				if (context.iTicks >= drone.iTicksWait)
+				{
+					context.iTicks -= drone.iTicksWait;
+					drone.iTicksWait = 0;
+				}
+				else
+				{
+					drone.iTicksWait -= context.iTicks;
+					context.iTicks = 0;
+					bExecStep = false;
+				}
+			}
+			if (bExecStep)
+			{
+				int nres;
+				int status = lua_resume(drone.mExecL, mMainL, 0, &nres);
+
+				if (status == LUA_YIELD)
+				{
+				}
+				else if (status == LUA_OK)
+				{
+				}
+				else
+				{
+
+
+				}
+			}
+		}
+
+
+		void update(MapTile& tile, float deltaTime, float fTicks)
+		{
+			if (tile.plant)
+			{
+				tile.plant->grow(tile, deltaTime, fTicks);
+			}
+		}
+
+		Drone* createDrone(CodeFile& file);
+
+
+
+		void till(Drone& drone)
+		{
+
+
+
+		}
+
+		bool harvest(Drone& drone)
+		{
+
+			return true;
+		}
+
+		bool canHarvest(Drone& drone)
+		{
+			auto& tile = getTile(drone.pos);
+			if (tile.growValue < 1.0)
+				return false;
+
+			return true;
+
+		}
+
+		bool plant(Drone& drone, Entity& entity)
+		{
+			auto& tile = getTile(drone.pos);
+			if (tile.plant)
+			{
+				return false;
+			}
+
+			tile.plant = &entity;
+			tile.growValue = 0.0;
+		}
+
+		bool move(Drone& drone, EDirection direction)
+		{
+			static Vec2i const moveOffset[] =
+			{
+				Vec2i(1,0),
+				Vec2i(-1,0),
+				Vec2i(0,1),
+				Vec2i(0,-1),
+			};
+
+			Vec2i pos = drone.pos + moveOffset[direction];
+			switch (direction)
+			{
+			case East:
+				if (pos.x >= mTiles.getSizeX())
+					pos.x = 0;
+				break;
+			case West:
+				if (pos.x < 0)
+					pos.x = mTiles.getSizeX() - 1;
+				break;
+			case North:
+				if (pos.y >= mTiles.getSizeY())
+					pos.y = 0;
+				break;
+			case South:
+				if (pos.y < 0)
+					pos.y = mTiles.getSizeY() - 1;
+				break;
+			}
+			drone.pos = pos;
+			return true;
+		}
+
+		MapTile& getTile(Vec2i const& pos)
+		{
+			return mTiles(pos);
+		}
+
+		lua_State* mMainL = nullptr;
+
+		TArray<Drone*> mDrones;
+		TGrid2D<MapTile> mTiles;
+
+		TArray<int> mItems;
+	};
+
+
+	namespace GameAPI
+	{
+
+
+		void Wait(int waitTicks)
+		{
+			GExecContext->iTicks -= waitTicks;
+		}
+
+
+		void LuaHook(lua_State* L, lua_Debug *ar)
+		{
+			//const Instruction* pc = L->ci->u.l.savedpc;
+			--GExecContext->iTicks;
+			if (GExecContext->iTicks <= 0)
+			{
+				GExecContext->drone->iTicksWait -= GExecContext->iTicks;
+				lua_yield(L, 0);
+			}
+		}
+
+		void till()
+		{
+			GExecContext->game->till(*GExecContext->drone);
+			Wait(200);
+		}
+		bool harvest()
+		{
+			bool bSuccess = GExecContext->game->harvest(*GExecContext->drone);
+			Wait(bSuccess ? 200 : 1);
+			return bSuccess;
+		}
+
+		bool can_harvest()
+		{
+			Wait(1);
+			return GExecContext->game->canHarvest(*GExecContext->drone);
+		}
+
+		bool plant(Entity* entity)
+		{
+			bool bSuccess = false;
+			if (entity)
+			{
+				bSuccess = GExecContext->game->plant(*GExecContext->drone, *entity);
+			}
+
+			Wait(bSuccess ? 200 : 1);
+			return bSuccess;
+		}
+
+		int get_pos_x()
+		{
+			Wait(1);
+			return GExecContext->drone->pos.x;
+		}
+		int get_pos_y()
+		{
+			Wait(1);
+			return GExecContext->drone->pos.y;
+		}
+
+		void Register(lua_State* L)
+		{
+#define REGISTER(FUNC_NAME)\
+	FLuaBinding::Register(L, #FUNC_NAME, FUNC_NAME)
+
+
+			REGISTER(till);
+			REGISTER(harvest);
+			REGISTER(can_harvest);
+			REGISTER(plant);
+			REGISTER(get_pos_x);
+			REGISTER(get_pos_y);
+
+#undef REGISTER
+		}
+
+		lua_State* CreateGameState()
+		{
+			lua_State* L = luaL_newstate();
+			luaL_openlibs(L);
+			LoadLib(L);
+			Register(L);
+			return L;
+		}
+
+		lua_State* CreateExecuteState(lua_State* gameL, char const* fileName)
+		{
+			InlineString<> path;
+			path.format("TFWR/%s", fileName);
+			lua_State* L = lua_newthread(gameL);
+			lua_sethook(L, LuaHook, LUA_MASKCOUNT, 1);
+			luaL_loadfile(L, path.c_str());
+			return L;
+		}
+	}
+
+
+	Drone* GameState::createDrone(CodeFile& file)
+	{
+		Drone* drone = new Drone;
+		drone->mExecL = GameAPI::CreateExecuteState(mMainL, file.name.c_str());
+		drone->reset();
+
+		mDrones.push_back(drone);
+		return drone;
+	}
+
+
 
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
@@ -367,6 +1021,8 @@ namespace TFWR
 	public:
 		TestStage() {}
 
+
+		GameState mGmae;
 		
 		lua_State* mMainL;
 		lua_State* mExecL;
@@ -380,6 +1036,8 @@ namespace TFWR
 			mMainL = luaL_newstate();
 			luaL_openlibs(mMainL);
 			LoadLib(mMainL);
+			FLuaBinding::Register(mMainL, "TestFunc", TestFunc);
+
 
 			mExecL = lua_newthread(mMainL);
 

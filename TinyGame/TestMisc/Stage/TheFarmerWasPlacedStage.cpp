@@ -22,6 +22,7 @@
 #include "DataStructure/Grid2D.h"
 #include "Math/TVector2.h"
 #include "Meta/MetaBase.h"
+#include "RandomUtility.h"
 
 
 
@@ -609,7 +610,6 @@ namespace TFWR
 
 		void reset()
 		{
-			iTicksWait = 0;
 			fTicksAcc = 0;
 			pos = Vec2i(0, 0);
 		}
@@ -630,20 +630,62 @@ namespace TFWR
 
 	struct MapTile;
 
+
+	struct UpdateArgs
+	{
+		float deltaTime;
+		float fTicks;
+		float speed;
+	};
+
 	class Entity
 	{
 	public:
 		virtual ~Entity() = default;
-		virtual void grow(MapTile& tile, float deltaTime, float fTicks) = 0;
+		virtual void grow(MapTile& tile, UpdateArgs const& updateArgs) = 0;
+		virtual std::string getDebugInfo(MapTile const& tile) = 0;
 	};
 
 	constexpr int TicksPerSecond = 400;
 
+	namespace EPlant
+	{
+		enum Type
+		{
+			Grass,
+			Bush,
+			Carrots,
+			Tree,
+			Pumpkin,
+			Cactus,
+			Sunflower,
+			Dionsaur,
 
+			COUNT,
+		};
+	}
+
+
+	struct TimeRange
+	{
+		float min;
+		float max;
+	};
+	TimeRange PlantGrowthTimeMap[EPlant::COUNT] =
+	{
+		{ 0.5 , 0.5 },
+		{ 3.2 , 4.8 },
+		{ 4.8 , 7.2 },
+		{ 5.6 , 8.4 },
+		{ 0.2 , 3.8 },
+		{ 0.9 , 1.1 },
+		{ 4.0 , 6.0 },
+		{ 0.18 , 0.22 },
+	};
 
 	enum EItem
 	{
-
+		Hay,
 
 
 		COUNT,
@@ -675,15 +717,29 @@ namespace TFWR
 	{
 
 	public:
-
-		void grow(MapTile& tile, float deltaTime, float fTicks)
+		SimplePlantEntity(EPlant::Type plant, EItem production)
+			:plant(plant), production(production)
 		{
-
-
 
 		}
 
+		void grow(MapTile& tile, UpdateArgs const& updateArgs)
+		{
+			auto growTimeRange = PlantGrowthTimeMap[plant];
+			float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
+			tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
+			if (tile.growValue > 1.0)
+			{
+				tile.growValue = 1.0;
+			}
+		}
 
+		std::string getDebugInfo(MapTile const& tile)
+		{
+			return InlineString<>::Make("%d %f", plant, tile.growValue);
+		}
+
+		EPlant::Type plant;
 		EItem production;
 	};
 
@@ -712,7 +768,6 @@ namespace TFWR
 	{
 		GameState* game;
 		Drone* drone;
-		int iTicks;
 	};
 
 
@@ -822,33 +877,61 @@ namespace TFWR
 	struct FScriptAPI
 	{
 
+		struct OpTickMap
+		{
+			OpTickMap()
+			{
+				std::fill_n(ticks, ARRAY_SIZE(ticks), 0);
+				std::fill_n(ticks, OP_EXTRAARG + 1, 1);
+				ticks[OP_CALL] = 0;
+				ticks[OP_TAILCALL] = 0;
+				ticks[OP_TFORCALL] = 0;
+				ticks[OP_EXTRAARG] = 0;
+			}
+
+			int ticks[1 << SIZE_OP];
+		};
+
 		static void Wait(int waitTicks)
 		{
-			GExecContext->iTicks -= waitTicks;
+			GExecContext->drone->fTicksAcc -= waitTicks;
 		}
 
 		static void LuaHook(lua_State* L, lua_Debug *ar)
 		{
+			static OpTickMap StaticOpTickMap;
+
 			const Instruction* pc = L->ci->u.l.savedpc;
-			int op = *(pc - 1);
-			if (op != OP_CALL && op != OP_TAILCALL && op != OP_TFORCALL)
+			int op = GET_OPCODE(*(pc - 1));
+			GExecContext->drone->fTicksAcc -= StaticOpTickMap.ticks[op];
+			if (GExecContext->drone->fTicksAcc <= 0)
 			{
-				--GExecContext->iTicks;
-			}
-			if (GExecContext->iTicks <= 0)
-			{
-				GExecContext->drone->iTicksWait -= GExecContext->iTicks;
 				lua_yield(L, 0);
 			}
 #if 0
 #define CASE_OP(op) case op: LogMsg(#op); break;
-			switch (GET_OPCODE(*(pc - 1)))
+			switch (op)
 			{
 				OP_CODE_LIST(CASE_OP)
 			}
 #endif
 		}
 	};
+
+	struct EntityLibrary
+	{
+		EntityLibrary()
+			:Grass(EPlant::Grass, EItem::Hay)
+		{
+
+
+
+		}
+
+		SimplePlantEntity Grass;
+	};
+
+	EntityLibrary GEntities;
 
 
 	class GameState
@@ -892,82 +975,76 @@ namespace TFWR
 
 		void update(float deltaTime)
 		{
-			float fTicks = deltaTime * TicksPerSecond;
+			UpdateArgs updateArgs;
+			updateArgs.speed = 1.0f;
+			updateArgs.fTicks = updateArgs.speed * deltaTime * TicksPerSecond;
+			updateArgs.deltaTime = deltaTime;
 
 			for (Drone* drone : mDrones)
 			{
-				update(*drone, deltaTime, fTicks);
+				update(*drone, updateArgs);
 			}
 			for (auto& tile : mTiles)
 			{
-				update(tile, deltaTime, fTicks);
+				update(tile, updateArgs);
 			}
 		}
 
-		void update(Drone& drone, float deltaTime, float fTicks)
+		void update(Drone& drone, UpdateArgs const& updateArgs)
 		{	
 			if (drone.mExecL == nullptr)
 			{
 				return;
 			}
-			drone.fTicksAcc += fTicks;
-			int iTicks = Math::FloorToInt(drone.fTicksAcc);
-
-			if (iTicks == 0)
+			drone.fTicksAcc += updateArgs.fTicks;
+			if (drone.fTicksAcc <= 1.0)
 				return;
 
-			drone.fTicksAcc -= iTicks;
+			ScopedExecutionContext context;
+			context.drone = &drone;
+			context.game = this;
 
-			bool bExecStep = true;
-			if (drone.iTicksWait > 0)
+			int nres;
+			int status = lua_resume(drone.mExecL, mMainL, 0, &nres);
+
+			if (status == LUA_YIELD)
 			{
-				if (iTicks >= drone.iTicksWait)
-				{
-					iTicks -= drone.iTicksWait;
-					drone.iTicksWait = 0;
-				}
-				else
-				{
-					drone.iTicksWait -= iTicks;
-					bExecStep = false;
-				}
+				lua_pop(drone.mExecL, nres);
 			}
-
-			if (bExecStep)
+			else if (status == LUA_OK)
 			{
-				ScopedExecutionContext context;
-				context.drone = &drone;
-				context.game = this;
-				context.iTicks = iTicks;
-
-				int nres;
-				int status = lua_resume(drone.mExecL, mMainL, 0, &nres);
-
-				if (status == LUA_YIELD)
-				{
-
-				}
-				else if (status == LUA_OK)
-				{
-					drone.mExecL = nullptr;
-					drone.fTicksAcc = 0;
-					drone.iTicksWait = 0;
-				}
-				else
-				{
-					drone.mExecL = nullptr;
-					drone.fTicksAcc = 0;
-					drone.iTicksWait = 0;
-				}
+				onExecutionCompleted(drone);
+				lua_pop(drone.mExecL, nres);
+				drone.mExecL = nullptr;
+				drone.fTicksAcc = 0;
+			}
+			else
+			{
+				onExecutionError(drone, lua_tostring(drone.mExecL, -1));
+				drone.mExecL = nullptr;
+				drone.fTicksAcc = 0;
 			}
 		}
 
 
-		void update(MapTile& tile, float deltaTime, float fTicks)
+		void onExecutionCompleted(Drone& drone)
 		{
+
+		}
+		void onExecutionError(Drone& drone, char const* error)
+		{
+			LogWarning(0, "Handle Lua error : %s", error);
+		}
+
+		void update(MapTile& tile, UpdateArgs const& updateArgs)
+		{
+			if (tile.plant == nullptr && tile.ground == EGround::Grassland)
+			{
+				tile.plant = &GEntities.Grass;
+			}
 			if (tile.plant)
 			{
-				tile.plant->grow(tile, deltaTime, fTicks);
+				tile.plant->grow(tile, updateArgs);
 			}
 		}
 
@@ -977,8 +1054,7 @@ namespace TFWR
 
 		void till(Drone& drone)
 		{
-
-
+			auto& tile = getTile(drone.pos);
 
 		}
 
@@ -1257,15 +1333,17 @@ namespace TFWR
 
 					RenderUtility::SetBrush(g, tile.ground == EGround::Grassland ? EColor::Green : EColor::Brown, COLOR_LIGHT);
 					g.drawRect(Vector2(i,j), Vector2(1,1));
-					//g.drawTextF(Vector2(i,j), Vector2(1,1), "P = %d, G = %f", ;
+					if (tile.plant)
+					{
+						g.drawTextF(Vector2(i, j), Vector2(1, 1), tile.plant->getDebugInfo(tile).c_str());
+					}
 				}
 			}
-
 
 			RenderUtility::SetBrush(g, EColor::Yellow);
 			for (auto drone : mGmae.mDrones)
 			{
-				g.drawCircle( drone->pos + Vector2(0.5,0.5), 0.3 );
+				g.drawCircle( Vector2(drone->pos) + Vector2(0.5,0.5), 0.3 );
 			}
 
 			g.popXForm();

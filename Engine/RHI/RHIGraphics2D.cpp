@@ -570,6 +570,23 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 	setBlendState(prevMode);
 }
 
+
+void RHIGraphics2D::drawTextQuad(TArray<Render::FontVertex> const& vertices)
+{
+	if (vertices.empty())
+		return;
+
+	commitRenderState();
+	bool bRemoveScale = false;
+	if (mXFormStack.get().hadSacled())
+	{
+		bRemoveScale = bTextRemoveScale;
+	}
+	auto& element = mElementList.addText(mColorFont, vertices, bRemoveScale, bTextRemoveRotation);
+	setupElement(element);
+}
+
+
 template< typename CharT >
 void RHIGraphics2D::drawTextImpl(float ox, float oy, float scale, CharT const* str, int charCount)
 {

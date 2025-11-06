@@ -192,7 +192,7 @@ namespace Render
 		void  generateVertices(Vector2 const& pos, char const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
 		void  generateVertices(Vector2 const& pos, wchar_t const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
 
-
+		void  generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< FontVertex >& outVertices);
 		void  generateVertices(Vector2 const& pos, char const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 

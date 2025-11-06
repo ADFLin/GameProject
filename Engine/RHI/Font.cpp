@@ -749,6 +749,48 @@ namespace Render
 	}
 
 
+	void FontDrawer::generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< FontVertex >& outVertices)
+	{
+
+		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
+		{
+			Vector2 posMax = pos + size;
+			outVertices.push_back({ pos , uvMin });
+			outVertices.push_back({ Vector2(posMax.x , pos.y) , Vector2(uvMax.x , uvMin.y) });
+			outVertices.push_back({ posMax , uvMax });
+			outVertices.push_back({ Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) });
+		};
+
+		Vector2 curPos = pos;
+		wchar_t prevChar = 0;
+
+		bool bApplyKerning = false;
+		char const* strEnd = line.data() + line.size();
+		char const* str = line.data();
+		while( str < strEnd)
+		{
+			wchar_t c;
+			str += FCharConv< char, wchar_t >::Do(str, &c);
+			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
+
+			if (bApplyKerning)
+			{
+				curPos.x += scale * data.kerning;
+#if 1
+				float kerning;
+				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+				{
+					curPos.x += scale * kerning;
+				}
+#endif
+			}
+
+			AddQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
+			curPos.x += scale * data.advance;
+			bApplyKerning = !FCString::IsSpace(c);
+			prevChar = c;
+		}
+	}
 
 	template< typename CharT >
 	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize)

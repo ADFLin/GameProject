@@ -23,6 +23,10 @@
 #include "Math/TVector2.h"
 #include "Meta/MetaBase.h"
 #include "RandomUtility.h"
+#include "AssetViewer.h"
+#include "FileSystem.h"
+#include "StringParse.h"
+#include "Lua/ldebug.h"
 
 
 
@@ -747,6 +751,19 @@ namespace TFWR
 	{
 	public:
 		std::string name;
+		std::string code;
+
+		InlineString<> getPath()
+		{
+			InlineString<> path;
+			path.format("TFWR/%s.lua", name.c_str());
+			return path;
+		}
+
+		bool loadCode()
+		{
+			return FFileUtility::LoadToString(getPath().c_str(), code);
+		}
 	};
 
 
@@ -768,6 +785,8 @@ namespace TFWR
 	{
 		GameState* game;
 		Drone* drone;
+		int line;
+		int linePrev;
 	};
 
 
@@ -779,6 +798,8 @@ namespace TFWR
 		{
 			prevContext = GExecContext;
 			GExecContext = this;
+			linePrev = 0;
+			line = 0;
 		}
 
 		~ScopedExecutionContext()
@@ -896,9 +917,27 @@ namespace TFWR
 		{
 			GExecContext->drone->fTicksAcc -= waitTicks;
 		}
+		using HookLineFunc = void (*)(StringView fileName, int line);
 
+		static HookLineFunc StaticHookLineFunc;
 		static void LuaHook(lua_State* L, lua_Debug *ar)
 		{
+			if (ar->event == LUA_HOOKLINE)
+			{
+				GExecContext->linePrev = GExecContext->line;
+				GExecContext->line = ar->currentline;
+				auto source = ci_func(ar->i_ci)->p->source;
+				if (source->contents[0] == '@')
+				{
+					auto fileName = StringView(source->contents + 1, (source->shrlen == 0xFF ? source->u.lnglen : source->shrlen) - 1);
+					if (StaticHookLineFunc)
+					{
+						StaticHookLineFunc(fileName, GExecContext->drone->fTicksAcc <= 0 ? GExecContext->linePrev : GExecContext->line);
+					}
+				}
+
+				return;
+			}
 			static OpTickMap StaticOpTickMap;
 
 			const Instruction* pc = L->ci->u.l.savedpc;
@@ -917,6 +956,8 @@ namespace TFWR
 #endif
 		}
 	};
+
+	FScriptAPI::HookLineFunc FScriptAPI::StaticHookLineFunc = nullptr;
 
 	struct EntityLibrary
 	{
@@ -1226,7 +1267,7 @@ namespace TFWR
 			InlineString<> path;
 			path.format("TFWR/%s.lua", fileName);
 			lua_State* L = lua_newthread(gameL);
-			lua_sethook(L, LuaHook, LUA_MASKCOUNT, 1);
+			lua_sethook(L, LuaHook, LUA_MASKCOUNT | LUA_MASKLINE, 1);
 			luaL_loadfile(L, path.c_str());
 			return L;
 		}
@@ -1250,6 +1291,88 @@ namespace TFWR
 		return drone;
 	}
 
+	class CodeEditor;
+
+	class CodeFileAsset : public CodeFile, public IAssetViewer
+	{
+	public:
+
+
+		CodeEditor* editor;
+		int id;
+	};
+	class CodeEditor : public GFrame
+	{
+	public:
+		using BaseClass = GFrame;
+		CodeEditor(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:GFrame(id, pos, size, parent)
+		{
+
+		}
+
+		CodeFile* codeFile;
+
+		void parseCode()
+		{
+			char const* pCode = codeFile->code.c_str();
+
+			while (*pCode != 0)
+			{
+				auto line = FStringParse::StringTokenLine(pCode);
+
+				mCodeLines.push_back(CodeLine());
+				auto& codeLine = mCodeLines.back();
+				mFont->generateLineVertices(Vector2::Zero(), line , 1.0, codeLine.vertices);
+			}
+		}
+		void onRender()
+		{
+			BaseClass::onRender();
+
+			Vec2i pos = getWorldPos();
+
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
+			Vec2i size = getSize();
+
+			g.beginClip(pos, size);
+
+			g.setBlendState(ESimpleBlendMode::Translucent);
+			g.setTexture(mFont->getTexture());
+
+			g.pushXForm();
+			g.translateXForm(pos.x + 5, pos.y + 5);
+			int curline = 1;
+			for (auto const& line : mCodeLines)
+			{
+				if (curline == mExecuteLine)
+				{
+					g.drawRect(Vector2(0, 0), Vector2(size.x, 16));
+					g.setTexture(mFont->getTexture());
+				}
+				g.drawTextQuad(line.vertices);
+				g.translateXForm(0, 16);
+				curline += 1;
+			}
+			g.popXForm();
+
+
+			g.endClip();
+		}
+
+		struct CodeLine
+		{
+			int offset;
+			TArray<FontVertex> vertices;
+		};
+		TArray< CodeLine > mCodeLines;
+		FontDrawer* mFont;
+		int mExecuteLine = -1;
+
+	};
+
+	
+	std::unordered_map<HashString, CodeFileAsset*> GCodeAssetMap;
 
 
 	class TestStage : public StageBase
@@ -1261,9 +1384,16 @@ namespace TFWR
 
 
 		GameState mGmae;
-		
 
-		CodeFile codeFile;
+		static void HookLine(StringView fileName, int line)
+		{
+			auto iter = GCodeAssetMap.find(fileName);
+			if (iter != GCodeAssetMap.end())
+			{
+				CodeFileAsset* asset = iter->second;
+				asset->editor->mExecuteLine = line;
+			}
+		}
 
 		bool onInit() override
 		{
@@ -1275,10 +1405,12 @@ namespace TFWR
 
 			::Global::GUI().cleanupWidget();
 
-			codeFile.name = "Test";
+			auto codeFile = createCodeFile("Test");
+
+			FScriptAPI::StaticHookLineFunc = HookLine;
 
 			mGmae.init();
-			mGmae.createDrone(codeFile);
+			mGmae.createDrone(*codeFile);
 
 
 			Vector2 lookPos = 0.5 *  Vector2(mGmae.mTiles.getSize());
@@ -1300,6 +1432,30 @@ namespace TFWR
 		{
 			BaseClass::onUpdate(deltaTime);
 			mGmae.update(deltaTime);
+		}
+
+		TArray< CodeFileAsset* > mCodeFiles;
+		int mNextCodeId = 0;
+
+		CodeFile* createCodeFile(char const* name)
+		{
+			CodeFileAsset* codeFile = new CodeFileAsset;
+			codeFile->name = name;
+			codeFile->id = mNextCodeId;
+			codeFile->loadCode();
+
+			CodeEditor* editor = new CodeEditor(BaseClass::NEXT_UI_ID + codeFile->id, Vec2i(100, 100), Vec2i(200, 400), nullptr);
+			::Global::GUI().addWidget(editor);
+			codeFile->editor = editor;
+			editor->codeFile = codeFile;
+			editor->mFont = &RenderUtility::GetFontDrawer(FONT_S10);
+			mCodeFiles.push_back(codeFile);
+
+			editor->parseCode();
+
+			GCodeAssetMap.emplace(codeFile->getPath().c_str(), codeFile);
+
+			return codeFile;
 		}
 
 

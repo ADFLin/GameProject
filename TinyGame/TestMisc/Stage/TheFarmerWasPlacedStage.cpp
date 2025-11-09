@@ -2,7 +2,6 @@
 #include "GameRenderSetup.h"
 
 
-
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
@@ -27,6 +26,7 @@
 #include "FileSystem.h"
 #include "StringParse.h"
 #include "Lua/ldebug.h"
+#include <memory>
 
 
 
@@ -59,23 +59,6 @@ namespace TFWR
 
 		LogMsg(output.c_str());
 		return 0;
-	}
-	void Move(lua_State* L)
-	{
-		int dir = luaL_checkinteger(L, 1);
-	}
-
-	luaL_Reg CustomLib[] =
-	{
-		{"print", Print},
-		{NULL, NULL} /* end of array */
-	};
-
-	void LoadLib(lua_State* L)
-	{
-		lua_getglobal(L, "_G");
-		luaL_setfuncs(L, CustomLib, 0);
-		lua_pop(L, 1);
 	}
 
 	int TestFunc(float a, int b, float& c)
@@ -600,10 +583,376 @@ namespace TFWR
 		}
 	};
 
+	class CodeFile
+	{
+	public:
+		std::string name;
+		std::string code;
+
+		InlineString<> getPath()
+		{
+			InlineString<> path;
+			path.format("TFWR/%s.lua", name.c_str());
+			return path;
+		}
+
+		bool loadCode()
+		{
+			return FFileUtility::LoadToString(getPath().c_str(), code);
+		}
+	};
+
+
+	enum EDirection
+	{
+		East,
+		West,
+		North,
+		South,
+	};
+
+	using ScriptHandle = lua_State*;
+
+
+	class Drone;
+	class GameState;
 
 
 
-	class Drone
+#define OP_CODE_LIST(op)\
+	op(OP_MOVE)\
+	op(OP_LOADI)\
+	op(OP_LOADF)\
+	op(OP_LOADK)\
+	op(OP_LOADKX)\
+	op(OP_LOADFALSE)\
+	op(OP_LFALSESKIP)\
+	op(OP_LOADTRUE)\
+	op(OP_LOADNIL)\
+	op(OP_GETUPVAL)\
+	op(OP_SETUPVAL)\
+	op(OP_GETTABUP)\
+	op(OP_GETTABLE)\
+	op(OP_GETI)\
+	op(OP_GETFIELD)\
+	op(OP_SETTABUP)\
+	op(OP_SETTABLE)\
+	op(OP_SETI)\
+	op(OP_SETFIELD)\
+	op(OP_NEWTABLE)\
+	op(OP_SELF)\
+	op(OP_ADDI)\
+	op(OP_ADDK)\
+	op(OP_SUBK)\
+	op(OP_MULK)\
+	op(OP_MODK)\
+	op(OP_POWK)\
+	op(OP_DIVK)\
+	op(OP_IDIVK)\
+	op(OP_BANDK)\
+	op(OP_BORK)\
+	op(OP_BXORK)\
+	op(OP_SHRI)\
+	op(OP_SHLI)\
+	op(OP_ADD)\
+	op(OP_SUB)\
+	op(OP_MUL)\
+	op(OP_MOD)\
+	op(OP_POW)\
+	op(OP_DIV)\
+	op(OP_IDIV)\
+	op(OP_BAND)\
+	op(OP_BOR)\
+	op(OP_BXOR)\
+	op(OP_SHL)\
+	op(OP_SHR)\
+	op(OP_MMBIN)\
+	op(OP_MMBINI)\
+	op(OP_MMBINK)\
+	op(OP_UNM)\
+	op(OP_BNOT)\
+	op(OP_NOT)\
+	op(OP_LEN)\
+	op(OP_CONCAT)\
+	op(OP_CLOSE)\
+	op(OP_TBC)\
+	op(OP_JMP)\
+	op(OP_EQ)\
+	op(OP_LT)\
+	op(OP_LE)\
+	op(OP_EQK)\
+	op(OP_EQI)\
+	op(OP_LTI)\
+	op(OP_LEI)\
+	op(OP_GTI)\
+	op(OP_GEI)\
+	op(OP_TEST)\
+	op(OP_TESTSET)\
+	op(OP_CALL)\
+	op(OP_TAILCALL)\
+	op(OP_RETURN)\
+	op(OP_RETURN0)\
+	op(OP_RETURN1)\
+	op(OP_FORLOOP)\
+	op(OP_FORPREP)\
+	op(OP_TFORPREP)\
+	op(OP_TFORCALL)\
+	op(OP_TFORLOOP)\
+	op(OP_SETLIST)\
+	op(OP_CLOSURE)\
+	op(OP_VARARG)\
+	op(OP_VARARGPREP)\
+	op(OP_EXTRAARG)\
+
+	struct ExecutableObject
+	{
+		enum EState
+		{
+			ePause = BIT(0),
+			eExecuting = BIT(2),
+			eStep = BIT(3),
+		};
+
+		void reset()
+		{
+			fTicksAcc = 0;
+			line = 0;
+			executeL = nullptr;
+			stateFlags = 0;
+			executionCode = nullptr;
+		}
+
+		CodeFile* executionCode;
+		lua_State* executeL;
+		float fTicksAcc;
+		int line;
+		uint32 stateFlags;
+	};
+
+	class IExecuteHookListener
+	{
+	public:
+		virtual void onHookLine(StringView const& fileName, int line){}
+		virtual void onHookCall() {}
+		virtual void onHookReturn(){}
+	};
+
+
+	struct ExecutionContext
+	{
+		lua_State* mainL;
+		ExecutableObject* object;
+	};
+
+	class ExecuteManager
+	{
+	public:
+		static ExecuteManager& Get()
+		{
+			static ExecuteManager StaticInstance;
+			return StaticInstance;
+		}
+
+		bool bTickEnabled = true;
+		int  mOpTicks[1 << SIZE_OP];
+		IExecuteHookListener* mHookListener = nullptr;
+
+		ExecuteManager()
+		{
+			std::fill_n(mOpTicks, ARRAY_SIZE(mOpTicks), 0);
+			std::fill_n(mOpTicks, OP_EXTRAARG + 1, 1);
+			mOpTicks[OP_CALL] = 0;
+			mOpTicks[OP_TAILCALL] = 0;
+			mOpTicks[OP_TFORCALL] = 0;
+			mOpTicks[OP_EXTRAARG] = 0;
+		}
+
+		enum EExecuteStatus
+		{
+			Ok,
+			Error,
+			Completed,
+		};
+
+		EExecuteStatus execute(ExecutionContext& context)
+		{
+			ExecutableObject& execObject = *context.object;
+
+			int nres;
+			execObject.stateFlags |= ExecutableObject::eExecuting;
+			int status = lua_resume(execObject.executeL, context.mainL, 0, &nres);
+			execObject.stateFlags &= ~ExecutableObject::eExecuting;
+
+			if (status == LUA_YIELD)
+			{
+				lua_pop(execObject.executeL, nres);
+				return EExecuteStatus::Ok;
+			}
+			else if (status == LUA_OK)
+			{
+				onExecutionCompleted(execObject);
+				lua_pop(execObject.executeL, nres);
+
+				execObject.reset();
+				return EExecuteStatus::Completed;
+			}
+			else
+			{
+				onExecutionError(execObject, lua_tostring(execObject.executeL, -1));
+				execObject.reset();
+				return EExecuteStatus::Error;
+			}
+		}
+
+		static void StopHook(lua_State* L, lua_Debug* ar)
+		{
+			luaL_error(L, "Stop Execution");
+		}
+
+
+		void onExecutionCompleted(ExecutableObject& execObject)
+		{
+
+		}
+		void onExecutionError(ExecutableObject& execObject, char const* error)
+		{
+			LogWarning(0, "Handle Lua error : %s", error);
+		}
+
+
+		void onHookLine(StringView fileName, int line)
+		{
+			mHookListener->onHookLine(fileName, line);
+		}
+
+		void stop(ExecutionContext& context)
+		{
+			ExecutableObject& execObject = *context.object;
+			if (execObject.executeL == nullptr)
+				return;
+
+			lua_sethook(execObject.executeL, StopHook, LUA_MASKCOUNT, 1);
+
+			int nres;
+			execObject.stateFlags |= ExecutableObject::eExecuting;
+			int status = lua_resume(execObject.executeL, context.mainL, 0, &nres);
+			execObject.stateFlags &= ~ExecutableObject::eExecuting;
+			execObject.reset();
+		}
+
+
+		struct BreakPoint
+		{
+			HashString fileName;
+			int line;
+
+			bool operator == (BreakPoint const& rhs)
+			{
+				return fileName == rhs.fileName && line == rhs.line;
+			}
+
+			uint32 getTypeHash() const
+			{
+				uint32 result = HashValues(fileName, line);
+				return result;
+			}
+		};
+
+		std::unordered_set<BreakPoint, MemberFuncHasher > mBreakpoints;
+
+		void hookExecution(ExecutionContext& context, lua_State* L, lua_Debug *ar)
+		{
+			auto& execObject = *context.object;
+			if (ar->event == LUA_HOOKLINE)
+			{
+				return;
+				LogMsg("currentline = %d", ar->currentline);
+				auto source = ci_func(ar->i_ci)->p->source;
+				if (source->contents[0] == '@')
+				{
+					auto fileName = StringView(source->contents + 1, (source->shrlen == 0xFF ? source->u.lnglen : source->shrlen) - 1);
+
+				}
+				return;
+			}
+			else if (ar->event == LUA_HOOKCALL || ar->event == LUA_HOOKRET)
+			{
+				lua_getinfo(L, "nSl", ar); // Get name and source information
+
+				if (FCString::CompareN(ar->source, "@TFWR/Main.lua", 14) == 0)
+				{
+					bTickEnabled = ar->event != LUA_HOOKCALL;
+				}
+
+#if 0
+				printf("[C Hook] Function called: ");
+				if (ar->name)
+				{
+					printf("(%d) Name: %s, ", ar->event, ar->name);
+				}
+				if (ar->source)
+				{
+					printf("Source: %s, Line: %d\n", ar->source, ar->currentline);
+				}
+				else
+				{
+					printf("Unknown source.\n");
+				}
+#endif
+				return;
+			}
+
+			lua_getinfo(L, "nSl", ar);
+
+			const Instruction* pc = L->ci->u.l.savedpc;
+			int op = GET_OPCODE(*(pc - 1));
+
+			if (bTickEnabled)
+			{
+				if (execObject.fTicksAcc < mOpTicks[op])
+				{
+					lua_yield(L, 0);
+					return;
+				}
+
+				execObject.fTicksAcc -= mOpTicks[op];
+				if (ar->source[0] == '@')
+				{
+					execObject.line = ar->currentline;
+					auto fileName = StringView(ar->source + 1, ar->srclen - 1);
+					onHookLine(fileName, ar->currentline);
+				}
+			}
+
+#if 0
+			printf("[C Hook] Function called: ");
+			if (ar->name)
+			{
+				printf("(%d) Name: %s, ", ar->event, ar->name);
+			}
+			if (ar->source)
+			{
+				printf("Source: %s, Line: %d\n", ar->source, ar->currentline);
+			}
+			else
+			{
+				printf("Unknown source.\n");
+			}
+#endif
+#if 0
+#define CASE_OP(op) case op: LogMsg(#op); break;
+			switch (op)
+			{
+				OP_CODE_LIST(CASE_OP)
+			}
+#endif
+		}
+
+
+	};
+
+
+	class Drone : public ExecutableObject
 	{
 	public:
 
@@ -614,16 +963,11 @@ namespace TFWR
 
 		void reset()
 		{
-			fTicksAcc = 0;
+			ExecutableObject::reset();
 			pos = Vec2i(0, 0);
 		}
-
-		int iTicksWait;
-
-		float fTicksAcc;
-
+		
 		Vec2i pos;
-		lua_State* mExecL;
 	};
 
 	class Ground
@@ -747,218 +1091,6 @@ namespace TFWR
 		EItem production;
 	};
 
-	class CodeFile
-	{
-	public:
-		std::string name;
-		std::string code;
-
-		InlineString<> getPath()
-		{
-			InlineString<> path;
-			path.format("TFWR/%s.lua", name.c_str());
-			return path;
-		}
-
-		bool loadCode()
-		{
-			return FFileUtility::LoadToString(getPath().c_str(), code);
-		}
-	};
-
-
-	enum EDirection
-	{
-		East,
-		West,
-		North,
-		South,
-	};
-
-	using ScriptHandle = lua_State*;
-
-
-	class Drone;
-	class GameState;
-
-	struct ExecutionContext
-	{
-		GameState* game;
-		Drone* drone;
-		int line;
-		int linePrev;
-	};
-
-
-	ExecutionContext* GExecContext = nullptr;
-
-	struct ScopedExecutionContext : ExecutionContext
-	{
-		ScopedExecutionContext()
-		{
-			prevContext = GExecContext;
-			GExecContext = this;
-			linePrev = 0;
-			line = 0;
-		}
-
-		~ScopedExecutionContext()
-		{
-			GExecContext = prevContext;
-		}
-		ExecutionContext* prevContext;
-	};
-
-
-#define OP_CODE_LIST(op)\
-	op(OP_MOVE)\
-	op(OP_LOADI)\
-	op(OP_LOADF)\
-	op(OP_LOADK)\
-	op(OP_LOADKX)\
-	op(OP_LOADFALSE)\
-	op(OP_LFALSESKIP)\
-	op(OP_LOADTRUE)\
-	op(OP_LOADNIL)\
-	op(OP_GETUPVAL)\
-	op(OP_SETUPVAL)\
-	op(OP_GETTABUP)\
-	op(OP_GETTABLE)\
-	op(OP_GETI)\
-	op(OP_GETFIELD)\
-	op(OP_SETTABUP)\
-	op(OP_SETTABLE)\
-	op(OP_SETI)\
-	op(OP_SETFIELD)\
-	op(OP_NEWTABLE)\
-	op(OP_SELF)\
-	op(OP_ADDI)\
-	op(OP_ADDK)\
-	op(OP_SUBK)\
-	op(OP_MULK)\
-	op(OP_MODK)\
-	op(OP_POWK)\
-	op(OP_DIVK)\
-	op(OP_IDIVK)\
-	op(OP_BANDK)\
-	op(OP_BORK)\
-	op(OP_BXORK)\
-	op(OP_SHRI)\
-	op(OP_SHLI)\
-	op(OP_ADD)\
-	op(OP_SUB)\
-	op(OP_MUL)\
-	op(OP_MOD)\
-	op(OP_POW)\
-	op(OP_DIV)\
-	op(OP_IDIV)\
-	op(OP_BAND)\
-	op(OP_BOR)\
-	op(OP_BXOR)\
-	op(OP_SHL)\
-	op(OP_SHR)\
-	op(OP_MMBIN)\
-	op(OP_MMBINI)\
-	op(OP_MMBINK)\
-	op(OP_UNM)\
-	op(OP_BNOT)\
-	op(OP_NOT)\
-	op(OP_LEN)\
-	op(OP_CONCAT)\
-	op(OP_CLOSE)\
-	op(OP_TBC)\
-	op(OP_JMP)\
-	op(OP_EQ)\
-	op(OP_LT)\
-	op(OP_LE)\
-	op(OP_EQK)\
-	op(OP_EQI)\
-	op(OP_LTI)\
-	op(OP_LEI)\
-	op(OP_GTI)\
-	op(OP_GEI)\
-	op(OP_TEST)\
-	op(OP_TESTSET)\
-	op(OP_CALL)\
-	op(OP_TAILCALL)\
-	op(OP_RETURN)\
-	op(OP_RETURN0)\
-	op(OP_RETURN1)\
-	op(OP_FORLOOP)\
-	op(OP_FORPREP)\
-	op(OP_TFORPREP)\
-	op(OP_TFORCALL)\
-	op(OP_TFORLOOP)\
-	op(OP_SETLIST)\
-	op(OP_CLOSURE)\
-	op(OP_VARARG)\
-	op(OP_VARARGPREP)\
-	op(OP_EXTRAARG)\
-
-	struct FScriptAPI
-	{
-
-		struct OpTickMap
-		{
-			OpTickMap()
-			{
-				std::fill_n(ticks, ARRAY_SIZE(ticks), 0);
-				std::fill_n(ticks, OP_EXTRAARG + 1, 1);
-				ticks[OP_CALL] = 0;
-				ticks[OP_TAILCALL] = 0;
-				ticks[OP_TFORCALL] = 0;
-				ticks[OP_EXTRAARG] = 0;
-			}
-
-			int ticks[1 << SIZE_OP];
-		};
-
-		static void Wait(int waitTicks)
-		{
-			GExecContext->drone->fTicksAcc -= waitTicks;
-		}
-		using HookLineFunc = void (*)(StringView fileName, int line);
-
-		static HookLineFunc StaticHookLineFunc;
-		static void LuaHook(lua_State* L, lua_Debug *ar)
-		{
-			if (ar->event == LUA_HOOKLINE)
-			{
-				GExecContext->linePrev = GExecContext->line;
-				GExecContext->line = ar->currentline;
-				auto source = ci_func(ar->i_ci)->p->source;
-				if (source->contents[0] == '@')
-				{
-					auto fileName = StringView(source->contents + 1, (source->shrlen == 0xFF ? source->u.lnglen : source->shrlen) - 1);
-					if (StaticHookLineFunc)
-					{
-						StaticHookLineFunc(fileName, GExecContext->drone->fTicksAcc <= 0 ? GExecContext->linePrev : GExecContext->line);
-					}
-				}
-
-				return;
-			}
-			static OpTickMap StaticOpTickMap;
-
-			const Instruction* pc = L->ci->u.l.savedpc;
-			int op = GET_OPCODE(*(pc - 1));
-			GExecContext->drone->fTicksAcc -= StaticOpTickMap.ticks[op];
-			if (GExecContext->drone->fTicksAcc <= 0)
-			{
-				lua_yield(L, 0);
-			}
-#if 0
-#define CASE_OP(op) case op: LogMsg(#op); break;
-			switch (op)
-			{
-				OP_CODE_LIST(CASE_OP)
-			}
-#endif
-		}
-	};
-
-	FScriptAPI::HookLineFunc FScriptAPI::StaticHookLineFunc = nullptr;
-
 	struct EntityLibrary
 	{
 		EntityLibrary()
@@ -975,6 +1107,28 @@ namespace TFWR
 	EntityLibrary GEntities;
 
 
+	struct WorldExecuteContext;
+
+	WorldExecuteContext* GExecContext = nullptr;
+	struct WorldExecuteContext : ExecutionContext
+	{
+		WorldExecuteContext()
+		{
+			prevContext = GExecContext;
+			GExecContext = this;
+		}
+
+		~WorldExecuteContext()
+		{
+			GExecContext = prevContext;
+		}
+
+
+		GameState* game;
+		Drone* drone;
+		WorldExecuteContext* prevContext;
+	};
+
 	class GameState
 	{
 	public:
@@ -985,6 +1139,25 @@ namespace TFWR
 		}
 
 		void init();
+
+
+		void runExecution(Drone& drone, CodeFile& codeFile);
+		void stopExecution(Drone& drone);
+		bool isExecutingCode()
+		{
+			bool bHadExecution = false;
+			for (Drone* drone : mDrones)
+			{
+				if (drone->executeL)
+				{
+					if (drone->stateFlags & ExecutableObject::ePause)
+						return false;
+
+					bHadExecution = true;
+				}
+			}
+			return bHadExecution;
+		}
 
 		void release()
 		{
@@ -1016,6 +1189,9 @@ namespace TFWR
 
 		void update(float deltaTime)
 		{
+			if (!isExecutingCode())
+				return;
+
 			UpdateArgs updateArgs;
 			updateArgs.speed = 1.0f;
 			updateArgs.fTicks = updateArgs.speed * deltaTime * TicksPerSecond;
@@ -1033,48 +1209,22 @@ namespace TFWR
 
 		void update(Drone& drone, UpdateArgs const& updateArgs)
 		{	
-			if (drone.mExecL == nullptr)
+			if (drone.executeL == nullptr)
 			{
 				return;
 			}
+
 			drone.fTicksAcc += updateArgs.fTicks;
 			if (drone.fTicksAcc <= 1.0)
 				return;
 
-			ScopedExecutionContext context;
+			WorldExecuteContext context;
 			context.drone = &drone;
 			context.game = this;
+			context.mainL = mMainL;
+			context.object = &drone;
 
-			int nres;
-			int status = lua_resume(drone.mExecL, mMainL, 0, &nres);
-
-			if (status == LUA_YIELD)
-			{
-				lua_pop(drone.mExecL, nres);
-			}
-			else if (status == LUA_OK)
-			{
-				onExecutionCompleted(drone);
-				lua_pop(drone.mExecL, nres);
-				drone.mExecL = nullptr;
-				drone.fTicksAcc = 0;
-			}
-			else
-			{
-				onExecutionError(drone, lua_tostring(drone.mExecL, -1));
-				drone.mExecL = nullptr;
-				drone.fTicksAcc = 0;
-			}
-		}
-
-
-		void onExecutionCompleted(Drone& drone)
-		{
-
-		}
-		void onExecutionError(Drone& drone, char const* error)
-		{
-			LogWarning(0, "Handle Lua error : %s", error);
+			ExecuteManager::Get().execute(context);
 		}
 
 		void update(MapTile& tile, UpdateArgs const& updateArgs)
@@ -1174,9 +1324,24 @@ namespace TFWR
 		TArray<int> mItems;
 	};
 
-
-	struct FGameAPI : FScriptAPI
+	struct FGameAPI
 	{
+		static void Wait(int waitTicks)
+		{
+			GExecContext->object->fTicksAcc -= waitTicks;
+		}
+
+		static int SetTickEnabled(lua_State* L)
+		{
+			ExecuteManager::Get().bTickEnabled = lua_toboolean(L, 1);
+			return 0;
+		}
+
+		static void HookEntry(lua_State* L, lua_Debug *ar)
+		{
+			ExecuteManager::Get().hookExecution(*GExecContext, L, ar);
+		}
+
 		static void till()
 		{
 			GExecContext->game->till(*GExecContext->drone);
@@ -1252,13 +1417,28 @@ namespace TFWR
 #undef REGISTER
 		}
 
+		static void LoadLib(lua_State* L)
+		{
+			luaL_Reg CustomLib[] =
+			{
+				{"print", Print},
+				{"_SetTickEnabled", SetTickEnabled},
+				{NULL, NULL} /* end of array */
+			};
+
+			lua_getglobal(L, "_G");
+			luaL_setfuncs(L, CustomLib, 0);
+			lua_pop(L, 1);
+		}
 		static lua_State* CreateGameState()
 		{
 			lua_State* L = luaL_newstate();
 			luaL_openlibs(L);
+			luaL_dofile(L, "TFWR/Main.lua");
 			LoadLib(L);
 			Register(L);
 			FLuaBinding::Register(L, "TestFunc", TestFunc);
+
 			return L;
 		}
 
@@ -1267,7 +1447,7 @@ namespace TFWR
 			InlineString<> path;
 			path.format("TFWR/%s.lua", fileName);
 			lua_State* L = lua_newthread(gameL);
-			lua_sethook(L, LuaHook, LUA_MASKCOUNT | LUA_MASKLINE, 1);
+			lua_sethook(L, HookEntry, LUA_MASKCOUNT | LUA_MASKCALL | LUA_MASKRET, 1);
 			luaL_loadfile(L, path.c_str());
 			return L;
 		}
@@ -1281,12 +1461,32 @@ namespace TFWR
 		reset();
 	}
 
+	void GameState::runExecution(Drone& drone, CodeFile& codeFile)
+	{
+		if (drone.executeL)
+		{
+			stopExecution(drone);
+		}
+
+		drone.executeL = FGameAPI::CreateExecuteState(mMainL, codeFile.name.c_str());
+		drone.executionCode = &codeFile;
+	}
+
+	void TFWR::GameState::stopExecution(Drone& drone)
+	{
+		if (drone.executeL == nullptr)
+			return;
+
+		ExecutionContext context;
+		context.mainL = mMainL;
+		context.object = &drone;
+		ExecuteManager::Get().stop(context);
+	}
+
 	Drone* GameState::createDrone(CodeFile& file)
 	{
 		Drone* drone = new Drone;
-		drone->mExecL = FGameAPI::CreateExecuteState(mMainL, file.name.c_str());
 		drone->reset();
-
 		mDrones.push_back(drone);
 		return drone;
 	}
@@ -1296,22 +1496,151 @@ namespace TFWR
 	class CodeFileAsset : public CodeFile, public IAssetViewer
 	{
 	public:
-
-
 		CodeEditor* editor;
 		int id;
 	};
+
+	class ExecButton : public GButtonBase
+	{
+		typedef GButtonBase BaseClass;
+	public:
+		ExecButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:BaseClass(id, pos, size, parent)
+		{
+			mID = id;
+		}
+
+		void onRender()
+		{
+			Vec2i pos = getWorldPos();
+			Vec2i size = getSize();
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
+
+			g.enablePen(false);
+			g.setBrush(Color3ub(96, 115, 13));
+			g.drawRoundRect(pos, size, Vector2(4, 4));
+
+			g.pushXForm();
+			g.translateXForm(pos.x, pos.y);
+			Vector2 vertices[] =
+			{
+				Vector2(size.x / 4, size.y / 4),
+				Vector2(3 * size.x / 4, size.y / 2),
+				Vector2(size.x / 4, 3 * size.y / 4),
+			};
+
+			RenderUtility::SetPen(g, EColor::White);
+			RenderUtility::SetBrush(g, EColor::White);
+			g.enablePen(true);
+			g.enableBrush(!bStep);
+			g.drawPolygon(vertices, ARRAY_SIZE(vertices));
+			g.enableBrush(true);
+			g.popXForm();
+		}
+		bool bStep = false;
+	};
+
+
+	class IViewModel
+	{
+	public:
+		virtual bool isExecutingCode() { return false; }
+		virtual void runExecution(CodeFileAsset& codeFile){}
+		virtual void stopExecution(CodeFileAsset& codeFile) {}
+		virtual void pauseExecutingCode(CodeFileAsset& codeFile) {}
+
+		static IViewModel& Get()
+		{
+			return *Instance;
+		}
+		static IViewModel*Instance;
+	};
+
+	IViewModel* IViewModel::Instance = nullptr;
+
 	class CodeEditor : public GFrame
 	{
 	public:
 		using BaseClass = GFrame;
+		enum 
+		{
+			UI_EXEC = BaseClass::NEXT_UI_ID,
+			UI_EXEC_STEP,
+
+			NEXT_UI_ID,
+		};
 		CodeEditor(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 			:GFrame(id, pos, size, parent)
 		{
+			ExecButton* button;
+			button = new ExecButton(UI_EXEC, Vec2i(5, 5), Vec2i(25, 25), this);
+			button = new ExecButton(UI_EXEC_STEP, Vec2i(5 + 30, 5), Vec2i(25, 25), this);
+			button->bStep = true;
+			Color3ub DefaultKeywordColor{ 255, 188, 66 };
+			Color3ub FlowKeywordColor{ 255, 188, 66 };
+			WordColorMap["if"] = FlowKeywordColor;
+			WordColorMap["elseif"] = FlowKeywordColor;
+			WordColorMap["else"] = FlowKeywordColor;
+			WordColorMap["end"] = FlowKeywordColor;
+			WordColorMap["goto"] = FlowKeywordColor;
+			WordColorMap["repeat"] = FlowKeywordColor;
+			WordColorMap["for"] = FlowKeywordColor;
+			WordColorMap["while"] = FlowKeywordColor;
+			WordColorMap["do"] = FlowKeywordColor;
+			WordColorMap["until"] = FlowKeywordColor;
+			WordColorMap["return"] = FlowKeywordColor;
+			WordColorMap["then"] = FlowKeywordColor;
+			WordColorMap["break"] = FlowKeywordColor;
+			WordColorMap["in"] = FlowKeywordColor;
 
+			WordColorMap["function"] = DefaultKeywordColor;
+			WordColorMap["local"] = DefaultKeywordColor;
+
+			WordColorMap["true"] = DefaultKeywordColor;
+			WordColorMap["false"] = DefaultKeywordColor;
+			WordColorMap["nil"] = DefaultKeywordColor;
+
+			WordColorMap["and"] = DefaultKeywordColor;
+			WordColorMap["or"] = DefaultKeywordColor;
+			WordColorMap["not"] = DefaultKeywordColor;
 		}
 
-		CodeFile* codeFile;
+		CodeFileAsset* codeFile;
+
+
+		std::unordered_map<HashString, RHIGraphics2D::Color4Type > WordColorMap;
+
+
+		Color4ub getColor(StringView word)
+		{
+			auto iter = WordColorMap.find(word);
+			if (iter != WordColorMap.end())
+				return iter->second;
+
+			return Color4ub(255, 255, 255, 255);
+		}
+
+		virtual bool onChildEvent(int event, int id, GWidget* ui) 
+		{
+			switch (id)
+			{
+			case UI_EXEC:
+				if (IViewModel::Get().isExecutingCode())
+				{
+					IViewModel::Get().stopExecution(*codeFile);
+				}
+				else
+				{
+					IViewModel::Get().runExecution(*codeFile);
+				}
+
+				break;
+			case UI_EXEC_STEP:
+				break;
+			}
+			return true; 
+		}
+
 
 		void parseCode()
 		{
@@ -1323,76 +1652,191 @@ namespace TFWR
 
 				mCodeLines.push_back(CodeLine());
 				auto& codeLine = mCodeLines.back();
+				if (line.size() == 0)
+					continue;
+				
 				mFont->generateLineVertices(Vector2::Zero(), line , 1.0, codeLine.vertices);
+				codeLine.colors.resize(codeLine.vertices.size() / 4);
+
+				StringView token;
+				char const* pStr = line.data();
+				char const* pStrEnd = line.data() + line.size();
+				auto* pColor = codeLine.colors.data();
+				int numWord = 0;
+				while (pStr < pStrEnd && FStringParse::StringToken(pStr, " \t\r\n", token))
+				{
+					Color4ub color = getColor(token);
+					for (int i = 0; i < token.size(); ++i)
+					{
+						pColor[i] = color;
+					}
+					pColor += token.size();
+					numWord += token.size();
+				}
+
+				CHECK(numWord == codeLine.colors.size());
 			}
 		}
 		void onRender()
 		{
-			BaseClass::onRender();
-
 			Vec2i pos = getWorldPos();
-
-			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			Vec2i size = getSize();
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
-			g.beginClip(pos, size);
+			g.enablePen(false);
+			g.setBrush(Color3ub(86, 86, 86));
+			g.drawRoundRect(pos, size, Vector2(4, 4));
 
-			g.setBlendState(ESimpleBlendMode::Translucent);
-			g.setTexture(mFont->getTexture());
 
+			g.setBrush(Color3ub(46, 46, 46));
+			int border = 3;
+			Vector2 textRectPos = pos + Vector2(border, border + 30);
+			Vector2 textRectSize = size - Vector2(2 * border, 2 * border + 30);
+			g.drawRoundRect(textRectPos, textRectSize, Vector2(8,8));
+
+
+			g.beginClip(textRectPos, textRectSize);
 			g.pushXForm();
-			g.translateXForm(pos.x + 5, pos.y + 5);
+
+			++showFrame;
+			if (showFrame > 4)
+			{
+				if (!mLineShowQueue.empty())
+				{
+					mShowExecuteLine = mLineShowQueue.front();
+					mLineShowQueue.removeIndex(0);
+					showFrame = 0;
+				}
+			}
+			g.setBrush(Color3ub(255, 255, 255));
+			g.drawTextF(pos, "%d", mShowExecuteLine);
+			g.translateXForm(textRectPos.x + 5, textRectPos.y + 5);
+
+			g.setTexture(mFont->getTexture());
+			g.setBlendState(ESimpleBlendMode::Translucent);
+
 			int curline = 1;
 			for (auto const& line : mCodeLines)
 			{
-				if (curline == mExecuteLine)
+				if (curline == mShowExecuteLine)
 				{
-					g.drawRect(Vector2(0, 0), Vector2(size.x, 16));
+					g.setBrush(Color3ub(32, 32, 32));
+					g.setBlendState(ESimpleBlendMode::Add);
+					g.drawRect(Vector2(-5, 0), Vector2(textRectSize.x, 16));
+		
+
+					g.setBrush(Color3ub(255, 255, 255));
 					g.setTexture(mFont->getTexture());
+					g.setBlendState(ESimpleBlendMode::Translucent);
 				}
-				g.drawTextQuad(line.vertices);
+	
+				g.drawTextQuad(line.vertices, line.colors);
 				g.translateXForm(0, 16);
 				curline += 1;
 			}
 			g.popXForm();
-
-
 			g.endClip();
+
+			g.enablePen(true);
 		}
+
+		void setExecuteLine(int line)
+		{
+			if (mLineShowQueue.empty() || mLineShowQueue.back() != line)
+				mLineShowQueue.push_back(line);
+		}
+
+		TArray<int> mLineShowQueue;
+		int showFrame = 0;
 
 		struct CodeLine
 		{
 			int offset;
-			TArray<FontVertex> vertices;
+			TArray<GlyphVertex> vertices;
+			TArray<RHIGraphics2D::Color4Type> colors;
 		};
 		TArray< CodeLine > mCodeLines;
 		FontDrawer* mFont;
-		int mExecuteLine = -1;
+		int mShowExecuteLine = -1;
 
+		struct Cursor
+		{
+			int line;
+			int offset;
+		};
+
+		TArray<int> mBreakPoints;
 	};
-
-	
-	std::unordered_map<HashString, CodeFileAsset*> GCodeAssetMap;
 
 
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
+		            , public IExecuteHookListener
+					, public IViewModel
 	{
 		using BaseClass = StageBase;
 	public:
 		TestStage() {}
 
-
-		GameState mGmae;
-
-		static void HookLine(StringView fileName, int line)
+		enum
 		{
-			auto iter = GCodeAssetMap.find(fileName);
-			if (iter != GCodeAssetMap.end())
+
+			UI_DUMP = BaseClass::NEXT_UI_ID,
+
+			UI_CODE_EDITOR,
+		};
+		
+
+		GameState mGame;
+		std::unordered_map<HashString, CodeFileAsset*> mCodeAssetMap;
+		virtual bool isExecutingCode() 
+		{
+			return mGame.isExecutingCode();
+		}
+
+		virtual void runExecution(CodeFileAsset& codeFile) 
+		{
+			if (isExecutingCode())
+				return;
+
+			mGame.runExecution(*mGame.mDrones[0], codeFile);
+
+		}
+		
+		virtual void stopExecution(CodeFileAsset& codeFile) 
+		{
+			for (Drone* drone : mGame.mDrones)
+			{
+				if (drone->executionCode == &codeFile)
+				{
+					mGame.stopExecution(*drone);
+				}
+			}
+		}
+
+		virtual void pauseExecutingCode(CodeFileAsset& codeFile) 
+		{
+
+
+		}
+		virtual void onHookLine(StringView const& fileName, int line)
+		{
+			auto iter = mCodeAssetMap.find(fileName);
+			if (iter != mCodeAssetMap.end())
 			{
 				CodeFileAsset* asset = iter->second;
-				asset->editor->mExecuteLine = line;
+				asset->editor->setExecuteLine(line);
 			}
+		}
+
+		virtual void onHookCall() 
+		{
+
+		}
+
+		virtual void onHookReturn() 
+		{
+
 		}
 
 		bool onInit() override
@@ -1400,20 +1844,18 @@ namespace TFWR
 			if (!BaseClass::onInit())
 				return false;
 
-
-
+			ExecuteManager::Get().mHookListener = this;
+			IViewModel::Instance = this;
 
 			::Global::GUI().cleanupWidget();
 
 			auto codeFile = createCodeFile("Test");
 
-			FScriptAPI::StaticHookLineFunc = HookLine;
-
-			mGmae.init();
-			mGmae.createDrone(*codeFile);
+			mGame.init();
+			mGame.createDrone(*codeFile);
 
 
-			Vector2 lookPos = 0.5 *  Vector2(mGmae.mTiles.getSize());
+			Vector2 lookPos = 0.5 *  Vector2(mGame.mTiles.getSize());
 			mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, -1), ::Global::GetScreenSize().x / 10.0f);
 			mScreenToWorld = mWorldToScreen.inverse();
 
@@ -1431,7 +1873,7 @@ namespace TFWR
 		void onUpdate(GameTimeSpan deltaTime) override
 		{
 			BaseClass::onUpdate(deltaTime);
-			mGmae.update(deltaTime);
+			mGame.update(deltaTime);
 		}
 
 		TArray< CodeFileAsset* > mCodeFiles;
@@ -1444,7 +1886,7 @@ namespace TFWR
 			codeFile->id = mNextCodeId;
 			codeFile->loadCode();
 
-			CodeEditor* editor = new CodeEditor(BaseClass::NEXT_UI_ID + codeFile->id, Vec2i(100, 100), Vec2i(200, 400), nullptr);
+			CodeEditor* editor = new CodeEditor(UI_CODE_EDITOR + codeFile->id, Vec2i(100, 100), Vec2i(200, 400), nullptr);
 			::Global::GUI().addWidget(editor);
 			codeFile->editor = editor;
 			editor->codeFile = codeFile;
@@ -1452,8 +1894,7 @@ namespace TFWR
 			mCodeFiles.push_back(codeFile);
 
 			editor->parseCode();
-
-			GCodeAssetMap.emplace(codeFile->getPath().c_str(), codeFile);
+			mCodeAssetMap.emplace(codeFile->getPath().c_str(), codeFile);
 
 			return codeFile;
 		}
@@ -1481,11 +1922,11 @@ namespace TFWR
 			g.setTextRemoveScale(true);
 
 			RenderUtility::SetPen(g, EColor::Black);
-			for (int j = 0; j < mGmae.mTiles.getSizeY(); ++j)
+			for (int j = 0; j < mGame.mTiles.getSizeY(); ++j)
 			{
-				for (int i = 0; i < mGmae.mTiles.getSizeX(); ++i)
+				for (int i = 0; i < mGame.mTiles.getSizeX(); ++i)
 				{
-					auto const& tile = mGmae.getTile(Vec2i(i,j));
+					auto const& tile = mGame.getTile(Vec2i(i,j));
 
 					RenderUtility::SetBrush(g, tile.ground == EGround::Grassland ? EColor::Green : EColor::Brown, COLOR_LIGHT);
 					g.drawRect(Vector2(i,j), Vector2(1,1));
@@ -1497,7 +1938,7 @@ namespace TFWR
 			}
 
 			RenderUtility::SetBrush(g, EColor::Yellow);
-			for (auto drone : mGmae.mDrones)
+			for (auto drone : mGame.mDrones)
 			{
 				g.drawCircle( Vector2(drone->pos) + Vector2(0.5,0.5), 0.3 );
 			}

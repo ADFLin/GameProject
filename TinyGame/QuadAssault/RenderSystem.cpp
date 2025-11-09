@@ -156,7 +156,7 @@ public:
 
 
 
-	TArray< FontVertex > mTextVertices;
+	TArray< GlyphVertex > mTextVertices;
 	
 	Vec2f  mBoundSize = Vec2f::Zero();
 	CFont::Drawer* mDrawer = nullptr;

@@ -116,6 +116,8 @@ public:
 	void  drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
 		Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
+
+
 	template< typename TCustomRenderer, typename ...TArgs >
 	TCustomRenderer*  drawCustom(bool bChangeState, TArgs&& ...args)
 	{
@@ -164,7 +166,7 @@ public:
 	}
 
 	template< typename TFunc >
-	void  setCustomRenderState(TFunc&& func)
+	void setCustomRenderState(TFunc&& func)
 	{
 		commitRenderState();
 
@@ -186,44 +188,45 @@ public:
 		setupElement(element);
 	}
 
-	void  setTexture(RHITexture2D& texture);
-	void  setSampler(RHISamplerState& sampler);
-	void  drawTexture(Vector2 const& pos);
-	void  drawTexture(Vector2 const& pos, Vector2 const& size);
-	void  drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
-	void  drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize);
-	void  drawTexture(Vector2 const& pos, Color4f const& color);
-	void  drawTexture(Vector2 const& pos, Vector2 const& size, Color4f const& color);
-	void  drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color);
-	void  drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color);
+	void setTexture(RHITexture2D& texture);
+	void setSampler(RHISamplerState& sampler);
+	void drawTexture(Vector2 const& pos);
+	void drawTexture(Vector2 const& pos, Vector2 const& size);
+	void drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
+	void drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize);
+	void drawTexture(Vector2 const& pos, Color4f const& color);
+	void drawTexture(Vector2 const& pos, Vector2 const& size, Color4f const& color);
+	void drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color);
+	void drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color);
 
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos) { setTexture(texture); drawTexture(pos); }
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size) { setTexture(texture); drawTexture(pos, size); }
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize) { setTexture(texture); drawTexture(pos , texPos , texSize); }
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize) { setTexture(texture); drawTexture(pos, size , texPos , texSize); }
+	void drawTexture(RHITexture2D& texture, Vector2 const& pos) { setTexture(texture); drawTexture(pos); }
+	void drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size) { setTexture(texture); drawTexture(pos, size); }
+	void drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize) { setTexture(texture); drawTexture(pos , texPos , texSize); }
+	void drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize) { setTexture(texture); drawTexture(pos, size , texPos , texSize); }
 
 	void  setFont(Render::FontDrawer& font)
 	{
 		mFont = &font;
 	}
-	void  setTextColor(Color3Type const& color);
-	void  drawText(Vector2 const& pos, char const* str);
-	void  drawText(Vector2 const& pos, wchar_t const* str);
-	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str)
+	void setTextColor(Color3Type const& color);
+	void drawText(Vector2 const& pos, char const* str);
+	void drawText(Vector2 const& pos, wchar_t const* str);
+	void drawText(Vector2 const& pos, Vector2 const& size, char const* str)
 	{
 		drawText(pos, size, str, false);
 	}
 
-	void  drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str)
+	void drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str)
 	{
 		drawText(pos, size, scale, str, false);
 	}
-	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip);
-	void  drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str, bool bClip);
-	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
-	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
+	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip);
+	void drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str, bool bClip);
+	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
+	void drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
-	void  drawTextQuad(TArray<Render::FontVertex> const& vertices);
+	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices);
+	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices, TArray<Color4Type> const& colors);
 
 	template< typename CharT, typename ...Args >
 	void  drawTextF(Vector2 const& pos, CharT const* format, Args&& ...args)
@@ -234,7 +237,7 @@ public:
 	}
 
 	template< typename CharT, typename ...Args >
-	void  drawTextF(Vector2 const& pos, Vector2 const& size, CharT const* format, Args&& ...args)
+	void drawTextF(Vector2 const& pos, Vector2 const& size, CharT const* format, Args&& ...args)
 	{
 		TInlineString< 512, CharT > str;
 		str.format(format, std::forward<Args>(args)...);
@@ -242,7 +245,7 @@ public:
 	}
 
 	template< typename CharT, typename ...Args >
-	void  drawTextF(Vector2 const& pos, Vector2 const& size, float scale, CharT const* format, Args&& ...args)
+	void drawTextF(Vector2 const& pos, Vector2 const& size, float scale, CharT const* format, Args&& ...args)
 	{
 		TInlineString< 512, CharT > str;
 		str.format(format, std::forward<Args>(args)...);

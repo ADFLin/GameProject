@@ -571,7 +571,7 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 }
 
 
-void RHIGraphics2D::drawTextQuad(TArray<Render::FontVertex> const& vertices)
+void RHIGraphics2D::drawTextQuad(TArray<Render::GlyphVertex> const& vertices)
 {
 	if (vertices.empty())
 		return;
@@ -586,6 +586,20 @@ void RHIGraphics2D::drawTextQuad(TArray<Render::FontVertex> const& vertices)
 	setupElement(element);
 }
 
+void RHIGraphics2D::drawTextQuad(TArray<Render::GlyphVertex> const& vertices, TArray<Color4Type> const& colors)
+{
+	if (vertices.empty())
+		return;
+
+	commitRenderState();
+	bool bRemoveScale = false;
+	if (mXFormStack.get().hadSacled())
+	{
+		bRemoveScale = bTextRemoveScale;
+	}
+	auto& element = mElementList.addText(colors, vertices, bRemoveScale, bTextRemoveRotation);
+	setupElement(element);
+}
 
 template< typename CharT >
 void RHIGraphics2D::drawTextImpl(float ox, float oy, float scale, CharT const* str, int charCount)

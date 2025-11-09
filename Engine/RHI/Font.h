@@ -170,7 +170,7 @@ namespace Render
 		bool bInitialized = false;
 	};
 
-	struct FontVertex
+	struct GlyphVertex
 	{
 		Vector2 pos;
 		Vector2 uv;
@@ -186,22 +186,22 @@ namespace Render
 		bool isValid() const { return !!mCharDataSet; }
 		void cleanup();
 
-		void  generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
-		void  generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, char const* str, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
 
-		void  generateVertices(Vector2 const& pos, char const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
-		void  generateVertices(Vector2 const& pos, wchar_t const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, char const* str, GlyphVertex* outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, GlyphVertex* outVertices, Vector2* outBoundSize = nullptr);
 
-		void  generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< FontVertex >& outVertices);
-		void  generateVertices(Vector2 const& pos, char const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
-		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< GlyphVertex >& outVertices);
+		void  generateVertices(Vector2 const& pos, char const* str, float scale, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
 
-		void  generateVertices(Vector2 const& pos, char const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
-		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, char const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize = nullptr);
 
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
-		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer);
+		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< GlyphVertex > const& buffer);
 
 		int     getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		int     getCharCount(wchar_t const* str);
@@ -226,13 +226,13 @@ namespace Render
 
 
 		template< typename CharT >
-		void generateVerticesT(Vector2 const& pos, CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize);
+		void generateVerticesT(Vector2 const& pos, CharT const* str, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize);
 		template< typename CharT >
-		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize);
+		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize);
 		template< typename CharT >
-		void generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize);
+		void generateVerticesT(Vector2 const& pos, CharT const* str, GlyphVertex* outVertices, Vector2* outBoundSize);
 		template< typename CharT >
-		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize);
+		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize);
 
 		template< typename CharT, typename TAddQuad >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, TAddQuad& addQuad, Vector2* outBoundSize);

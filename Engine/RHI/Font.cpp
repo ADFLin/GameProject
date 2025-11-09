@@ -575,14 +575,14 @@ namespace Render
 
 	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str)
 	{
-		static thread_local TArray< FontVertex > GTextBuffer;
+		static thread_local TArray< GlyphVertex > GTextBuffer;
 		GTextBuffer.clear();
 		generateVertices(pos, str, GTextBuffer);
 		draw(commandList, transform, color, GTextBuffer);
 	}
 
 
-	void FontDrawer::draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer )
+	void FontDrawer::draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< GlyphVertex > const& buffer )
 	{
 		if (!buffer.empty())
 		{
@@ -701,7 +701,7 @@ namespace Render
 	}
 
 	template< typename CharT >
-	void FontDrawer::generateVerticesT( Vector2 const& pos , CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVerticesT( Vector2 const& pos , CharT const* str, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
 	{
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
 		{
@@ -715,7 +715,7 @@ namespace Render
 	}
 
 	template< typename CharT >
-	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, float scale, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
 	{
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
 		{
@@ -728,28 +728,28 @@ namespace Render
 		generateVerticesT(pos, str, scale, AddQuad, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, outVertices, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, outVertices, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, float scale, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, scale, outVertices, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, float scale, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, float scale, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, scale, outVertices, outBoundSize);
 	}
 
 
-	void FontDrawer::generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< FontVertex >& outVertices)
+	void FontDrawer::generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< GlyphVertex >& outVertices)
 	{
 
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
@@ -771,29 +771,39 @@ namespace Render
 		{
 			wchar_t c;
 			str += FCharConv< char, wchar_t >::Do(str, &c);
-			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
-
-			if (bApplyKerning)
+			if (FCString::IsSpace(c))
 			{
-				curPos.x += scale * data.kerning;
-#if 1
-				float kerning;
-				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+				CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
+				curPos.x += scale * data.advance;
+				bApplyKerning = false;
+			}
+			else
+			{
+				CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
+
+				if (bApplyKerning)
 				{
-					curPos.x += scale * kerning;
-				}
+					curPos.x += scale * data.kerning;
+#if 1
+					float kerning;
+					if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+					{
+						curPos.x += scale * kerning;
+					}
 #endif
+				}
+
+				AddQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
+				curPos.x += scale * data.advance;
+				bApplyKerning = true;
 			}
 
-			AddQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
-			curPos.x += scale * data.advance;
-			bApplyKerning = !FCString::IsSpace(c);
 			prevChar = c;
 		}
 	}
 
 	template< typename CharT >
-	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, GlyphVertex* outVertices, Vector2* outBoundSize)
 	{
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
 		{
@@ -807,7 +817,7 @@ namespace Render
 		generateVerticesT(pos, str, AddQuad, outBoundSize);
 	}
 	template< typename CharT >
-	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize)
 	{
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
 		{
@@ -821,22 +831,22 @@ namespace Render
 		generateVerticesT(pos, str, scale, AddQuad, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, FontVertex* outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, GlyphVertex* outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, outVertices, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, FontVertex* outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, GlyphVertex* outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, outVertices, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, scale, outVertices, outBoundSize);
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, float scale, FontVertex* outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize)
 	{
 		generateVerticesT(pos, str, scale, outVertices, outBoundSize);
 	}

@@ -602,22 +602,7 @@ namespace TFWR
 		}
 	};
 
-
-	enum EDirection
-	{
-		East,
-		West,
-		North,
-		South,
-	};
-
 	using ScriptHandle = lua_State*;
-
-
-	class Drone;
-	class GameState;
-
-
 
 #define OP_CODE_LIST(op)\
 	op(OP_MOVE)\
@@ -951,7 +936,57 @@ namespace TFWR
 
 	};
 
+	namespace EUnlock
+	{
+		enum Type
+		{
+			Auto_Unlock = -1,
+			Cactus = 0,
+			Carrots,
+			Costs,
+			Debug,
+			Debug_2,
+			Dictionaries,
+			Dinosaurs,
+			Expand,
+			Fertilizer,
+			Functions,
+			Grass,
+			Hats,
+			Import,
+			Leaderboard,
+			Lists,
+			Loops,
+			Mazes,
+			Megafarm,
+			Operators,
+			Plant,
+			Polyculture,
+			Pumpkins,
+			Senses,
+			Simulation,
+			Speed,
+			Sunflowers,
+			The_Farmers_Remains,
+			Timing,
+			Top_Hat,
+			Trees,
+			Utilities,
+			Variables,
+			Watering,
 
+			COUNT,
+		};
+	}
+	enum EDirection
+	{
+		East,
+		West,
+		North,
+		South,
+	};
+
+	class GameState;
 	class Drone : public ExecutableObject
 	{
 	public:
@@ -1034,7 +1069,7 @@ namespace TFWR
 	enum EItem
 	{
 		Hay,
-
+		Wood,
 
 		COUNT,
 	};
@@ -1095,13 +1130,26 @@ namespace TFWR
 	{
 		EntityLibrary()
 			:Grass(EPlant::Grass, EItem::Hay)
+			, Bush(EPlant::Bush, EItem::Wood)
 		{
 
 
 
 		}
 
+		void registerScript(ScriptHandle L)
+		{
+			lua_newtable(L);
+#define REGISTER(NAME)\
+	lua_pushlightuserdata(L, &NAME);\
+	lua_setfield(L, -2, #NAME)
+
+			REGISTER(Grass);
+			REGISTER(Bush);
+			lua_setglobal(L, "Entities");
+		}
 		SimplePlantEntity Grass;
+		SimplePlantEntity Bush;
 	};
 
 	EntityLibrary GEntities;
@@ -1136,6 +1184,7 @@ namespace TFWR
 		GameState()
 		{
 			mItems.resize(EItem::COUNT, 0);
+			mUnlockLevels.resize(EUnlock::COUNT, 0);
 		}
 
 		void init();
@@ -1241,7 +1290,10 @@ namespace TFWR
 
 		Drone* createDrone(CodeFile& file);
 
-
+		bool isUnlocked(EUnlock::Type unlock)
+		{
+			return mUnlockLevels[unlock] > 0;
+		}
 
 		void till(Drone& drone)
 		{
@@ -1251,18 +1303,25 @@ namespace TFWR
 
 		bool harvest(Drone& drone)
 		{
+			auto& tile = getTile(drone.pos);
+			if (tile.plant == nullptr)
+				return false;
 
+			tile.growValue = 0.0;
+			tile.plant = nullptr;
 			return true;
 		}
 
 		bool canHarvest(Drone& drone)
 		{
 			auto& tile = getTile(drone.pos);
+			if (tile.plant == nullptr)
+				return false;
+
 			if (tile.growValue < 1.0)
 				return false;
 
 			return true;
-
 		}
 
 		bool plant(Drone& drone, Entity& entity)
@@ -1271,10 +1330,13 @@ namespace TFWR
 			if (tile.plant)
 			{
 				return false;
+				if (tile.plant != &GEntities.Grass)
+					return false;
 			}
 
 			tile.plant = &entity;
 			tile.growValue = 0.0;
+			return true;
 		}
 
 		bool move(Drone& drone, EDirection direction)
@@ -1311,16 +1373,24 @@ namespace TFWR
 			return true;
 		}
 
+		Entity* getPlantEntity(Drone& drone)
+		{
+			auto& tile = getTile(drone.pos);
+			return tile.plant;
+		}
+
 		MapTile& getTile(Vec2i const& pos)
 		{
 			return mTiles(pos);
 		}
 
+		float mMaxSpeed = 1.0f;
 		lua_State* mMainL = nullptr;
 
 		TArray<Drone*> mDrones;
 		TGrid2D<MapTile> mTiles;
 
+		TArray<int> mUnlockLevels;
 		TArray<int> mItems;
 	};
 
@@ -1390,6 +1460,17 @@ namespace TFWR
 			return GExecContext->game->mTiles.getSizeX();
 		}
 
+		static Entity* get_entity_type()
+		{
+			Wait(1);
+			return GExecContext->game->getPlantEntity(*GExecContext->drone);
+		}
+
+		static void set_execution_speed(float speed)
+		{
+			GExecContext->game->mMaxSpeed = speed;
+			Wait(1);
+		}
 
 		//static bool move(EDirection direction)
 		static bool move(int direction)
@@ -1413,6 +1494,7 @@ namespace TFWR
 			REGISTER(get_pos_x);
 			REGISTER(get_pos_y);
 			REGISTER(get_world_size);
+			REGISTER(get_entity_type);
 
 #undef REGISTER
 		}
@@ -1437,6 +1519,7 @@ namespace TFWR
 			luaL_dofile(L, "TFWR/Main.lua");
 			LoadLib(L);
 			Register(L);
+			GEntities.registerScript(L);
 			FLuaBinding::Register(L, "TestFunc", TestFunc);
 
 			return L;
@@ -1472,7 +1555,7 @@ namespace TFWR
 		drone.executionCode = &codeFile;
 	}
 
-	void TFWR::GameState::stopExecution(Drone& drone)
+	void GameState::stopExecution(Drone& drone)
 	{
 		if (drone.executeL == nullptr)
 			return;
@@ -1651,6 +1734,10 @@ namespace TFWR
 				auto line = FStringParse::StringTokenLine(pCode);
 
 				mCodeLines.push_back(CodeLine());
+				if (mCodeLines.size() == 28)
+				{
+					int aa = 1;
+				}
 				auto& codeLine = mCodeLines.back();
 				if (line.size() == 0)
 					continue;
@@ -1663,15 +1750,28 @@ namespace TFWR
 				char const* pStrEnd = line.data() + line.size();
 				auto* pColor = codeLine.colors.data();
 				int numWord = 0;
-				while (pStr < pStrEnd && FStringParse::StringToken(pStr, " \t\r\n", token))
+				while (pStr < pStrEnd)
 				{
+					pStr = FStringParse::SkipChar(pStr, pStrEnd - pStr, " \t\r\n");
+					if (pStr >= pStrEnd)
+						break;
+
+					if (!FStringParse::StringToken(pStr, " \t\r\n", token))
+						break;
+					
 					Color4ub color = getColor(token);
+
 					for (int i = 0; i < token.size(); ++i)
 					{
 						pColor[i] = color;
 					}
 					pColor += token.size();
 					numWord += token.size();
+				}
+
+				if (numWord != codeLine.colors.size())
+				{
+					int aa = 1;
 				}
 
 				CHECK(numWord == codeLine.colors.size());

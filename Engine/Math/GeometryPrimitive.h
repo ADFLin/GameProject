@@ -27,6 +27,11 @@ namespace Math
 			max = VectorType::Fill(std::numeric_limits<ScalarType>::lowest());
 		}
 
+		bool contain(TAABBox const& rhs) const
+		{
+			return isInside(rhs.min) && isInside(rhs.max);
+		}
+
 		bool isIntersect(TAABBox const& rhs) const
 		{
 			return Math::BoxBoxTest(min, max, rhs.min, rhs.max);

@@ -286,67 +286,62 @@ CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT const* find
 }
 
 template< typename CharT >
-CharT const* TStringParse< CharT >::FindChar(CharT const* str, int num, CharT const* findChars)
+CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT const* strEnd, CharT const* findChars)
 {
 	assert(str && findChars);
-	while (num > 0)
+	while (str < strEnd)
 	{
 		if (*FindChar(findChars, *str) != 0)
 			break;
 		++str;
-		--num;
 	}
 	return str;
 }
 
 template< typename CharT >
-CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num , CharT c)
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, CharT const* strEnd, CharT c)
 {
-	while (*str != 0 && num )
+	while (*str != 0 && str < strEnd )
 	{
 		if (CheckChars(*str, c))
 			break;
 		++str;
-		--num;
 	}
 	return str;
 }
 
 template< typename CharT >
-CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2)
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2)
 {
-	while (*str != 0 && num)
+	while (*str != 0 && str < strEnd )
 	{
 		if (CheckChars(*str, c1, c2))
 			break;
 		++str;
-		--num;
 	}
 	return str;
 }
 
 template< typename CharT >
-CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3)
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2, CharT c3)
 {
-	while (*str != 0 && num)
+	while (*str != 0 && str < strEnd)
 	{
 		if (CheckChars(*str, c1, c2, c3))
 			break;
 		++str;
-		--num;
 	}
 	return str;
 }
 
 template< typename CharT >
-CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3, CharT c4)
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2, CharT c3, CharT c4)
 {
-	while (*str != 0 && num)
+	while (*str != 0 && str < strEnd)
 	{
 		if (CheckChars(*str, c1, c2, c3, c4))
 			break;
 		++str;
-		--num;
 	}
 	return str;
 }
@@ -424,15 +419,14 @@ CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT const* skip
 }
 
 template< typename CharT >
-CharT const* TStringParse< CharT >::SkipChar(CharT const* str, int num, CharT const* skipChars)
+CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT const* strEnd, CharT const* skipChars)
 {
 	assert(str && skipChars);
-	while (num > 0)
+	while (str < strEnd)
 	{
 		if (*FindChar(skipChars, *str) == 0)
 			break;
 		++str;
-		--num;
 	}
 	return str;
 }
@@ -789,6 +783,7 @@ bool TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dro
 	outToken = TStringView<CharT>(ptr, inoutStr - ptr);
 	return true;
 }
+
 
 template< typename CharT >
 TStringView<CharT> TStringParse< CharT >::StringTokenLine(CharT const*& inoutStr)

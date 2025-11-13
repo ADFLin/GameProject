@@ -1249,7 +1249,7 @@ namespace CPP
 					char const* end;
 					for(;;)
 					{
-						end = FStringParse::FindCharN(code.getCur(), code.size(), ',', ')', '(');
+						end = FStringParse::FindCharN(code.getCur(), code.getCur() + code.size(), ',', ')', '(');
 						if (*end == 0)
 						{
 							PARSE_ERROR("Marco Syntax Error : %s", (char const*)id.toCString());
@@ -1262,7 +1262,7 @@ namespace CPP
 						int scopeDepth = 1;
 						while (scopeDepth)
 						{
-							char const* pFind = FStringParse::FindCharN(code.getCur(), code.size(), ')', '(');
+							char const* pFind = FStringParse::FindCharN(code.getCur(), code.getCur() + code.size(), ')', '(');
 							if (*pFind == 0)
 							{
 								PARSE_ERROR("Marco Syntax Error : %s", (char const*)id.toCString());

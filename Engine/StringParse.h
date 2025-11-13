@@ -68,16 +68,16 @@ public:
 	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2, CharT c3, CharT c4);
 
 
-	static CharT const* FindCharN(CharT const* str, int num, CharT c);
-	static CharT const* FindCharN(CharT const* str, int num, CharT c1, CharT c2);
-	static CharT const* FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3);
-	static CharT const* FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3, CharT c4);
+	static CharT const* FindCharN(CharT const* str, CharT const* strEnd, CharT c);
+	static CharT const* FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2);
+	static CharT const* FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2, CharT c3);
+	static CharT const* FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2, CharT c3, CharT c4);
 
 	static CharT const* FindChar(CharT const* str, CharT const* findChars);
-	static CharT const* FindChar(CharT const* str, int num, CharT const* findChars);
+	static CharT const* FindChar(CharT const* str, CharT const* strEnd, CharT const* findChars);
 
 	static CharT const* SkipChar(CharT const* str, CharT const* skipChars);
-	static CharT const* SkipChar(CharT const* str, int num, CharT const* skipChars);
+	static CharT const* SkipChar(CharT const* str, CharT const* strEnd, CharT const* skipChars);
 	static CharT const* SkipChar(CharT const* str, CharT skipChar);
 	static CharT const* SkipSpace(CharT const* str);
 	static CharT const* SkipToNextLine(CharT const* str);
@@ -92,6 +92,7 @@ public:
 
 	static EStringToken StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken);
 	static bool         StringToken(CharT const*& inoutStr, CharT const* dropDelims, TStringView<CharT>& outToken);
+	static bool         StringToken(CharT const*& inoutStr, int num, CharT const* dropDelims, TStringView<CharT>& outToken);
 
 	static TStringView<CharT> StringTokenLine(CharT const*& inoutStr);
 

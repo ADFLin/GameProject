@@ -20,6 +20,8 @@
 
 #include "DataStructure/Grid2D.h"
 #include "Math/TVector2.h"
+#include "Math/GeometryPrimitive.h"
+
 #include "Meta/MetaBase.h"
 #include "RandomUtility.h"
 #include "AssetViewer.h"
@@ -27,6 +29,7 @@
 #include "StringParse.h"
 #include "Lua/ldebug.h"
 #include <memory>
+
 
 
 
@@ -848,32 +851,14 @@ namespace TFWR
 		void hookExecution(ExecutionContext& context, lua_State* L, lua_Debug *ar)
 		{
 			auto& execObject = *context.object;
+
 			if (ar->event == LUA_HOOKLINE)
 			{
-				return;
-				LogMsg("currentline = %d", ar->currentline);
-				auto source = ci_func(ar->i_ci)->p->source;
-				if (source->contents[0] == '@')
-				{
-					auto fileName = StringView(source->contents + 1, (source->shrlen == 0xFF ? source->u.lnglen : source->shrlen) - 1);
-
-				}
-				return;
-			}
-			else if (ar->event == LUA_HOOKCALL || ar->event == LUA_HOOKRET)
-			{
-				lua_getinfo(L, "nSl", ar); // Get name and source information
-
-				if (FCString::CompareN(ar->source, "@TFWR/Main.lua", 14) == 0)
-				{
-					bTickEnabled = ar->event != LUA_HOOKCALL;
-				}
-
-#if 0
-				printf("[C Hook] Function called: ");
+#if 1
+				printf("-Line- ");
 				if (ar->name)
 				{
-					printf("(%d) Name: %s, ", ar->event, ar->name);
+					printf("Name: %s, ", ar->name);
 				}
 				if (ar->source)
 				{
@@ -884,10 +869,73 @@ namespace TFWR
 					printf("Unknown source.\n");
 				}
 #endif
+
+				if (ar->source[0] != '@' || FCString::CompareN(ar->source, "@TFWR/Main.lua", 14) == 0)
+				{
+					return;
+				}
+
+
+
+				if (execObject.stateFlags & ExecutableObject::eStep)
+				{
+					execObject.stateFlags &= ~ExecutableObject::eStep;
+					execObject.stateFlags |= ExecutableObject::ePause;
+
+					execObject.line = ar->currentline;
+					auto fileName = StringView(ar->source + 1, ar->srclen - 1);
+					onHookLine(fileName, ar->currentline);
+
+					lua_yield(L, 0);
+					return;
+				}
+				return;
+			}
+			else if (ar->event == LUA_HOOKCALL || ar->event == LUA_HOOKRET)
+			{
+				lua_getinfo(L, "nSl", ar); // Get name and source information
+#if 1
+				printf("(Func) ");
+				if (ar->name)
+				{
+					printf("Name: %s, ", ar->name);
+				}
+				if (ar->source)
+				{
+					printf("Source: %s, Line: %d\n", ar->source, ar->currentline);
+				}
+				else
+				{
+					printf("Unknown source.\n");
+				}
+#endif
+
+				if (FCString::CompareN(ar->source, "@TFWR/Main.lua", 14) == 0)
+				{
+					bTickEnabled = ar->event != LUA_HOOKCALL;
+				}
+
 				return;
 			}
 
 			lua_getinfo(L, "nSl", ar);
+
+#if 1
+			printf("[Count] ");
+			if (ar->name)
+			{
+				printf("Name: %s, ", ar->name);
+			}
+			if (ar->source)
+			{
+				printf("Source: %s, Line: %d\n", ar->source, ar->currentline);
+			}
+			else
+			{
+				printf("Unknown source.\n");
+			}
+#endif
+
 
 			const Instruction* pc = L->ci->u.l.savedpc;
 			int op = GET_OPCODE(*(pc - 1));
@@ -909,21 +957,7 @@ namespace TFWR
 				}
 			}
 
-#if 0
-			printf("[C Hook] Function called: ");
-			if (ar->name)
-			{
-				printf("(%d) Name: %s, ", ar->event, ar->name);
-			}
-			if (ar->source)
-			{
-				printf("Source: %s, Line: %d\n", ar->source, ar->currentline);
-			}
-			else
-			{
-				printf("Unknown source.\n");
-			}
-#endif
+
 #if 0
 #define CASE_OP(op) case op: LogMsg(#op); break;
 			switch (op)
@@ -1005,26 +1039,22 @@ namespace TFWR
 		Vec2i pos;
 	};
 
-	class Ground
-	{
-
-
-	};
-
 	struct MapTile;
-
 
 	struct UpdateArgs
 	{
 		float deltaTime;
 		float fTicks;
 		float speed;
+
+		GameState* game;
 	};
 
 	class Entity
 	{
 	public:
 		virtual ~Entity() = default;
+		virtual void plant(MapTile& tile){}
 		virtual void grow(MapTile& tile, UpdateArgs const& updateArgs) = 0;
 		virtual std::string getDebugInfo(MapTile const& tile) = 0;
 	};
@@ -1070,7 +1100,7 @@ namespace TFWR
 	{
 		Hay,
 		Wood,
-
+		Pumpkin,
 		COUNT,
 	};
 
@@ -1086,6 +1116,8 @@ namespace TFWR
 		EGround ground;
 		Entity* plant;
 		float  growValue;
+		float  growTime;
+		int meta;
 
 		void reset()
 		{
@@ -1095,12 +1127,11 @@ namespace TFWR
 		}
 	};
 
-
-	class SimplePlantEntity : public Entity
+	class BasePlantEntity : public Entity
 	{
 
 	public:
-		SimplePlantEntity(EPlant::Type plant, EItem production)
+		BasePlantEntity(EPlant::Type plant, EItem production)
 			:plant(plant), production(production)
 		{
 
@@ -1126,11 +1157,26 @@ namespace TFWR
 		EItem production;
 	};
 
+	class SimplePlantEntity : public BasePlantEntity
+	{
+	public:
+		using BasePlantEntity::BasePlantEntity;
+
+	};
+
+	class AreaPlantEntity : public BasePlantEntity
+	{
+	public:
+		using BasePlantEntity::BasePlantEntity;
+
+	};
+
 	struct EntityLibrary
 	{
 		EntityLibrary()
 			:Grass(EPlant::Grass, EItem::Hay)
-			, Bush(EPlant::Bush, EItem::Wood)
+			,Bush(EPlant::Bush, EItem::Wood)
+			,Pumpkin(EPlant::Pumpkin, EItem::Pumpkin)
 		{
 
 
@@ -1146,10 +1192,12 @@ namespace TFWR
 
 			REGISTER(Grass);
 			REGISTER(Bush);
+			REGISTER(Pumpkin);
 			lua_setglobal(L, "Entities");
 		}
 		SimplePlantEntity Grass;
 		SimplePlantEntity Bush;
+		AreaPlantEntity Pumpkin;
 	};
 
 	EntityLibrary GEntities;
@@ -1245,6 +1293,7 @@ namespace TFWR
 			updateArgs.speed = 1.0f;
 			updateArgs.fTicks = updateArgs.speed * deltaTime * TicksPerSecond;
 			updateArgs.deltaTime = deltaTime;
+			updateArgs.game = this;
 
 			for (Drone* drone : mDrones)
 			{
@@ -1336,6 +1385,7 @@ namespace TFWR
 
 			tile.plant = &entity;
 			tile.growValue = 0.0;
+			entity.plant(tile);
 			return true;
 		}
 
@@ -1383,6 +1433,109 @@ namespace TFWR
 		{
 			return mTiles(pos);
 		}
+
+
+		using Area = Math::TAABBox<Vec2i>;
+
+		int tryMergeArea(Vec2i const& pos, int maxSize, Entity* entity)
+		{
+			int result = 0;
+
+			uint32 dirMaskFail = 0;
+			for (int size = 1; size <= maxSize; ++size)
+			{
+
+			}
+		}
+
+		int tryMergeArea(Vec2i const& pos, int size, int dir, Entity* entity)
+		{
+			Vec2i dirOffset[] =
+			{
+				Vec2i(1,1), Vec2i(-1,1), Vec2i(1,-1), Vec2i(-1,-1),
+			};
+
+			Area testArea;
+			testArea.min = pos.min(pos + size * dirOffset[dir]);
+			testArea.max = pos.max(pos + size * dirOffset[dir]);
+			
+			for (int oy = 0; oy < size; ++oy)
+			{
+				for (int ox = 0; ox < size; ++ox)
+				{
+					auto const& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
+					if (tile.plant != entity)
+						return 0;
+
+					if (tile.meta == -1)
+						return 0;
+
+					if (tile.meta > 0)
+					{
+						auto const& area = mAreas[tile.meta - 1];
+						if (!testArea.contain(area))
+						{
+							return 0;
+						}
+					}
+				}
+			}
+
+			int id = addArea(testArea);
+			for (int oy = 0; oy < size; ++oy)
+			{
+				for (int ox = 0; ox < size; ++ox)
+				{
+					auto& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
+					if (tile.meta > 0 && tile.meta != id)
+					{
+						removeArea(tile.meta - 1);
+					}
+					tile.meta = id + 1;
+				}
+			}
+			return id;
+		}
+
+		int addArea(Area const& area)
+		{
+			int result;
+			if (mFreeAreaIndex != INDEX_NONE)
+			{
+				result = mFreeAreaIndex;
+				mFreeAreaIndex = mAreas[mFreeAreaIndex].link;
+			}
+			else
+			{
+				result = mAreas.size();
+				mAreas.push_back(area);
+			}
+			return result;
+		}
+
+		void removeArea(int id)
+		{
+			if (mAreas[id].link != INDEX_NONE)
+				return;
+
+			mAreas[id].link = mFreeAreaIndex;
+			mFreeAreaIndex = id;
+		}
+
+
+		struct LinkedArea : Area
+		{
+			LinkedArea(Area const& area)
+				:Area(area)
+			{
+				link = INDEX_NONE;
+			}
+
+			int  link;
+		};
+
+		TArray< LinkedArea > mAreas;
+		int mFreeAreaIndex;
 
 		float mMaxSpeed = 1.0f;
 		lua_State* mMainL = nullptr;
@@ -1530,7 +1683,7 @@ namespace TFWR
 			InlineString<> path;
 			path.format("TFWR/%s.lua", fileName);
 			lua_State* L = lua_newthread(gameL);
-			lua_sethook(L, HookEntry, LUA_MASKCOUNT | LUA_MASKCALL | LUA_MASKRET, 1);
+			lua_sethook(L, HookEntry, LUA_MASKCOUNT | LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, 1);
 			luaL_loadfile(L, path.c_str());
 			return L;
 		}
@@ -1630,8 +1783,8 @@ namespace TFWR
 		virtual bool isExecutingCode() { return false; }
 		virtual void runExecution(CodeFileAsset& codeFile){}
 		virtual void stopExecution(CodeFileAsset& codeFile) {}
-		virtual void pauseExecutingCode(CodeFileAsset& codeFile) {}
-
+		virtual void pauseExecution(CodeFileAsset& codeFile) {}
+		virtual void runStepExecution(CodeFileAsset& codeFile) {}
 		static IViewModel& Get()
 		{
 			return *Instance;
@@ -1719,6 +1872,14 @@ namespace TFWR
 
 				break;
 			case UI_EXEC_STEP:
+				if (IViewModel::Get().isExecutingCode())
+				{
+					IViewModel::Get().pauseExecution(*codeFile);
+				}
+				else
+				{
+					IViewModel::Get().runStepExecution(*codeFile);
+				}
 				break;
 			}
 			return true; 
@@ -1734,10 +1895,7 @@ namespace TFWR
 				auto line = FStringParse::StringTokenLine(pCode);
 
 				mCodeLines.push_back(CodeLine());
-				if (mCodeLines.size() == 28)
-				{
-					int aa = 1;
-				}
+
 				auto& codeLine = mCodeLines.back();
 				if (line.size() == 0)
 					continue;
@@ -1752,12 +1910,14 @@ namespace TFWR
 				int numWord = 0;
 				while (pStr < pStrEnd)
 				{
-					pStr = FStringParse::SkipChar(pStr, pStrEnd - pStr, " \t\r\n");
+					char const* dropDelims = " \t\r\n";
+					pStr = FStringParse::SkipChar(pStr, pStrEnd, dropDelims);
 					if (pStr >= pStrEnd)
 						break;
 
-					if (!FStringParse::StringToken(pStr, " \t\r\n", token))
-						break;
+					char const* ptr = pStr;
+					pStr = FStringParse::FindChar(pStr, pStrEnd, dropDelims);
+					token = StringView(ptr, pStr - ptr);
 					
 					Color4ub color = getColor(token);
 
@@ -1767,11 +1927,6 @@ namespace TFWR
 					}
 					pColor += token.size();
 					numWord += token.size();
-				}
-
-				if (numWord != codeLine.colors.size())
-				{
-					int aa = 1;
 				}
 
 				CHECK(numWord == codeLine.colors.size());
@@ -1914,9 +2069,27 @@ namespace TFWR
 			}
 		}
 
-		virtual void pauseExecutingCode(CodeFileAsset& codeFile) 
+		virtual void pauseExecution(CodeFileAsset& codeFile) 
 		{
+			for (Drone* drone : mGame.mDrones)
+			{
+				if (drone->executionCode == &codeFile)
+				{
+					drone->stateFlags |= ExecutableObject::ePause;
+				}
+			}
+		}
 
+		virtual void runStepExecution(CodeFileAsset& codeFile) 
+		{
+			for (Drone* drone : mGame.mDrones)
+			{
+				if (drone->executionCode == &codeFile)
+				{
+					drone->stateFlags &= ~ExecutableObject::ePause;
+					drone->stateFlags |= ExecutableObject::eStep;
+				}
+			}
 
 		}
 		virtual void onHookLine(StringView const& fileName, int line)

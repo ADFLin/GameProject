@@ -1,6 +1,8 @@
+
 #include "Stage/TestStageHeader.h"
 #include "GameRenderSetup.h"
 
+#include "TFPRCore.h"
 
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
@@ -29,8 +31,6 @@
 #include "StringParse.h"
 #include "Lua/ldebug.h"
 #include <memory>
-
-
 
 
 namespace TFWR
@@ -692,30 +692,7 @@ namespace TFWR
 	op(OP_VARARGPREP)\
 	op(OP_EXTRAARG)\
 
-	struct ExecutableObject
-	{
-		enum EState
-		{
-			ePause = BIT(0),
-			eExecuting = BIT(2),
-			eStep = BIT(3),
-		};
 
-		void reset()
-		{
-			fTicksAcc = 0;
-			line = 0;
-			executeL = nullptr;
-			stateFlags = 0;
-			executionCode = nullptr;
-		}
-
-		CodeFile* executionCode;
-		lua_State* executeL;
-		float fTicksAcc;
-		int line;
-		uint32 stateFlags;
-	};
 
 	class IExecuteHookListener
 	{
@@ -970,114 +947,19 @@ namespace TFWR
 
 	};
 
-	namespace EUnlock
-	{
-		enum Type
-		{
-			Auto_Unlock = -1,
-			Cactus = 0,
-			Carrots,
-			Costs,
-			Debug,
-			Debug_2,
-			Dictionaries,
-			Dinosaurs,
-			Expand,
-			Fertilizer,
-			Functions,
-			Grass,
-			Hats,
-			Import,
-			Leaderboard,
-			Lists,
-			Loops,
-			Mazes,
-			Megafarm,
-			Operators,
-			Plant,
-			Polyculture,
-			Pumpkins,
-			Senses,
-			Simulation,
-			Speed,
-			Sunflowers,
-			The_Farmers_Remains,
-			Timing,
-			Top_Hat,
-			Trees,
-			Utilities,
-			Variables,
-			Watering,
-
-			COUNT,
-		};
-	}
-	enum EDirection
-	{
-		East,
-		West,
-		North,
-		South,
-	};
 
 	class GameState;
-	class Drone : public ExecutableObject
-	{
-	public:
-
-		Drone()
-		{
-			reset();
-		}
-
-		void reset()
-		{
-			ExecutableObject::reset();
-			pos = Vec2i(0, 0);
-		}
-		
-		Vec2i pos;
-	};
-
 	struct MapTile;
 
-	struct UpdateArgs
+	static Vec2i constexpr GDirectionOffset[] =
 	{
-		float deltaTime;
-		float fTicks;
-		float speed;
-
-		GameState* game;
-	};
-
-	class Entity
-	{
-	public:
-		virtual ~Entity() = default;
-		virtual void plant(MapTile& tile){}
-		virtual void grow(MapTile& tile, UpdateArgs const& updateArgs) = 0;
-		virtual std::string getDebugInfo(MapTile const& tile) = 0;
+		Vec2i(1,0),
+		Vec2i(-1,0),
+		Vec2i(0,1),
+		Vec2i(0,-1),
 	};
 
 	constexpr int TicksPerSecond = 400;
-
-	namespace EPlant
-	{
-		enum Type
-		{
-			Grass,
-			Bush,
-			Carrots,
-			Tree,
-			Pumpkin,
-			Cactus,
-			Sunflower,
-			Dionsaur,
-
-			COUNT,
-		};
-	}
-
 
 	struct TimeRange
 	{
@@ -1096,87 +978,89 @@ namespace TFWR
 		{ 0.18 , 0.22 },
 	};
 
-	enum EItem
+	BasePlantEntity::BasePlantEntity(EPlant::Type plant, EItem production) 
+		:plant(plant), production(production)
 	{
-		Hay,
-		Wood,
-		Pumpkin,
-		COUNT,
-	};
 
-	enum EGround
+	}
+	void BasePlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
 	{
-		Grassland,
-		Soil,
-	};
+		if (tile.growTime == 1.0)
+			return;
 
-
-	struct MapTile
-	{
-		EGround ground;
-		Entity* plant;
-		float  growValue;
-		float  growTime;
-		int meta;
-
-		void reset()
+		auto growTimeRange = PlantGrowthTimeMap[plant];
+		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
+		tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
+		if (tile.growValue >= 1.0)
 		{
-			ground = EGround::Grassland;
-			plant = nullptr;
-			growValue = 0;
+			tile.growValue = 1.0;
 		}
-	};
+	}
 
-	class BasePlantEntity : public Entity
+	void BasePlantEntity::harvest(MapTile& tile, GameState& game)
 	{
+		if (tile.growValue < 1.0)
+			return;
 
-	public:
-		BasePlantEntity(EPlant::Type plant, EItem production)
-			:plant(plant), production(production)
+		game.addItem(production, 5);
+	}
+	std::string BasePlantEntity::getDebugInfo(MapTile const& tile)
+	{
+		return InlineString<>::Make("%d %f", plant, tile.growValue);
+	}
+
+	void TreePlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
+	{
+		if (tile.growTime == 1.0)
+			return;
+
+		int numNeighborTree = 0;
+		for (int dir = 0; dir < 4; ++dir)
 		{
-
-		}
-
-		void grow(MapTile& tile, UpdateArgs const& updateArgs)
-		{
-			auto growTimeRange = PlantGrowthTimeMap[plant];
-			float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
-			tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
-			if (tile.growValue > 1.0)
+			Vec2i nPos = game.getPos(tile) + GDirectionOffset[dir];
+			if (game.mTiles.checkRange(nPos))
 			{
-				tile.growValue = 1.0;
+				auto const& nTile = game.getTile(nPos);
+				if (nTile.plant == tile.plant)
+				{
+					++numNeighborTree;
+				}
 			}
 		}
 
-		std::string getDebugInfo(MapTile const& tile)
+		auto growTimeRange = PlantGrowthTimeMap[plant];
+		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
+		tile.growValue += updateArgs.speed * updateArgs.deltaTime / (growTime * (numNeighborTree + 1));
+		if (tile.growValue >= 1.0)
 		{
-			return InlineString<>::Make("%d %f", plant, tile.growValue);
+			tile.growValue = 1.0;
 		}
+	}
 
-		EPlant::Type plant;
-		EItem production;
-	};
-
-	class SimplePlantEntity : public BasePlantEntity
+	void AreaPlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
 	{
-	public:
-		using BasePlantEntity::BasePlantEntity;
+		if (tile.growTime == 1.0)
+			return;
 
-	};
-
-	class AreaPlantEntity : public BasePlantEntity
-	{
-	public:
-		using BasePlantEntity::BasePlantEntity;
-
-	};
+		auto growTimeRange = PlantGrowthTimeMap[plant];
+		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
+		tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
+		if (tile.growValue >= 1.0)
+		{
+			tile.growValue = 1.0;
+			tile.meta = 0;
+			game.tryMergeArea(game.getPos(tile), mMaxSize, this);
+		}
+	}
 
 	struct EntityLibrary
 	{
 		EntityLibrary()
 			:Grass(EPlant::Grass, EItem::Hay)
 			,Bush(EPlant::Bush, EItem::Wood)
+			,Tree(EPlant::Tree, EItem::Wood)
 			,Pumpkin(EPlant::Pumpkin, EItem::Pumpkin)
+
 		{
 
 
@@ -1192,11 +1076,13 @@ namespace TFWR
 
 			REGISTER(Grass);
 			REGISTER(Bush);
+			REGISTER(Tree);
 			REGISTER(Pumpkin);
 			lua_setglobal(L, "Entities");
 		}
 		SimplePlantEntity Grass;
 		SimplePlantEntity Bush;
+		TreePlantEntity Tree;
 		AreaPlantEntity Pumpkin;
 	};
 
@@ -1225,327 +1111,6 @@ namespace TFWR
 		WorldExecuteContext* prevContext;
 	};
 
-	class GameState
-	{
-	public:
-
-		GameState()
-		{
-			mItems.resize(EItem::COUNT, 0);
-			mUnlockLevels.resize(EUnlock::COUNT, 0);
-		}
-
-		void init();
-
-
-		void runExecution(Drone& drone, CodeFile& codeFile);
-		void stopExecution(Drone& drone);
-		bool isExecutingCode()
-		{
-			bool bHadExecution = false;
-			for (Drone* drone : mDrones)
-			{
-				if (drone->executeL)
-				{
-					if (drone->stateFlags & ExecutableObject::ePause)
-						return false;
-
-					bHadExecution = true;
-				}
-			}
-			return bHadExecution;
-		}
-
-		void release()
-		{
-			if (mMainL)
-			{
-				lua_close(mMainL);
-			}
-
-			for (auto drone : mDrones)
-			{
-				delete drone;
-			}
-			mDrones.clear();
-		}
-
-
-		void reset()
-		{
-			for (auto& tile : mTiles)
-			{
-				tile.reset();
-			}
-
-			for (auto drone : mDrones)
-			{
-				drone->reset();
-			}
-		}
-
-		void update(float deltaTime)
-		{
-			if (!isExecutingCode())
-				return;
-
-			UpdateArgs updateArgs;
-			updateArgs.speed = 1.0f;
-			updateArgs.fTicks = updateArgs.speed * deltaTime * TicksPerSecond;
-			updateArgs.deltaTime = deltaTime;
-			updateArgs.game = this;
-
-			for (Drone* drone : mDrones)
-			{
-				update(*drone, updateArgs);
-			}
-			for (auto& tile : mTiles)
-			{
-				update(tile, updateArgs);
-			}
-		}
-
-		void update(Drone& drone, UpdateArgs const& updateArgs)
-		{	
-			if (drone.executeL == nullptr)
-			{
-				return;
-			}
-
-			drone.fTicksAcc += updateArgs.fTicks;
-			if (drone.fTicksAcc <= 1.0)
-				return;
-
-			WorldExecuteContext context;
-			context.drone = &drone;
-			context.game = this;
-			context.mainL = mMainL;
-			context.object = &drone;
-
-			ExecuteManager::Get().execute(context);
-		}
-
-		void update(MapTile& tile, UpdateArgs const& updateArgs)
-		{
-			if (tile.plant == nullptr && tile.ground == EGround::Grassland)
-			{
-				tile.plant = &GEntities.Grass;
-			}
-			if (tile.plant)
-			{
-				tile.plant->grow(tile, updateArgs);
-			}
-		}
-
-		Drone* createDrone(CodeFile& file);
-
-		bool isUnlocked(EUnlock::Type unlock)
-		{
-			return mUnlockLevels[unlock] > 0;
-		}
-
-		void till(Drone& drone)
-		{
-			auto& tile = getTile(drone.pos);
-
-		}
-
-		bool harvest(Drone& drone)
-		{
-			auto& tile = getTile(drone.pos);
-			if (tile.plant == nullptr)
-				return false;
-
-			tile.growValue = 0.0;
-			tile.plant = nullptr;
-			return true;
-		}
-
-		bool canHarvest(Drone& drone)
-		{
-			auto& tile = getTile(drone.pos);
-			if (tile.plant == nullptr)
-				return false;
-
-			if (tile.growValue < 1.0)
-				return false;
-
-			return true;
-		}
-
-		bool plant(Drone& drone, Entity& entity)
-		{
-			auto& tile = getTile(drone.pos);
-			if (tile.plant)
-			{
-				return false;
-				if (tile.plant != &GEntities.Grass)
-					return false;
-			}
-
-			tile.plant = &entity;
-			tile.growValue = 0.0;
-			entity.plant(tile);
-			return true;
-		}
-
-		bool move(Drone& drone, EDirection direction)
-		{
-			static Vec2i const moveOffset[] =
-			{
-				Vec2i(1,0),
-				Vec2i(-1,0),
-				Vec2i(0,1),
-				Vec2i(0,-1),
-			};
-
-			Vec2i pos = drone.pos + moveOffset[direction];
-			switch (direction)
-			{
-			case East:
-				if (pos.x >= mTiles.getSizeX())
-					pos.x = 0;
-				break;
-			case West:
-				if (pos.x < 0)
-					pos.x = mTiles.getSizeX() - 1;
-				break;
-			case North:
-				if (pos.y >= mTiles.getSizeY())
-					pos.y = 0;
-				break;
-			case South:
-				if (pos.y < 0)
-					pos.y = mTiles.getSizeY() - 1;
-				break;
-			}
-			drone.pos = pos;
-			return true;
-		}
-
-		Entity* getPlantEntity(Drone& drone)
-		{
-			auto& tile = getTile(drone.pos);
-			return tile.plant;
-		}
-
-		MapTile& getTile(Vec2i const& pos)
-		{
-			return mTiles(pos);
-		}
-
-
-		using Area = Math::TAABBox<Vec2i>;
-
-		int tryMergeArea(Vec2i const& pos, int maxSize, Entity* entity)
-		{
-			int result = 0;
-
-			uint32 dirMaskFail = 0;
-			for (int size = 1; size <= maxSize; ++size)
-			{
-
-			}
-		}
-
-		int tryMergeArea(Vec2i const& pos, int size, int dir, Entity* entity)
-		{
-			Vec2i dirOffset[] =
-			{
-				Vec2i(1,1), Vec2i(-1,1), Vec2i(1,-1), Vec2i(-1,-1),
-			};
-
-			Area testArea;
-			testArea.min = pos.min(pos + size * dirOffset[dir]);
-			testArea.max = pos.max(pos + size * dirOffset[dir]);
-			
-			for (int oy = 0; oy < size; ++oy)
-			{
-				for (int ox = 0; ox < size; ++ox)
-				{
-					auto const& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
-					if (tile.plant != entity)
-						return 0;
-
-					if (tile.meta == -1)
-						return 0;
-
-					if (tile.meta > 0)
-					{
-						auto const& area = mAreas[tile.meta - 1];
-						if (!testArea.contain(area))
-						{
-							return 0;
-						}
-					}
-				}
-			}
-
-			int id = addArea(testArea);
-			for (int oy = 0; oy < size; ++oy)
-			{
-				for (int ox = 0; ox < size; ++ox)
-				{
-					auto& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
-					if (tile.meta > 0 && tile.meta != id)
-					{
-						removeArea(tile.meta - 1);
-					}
-					tile.meta = id + 1;
-				}
-			}
-			return id;
-		}
-
-		int addArea(Area const& area)
-		{
-			int result;
-			if (mFreeAreaIndex != INDEX_NONE)
-			{
-				result = mFreeAreaIndex;
-				mFreeAreaIndex = mAreas[mFreeAreaIndex].link;
-			}
-			else
-			{
-				result = mAreas.size();
-				mAreas.push_back(area);
-			}
-			return result;
-		}
-
-		void removeArea(int id)
-		{
-			if (mAreas[id].link != INDEX_NONE)
-				return;
-
-			mAreas[id].link = mFreeAreaIndex;
-			mFreeAreaIndex = id;
-		}
-
-
-		struct LinkedArea : Area
-		{
-			LinkedArea(Area const& area)
-				:Area(area)
-			{
-				link = INDEX_NONE;
-			}
-
-			int  link;
-		};
-
-		TArray< LinkedArea > mAreas;
-		int mFreeAreaIndex;
-
-		float mMaxSpeed = 1.0f;
-		lua_State* mMainL = nullptr;
-
-		TArray<Drone*> mDrones;
-		TGrid2D<MapTile> mTiles;
-
-		TArray<int> mUnlockLevels;
-		TArray<int> mItems;
-	};
 
 	struct FGameAPI
 	{
@@ -1558,6 +1123,11 @@ namespace TFWR
 		{
 			ExecuteManager::Get().bTickEnabled = lua_toboolean(L, 1);
 			return 0;
+		}
+
+		static void Error()
+		{
+			luaL_error(GExecContext->object->executeL, "Exec Error");
 		}
 
 		static void HookEntry(lua_State* L, lua_Debug *ar)
@@ -1690,6 +1260,12 @@ namespace TFWR
 	};
 
 
+	GameState::GameState()
+	{
+		mItems.resize(EItem::COUNT, 0);
+		mUnlockLevels.resize(EUnlock::COUNT, 0);
+	}
+
 	void GameState::init()
 	{
 		mMainL = FGameAPI::CreateGameState();
@@ -1725,6 +1301,284 @@ namespace TFWR
 		drone->reset();
 		mDrones.push_back(drone);
 		return drone;
+	}
+
+	bool GameState::isExecutingCode()
+	{
+		bool bHadExecution = false;
+		for (Drone* drone : mDrones)
+		{
+			if (drone->executeL)
+			{
+				if (drone->stateFlags & ExecutableObject::ePause)
+					return false;
+
+				bHadExecution = true;
+			}
+		}
+		return bHadExecution;
+	}
+
+	void GameState::release()
+	{
+		if (mMainL)
+		{
+			lua_close(mMainL);
+		}
+
+		for (auto drone : mDrones)
+		{
+			delete drone;
+		}
+		mDrones.clear();
+	}
+
+	Vec2i GameState::getPos(MapTile const& tile) const
+	{
+		int index = &tile - mTiles.getRawData();
+		Vec2i pos;
+		mTiles.toCoord(index, pos.x, pos.y);
+		return pos;
+	}
+
+	void GameState::reset()
+	{
+		for (auto& tile : mTiles)
+		{
+			tile.reset();
+		}
+
+		for (auto drone : mDrones)
+		{
+			drone->reset();
+		}
+
+		mAreas.clear();
+		mFreeAreaIndex = INDEX_NONE;
+	}
+
+	void GameState::update(float deltaTime)
+	{
+		if (!isExecutingCode())
+			return;
+
+		UpdateArgs updateArgs;
+		updateArgs.speed = 1.0f;
+		updateArgs.fTicks = updateArgs.speed * deltaTime * TicksPerSecond;
+		updateArgs.deltaTime = deltaTime;
+
+		for (Drone* drone : mDrones)
+		{
+			update(*drone, updateArgs);
+		}
+		for (auto& tile : mTiles)
+		{
+			update(tile, updateArgs);
+		}
+	}
+
+	void GameState::update(Drone& drone, UpdateArgs const& updateArgs)
+	{
+
+		if (drone.executeL == nullptr)
+		{
+			return;
+		}
+
+		drone.fTicksAcc += updateArgs.fTicks;
+		if (drone.fTicksAcc <= 1.0)
+			return;
+
+		WorldExecuteContext context;
+		context.drone = &drone;
+		context.game = this;
+		context.mainL = mMainL;
+		context.object = &drone;
+
+		ExecuteManager::Get().execute(context);
+	}
+
+	void GameState::update(MapTile& tile, UpdateArgs const& updateArgs)
+	{
+		if (tile.plant == nullptr && tile.ground == EGround::Grassland)
+		{
+			tile.plant = &GEntities.Grass;
+		}
+		if (tile.plant)
+		{
+			tile.plant->grow(tile, *this, updateArgs);
+		}
+	}
+
+	bool GameState::isUnlocked(EUnlock::Type unlock)
+	{
+		return mUnlockLevels[unlock] > 0;
+	}
+
+	void GameState::till(Drone& drone)
+	{
+		auto& tile = getTile(drone.pos);
+	}
+
+	bool GameState::harvest(Drone& drone)
+	{
+		auto& tile = getTile(drone.pos);
+		if (tile.plant == nullptr)
+			return false;
+
+		tile.plant->harvest(tile, *this);
+		tile.growValue = 0.0;
+		tile.plant = nullptr;
+		return true;
+	}
+
+	bool GameState::canHarvest(Drone& drone)
+	{
+		auto& tile = getTile(drone.pos);
+		if (tile.plant == nullptr)
+			return false;
+
+		if (tile.growValue < 1.0)
+			return false;
+
+		return true;
+	}
+
+	bool GameState::plant(Drone& drone, Entity& entity)
+	{
+		auto& tile = getTile(drone.pos);
+		if (tile.plant)
+		{
+			if (tile.plant != &GEntities.Grass)
+				return false;
+		}
+
+		tile.plant = &entity;
+		tile.growValue = 0.0;
+		tile.plant->plant(tile, *this);
+		return true;
+	}
+
+	bool GameState::move(Drone& drone, EDirection direction)
+	{
+		static Vec2i const moveOffset[] =
+		{
+			Vec2i(1,0),
+			Vec2i(-1,0),
+			Vec2i(0,1),
+			Vec2i(0,-1),
+		};
+
+		Vec2i pos = drone.pos + moveOffset[direction];
+		switch (direction)
+		{
+		case East:
+			if (pos.x >= mTiles.getSizeX())
+				pos.x = 0;
+			break;
+		case West:
+			if (pos.x < 0)
+				pos.x = mTiles.getSizeX() - 1;
+			break;
+		case North:
+			if (pos.y >= mTiles.getSizeY())
+				pos.y = 0;
+			break;
+		case South:
+			if (pos.y < 0)
+				pos.y = mTiles.getSizeY() - 1;
+			break;
+		}
+		drone.pos = pos;
+		return true;
+	}
+
+	int GameState::tryMergeArea(Vec2i const& pos, int maxSize, Entity* entity)
+	{
+		int result = 0;
+		for (int size = 2; size <= maxSize; ++size)
+		{
+			auto const& tile = getTile(pos);
+
+			Area area;
+			if (tile.meta > 0)
+			{
+				area = mAreas[tile.meta - 1];
+			}
+			else
+			{
+				area.min = pos;
+				area.max = pos + Vec2i(1, 1);
+			}
+
+			if (area.getSize().x >= maxSize)
+				continue;
+
+			for (int dir = 0; dir < 4; ++dir)
+			{
+				int id = tryMergeArea(area, size, dir, entity);
+				if (id > 0)
+				{
+					result = id;
+					break;
+				}
+			}
+		}
+		return result;
+	}
+
+	int GameState::tryMergeArea(Area const& areaToMerge, int size, int dir, Entity* entity)
+	{
+		static constexpr Vec2i dirOffset[] =
+		{
+			Vec2i(1,1), Vec2i(-1,1), Vec2i(1,-1), Vec2i(-1,-1),
+		};
+
+
+		Vec2i pos;
+		pos.x = dirOffset[dir].x > 0 ? areaToMerge.min.x : areaToMerge.max.x;
+		pos.y = dirOffset[dir].y > 0 ? areaToMerge.min.y : areaToMerge.max.y;
+
+		Area testArea;
+		testArea.min = pos.min(pos + size * dirOffset[dir]);
+		testArea.max = pos.max(pos + size * dirOffset[dir]);
+
+		for (int oy = 0; oy < size; ++oy)
+		{
+			for (int ox = 0; ox < size; ++ox)
+			{
+				auto const& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
+				if (tile.plant != entity)
+					return 0;
+
+				if (tile.meta == -1)
+					return 0;
+
+				if (tile.meta > 0)
+				{
+					auto const& area = mAreas[tile.meta - 1];
+					if (!testArea.contain(area))
+					{
+						return 0;
+					}
+				}
+			}
+		}
+
+		int id = addArea(testArea);
+		for (int oy = 0; oy < size; ++oy)
+		{
+			for (int ox = 0; ox < size; ++ox)
+			{
+				auto& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
+				if (tile.meta > 0 && tile.meta != id)
+				{
+					removeArea(tile.meta - 1);
+				}
+				tile.meta = id + 1;
+			}
+		}
+		return id + 1;
 	}
 
 	class CodeEditor;

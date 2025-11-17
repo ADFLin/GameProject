@@ -257,7 +257,7 @@
     <ClCompile Include="TestMisc\Stage\Plot2DStage.cpp" />
     <ClCompile Include="TestMisc\Stage\QuixoStage.cpp" />
     <ClCompile Include="TestMisc\Stage\SRPGTestStage.cpp" />
-    <ClCompile Include="TestMisc\Stage\TheFarmerWasPlacedStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\TheFarmerWasReplacedStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TwentyFortyEightStage.cpp" />
     <ClCompile Include="TestMisc\Stage\VideoPlayStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
@@ -299,6 +299,7 @@
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="TestMisc\Stage\AgarStage.h" />
+    <ClInclude Include="TestMisc\Stage\TFPRCore.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -114,16 +114,6 @@ namespace TFWR
 		float speed;
 	};
 
-	class Entity
-	{
-	public:
-		virtual ~Entity() = default;
-		virtual void plant(MapTile& tile, GameState& game){}
-		virtual void grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs) {}
-		virtual void harvest(MapTile& tile, GameState& game) {}
-		virtual std::string getDebugInfo(MapTile const& tile) = 0;
-	};
-
 	namespace EPlant
 	{
 		enum Type
@@ -140,6 +130,19 @@ namespace TFWR
 			COUNT,
 		};
 	}
+
+	class Entity
+	{
+	public:
+		virtual ~Entity() = default;
+		virtual EPlant::Type getPlantType() = 0;
+		virtual void plant(MapTile& tile, GameState& game){}
+		virtual void grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs) {}
+		virtual void harvest(MapTile& tile, GameState& game) {}
+		virtual std::string getDebugInfo(MapTile const& tile) = 0;
+	};
+
+
 	enum EItem
 	{
 		Hay,
@@ -174,14 +177,18 @@ namespace TFWR
 	class BasePlantEntity : public Entity
 	{
 	public:
-		BasePlantEntity(EPlant::Type plant, EItem production);
+		BasePlantEntity(EPlant::Type inPlant, EItem production);
+
+		EPlant::Type getPlantType() { return mPlant; }
 
 		void grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs);
 		void harvest(MapTile& tile, GameState& game);
 
 		std::string getDebugInfo(MapTile const& tile);
 
-		EPlant::Type plant;
+		void updateGrowValue(MapTile& tile, UpdateArgs const& updateArgs);
+
+		EPlant::Type mPlant;
 		EItem production;
 	};
 
@@ -203,7 +210,10 @@ namespace TFWR
 	{
 	public:
 		using BasePlantEntity::BasePlantEntity;
-
+		void plant(MapTile& tile, GameState& game) 
+		{
+			tile.meta = INDEX_NONE;
+		}
 		void grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs);
 
 		int mMaxSize = 5;
@@ -228,23 +238,16 @@ namespace TFWR
 		void reset();
 
 		void update(float deltaTime);
-
 		void update(Drone& drone, UpdateArgs const& updateArgs);
-
 		void update(MapTile& tile, UpdateArgs const& updateArgs);
 
 		Drone* createDrone(CodeFile& file);
 
 		bool isUnlocked(EUnlock::Type unlock);
-
 		void till(Drone& drone);
-
 		bool harvest(Drone& drone);
-
 		bool canHarvest(Drone& drone);
-
 		bool plant(Drone& drone, Entity& entity);
-
 		bool move(Drone& drone, EDirection direction);
 
 		Entity* getPlantEntity(Drone& drone)
@@ -257,7 +260,6 @@ namespace TFWR
 		{
 			return mTiles(pos);
 		}
-
 
 		using Area = Math::TAABBox<Vec2i>;
 

@@ -71,7 +71,7 @@ namespace TFWR
 	}
 
 	template<typename T>
-	constexpr bool IsOutputValue = (std::is_pointer_v<T> || std::is_reference_v<T>) && !std::is_const_v<T> && (::Meta::IsPrimary< std::remove_reference_t< std::remove_cv_t<T>> >::Value);
+	constexpr bool IsOutputValue = (( std::is_pointer_v<T> || std::is_reference_v<T>) && !std::is_const_v<T> ) && (::Meta::IsPrimary< std::remove_reference_t< std::remove_cv_t< std::remove_pointer_t<T>>> >::Value);
 
 	struct FLuaBinding
 	{
@@ -206,6 +206,10 @@ namespace TFWR
 			else if constexpr (std::is_floating_point_v<T>)
 			{
 				arg = lua_tonumber(L, index);
+			}
+			else if constexpr (std::is_pointer_v<TArg>)
+			{
+				arg = (T)lua_touserdata(L, index);
 			}
 			else
 			{
@@ -979,7 +983,7 @@ namespace TFWR
 	};
 
 	BasePlantEntity::BasePlantEntity(EPlant::Type plant, EItem production) 
-		:plant(plant), production(production)
+		:mPlant(plant), production(production)
 	{
 
 	}
@@ -988,13 +992,18 @@ namespace TFWR
 		if (tile.growTime == 1.0)
 			return;
 
-		auto growTimeRange = PlantGrowthTimeMap[plant];
-		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
-		tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
+		updateGrowValue(tile, updateArgs);
 		if (tile.growValue >= 1.0)
 		{
 			tile.growValue = 1.0;
 		}
+	}
+
+	void BasePlantEntity::updateGrowValue(MapTile& tile, UpdateArgs const& updateArgs)
+	{
+		auto const&  growTimeRange = PlantGrowthTimeMap[mPlant];
+		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
+		tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
 	}
 
 	void BasePlantEntity::harvest(MapTile& tile, GameState& game)
@@ -1004,9 +1013,26 @@ namespace TFWR
 
 		game.addItem(production, 5);
 	}
+
+	char const* toString(EPlant::Type type)
+	{
+		switch (type)
+		{
+		case EPlant::Grass: return "Grass";
+		case EPlant::Bush: return "Bush";
+		case EPlant::Carrots: return "Carrots";
+		case EPlant::Tree: return "Tree";
+		case EPlant::Pumpkin: return "Pumpkin";
+		case EPlant::Cactus: return "Cactus";
+		case EPlant::Sunflower: return "Sunflower";
+		case EPlant::Dionsaur: return "Dionsaur";
+		}
+		return "Unknown";
+	}
+
 	std::string BasePlantEntity::getDebugInfo(MapTile const& tile)
 	{
-		return InlineString<>::Make("%d %f", plant, tile.growValue);
+		return InlineString<>::Make("%s\n%f", toString(mPlant), tile.growValue);
 	}
 
 	void TreePlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
@@ -1028,9 +1054,7 @@ namespace TFWR
 			}
 		}
 
-		auto growTimeRange = PlantGrowthTimeMap[plant];
-		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
-		tile.growValue += updateArgs.speed * updateArgs.deltaTime / (growTime * (numNeighborTree + 1));
+		updateGrowValue(tile, updateArgs);
 		if (tile.growValue >= 1.0)
 		{
 			tile.growValue = 1.0;
@@ -1042,9 +1066,7 @@ namespace TFWR
 		if (tile.growTime == 1.0)
 			return;
 
-		auto growTimeRange = PlantGrowthTimeMap[plant];
-		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
-		tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
+		updateGrowValue(tile, updateArgs);
 		if (tile.growValue >= 1.0)
 		{
 			tile.growValue = 1.0;
@@ -1060,10 +1082,7 @@ namespace TFWR
 			,Bush(EPlant::Bush, EItem::Wood)
 			,Tree(EPlant::Tree, EItem::Wood)
 			,Pumpkin(EPlant::Pumpkin, EItem::Pumpkin)
-
 		{
-
-
 
 		}
 
@@ -1079,6 +1098,8 @@ namespace TFWR
 			REGISTER(Tree);
 			REGISTER(Pumpkin);
 			lua_setglobal(L, "Entities");
+
+#undef REGISTER
 		}
 		SimplePlantEntity Grass;
 		SimplePlantEntity Bush;
@@ -1547,7 +1568,12 @@ namespace TFWR
 		{
 			for (int ox = 0; ox < size; ++ox)
 			{
-				auto const& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
+				Vec2i tPos = pos + Vec2i(ox, oy) * dirOffset[dir];
+
+				if (!mTiles.checkRange(tPos))
+					return 0;
+
+				auto const& tile = getTile(tPos);
 				if (tile.plant != entity)
 					return 0;
 
@@ -1571,7 +1597,7 @@ namespace TFWR
 			for (int ox = 0; ox < size; ++ox)
 			{
 				auto& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
-				if (tile.meta > 0 && tile.meta != id)
+				if (tile.meta > 0 && tile.meta != id + 1)
 				{
 					removeArea(tile.meta - 1);
 				}
@@ -2053,12 +2079,51 @@ namespace TFWR
 			{
 				for (int i = 0; i < mGame.mTiles.getSizeX(); ++i)
 				{
-					auto const& tile = mGame.getTile(Vec2i(i,j));
-
+					Vec2i tilePos = Vec2i(i, j);
+					auto const& tile = mGame.getTile(tilePos);
 					RenderUtility::SetBrush(g, tile.ground == EGround::Grassland ? EColor::Green : EColor::Brown, COLOR_LIGHT);
 					g.drawRect(Vector2(i,j), Vector2(1,1));
+				}
+			}
+
+
+			for (int j = 0; j < mGame.mTiles.getSizeY(); ++j)
+			{
+				for (int i = 0; i < mGame.mTiles.getSizeX(); ++i)
+				{
+					Vec2i tilePos = Vec2i(i, j);
+					auto const& tile = mGame.getTile(tilePos);
 					if (tile.plant)
 					{
+						switch (tile.plant->getPlantType())
+						{
+						case EPlant::Bush:
+							break;
+						case EPlant::Grass:
+							break;
+						case EPlant::Pumpkin:
+							if (tile.meta >= 0)
+							{
+								Vector2 border(0.2, 0.2);
+								if (tile.meta == 0)
+								{
+									RenderUtility::SetBrush(g, EColor::Gray);
+									g.drawRect(Vector2(tilePos) + border, Vector2(1, 1) - 2 * border);
+								}
+								else
+								{
+									auto const& area = mGame.mAreas[tile.meta - 1];
+									if (area.min == tilePos)
+									{
+										Vector2 border(0.2, 0.2);
+										RenderUtility::SetBrush(g, EColor::Gray);
+										g.drawRect(Vector2(tilePos) + border, Vector2(area.getSize()) - 2 * border);
+									}
+								}
+							}
+							break;
+						}
+
 						g.drawTextF(Vector2(i, j), Vector2(1, 1), tile.plant->getDebugInfo(tile).c_str());
 					}
 				}

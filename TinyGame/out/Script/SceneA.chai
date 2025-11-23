@@ -1,0 +1,51 @@
+auto pos = Vector3(-10, 0, 0);
+StaticMesh( MeshId_Sponza, Vector3(0), Vector3(1), Vector3(0) );
+StaticMesh( MeshId_Elephant , pos , Vector3(1) , Vector3(0) );
+StaticMesh( MeshId_Elephant, Vector3(20,20,20), Vector3(4), Vector3(0,0,-30));
+
+for( auto i = 0; i < 10; ++i )
+{
+    auto mesh = SimpleMesh( 2 , i % 3, pos + float(i) * Vector3(0, 5, 0) + Vector3(0,0,10), ( 0.1 * i ) * Vector3(2) , Vector3(0));
+	auto mat = mesh.material;
+}
+
+{
+	var dist = 0.0;
+	var radius = 0.02;
+	for( auto i = 1; i <= 100; ++i )
+	{
+		auto mesh = SimpleMesh(3, MaterialId_Sphere, Vector3(0), Vector3(1), Vector3(0));
+		auto mat = mesh.material;
+		mat.setParameter("Sphere.pos".c_str(), Vector3(-24, 5, 2 + dist ));
+		mat.setParameter("Sphere.radius".c_str(), radius * i );
+		dist += ( 2 * radius) * i + radius;
+	}
+}
+
+{
+	auto mesh = SimpleMesh(5, MaterialId_POMTitle, Vector3(0), Vector3(1), Vector3(0));
+	auto mat = mesh.material;
+	mat.setParameter("BaseTexture".c_str(), GetTexture2D(TextureId_Base));
+	mat.setParameter("NoramlTexture".c_str(), GetTexture2D(TextureId_Normal));
+	mat.setParameter("TileUVScale".c_str(), Vector3(1, 1, 1));
+}
+
+//PointLight(Vector3(20, 0, 20), Vector3(1, 1, 1), 2000, 500, false);
+auto light = PointLight(Vector3(40, 0, 20), Vector3(0.4, 0.5, 0.5), 2000, 500, true);
+//auto track = AddCycleTrack(light.pos);
+//track.center = Vector3(-40, 0, 40);
+//track.radius = 5;
+auto track = AddCurveTrack(light.pos);
+track.setMode(1);
+auto idx;
+idx = track.addKey(0.0, Vector3(0, 2, 10));
+track.setKeyTangent(idx, Vector3(0, 0, 30), Vector3(0, 0, 30));
+idx = track.addKey(2.5, Vector3(0, -2, 10));
+track.setKeyTangent(idx, Vector3(0, 0, 30), Vector3(0, 0, 30));
+idx = track.addKey(5, Vector3(0, 2, 10));
+track.setKeyTangent(idx, Vector3(0, 0, 30), Vector3(0, 0, 30));
+//track.addKey(5.0, Vector3(2, -2, 10));
+
+AddDebugLine(Vector3(0, 0, 0), Vector3(-20, 0, 20), Vector3(1, 0, 0), 2,-1);
+AddDebugLine(Vector3(-20, 10, 20), Vector3(-20, 0, 20), Vector3(1, 0, 0), 2,-1);
+AddDebugLine(Vector3(-20, 10, 20), Vector3(0, 0, 0), Vector3(1, 0, 0), 2, -1);

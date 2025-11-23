@@ -121,6 +121,12 @@
     <ClCompile Include="TFWR\TFWRStage.cpp">
       <Filter>GameTFWR</Filter>
     </ClCompile>
+    <ClCompile Include="TFWR\TFWRGameState.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
+    <ClCompile Include="TFWR\TFWRScript.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
@@ -212,6 +218,12 @@
       <Filter>GameStoreSim</Filter>
     </ClInclude>
     <ClInclude Include="TFWR\TFWRCore.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
+    <ClInclude Include="TFWR\TFWRScript.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
+    <ClInclude Include="TFWR\TFWRGameState.h">
       <Filter>GameTFWR</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,0 +1,8 @@
+{
+	AddDefaultObjects();
+
+	var matId = Material(Color3f(1,1,0), 1, 1, Color3f(0,0,0), 1.2 , 0.9);
+	//Sphere(matId, Vector3(3,0,0), 0.5);
+	//Mesh(DefMeshId_1, matId, Vector3(3,-1,0), 1);
+}
+

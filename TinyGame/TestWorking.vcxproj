@@ -267,6 +267,8 @@
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
     <ClCompile Include="TFWR\TFWRCore.cpp" />
+    <ClCompile Include="TFWR\TFWRGameState.cpp" />
+    <ClCompile Include="TFWR\TFWRScript.cpp" />
     <ClCompile Include="TFWR\TFWRStage.cpp" />
     <ClCompile Include="Transport\TPStage.cpp" />
   </ItemGroup>
@@ -302,6 +304,8 @@
     <ClInclude Include="TestMisc\Stage\AgarStage.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
     <ClInclude Include="TFWR\TFWRCore.h" />
+    <ClInclude Include="TFWR\TFWRGameState.h" />
+    <ClInclude Include="TFWR\TFWRScript.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

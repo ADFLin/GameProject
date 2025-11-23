@@ -115,8 +115,11 @@
     <ClCompile Include="TestMisc\Stage\AnimeGANStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="TestMisc\Stage\TheFarmerWasReplacedStage.cpp">
-      <Filter>Stage</Filter>
+    <ClCompile Include="TFWR\TFWRCore.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
+    <ClCompile Include="TFWR\TFWRStage.cpp">
+      <Filter>GameTFWR</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -208,8 +211,8 @@
     <ClInclude Include="StoreSim\StoreSimItem.h">
       <Filter>GameStoreSim</Filter>
     </ClInclude>
-    <ClInclude Include="TestMisc\Stage\TFPRCore.h">
-      <Filter>Stage</Filter>
+    <ClInclude Include="TFWR\TFWRCore.h">
+      <Filter>GameTFWR</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -245,6 +248,9 @@
     </Filter>
     <Filter Include="GameStoreSim">
       <UniqueIdentifier>{518ba1cd-8758-4439-8fe1-f25f4df78288}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameTFWR">
+      <UniqueIdentifier>{750b4dc9-94db-4e6b-b621-525eee00b13e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -2,7 +2,7 @@
 #include "Stage/TestStageHeader.h"
 #include "GameRenderSetup.h"
 
-#include "TFPRCore.h"
+#include "TFWRCore.h"
 
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
@@ -49,14 +49,18 @@ namespace TFWR
 			{
 				output += " ";
 			}
-			if (lua_isstring(L, i)) 
+			if (lua_isinteger(L, i))
+			{
+				output += FStringConv::From(lua_tointeger(L, i));
+			}
+			else if (lua_isnumber(L, i))
+			{
+				output += FStringConv::From(lua_tonumber(L, i));
+			}
+			else if (lua_isstring(L, i)) 
 			{
 				char const* str = lua_tostring(L, i);
 				output += str;
-			}
-			else if(lua_isinteger(L, i))
-			{
-				output += FStringConv::From(lua_tointeger(L, i));
 			}
 		}
 
@@ -64,11 +68,6 @@ namespace TFWR
 		return 0;
 	}
 
-	int TestFunc(float a, int b, float& c)
-	{
-		c = 2 * a + b;
-		return a + b;
-	}
 
 	template<typename T>
 	constexpr bool IsOutputValue = (( std::is_pointer_v<T> || std::is_reference_v<T>) && !std::is_const_v<T> ) && (::Meta::IsPrimary< std::remove_reference_t< std::remove_cv_t< std::remove_pointer_t<T>>> >::Value);
@@ -207,7 +206,7 @@ namespace TFWR
 			{
 				arg = lua_tonumber(L, index);
 			}
-			else if constexpr (std::is_pointer_v<TArg>)
+			else if constexpr (std::is_pointer_v<T> && !Meta::IsPrimary< std::remove_pointer_t<T> >::Value)
 			{
 				arg = (T)lua_touserdata(L, index);
 			}
@@ -290,11 +289,15 @@ namespace TFWR
 
 			if constexpr (std::is_integral_v<T> || std::is_enum_v<T> )
 			{
-				lua_pushinteger(L, value);
+				lua_pushinteger(L, (lua_Integer)value);
 			}
 			else if constexpr (std::is_floating_point_v<T>)
 			{
 				lua_pushnumber(L, value);
+			}
+			else if constexpr (std::is_pointer_v<T> && !Meta::IsPrimary< std::remove_pointer_t<T> >::Value)
+			{
+				lua_pushlightuserdata(L, value);
 			}
 			else
 			{
@@ -762,13 +765,13 @@ namespace TFWR
 				onExecutionCompleted(execObject);
 				lua_pop(execObject.executeL, nres);
 
-				execObject.reset();
+				execObject.clearExecution();
 				return EExecuteStatus::Completed;
 			}
 			else
 			{
 				onExecutionError(execObject, lua_tostring(execObject.executeL, -1));
-				execObject.reset();
+				execObject.clearExecution();
 				return EExecuteStatus::Error;
 			}
 		}
@@ -806,7 +809,7 @@ namespace TFWR
 			execObject.stateFlags |= ExecutableObject::eExecuting;
 			int status = lua_resume(execObject.executeL, context.mainL, 0, &nres);
 			execObject.stateFlags &= ~ExecutableObject::eExecuting;
-			execObject.reset();
+			execObject.clearExecution();
 		}
 
 
@@ -955,133 +958,17 @@ namespace TFWR
 	class GameState;
 	struct MapTile;
 
-	static Vec2i constexpr GDirectionOffset[] =
-	{
-		Vec2i(1,0),
-		Vec2i(-1,0),
-		Vec2i(0,1),
-		Vec2i(0,-1),
-	};
-
 	constexpr int TicksPerSecond = 400;
 
-	struct TimeRange
-	{
-		float min;
-		float max;
-	};
-	TimeRange PlantGrowthTimeMap[EPlant::COUNT] =
-	{
-		{ 0.5 , 0.5 },
-		{ 3.2 , 4.8 },
-		{ 4.8 , 7.2 },
-		{ 5.6 , 8.4 },
-		{ 0.2 , 3.8 },
-		{ 0.9 , 1.1 },
-		{ 4.0 , 6.0 },
-		{ 0.18 , 0.22 },
-	};
-
-	BasePlantEntity::BasePlantEntity(EPlant::Type plant, EItem production) 
-		:mPlant(plant), production(production)
-	{
-
-	}
-	void BasePlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
-	{
-		if (tile.growTime == 1.0)
-			return;
-
-		updateGrowValue(tile, updateArgs);
-		if (tile.growValue >= 1.0)
-		{
-			tile.growValue = 1.0;
-		}
-	}
-
-	void BasePlantEntity::updateGrowValue(MapTile& tile, UpdateArgs const& updateArgs)
-	{
-		auto const&  growTimeRange = PlantGrowthTimeMap[mPlant];
-		float growTime = RandFloat(growTimeRange.min, growTimeRange.max);
-		tile.growValue += updateArgs.speed * updateArgs.deltaTime / growTime;
-	}
-
-	void BasePlantEntity::harvest(MapTile& tile, GameState& game)
-	{
-		if (tile.growValue < 1.0)
-			return;
-
-		game.addItem(production, 5);
-	}
-
-	char const* toString(EPlant::Type type)
-	{
-		switch (type)
-		{
-		case EPlant::Grass: return "Grass";
-		case EPlant::Bush: return "Bush";
-		case EPlant::Carrots: return "Carrots";
-		case EPlant::Tree: return "Tree";
-		case EPlant::Pumpkin: return "Pumpkin";
-		case EPlant::Cactus: return "Cactus";
-		case EPlant::Sunflower: return "Sunflower";
-		case EPlant::Dionsaur: return "Dionsaur";
-		}
-		return "Unknown";
-	}
-
-	std::string BasePlantEntity::getDebugInfo(MapTile const& tile)
-	{
-		return InlineString<>::Make("%s\n%f", toString(mPlant), tile.growValue);
-	}
-
-	void TreePlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
-	{
-		if (tile.growTime == 1.0)
-			return;
-
-		int numNeighborTree = 0;
-		for (int dir = 0; dir < 4; ++dir)
-		{
-			Vec2i nPos = game.getPos(tile) + GDirectionOffset[dir];
-			if (game.mTiles.checkRange(nPos))
-			{
-				auto const& nTile = game.getTile(nPos);
-				if (nTile.plant == tile.plant)
-				{
-					++numNeighborTree;
-				}
-			}
-		}
-
-		updateGrowValue(tile, updateArgs);
-		if (tile.growValue >= 1.0)
-		{
-			tile.growValue = 1.0;
-		}
-	}
-
-	void AreaPlantEntity::grow(MapTile& tile, GameState& game, UpdateArgs const& updateArgs)
-	{
-		if (tile.growTime == 1.0)
-			return;
-
-		updateGrowValue(tile, updateArgs);
-		if (tile.growValue >= 1.0)
-		{
-			tile.growValue = 1.0;
-			tile.meta = 0;
-			game.tryMergeArea(game.getPos(tile), mMaxSize, this);
-		}
-	}
 
 	struct EntityLibrary
 	{
 		EntityLibrary()
-			:Grass(EPlant::Grass, EItem::Hay)
-			,Bush(EPlant::Bush, EItem::Wood)
-			,Tree(EPlant::Tree, EItem::Wood)
-			,Pumpkin(EPlant::Pumpkin, EItem::Pumpkin)
+			:Grass(EPlant::Grass)
+			,Bush(EPlant::Bush)
+			,Tree(EPlant::Tree)
+			,Pumpkin(EPlant::Pumpkin, 5, 20, EPlant::DeadPumpkin)
+			,Dead_Pumpkin(EPlant::DeadPumpkin)
 		{
 
 		}
@@ -1097,6 +984,7 @@ namespace TFWR
 			REGISTER(Bush);
 			REGISTER(Tree);
 			REGISTER(Pumpkin);
+			REGISTER(Dead_Pumpkin);
 			lua_setglobal(L, "Entities");
 
 #undef REGISTER
@@ -1105,10 +993,44 @@ namespace TFWR
 		SimplePlantEntity Bush;
 		TreePlantEntity Tree;
 		AreaPlantEntity Pumpkin;
+		EmptyEntity Dead_Pumpkin;
 	};
 
 	EntityLibrary GEntities;
 
+
+	namespace EPlant
+	{
+		bool IsSwappable(EPlant::Type plant)
+		{
+			return plant == EPlant::Cactus;
+
+		}
+
+		Entity* GetEntity(EPlant::Type plant)
+		{
+			switch (plant)
+			{
+			case EPlant::Grass: return &GEntities.Grass;
+			case EPlant::Bush:  return &GEntities.Bush;
+			case EPlant::Carrots:
+				break;
+			case EPlant::Tree:  return &GEntities.Tree;
+			case EPlant::Pumpkin:  return &GEntities.Pumpkin;
+			case EPlant::Cactus:
+				break;
+			case EPlant::Sunflower:
+				break;
+			case EPlant::Dionsaur:
+				break;
+			case EPlant::DeadPumpkin: return &GEntities.Dead_Pumpkin;
+			case EPlant::COUNT:
+				break;
+			}
+			return nullptr;
+		}
+
+	}
 
 	struct WorldExecuteContext;
 
@@ -1210,26 +1132,86 @@ namespace TFWR
 			return GExecContext->game->getPlantEntity(*GExecContext->drone);
 		}
 
+		static void clear()
+		{
+			GExecContext->game->clear();
+			Wait(200);
+		}
+
 		static void set_execution_speed(float speed)
 		{
 			GExecContext->game->mMaxSpeed = speed;
 			Wait(1);
 		}
 
-		//static bool move(EDirection direction)
-		static bool move(int direction)
+		static bool move(EDirection direction)
 		{
-			bool bSuccess = GExecContext->game->move(*GExecContext->drone, (EDirection)direction);
+			bool bSuccess = GExecContext->game->move(*GExecContext->drone, direction);
 			Wait(bSuccess ? 200 : 1);
 			return bSuccess;
+		}
+
+		static EGround get_ground_type()
+		{
+			Wait(1);
+			return GExecContext->game->getGroundType(*GExecContext->drone);
+		}
+
+		static float num_items(EItem item)
+		{
+			Wait(1);
+			return GExecContext->game->getItemNum(item);
+		}
+
+		static bool swap(EDirection direction)
+		{
+			bool bSuccess = GExecContext->game->swap(*GExecContext->drone, direction);
+			Wait(bSuccess ? 200 : 1);
+			return bSuccess;
+		}
+
+		static Entity* __Internal_get_companion(int& x, int& y)
+		{
+			Wait(1);
+			Vec2i pos;
+			auto entity = GExecContext->game->getCompanion(*GExecContext->drone, pos);
+			if (entity)
+			{
+				x = pos.x;
+				y = pos.y;
+			}
+			return entity;
+		}
+		
+		template< typename TEnum >
+		static void RegisterEnum(ScriptHandle L, char const* space)
+		{
+			lua_newtable(L);
+			for (ReflectEnumValueInfo const& value : REF_GET_ENUM_VALUES(TEnum))
+			{
+				lua_pushinteger(L, value.value);
+				lua_setfield(L, -2, value.text);
+			}
+			lua_setglobal(L, space);
+		}
+
+		template< typename TEnum >
+		static void RegisterEnum(ScriptHandle L)
+		{
+			lua_getglobal(L, "_G");
+			for (ReflectEnumValueInfo const& value : REF_GET_ENUM_VALUES(TEnum))
+			{
+				lua_pushinteger(L, value.value);
+				lua_setfield(L, -2, value.text);
+			}
+			lua_pop(L, 1);
 		}
 
 		static void Register(lua_State* L)
 		{
 #define REGISTER(FUNC_NAME)\
 	FLuaBinding::Register(L, #FUNC_NAME, FUNC_NAME)
-
-
+			REGISTER(__Internal_get_companion);
 			REGISTER(move);
 			REGISTER(till);
 			REGISTER(harvest);
@@ -1239,7 +1221,8 @@ namespace TFWR
 			REGISTER(get_pos_y);
 			REGISTER(get_world_size);
 			REGISTER(get_entity_type);
-
+			REGISTER(get_ground_type);
+			REGISTER(clear);
 #undef REGISTER
 		}
 
@@ -1256,16 +1239,17 @@ namespace TFWR
 			luaL_setfuncs(L, CustomLib, 0);
 			lua_pop(L, 1);
 		}
+
 		static lua_State* CreateGameState()
 		{
 			lua_State* L = luaL_newstate();
 			luaL_openlibs(L);
-			luaL_dofile(L, "TFWR/Main.lua");
-			LoadLib(L);
+			RegisterEnum< EDirection >(L);
+			RegisterEnum< EGround >(L, "Grounds");
 			Register(L);
+			LoadLib(L);
 			GEntities.registerScript(L);
-			FLuaBinding::Register(L, "TestFunc", TestFunc);
-
+			luaL_dofile(L, "TFWR/Main.lua");
 			return L;
 		}
 
@@ -1283,7 +1267,7 @@ namespace TFWR
 
 	GameState::GameState()
 	{
-		mItems.resize(EItem::COUNT, 0);
+		mItems.resize((int)EItem::COUNT, 0);
 		mUnlockLevels.resize(EUnlock::COUNT, 0);
 	}
 
@@ -1369,13 +1353,29 @@ namespace TFWR
 			tile.reset();
 		}
 
-		for (auto drone : mDrones)
-		{
-			drone->reset();
-		}
 
 		mAreas.clear();
 		mFreeAreaIndex = INDEX_NONE;
+		mCompanions.clear();
+		mFreeCompanionIndex = INDEX_NONE;
+	}
+
+	void GameState::clear()
+	{
+		reset();
+		for (auto drone : mDrones)
+		{
+			drone->reset();
+			if (mExecutingDrone != drone)
+			{
+				stopExecution(*drone);
+			}
+		}
+
+		if (mDrones[0] != mExecutingDrone)
+		{
+			mExecutingDrone = nullptr;
+		}
 	}
 
 	void GameState::update(float deltaTime)
@@ -1416,15 +1416,25 @@ namespace TFWR
 		context.mainL = mMainL;
 		context.object = &drone;
 
+		mExecutingDrone = &drone;
 		ExecuteManager::Get().execute(context);
+		if (mExecutingDrone == nullptr)
+		{
+			stopExecution(drone);
+		}
+		else
+		{
+			mExecutingDrone = nullptr;
+		}
 	}
 
 	void GameState::update(MapTile& tile, UpdateArgs const& updateArgs)
 	{
 		if (tile.plant == nullptr && tile.ground == EGround::Grassland)
 		{
-			tile.plant = &GEntities.Grass;
+			plantInternal(getPos(tile), GEntities.Grass);
 		}
+
 		if (tile.plant)
 		{
 			tile.plant->grow(tile, *this, updateArgs);
@@ -1439,6 +1449,23 @@ namespace TFWR
 	void GameState::till(Drone& drone)
 	{
 		auto& tile = getTile(drone.pos);
+		if (tile.plant)
+		{
+			tile.plant->till(tile, *this);
+		}
+
+		if (tile.ground == EGround::Grassland)
+		{
+			tile.ground = EGround::Soil;
+		}
+		else
+		{
+			tile.ground == EGround::Grassland;
+		}
+		tile.plant = nullptr;
+		tile.growTime = 0;
+		tile.growValue = 0;
+		tile.meta = -1;
 	}
 
 	bool GameState::harvest(Drone& drone)
@@ -1447,7 +1474,21 @@ namespace TFWR
 		if (tile.plant == nullptr)
 			return false;
 
-		tile.plant->harvest(tile, *this);
+		bool bCompanionPreference = false;
+		if (BIT(tile.plant->getPlantType()) & PolycultureMask)
+		{
+			auto& companion = mCompanions[tile.meta];
+
+			auto const& compTile = getTile(companion.pos);
+			if (compTile.plant && compTile.plant->getPlantType() == companion.planet)
+			{
+				bCompanionPreference = true;
+			}
+			companion.linkIndex = mFreeCompanionIndex;
+			mFreeCompanionIndex = tile.meta;
+		}
+
+		tile.plant->harvest(tile, *this, bCompanionPreference);
 		tile.growValue = 0.0;
 		tile.plant = nullptr;
 		return true;
@@ -1459,9 +1500,78 @@ namespace TFWR
 		if (tile.plant == nullptr)
 			return false;
 
-		if (tile.growValue < 1.0)
+		return tile.plant->canHarvest(tile, *this);
+	}
+
+	bool GameState::plantInternal(Vec2i const& pos, Entity& entity)
+	{
+		auto& tile = getTile(pos);
+
+		auto ground = EPlant::GetInfo(entity.getPlantType()).ground;
+		if (ground != EGround::Any && ground != tile.ground)
 			return false;
 
+		auto oldPlant = tile.plant;
+		auto oldMeta = tile.meta;
+		if (!entity.plant(tile, *this))
+		{
+			return false;
+		}
+
+		if (oldPlant && (BIT(oldPlant->getPlantType()) & PolycultureMask))
+		{
+			auto& companion = mCompanions[oldMeta];
+			companion.linkIndex = mFreeCompanionIndex;
+			mFreeCompanionIndex = oldMeta;
+		}
+
+		if (BIT(tile.plant->getPlantType()) & PolycultureMask)
+		{
+			int index = mFreeCompanionIndex;
+			if (index == INDEX_NONE)
+			{
+				index = mCompanions.size();
+				mCompanions.push_back(Companion());
+			}
+			else
+			{
+				mFreeCompanionIndex = mCompanions[index].linkIndex;
+			}
+
+			auto& companion = mCompanions[index];
+			do
+			{
+				companion.planet = PolyculturePlants[RandRange(0, ARRAY_SIZE(PolyculturePlants))];
+			} 
+			while (companion.planet != tile.plant->getPlantType());
+
+
+			int const MaxMoves = 3;
+			Vec2i posList[2 * MaxMoves * ( MaxMoves + 1 )];
+			int numPos = 0;
+			auto AddPos = [&](Vec2i const& tPos)
+			{
+				if (!mTiles.checkRange(tPos))
+					return;
+
+				posList[numPos] = tPos;
+				++numPos;
+			};
+
+			for (int moves = 1; moves <= MaxMoves; ++moves)
+			{
+				for (int xMoves = 0; xMoves < moves; ++xMoves)
+				{
+					int yMoves = moves - xMoves;
+					AddPos(pos + Vec2i(xMoves, yMoves));
+					AddPos(pos + Vec2i(xMoves, -yMoves));
+					AddPos(pos + Vec2i(-xMoves, yMoves));
+					AddPos(pos + Vec2i(-xMoves, -yMoves));
+				}
+			}
+			companion.pos = posList[RandRange(0, numPos)];
+			tile.meta = index;
+		}
 		return true;
 	}
 
@@ -1470,14 +1580,15 @@ namespace TFWR
 		auto& tile = getTile(drone.pos);
 		if (tile.plant)
 		{
-			if (tile.plant != &GEntities.Grass)
+			if (tile.plant == &entity)
+				return false;
+
+			bool canReplace = tile.plant->getPlantType() == EPlant::Grass || tile.plant->getPlantType() == EPlant::DeadPumpkin;
+			if (!canReplace)
 				return false;
 		}
 
-		tile.plant = &entity;
-		tile.growValue = 0.0;
-		tile.plant->plant(tile, *this);
-		return true;
+		return plantInternal(drone.pos, entity);
 	}
 
 	bool GameState::move(Drone& drone, EDirection direction)
@@ -1514,71 +1625,93 @@ namespace TFWR
 		return true;
 	}
 
-	int GameState::tryMergeArea(Vec2i const& pos, int maxSize, Entity* entity)
+	int GameState::tryMergeArea(Vec2i const& pos, Entity* entity)
 	{
 		int result = 0;
+
+		if (pos == Vec2i(2, 2))
+		{
+			int aa = 1;
+		}
+
+		Area validArea;
+		validArea.min = Vec2i(0, 0);
+		validArea.max = mTiles.getSize();
+
+		int maxSize = mTiles.getSize().x;
 		for (int size = 2; size <= maxSize; ++size)
 		{
-			auto const& tile = getTile(pos);
+			Area checkArea;
+			checkArea.min = pos - Vec2i(size - 1, size - 1);
+			checkArea.max = pos + Vec2i(size, size);
 
-			Area area;
-			if (tile.meta > 0)
-			{
-				area = mAreas[tile.meta - 1];
-			}
-			else
-			{
-				area.min = pos;
-				area.max = pos + Vec2i(1, 1);
-			}
+			checkArea = checkArea.intersection(validArea);
 
-			if (area.getSize().x >= maxSize)
+			if (!checkArea.isValid())
 				continue;
 
-			for (int dir = 0; dir < 4; ++dir)
+			Vec2i checkSize = checkArea.getSize();
+			if ( checkSize.x < size || checkSize.y < size )
+				continue;
+
+			Vec2i tPos;
+			for (tPos.y = checkArea.min.y; tPos.y <= checkArea.max.y - size; ++tPos.y)
 			{
-				int id = tryMergeArea(area, size, dir, entity);
-				if (id > 0)
+				for (tPos.x = checkArea.min.x; tPos.x <= checkArea.max.x - size; ++tPos.x)
 				{
-					result = id;
-					break;
+					Vec2i blockPos;
+					int id = tryMergeArea(tPos, size, entity, blockPos);
+					if (id > 0)
+					{
+						result = id;
+						goto Merged;
+					}
+					else if (id == INDEX_NONE)
+					{
+						if (blockPos.x > pos.x)
+						{
+							validArea.max.x = Math::Min(blockPos.x, validArea.max.x);
+						}
+						else if (blockPos.x < pos.x)
+						{
+							validArea.min.x = Math::Max(blockPos.x, validArea.min.x);
+						}
+						if (blockPos.y > pos.y)
+						{
+							validArea.max.y = Math::Min(blockPos.y, validArea.max.y);
+						}
+						else if (blockPos.y < pos.y)
+						{
+							validArea.min.y = Math::Max(blockPos.y, validArea.min.y);
+						}
+					}
 				}
 			}
+		Merged:
+			;
 		}
+
 		return result;
 	}
 
-	int GameState::tryMergeArea(Area const& areaToMerge, int size, int dir, Entity* entity)
+	int GameState::tryMergeArea(Vec2i const& pos, int size, Entity* entity, Vec2i& outBlockPos)
 	{
-		static constexpr Vec2i dirOffset[] =
-		{
-			Vec2i(1,1), Vec2i(-1,1), Vec2i(1,-1), Vec2i(-1,-1),
-		};
-
-
-		Vec2i pos;
-		pos.x = dirOffset[dir].x > 0 ? areaToMerge.min.x : areaToMerge.max.x;
-		pos.y = dirOffset[dir].y > 0 ? areaToMerge.min.y : areaToMerge.max.y;
-
 		Area testArea;
-		testArea.min = pos.min(pos + size * dirOffset[dir]);
-		testArea.max = pos.max(pos + size * dirOffset[dir]);
+		testArea.min = pos;
+		testArea.max = pos + Vec2i(size, size);
 
 		for (int oy = 0; oy < size; ++oy)
 		{
 			for (int ox = 0; ox < size; ++ox)
 			{
-				Vec2i tPos = pos + Vec2i(ox, oy) * dirOffset[dir];
-
-				if (!mTiles.checkRange(tPos))
-					return 0;
+				Vec2i tPos = pos + Vec2i(ox, oy);
 
 				auto const& tile = getTile(tPos);
-				if (tile.plant != entity)
-					return 0;
-
-				if (tile.meta == -1)
-					return 0;
+				if (tile.plant != entity || tile.meta == INDEX_NONE)
+				{
+					outBlockPos = tPos;
+					return INDEX_NONE;
+				}
 
 				if (tile.meta > 0)
 				{
@@ -1596,7 +1729,8 @@ namespace TFWR
 		{
 			for (int ox = 0; ox < size; ++ox)
 			{
-				auto& tile = getTile(pos + Vec2i(ox, oy) * dirOffset[dir]);
+				Vec2i tPos = pos + Vec2i(ox, oy);
+				auto& tile = getTile(tPos);
 				if (tile.meta > 0 && tile.meta != id + 1)
 				{
 					removeArea(tile.meta - 1);
@@ -1674,24 +1808,11 @@ namespace TFWR
 
 	IViewModel* IViewModel::Instance = nullptr;
 
-	class CodeEditor : public GFrame
+	class CodeEditorSettings
 	{
 	public:
-		using BaseClass = GFrame;
-		enum 
+		CodeEditorSettings()
 		{
-			UI_EXEC = BaseClass::NEXT_UI_ID,
-			UI_EXEC_STEP,
-
-			NEXT_UI_ID,
-		};
-		CodeEditor(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-			:GFrame(id, pos, size, parent)
-		{
-			ExecButton* button;
-			button = new ExecButton(UI_EXEC, Vec2i(5, 5), Vec2i(25, 25), this);
-			button = new ExecButton(UI_EXEC_STEP, Vec2i(5 + 30, 5), Vec2i(25, 25), this);
-			button->bStep = true;
 			Color3ub DefaultKeywordColor{ 255, 188, 66 };
 			Color3ub FlowKeywordColor{ 255, 188, 66 };
 			WordColorMap["if"] = FlowKeywordColor;
@@ -1721,12 +1842,6 @@ namespace TFWR
 			WordColorMap["not"] = DefaultKeywordColor;
 		}
 
-		CodeFileAsset* codeFile;
-
-
-		std::unordered_map<HashString, RHIGraphics2D::Color4Type > WordColorMap;
-
-
 		Color4ub getColor(StringView word)
 		{
 			auto iter = WordColorMap.find(word);
@@ -1735,6 +1850,32 @@ namespace TFWR
 
 			return Color4ub(255, 255, 255, 255);
 		}
+
+		std::unordered_map<HashString, Color4ub > WordColorMap;
+	};
+
+	CodeEditorSettings GEditorSettings;
+	class CodeEditor : public GFrame
+	{
+	public:
+		using BaseClass = GFrame;
+		enum 
+		{
+			UI_EXEC = BaseClass::NEXT_UI_ID,
+			UI_EXEC_STEP,
+
+			NEXT_UI_ID,
+		};
+		CodeEditor(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:GFrame(id, pos, size, parent)
+		{
+			ExecButton* button;
+			button = new ExecButton(UI_EXEC, Vec2i(5, 5), Vec2i(25, 25), this);
+			button = new ExecButton(UI_EXEC_STEP, Vec2i(5 + 30, 5), Vec2i(25, 25), this);
+			button->bStep = true;
+		}
+
+		CodeFileAsset* codeFile;
 
 		virtual bool onChildEvent(int event, int id, GWidget* ui) 
 		{
@@ -1783,7 +1924,6 @@ namespace TFWR
 				mFont->generateLineVertices(Vector2::Zero(), line , 1.0, codeLine.vertices);
 				codeLine.colors.resize(codeLine.vertices.size() / 4);
 
-				StringView token;
 				char const* pStr = line.data();
 				char const* pStrEnd = line.data() + line.size();
 				auto* pColor = codeLine.colors.data();
@@ -1797,15 +1937,10 @@ namespace TFWR
 
 					char const* ptr = pStr;
 					pStr = FStringParse::FindChar(pStr, pStrEnd, dropDelims);
-					token = StringView(ptr, pStr - ptr);
+					StringView token = StringView(ptr, pStr - ptr);
 					
-					Color4ub color = getColor(token);
-
-					for (int i = 0; i < token.size(); ++i)
-					{
-						pColor[i] = color;
-					}
-					pColor += token.size();
+					Color4ub color = GEditorSettings.getColor(token);
+					pColor = std::fill_n(pColor, token.size(), color);
 					numWord += token.size();
 				}
 

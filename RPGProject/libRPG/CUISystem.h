@@ -81,7 +81,12 @@ public:
 	Viewport*  mViewPort;
 	CFWorld*   mCFWorld;
 	CFScene*   mCFScene;
-	CUI::Manager  mUIManager;
+
+	class Manager : public CUI::ManagerT< Manager >
+	{
+
+	};
+	Manager  mUIManager;
 
 	CToolTipUI* mHelpTip;
 };

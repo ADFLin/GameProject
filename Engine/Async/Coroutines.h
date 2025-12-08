@@ -47,7 +47,9 @@ namespace Coroutines
 			return result;
 		}
 
-		explicit ExecutionHandle(void* ptr = nullptr)
+		ExecutionHandle() { mPtr == 0; }
+
+		explicit ExecutionHandle(void* ptr)
 		{
 			CHECK(intptr_t(ptr) >= 0);
 			mPtr = intptr_t(ptr);

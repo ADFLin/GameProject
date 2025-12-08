@@ -87,7 +87,7 @@ namespace Zuma
 	class ZDialogButton;
 
 	class ZUISystem : public ZEventHandler
-		            , public GameUI::Manager
+		            , public WidgetManagerT< ZUISystem, ZWidget >
 	{
 	public:
 		ZUISystem();

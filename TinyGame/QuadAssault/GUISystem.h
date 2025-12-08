@@ -84,7 +84,12 @@ protected:
 };
 
 typedef TWidgetLibrary< QWidget > GUI;
-typedef GUI::Manager  WidgetManager;
+
+class WidgetManager : public WidgetManagerT<WidgetManager, QWidget >
+{
+public:
+
+};
 
 class GUISystem : public SingletonT< GUISystem >
 {

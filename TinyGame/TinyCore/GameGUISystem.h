@@ -12,6 +12,21 @@ public:
 	virtual void dispatchWidgetEvent(int event, int id, GWidget* ui) = 0;
 };
 
+
+class GameUIManager : public WidgetManagerT< GameUIManager, GWidget >
+{
+public:
+	Vec2i transformToWorld(GWidget* widget, Vec2i const& pos)
+	{
+		auto layer = widget->getLayer();
+		if (layer)
+		{
+			return layer->screenToWorld.transformPosition(pos);
+		}
+		return pos;
+	}
+};
+
 class  GUISystem
 {
 public:
@@ -24,15 +39,17 @@ public:
 	TINY_API GWidget*     showMessageBox( int id , char const* msg , EMessageButton::Type buttonType = EMessageButton::YesNo );
 	TINY_API void         hideWidgets( bool bHide ){ mHideWidgets = bHide; }
 	TINY_API void         update();
-	TINY_API void         render();
+	TINY_API void         render(IGraphics2D& g);
 
 	TINY_API void         sendMessage( int event , int id , GWidget* ui );
 	TINY_API void         addTask( TaskBase* task , bool beGlobal = false );
 
-	TINY_API void         addWidget( GWidget* widget );
+	TINY_API void         addWidget( GWidget* widget, WidgetLayoutLayer* layer = nullptr );
 	TINY_API void         cleanupWidget(bool bForceCleanup = false , bool bPersistentIncluded = false);
 
-	UIManager&   getManager(){ return mUIManager; }
+	TINY_API void         doModel(GWidget* ui);
+
+	GameUIManager&   getManager(){ return mUIManager; }
 
 	TINY_API void         addHotkey( GWidget* ui , ControlAction key );
 	TINY_API void         removeHotkey( GWidget* ui );
@@ -81,7 +98,9 @@ private:
 	int           mCurUpdateFrame;
 	HotkeyList    mHotKeys;
 	IGUIDelegate* mGuiDelegate;
-	GUI::Manager  mUIManager;
+
+
+	GameUIManager  mUIManager;
 	typedef Tween::GroupTweener< float > MyTweener;
 	MyTweener     mTweener;
 	bool          mHideWidgets;

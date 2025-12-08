@@ -43,6 +43,7 @@ enum WidgetInternalFlag
 	WIF_REROUTE_MOUSE_EVENT           = BIT(14),
 	WIF_REROUTE_KEY_EVENT             = BIT(15),
 	WIF_REROUTE_CHAR_EVENT            = BIT(16),
+	WIF_SEND_PARENT_MOUSE_EVENT       = BIT(17),
 };
 
 #ifdef max
@@ -52,7 +53,7 @@ enum WidgetInternalFlag
 	#undef min
 #endif
 
-template< class T >
+template< typename T >
 class TWidgetManager;
 
 class WidgetCoreBase
@@ -93,7 +94,12 @@ public:
 	bool           isTop();
 
 	T&             setPos(Vec2i const& pos);
-	T&             setSize(Vec2i const& size) { mBoundRect.max = mBoundRect.min + size;  return *_this(); }
+	T&             setSize(Vec2i const& size) 
+	{ 
+		mBoundRect.max = mBoundRect.min + size;
+		_this()->onResize(size);
+		return *_this();
+	}
 	T&             setTop(bool beAlways = false);
 	T&             makeFocus();
 	T&             clearFocus(bool bSubWidgetsIncluded = true);
@@ -106,10 +112,11 @@ public:
 
 	T&             setGlobal() { addFlagInternal(WIF_PERSISTENT); return *_this(); }
 
-
 public:
 	void          unlinkInternal(bool bRemove);
 	bool          checkFlag(unsigned flag) const { return !!(mFlag & flag); }
+
+	void    renderAll() { _this()->doRenderAll(); }
 
 private:
 	void          linkChildInternal(WidgetCoreT* ui);
@@ -168,6 +175,8 @@ private:
 	bool          clipTest() { return _this()->doClipTest(); }
 	WidgetCoreT*  hitTestChildren(Vec2i const& testPos);
 
+
+
 public:
 	void          setRerouteMouseMsgUnhandled() { addFlagInternal(WIF_REROUTE_MOUSE_EVENT_UNHANDLED); }
 	void          setRerouteKeyMsgUnhandled() { addFlagInternal(WIF_REROUTE_KEY_EVENT_UNHANDLED); }
@@ -176,6 +185,8 @@ public:
 	void          setRerouteMouseMsg() { addFlagInternal(WIF_REROUTE_MOUSE_EVENT); }
 	void          setRerouteKeyMsg() { addFlagInternal(WIF_REROUTE_KEY_EVENT); }
 	void          setRerouteCharMsg(){ addFlagInternal(WIF_REROUTE_CHAR_EVENT); }
+
+	void          setSendParentMouseMsg() { addFlagInternal(WIF_SEND_PARENT_MOUSE_EVENT); }
 
 protected:
 	void          markDeferredDestroy() { addFlagInternal(WIF_DEFERRED_DESTROY); }
@@ -192,7 +203,7 @@ protected:
 
 private:
 
-	void    renderAll()         { _this()->doRenderAll(); }
+
 	void    prevRender()        {  _this()->onPrevRender();  }
 	void    postRender()        {  _this()->onPostRender();  }
 	void    postRenderChildren(){  _this()->onPostRenderChildren(); }
@@ -202,19 +213,23 @@ private:
 	WidgetCoreT();
 
 	void          init();
-	friend class TWidgetManager< T >;
 
+	template< typename T>
+	friend class TWidgetManager;
+
+	template< typename T, typename T2>
+	friend class WidgetManagerT;
 protected:
 
 	using WidgetList = TIntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > >;
 	static void SetTopInternal(WidgetList& list, WidgetCoreT* ui , bool bAlwaysTop );
+	static WidgetCoreT*  HitTestInternal(Vec2i const& testPos, WidgetList& Widgetlist);
 
-	static WidgetCoreT*  hitTestInternal(Vec2i const& testPos, WidgetList& Widgetlist);
 	WidgetList        mChildren;
 
 
-	TWidgetManager<T>* mManager;
 	WidgetCoreT*       mParent;
+	TWidgetManager<T>* mManager;
 
 	Vec2i          mCacheWorldPos;
 	uint32         mFlag;
@@ -222,10 +237,12 @@ protected:
 };
 
 
-template < class T >
+template < typename TWidgetImpl>
 class TWidgetManager
 {
-	using WidgetCore = WidgetCoreT< T >;
+protected:
+	using WidgetCore = WidgetCoreT< TWidgetImpl >;
+
 public:
 	TWidgetManager();
 	~TWidgetManager();
@@ -240,13 +257,11 @@ public:
 	bool      isTopWidget( WidgetCore* ui );
 	MouseMsg& getLastMouseMsg(){ return mLastMouseMsg; }
 
-	T*        hitTest( Vec2i const& testPos );
-
 public:
-	T*        getModalWidget()       { return static_cast< T* >( mNamedSlots[ ESlotName::Modal ] ); }
-	T*        getFocusWidget()       { return static_cast< T* >( mNamedSlots[ ESlotName::Focus ]); }
-	T*        getLastMouseMsgWidget(){ return static_cast< T* >( mNamedSlots[ ESlotName::LastMouseMsg ] ); }
-	T*        getMouseWidget()       { return static_cast< T* >( mNamedSlots[ ESlotName::Mouse ]); }
+	TWidgetImpl*  getModalWidget()       { return static_cast<TWidgetImpl*>( mNamedSlots[ ESlotName::Modal ] ); }
+	TWidgetImpl*  getFocusWidget()       { return static_cast<TWidgetImpl*>( mNamedSlots[ ESlotName::Focus ]); }
+	TWidgetImpl*  getLastMouseMsgWidget(){ return static_cast<TWidgetImpl*>( mNamedSlots[ ESlotName::LastMouseMsg ] ); }
+	TWidgetImpl*  getMouseWidget()       { return static_cast<TWidgetImpl*>( mNamedSlots[ ESlotName::Mouse ]); }
 
 	auto      createTopWidgetIterator()
 	{
@@ -255,7 +270,6 @@ public:
 	void      startModal(WidgetCore* ui );
 	void      endModal(WidgetCore* ui );
 
-	MsgReply  procMouseMsg( MouseMsg const& msg );
 	MsgReply  procKeyMsg( KeyMsg const& msg );
 	MsgReply  procCharMsg( unsigned code );
 
@@ -272,6 +286,9 @@ public:
 
 
 	bool isProcessingMsg() const { return mbProcessingMsg; }
+
+
+
 
 protected:
 	void        destroyWidgetChildren_R(WidgetCore* ui);
@@ -302,7 +319,7 @@ protected:
 		TWidgetManager* manager;
 	};
 
-private:
+protected:
 	enum ESlotName
 	{
 		LastMouseMsg,
@@ -349,9 +366,26 @@ private:
 	MouseMsg     mLastMouseMsg;
 
 	friend class WidgetCore;
-private:
 	TWidgetManager( TWidgetManager const& ){}
 	TWidgetManager& operator = (TWidgetManager const&);
+
+};
+
+
+template < typename T, typename TWidgetImpl >
+class WidgetManagerT : public TWidgetManager< TWidgetImpl >
+{
+public:
+	T* _this() { return static_cast<T*>(this); }
+
+
+	Vec2i transformToWorld(TWidgetImpl* widget, Vec2i const& pos)
+	{
+		return pos;
+	}
+
+	MsgReply     procMouseMsg(MouseMsg const& msg);
+	TWidgetImpl* hitWidgetTest(Vec2i const& testPos, Vec2i& outWorldPos);
 
 };
 

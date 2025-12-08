@@ -18,7 +18,7 @@ MsgReply  WButtonT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 		_this()->onClick();
 	}
 
-	if (  msg.onLeftDown() )
+	if (  msg.onLeftDown() || msg.onLeftDClick() )
 	{
 		setButtonState( BS_PRESS );
 	}
@@ -382,7 +382,7 @@ MsgReply WSliderT<Impl, CoreImpl>::TipWidget::onMouseMsg( MouseMsg const& msg )
 
 	CoreImpl::onMouseMsg( msg );
 
-	if ( msg.onLeftDown() )
+	if ( msg.onLeftDown() || msg.onLeftDClick() )
 	{
 		getManager()->captureMouse( this );
 		x = msg.x();

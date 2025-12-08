@@ -174,6 +174,12 @@ public:
 	int getRawDataSize() const { return mSize.x * mSize.y; }
 
 
+	int getIndex(T const& value) const
+	{
+		CHECK(mStorage <= &value && & value < mStorage + getRawDataSize());
+		return &value - mStorage;
+	}
+
 	void     swap( TGrid2D& other )
 	{
 		using std::swap;

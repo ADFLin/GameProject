@@ -457,13 +457,12 @@ protected:
 	int  mIndexShowStart;
 };
 
-template < class CoreImpl >
+template < typename CoreImpl >
 class TWidgetLibrary
 {
 public:
 	using Widget = CoreImpl;
 	using Core = WidgetCoreT< CoreImpl >;
-	using Manager = TWidgetManager< CoreImpl >;  
 
 #define DEFINE_UI_CLASS( Class , BaseClass )\
 	template< class Impl >\

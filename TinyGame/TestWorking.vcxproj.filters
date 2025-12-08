@@ -115,7 +115,22 @@
     <ClCompile Include="TestMisc\Stage\AnimeGANStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TFWR\LuaInspector.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
     <ClCompile Include="TFWR\TFWRCore.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
+    <ClCompile Include="TFWR\TFWREntities.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
+    <ClCompile Include="TFWR\TFWRGameAPI.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
+    <ClCompile Include="TFWR\TFWRGameLogic.cpp">
+      <Filter>GameTFWR</Filter>
+    </ClCompile>
+    <ClCompile Include="TFWR\TFWRScript.cpp">
       <Filter>GameTFWR</Filter>
     </ClCompile>
     <ClCompile Include="TFWR\TFWRStage.cpp">
@@ -124,7 +139,7 @@
     <ClCompile Include="TFWR\TFWRGameState.cpp">
       <Filter>GameTFWR</Filter>
     </ClCompile>
-    <ClCompile Include="TFWR\TFWRScript.cpp">
+    <ClCompile Include="TFWR\CodeEditor.cpp">
       <Filter>GameTFWR</Filter>
     </ClCompile>
   </ItemGroup>
@@ -217,13 +232,31 @@
     <ClInclude Include="StoreSim\StoreSimItem.h">
       <Filter>GameStoreSim</Filter>
     </ClInclude>
+    <ClInclude Include="TFWR\LuaInspector.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
     <ClInclude Include="TFWR\TFWRCore.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
+    <ClInclude Include="TFWR\TFWREntities.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
+    <ClInclude Include="TFWR\TFWRGameAPI.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
+    <ClInclude Include="TFWR\TFWRGameLogic.h">
       <Filter>GameTFWR</Filter>
     </ClInclude>
     <ClInclude Include="TFWR\TFWRScript.h">
       <Filter>GameTFWR</Filter>
     </ClInclude>
+    <ClInclude Include="TFWR\TFWRUnlock.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
     <ClInclude Include="TFWR\TFWRGameState.h">
+      <Filter>GameTFWR</Filter>
+    </ClInclude>
+    <ClInclude Include="TFWR\CodeEditor.h">
       <Filter>GameTFWR</Filter>
     </ClInclude>
   </ItemGroup>

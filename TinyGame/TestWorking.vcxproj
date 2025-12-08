@@ -266,9 +266,14 @@
     <ClCompile Include="TestRender\Stage\MultiViewOnePassTest.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
+    <ClCompile Include="TFWR\CodeEditor.cpp" />
+    <ClCompile Include="TFWR\LuaInspector.cpp" />
     <ClCompile Include="TFWR\TFWRCore.cpp" />
-    <ClCompile Include="TFWR\TFWRGameState.cpp" />
+    <ClCompile Include="TFWR\TFWREntities.cpp" />
+    <ClCompile Include="TFWR\TFWRGameAPI.cpp" />
+    <ClCompile Include="TFWR\TFWRGameLogic.cpp" />
     <ClCompile Include="TFWR\TFWRScript.cpp" />
+    <ClCompile Include="TFWR\TFWRGameState.cpp" />
     <ClCompile Include="TFWR\TFWRStage.cpp" />
     <ClCompile Include="Transport\TPStage.cpp" />
   </ItemGroup>
@@ -303,9 +308,15 @@
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="TestMisc\Stage\AgarStage.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
+    <ClInclude Include="TFWR\CodeEditor.h" />
+    <ClInclude Include="TFWR\LuaInspector.h" />
     <ClInclude Include="TFWR\TFWRCore.h" />
-    <ClInclude Include="TFWR\TFWRGameState.h" />
+    <ClInclude Include="TFWR\TFWREntities.h" />
+    <ClInclude Include="TFWR\TFWRGameAPI.h" />
+    <ClInclude Include="TFWR\TFWRGameLogic.h" />
     <ClInclude Include="TFWR\TFWRScript.h" />
+    <ClInclude Include="TFWR\TFWRGameState.h" />
+    <ClInclude Include="TFWR\TFWRUnlock.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

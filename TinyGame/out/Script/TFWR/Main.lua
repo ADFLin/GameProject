@@ -20,6 +20,20 @@ function get_companion()
     return entity, { x , y } 
 end
 
+
+---@return number | { integer, integer } | nil
+function measure(direction)
+    
+    local numReturns, v1, v2  = __Internal_measure(direction)
+    if numReturns == 1 then 
+        return v1
+    else
+        return { v1, v2 }
+    end
+
+    return nil
+end
+
 --[[
     Returns a sequence of numbers from start (inclusive) to to (inclusive).
 

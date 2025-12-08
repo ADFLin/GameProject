@@ -33,8 +33,8 @@ enum StageID
 
 struct GameTimeSpan
 {
-	operator float() { return value; }
-	explicit operator long() { return value * 1000; }
+	operator float() const { return value; }
+	explicit operator long() const { return value * 1000; }
 	float value;
 };
 

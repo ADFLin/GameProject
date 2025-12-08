@@ -18,7 +18,7 @@ namespace
 	HFONT  hFont[FONT_NUM];
 	FontDrawer FontRHI[FONT_NUM];
 	Color3ub gColorMap[3][EColor::COUNT];
-	TCHAR const* FontName = "µØ±d¤¤¶êÅé";
+	TCHAR const* FontName = "ï¿½Ø±dï¿½ï¿½ï¿½ï¿½ï¿½ï¿½";
 }
 
 static HBRUSH GetColorBrush( int color , int type = COLOR_NORMAL )
@@ -47,6 +47,7 @@ void RenderUtility::Initialize()
 	DEF_COLOR(EColor::Gold  , FFD700);
 
 	DEF_COLOR(EColor::Gray  , 808080);
+	DEF_COLOR(EColor::Silver, C0C0C0);
 	DEF_COLOR(EColor::White , FFFFFF);
 	DEF_COLOR(EColor::Black , 000000);
 

@@ -710,6 +710,193 @@ GFrame::GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent 
 
 }
 
+// Helper enum for resize edge detection
+enum ResizeEdge
+{
+	RESIZE_NONE   = 0,
+	RESIZE_LEFT   = BIT(0),
+	RESIZE_RIGHT  = BIT(1),
+	RESIZE_TOP    = BIT(2),
+	RESIZE_BOTTOM = BIT(3),
+	RESIZE_TOP_LEFT = RESIZE_TOP | RESIZE_LEFT,
+	RESIZE_TOP_RIGHT = RESIZE_TOP | RESIZE_RIGHT,
+	RESIZE_BOTTOM_LEFT = RESIZE_BOTTOM | RESIZE_LEFT,
+	RESIZE_BOTTOM_RIGHT = RESIZE_BOTTOM | RESIZE_RIGHT,
+};
+
+SUPPORT_ENUM_FLAGS_OPERATION(ResizeEdge);
+
+#ifdef SYS_PLATFORM_WIN
+#include "WindowsHeader.h"
+#endif
+
+
+enum class ECursorIcon
+{
+	SizeWE,
+	SizeNS,
+	SizeNWSE,
+	sizeNESW,
+};
+
+class CursorManager
+{
+public:
+	static void SetCursor(ECursorIcon icon)
+	{
+#ifdef SYS_PLATFORM_WIN
+		LPCTSTR cursorName = IDC_ARROW;
+		switch (icon)
+		{
+		case ECursorIcon::SizeWE:
+			cursorName = IDC_SIZEWE;
+			break;
+		case ECursorIcon::SizeNS:
+			cursorName = IDC_SIZENS;
+			break;
+		case ECursorIcon::SizeNWSE:
+			cursorName = IDC_SIZENWSE;
+			break;
+		case ECursorIcon::sizeNESW:
+			cursorName = IDC_SIZENESW;
+			break;
+		}
+		::SetCursor(::LoadCursor(NULL, cursorName));
+#endif
+	}
+};
+
+struct ResizeOperation
+{
+	static const int BorderWidth = 8;
+
+	static ECursorIcon GetCursorIcon(ResizeEdge edge)
+	{
+		switch (edge)
+		{
+		case RESIZE_LEFT:
+		case RESIZE_RIGHT:
+			return ECursorIcon::SizeWE;
+		case RESIZE_TOP:
+		case RESIZE_BOTTOM:
+			return ECursorIcon::SizeNS;
+		case RESIZE_TOP_LEFT:
+		case RESIZE_BOTTOM_RIGHT:
+			return ECursorIcon::SizeNWSE;
+		case RESIZE_TOP_RIGHT:
+		case RESIZE_BOTTOM_LEFT:
+			return ECursorIcon::sizeNESW;
+		}
+		return ECursorIcon::SizeWE;
+	}
+	
+	ResizeEdge detectEdge(Vec2i const& localPos, Vec2i const& widgetSize)
+	{
+		ResizeEdge edge = RESIZE_NONE;
+		
+		if (localPos.x < BorderWidth)
+			edge |= RESIZE_LEFT;
+		else if (localPos.x >= widgetSize.x - BorderWidth)
+			edge |= RESIZE_RIGHT;
+			
+		if (localPos.y < BorderWidth)
+			edge |= RESIZE_TOP;
+		else if (localPos.y >= widgetSize.y - BorderWidth)
+			edge |= RESIZE_BOTTOM;
+			
+		return edge;
+	}
+	
+	void start(ResizeEdge edge, Vec2i const& startWorldPos, Vec2i const& widgetPos, Vec2i const& widgetSize)
+	{
+		resizingEdge = edge;
+		startMouseWorldPos = startWorldPos;
+		startWidgetPos = widgetPos;
+		startWidgetSize = widgetSize;
+	}
+	
+	void end()
+	{
+		resizingEdge = RESIZE_NONE;
+	}
+	
+	bool isResizing() const
+	{
+		return resizingEdge != RESIZE_NONE;
+	}
+	
+	void updateResize(Vec2i const& currentWorldPos, Vec2i& outPos, Vec2i& outSize)
+	{
+		if (!isResizing())
+			return;
+			
+		Vec2i delta = currentWorldPos - startMouseWorldPos;
+		Vec2i newPos = startWidgetPos;
+		Vec2i newSize = startWidgetSize;
+
+		const int minWidth = 50;
+		const int minHeight = 30;
+		
+		// Handle horizontal resizing
+		if (resizingEdge & RESIZE_LEFT)
+		{
+			int newWidth = startWidgetSize.x - delta.x;
+			// Clamp to minimum width
+			if (newWidth < minSize.x)
+			{
+				newWidth = minSize.x;
+				// Adjust position to maintain right edge
+				newPos.x = startWidgetPos.x + startWidgetSize.x - minSize.x;
+			}
+			else
+			{
+				newPos.x = startWidgetPos.x + delta.x;
+			}
+			newSize.x = newWidth;
+		}
+		else if (resizingEdge & RESIZE_RIGHT)
+		{
+			int newWidth = startWidgetSize.x + delta.x;
+			// Clamp to minimum width
+			newSize.x = (newWidth >= minSize.x) ? newWidth : minSize.x;
+		}
+		
+		// Handle vertical resizing
+		if (resizingEdge & RESIZE_TOP)
+		{
+			int newHeight = startWidgetSize.y - delta.y;
+			// Clamp to minimum height
+			if (newHeight < minSize.y)
+			{
+				newHeight = minSize.y;
+				// Adjust position to maintain bottom edge
+				newPos.y = startWidgetPos.y + startWidgetSize.y - minSize.y;
+			}
+			else
+			{
+				newPos.y = startWidgetPos.y + delta.y;
+			}
+			newSize.y = newHeight;
+		}
+		else if (resizingEdge & RESIZE_BOTTOM)
+		{
+			int newHeight = startWidgetSize.y + delta.y;
+			// Clamp to minimum height
+			newSize.y = (newHeight >= minSize.y) ? newHeight : minSize.y;
+		}
+		
+		outPos = newPos;
+		outSize = newSize;
+	}
+	
+	ResizeEdge resizingEdge = RESIZE_NONE;
+	Vec2i startMouseWorldPos;  // Use world coordinates instead of local
+	Vec2i startWidgetPos;
+	Vec2i startWidgetSize;
+
+	Vec2i minSize = Vec2i(50, 30);
+};
+
 struct DragOperation
 {
 
@@ -740,27 +927,77 @@ MsgReply GFrame::onMouseMsg( MouseMsg const& msg )
 {
 	BaseClass::onMouseMsg( msg );
 
-	static int x , y;
+	static ResizeOperation resizeOp;
+	static DragOperation dragOp;
 
-	static DragOperation operation;
-	if ( msg.onLeftDown() )
-	{
-		setTop();
-		getManager()->captureMouse( this );
-		operation.start(msg.getPos());
-	}
-	else if ( msg.onLeftUp() )
+
+
+	if ( msg.onLeftUp() )
 	{
 		getManager()->releaseMouse();
-		operation.end();
+		resizeOp.end();
+		dragOp.end();
 	}
+	else if ( msg.onLeftDown() )
+	{
+		setTop();
+		
+		ResizeEdge edge = RESIZE_NONE;
+		if (bCanResize)
+		{
+			Vec2i localPos = msg.getPos() - getWorldPos();
+			edge = resizeOp.detectEdge(localPos, getSize());
+		}
+		if (edge != RESIZE_NONE)
+		{
+			getManager()->captureMouse( this );
+			resizeOp.start(edge, msg.getPos(), getPos(), getSize());
+			resizeOp.minSize = mMinSize;
+			CursorManager::SetCursor(ResizeOperation::GetCursorIcon(edge));
+		}
+		else
+		{
+			getManager()->captureMouse( this );
+			dragOp.start(msg.getPos());
+		}
+	}	
+	else if (msg.onMoving())
+	{
+		if (bCanResize)
+		{
+			if (resizeOp.isResizing())
+			{
+				CursorManager::SetCursor(ResizeOperation::GetCursorIcon(resizeOp.resizingEdge));
+			}
+			else if (!dragOp.bStart)
+			{
+				Vec2i localPos = msg.getPos() - getWorldPos();
+				ResizeEdge edge = resizeOp.detectEdge(localPos, getSize());
+				if (edge != RESIZE_NONE)
+				{
+					CursorManager::SetCursor(ResizeOperation::GetCursorIcon(edge));
+				}
+			}
+		}
+	}
+
 
 	if ( msg.isLeftDown() && msg.isDraging() )
 	{
-		Vec2i offset;
-		if( operation.update(msg.getPos(),offset) )
+		if (resizeOp.isResizing())
 		{
-			setPos(getPos() + offset);
+			Vec2i newPos, newSize;
+			resizeOp.updateResize(msg.getPos(), newPos, newSize);
+			setPos(newPos);
+			setSize(newSize);
+		}
+		else if (dragOp.bStart)
+		{
+			Vec2i offset;
+			if( dragOp.update(msg.getPos(),offset) )
+			{
+				setPos(getPos() + offset);
+			}
 		}
 	}
 
@@ -944,4 +1181,284 @@ void GText::onRender()
 	RenderUtility::SetFont(g, FONT_S8);
 	g.setTextColor(Color3ub(255, 255, 0));
 	g.drawText(pos, size, mText.c_str());
+}
+
+// GScrollBar Implementation
+
+GScrollBar::GScrollBar(int id, Vec2i const& pos, int length, bool beH, GWidget* parent)
+	:BaseClass(pos, beH ? Vec2i(length, 16) : Vec2i(16, length), parent)
+{
+	mID = id;
+	mbHorizontal = beH;
+
+	// No child buttons created
+
+	updateThumbSize();
+	updateThumbPos();
+}
+
+void GScrollBar::setRange(int range, int pageSize)
+{
+	mRange = range;
+	mPageSize = pageSize;
+	updateThumbSize();
+	setValue(mValue);
+}
+
+void GScrollBar::setValue(int value)
+{
+	int maxVal = std::max(0, mRange);
+	int oldVal = mValue;
+	mValue = std::max(0, std::min(value, maxVal));
+	
+	if (oldVal != mValue)
+	{
+		updateThumbPos();
+		onScrollChange(mValue);
+	}
+}
+
+void GScrollBar::updateThumbSize()
+{
+	int btnSize = 16;
+	int trackLen = (mbHorizontal ? getSize().x : getSize().y) - 2 * btnSize;
+	
+	if (trackLen <= 0) 
+		return;
+
+	int total = mRange + mPageSize;
+	if (total <= 0) 
+		total = 1;
+
+	int thumbLen = Math::Clamp(trackLen * mPageSize / total, 10, trackLen);
+	mThumbSize = mbHorizontal ? Vec2i(thumbLen, 16) : Vec2i(16, thumbLen);
+}
+
+void GScrollBar::updateThumbPos()
+{
+	int btnSize = 16;
+	int trackLen = (mbHorizontal ? getSize().x : getSize().y) - 2 * btnSize;
+	int thumbLen = mbHorizontal ? mThumbSize.x : mThumbSize.y;
+	int movableLen = trackLen - thumbLen;
+
+	if (movableLen <= 0)
+	{
+		if (mbHorizontal) mThumbPos = Vec2i(btnSize, 0);
+		else mThumbPos = Vec2i(0, btnSize);
+		return;
+	}
+
+	int offset = 0;
+	if (mRange > 0)
+	{
+		offset = mValue * movableLen / mRange;
+	}
+
+	if (mbHorizontal)
+		mThumbPos = Vec2i(btnSize + offset, 0);
+	else
+		mThumbPos = Vec2i(0, btnSize + offset);
+}
+
+int GScrollBar::calcValueFromPos(Vec2i const& pos)
+{
+	int btnSize = 16;
+	int trackLen = (mbHorizontal ? getSize().x : getSize().y) - 2 * btnSize;
+	int thumbLen = mbHorizontal ? mThumbSize.x : mThumbSize.y;
+	int movableLen = trackLen - thumbLen;
+
+	if (movableLen <= 0) return 0;
+
+	// Calculate center of thumb relative to track start
+	int relativePos = (mbHorizontal ? pos.x : pos.y) - btnSize - thumbLen / 2;
+	
+	int val = relativePos * mRange / movableLen;
+	return Math::Clamp(val, 0, mRange);
+}
+
+void GScrollBar::onRender()
+{
+	IGraphics2D& g = Global::GetIGraphics2D();
+	Vec2i pos = getWorldPos();
+	Vec2i size = getSize();
+	int btnSize = 16;
+
+	// Colors
+	Color3ub colorTrack(45, 45, 48);
+	Color3ub colorThumb(62, 62, 66);
+	Color3ub colorThumbHover(104, 104, 104);
+	Color3ub colorThumbPress(150, 150, 150); // Or active color
+	Color3ub colorArrow(200, 200, 200);
+	Color3ub colorBtnHover(62, 62, 66);
+	Color3ub colorBtnPress(0, 122, 204);
+
+	// Draw Track
+	g.setBrush(colorTrack);
+	RenderUtility::SetPen(g, EColor::Null);
+	g.drawRect(pos, size);
+
+	// Draw Buttons
+	Vec2i btn1Pos = pos;
+	Vec2i btn2Pos = mbHorizontal ? pos + Vec2i(size.x - btnSize, 0) : pos + Vec2i(0, size.y - btnSize);
+	Vec2i btnSizeVec(btnSize, btnSize);
+
+	// Button 1 (Minus)
+	if (mPressPart == PART_MINUS) g.setBrush(colorBtnPress);
+	else if (mHoverPart == PART_MINUS) g.setBrush(colorBtnHover);
+	else g.setBrush(colorTrack); // Transparent/Track color
+	g.drawRect(btn1Pos, btnSizeVec);
+
+	// Button 2 (Plus)
+	if (mPressPart == PART_PLUS) g.setBrush(colorBtnPress);
+	else if (mHoverPart == PART_PLUS) g.setBrush(colorBtnHover);
+	else g.setBrush(colorTrack);
+	g.drawRect(btn2Pos, btnSizeVec);
+
+	// Draw Arrows
+	g.setBrush(colorArrow);
+	// ... draw triangles ...
+	// Helper to draw arrow
+	auto drawArrow = [&](Vec2i p, int dir) 
+	{
+		// dir: 0=left, 1=right, 2=up, 3=down
+		Vector2 center = Vector2(p) + Vector2(btnSize / 2.0f, btnSize / 2.0f);
+		float s = 4.0f;
+		Vector2 v[3];
+		if (dir == 0) { v[0] = center + Vector2(-s, 0); v[1] = center + Vector2(s, -s); v[2] = center + Vector2(s, s); }
+		else if (dir == 1) { v[0] = center + Vector2(s, 0); v[1] = center + Vector2(-s, -s); v[2] = center + Vector2(-s, s); }
+		else if (dir == 2) { v[0] = center + Vector2(0, -s); v[1] = center + Vector2(-s, s); v[2] = center + Vector2(s, s); }
+		else if (dir == 3) { v[0] = center + Vector2(0, s); v[1] = center + Vector2(-s, -s); v[2] = center + Vector2(s, -s); }
+		g.drawPolygon(v, 3);
+	};
+
+	if (mbHorizontal) { drawArrow(btn1Pos, 0); drawArrow(btn2Pos, 1); }
+	else { drawArrow(btn1Pos, 2); drawArrow(btn2Pos, 3); }
+
+	// Draw Thumb
+	Vec2i thumbWorldPos = pos + mThumbPos;
+	if (mPressPart == PART_THUMB) g.setBrush(colorThumbPress);
+	else if (mHoverPart == PART_THUMB) g.setBrush(colorThumbHover);
+	else g.setBrush(colorThumb);
+
+	// Rounded rect for thumb
+	g.drawRoundRect(thumbWorldPos, mThumbSize, Vector2(4, 4));
+
+
+
+	//g.enablePen(true);
+}
+
+MsgReply GScrollBar::onMouseMsg(MouseMsg const& msg)
+{
+	Vec2i localPos = msg.getPos() - getWorldPos();
+	Vec2i size = getSize();
+	int btnSize = 16;
+
+	// Hit testing
+	EPart hitPart = PART_NONE;
+	if (localPos.x >= 0 && localPos.y >= 0 && localPos.x < size.x && localPos.y < size.y)
+	{
+		if (mbHorizontal)
+		{
+			if (localPos.x < btnSize) hitPart = PART_MINUS;
+			else if (localPos.x >= size.x - btnSize) hitPart = PART_PLUS;
+			else if (localPos.x >= mThumbPos.x && localPos.x < mThumbPos.x + mThumbSize.x) hitPart = PART_THUMB;
+			else hitPart = PART_TRACK;
+		}
+		else
+		{
+			if (localPos.y < btnSize) hitPart = PART_MINUS;
+			else if (localPos.y >= size.y - btnSize) hitPart = PART_PLUS;
+			else if (localPos.y >= mThumbPos.y && localPos.y < mThumbPos.y + mThumbSize.y) hitPart = PART_THUMB;
+			else hitPart = PART_TRACK;
+		}
+	}
+
+	if (msg.onMoving())
+	{
+		if (mHoverPart != hitPart)
+		{
+			mHoverPart = hitPart;
+			// Redraw? GWidget doesn't have invalidate. But onRender is called every frame usually?
+			// If not, we might need to trigger update.
+		}
+	}
+	else if (msg.onLeftDown() || msg.onLeftDClick())
+	{
+		mPressPart = hitPart;
+		getManager()->captureMouse(this);
+
+		if (hitPart == PART_THUMB)
+		{
+			mbDragging = true;
+			mDragStartPos = msg.getPos();
+			mDragStartValue = mValue;
+		}
+		else if (hitPart == PART_MINUS)
+		{
+			setValue(mValue - 1);
+		}
+		else if (hitPart == PART_PLUS)
+		{
+			setValue(mValue + 1);
+		}
+		else if (hitPart == PART_TRACK)
+		{
+			setValue(calcValueFromPos(localPos));
+		}
+		return MsgReply::Handled();
+	}
+	else if (msg.onLeftUp())
+	{
+		if (mPressPart != PART_NONE)
+		{
+			mPressPart = PART_NONE;
+			mbDragging = false;
+			getManager()->releaseMouse();
+			return MsgReply::Handled();
+		}
+	}
+	
+	if (msg.isLeftDown() && mbDragging)
+	{
+		// Drag logic (same as before)
+		int trackLen = (mbHorizontal ? getSize().x : getSize().y) - 2 * btnSize;
+		int thumbLen = mbHorizontal ? mThumbSize.x : mThumbSize.y;
+		int movableLen = trackLen - thumbLen;
+
+		if (movableLen > 0)
+		{
+			int deltaPix = mbHorizontal ? (msg.x() - mDragStartPos.x) : (msg.y() - mDragStartPos.y);
+			int deltaVal = deltaPix * mRange / movableLen;
+			setValue(mDragStartValue + deltaVal);
+		}
+		return MsgReply::Handled();
+	}
+
+	return BaseClass::onMouseMsg(msg);
+}
+
+bool GScrollBar::onChildEvent(int event, int id, GWidget* ui)
+{
+	if (event == EVT_BUTTON_CLICK)
+	{
+		if (id == 0) // Minus
+		{
+			setValue(mValue - 1);
+			return false;
+		}
+		else if (id == 1) // Plus
+		{
+			setValue(mValue + 1);
+			return false;
+		}
+	}
+	return true;
+}
+
+void GScrollBar::onResize(Vec2i const& size)
+{
+	BaseClass::onResize(size);
+	updateThumbSize();
+	updateThumbPos();
 }

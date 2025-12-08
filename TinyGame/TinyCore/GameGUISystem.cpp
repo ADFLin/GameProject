@@ -97,8 +97,7 @@ GWidget* GUISystem::showMessageBox( int id , char const* msg , EMessageButton::T
 	box->setTitle( msg );
 	box->setAlpha( 0.8f );
 	addWidget( box );
-	box->doModal();
-
+	doModel(box);
 	return box;
 }
 
@@ -147,8 +146,9 @@ MsgReply GUISystem::procCharMsg(unsigned code)
 	return getManager().procCharMsg(code);
 }
 
-void GUISystem::addWidget( GWidget* widget )
+void GUISystem::addWidget( GWidget* widget, WidgetLayoutLayer* layer)
 {
+	widget->layer = layer;
 	mUIManager.addWidget( widget );
 }
 
@@ -160,12 +160,41 @@ void GUISystem::cleanupWidget(bool bForceCleanup , bool bPersistentIncluded)
 		mUIManager.cleanupPaddingKillWidgets();
 }
 
-void GUISystem::render()
+void GUISystem::doModel(GWidget* ui)
+{
+	mUIManager.startModal(ui);
+}
+
+void GUISystem::render(IGraphics2D& g)
 {
 	if ( mHideWidgets )
 		return;
 
-	mUIManager.render();
+	for (auto ui = mUIManager.createTopWidgetIterator(); ui; ++ui)
+	{
+		if (!ui->isShow())
+			continue;
+
+		if (ui->layer)
+		{
+			if (g.isUseRHI())
+			{
+				auto& gImpl = g.getImpl<RHIGraphics2D>();
+				gImpl.pushXForm();
+				gImpl.transformXForm(ui->layer->worldToScreen, true);
+				ui->renderAll();
+				gImpl.popXForm();
+			}
+			else
+			{
+				ui->renderAll();
+			}
+		}
+		else
+		{
+			ui->renderAll();
+		}
+	}
 }
 
 void GUISystem::update()

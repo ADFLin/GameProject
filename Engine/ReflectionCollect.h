@@ -39,17 +39,41 @@ namespace ReflectionMeta
 
 class ReflectionCollector
 {
+public:
 	template< typename T >
 	void beginClass(char const* name);
 
-	template< typename T , typename TBase >
+	template< typename T, typename TBase >
 	void addBaseClass();
 
 	template< typename T, typename P >
 	void addProperty(P(T::*memberPtr), char const* name);
 
-	template< typename T, typename P , typename ...TMeta >
+	template< typename T, typename P, typename ...TMeta >
 	void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta);
+
+	template< typename T, typename ...TArgs >
+	void addConstructor();
+
+	template< typename T, typename RT, typename ...TArgs >
+	void addFunction(RT(T::*funcPtr)(TArgs...), char const* name);
+
+	template< typename T, typename RT, typename ...TArgs >
+	void addFunction(RT(T::*funcPtr)(TArgs...) const, char const* name);
+
+	template< typename T, typename RT, typename ...TArgs >
+	void addFunction(RT (*funcPtr)(TArgs...), char const* name);
+
+
+	template< typename T, typename RT, typename ...TArgs, typename ...TMeta >
+	void addFunction(RT(T::*funcPtr)(TArgs...), char const* name, TMeta&& ...meta);
+
+	template< typename T, typename RT, typename ...TArgs, typename ...TMeta >
+	void addFunction(RT(T::*funcPtr)(TArgs...) const, char const* name, TMeta&& ...meta);
+
+	template< typename T, typename RT, typename ...TArgs, typename ...TMeta >
+	void addFunction(RT(*funcPtr)(TArgs...), char const* name, TMeta&& ...meta);
+
 
 	void endClass();
 
@@ -89,6 +113,30 @@ struct FReflectionCollector
 		c.addProperty(memberPtr, overridedName, std::forward<TMeta>(meta)...);
 	}
 
+	template< typename T, typename TCollector, typename ...TArgs >
+	FORCEINLINE static void AddConstructor(TCollector& c)
+	{
+		c.template addConstructor<T, TArgs...>();
+	}
+
+	template< typename T, typename TCollector, typename TFunc, typename ...TArgs >
+	FORCEINLINE static void AddFunction(TCollector& c, TFunc funcPtr, char const* name)
+	{
+		c.addFunction(funcPtr, name);
+	}
+
+	template< typename T, typename TCollector, typename TFunc, typename ...TMeta >
+	FORCEINLINE static void AddFunction(TCollector& c, TFunc funcPtr, char const* name, char const* overridedName, TMeta&& ...meta)
+	{
+		c.addFunction(funcPtr, overridedName, std::forward<TMeta>(meta)...);
+	}
+
+	template< typename T, typename TCollector, typename TFunc, typename ...TMeta >
+	FORCEINLINE static void AddFunction(TCollector& c, TFunc funcPtr, char const* name, TMeta&& ...meta)
+	{
+		c.addFunction(funcPtr, name, std::forward<TMeta>(meta)...);
+	}
+
 	template< typename TEnum >
 	FORCEINLINE static ReflectEnumValueInfo MakEnumInfo(TEnum enumValue, char const* name)
 	{
@@ -125,6 +173,12 @@ public:\
 
 #define REF_PROPERTY( VAR , ... )\
 		FReflectionCollector::AddProperty<ThisClass>(collector, &ThisClass::VAR, #VAR, ##__VA_ARGS__);
+
+#define REF_CONSTRUCTOR( ... )\
+		FReflectionCollector::AddConstructor<ThisClass, ##__VA_ARGS__>(collector);
+
+#define REF_FUNCION( FUNC , ... )\
+		FReflectionCollector::AddFunction<ThisClass>(collector, &ThisClass::FUNC, #FUNC, ##__VA_ARGS__);
 
 #define REFLECT_STRUCT_END()\
 		collector.endClass();\

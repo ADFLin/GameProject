@@ -42,7 +42,7 @@ WidgetCoreT<T>::~WidgetCoreT()
 }
 
 template< class T >
-WidgetCoreT<T>* WidgetCoreT<T>::hitTestInternal(Vec2i const& testPos , WidgetList& Widgetlist)
+WidgetCoreT<T>* WidgetCoreT<T>::HitTestInternal(Vec2i const& testPos , WidgetList& Widgetlist)
 {
 	WidgetCoreT* result = NULL;
 
@@ -61,7 +61,7 @@ WidgetCoreT<T>* WidgetCoreT<T>::hitTestInternal(Vec2i const& testPos , WidgetLis
 			if( ui->checkFlag(WIF_HITTEST_CHILDREN) )
 			{
 				Vec2i tPos = pos - ui->getPos();
-				result = hitTestInternal( tPos , ui->mChildren );
+				result = HitTestInternal( tPos , ui->mChildren );
 				if( result )
 					return result;
 			}
@@ -90,7 +90,7 @@ WidgetCoreT<T>* WidgetCoreT<T>::hitTestInternal(Vec2i const& testPos , WidgetLis
 template< class T >
 WidgetCoreT<T>* WidgetCoreT<T>::hitTestChildren(Vec2i const& testPos)
 {
-	return hitTestInternal(testPos, mChildren);
+	return HitTestInternal(testPos, mChildren);
 }
 
 
@@ -419,36 +419,362 @@ void WidgetCoreT<T>::destroyChildren_R()
 	}
 }
 
-template< class T >
+template < typename T>
 TWidgetManager<T>::TWidgetManager()
 	:mbProcessingMsg(false)
 {
 	std::fill_n(mNamedSlots, (int)ESlotName::Num, nullptr);
 }
 
-template < class T >
+template < typename T>
 TWidgetManager<T>::~TWidgetManager()
 {
 	cleanupWidgets();
 	cleanupPaddingKillWidgets();
 }
 
-template< class T >
+template < typename T>
 void TWidgetManager<T>::prevProcMsg()
 {
 	assert(mbProcessingMsg == false);
 	mbProcessingMsg = true;
 }
 
-template< class T >
+template < typename T>
 void TWidgetManager<T>::postProcMsg()
 {
 	mbProcessingMsg = false;
 	cleanupPaddingKillWidgets();
 }
 
-template< class T >
-MsgReply TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
+template < typename T>
+WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
+{
+	if( mNamedSlots[ESlotName::Focus] )
+	{
+		return mNamedSlots[ESlotName::Focus]->isEnable() ? mNamedSlots[ESlotName::Focus] : nullptr;
+	}
+	else if( mNamedSlots[ESlotName::Modal] )
+	{
+		return mNamedSlots[ESlotName::Modal]->isEnable() ? mNamedSlots[ESlotName::Modal] : nullptr;
+	}
+	return nullptr;
+}
+
+template < typename T>
+template< class TFunc >
+MsgReply TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, TFunc func)
+{
+	MsgReply reply(false);
+	while (ui != nullptr)
+	{
+		if (ui->checkFlag(flag | unhandledFlag))
+		{
+			if (ui->checkFlag(unhandledFlag))
+			{
+				reply = func(ui);
+				if (reply.isHandled())
+					break;
+			}
+
+			ui = ui->getParent();
+		}
+		else
+		{
+			reply = func(ui);
+			break;
+		}
+	}
+
+	return reply;
+}
+
+template < typename T>
+MsgReply TWidgetManager<T>::procCharMsg( unsigned code )
+{
+	//System maybe send callback
+	if (mbProcessingMsg)
+		return MsgReply::Handled();
+
+	ProcMsgScope scope(this);
+	MsgReply reply = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
+	{
+		return ui->onCharMsg(code);
+	});
+	return reply;
+}
+
+template < typename T>
+MsgReply TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
+{
+	//System maybe send callback
+	if (mbProcessingMsg)
+		return MsgReply::Handled();
+
+	ProcMsgScope scope(this);
+	MsgReply reply = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [msg](WidgetCore* ui)
+	{
+		return ui->onKeyMsg(msg);
+	});
+	return reply;
+}
+
+template < typename T>
+void TWidgetManager<T>::update()
+{
+	WIDGET_PROFILE_ENTRY("UI System");
+
+	{
+		WIDGET_PROFILE_ENTRY("UpdateUI");
+
+		for( auto ui = createTopWidgetIterator(); ui; ++ui )
+		{
+			updateInternal(*ui);
+		}
+		
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::updateInternal( WidgetCore& ui )
+{
+	if( ui.isEnable() )
+	{
+		ui.update();
+	}
+	if( ui.isEnable() || ui.checkFlag(WIF_EFFECT_DISABLE_CHILD) == false )
+	{
+		for( auto child = ui.createChildrenIterator(); child; ++child )
+		{
+			updateInternal(*child);
+		}
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::render()
+{
+	for( auto ui = createTopWidgetIterator(); ui; ++ui )
+	{
+		if ( !ui->isShow() )
+			continue;
+		ui->renderAll();
+	}
+}
+
+
+template < typename T >
+template< class Visitor >
+void  TWidgetManager<T>::visitWidgets( Visitor visitor )
+{
+	WIDGET_PROFILE_ENTRY("UI System");
+	{
+		WIDGET_PROFILE_ENTRY("visitUI");
+
+		for( auto ui = createTopWidgetIterator(); ui; ++ui )
+		{
+			visitWidgetInternal(visitor , *ui);
+		}
+	}
+}
+
+template < typename T>
+template< class Visitor >
+void  TWidgetManager<T>::visitWidgetInternal( Visitor visitor , WidgetCore& ui )
+{
+	visitor(static_cast<T*>(&ui));
+	for( auto child = ui.createChildrenIterator(); child; ++child )
+	{
+		visitWidgetInternal(visitor, *child);
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::removeWidgetReference( WidgetCore* ui )
+{
+	if( !ui->checkFlag(WIF_MANAGER_REF) )
+		return;
+
+	if ( mNamedSlots[ESlotName::Focus] == ui )
+	{
+		clearNamedSlot(ESlotName::Focus);
+		ui->focus( false );
+	}
+	if ( mNamedSlots[ESlotName::Mouse] == ui )
+	{
+		clearNamedSlot(ESlotName::Mouse);
+		ui->mouseOverlap( false );
+	}
+	for( int i = 0; i < (int)ESlotName::Num; ++i )
+	{
+		if( mNamedSlots[i] == ui )
+		{
+			clearNamedSlot(ESlotName(i));
+		}	
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::destroyWidget( WidgetCore* ui )
+{
+	if ( ui == nullptr || ui->checkFlag( WIF_MARK_DESTROY ) )
+		return;
+
+	ui->addFlagInternal(WIF_MARK_DESTROY);
+	if ( mbProcessingMsg || ui->checkFlag( WIF_DEFERRED_DESTROY ))
+	{
+		ui->unlinkInternal(false);
+		mDeferredDestroyWidgets.push_back(*static_cast<T*>(ui));
+	}
+	else
+	{
+		destroyWidgetActually( ui );
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::destroyWidgetChildren_R(WidgetCore* ui)
+{
+	auto childIter = ui->createChildrenIterator();
+	while( childIter )
+	{
+		WidgetCore* child = &(*childIter);
+		static_cast<T*>(child)->onDestroy();
+		destroyWidgetChildren_R(child);
+		++childIter;
+		destroyWidget(child);
+	}
+}
+
+
+template < typename T>
+void TWidgetManager<T>::destroyWidgetActually( WidgetCore* ui )
+{
+	static_cast<T*>(ui)->onDestroy();
+	removeWidgetReference( ui );
+	destroyWidgetChildren_R( ui );
+	ui->unlinkInternal(true);
+	ui->deleteThis();
+}
+
+template < typename T>
+void TWidgetManager<T>::cleanupPaddingKillWidgets()
+{
+	int loopCount = 0;
+
+	while( !mDeferredDestroyWidgets.empty() )
+	{
+		WidgetList processingList;
+		processingList.swap(mDeferredDestroyWidgets);
+
+		while( !processingList.empty() )
+		{
+			WidgetCore* ui = &processingList.front();
+			ui->removeFlagInternal(WIF_MARK_DESTROY);
+			destroyWidget(ui);
+		}
+
+		++loopCount;
+		if( loopCount > 10 )
+		{
+			LogWarning(0, "Can't Destroy Padding Widgets!!");
+			break;
+		}
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::cleanupWidgets(bool bPersistentIncluded)
+{
+	if(bPersistentIncluded)
+	{
+		while( !mTopWidgetList.empty() )
+		{
+			destroyWidget(&mTopWidgetList.front());
+		}
+	}
+	else
+	{
+		for( auto iter = mTopWidgetList.begin(); iter != mTopWidgetList.end();  )
+		{
+			WidgetCore& widget = *iter;
+			++iter;
+			if( !widget.checkFlag(WIF_PERSISTENT) )
+			{
+				destroyWidget(&widget);
+			}
+		}
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::addWidget( WidgetCore* ui )
+{
+	mTopWidgetList.push_back(*static_cast<T*>(ui));
+	ui->setManager(this);
+}
+
+template < typename T>
+void TWidgetManager<T>::startModal( WidgetCore* ui )
+{
+	if ( mNamedSlots[ESlotName::Modal] )
+		return;
+	setNamedSlot(ESlotName::Modal, *ui);
+}
+
+template < typename T>
+void TWidgetManager<T>::endModal( WidgetCore* ui )
+{
+	if( ui == mNamedSlots[ESlotName::Modal] )
+		clearNamedSlot(ESlotName::Modal);
+}
+
+template < typename T>
+bool TWidgetManager<T>::isTopWidget( WidgetCore* ui )
+{
+	return ui->getParent() == nullptr;
+}
+
+template < typename T>
+void TWidgetManager<T>::focusWidget( WidgetCore* ui )
+{
+	if ( ui == mNamedSlots[ESlotName::Focus] )
+		return;
+	if ( mNamedSlots[ESlotName::Focus] )
+	{
+		WidgetCore* temp = mNamedSlots[ESlotName::Focus];
+		clearNamedSlot(ESlotName::Focus);
+		temp->focus(false);
+	}
+
+	if ( ui )
+	{
+		setNamedSlot(ESlotName::Focus, *ui);
+		ui->focus(true);
+	}
+}
+
+template < typename T>
+void TWidgetManager<T>::clearFocusWidget(WidgetCore* ui, bool bSubWidgetsIncluded)
+{
+	if (mNamedSlots[ESlotName::Focus] == nullptr)
+		return;
+
+	if (ui == mNamedSlots[ESlotName::Focus])
+	{
+		clearNamedSlot(ESlotName::Focus);
+		ui->focus(false);
+	}
+	else if (bSubWidgetsIncluded && mNamedSlots[ESlotName::Focus]->isSubWidgetOf(ui))
+	{
+		ui = mNamedSlots[ESlotName::Focus];
+		clearNamedSlot(ESlotName::Focus);
+		ui->focus(false);
+	}
+}
+
+template < typename T, typename TWidgetImpl >
+MsgReply WidgetManagerT<T, TWidgetImpl>::procMouseMsg( MouseMsg const& msg )
 {
 	//System maybe send callback
 	if (mbProcessingMsg)
@@ -461,26 +787,33 @@ MsgReply TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 	MsgReply result = MsgReply::Unhandled();
 
 	mLastMouseMsg = msg;
+	Vec2i worldPos;
 
 	WidgetCore* ui = nullptr;
 	if ( mNamedSlots[ESlotName::Capture] )
 	{
 		ui = mNamedSlots[ESlotName::Capture];
+		worldPos = _this()->transformToWorld((TWidgetImpl*)ui, mLastMouseMsg.getPos());
 	}
 	else if( mNamedSlots[ESlotName::Modal] )
 	{
-		if( mNamedSlots[ESlotName::Modal]->hitTest(mLastMouseMsg.getPos()) )
+		worldPos = _this()->transformToWorld((TWidgetImpl*)mNamedSlots[ESlotName::Modal], mLastMouseMsg.getPos());
+		if( mNamedSlots[ESlotName::Modal]->hitTest(worldPos) )
 		{
-			ui = mNamedSlots[ESlotName::Modal]->hitTestChildren(mLastMouseMsg.getPos() - mNamedSlots[ESlotName::Modal]->getPos());
+			ui = mNamedSlots[ESlotName::Modal]->hitTestChildren(worldPos - mNamedSlots[ESlotName::Modal]->getPos());
 		}		
 	}
 	else if (mLastMouseMsg.getMsg() & MBS_WHEEL)
 	{
 		ui = mNamedSlots[ESlotName::Focus];
+		if (ui)
+		{
+			worldPos = _this()->transformToWorld((TWidgetImpl*)ui, mLastMouseMsg.getPos());
+		}
 	}
 	else 
-	{
-		ui = hitTest( mLastMouseMsg.getPos() );
+	{	
+		ui = hitWidgetTest( mLastMouseMsg.getPos(), worldPos);
 	}
 
 	if (mNamedSlots[ESlotName::LastMouseMsg])
@@ -534,7 +867,6 @@ MsgReply TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 			}
 		}
 
-
 		if ( ui )
 		{
 			if ( msg.isDraging() && ui != mNamedSlots[ESlotName::Focus] )
@@ -543,20 +875,38 @@ MsgReply TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 			}
 			else
 			{
-				result = ui->onMouseMsg( mLastMouseMsg );
-				while ( !result.isHandled() && ui->checkFlag( WIF_REROUTE_MOUSE_EVENT_UNHANDLED ) )
+				mLastMouseMsg.setPos(worldPos);
+				bool bSetSlot = true;
+				while (ui)
 				{
-					if ( ui->isTop() )
-						break;
+					if (!ui->checkFlag(WIF_REROUTE_MOUSE_EVENT))
+					{
+						result = ui->onMouseMsg(mLastMouseMsg);
 
-					ui = static_cast< T* >( ui->getParent() );
-					result = ui->onMouseMsg( mLastMouseMsg );
+						if (mNamedSlots[ESlotName::LastMouseMsg])
+							clearNamedSlot(ESlotName::LastMouseMsg);
 
-					if( mNamedSlots[ESlotName::LastMouseMsg] )
-						clearNamedSlot(ESlotName::LastMouseMsg);
+						setNamedSlot(ESlotName::LastMouseMsg, *ui);
 
-					setNamedSlot(ESlotName::LastMouseMsg, *ui);
+						if (ui->checkFlag(WIF_SEND_PARENT_MOUSE_EVENT))
+						{
+							ui = static_cast<TWidgetImpl*>(ui->getParent());
+							auto parentResult = ui->onMouseMsg(mLastMouseMsg);
+							if (parentResult.isHandled())
+							{
+								result.bHandled = true;
+							}
+						}
+
+						if (result.isHandled() || !ui->checkFlag(WIF_REROUTE_MOUSE_EVENT_UNHANDLED))
+						{
+							break;
+						}
+					}
+
+					ui = static_cast<TWidgetImpl*>(ui->getParent());
 				}
+
 			}
 		}
 	}
@@ -564,337 +914,47 @@ MsgReply TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 	return result;
 }
 
-template < class T >
-WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
+template < typename T, typename TWidgetImpl >
+TWidgetImpl* WidgetManagerT<T, TWidgetImpl>::hitWidgetTest( Vec2i const& testPos, Vec2i& outWorldPos)
 {
-	if( mNamedSlots[ESlotName::Focus] )
+	WIDGET_PROFILE_ENTRY("UI Hit Test")
+
+	WidgetCore* result = NULL;
+
+	for (auto it = createTopWidgetIterator(); it; ++it)
 	{
-		return mNamedSlots[ESlotName::Focus]->isEnable() ? mNamedSlots[ESlotName::Focus] : nullptr;
-	}
-	else if( mNamedSlots[ESlotName::Modal] )
-	{
-		return mNamedSlots[ESlotName::Modal]->isEnable() ? mNamedSlots[ESlotName::Modal] : nullptr;
-	}
-	return nullptr;
-}
+		auto ui = &(*it);
 
-template< class T >
-template< class TFunc >
-MsgReply TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, TFunc func)
-{
-	MsgReply reply(false);
-	while (ui != nullptr)
-	{
-		if (ui->checkFlag(flag | unhandledFlag))
-		{
-			if (ui->checkFlag(unhandledFlag))
-			{
-				reply = func(ui);
-				if (reply.isHandled())
-					break;
-			}
-
-			ui = ui->getParent();
-		}
-		else
-		{
-			reply = func(ui);
-			break;
-		}
-	}
-
-	return reply;
-}
-
-template< class T >
-MsgReply TWidgetManager<T>::procCharMsg( unsigned code )
-{
-	//System maybe send callback
-	if (mbProcessingMsg)
-		return MsgReply::Handled();
-
-	ProcMsgScope scope(this);
-	MsgReply reply = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
-	{
-		return ui->onCharMsg(code);
-	});
-	return reply;
-}
-
-template< class T >
-MsgReply TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
-{
-	//System maybe send callback
-	if (mbProcessingMsg)
-		return MsgReply::Handled();
-
-	ProcMsgScope scope(this);
-	MsgReply reply = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [msg](WidgetCore* ui)
-	{
-		return ui->onKeyMsg(msg);
-	});
-	return reply;
-}
-
-template< class T >
-T* TWidgetManager<T>::hitTest( Vec2i const& testPos )
-{
-	WIDGET_PROFILE_ENTRY("UI Hit Test");
-	return static_cast< T*>( WidgetCore::hitTestInternal( testPos , mTopWidgetList ) );
-}
-
-template< class T >
-void TWidgetManager<T>::update()
-{
-	WIDGET_PROFILE_ENTRY("UI System");
-
-	{
-		WIDGET_PROFILE_ENTRY("UpdateUI");
-
-		for( auto ui = createTopWidgetIterator(); ui; ++ui )
-		{
-			updateInternal(*ui);
-		}
-		
-	}
-}
-
-template< class T >
-void TWidgetManager<T>::updateInternal( WidgetCore& ui )
-{
-	if( ui.isEnable() )
-	{
-		ui.update();
-	}
-	if( ui.isEnable() || ui.checkFlag(WIF_EFFECT_DISABLE_CHILD) == false )
-	{
-		for( auto child = ui.createChildrenIterator(); child; ++child )
-		{
-			updateInternal(*child);
-		}
-	}
-}
-
-template< class T >
-void TWidgetManager<T>::render()
-{
-	for( auto ui = createTopWidgetIterator(); ui; ++ui )
-	{
-		if ( !ui->isShow() )
+		if (ui->checkFlag(WIF_DISABLE | WIF_HAD_HIDDEN))
 			continue;
-		ui->renderAll();
-	}
-}
 
+		Vec2i pos = _this()->transformToWorld(ui, testPos);
 
-template< class T >
-template< class Visitor >
-void  TWidgetManager<T>::visitWidgets( Visitor visitor )
-{
-	WIDGET_PROFILE_ENTRY("UI System");
-	{
-		WIDGET_PROFILE_ENTRY("visitUI");
-
-		for( auto ui = createTopWidgetIterator(); ui; ++ui )
+		if (ui->checkFlag(WIF_HITTEST_CHILDREN))
 		{
-			visitWidgetInternal(visitor , *ui);
+			Vec2i tPos = pos - ui->getPos();
+			result = WidgetCore::HitTestInternal(tPos, ui->mChildren);
+			if (result)
+			{
+				outWorldPos = pos;
+				break;
+			}
 		}
-	}
-}
-
-template< class T >
-template< class Visitor >
-void  TWidgetManager<T>::visitWidgetInternal( Visitor visitor , WidgetCore& ui )
-{
-	visitor(static_cast<T*>(&ui));
-	for( auto child = ui.createChildrenIterator(); child; ++child )
-	{
-		visitWidgetInternal(visitor, *child);
-	}
-}
-
-template< class T >
-void TWidgetManager<T>::removeWidgetReference( WidgetCore* ui )
-{
-	if( !ui->checkFlag(WIF_MANAGER_REF) )
-		return;
-
-	if ( mNamedSlots[ESlotName::Focus] == ui )
-	{
-		clearNamedSlot(ESlotName::Focus);
-		ui->focus( false );
-	}
-	if ( mNamedSlots[ESlotName::Mouse] == ui )
-	{
-		clearNamedSlot(ESlotName::Mouse);
-		ui->mouseOverlap( false );
-	}
-	for( int i = 0; i < (int)ESlotName::Num; ++i )
-	{
-		if( mNamedSlots[i] == ui )
+		else if (static_cast<TWidgetImpl*>(ui)->doHitTest(pos))
 		{
-			clearNamedSlot(ESlotName(i));
-		}	
-	}
-}
-
-template< class T >
-void TWidgetManager<T>::destroyWidget( WidgetCore* ui )
-{
-	if ( ui == nullptr || ui->checkFlag( WIF_MARK_DESTROY ) )
-		return;
-
-	ui->addFlagInternal(WIF_MARK_DESTROY);
-	if ( mbProcessingMsg || ui->checkFlag( WIF_DEFERRED_DESTROY ))
-	{
-		ui->unlinkInternal(false);
-		mDeferredDestroyWidgets.push_back(*static_cast<T*>(ui));
-	}
-	else
-	{
-		destroyWidgetActually( ui );
-	}
-}
-
-template < class T >
-void TWidgetManager<T>::destroyWidgetChildren_R(WidgetCore* ui)
-{
-	auto childIter = ui->createChildrenIterator();
-	while( childIter )
-	{
-		WidgetCore* child = &(*childIter);
-		static_cast<T*>(child)->onDestroy();
-		destroyWidgetChildren_R(child);
-		++childIter;
-		destroyWidget(child);
-	}
-}
-
-
-template< class T >
-void TWidgetManager<T>::destroyWidgetActually( WidgetCore* ui )
-{
-	static_cast<T*>(ui)->onDestroy();
-	removeWidgetReference( ui );
-	destroyWidgetChildren_R( ui );
-	ui->unlinkInternal(true);
-	ui->deleteThis();
-}
-
-template< class T >
-void TWidgetManager<T>::cleanupPaddingKillWidgets()
-{
-	int loopCount = 0;
-
-	while( !mDeferredDestroyWidgets.empty() )
-	{
-		WidgetList processingList;
-		processingList.swap(mDeferredDestroyWidgets);
-
-		while( !processingList.empty() )
-		{
-			WidgetCore* ui = &processingList.front();
-			ui->removeFlagInternal(WIF_MARK_DESTROY);
-			destroyWidget(ui);
-		}
-
-		++loopCount;
-		if( loopCount > 10 )
-		{
-			LogWarning(0, "Can't Destroy Padding Widgets!!");
+			result = ui;
+			outWorldPos = pos;
+			Vec2i tPos = pos - ui->getPos();
+			auto childHit = WidgetCore::HitTestInternal(tPos, ui->mChildren);
+			if (childHit)
+			{
+				result = childHit;
+			}
 			break;
 		}
 	}
-}
 
-template< class T >
-void TWidgetManager<T>::cleanupWidgets(bool bPersistentIncluded)
-{
-	if(bPersistentIncluded)
-	{
-		while( !mTopWidgetList.empty() )
-		{
-			destroyWidget(&mTopWidgetList.front());
-		}
-	}
-	else
-	{
-		for( auto iter = mTopWidgetList.begin(); iter != mTopWidgetList.end();  )
-		{
-			WidgetCore& widget = *iter;
-			++iter;
-			if( !widget.checkFlag(WIF_PERSISTENT) )
-			{
-				destroyWidget(&widget);
-			}
-		}
-	}
-}
-
-template< class T >
-void TWidgetManager<T>::addWidget( WidgetCore* ui )
-{
-	mTopWidgetList.push_back(*static_cast<T*>(ui));
-	ui->setManager(this);
-}
-
-template< class T >
-void TWidgetManager<T>::startModal( WidgetCore* ui )
-{
-	if ( mNamedSlots[ESlotName::Modal] )
-		return;
-	setNamedSlot(ESlotName::Modal, *ui);
-}
-
-template< class T >
-void TWidgetManager<T>::endModal( WidgetCore* ui )
-{
-	if( ui == mNamedSlots[ESlotName::Modal] )
-		clearNamedSlot(ESlotName::Modal);
-}
-
-template< class T >
-bool TWidgetManager<T>::isTopWidget( WidgetCore* ui )
-{
-	return ui->getParent() == nullptr;
-}
-
-template< class T >
-void TWidgetManager<T>::focusWidget( WidgetCore* ui )
-{
-	if ( ui == mNamedSlots[ESlotName::Focus] )
-		return;
-	if ( mNamedSlots[ESlotName::Focus] )
-	{
-		WidgetCore* temp = mNamedSlots[ESlotName::Focus];
-		clearNamedSlot(ESlotName::Focus);
-		temp->focus(false);
-	}
-
-	if ( ui )
-	{
-		setNamedSlot(ESlotName::Focus, *ui);
-		ui->focus(true);
-	}
-}
-
-template < class T >
-void TWidgetManager<T>::clearFocusWidget(WidgetCore* ui, bool bSubWidgetsIncluded)
-{
-	if (mNamedSlots[ESlotName::Focus] == nullptr)
-		return;
-
-	if (ui == mNamedSlots[ESlotName::Focus])
-	{
-		clearNamedSlot(ESlotName::Focus);
-		ui->focus(false);
-	}
-	else if (bSubWidgetsIncluded && mNamedSlots[ESlotName::Focus]->isSubWidgetOf(ui))
-	{
-		ui = mNamedSlots[ESlotName::Focus];
-		clearNamedSlot(ESlotName::Focus);
-		ui->focus(false);
-	}
+	return static_cast<TWidgetImpl*>(result);
 }
 
 #endif // WidgetCore_H_0D21F7C5_C362_437A_8BC5_D4C98EDB3024

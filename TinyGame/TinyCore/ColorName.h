@@ -22,6 +22,7 @@ namespace EColor
 		Gold,
 
 		Gray,
+		Silver,
 		White,
 		Black,
 

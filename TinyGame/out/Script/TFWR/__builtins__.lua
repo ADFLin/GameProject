@@ -137,7 +137,7 @@ function till() end
     Harvests the entity under the drone.
     If you harvest an entity that can't be harvested, it will be destroyed.
 
-    returns `True` if an entity was removed, `False` otherwise.
+    returns `true` if an entity was removed, `false` otherwise.
 
     takes `200` ticks to execute if an entity was removed, `1` tick otherwise.
 
@@ -152,7 +152,7 @@ function harvest() end
 --[[
     Used to find out if plants are fully grown.
 
-    returns `True` if there is an entity under the drone that is ready to be harvested, `False` otherwise.
+    returns `true` if there is an entity under the drone that is ready to be harvested, `false` otherwise.
 
     takes `1` tick to execute.
 
@@ -169,7 +169,7 @@ function can_harvest() end
     Spends the cost of the specified `entity` and plants it under the drone.
     It fails if you can't afford the plant, the ground type is wrong or there's already a plant there.
 
-    returns `True` if it succeeded, `False` otherwise.
+    returns `true` if it succeeded, `false` otherwise.
 
     takes `200` ticks to execute if it succeeded, `1` tick otherwise.
 
@@ -257,8 +257,9 @@ function get_entity_type() end
 
     example usage:
     ```
-    if get_ground_type() != Grounds.Soil:
+    if get_ground_type() != Grounds.Soil then
         till()
+    end
     ```
 ]]
 ---@return Ground
@@ -335,3 +336,88 @@ function num_items(item) end
 ---@param direction Direction
 ---@return boolean
 function swap(direction) end
+
+--[[
+    Can measure some values on some entities. The effect of this depends on the entity.
+
+    overloads:
+    `measure()`: measures the entity under the drone.
+    `measure(direction)`: measures the neighboring entity in the `direction` of the drone.
+
+    Sunflower: returns the number of petals.
+    Maze: returns the position of the current treasure from anywhere in the maze.
+    Cactus: returns the size.
+    Dinosaur: returns the number corresponding to the type.
+    All other entities: returns `None`.
+
+    takes `1` tick to execute.
+
+    example usage:
+    ```
+    num_petals = measure()
+    treasure_pos = measure()  # Works anywhere in maze
+    ```
+]]
+---@param direction? Direction
+---@return number | integer[] | nil
+function measure(direction) end
+
+--[[
+    Attempts to use the specified `item` `n` times. Can only be used with some items including `Items.Water`, `Items.Fertilizer` and `Items.Weird_Substance`.
+
+    returns `true` if an item was used, `false` if the item can't be used or you don't have enough.
+
+    takes `200` ticks to execute if it succeeded, `1` tick otherwise.
+
+    example usage:
+    ```
+    if use_item(Items.Fertilizer) then
+        print("Fertilizer used successfully")
+    end
+    ```
+]]
+---@param item Item
+---@param n integer
+---@return boolean
+function use_item(item, n) end
+
+
+--[[
+    Checks if the drone can move in the specified `direction`.
+
+    returns `true` if the drone can move, `false` otherwise.
+
+    takes `1` tick to execute.
+
+    example usage:
+    ```
+    if can_move(North) then
+        move(North)
+    end
+    ```
+]]
+---@param direction Direction
+function can_move(direction) end
+
+--[[
+    Used to check if an unlock, entity, ground, item or hat is already unlocked.
+
+    returns `1` plus the number of times `thing` has been upgraded if `thing` is upgradable. Otherwise returns `1` if `thing` is unlocked, `0` otherwise.
+
+    takes `1` tick to execute.
+
+    example usage:
+    ```
+    if num_unlocked(Unlocks.Carrots) > 0 then
+        plant(Entities.Carrot)
+    else
+        print("Carrots not unlocked yet")
+    end
+    ```
+]]
+---@param thing Unlock | Entity | Ground | Item
+---@return int
+function num_unlocked(thing) end
+
+
+

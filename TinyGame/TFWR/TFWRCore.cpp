@@ -14,6 +14,7 @@ namespace TFWR
 		case EPlant::Cactus: return "Cactus";
 		case EPlant::Sunflower: return "Sunflower";
 		case EPlant::Dionsaur: return "Dionsaur";
+		case EPlant::DeadPumpkin: return "Dead Pumpkin";
 		}
 		return "Unknown";
 	}

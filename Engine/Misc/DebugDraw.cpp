@@ -16,6 +16,17 @@ void DrawDebugLine(Vector2 const& posStart, Vector2 const& posEnd, Color3ub cons
 		GDebugDraw->addLine(posStart, posEnd, color, thickneess);
 }
 
+void DrawDebugRect(Vector2 const& pos, Vector2 const& size, Color3ub const& color, float thickneess)
+{
+	if (GDebugDraw)
+	{
+		GDebugDraw->addLine(pos, pos + Vector2(size.x, 0), color, thickneess);
+		GDebugDraw->addLine(pos, pos + Vector2(0, size.y), color, thickneess);
+		GDebugDraw->addLine(pos + size, pos + Vector2(size.x, 0), color, thickneess);
+		GDebugDraw->addLine(pos + size, pos + Vector2(0, size.y), color, thickneess);
+	}
+}
+
 void DrawDebugPoint(Vector2 const& pos, Color3ub const& color, float size)
 {
 	if (GDebugDraw)

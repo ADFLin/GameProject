@@ -1379,7 +1379,7 @@ void TinyGameApp::render( float dframe )
 			{
 				PROFILE_ENTRY("GUIRender");
 				GPU_PROFILE("GUI");
-				::Global::GUI().render();
+				::Global::GUI().render(g);
 			}
 
 			g.endRender();

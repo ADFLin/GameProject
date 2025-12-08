@@ -1,5 +1,18 @@
 require("__builtins__")
 
+
+local Data = TestData.new()
+Data.a = 1
+Data.b = 2.5
+Data:foo()
+
+local Data2 = TestData2.new()
+Data2.a = 1
+Data2.b = 2.5
+Data2:foo()
+
+local pos = measure(East)
+print("measure:", pos[1], pos[2])
 clear()
 
 local worldSize = get_world_size()

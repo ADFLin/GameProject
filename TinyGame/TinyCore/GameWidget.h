@@ -37,6 +37,7 @@ enum
 	EVT_SLIDER_CHANGE ,
 	EVT_CHECK_BOX_CHANGE ,
 	EVT_DIALOG_CLOSE,
+	EVT_SCROLL_CHANGE,
 
 	EVT_ENTER_UI ,
 	EVT_EXIT_UI  ,
@@ -102,6 +103,13 @@ struct WidgetColor
 	int       name;
 };
 
+struct WidgetLayoutLayer
+{
+public:
+	Render::RenderTransform2D screenToWorld;
+	Render::RenderTransform2D worldToScreen;
+};
+
 class  GWidget : public WidgetCoreT< GWidget >
 {
 public:
@@ -135,6 +143,7 @@ public:
 	virtual MsgReply onKeyMsg(KeyMsg const& msg){ return MsgReply::Unhandled(); }
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
+	virtual void onResize(Vec2i const& size) {}
 	virtual void onChangePos(Vec2i const& newPos, bool bParentMove) {}
 	virtual void onDestroy(){}
 
@@ -166,16 +175,31 @@ public:
 		return GUI::CastFast<T>( this );
 	}
 
+	WidgetLayoutLayer* getLayer()
+	{
+		GWidget* cur = this;
+		while (cur->getParent())
+		{
+			cur = cur->getParent();
+		}
+		return cur->layer;
+	}
+
 protected:
 	virtual bool preSendEvent(int event) { return true; }
 
 	TINY_API void sendEvent( int eventID );
 	TINY_API void removeMotionTask();
 
+	friend class GUISystem;
 
 	bool      useHotKey;
 	intptr_t  userData;
 
+	// only top widget
+	WidgetLayoutLayer* layer = nullptr;
+
+	friend class GameUIManager;
 
 	WidgetColor mColor;
 
@@ -203,7 +227,7 @@ public:
 };
 
 using GUI = TWidgetLibrary< GWidget >;
-using UIManager = GUI::Manager;
+class GameUIManager;
 
 
 class RenderCallBack 
@@ -343,7 +367,11 @@ class  GFrame : public GPanel
 	typedef GPanel BaseClass;
 public:
 	TINY_API GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+
+	bool bCanResize = false;
+
 protected:
+	Vec2i mMinSize = Vec2i(50, 30);
 	TINY_API MsgReply onMouseMsg( MouseMsg const& msg );
 	virtual void onFocus(bool beF) { if( beF ) sendEvent(EVT_FRAME_FOCUS); }
 };
@@ -475,6 +503,60 @@ public:
 	String mSubFileName;
 	String mCurDir;
 
+};
+
+class TINY_API GScrollBar : public GWidget
+{
+	using BaseClass = GWidget;
+public:
+	GScrollBar(int id, Vec2i const& pos, int length, bool beH, GWidget* parent);
+
+	void setRange(int range, int pageSize);
+	void setValue(int value);
+	int  getValue() const { return mValue; }
+
+	void onScrollChange(int value) { sendEvent(EVT_SCROLL_CHANGE); }
+
+protected:
+	void onResize(Vec2i const& size) override;
+	void onRender() override;
+	MsgReply onMouseMsg(MouseMsg const& msg) override;
+	bool onChildEvent(int event, int id, GWidget* ui) override;
+
+	void updateThumbPos();
+	void updateThumbSize();
+	int  calcValueFromPos(Vec2i const& pos);
+
+	virtual void onMouse(bool beIn) 
+	{ 
+		if (!beIn)
+		{
+			mHoverPart = PART_NONE;
+		}
+	}
+
+	enum EPart
+	{
+		PART_NONE,
+		PART_MINUS,
+		PART_PLUS,
+		PART_THUMB,
+		PART_TRACK,
+	};
+	EPart mHoverPart = PART_NONE;
+	EPart mPressPart = PART_NONE;
+
+	Vec2i mThumbPos;
+	Vec2i mThumbSize;
+
+	int mValue = 0;
+	int mRange = 100;
+	int mPageSize = 10;
+	bool mbHorizontal;
+
+	bool mbDragging = false;
+	Vec2i mDragStartPos;
+	int mDragStartValue;
 };
 
 template< class TFun >

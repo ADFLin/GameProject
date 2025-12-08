@@ -10,6 +10,7 @@
 using Math::Vector2;
 
 void DrawDebugLine(Vector2 const& sStart, Vector2 const& posEnd, Color3ub const& color, float thickneess = 0.0f);
+void DrawDebugRect(Vector2 const& pos, Vector2 const& size, Color3ub const& color, float thickneess = 0.0f);
 void DrawDebugPoint(Vector2 const& pos, Color3ub const& color, float size = 0.0f);
 void DrawDebugText(Vector2 const& pos, char const* text, Color3ub const& color);
 void DrawDebugClear();

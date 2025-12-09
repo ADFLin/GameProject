@@ -136,12 +136,6 @@ void CodeEditorBase::onRender()
 		return;
 	}
 
-	g.setBrush(Color3ub(46, 46, 46));
-	Vector2 textRectPos = pos + Vector2(Border, Border + HeaderHeight);
-	Vector2 textRectSize = mCanvas->getSize();
-	g.drawRoundRect(textRectPos, textRectSize, Vector2(8, 8));
-
-
 	mCanvas->mBlinkTimer++; 
 
 	if (mShouldCheckHover && mCanvas->mBlinkTimer - mHoverTimer > 30)
@@ -469,9 +463,12 @@ void CodeEditCanvas::parseLine(int index)
 	codeLine.colors.clear();
 
 	if (content.empty())
+	{
+		codeLine.totalWidth = 0.0f;
 		return;
+	}
 
-	GEditorSettings.mFont->generateLineVertices(Vector2::Zero(), content, 1.0, codeLine.vertices);
+	codeLine.totalWidth = GEditorSettings.mFont->generateLineVertices(Vector2::Zero(), content, 1.0, codeLine.vertices);
 	codeLine.colors.resize(codeLine.vertices.size() / 4);
 
 	char const* pStr = content.data();
@@ -598,9 +595,8 @@ MsgReply CodeEditCanvas::onMouseMsg(MouseMsg const& msg)
 	if (msg.onLeftDown())
 	{
 		Vec2i localPos = msg.getPos() - getWorldPos();
-		Vector2 textRectPos((float)(Border + BreakpointMargin), (float)Border);
 		Vector2 textRectSize = getTextRectSize();
-
+		Vector2 textRectPos = getTextRectPos();
 		if (localPos.x >= Border && localPos.x < Border + BreakpointMargin &&
 			localPos.y >= textRectPos.y && localPos.y < textRectPos.y + textRectSize.y)
 		{
@@ -622,28 +618,9 @@ MsgReply CodeEditCanvas::onMouseMsg(MouseMsg const& msg)
 			if (lineIndex >= 0 && lineIndex < mLines.size())
 			{
 				mCursorPos.y = lineIndex;
-				// Calculate accurate column position
-				int relativeX = localPos.x - textRectPos.x - 5; // 5 is text padding
-				std::string const& line = mLines[lineIndex].content;
-				int bestCol = 0;
-				float minDist = FLT_MAX;
-				for (int col = 0; col <= line.length(); ++col)
-				{
-					std::string textBeforeCursor = line.substr(0, col);
-					Vector2 extent = GEditorSettings.mFont->calcTextExtent(textBeforeCursor.c_str(), 1.0f);
-					float dist = std::abs(extent.x - relativeX);
-					if (dist < minDist)
-					{
-						minDist = dist;
-						bestCol = col;
-					}
-				}
-				mCursorPos.x = bestCol;
-			}
-			else if (lineIndex >= mLines.size())
-			{
-				mCursorPos.y = mLines.size() - 1;
-				mCursorPos.x = mLines[mCursorPos.y].content.length();
+				int relativeX = localPos.x - textRectPos.x;
+				auto const& codeLine = mLines[lineIndex];
+				mCursorPos.x = calculateCursorCol(codeLine.content, relativeX, codeLine.totalWidth);
 			}
 			return MsgReply::Handled();
 		}
@@ -704,7 +681,7 @@ void CodeEditCanvas::onRender()
 	g.drawRoundRect(pos, size, Vector2(4, 4));
 
 	g.setBrush(Color3ub(30, 30, 30)); // Match background
-	Vector2 textRectPos = pos + Vector2((float)(Border + BreakpointMargin), (float)Border);
+	Vector2 textRectPos = Vector2(pos) + getTextRectPos();
 	Vector2 textRectSize = getTextRectSize();
 	g.drawRoundRect(textRectPos, textRectSize, Vector2(8, 8));
 
@@ -811,8 +788,8 @@ void CodeEditCanvas::onRender()
 			int cursorX = 0;
 			if (mCursorPos.x > 0 && i < mLines.size())
 			{
-				std::string textBeforeCursor = mLines[i].content.substr(0, mCursorPos.x);
-				Vector2 extent = GEditorSettings.mFont->calcTextExtent(textBeforeCursor.c_str(), 1.0f);
+				StringView textBeforeCursor(mLines[i].content.data(), mCursorPos.x);
+				Vector2 extent = GEditorSettings.mFont->calcTextExtent(textBeforeCursor, 1.0f);
 				cursorX = (int)extent.x;
 			}
 
@@ -891,28 +868,17 @@ void CodeEditCanvas::parseCode()
 
 std::string CodeEditCanvas::getWordAtPosition(Vec2i pos)
 {
-	Vector2 textRectPos((float)(Border + BreakpointMargin), (float)Border);
+	Vector2 textRectPos = getTextRectPos();
 	int relativeY = pos.y - textRectPos.y;
 	int lineIndex = mScrollBar->getValue() + relativeY / LineHeight;
 
 	if (lineIndex >= 0 && lineIndex < mLines.size())
 	{
 		// Calculate accurate column position
-		int relativeX = pos.x - textRectPos.x - 5; // 5 is text padding
-		std::string const& line = mLines[lineIndex].content;
-		int bestCol = 0;
-		float minDist = FLT_MAX;
-		for (int col = 0; col <= line.length(); ++col)
-		{
-			std::string textBeforeCursor = line.substr(0, col);
-			Vector2 extent = GEditorSettings.mFont->calcTextExtent(textBeforeCursor.c_str(), 1.0f);
-			float dist = std::abs(extent.x - relativeX);
-			if (dist < minDist)
-			{
-				minDist = dist;
-				bestCol = col;
-			}
-		}
+		int relativeX = pos.x - textRectPos.x;
+		auto const& codeLine = mLines[lineIndex];
+		std::string const& line = codeLine.content;
+		int bestCol = calculateCursorCol(line, relativeX, codeLine.totalWidth);
 
 		if (bestCol > 0 && bestCol <= line.length())
 		{
@@ -934,4 +900,69 @@ std::string CodeEditCanvas::getWordAtPosition(Vec2i pos)
 		}
 	}
 	return "";
+}
+
+int CodeEditCanvas::calculateCursorCol(std::string const& line, int relativeX, float totalWidth)
+{
+	if (line.empty())
+		return 0;
+
+	if (relativeX <= 0)
+		return 0;
+
+	if (relativeX >= totalWidth)
+		return line.length();
+
+	int low = 0;
+	int high = line.length();
+	float wLow = 0;
+	float wHigh = totalWidth;
+
+	Render::CharDataSet* charSet = GEditorSettings.mFont->mCharDataSet;
+
+	while (high - low > 1)
+	{
+		// Interpolation search
+		float t = (relativeX - wLow) / (wHigh - wLow);
+		int mid = low + (int)((high - low) * t);
+
+		// Ensure we make progress and stay within bounds
+		if (mid <= low) mid = low + 1;
+		if (mid >= high) mid = high - 1;
+
+		// Optimization: Calculate extent from 'low' instead of beginning
+		StringView sub(line.data() + low, mid - low);
+		float wSub = GEditorSettings.mFont->calcTextExtent(sub).x;
+		float wMid = wLow + wSub;
+
+		// Apply kerning correction
+		if (low > 0)
+		{
+			float kerning = 0;
+			if (charSet->getKerningPair((unsigned char)line[low - 1], (unsigned char)line[low], kerning))
+			{
+				wMid += kerning;
+			}
+		}
+
+		if (wMid < relativeX)
+		{
+			low = mid;
+			wLow = wMid;
+		}
+		else
+		{
+			high = mid;
+			wHigh = wMid;
+		}
+	}
+
+	if (std::abs(wLow - relativeX) <= std::abs(wHigh - relativeX))
+	{
+		return low;
+	}
+	else
+	{
+		return high;
+	}
 }

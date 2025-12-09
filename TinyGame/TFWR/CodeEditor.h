@@ -155,6 +155,13 @@ public:
 		return textRectSize;
 	}
 
+	Vector2 getTextRectPos() const
+	{
+		return Vector2((float)(Border + BreakpointMargin), (float)Border);
+	}
+
+	int calculateCursorCol(std::string const& line, int relativeX, float totalWidth);
+
 	virtual void notifyModified()
 	{
 
@@ -186,6 +193,7 @@ public:
 	struct CodeLine
 	{
 		std::string content;
+		float totalWidth = 0.0f;
 
 		TArray<Render::GlyphVertex> vertices;
 		TArray<RHIGraphics2D::Color4Type> colors;

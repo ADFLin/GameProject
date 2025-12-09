@@ -419,25 +419,32 @@ namespace Render
 				continue;
 			}
 
-			++count;
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if (bApplyKerning)
+			if (FCString::IsSpace(c))
 			{
-				xOffset += data.kerning;
-#if 1
-				float kerning;
-				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
-				{
-					xOffset += kerning;
-				}
-#endif
+				xOffset += data.advance;
+				bApplyKerning = false;
 			}
-
-			lineMaxHeight = Math::Max(lineMaxHeight, float(data.height));
-			xOffset += data.advance;
-			bApplyKerning = !FCString::IsSpace(c);
-			prevChar = c;
+			else
+			{
+				++count;
+				if (bApplyKerning)
+				{
+					xOffset += data.kerning;
+#if 1
+					float kerning;
+					if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+					{
+						xOffset += kerning;
+					}
+#endif
+				}
+				lineMaxHeight = Math::Max(lineMaxHeight, float(data.height));
+				xOffset += data.advance;
+				bApplyKerning = !FCString::IsSpace(c);
+				prevChar = c;
+			}
 		}
 
 		if (outCharCount)
@@ -451,11 +458,11 @@ namespace Render
 	}
 
 	template< typename CharT >
-	Vector2 FontDrawer::calcTextExtentT(CharT const* str, float scale, int* outCharCount)
+	Vector2 FontDrawer::calcTextExtentT(TStringView<CharT> str, int* outCharCount)
 	{
 		CHECK(isValid());
 
-		if (str == nullptr || *str == 0)
+		if (str.length() == 0)
 		{
 			if (outCharCount)
 				*outCharCount = 0;
@@ -471,15 +478,16 @@ namespace Render
 		float lineMaxHeight = 0.0f;
 
 		bool bApplyKerning = false;
-		while (*str != 0)
+		CharT const* pStr = str.data();
+		while (pStr < str.end())
 		{
 			wchar_t c;
-			str += FCharConv< CharT, wchar_t >::Do(str, &c);
+			pStr += FCharConv< CharT, wchar_t >::Do(pStr, &c);
 
 			if (c == L'\n')
 			{
 				result.x = Math::Max(result.x, xOffset);
-				result.y += scale * ( lineMaxHeight + 2 );
+				result.y += lineMaxHeight + 2;
 
 				xOffset = 0;
 				lineMaxHeight = 0;
@@ -487,25 +495,33 @@ namespace Render
 				continue;
 			}
 
-			++count;
+
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if (bApplyKerning)
+			if (FCString::IsSpace(c))
 			{
-				xOffset += scale * data.kerning;
-#if 1
-				float kerning;
-				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
-				{
-					xOffset += scale * kerning;
-				}
-#endif
+				xOffset += data.advance;
+				bApplyKerning = false;
 			}
-
-			lineMaxHeight = Math::Max(lineMaxHeight, scale * float(data.height));
-			xOffset += scale * data.advance;
-			bApplyKerning = !FCString::IsSpace(c);
-			prevChar = c;
+			else
+			{
+				++count;
+				if (bApplyKerning)
+				{
+					xOffset += data.kerning;
+#if 1
+					float kerning;
+					if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+					{
+						xOffset += kerning;
+					}
+#endif
+				}
+				lineMaxHeight = Math::Max(lineMaxHeight, float(data.height));
+				xOffset += data.advance;
+				bApplyKerning = !FCString::IsSpace(c);
+				prevChar = c;
+			}
 		}
 
 		if (outCharCount)
@@ -530,7 +546,7 @@ namespace Render
 			wchar_t c;
 			str += FCharConv< CharT, wchar_t >::Do(str, &c);
 			
-			if (c == L'\n')
+			if (c == L'\n' || FCString::IsSpace(c))
 			{
 				continue;
 			}
@@ -564,13 +580,38 @@ namespace Render
 	Vector2 FontDrawer::calcTextExtent(wchar_t const* str, float scale, int* outCharCount)
 	{
 		assert(isValid());
-		return calcTextExtentT(str, scale, outCharCount);
+		return scale * calcTextExtentT(str, outCharCount);
 	}
 
 	Vector2 FontDrawer::calcTextExtent(char const* str, float scale, int* outCharCount)
 	{
 		assert(isValid());
-		return calcTextExtentT(str, scale, outCharCount);
+		return scale * calcTextExtentT(str, outCharCount);
+	}
+
+
+	Vector2 FontDrawer::calcTextExtent(WStringView str, int* outCharCount)
+	{
+		assert(isValid());
+		return calcTextExtentT(str, outCharCount);
+	}
+
+	Vector2 FontDrawer::calcTextExtent(StringView str, int* outCharCount)
+	{
+		assert(isValid());
+		return calcTextExtentT(str, outCharCount);
+	}
+
+	Vector2 FontDrawer::calcTextExtent(WStringView str, float scale, int* outCharCount)
+	{
+		assert(isValid());
+		return scale * calcTextExtentT(str, outCharCount);
+	}
+
+	Vector2 FontDrawer::calcTextExtent(StringView str, float scale, int* outCharCount)
+	{
+		assert(isValid());
+		return scale * calcTextExtentT(str, outCharCount);
 	}
 
 	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str)
@@ -635,22 +676,29 @@ namespace Render
 
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if (bApplyKerning)
+			if (FCString::IsSpace(c))
 			{
-				curPos.x += data.kerning;
-#if 1
-				float kerning;
-				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
-				{
-					curPos.x += kerning;
-				}
-#endif
+				curPos.x += data.advance;
+				bApplyKerning = false;
 			}
-
-			addQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
-			curPos.x += data.advance;
-			bApplyKerning = !FCString::IsSpace(c);
-			prevChar = c;
+			else
+			{
+				if (bApplyKerning)
+				{
+					curPos.x += data.kerning;
+#if 1
+					float kerning;
+					if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+					{
+						curPos.x += kerning;
+					}
+#endif
+				}
+				addQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
+				curPos.x += data.advance;
+				bApplyKerning = true;
+				prevChar = c;
+			}
 		}
 	}
 
@@ -659,7 +707,7 @@ namespace Render
 	{
 		if (outBoundSize)
 		{
-			*outBoundSize = calcTextExtentT(str, nullptr);
+			*outBoundSize = scale * calcTextExtentT(str, nullptr);
 		}
 
 		Vector2 curPos = pos;
@@ -681,22 +729,29 @@ namespace Render
 
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if (bApplyKerning)
+			if (FCString::IsSpace(c))
 			{
-				curPos.x += scale * data.kerning;
-#if 1
-				float kerning;
-				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
-				{
-					curPos.x += scale * kerning;
-				}
-#endif
+				curPos.x += scale * data.advance;
+				bApplyKerning = false;
 			}
-
-			addQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
-			curPos.x += scale * data.advance;
-			bApplyKerning = !FCString::IsSpace(c);
-			prevChar = c;
+			else
+			{
+				if (bApplyKerning)
+				{
+					curPos.x += scale * data.kerning;
+#if 1
+					float kerning;
+					if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+					{
+						curPos.x += scale * kerning;
+					}
+#endif
+				}
+				addQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
+				curPos.x += scale * data.advance;
+				bApplyKerning = true;
+				prevChar = c;
+			}
 		}
 	}
 
@@ -749,9 +804,8 @@ namespace Render
 	}
 
 
-	void FontDrawer::generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< GlyphVertex >& outVertices)
+	float FontDrawer::generateLineVertices(Vector2 const& pos, StringView line, float scale, TArray< GlyphVertex >& outVertices)
 	{
-
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
 		{
 			Vector2 posMax = pos + size;
@@ -771,16 +825,15 @@ namespace Render
 		{
 			wchar_t c;
 			str += FCharConv< char, wchar_t >::Do(str, &c);
+
+			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 			if (FCString::IsSpace(c))
 			{
-				CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 				curPos.x += scale * data.advance;
 				bApplyKerning = false;
 			}
 			else
 			{
-				CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
-
 				if (bApplyKerning)
 				{
 					curPos.x += scale * data.kerning;
@@ -796,10 +849,11 @@ namespace Render
 				AddQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
 				curPos.x += scale * data.advance;
 				bApplyKerning = true;
+				prevChar = c;
 			}
-
-			prevChar = c;
 		}
+
+		return curPos.x;
 	}
 
 	template< typename CharT >

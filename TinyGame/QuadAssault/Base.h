@@ -15,8 +15,7 @@
 #include "Core/IntegerType.h"
 #include <cmath>
 
-#include <string>
-typedef std::string String;
+#include "Core/String.h"
 
 #include "InlineString.h"
 typedef InlineString< 512 > FString;

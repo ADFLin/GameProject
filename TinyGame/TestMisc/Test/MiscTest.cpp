@@ -217,3 +217,135 @@ void SkipListTest()
 }
 
 REGISTER_MISC_TEST_ENTRY("SkipList Test", SkipListTest);
+
+#include "Core/String.h"
+
+void StringTest()
+{
+	LogMsg("Running String Test...");
+
+	// 1. Small String
+	{
+		String str = "Small";
+		TEST_CHECK(str.length() == 5);
+		TEST_CHECK(str.category() == String::Small);
+		TEST_CHECK(FCString::Compare(str.c_str(), "Small") == 0);
+		
+		str = "Change";
+		TEST_CHECK(str.length() == 6);
+		TEST_CHECK(FCString::Compare(str.c_str(), "Change") == 0);
+	}
+
+	// 2. Medium String (assuming char)
+	{
+		// char max small is 23.
+		const char* mediumText = "This is a string that is definitely longer than 23 characters but shorter than 255 characters to test Medium category.";
+		String str = mediumText;
+		TEST_CHECK(str.category() == String::Middle);
+		TEST_CHECK(str.length() == FCString::Strlen(mediumText));
+		TEST_CHECK(FCString::Compare(str.c_str(), mediumText) == 0);
+
+		String copyStr = str;
+		TEST_CHECK(copyStr.category() == String::Middle);
+		TEST_CHECK(copyStr.length() == str.length());
+		// Medium should have separate pointers (Deep Copy)
+		TEST_CHECK(copyStr.data() != str.data());
+	}
+
+	// 3. Large String (> 255) with CoW
+	{
+		String str;
+		str.reserve(300);
+		for(int i=0; i<260; ++i) str += 'A';
+		
+		TEST_CHECK(str.category() == String::Large);
+		TEST_CHECK(str.length() == 260);
+		
+		// Test CoW
+		String copyStr = str;
+		TEST_CHECK(copyStr.category() == String::Large);
+		// Pointers should be EQUAL (Shared)
+		// Use c_str() or const access to avoid triggering ensureUnique() (CoW unshare)
+		TEST_CHECK(copyStr.c_str() == str.c_str()); 
+		
+		// Modify copy - should trigger Unshare
+		copyStr += 'B';
+		TEST_CHECK(copyStr.length() == 261);
+		TEST_CHECK(str.length() == 260); // Original unchanged
+		TEST_CHECK(copyStr.c_str() != str.c_str()); // Pointers differed
+	}
+
+	// 4. Operators
+	{
+		String s1 = "Hello";
+		String s2 = " World";
+		String s3 = s1 + s2;
+		TEST_CHECK(FCString::Compare(s3.c_str(), "Hello World") == 0);
+		
+		s1 += s2;
+		TEST_CHECK(FCString::Compare(s1.c_str(), "Hello World") == 0);
+		
+		String s4 = s1 + "!";
+		TEST_CHECK(FCString::Compare(s4.c_str(), "Hello World!") == 0);
+		
+		// Self-append (Aliasing test)
+		s1 += s1; 
+		TEST_CHECK(FCString::Compare(s1.c_str(), "Hello WorldHello World") == 0);
+	}
+
+	// 5. Edge Cases & Move
+	{
+		// Empty
+		String empty;
+		TEST_CHECK(empty.length() == 0);
+		TEST_CHECK(empty.category() == String::Small);
+		TEST_CHECK(empty.c_str()[0] == 0);
+		
+		// Clear
+		String s = "Content";
+		s.clear();
+		TEST_CHECK(s.length() == 0);
+		TEST_CHECK(s.category() == String::Small);
+		
+		// Move Construction
+		String source = "MoveMe";
+		String dest = std::move(source);
+		TEST_CHECK(FCString::Compare(dest.c_str(), "MoveMe") == 0);
+		TEST_CHECK(source.length() == 0);
+		TEST_CHECK(source.category() == String::Small); // Source should be reset
+		
+		// Move Assignment
+		String dest2;
+		dest2 = std::move(dest);
+		TEST_CHECK(FCString::Compare(dest2.c_str(), "MoveMe") == 0);
+		TEST_CHECK(dest.length() == 0);
+		
+		// Self Assignment
+		dest2 = dest2;
+		TEST_CHECK(FCString::Compare(dest2.c_str(), "MoveMe") == 0);
+	}
+	
+	// 6. Mixed Category Concatenation
+	{
+		String small = "Small";
+		String medium;
+		for(int i=0; i<50; ++i) medium += "M"; // length 50 -> Medium
+		
+		String large;
+		large.reserve(300);
+		for(int i=0; i<260; ++i) large += "L"; // length 260 -> Large
+		
+		// Small + Medium
+		String sm = small + medium;
+		TEST_CHECK(sm.length() == 5 + 50);
+		
+		// Medium + Large
+		String ml = medium + large;
+		TEST_CHECK(ml.length() == 50 + 260);
+		TEST_CHECK(ml.category() == String::Large);
+	}
+	
+	LogMsg("String Test Completed.");
+}
+
+REGISTER_MISC_TEST_ENTRY("String Test", StringTest);

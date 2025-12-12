@@ -14,17 +14,15 @@
 #include "RenderUtility.h"
 #include "Tween.h"
 
+#include "Core/String.h"
+
 
 #include <functional>
-
-
 
 class DrawEngine;
 class StageManager;
 class InputControl;
 struct UserProfile;
-
-typedef std::string String;
 
 enum
 {

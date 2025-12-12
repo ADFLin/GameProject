@@ -531,9 +531,9 @@ void FNNMath::AreaConvF43(int stride, NNScalar inoutV[], int numSlice, int numNo
 
 	int constexpr WeightLen = WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
 #if REORDER_WEIGHT
-	int WeightStride = numNode * WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
+	int WeightStride = numNode * WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
 #else
-	int constexpr WeightStride = WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
+	int constexpr WeightStride = WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
 #endif
 	for (int indexSlice = 0; indexSlice < numSlice; ++indexSlice)
 	{

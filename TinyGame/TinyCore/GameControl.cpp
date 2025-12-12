@@ -108,18 +108,13 @@ void ActionProcessor::endAction()
 
 void ActionProcessor::addListener( IActionListener& listener )
 {
-	assert(std::find(mListeners.begin(), mListeners.end(), &listener) == mListeners.end());
+	CHECK(mListeners.findIndex(&listener) == INDEX_NONE);
 	mListeners.push_back(&listener);
 }
 
 bool ActionProcessor::removeListener(IActionListener& listener)
 {
-	auto iter = std::find(mListeners.begin(), mListeners.end(), &listener);
-	if( iter == mListeners.end() )
-		return false;
-
-	mListeners.erase(iter);
-	return true;
+	return mListeners.remove(&listener);
 }
 
 void ActionProcessor::setLanucher( IActionLanucher* lanucher )

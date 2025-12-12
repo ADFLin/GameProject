@@ -69,7 +69,7 @@ protected:
 	bool             mbReplayValid;
 	ReplayHeader     mReplayHeader;
 	ReplayInfo       mGameInfo;
-	std::string      mReplayFilePath;
+	String           mReplayFilePath;
 	ReplayListPanel* mRLPanel;
 	GButton*         mDelButton;
 	GButton*         mViewButton;
@@ -114,7 +114,7 @@ protected:
 	TPtrHolder< LocalPlayerManager >   mPlayerManager;
 	IFrameActionTemplate* actionTemplate;
 
-	std::string   mReplayFilePath;
+	String        mReplayFilePath;
 	int           mIndexSpeed;
 	int           mReplaySpeed;
 	int           mReplayUpdateCount;

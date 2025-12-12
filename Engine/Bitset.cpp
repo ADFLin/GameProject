@@ -106,10 +106,10 @@ bool Bitset::any() const
 
 #include "UnitTest.h"
 
-class BitsetTest : public UnitTest::ClassTestT< BitsetTest , Bitset >
+class BitsetTest
 {
 public:
-	RunResult run()
+	EUTRunResult run()
 	{
 		Bitset b( 15 , false );
 		b.set( 0 , true );
@@ -121,6 +121,16 @@ public:
 	}
 };
 
-UT_REG_TEST_CLASS( BitsetTest )
+EUTRunResult Test2()
+{
+	Bitset b(15, false);
+	b.set(0, true);
+	b.set(10, true);
 
+	UT_ASSERT(b.count() == 2);
+	UT_ASSERT(b.test(0) && b.test(15));
+	return RR_SUCCESS;
+}
 
+UT_REG_TEST(BitsetTest, "Bitset")
+UT_REG_TEST(Test2, "Test2")

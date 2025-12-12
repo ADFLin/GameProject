@@ -5,9 +5,8 @@
 #include <fstream>
 #include <set>
 
+#include "Core/String.h"
 
-
-typedef std::string String;
 typedef std::set< String > StringList;
 typedef std::map< char const*, String >                 StringMap;
 

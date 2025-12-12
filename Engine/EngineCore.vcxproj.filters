@@ -1053,6 +1053,9 @@
     <ClInclude Include="AI\NNModel.h">
       <Filter>AI</Filter>
     </ClInclude>
+    <ClInclude Include="Core\String.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

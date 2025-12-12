@@ -274,7 +274,7 @@ public:
 	ValueTooltip* mValueTooltip = nullptr;
 	Vec2i mHoverMousePos;
 	long mHoverTimer = 0;
-	String mHoverWord;
+	std::string mHoverWord;
 	bool mShouldCheckHover = false;
 };
 

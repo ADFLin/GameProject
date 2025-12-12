@@ -438,7 +438,7 @@ namespace AR
 		{
 			if (inoutlayer.convSize == 3 && (inoutlayer.dataSize[0] % 2) == 0)
 			{
-				if ((inoutlayer.dataSize[0] % 4) == 0 && false)
+				if ((inoutlayer.dataSize[0] % 4) == 0)
 				{
 					addParamT<WinogradKernel43>(inoutlayer, parameters);
 					inoutlayer.fastMethod = NNConv2DLayer::eF43;

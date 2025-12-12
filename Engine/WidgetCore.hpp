@@ -921,7 +921,7 @@ TWidgetImpl* WidgetManagerT<T, TWidgetImpl>::hitWidgetTest( Vec2i const& testPos
 
 	WidgetCore* result = NULL;
 
-	for (auto it = createTopWidgetIterator(); it; ++it)
+	for (auto it = mTopWidgetList.rbegin(); it != mTopWidgetList.rend(); ++it)
 	{
 		auto ui = &(*it);
 

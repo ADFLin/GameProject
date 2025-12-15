@@ -172,4 +172,3 @@ DataCacheInterface& Global::DataCache()
 {
 	return *GGameDataCache;
 }
-

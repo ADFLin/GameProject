@@ -18,7 +18,7 @@ namespace DouDizhu
 
 	}
 
-	void LevelStage::buildServerLevel(GameLevelInfo& info)
+	void LevelStage::configLevelSetting(GameLevelInfo& info)
 	{
 
 	}

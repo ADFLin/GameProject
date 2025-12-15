@@ -320,7 +320,7 @@ void ClientWorker::doCloseNetwork()
 }
 
 
-bool ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
+bool ClientWorker::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag )
 {
 	switch( channel )
 	{
@@ -421,7 +421,7 @@ DelayClientWorker::~DelayClientWorker()
 
 }
 
-bool DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
+bool DelayClientWorker::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag )
 {
 	switch( channel )
 	{

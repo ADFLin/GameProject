@@ -1,21 +1,24 @@
 #ifndef ABBot_h__
 #define ABBot_h__
 
+
 namespace AutoBattler
 {
 	class Player;
 	class World;
+	class LevelStage;
+	class IGameActionControl;
 
 	class BotController
 	{
 	public:
-		BotController(Player& player, World& world);
+		BotController(Player& player, IGameActionControl& control);
 
 		void update(float dt);
 
 	private:
 		Player& mPlayer;
-		World&  mWorld;
+		IGameActionControl& mActionControl;
 		float   mThinkTimer;
 	};
 

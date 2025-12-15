@@ -12,6 +12,11 @@ namespace AutoBattler
 	public:
 		Player();
 
+		int getIndex()
+		{
+			return mIndex;
+		}
+
 		void init(class World* world);
 		void resetGame();
 		void render(IGraphics2D& g);
@@ -25,10 +30,22 @@ namespace AutoBattler
 		int getHp() const { return mHp; }
 		void takeDamage(int val);
 
+		void setLevel(int level)
+		{
+			mLevel = level;
+			updateMaxPopulation();
+		}
+
 		int getLevel() const { return mLevel; }
 		int getXp() const { return mXp; }
 
+		int getMaxPopulation() const;
+
 	public:
+		void updateMaxPopulation();
+
+		int mIndex;
+
 		TArray<Unit*> mUnits;
 		TArray<Unit*> mEnemyUnits;
 		TArray<Unit*> mBench;
@@ -53,10 +70,12 @@ namespace AutoBattler
 
 	private:
 		class World* mWorld;
+
 		int mGold;
 		int mHp;
 		int mLevel;
 		int mXp;
+		int mMaxPopulation;
 	};
 
 }//namespace AutoBattler

@@ -51,6 +51,7 @@ class IGameNetInterface
 {
 public:
 	~IGameNetInterface(){}
+	virtual bool        haveServer() = 0;
 	virtual NetWorker*  getNetWorker() = 0;
 	virtual NetWorker*  buildNetwork(bool beServer) = 0;
 	virtual void        closeNetwork() = 0;

@@ -760,7 +760,7 @@ void ServerWorker::generatePlayerStatus( SPPlayerStatus& comPS )
 	comPS.numPlayer = (uint8)getPlayerManager()->getPlayerNum();
 }
 
-bool ServerWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
+bool ServerWorker::sendCommand(int channel , IComPacket* cp , EWorkerSendFlag flag)
 {
 	return mPlayerManager->sendCommand( channel , cp , flag );
 }
@@ -921,7 +921,7 @@ bool SVPlayerManager::removePlayer( PlayerId id )
 	return true;
 }
 
-bool SVPlayerManager::sendCommand( int channel , IComPacket* cp , unsigned flag )
+bool SVPlayerManager::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag)
 {
 	NET_MUTEX_LOCK( mMutexPlayerTable );
 	bool result = false;
@@ -1306,7 +1306,7 @@ void LocalWorker::update_NetThread(long time)
 
 }
 
-bool LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
+bool LocalWorker::sendCommand(int channel , IComPacket* cp , EWorkerSendFlag flag)
 {
 	//MUTEX_LOCK(mMutexBuffer);
 	FNetCommand::Write( mSendBuffer , cp );

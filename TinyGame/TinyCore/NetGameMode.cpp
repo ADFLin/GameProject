@@ -1152,7 +1152,7 @@ void NetLevelStageMode::procNetControlRequest(IComPacket* cp)
 			if( haveServer() )
 			{
 				SPLevelInfo info;
-				getStage()->buildServerLevel(info);
+				getStage()->configLevelSetting(info);
 				mServer->sendTcpCommand(&info);
 			}
 		}
@@ -1225,9 +1225,9 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		{
 			if( haveServer() )
 			{
-				assert(com->playerId == SERVER_PLAYER_ID);
+				CHECK(com->playerId == SERVER_PLAYER_ID);
 				SPLevelInfo info;
-				getStage()->buildServerLevel(info);
+				getStage()->configLevelSetting(info);
 				mServer->sendTcpCommand(&info);
 			}
 		}

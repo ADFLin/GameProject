@@ -49,39 +49,30 @@ namespace TFWR
 		static int __Internal_measure(BoxingValue const& arg1, BoxingValue& v1, BoxingValue& v2);
 
 		template< typename TEnum >
-		static void RegisterEnum(ScriptHandle L, char const* space)
+		static void RegisterEnum(ScriptHandle L, char const* space, int typeMask = 0)
 		{
 			lua_newtable(L);
-			for (ReflectEnumValueInfo const& value : REF_GET_ENUM_VALUES(TEnum))
-			{
-				lua_pushinteger(L, value.value);
-				lua_setfield(L, -2, value.text);
-			}
+			SetEnumValues<TEnum>(L, -2, typeMask);
 			lua_setglobal(L, space);
 		}
 
 		template< typename TEnum >
-		static void RegisterEnumWithOffset(ScriptHandle L, char const* space, int offset)
-		{
-			lua_newtable(L);
-			for (ReflectEnumValueInfo const& value : REF_GET_ENUM_VALUES(TEnum))
-			{
-				lua_pushinteger(L, value.value + offset);
-				lua_setfield(L, -2, value.text);
-			}
-			lua_setglobal(L, space);
-		}
-
-		template< typename TEnum >
-		static void RegisterEnum(ScriptHandle L)
+		static void RegisterEnum(ScriptHandle L, int typeMask = 0)
 		{
 			lua_getglobal(L, "_G");
+			SetEnumValues<TEnum>(L, -2, typeMask);
+			lua_pop(L, 1);
+		}
+
+		template< typename TEnum >
+		static void SetEnumValues(ScriptHandle L, int index, int typeMask = 0)
+		{
 			for (ReflectEnumValueInfo const& value : REF_GET_ENUM_VALUES(TEnum))
 			{
-				lua_pushinteger(L, value.value);
-				lua_setfield(L, -2, value.text);
+				CHECK((value.value & typeMask) == 0);
+				lua_pushinteger(L, value.value | typeMask);
+				lua_setfield(L, index, value.text);
 			}
-			lua_pop(L, 1);
 		}
 
 		template< typename TClass >

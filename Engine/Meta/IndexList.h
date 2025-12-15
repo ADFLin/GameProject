@@ -21,6 +21,12 @@ namespace Private
 	};
 
 	template<>
+	struct TSequenceBuilder< 0 >
+	{
+		using Type = TIndexList<>;
+	};
+
+	template<>
 	struct TSequenceBuilder< 1 >
 	{
 		using Type = TIndexList<0>;

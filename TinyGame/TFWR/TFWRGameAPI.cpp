@@ -269,9 +269,9 @@ namespace TFWR
 		lua_State* L = luaL_newstate();
 		luaL_openlibs(L);
 		RegisterEnum< EDirection >(L);
-		RegisterEnum< EUnlock::Type >(L, "Unlocks");
-		RegisterEnumWithOffset< EGround >(L, "Grounds", TypeMask_Ground);
-		RegisterEnumWithOffset< EItem >(L, "Items", TypeMask_Item);
+		RegisterEnum< EUnlock::Type >(L, "Unlocks", TypeMask_Unlock);
+		RegisterEnum< EGround >(L, "Grounds", TypeMask_Ground);
+		RegisterEnum< EItem >(L, "Items", TypeMask_Item);
 		RegisterFunc(L);
 		RegisterGlobal(L, "Entities", GEntities);
 		RegisterRawFunc(L);

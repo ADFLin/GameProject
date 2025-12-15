@@ -5,6 +5,7 @@
 #include "LogSystem.h"
 #include "StringParse.h"
 #include "Launch/CommandlLine.h"
+#include "FileSystem.h"
 
 #include "InlineString.h"
 #include "Misc/CStringWrapper.h"
@@ -21,7 +22,6 @@
 
 ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags)
 	:mName(inName)
-	,mArgs(inArgs)
 	,mFlags(flags)
 {
 
@@ -50,6 +50,7 @@ public:
 
 
 	bool       insertCommand(ConsoleCommandBase* com);
+	bool       registerAlias(char const* aliasName, char const* commandName);
 
 	template < class T >
 	auto* registerVar(char const* name, T* obj)
@@ -104,7 +105,7 @@ public:
 		}
 	}
 protected:
-
+	void unregisterAliases(ConsoleCommandBase* command);
 	void cleanupCommands();
 	static int const NumMaxParams = 16;
 	struct ExecuteContext
@@ -122,14 +123,11 @@ protected:
 		std::string errorMsg;
 	};
 
-	bool fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs);
 	bool executeCommandImpl(ExecuteContext& context);
-#if 0
-	using CommandMap = std::map< TCStringWrapper<char, true>, ConsoleCommandBase* >;
-#else
+
 	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase* >;
-#endif
 	CommandMap   mNameMap;
+	CommandMap   mAliasMap;
 	friend class ConsoleCommandBase;
 };
 
@@ -232,6 +230,8 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 	CommandMap::iterator iter = mNameMap.find(name);
 	if( iter != mNameMap.end() )
 	{
+		unregisterAliases(iter->second);
+
 		ConsoleCommandBase* command = iter->second;
 		mNameMap.erase(iter);
 		delete command;
@@ -247,6 +247,8 @@ void ConsoleSystem::unregisterAllCommandsByObject(void* objectPtr)
 
 		if (command->isHoldObject(objectPtr))
 		{
+			unregisterAliases(command);
+
 			iter = mNameMap.erase(iter);
 			delete command;
 		}
@@ -271,6 +273,24 @@ bool ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 	return true;
 }
 
+bool ConsoleSystem::registerAlias(char const* aliasName, char const* commandName)
+{
+	ConsoleCommandBase* command = findCommand(commandName);
+	if (!command)
+	{
+		return false;
+	}
+
+	if (findCommand(aliasName))
+	{
+		LogWarning(0, "Alias %s is already defined", aliasName);
+		return false;
+	}
+
+	mAliasMap.insert(std::make_pair(aliasName, command));
+	return true;
+}
+
 bool ConsoleSystem::executeCommand(char const* inCmdText)
 {
 	ExecuteContext context;
@@ -286,9 +306,14 @@ bool ConsoleSystem::executeCommand(char const* inCmdText)
 ConsoleCommandBase* ConsoleSystem::findCommand(char const* str)
 {
 	CommandMap::iterator iter = mNameMap.find(str);
-	if (iter == mNameMap.end())
-		return nullptr;
-	return iter->second;
+	if (iter != mNameMap.end())
+		return iter->second;
+
+	iter = mAliasMap.find(str);
+	if (iter != mAliasMap.end())
+		return iter->second;
+
+	return nullptr;
 }
 
 bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
@@ -348,39 +373,76 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 		}
 	}
 
-	int totalArgSize = 0;
-	for (auto const& arg : context.command->mArgs)
+	// Convert args to StringView view
+	TArray<StringView> viewArgs;
+	viewArgs.reserve(context.numArgs);
+	for (int i = 0; i < context.numArgs; ++i)
 	{
-		totalArgSize += Math::Max(arg.size, 4);
-	}
-
-#if 1
-	uint8* dataBuffer = (uint8*)alloca(totalArgSize);
-#else
-	uint8 dataBuffer[DATA_BUFFER_SIZE];
-#endif
-	void*  argData[NumMaxParams];
-	CHECK(context.command->mArgs.size() <= NumMaxParams);
-	uint8* pData = dataBuffer;
-
-	bool bAllowIgnoreArgs = !!(CVF_ALLOW_IGNORE_ARGS & context.command->getFlags() );
-	for( int argIndex = 0; argIndex < context.command->mArgs.size(); ++argIndex )
-	{
-		ConsoleArgTypeInfo const& arg = context.command->mArgs[argIndex];
-
-		if (!fillArgumentData(context, arg, pData, bAllowIgnoreArgs))
-		{
-			return false;
-		}
-
-		argData[argIndex] = pData;
-		pData += arg.size;
+		viewArgs.push_back(StringView(context.args[i]));
 	}
 
 	LogMsg("Execute Com : \"%s\"", context.text);
-	context.command->execute(argData);
+
+	if (!context.command->execute(viewArgs))
+	{
+		std::string usageStr = "Usage : ";
+		usageStr += context.command->mName;
+
+		for (int i = 0; i < context.command->mArgs.size(); ++i)
+		{
+			usageStr += std::string(" ");
+			char const* pStr = context.command->mArgs[i].format;
+			
+			// Handle multi-component formats like %f%f
+			do 
+			{
+				// pStr points to start, likely '%', check next char
+				if (*pStr == '%')
+				{
+					switch (pStr[1])
+					{
+					case 'd': usageStr += "#int"; break;
+					case 'f': usageStr += "#float"; break;
+					case 's': usageStr += "#String"; break;
+					case 'u': usageStr += "#uint"; break;
+					case 'c': usageStr += "#char"; break;
+					case 'h':
+						if (pStr[2] == 'u') usageStr += "#uint16";
+						else if (pStr[2] == 'd') usageStr += "#int16";
+						break;
+					case 'l':
+						if (pStr[2] == 'f') usageStr += "#double";
+						break;
+					}
+				}
+				
+				pStr = FStringParse::FindChar(pStr + 1, '%');
+			}
+			while( *pStr != 0 );
+		}
+		LogWarning(0, "%s", usageStr.c_str());
+
+		context.errorMsg = "Execute Failed";
+		return false;
+	}
 
 	return true;
+}
+
+void ConsoleSystem::unregisterAliases(ConsoleCommandBase* command)
+{
+	// Remove any aliases pointing to this command
+	for (auto itAlias = mAliasMap.begin(); itAlias != mAliasMap.end(); )
+	{
+		if (itAlias->second == command)
+		{
+			itAlias = mAliasMap.erase(itAlias);
+		}
+		else
+		{
+			++itAlias;
+		}
+	}
 }
 
 void ConsoleSystem::cleanupCommands()
@@ -390,170 +452,12 @@ void ConsoleSystem::cleanupCommands()
 	{
 		delete iter->second;
 	}
+
 	mNameMap.clear();
+	mAliasMap.clear();
 }
 
-bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs)
-{
-	char const* format = arg.format;
-	int fillSize = 0;
-	do
-	{
-		char const* argText;
 
-		if ( context.numArgUsed >= context.numArgs )
-		{
-			if (bAllowIgnoreArgs)
-			{
-				argText = "0";
-			}
-			else
-			{
-				context.errorMsg = "less param : ";
-				context.errorMsg += context.name;
-				for (int i = 0; i < context.command->mArgs.size(); ++i)
-				{
-					context.errorMsg += std::string(" ");
-					char const* pStr = context.command->mArgs[i].format;
-					do 
-					{
-						switch (pStr[1])
-						{
-						case 'd': context.errorMsg += "#int"; break;
-						case 'f': context.errorMsg += "#float"; break;
-						case 's': context.errorMsg += "#String"; break;
-						case 'u': context.errorMsg += "#uint"; break;
-						case 'c': context.errorMsg += "#char"; break;
-						case 'h':
-							if (format[2] == 'u')
-							{
-								context.errorMsg += "#uint16";
-							}
-							else if (format[2] == 'd')
-							{
-								context.errorMsg += "#int16";
-							}
-							break;
-						case 'l':
-							if (pStr[2] == 'f')
-								context.errorMsg += "#double";
-							break;
-						}
-
-						pStr = FStringParse::FindChar(pStr + 1, '%');
-					}
-					while( *pStr != 0 );
-
-				}
-				return false;
-			}
-		}
-		else
-		{
-			argText = context.args[context.numArgUsed];
-		}
-
-
-		if ( argText[0] =='$')
-		{
-			++argText;
-			ConsoleCommandBase* argCmd = findCommand( argText );
-			if ( !argCmd || argCmd->mArgs.size() != 1)
-			{
-				context.errorMsg = "No match ComVar";
-				return false;
-			}
-			if ( FCString::CompareN( argCmd->mArgs[0].format , format , FCString::Strlen(argCmd->mArgs[0].format) ) == 0 )
-			{
-				argCmd->getValue( outData );
-			}
-			else
-			{
-				context.errorMsg = "ComVar's param is not match function's param";
-				return false;
-			}
-		}
-		else
-		{
-			if ( format[1] != 's' )
-			{
-#if CPP_COMPILER_MSVC
-				int num = sscanf_s( argText , format , outData );
-#else
-				int num = sscanf(argText, format, outData);
-#endif
-				if ( num == 0 )
-				{
-					context.errorMsg = "arg error";
-					return false;
-				}
-			}
-			else
-			{
-				char const** ptr = ( char const** )outData;
-				*ptr = argText;
-			}
-		}
-
-		union
-		{
-			float* fptr;
-			int  * iptr;
-			char * cptr;
-			void * vptr;
-		}debugView;
-
-		debugView.vptr = outData;
-
-		int elementSize = 0;
-		switch( format[1] )
-		{
-		case 'd': elementSize = sizeof(int32); break;
-		case 'f': elementSize = sizeof(float); break;
-		case 's': elementSize = sizeof(char*); break;
-		case 'u': elementSize = sizeof(uint32); break;
-		case 'c': elementSize = sizeof(char); break;
-		case 'l':
-			if ( format[2] == 'f')
-				elementSize = sizeof(double);
-			break;
-		case 'h':
-
-			if (format[2] == 'h')
-			{
-				if (format[3] == 'u')
-				{
-					elementSize = sizeof(uint8);
-				}
-				else if (format[3] == 'd')
-				{
-					elementSize = sizeof(int8);
-				}
-			}
-			else
-			{
-				if (format[2] == 'u')
-				{
-					elementSize = sizeof(uint16);
-				}
-				else if (format[2] == 'd')
-				{
-					elementSize = sizeof(int16);
-				}
-			}
-			break;
-		}
-
-		outData += elementSize;
-		fillSize += elementSize;
-
-		++context.numArgUsed;
-		format = FStringParse::FindChar(format + 1, '%');
-	}
-	while (*format != 0);
-
-	return fillSize != 0;
-}
 
 bool ConsoleSystem::ExecuteContext::parseText()
 {
@@ -576,5 +480,18 @@ bool ConsoleSystem::ExecuteContext::parseText()
 	if (numArgs < 0)
 		return false;
 
+	return true;
+}
+
+bool FConsole::ExecuteScript(char const* path)
+{
+	std::vector< std::string > lines;
+	if (!FFileUtility::LoadLines(path, lines))
+		return false;
+
+	for(auto const& line : lines)
+	{
+		IConsoleSystem::Get().executeCommand(line.c_str());
+	}
 	return true;
 }

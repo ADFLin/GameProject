@@ -2,6 +2,7 @@
 #define ABUnit_h__
 
 #include "Math/Vector2.h"
+#include "ABDefine.h"
 #include "DataStructure/Array.h"
 
 class IGraphics2D;
@@ -84,8 +85,12 @@ namespace AutoBattler
 		void setUnitId(int id) { mUnitId = id; }
 		int getUnitId() const { return mUnitId; }
 
+
 		void setInternalBoard(PlayerBoard* board) { mCurrentBoard = board; }
 		PlayerBoard* getInternalBoard() const { return mCurrentBoard; }
+
+		void setHoldLocation(UnitLocation const& loc) { mHoldLocation = loc; }
+		UnitLocation const& getHoldLocation() const { return mHoldLocation; }
 
 		void saveStartState();
 		void restoreStartState();
@@ -97,6 +102,8 @@ namespace AutoBattler
 		UnitStats mStats;
 		SectionState mState;
 		UnitTeam  mTeam;
+
+		UnitLocation mHoldLocation;
 
 		PlayerBoard* mCurrentBoard = nullptr;
 
@@ -116,7 +123,7 @@ namespace AutoBattler
 		void findTarget(World& world);
 		void startMoveStep(Vector2 const& targetPos, World& world);
 		void moveStep(float dt);
-		void attack(Unit* target);
+		void attack(Unit* target, World& world);
 		void executeSkill();
 	};
 

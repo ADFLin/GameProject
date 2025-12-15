@@ -461,7 +461,7 @@ bool CLSyncFrameManager::sendFrameData()
 	
 #endif
 
-	mWorker->sendCommand( UseChannel , mFrameStream.get() , 0 );
+	mWorker->sendCommand(UseChannel, mFrameStream.get(), WSF_NONE);
 
 	if ( mLastSendDataFrame != mFrameMgr.getFrame() )
 	{

@@ -16,6 +16,7 @@ namespace AutoBattler
 		ACT_LEVEL_UP,
 		ACT_DEPLOY_UNIT,
 		ACT_RETRACT_UNIT,
+		ACT_SYNC_DRAG, // New action type
 	};
 
 	struct ActionBuyUnit
@@ -44,6 +45,15 @@ namespace AutoBattler
 		int8 srcY;
 		int8 benchIndex;
 	};
+	
+	struct ActionSyncDrag
+	{
+		int8 srcType;
+		int8 srcIndex;
+		int16 posX;
+		int16 posY;
+		uint8 bDrop; // 0: Dragging, 1: Drop/Cancel
+	};
 
 	struct ABActionItem
 	{
@@ -54,6 +64,7 @@ namespace AutoBattler
 			ActionSellUnit   sell;
 			ActionDeployUnit deploy;
 			ActionRetractUnit retract;
+			ActionSyncDrag    syncDrag;
 		};
 
 		ABActionItem()
@@ -74,6 +85,9 @@ namespace AutoBattler
 				break;
 			case ACT_RETRACT_UNIT:
 				op & retract.srcType & retract.srcX & retract.srcY & retract.benchIndex;
+				break;
+			case ACT_SYNC_DRAG:
+				op & syncDrag.srcType & syncDrag.srcIndex & syncDrag.posX & syncDrag.posY & syncDrag.bDrop;
 				break;
 			}
 		}

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef CodeEditor_H_C553B564_92FE_4953_A9B6_F81BD8FBA9D6
 #define CodeEditor_H_C553B564_92FE_4953_A9B6_F81BD8FBA9D6
 
@@ -119,7 +120,7 @@ public:
 	static constexpr int LineHeight = 16;
 	static constexpr int Border = 3;
 	static constexpr int ScrollbarWidth = 16;
-	static constexpr int BreakpointMargin = 12;
+	static constexpr int BreakpointMargin = 20;
 
 	void loadFromCode(std::string const& code);
 	std::string syncCode();
@@ -135,32 +136,17 @@ public:
 	void parseCode();
 	void updateScrollBar();
 
-	void toggleBreakPoint(int line)
-	{
-		if (!mBreakPoints.remove(line))
-		{
-			mBreakPoints.push_back(line);
-		}
-	}
-
-	bool hasBreakPoint(int line)
-	{
-		return mBreakPoints.findIndex(line) != INDEX_NONE;
-	}
-
 	Vec2i getTextRectSize()
 	{
 		Vec2i size = getSize();
-		Vector2 textRectSize = size - Vector2(2 * Border + BreakpointMargin, 2 * Border);
+		Vector2 textRectSize = size - Vector2(2 * Border, 2 * Border);
 		return textRectSize;
 	}
 
-	Vector2 getTextRectPos() const
+	Vector2 getTextRectPos()
 	{
-		return Vector2((float)(Border + BreakpointMargin), (float)Border);
+		return Vector2(Border, Border);
 	}
-
-	int calculateCursorCol(std::string const& line, int relativeX, float totalWidth);
 
 	virtual void notifyModified()
 	{
@@ -175,7 +161,33 @@ public:
 
 	void onRender() override;
 
-	std::string getWordAtPosition(Vec2i pos);
+	// Matched signature with .cpp
+	std::string getWordAtPosition(Vec2i const& pos);
+	// Declared missing method
+	int calculateCursorCol(std::string const& line, int relativeX, float totalWidth);
+
+	bool hasBreakPoint(int line)
+	{
+		for (size_t i = 0; i < mBreakPoints.size(); ++i)
+		{
+			if (mBreakPoints[i] == line)
+				return true;
+		}
+		return false;
+	}
+
+	void toggleBreakPoint(int line)
+	{
+		for (size_t i = 0; i < mBreakPoints.size(); ++i)
+		{
+			if (mBreakPoints[i] == line)
+			{
+				mBreakPoints.removeIndex(i);
+				return;
+			}
+		}
+		mBreakPoints.push_back(line);
+	}
 
 	void setExecuteLine(int line)
 	{
@@ -193,10 +205,10 @@ public:
 	struct CodeLine
 	{
 		std::string content;
-		float totalWidth = 0.0f;
 
 		TArray<Render::GlyphVertex> vertices;
 		TArray<RHIGraphics2D::Color4Type> colors;
+		float totalWidth = 0;
 	};
 	TArray< CodeLine > mLines;
 	int mShowExecuteLine = -1;

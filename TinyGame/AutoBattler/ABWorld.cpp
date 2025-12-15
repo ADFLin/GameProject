@@ -3,8 +3,9 @@
 #include "RenderUtility.h"
 #include "GameGlobal.h"
 #include "ABDefine.h"
+#include "GameGraphics2D.h"
 
-#include "ABDefine.h"
+
 
 namespace AutoBattler
 {
@@ -28,17 +29,21 @@ namespace AutoBattler
 		mUnitDataManager.init();
 		
 		mPlayers.resize(AB_MAX_PLAYER_NUM);
-		int const Cols = 4;
+		int const GridCols = 3;
 		int const GapX = 600;
 		int const GapY = 500;
 
 		for (int i = 0; i < mPlayers.size(); ++i)
 		{
 			Player& player = mPlayers[i];
+			player.mIndex = i;
 			player.init(this);
 			
-			int row = i / Cols;
-			int col = i % Cols;
+			// Map 0..7 to 3x3 grid skipping center (index 4)
+			int gridIndex = (i >= 4) ? i + 1 : i;
+			int row = gridIndex / GridCols;
+			int col = gridIndex % GridCols;
+
 			player.getBoard().setOffset(Vector2(col * GapX, row * GapY));
 
 			if (i != mLocalPlayerIndex)
@@ -70,6 +75,7 @@ namespace AutoBattler
 				delete unit;
 			player.mEnemyUnits.clear();
 		}
+		mProjectiles.clear();
 	}
 
 	void World::restart(bool bInit)
@@ -87,6 +93,11 @@ namespace AutoBattler
 				Unit* unit = new Unit();
 				player.mBench[0] = unit;
 				unit->setPos(player.getBenchSlotPos(0));
+
+				UnitLocation loc;
+				loc.type = ECoordType::Bench;
+				loc.index = 0;
+				unit->setHoldLocation(loc);
 			}
 		}
 
@@ -203,7 +214,7 @@ namespace AutoBattler
 			{
 				Vec2i gridPos = fromPlayer.getBoard().getCoord(unit->getPos());
 				int targetX = PlayerBoard::MapSize.x - 1 - gridPos.x;
-				int targetY = gridPos.y;
+				int targetY = PlayerBoard::MapSize.y - 1 - gridPos.y;
 				
 				Vector2 worldPos = toBoard.getPos(targetX, targetY);
 				unit->setPos(worldPos);
@@ -227,7 +238,7 @@ namespace AutoBattler
 				
 				Vec2i gridPos = fromPlayer.getBoard().getCoord(unit->getPos());
 				int targetX = PlayerBoard::MapSize.x - 1 - gridPos.x;
-				int targetY = gridPos.y;
+				int targetY = PlayerBoard::MapSize.y - 1 - gridPos.y;
 
 				Vector2 worldPos = toBoard.getPos(targetX, targetY);
 				ghost->setPos(worldPos);
@@ -253,7 +264,8 @@ namespace AutoBattler
 				activePlayers.push_back(i);
 		}
 
-		if (activePlayers.empty()) return;
+		if (activePlayers.empty()) 
+			return;
 
 		// 3. Shuffle
 		// Simple shuffle
@@ -496,6 +508,8 @@ namespace AutoBattler
 			for (auto unit : player.mEnemyUnits)
 				unit->update(dt, *this);
 		}
+		
+		updateProjectiles(dt);
 	}
 
 	void World::changePhase(BattlePhase phase)
@@ -593,6 +607,64 @@ namespace AutoBattler
 			// Let's add them back here.
 			for (auto unit : player.mUnits)
 				unit->render(g, bShowState);
+		}
+		renderProjectiles(g);
+	}
+
+	void World::addProjectile(Unit* owner, Unit* target, float speed, float damage)
+	{
+		Projectile p;
+		p.owner = owner;
+		p.pos = owner->getPos();
+		p.target = target;
+		p.targetPos = target->getPos();
+		p.speed = speed;
+		p.damage = damage;
+		mProjectiles.push_back(p);
+	}
+
+	void World::updateProjectiles(float dt)
+	{
+		for (int i = 0; i < mProjectiles.size(); )
+		{
+			Projectile& p = mProjectiles[i];
+			if (p.target && !p.target->isDead())
+			{
+				p.targetPos = p.target->getPos();
+			}
+
+			Vector2 dir = p.targetPos - p.pos;
+			float dist = dir.length();
+			float moveDist = p.speed * dt;
+
+			if (dist <= moveDist)
+			{
+				// Hit
+				if (p.target && !p.target->isDead())
+				{
+					p.target->takeDamage(p.damage);
+					// Mana gain for attacker? Handled in attack() usually. 
+					// But if we defer damage, maybe mana should be deferred? 
+					// Simplest: Attacker mana gained on spawn (Visual Cast), Victim mana gained on hit.
+				}
+				mProjectiles.erase(mProjectiles.begin() + i);
+			}
+			else
+			{
+				dir /= dist;
+				p.pos += dir * moveDist;
+				++i;
+			}
+		}
+	}
+
+	void World::renderProjectiles(IGraphics2D& g)
+	{
+		RenderUtility::SetBrush(g, EColor::Orange);
+		RenderUtility::SetPen(g, EColor::White);
+		for (auto const& p : mProjectiles)
+		{
+			g.drawCircle(p.pos, 5);
 		}
 	}
 

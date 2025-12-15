@@ -35,7 +35,7 @@ public:
 
 	//NetWorker
 	bool  isServer(){   return false;  }
-	bool  sendCommand( int channel , IComPacket* cp , unsigned flag );
+	bool  sendCommand( int channel , IComPacket* cp , EWorkerSendFlag flag );
 	long  getNetLatency(){  return mNetLatency;  }
 
 	void setClientListener( ClientListener* listener ){  mClientListener = listener;  }
@@ -150,7 +150,7 @@ public:
 	TINY_API void setDelay(long delay, long delayRand = 0);
 	bool update_NetThread(long time);
 	virtual bool  notifyConnectionRecv( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr );
-	virtual bool  sendCommand( int channel , IComPacket* cp , unsigned flag );
+	virtual bool  sendCommand( int channel , IComPacket* cp , EWorkerSendFlag flag );
 protected:
 	SendDelayCtrl mSDCTcp;
 	SendDelayCtrl mSDCUdp;

@@ -67,10 +67,10 @@ namespace Holdem {
 		playerManager.setUserID( 0 );
 
 		GameLevelInfo info;
-		buildServerLevel( info );
+		configLevelSetting( info );
 	}
 
-	void LevelStage::buildServerLevel( GameLevelInfo& info )
+	void LevelStage::configLevelSetting( GameLevelInfo& info )
 	{
 		mServerLevel.reset( new ServerLevel );
 		mServerLevel->setListener(this);

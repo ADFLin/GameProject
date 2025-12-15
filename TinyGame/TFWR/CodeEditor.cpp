@@ -2,9 +2,10 @@
 
 #include "StringParse.h"
 
-#include <sstream>
 #include "GameGlobal.h"
 #include "GameGUISystem.h"
+
+#include <sstream>
 
 CodeEditorSettings GEditorSettings;
 
@@ -480,7 +481,7 @@ void CodeEditCanvas::parseLine(int index)
 	{
 		for (char const* p = start; p < end; ++p)
 		{
-			if (!isspace((unsigned char)*p))
+			if (!FCString::IsSpace(*p))
 			{
 				if (pColor < pColorEnd)
 				{
@@ -526,7 +527,7 @@ void CodeEditCanvas::parseLine(int index)
 		}
 
 		// Handle Numbers
-		if (isdigit((unsigned char)*pStr))
+		if (FCString::IsDigit(*pStr))
 		{
 			char const* pStart = pStr;
 			while (pStr < pStrEnd && (isalnum((unsigned char)*pStr) || *pStr == '.'))
@@ -538,10 +539,10 @@ void CodeEditCanvas::parseLine(int index)
 		}
 
 		// Handle Identifiers and Keywords
-		if (isalpha((unsigned char)*pStr) || *pStr == '_')
+		if (FCString::IsAlpha(*pStr) || *pStr == '_')
 		{
 			char const* pStart = pStr;
-			while (pStr < pStrEnd && (isalnum((unsigned char)*pStr) || *pStr == '_'))
+			while (pStr < pStrEnd && (FCString::IsAlphaNumeric(*pStr) || *pStr == '_'))
 			{
 				pStr++;
 			}
@@ -559,7 +560,7 @@ void CodeEditCanvas::parseLine(int index)
 		}
 
 		// Handle Whitespace
-		if (isspace((unsigned char)*pStr))
+		if (FCString::IsSpace(*pStr))
 		{
 			// Skip whitespace, no color needed as per vertex generation assumption
 			pStr++;
@@ -866,7 +867,7 @@ void CodeEditCanvas::parseCode()
 	updateScrollBar();
 }
 
-std::string CodeEditCanvas::getWordAtPosition(Vec2i pos)
+std::string CodeEditCanvas::getWordAtPosition(Vec2i const& pos)
 {
 	Vector2 textRectPos = getTextRectPos();
 	int relativeY = pos.y - textRectPos.y;
@@ -882,16 +883,16 @@ std::string CodeEditCanvas::getWordAtPosition(Vec2i pos)
 
 		if (bestCol > 0 && bestCol <= line.length())
 		{
-			if (!isalnum(line[bestCol - 1]))
+			if (!FCString::IsAlphaNumeric(line[bestCol - 1]))
 				return "";
 
 			int start = bestCol - 1;
-			while (start > 0 && isalnum(line[start - 1]))
+			while (start > 0 && FCString::IsAlphaNumeric(line[start - 1]))
 			{
 				start--;
 			}
 			int end = bestCol - 1;
-			while (end < line.length() - 1 && isalnum(line[end + 1]))
+			while (end < line.length() - 1 && FCString::IsAlphaNumeric(line[end + 1]))
 			{
 				end++;
 			}

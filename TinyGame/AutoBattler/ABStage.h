@@ -4,26 +4,25 @@
 #include "GameStage.h"
 #include "ABGame.h"
 #include "ABWorld.h"
+#include "ABGameActionControl.h"
+#include "ABPlayerController.h"
 
 #include "GameRenderSetup.h"
 #include "DataStructure/Array.h"
+#include "ABDefine.h"
 
 namespace AutoBattler
 {
 	struct ABActionItem;
 
-	enum class DragSource
-	{
-		None,
-		Board,
-		Bench,
-	};
-
 	class ABNetEngine;
 	class BotController;
+	class ABGameRenderer;
 
 	class LevelStage : public GameStageBase
 		             , public IGameRenderSetup
+					 , public IGameActionControl
+					 , public IPlayerControllerContext
 	{
 		using BaseClass = GameStageBase;
 	public:
@@ -40,13 +39,25 @@ namespace AutoBattler
 		void onRestart(bool beInit) override;
 		void tick() override;
 
+
+		void runLogic(float dt);
+
 		void executeAction(ActionPort port, ABActionItem const& item);
 		void sendAction(ABActionItem const& item);
+		void sendAction(ActionPort port, ABActionItem const& item);
 		IFrameActionTemplate* createActionTemplate(unsigned version) override;
 
+		// IGameActionControl
+		virtual void buyUnit(Player& player, int slotIndex) override;
+		virtual void sellUnit(Player& player, int slotIndex) override;
+		virtual void refreshShop(Player& player) override;
+		virtual void buyExperience(Player& player) override;
+		virtual void deployUnit(Player& player, int srcType, int srcX, int srcY, int destX, int destY) override;
+		virtual void retractUnit(Player& player, int srcType, int srcX, int srcY, int benchIndex) override;
+		virtual void syncDrag(Player& player, int srcType, int srcIndex, int posX, int posY, bool bDrop) override;
 
-		virtual void buildServerLevel(GameLevelInfo& info);
-		virtual void buildLocalLevel(GameLevelInfo& info);
+
+		virtual void configLevelSetting(GameLevelInfo& info);
 
 		virtual void setupLocalGame(LocalPlayerManager& playerManager);
 		virtual void setupLevel(GameLevelInfo const& info);
@@ -59,6 +70,9 @@ namespace AutoBattler
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
+		
+		bool mIsConnectionLost = false;
+		bool mUseBots = true;
 
 	protected:
 		World mWorld;
@@ -68,26 +82,27 @@ namespace AutoBattler
 		float   mViewScale = 1.0f;
 		int     mViewPlayerIndex = 0; // Local Player is usually 0
 
-		Unit*   mDraggedUnit = nullptr;
-		Vector2 mDragOffset;
-		Vec2i   mDragStartCoord;
-		Vector2 mDragStartPos;
-		DragSource mDragSource = DragSource::None;
-		int     mDragSourceIndex = -1;
-
 		class ABFrameActionTemplate* mActionTemplate = nullptr;
+		class ABPlayerController* mController = nullptr;
+		class ABGameRenderer* mRenderer = nullptr;
 
 		MsgReply onMouse(MouseMsg const& msg) override;
 		MsgReply onKey(KeyMsg const& msg) override;
-		
-		Vector2 screenToWorld(Vector2 const& screenPos) const;
-		Vector2 worldToScreen(Vector2 const& worldPos) const;
 
 	public:
 		BattlePhase getPhase() const { return mWorld.getPhase(); }
 		Player& getPlayer() { return mWorld.getLocalPlayer(); }
 		PlayerBoard& getPlayerBoard() { return mWorld.getLocalPlayerBoard(); }
+		World& getWorld() override { return mWorld; }
+		bool isNetMode() const override { return getModeType() == EGameStageMode::Net; }
 	
+		// IPlayerControllerContext
+		Vector2 screenToWorld(Vector2 const& screenPos) const override;
+		Unit* pickUnit(Vec2i screenPos) override;
+		UnitLocation screenToDropTarget(Vec2i screenPos) override;
+		Vector2 worldToScreen(Vector2 const& worldPos) const;
+	
+		Unit* pick3D(Vec2i screenPos, World& world);
 	};
 
 }//namespace AutoBattler

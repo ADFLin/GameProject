@@ -3,6 +3,8 @@
 #include "ABStage.h"
 #include "GameSettingHelper.h"
 #include "NetGameMode.h"
+#include "GameSettingPanel.h"
+#include "DataStreamBuffer.h"
 
 namespace AutoBattler
 {
@@ -10,23 +12,67 @@ namespace AutoBattler
 
 	class CRoomSettingHelper : public NetRoomSettingHelper
 	{
-	public:
+		enum
+		{
+			UI_USE_BOT = UI_GAME_ID,
+		};
 		
+		GCheckBox* mUIUseBot;
+		bool mUseBot;
+
+	public:
+		CRoomSettingHelper()
+		{
+			mUIUseBot = NULL;
+			mUseBot = true;
+		}
+
 		virtual void clearUserUI() override
 		{
+			mUIUseBot = NULL;
 		}
+
 
 		virtual void doSetupSetting( bool beServer ) override
 		{
 			setMaxPlayerNum( AB_MAX_PLAYER_NUM );
+			mUIUseBot = mSettingPanel->addCheckBox( UI_USE_BOT , "Use Bot For Empty Slot" );
+			if (mUIUseBot)
+				mUIUseBot->bChecked = mUseBot;
+		}
+
+
+		virtual bool onWidgetEvent(int event, int id, GWidget* widget) override
+		{
+			if (id == UI_USE_BOT)
+			{
+				mUseBot = mUIUseBot->bChecked;
+				modifyCallback(getSettingPanel());
+				return false;
+			}
+			return true;
 		}
 
 		virtual void doExportSetting( DataStreamBuffer& buffer ) override
 		{
+			if ( mUIUseBot )
+				mUseBot = mUIUseBot->bChecked;
+
+			buffer.fill( mUseBot );
+		}
+
+
+		virtual void setupGame(StageManager& manager, StageBase* stage) override
+		{
+			LevelStage* abStage = static_cast<LevelStage*>(stage);
+			abStage->mUseBots = mUseBot;
 		}
 
 		virtual void doImportSetting( DataStreamBuffer& buffer ) override
 		{
+			buffer.take( mUseBot );
+			if ( mUIUseBot )
+				mUIUseBot->bChecked = mUseBot;
 		}
 	};
 

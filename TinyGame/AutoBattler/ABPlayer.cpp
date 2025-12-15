@@ -12,7 +12,7 @@ namespace AutoBattler
 	{
 		mGold = 0;
 		mHp = AB_INITIAL_HP;
-		mLevel = 1;
+		setLevel(1);
 		mXp = 0;
 	}
 
@@ -33,7 +33,7 @@ namespace AutoBattler
 	{
 		mGold = AB_INITIAL_GOLD;
 		mHp = AB_INITIAL_HP;
-		mLevel = 1;
+		setLevel(1);
 		mXp = 0;
 
 		mUnits.clear();
@@ -106,6 +106,12 @@ namespace AutoBattler
 		}
 		
 		mBench[slotIndex] = unit;
+		unit->setPos(getBenchSlotPos(slotIndex));
+
+		UnitLocation loc;
+		loc.type = ECoordType::Bench;
+		loc.index = slotIndex;
+		unit->setHoldLocation(loc);
 		
 		mShopList[index] = 0; // Empty slot
 		return true;
@@ -166,7 +172,20 @@ namespace AutoBattler
 			mHp = 0;
 	}
 
+	int Player::getMaxPopulation() const
+	{
+		return mMaxPopulation;
+	}
 
+	void Player::updateMaxPopulation()
+	{
+		constexpr int DelataPopLevelMap[] = { 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+		mMaxPopulation = 0;
+		for (int i = 0; i < mLevel; ++i)
+		{
+			mMaxPopulation += DelataPopLevelMap[i];
+		}
+	}
 
 	bool Player::rerollShop()
 	{
@@ -179,8 +198,10 @@ namespace AutoBattler
 
 	bool Player::deployUnit(Unit* unit, Vec2i destCoord, Vec2i sourceCoord)
 	{
-		if (!unit) return false;
-		if (!mBoard.isValid(destCoord)) return false;
+		CHECK(unit);
+
+		if (!mBoard.isValid(destCoord)) 
+			return false;
 
 		// Check if occupied by Enemy or Invalid
 		Unit* targetOccupier = mBoard.getUnit(destCoord.x, destCoord.y);
@@ -227,6 +248,13 @@ namespace AutoBattler
 		if (currentBenchIndex == -1 && !bOnBoard)
 			return false; // Unit not owned or lost
 
+		// Check Unit Cap
+		if (!bOnBoard && targetOccupier == nullptr)
+		{
+			if (mUnits.size() >= getMaxPopulation())
+				return false;
+		}
+
 		// Update Source
 		if (bOnBoard)
 		{
@@ -246,6 +274,11 @@ namespace AutoBattler
 				// Board -> Board Swap
 				targetOccupier->setPos(mBoard.getPos(currentCoord.x, currentCoord.y));
 				mBoard.setUnit(currentCoord.x, currentCoord.y, targetOccupier);
+
+				UnitLocation loc;
+				loc.type = ECoordType::Board;
+				loc.pos = currentCoord;
+				targetOccupier->setHoldLocation(loc);
 			}
 			else
 			{
@@ -256,6 +289,11 @@ namespace AutoBattler
 				targetOccupier->setInternalBoard(nullptr);
 
 				mBench[currentBenchIndex] = targetOccupier;
+
+				UnitLocation loc;
+				loc.type = ECoordType::Bench;
+				loc.index = currentBenchIndex;
+				targetOccupier->setHoldLocation(loc);
 			}
 		}
 
@@ -269,6 +307,11 @@ namespace AutoBattler
 		unit->setPos(mBoard.getPos(destCoord.x, destCoord.y));
 		unit->stopMove();
 		mBoard.setUnit(destCoord.x, destCoord.y, unit);
+
+		UnitLocation loc;
+		loc.type = ECoordType::Board;
+		loc.pos = destCoord;
+		unit->setHoldLocation(loc);
 		
 		return true;
 	}
@@ -340,6 +383,11 @@ namespace AutoBattler
 				targetOccupier->setInternalBoard(&mBoard);
 				targetOccupier->setPos(mBoard.getPos(currentCoord.x, currentCoord.y));
 				mBoard.setUnit(currentCoord.x, currentCoord.y, targetOccupier);
+
+				UnitLocation loc;
+				loc.type = ECoordType::Board;
+				loc.pos = currentCoord;
+				targetOccupier->setHoldLocation(loc);
 			}
 			else
 			{
@@ -347,6 +395,11 @@ namespace AutoBattler
 				mBench[currentBenchIndex] = targetOccupier;
 				targetOccupier->setPos(getBenchSlotPos(currentBenchIndex));
 				targetOccupier->stopMove();
+
+				UnitLocation loc;
+				loc.type = ECoordType::Bench;
+				loc.index = currentBenchIndex;
+				targetOccupier->setHoldLocation(loc);
 			}
 		}
 		
@@ -354,6 +407,11 @@ namespace AutoBattler
 		mBench[slotIndex] = unit;
 		unit->setPos(getBenchSlotPos(slotIndex));
 		unit->stopMove();
+
+		UnitLocation loc;
+		loc.type = ECoordType::Bench;
+		loc.index = slotIndex;
+		unit->setHoldLocation(loc);
 		
 		return true;
 	}
@@ -380,9 +438,14 @@ namespace AutoBattler
 
 	void Player::buyExperience()
 	{
-		if (spendGold(4))
+		if (spendGold(AB_BUY_XP_COST))
 		{
-			mXp += 4;
+			mXp += AB_XP_PER_BUY;
+			while (mXp >= 100 && mLevel < AB_MAX_LEVEL)
+			{
+				mXp -= 100;
+				setLevel(mLevel + 1);
+			}
 		}
 	}
 

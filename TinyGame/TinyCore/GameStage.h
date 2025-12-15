@@ -50,7 +50,7 @@ public:
 
 	GameStageBase();
 	virtual bool setupNetwork(NetWorker* worker, INetEngine** engine) { return true; }
-	virtual void buildServerLevel(GameLevelInfo& info) {}
+	virtual void configLevelSetting(GameLevelInfo& info) {}
 	virtual void buildLocalLevel(GameLevelInfo& info) {}
 
 	virtual void setupLocalGame(LocalPlayerManager& playerManager) {}

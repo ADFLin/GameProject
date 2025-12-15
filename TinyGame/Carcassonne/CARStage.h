@@ -141,7 +141,7 @@ namespace CAR
 
 
 		bool setupNetwork( NetWorker* worker , INetEngine** engine ) override{ return true; }
-		void buildServerLevel( GameLevelInfo& info ) override
+		void configLevelSetting( GameLevelInfo& info ) override
 		{
 			info.seed = 10;
 		}

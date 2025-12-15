@@ -216,6 +216,18 @@ public:
 		return (*p2 == 0) ? 0 : -1;
 	}
 
+	TStringView substr(size_t index, size_t num = size_t(-1)) const
+	{
+		if (index >= size())
+			return TStringView(data() + size(), 0);
+
+		size_t rem = size() - index;
+		if (num > rem)
+			num = rem;
+
+		return TStringView(data() + index, num);
+	}
+
 
 	//void resize(size_t inSize) { assert(mNum >= inSize); mNum = inSize; }
 

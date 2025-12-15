@@ -176,7 +176,7 @@ namespace Tetris
 	}
 
 
-	void LevelStage::buildServerLevel(GameLevelInfo& info)
+	void LevelStage::configLevelSetting(GameLevelInfo& info)
 	{
 		info.seed = 10;
 	}

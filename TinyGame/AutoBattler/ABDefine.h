@@ -1,6 +1,11 @@
 #ifndef AutoBattlerDefine_h__
 #define AutoBattlerDefine_h__
 
+#include "Math/Vector2.h"
+#include "Math/Vector3.h"
+#include "Math/Vector4.h"
+#include "Math/Matrix4.h"
+
 #define AUTO_BATTLER_NAME "AutoBattler"
 
 // Game Constants
@@ -24,5 +29,34 @@
 #define AB_PHASE_COMBAT_TIME 40.0f
 
 
+namespace AutoBattler
+{
+	using Math::Vector2;
+	using Math::Vector3;
+	using Math::Vector4;
+	using Math::Matrix4;
+
+	enum class ECoordType
+	{
+		None,
+		Board,
+		Bench,
+	};
+
+	struct UnitLocation
+	{
+		ECoordType type = ECoordType::None;
+        union
+        {
+            Vec2i pos;
+            int index;
+        };
+
+		bool isValid() const { return type != ECoordType::None; }
+		bool isBoard() const { return type == ECoordType::Board; }
+		bool isBench() const { return type == ECoordType::Bench; }
+	};
+
+}
 
 #endif // AutoBattlerDefine_h__

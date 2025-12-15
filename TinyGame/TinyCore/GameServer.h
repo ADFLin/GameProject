@@ -249,7 +249,7 @@ public:
 	TINY_API void  getPlayerFlag( int flags[] );
 	TINY_API void  cleanup();
 
-	TINY_API bool sendCommand( int channel , IComPacket* cp , unsigned flag );
+	TINY_API bool sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag );
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
 
 	//auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
@@ -307,11 +307,11 @@ public:
 
 	bool  isServer(){   return true;  }
 	//NetWorker
-	bool  sendCommand( int channel , IComPacket* cp , unsigned flag );
+	bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag );
 
 	TINY_API LocalWorker* createLocalWorker(char const* userName);
 
-	void sendClientTcpCommand( NetClientData& client , IComPacket* cp );
+	void sendClientTcpCommand(NetClientData& client, IComPacket* cp );
 	void setEventResolver(ServerEventResolver* resolver) { mEventResolver = resolver;  }
 
 protected:
@@ -381,8 +381,8 @@ class LocalWorker : public ComWorker
 public:
 	IPlayerManager*  getPlayerManager()    {  return mPlayerMgr;  }
 
-	bool  sendCommand( int channel , IComPacket* cp , unsigned flag );
-	void  recvCommand( IComPacket* cp );
+	bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag );
+	void  recvCommand(IComPacket* cp);
 protected:
 
 	void  doUpdate(long time);

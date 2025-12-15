@@ -49,10 +49,13 @@ enum NetPacketID
 	GP_NEXT_ID ,
 
 	/////////////////////////////
-	GDP_START_ID = 500 ,
+	GDP_START_ID = 400 ,
 	GDP_FARME_STREAM ,
 	GDP_STREAM  ,
 	GDP_NEXT_ID ,
+
+	////
+	NET_PACKET_CUSTOM_ID = 500,
 };
 
 

@@ -53,7 +53,7 @@ namespace Tetris
 		void updateFrame( int frame );
 
 		void setupLocalGame( LocalPlayerManager& playerManager );
-		void buildServerLevel(GameLevelInfo& info) override;
+		void configLevelSetting(GameLevelInfo& info) override;
 		void setupLevel( GameLevelInfo const& info );
 		void setupScene( IPlayerManager& playerMgr );
 		bool onWidgetEvent( int event , int id , GWidget* ui );

@@ -105,7 +105,7 @@ namespace AutoBattler
 					mAttackTimer -= dt;
 					if (mAttackTimer <= 0)
 					{
-						attack(mTarget);
+						attack(mTarget, world);
 						mAttackTimer = 1.0f / mStats.attackSpeed;
 					}
 				}
@@ -218,12 +218,23 @@ namespace AutoBattler
 		}
 	}
 
-	void Unit::attack(Unit* target)
+	void Unit::attack(Unit* target, World& world)
 	{
 		if (target)
 		{
-			target->takeDamage(mStats.attackDamage);
+			// Gain Mana on Attack
 			mStats.mana = Math::Min(mStats.mana + 10.0f, mStats.maxMana);
+
+			if (mStats.range > 100.0f)
+			{
+				// Ranged Attack: Spawn Projectile
+				world.addProjectile(this, target, 500.0f, mStats.attackDamage);
+			}
+			else
+			{
+				// Melee Attack: Instant Damage
+				target->takeDamage(mStats.attackDamage);
+			}
 		}
 	}
 

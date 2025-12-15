@@ -123,6 +123,7 @@ public:
 	void        setTickTime( long time ){ GameLoop::setUpdateTime( time ); }
 
 	//IGameNetInterface
+	bool        haveServer();
 	NetWorker*  getNetWorker(){ return mNetWorker; }
 	NetWorker*  buildNetwork( bool beServer );	
 	void        closeNetwork();

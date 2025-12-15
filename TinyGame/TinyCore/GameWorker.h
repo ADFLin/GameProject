@@ -93,11 +93,15 @@ public:
 	virtual void postProcCommand(){}
 };
 
-enum WorkerSendFlag
+enum EWorkerSendFlag
 {
+	WSF_NONE = 0,
 	WSF_IGNORE_LOCAL = BIT(0),
 
 };
+
+SUPPORT_ENUM_FLAGS_OPERATION(EWorkerSendFlag);
+
 
 enum DefaultChannel
 {
@@ -127,11 +131,11 @@ public:
 	ComEvaluator&   getEvaluator(){ return mCPEvaluator; }
 
 	virtual IPlayerManager*    getPlayerManager() = 0;
-	virtual bool  sendCommand(int channel, IComPacket* cp, unsigned flag = 0) { return false; }
+	virtual bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag) { return false; }
 	virtual long  getNetLatency(){ return 0; }
 
-	bool  sendTcpCommand(IComPacket* cp, unsigned flag = 0){ return sendCommand( CHANNEL_GAME_NET_TCP , cp , flag); }
-	bool  sendUdpCommand(IComPacket* cp, unsigned flag = 0){ return sendCommand( CHANNEL_GAME_NET_UDP_CHAIN , cp , flag); }
+	bool  sendTcpCommand(IComPacket* cp, EWorkerSendFlag flag = WSF_NONE){ return sendCommand( CHANNEL_GAME_NET_TCP , cp , flag); }
+	bool  sendUdpCommand(IComPacket* cp, EWorkerSendFlag flag = WSF_NONE){ return sendCommand( CHANNEL_GAME_NET_UDP_CHAIN , cp , flag); }
 
 protected:
 	virtual void  doUpdate( long time ){}
@@ -195,7 +199,7 @@ public:
 	void  setNetListener( INetStateListener* listener ){ mNetListener = listener;  }
 	virtual bool  isServer() = 0;
 
-	long  getNetRunningTime() const { return mNetRunningTime;  }
+	long  getNetRunningTime() const { return mNetRunningTimeSpan;  }
 
 protected:
 
@@ -213,6 +217,7 @@ protected:
 	{
 
 #if !TINY_USE_NET_THREAD
+		mNetRunningTimeSpan = SystemPlatform::GetTickCount() - mNetStartTime;
 		update_NetThread(time);
 #endif
 
@@ -283,7 +288,8 @@ private:
 #if TINY_USE_NET_THREAD
 	SocketThread  mSocketThread;
 #endif
-	long          mNetRunningTime;
+	int64         mNetRunningTimeSpan;
+	int64         mNetStartTime;
 
 
 

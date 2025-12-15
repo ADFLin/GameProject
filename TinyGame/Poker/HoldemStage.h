@@ -29,7 +29,7 @@ namespace Holdem {
 	public:
 		LevelStage();
 
-		void buildServerLevel(GameLevelInfo& info);
+		void configLevelSetting(GameLevelInfo& info);
 		void setupScene( IPlayerManager& playerManager );
 		void setupLocalGame( LocalPlayerManager& playerManager );
 

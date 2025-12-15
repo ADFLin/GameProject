@@ -104,15 +104,12 @@ void NetWorker::entryNetThread()
 
 	SystemPlatform::AtomExchange(&mbRequestExitNetThread, 0);
 
-	mNetRunningTime = 0;
-	int64 beforeTime = SystemPlatform::GetTickCount();
+	mNetRunningTimeSpan = 0;
+	mNetStartTime = SystemPlatform::GetTickCount();
 
 	while( mbRequestExitNetThread == 0 )
 	{
-		int64 intervalTime = SystemPlatform::GetTickCount() - beforeTime;
-
-		mNetRunningTime += intervalTime;
-		beforeTime += intervalTime;
+		mNetRunningTimeSpan += SystemPlatform::GetTickCount() - mNetStartTime;
 
 		try
 		{
@@ -155,6 +152,9 @@ bool NetWorker::startNetwork()
 #if TINY_USE_NET_THREAD
 		if ( !mSocketThread.start() )
 			return false;
+#else
+		mNetRunningTimeSpan = 0;
+		mNetStartTime = SystemPlatform::GetTickCount();
 #endif
 	}
 	catch ( std::exception& e )

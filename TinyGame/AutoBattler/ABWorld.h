@@ -89,6 +89,27 @@ namespace AutoBattler
 		TArray<MatchPair> mMatches;
 
 		bool        mCombatEnded;
+
+	public:
+		struct Projectile
+		{
+			Vector2 pos;
+			Vector2 targetPos; // Or Unit* target? better Position for now as target might die. 
+			// But tracking target is better for homing. Uses Unit* target with weak validation check?
+			// Simpler: Homming to Unit. If Unit dead, moves to last known pos logic? 
+			// For simplicity: Homing to Unit.
+			Unit* target;
+			float speed;
+			float damage;
+			Unit* owner;
+		};
+		
+		void addProjectile(Unit* owner, Unit* target, float speed, float damage);
+		void updateProjectiles(float dt);
+		void renderProjectiles(IGraphics2D& g);
+
+	private:
+		TArray<Projectile> mProjectiles;
 	};
 
 } // namespace AutoBattler

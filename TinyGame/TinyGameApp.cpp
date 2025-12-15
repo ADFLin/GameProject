@@ -1083,6 +1083,11 @@ void TinyGameApp::loadModules()
 	}
 }
 
+bool TinyGameApp::haveServer()
+{
+	return mNetWorker && mNetWorker->isServer();
+}
+
 void TinyGameApp::closeNetwork()
 {
 	if ( mNetWorker )

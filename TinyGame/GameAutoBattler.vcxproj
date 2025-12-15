@@ -202,7 +202,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AutoBattler\ABAction.cpp" />
+    <ClCompile Include="AutoBattler\ABGameHUD.cpp" />
     <ClCompile Include="AutoBattler\ABGameRenderer.cpp" />
+    <ClCompile Include="AutoBattler\ABShopUI.cpp" />
     <ClCompile Include="AutoBattler\ABPlayerController.cpp" />
     <ClCompile Include="AutoBattler\ABBot.cpp" />
     <ClCompile Include="AutoBattler\ABGame.cpp" />
@@ -218,12 +220,15 @@
     <ClCompile Include="AutoBattler\ABRound.cpp" />
     <ClCompile Include="AutoBattler\ABStage.cpp" />
     <ClCompile Include="AutoBattler\ABUnit.cpp" />
+    <ClCompile Include="AutoBattler\ABViewCamera.cpp" />
     <ClCompile Include="AutoBattler\ABWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AutoBattler\ABAction.h" />
     <ClInclude Include="AutoBattler\ABGameActionControl.h" />
+    <ClInclude Include="AutoBattler\ABGameHUD.h" />
     <ClInclude Include="AutoBattler\ABGameRenderer.h" />
+    <ClInclude Include="AutoBattler\ABShopUI.h" />
     <ClInclude Include="AutoBattler\ABPlayerController.h" />
     <ClInclude Include="AutoBattler\ABBot.h" />
     <ClInclude Include="AutoBattler\ABDefine.h" />
@@ -235,6 +240,7 @@
     <ClInclude Include="AutoBattler\ABRound.h" />
     <ClInclude Include="AutoBattler\ABStage.h" />
     <ClInclude Include="AutoBattler\ABUnit.h" />
+    <ClInclude Include="AutoBattler\ABViewCamera.h" />
     <ClInclude Include="AutoBattler\ABWorld.h" />
   </ItemGroup>
   <ItemGroup>

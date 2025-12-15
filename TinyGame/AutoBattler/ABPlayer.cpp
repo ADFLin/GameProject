@@ -122,16 +122,14 @@ namespace AutoBattler
 		mBoard.render(g);
 
 		// Render Bench
-		int benchSlotSize = 40; // World space size
-
 		for (int i = 0; i < mBench.size(); ++i)
 		{
 			Vector2 centerPos = getBenchSlotPos(i);
-			Vector2 slotPos = centerPos - Vector2(benchSlotSize / 2, benchSlotSize / 2);
+			Vector2 slotPos = centerPos - Vector2(AB_BENCH_SLOT_SIZE / 2.0f, AB_BENCH_SLOT_SIZE / 2.0f);
 
 			RenderUtility::SetBrush(g, EColor::Gray);
 			RenderUtility::SetPen(g, EColor::Black);
-			g.drawRect(slotPos, Vector2(benchSlotSize, benchSlotSize));
+			g.drawRect(slotPos, Vector2(AB_BENCH_SLOT_SIZE, AB_BENCH_SLOT_SIZE));
 
 			if (mBench[i])
 			{
@@ -147,13 +145,10 @@ namespace AutoBattler
 	Vector2 Player::getBenchSlotPos(int index) const
 	{
 		Vector2 boardOffset = mBoard.getOffset();
-		Vector2 benchStartPos = boardOffset + Vector2(0, PlayerBoard::MapSize.y * PlayerBoard::CellSize.y * 0.75f + 20); // Below Board
+		Vector2 benchStartPos = boardOffset + Vector2(AB_BENCH_OFFSET_X, PlayerBoard::MapSize.y * PlayerBoard::CellSize.y * 0.75f + AB_BENCH_OFFSET_Y);
 
-		int benchSlotSize = 40; // World space size
-		int benchGap = 5;
-
-		Vector2 slotPos = benchStartPos + Vector2(index * (benchSlotSize + benchGap), 0);
-		Vector2 centerPos = slotPos + Vector2(benchSlotSize / 2, benchSlotSize / 2);
+		Vector2 slotPos = benchStartPos + Vector2(index * (AB_BENCH_SLOT_SIZE + AB_BENCH_GAP), 0);
+		Vector2 centerPos = slotPos + Vector2(AB_BENCH_SLOT_SIZE / 2.0f, AB_BENCH_SLOT_SIZE / 2.0f);
 		return centerPos;
 	}
 

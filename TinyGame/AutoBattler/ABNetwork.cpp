@@ -45,7 +45,7 @@ namespace AutoBattler
 		if (mNetWorker->isServer())
 		{
 			// Server: Check Clients
-			int localPlayerId = mStage->getPlayer().getWorld()->getLocalPlayerIndex();
+			int localPlayerId = mStage->getWorld().getLocalPlayerIndex();
 			for (auto it = mNetWorker->getPlayerManager()->createIterator(); it; ++it)
 			{
 				GamePlayer* player = it.getElement();
@@ -160,7 +160,7 @@ namespace AutoBattler
 				{
 					bIsTimeout = true;
 					if (OnTimeout)
-						OnTimeout(mStage->getPlayer().getWorld()->getLocalPlayerIndex(), true);
+						OnTimeout(mStage->getWorld().getLocalPlayerIndex(), true);
 				}
 				// Client returns? Existing code returned. But maybe we shouldn't return if we want to try sending heartbeat?
 				// But if connection lost, sending is futile.
@@ -171,7 +171,7 @@ namespace AutoBattler
 			{
 				bIsTimeout = false;
 				if (OnTimeout)
-					OnTimeout(mStage->getPlayer().getWorld()->getLocalPlayerIndex(), false);
+					OnTimeout(mStage->getWorld().getLocalPlayerIndex(), false);
 			}
 
 			if (bIsTimeout)
@@ -187,7 +187,7 @@ namespace AutoBattler
 				ABSyncPacket packet;
 				packet.frameID = mLastReceivedFrame;
 				packet.checksum = 0; // TODO: Implement World Hash
-				packet.playerId = mStage->getPlayer().getWorld()->getLocalPlayerIndex();
+				packet.playerId = mStage->getWorld().getLocalPlayerIndex();
 				mWorker->sendTcpCommand(&packet);
 			}
 		}

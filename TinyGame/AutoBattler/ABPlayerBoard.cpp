@@ -8,7 +8,7 @@
 namespace AutoBattler
 {
 	Vec2i const PlayerBoard::MapSize(AB_MAP_SIZE_X, AB_MAP_SIZE_Y * 2);
-	Vec2i const PlayerBoard::CellSize(64, 64);
+	Vec2i const PlayerBoard::CellSize(AB_CELL_SIZE, AB_CELL_SIZE);
 
 	PlayerBoard::PlayerBoard()
 	{

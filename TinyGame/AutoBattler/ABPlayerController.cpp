@@ -122,29 +122,27 @@ namespace AutoBattler
 			
 			// Check Bench (World Space)
 			Vector2 boardOffset = board.getOffset();
-			Vector2 benchStartPos = boardOffset + Vector2(0, PlayerBoard::MapSize.y * PlayerBoard::CellSize.y * 0.75f + 20); // Move match Player::render
-			int benchSlotSize = 40; 
-			int benchGap = 5;
-			int benchTotalWidth = AB_BENCH_SIZE * (benchSlotSize + benchGap) - benchGap;
+			Vector2 benchStartPos = boardOffset + Vector2(AB_BENCH_OFFSET_X, PlayerBoard::MapSize.y * PlayerBoard::CellSize.y * 0.75f + AB_BENCH_OFFSET_Y);
+			int benchTotalWidth = AB_BENCH_SIZE * (AB_BENCH_SLOT_SIZE + AB_BENCH_GAP) - AB_BENCH_GAP;
 
-			if (worldPos.y >= benchStartPos.y && worldPos.y < benchStartPos.y + benchSlotSize)
+			if (worldPos.y >= benchStartPos.y && worldPos.y < benchStartPos.y + AB_BENCH_SLOT_SIZE)
 			{
 				float relX = worldPos.x - benchStartPos.x;
 				if (relX >= 0 && relX < benchTotalWidth)
 				{
-					int slotIndex = (int)(relX / (benchSlotSize + benchGap));
+					int slotIndex = (int)(relX / (AB_BENCH_SLOT_SIZE + AB_BENCH_GAP));
 					// Check gap
-					float slotRelX = relX - slotIndex * (benchSlotSize + benchGap);
+					float slotRelX = relX - slotIndex * (AB_BENCH_SLOT_SIZE + AB_BENCH_GAP);
 					
-					if (slotRelX < benchSlotSize && player.mBench.isValidIndex(slotIndex))
+					if (slotRelX < AB_BENCH_SLOT_SIZE && player.mBench.isValidIndex(slotIndex))
 					{
 						Unit* unit = player.mBench[slotIndex];
 						if (unit)
 						{
 							mDraggedUnit = unit;
 							// Calculate World Pos of slot logic
-							Vector2 slotPos = benchStartPos + Vector2(slotIndex * (benchSlotSize + benchGap), 0);
-							mDragStartPos = slotPos + Vector2(benchSlotSize / 2, benchSlotSize / 2);
+							Vector2 slotPos = benchStartPos + Vector2(slotIndex * (AB_BENCH_SLOT_SIZE + AB_BENCH_GAP), 0);
+							mDragStartPos = slotPos + Vector2(AB_BENCH_SLOT_SIZE / 2.0f, AB_BENCH_SLOT_SIZE / 2.0f);
 							
 							mDragOffset = mDragStartPos - worldPos; 
 							
@@ -186,12 +184,16 @@ namespace AutoBattler
 					{
 						// Check Population Cap Client-Side
 						bool bCanDeploy = true;
-						if (mDragStartLocation.type == ECoordType::Bench)
+						// Prevent dropping on occupied cell
+						Unit* targetUnit = board.getUnit(coord.x, coord.y);
+						if (targetUnit && targetUnit != mDraggedUnit)
 						{
-							Unit* targetUnit = board.getUnit(coord.x, coord.y);
-							bool bIsSwap = (targetUnit != nullptr && targetUnit->getTeam() == UnitTeam::Player);
-							
-							if (!bIsSwap && player.mUnits.size() >= player.getMaxPopulation())
+							bCanDeploy = false;
+						}
+
+						if (bCanDeploy && mDragStartLocation.type == ECoordType::Bench)
+						{
+							if (player.mUnits.size() >= player.getMaxPopulation())
 							{
 								bCanDeploy = false;
 							}

@@ -30,8 +30,11 @@ namespace AutoBattler
 		
 		mPlayers.resize(AB_MAX_PLAYER_NUM);
 		int const GridCols = 3;
-		int const GapX = 600;
-		int const GapY = 500;
+		// Calculate board dimensions + bench area + padding
+		int boardWidth = PlayerBoard::MapSize.x * PlayerBoard::CellSize.x;
+		int boardHeight = (int)(PlayerBoard::MapSize.y * PlayerBoard::CellSize.y * 0.75f) + AB_BENCH_OFFSET_Y + AB_BENCH_SLOT_SIZE;
+		int const GapX = boardWidth + AB_BOARD_PADDING;
+		int const GapY = boardHeight + AB_BOARD_PADDING;
 
 		for (int i = 0; i < mPlayers.size(); ++i)
 		{
@@ -45,14 +48,6 @@ namespace AutoBattler
 			int col = gridIndex % GridCols;
 
 			player.getBoard().setOffset(Vector2(col * GapX, row * GapY));
-
-			if (i != mLocalPlayerIndex)
-			{
-			if (i != mLocalPlayerIndex)
-			{
-				// Bot logic moved to ABStage
-			}
-			}
 		}
 		
 		// changePhase(BattlePhase::Preparation); // restart calls this

@@ -20,6 +20,7 @@
 #define AB_INITIAL_GOLD 2
 #define AB_INITIAL_HP 100
 #define AB_MAX_LEVEL 10
+#define AB_SHOP_SLOT_COUNT 5
 #define AB_SHOP_REFRESH_COST 2
 #define AB_BUY_XP_COST 4
 #define AB_XP_PER_BUY 4
@@ -27,6 +28,23 @@
 // Timings
 #define AB_PHASE_PREP_TIME 30.0f
 #define AB_PHASE_COMBAT_TIME 40.0f
+
+// Visual Sizing (TFT-style proportions)
+// Board Cell - hex grid cell size in world units
+#define AB_CELL_SIZE 80
+// Bench - same size as board cells for visual consistency
+#define AB_BENCH_SLOT_SIZE AB_CELL_SIZE
+#define AB_BENCH_GAP 0
+#define AB_BENCH_OFFSET_X -20.0f
+#define AB_BENCH_OFFSET_Y -15.0f
+// Unit model scale relative to cell/slot size
+#define AB_UNIT_SCALE_BOARD 1.0f
+#define AB_UNIT_SCALE_BENCH 1.0f
+// Board tile scale relative to cell size
+#define AB_TILE_SCALE 0.90f
+// Spacing between player boards
+#define AB_BOARD_PADDING 150
+
 
 
 namespace AutoBattler

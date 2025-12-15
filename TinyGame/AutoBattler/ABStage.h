@@ -10,6 +10,10 @@
 #include "GameRenderSetup.h"
 #include "DataStructure/Array.h"
 #include "ABDefine.h"
+#include "ABViewCamera.h"
+#include "ABGameHUD.h"
+
+#include <memory>
 
 namespace AutoBattler
 {
@@ -78,20 +82,18 @@ namespace AutoBattler
 		World mWorld;
 		TArray<BotController*> mBots;
 
-		Vector2 mViewOffset = Vector2(100, 100);
-		float   mViewScale = 1.0f;
-		int     mViewPlayerIndex = 0; // Local Player is usually 0
+		ABViewCamera mCamera;
 
 		class ABFrameActionTemplate* mActionTemplate = nullptr;
-		class ABPlayerController* mController = nullptr;
-		class ABGameRenderer* mRenderer = nullptr;
+		std::unique_ptr<ABPlayerController> mController;
+		std::unique_ptr<ABGameRenderer> mRenderer;
+		std::unique_ptr<ABGameHUD> mHUD;
 
 		MsgReply onMouse(MouseMsg const& msg) override;
 		MsgReply onKey(KeyMsg const& msg) override;
 
 	public:
 		BattlePhase getPhase() const { return mWorld.getPhase(); }
-		Player& getPlayer() { return mWorld.getLocalPlayer(); }
 		PlayerBoard& getPlayerBoard() { return mWorld.getLocalPlayerBoard(); }
 		World& getWorld() override { return mWorld; }
 		bool isNetMode() const override { return getModeType() == EGameStageMode::Net; }
@@ -102,7 +104,9 @@ namespace AutoBattler
 		UnitLocation screenToDropTarget(Vec2i screenPos) override;
 		Vector2 worldToScreen(Vector2 const& worldPos) const;
 	
-		Unit* pick3D(Vec2i screenPos, World& world);
+	private:
+		// Helper: find closest unit to worldPos within pickRadius
+		Unit* pickUnitAtWorldPos(Vector2 worldPos, float pickRadius);
 	};
 
 }//namespace AutoBattler

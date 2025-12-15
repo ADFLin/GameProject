@@ -22,6 +22,7 @@
 
 ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags)
 	:mName(inName)
+	,mArgs(inArgs)
 	,mFlags(flags)
 {
 

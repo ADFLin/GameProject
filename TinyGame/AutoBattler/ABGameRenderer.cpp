@@ -1,5 +1,6 @@
 #include "ABPCH.h"
 #include "ABGameRenderer.h"
+#include "ABViewCamera.h"
 #include "ABWorld.h"
 #include "ABPlayerController.h"
 #include "ABPlayer.h"
@@ -81,8 +82,6 @@ namespace AutoBattler
 
 	ABGameRenderer::ABGameRenderer()
 	{
-		mViewOffset = Vector2(100, 100);
-		mViewScale = 1.0f;
 	}
 
 	bool ABGameRenderer::initShader()
@@ -101,6 +100,7 @@ namespace AutoBattler
 			mUnitMeshes[i].releaseRHIResource();
 		}
 		mBoardMesh.releaseRHIResource();
+		mBenchMesh.releaseRHIResource();
 
 		// Load all Unit Models
 		for (int i = 0; i < AB_UNIT_MESH_COUNT; ++i)
@@ -113,10 +113,59 @@ namespace AutoBattler
 			}
 		}
 
-		if (!FMeshBuild::LoadObjectFile(mBoardMesh, "AutoBattler/Models/AB_Board.model"))
+		// Load or create hexagon mesh for board tiles
+		if (!FMeshBuild::LoadObjectFile(mBoardMesh, "AutoBattler/Models/AB_HexTile.model"))
 		{
-			FMeshBuild::Cube(mBoardMesh, 0.45f); // Fallback
+			// Create hexagon mesh manually (flat-topped hexagon on XY plane)
+			// Using triangles from center to each edge
+			struct HexVertex
+			{
+				Vector3 pos;
+				Vector3 normal;
+			};
+			
+			float radius = 1.0f;
+			float height = 0.1f; // Thin tile
+			Vector3 normal(0, 0, 1);
+			
+			// 6 vertices around + center = 7 vertices for top face
+			// 6 triangles for top face
+			TArray<HexVertex> vertices;
+			TArray<uint32> indices;
+			
+			// Top face center
+			vertices.push_back({ Vector3(0, 0, height), normal });
+			
+			// Top face outer vertices (6 points)
+			for (int i = 0; i < 6; ++i)
+			{
+				float angle = Math::DegToRad(60.0f * i);
+				float x = radius * Math::Cos(angle);
+				float y = radius * Math::Sin(angle);
+				vertices.push_back({ Vector3(x, y, height), normal });
+			}
+			
+			// Top face triangles (fan from center)
+			for (int i = 0; i < 6; ++i)
+			{
+				indices.push_back(0);            // center
+				indices.push_back(1 + i);        // current vertex
+				indices.push_back(1 + (i + 1) % 6); // next vertex
+			}
+
+			// Setup mesh
+			mBoardMesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+			mBoardMesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+			mBoardMesh.createRHIResource(vertices.data(), vertices.size(), indices.data(), indices.size());
 		}
+
+		// Load or create square mesh for bench tiles
+		if (!FMeshBuild::LoadObjectFile(mBenchMesh, "AutoBattler/Models/AB_BenchTile.model"))
+		{
+			FMeshBuild::Cube(mBenchMesh, 0.45f); // Fallback to cube
+		}
+
+		initShader();
 	}
 
 	Render::Mesh& ABGameRenderer::getUnitMesh(int unitId)
@@ -125,13 +174,16 @@ namespace AutoBattler
 		return mUnitMeshes[index];
 	}
 
-	void ABGameRenderer::render2D(IGraphics2D& g, World& world, ABPlayerController* controller)
+	void ABGameRenderer::render2D(IGraphics2D& g, World& world, ABViewCamera const& camera, ABPlayerController* controller)
 	{
+		Vector2 viewOffset = camera.getOffset();
+		float viewScale = camera.getScale();
+
 		g.beginRender();
 		g.pushXForm();
 		g.beginXForm();
-		g.translateXForm(mViewOffset.x, mViewOffset.y);
-		g.scaleXForm(mViewScale, mViewScale);
+		g.translateXForm(viewOffset.x, viewOffset.y);
+		g.scaleXForm(viewScale, viewScale);
 
 		world.render(g);
 		
@@ -142,7 +194,7 @@ namespace AutoBattler
 
 		// Debug info for Board picking usually in world space
 		Vec2i mousePos = Global::GUI().getManager().getLastMouseMsg().getPos();
-		Vector2 mouseWorldPos = screenToWorld(mousePos);
+		Vector2 mouseWorldPos = camera.screenToWorld(mousePos);
 		Vec2i coord = world.getLocalPlayerBoard().getCoord(mouseWorldPos);
 
 		if (world.getLocalPlayerBoard().isValid(coord))
@@ -159,67 +211,18 @@ namespace AutoBattler
 		g.endRender();
 	}
 
-	Vector2 ABGameRenderer::screenToWorld(Vector2 const& screenPos) const
-	{
-		return (screenPos - mViewOffset) / mViewScale;
-	}
-
-	void ABGameRenderer::centerOn(Vector2 const& pos)
-	{
-		Vec2i screenSize = ::Global::GetScreenSize();
-		mViewOffset = Vector2(screenSize.x / 2, screenSize.y / 2) - pos * mViewScale;
-	}
-
-	void ABGameRenderer::render3D(World& world)
+	void ABGameRenderer::render3D(World& world, ABViewCamera const& camera)
 	{
 		using namespace Render;
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-		// Debug Lazy Load - check first mesh
-		if (!mUnitMeshes[0].mVertexBuffer.isValid())
-		{
-			init();
-		}
-
-		// Lazy load shader
-		if (mUnitShader == nullptr)
-		{
-			initShader();
-		}
-
 		Vec2i screenSize = ::Global::GetScreenSize();
-		float aspect = (float)screenSize.x / (float)screenSize.y;
-		
-		// TFT-style camera setup
-		float fov = Math::DegToRad(35.0f);
-		float cameraAngle = Math::DegToRad(55.0f);
-		
-		Matrix4 projMat = AdjustProjectionMatrixForRHI(PerspectiveMatrix(fov, aspect, 10.0f, 10000.0f));
 
-		Vector2 screenCenter(screenSize.x * 0.5f, screenSize.y * 0.5f);
-		Vector2 worldCenter2D = (screenCenter - mViewOffset) / mViewScale;
-		
-		Vector3 lookTarget(worldCenter2D.x, worldCenter2D.y, 0);
-		
-		float tanHalfFov = Math::Tan(fov * 0.5f);
-		float cameraDistance = screenSize.y / (2.0f * mViewScale * tanHalfFov);
-		
-		Vector3 eye = lookTarget + Vector3(
-			0,
-			cameraDistance * Math::Cos(cameraAngle),
-			cameraDistance * Math::Sin(cameraAngle)
-		);
-		
-		Vector3 target = lookTarget + Vector3(0, -50, 0);
-		Vector3 up(0, 0, 1);
-		
-		Matrix4 viewMat = LookAtMatrix(eye, target - eye, up);
-		Matrix4 viewProj = viewMat * projMat;
-
-		mViewMatrix = viewMat;
-		mProjMatrix = projMat;
-		mViewProjMatrix = viewProj;
-		mCameraEye = eye;
+		// Get matrices from camera (should be updated by Stage before render)
+		// Apply RHI adjustment to projection matrix for rendering
+		Matrix4 projMatRHI = AdjustProjectionMatrixForRHI(camera.getProjMatrix());
+		Matrix4 viewProj = camera.getViewMatrix() * projMatRHI;
+		Vector3 const& eye = camera.getCameraEye();
 
 		Vector3 lightDir = Math::GetNormal(Vector3(0.3f, -0.5f, 1.0f));
 
@@ -247,8 +250,8 @@ namespace AutoBattler
 					Vector2 pos2D = p.getBoard().getPos(x, y);
 					Vector3 pos3D(pos2D.x, pos2D.y, 0);
 
-					float tileScale = PlayerBoard::CellSize.x * 0.5f;
-					Matrix4 worldMat = Matrix4::Scale(tileScale) * Matrix4::Translate(pos3D);
+					float tileScale = PlayerBoard::CellSize.x * AB_TILE_SCALE;
+					Matrix4 worldMat = Matrix4::Scale(tileScale) * Matrix4::Rotate(Vector3(0, 0, 1), Math::DegToRad(90)) * Matrix4::Translate(pos3D);
 
 					LinearColor tileColor = (i == world.getLocalPlayerIndex()) 
 						? LinearColor(0.15f, 0.15f, 0.25f, 1) 
@@ -261,7 +264,7 @@ namespace AutoBattler
 					{
 						Vector2 unitPos2D = u->getPos();
 						Vector3 unitPos(unitPos2D.x, unitPos2D.y, 0);
-						float unitScale = PlayerBoard::CellSize.x * 0.45f;
+						float unitScale = PlayerBoard::CellSize.x * AB_UNIT_SCALE_BOARD;
 						Matrix4 unitWorld = Matrix4::Scale(unitScale) * Matrix4::Translate(unitPos);
 
 						int unitId = u->getUnitId();
@@ -306,10 +309,8 @@ namespace AutoBattler
 
 			// Render Bench Area
 			{
-				int benchSlotSize = 40;
-				int benchGap = 5;
-				float benchTileScale = benchSlotSize * 0.5f;
-				float benchUnitScale = benchSlotSize * 0.4f;
+				float benchTileScale = AB_BENCH_SLOT_SIZE * AB_TILE_SCALE;
+				float benchUnitScale = AB_BENCH_SLOT_SIZE * AB_UNIT_SCALE_BENCH;
 
 				for (int slot = 0; slot < AB_BENCH_SIZE; ++slot)
 				{
@@ -322,7 +323,7 @@ namespace AutoBattler
 						? LinearColor(0.1f, 0.1f, 0.18f, 1) 
 						: LinearColor(0.08f, 0.08f, 0.08f, 1);
 					RHISetFixedShaderPipelineState(commandList, slotWorldMat * viewProj, slotColor);
-					mBoardMesh.draw(commandList);
+					mBenchMesh.draw(commandList);
 
 					// Render Unit on Bench
 					Unit* u = p.mBench[slot];

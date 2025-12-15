@@ -17,11 +17,11 @@ namespace AutoBattler
 	{
 	public:
 		virtual ~IPlayerControllerContext() = default;
-		virtual Vector2    screenToWorld(Vector2 const& screenPos) const = 0;
-		virtual Unit*      pickUnit(Vec2i screenPos) = 0;
+		virtual Vector2      screenToWorld(Vector2 const& screenPos) const = 0;
+		virtual Unit*        pickUnit(Vec2i screenPos) = 0;
 	    virtual UnitLocation screenToDropTarget(Vec2i screenPos) = 0;  // Returns UnitLocation for both Board and Bench
-		virtual World&     getWorld() = 0;
-		virtual bool       isNetMode() const = 0;
+		virtual World&       getWorld() = 0;
+		virtual bool         isNetMode() const = 0;
 	};
 
 	class ABPlayerController

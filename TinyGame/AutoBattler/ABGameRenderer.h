@@ -19,6 +19,7 @@ namespace AutoBattler
 	class World;
 	class Unit;
 	class ABPlayerController;
+	class ABViewCamera;
 
 	// Console variable: false = 3D only, true = 2D only (debug mode)
 	extern TConsoleVariable<bool> CVarRenderDebug;
@@ -43,46 +44,21 @@ namespace AutoBattler
 		bool initShader();
 		void init();
 
-
-		// View Control
-		Vector2 screenToWorld(Vector2 const& screenPos) const;
-
-		void setViewOffset(Vector2 const& offset) { mViewOffset = offset; }
-		Vector2 getViewOffset() const { return mViewOffset; }
-
-		void setScale(float scale) { mViewScale = scale; }
-		float getScale() const { return mViewScale; }
-		
-		void centerOn(Vector2 const& pos);
-
 		Render::Mesh& getUnitMesh(int unitId);
 
-		void render3D(World& world);
-		void render2D(IGraphics2D& g, World& world, ABPlayerController* controller);
+		void render3D(World& world, ABViewCamera const& camera);
+		void render2D(IGraphics2D& g, World& world, ABViewCamera const& camera, ABPlayerController* controller);
 
 		// Selected Unit (for visual feedback)
 		void setSelectedUnit(Unit* unit) { mSelectedUnit = unit; }
 		Unit* getSelectedUnit() const { return mSelectedUnit; }
 
-		// Camera matrices (set during render3D)
-		Matrix4 const& getViewMatrix() const { return mViewMatrix; }
-		Matrix4 const& getProjMatrix() const { return mProjMatrix; }
-		Matrix4 const& getViewProjMatrix() const { return mViewProjMatrix; }
-
 	private:
 		Render::Mesh mUnitMeshes[AB_UNIT_MESH_COUNT];
-		Render::Mesh mBoardMesh;
+		Render::Mesh mBoardMesh;   // Hexagon tile for board
+		Render::Mesh mBenchMesh;   // Square tile for bench
 
 		class ABUnitProgram* mUnitShader = nullptr;
-
-		Vector2 mViewOffset;
-		float   mViewScale;
-
-		// Camera matrices (updated each frame in render3D)
-		Matrix4 mViewMatrix;
-		Matrix4 mProjMatrix;
-		Matrix4 mViewProjMatrix;
-		Vector3 mCameraEye;  // Camera position in world space
 
 		// Selected unit for visual feedback
 		Unit* mSelectedUnit = nullptr;

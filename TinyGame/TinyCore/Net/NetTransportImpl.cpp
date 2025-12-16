@@ -1,5 +1,6 @@
 #include "TinyGamePCH.h"
 #include "NetTransportImpl.h"
+#include "GameWorker.h"
 
 //========================================
 // NetTransportBase
@@ -153,19 +154,25 @@ void ServerTransportImpl::closeNetwork()
 	mBase.closeNetwork();
 }
 
-bool ServerTransportImpl::ServerTransportImpl::TransportBase::doStartNetwork()
+bool ServerTransportImpl::TransportBase::doStartNetwork()
 {
-	if (!mOwner->mTcpServer.run(TG_TCP_PORT))
+	mOwner->mTcpServer.run(TG_TCP_PORT);
+	if (mOwner->mTcpServer.getSocket().getState() != SKS_LISTING)
 	{
 		LogError("Server: Failed to open TCP port %d", TG_TCP_PORT);
 		return false;
 	}
 	
-	if (!mOwner->mUdpServer.run(TG_UDP_PORT))
+	mOwner->mUdpServer.run(TG_UDP_PORT);
+	if (mOwner->mUdpServer.getSocket().getState() == SKS_CLOSE)
 	{
 		LogError("Server: Failed to open UDP port %d", TG_UDP_PORT);
 		return false;
 	}
+	
+	// ✅ 设置监听器！这是关键 - 没有这个就收不到数据回调
+	mOwner->mTcpServer.setListener(&mOwner->mListener);
+	mOwner->mUdpServer.setListener(&mOwner->mListener);
 	
 	mOwner->mNetSelect.addSocket(mOwner->mTcpServer.getSocket());
 	mOwner->mNetSelect.addSocket(mOwner->mUdpServer.getSocket());
@@ -205,19 +212,67 @@ bool ServerTransportImpl::TransportBase::update_NetThread(long time)
 
 bool ServerTransportImpl::sendPacket(SessionId targetId, ENetChannelType channel, IComPacket* cp)
 {
-	// TODO: 根據 targetId 找到對應的 Client 並發送
-	return false;
+	// 在 Net Thread 中執行實際發送
+	postToNetThread([this, targetId, channel, cp]() {
+		// 找到對應的 Client
+		for (auto& client : mClients)
+		{
+			if (client.id == targetId)
+			{
+				// 根據 channel 類型發送
+				if (channel == ENetChannelType::Tcp)
+				{
+					TcpServerClientChannel tcpChannel(*client.tcpClient);
+					tcpChannel.send(cp);
+				}
+				else // UdpChain
+				{
+					// TODO: 實作 UDP 發送
+				}
+				return;
+			}
+		}
+	});
+	return true;
 }
 
 bool ServerTransportImpl::broadcastPacket(ENetChannelType channel, IComPacket* cp)
 {
-	// TODO: 廣播給所有 Client
-	return false;
+	// 在 Net Thread 中執行廣播
+	postToNetThread([this, channel, cp]() {
+		for (auto& client : mClients)
+		{
+			if (channel == ENetChannelType::Tcp)
+			{
+				TcpServerClientChannel tcpChannel(*client.tcpClient);
+				tcpChannel.send(cp);
+			}
+			else // UdpChain
+			{
+				// TODO: 實作 UDP 廣播
+			}
+		}
+	});
+	return true;
 }
 
 void ServerTransportImpl::kickConnection(SessionId id)
 {
-	// TODO: 踢出指定連線
+	// 在 Net Thread 中執行踢出操作
+	postToNetThread([this, id]() {
+		for (auto it = mClients.begin(); it != mClients.end(); ++it)
+		{
+			if (it->id == id)
+			{
+				// 關閉 TCP 連線
+				it->tcpClient->close();
+				
+				// 從列表移除
+				mClients.erase(it);
+				break;
+			}
+		}
+	});
 }
 
 void ServerTransportImpl::getConnectionIds(TArray<SessionId>& outIds) const
@@ -249,6 +304,35 @@ void ServerTransportImpl::doPostToNetThread(std::function<void()> func)
 	mBase.addNetThreadCommand(std::move(func));
 }
 
+bool ServerTransportImpl::sendUdpPacket(IComPacket* packet, NetAddress const& addr)
+{
+	if (!packet)
+		return false;
+	
+	// 序列化封包
+	SocketBuffer buffer(512);
+	try
+	{
+		FNetCommand::Write(buffer, packet);
+	}
+	catch (...)
+	{
+		LogError("ServerTransportImpl::sendUdpPacket - Failed to serialize packet");
+		return false;
+	}
+	
+	// 發送 UDP 封包
+	int bytesSent = buffer.take(mUdpServer.getSocket(), buffer.getAvailableSize(), const_cast<NetAddress&>(addr));
+
+	if (bytesSent <= 0)
+	{
+		LogWarning(0, "ServerTransportImpl::sendUdpPacket - Failed to send UDP packet");
+		return false;
+	}
+	
+	return true;
+}
+
 // Connection Listener
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionSend(NetConnection* con)
@@ -258,17 +342,119 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionSend(NetConnection
 
 bool ServerTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection* con, SocketBuffer& buffer, NetAddress* clientAddr)
 {
-	// 收到資料
-	// TODO: 解析封包並呼叫回調
+	// 判断是 TCP 还是 UDP
+	bool isUdp = (clientAddr != nullptr);
+	
+	if (!isUdp)
+	{
+		LogMsg("Transport: TCP data received, buffer size=%d", buffer.getAvailableSize());
+	}
+	
+	// 找到对应的 SessionId
+	SessionId sessionId = 0;
+	
+	if (!isUdp)
+	{
+		// TCP: 必须找到对应的连线
+		for (auto const& client : mOwner->mClients)
+		{
+			if (&client.tcpClient->getSocket() == &con->getSocket())
+			{
+				sessionId = client.id;
+				break;
+			}
+		}
+		
+		if (sessionId == 0)
+		{
+			LogWarning(0, "Received TCP packet from unknown connection");
+			return false;  // TCP 必须有 sessionId
+		}
+		
+		LogMsg("Transport: Found SessionId=%d for TCP connection", sessionId);
+	}
+	else
+	{
+		// UDP: 嘗試找到對應的連線，但允許 sessionId == 0
+		// （用於房間搜尋等無連線的 UDP 請求）
+		if (clientAddr)
+		{
+			// TODO: 可以通過 clientAddr 查找對應的 client
+			// 目前先設為 0，表示是無連線的 UDP 封包
+			sessionId = 0;
+		}
+	}
+	
+	// 使用 ComEvaluator 解析封包
+	try
+	{
+		while (buffer.getAvailableSize() > 0)
+		{
+			LogMsg("Transport: Parsing packet, available=%d", buffer.getAvailableSize());
+			
+			// UserData 设置为 sessionId（由 ComEvaluator 使用）
+			IComPacket* packet = mOwner->mPacketEvaluator.readNewPacket(buffer, -1, reinterpret_cast<void*>(sessionId));
+			if (packet == nullptr)
+			{
+				LogWarning(0, "readNewPacket returned null");
+				break;
+			}
+			
+			LogMsg("Transport: Parsed packet ID=%u", packet->getID());
+			// ✅ 使用專用的 UDP callback，直接傳遞 NetAddress
+			if (isUdp && clientAddr && mOwner->mCallbacks.onUdpPacketReceived)
+			{
+				// 捕獲 clientAddr 的副本
+				NetAddress addrCopy = *clientAddr;
+				mOwner->postToGameThread([owner = mOwner, sessionId, packet, addrCopy]() {
+					owner->mCallbacks.onUdpPacketReceived(sessionId, packet, addrCopy);
+					// Session 層會呼叫 dispatchPacket() 然後刪除 packet
+				});
+			}
+			else if (mOwner->mCallbacks.onPacketReceived)
+			{
+				// TCP 或沒有 UDP callback 的情況，使用標準 callback
+				mOwner->postToGameThread([owner = mOwner, sessionId, packet]() {
+					owner->mCallbacks.onPacketReceived(sessionId, packet);
+					// Session 層會呼叫 dispatchPacket() 然後刪除 packet
+				});
+			}
+		}
+	}
+	catch (ComException& e)
+	{
+		LogError("Packet parsing error: %s", e.what());
+		return false;
+	}
+	catch (...)
+	{
+		LogError("Unknown packet parsing error");
+		return false;
+	}
+	
 	return true;
 }
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnection* con)
 {
-	// 新連線接受
+	// 新连线接受
+	TcpServer::Client* client = static_cast<TcpServer::Client*>(con);
+	
 	SessionId newId = mOwner->mNextSessionId++;
 	
-	// 通知會話層
+	// ✅ 保存客户端连接！
+	ClientData clientData;
+	clientData.id = newId;
+	clientData.tcpClient = client;
+	mOwner->mClients.push_back(clientData);
+	
+	// ✅ 设置监听器！这样才能收到 TCP 数据
+	client->setListener(this);
+	
+	LogMsg("Client Connection");
+	LogMsg("Client connected: SessionId=%d", newId);
+	
+	// 通知会话层
 	if (mOwner->mCallbacks.onConnectionEstablished)
 	{
 		mOwner->postToGameThread([owner = mOwner, newId]() {
@@ -279,9 +465,17 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionClose(NetConnection* con, NetCloseReason reason)
 {
-	// 連線關閉
-	// TODO: 找到對應的 SessionId
+	// 連線關閉 - 找到對應的 SessionId
 	SessionId id = 0;
+	for (auto const& client : mOwner->mClients)
+	{
+		if (&client.tcpClient->getSocket() == &con->getSocket())
+		{
+			id = client.id;
+			break;
+		}
+	}
+	
 	ENetCloseReason closeReason = ENetCloseReason::RemoteClose;
 	
 	if (mOwner->mCallbacks.onConnectionClosed)
@@ -348,8 +542,8 @@ bool ClientTransportImpl::TransportBase::update_NetThread(long time)
 	if (mOwner->mServerSessionId != 0)
 	{
 		mOwner->mNetSelect.select(1);
-		mOwner->mTcpClient.updateSocket(mOwner->mNetSelect);
-		mOwner->mUdpClient.updateSocket();
+		mOwner->mTcpClient.updateSocket(time, mOwner->mNetSelect);
+		mOwner->mUdpClient.updateSocket(time, mOwner->mNetSelect);
 	}
 	
 	return true;
@@ -382,8 +576,19 @@ void ClientTransportImpl::disconnect()
 bool ClientTransportImpl::sendPacket(SessionId targetId, ENetChannelType channel, IComPacket* cp)
 {
 	// Client 只能發送給 Server
-	// TODO: 實作發送
-	return false;
+	postToNetThread([this, channel, cp]() {
+		if (channel == ENetChannelType::Tcp)
+		{
+			TcpNetChannel tcpChannel(mTcpClient);
+			tcpChannel.send(cp);
+		}
+		else // UdpChain
+		{
+			UdpChainChannel udpChannel(mUdpClient);
+			udpChannel.send(cp);
+		}
+	});
+	return true;
 }
 
 bool ClientTransportImpl::broadcastPacket(ENetChannelType channel, IComPacket* cp)
@@ -453,7 +658,42 @@ void ClientTransportImpl::ConnectionListener::notifyConnectionSend(NetConnection
 
 bool ClientTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection* con, SocketBuffer& buffer, NetAddress* clientAddr)
 {
-	// 收到資料
-	// TODO: 解析封包並呼叫回調
+	// 收到資料 - 解析封包並通知回調
+	if (!mOwner->mCallbacks.onPacketReceived)
+		return true;
+	
+	// Client 的 SessionId 固定為 1 (Server)
+	SessionId sessionId = 1;
+	
+	// 使用 ComEvaluator 解析封包
+	try
+	{
+		while (buffer.getAvailableSize() > 0)
+		{
+			IComPacket* packet = mOwner->mPacketEvaluator.readNewPacket(buffer, -1, reinterpret_cast<void*>(sessionId));
+			if (packet == nullptr)
+			{
+				break;
+			}
+			
+			// 通過回調傳遞給會話層（在 Game Thread 執行）
+			// ⚠️ Session 層負責分派到處理器，並在處理完後釋放 packet
+			mOwner->postToGameThread([owner = mOwner, sessionId, packet]() {
+				owner->mCallbacks.onPacketReceived(sessionId, packet);
+				// Session 層會呼叫 dispatchPacket() 然後刪除 packet
+			});
+		}
+	}
+	catch (ComException& e)
+	{
+		LogError("Packet parsing error: %s", e.what());
+		return false;
+	}
+	catch (...)
+	{
+		LogError("Unknown packet parsing error");
+		return false;
+	}
+	
 	return true;
 }

@@ -1,12 +1,18 @@
 #include "TinyGamePCH.h"
-
 #include "GameServer.h"
+
+
+
 #include "GameNetPacket.h"
 #include "ConsoleSystem.h"
 int const CLIENT_GROUP = 1;
 #define SERVER_USE_CONNECTED_UDP 1
 
 TConsoleVariable<bool> CVarSvUseConnectedUDP(false, "sv.UseConnectedUDP");
+
+
+#if !USE_NEW_NETWORK
+
 
 ServerWorker::ServerWorker()
 	:NetWorker()
@@ -752,8 +758,6 @@ bool ServerWorker::swapServer()
 	return false;
 }
 
-
-
 void ServerWorker::generatePlayerStatus( SPPlayerStatus& comPS )
 {
 	getPlayerManager()->getPlayerInfo( comPS.info );
@@ -765,6 +769,8 @@ bool ServerWorker::sendCommand(int channel , IComPacket* cp , EWorkerSendFlag fl
 {
 	return mPlayerManager->sendCommand( channel , cp , flag );
 }
+
+#endif
 
 SVPlayerManager::SVPlayerManager()
 {
@@ -1364,4 +1370,5 @@ SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client )
 	mClient     = client;
 	initChannels();
 }
+
 

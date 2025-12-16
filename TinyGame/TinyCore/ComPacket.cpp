@@ -77,6 +77,54 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 }
 
 
+IComPacket* ComEvaluator::readNewPacket(SocketBuffer& buffer, int group /*= -1*/, void* userData)
+{
+	// 暫存目前的 buffer 位置
+	size_t oldUseSize = buffer.getUseSize();
+
+	// 讀取封包 ID
+	ComID comID;
+	if (buffer.getAvailableSize() < sizeof(ComID))
+		nullptr;
+
+	buffer.take(comID);
+
+	// 查找封包工廠
+	auto factory = findFactory(comID);
+	if (!factory)
+	{
+		// 未知封包類型，回退並停止解析
+		buffer.setUseSize(oldUseSize);
+		LogWarning(0, "Unknown packet ID: %u", comID);
+		nullptr;
+	}
+
+	// 創建封包實例
+	IComPacket* packet = factory->createCom();
+	if (!packet)
+	{
+		buffer.setUseSize(oldUseSize);
+		return nullptr;
+	}
+
+	// 設置封包的群組和用戶數據（用於舊系統兼容）
+	packet->mGroup = group;
+	packet->mUserData = userData;
+
+	// 讀取封包數據
+	if (!ComEvaluator::ReadBuffer(buffer, packet))
+	{
+		// 讀取失敗，釋放封包並回退
+		delete packet;
+		buffer.setUseSize(oldUseSize);
+		return nullptr;
+	}
+
+	return packet;
+}
+
+
+
 void ComEvaluator::execCommand( IComPacket* cp , int group , void* userData )
 {
 	ICPFactory* factory = findFactory( cp->getID() );
@@ -96,6 +144,7 @@ void ComEvaluator::execCommand( IComPacket* cp , int group , void* userData )
 	if ( factory->workerFunc )
 		( factory->workerFunc )( cp );
 }
+
 
 ComEvaluator::~ComEvaluator()
 {

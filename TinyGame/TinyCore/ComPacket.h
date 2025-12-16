@@ -57,6 +57,8 @@ public:
 		return static_cast< GamePacketT* >( this );
 	}
 
+	void     setUserData(void* data) { mUserData = data; }
+
 protected:
 	friend class ComEvaluator;
 	virtual void doWrite( SocketBuffer& buffer ) = 0;
@@ -119,12 +121,19 @@ public:
 	TINY_API bool  evalCommand( SocketBuffer& buffer, int group = -1, void* userData = nullptr );
 	TINY_API void  execCommand( IComPacket* cp , int group = -1 , void* userData = nullptr );
 
+	TINY_API IComPacket* readNewPacket(SocketBuffer& buffer, int group = -1, void* userData = nullptr);
+
+
+	template< class GamePacketT >
+	void addFactory(){ addFactoryInternal<GamePacketT>(); }
+
 private:
+
 	struct ICPFactory
 	{
 		ICPFactory()
 			:userProcesser(NULL)
-			,workerProcesser( NULL ){}
+			, workerProcesser(NULL) {}
 
 		virtual IComPacket* createCom() = 0;
 		unsigned id;
@@ -135,6 +144,10 @@ private:
 		ProcFunc workerFuncSocket; //socket thread;
 	};
 
+	template< class GamePacketT >
+	ICPFactory* addFactoryInternal();
+
+	TINY_API ICPFactory* findFactory(ComID com);
 
 	template < class GamePacketT >
 	struct CPFactory : public ICPFactory
@@ -143,9 +156,6 @@ private:
 		virtual IComPacket* createCom(){   return new GamePacketT;  }
 	};
 
-	template< class GamePacketT > 
-	ICPFactory* addFactory();
-	TINY_API ICPFactory* findFactory( ComID com );
 
 	typedef std::unordered_map< ComID , ICPFactory* > CPFactoryMap;
 	struct UserCom 
@@ -166,7 +176,7 @@ template< class GamePacketT , class T , class TFunc >
 bool ComEvaluator::setUserFunc( T* processer , TFunc func)
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = addFactory< GamePacketT >();
+	ICPFactory* factory = addFactoryInternal< GamePacketT >();
 	if ( !factory )
 		return false;
 
@@ -183,7 +193,7 @@ template< class GamePacketT , class T , class TFunc >
 bool ComEvaluator::setWorkerFunc( T* processer, TFunc func, void* )
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = addFactory< GamePacketT >();
+	ICPFactory* factory = addFactoryInternal< GamePacketT >();
 	if ( !factory )
 		return false;
 
@@ -200,7 +210,7 @@ template< class GamePacketT , class T , class TFunc >
 bool ComEvaluator::setWorkerFunc( T* processer, TFunc func, TFunc funcSocket )
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = addFactory< GamePacketT >();
+	ICPFactory* factory = addFactoryInternal< GamePacketT >();
 	if ( !factory )
 		return false;
 
@@ -219,7 +229,7 @@ bool ComEvaluator::setWorkerFunc( T* processer, TFunc func, TFunc funcSocket )
 }
 
 template< class GamePacketT >
-ComEvaluator::ICPFactory* ComEvaluator::addFactory()
+ComEvaluator::ICPFactory* ComEvaluator::addFactoryInternal()
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = findFactory( GamePacketT::PID );

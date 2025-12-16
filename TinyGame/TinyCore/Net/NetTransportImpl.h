@@ -6,6 +6,7 @@
 #include "GameNetConnect.h"
 #include "SocketBuffer.h"
 #include "PlatformThread.h"
+#include "ComPacket.h"
 
 
 /**
@@ -48,13 +49,15 @@ protected:
 	void processGameThreadCommnads();
 	void processNetThreadCommnads();
 	
+public:
+	// 執行緒命令添加（公開給子類和外部使用）
 	template<typename Func>
 	void addGameThreadCommand(Func&& func);
 	
 	template<typename Func>
 	void addNetThreadCommand(Func&& func);
 	
-private:
+protected:
 	bool mbRunning = false;
 	int64 mNetRunningTimeSpan = 0;
 	int64 mNetStartTime = 0;
@@ -104,6 +107,9 @@ public:
 	long getNetLatency() const override { return 0; /* Server 無延遲 */ }
 	long getNetRunningTime() const override { return mBase.getNetRunningTime(); }
 	
+	// 封包評估器訪問
+	ComEvaluator& getPacketEvaluator() override { return mPacketEvaluator; }
+	
 	//========================================
 	// IServerTransport
 	//========================================
@@ -122,6 +128,9 @@ public:
 	TcpServer& getTcpServer() { return mTcpServer; }
 	UdpServer& getUdpServer() { return mUdpServer; }
 	NetSelectSet& getNetSelect() { return mNetSelect; }
+	
+	// UDP 封包發送 (用於房間搜尋等功能)
+	TINY_API bool sendUdpPacket(IComPacket* packet, NetAddress const& addr);
 	
 protected:
 	void doPostToGameThread(std::function<void()> func) override;
@@ -164,6 +173,9 @@ private:
 	};
 	TArray<ClientData> mClients;
 	SessionId mNextSessionId = 1;
+	
+	// 封包解析器
+	ComEvaluator mPacketEvaluator;
 };
 
 /**
@@ -187,6 +199,9 @@ public:
 	
 	long getNetLatency() const override { return mNetLatency; }
 	long getNetRunningTime() const override { return mBase.getNetRunningTime(); }
+	
+	// 封包評估器訪問
+	ComEvaluator& getPacketEvaluator() override { return mPacketEvaluator; }
 	
 	//========================================
 	// IClientTransport
@@ -237,6 +252,9 @@ private:
 	SessionId mServerSessionId = 0;
 	long mNetLatency = 0;
 	LatencyCalculator mLatencyCalculator;
+	
+	// 封包解析器
+	ComEvaluator mPacketEvaluator;
 };
 
 //========================================

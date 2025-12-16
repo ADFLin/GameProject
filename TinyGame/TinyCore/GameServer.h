@@ -1,6 +1,8 @@
 #ifndef GameServer_h__
 #define GameServer_h__
 
+#define USE_NEW_NETWORK 1
+
 #include "GameWorker.h"
 #include "GamePlayer.h"
 #include "NetChannel.h"
@@ -307,8 +309,16 @@ class ServerEventResolver
 public:
 	//Socket Thread
 	virtual PlayerConnetionClosedAction resolveConnectClosed_NetThread( ServerResolveContext& context , NetCloseReason reason) { return PlayerConnetionClosedAction::Remove;  }
-	virtual void                 resolveReconnect_NetThread( ServerResolveContext& context ){}
+	virtual void  resolveReconnect_NetThread( ServerResolveContext& context ){}
 };
+
+#if USE_NEW_NETWORK
+
+
+#define ServerTestWorker ServerWorker 
+#include "Net/ServerTestWorker.h"
+
+#else
 
 class  ServerWorker : public NetWorker, public INetConnectListener
 {
@@ -389,22 +399,25 @@ protected:
 };
 
 
+#endif
+
+
 class LocalWorker : public ComWorker
 {
 public:
-	IPlayerManager*  getPlayerManager()    {  return mPlayerMgr;  }
+	IPlayerManager*  getPlayerManager() { return mPlayerMgr; }
 
-	bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag );
+	bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag);
 	void  recvCommand(IComPacket* cp);
 protected:
 
 	void  doUpdate(long time);
-	void  postChangeState( NetActionState oldState );
+	void  postChangeState(NetActionState oldState);
 	void  update_NetThread(long time);
 protected:
-	LocalWorker( ServerWorker* worker );
-	void procPlayerState( IComPacket* cp);
-	void procClockSynd  ( IComPacket* cp);
+	LocalWorker(ServerWorker* worker);
+	void procPlayerState(IComPacket* cp);
+	void procClockSynd(IComPacket* cp);
 	friend class ServerWorker;
 protected:
 	NET_MUTEX(mMutexBuffer);
@@ -413,6 +426,13 @@ protected:
 	SVPlayerManager*  mPlayerMgr;
 	ServerWorker*     mServer;
 };
+
+
+#if USE_NEW_NETWORK
+
+
+
+#endif
 
 
 #endif // GameServer_h__

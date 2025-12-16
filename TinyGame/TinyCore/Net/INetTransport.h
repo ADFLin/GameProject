@@ -47,8 +47,12 @@ struct NetTransportCallbacks
 	// 當連線失敗時呼叫 (Client 無法連上 Server)
 	std::function<void()> onConnectionFailed;
 	
-	// 當收到封包時呼叫 (在適當的執行緒)
+	// 當收到封包時呼叫 (TCP 或已連線的 UDP)
 	std::function<void(SessionId id, IComPacket* packet)> onPacketReceived;
+	
+	// 當收到無連線的 UDP 封包時呼叫（例如：房間搜尋）
+	// sessionId 通常為 0（未連線），clientAddr 為發送者地址
+	std::function<void(SessionId id, IComPacket* packet, NetAddress const& clientAddr)> onUdpPacketReceived;
 };
 
 /**
@@ -102,6 +106,11 @@ public:
 		doPostToNetThread(std::function<void()>(std::forward<Func>(func)));
 	}
 	
+	//========================================
+	// 封包評估器訪問（用於註冊封包類型）
+	//========================================
+	virtual class ComEvaluator& getPacketEvaluator() = 0;
+	
 protected:
 	virtual void doPostToGameThread(std::function<void()> func) = 0;
 	virtual void doPostToNetThread(std::function<void()> func) = 0;
@@ -127,6 +136,9 @@ public:
 	
 	// 取得連線數量
 	virtual int getConnectionCount() const = 0;
+	
+	// 發送 UDP 封包到指定地址
+	virtual bool sendUdpPacket(IComPacket* cp, NetAddress const& addr) = 0;
 	
 	// 發送給指定連線
 	bool sendToConnection(SessionId id, ENetChannelType channel, IComPacket* cp)

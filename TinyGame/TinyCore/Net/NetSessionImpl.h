@@ -101,13 +101,28 @@ protected:
 	void onConnectionEstablished(SessionId id);
 	void onConnectionClosed(SessionId id, ENetCloseReason reason);
 	void onPacketReceived(SessionId id, IComPacket* packet);
+	void onUdpPacketReceived(SessionId id, IComPacket* packet, NetAddress const& clientAddr);
+	
+	// 房間搜尋處理（會話層功能）
+	void handleServerInfoRequest(NetAddress const& clientAddr);
+	
+	// 獲取伺服器資訊（可被子類覆蓋以自定義）
+	virtual void getServerInfo(class SPServerInfo& outInfo);
+	
+	// 核心封包處理（會話層功能）
+	void handleLoginRequest(PlayerId id, class CPLogin* packet);
+	void handlePlayerReady(PlayerId id, class CSPPlayerState* packet);
+	void handleClockSync(PlayerId id, class CSPClockSynd* packet);
+	
+	// 輔助方法
+	bool isAllPlayersReady() const;
 	
 	// 玩家 Session 映射
 	struct PlayerSession
 	{
 		PlayerId playerId;
 		SessionId sessionId;
-		NetPlayerInfo info;
+		NetPlayerInfo info;  // 玩家信息
 	};
 	
 	PlayerId createPlayer(SessionId sessionId, char const* name);

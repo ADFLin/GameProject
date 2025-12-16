@@ -137,6 +137,9 @@
     <ClInclude Include="TinyCore\Net\NetSessionAdapter.h" />
     <ClInclude Include="TinyCore\Net\NetSystemManager.h" />
     <ClInclude Include="TinyCore\Net\NetGameModeEx.h" />
+    <ClInclude Include="TinyCore\Net\ServerTestWorker.h">
+      <Filter>Net</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -247,6 +250,9 @@
     </ClCompile>
     <ClCompile Include="TinyCore\Net\NetGameModeEx.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\Net\ServerTestWorker.cpp">
+      <Filter>Net</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

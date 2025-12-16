@@ -269,6 +269,14 @@ void ComEvaluator::procCommand(  ComVisitor& visitor )
 	}
 }
 
+void ComEvaluator::procCommand(IComPacket* cp)
+{
+	auto factory = findFactory(cp->getID());
+	if (factory && factory->userFunc)
+	{
+		(factory->userFunc)(cp);
+	}
+}
 
 void ComEvaluator::removeProcesserFunc( void* processer )
 {

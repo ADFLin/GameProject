@@ -30,6 +30,7 @@ NetRoomStageEx::~NetRoomStageEx()
 }
 
 void NetRoomStageEx::initWithWorker(ComWorker* worker, ServerWorker* server)
+{
 	mNetAdapter.initFromWorker(worker, server);
 	mHostSession = nullptr;
 	mClientSession = nullptr;

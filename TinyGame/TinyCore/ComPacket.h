@@ -117,6 +117,7 @@ public:
 	TINY_API void  removeProcesserFunc( void* processer );
 	TINY_API void  procCommand( ComVisitor& visitor );
 	TINY_API void  procCommand();
+	TINY_API void  procCommand(IComPacket* cp);
 
 	TINY_API bool  evalCommand( SocketBuffer& buffer, int group = -1, void* userData = nullptr );
 	TINY_API void  execCommand( IComPacket* cp , int group = -1 , void* userData = nullptr );

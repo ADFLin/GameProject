@@ -267,11 +267,11 @@ public:
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
 
 	//auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
+	void insertPlayer(ServerPlayer* player, char const* name, PlayerType type);
 
 protected:
-	void insertPlayer( ServerPlayer* player , char const* name , PlayerType type );
 
-	
+
 	ServerPlayerListener* mListener;
 	NET_MUTEX( mMutexPlayerTable );
 	typedef TTable< ServerPlayer* > PlayerTable; 
@@ -359,6 +359,13 @@ public:
 
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }
 	NetSocket& getUdpSocket() { return mUdpServer.getSocket(); }
+
+	// ✅ ServerPlayerListener 設置 (兼容新架構的接口)
+	void setPlayerListener(ServerPlayerListener* listener) 
+	{ 
+		if (mPlayerManager) 
+			mPlayerManager->setListener(listener); 
+	}
 
 	void  generatePlayerStatus( SPPlayerStatus& comPS );
 	/////////////////////////////////////////////////

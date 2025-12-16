@@ -99,11 +99,49 @@ bool NetSessionBase::isValidStateTransition(ENetSessionState from, ENetSessionSt
 }
 
 //========================================
+// SSessionPlayer - Session 層專用 ServerPlayer
+//========================================
+
+SSessionPlayer::SSessionPlayer(NetSessionHostImpl* session)
+	: ServerPlayer(true)  // true = network player
+	, mSession(session)
+{
+}
+
+void SSessionPlayer::sendCommand(int channel, IComPacket* cp)
+{
+	if (channel == CHANNEL_GAME_NET_TCP)
+		sendTcpCommand(cp);
+	else
+		sendUdpCommand(cp);
+}
+
+void SSessionPlayer::sendTcpCommand(IComPacket* cp)
+{
+	if (mSession)
+	{
+		// ✅ 通過 Session 層發送給特定 player
+		mSession->sendReliableTo(getId(), cp);
+	}
+}
+
+void SSessionPlayer::sendUdpCommand(IComPacket* cp)
+{
+	if (mSession)
+	{
+		// TODO: Session 層目前沒有 sendUnreliableTo 方法
+		// 需要添加或使用其他方式
+		LogWarning(0, "SSessionPlayer::sendUdpCommand not implemented yet");
+	}
+}
+
+//========================================
 // NetSessionHostImpl
 //========================================
 
 NetSessionHostImpl::NetSessionHostImpl()
 {
+	// ✅ 初始化 SVPlayerManager (向後兼容)
 	mPlayerManager = std::make_unique<SVPlayerManager>();
 }
 
@@ -196,7 +234,15 @@ void NetSessionHostImpl::getPlayerInfos(TArray<NetPlayerInfo>& outInfos) const
 		mCachedPlayerInfos.clear();
 		for (auto const& ps : mPlayerSessions)
 		{
-			mCachedPlayerInfos.push_back(ps.info);
+			// ✅ 將 PlayerInfo 轉換為 NetPlayerInfo
+			NetPlayerInfo netInfo;
+			netInfo.id = ps.info.playerId;
+			FCString::CopyN(netInfo.name, ps.info.name, MAX_PLAYER_NAME_LENGTH);
+			netInfo.slot = ps.info.slot;
+			netInfo.isLocal = false; // Server 上的 client 都不是 local
+			netInfo.isReady = ps.isReady; // ✅ 使用 PlayerSession::isReady
+			netInfo.playerType = ps.info.type;
+			mCachedPlayerInfos.push_back(netInfo);
 		}
 		mPlayerInfosDirty = false;
 	}
@@ -205,10 +251,21 @@ void NetSessionHostImpl::getPlayerInfos(TArray<NetPlayerInfo>& outInfos) const
 
 NetPlayerInfo const* NetSessionHostImpl::getPlayerInfo(PlayerId id) const
 {
-	for (auto const& ps : mPlayerSessions)
+	// ⚠️ 注意：這個方法返回 const NetPlayerInfo*，但我們儲存的是 PlayerInfo
+	// 我們需要從 cached 中返回，因為不能返回臨時變量的指標
+	
+	// 強制更新 cache
+	if (mPlayerInfosDirty)
 	{
-		if (ps.playerId == id)
-			return &ps.info;
+		TArray<NetPlayerInfo> temp;
+		getPlayerInfos(temp); // 這會更新 mCachedPlayerInfos
+	}
+	
+	// 從 cache 中查找
+	for (auto const& info : mCachedPlayerInfos)
+	{
+		if (info.id == id)
+			return &info;
 	}
 	return nullptr;
 }
@@ -358,14 +415,17 @@ void NetSessionHostImpl::restartLevel()
 
 void NetSessionHostImpl::registerCorePacketHandlers()
 {
-	// ✅ 登入封包
+	// ✅ 登入封包 - 注意：對於登入封包，需要從 packet 的 UserData 獲取 SessionId
+	// 因為此時玩家尚未創建，id 會是 ERROR_PLAYER_ID
 	registerPacketHandler(CPLogin::PID, [this](PlayerId id, IComPacket* packet) {
-		handleLoginRequest(id, packet->cast<CPLogin>());
+		// UserData 存儲的是 SessionId（由 Transport 層設置）
+		SessionId sessionId = reinterpret_cast<SessionId>(packet->getUserData());
+		handleLoginRequest(sessionId, packet->cast<CPLogin>());
 	});
 	
-	// ✅ 玩家准备状态
+	// ✅ 玩家狀態 (包括 Ready/Wait/Disconnect 等)
 	registerPacketHandler(CSPPlayerState::PID, [this](PlayerId id, IComPacket* packet) {
-		handlePlayerReady(id, packet->cast<CSPPlayerState>());
+		handlePlayerState(id, packet->cast<CSPPlayerState>());
 	});
 	
 	// ✅ 时钟同步
@@ -378,7 +438,23 @@ void NetSessionHostImpl::registerCorePacketHandlers()
 		sendReliable(packet);
 	});
 	
-	LogMsg("Server: Registered %d core packet handlers", 4);
+	// ✅ Game 層封包 - Session 層不處理，只轉發給 observers
+	// 這些封包由 Game 層（NetRoomStage 等）處理
+	auto passThrough = [this](ComID packetId) {
+		registerPacketHandler(packetId, [this, packetId](PlayerId id, IComPacket* packet) {
+			// Session 層不處理，直接通知 observers
+			notifyPacketObservers(packetId, id, packet);
+		});
+	};
+	
+	passThrough(CSPMsg::PID);
+	passThrough(CSPRawData::PID);
+	passThrough(SPPlayerStatus::PID);
+	passThrough(SPSlotState::PID);
+	passThrough(SPLevelInfo::PID);
+	passThrough(SPNetControlRequest::PID);
+	
+	LogMsg("Server: Registered %d core packet handlers + %d game layer pass-through handlers", 4, 6);
 }
 
 void NetSessionHostImpl::onConnectionEstablished(SessionId id)
@@ -501,23 +577,23 @@ void NetSessionHostImpl::getServerInfo(SPServerInfo& outInfo)
 	// 例如：玩家名称、房间设置等
 }
 
-void NetSessionHostImpl::handleLoginRequest(PlayerId id, CPLogin* packet)
+void NetSessionHostImpl::handleLoginRequest(SessionId sessionId, CPLogin* packet)
 {
 	if (!packet)
 		return;
 	
-	LogMsg("Login request from SessionId=%d, Name='%s'", id, packet->name);
+	LogMsg("Login request from SessionId=%d, Name='%s'", sessionId, packet->name);
 	
 	// 检查是否已经创建了玩家
-	PlayerSession* ps = findPlayerBySession(id);
+	PlayerSession* ps = findPlayerBySession(sessionId);
 	if (ps)
 	{
 		LogMsg("Player already exists: PlayerId=%u", ps->playerId);
 		return;
 	}
 	
-	// 创建玩家会话
-	PlayerId playerId = createPlayer(id, packet->name);
+	// 创建玩家会话（使用 sessionId 來關聯 TCP 連線）
+	PlayerId playerId = createPlayer(sessionId, packet->name);
 	if (playerId == ERROR_PLAYER_ID)
 	{
 		LogWarning(0, "Failed to create player - room full");
@@ -546,36 +622,118 @@ void NetSessionHostImpl::handleLoginRequest(PlayerId id, CPLogin* packet)
 	LogMsg("Player '%s' logged in as PlayerId=%u, sent NAS_ACCPET and NAS_CONNECT", packet->name, playerId);
 }
 
-void NetSessionHostImpl::handlePlayerReady(PlayerId id, CSPPlayerState* packet)
+void NetSessionHostImpl::handlePlayerState(PlayerId id, CSPPlayerState* packet)
 {
 	if (!packet)
+		return;
+	
+	if (id == ERROR_PLAYER_ID || id == SERVER_PLAYER_ID)
 		return;
 	
 	PlayerSession* ps = findPlayer(id);
 	if (!ps)
 		return;
 	
-	// 更新玩家准备状态
-	bool wasReady = ps->info.isReady;
-	ps->info.isReady = (packet->state != 0);  // CSPPlayerState 用 state 字段
-	mPlayerInfosDirty = true;
+	LogMsg("Player %u state packet: state=%d", id, packet->state);
 	
-	LogMsg("Player %u ready state: %d", id, ps->info.isReady);
-	
-	// 广播准备状态变化
-	broadcastReliable(packet);
-	
-	// 通知事件
-	if (wasReady != ps->info.isReady)
+	// ✅ 參考舊的 ServerWorker::procPlayerState，根據 state 字段處理不同狀態
+	switch (packet->state)
 	{
+	case NAS_DISSCONNECT:
+		// Player 斷線
+		LogMsg("DEBUG: Broadcasting NAS_DISSCONNECT");
+		broadcastReliable(packet);
+		LogMsg("DEBUG: Broadcast completed");
+		break;
+		
+	case NAS_LOGIN:
+	case NAS_ACCPET:
+	case NAS_CONNECT:
+	case NAS_RECONNECT:
+		// 連線相關狀態，通常在登入階段處理，這裡只轉發
+		LogMsg("DEBUG: Broadcasting connection state %d", packet->state);
+		broadcastReliable(packet);
+		LogMsg("DEBUG: Broadcast completed");
+		break;
+		
+	case NAS_ROOM_ENTER:
+		// Player 進入房間
+		LogMsg("DEBUG: NAS_ROOM_ENTER - no action");
+		break;
+		
+	case NAS_ROOM_WAIT:
+		// Player 取消準備
+		LogMsg("Player %u not ready", id);
+		ps->isReady = false; // ✅ 使用 PlayerSession::isReady
+		mPlayerInfosDirty = true;
+		LogMsg("DEBUG: Broadcasting NAS_ROOM_WAIT");
+		broadcastReliable(packet);
+		LogMsg("DEBUG: Broadcast completed");
 		fireEvent(ENetSessionEvent::PlayerReadyChanged, id);
+		break;
+		
+	case NAS_ROOM_READY:
+		// Player 準備就緒
+		LogMsg("Player %u ready", id);
+		ps->isReady = true; // ✅ 使用 PlayerSession::isReady
+		mPlayerInfosDirty = true;
+		LogMsg("DEBUG: Broadcasting NAS_ROOM_READY");
+		broadcastReliable(packet);
+		LogMsg("DEBUG: Broadcast completed");
+		fireEvent(ENetSessionEvent::PlayerReadyChanged, id);
+		
+		// 檢查是否所有人都準備好
+		if (isAllPlayersReady())
+		{
+			LogMsg("All players ready!");
+			// 可以觸發遊戲開始等邏輯
+		}
+		break;
+		
+	case NAS_TIME_SYNC:
+	case NAS_LEVEL_SETUP:
+	case NAS_LEVEL_LOAD:
+	case NAS_LEVEL_INIT:
+	case NAS_LEVEL_RESTART:
+	case NAS_LEVEL_RUN:
+	case NAS_LEVEL_PAUSE:
+	case NAS_LEVEL_EXIT:
+		// Level 相關狀態，暫時只轉發
+		LogMsg("DEBUG: Broadcasting level state %d", packet->state);
+		broadcastReliable(packet);
+		LogMsg("DEBUG: Broadcast completed");
+		break;
+		
+	default:
+		LogWarning(0, "Unknown player state: %d", packet->state);
+		break;
 	}
 	
-	// 检查是否所有人都准备好
-	if (ps->info.isReady && isAllPlayersReady())
+	// ✅ 通知所有該 packet 的 observers
+	notifyPacketObservers(CSPPlayerState::PID, id, packet);
+	
+	LogMsg("DEBUG: handlePlayerState returning");
+}
+
+void NetSessionHostImpl::addPacketObserver(ComID packetId, PacketObserver observer)
+{
+	mPacketObservers[packetId].push_back(observer);
+}
+
+void NetSessionHostImpl::clearPacketObservers()
+{
+	mPacketObservers.clear();
+}
+
+void NetSessionHostImpl::notifyPacketObservers(ComID packetId, PlayerId senderId, IComPacket* packet)
+{
+	auto it = mPacketObservers.find(packetId);
+	if (it != mPacketObservers.end())
 	{
-		LogMsg("All players ready!");
-		// 可以触发游戏开始等逻辑
+		for (auto& observer : it->second)
+		{
+			observer(senderId, packet);
+		}
 	}
 }
 
@@ -599,7 +757,7 @@ bool NetSessionHostImpl::isAllPlayersReady() const
 	
 	for (auto const& ps : mPlayerSessions)
 	{
-		if (!ps.info.isReady)
+		if (!ps.isReady) // ✅ 使用 PlayerSession::isReady
 			return false;
 	}
 	return true;
@@ -612,22 +770,64 @@ PlayerId NetSessionHostImpl::createPlayer(SessionId sessionId, char const* name)
 	
 	PlayerId newId = mNextPlayerId++;
 	
+	// ✅ 自動分配一個唯一的 slot
+	SlotId assignedSlot = -1;
+	for (SlotId slot = 0; slot < MAX_PLAYER_NUM; ++slot)
+	{
+		bool slotUsed = false;
+		for (auto const& existingPlayer : mPlayerSessions)
+		{
+			if (existingPlayer.info.slot == slot)
+			{
+				slotUsed = true;
+				break;
+			}
+		}
+		if (!slotUsed)
+		{
+			assignedSlot = slot;
+			break;
+		}
+	}
+	
 	PlayerSession ps;
 	ps.playerId = newId;
 	ps.sessionId = sessionId;
-	ps.info.id = newId;
-	FCString::Copy(ps.info.name, name);  // 模板版本自动推导数组大小
-	ps.info.slot = -1;
-	ps.info.isLocal = false;
-	ps.info.isReady = false;
-	ps.info.playerType = (int)PT_PLAYER;
+	// ✅ PlayerInfo 的字段名
+	ps.info.playerId = newId;
+	ps.info.name = name;
+	ps.info.slot = assignedSlot;  // ✅ 自動分配的 slot
+	ps.info.type = PT_PLAYER;
+	ps.info.actionPort = ERROR_ACTION_PORT; // PlayerInfo 特有字段
+	ps.info.ping = 0; // PlayerInfo 特有字段
 	
 	mPlayerSessions.push_back(ps);
 	mPlayerInfosDirty = true;
 	
+	// ✅ 同步到 SVPlayerManager
+	if (mPlayerManager)
+	{
+		// ✅ 使用 SSessionPlayer（不需要 NetClientData）
+		auto* sessionPlayer = new SSessionPlayer(this);
+		
+		// 使用 SVPlayerManager::insertPlayer 來添加 player
+		mPlayerManager->insertPlayer(sessionPlayer, name, PT_PLAYER);
+		
+		// insertPlayer 會設置 playerId，確保匹配
+		sessionPlayer->getInfo().playerId = newId;
+		sessionPlayer->getInfo().slot = assignedSlot;  // ✅ 同步 slot
+	}
+	
 	fireEvent(ENetSessionEvent::PlayerJoined, newId);
 	
 	return newId;
+}
+
+// ✅ 為 Server 創建 local player
+PlayerId NetSessionHostImpl::createLocalPlayer(char const* name)
+{
+	// Local player 不關聯 SessionId，使用特殊值 0
+	return createPlayer(0, name);
 }
 
 void NetSessionHostImpl::removePlayer(PlayerId id)
@@ -636,9 +836,17 @@ void NetSessionHostImpl::removePlayer(PlayerId id)
 	{
 		if (it->playerId == id)
 		{
+			// ✅ 同步到 SVPlayerManager
+			if (mPlayerManager)
+			{
+				mPlayerManager->removePlayer(id);
+			}
+			
+			fireEvent(ENetSessionEvent::PlayerLeft, id);
+			
 			mPlayerSessions.erase(it);
 			mPlayerInfosDirty = true;
-			break;
+			return;
 		}
 	}
 }

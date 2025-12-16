@@ -134,7 +134,7 @@ bool NetRoomSettingHelper::addPlayerSV( PlayerId id )
 {
 	assert( mServer );
 
-	ServerPlayer* player = mServer->getPlayerManager()->getPlayer( id );
+	GamePlayer* player = mServer->getPlayerManager()->getPlayer( id );
 
 	SlotId slotId = getPlayerListPanel()->addPlayer( player->getInfo() );
 	if ( slotId == ERROR_SLOT_ID )

@@ -787,7 +787,7 @@ SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const*
 {
 	NET_MUTEX_LOCK( mMutexPlayerTable );
 
-	SNetPlayer* player = new SNetPlayer( server , client );
+	SNetPlayer* player =  new SNetPlayer( server , client );
 
 	InlineString< 64 > nameUsed = name;
 

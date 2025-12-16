@@ -135,8 +135,9 @@ ServerTransportImpl::ServerTransportImpl()
 	mBase.mOwner = this;
 	mListener.mOwner = this;
 	
-	mTcpServer.setListener(&mListener);
-	mUdpServer.setListener(&mListener);
+	// ❌ 不要在這裡設置 listener！
+	// Listener 會在 doStartNetwork() 中的 Server 初始化後設置
+	// 在這裡設置會導致 Server 尚未 run() 就有 listener，可能造成問題
 }
 
 ServerTransportImpl::~ServerTransportImpl()
@@ -201,47 +202,45 @@ bool ServerTransportImpl::TransportBase::update_NetThread(long time)
 	// Socket 更新
 	mOwner->mNetSelect.select(1);
 	
-	// 處理 TCP 連線
+	// 處理 TCP 連線 (接受新連線)
 	mOwner->mTcpServer.updateSocket(time, mOwner->mNetSelect);
 	
 	// 處理 UDP 資料
 	mOwner->mUdpServer.updateSocket(time, mOwner->mNetSelect);
+	
+	// ✅ 處理每個已連線 Client 的 socket！
+	// 使用索引迭代以避免迭代器失效（因為 vector 可能在迭代期間增長）
+	size_t clientCount = mOwner->mClients.size();
+	for (size_t i = 0; i < clientCount; ++i)
+	{
+		auto& client = mOwner->mClients[i];
+		if (client.tcpClient)
+		{
+			// 檢查 socket 狀態
+			SocketState state = client.tcpClient->getSocket().getState();
+			if (state == SKS_CLOSE)
+			{
+				LogWarning(0, "Client[%d] SessionId=%d has closed socket!", (int)i, client.id);
+				continue;
+			}
+			client.tcpClient->updateSocket(time, mOwner->mNetSelect);
+		}
+	}
 	
 	return true;
 }
 
 bool ServerTransportImpl::sendPacket(SessionId targetId, ENetChannelType channel, IComPacket* cp)
 {
-	// 在 Net Thread 中執行實際發送
-	postToNetThread([this, targetId, channel, cp]() {
-		// 找到對應的 Client
-		for (auto& client : mClients)
+	// ✅ FNetCommand::Write 只是序列化到 buffer，不會阻塞
+	// 實際的 socket 發送是異步的，所以我們可以在這裡直接執行
+	
+	// 找到對應的 Client
+	for (auto& client : mClients)
+	{
+		if (client.id == targetId)
 		{
-			if (client.id == targetId)
-			{
-				// 根據 channel 類型發送
-				if (channel == ENetChannelType::Tcp)
-				{
-					TcpServerClientChannel tcpChannel(*client.tcpClient);
-					tcpChannel.send(cp);
-				}
-				else // UdpChain
-				{
-					// TODO: 實作 UDP 發送
-				}
-				return;
-			}
-		}
-	});
-	return true;
-}
-
-bool ServerTransportImpl::broadcastPacket(ENetChannelType channel, IComPacket* cp)
-{
-	// 在 Net Thread 中執行廣播
-	postToNetThread([this, channel, cp]() {
-		for (auto& client : mClients)
-		{
+			// 根據 channel 類型發送
 			if (channel == ENetChannelType::Tcp)
 			{
 				TcpServerClientChannel tcpChannel(*client.tcpClient);
@@ -249,10 +248,33 @@ bool ServerTransportImpl::broadcastPacket(ENetChannelType channel, IComPacket* c
 			}
 			else // UdpChain
 			{
-				// TODO: 實作 UDP 廣播
+				// TODO: 實作 UDP 發送
 			}
+			return true;
 		}
-	});
+	}
+	
+	return false; // Client not found
+}
+
+bool ServerTransportImpl::broadcastPacket(ENetChannelType channel, IComPacket* cp)
+{
+	// ✅ FNetCommand::Write 只是序列化到 buffer，不會阻塞
+	// 實際的 socket 發送是異步的，所以我們可以在這裡直接執行
+	
+	for (auto& client : mClients)
+	{
+		if (channel == ENetChannelType::Tcp)
+		{
+			TcpServerClientChannel tcpChannel(*client.tcpClient);
+			tcpChannel.send(cp);
+		}
+		else // UdpChain
+		{
+			// TODO: 實作 UDP 廣播
+		}
+	}
+	
 	return true;
 }
 
@@ -437,22 +459,46 @@ bool ServerTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnection* con)
 {
-	// 新连线接受
-	TcpServer::Client* client = static_cast<TcpServer::Client*>(con);
+	LogMsg("DEBUG: notifyConnectionAccpet called, con=%p", con);
+	
+	// ✅ con 是 TcpServer 本身，我們需要在這裡調用 accept() 來創建新的 client socket！
+	// 參考舊的 ServerWorker::notifyConnectionAccpet (GameServer.cpp line 240-285)
+	TcpServer* server = static_cast<TcpServer*>(con);
+	
+	// ✅ 實際調用 accept() 來接受連接並創建新的 client socket
+	// 這會移除 pending connection，防止重複觸發
+	NetSocket conSocket;
+	NetAddress clientAddr;
+	if (!server->getSocket().accept(conSocket, clientAddr))
+	{
+		LogWarning(0, "Failed to accept client connection");
+		return;
+	}
+	
+	LogMsg("Client accepted from %s:%d", clientAddr.getIP(), ntohs(clientAddr.get().sin_port));
+	
+	// ✅ 創建新的 Client 並將 socket 移動過去
+	TcpServer::Client* client = new TcpServer::Client();
+	client->getSocket().move(conSocket);
 	
 	SessionId newId = mOwner->mNextSessionId++;
+	LogMsg("Creating new client: SessionId=%d, client=%p, total clients=%d", 
+		newId, client, (int)mOwner->mClients.size());
 	
-	// ✅ 保存客户端连接！
+	// ✅ 保存客户端连接
 	ClientData clientData;
 	clientData.id = newId;
 	clientData.tcpClient = client;
 	mOwner->mClients.push_back(clientData);
 	
-	// ✅ 设置监听器！这样才能收到 TCP 数据
+	// ✅ 设置监听器
 	client->setListener(this);
 	
-	LogMsg("Client Connection");
-	LogMsg("Client connected: SessionId=%d", newId);
+	// ✅ 将 Client socket 加入 NetSelectSet
+	mOwner->mNetSelect.addSocket(client->getSocket());
+	
+	LogMsg("Client connected: SessionId=%d, NetSelect has %d sockets", 
+		newId, (int)mOwner->mNetSelect.mSockets.size());
 	
 	// 通知会话层
 	if (mOwner->mCallbacks.onConnectionEstablished)
@@ -461,6 +507,8 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 			owner->mCallbacks.onConnectionEstablished(newId);
 		});
 	}
+	
+	LogMsg("DEBUG: notifyConnectionAccpet completed for SessionId=%d", newId);
 }
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionClose(NetConnection* con, NetCloseReason reason)
@@ -496,8 +544,8 @@ ClientTransportImpl::ClientTransportImpl()
 	mBase.mOwner = this;
 	mListener.mOwner = this;
 	
-	mTcpClient.setListener(&mListener);
-	mUdpClient.setListener(&mListener);
+	// ❌ 不要在這裡設置 listener！
+	// Client 的 listener 會在需要時設置（例如連線時）
 }
 
 ClientTransportImpl::~ClientTransportImpl()
@@ -555,6 +603,10 @@ void ClientTransportImpl::connect(char const* hostName, int port)
 		port = TG_TCP_PORT;
 	
 	LogMsg("Client connecting to %s:%d", hostName, port);
+	
+	// ✅ 設置 listener（在連線之前）
+	mTcpClient.setListener(&mListener);
+	mUdpClient.setListener(&mListener);
 	
 	mTcpClient.connect(hostName, port);
 	mNetSelect.addSocket(mTcpClient.getSocket());

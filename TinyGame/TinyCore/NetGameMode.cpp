@@ -527,15 +527,21 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 	case NAS_ROOM_READY:
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
-			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getSlot() );
-			slot.choice->setColorName( EColor::Green );
+			if (player)
+			{
+				PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getSlot() );
+				slot.choice->setColorName( EColor::Green );
+			}
 		}
 		break;
 	case NAS_ROOM_WAIT:
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
-			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getSlot() );
-			slot.choice->setColorName( EColor::Blue );
+			if (player)
+			{
+				PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getSlot() );
+				slot.choice->setColorName( EColor::Blue );
+			}
 		}
 		break;
 	case NAS_CONNECT:
@@ -548,9 +554,12 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
-			InlineString< 64 > str;
-			str.format( LOCTEXT("== %s Inter Room =="), player->getName() );
-			mMsgPanel->addMessage( str , Color3ub( 255 , 125 , 0 ) );
+			if (player)
+			{
+				InlineString< 64 > str;
+				str.format( LOCTEXT("== %s Inter Room =="), player->getName() );
+				mMsgPanel->addMessage( str , Color3ub( 255 , 125 , 0 ) );
+			}
 		}
 		break;
 	case NAS_DISSCONNECT:

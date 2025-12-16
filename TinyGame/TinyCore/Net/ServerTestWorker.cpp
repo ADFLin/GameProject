@@ -58,9 +58,61 @@ bool ServerTestWorker::doStartNetwork()
 		onSessionEvent(event, playerId);
 	});
 	
+	// 5. ✅ 創建 local player (Server 自己)
+	// 舊的 SVPlayerManager 會自動創建 SUserPlayer
+	// 新架構需要明確創建
+	PlayerId localPlayerId = mSession->createLocalPlayer("Server");
+	if (localPlayerId == ERROR_PLAYER_ID)
+	{
+		LogWarning(0, "ServerTestWorker: Failed to create local player");
+	}
+	else
+	{
+		LogMsg("ServerTestWorker: Local player created, PlayerId=%d", localPlayerId);
+	}
 	
 	// ✅ server_info 请求现在由 NetSession 层自动处理
 	// 不需要在这里注册处理器
+	
+	// 6. ✅ 註冊 Game 層 packet observers
+	// Session 層處理完 packet 後，會通知 observer，轉發給 ComEvaluator
+	// 這樣 NetRoomStage/NetLevelStageMode 等才能收到 packet
+	
+	// NetRoomStage + NetLevelStageMode 使用的封包
+	mSession->addPacketObserver(CSPPlayerState::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	mSession->addPacketObserver(CSPMsg::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	mSession->addPacketObserver(CSPRawData::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	mSession->addPacketObserver(SPPlayerStatus::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	mSession->addPacketObserver(SPSlotState::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	mSession->addPacketObserver(SPLevelInfo::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	mSession->addPacketObserver(SPNetControlRequest::PID, [this](PlayerId id, IComPacket* cp) {
+		getEvaluator().procCommand(cp);
+	});
+	
+	// 可以添加更多層級的 observers，例如：
+	// - System layer observer（記錄、統計）
+	// - UI layer observer（通知更新）
+	// - Debug observer（日誌）
+	
+	LogMsg("ServerTestWorker: Registered %d packet observers for Game layer", 7);
 
 	LogMsg("ServerTestWorker: Network started successfully");
 	return true;
@@ -178,7 +230,8 @@ bool ServerTestWorker::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag 
 
 SVPlayerManager* ServerTestWorker::getPlayerManager()
 {
-	return static_cast<SVPlayerManager*>(mSession ? mSession->getPlayerManager() : nullptr);
+	// ✅ 直接返回 Session 層的 SVPlayerManager
+	return mSession ? mSession->getSVPlayerManager() : nullptr;
 }
 
 void ServerTestWorker::generatePlayerStatus(SPPlayerStatus& comPS)
@@ -356,7 +409,10 @@ void ServerTestWorker::onSessionEvent(ENetSessionEvent event, PlayerId playerId)
 {
 	LogMsg("ServerTestWorker: Session event %d for PlayerId=%d", (int)event, playerId);
 
-	// 橋接到舊的 INetStateListener
+	// ✅ Session 層已經實現了 IPlayerManager，不需要額外的 player 管理
+	// Player 的創建和刪除都在 NetSessionHostImpl 中處理
+	
+	// 橋接到舊的 INetStateListener (for NetRoomStage etc.)
 	if (mNetListener)
 	{
 		switch (event)

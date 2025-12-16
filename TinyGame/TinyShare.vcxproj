@@ -253,6 +253,7 @@
     <ClInclude Include="TinyCore\InputManager.h" />
     <ClInclude Include="TinyCore\Localization.h" />
     <ClInclude Include="TinyCore\MiscTestRegister.h" />
+    <ClInclude Include="TinyCore\Net\ServerTestWorker.h" />
     <ClInclude Include="TinyCore\RenderDebug.h" />
     <ClInclude Include="TinyCore\RenderUtility.h" />
     <ClInclude Include="TinyCore\StageRegister.h" />
@@ -296,6 +297,7 @@
     <ClCompile Include="TinyCore\InputManager.cpp" />
     <ClCompile Include="TinyCore\Localization.cpp" />
     <ClCompile Include="TinyCore\MiscTestRegister.cpp" />
+    <ClCompile Include="TinyCore\Net\ServerTestWorker.cpp" />
     <ClCompile Include="TinyCore\RenderDebug.cpp" />
     <ClCompile Include="TinyCore\RenderUtility.cpp" />
     <ClCompile Include="TinyCore\StageRegister.cpp" />
@@ -328,6 +330,10 @@
     </ClCompile>
     <ClCompile Include="TinyCore\Net\NetSystemManager.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="TinyCore\Net\NetGameModeEx.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>

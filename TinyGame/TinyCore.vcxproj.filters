@@ -407,6 +407,9 @@
     <ClInclude Include="..\OtherLib\Lua\ltable.h">
       <Filter>OtherLib\Lua</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\NetStageController.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -660,6 +663,9 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\Lua\ltablib.c">
       <Filter>OtherLib\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\NetStageController.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

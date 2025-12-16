@@ -3,6 +3,7 @@
 
 #include "GameWorker.h"
 #include "GamePlayer.h"
+#include "NetChannel.h"
 
 #include "Holder.h"
 
@@ -43,6 +44,11 @@ public:
 	CLPlayerManager* getPlayerManager(){ return mPlayerManager; }
 
 	bool  haveConnect(){ return mSessoionId != 0; }
+	
+	// Channel-based interface
+	INetChannel* getTcpChannel() { return mChannelGroup.getTcpChannel(); }
+	INetChannel* getUdpChannel() { return mChannelGroup.getUdpChannel(); }
+	NetChannelGroup& getChannelGroup() { return mChannelGroup; }
 
 protected:
 	
@@ -81,6 +87,9 @@ protected:
 	LatencyCalculator   mCalculator;
 	int                 mNumSampleTest;
 	long                mNetLatency;
+	
+	// Network channels
+	NetChannelGroup     mChannelGroup;
 
 };
 

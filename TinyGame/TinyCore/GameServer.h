@@ -3,6 +3,7 @@
 
 #include "GameWorker.h"
 #include "GamePlayer.h"
+#include "NetChannel.h"
 
 #include "Flag.h"
 #include "Holder.h"
@@ -142,9 +143,20 @@ public:
 	void  sendTcpCommand( IComPacket* cp );
 	void  sendUdpCommand( IComPacket* cp );
 	void  sendCommand( int channel , IComPacket* cp );
+	
+	// Channel-based interface
+	INetChannel* getTcpChannel() { return mTcpChannel.get(); }
+	INetChannel* getUdpChannel() { return mUdpChannel.get(); }
+
 protected:
+	void initChannels();
+	
 	ServerWorker*    mServer;
 	NetClientData*   mClient;
+	
+	// Network channels
+	std::unique_ptr<TcpServerClientChannel> mTcpChannel;
+	std::unique_ptr<UdpChainChannel> mUdpChannel;
 };
 
 class SLocalPlayer : public ServerPlayer
@@ -336,6 +348,7 @@ public:
 	void removeConnect_NetThread( NetClientData* client, bool bRMPlayer = true );
 
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }
+	NetSocket& getUdpSocket() { return mUdpServer.getSocket(); }
 
 	void  generatePlayerStatus( SPPlayerStatus& comPS );
 	/////////////////////////////////////////////////

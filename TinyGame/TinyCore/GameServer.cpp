@@ -39,7 +39,8 @@ LocalWorker* ServerWorker::createLocalWorker( char const* userName )
 
 void ServerWorker::sendClientTcpCommand( NetClientData& client , IComPacket* cp )
 {
-	FNetCommand::Write( client.tcpChannel.getSendCtrl() , cp );
+	TcpServerClientChannel channel(client.tcpChannel);
+	channel.send(cp);
 }
 
 bool ServerWorker::doStartNetwork()
@@ -1321,29 +1322,39 @@ void LocalWorker::recvCommand(IComPacket* cp)
 
 void SNetPlayer::sendCommand( int channel , IComPacket* cp )
 {
-#if 0
-	SocketBuffer buffer( 1000 );
-	int num = FillBufferFromCom( buffer , cp );
-#endif
 	switch( channel )
 	{
 	case CHANNEL_GAME_NET_TCP:
-		FNetCommand::Write( mClient->tcpChannel.getSendCtrl() , cp );
+		if (mTcpChannel)
+			mTcpChannel->send(cp);
 		break;
 	case CHANNEL_GAME_NET_UDP_CHAIN:
-		FNetCommand::Write( mClient->udpChannel.getSendCtrl() , cp );
+		if (mUdpChannel)
+			mUdpChannel->send(cp);
 		break;
 	}
 }
 
 void SNetPlayer::sendTcpCommand( IComPacket* cp )
 {
-	FNetCommand::Write( mClient->tcpChannel.getSendCtrl() , cp );
+	if (mTcpChannel)
+		mTcpChannel->send(cp);
 }
 
 void SNetPlayer::sendUdpCommand( IComPacket* cp )
 {
-	FNetCommand::Write( mClient->udpChannel.getSendCtrl() , cp );
+	if (mUdpChannel)
+		mUdpChannel->send(cp);
+}
+
+void SNetPlayer::initChannels()
+{
+	if (mClient)
+	{
+		mTcpChannel = std::make_unique<TcpServerClientChannel>(mClient->tcpChannel);
+		mUdpChannel = std::make_unique<UdpChainChannel>(mClient->udpChannel, 
+			mServer->getUdpSocket(), mClient->udpAddr);
+	}
 }
 
 SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client ) 
@@ -1351,4 +1362,6 @@ SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client )
 {
 	mServer     = server;
 	mClient     = client;
+	initChannels();
 }
+

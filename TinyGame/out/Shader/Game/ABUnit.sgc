@@ -1,0 +1,74 @@
+#include "Common.sgc"
+
+// AutoBattler Unit Shader with lighting
+
+struct VSOutputParam
+{
+	float3 worldPos  MEMBER_OUT(TEXCOORD0);
+	float3 normal    MEMBER_OUT(TEXCOORD1);
+};
+
+uniform float4x4 WorldMatrix;
+uniform float4x4 ViewProjMatrix;
+uniform float4   BaseColor;
+uniform float3   LightDir;
+uniform float3   ViewPos;
+uniform float    RimPower;
+uniform float    SpecularPower;
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
+	VS_OUTPUT_STRUCT(VSOutputParam VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	float4 worldPos = mul(WorldMatrix, float4(InPos, 1.0));
+	VSOutput.worldPos = worldPos.xyz;
+	VSOutput.normal = normalize(mul(float4(InNormal, 0.0), WorldMatrix).xyz);
+	SvPosition = mul(ViewProjMatrix, worldPos);
+}
+
+#endif // VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParam VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float3 N = normalize(VSOutput.normal);
+	float3 L = normalize(LightDir);
+	float3 V = normalize(ViewPos - VSOutput.worldPos);
+	float3 H = normalize(L + V);
+	
+	// Ambient
+	float3 ambient = 0.15 * BaseColor.rgb;
+	
+	// Diffuse (Half-Lambert for softer look)
+	float NdotL = dot(N, L);
+	float halfLambert = NdotL * 0.5 + 0.5;
+	float3 diffuse = halfLambert * halfLambert * BaseColor.rgb;
+	
+	// Specular (Blinn-Phong)
+	float NdotH = max(dot(N, H), 0.0);
+	float specular = pow(NdotH, SpecularPower) * 0.5;
+	float3 specularColor = float3(1.0, 1.0, 1.0) * specular;
+	
+	// Rim lighting for dramatic effect
+	float rim = 1.0 - max(dot(N, V), 0.0);
+	rim = pow(rim, RimPower);
+	float3 rimColor = rim * BaseColor.rgb * 0.4;
+	
+	// Combine
+	float3 finalColor = ambient + diffuse + specularColor + rimColor;
+	
+	// Slight tone mapping for better look
+	finalColor = finalColor / (finalColor + 0.5);
+	
+	OutColor = float4(finalColor, BaseColor.a);
+}
+
+#endif // PIXEL_SHADER

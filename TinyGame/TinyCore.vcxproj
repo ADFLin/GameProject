@@ -285,6 +285,7 @@
     <ClInclude Include="TinyCore\GameGraphics2D.h" />
     <ClInclude Include="TinyCore\GameStageMode.h" />
     <ClInclude Include="TinyCore\GameRenderSetup.h" />
+    <ClInclude Include="TinyCore\NetStageController.h" />
     <ClInclude Include="TinyCore\RenderLayer.h" />
     <ClInclude Include="Widget\GameDetailPanel.h" />
     <ClInclude Include="Widget\WidgetLayout.h" />
@@ -689,6 +690,7 @@
     <ClCompile Include="TinyCore\GameModule.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />
     <ClCompile Include="TinyCore\GameStageMode.cpp" />
+    <ClCompile Include="TinyCore\NetStageController.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -122,6 +122,21 @@
     <ClInclude Include="Stage\TestRenderStageBase.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\NetClientChannel.h">
+      <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\NetChannel.h">
+      <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\Net\INetTransport.h" />
+    <ClInclude Include="TinyCore\Net\INetSession.h" />
+    <ClInclude Include="TinyCore\Net\IGameNetSession.h" />
+    <ClInclude Include="TinyCore\Net\NetLayerFwd.h" />
+    <ClInclude Include="TinyCore\Net\NetTransportImpl.h" />
+    <ClInclude Include="TinyCore\Net\NetSessionImpl.h" />
+    <ClInclude Include="TinyCore\Net\NetSessionAdapter.h" />
+    <ClInclude Include="TinyCore\Net\NetSystemManager.h" />
+    <ClInclude Include="TinyCore\Net\NetGameModeEx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -214,6 +229,24 @@
     </ClCompile>
     <ClCompile Include="Stage\TestRenderStageBase.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\NetChannel.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\Net\NetTransportImpl.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\Net\NetSessionImpl.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\Net\NetSessionAdapter.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\Net\NetSystemManager.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\Net\NetGameModeEx.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

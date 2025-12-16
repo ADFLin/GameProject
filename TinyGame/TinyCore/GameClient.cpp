@@ -108,6 +108,12 @@ void ClientWorker::notifyConnectionOpen( NetConnection* con )
 		addr.setFromSocket( mTcpClient.getSocket() );
 		mUdpClient.setServerAddr( addr.getIP() , TG_UDP_PORT );
 		mTcpClient.setListener( this );
+		
+		// Initialize network channels (both use reliable transport)
+		mChannelGroup.setTcpChannel(
+			std::make_unique<TcpNetChannel>(mTcpClient));
+		mChannelGroup.setUdpChannel(
+			std::make_unique<UdpChainChannel>(mUdpClient));
 
 		CPLogin com;
 		com.id   = mSessoionId;
@@ -126,7 +132,7 @@ void ClientWorker::notifyConnectionOpen( NetConnection* con )
 	}
 	catch ( std::exception& e )
 	{
-		e.what();
+		LogWarning(0, "Connection open error: %s", e.what());
 	}
 }
 
@@ -325,10 +331,16 @@ bool ClientWorker::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag
 	switch( channel )
 	{
 	case CHANNEL_GAME_NET_TCP:
-		FNetCommand::Write( mTcpClient.getSendCtrl() , cp );
+		if (auto* ch = mChannelGroup.getTcpChannel())
+			ch->send(cp);
+		else
+			FNetCommand::Write( mTcpClient.getSendCtrl() , cp );
 		break;
 	case CHANNEL_GAME_NET_UDP_CHAIN:
-		FNetCommand::Write( mUdpClient.getSendCtrl() , cp );
+		if (auto* ch = mChannelGroup.getUdpChannel())
+			ch->send(cp);
+		else
+			FNetCommand::Write( mUdpClient.getSendCtrl() , cp );
 		break;
 	}
 	return true;

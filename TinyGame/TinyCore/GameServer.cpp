@@ -175,7 +175,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 
 			while( buffer.getAvailableSize() )
 			{
-				if( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer, -1, clientAddr) )
+				if( !FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), buffer, -1, clientAddr) )
 				{
 					result = false;
 					break;
@@ -184,7 +184,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 		}
 		else
 		{
-			result = FNetCommand::Eval(client->udpChannel, getPacketFactory(), getPacketDispatcher(), buffer, CLIENT_GROUP , client);
+			result = FNetCommand::Eval(client->udpChannel, GGamePacketFactory, getPacketDispatcher(), buffer, CLIENT_GROUP , client);
 		}
 
 		return result;
@@ -199,7 +199,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 
 		while( buffer.getAvailableSize() )
 		{		
-			if ( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer , CLIENT_GROUP, client) )
+			if ( !FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), buffer , CLIENT_GROUP, client) )
 			{
 				return false;
 			}
@@ -1278,7 +1278,7 @@ void LocalWorker::doUpdate(long time)
 	{
 		while( mSendBuffer.getAvailableSize() )
 		{
-			if( !FNetCommand::EvalCommand(mServer->getPacketFactory(), mServer->getPacketDispatcher(), mSendBuffer) )
+			if( !FNetCommand::EvalCommand(GGamePacketFactory, mServer->getPacketDispatcher(), mSendBuffer) )
 				break;
 		}
 	}
@@ -1294,7 +1294,7 @@ void LocalWorker::doUpdate(long time)
 	{
 		while( mRecvBuffer.getAvailableSize() )
 		{
-			if( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), mRecvBuffer) )
+			if( !FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), mRecvBuffer) )
 				break;
 		}
 	}

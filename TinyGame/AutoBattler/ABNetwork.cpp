@@ -17,12 +17,12 @@ namespace AutoBattler
 		mWorker = param.worker;
 		mNetWorker = param.netWorker;
 
-		mNetWorker->getEvaluator().setUserFunc<ABFramePacket>(this, &ABNetEngine::onFramePacket);
-		mNetWorker->getEvaluator().setUserFunc<ABSyncPacket>(this, &ABNetEngine::onSyncPacket); // Register for both
+		mNetWorker->getPacketDispatcher().setUserFunc<ABFramePacket>(this, &ABNetEngine::onFramePacket);
+		mNetWorker->getPacketDispatcher().setUserFunc<ABSyncPacket>(this, &ABNetEngine::onSyncPacket); // Register for both
 
 		if (mNetWorker->isServer())
 		{
-			mNetWorker->getEvaluator().setUserFunc<ABActionPacket>(this, &ABNetEngine::onPacketSV);
+			mNetWorker->getPacketDispatcher().setUserFunc<ABActionPacket>(this, &ABNetEngine::onPacketSV);
 		}
 
 		mSimAccumulator = 0;

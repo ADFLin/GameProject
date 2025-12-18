@@ -30,11 +30,6 @@ void ComWorker::update( long time )
 	doUpdate( time );
 }
 
-PacketFactory& ComWorker::getPacketFactory()
-{
-	return GGamePacketFactory;
-}
-
 void ComWorker::removeProcesserFunc(void* processer)
 {
 	mPacketDispatcher.removeProcesserFunc(processer);
@@ -288,27 +283,12 @@ bool FNetCommand::EvalCommand(PacketFactory& factory, PacketDispatcher& dispatch
 	IComPacket* packet = factory.createPacketFromBuffer(buffer, group, userData);
 	if (!packet)
 		return false;
-	
-	// 2. 查找处理函数
-	PacketDispatcher::PacketHandler* handler = dispatcher.findHandler(packet->getID());
-	
-	// 3. 执行 socket 线程函数（如果有）
-	if (handler && handler->workerFuncSocket)
+
+	if (!dispatcher.recvCommand(packet))
 	{
-		handler->workerFuncSocket(packet);
-	}
-	
-	// 4. 加入分发队列（如果有其他处理函数）
-	if (handler && (handler->workerFunc || handler->userFunc))
-	{
-		dispatcher.enqueue(packet, handler);
-	}
-	else
-	{
-		// 没有处理函数，删除 packet
 		delete packet;
 	}
-	
+
 	return true;
 }
 

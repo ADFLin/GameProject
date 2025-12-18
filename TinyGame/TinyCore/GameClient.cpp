@@ -159,7 +159,7 @@ bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buff
 		{
 			while( buffer.getAvailableSize() )
 			{
-				if ( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer) )
+				if ( !FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), buffer) )
 				{
 					return false;
 				}
@@ -168,20 +168,20 @@ bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buff
 		}
 		else
 		{
-			return FNetCommand::Eval(mUdpClient, getPacketFactory(), getPacketDispatcher(), buffer);
+			return FNetCommand::Eval(mUdpClient, GGamePacketFactory, getPacketDispatcher(), buffer);
 		}
 	}
 	else
 	{
 		if (con == &mUdpClient)
 		{
-			return FNetCommand::Eval(mUdpClient, getPacketFactory(), getPacketDispatcher(), buffer);
+			return FNetCommand::Eval(mUdpClient, GGamePacketFactory, getPacketDispatcher(), buffer);
 		}
 		else
 		{
 			while (buffer.getAvailableSize())
 			{
-				if (!FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer))
+				if (!FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), buffer))
 				{
 					return false;
 				}
@@ -471,9 +471,9 @@ bool DelayClientWorker::update_NetThread( long time )
 	if ( !BaseClass::update_NetThread( time ) )
 		return false;
 
-	mRDCTcp.update( time , mUdpClient , getPacketFactory(), getPacketDispatcher() );
-	mRDCUdp.update( time , mUdpClient , getPacketFactory(), getPacketDispatcher() );
-	mRDCUdpCL.update( time , mUdpClient , getPacketFactory(), getPacketDispatcher() );
+	mRDCTcp.update( time , mUdpClient , GGamePacketFactory, getPacketDispatcher() );
+	mRDCUdp.update( time , mUdpClient , GGamePacketFactory, getPacketDispatcher() );
+	mRDCUdpCL.update( time , mUdpClient , GGamePacketFactory, getPacketDispatcher() );
 
 	return true;
 }

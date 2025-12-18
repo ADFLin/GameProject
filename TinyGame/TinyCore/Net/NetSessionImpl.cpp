@@ -292,16 +292,39 @@ void NetSessionHostImpl::unregisterPacketHandler(ComID packetId)
 
 void NetSessionHostImpl::sendReliable(IComPacket* cp)
 {
+	// 發送給網路上的 clients
 	mServerTransport->broadcastPacket(ENetChannelType::Tcp, cp);
+	
+	// ✅ 也發送給 local player（如果有）
+	// 直接在 Session 層處理，像收到網路 packet 一樣
+	if (mLocalPlayerId != ERROR_PLAYER_ID)
+	{
+		dispatchPacket(mLocalPlayerId, cp);
+	}
 }
 
 void NetSessionHostImpl::sendUnreliable(IComPacket* cp)
 {
+	// 發送給網路上的 clients
 	mServerTransport->broadcastPacket(ENetChannelType::UdpChain, cp);
+	
+	// ✅ 也發送給 local player（如果有）
+	if (mLocalPlayerId != ERROR_PLAYER_ID)
+	{
+		dispatchPacket(mLocalPlayerId, cp);
+	}
 }
 
 void NetSessionHostImpl::sendReliableTo(PlayerId targetId, IComPacket* cp)
 {
+	// ✅ 如果是發送給 local player
+	if (targetId == mLocalPlayerId && mLocalPlayerId != ERROR_PLAYER_ID)
+	{
+		dispatchPacket(mLocalPlayerId, cp);
+		return;
+	}
+	
+	// 發送給網路 player
 	SessionId sessionId = getPlayerSession(targetId);
 	if (sessionId != 0)
 	{
@@ -858,7 +881,16 @@ PlayerId NetSessionHostImpl::createPlayer(SessionId sessionId, char const* name)
 PlayerId NetSessionHostImpl::createLocalPlayer(char const* name)
 {
 	// Local player 不關聯 SessionId，使用特殊值 0
-	return createPlayer(0, name);
+	PlayerId playerId = createPlayer(0, name);
+	
+	// ✅ 設置 local player ID，這樣廣播時會包含 local player
+	if (playerId != ERROR_PLAYER_ID)
+	{
+		mLocalPlayerId = playerId;
+		LogMsg("Local player created: PlayerId=%d", playerId);
+	}
+	
+	return playerId;
 }
 
 void NetSessionHostImpl::removePlayer(PlayerId id)

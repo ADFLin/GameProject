@@ -163,6 +163,8 @@ public:
 	// 移除所有 observers
 	void clearPacketObservers();
 	
+	bool hasLocalPlayer() const { return mLocalPlayerId != ERROR_PLAYER_ID; }
+	
 protected:
 	void registerCorePacketHandlers() override;
 	

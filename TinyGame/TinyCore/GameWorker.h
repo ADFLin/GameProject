@@ -133,7 +133,6 @@ public:
 	
 	// 新接口：直接访问组件
 	PacketDispatcher& getPacketDispatcher(){ return mPacketDispatcher; }
-	PacketFactory&    getPacketFactory();
 	
 	// 辅助方法：模拟 ComEvaluator 接口（用于兼容现有代码）
 	template<class GamePacketT, class T, class TFunc>

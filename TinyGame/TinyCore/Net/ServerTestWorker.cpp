@@ -58,17 +58,17 @@ bool ServerTestWorker::doStartNetwork()
 		onSessionEvent(event, playerId);
 	});
 	
-	// 5. ✅ 創建 local player (Server 自己)
-	// 舊的 SVPlayerManager 會自動創建 SUserPlayer
-	// 新架構需要明確創建
-	PlayerId localPlayerId = mSession->createLocalPlayer("Server");
-	if (localPlayerId == ERROR_PLAYER_ID)
+	// 5. ✅ 創建 local worker 和 local player (Server 自己)
+	// LocalWorker 會創建 SUserPlayer，然後 Session 會收到 createPlayer 調用
+	// Session 層會自動處理 local player 的 packet 分發
+	LocalWorker* localWorker = createLocalWorker("Server");
+	if (!localWorker)
 	{
-		LogWarning(0, "ServerTestWorker: Failed to create local player");
+		LogWarning(0, "ServerTestWorker: Failed to create local worker");
 	}
 	else
 	{
-		LogMsg("ServerTestWorker: Local player created, PlayerId=%d", localPlayerId);
+		LogMsg("ServerTestWorker: Local worker created");
 	}
 	
 	// ✅ server_info 请求现在由 NetSession 层自动处理

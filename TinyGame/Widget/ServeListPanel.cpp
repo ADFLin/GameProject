@@ -31,12 +31,12 @@ ServerListPanel::ServerListPanel( ClientWorker* worker, Vec2i const& pos , GWidg
 	button= new GButton( UI_MAIN_MENU ,  Vec2i ( 10 , 265 ) , Vec2i( 210 , 20 ) , this );
 	button->setTitle( LOCTEXT("Exit") );
 
-	mWorker->getEvaluator().setUserFunc< SPServerInfo >( this , &ServerListPanel::procServerInfo );
+	mWorker->setUserFunc< SPServerInfo >( this , &ServerListPanel::procServerInfo );
 }
 
 ServerListPanel::~ServerListPanel()
 {
-	mWorker->getEvaluator().removeProcesserFunc( this );
+	mWorker->removeProcesserFunc( this );
 }
 
 bool ServerListPanel::onChildEvent( int event , int id , GWidget* ui )

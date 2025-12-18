@@ -6,19 +6,20 @@
 
 #include "Holder.h"
 
-struct PacketHeader
-{
-	ComID   type;
-	uint32  size;
-};
-static unsigned const ComPacketHeaderSize = sizeof( PacketHeader );
-
-
 ComEvaluator::ComEvaluator()
+	: mFactory(&GGamePacketFactory)
 {
 
 }
 
+ComEvaluator::ComEvaluator(PacketFactory& factory)
+	: mFactory(&factory)
+{
+}
+
+ComEvaluator::~ComEvaluator()
+{
+}
 
 bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userData )
 {
@@ -26,43 +27,30 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 		return false;
 	
 	TPtrHolder< IComPacket > cp;
-	ComID comID;
+	ComID comID = 0;
 
 	size_t oldUseSize = buffer.getUseSize();
 	try
 	{
-		buffer.take( comID );
-
-		ICPFactory* factory;
+		// å…ˆé¢„è¯» ComID ç”¨äºŽé”™è¯¯æŠ¥å‘Š
+		if (buffer.getAvailableSize() >= sizeof(ComID))
 		{
-			NET_MUTEX_LOCK( mMutexCPFactoryMap );
-			factory = findFactory( comID );
-		}
-		if ( factory == NULL )
-			throw ComException( "Can't find com" );
-
-		cp.reset( factory->createCom() );
-		cp->mGroup = group;
-		cp->mUserData = userData;
-
-		if ( !ReadBuffer( buffer , cp.get() )  )
-			return false;
-
-		if ( factory->workerFuncSocket )
-		{
-			( factory->workerFuncSocket )( cp.get() );
+			buffer.take(comID);
+			buffer.setUseSize(oldUseSize); // å›žé€€ï¼Œè®© createPacketFromBuffer é‡æ–°è¯»å–
 		}
 
-		if (  factory->workerFunc || factory->userFunc )
+		// ä½¿ç”¨ PacketFactory è§£æžå¹¶åˆ›å»º Packet
+		cp.reset( mFactory->createPacketFromBuffer(buffer, group, userData) );
+		if (!cp.get())
 		{
-			NET_MUTEX_LOCK( mMutexProcCPList );
-
-			UserCom com;
-			com.factory   = factory;
-			com.cp        = cp.release();
-			mProcCPList.push_back( com );
+			throw ComException( "Can't create packet from buffer" );
 		}
 
+		comID = cp->getID();
+		if (mDispatcher.recvCommand(cp.get()))
+		{
+			cp.release();
+		}
 	}
 	catch ( ComException& e )
 	{
@@ -79,225 +67,28 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 
 IComPacket* ComEvaluator::readNewPacket(SocketBuffer& buffer, int group /*= -1*/, void* userData)
 {
-	// ¼È¦s¥Ø«eªº buffer ¦ì¸m
-	size_t oldUseSize = buffer.getUseSize();
-
-	// Åª¨ú«Ê¥] ID
-	ComID comID;
-	if (buffer.getAvailableSize() < sizeof(ComID))
-		nullptr;
-
-	buffer.take(comID);
-
-	// ¬d§ä«Ê¥]¤u¼t
-	auto factory = findFactory(comID);
-	if (!factory)
-	{
-		// ¥¼ª¾«Ê¥]Ãþ«¬¡A¦^°h¨Ã°±¤î¸ÑªR
-		buffer.setUseSize(oldUseSize);
-		LogWarning(0, "Unknown packet ID: %u", comID);
-		nullptr;
-	}
-
-	// ³Ð«Ø«Ê¥]¹ê¨Ò
-	IComPacket* packet = factory->createCom();
-	if (!packet)
-	{
-		buffer.setUseSize(oldUseSize);
-		return nullptr;
-	}
-
-	// ³]¸m«Ê¥]ªº¸s²Õ©M¥Î¤á¼Æ¾Ú¡]¥Î©óÂÂ¨t²Î­Ý®e¡^
-	packet->mGroup = group;
-	packet->mUserData = userData;
-
-	// Åª¨ú«Ê¥]¼Æ¾Ú
-	if (!ComEvaluator::ReadBuffer(buffer, packet))
-	{
-		// Åª¨ú¥¢±Ñ¡AÄÀ©ñ«Ê¥]¨Ã¦^°h
-		delete packet;
-		buffer.setUseSize(oldUseSize);
-		return nullptr;
-	}
-
-	return packet;
+	// å§”æ‰˜ç»™ PacketFactory è¿›è¡Œè§£æž
+	return mFactory->createPacketFromBuffer(buffer, group, userData);
 }
-
-
-
-void ComEvaluator::execCommand( IComPacket* cp , int group , void* userData )
-{
-	ICPFactory* factory = findFactory( cp->getID() );
-
-	if ( factory == NULL )
-	{
-		//::Msg( "Can't exec ComPacket id = %d " , cp->getID() );
-		return;
-	}
-
-	cp->mGroup = group;
-	cp->mUserData = userData;
-
-	if ( factory->userFunc )
-		( factory->userFunc )( cp );
-
-	if ( factory->workerFunc )
-		( factory->workerFunc )( cp );
-}
-
-
-ComEvaluator::~ComEvaluator()
-{
-	for( CPFactoryMap::iterator iter = mCPFactoryMap.begin();
-		iter != mCPFactoryMap.end() ; ++iter )
-	{
-		delete iter->second;
-	}
-}
-
-ComEvaluator::ICPFactory* ComEvaluator::findFactory( ComID com )
-{
-	CPFactoryMap::iterator iter = mCPFactoryMap.find( com );
-	if ( iter != mCPFactoryMap.end() )
-		return iter->second;
-	return NULL;
-}
-
-uint32 ComEvaluator::WriteBuffer( SocketBuffer& buffer , IComPacket* cp )
-{
-	size_t oldSize = buffer.getFillSize();	
-	uint32 size = 0;
-	try
-	{
-		buffer.fill( cp->mId );
-		buffer.fill( size );
-
-		cp->writeBuffer( buffer );
-	}
-	catch ( BufferException& e )
-	{
-		buffer.setFillSize( oldSize );
-		LogMsg( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
-		throw BufferException( "Can't fill buffer: Buffer has not space" );
-	}
-
-	size = unsigned( buffer.getFillSize() - oldSize );
-	unsigned* ptr = (unsigned*)( buffer.getData() + oldSize + sizeof( ComID ) );
-	*ptr = size;
-
-	return size;
-}
-
-bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
-{
-	uint32 takeSize;
-	buffer.take( takeSize );
-
-	takeSize -= ComPacketHeaderSize;
-	if ( takeSize > buffer.getAvailableSize() )
-	{
-		LogMsg( "Error packet format : size isn't enough" );
-		buffer.shiftUseSize( -int(ComPacketHeaderSize) );
-		return false;
-	}
-
-	uint32 oldSize = (uint32)buffer.getAvailableSize();
-	cp->readBuffer( buffer );
-
-	if ( takeSize != oldSize - (uint32)buffer.getAvailableSize() )
-		throw ComException( "Error packet format" );
-
-	return true;
-}
-
 
 void ComEvaluator::procCommand()
 {
-	NET_MUTEX_LOCK( mMutexProcCPList );
-
-	for( ComPacketList::iterator iter = mProcCPList.begin();
-		iter != mProcCPList.end() ;  ++iter )
-	{
-		UserCom& com = *iter;
-		assert( com.factory && com.factory->id == com.cp->getID() );
-
-		if ( com.factory->workerFunc )
-			( com.factory->workerFunc )( com.cp );
-
-		if ( com.factory->userFunc )
-			( com.factory->userFunc )( com.cp );
-
-		delete com.cp;
-	}
-
-	mProcCPList.clear();
+	mDispatcher.procCommand();
 }
 
 void ComEvaluator::procCommand(  ComVisitor& visitor )
 {
-	NET_MUTEX_LOCK( mMutexProcCPList );
-
-	for( ComPacketList::iterator iter = mProcCPList.begin();
-		iter != mProcCPList.end() ;  )
-	{
-		UserCom& com = *iter;
-		assert( com.factory && com.factory->id == com.cp->getID() );
-
-		if (com.factory->workerFunc)
-		{
-			(com.factory->workerFunc)(com.cp);
-		}
-
-		if (com.factory->userFunc)
-		{
-			(com.factory->userFunc)(com.cp);
-		}
-
-		switch ( visitor.visitComPacket(com.cp) )
-		{
-		case CVR_DISCARD: 
-			delete com.cp;
-			iter = mProcCPList.erase( iter );
-			break;
-		case CVR_TAKE:
-			iter = mProcCPList.erase( iter );
-			break;
-		case CVR_RESERVE:
-			++iter;
-			break;
-		}
-	}
+	mDispatcher.procCommand(visitor);
 }
 
 void ComEvaluator::procCommand(IComPacket* cp)
 {
-	auto factory = findFactory(cp->getID());
-	if (factory && factory->userFunc)
-	{
-		(factory->userFunc)(cp);
-	}
+	mDispatcher.procCommand(cp);
 }
 
 void ComEvaluator::removeProcesserFunc( void* processer )
 {
-	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	for( CPFactoryMap::iterator iter = mCPFactoryMap.begin();
-		iter != mCPFactoryMap.end() ; ++iter )
-	{
-		ICPFactory* factory = iter->second;
-
-		if ( factory->workerProcesser == processer )
-		{
-			factory->workerProcesser = NULL;
-			factory->workerFunc.clear();
-			factory->workerFuncSocket.clear();
-		}
-		if ( factory->userProcesser == processer )
-		{
-			factory->userProcesser = NULL;
-			factory->userFunc.clear();
-		}
-	}
+	mDispatcher.removeProcesserFunc(processer);
 }
 
 void IComPacket::writeBuffer( SocketBuffer& buffer )

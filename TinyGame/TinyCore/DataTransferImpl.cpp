@@ -15,7 +15,7 @@ CWorkerDataTransfer::CWorkerDataTransfer( ComWorker* worker , int slotId )
 {
 	mWorker = worker;
 	mSlotId = slotId;
-	mWorker->getEvaluator().setUserFunc< GDPStream >( this , &CWorkerDataTransfer::procPacket );
+	mWorker->setUserFunc< GDPStream >( this , &CWorkerDataTransfer::procPacket );
 }
 
 void CWorkerDataTransfer::sendTcpCommand( int recvId , IComPacket* cp )

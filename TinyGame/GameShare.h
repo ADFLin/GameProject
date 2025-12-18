@@ -6,6 +6,7 @@
 #include "LogSystem.h"
 
 TINY_API bool IsInGameThead();
+TINY_API extern class PacketFactory GGamePacketFactory;
 
 #if TINY_USE_NET_THREAD
 TINY_API bool IsInNetThread();

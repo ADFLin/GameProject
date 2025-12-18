@@ -6,7 +6,7 @@
 #include "GameNetConnect.h"
 #include "SocketBuffer.h"
 #include "PlatformThread.h"
-#include "ComPacket.h"
+#include "PacketFactory.h"
 
 
 /**
@@ -107,8 +107,9 @@ public:
 	long getNetLatency() const override { return 0; /* Server 無延遲 */ }
 	long getNetRunningTime() const override { return mBase.getNetRunningTime(); }
 	
-	// 封包評估器訪問
-	ComEvaluator& getPacketEvaluator() override { return mPacketEvaluator; }
+	// PacketFactory 管理
+	void setPacketFactory(PacketFactory* factory) override;
+	PacketFactory* getPacketFactory() override;
 	
 	//========================================
 	// IServerTransport
@@ -175,7 +176,8 @@ private:
 	SessionId mNextSessionId = 1;
 	
 	// 封包解析器
-	ComEvaluator mPacketEvaluator;
+	PacketFactory* mPacketFactory = nullptr; // 外部設定的 factory
+	PacketFactory mDefaultPacketFactory;      // 內部默認 factory
 };
 
 /**
@@ -200,8 +202,9 @@ public:
 	long getNetLatency() const override { return mNetLatency; }
 	long getNetRunningTime() const override { return mBase.getNetRunningTime(); }
 	
-	// 封包評估器訪問
-	ComEvaluator& getPacketEvaluator() override { return mPacketEvaluator; }
+	// PacketFactory 管理
+	void setPacketFactory(PacketFactory* factory) override;
+	PacketFactory* getPacketFactory() override;
 	
 	//========================================
 	// IClientTransport
@@ -254,7 +257,8 @@ private:
 	LatencyCalculator mLatencyCalculator;
 	
 	// 封包解析器
-	ComEvaluator mPacketEvaluator;
+	PacketFactory* mPacketFactory = nullptr; // 外部設定的 factory
+	PacketFactory mDefaultPacketFactory;      // 內部默認 factory
 };
 
 //========================================

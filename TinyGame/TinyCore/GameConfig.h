@@ -31,9 +31,15 @@
 #if TINY_USE_NET_THREAD
 #define NET_MUTEX( MUTEX ) Mutex MUTEX;
 #define NET_MUTEX_LOCK( MUTEX ) Mutex::Locker MARCO_NAME_COMBINE_2( locker , __LINE__ )( MUTEX );
+#define NET_RWLOCK( RWLOCK ) RWLock RWLOCK;
+#define NET_RWLOCK_READ( RWLOCK ) RWLock::ReadLocker MARCO_NAME_COMBINE_2( readLocker , __LINE__ )( RWLOCK );
+#define NET_RWLOCK_WRITE( RWLOCK ) RWLock::WriteLocker MARCO_NAME_COMBINE_2( writeLocker , __LINE__ )( RWLOCK );
 #else
 #define NET_MUTEX( MUTEX )
 #define NET_MUTEX_LOCK( MUTEX ) 
+#define NET_RWLOCK( RWLOCK )
+#define NET_RWLOCK_READ( RWLOCK )
+#define NET_RWLOCK_WRITE( RWLOCK )
 #endif //HAVE_NET_THREAD
 
 

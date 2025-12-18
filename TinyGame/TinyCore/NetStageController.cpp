@@ -116,11 +116,11 @@ void NetStageController::unregisterNetEvent()
 	// Unregister packet handlers
 	if (mWorker)
 	{
-		mWorker->getEvaluator().removeProcesserFunc(this);
+		mWorker->removeProcesserFunc(this);
 	}
 	if (mServer)
 	{
-		mServer->getEvaluator().removeProcesserFunc(this);
+		mServer->removeProcesserFunc(this);
 	}
 	
 	mRegistered = false;

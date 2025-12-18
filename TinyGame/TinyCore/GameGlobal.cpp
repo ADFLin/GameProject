@@ -11,8 +11,12 @@
 #include "PlatformThread.h"
 #include "Asset.h"
 
+#include "PacketFactory.h"
+
+
 #include <cstdlib>
 #include "ProfileSystem.h"
+
 
 
 TINY_API IGameNetInterface* GGameNetInterfaceImpl = nullptr;
@@ -21,6 +25,9 @@ TINY_API uint32 GGameThreadId = 0;
 TINY_API IEditor* GEditor = nullptr;
 
 DataCacheInterface* GGameDataCache = nullptr;
+
+
+TINY_API PacketFactory GGamePacketFactory;
 
 bool IsInGameThead()
 {

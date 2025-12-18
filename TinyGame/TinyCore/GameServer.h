@@ -1,7 +1,7 @@
 #ifndef GameServer_h__
 #define GameServer_h__
 
-#define USE_NEW_NETWORK 1
+#define USE_NEW_NETWORK 0
 
 #include "GameWorker.h"
 #include "GamePlayer.h"
@@ -412,6 +412,7 @@ protected:
 class LocalWorker : public ComWorker
 {
 public:
+	LocalWorker(ServerWorker* worker);
 	IPlayerManager*  getPlayerManager() { return mPlayerMgr; }
 
 	bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag);
@@ -422,7 +423,7 @@ protected:
 	void  postChangeState(NetActionState oldState);
 	void  update_NetThread(long time);
 protected:
-	LocalWorker(ServerWorker* worker);
+
 	void procPlayerState(IComPacket* cp);
 	void procClockSynd(IComPacket* cp);
 	friend class ServerWorker;

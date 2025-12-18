@@ -2,6 +2,9 @@
 #include "GameWorker.h"
 #include "SystemPlatform.h"
 
+// 全局 PacketFactory 实例（定义在 GameGlobal.cpp）
+extern TINY_API PacketFactory GGamePacketFactory;
+
 ComWorker::ComWorker() 
 	:mNAState( NAS_DISSCONNECT )
 	,mComListener( NULL )
@@ -15,16 +18,26 @@ void ComWorker::update( long time )
 	{
 		if( mComListener->prevProcCommand() )
 		{
-			mCPEvaluator.procCommand(*mComListener);
+			mPacketDispatcher.procCommand(*mComListener);
 			mComListener->postProcCommand();
 		}
 	}
 	else
 	{
-		mCPEvaluator.procCommand();
+		mPacketDispatcher.procCommand();
 	}
 
 	doUpdate( time );
+}
+
+PacketFactory& ComWorker::getPacketFactory()
+{
+	return GGamePacketFactory;
+}
+
+void ComWorker::removeProcesserFunc(void* processer)
+{
+	mPacketDispatcher.removeProcesserFunc(processer);
 }
 
 char const* NetActionStateStrings[] =
@@ -222,7 +235,7 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 	try
 	{
 		NET_MUTEX_LOCK( mMutexUdpCmdList );
-		size_t fillSize = ComEvaluator::WriteBuffer( mUdpSendBuffer , cp );
+		size_t fillSize = PacketFactory::WriteBuffer( mUdpSendBuffer , cp );
 		UdpCmd uc;
 		uc.addr     = addr;
 		uc.dataSize = fillSize;
@@ -265,6 +278,67 @@ bool FNetCommand::Eval( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer
 	return true;
 }
 
+// 新接口实现 - 使用 PacketFactory 和 PacketDispatcher
+bool FNetCommand::EvalCommand(PacketFactory& factory, PacketDispatcher& dispatcher, SocketBuffer& buffer, int group, void* userData)
+{
+	if (!buffer.getAvailableSize())
+		return false;
+	
+	// 1. 使用 PacketFactory 解析并创建 packet
+	IComPacket* packet = factory.createPacketFromBuffer(buffer, group, userData);
+	if (!packet)
+		return false;
+	
+	// 2. 查找处理函数
+	PacketDispatcher::PacketHandler* handler = dispatcher.findHandler(packet->getID());
+	
+	// 3. 执行 socket 线程函数（如果有）
+	if (handler && handler->workerFuncSocket)
+	{
+		handler->workerFuncSocket(packet);
+	}
+	
+	// 4. 加入分发队列（如果有其他处理函数）
+	if (handler && (handler->workerFunc || handler->userFunc))
+	{
+		dispatcher.enqueue(packet, handler);
+	}
+	else
+	{
+		// 没有处理函数，删除 packet
+		delete packet;
+	}
+	
+	return true;
+}
+
+// UdpChain 版本 - 使用 PacketFactory 和 PacketDispatcher
+bool FNetCommand::Eval(UdpChain& chain, PacketFactory& factory, PacketDispatcher& dispatcher, SocketBuffer& buffer, int group, void* userData)
+{
+	uint32 readSize;
+	while (chain.readPacket(buffer, readSize))
+	{
+		size_t oldSize = buffer.getAvailableSize();
+
+		if (oldSize < readSize)
+			throw ComException("error UDP Packet");
+
+		do
+		{
+			if (!EvalCommand(factory, dispatcher, buffer, group, userData))
+			{
+				LogMsg("readPacket Error Need Fix");
+				return false;
+			}
+		} while (oldSize - buffer.getAvailableSize() < readSize);
+
+		if (oldSize - buffer.getAvailableSize() != readSize)
+			throw ComException("error UDP Packet");
+	}
+
+	return true;
+}
+
 unsigned FNetCommand::Write(NetBufferOperator& bufferCtrl , IComPacket* cp)
 {
 	TLockedObject< SocketBuffer > buffer = bufferCtrl.lockBuffer();
@@ -282,7 +356,7 @@ unsigned FNetCommand::Write( SocketBuffer& buffer , IComPacket* cp )
 	{
 		try
 		{
-			result = ComEvaluator::WriteBuffer( buffer , cp );
+			result = PacketFactory::WriteBuffer( buffer , cp );
 			done = true;
 		}
 		catch ( BufferException& e )

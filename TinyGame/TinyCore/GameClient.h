@@ -135,7 +135,7 @@ class RecvDelayCtrl : public DelayCtrlBase
 public:
 	RecvDelayCtrl( int size );
 
-	void update( long time , UdpClient& client , ComEvaluator& evaluator );
+	void update( long time , UdpClient& client , PacketFactory& factory, PacketDispatcher& dispatcher );
 	bool add( SocketBuffer& buffer , bool bUDPPacket);
 private:
 	struct RecvInfo

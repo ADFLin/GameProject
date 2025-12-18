@@ -67,7 +67,7 @@ bool ServerWorker::doStartNetwork()
 	typedef ServerWorker ThisClass;
 
 #define COM_PACKET_SET( Class , Processer , Func , Func2 )\
-	getEvaluator().setWorkerFunc< Class >( Processer , Func , Func2 );
+	setWorkerFunc< Class >( Processer , Func , Func2 );
 
 #define COM_THIS_PACKET_SET( Class , Func )\
 	COM_PACKET_SET( Class , this , &ThisClass::Func , NULL )
@@ -175,7 +175,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 
 			while( buffer.getAvailableSize() )
 			{
-				if( !getEvaluator().evalCommand(buffer, -1, clientAddr) )
+				if( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer, -1, clientAddr) )
 				{
 					result = false;
 					break;
@@ -184,7 +184,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 		}
 		else
 		{
-			result = FNetCommand::Eval(client->udpChannel, getEvaluator(), buffer, CLIENT_GROUP , client);
+			result = FNetCommand::Eval(client->udpChannel, getPacketFactory(), getPacketDispatcher(), buffer, CLIENT_GROUP , client);
 		}
 
 		return result;
@@ -199,7 +199,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 
 		while( buffer.getAvailableSize() )
 		{		
-			if ( !getEvaluator().evalCommand( buffer , CLIENT_GROUP, client ) )
+			if ( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer , CLIENT_GROUP, client) )
 			{
 				return false;
 			}
@@ -1222,7 +1222,7 @@ LocalWorker::LocalWorker( ServerWorker* worker )
 	mPlayerMgr = worker->getPlayerManager();
 
 #define COM_PACKET_SET( Class , Processer , Func , Fun2 )\
-	getEvaluator().setWorkerFunc< Class >( Processer , Func , Fun2 );
+	setWorkerFunc< Class >( Processer , Func , Fun2 );
 
 #define COM_THIS_PACKET_SET( Class , Func )\
 	COM_PACKET_SET( Class , this , &LocalWorker::Func , NULL )
@@ -1278,7 +1278,7 @@ void LocalWorker::doUpdate(long time)
 	{
 		while( mSendBuffer.getAvailableSize() )
 		{
-			if( !mServer->getEvaluator().evalCommand(mSendBuffer) )
+			if( !FNetCommand::EvalCommand(mServer->getPacketFactory(), mServer->getPacketDispatcher(), mSendBuffer) )
 				break;
 		}
 	}
@@ -1294,7 +1294,7 @@ void LocalWorker::doUpdate(long time)
 	{
 		while( mRecvBuffer.getAvailableSize() )
 		{
-			if( !getEvaluator().evalCommand(mRecvBuffer) )
+			if( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), mRecvBuffer) )
 				break;
 		}
 	}

@@ -27,7 +27,7 @@ bool ClientWorker::doStartNetwork()
 	mNetSelect.addSocket(mUdpClient.getSocket());
 
 #define COM_PACKET_SET( Class , Processer , Func , Func2 )\
-	getEvaluator().setWorkerFunc< Class >( Processer , Func , Func2 );
+	setWorkerFunc< Class >( Processer , Func , Func2 );
 
 #define COM_THIS_PACKET_SET( Class , Func )\
 	COM_PACKET_SET( Class , this , &ClientWorker::Func , NULL )
@@ -159,7 +159,7 @@ bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buff
 		{
 			while( buffer.getAvailableSize() )
 			{
-				if ( !getEvaluator().evalCommand( buffer ) )
+				if ( !FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer) )
 				{
 					return false;
 				}
@@ -168,20 +168,20 @@ bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buff
 		}
 		else
 		{
-			return FNetCommand::Eval( mUdpClient , getEvaluator() , buffer );
+			return FNetCommand::Eval(mUdpClient, getPacketFactory(), getPacketDispatcher(), buffer);
 		}
 	}
 	else
 	{
 		if (con == &mUdpClient)
 		{
-			return FNetCommand::Eval(mUdpClient, getEvaluator(), buffer);
+			return FNetCommand::Eval(mUdpClient, getPacketFactory(), getPacketDispatcher(), buffer);
 		}
 		else
 		{
 			while (buffer.getAvailableSize())
 			{
-				if (!getEvaluator().evalCommand(buffer))
+				if (!FNetCommand::EvalCommand(getPacketFactory(), getPacketDispatcher(), buffer))
 				{
 					return false;
 				}
@@ -471,9 +471,9 @@ bool DelayClientWorker::update_NetThread( long time )
 	if ( !BaseClass::update_NetThread( time ) )
 		return false;
 
-	mRDCTcp.update( time , mUdpClient , getEvaluator() );
-	mRDCUdp.update( time , mUdpClient , getEvaluator() );
-	mRDCUdpCL.update( time , mUdpClient , getEvaluator() );
+	mRDCTcp.update( time , mUdpClient , getPacketFactory(), getPacketDispatcher() );
+	mRDCUdp.update( time , mUdpClient , getPacketFactory(), getPacketDispatcher() );
+	mRDCUdpCL.update( time , mUdpClient , getPacketFactory(), getPacketDispatcher() );
 
 	return true;
 }
@@ -552,7 +552,7 @@ RecvDelayCtrl::RecvDelayCtrl( int size )
 
 }
 
-void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evaluator )
+void RecvDelayCtrl::update( long time , UdpClient& client , PacketFactory& factory, PacketDispatcher& dispatcher )
 {
 	mCurTime = time;
 
@@ -573,13 +573,13 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 		{
 			if ( iter->bUDPPacket )
 			{
-				FNetCommand::Eval( client , evaluator , mBuffer , -1 );
+				FNetCommand::Eval( client , factory, dispatcher , mBuffer , -1 );
 			}
 			else
 			{
 				while ( mBuffer.getAvailableSize() )
 				{
-					if ( !evaluator.evalCommand( mBuffer , NULL ) )
+					if ( !FNetCommand::EvalCommand( factory, dispatcher, mBuffer , -1, NULL ) )
 					{
 						break;
 					}

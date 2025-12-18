@@ -292,22 +292,22 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 	return true;
 }
 
-void NetRoomStage::setupServerProcFunc( ComEvaluator& evaluator )
+void NetRoomStage::setupServerProcFunc(PacketDispatcher& dispatcher)
 {
 
 #define DEFINE_CP_USER_FUNC( Class , Func )\
-	evaluator.setUserFunc< Class >( this , &NetRoomStage::Func );
+	dispatcher.setUserFunc< Class >( this , &NetRoomStage::Func );
 
 	DEFINE_CP_USER_FUNC( CSPPlayerState , procPlayerStateSv )
 #undef  DEFINE_CP_USER_FUNC
 
 }
 
-void NetRoomStage::setupWorkerProcFunc( ComEvaluator& evaluator )
+void NetRoomStage::setupWorkerProcFunc(PacketDispatcher& dispatcher)
 {
 
 #define DEFINE_CP_USER_FUNC( Class , Func )\
-	evaluator.setUserFunc< Class >( this , &NetRoomStage::Func );
+	dispatcher.setUserFunc< Class >( this , &NetRoomStage::Func );
 
 	DEFINE_CP_USER_FUNC( CSPMsg         , procMsg )
 	DEFINE_CP_USER_FUNC( CSPPlayerState , procPlayerState )
@@ -548,8 +548,8 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 		if ( haveServer() )
 		{
 			CSPRawData settingCom;
-			generateSetting( settingCom );
-			mServer->getPlayerManager()->getPlayer( com->playerId )->sendTcpCommand( &settingCom );
+			generateSetting(settingCom);
+			mServer->getPlayerManager()->getPlayer(com->playerId)->sendTcpCommand(&settingCom);
 		}
 
 		{
@@ -872,10 +872,10 @@ void NetStageData::initWorker( ComWorker* worker , ServerWorker* server /*= NULL
 
 void NetStageData::unregisterNetEvent( void* processor )
 {
-	mWorker->getEvaluator().removeProcesserFunc( processor );
+	mWorker->removeProcesserFunc( processor );
 	if ( mServer )
 	{
-		mServer->getEvaluator().removeProcesserFunc( processor );
+		mServer->removeProcesserFunc( processor );
 	}
 	else
 	{
@@ -885,10 +885,10 @@ void NetStageData::unregisterNetEvent( void* processor )
 
 void NetStageData::registerNetEvent()
 {
-	setupWorkerProcFunc( mWorker->getEvaluator() );
+	setupWorkerProcFunc( mWorker->getPacketDispatcher() );
 	if ( haveServer() )
 	{
-		setupServerProcFunc( mServer->getEvaluator() );
+		setupServerProcFunc( mServer->getPacketDispatcher() );
 	}
 	else
 	{
@@ -1118,20 +1118,20 @@ void NetLevelStageMode::tick()
 	actionProcessor.endAction();
 }
 
-void NetLevelStageMode::setupServerProcFunc(ComEvaluator& evaluator)
+void NetLevelStageMode::setupServerProcFunc(PacketDispatcher& dispatcher)
 {
 #define DEFINE_CP_USER_FUNC( Class , Func )\
-		evaluator.setUserFunc< Class >( this , &NetLevelStageMode::Func );
+		dispatcher.setUserFunc< Class >( this , &NetLevelStageMode::Func );
 
 	DEFINE_CP_USER_FUNC(CSPPlayerState, procPlayerStateSv);
 
 #undef  DEFINE_CP_USER_FUNC
 }
 
-void NetLevelStageMode::setupWorkerProcFunc(ComEvaluator& evaluator)
+void NetLevelStageMode::setupWorkerProcFunc(PacketDispatcher& dispatcher)
 {
 #define DEFINE_CP_USER_FUNC( Class , Func )\
-		evaluator.setUserFunc< Class >( this , &NetLevelStageMode::Func );
+		dispatcher.setUserFunc< Class >( this , &NetLevelStageMode::Func );
 
 	DEFINE_CP_USER_FUNC(CSPPlayerState, procPlayerState);
 	DEFINE_CP_USER_FUNC(SPLevelInfo, procLevelInfo);

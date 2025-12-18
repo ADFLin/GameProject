@@ -140,6 +140,12 @@
     <ClInclude Include="TinyCore\Net\ServerTestWorker.h">
       <Filter>Net</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\PacketDispatcher.h">
+      <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\PacketFactory.h">
+      <Filter>Net</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -252,6 +258,15 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\Net\ServerTestWorker.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\PacketDispatcher.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\PacketFactory.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GameNetPacket.cpp">
       <Filter>Net</Filter>
     </ClCompile>
   </ItemGroup>

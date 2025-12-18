@@ -29,16 +29,47 @@ protected:
 	// 封包處理器
 	using PacketHandler = std::function<void(PlayerId, IComPacket*)>;
 	std::unordered_map<ComID, PacketHandler> mPacketHandlers;
+
+
+	PacketDispatcher mPacketDispatcher;
 	
 	// 註冊核心封包處理
 	virtual void registerCorePacketHandlers() = 0;
 	
-	// 處理收到的封包
+	
+	// 處理收到的封包（內部使用 PacketDispatcher）
 	void dispatchPacket(PlayerId senderId, IComPacket* packet);
+
+public:
+	void procHandlerCommand(IComPacket* cp);
+	
+protected:
+	
+	// 保存當前處理的 senderId（用於橋接函數）
+	PlayerId mCurrentSenderId = ERROR_PLAYER_ID;
 	
 	// 狀態變更
 	bool tryChangeState(ENetSessionState newState);
 	virtual bool isValidStateTransition(ENetSessionState from, ENetSessionState to) const;
+
+
+	void doUpdate(long time)
+	{
+		if (mComListener)
+		{
+			if (mComListener->prevProcCommand())
+			{
+				mPacketDispatcher.procCommand(*mComListener);
+				mComListener->postProcCommand();
+			}
+		}
+		else
+		{
+			mPacketDispatcher.procCommand();
+		}
+	}
+
+	ComListener* mComListener = nullptr;
 };
 
 // 前置聲明
@@ -138,8 +169,8 @@ protected:
 	// Transport 回調
 	void onConnectionEstablished(SessionId id);
 	void onConnectionClosed(SessionId id, ENetCloseReason reason);
-	void onPacketReceived(SessionId id, IComPacket* packet);
-	void onUdpPacketReceived(SessionId id, IComPacket* packet, NetAddress const& clientAddr);
+	void onPacketReceived(IComPacket* packet);
+	void onUdpPacketReceived(IComPacket* packet, NetAddress const& clientAddr);
 	
 	// 房間搜尋處理（會話層功能）
 	void handleServerInfoRequest(NetAddress const& clientAddr);
@@ -151,6 +182,19 @@ protected:
 	void handleLoginRequest(SessionId sessionId, class CPLogin* packet);
 	void handlePlayerState(PlayerId id, class CSPPlayerState* packet);
 	void handleClockSync(PlayerId id, class CSPClockSynd* packet);
+	
+	// PacketDispatcher 處理器方法（用於 setUserFunc）
+	void procLoginPacket(IComPacket* cp);
+	void procPlayerStatePacket(IComPacket* cp);
+	void procClockSyncPacket(IComPacket* cp);
+	void procEchoPacket(IComPacket* cp);
+	void procMsgPacket(IComPacket* cp);
+	void procRawDataPacket(IComPacket* cp);
+	void procPlayerStatusPacket(IComPacket* cp);
+	void procSlotStatePacket(IComPacket* cp);
+	void procLevelInfoPacket(IComPacket* cp);
+	void procNetControlRequestPacket(IComPacket* cp);
+
 	
 	// 輔助方法
 	bool isAllPlayersReady() const;
@@ -260,13 +304,20 @@ protected:
 	void onConnectionEstablished(SessionId id);
 	void onConnectionClosed(SessionId id, ENetCloseReason reason);
 	void onConnectionFailed();
-	void onPacketReceived(SessionId id, IComPacket* packet);
+	void onPacketReceived(IComPacket* packet);
 	
 	// 封包處理
 	void procLoginResponse(IComPacket* cp);
 	void procPlayerStatus(IComPacket* cp);
 	void procPlayerState(IComPacket* cp);
 	void procLevelInfo(IComPacket* cp);
+	
+	// PacketDispatcher 處理器方法（用於 setWorkerFunc）
+	void procLoginResponsePacket(IComPacket* cp);
+	void procPlayerStatusPacket(IComPacket* cp);
+	void procPlayerStatePacket(IComPacket* cp);
+	void procLevelInfoPacket(IComPacket* cp);
+
 	
 private:
 	std::unique_ptr<CLPlayerManager> mPlayerManager;

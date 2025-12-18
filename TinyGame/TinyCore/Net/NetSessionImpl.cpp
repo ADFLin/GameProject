@@ -1,4 +1,4 @@
-#include "TinyGamePCH.h"
+﻿#include "TinyGamePCH.h"
 #include "NetSessionImpl.h"
 #include "GameNetPacket.h"
 #include "GameServer.h"
@@ -19,16 +19,34 @@ NetSessionBase::~NetSessionBase()
 
 void NetSessionBase::dispatchPacket(PlayerId senderId, IComPacket* packet)
 {
+	// 保存當前的 senderId，以便處理器方法使用
+	mCurrentSenderId = senderId;
+	
+	// 1. 使用 PacketDispatcher 分發（註冊在 registerCorePacketHandlers 中的 handlers）
+	mPacketDispatcher.procCommand(packet);
+	
+	// 2. 調用動態註冊的 handlers（通過 registerPacketHandler 註冊的）
 	auto it = mPacketHandlers.find(packet->getID());
 	if (it != mPacketHandlers.end())
 	{
-		LogMsg("Dispatching packet %u to handler", packet->getID());
 		it->second(senderId, packet);
 	}
-	else
+	
+	// 清除 senderId
+	mCurrentSenderId = ERROR_PLAYER_ID;
+}
+
+void NetSessionBase::procHandlerCommand(IComPacket* cp)
+{
+	auto it = mPacketHandlers.find(cp->getID());
+	if (it != mPacketHandlers.end())
 	{
-		LogWarning(0, "No handler registered for PacketID=%u", packet->getID());
+		return;
 	}
+
+
+
+
 }
 
 bool NetSessionBase::tryChangeState(ENetSessionState newState)
@@ -161,15 +179,6 @@ bool NetSessionHostImpl::initialize(INetTransport* transport)
 		return false;
 	}
 	
-	// 註冊封包工廠到 PacketEvaluator
-	auto& evaluator = mTransport->getPacketEvaluator();
-	evaluator.addFactory<CPLogin>();
-	evaluator.addFactory<CSPPlayerState>();
-	evaluator.addFactory<CSPClockSynd>();
-	evaluator.addFactory<CSPComMsg>();
-	evaluator.addFactory<CPUdpCon>();
-	evaluator.addFactory<CPEcho>();
-	evaluator.addFactory<CSPMsg>();
 	LogMsg("Server: Registered %d packet types", 7);
 	
 	// 設定 Transport 回調
@@ -180,11 +189,11 @@ bool NetSessionHostImpl::initialize(INetTransport* transport)
 	callbacks.onConnectionClosed = [this](SessionId id, ENetCloseReason reason) {
 		onConnectionClosed(id, reason);
 	};
-	callbacks.onPacketReceived = [this](SessionId id, IComPacket* packet) {
-		onPacketReceived(id, packet);
+	callbacks.onPacketReceivedNet = [this](IComPacket* packet) {
+		onPacketReceived(packet);
 	};
-	callbacks.onUdpPacketReceived = [this](SessionId id, IComPacket* packet, NetAddress const& clientAddr) {
-		onUdpPacketReceived(id, packet, clientAddr);
+	callbacks.onUdpPacketReceivedNet = [this](IComPacket* packet, NetAddress const& clientAddr) {
+		onUdpPacketReceived(packet, clientAddr);
 	};
 	
 	mTransport->setCallbacks(callbacks);
@@ -213,7 +222,7 @@ void NetSessionHostImpl::shutdown()
 
 void NetSessionHostImpl::update(long time)
 {
-	// 會話層更新邏輯
+	NetSessionBase::doUpdate(time);
 }
 
 bool NetSessionHostImpl::changeState(ENetSessionState newState)
@@ -272,6 +281,7 @@ NetPlayerInfo const* NetSessionHostImpl::getPlayerInfo(PlayerId id) const
 
 void NetSessionHostImpl::registerPacketHandler(ComID packetId, INetSession::PacketHandler handler)
 {
+	mPacketDispatcher.setUserFunc(packetId, static_cast<NetSessionBase*>(this), &NetSessionBase::procHandlerCommand);
 	mPacketHandlers[packetId] = handler;
 }
 
@@ -414,47 +424,69 @@ void NetSessionHostImpl::restartLevel()
 }
 
 void NetSessionHostImpl::registerCorePacketHandlers()
+{	
+	mPacketDispatcher.setWorkerFunc<CPLogin>(this, &NetSessionHostImpl::procLoginPacket);
+	mPacketDispatcher.setWorkerFunc<CSPPlayerState>(this, &NetSessionHostImpl::procPlayerStatePacket);
+	mPacketDispatcher.setWorkerFunc<CSPClockSynd>(this, &NetSessionHostImpl::procClockSyncPacket);
+	mPacketDispatcher.setWorkerFunc<CPEcho>(this, &NetSessionHostImpl::procEchoPacket);
+	
+}
+
+// ========================================
+// Packet Handler 方法實現
+// ========================================
+
+void NetSessionHostImpl::procLoginPacket(IComPacket* cp)
 {
-	// ✅ 登入封包 - 注意：對於登入封包，需要從 packet 的 UserData 獲取 SessionId
-	// 因為此時玩家尚未創建，id 會是 ERROR_PLAYER_ID
-	registerPacketHandler(CPLogin::PID, [this](PlayerId id, IComPacket* packet) {
-		// UserData 存儲的是 SessionId（由 Transport 層設置）
-		SessionId sessionId = reinterpret_cast<SessionId>(packet->getUserData());
-		handleLoginRequest(sessionId, packet->cast<CPLogin>());
-	});
-	
-	// ✅ 玩家狀態 (包括 Ready/Wait/Disconnect 等)
-	registerPacketHandler(CSPPlayerState::PID, [this](PlayerId id, IComPacket* packet) {
-		handlePlayerState(id, packet->cast<CSPPlayerState>());
-	});
-	
-	// ✅ 时钟同步
-	registerPacketHandler(CSPClockSynd::PID, [this](PlayerId id, IComPacket* packet) {
-		handleClockSync(id, packet->cast<CSPClockSynd>());
-	});
-	
-	// ✅ Echo 测试
-	registerPacketHandler(CPEcho::PID, [this](PlayerId id, IComPacket* packet) {
-		sendReliable(packet);
-	});
-	
-	// ✅ Game 層封包 - Session 層不處理，只轉發給 observers
-	// 這些封包由 Game 層（NetRoomStage 等）處理
-	auto passThrough = [this](ComID packetId) {
-		registerPacketHandler(packetId, [this, packetId](PlayerId id, IComPacket* packet) {
-			// Session 層不處理，直接通知 observers
-			notifyPacketObservers(packetId, id, packet);
-		});
-	};
-	
-	passThrough(CSPMsg::PID);
-	passThrough(CSPRawData::PID);
-	passThrough(SPPlayerStatus::PID);
-	passThrough(SPSlotState::PID);
-	passThrough(SPLevelInfo::PID);
-	passThrough(SPNetControlRequest::PID);
-	
-	LogMsg("Server: Registered %d core packet handlers + %d game layer pass-through handlers", 4, 6);
+	CPLogin* packet = cp->cast<CPLogin>();
+	// Group 存儲的是 SessionId（由 Transport 層設置）
+	SessionId sessionId = static_cast<SessionId>(packet->getGroup());
+	handleLoginRequest(sessionId, packet);
+}
+
+void NetSessionHostImpl::procPlayerStatePacket(IComPacket* cp)
+{
+	handlePlayerState(mCurrentSenderId, cp->cast<CSPPlayerState>());
+}
+
+void NetSessionHostImpl::procClockSyncPacket(IComPacket* cp)
+{
+	handleClockSync(mCurrentSenderId, cp->cast<CSPClockSynd>());
+}
+
+void NetSessionHostImpl::procEchoPacket(IComPacket* cp)
+{
+	sendReliable(cp);
+}
+
+void NetSessionHostImpl::procMsgPacket(IComPacket* cp)
+{
+	notifyPacketObservers(CSPMsg::PID, mCurrentSenderId, cp);
+}
+
+void NetSessionHostImpl::procRawDataPacket(IComPacket* cp)
+{
+	notifyPacketObservers(CSPRawData::PID, mCurrentSenderId, cp);
+}
+
+void NetSessionHostImpl::procPlayerStatusPacket(IComPacket* cp)
+{
+	notifyPacketObservers(SPPlayerStatus::PID, mCurrentSenderId, cp);
+}
+
+void NetSessionHostImpl::procSlotStatePacket(IComPacket* cp)
+{
+	notifyPacketObservers(SPSlotState::PID, mCurrentSenderId, cp);
+}
+
+void NetSessionHostImpl::procLevelInfoPacket(IComPacket* cp)
+{
+	notifyPacketObservers(SPLevelInfo::PID, mCurrentSenderId, cp);
+}
+
+void NetSessionHostImpl::procNetControlRequestPacket(IComPacket* cp)
+{
+	notifyPacketObservers(SPNetControlRequest::PID, mCurrentSenderId, cp);
 }
 
 void NetSessionHostImpl::onConnectionEstablished(SessionId id)
@@ -477,23 +509,23 @@ void NetSessionHostImpl::onConnectionClosed(SessionId id, ENetCloseReason reason
 	}
 }
 
-void NetSessionHostImpl::onPacketReceived(SessionId id, IComPacket* packet)
+void NetSessionHostImpl::onPacketReceived(IComPacket* packet)
 {
+#if _DEBUG
+	// 從 packet->getGroup() 獲取 sessionId
+	SessionId id = static_cast<SessionId>(packet->getGroup());
 	PlayerSession* ps = findPlayerBySession(id);
 	PlayerId senderId = ps ? ps->playerId : ERROR_PLAYER_ID;
-	
+
 	LogMsg("TCP packet received: SessionId=%d, PacketID=%u, PlayerId=%d", id, packet->getID(), senderId);
-	
-	// TCP 封包或已連線的 UDP 封包
-	// packet->getUserData() = sessionId (來自 readNewPacket)
-	
-	dispatchPacket(senderId, packet);
-	
-	// ⚠️ Session 層負責刪除 packet
-	delete packet;
+#endif
+	if (!mPacketDispatcher.recvCommand(packet))
+	{
+		delete packet;
+	}
 }
 
-void NetSessionHostImpl::onUdpPacketReceived(SessionId id, IComPacket* packet, NetAddress const& clientAddr)
+void NetSessionHostImpl::onUdpPacketReceived(IComPacket* packet, NetAddress const& clientAddr)
 {
 	LogMsg("UDP packet received: PacketID=%u", packet->getID());
 	
@@ -513,7 +545,7 @@ void NetSessionHostImpl::onUdpPacketReceived(SessionId id, IComPacket* packet, N
 	
 	// 其他 UDP 无连线封包 - 分派到注册的处理器
 	// sessionId 通常为 0，senderId 为 ERROR_PLAYER_ID
-	
+	SessionId id = static_cast<SessionId>(packet->getGroup());
 	PlayerSession* ps = findPlayerBySession(id);
 	PlayerId senderId = ps ? ps->playerId : ERROR_PLAYER_ID;
 	
@@ -793,10 +825,9 @@ PlayerId NetSessionHostImpl::createPlayer(SessionId sessionId, char const* name)
 	PlayerSession ps;
 	ps.playerId = newId;
 	ps.sessionId = sessionId;
-	// ✅ PlayerInfo 的字段名
 	ps.info.playerId = newId;
 	ps.info.name = name;
-	ps.info.slot = assignedSlot;  // ✅ 自動分配的 slot
+	ps.info.slot = assignedSlot;
 	ps.info.type = PT_PLAYER;
 	ps.info.actionPort = ERROR_ACTION_PORT; // PlayerInfo 特有字段
 	ps.info.ping = 0; // PlayerInfo 特有字段
@@ -836,7 +867,6 @@ void NetSessionHostImpl::removePlayer(PlayerId id)
 	{
 		if (it->playerId == id)
 		{
-			// ✅ 同步到 SVPlayerManager
 			if (mPlayerManager)
 			{
 				mPlayerManager->removePlayer(id);
@@ -902,15 +932,6 @@ bool NetSessionClientImpl::initialize(INetTransport* transport)
 		return false;
 	}
 	
-	// 註冊封包工廠到 PacketEvaluator  
-	auto& evaluator = mTransport->getPacketEvaluator();
-	evaluator.addFactory<CPLogin>();
-	evaluator.addFactory<SPPlayerStatus>();
-	evaluator.addFactory<SPLevelInfo>();
-	evaluator.addFactory<CSPPlayerState>();
-	evaluator.addFactory<CSPClockSynd>();
-	evaluator.addFactory<CSPComMsg>();
-	evaluator.addFactory<SPServerInfo>();
 	LogMsg("Client: Registered %d packet types", 7);
 	
 	// 設定 Transport 回調
@@ -924,8 +945,8 @@ bool NetSessionClientImpl::initialize(INetTransport* transport)
 	callbacks.onConnectionFailed = [this]() {
 		onConnectionFailed();
 	};
-	callbacks.onPacketReceived = [this](SessionId id, IComPacket* packet) {
-		onPacketReceived(id, packet);
+	callbacks.onPacketReceivedNet = [this](IComPacket* packet) {
+		onPacketReceived(packet);
 	};
 	
 	mTransport->setCallbacks(callbacks);
@@ -951,7 +972,7 @@ void NetSessionClientImpl::shutdown()
 
 void NetSessionClientImpl::update(long time)
 {
-	// 會話層更新邏輯
+	NetSessionBase::doUpdate(time);
 }
 
 bool NetSessionClientImpl::changeState(ENetSessionState newState)
@@ -976,6 +997,7 @@ NetPlayerInfo const* NetSessionClientImpl::getPlayerInfo(PlayerId id) const
 
 void NetSessionClientImpl::registerPacketHandler(ComID packetId, INetSession::PacketHandler handler)
 {
+	mPacketDispatcher.setUserFunc(packetId, static_cast<NetSessionBase*>(this), &NetSessionBase::procHandlerCommand);
 	mPacketHandlers[packetId] = handler;
 }
 
@@ -1071,31 +1093,14 @@ void NetSessionClientImpl::searchLanServers()
 
 void NetSessionClientImpl::registerCorePacketHandlers()
 {
-	// 註冊 Client 需要處理的核心封包
+	// 註冊 Client 需要處理的核心封包（直接使用 PacketDispatcher）
 	
-	// 登入回應封包
-	registerPacketHandler(CPLogin::PID, [this](PlayerId id, IComPacket* packet) {
-		procLoginResponse(packet);
-	});
+	mPacketDispatcher.setWorkerFunc<CPLogin>(this, &NetSessionClientImpl::procLoginResponsePacket);
+	mPacketDispatcher.setWorkerFunc<SPPlayerStatus>(this, &NetSessionClientImpl::procPlayerStatusPacket);
+	mPacketDispatcher.setWorkerFunc<SPLevelInfo>(this, &NetSessionClientImpl::procLevelInfoPacket);
+	mPacketDispatcher.setWorkerFunc<CSPPlayerState>(this, &NetSessionClientImpl::procPlayerStatePacket);
 	
-	// 玩家狀態列表封包
-	registerPacketHandler(SPPlayerStatus::PID, [this](PlayerId id, IComPacket* packet) {
-		procPlayerStatus(packet);
-	});
-	
-	// 關卡資訊封包
-	registerPacketHandler(SPLevelInfo::PID, [this](PlayerId id, IComPacket* packet) {
-		// TODO: 實作關卡資訊處理
-		LogMsg("Received SPLevelInfo");
-	});
-	
-	// 玩家狀態變更封包
-	registerPacketHandler(CSPPlayerState::PID, [this](PlayerId id, IComPacket* packet) {
-		// TODO: 實作狀態變更處理
-		LogMsg("Received CSPPlayerState");
-	});
-	
-	LogMsg("Client: Registered %d packet handlers", 4);
+	LogMsg("Client: Registered %d packet handlers via PacketDispatcher", 4);
 }
 
 void NetSessionClientImpl::onConnectionEstablished(SessionId id)
@@ -1131,13 +1136,39 @@ void NetSessionClientImpl::onConnectionFailed()
 	fireEvent(ENetSessionEvent::LoginFailed);
 }
 
-void NetSessionClientImpl::onPacketReceived(SessionId id, IComPacket* packet)
+void NetSessionClientImpl::onPacketReceived(IComPacket* packet)
 {
-	dispatchPacket(SERVER_PLAYER_ID, packet);
-	
-	// ⚠️ Session 層負責在分派後刪除 packet
-	delete packet;
+	if (!mPacketDispatcher.recvCommand(packet))
+	{
+		delete packet;
+	}
 }
+
+// ========================================
+// Packet Handler 包裝方法（用於 PacketDispatcher）
+// ========================================
+
+void NetSessionClientImpl::procLoginResponsePacket(IComPacket* cp)
+{
+	procLoginResponse(cp);
+}
+
+void NetSessionClientImpl::procPlayerStatusPacket(IComPacket* cp)
+{
+	procPlayerStatus(cp);
+}
+
+void NetSessionClientImpl::procPlayerStatePacket(IComPacket* cp)
+{
+	procPlayerState(cp);
+}
+
+void NetSessionClientImpl::procLevelInfoPacket(IComPacket* cp)
+{
+	// TODO: 實作關卡資訊處理
+	LogMsg("Received SPLevelInfo");
+}
+
 
 void NetSessionClientImpl::procLoginResponse(IComPacket* cp)
 {

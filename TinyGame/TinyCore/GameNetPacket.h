@@ -1,4 +1,4 @@
-#ifndef GameNetPacket_h__
+﻿#ifndef GameNetPacket_h__
 #define GameNetPacket_h__
 
 #include "ComPacket.h"
@@ -12,6 +12,12 @@
 #include "GameStage.h"
 
 #include <new>
+
+class PacketFactory;
+
+// 全局 PacketFactory 實例聲明（定義在 GameGlobal.cpp）
+TINY_API extern PacketFactory GGamePacketFactory;
+
 
 typedef unsigned SessionId;
 
@@ -170,6 +176,7 @@ public:
 	void  operateBuffer( BufferOP& op ){}
 };
 
+
 class FramePacket : public IComPacket
 {
 public:
@@ -199,6 +206,19 @@ public:
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op ){}
 };
+
+template< typename T >
+class TGamePacketRegister
+{
+public:
+	TGamePacketRegister()
+	{
+		GGamePacketFactory.addFactory<T>();
+	}
+};
+
+#define REGISTER_GAME_PACKET(TYPE)\
+	static TGamePacketRegister<TYPE> ANONYMOUS_VARIABLE(GameRegister);
 
 
 class GDPFrameStream : public GameFramePacketT< GDPFrameStream , GDP_FARME_STREAM >

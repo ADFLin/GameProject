@@ -1863,6 +1863,7 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 			ClientWorker* worker = createClinet();
 			if ( !worker )
 				return;
+
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
 			stage->initWorker( worker );
 		}

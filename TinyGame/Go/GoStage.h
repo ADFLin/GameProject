@@ -33,8 +33,8 @@ namespace Go
 	public:
 		void setup( NetWorker* worker )
 		{
-			ComEvaluator& evaluator = worker->getEvaluator();
-			evaluator.setUserFunc< CSPPlay >( this , &Server::procPlay );
+			auto& dispatcher = worker->getPacketDispatcher();
+			dispatcher.setUserFunc< CSPPlay >( this , &Server::procPlay );
 		}
 		void procPlay( IComPacket* cp)
 		{

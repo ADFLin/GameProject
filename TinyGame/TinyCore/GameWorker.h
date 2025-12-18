@@ -4,6 +4,8 @@
 
 #include "GameShare.h"
 #include "ComPacket.h"
+#include "PacketDispatcher.h"
+#include "PacketFactory.h"
 #include "PlatformThread.h"
 
 #include "GameNetConnect.h"
@@ -128,7 +130,31 @@ public:
 
 	NetActionState  getActionState(){ return mNAState; }
 	void            setComListener( ComListener* listener ){  mComListener = listener; }
-	ComEvaluator&   getEvaluator(){ return mCPEvaluator; }
+	
+	// 新接口：直接访问组件
+	PacketDispatcher& getPacketDispatcher(){ return mPacketDispatcher; }
+	PacketFactory&    getPacketFactory();
+	
+	// 辅助方法：模拟 ComEvaluator 接口（用于兼容现有代码）
+	template<class GamePacketT, class T, class TFunc>
+	bool setUserFunc(T* processer, TFunc func)
+	{
+		return mPacketDispatcher.setUserFunc<GamePacketT>(processer, func);
+	}
+	
+	template<class GamePacketT, class T, class TFunc>
+	bool setWorkerFunc(T* processer, TFunc func, void* dummy)
+	{
+		return mPacketDispatcher.setWorkerFunc<GamePacketT>(processer, func, dummy);
+	}
+	
+	template<class GamePacketT, class T, class TFunc>
+	bool setWorkerFunc(T* processer, TFunc func, TFunc funcSocket)
+	{
+		return mPacketDispatcher.setWorkerFunc<GamePacketT>(processer, func, funcSocket);
+	}
+	
+	TINY_API void removeProcesserFunc(void* processer);
 
 	virtual IPlayerManager*    getPlayerManager() = 0;
 	virtual bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag) { return false; }
@@ -141,7 +167,7 @@ protected:
 	virtual void  doUpdate( long time ){}
 	virtual void  postChangeState( NetActionState oldState ){}
 private:
-	ComEvaluator     mCPEvaluator;
+	PacketDispatcher mPacketDispatcher;  // ✅ 替换 ComEvaluator
 	NetActionState   mNAState;
 	ComListener*     mComListener;
 };
@@ -325,7 +351,13 @@ private:
 class FNetCommand
 {
 public:
+	// 旧接口 - 使用 ComEvaluator（逐步淘汰）
 	static bool Eval(UdpChain& chain, ComEvaluator& evaluator, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
+	
+	// 新接口 - 使用分离的组件
+	static bool Eval(UdpChain& chain, PacketFactory& factory, PacketDispatcher& dispatcher, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
+	static bool EvalCommand(PacketFactory& factory, PacketDispatcher& dispatcher, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
+	
 	static unsigned Write(NetBufferOperator& bufferCtrl, IComPacket* cp);
 	static unsigned Write(SocketBuffer& buffer, IComPacket* cp);
 };

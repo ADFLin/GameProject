@@ -1,4 +1,4 @@
-#include "TinyGamePCH.h"
+﻿#include "TinyGamePCH.h"
 #include "NetTransportImpl.h"
 #include "GameWorker.h"
 
@@ -326,6 +326,16 @@ void ServerTransportImpl::doPostToNetThread(std::function<void()> func)
 	mBase.addNetThreadCommand(std::move(func));
 }
 
+void ServerTransportImpl::setPacketFactory(PacketFactory* factory)
+{
+	mPacketFactory = factory;
+}
+
+PacketFactory* ServerTransportImpl::getPacketFactory()
+{
+	return mPacketFactory ? mPacketFactory : &mDefaultPacketFactory;
+}
+
 bool ServerTransportImpl::sendUdpPacket(IComPacket* packet, NetAddress const& addr)
 {
 	if (!packet)
@@ -407,15 +417,16 @@ bool ServerTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection
 		}
 	}
 	
-	// 使用 ComEvaluator 解析封包
+	// 使用 PacketFactory 解析封包
 	try
 	{
 		while (buffer.getAvailableSize() > 0)
 		{
 			LogMsg("Transport: Parsing packet, available=%d", buffer.getAvailableSize());
 			
-			// UserData 设置为 sessionId（由 ComEvaluator 使用）
-			IComPacket* packet = mOwner->mPacketEvaluator.readNewPacket(buffer, -1, reinterpret_cast<void*>(sessionId));
+			// 使用 PacketFactory 解析封包
+			PacketFactory* factory = mOwner->getPacketFactory();
+			IComPacket* packet = factory->createPacketFromBuffer(buffer, sessionId, nullptr);
 			if (packet == nullptr)
 			{
 				LogWarning(0, "readNewPacket returned null");
@@ -424,22 +435,13 @@ bool ServerTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection
 			
 			LogMsg("Transport: Parsed packet ID=%u", packet->getID());
 			// ✅ 使用專用的 UDP callback，直接傳遞 NetAddress
-			if (isUdp && clientAddr && mOwner->mCallbacks.onUdpPacketReceived)
+			if (isUdp && clientAddr && mOwner->mCallbacks.onUdpPacketReceivedNet)
 			{
-				// 捕獲 clientAddr 的副本
-				NetAddress addrCopy = *clientAddr;
-				mOwner->postToGameThread([owner = mOwner, sessionId, packet, addrCopy]() {
-					owner->mCallbacks.onUdpPacketReceived(sessionId, packet, addrCopy);
-					// Session 層會呼叫 dispatchPacket() 然後刪除 packet
-				});
+				mOwner->mCallbacks.onUdpPacketReceivedNet(packet, *clientAddr);
 			}
-			else if (mOwner->mCallbacks.onPacketReceived)
+			else if (mOwner->mCallbacks.onPacketReceivedNet)
 			{
-				// TCP 或沒有 UDP callback 的情況，使用標準 callback
-				mOwner->postToGameThread([owner = mOwner, sessionId, packet]() {
-					owner->mCallbacks.onPacketReceived(sessionId, packet);
-					// Session 層會呼叫 dispatchPacket() 然後刪除 packet
-				});
+				mOwner->mCallbacks.onPacketReceivedNet(packet);
 			}
 		}
 	}
@@ -461,11 +463,9 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 {
 	LogMsg("DEBUG: notifyConnectionAccpet called, con=%p", con);
 	
-	// ✅ con 是 TcpServer 本身，我們需要在這裡調用 accept() 來創建新的 client socket！
 	// 參考舊的 ServerWorker::notifyConnectionAccpet (GameServer.cpp line 240-285)
 	TcpServer* server = static_cast<TcpServer*>(con);
 	
-	// ✅ 實際調用 accept() 來接受連接並創建新的 client socket
 	// 這會移除 pending connection，防止重複觸發
 	NetSocket conSocket;
 	NetAddress clientAddr;
@@ -477,7 +477,6 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 	
 	LogMsg("Client accepted from %s:%d", clientAddr.getIP(), ntohs(clientAddr.get().sin_port));
 	
-	// ✅ 創建新的 Client 並將 socket 移動過去
 	TcpServer::Client* client = new TcpServer::Client();
 	client->getSocket().move(conSocket);
 	
@@ -485,16 +484,13 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 	LogMsg("Creating new client: SessionId=%d, client=%p, total clients=%d", 
 		newId, client, (int)mOwner->mClients.size());
 	
-	// ✅ 保存客户端连接
 	ClientData clientData;
 	clientData.id = newId;
 	clientData.tcpClient = client;
 	mOwner->mClients.push_back(clientData);
 	
-	// ✅ 设置监听器
 	client->setListener(this);
 	
-	// ✅ 将 Client socket 加入 NetSelectSet
 	mOwner->mNetSelect.addSocket(client->getSocket());
 	
 	LogMsg("Client connected: SessionId=%d, NetSelect has %d sockets", 
@@ -664,6 +660,16 @@ void ClientTransportImpl::doPostToNetThread(std::function<void()> func)
 	mBase.addNetThreadCommand(std::move(func));
 }
 
+void ClientTransportImpl::setPacketFactory(PacketFactory* factory)
+{
+	mPacketFactory = factory;
+}
+
+PacketFactory* ClientTransportImpl::getPacketFactory()
+{
+	return mPacketFactory ? mPacketFactory : &mDefaultPacketFactory;
+}
+
 // Connection Listener
 
 void ClientTransportImpl::ConnectionListener::notifyConnectionOpen(NetConnection* con)
@@ -711,29 +717,25 @@ void ClientTransportImpl::ConnectionListener::notifyConnectionSend(NetConnection
 bool ClientTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection* con, SocketBuffer& buffer, NetAddress* clientAddr)
 {
 	// 收到資料 - 解析封包並通知回調
-	if (!mOwner->mCallbacks.onPacketReceived)
+	if (!mOwner->mCallbacks.onPacketReceivedNet)
 		return true;
 	
 	// Client 的 SessionId 固定為 1 (Server)
 	SessionId sessionId = 1;
 	
-	// 使用 ComEvaluator 解析封包
+	// 使用 PacketFactory 解析封包
 	try
 	{
 		while (buffer.getAvailableSize() > 0)
 		{
-			IComPacket* packet = mOwner->mPacketEvaluator.readNewPacket(buffer, -1, reinterpret_cast<void*>(sessionId));
+			// 使用 PacketFactory 解析封包
+			PacketFactory* factory = mOwner->getPacketFactory();
+			IComPacket* packet = factory->createPacketFromBuffer(buffer, sessionId, nullptr);
 			if (packet == nullptr)
 			{
 				break;
-			}
-			
-			// 通過回調傳遞給會話層（在 Game Thread 執行）
-			// ⚠️ Session 層負責分派到處理器，並在處理完後釋放 packet
-			mOwner->postToGameThread([owner = mOwner, sessionId, packet]() {
-				owner->mCallbacks.onPacketReceived(sessionId, packet);
-				// Session 層會呼叫 dispatchPacket() 然後刪除 packet
-			});
+			}	
+			mOwner->mCallbacks.onPacketReceivedNet(packet);
 		}
 	}
 	catch (ComException& e)

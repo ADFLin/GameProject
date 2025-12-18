@@ -8,6 +8,7 @@
 
 class IComPacket;
 class NetAddress;
+class PacketFactory;
 
 /**
  * @brief 傳輸層介面 - 負責底層網路通訊
@@ -48,11 +49,12 @@ struct NetTransportCallbacks
 	std::function<void()> onConnectionFailed;
 	
 	// 當收到封包時呼叫 (TCP 或已連線的 UDP)
-	std::function<void(SessionId id, IComPacket* packet)> onPacketReceived;
+	// SessionId 可從 packet->getGroup() 獲取
+	std::function<void(IComPacket* packet)> onPacketReceivedNet;
 	
 	// 當收到無連線的 UDP 封包時呼叫（例如：房間搜尋）
-	// sessionId 通常為 0（未連線），clientAddr 為發送者地址
-	std::function<void(SessionId id, IComPacket* packet, NetAddress const& clientAddr)> onUdpPacketReceived;
+	// SessionId 可從 packet->getGroup() 獲取（通常為 0 表示未連線）
+	std::function<void(IComPacket* packet, NetAddress const& clientAddr)> onUdpPacketReceivedNet;
 };
 
 /**
@@ -107,9 +109,14 @@ public:
 	}
 	
 	//========================================
-	// 封包評估器訪問（用於註冊封包類型）
+	// PacketFactory 管理（用於封包解析）
 	//========================================
-	virtual class ComEvaluator& getPacketEvaluator() = 0;
+	
+	// 設定 PacketFactory（可選，默認使用內部的 factory）
+	virtual void setPacketFactory(PacketFactory* factory) = 0;
+	
+	// 取得當前使用的 PacketFactory
+	virtual PacketFactory* getPacketFactory() = 0;
 	
 protected:
 	virtual void doPostToGameThread(std::function<void()> func) = 0;

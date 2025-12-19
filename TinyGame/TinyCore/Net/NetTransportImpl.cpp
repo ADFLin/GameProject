@@ -133,11 +133,7 @@ void NetTransportBase::entryNetThread()
 ServerTransportImpl::ServerTransportImpl()
 {
 	mBase.mOwner = this;
-	mListener.mOwner = this;
-	
-	// ❌ 不要在這裡設置 listener！
-	// Listener 會在 doStartNetwork() 中的 Server 初始化後設置
-	// 在這裡設置會導致 Server 尚未 run() 就有 listener，可能造成問題
+	mListener.mOwner = this;	
 }
 
 ServerTransportImpl::~ServerTransportImpl()
@@ -171,7 +167,6 @@ bool ServerTransportImpl::TransportBase::doStartNetwork()
 		return false;
 	}
 	
-	// ✅ 设置监听器！这是关键 - 没有这个就收不到数据回调
 	mOwner->mTcpServer.setListener(&mOwner->mListener);
 	mOwner->mUdpServer.setListener(&mOwner->mListener);
 	
@@ -187,7 +182,11 @@ void ServerTransportImpl::TransportBase::doCloseNetwork()
 	mOwner->mNetSelect.clear();
 	mOwner->mTcpServer.close();
 	mOwner->mUdpServer.close();
-	mOwner->mClients.clear();
+	
+	{
+		NET_RWLOCK_WRITE( mOwner->mRWLockClients );  // ✅ 寫鎖（獨占，修改容器）
+		mOwner->mClients.clear();
+	}
 }
 
 void ServerTransportImpl::TransportBase::doUpdate(long time)
@@ -208,22 +207,25 @@ bool ServerTransportImpl::TransportBase::update_NetThread(long time)
 	// 處理 UDP 資料
 	mOwner->mUdpServer.updateSocket(time, mOwner->mNetSelect);
 	
-	// ✅ 處理每個已連線 Client 的 socket！
-	// 使用索引迭代以避免迭代器失效（因為 vector 可能在迭代期間增長）
-	size_t clientCount = mOwner->mClients.size();
-	for (size_t i = 0; i < clientCount; ++i)
 	{
-		auto& client = mOwner->mClients[i];
-		if (client.tcpClient)
+		NET_RWLOCK_READ( mOwner->mRWLockClients );
+		
+		// 使用索引迭代以避免迭代器失效（因為 vector 可能在迭代期間增長）
+		size_t clientCount = mOwner->mClients.size();
+		for (size_t i = 0; i < clientCount; ++i)
 		{
-			// 檢查 socket 狀態
-			SocketState state = client.tcpClient->getSocket().getState();
-			if (state == SKS_CLOSE)
+			auto& client = mOwner->mClients[i];
+			if (client.tcpClient)
 			{
-				LogWarning(0, "Client[%d] SessionId=%d has closed socket!", (int)i, client.id);
-				continue;
+				// 檢查 socket 狀態
+				SocketState state = client.tcpClient->getSocket().getState();
+				if (state == SKS_CLOSE)
+				{
+					LogWarning(0, "Client[%d] SessionId=%d has closed socket!", (int)i, client.id);
+					continue;
+				}
+				client.tcpClient->updateSocket(time, mOwner->mNetSelect);
 			}
-			client.tcpClient->updateSocket(time, mOwner->mNetSelect);
 		}
 	}
 	
@@ -231,9 +233,8 @@ bool ServerTransportImpl::TransportBase::update_NetThread(long time)
 }
 
 bool ServerTransportImpl::sendPacket(SessionId targetId, ENetChannelType channel, IComPacket* cp)
-{
-	// ✅ FNetCommand::Write 只是序列化到 buffer，不會阻塞
-	// 實際的 socket 發送是異步的，所以我們可以在這裡直接執行
+{	
+	NET_RWLOCK_READ( mRWLockClients );
 	
 	// 找到對應的 Client
 	for (auto& client : mClients)
@@ -259,8 +260,7 @@ bool ServerTransportImpl::sendPacket(SessionId targetId, ENetChannelType channel
 
 bool ServerTransportImpl::broadcastPacket(ENetChannelType channel, IComPacket* cp)
 {
-	// ✅ FNetCommand::Write 只是序列化到 buffer，不會阻塞
-	// 實際的 socket 發送是異步的，所以我們可以在這裡直接執行
+	NET_RWLOCK_READ( mRWLockClients );
 	
 	for (auto& client : mClients)
 	{
@@ -434,7 +434,7 @@ bool ServerTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection
 			}
 			
 			LogMsg("Transport: Parsed packet ID=%u", packet->getID());
-			// ✅ 使用專用的 UDP callback，直接傳遞 NetAddress
+
 			if (isUdp && clientAddr && mOwner->mCallbacks.onUdpPacketReceivedNet)
 			{
 				mOwner->mCallbacks.onUdpPacketReceivedNet(packet, *clientAddr);
@@ -463,10 +463,8 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 {
 	LogMsg("DEBUG: notifyConnectionAccpet called, con=%p", con);
 	
-	// 參考舊的 ServerWorker::notifyConnectionAccpet (GameServer.cpp line 240-285)
 	TcpServer* server = static_cast<TcpServer*>(con);
 	
-	// 這會移除 pending connection，防止重複觸發
 	NetSocket conSocket;
 	NetAddress clientAddr;
 	if (!server->getSocket().accept(conSocket, clientAddr))
@@ -509,23 +507,62 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionClose(NetConnection* con, NetCloseReason reason)
 {
-	// 連線關閉 - 找到對應的 SessionId
-	SessionId id = 0;
-	for (auto const& client : mOwner->mClients)
+	LogMsg("Connection close: con=%p, reason=%d", con, (int)reason);
+	
+	// ✅ 找到對應的 client
+	SessionId closedId = 0;
+	TcpServer::Client* closedClient = nullptr;
+	
 	{
-		if (&client.tcpClient->getSocket() == &con->getSocket())
+		NET_RWLOCK_READ( mOwner->mRWLockClients );  // ✅ 讀鎖（先查找）
+		
+		for (auto const& client : mOwner->mClients)
 		{
-			id = client.id;
-			break;
+			if (&client.tcpClient->getSocket() == &con->getSocket())
+			{
+				closedId = client.id;
+				closedClient = client.tcpClient;
+				break;
+			}
 		}
 	}
 	
+	if (closedId == 0)
+	{
+		LogWarning(0, "notifyConnectionClose: Could not find client for connection %p", con);
+		return;
+	}
+	
+	LogMsg("Client closing: SessionId=%d, client=%p", closedId, closedClient);
+	
+	// ✅ 從容器中移除 client（需要寫鎖）
+	{
+		NET_RWLOCK_WRITE( mOwner->mRWLockClients );  // ✅ 寫鎖（修改容器）
+		
+		for (auto it = mOwner->mClients.begin(); it != mOwner->mClients.end(); ++it)
+		{
+			if (it->id == closedId)
+			{
+				// ✅ 從 NetSelect 移除
+				mOwner->mNetSelect.removeSocket(it->tcpClient->getSocket());
+				
+				// ✅ 從列表中移除（TcpClient 會自動清理）
+				mOwner->mClients.erase(it);
+				
+				LogMsg("Client removed: SessionId=%d, remaining clients=%d", 
+					closedId, (int)mOwner->mClients.size());
+				break;
+			}
+		}
+	}
+	
+	// ✅ 通知 Session 層（在 GameThread 處理）
 	ENetCloseReason closeReason = ENetCloseReason::RemoteClose;
 	
 	if (mOwner->mCallbacks.onConnectionClosed)
 	{
-		mOwner->postToGameThread([owner = mOwner, id, closeReason]() {
-			owner->mCallbacks.onConnectionClosed(id, closeReason);
+		mOwner->postToGameThread([owner = mOwner, closedId, closeReason]() {
+			owner->mCallbacks.onConnectionClosed(closedId, closeReason);
 		});
 	}
 }
@@ -538,10 +575,7 @@ ClientTransportImpl::ClientTransportImpl()
 	: mLatencyCalculator(300)
 {
 	mBase.mOwner = this;
-	mListener.mOwner = this;
-	
-	// ❌ 不要在這裡設置 listener！
-	// Client 的 listener 會在需要時設置（例如連線時）
+	mListener.mOwner = this;	
 }
 
 ClientTransportImpl::~ClientTransportImpl()

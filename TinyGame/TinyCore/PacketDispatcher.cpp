@@ -32,6 +32,8 @@ PacketDispatcher::PacketHandler* PacketDispatcher::findHandler(ComID packetId)
 
 bool PacketDispatcher::recvCommand(IComPacket* cp)
 {
+	CHECK(IsInNetThread());
+
 	PacketDispatcher::PacketHandler* handler = findHandler(cp->getID());
 
 	if (handler)

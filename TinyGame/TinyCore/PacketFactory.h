@@ -39,6 +39,9 @@ public:
 	template<class GamePacketT>
 	void addFactory() { addFactoryInternal<GamePacketT>(); }
 
+	template<class GamePacketT>
+	void removeFactory(){ removeFactory(GamePacketT::PID); }
+
 	TINY_API ICPFactory* findFactory(ComID com);
 
 	// 从 SocketBuffer 中解析并创建 Packet
@@ -51,6 +54,8 @@ public:
 private:
 	template<class GamePacketT>
 	ICPFactory* addFactoryInternal();
+
+	TINY_API void removeFactory(ComID id);
 
 	typedef std::unordered_map<ComID, ICPFactory*> CPFactoryMap;
 	CPFactoryMap  mCPFactoryMap;

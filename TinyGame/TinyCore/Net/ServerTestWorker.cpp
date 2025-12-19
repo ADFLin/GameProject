@@ -38,6 +38,10 @@ bool ServerTestWorker::doStartNetwork()
 		return false;
 	}
 
+	// 必須在 Session initialize 之前設置，這樣 Transport 才能解析收到的 packets
+	mTransport->setPacketFactory(&GGamePacketFactory);
+	LogMsg("ServerTestWorker: PacketFactory set to GGamePacketFactory");
+
 	// 2. 建立會話層
 	mSession = std::make_unique<NetSessionHostImpl>();
 	if (!mSession->initialize(mTransport.get()))
@@ -58,18 +62,6 @@ bool ServerTestWorker::doStartNetwork()
 		onSessionEvent(event, playerId);
 	});
 	
-	// 5. ✅ 創建 local worker 和 local player (Server 自己)
-	// LocalWorker 會創建 SUserPlayer，然後 Session 會收到 createPlayer 調用
-	// Session 層會自動處理 local player 的 packet 分發
-	LocalWorker* localWorker = createLocalWorker("Server");
-	if (!localWorker)
-	{
-		LogWarning(0, "ServerTestWorker: Failed to create local worker");
-	}
-	else
-	{
-		LogMsg("ServerTestWorker: Local worker created");
-	}
 	
 	// ✅ server_info 请求现在由 NetSession 层自动处理
 	// 不需要在这里注册处理器
@@ -77,35 +69,6 @@ bool ServerTestWorker::doStartNetwork()
 	// 6. ✅ 註冊 Game 層 packet handlers
 	// Session 層處理完 packet 後，會調用這些 handlers
 	// 這樣 NetRoomStage/NetLevelStageMode 等才能收到 packet
-	
-	// NetRoomStage + NetLevelStageMode 使用的封包
-	mSession->registerPacketHandler(CSPPlayerState::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
-	
-	mSession->registerPacketHandler(CSPMsg::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
-	
-	mSession->registerPacketHandler(CSPRawData::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
-	
-	mSession->registerPacketHandler(SPPlayerStatus::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
-	
-	mSession->registerPacketHandler(SPSlotState::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
-	
-	mSession->registerPacketHandler(SPLevelInfo::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
-	
-	mSession->registerPacketHandler(SPNetControlRequest::PID, [this](PlayerId id, IComPacket* cp) {
-		getPacketDispatcher().procCommand(cp);
-	});
 	
 	// 可以添加更多層級的 observers，例如：
 	// - System layer observer（記錄、統計）
@@ -286,28 +249,11 @@ LocalWorker* ServerTestWorker::createLocalWorker(char const* userName)
 		return mLocalWorker;
 	}
 
-	// 創建 LocalWorker（需要傳入 this 指針）
-	// 注意：LocalWorker 的構造函數需要 ServerWorker*，但我們是 ServerTestWorker
-	// 由於我們繼承自 NetWorker（ServerWorker 也繼承自 NetWorker），
-	// 我們可以安全地將 this 轉換為所需類型
-	// 但這裡有個問題：LocalWorker 的構造函數接受 ServerWorker*
-	// 我們需要修改 LocalWorker 或者使用不同的方法
-
-	// 方案：創建 LocalWorker 並傳入 this（作為兼容的 NetWorker）
-	// LocalWorker 內部只使用 NetWorker 的功能，所以應該沒問題
+	auto playerId = mSession->createUserPlayer(userName);
+	auto player = static_cast<SUserSessionPlayer*>(getPlayerManager()->getPlayer(playerId));
 	mLocalWorker.reset(new LocalWorker(reinterpret_cast<ServerWorker*>(this)));
-	
-	// 通過玩家管理器創建用戶玩家
-	if (auto* playerMgr = static_cast<SVPlayerManager*>(getPlayerManager()))
-	{
-		playerMgr->createUserPlayer(mLocalWorker, userName);
-	}
-	else
-	{
-		LogError("ServerTestWorker: Failed to get player manager for local worker");
-		mLocalWorker.release();
-		return nullptr;
-	}
+	player->mLocalPlayer = mLocalWorker.get();
+
 
 	return mLocalWorker;
 }
@@ -368,6 +314,11 @@ void ServerTestWorker::resumeLevel()
 	{
 		mSession->resumeLevel();
 	}
+}
+
+PacketDispatcher& ServerTestWorker::getPacketDispatcher()
+{
+	return mSession->getPacketDispatcher();
 }
 
 //========================================
@@ -529,9 +480,4 @@ bool ServerTestWorker::isRoomOpen() const
 ENetSessionState ServerTestWorker::getSessionState() const
 {
 	return mSession ? mSession->getState() : ENetSessionState::Disconnected;
-}
-
-PlayerId ServerTestWorker::getLocalPlayerId() const
-{
-	return mSession ? mSession->getLocalPlayerId() : ERROR_PLAYER_ID;
 }

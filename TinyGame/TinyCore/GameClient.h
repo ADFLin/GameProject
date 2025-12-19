@@ -50,6 +50,9 @@ public:
 	INetChannel* getUdpChannel() { return mChannelGroup.getUdpChannel(); }
 	NetChannelGroup& getChannelGroup() { return mChannelGroup; }
 
+
+	PacketDispatcher& getPacketDispatcher() { return mPacketDispatcher; }
+
 protected:
 	
 	void  notifyConnectionOpen( NetConnection* con );
@@ -74,6 +77,7 @@ protected:
 	void  procClockSynd_NetThread( IComPacket* cp);
 	
 	/////////////////////////////////
+	PacketDispatcher mPacketDispatcher;
 
 	TPtrHolder< CLPlayerManager > mPlayerManager;
 

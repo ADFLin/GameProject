@@ -173,6 +173,7 @@ private:
 		NetAddress udpAddr;
 	};
 	TArray<ClientData> mClients;
+	NET_RWLOCK( mRWLockClients )  // ✅ 讀寫鎖保護（讀多寫少場景）
 	SessionId mNextSessionId = 1;
 	
 	// 封包解析器

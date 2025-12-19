@@ -20,11 +20,11 @@ class NetSessionBase
 public:
 	NetSessionBase();
 	virtual ~NetSessionBase();
-	
+
 protected:
 	INetTransport* mTransport = nullptr;
 	ENetSessionState mState = ENetSessionState::Disconnected;
-	PlayerId mLocalPlayerId = ERROR_PLAYER_ID;
+	PlayerId mUserPlayerId = ERROR_PLAYER_ID;
 	
 	// 封包處理器
 	using PacketHandler = std::function<void(PlayerId, IComPacket*)>;
@@ -36,17 +36,10 @@ protected:
 	// 註冊核心封包處理
 	virtual void registerCorePacketHandlers() = 0;
 	
-	
-	// 處理收到的封包（內部使用 PacketDispatcher）
-	void dispatchPacket(PlayerId senderId, IComPacket* packet);
-
 public:
 	void procHandlerCommand(IComPacket* cp);
 	
 protected:
-	
-	// 保存當前處理的 senderId（用於橋接函數）
-	PlayerId mCurrentSenderId = ERROR_PLAYER_ID;
 	
 	// 狀態變更
 	bool tryChangeState(ENetSessionState newState);
@@ -75,20 +68,47 @@ protected:
 // 前置聲明
 class NetSessionHostImpl;
 
+
 /**
  * @brief Session 層專用的 ServerPlayer 實現
  * 
+ * ✅ 合併了 PlayerSession 的所有數據，統一玩家管理
  * 通過 NetSessionHostImpl 發送數據，不需要 NetClientData
  */
 class SSessionPlayer : public ServerPlayer
 {
 public:
-	SSessionPlayer(NetSessionHostImpl* session);
+	SSessionPlayer(NetSessionHostImpl* session, bool bNet = true);
 	void sendCommand(int channel, IComPacket* cp) override;
 	void sendTcpCommand(IComPacket* cp) override;
 	void sendUdpCommand(IComPacket* cp) override;
+	
+	// ✅ Session 映射數據（來自 PlayerSession）
+	PlayerId playerId = ERROR_PLAYER_ID;
+	SessionId sessionId = 0;
+	
+	// ✅ 玩家狀態標誌使用 ServerPlayer::mFlag (繼承自 ServerPlayer)
+	// 可用的標誌：eReady, eSyndDone, ePause, eLevelSetup, eLevelLoaded, eLevelReady, eDissconnect
+	
+	// 網絡延遲 (ms) - 繼承自 ServerPlayer::latency
+	
 private:
 	NetSessionHostImpl* mSession;
+};
+
+class SUserSessionPlayer : public SSessionPlayer
+{
+public:
+	SUserSessionPlayer(NetSessionHostImpl* session)
+		:SSessionPlayer(session, false)
+	{
+	}
+
+	void sendCommand(int channel, IComPacket* cp);
+	void sendTcpCommand(IComPacket* cp);
+	void sendUdpCommand(IComPacket* cp);
+
+	LocalWorker* mLocalPlayer;
 };
 
 /**
@@ -108,13 +128,16 @@ public:
 	bool initialize(INetTransport* transport) override;
 	void shutdown() override;
 	void update(long time) override;
+
+	PacketDispatcher& getPacketDispatcher() { return mPacketDispatcher; }
+
 	
 	ENetSessionState getState() const override { return mState; }
 	bool changeState(ENetSessionState newState) override;
 	
 	// INetSession::getPlayerManager() - 返回 SVPlayerManager (向後兼容)
 	IPlayerManager* getPlayerManager() override { return mPlayerManager.get(); }
-	PlayerId getLocalPlayerId() const override { return mLocalPlayerId; }
+	PlayerId getUserPlayerId() const override { return mUserPlayerId; }
 	
 	// ✅ 直接訪問 SVPlayerManager (兼容舊代碼)
 	SVPlayerManager* getSVPlayerManager() { return mPlayerManager.get(); }
@@ -129,6 +152,9 @@ public:
 	void sendUnreliable(IComPacket* cp) override;
 	void sendReliableTo(PlayerId targetId, IComPacket* cp) override;
 	
+
+	void dispatchLocalPacket(IComPacket* packet);
+
 	//========================================
 	// INetSessionHost
 	//========================================
@@ -150,20 +176,9 @@ public:
 	void resumeLevel() override;
 	void restartLevel() override;
 	
-	PlayerId createLocalPlayer(char const* name); // ✅ 為 Server 創建 local player
+	PlayerId createUserPlayer(char const* name); // ✅ 為 Server 創建 local player
 	
-	// ✅ Packet Observer 機制
-	// 允許多個層級（Game, System, UI等）監聽和處理 packet
-	// Session 層處理完後，會通知所有註冊的 observers
-	using PacketObserver = std::function<void(PlayerId senderId, IComPacket* packet)>;
-	
-	// 註冊 packet observer（觀察者可以有多個）
-	void addPacketObserver(ComID packetId, PacketObserver observer);
-	
-	// 移除所有 observers
-	void clearPacketObservers();
-	
-	bool hasLocalPlayer() const { return mLocalPlayerId != ERROR_PLAYER_ID; }
+	bool hasLocalPlayer() const { return mUserPlayerId != ERROR_PLAYER_ID; }
 	
 protected:
 	void registerCorePacketHandlers() override;
@@ -179,66 +194,57 @@ protected:
 	
 	// 獲取伺服器資訊（可被子類覆蓋以自定義）
 	virtual void getServerInfo(class SPServerInfo& outInfo);
-	
-	// 核心封包處理（會話層功能）
-	void handleLoginRequest(SessionId sessionId, class CPLogin* packet);
-	void handlePlayerState(PlayerId id, class CSPPlayerState* packet);
-	void handleClockSync(PlayerId id, class CSPClockSynd* packet);
+
 	
 	// PacketDispatcher 處理器方法（用於 setUserFunc）
 	void procLoginPacket(IComPacket* cp);
 	void procPlayerStatePacket(IComPacket* cp);
 	void procClockSyncPacket(IComPacket* cp);
 	void procEchoPacket(IComPacket* cp);
-	void procMsgPacket(IComPacket* cp);
-	void procRawDataPacket(IComPacket* cp);
-	void procPlayerStatusPacket(IComPacket* cp);
-	void procSlotStatePacket(IComPacket* cp);
-	void procLevelInfoPacket(IComPacket* cp);
-	void procNetControlRequestPacket(IComPacket* cp);
 
-	
-	// 輔助方法
-	bool isAllPlayersReady() const;
-	void notifyPacketObservers(ComID packetId, PlayerId senderId, IComPacket* packet);
-	
-	// 玩家 Session 映射
-	struct PlayerSession
+	void procMsgPacket(IComPacket* cp)
 	{
-		PlayerId playerId;
-		SessionId sessionId;
+		broadcastReliable(cp);
+	}
+
+
+	template<typename Predicate>
+	bool checkAllPlayersFlag(Predicate pred, bool networkOnly = false) const
+	{
+		if (!mPlayerManager->getPlayerNum() == 0)
+			return false;
 		
-		// ✅ 使用 PlayerInfo 而不是 NetPlayerInfo，因為 GamePlayer::init() 需要 PlayerInfo&
-		PlayerInfo info;  // 玩家信息 (PlayerInfo 包含所有 NetPlayerInfo 的字段 + actionPort, ping)
-		
-		// ⚠️ PlayerInfo 沒有 isReady 字段，需要額外追蹤
-		bool isReady = false;
-		
-		// ✅ 為了實現 IPlayerManager，我們需要提供 GamePlayer 對象
-		GamePlayer player;   // GamePlayer wrapper (通過 PlayerInfo 初始化)
-		
-		PlayerSession()
+		// ✅ 遍历 SVPlayerManager 中的所有玩家
+		for (size_t i = 0; i < mPlayerManager->getPlayerNum(); ++i)
 		{
-			// GamePlayer 會透過 init() 關聯到 PlayerInfo
-			player.init(info);
+			ServerPlayer* player = mPlayerManager->getPlayer(i);
+			if (player)
+			{
+				// ✅ 如果 networkOnly == true，跳过非网络玩家（local/user player）
+				if (networkOnly && !player->isNetwork())
+					continue;
+					
+				SSessionPlayer* sessionPlayer = static_cast<SSessionPlayer*>(player);
+				if (!pred(*sessionPlayer))
+					return false;
+			}
 		}
-	};
-	
+		return true;
+	}
+
 	PlayerId createPlayer(SessionId sessionId, char const* name);
+	PlayerId createPlayerInternal(SessionId sessionId, char const* name, bool bUser);
 
 	void removePlayer(PlayerId id);
-	PlayerSession* findPlayerBySession(SessionId sessionId);
-	PlayerSession* findPlayer(PlayerId id);
+	SSessionPlayer* findPlayerBySession(SessionId sessionId);
+	SSessionPlayer* findPlayer(PlayerId id);
 	SessionId getPlayerSession(PlayerId id);
 	
 private:
-	// ✅ Session 層維護雙重 player 管理
-	// 1. PlayerSessions: Session 層的 player 資料 (主要來源)
-	// 2. SVPlayerManager: Game 層的 player 管理 (向後兼容)
+	// ✅ 完全使用 SVPlayerManager 管理玩家
 	std::unique_ptr<SVPlayerManager> mPlayerManager;
 	IServerTransport* mServerTransport = nullptr;
 	
-	TArray<PlayerSession> mPlayerSessions;
 	PlayerId mNextPlayerId = 1;
 	
 	bool mRoomOpen = false;
@@ -249,10 +255,7 @@ private:
 	// 快取的玩家資訊
 	mutable TArray<NetPlayerInfo> mCachedPlayerInfos;
 	mutable bool mPlayerInfosDirty = true;
-	
-	// ✅ Packet Observers（支持多個觀察者）
-	// Key: PacketID, Value: 觀察者列表
-	std::unordered_map<ComID, std::vector<PacketObserver>> mPacketObservers;
+
 };
 
 /**
@@ -275,7 +278,7 @@ public:
 	bool changeState(ENetSessionState newState) override;
 	
 	IPlayerManager* getPlayerManager() override { return mPlayerManager.get(); }
-	PlayerId getLocalPlayerId() const override { return mLocalPlayerId; }
+	PlayerId getUserPlayerId() const override { return mUserPlayerId; }
 	
 	void getPlayerInfos(TArray<NetPlayerInfo>& outInfos) const override;
 	NetPlayerInfo const* getPlayerInfo(PlayerId id) const override;

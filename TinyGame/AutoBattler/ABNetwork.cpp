@@ -6,6 +6,10 @@
 namespace AutoBattler
 {
 
+	REGISTER_GAME_PACKET(ABActionPacket);
+	REGISTER_GAME_PACKET(ABFramePacket);
+	REGISTER_GAME_PACKET(ABSyncPacket);
+
 	ABNetEngine::ABNetEngine(LevelStage* stage)
 		: mStage(stage)
 	{

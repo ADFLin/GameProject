@@ -122,6 +122,7 @@ public:
 	bool    isNetwork(){ return mbNetWork; }
 	typedef FlagBits< NumFlag > StateFlag;
 	StateFlag& getStateFlag(){ return mFlag; }
+	StateFlag const& getStateFlag() const { return mFlag; }
 
 	//server to player
 	virtual void sendCommand( int channel , IComPacket* cp ) = 0;
@@ -267,7 +268,10 @@ public:
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
 
 	//auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
-	void insertPlayer(ServerPlayer* player, char const* name, PlayerType type);
+	PlayerId insertPlayer(ServerPlayer* player, char const* name, PlayerType type);
+
+
+	unsigned     mUserID;
 
 protected:
 
@@ -276,7 +280,7 @@ protected:
 	NET_MUTEX( mMutexPlayerTable );
 	typedef TTable< ServerPlayer* > PlayerTable; 
 	PlayerTable  mPlayerTable;
-	unsigned     mUserID;
+
 	PlayerInfo   mPlayerInfo[ MAX_PLAYER_NUM ];
 };
 
@@ -336,6 +340,7 @@ public:
 	void sendClientTcpCommand(NetClientData& client, IComPacket* cp );
 	void setEventResolver(ServerEventResolver* resolver) { mEventResolver = resolver;  }
 
+	PacketDispatcher& getPacketDispatcher() { return mPacketDispatcher; }
 protected:
 	//NetWorker
 	void  postChangeState( NetActionState oldState );
@@ -392,6 +397,7 @@ protected:
 	void procUdpCon_NetThread   ( IComPacket* cp);
 	
 	/////////////////////////////////////////
+	PacketDispatcher mPacketDispatcher;
 
 	TPtrHolder< SVPlayerManager >  mPlayerManager;
 	TPtrHolder< LocalWorker >      mLocalWorker;
@@ -417,6 +423,9 @@ public:
 
 	bool  sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag);
 	void  recvCommand(IComPacket* cp);
+
+	PacketDispatcher& getPacketDispatcher(){ return mPacketDispatcher; }
+
 protected:
 
 	void  doUpdate(long time);
@@ -433,6 +442,8 @@ protected:
 	SocketBuffer      mRecvBuffer;
 	SVPlayerManager*  mPlayerMgr;
 	ServerWorker*     mServer;
+
+	PacketDispatcher mPacketDispatcher;
 };
 
 

@@ -140,3 +140,13 @@ bool PacketFactory::ReadBuffer(SocketBuffer& buffer, IComPacket* cp)
 
 	return true;
 }
+
+void PacketFactory::removeFactory(ComID id)
+{
+	auto iter = mCPFactoryMap.find(id);
+	if (iter != mCPFactoryMap.end())
+	{
+		delete iter->second;
+		mCPFactoryMap.erase(iter);
+	}
+}

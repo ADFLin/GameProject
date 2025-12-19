@@ -18,13 +18,13 @@ void ComWorker::update( long time )
 	{
 		if( mComListener->prevProcCommand() )
 		{
-			mPacketDispatcher.procCommand(*mComListener);
+			getPacketDispatcher().procCommand(*mComListener);
 			mComListener->postProcCommand();
 		}
 	}
 	else
 	{
-		mPacketDispatcher.procCommand();
+		getPacketDispatcher().procCommand();
 	}
 
 	doUpdate( time );
@@ -32,7 +32,7 @@ void ComWorker::update( long time )
 
 void ComWorker::removeProcesserFunc(void* processer)
 {
-	mPacketDispatcher.removeProcesserFunc(processer);
+	getPacketDispatcher().removeProcesserFunc(processer);
 }
 
 char const* NetActionStateStrings[] =

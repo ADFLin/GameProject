@@ -27,7 +27,25 @@ FWindowsModule::Handle FWindowsModule::Load(char const* path)
 
 void FWindowsModule::Release(Handle handle)
 {
-	::FreeLibrary(handle);
+	if (handle)
+	{
+		char modulePath[MAX_PATH];
+		if (::GetModuleFileNameA(handle, modulePath, MAX_PATH))
+		{
+			LogMsg("Unloading DLL: %s", modulePath);
+		}
+		
+		BOOL result = ::FreeLibrary(handle);
+		if (!result)
+		{
+			DWORD error = ::GetLastError();
+			LogWarning(0, "FreeLibrary failed with error: %d", error);
+		}
+		else
+		{
+			LogMsg("FreeLibrary succeeded");
+		}
+	}
 }
 
 void* FWindowsModule::GetFunctionAddress(Handle handle, char const* name)

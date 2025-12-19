@@ -37,8 +37,9 @@ LocalWorker* ServerWorker::createLocalWorker( char const* userName )
 {
 	if ( mLocalWorker == NULL )
 	{
-		mLocalWorker.reset( new LocalWorker( this ) );
+		mLocalWorker.reset( new LocalWorker(this) );
 	}
+
 	getPlayerManager()->createUserPlayer( mLocalWorker , userName );
 	return mLocalWorker;
 }
@@ -942,7 +943,7 @@ bool SVPlayerManager::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag f
 	return result;
 }
 
-void SVPlayerManager::insertPlayer( ServerPlayer* player , char const* name , PlayerType type )
+PlayerId SVPlayerManager::insertPlayer( ServerPlayer* player , char const* name , PlayerType type )
 {
 	PlayerId id;
 
@@ -956,6 +957,8 @@ void SVPlayerManager::insertPlayer( ServerPlayer* player , char const* name , Pl
 
 	if ( mListener )
 		mListener->onAddPlayer( id );
+
+	return id;
 }
 
 SLocalPlayer* SVPlayerManager::swepNetPlayerToLocal( SNetPlayer* player )
@@ -1214,7 +1217,7 @@ void SUserPlayer::sendUdpCommand( IComPacket* cp )
 	//mWorker->getEvaluator().execCommand( cp );
 }
 
-LocalWorker::LocalWorker( ServerWorker* worker )
+LocalWorker::LocalWorker( ServerWorker* worker)
 	:mSendBuffer( 1024 )
 	,mRecvBuffer( 1024 )
 {

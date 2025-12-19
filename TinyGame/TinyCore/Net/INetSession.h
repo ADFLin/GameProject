@@ -11,6 +11,7 @@ class INetTransport;
 class IPlayerManager;
 class DataStreamBuffer;
 struct GameLevelInfo;
+enum class ENetCloseReason : uint8;  // Forward declaration
 
 /**
  * @brief 會話層介面 - 管理遊戲會話（Room/Level/玩家）
@@ -79,6 +80,14 @@ enum class ENetSessionEvent : uint8
 	LevelEnded,
 };
 
+// 玩家連線關閉處理動作（參考 ServerWorker 的 PlayerConnetionClosedAction）
+enum class EPlayerConnectionCloseAction : uint8
+{
+	Remove,          // 直接移除玩家
+	ChangeToLocal,   // 轉為本地玩家（保留狀態）
+	WaitReconnect,   // 等待重連（標記為斷線但不移除）
+};
+
 /**
  * @brief 會話層基礎介面
  */
@@ -104,7 +113,7 @@ public:
 	// 玩家管理
 	//========================================
 	virtual IPlayerManager* getPlayerManager() = 0;
-	virtual PlayerId getLocalPlayerId() const = 0;
+	virtual PlayerId getUserPlayerId() const = 0;
 	
 	// 取得所有玩家資訊
 	virtual void getPlayerInfos(TArray<NetPlayerInfo>& outInfos) const = 0;
@@ -132,6 +141,10 @@ public:
 	using SessionEventHandler = std::function<void(ENetSessionEvent event, PlayerId playerId)>;
 	void setEventHandler(SessionEventHandler handler) { mEventHandler = handler; }
 	
+	// 連線關閉處理回調（決定如何處理斷線玩家）
+	using ConnectionCloseHandler = std::function<EPlayerConnectionCloseAction(PlayerId playerId, ENetCloseReason reason)>;
+	void setConnectionCloseHandler(ConnectionCloseHandler handler) { mConnectionCloseHandler = handler; }
+	
 protected:
 	void fireEvent(ENetSessionEvent event, PlayerId playerId = ERROR_PLAYER_ID)
 	{
@@ -140,6 +153,7 @@ protected:
 	}
 	
 	SessionEventHandler mEventHandler;
+	ConnectionCloseHandler mConnectionCloseHandler;
 };
 
 /**

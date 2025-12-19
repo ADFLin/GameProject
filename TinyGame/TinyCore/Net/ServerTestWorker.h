@@ -81,6 +81,9 @@ public:
 	TINY_API void pauseLevel();
 	TINY_API void resumeLevel();
 
+
+	PacketDispatcher& getPacketDispatcher();
+
 	//========================================
 	// 事件處理
 	//========================================

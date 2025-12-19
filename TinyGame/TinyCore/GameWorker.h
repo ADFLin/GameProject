@@ -132,25 +132,25 @@ public:
 	void            setComListener( ComListener* listener ){  mComListener = listener; }
 	
 	// 新接口：直接访问组件
-	PacketDispatcher& getPacketDispatcher(){ return mPacketDispatcher; }
+	virtual PacketDispatcher& getPacketDispatcher() = 0;
 	
 	// 辅助方法：模拟 ComEvaluator 接口（用于兼容现有代码）
 	template<class GamePacketT, class T, class TFunc>
 	bool setUserFunc(T* processer, TFunc func)
 	{
-		return mPacketDispatcher.setUserFunc<GamePacketT>(processer, func);
+		return getPacketDispatcher().setUserFunc<GamePacketT>(processer, func);
 	}
 	
 	template<class GamePacketT, class T, class TFunc>
 	bool setWorkerFunc(T* processer, TFunc func, void* dummy)
 	{
-		return mPacketDispatcher.setWorkerFunc<GamePacketT>(processer, func, dummy);
+		return getPacketDispatcher().setWorkerFunc<GamePacketT>(processer, func, dummy);
 	}
 	
 	template<class GamePacketT, class T, class TFunc>
 	bool setWorkerFunc(T* processer, TFunc func, TFunc funcSocket)
 	{
-		return mPacketDispatcher.setWorkerFunc<GamePacketT>(processer, func, funcSocket);
+		return getPacketDispatcher().setWorkerFunc<GamePacketT>(processer, func, funcSocket);
 	}
 	
 	TINY_API void removeProcesserFunc(void* processer);
@@ -165,8 +165,8 @@ public:
 protected:
 	virtual void  doUpdate( long time ){}
 	virtual void  postChangeState( NetActionState oldState ){}
+
 private:
-	PacketDispatcher mPacketDispatcher;  // ✅ 替换 ComEvaluator
 	NetActionState   mNAState;
 	ComListener*     mComListener;
 };

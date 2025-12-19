@@ -80,7 +80,7 @@ PlayerId NetSessionAdapter::getLocalPlayerId() const
 {
 	if (mSession)
 	{
-		return mSession->getLocalPlayerId();
+		return mSession->getUserPlayerId();
 	}
 	else if (mWorker)
 	{

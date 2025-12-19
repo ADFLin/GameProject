@@ -35,9 +35,6 @@ namespace AutoBattler
 		mWorld.init();
 		
 		::Global::GUI().cleanupWidget();
-		
-		// Initialize HUD (creates shop panel and other UI)
-		mHUD->init(&mWorld, this);
 
 		return true;
 	}
@@ -181,6 +178,10 @@ namespace AutoBattler
 				}
 			}
 		}
+
+		// Initialize HUD (creates shop panel and other UI)
+		mHUD->init(&mWorld, this);
+
 	}
 
 	bool LevelStage::setupNetwork(NetWorker* netWorker, INetEngine** engine)

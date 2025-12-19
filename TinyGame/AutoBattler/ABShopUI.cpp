@@ -100,6 +100,7 @@ namespace AutoBattler
 	ABShopControlButton::ABShopControlButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 		: BaseClass(id, pos, size, parent)
 	{
+
 	}
 
 	void ABShopControlButton::onRender()

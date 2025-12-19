@@ -215,6 +215,10 @@ public:
 	{
 		GGamePacketFactory.addFactory<T>();
 	}
+	~TGamePacketRegister()
+	{
+		GGamePacketFactory.removeFactory<T>();
+	}
 };
 
 #define REGISTER_GAME_PACKET(TYPE)\

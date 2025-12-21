@@ -17,7 +17,7 @@ namespace AutoBattler
 {
 	// Console variable to toggle between 2D and 3D rendering
 	// false = 3D only, true = 2D only (debug mode)
-	TConsoleVariable<bool> CVarRenderDebug{false, "AB.RenderDebug", CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarRenderDebug{true, "AB.RenderDebug", CVF_TOGGLEABLE };
 
 
 	LevelStage::LevelStage()
@@ -32,10 +32,7 @@ namespace AutoBattler
 		if (!BaseClass::onInit())
 			return false;
 
-		mWorld.init();
-		
 		::Global::GUI().cleanupWidget();
-
 		return true;
 	}
 
@@ -54,7 +51,7 @@ namespace AutoBattler
 
 	void LevelStage::onRestart(bool beInit)
 	{
-		mWorld.restart(beInit);
+		mWorld.restart();
 	}
 
 	void LevelStage::runLogic(float dt)
@@ -114,11 +111,11 @@ namespace AutoBattler
 	void LevelStage::setupLevel(GameLevelInfo const& info)
 	{
 		::Global::RandSeedNet(info.seed);
-		mWorld.restart(true);
 	}
 
 	void LevelStage::setupScene(IPlayerManager& playerManager)
 	{
+		mWorld.init();
 		for (auto it = playerManager.createIterator(); it; ++it)
 		{
 			GamePlayer* gp = it.getElement();
@@ -190,6 +187,9 @@ namespace AutoBattler
 		*engine = netEngine;
 		mNetEngine = netEngine;
 
+		// Disable local combat resolution in favor of Network/Async logic
+		mWorld.setAutoResolveCombat(false);
+
 		netEngine->OnTimeout = [this](int playerId, bool bLost)
 		{
 			mIsConnectionLost = bLost;
@@ -206,6 +206,7 @@ namespace AutoBattler
 
 		if (playerIndex >= 0 && playerIndex < AB_MAX_PLAYER_NUM)
 		{
+			// LogMsg("Execute Action Port %d Type %d", port, item.type);
 			Player& player = mWorld.getPlayer(playerIndex);
 
 			switch (item.type)
@@ -269,7 +270,9 @@ namespace AutoBattler
 					if (unit)
 					{
 						Vec2i srcPos(-1, -1);
-						if (item.retract.srcType == 0) srcPos = Vec2i(item.retract.srcX, item.retract.srcY);
+						if (item.retract.srcType == 0) 
+							srcPos = Vec2i(item.retract.srcX, item.retract.srcY);
+
 						player.retractUnit(unit, item.retract.benchIndex, srcPos);
 					}
 				}
@@ -322,7 +325,7 @@ namespace AutoBattler
 							{
 								int x = item.syncDrag.srcIndex % PlayerBoard::MapSize.x;
 								int y = item.syncDrag.srcIndex / PlayerBoard::MapSize.x;
-								unit->setPos(player.getBoard().getPos(x, y));
+								unit->setPos(player.getBoard().getWorldPos(x, y));
 							}
 							else
 							{
@@ -481,7 +484,7 @@ namespace AutoBattler
 
 	ERenderSystem LevelStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::D3D11;
+		return ERenderSystem::OpenGL;
 	}
 
 	void LevelStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)

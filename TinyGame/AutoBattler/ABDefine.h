@@ -9,7 +9,7 @@
 #define AUTO_BATTLER_NAME "AutoBattler"
 
 // Game Constants
-#define AB_MAX_PLAYER_NUM 8
+#define AB_MAX_PLAYER_NUM 2
 
 // Board
 #define AB_MAP_SIZE_X 8
@@ -26,8 +26,8 @@
 #define AB_XP_PER_BUY 4
 
 // Timings
-#define AB_PHASE_PREP_TIME 30.0f
-#define AB_PHASE_COMBAT_TIME 40.0f
+#define AB_PHASE_PREP_TIME 10.0f
+#define AB_PHASE_COMBAT_TIME 20.0f
 
 // Visual Sizing (TFT-style proportions)
 // Board Cell - hex grid cell size in world units
@@ -74,6 +74,7 @@ namespace AutoBattler
 		bool isBoard() const { return type == ECoordType::Board; }
 		bool isBench() const { return type == ECoordType::Bench; }
 	};
+
 
 }
 

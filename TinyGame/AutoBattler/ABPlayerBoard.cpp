@@ -24,10 +24,10 @@ namespace AutoBattler
 		{
 			for( int x = 0; x < MapSize.x; ++x )
 			{
-				Vector2 pos = getPos(x, y);
+				Vector2 pos = getWorldPos(x, y);
 
 				// Draw Hexagon or Rect? using Rect for Staggered Hex debug visualization for now
-				// Staggered offset handled in getPos logic usually, but here just drawing simple rects/circles to verify
+				// Staggered offset handled in getWorldPos logic usually, but here just drawing simple rects/circles to verify
 				g.drawCircle(pos, CellSize.x / 2 - 2);
 				
 				// Draw Coords
@@ -38,12 +38,12 @@ namespace AutoBattler
 
 		// Draw separation line
 		RenderUtility::SetPen(g, EColor::Red);
-		Vector2 p1 = getPos(0, MapSize.y / 2) - Vector2(CellSize.x / 2, CellSize.y / 2);
-		Vector2 p2 = getPos(MapSize.x, MapSize.y / 2) - Vector2(CellSize.x / 2, CellSize.y / 2);
+		Vector2 p1 = getWorldPos(0, MapSize.y / 2) - Vector2(CellSize.x / 2, CellSize.y / 2);
+		Vector2 p2 = getWorldPos(MapSize.x, MapSize.y / 2) - Vector2(CellSize.x / 2, CellSize.y / 2);
 		// g.drawLine(p1, p2); 
 	}
 
-	Vector2 PlayerBoard::getPos(int x, int y) const
+	Vector2 PlayerBoard::getWorldPos(int x, int y) const
 	{
 		// Staggered Hex Grid (Pointy topped)
 		// Offset every other row

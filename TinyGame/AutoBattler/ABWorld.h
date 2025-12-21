@@ -4,8 +4,10 @@
 #include "ABPlayerBoard.h"
 #include "ABPlayer.h"
 #include "ABUnit.h"
-#include "DataStructure/Array.h"
 #include "ABRound.h"
+#include "ABCombatDefs.h" // Includes CombatEvent definition
+
+#include "DataStructure/Array.h"
 
 
 namespace AutoBattler
@@ -16,6 +18,29 @@ namespace AutoBattler
 		Combat,
 		End,
 	};
+
+	struct ActionError
+	{
+		enum Code
+		{
+			NONE = 0,
+			INSUFFICIENT_GOLD,
+			INVALID_POSITION,
+			SHOP_SLOT_EMPTY,
+			BENCH_FULL,
+			BOARD_FULL,
+			PHASE_MISMATCH,
+			INVALID_PLAYER,
+			NO_UNIT,
+			INVALID_SOURCE,
+			INVALID_DESTINATION,
+		};
+
+		Code code = NONE;
+		const char* message = "";
+	};
+
+	struct ABActionItem;  // Forward declaration
 
 	class World
 	{
@@ -28,12 +53,13 @@ namespace AutoBattler
 		void tick(float dt);
 		void render(IGraphics2D& g);
 		
-		void restart(bool bInit);
+		void restart();
 		
 		// Game Logic
 		void changePhase(BattlePhase phase);
 		BattlePhase getPhase() const { return mPhase; }
 		float getPhaseTimer() const { return mPhaseTimer; }
+		void  setPhaseTimer(float time) { mPhaseTimer = time; }
 
 		Unit* getNearestEnemy(Vector2 const& pos, UnitTeam team, PlayerBoard* board);
 
@@ -54,8 +80,12 @@ namespace AutoBattler
 		void cleanupEnemies();
 		
 		void spawnPVEModule(int playerIndex, int round);
-		void spawnPVPModule();
-		void teleportUnits(int fromIdx, int toIdx, bool isGhost);
+		
+		// PVP Match Generation & Unit Teleportation (Refactored)
+		void generateMatches();           // Generate match pairings only
+		void teleportMatchedUnits();      // Teleport units based on existing matches
+		void teleportUnits(int fromIdx, int toIdx, bool isGhost); // Low-level helper
+		void teleportNetworkGhosts();
 		
 		void resolveCombat();
 		void restoreUnits();
@@ -63,6 +93,72 @@ namespace AutoBattler
 		int getRound() const { return mRound; }
 		RoundManager const& getRoundManager() const { return mRoundManager; }
 		UnitDataManager const& getUnitDataManager() const { return mUnitDataManager; }
+
+		// Match pairing structure
+		struct MatchPair
+		{
+			int home;
+			int away;
+			bool isGhost;
+		};
+
+		// Get current round match pairings
+		TArray<MatchPair> const& getMatches() const { return mMatches; }
+
+		// ========================================================================
+		// Combat Replay Support
+		// ========================================================================
+
+		// Check if currently playing a combat replay
+		bool isPlayingReplay() const { return mPlayingReplay; }
+
+		// Enable replay mode (disables AI, only applies events)
+		void setReplayMode(bool enabled);
+		void setAutoResolveCombat(bool enable) { mAutoResolveCombat = enable; }
+		bool isAutoResolveCombat() const { return mAutoResolveCombat; }
+
+		// Network Mode Control
+		void setNetworkMode(bool enabled) { mbNetworkMode = enabled; }
+		bool isNetworkMode() const { return mbNetworkMode; }
+
+		// ========================================================================
+		// Combat Action Application (shared by Units and Replay)
+		// These functions encapsulate combat logic so both normal gameplay
+		// and replay can use the same implementation
+		// ========================================================================
+
+		void applyUnitMove(Unit& unit, Vec2i const& moveTo, bool immediate = false);
+		void applyUnitAttack(Unit& attacker, Unit& target);
+		void applyUnitDamage(Unit& target, float damage);
+		void applyUnitHeal(Unit& target, float healAmount);
+		void applyUnitBuff(Unit& target, int buffType, float buffValue, float duration);
+		void applyUnitCastSkill(Unit& caster, int skillID, Unit* target = nullptr);
+		void applyUnitManaGain(Unit& unit, float manaAmount);
+
+		// Apply combat result (damage, rewards) to players
+		// homeAlive/awayAlive: number of surviving units (-1 if not applicable)
+		void applyCombatResult(int homePlayerIndex, int awayPlayerIndex, 
+		                       int homeAlive, int awayAlive, bool isPVE = false);
+
+		// Combat Event Recording
+		void setEventRecording(bool enable) { mRecordingEvents = enable; }
+		bool isRecordingEvents() const { return mRecordingEvents; }
+		float getSimulationTime() const { return mSimulationTime; }
+		void setSimulationTime(float time) { mSimulationTime = time; }
+		TArray<struct CombatEvent> const& getRecordedEvents() const { return mRecordedEvents; }
+		void clearRecordedEvents() { mRecordedEvents.clear(); }
+		void recordEvent(struct CombatEvent const& event);
+
+
+		bool validateAction(int playerIndex, ABActionItem const& action, ActionError* outError = nullptr);
+
+	private:
+		bool validateBuyUnit(Player const& player, struct ActionBuyUnit const& action, ActionError* outError);
+		bool validateSellUnit(Player const& player, struct ActionSellUnit const& action, ActionError* outError);
+		bool validateRefreshShop(Player const& player, ActionError* outError);
+		bool validateLevelUp(Player const& player, ActionError* outError);
+		bool validateDeployUnit(Player const& player, struct ActionDeployUnit const& action, ActionError* outError);
+		bool validateRetractUnit(Player const& player, struct ActionRetractUnit const& action, ActionError* outError);
 
 	private:
 		RoundManager    mRoundManager;
@@ -80,17 +176,31 @@ namespace AutoBattler
 		float       mPhaseTimer;
 		int         mRound;
 
-		struct MatchPair
-		{
-			int home;
-			int away;
-			bool isGhost;
-		};
 		TArray<MatchPair> mMatches;
 
 		bool        mCombatEnded;
 
+		// Combat event recording
+		bool                  mRecordingEvents = false;
+		float                 mSimulationTime = 0.0f;
+		TArray<CombatEvent>   mRecordedEvents;
+
+		// Combat replay mode flag (when true, Units skip AI logic)
+		bool        mPlayingReplay = false;
+		bool        mAutoResolveCombat = true;
+		bool        mbNetworkMode = false;  // If true, skip local unit teleportation in PVP
+		
+		bool        mUseLocalRandom = false;
+		unsigned int mRandomSeed = 1;
+		int         mNextUnitID = 1;
+
 	public:
+		int allocUnitID() { return mNextUnitID++; }
+		// Random Number Generation
+		void setUseLocalRandom(bool useLocal) { mUseLocalRandom = useLocal; }
+		void setRandomSeed(unsigned int seed) { mRandomSeed = seed; }
+		int getRand();
+
 		struct Projectile
 		{
 			Vector2 pos;

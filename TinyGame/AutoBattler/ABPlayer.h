@@ -53,9 +53,19 @@ namespace AutoBattler
 
 		PlayerBoard mBoard;
 		PlayerBoard& getBoard() { return mBoard; }
+		PlayerBoard const& getBoard() const { return mBoard; }
 
 		void refreshShop();
 		bool buyUnit(int index);
+
+		// Encode PlayerIndex into UnitID (High 16 bits = PlayerIdx, Low 16 bits = Counter)
+		int allocUnitID() 
+		{ 
+			int id = (mIndex << 16) | (mNextUnitID++ & 0xFFFF);
+			LogMsg("Player %d allocUnitID: %d (raw=%d)", mIndex, id, mNextUnitID-1);
+			return id;
+		}
+		int mNextUnitID = 1;
 
 		void sellUnit(int slotIndex);
 		bool rerollShop();

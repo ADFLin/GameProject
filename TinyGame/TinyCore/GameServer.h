@@ -256,7 +256,17 @@ public:
 	TINY_API SUserPlayer*   createUserPlayer( LocalWorker* worker , char const* name );
 	TINY_API SLocalPlayer*  createAIPlayer();
 	SLocalPlayer*  swepNetPlayerToLocal( SNetPlayer* player );
-	
+
+	ServerPlayer* getPlayerByActionPort(unsigned actionPort)
+	{
+		for (ServerPlayer* player : mPlayerTable)
+		{
+			if (player->getActionPort() == actionPort)
+				return player;
+		}
+		return nullptr;
+	}
+
 	TINY_API bool  removePlayer( PlayerId id );
 	TINY_API void  getPlayerInfo( PlayerInfo* info[] );
 	TINY_API void  removePlayerFlag( unsigned bitPos );

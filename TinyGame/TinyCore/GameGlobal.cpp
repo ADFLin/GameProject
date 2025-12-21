@@ -59,18 +59,22 @@ void Global::Finalize()
 	GGameDataCache = nullptr;
 }
 
+#include <cstdio>
+
 int Global::RandomNet()
 {
 	++GRandCount;
-	//Msg("rand count = %d" ,g_RandCount );
 	int rt =  GWellRng.rand();
 	if ( rt < 0 )
 		rt = -rt;
+	
+	// LogMsg("RandomNet: C=%d Val=%d", GRandCount, rt);
 	return rt;
 }
 
 void Global::RandSeedNet( uint64 seed )
 {
+	LogMsg("RandSeedNet: Seed=%llu", seed);
 	::srand( (unsigned)seed );
 
 	uint32 s[ 16 ];
@@ -78,6 +82,7 @@ void Global::RandSeedNet( uint64 seed )
 		s[i] = rand();
 
 	GWellRng.init( s );
+	GRandCount = 0;
 }
 
 int Global::Random()

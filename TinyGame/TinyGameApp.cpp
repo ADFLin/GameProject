@@ -76,6 +76,9 @@ namespace
 TINY_API IGameNetInterface* GGameNetInterfaceImpl;
 TINY_API IDebugInterface*   GDebugInterfaceImpl;
 
+// Handle for redirected file output (for dual console+file logging)
+HANDLE GRedirectedStdOut = INVALID_HANDLE_VALUE;
+
 
 void ToggleGraphics()
 {
@@ -284,13 +287,28 @@ public:
 	{
 #if SYS_PLATFORM_WIN
 		auto hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-		SetConsoleTextAttribute(hConsole, prefixStrColor);
-		WriteConsoleA(hConsole, prefixStr.data(), prefixStr.size(), NULL, NULL);
-		//std::cout << prefixStr;
-		SetConsoleTextAttribute(hConsole, textColor);
-		WriteConsoleA(hConsole, text.data(), text.size(), NULL, NULL);
-		WriteConsoleA(hConsole, "\n", 1, NULL, NULL);
-		//std::cout << text << std::endl;
+		DWORD written;
+		
+		// Write to console with colors if available
+		DWORD consoleMode;
+		bool isConsole = GetConsoleMode(hConsole, &consoleMode);
+		if (isConsole)
+		{
+			SetConsoleTextAttribute(hConsole, prefixStrColor);
+			WriteConsoleA(hConsole, prefixStr.data(), prefixStr.size(), &written, NULL);
+			SetConsoleTextAttribute(hConsole, textColor);
+			WriteConsoleA(hConsole, text.data(), text.size(), &written, NULL);
+			WriteConsoleA(hConsole, "\n", 1, &written, NULL);
+		}
+		
+		// Also write to redirected file if available (dual output)
+		if (GRedirectedStdOut != INVALID_HANDLE_VALUE)
+		{
+			WriteFile(GRedirectedStdOut, prefixStr.data(), prefixStr.size(), &written, NULL);
+			WriteFile(GRedirectedStdOut, text.data(), text.size(), &written, NULL);
+			WriteFile(GRedirectedStdOut, "\r\n", 2, &written, NULL);
+			FlushFileBuffers(GRedirectedStdOut);
+		}
 #else
 		std::cout << prefixStr.data() << text.data() << std::endl;
 #endif
@@ -610,9 +628,22 @@ BOOL WINAPI HandleConsoleEvent(DWORD dwCtrlType)
 	return TRUE;
 }
 #endif
+
 void CreateConsole()
 {
 #if SYS_PLATFORM_WIN
+	// Check if stdout is already redirected (e.g., > file.txt in batch)
+	HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD consoleMode;
+	bool isRedirected = (hStdOut != INVALID_HANDLE_VALUE && !GetConsoleMode(hStdOut, &consoleMode));
+	
+	// Only set GRedirectedStdOut from stdout if it's not already set by our code
+	if (isRedirected && GRedirectedStdOut == INVALID_HANDLE_VALUE)
+	{
+		// Save the redirected file handle for dual output
+		GRedirectedStdOut = hStdOut;
+	}
+	
 	if (AllocConsole()) 
 	{
 		FILE* pCout;
@@ -737,6 +768,31 @@ void RunArrayTest()
 bool TinyGameApp::initializeGame()
 {
 	DateTime appStartTime = SystemPlatform::GetLocalTime();
+
+	// Check for -Output parameter to create log file
+	char const* cmdLine = FCommandLine::Get();
+	char const* outputParam = FCString::StrStr(cmdLine, "-Output");
+	if (outputParam)
+	{
+		// Skip "-Output" and any whitespace
+		outputParam += 7; // strlen("-Output")
+		while (*outputParam == ' ' || *outputParam == '\t')
+			++outputParam;
+		
+		// Extract filename (until next space or end)
+		char logFileName[256];
+		int i = 0;
+		while (*outputParam && *outputParam != ' ' && *outputParam != '\t' && i < 255)
+		{
+			logFileName[i++] = *outputParam++;
+		}
+		logFileName[i] = '\0';
+		
+		if (i > 0)
+		{
+			GRedirectedStdOut = CreateFileA(logFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		}
+	}
 
 	CreateConsole();
 	GLogPrinter.addDefaultChannels();
@@ -887,8 +943,39 @@ bool TinyGameApp::initializeGame()
 		setConsoleShowMode(ConsoleShowMode::None);
 
 		bool havePlayGame = false;
+
+		if (FCString::StrStr(FCommandLine::Get(), "-AutoNet"))
+		{
+			if (FCString::StrStr(FCommandLine::Get(), "-Server"))
+			{
+				ServerWorker* server = createServer();
+				if (server)
+				{
+					LocalWorker* worker = server->createLocalWorker(::Global::GetUserProfile().name);
+					NetRoomStage* stage = static_cast<NetRoomStage*>(changeStage(STAGE_NET_ROOM));
+					stage->initWorker(worker, server);
+					havePlayGame = true;
+				}
+			}
+			else if (FCString::StrStr(FCommandLine::Get(), "-Client"))
+			{
+				ClientWorker* worker = createClinet();
+				if (worker)
+				{
+					NetRoomStage* stage = static_cast<NetRoomStage*>(changeStage(STAGE_NET_ROOM));
+					stage->initWorker(worker);
+					havePlayGame = true;
+				}
+			}
+			
+			if (havePlayGame)
+			{
+				::Global::ModuleManager().changeGame("AutoBattler");
+			}
+		}
+
 		char const* gameName;
-		if (::Global::GameConfig().tryGetStringValue("DefaultGame", nullptr, gameName))
+		if (!havePlayGame && ::Global::GameConfig().tryGetStringValue("DefaultGame", nullptr, gameName))
 		{
 			IGameModule* game = ::Global::ModuleManager().changeGame(gameName);
 			if (game)

@@ -208,7 +208,7 @@ namespace AutoBattler
 							mAction.deployUnit(player, srcType, srcX, srcY, coord.x, coord.y);
 							
 							// Client Prediction: Snap to Target
-							mDraggedUnit->setPos(board.getPos(coord.x, coord.y));
+							mDraggedUnit->setPos(board.getWorldPos(coord.x, coord.y));
 							bDropSuccess = true;
 						}
 					}
@@ -305,7 +305,7 @@ namespace AutoBattler
 				// Simplification:
 				for (int x = 0; x < PlayerBoard::MapSize.x; ++x)
 				{
-					Vector2 pos = board.getPos(x, y);
+					Vector2 pos = board.getWorldPos(x, y);
 					
 					bool bOccupied = board.isOccupied(x, y);
 					bool bValid = !bOccupied;

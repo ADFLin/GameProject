@@ -19,6 +19,7 @@ namespace AutoBattler
 	void Player::init(World* world)
 	{
 		mWorld = world;
+		LogMsg("Player::init[%d] Addr=%p", mIndex, this);
 		mGold = AB_INITIAL_GOLD;
 		mHp = AB_INITIAL_HP;
 
@@ -56,12 +57,14 @@ namespace AutoBattler
 		mShopList.resize(5);
 		for (int& id : mShopList)
 		{
-			UnitDefinition const* def = mWorld->getUnitDataManager().getRandomUnit(mLevel);
+			UnitDefinition const* def = mWorld->getUnitDataManager().getRandomUnit(mLevel, mWorld->getRand());
 			if (def)
 				id = def->id;
 			else
 				id = 0;
 		}
+
+		LogMsg("ShopSync: P%d L%d [%d %d %d %d %d]", getIndex(), mLevel, mShopList[0], mShopList[1], mShopList[2], mShopList[3], mShopList[4]);
 	}
 
 	bool Player::buyUnit(int index)
@@ -99,12 +102,17 @@ namespace AutoBattler
 			return false;
 
 		Unit* unit = new Unit();
+		// Use Player-scoped ID allocation
+		unit->setUnitId(allocUnitID());
+
 		if (def)
 		{
 			unit->setStats(def->baseStats);
-			unit->setUnitId(def->id);
+			unit->setTypeId(def->id);
 		}
 		
+		LogMsg("Player[%d] BuyUnit: Type=%d InstanceID=%d Cost=%d", mIndex, (def?def->id:-1), unit->getUnitId(), cost);
+
 		mBench[slotIndex] = unit;
 		unit->setPos(getBenchSlotPos(slotIndex));
 
@@ -267,7 +275,7 @@ namespace AutoBattler
 			if (bOnBoard)
 			{
 				// Board -> Board Swap
-				targetOccupier->setPos(mBoard.getPos(currentCoord.x, currentCoord.y));
+				targetOccupier->setPos(mBoard.getWorldPos(currentCoord.x, currentCoord.y));
 				mBoard.setUnit(currentCoord.x, currentCoord.y, targetOccupier);
 
 				UnitLocation loc;
@@ -299,7 +307,7 @@ namespace AutoBattler
 			unit->setInternalBoard(&mBoard);
 		}
 
-		unit->setPos(mBoard.getPos(destCoord.x, destCoord.y));
+		unit->setPos(mBoard.getWorldPos(destCoord.x, destCoord.y));
 		unit->stopMove();
 		mBoard.setUnit(destCoord.x, destCoord.y, unit);
 
@@ -313,8 +321,11 @@ namespace AutoBattler
 
 	bool Player::retractUnit(Unit* unit, int slotIndex, Vec2i sourceCoord)
 	{
-		if (!unit) return false;
-		if (!mBench.isValidIndex(slotIndex)) return false;
+		if (!unit) 
+			return false;
+
+		if (!mBench.isValidIndex(slotIndex)) 
+			return false;
 
 		Unit* targetOccupier = mBench[slotIndex];
 
@@ -376,7 +387,7 @@ namespace AutoBattler
 				
 				mUnits.push_back(targetOccupier);
 				targetOccupier->setInternalBoard(&mBoard);
-				targetOccupier->setPos(mBoard.getPos(currentCoord.x, currentCoord.y));
+				targetOccupier->setPos(mBoard.getWorldPos(currentCoord.x, currentCoord.y));
 				mBoard.setUnit(currentCoord.x, currentCoord.y, targetOccupier);
 
 				UnitLocation loc;

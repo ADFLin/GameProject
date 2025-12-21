@@ -1,11 +1,11 @@
 #include "ABPCH.h"
 #include "ABWorld.h"
+#include "ABAction.h"
+#include "ABDefine.h"
+
 #include "RenderUtility.h"
 #include "GameGlobal.h"
-#include "ABDefine.h"
 #include "GameGraphics2D.h"
-
-
 
 namespace AutoBattler
 {
@@ -14,6 +14,8 @@ namespace AutoBattler
 		mPhase = BattlePhase::Preparation;
 		mPhaseTimer = 0.0f;
 		mLocalPlayerIndex = 0;
+		mRound = 0;
+		mCombatEnded = false;
 	}
 
 	World::~World()
@@ -48,10 +50,7 @@ namespace AutoBattler
 			int col = gridIndex % GridCols;
 
 			player.getBoard().setOffset(Vector2(col * GapX, row * GapY));
-		}
-		
-		// changePhase(BattlePhase::Preparation); // restart calls this
-		restart(true);
+		}		
 	}
 
 	void World::cleanup()
@@ -73,26 +72,43 @@ namespace AutoBattler
 		mProjectiles.clear();
 	}
 
-	void World::restart(bool bInit)
+	void World::restart()
 	{
 		cleanup(); // Clears units
 
 		for (auto& player : mPlayers)
 		{
 			player.resetGame(); // Resets HP, Gold, Board
-			player.refreshShop();
+
 
 			// Give one starter unit on bench
 			if (player.mBench.size() > 0)
 			{
 				Unit* unit = new Unit();
-				player.mBench[0] = unit;
-				unit->setPos(player.getBenchSlotPos(0));
+				unit->setUnitId(player.allocUnitID());
+				// Default Stats?
+				unit->setStats(mUnitDataManager.getUnit(1)->baseStats); // Assuming ID 1 exists
+				unit->setTypeId(1);
+				// Put on Board directly for testing
+				player.mBench[0] = nullptr; 
+				// player.mBench[0] = unit;
+				// unit->setPos(player.getBenchSlotPos(0));
+				
+				// Center Front
+
+				Vec2i pos = Vec2i(0, 7);
+				player.getBoard().setUnit(pos.x, pos.y, unit);
+				unit->setPos(player.getBoard().getWorldPos(pos.x, pos.y));
+				unit->setInternalBoard(&player.getBoard());
 
 				UnitLocation loc;
-				loc.type = ECoordType::Bench;
-				loc.index = 0;
+				loc.type = ECoordType::Board;
+				loc.pos = pos;
+
 				unit->setHoldLocation(loc);
+
+				// Add to active units list
+				player.mUnits.push_back(unit);
 			}
 		}
 
@@ -142,7 +158,7 @@ namespace AutoBattler
 		// Round Logic
 		// Round is 0-indexed in code? 
 		// "mRound++" happens in changePhase::Preparation.
-		// Start mRound=0. Preparation -> mRound=1.
+		// Start m Round=0. Preparation -> mRound=1.
 		// So we want config for mRound-1 if mRound is 1-based (UI).
 		// Code logic: mRound initialized 0. In Prep: mRound++. Current Round 1.
 		
@@ -150,22 +166,45 @@ namespace AutoBattler
 
 		bool isPVE = (roundConfig.type == RoundType::PVE);
 
-		// Spawn for ALL players
-		for (int i = 0; i < mPlayers.size(); ++i)
+		if (isPVE)
 		{
-			if (isPVE)
+			mMatches.clear();
+			// PVE: Spawn enemies for each player
+			for (int i = 0; i < mPlayers.size(); ++i)
 			{
 				spawnPVEModule(i, mRound);
 			}
+		}
+		else
+		{
+			// PVP: Generate match pairings
+			generateMatches();
+			
+			// Only teleport units in standalone mode
+			// In network mode, combat simulation handles unit positioning
+			if (!mbNetworkMode)
+			{
+				teleportMatchedUnits();
+				LogMsg("setupRound: Standalone mode - units teleported locally");
+			}
 			else
 			{
-				// PVP Handled in spawnPVPModule called later
+				// In network mode, we only spawn GHOSTS locally for visualization.
+				// Real units are synced via network entity system.
+				teleportNetworkGhosts();
+				LogMsg("setupRound: Network mode - syncing ghosts if any");
 			}
 		}
-		
-		if (!isPVE)
+	}
+
+	void World::teleportNetworkGhosts()
+	{
+		for (auto const& match : mMatches)
 		{
-			spawnPVPModule();
+			if (match.isGhost)
+			{
+				teleportUnits(match.away, match.home, true);
+			}
 		}
 	}
 
@@ -183,10 +222,14 @@ namespace AutoBattler
 			enemy->setTeam(UnitTeam::Enemy);
 			enemy->setInternalBoard(&board);
 
-			Vector2 pos = board.getPos(enemyInfo.gridPos.x, enemyInfo.gridPos.y);
+			Vector2 pos = board.getWorldPos(enemyInfo.gridPos.x, enemyInfo.gridPos.y);
 			enemy->setPos(pos);
 			
-			// Force set unit irrespective of occupation? PVE units shouldn't overlap if config is good.
+			UnitLocation loc;
+			loc.type = ECoordType::Board;
+			loc.pos = enemyInfo.gridPos;
+			enemy->setHoldLocation(loc);
+
 			board.setUnit(enemyInfo.gridPos.x, enemyInfo.gridPos.y, enemy);
 			
 			player.mEnemyUnits.push_back(enemy);
@@ -201,23 +244,17 @@ namespace AutoBattler
 		Player& fromPlayer = mPlayers[fromIdx];
 		Player& toPlayer = mPlayers[toIdx];
 		PlayerBoard& toBoard = toPlayer.getBoard();
-		
+
 		if (!isGhost)
 		{
 			// Move ACTUAL units
 			for (auto unit : fromPlayer.mUnits)
 			{
-				Vec2i gridPos = fromPlayer.getBoard().getCoord(unit->getPos());
-				int targetX = PlayerBoard::MapSize.x - 1 - gridPos.x;
-				int targetY = PlayerBoard::MapSize.y - 1 - gridPos.y;
-				
-				Vector2 worldPos = toBoard.getPos(targetX, targetY);
-				unit->setPos(worldPos);
-				unit->setInternalBoard(&toBoard);
-				
-				toBoard.setUnit(targetX, targetY, unit);
-				unit->setTeam(UnitTeam::Enemy);
+				Vec2i basePos = PlayerBoard::Mirror(unit->getHoldLocation().pos);
+				Vec2i targetPos = basePos;
 
+				unit->setTeam(UnitTeam::Enemy);
+				unit->place(toBoard, targetPos);
 				// Vital: Add to Home Player's Enemy List so they can be targeted
 				toPlayer.mEnemyUnits.push_back(unit);
 			}
@@ -228,45 +265,45 @@ namespace AutoBattler
 			for (auto unit : fromPlayer.mUnits)
 			{
 				Unit* ghost = new Unit();
+				ghost->setIsGhost(true);
+				ghost->setUnitId(unit->getUnitId());
 				ghost->setStats(unit->getStats());
-				// ...
-				
-				Vec2i gridPos = fromPlayer.getBoard().getCoord(unit->getPos());
-				int targetX = PlayerBoard::MapSize.x - 1 - gridPos.x;
-				int targetY = PlayerBoard::MapSize.y - 1 - gridPos.y;
+				Vec2i targetPos = PlayerBoard::Mirror(unit->getHoldLocation().pos);
+				ghost->place(toBoard, targetPos);
 
-				Vector2 worldPos = toBoard.getPos(targetX, targetY);
-				ghost->setPos(worldPos);
-				ghost->setInternalBoard(&toBoard);
-				ghost->setTeam(UnitTeam::Enemy);
-
-				toBoard.setUnit(targetX, targetY, ghost);
 				toPlayer.mEnemyUnits.push_back(ghost);
 			}
 		}
 	}
 
-	void World::spawnPVPModule()
+	// =======================================================================
+	// PVP Match Generation & Unit Teleportation (Refactored)
+	// =======================================================================
+
+	void World::generateMatches()
 	{
 		// 1. Clear previous matches
 		mMatches.clear();
 
 		// 2. Identify eligible players
 		TArray<int> activePlayers;
+		LogMsg("MatchGen: Checking Active Players:");
 		for (int i = 0; i < mPlayers.size(); ++i)
 		{
 			if (mPlayers[i].getHp() > 0)
+			{
 				activePlayers.push_back(i);
+				LogMsg("  Player %d (HP: %d)", i, mPlayers[i].getHp());
+			}
 		}
 
 		if (activePlayers.empty()) 
 			return;
 
 		// 3. Shuffle
-		// Simple shuffle
 		for (int i = 0; i < activePlayers.size(); ++i)
 		{
-			int swapIdx = ::Global::RandomNet() % activePlayers.size();
+			int swapIdx = getRand() % activePlayers.size();
 			std::swap(activePlayers[i], activePlayers[swapIdx]);
 		}
 
@@ -282,8 +319,7 @@ namespace AutoBattler
 			match.isGhost = false;
 			mMatches.push_back(match);
 
-			// Teleport p2 units to p1 board
-			teleportUnits(p2, p1, false);
+			LogMsg("MatchGen: Pair %d vs %d", p1, p2);
 		}
 
 		// 5. Handle odd player (Ghost Match)
@@ -292,11 +328,6 @@ namespace AutoBattler
 			int oddPlayer = activePlayers.back(); activePlayers.pop_back();
 
 			// Pick a random opponent (who is not self) from ALIVE players
-			// If only 1 player alive, no PVP possible (handled in phase change maybe).
-			// If we are here, there must be at least 1 player. 
-			// But if total players = 1, we can't find opponent.
-			
-			int opponentIdx = -1;
 			TArray<int> potentialOpponents;
 			for (int i = 0; i < mPlayers.size(); ++i) 
 			{
@@ -306,7 +337,7 @@ namespace AutoBattler
 
 			if (!potentialOpponents.empty())
 			{
-				opponentIdx = potentialOpponents[::Global::RandomNet() % potentialOpponents.size()];
+				int opponentIdx = potentialOpponents[getRand() % potentialOpponents.size()];
 				
 				MatchPair match;
 				match.home = oddPlayer;
@@ -314,11 +345,21 @@ namespace AutoBattler
 				match.isGhost = true;
 				mMatches.push_back(match);
 
-				teleportUnits(opponentIdx, oddPlayer, true);
+				LogMsg("MatchGen: Ghost match %d vs %d", oddPlayer, opponentIdx);
 			}
 		}
 	}
 
+	void World::teleportMatchedUnits()
+	{
+		LogMsg("Teleport Matched Units. Matches: %d", mMatches.size());
+
+		// Teleport units for all generated matches
+		for (auto const& match : mMatches)
+		{
+			teleportUnits(match.away, match.home, match.isGhost);
+		}
+	}
 
 	void World::restoreUnits()
 	{
@@ -327,6 +368,9 @@ namespace AutoBattler
 			PlayerBoard& board = player.getBoard();
 			for (auto unit : player.mUnits)
 			{
+				// Set internal board to owner's board
+				unit->setInternalBoard(&board);
+
 				unit->restoreStartState();
 
 				// Ensure unit is set to correct team
@@ -338,8 +382,6 @@ namespace AutoBattler
 				{
 					board.setUnit(coord.x, coord.y, unit);
 				}
-				// Set internal board to owner's board
-				unit->setInternalBoard(&board);
 			}
 		}
 	}
@@ -354,67 +396,91 @@ namespace AutoBattler
 			for (auto& match : mMatches)
 			{
 				Player& homeP = mPlayers[match.home];
-				Player& awayP = mPlayers[match.away]; // If ghost, this is real player who was cloned, but irrelevant for outcome usually
+				Player& awayP = mPlayers[match.away];
 
+				// Count alive units
 				int homeAlive = 0;
 				for (auto u : homeP.mUnits) if (!u->isDead()) homeAlive++;
 
 				int awayAlive = 0;
 				if (match.isGhost)
 				{
-					// For Ghost, enemies are in homeP.mEnemyUnits
 					for (auto u : homeP.mEnemyUnits) if (!u->isDead()) awayAlive++;
 				}
 				else
 				{
-					// For normal, away units are awayP.mUnits (teleported)
 					for (auto u : awayP.mUnits) if (!u->isDead()) awayAlive++;
 				}
 
-				// Resolution for HOME
-				if (homeAlive > 0 && awayAlive == 0)
-				{
-					homeP.addGold(1); 
-				}
-				else if (awayAlive > 0 && homeAlive == 0)
-				{
-					homeP.takeDamage(2 + awayAlive);
-				}
-
-				// Resolution for AWAY (only if Not Ghost)
-				if (!match.isGhost)
-				{
-					if (awayAlive > 0 && homeAlive == 0)
-					{
-						awayP.addGold(1);
-					}
-					else if (homeAlive > 0 && awayAlive == 0)
-					{
-						awayP.takeDamage(2 + homeAlive);
-					}
-				}
+				// Apply combat result using shared method
+				// For ghost matches, treat away as -1 (PVE-like for away player)
+				int awayIndex = match.isGhost ? -1 : match.away;
+				applyCombatResult(match.home, awayIndex, homeAlive, awayAlive, false);
 			}
 		}
 		// 2. PVE (No Matches)
 		else
 		{
-			for (auto& player : mPlayers)
+			for (int i = 0; i < AB_MAX_PLAYER_NUM; ++i)
 			{
+				Player& player = mPlayers[i];
+				
+				// Count alive units
 				int playerAlive = 0;
 				for (auto u : player.mUnits) if (!u->isDead()) playerAlive++;
 
 				int enemyAlive = 0;
 				for (auto u : player.mEnemyUnits) if (!u->isDead()) enemyAlive++;
 
-				if (playerAlive > 0 && enemyAlive == 0)
-				{
-					player.addGold(1);
-				}
-				else if (enemyAlive > 0 && playerAlive == 0)
-				{
-					int damage = 2 + enemyAlive;
-					player.takeDamage(damage);
-				}
+				// Apply PVE result
+				applyCombatResult(i, -1, playerAlive, enemyAlive, true);
+			}
+		}
+	}
+
+	void World::applyCombatResult(int homePlayerIndex, int awayPlayerIndex, 
+	                               int homeAlive, int awayAlive, bool isPVE)
+	{
+		// Apply result for home player
+		if (homePlayerIndex >= 0 && homePlayerIndex < AB_MAX_PLAYER_NUM)
+		{
+			Player& homePlayer = mPlayers[homePlayerIndex];
+			
+			if (homeAlive > 0 && awayAlive == 0)
+			{
+				// Home player won
+				homePlayer.addGold(1);
+				LogMsg("  Player %d won, +1 gold", homePlayerIndex);
+			}
+			else if (awayAlive > 0 && homeAlive == 0)
+			{
+				// Home player lost
+				int damage = 2 + awayAlive;
+				homePlayer.takeDamage(damage);
+				LogMsg("  Player %d lost, -%d HP (HP: %d)", 
+				       homePlayerIndex, damage, homePlayer.getHp());
+			}
+			// else: draw, no rewards or penalties
+		}
+		
+		// Apply result for away player (only for PVP, not PVE)
+		if (!isPVE && awayPlayerIndex >= 0 && awayPlayerIndex < AB_MAX_PLAYER_NUM)
+		{
+			Player& awayPlayer = mPlayers[awayPlayerIndex];
+			
+			if (awayAlive > 0 && homeAlive == 0)
+			{
+				// Away player won
+				awayPlayer.addGold(1);
+				LogMsg("  Player %d won, +1 gold", awayPlayerIndex);
+			}
+			else if (homeAlive > 0 && awayAlive == 0)
+			{
+				// Away player lost
+				int damage = 2 + homeAlive;
+				awayPlayer.takeDamage(damage);
+				LogMsg("  Player %d lost, -%d HP (HP: %d)", 
+				       awayPlayerIndex, damage, awayPlayer.getHp());
 			}
 		}
 	}
@@ -480,9 +546,12 @@ namespace AutoBattler
 
 				if (allCombatsEnded)
 				{
-					mCombatEnded = true;
-					resolveCombat();
-					if (mPhaseTimer > 3.0f) mPhaseTimer = 3.0f;
+					if (mAutoResolveCombat)
+					{
+						mCombatEnded = true;
+						resolveCombat();
+						if (mPhaseTimer > 3.0f) mPhaseTimer = 3.0f;
+					}
 				}
 			}
 
@@ -496,20 +565,32 @@ namespace AutoBattler
 			}
 		}
 
-		for (auto& player : mPlayers)
+		updateProjectiles(dt);
+
+		static int updateFrame = 0;
+		updateFrame++;
+
+		int numPlayers = (int)mPlayers.size();
+		for (int i = 0; i < numPlayers; ++i)
 		{
+			int idx = (updateFrame % 2 == 0) ? i : (numPlayers - 1 - i);
+			Player& player = mPlayers[idx];
+
 			for (auto unit : player.mUnits)
 				unit->update(dt, *this);
+
 			for (auto unit : player.mEnemyUnits)
-				unit->update(dt, *this);
+			{
+				if (unit->isGhost())
+					unit->update(dt, *this);
+			}
 		}
-		
-		updateProjectiles(dt);
 	}
 
 	void World::changePhase(BattlePhase phase)
-	{
-		mPhase = phase;
+{
+	LogMsg("ChangePhase: %d Matches: %d", (int)phase, mMatches.size());
+	mPhase = phase;
 		switch (mPhase)
 		{
 		case BattlePhase::Preparation:
@@ -551,18 +632,12 @@ namespace AutoBattler
 				int income = 5 + interest;
 				player.addGold(income);
 				player.refreshShop();
-			}
 		}
-		break;
-		case BattlePhase::Combat:
-			mPhaseTimer = AB_PHASE_COMBAT_TIME;
+	}
+	break;
+	case BattlePhase::Combat:
+			mPhaseTimer = 3600.0f; // Infinite time (wait for combat end)
 			mCombatEnded = false;
-
-			for (auto& player : mPlayers)
-			{
-				for (auto unit : player.mUnits)
-					unit->saveStartState();
-			}
 			setupRound(); // Spawn/Teleport Enemies
 			break;
 		}
@@ -637,7 +712,11 @@ namespace AutoBattler
 				// Hit
 				if (p.target && !p.target->isDead())
 				{
-					p.target->takeDamage(p.damage);
+					// In Replay mode, damage is handled via UnitTakeDamage events
+					if (!mPlayingReplay)
+					{
+						p.target->takeDamage(p.damage);
+					}
 					// Mana gain for attacker? Handled in attack() usually. 
 					// But if we defer damage, maybe mana should be deferred? 
 					// Simplest: Attacker mana gained on spawn (Visual Cast), Victim mana gained on hit.
@@ -693,4 +772,556 @@ namespace AutoBattler
 		return bestUnit;
 	}
 
+	// =======================================================================
+	// Server端Action驗證
+	// =======================================================================
+
+	bool World::validateAction(int playerIndex, ABActionItem const& action, ActionError* outError)
+	{
+		if (playerIndex < 0 || playerIndex >= (int)mPlayers.size())
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INVALID_PLAYER;
+				outError->message = "Invalid player index";
+			}
+			return false;
+		}
+
+		Player const& player = mPlayers[playerIndex];
+
+		switch (action.type)
+		{
+		case ACT_BUY_UNIT:
+			return validateBuyUnit(player, action.buy, outError);
+		case ACT_SELL_UNIT:
+			return validateSellUnit(player, action.sell, outError);
+		case ACT_REFRESH_SHOP:
+			return validateRefreshShop(player, outError);
+		case ACT_LEVEL_UP:
+			return validateLevelUp(player, outError);
+		case ACT_DEPLOY_UNIT:
+			return validateDeployUnit(player, action.deploy, outError);
+		case ACT_RETRACT_UNIT:
+			return validateRetractUnit(player, action.retract, outError);
+		case ACT_SYNC_DRAG:
+			return true; // Visual sync only
+		default:
+			if (outError)
+			{
+				outError->code = ActionError::INVALID_SOURCE;
+				outError->message = "Unknown action type";
+			}
+			return false;
+		}
+	}
+
+	bool World::validateBuyUnit(Player const& player, ActionBuyUnit const& action, ActionError* outError)
+	{
+		// 檢查階段
+		if (mPhase != BattlePhase::Preparation)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::PHASE_MISMATCH;
+				outError->message = "Can only buy units in preparation phase";
+			}
+			return false;
+		}
+
+		// 檢查Shop slot
+		if (action.slotIndex >= (int)player.mShopList.size())
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INVALID_POSITION;
+				outError->message = "Invalid shop slot index";
+			}
+			return false;
+		}
+
+		int unitId = player.mShopList[action.slotIndex];
+		if (unitId < 0)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::SHOP_SLOT_EMPTY;
+				outError->message = "Shop slot is empty";
+			}
+			return false;
+		}
+
+		// TODO: 檢查金幣
+		// 需要查詢UnitDataManager獲取單位價格
+
+		// 檢查Bench空位
+		bool hasBenchSpace = false;
+		for (auto* unit : player.mBench)
+		{
+			if (unit == nullptr)
+			{
+				hasBenchSpace = true;
+				break;
+			}
+		}
+
+		if (!hasBenchSpace)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::BENCH_FULL;
+				outError->message = "Bench is full";
+			}
+			return false;
+		}
+
+		return true;
+	}
+
+	bool World::validateSellUnit(Player const& player, ActionSellUnit const& action, ActionError* outError)
+	{
+		if (mPhase != BattlePhase::Preparation)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::PHASE_MISMATCH;
+				outError->message = "Can only sell units in preparation phase";
+			}
+			return false;
+		}
+
+		// 檢查slotIndex是否有單位
+		if (action.slotIndex >= (int)player.mBench.size())
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INVALID_POSITION;
+				outError->message = "Invalid bench slot";
+			}
+			return false;
+		}
+
+		if (player.mBench[action.slotIndex] == nullptr)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::NO_UNIT;
+				outError->message = "No unit in this slot";
+			}
+			return false;
+		}
+
+		return true;
+	}
+
+	bool World::validateRefreshShop(Player const& player, ActionError* outError)
+	{
+		if (mPhase != BattlePhase::Preparation)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::PHASE_MISMATCH;
+				outError->message = "Can only refresh shop in preparation phase";
+			}
+			return false;
+		}
+
+		const int REFRESH_COST = 2;
+		if (player.getGold() < REFRESH_COST)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INSUFFICIENT_GOLD;
+				outError->message = "Not enough gold";
+			}
+			return false;
+		}
+
+		return true;
+	}
+
+	bool World::validateLevelUp(Player const& player, ActionError* outError)
+	{
+		if (mPhase != BattlePhase::Preparation)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::PHASE_MISMATCH;
+				outError->message = "Can only buy XP in preparation phase";
+			}
+			return false;
+		}
+
+		const int XP_COST = 4;
+		if (player.getGold() < XP_COST)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INSUFFICIENT_GOLD;
+				outError->message = "Not enough gold";
+			}
+			return false;
+		}
+
+		return true;
+	}
+
+	bool World::validateDeployUnit(Player const& player, ActionDeployUnit const& action, ActionError* outError)
+	{
+		if (mPhase != BattlePhase::Preparation)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::PHASE_MISMATCH;
+				outError->message = "Can only deploy units in preparation phase";
+			}
+			return false;
+		}
+
+		// 檢查目標位置是否合法
+		PlayerBoard const& board = player.getBoard();
+		if (action.destX < 0 || action.destX >= PlayerBoard::MapSize.x ||
+			action.destY < 0 || action.destY >= PlayerBoard::MapSize.y)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INVALID_DESTINATION;
+				outError->message = "Invalid destination position";
+			}
+			return false;
+		}
+
+		// 檢查源位置（簡化檢查，實際執行時會更詳細）
+		if (action.srcType == 1) // From Bench
+		{
+			if (action.srcX < 0 || action.srcX >= (int)player.mBench.size())
+			{
+				if (outError)
+				{
+					outError->code = ActionError::INVALID_SOURCE;
+					outError->message = "Invalid bench slot";
+				}
+				return false;
+			}
+
+			if (player.mBench[action.srcX] == nullptr)
+			{
+				if (outError)
+				{
+					outError->code = ActionError::NO_UNIT;
+					outError->message = "No unit in source position";
+				}
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool World::validateRetractUnit(Player const& player, ActionRetractUnit const& action, ActionError* outError)
+	{
+		if (mPhase != BattlePhase::Preparation)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::PHASE_MISMATCH;
+				outError->message = "Can only retract units in preparation phase";
+			}
+			return false;
+		}
+
+		// 檢查Bench是否有空位
+		bool hasBenchSpace = false;
+		for (auto* unit : player.mBench)
+		{
+			if (unit == nullptr)
+			{
+				hasBenchSpace = true;
+				break;
+			}
+		}
+
+		if (!hasBenchSpace)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::BENCH_FULL;
+				outError->message = "Bench is full";
+			}
+			return false;
+		}
+
+		// 檢查源位置是否有單位（簡化）
+		PlayerBoard const& board = player.getBoard();
+		if (action.srcX < 0 || action.srcX >= PlayerBoard::MapSize.x ||
+			action.srcY < 0 || action.srcY >= PlayerBoard::MapSize.y)
+		{
+			if (outError)
+			{
+				outError->code = ActionError::INVALID_SOURCE;
+				outError->message = "Invalid source position";
+			}
+			return false;
+		}
+
+		return true;
+	}
+
+	void World::setReplayMode(bool enabled)
+	{
+		mPlayingReplay = enabled;
+		LogMsg("World: Replay mode %s", enabled ? "ENABLED" : "DISABLED");
+	}
+
+	void World::recordEvent(struct CombatEvent const& event)
+	{
+		CHECK(mRecordingEvents);
+		{
+			// Add event to list
+			mRecordedEvents.push_back(event);
+		}
+	}
+
+	int World::getRand()
+	{
+		if (!mUseLocalRandom)
+		{
+			return ::Global::RandomNet();
+		}
+		
+		// Simple LCG
+		mRandomSeed = mRandomSeed * 1103515245 + 12345;
+		return (unsigned int)(mRandomSeed / 65536) % 32768;
+	}
+
+	void World::applyUnitMove(Unit& unit, Vec2i const& moveTo, bool immediate)
+	{
+		PlayerBoard* board = unit.getInternalBoard();
+		if (!board) return;
+
+		// Record move event
+		if (mRecordingEvents && !mPlayingReplay)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitMove;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = unit.getUnitId();
+			event.targetUnitID = -1;
+			Vector2 targetPos = board->getWorldPos(moveTo.x, moveTo.y);
+			event.data.movePosition = targetPos;
+			recordEvent(event);
+		}
+
+		// Logic: Update Board Occupation
+	Vec2i currentGrid = board->getCoord(unit.getPos());
+	if (board->isValid(currentGrid))
+	{
+		Unit* occupant = board->getUnit(currentGrid.x, currentGrid.y);
+		if (occupant == &unit)
+		{
+			board->setUnit(currentGrid.x, currentGrid.y, nullptr);
+		}
+	}
+
+	// Set new position
+	board->setUnit(moveTo.x, moveTo.y, &unit);
+
+	Vector2 targetPos = board->getWorldPos(moveTo.x, moveTo.y);
+	if (immediate)
+	{
+		// Teleport instantly (used for replay start)
+		unit.setPos(targetPos);
+		// Need to update next cell too?
+		// No, startVisualMove handles dynamic movement. 
+		// If teleporting, we are "there".
+		unit.stopMove(); // Stop any interpolation
+	}
+	else
+	{
+		// Start smooth movement
+		unit.startVisualMove(targetPos);
+	}
+}
+
+	void World::applyUnitAttack(Unit& attacker, Unit& target)
+	{
+		// Record attack event (skip if replaying)
+		if (mRecordingEvents && !mPlayingReplay)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitAttack;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = attacker.getUnitId();
+			event.targetUnitID = target.getUnitId();
+			recordEvent(event);
+		}
+
+		// Gain mana on attack
+		UnitStats stats = attacker.getStats();
+		stats.mana = Math::Min(stats.mana + 10.0f, stats.maxMana);
+		attacker.setStats(stats);
+
+		if (stats.range > 100.0f)
+		{
+			// Ranged: spawn projectile
+			addProjectile(&attacker, &target, 500.0f, stats.attackDamage);
+		}
+		else
+		{
+			// Melee: instant damage (always apply, recording handled inside applyUnitDamage)
+			applyUnitDamage(target, stats.attackDamage);
+		}
+	}
+
+	void World::applyUnitDamage(Unit& target, float damage)
+	{
+		// Record damage event (skip if replaying)
+		if (mRecordingEvents && !mPlayingReplay)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitTakeDamage;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = -1;
+			event.targetUnitID = target.getUnitId();
+			event.data.damageAmount = damage;
+			recordEvent(event);
+		}
+
+		UnitStats stats = target.getStats();
+		stats.hp -= damage;
+
+		if (stats.hp <= 0)
+		{
+			// Unit died
+			stats.hp = 0;
+			target.setStats(stats);
+
+			// Record death event
+			if (mRecordingEvents)
+			{
+				CombatEvent deathEvent;
+				deathEvent.type = CombatEventType::UnitDeath;
+				deathEvent.timestamp = mSimulationTime;
+				deathEvent.sourceUnitID = target.getUnitId();
+				deathEvent.targetUnitID = -1;
+				recordEvent(deathEvent);
+			}
+
+			// Mark as dead (handled by Unit internally via setDead or state)
+			// But we need to ensure death state is set
+			// For simplicity, we rely on Unit::takeDamage logic
+			// So let's just call it
+			target.takeDamage(damage);
+			return;
+		}
+		else
+		{
+			// Gain mana when taking damage
+			stats.mana = Math::Min(stats.mana + 5.0f, stats.maxMana);
+		}
+
+		target.setStats(stats);
+	}
+
+	void World::applyUnitHeal(Unit& target, float healAmount)
+	{
+		// Record heal event
+		if (mRecordingEvents)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitHeal;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = -1;
+			event.targetUnitID = target.getUnitId();
+			event.data.healAmount = healAmount;
+			recordEvent(event);
+		}
+
+		UnitStats stats = target.getStats();
+		stats.hp = Math::Min(stats.hp + healAmount, stats.maxHp);
+		target.setStats(stats);
+	}
+
+	void World::applyUnitBuff(Unit& target, int buffType, float buffValue, float duration)
+	{
+		// Record buff event
+		if (mRecordingEvents)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitBuffApplied;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = -1;
+			event.targetUnitID = target.getUnitId();
+			event.data.buff.type = buffType;
+			event.data.buff.value = buffValue;
+			event.data.buff.duration = duration;
+			recordEvent(event);
+		}
+
+		UnitStats stats = target.getStats();
+
+		switch (buffType)
+		{
+		case 1: // Attack buff
+			stats.attackDamage *= (1.0f + buffValue);
+			break;
+		case 2: // Defense/Armor buff
+			stats.armor *= (1.0f + buffValue);
+			break;
+		case 3: // Speed buff
+			stats.attackSpeed *= (1.0f + buffValue);
+			break;
+		}
+
+		target.setStats(stats);
+
+		// TODO: Track buff duration and remove when expired
+		// For now, buffs are permanent once applied
+	}
+
+	void World::applyUnitCastSkill(Unit& caster, int skillID, Unit* target)
+	{
+		// Record skill cast event
+		if (mRecordingEvents)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitCastSkill;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = caster.getUnitId();
+			event.targetUnitID = target ? target->getUnitId() : -1;
+			event.data.skillID = skillID;
+			recordEvent(event);
+		}
+
+		// Simple skill implementation
+		if (target && !target->isDead())
+		{
+			// Always apply damage, recording is handled by applyUnitDamage
+			applyUnitDamage(*target, 50.0f); // Big damage
+		}
+
+		// Reset mana
+		UnitStats stats = caster.getStats();
+		stats.mana = 0;
+		caster.setStats(stats);
+	}
+
+	void World::applyUnitManaGain(Unit& unit, float manaAmount)
+	{
+		// Record mana gain event
+		if (mRecordingEvents)
+		{
+			CombatEvent event;
+			event.type = CombatEventType::UnitManaGain;
+			event.timestamp = mSimulationTime;
+			event.sourceUnitID = unit.getUnitId();
+			event.targetUnitID = -1;
+			event.data.manaGained = manaAmount;
+			recordEvent(event);
+		}
+
+		UnitStats stats = unit.getStats();
+		stats.mana = Math::Min(stats.mana + manaAmount, stats.maxMana);
+		unit.setStats(stats);
+	}
 } // namespace AutoBattler

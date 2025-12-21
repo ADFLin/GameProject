@@ -199,13 +199,41 @@ namespace AutoBattler
 
 		if (world.getLocalPlayerBoard().isValid(coord))
 		{
-			Vector2 pos = world.getLocalPlayerBoard().getPos(coord.x, coord.y);
+			Vector2 pos = world.getLocalPlayerBoard().getWorldPos(coord.x, coord.y);
 			RenderUtility::SetPen(g, EColor::Yellow);
 			RenderUtility::SetBrush(g, EColor::Null);
 			g.drawCircle(pos, PlayerBoard::CellSize.x / 2);
 
 			RenderUtility::SetFont(g, FONT_S12);
 			g.drawText(pos, InlineString<32>::Make("%d,%d", coord.x, coord.y));
+		}
+
+		// Debug: Visualize Board Occupation
+		for (int i = 0; i < AB_MAX_PLAYER_NUM; ++i)
+		{
+			Player& p = world.getPlayer(i);
+			PlayerBoard& board = p.getBoard();
+
+			RenderUtility::SetFont(g, FONT_S8);
+			RenderUtility::SetPen(g, EColor::Red);
+			RenderUtility::SetBrush(g, EColor::Null);
+
+			for (int y = 0; y < PlayerBoard::MapSize.y; ++y)
+			{
+				for (int x = 0; x < PlayerBoard::MapSize.x; ++x)
+				{
+					if (board.isOccupied(x, y))
+					{
+						Vector2 pos = board.getWorldPos(x, y);
+						Unit* occUnit = board.getUnit(x, y);
+						int occID = occUnit ? occUnit->getUnitId() : -1;
+
+						// Draw marker and ID
+						g.drawCircle(pos, 8.0f);
+						g.drawText(pos - Vector2(10, 8), InlineString<32>::Make("%d", occID));
+					}
+				}
+			}
 		}
 		g.popXForm();
 		g.endRender();
@@ -228,6 +256,7 @@ namespace AutoBattler
 
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
+		// Default Opaque
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 		LinearColor clearColor(0.1f, 0.1f, 0.15f, 1.0f);
@@ -240,6 +269,13 @@ namespace AutoBattler
 			int rows = PlayerBoard::MapSize.y;
 			int cols = PlayerBoard::MapSize.x;
 			
+			static int sRenderCounter = 0;
+			if (++sRenderCounter % 60 == 0)
+			{
+				LogMsg("Render3D: P%d Units=%d", i, p.mUnits.size());
+			}
+			
+			
 			Vector2 boardOffset = p.getBoard().getOffset();
 
 			// Render Board Tiles and Units
@@ -247,7 +283,7 @@ namespace AutoBattler
 			{
 				for (int x = 0; x < cols; ++x)
 				{
-					Vector2 pos2D = p.getBoard().getPos(x, y);
+					Vector2 pos2D = p.getBoard().getWorldPos(x, y);
 					Vector3 pos3D(pos2D.x, pos2D.y, 0);
 
 					float tileScale = PlayerBoard::CellSize.x * AB_TILE_SCALE;
@@ -258,54 +294,75 @@ namespace AutoBattler
 						: LinearColor(0.12f, 0.12f, 0.12f, 1);
 					RHISetFixedShaderPipelineState(commandList, worldMat * viewProj, tileColor);
 					mBoardMesh.draw(commandList);
-
-					Unit* u = p.getBoard().getUnit(x, y);
-					if (u)
-					{
-						Vector2 unitPos2D = u->getPos();
-						Vector3 unitPos(unitPos2D.x, unitPos2D.y, 0);
-						float unitScale = PlayerBoard::CellSize.x * AB_UNIT_SCALE_BOARD;
-						Matrix4 unitWorld = Matrix4::Scale(unitScale) * Matrix4::Translate(unitPos);
-
-						int unitId = u->getUnitId();
-						LinearColor baseColor = UnitColors[Math::Clamp(unitId, 0, AB_UNIT_MESH_COUNT - 1)];
-						
-						if (i == world.getLocalPlayerIndex())
-						{
-							baseColor.r *= 1.1f;
-							baseColor.g *= 1.1f;
-							baseColor.b *= 1.1f;
-						}
-						else
-						{
-							baseColor.r = Math::Lerp(baseColor.r, 0.8f, 0.3f);
-							baseColor.g *= 0.7f;
-							baseColor.b *= 0.7f;
-						}
-
-						float rimPower = 3.0f;
-						if (u == mSelectedUnit)
-						{
-							baseColor.r = Math::Lerp(baseColor.r, 1.0f, 0.4f);
-							baseColor.g = Math::Lerp(baseColor.g, 1.0f, 0.4f);
-							baseColor.b = Math::Lerp(baseColor.b, 1.0f, 0.4f);
-							rimPower = 1.5f;
-						}
-
-						if (mUnitShader)
-						{
-							RHISetShaderProgram(commandList, mUnitShader->getRHI());
-							mUnitShader->setParameters(commandList, unitWorld, viewProj, baseColor, lightDir, eye, rimPower, 32.0f);
-						}
-						else
-						{
-							RHISetFixedShaderPipelineState(commandList, unitWorld * viewProj, baseColor);
-						}
-						
-						getUnitMesh(unitId).draw(commandList);
-					}
 				}
 			}
+
+			// Render Units (Iterate list directly)
+			for (Unit* u : p.mUnits)
+			{
+				if (!u) continue;
+
+				float alpha = u->getAlpha();
+				
+				Vector2 unitPos2D = u->getPos();
+
+				if (alpha <= 0.0f) 
+					continue;
+
+				if (alpha < 0.999 )
+				{
+					RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+				}
+				else
+				{
+					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				}
+
+				Vector3 unitPos(unitPos2D.x, unitPos2D.y, 0);
+				float unitScale = PlayerBoard::CellSize.x * AB_UNIT_SCALE_BOARD;
+				Matrix4 unitWorld = Matrix4::Scale(unitScale) * Matrix4::Translate(unitPos);
+
+				int unitId = u->getTypeId();
+				LinearColor baseColor = UnitColors[Math::Clamp(unitId, 0, AB_UNIT_MESH_COUNT - 1)];
+				baseColor.a = alpha;
+
+				if (i == world.getLocalPlayerIndex())
+				{
+					baseColor.r *= 1.1f;
+					baseColor.g *= 1.1f;
+					baseColor.b *= 1.1f;
+				}
+				else
+				{
+					baseColor.r = Math::Lerp(baseColor.r, 0.8f, 0.3f);
+					baseColor.g *= 0.7f;
+					baseColor.b *= 0.7f;
+				}
+
+				float rimPower = 3.0f;
+				if (u == mSelectedUnit)
+				{
+					baseColor.r = Math::Lerp(baseColor.r, 1.0f, 0.4f);
+					baseColor.g = Math::Lerp(baseColor.g, 1.0f, 0.4f);
+					baseColor.b = Math::Lerp(baseColor.b, 1.0f, 0.4f);
+					rimPower = 1.5f;
+				}
+
+				if (mUnitShader)
+				{
+					RHISetShaderProgram(commandList, mUnitShader->getRHI());
+					mUnitShader->setParameters(commandList, unitWorld, viewProj, baseColor, lightDir, eye, rimPower, 32.0f);
+				}
+				else
+				{
+					RHISetFixedShaderPipelineState(commandList, unitWorld * viewProj, baseColor);
+				}
+				
+				getUnitMesh(unitId).draw(commandList);
+			}
+			
+			// Reset Blend State for Bench/Next Player
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 			// Render Bench Area
 			{
@@ -333,7 +390,7 @@ namespace AutoBattler
 						Vector3 unitPos(unitPos2D.x, unitPos2D.y, 0);
 						Matrix4 unitWorld = Matrix4::Scale(benchUnitScale) * Matrix4::Translate(unitPos);
 
-						int unitId = u->getUnitId();
+						int unitId = u->getTypeId();
 						LinearColor baseColor = UnitColors[Math::Clamp(unitId, 0, AB_UNIT_MESH_COUNT - 1)];
 
 						// Slightly dim bench units

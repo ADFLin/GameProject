@@ -118,7 +118,26 @@
 *   `ABDefine.h`    : 遊戲常數
 *   `ABPCH.h`       : 預編譯標頭
 
-### 數據驅動
+### 3.1 隨機系統規範 (Randomness Rules)
+為了確保多人連線下的決定性模擬 (Deterministic Simulation)，必須嚴格遵守以下隨機數使用規範：
+
+*   **全域網絡隨機 (Global Network RNG)**: 
+    *   使用 `::Global::RandomNet()` 與 `::Global::RandSeedNet()`。
+    *   僅用於**主世界 (Main World)** 中需要跨端同步的邏輯（如商店刷新、掉落決策、戰鬥初始狀態）。
+    *   嚴禁在非決定性路徑（如 UI 動效、純客戶端裝飾效果）中呼叫。
+
+*   **世界局部隨機 (World-Local RNG)**:
+    *   必須透過 `World::getRand()` 獲取隨機數。
+    *   `World` 內部維護一個局部 LCG 狀態 `mRandomSeed`。
+    *   當 `mUseLocalRandom` 為 true 時，`getRand()` 會消耗局部種子而不影響全域隨機序列。
+    *   **用途**: 用於戰鬥模擬 (Combat Simulation / Temp World)，確保模擬運算不消耗主世界的隨機步數。
+
+*   **開發守則**:
+    *   **禁止直接呼叫**: 任何共享的數據管理器 (如 `UnitDataManager`) 或邏輯函式，嚴禁直接呼叫 `::Global::RandomNet()`。
+    *   **參數傳遞分流**: 必須透過參數傳入隨機值，或傳入 `World` 參考以便呼叫 `getRand()`。
+    *   **模擬隔離**: 在執行 `tempWorld` 模擬前，必須先呼叫 `setUseLocalRandom(true)` 並設置獨立種子。
+
+### 3.2 數據驅動
 *   `Units.json`: 定義單位屬性、技能、模型路徑 (待實作)。
 *   `Synergies.json`: 定義羈絆加成 (待實作)。
 
@@ -193,14 +212,22 @@
     - [x] 啟用 `ATTR_NET_SUPPORT` 與 Game Mode 設置。
     - [x] 實作 `NetLevelStageMode` 整合 (`LevelStage::tick` & `createActionTemplate`)。
     - [x] 建立幀動作同步基礎 (`ABAction` & `FrameActionTemplate`)。
-- [ ] 動作同步 (Action Synchronization)
+- [x] 動作同步 (Action Synchronization)
     - [x] 定義 `ABAction` (Buy, Sell, Move, Reroll, LevelUp)。
     - [x] 實作 `executeAction` 執行邏輯。
     - [x] 重構 Input 邏輯以發送 Action (Queue Action)。
     - [x] 伺服器廣播與客戶端執行 Action。
-- [ ] 決定性模擬 (Deterministic Simulation)
-    - [ ] 實作 `RandomStream` 與種子同步。
-    - [ ] 確保所有客戶端運算結果一致。
+- [x] 決定性模擬與戰鬥非同步化 (Deterministic & Async Combat)
+    - [x] 實作 `Global::RandomNet` 全域同步 RNG。
+    - [x] 實作 `World::getRand` 局部 RNG 隔離機制，防止模擬導致脫節。
+    - [x] 啟動 `CombatManager` 與 `CombatWork` 多執行緒戰鬥模擬系統。
+    - [x] 實作戰鬥事件流 (Combat Event Streaming)，讓客戶端即時回放戰鬥過程。
+    - [x] 修正 Replay 播放問題：客方單位在戰鬥開始時正確傳送至鏡像位置 (setupReplay)。
+    - [x] 重構 PVP 邏輯：分離配對 (generateMatches) 和傳送 (teleportMatchedUnits) 邏輯。
+    - [x] 添加網絡模式標誌 (mbNetworkMode)，多人模式下跳過本地單位傳送。
+- [x] 狀態驗證與除錯支援 (Sync Validation & Debugging)
+    - [x] 在 `ABSyncPacket` 中加入 Round, Phase, Gold, HP, ShopHash 詳細驗證。
+    - [x] 實作伺服器端狀態脫節檢測 (SYNC ERROR logging)。
 
 ### Phase 8: 進階機制 (Advanced Mechanics)
 - [ ] 道具系統 (Item System)。

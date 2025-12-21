@@ -11,14 +11,25 @@ namespace AutoBattler
 
 	Unit::Unit()
 	{
+		// Check if memory is clean (debug)
+		// assert(mMagic == 0xCDCDCDCD);
+		mMagic = 0x12345678;
+
 		mPos = Vector2(-1000, -1000);
+		mBattleStartPos = Vector2::Zero();
 		mState = SectionState::Idle;
 		mTeam = UnitTeam::Player;
 		mTarget = nullptr;
+
 		mAttackTimer = 0.0f;
 		
 		mUnitId = 1;
+		mTypeId = 0;
 		mCastTimer = 0.0f;
+
+		mNextCellPos = Vector2::Zero();
+		mMovingToNextCell = false;
+		mDeathTimer = 0.0f;
 
 		// Default test stats
 		mStats.maxHp = 100;
@@ -29,91 +40,119 @@ namespace AutoBattler
 		mStats.attackSpeed = 1.0f;
 		mStats.range = 50.0f; // Melee range
 		mMoveSpeed = 100.0f;
+		mActionCooldown = 0.0f;
 	}
-
-	void Unit::setStats(UnitStats const& stats)
+	
+	Unit::~Unit()
 	{
-		mStats = stats;
 	}
 
 	void Unit::setPos(Vector2 const& pos)
 	{
 		mPos = pos;
 	}
+	
+	void Unit::setStats(UnitStats const& stats)
+	{
+		mStats = stats;
+	}
+
+
 
 	void Unit::update(float dt, World& world)
 	{
 		if (isDead())
 		{
-			// Countdown death timer for fade-out
 			if (mDeathTimer > 0)
-			{
 				mDeathTimer -= dt;
-			}
 			return;
 		}
 
 		if (world.getPhase() == BattlePhase::Combat)
 		{
-			// Bench units should not fight
 			if (!mCurrentBoard)
 				return;
 
-			// Skill Cast Check
-			if (mState != SectionState::Cast && mStats.mana >= mStats.maxMana)
+			// ======== AI Logic (Only if we are simulating combat) ========
+			// In Network Client mode, isAutoResolveCombat is false, so we never run AI.
+			// We only walk/attack when driven by Replay events.
+			if (world.isAutoResolveCombat())
 			{
-				mState = SectionState::Cast;
-				mCastTimer = 1.0f; 
-			}
-
-			if (mState == SectionState::Cast)
-			{
-				mCastTimer -= dt;
-				if (mCastTimer <= 0)
+				// Process Cooldown
+				if (mActionCooldown > 0.0f)
 				{
-					executeSkill();
-					mStats.mana = 0;
-					mState = SectionState::Idle;
+					mActionCooldown -= dt;
+					if (mActionCooldown > 0.0f)
+						return; // Wait for cooldown
 				}
-				return;
-			}
 
-			// PRIORITY 1: Finish Current Move Step
-			if (mMovingToNextCell)
-			{
-				moveStep(dt);
-				return; // Do not attack or retarget while moving between cells
-			}
-
-			// PRIORITY 2: Check Target & Attack
-			// Determine Target
-			if (mTarget && (mTarget->isDead() || (mTarget->getPos() - mPos).length2() > 500 * 500))
-			{
-				mTarget = nullptr;
-			}
-			if (mTarget == nullptr)
-			{
-				findTarget(world);
-			}
-
-			if (mTarget)
-			{
-				float dist = Math::Distance(mTarget->getPos(), mPos);
-				if (dist <= mStats.range + 20.0f)
+				// Simple AI:
+				// 1. Move to next cell if moving
+				// 2. If not moving, find target
+				// 3. If target found, move towards target or attack
+				// Skill Cast Check
+				if (mState != SectionState::Cast && mStats.mana >= mStats.maxMana)
 				{
-					// Attack
-					mAttackTimer -= dt;
-					if (mAttackTimer <= 0)
+					mState = SectionState::Cast;
+					mCastTimer = 1.0f;
+				}
+
+				if (mState == SectionState::Cast)
+				{
+					mCastTimer -= dt;
+					if (mCastTimer <= 0)
 					{
-						attack(mTarget, world);
-						mAttackTimer = 1.0f / mStats.attackSpeed;
+						executeSkill(world);
+						mStats.mana = 0;
+						mState = SectionState::Idle;
+						mActionCooldown = 0.5f; // Recovery after cast
+					}
+					return;
+				}
+
+				// All AI logic: find target, attack decision, move decision
+				if (mTarget && (mTarget->isDead() || (mTarget->getPos() - mPos).length2() > 500 * 500))
+				{
+					mTarget = nullptr;
+				}
+				if (mTarget == nullptr)
+				{
+					findTarget(world);
+				}
+
+				if (mTarget)
+				{
+					float dist = Math::Distance(mTarget->getPos(), mPos);
+					if (dist <= mStats.range + 40.0f)
+					{
+						// Attack
+						mAttackTimer -= dt;
+						if (mAttackTimer <= 0)
+						{
+							attack(mTarget, world);
+							mAttackTimer = 1.0f / mStats.attackSpeed;
+							mActionCooldown = 0.3f; // Recovery after attack
+						}
+					}
+					else
+					{
+						// Move towards target
+						if (!mMovingToNextCell) // Only start new step if not already moving (though update prevents this usually)
+						{
+							startMoveStep(mTarget->getPos(), world);
+						}
 					}
 				}
 				else
 				{
-					// PRIORITY 3: Start New Move Step
-					startMoveStep(mTarget->getPos(), world);
+					// No target found, do nothing or wander
 				}
+			} // end of AI check
+
+			// ======== 共用邏輯：移動插值 ========
+			if (mMovingToNextCell)
+			{
+				moveStep(dt);
 			}
 		}
 	}
@@ -128,6 +167,7 @@ namespace AutoBattler
 		{
 			mPos = mNextCellPos;
 			mMovingToNextCell = false; // Step Complete
+			mActionCooldown = 0.15f; // Small delay between steps
 		}
 		else
 		{
@@ -152,7 +192,7 @@ namespace AutoBattler
 		PlayerBoard* boardPtr = mCurrentBoard;
 		if (!boardPtr)
 			return;
-			
+
 		PlayerBoard& board = *boardPtr;
 
 		// Decide next move
@@ -180,11 +220,20 @@ namespace AutoBattler
 			
 			if (board.isValid(Vec2i(nx, ny)))
 			{
-				if (!board.isOccupied(nx, ny)) // Check occupation
+				bool isOccupied = board.isOccupied(nx, ny);
+				if (isOccupied)
 				{
-					Vector2 cellPos = board.getPos(nx, ny);
+					// Allow moving into cell if it's occupied by SELF (fix for getting stuck on own occupancy)
+					Unit* occUnit = board.getUnit(nx, ny);
+					if (occUnit && occUnit->getUnitId() == mUnitId)
+						isOccupied = false;
+				}
+
+				if (!isOccupied) // Check occupation
+				{
+					Vector2 cellPos = board.getWorldPos(nx, ny);
 					float distSq = (cellPos - targetPos).length2();
-					if (distSq < bestDistSq - 1.0f) // Must be strictly better
+					if (distSq < bestDistSq - 0.1f) // Must be strictly better (relaxed to prevent hesitation)
 					{
 						bestDistSq = distSq;
 						bestNeighbor = Vec2i(nx, ny);
@@ -206,15 +255,13 @@ namespace AutoBattler
 			// Ideally: "Unit is occupying cell X" and "Unit is moving to cell Y (reserved)"
 			
 			// For basic phase 2-4:
-			board.setUnit(bestNeighbor.x, bestNeighbor.y, this);
-			board.setUnit(gridPos.x, gridPos.y, nullptr); // Leave current
-
-			mNextCellPos = board.getPos(bestNeighbor.x, bestNeighbor.y);
-			mMovingToNextCell = true;
+			world.applyUnitMove(*this, bestNeighbor);
 		}
 		else
 		{
 			// No better neighbor found (stuck or reached best local spot)
+			LogMsg("U%d STUCK. Grid=(%d, %d) Dist=%.2f Target=(%.1f, %.1f)", 
+				mUnitId, gridPos.x, gridPos.y, Math::Sqrt(currentDistSq), targetPos.x, targetPos.y);
 		}
 	}
 
@@ -222,28 +269,16 @@ namespace AutoBattler
 	{
 		if (target)
 		{
-			// Gain Mana on Attack
-			mStats.mana = Math::Min(mStats.mana + 10.0f, mStats.maxMana);
-
-			if (mStats.range > 100.0f)
-			{
-				// Ranged Attack: Spawn Projectile
-				world.addProjectile(this, target, 500.0f, mStats.attackDamage);
-			}
-			else
-			{
-				// Melee Attack: Instant Damage
-				target->takeDamage(mStats.attackDamage);
-			}
+			// 委託給World統一處理
+			world.applyUnitAttack(*this, *target);
 		}
 	}
 
-	void Unit::executeSkill()
+	void Unit::executeSkill(World& world)
 	{
-		// Simple Skill: Deal damage to current target (or nearest if lost)
-		if (mTarget && !mTarget->isDead())
+		if (mTarget)
 		{
-			mTarget->takeDamage(50.0f); // Big damage
+			world.applyUnitCastSkill(*this, 1, mTarget);  // skillID = 1
 		}
 	}
 
@@ -282,14 +317,20 @@ namespace AutoBattler
 		mMovingToNextCell = false;
 	}
 
-	void Unit::saveStartState()
+	void Unit::place(PlayerBoard& board, Vec2i const& pos)
 	{
-		mBattleStartPos = mPos;
+		CHECK(board.getUnit(pos.x, pos.y) == nullptr);
+		Vector2 worldPos = board.getWorldPos(pos.x, pos.y);
+		setPos(worldPos);
+		setInternalBoard(&board);
+		board.setUnit(pos.x, pos.y, this);
 	}
 
 	void Unit::restoreStartState()
 	{
-		mPos = mBattleStartPos;
+		CHECK(mHoldLocation.type == ECoordType::Board && mCurrentBoard);
+		mPos = mCurrentBoard->getWorldPos(mHoldLocation.pos.x, mHoldLocation.pos.y);
+		//mPos = mBattleStartPos;
 		mStats.hp = mStats.maxHp;
 		mStats.mana = 0;
 		mState = SectionState::Idle;
@@ -314,7 +355,8 @@ namespace AutoBattler
 		
 		if (isDead())
 		{
-			RenderUtility::SetBrush(g, EColor::Gray, (uint8)(alpha * 255));
+			g.beginBlend(mPos, Vec2i(22, 22), alpha);
+			//RenderUtility::SetBrush(g, EColor::Gray, (uint8)(alpha * 255));
 		}
 		else if (mTeam == UnitTeam::Player)
 		{
@@ -327,6 +369,11 @@ namespace AutoBattler
 		
 		RenderUtility::SetPen(g, EColor::White);
 		g.drawCircle(mPos, 20); 
+
+		if (isDead())
+		{
+			g.endBlend();
+		}
 
 		if (mState == SectionState::Cast)
 		{
@@ -408,11 +455,11 @@ namespace AutoBattler
 		return nullptr;
 	}
 
-	UnitDefinition const* UnitDataManager::getRandomUnit(int level) const
+	UnitDefinition const* UnitDataManager::getRandomUnit(int level, int randomValue) const
 	{
 		// Simple random for now, ignore level odds
 		if (mUnits.empty()) return nullptr;
-		int idx = ::Global::RandomNet() % mUnits.size();
+		int idx = randomValue % mUnits.size();
 		return &mUnits[idx];
 	}
 

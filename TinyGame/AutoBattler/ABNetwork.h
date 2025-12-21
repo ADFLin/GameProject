@@ -5,16 +5,25 @@
 #include "GameNetPacket.h"
 #include "ABAction.h"
 #include "ABDefine.h"
+#include "ABCombat.h"
+#include "ABCombatReplay.h"
+
+#include <mutex>
 
 namespace AutoBattler
 {
 	class LevelStage;
+	class CombatReplayManager;
 
 	enum
 	{
 		NP_ACTION = NET_PACKET_CUSTOM_ID,
 		NP_FRAME,
 		NP_SYNC,
+		NP_ACTION_REJECT,  // Server-side action rejection notification
+		NP_COMBAT_START,   // Combat start notification
+		NP_COMBAT_EVENT,   // Combat event streaming
+		NP_COMBAT_END,     // Combat end result
 	};
 
 	class ABActionPacket : public GamePacketT<ABActionPacket, NP_ACTION>
@@ -75,11 +84,11 @@ namespace AutoBattler
 
 			if (BufferOP::IsTake)
 			{
-				// LogMsg("FramePacket Read: ID=%u Count=%d", frameID, count);
+				// LogMsg("FramePacket Read: ID=%u Count=%d", frameID, actions.size());
 			}
 			else
 			{
-				// LogMsg("FramePacket Write: ID=%u Count=%d", frameID, count);
+				// LogMsg("FramePacket Write: ID=%u Count=%d", frameID, actions.size());
 			}
 		}
 	};
@@ -91,17 +100,131 @@ namespace AutoBattler
 		uint32 checksum;
 		uint8  playerId;
 		uint8  status; // 0: Heartbeat, 1: Timeout, 2: Restore
+		
+		// Detailed Validation
+		int round;
+		int phase;
+		int playerGold;
+		int playerHP;
+		int shopHash;
 
 		template < class BufferOP >
 		void  operateBuffer(BufferOP& op)
 		{
 			op & frameID & checksum & playerId & status;
+			op & round & phase & playerGold & playerHP & shopHash;
 		}
 	};
+
+	// Action validation failure notification
+	class ABActionRejectPacket : public GamePacketT<ABActionRejectPacket, NP_ACTION_REJECT>
+	{
+	public:
+		ActionPort port;
+		uint8 actionType;
+		uint8 errorCode;
+
+		template <class BufferOP>
+		void operateBuffer(BufferOP& op)
+		{
+			op & port & actionType & errorCode;
+		}
+	};
+
+	// Combat start notification
+	class ABCombatStartPacket : public GamePacketT<ABCombatStartPacket, NP_COMBAT_START>
+	{
+	public:
+		uint32 combatID;
+		int homeIndex;
+		int awayIndex;
+		TArray<UnitSnapshot> homeUnits;
+		TArray<UnitSnapshot> awayUnits;
+
+		template <class BufferOP>
+		void operateBuffer(BufferOP& op)
+		{
+			op & combatID & homeIndex & awayIndex;
+			
+			if (BufferOP::IsTake)
+			{
+				uint8 homeCount, awayCount;
+				op & homeCount & awayCount;
+				homeUnits.resize(homeCount);
+				awayUnits.resize(awayCount);
+			}
+			else
+			{
+				uint8 homeCount = (uint8)homeUnits.size();
+				uint8 awayCount = (uint8)awayUnits.size();
+				op & homeCount & awayCount;
+			}
+
+			for (auto& unit : homeUnits)
+				unit.serialize(op);
+			for (auto& unit : awayUnits)
+				unit.serialize(op);
+		}
+	};
+
+	// Combat event streaming
+	class ABCombatEventPacket : public GamePacketT<ABCombatEventPacket, NP_COMBAT_EVENT>
+	{
+	public:
+		uint32 combatID;
+		uint32 batchIndex;
+		TArray<CombatEvent> events;
+
+		template <class BufferOP>
+		void operateBuffer(BufferOP& op)
+		{
+			op & combatID & batchIndex;
+
+			if (BufferOP::IsTake)
+			{
+				uint8 count;
+				op & count;
+				events.resize(count);
+			}
+			else
+			{
+				uint8 count = (uint8)events.size();
+				op & count;
+			}
+
+			for (auto& event : events)
+				event.serialize(op);
+		}
+	};
+
+	// Combat end result
+	class ABCombatEndPacket : public GamePacketT<ABCombatEndPacket, NP_COMBAT_END>
+	{
+	public:
+		uint32 combatID;
+		int homePlayerIndex;
+		int awayPlayerIndex;
+		int winnerIndex;  // -1 for draw
+		int homeDamage;
+		int awayDamage;
+		float duration;
+
+		template <class BufferOP>
+		void operateBuffer(BufferOP& op)
+		{
+			op & combatID & homePlayerIndex & awayPlayerIndex 
+			   & winnerIndex & homeDamage & awayDamage & duration;
+		}
+	};
+
+
 
 	class ABNetEngine : public INetEngine
 	{
 	public:
+		
+		std::mutex mResultMutex;
+		TArray<CombatResult> mCombatResults;
 
 		bool bServerPaused = false;
 
@@ -147,9 +270,22 @@ namespace AutoBattler
 
 		void sendAction(ActionPort port, ABActionItem const& item);
 
+		void onCombatPhaseStart();
+		void broadcastCombatEvents();
+		void onCombatComplete(CombatResult result);
+
+		// Client-side combat packet handlers
+		void onCombatStartPacket(IComPacket* cp);
+		void onCombatEventPacket(IComPacket* cp);
+		void onCombatEndPacket(IComPacket* cp);
+
 		LevelStage* mStage;
 		ComWorker* mWorker;
 		NetWorker* mNetWorker;
+
+		CombatManager mCombatManager;
+		CombatReplayManager mReplayManager;
+		TArray<uint32> mPendingCombatIDs;
 	};
 }
 

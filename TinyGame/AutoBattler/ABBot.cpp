@@ -22,7 +22,7 @@ namespace AutoBattler
 			return;
 
 		// Random Think Time 0.3 ~ 0.8s
-		mThinkTimer = 0.3f + (::Global::RandomNet() % 500) / 1000.0f;
+		mThinkTimer = 0.3f + (::Global::Random() % 500) / 1000.0f;
 
 		PlayerBoard& board = mPlayer.getBoard();
 		auto& unitMgr = mPlayer.getWorld()->getUnitDataManager();
@@ -118,6 +118,7 @@ namespace AutoBattler
 		}
 
 		// 2. Buy / Level / Reroll Strategy
+		if (false)
 		{
 			int gold = mPlayer.getGold();
 			int hp = mPlayer.getHp();
@@ -146,8 +147,8 @@ namespace AutoBattler
 							
 							// Have copies?
 							int copies = 0;
-							for(auto u : mPlayer.mUnits) if(u->getUnitId() == unitId) copies++;
-							for(auto u : mPlayer.mBench) if(u && u->getUnitId() == unitId) copies++;
+							for(auto u : mPlayer.mUnits) if(u->getTypeId() == unitId) copies++;
+							for(auto u : mPlayer.mBench) if(u && u->getTypeId() == unitId) copies++;
 							
 							if (copies >= 2) score += 50; // Triple!
 							else if (copies == 1) score += 20; // Pair!
@@ -156,7 +157,7 @@ namespace AutoBattler
 							score += def->cost;
 
 							// Role need? (Simple: Randomize slightly)
-							score += (::Global::RandomNet() % 5);
+							score += (rand() % 5);
 
 							if (score > bestBuyScore)
 							{

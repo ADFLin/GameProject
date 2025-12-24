@@ -457,7 +457,8 @@ namespace AutoBattler
 		BaseClass::onUpdate(deltaTime);
 		if (getModeType() != EGameStageMode::Net)
 		{
-			mWorld.tick(deltaTime);
+		// Logic is handled in tick(), avoid double update
+		// mWorld.tick(deltaTime);
 		}
 	}
 

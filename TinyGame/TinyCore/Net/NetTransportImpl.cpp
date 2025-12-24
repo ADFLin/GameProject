@@ -7,6 +7,9 @@
 //========================================
 
 NetTransportBase::NetTransportBase()
+#if TINY_USE_NET_THREAD
+	: mSocketThread(SocketFunc(this, &NetTransportBase::entryNetThread))
+#endif
 {
 }
 
@@ -31,7 +34,7 @@ bool NetTransportBase::startNetwork()
 	
 #if TINY_USE_NET_THREAD
 	mbRequestExitNetThread = 0;
-	mSocketThread.start(SocketFunc(this, &NetTransportBase::entryNetThread));
+	mSocketThread.run();
 #endif
 	
 	mbRunning = true;
@@ -100,9 +103,7 @@ void NetTransportBase::processThreadCommandInternal(TArray<std::function<void()>
 #endif
 )
 {
-#if TINY_USE_NET_THREAD
-	MutexLock lock(mutex);
-#endif
+	NET_MUTEX_LOCK(mutex);
 	for (auto const& command : commands)
 	{
 		command();
@@ -118,7 +119,7 @@ void NetTransportBase::entryNetThread()
 		long time = SystemPlatform::GetTickCount();
 		mNetRunningTimeSpan = time - mNetStartTime;
 		
-		if (!update_NetThread(time))
+		if (!update_NetThread(mNetRunningTimeSpan))
 			break;
 		
 		SystemPlatform::Sleep(1);

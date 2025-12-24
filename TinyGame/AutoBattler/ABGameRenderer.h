@@ -48,6 +48,7 @@ namespace AutoBattler
 
 		void render3D(World& world, ABViewCamera const& camera);
 		void render2D(IGraphics2D& g, World& world, ABViewCamera const& camera, ABPlayerController* controller);
+		static void Draw(IGraphics2D& g, Unit& unit, bool bShowState = true);
 
 		// Selected Unit (for visual feedback)
 		void setSelectedUnit(Unit* unit) { mSelectedUnit = unit; }

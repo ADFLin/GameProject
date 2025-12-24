@@ -59,7 +59,7 @@ private:
 
 	typedef std::unordered_map<ComID, ICPFactory*> CPFactoryMap;
 	CPFactoryMap  mCPFactoryMap;
-	NET_RWLOCK( mRWLockCPFactoryMap )
+	NET_RWLOCK( mRWLockCPFactoryMap );
 };
 
 // Template implementations

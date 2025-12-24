@@ -6,14 +6,16 @@
 
 #include "ABWorld.h"
 
+#if 0
+#include "Algo/AStar.h"
+#endif
+
 namespace AutoBattler
 {
 
 	Unit::Unit()
 	{
-		// Check if memory is clean (debug)
-		// assert(mMagic == 0xCDCDCDCD);
-		mMagic = 0x12345678;
+
 
 		mPos = Vector2(-1000, -1000);
 		mBattleStartPos = Vector2::Zero();
@@ -41,6 +43,9 @@ namespace AutoBattler
 		mStats.range = 50.0f; // Melee range
 		mMoveSpeed = 100.0f;
 		mActionCooldown = 0.0f;
+
+		mDeployLocation.type = ECoordType::None;
+		mDeployLocation.type = ECoordType::None;
 	}
 	
 	Unit::~Unit()
@@ -187,17 +192,130 @@ namespace AutoBattler
 		mTarget = world.getNearestEnemy(mPos, mTeam, mCurrentBoard);
 	}
 
+
+#if 0
+	namespace
+	{
+		using namespace AStar;
+
+		struct BattleNode : public NodeBaseT<BattleNode, Vec2i, float>
+		{
+		};
+
+		class BattleAStar : public AStarT<BattleAStar, BattleNode>
+		{
+		public:
+			BattleAStar(PlayerBoard& board, Unit& unit, Vec2i goal)
+				: mBoard(board), mUnit(unit), mGoal(goal)
+			{
+			}
+
+			PlayerBoard& mBoard;
+			Unit& mUnit;
+			Vec2i mGoal;
+
+			ScoreType calcHeuristic(StateType& state)
+			{
+				// Euclidean distance heuristic
+				Vector2 pA = mBoard.getWorldPos(state.x, state.y);
+				Vector2 pB = mBoard.getWorldPos(mGoal.x, mGoal.y);
+				return Math::Distance(pA, pB);
+			}
+
+			ScoreType calcDistance(StateType& a, StateType& b)
+			{
+				Vector2 pA = mBoard.getWorldPos(a.x, a.y);
+				Vector2 pB = mBoard.getWorldPos(b.x, b.y);
+				return Math::Distance(pA, pB);
+			}
+
+			bool isEqual(StateType& s1, StateType& s2) { return s1 == s2; }
+			bool isGoal(StateType& s) { return s == mGoal; }
+
+			void processNeighborNode(NodeType& node)
+			{
+				// Hex grid neighbor offsets
+				static const int offsets[2][6][2] = {
+					{ {1,0}, {-1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1} }, // Even Row
+					{ {1,0}, {-1,0}, {0,-1}, {0,1}, {1,-1}, {1,1} }    // Odd Row
+				};
+
+				int parity = Math::Abs(node.state.y) % 2;
+
+				for (int i = 0; i < 6; ++i)
+				{
+					int nx = node.state.x + offsets[parity][i][0];
+					int ny = node.state.y + offsets[parity][i][1];
+					Vec2i nextPos(nx, ny);
+
+					if (mBoard.isValid(nextPos))
+					{
+						bool isWalkable = !mBoard.isOccupied(nx, ny);
+						// Treat goal as walkable so we can path TO it (even if occupied by target)
+						if (nextPos == mGoal) isWalkable = true;
+					
+						// Also treat self as walkable (though we are moving FROM it)
+						// And fix for "ghost" occupation if needed, similar to greedy check
+						if (!isWalkable)
+						{
+							Unit* occUnit = mBoard.getUnit(nx, ny);
+							if (occUnit == &mUnit) isWalkable = true;
+						}
+
+						if (isWalkable)
+						{
+							addSreachNode(nextPos, node);
+						}
+					}
+				}
+			}
+		};
+	}
+#endif
+
 	void Unit::startMoveStep(Vector2 const& targetPos, World& world)
 	{
-		PlayerBoard* boardPtr = mCurrentBoard;
-		if (!boardPtr)
-			return;
-
-		PlayerBoard& board = *boardPtr;
-
-		// Decide next move
+		PlayerBoard& board = *mCurrentBoard; // Assume calling startMoveStep means we are on a board
 		Vec2i gridPos = board.getCoord(mPos);
+		Vec2i targetGridPos = board.getCoord(targetPos);
 
+#if 0
+		// Use A* Pathfinding
+		BattleAStar astar(board, *this, targetGridPos);
+		BattleAStar::SreachResult result;
+		
+		if (astar.sreach(gridPos, result))
+		{
+			// Path found!
+			// We need the immediate next step (the child of startNode in the path)
+			// The path is linked: Goal -> Parent -> ... -> Start
+			// We want the node whose parent is Start.
+			
+			BattleNode* step = result.globalNode;
+			BattleNode* nextStep = nullptr;
+
+			// Backtrack from goal to find the step after start
+			while (step != nullptr && step->parent != nullptr)
+			{
+				if (step->parent->state == gridPos)
+				{
+					nextStep = step;
+					break;
+				}
+				step = step->parent;
+			}
+
+			if (nextStep)
+			{
+				world.applyUnitMove(*this, nextStep->state);
+				return;
+			}
+		}
+
+		// Fallback to simple greedy if A* fails (e.g. no path) or start==goal
+		LogMsg("Unit %d A* Failed to %d,%d. Fallback to greedy.", mUnitId, targetGridPos.x, targetGridPos.y);
+#endif
+		
 		static const int offsets[2][6][2] = {
 			{ {1,0}, {-1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1} }, // Even Row
 			{ {1,0}, {-1,0}, {0,-1}, {0,1}, {1,-1}, {1,1} }    // Odd Row
@@ -225,7 +343,8 @@ namespace AutoBattler
 				{
 					// Allow moving into cell if it's occupied by SELF (fix for getting stuck on own occupancy)
 					Unit* occUnit = board.getUnit(nx, ny);
-					if (occUnit && occUnit->getUnitId() == mUnitId)
+					// FIX: Use pointer comparison instead of ID to avoid issues with duplicate IDs in simulation
+					if (occUnit == this)
 						isOccupied = false;
 				}
 
@@ -260,8 +379,8 @@ namespace AutoBattler
 		else
 		{
 			// No better neighbor found (stuck or reached best local spot)
-			LogMsg("U%d STUCK. Grid=(%d, %d) Dist=%.2f Target=(%.1f, %.1f)", 
-				mUnitId, gridPos.x, gridPos.y, Math::Sqrt(currentDistSq), targetPos.x, targetPos.y);
+			// LogMsg("U%d STUCK. Grid=(%d, %d) Dist=%.2f Target=(%.1f, %.1f)", 
+			// 	mUnitId, gridPos.x, gridPos.y, Math::Sqrt(currentDistSq), targetPos.x, targetPos.y);
 		}
 	}
 
@@ -317,19 +436,52 @@ namespace AutoBattler
 		mMovingToNextCell = false;
 	}
 
-	void Unit::place(PlayerBoard& board, Vec2i const& pos)
+	void Unit::remove()
 	{
-		CHECK(board.getUnit(pos.x, pos.y) == nullptr);
-		Vector2 worldPos = board.getWorldPos(pos.x, pos.y);
-		setPos(worldPos);
-		setInternalBoard(&board);
-		board.setUnit(pos.x, pos.y, this);
+		if (mCurrentBoard && mHoldLocation.type == ECoordType::Board)
+		{
+			CHECK(mCurrentBoard->getUnit(mHoldLocation.pos.x, mHoldLocation.pos.y) == nullptr ||
+			      mCurrentBoard->getUnit(mHoldLocation.pos.x, mHoldLocation.pos.y) == this);
+			
+			mCurrentBoard->setUnit(mHoldLocation.pos.x, mHoldLocation.pos.y, nullptr);
+			mCurrentBoard = nullptr;
+			mHoldLocation.type = ECoordType::None;
+		}
+		mTarget = nullptr;
 	}
 
-	void Unit::restoreStartState()
+	void Unit::place(PlayerBoard& board, Vec2i const& pos)
 	{
-		CHECK(mHoldLocation.type == ECoordType::Board && mCurrentBoard);
-		mPos = mCurrentBoard->getWorldPos(mHoldLocation.pos.x, mHoldLocation.pos.y);
+		remove();
+
+		Vector2 worldPos = board.getWorldPos(pos.x, pos.y);
+		setPos(worldPos);
+		holdInternal(board, pos);
+	}
+
+	void Unit::hold(Vec2i const& pos)
+	{
+		PlayerBoard* board = mCurrentBoard;
+		remove();
+		holdInternal(*board, pos);
+	}
+
+	void Unit::holdInternal(PlayerBoard& board, Vec2i const& pos)
+	{
+		remove();
+		CHECK(board.getUnit(pos.x, pos.y) == nullptr || board.getUnit(pos.x, pos.y) == this);
+		setInternalBoard(&board);
+		board.setUnit(pos.x, pos.y, this);
+
+		mHoldLocation.type = ECoordType::Board;
+		mHoldLocation.pos = pos;
+	}
+
+	void Unit::restoreStartState(PlayerBoard& board)
+	{
+		CHECK(mDeployLocation.type == ECoordType::Board);
+		place(board, mDeployLocation.pos);
+
 		//mPos = mBattleStartPos;
 		mStats.hp = mStats.maxHp;
 		mStats.mana = 0;
@@ -340,72 +492,7 @@ namespace AutoBattler
 		mMovingToNextCell = false;
 	}
 
-	void Unit::render(IGraphics2D& g, bool bShowState)
-	{
-		// Don't render if death fade-out is complete
-		if (isDead() && mDeathTimer <= 0)
-			return;
-		
-		// Calculate alpha for fade-out effect
-		float alpha = 1.0f;
-		if (isDead() && mDeathTimer > 0)
-		{
-			alpha = mDeathTimer; // Fade from 1.0 to 0.0
-		}
-		
-		if (isDead())
-		{
-			g.beginBlend(mPos, Vec2i(22, 22), alpha);
-			//RenderUtility::SetBrush(g, EColor::Gray, (uint8)(alpha * 255));
-		}
-		else if (mTeam == UnitTeam::Player)
-		{
-			RenderUtility::SetBrush(g, EColor::Blue);
-		}
-		else
-		{
-			RenderUtility::SetBrush(g, EColor::Red);
-		}
-		
-		RenderUtility::SetPen(g, EColor::White);
-		g.drawCircle(mPos, 20); 
 
-		if (isDead())
-		{
-			g.endBlend();
-		}
-
-		if (mState == SectionState::Cast)
-		{
-			RenderUtility::SetPen(g, EColor::Yellow);
-			g.drawCircle(mPos, 22);
-		}
-
-		// UI Bars
-		if (bShowState && !isDead())
-		{
-			Vector2 barPos = mPos - Vector2(20, 30);
-			Vector2 barSize(40, 5);
-			
-			RenderUtility::SetBrush(g, EColor::Red);
-			g.drawRect(barPos, barSize);
-			
-			float hpRatio = mStats.hp / mStats.maxHp;
-			Vector2 curBarSize(40 * hpRatio, 5);
-			RenderUtility::SetBrush(g, EColor::Green);
-			g.drawRect(barPos, curBarSize);
-
-			// Mana Bar
-			barPos.y += 6;
-			RenderUtility::SetBrush(g, EColor::Black);
-			g.drawRect(barPos, barSize);
-
-			float manaRatio = mStats.mana / mStats.maxMana;
-			curBarSize.x = 40 * manaRatio;
-			RenderUtility::SetBrush(g, EColor::Blue);
-			g.drawRect(barPos, curBarSize);
-		}
-	}
 
 	void UnitDataManager::init()
 	{

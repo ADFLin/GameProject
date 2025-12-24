@@ -14,7 +14,7 @@ namespace AutoBattler
 		UnitSnapshot snapshot;
 		snapshot.unitID = unit.getUnitId();
 		snapshot.unitTypeID = unit.getTypeId();
-		snapshot.location = unit.getHoldLocation();
+		snapshot.location = unit.getDeployLocation();
 		snapshot.stats = unit.getStats();
 		snapshot.team = unit.getTeam();
 		return snapshot;
@@ -25,7 +25,7 @@ namespace AutoBattler
 		Unit* unit = new Unit();
 		unit->setUnitId(unitID);
 		unit->setTypeId(unitTypeID);
-		unit->setHoldLocation(location);
+		unit->setDeployLocation(location);
 		unit->setStats(stats);
 		unit->setTeam(team);
 		return unit;
@@ -116,6 +116,8 @@ namespace AutoBattler
 		tempWorld.setEventRecording(true);
 		tempWorld.setSimulationTime(0.0f);
 
+		bool bPVP = mAwayPlayerIndex != INDEX_NONE;
+
 
 		// Get player reference (we'll use HOME player for simulation)
 		Player& simPlayer = tempWorld.getPlayer(mHomePlayerIndex);
@@ -131,14 +133,9 @@ namespace AutoBattler
 		{
 			Unit* unit = snapshot.toUnit();
 			unit->setTeam(UnitTeam::Player);
-			unit->setInternalBoard(&board);
-			
-			auto location = unit->getHoldLocation();
-			Vector2 worldPos = board.getWorldPos(location.pos.x, location.pos.y);
-			unit->setPos(worldPos);
+			auto location = unit->getDeployLocation();
+			unit->place(board, location.pos);
 
-			board.setUnit(location.pos.x, location.pos.y, unit);
-			
 			homeUnits.push_back(unit);
 			simPlayer.mUnits.push_back(unit);
 			homeIndex++;
@@ -150,20 +147,23 @@ namespace AutoBattler
 		{
 			Unit* unit = snapshot.toUnit();
 			unit->setTeam(UnitTeam::Enemy);
-			unit->setInternalBoard(&board);
+			// Mark as ghost so it gets updated in World::tick via mEnemyUnits loop
+			// (World::tick only updates mEnemyUnits if they are ghosts, assuming real units are updated by their owner)
+			unit->setIsGhost(true);
+			auto location = unit->getDeployLocation();
 
-			auto location = unit->getHoldLocation();
-
-			int targetX = PlayerBoard::MapSize.x - 1 - location.pos.x;
-			int targetY = PlayerBoard::MapSize.y - 1 - location.pos.y;
-
-			location.pos = Vec2i(targetX, targetY);
-			Vector2 worldPos = board.getWorldPos(location.pos.x, location.pos.y);
-			unit->setPos(worldPos);
-
-			board.setUnit(location.pos.x, location.pos.y, unit);
+			Vec2i target = location.pos;
 			
-			
+			// Detect if unit is a Ghost (Pre-Mirrored on Server) using Offset
+			bool bIsGhost = UnitIdHelper::IsGhost(unit->getUnitId());
+
+			if (bPVP && !bIsGhost)
+			{
+				target = PlayerBoard::Mirror(target);
+			}
+
+			unit->place(board, target);
+
 			awayUnits.push_back(unit);
 			simPlayer.mEnemyUnits.push_back(unit);
 			awayIndex++;
@@ -177,8 +177,8 @@ namespace AutoBattler
 		// Combat simulation parameters
 		const float dt = 1.0f / 60.0f;  // 60 FPS
 		const float maxBattleTime = 60.0f;
-		const float flushInterval = 0.1f;  // Send a batch every 100ms
-		const size_t maxBatchSize = 50;
+		const float flushInterval = 0.1f;  // Revert to 100ms for responsiveness
+		const size_t maxBatchSize = 100;
 
 		float elapsedTime = 0;
 		float lastFlushTime = 0;
@@ -392,14 +392,16 @@ namespace AutoBattler
 		return combatID;
 	}
 
-	TArray<CombatEventBatch> CombatManager::pollEventBatches()
+	TArray<CombatEventBatch> CombatManager::pollEventBatches(int maxBatches)
 	{
 		TArray<CombatEventBatch> batches;
 
 		CombatEventBatch batch;
-		while (mEventQueue.tryPop(batch))
+		int count = 0;
+		while ((maxBatches == -1 || count < maxBatches) && mEventQueue.tryPop(batch))
 		{
 			batches.push_back(std::move(batch));
+			count++;
 		}
 
 		return batches;

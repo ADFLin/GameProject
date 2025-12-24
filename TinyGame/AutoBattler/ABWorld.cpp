@@ -11,7 +11,7 @@ namespace AutoBattler
 {
 	World::World()
 	{
-		mPhase = BattlePhase::Preparation;
+		mPhase = BattlePhase::None;
 		mPhaseTimer = 0.0f;
 		mLocalPlayerIndex = 0;
 		mRound = 0;
@@ -95,25 +95,19 @@ namespace AutoBattler
 				// unit->setPos(player.getBenchSlotPos(0));
 				
 				// Center Front
-
-				Vec2i pos = Vec2i(0, 7);
-				player.getBoard().setUnit(pos.x, pos.y, unit);
-				unit->setPos(player.getBoard().getWorldPos(pos.x, pos.y));
-				unit->setInternalBoard(&player.getBoard());
-
 				UnitLocation loc;
+				Vec2i pos = Vec2i(0, 7);
 				loc.type = ECoordType::Board;
 				loc.pos = pos;
-
-				unit->setHoldLocation(loc);
-
+				unit->setDeployLocation(loc);
+				unit->place(player.getBoard(), pos);
 				// Add to active units list
 				player.mUnits.push_back(unit);
 			}
 		}
 
 		mRound = 0;
-		changePhase(BattlePhase::Preparation);
+		changePhase(BattlePhase::None);
 	}
 
 	void World::cleanupEnemies()
@@ -124,10 +118,8 @@ namespace AutoBattler
 			PlayerBoard& board = player.getBoard();
 			for (auto unit : player.mEnemyUnits)
 			{
-				Vec2i coord = board.getCoord(unit->getPos());
-				if (board.isValid(coord) && board.getUnit(coord.x, coord.y) == unit)
-					board.setUnit(coord.x, coord.y, nullptr);
-				
+				unit->remove();
+
 				// Only delete if this is NOT a real player unit (i.e., it's a PVE enemy or ghost clone)
 				// Check if this unit belongs to any player's mUnits
 				bool isRealPlayerUnit = false;
@@ -216,26 +208,31 @@ namespace AutoBattler
 
 		RoundConfig const& roundConfig = mRoundManager.getRoundConfig(round - 1);
 
-		for(auto const& enemyInfo : roundConfig.enemies)
+		int spawnIndex = 0;
+	for(auto const& enemyInfo : roundConfig.enemies)
 		{
 			Unit* enemy = new Unit();
 			enemy->setTeam(UnitTeam::Enemy);
-			enemy->setInternalBoard(&board);
-
-			Vector2 pos = board.getWorldPos(enemyInfo.gridPos.x, enemyInfo.gridPos.y);
-			enemy->setPos(pos);
 			
 			UnitLocation loc;
 			loc.type = ECoordType::Board;
 			loc.pos = enemyInfo.gridPos;
-			enemy->setHoldLocation(loc);
-
-			board.setUnit(enemyInfo.gridPos.x, enemyInfo.gridPos.y, enemy);
+			enemy->setDeployLocation(loc);
+			enemy->place(board, loc.pos);
 			
+			// Mark as ghost so it gets updated in World::tick loop (which filters mEnemyUnits for ghosts)
+			enemy->setIsGhost(true);
+
 			player.mEnemyUnits.push_back(enemy);
 
 			enemy->setStats(enemyInfo.stats);
-			enemy->setUnitId(enemyInfo.unitId);
+			enemy->setTypeId(enemyInfo.unitId);
+			
+			// Use loop index (spawnIndex) instead of unitId to ensure uniqueness if multiple enemies of same type spawn
+			int uniqueUnitId = UnitIdHelper::MakePVE(playerIndex, spawnIndex);
+			enemy->setUnitId(uniqueUnitId);
+			
+			spawnIndex++;
 		}
 	}
 
@@ -250,7 +247,7 @@ namespace AutoBattler
 			// Move ACTUAL units
 			for (auto unit : fromPlayer.mUnits)
 			{
-				Vec2i basePos = PlayerBoard::Mirror(unit->getHoldLocation().pos);
+				Vec2i basePos = PlayerBoard::Mirror(unit->getDeployLocation().pos);
 				Vec2i targetPos = basePos;
 
 				unit->setTeam(UnitTeam::Enemy);
@@ -265,11 +262,20 @@ namespace AutoBattler
 			for (auto unit : fromPlayer.mUnits)
 			{
 				Unit* ghost = new Unit();
+				ghost->setTeam(UnitTeam::Enemy);
 				ghost->setIsGhost(true);
-				ghost->setUnitId(unit->getUnitId());
+				// Use a unique ID for the ghost to prevent collision with the real unit.
+				// We use an offset (similar to PVE) to keep the PlayerIndex in high bits valid.
+				ghost->setUnitId(UnitIdHelper::MakeGhost(unit->getUnitId()));
 				ghost->setStats(unit->getStats());
-				Vec2i targetPos = PlayerBoard::Mirror(unit->getHoldLocation().pos);
+				Vec2i targetPos = PlayerBoard::Mirror(unit->getDeployLocation().pos);
 				ghost->place(toBoard, targetPos);
+
+				// Vital: Set DeployLocation so UnitSnapshot captures the correct position
+				UnitLocation ghostLoc;
+				ghostLoc.type = ECoordType::Board;
+				ghostLoc.pos = targetPos;
+				ghost->setDeployLocation(ghostLoc);
 
 				toPlayer.mEnemyUnits.push_back(ghost);
 			}
@@ -369,19 +375,11 @@ namespace AutoBattler
 			for (auto unit : player.mUnits)
 			{
 				// Set internal board to owner's board
-				unit->setInternalBoard(&board);
-
-				unit->restoreStartState();
+				unit->remove();
+				unit->restoreStartState(board);
 
 				// Ensure unit is set to correct team
 				unit->setTeam(UnitTeam::Player);
-
-				// Re-register to grid on the OWNER's board (not current internal board)
-				Vec2i coord = board.getCoord(unit->getPos());
-				if (board.isValid(coord))
-				{
-					board.setUnit(coord.x, coord.y, unit);
-				}
 			}
 		}
 	}
@@ -557,10 +555,15 @@ namespace AutoBattler
 
 			if (mPhaseTimer <= 0)
 			{
-				switch (mPhase)
+				bool bIsAuthority = !mbNetworkMode || (mLocalPlayerIndex == 0);
+				if (bIsAuthority)
 				{
-				case BattlePhase::Preparation: changePhase(BattlePhase::Combat); break;
-				case BattlePhase::Combat:      changePhase(BattlePhase::Preparation); break;
+					switch (mPhase)
+					{
+					case BattlePhase::None: changePhase(BattlePhase::Preparation); break;
+					case BattlePhase::Preparation: changePhase(BattlePhase::Combat); break;
+					case BattlePhase::Combat:      changePhase(BattlePhase::Preparation); break;
+					}
 				}
 			}
 		}
@@ -588,58 +591,66 @@ namespace AutoBattler
 	}
 
 	void World::changePhase(BattlePhase phase)
-{
-	LogMsg("ChangePhase: %d Matches: %d", (int)phase, mMatches.size());
-	mPhase = phase;
+	{
+		LogMsg("ChangePhase: %d Matches: %d", (int)phase, mMatches.size());
+		mPhase = phase;
 		switch (mPhase)
 		{
+		case BattlePhase::None:
+			mPhaseTimer = 1.0f;
+			break;
 		case BattlePhase::Preparation:
-		{
-			int alivePlayers = 0;
-			for (auto& player : mPlayers)
 			{
-				if (player.getHp() > 0)
-					alivePlayers++;
-			}
+				int alivePlayers = 0;
+				for (auto& player : mPlayers)
+				{
+					if (player.getHp() > 0)
+						alivePlayers++;
+				}
 
-			if (alivePlayers <= 1 && mRound > 0) // End game if only 1 standing (and strictly > 0 rounds to avoid instant end)
-			{
-				// mPhase = BattlePhase::End;
-				// return;
-				// Keep going for testing?
-			}
+				if (alivePlayers <= 1 && mRound > 0) // End game if only 1 standing (and strictly > 0 rounds to avoid instant end)
+				{
+					// mPhase = BattlePhase::End;
+					// return;
+					// Keep going for testing?
+				}
 
-			mRound++;
-			mPhaseTimer = AB_PHASE_PREP_TIME;
+				mRound++;
+				mPhaseTimer = AB_PHASE_PREP_TIME;
 
-			for (auto& player : mPlayers)
-			{
-				player.getBoard().setup(); // Clear occupation
+				for (auto& player : mPlayers)
+				{
+					player.getBoard().setup(); // Clear occupation
 				
-				// Restore Units must happen after clearing occupation?
-				// restoreUnits logic clears/overwrites occupation.
-			}
+					// Restore Units must happen after clearing occupation?
+					// restoreUnits logic clears/overwrites occupation.
+				}
 			
-			restoreUnits(); // Register units to board
-			cleanupEnemies(); // Cleanup old enemies
+				restoreUnits(); // Register units to board
+				cleanupEnemies(); // Cleanup old enemies
 
-			for (auto& player : mPlayers)
-			{
-				if (player.getHp() <= 0) continue;
+				for (auto& player : mPlayers)
+				{
+					if (player.getHp() <= 0) continue;
 
-				// Income
-				int interest = Math::Min(player.getGold() / 10, 5);
-				int income = 5 + interest;
-				player.addGold(income);
-				player.refreshShop();
+					// Income
+					int interest = Math::Min(player.getGold() / 10, 5);
+					int income = 5 + interest;
+					player.addGold(income);
+					player.refreshShop();
+				}
 		}
-	}
-	break;
-	case BattlePhase::Combat:
+			break;
+		case BattlePhase::Combat:
 			mPhaseTimer = 3600.0f; // Infinite time (wait for combat end)
 			mCombatEnded = false;
 			setupRound(); // Spawn/Teleport Enemies
 			break;
+		}
+
+		if (onPhaseChanged)
+		{
+			onPhaseChanged(mPhase);
 		}
 	}
 
@@ -649,34 +660,6 @@ namespace AutoBattler
 		for (auto& player : mPlayers)
 		{
 			player.render(g);
-
-			bool bShowState = (mPhase == BattlePhase::Combat);
-			for (auto unit : player.mEnemyUnits)
-				unit->render(g, bShowState);
-            
-            for (auto unit : player.mUnits)
-                unit->render(g, bShowState);
-			
-			// Bench units are rendered inside player.render(g).
-			// Player units (active on board) are rendered how?
-			// Player::render DOES NOT render active units on board.
-			// mBoard.render(g) draws the grid.
-			// Logic in player.render():
-			// 1. mBoard.render(g)
-			// 2. Iterate mBench and render circles.
-			// WHERE ARE mUnits rendered?
-			// Oh, previously ABWorld.cpp loop:
-			// for (auto unit : player.mUnits) unit->render(g);
-			// This was removed in Step 1528.
-			// BAD. Step 1528 replaced board.render() AND mUnits loop with player.render().
-			// But player.render() implementation (Step 1522) only renders Board and Bench.
-			// It does NOT render mUnits (Active units).
-			
-			// FIX: We must render active units here OR in player.render().
-			// Rendering here is better for layering?
-			// Let's add them back here.
-			for (auto unit : player.mUnits)
-				unit->render(g, bShowState);
 		}
 		renderProjectiles(g);
 	}
@@ -1097,7 +1080,8 @@ namespace AutoBattler
 	void World::applyUnitMove(Unit& unit, Vec2i const& moveTo, bool immediate)
 	{
 		PlayerBoard* board = unit.getInternalBoard();
-		if (!board) return;
+		if (!board) 
+			return;
 
 		// Record move event
 		if (mRecordingEvents && !mPlayingReplay)
@@ -1108,40 +1092,28 @@ namespace AutoBattler
 			event.sourceUnitID = unit.getUnitId();
 			event.targetUnitID = -1;
 			Vector2 targetPos = board->getWorldPos(moveTo.x, moveTo.y);
-			event.data.movePosition = targetPos;
+			event.data.moveTo = moveTo;
 			recordEvent(event);
 		}
 
-		// Logic: Update Board Occupation
-	Vec2i currentGrid = board->getCoord(unit.getPos());
-	if (board->isValid(currentGrid))
-	{
-		Unit* occupant = board->getUnit(currentGrid.x, currentGrid.y);
-		if (occupant == &unit)
+		unit.hold(moveTo);
+
+		Vector2 targetPos = board->getWorldPos(moveTo.x, moveTo.y);
+		if (immediate)
 		{
-			board->setUnit(currentGrid.x, currentGrid.y, nullptr);
+			// Teleport instantly (used for replay start)
+			unit.setPos(targetPos);
+			// Need to update next cell too?
+			// No, startVisualMove handles dynamic movement. 
+			// If teleporting, we are "there".
+			unit.stopMove(); // Stop any interpolation
+		}
+		else
+		{
+			// Start smooth movement
+			unit.startVisualMove(targetPos);
 		}
 	}
-
-	// Set new position
-	board->setUnit(moveTo.x, moveTo.y, &unit);
-
-	Vector2 targetPos = board->getWorldPos(moveTo.x, moveTo.y);
-	if (immediate)
-	{
-		// Teleport instantly (used for replay start)
-		unit.setPos(targetPos);
-		// Need to update next cell too?
-		// No, startVisualMove handles dynamic movement. 
-		// If teleporting, we are "there".
-		unit.stopMove(); // Stop any interpolation
-	}
-	else
-	{
-		// Start smooth movement
-		unit.startVisualMove(targetPos);
-	}
-}
 
 	void World::applyUnitAttack(Unit& attacker, Unit& target)
 	{

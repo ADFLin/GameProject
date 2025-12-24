@@ -5,6 +5,8 @@
 #include "GameGraphics2D.h"
 #include "ABDefine.h"
 
+#include "ABGameRenderer.h"
+
 namespace AutoBattler
 {
 
@@ -119,7 +121,7 @@ namespace AutoBattler
 		UnitLocation loc;
 		loc.type = ECoordType::Bench;
 		loc.index = slotIndex;
-		unit->setHoldLocation(loc);
+		unit->setDeployLocation(loc);
 		
 		mShopList[index] = 0; // Empty slot
 		return true;
@@ -145,7 +147,7 @@ namespace AutoBattler
 				if (!unit) continue;
 				
 				// Unit position is now authoritative
-				unit->render(g, false); // Don't show state bars in storage
+				ABGameRenderer::Draw(g, *unit, false); // Don't show state bars in storage
 			}
 		}
 	}
@@ -281,7 +283,7 @@ namespace AutoBattler
 				UnitLocation loc;
 				loc.type = ECoordType::Board;
 				loc.pos = currentCoord;
-				targetOccupier->setHoldLocation(loc);
+				targetOccupier->setDeployLocation(loc);
 			}
 			else
 			{
@@ -296,7 +298,7 @@ namespace AutoBattler
 				UnitLocation loc;
 				loc.type = ECoordType::Bench;
 				loc.index = currentBenchIndex;
-				targetOccupier->setHoldLocation(loc);
+				targetOccupier->setDeployLocation(loc);
 			}
 		}
 
@@ -314,7 +316,7 @@ namespace AutoBattler
 		UnitLocation loc;
 		loc.type = ECoordType::Board;
 		loc.pos = destCoord;
-		unit->setHoldLocation(loc);
+		unit->setDeployLocation(loc);
 		
 		return true;
 	}
@@ -393,7 +395,7 @@ namespace AutoBattler
 				UnitLocation loc;
 				loc.type = ECoordType::Board;
 				loc.pos = currentCoord;
-				targetOccupier->setHoldLocation(loc);
+				targetOccupier->setDeployLocation(loc);
 			}
 			else
 			{
@@ -405,7 +407,7 @@ namespace AutoBattler
 				UnitLocation loc;
 				loc.type = ECoordType::Bench;
 				loc.index = currentBenchIndex;
-				targetOccupier->setHoldLocation(loc);
+				targetOccupier->setDeployLocation(loc);
 			}
 		}
 		
@@ -417,7 +419,7 @@ namespace AutoBattler
 		UnitLocation loc;
 		loc.type = ECoordType::Bench;
 		loc.index = slotIndex;
-		unit->setHoldLocation(loc);
+		unit->setDeployLocation(loc);
 		
 		return true;
 	}

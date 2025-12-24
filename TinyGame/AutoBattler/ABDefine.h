@@ -24,6 +24,7 @@
 #define AB_SHOP_REFRESH_COST 2
 #define AB_BUY_XP_COST 4
 #define AB_XP_PER_BUY 4
+#define AB_XP_PER_BUY 4
 
 // Timings
 #define AB_PHASE_PREP_TIME 10.0f
@@ -73,6 +74,30 @@ namespace AutoBattler
 		bool isValid() const { return type != ECoordType::None; }
 		bool isBoard() const { return type == ECoordType::Board; }
 		bool isBench() const { return type == ECoordType::Bench; }
+	};
+
+	struct UnitIdHelper
+	{
+		static const int PLAYER_SHIFT = 16;
+		static const int LAST_16_BITS = 0xFFFF;
+		static const int PVE_OFFSET = 10000;
+		static const int GHOST_OFFSET = 20000;
+
+		static int MakeID(int playerIdx, int rawId)
+		{
+			return (playerIdx << PLAYER_SHIFT) | (rawId & LAST_16_BITS);
+		}
+
+		static int MakeReal(int playerIdx, int idx) { return MakeID(playerIdx, idx); }
+		static int MakePVE(int playerIdx, int idx) { return MakeID(playerIdx, idx + PVE_OFFSET); }
+		static int MakeGhost(int unitID) { return unitID + GHOST_OFFSET; }
+
+		static int GetPlayer(int unitID) { return (unitID >> PLAYER_SHIFT) & LAST_16_BITS; }
+		static int GetRaw(int unitID) { return unitID & LAST_16_BITS; }
+
+		static bool IsReal(int unitID) { int raw = GetRaw(unitID); return raw < PVE_OFFSET; }
+		static bool IsPVE(int unitID) { int raw = GetRaw(unitID); return raw >= PVE_OFFSET && raw < GHOST_OFFSET; }
+		static bool IsGhost(int unitID) { int raw = GetRaw(unitID); return raw >= GHOST_OFFSET; }
 	};
 
 

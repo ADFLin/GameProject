@@ -74,14 +74,13 @@ namespace AutoBattler
 		UnitTeam getTeam() const { return mTeam; }
 
 		void update(float dt, World& world);
-		void render(IGraphics2D& g, bool bShowState = true);
+		SectionState getSectionState() const { return mState; }
 
 
 		Vector2 const& getPos() const { return mPos; }
 		bool isDead() const { return mState == SectionState::Dead; }
 		float getAlpha() const { return (isDead()) ? Math::Clamp(mDeathTimer, 0.0f, 1.0f) : 1.0f; }
-		uint32 getMagic() const { return mMagic; }
-		
+
 		void takeDamage(float damage);
 		void resetRound();
 		UnitStats const& getStats() const { return mStats; }
@@ -93,26 +92,30 @@ namespace AutoBattler
 		int getTypeId() const { return mTypeId; }
 
 
-
+		void remove();
 		void place(PlayerBoard& board, Vec2i const& pos);
+		void hold(Vec2i const& pos);
 
 
+
+
+		void holdInternal(PlayerBoard& board, Vec2i const& pos);
 		void setInternalBoard(PlayerBoard* board) { mCurrentBoard = board; }
 		PlayerBoard* getInternalBoard() const { return mCurrentBoard; }
 
 		void setIsGhost(bool val) { mbIsGhost = val; }
 		bool isGhost() const { return mbIsGhost; }
 
-		void setHoldLocation(UnitLocation const& loc) { mHoldLocation = loc; }
-		UnitLocation const& getHoldLocation() const { return mHoldLocation; }
+		void setDeployLocation(UnitLocation const& loc) { mDeployLocation = loc; }
+		UnitLocation const& getDeployLocation() const { return mDeployLocation; }
 
+		//UnitLocation const& getHoldLocation() const { return mHoldLocation; }
 
-		void restoreStartState();
+		void restoreStartState(PlayerBoard& board);
 		void stopMove();
 
 	protected:
-		uint32    mMagic = 0x12345678;
-		uint32    mPadding[5] = { 0, 0, 0, 0, 0 };
+
 		Vector2   mPos;
 		Vector2   mBattleStartPos;
 		UnitStats mStats;
@@ -121,6 +124,7 @@ namespace AutoBattler
 		bool      mbIsGhost = false;
 
 		UnitLocation mHoldLocation;
+		UnitLocation mDeployLocation;
 
 		PlayerBoard* mCurrentBoard = nullptr;
 

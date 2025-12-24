@@ -8,7 +8,12 @@
 #include "ABCombat.h"
 #include "ABCombatReplay.h"
 
+#include "ABCombat.h"
+#include "ABCombatReplay.h"
+
 #include <mutex>
+#include <unordered_map>
+#include <memory>
 
 namespace AutoBattler
 {
@@ -107,12 +112,13 @@ namespace AutoBattler
 		int playerGold;
 		int playerHP;
 		int shopHash;
+		float phaseTimer;
 
 		template < class BufferOP >
 		void  operateBuffer(BufferOP& op)
 		{
 			op & frameID & checksum & playerId & status;
-			op & round & phase & playerGold & playerHP & shopHash;
+			op & round & phase & playerGold & playerHP & shopHash & phaseTimer;
 		}
 	};
 
@@ -252,6 +258,8 @@ namespace AutoBattler
 		static const long TimeoutSpan = 4000;
 		long mConnectionTimeout = 0;
 
+		bool bReplayPlaying;
+
 		void update(IFrameUpdater& updater, long time) override;
 
 		void addSimuateTime(long dt) { mSimAccumulator += dt; }
@@ -283,9 +291,32 @@ namespace AutoBattler
 		ComWorker* mWorker;
 		NetWorker* mNetWorker;
 
+		bool mIsDedicatedServer = false;
+		std::unique_ptr<World> mDedicatedWorld;
+		
+		// Helper to get the authoritative World (Dedicated or Stage's)
+		World& GetWorld();
+
 		CombatManager mCombatManager;
 		CombatReplayManager mReplayManager;
 		TArray<uint32> mPendingCombatIDs;
+		
+		std::unordered_map<uint32, CombatResult> mCompletedCombats;
+		
+		struct PendingCombatResult
+		{
+			int homePlayerIndex;
+			int awayPlayerIndex;
+			int winnerIndex;
+			int homeDamage;
+			int awayDamage;
+			float duration;
+		};
+		std::unordered_map<uint32, PendingCombatResult> mPendingCombatResults;
+		
+	private:
+		void sendPendingCombatEndPackets();        // Server: Send CombatEnd after events
+		void applyCompletedReplayResults();        // Client: Apply results after replay
 	};
 }
 

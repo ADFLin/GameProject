@@ -25,6 +25,10 @@ namespace AutoBattler
 		bool ended = false;
 		int winnerIndex = -1;
 		float playbackSpeed = 1.0f;
+		
+		// Waiting time after all events played (for VFX to finish)
+		float finishTimer = 0.0f;
+		static constexpr float FinishDelay = 1.5f; 
 	};
 
 	// Combat Replay Manager - handles client-side combat visualization
@@ -58,6 +62,12 @@ namespace AutoBattler
 
 		// Check if any replays are active
 		bool hasActiveReplays() const { return !mActiveReplays.empty(); }
+		
+		// ✅ Check if a specific replay has finished playing
+		bool isReplayFinished(uint32 combatID) const;
+		
+		// ✅ Check if all replays have finished playing
+		bool allReplaysFinished() const;
 
 		// Clear all replays
 		void clearAll();

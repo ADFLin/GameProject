@@ -8,6 +8,8 @@
 #include "PlatformThread.h"
 #include "PacketFactory.h"
 
+#include "GameConfig.h"
+
 
 /**
  * @brief 傳輸層基礎實作
@@ -69,8 +71,8 @@ protected:
 	SocketThread mSocketThread;
 	volatile int32 mbRequestExitNetThread = 0;
 	
-	Mutex mMutexNetThreadCommands;
-	Mutex mMutexGameThreadCommands;
+	NET_MUTEX(mMutexNetThreadCommands);
+	NET_MUTEX(mMutexGameThreadCommands);
 	
 	void entryNetThread();
 #endif
@@ -269,18 +271,14 @@ private:
 template<typename Func>
 inline void NetTransportBase::addGameThreadCommand(Func&& func)
 {
-#if TINY_USE_NET_THREAD
-	MutexLock lock(mMutexGameThreadCommands);
-#endif
+	NET_MUTEX_LOCK(mMutexGameThreadCommands);
 	mGameThreadCommands.push_back(std::forward<Func>(func));
 }
 
 template<typename Func>
 inline void NetTransportBase::addNetThreadCommand(Func&& func)
 {
-#if TINY_USE_NET_THREAD
-	MutexLock lock(mMutexNetThreadCommands);
-#endif
+	NET_MUTEX_LOCK(mMutexNetThreadCommands);
 	mNetThreadCommands.push_back(std::forward<Func>(func));
 }
 

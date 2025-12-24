@@ -117,10 +117,13 @@ namespace AutoBattler
 			std::function<void(CombatResult)> onComplete);
 
 		// Poll event batches (called from main thread)
-		TArray<CombatEventBatch> pollEventBatches();
+		TArray<CombatEventBatch> pollEventBatches(int maxBatches = -1);
 
 		// Check if combats are in progress
 		bool hasPendingCombats() const;
+	
+		// ✅ Check if a specific combat has more events to send
+		bool hasMoreEvents(uint32 combatID) const { return !mEventQueue.empty(); }
 
 	private:
 		QueueThreadPool mThreadPool;

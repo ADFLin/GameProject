@@ -22,13 +22,14 @@
 #	define TINY_API
 #endif //TG_DLL
 
-#define TINY_USE_NET_THREAD 0
+#define TINY_USE_NET_THREAD 1
 
 #ifndef TINY_USE_NET_THREAD
 #define TINY_USE_NET_THREAD 0
 #endif
 
 #if TINY_USE_NET_THREAD
+#include "PlatformThread.h"
 #define NET_MUTEX( MUTEX ) Mutex MUTEX;
 #define NET_MUTEX_LOCK( MUTEX ) Mutex::Locker MARCO_NAME_COMBINE_2( locker , __LINE__ )( MUTEX );
 #define NET_RWLOCK( RWLOCK ) RWLock RWLOCK;

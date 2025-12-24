@@ -117,11 +117,11 @@ void NetWorker::entryNetThread()
 
 	while( mbRequestExitNetThread == 0 )
 	{
-		mNetRunningTimeSpan += SystemPlatform::GetTickCount() - mNetStartTime;
+		mNetRunningTimeSpan = SystemPlatform::GetTickCount() - mNetStartTime;
 
 		try
 		{
-			if ( !update_NetThread( mNetRunningTime ) )
+			if ( !update_NetThread(mNetRunningTimeSpan) )
 				break;
 
 			SystemPlatform::Sleep(0);

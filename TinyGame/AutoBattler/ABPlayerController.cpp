@@ -7,9 +7,11 @@
 #include "GameGlobal.h"
 #include "GameGUISystem.h"
 #include "RenderUtility.h"
+#include "ABGameRenderer.h"
 
 namespace AutoBattler
 {
+
 	ABPlayerController::ABPlayerController(IGameActionControl& action, IPlayerControllerContext& context)
 		: mAction(action)
 		, mContext(context)
@@ -114,7 +116,7 @@ namespace AutoBattler
 					mDraggedUnit = pickedUnit;
 					mDragStartPos = pickedUnit->getPos();
 					mDragOffset = pickedUnit->getPos() - worldPos;
-					mDragStartLocation = pickedUnit->getHoldLocation();
+					mDragStartLocation = pickedUnit->getDeployLocation();
 
 					return MsgReply::Handled();
 				}
@@ -330,7 +332,7 @@ namespace AutoBattler
 				}
 			}
 
-			mDraggedUnit->render(g); 
+			ABGameRenderer::Draw(g, *mDraggedUnit); 
 		}
 	}
 }

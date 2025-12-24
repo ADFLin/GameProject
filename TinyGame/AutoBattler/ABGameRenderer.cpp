@@ -186,6 +186,15 @@ namespace AutoBattler
 		g.scaleXForm(viewScale, viewScale);
 
 		world.render(g);
+
+		// Render Units (Moved from World::render)
+		for (int i = 0; i < AB_MAX_PLAYER_NUM; ++i)
+		{
+			Player& p = world.getPlayer(i);
+			bool bShowState = (world.getPhase() == BattlePhase::Combat);
+			for (Unit* u : p.mUnits) Draw(g, *u, bShowState);
+			for (Unit* u : p.mEnemyUnits) Draw(g, *u, bShowState);
+		}
 		
 		if (controller)
 		{
@@ -423,4 +432,69 @@ namespace AutoBattler
 			}
 		}
 	}
+	void ABGameRenderer::Draw(IGraphics2D& g, Unit& unit, bool bShowState)
+	{
+		// Don't render if death fade-out is complete
+		// getAlpha() handles checking isDead() and mDeathTimer range
+		if (unit.isDead() && unit.getAlpha() <= 0.0f)
+			return;
+		
+		float alpha = unit.getAlpha();
+		Vector2 mPos = unit.getPos();
+
+		if (unit.isDead())
+		{
+			g.beginBlend(mPos, Vec2i(22, 22), alpha);
+			//RenderUtility::SetBrush(g, EColor::Gray, (uint8)(alpha * 255));
+		}
+		else if (unit.getTeam() == UnitTeam::Player)
+		{
+			RenderUtility::SetBrush(g, EColor::Blue);
+		}
+		else
+		{
+			RenderUtility::SetBrush(g, EColor::Red);
+		}
+		
+		RenderUtility::SetPen(g, EColor::White);
+		g.drawCircle(mPos, 20); 
+
+		if (unit.isDead())
+		{
+			g.endBlend();
+		}
+
+		if (unit.getSectionState() == SectionState::Cast)
+		{
+			RenderUtility::SetPen(g, EColor::Yellow);
+			g.drawCircle(mPos, 22);
+		}
+
+		// UI Bars
+		if (bShowState && !unit.isDead())
+		{
+			Vector2 barPos = mPos - Vector2(20, 30);
+			Vector2 barSize(40, 5);
+			
+			RenderUtility::SetBrush(g, EColor::Red);
+			g.drawRect(barPos, barSize);
+			
+			UnitStats const& mStats = unit.getStats();
+			float hpRatio = mStats.hp / mStats.maxHp;
+			Vector2 curBarSize(40 * hpRatio, 5);
+			RenderUtility::SetBrush(g, EColor::Green);
+			g.drawRect(barPos, curBarSize);
+
+			// Mana Bar
+			barPos.y += 6;
+			RenderUtility::SetBrush(g, EColor::Black);
+			g.drawRect(barPos, barSize);
+
+			float manaRatio = mStats.mana / mStats.maxMana;
+			curBarSize.x = 40 * manaRatio;
+			RenderUtility::SetBrush(g, EColor::Blue);
+			g.drawRect(barPos, curBarSize);
+		}
+	}
+
 }

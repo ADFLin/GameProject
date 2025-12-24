@@ -38,27 +38,52 @@ namespace AutoBattler
 		mWorker->getPacketDispatcher().setUserFunc<ABCombatEventPacket>(this, &ABNetEngine::onCombatEventPacket);
 		mWorker->getPacketDispatcher().setUserFunc<ABCombatEndPacket>(this, &ABNetEngine::onCombatEndPacket);
 
+		// Check for Dedicated Server mode
+		if (mStage == nullptr)
+		{
+			mIsDedicatedServer = true;
+			mDedicatedWorld = std::make_unique<World>();
+			
+			// Initialize Dedicated World
+			mDedicatedWorld->init();
+			LogMsg("NetEngine: Dedicated Server Mode Enabled (No Stage)");
+		}
+		
+		World& world = GetWorld();
+
+
+
 		// Setup replay manager (for both server and client)
-		mReplayManager.setWorld(&mStage->getWorld());
+		mReplayManager.setWorld(&world);
+
 
 		// Enable network mode in World to skip local unit teleportation
 		// Both server and client should use network mode
-		mStage->getWorld().setNetworkMode(true);
-		// Disable auto-resolve combat in Main World for network mode
-		// Combat will be simulated asynchronously (tempWorld) and replayed via events
-		mStage->getWorld().setAutoResolveCombat(false);
-		LogMsg("NetEngine: Network mode enabled (AutoResolve=False) - combat will be handled asynchronously");
+		world.setNetworkMode(true);
+		// Disable auto-resolve combat
+		world.setAutoResolveCombat(false);
+		LogMsg("NetEngine: Network mode enabled (AutoResolve=False)");
 
 		if (mNetWorker->isServer())
 		{
 			mCombatManager.initialize(AB_MAX_PLAYER_NUM);
 			mNetWorker->getPacketDispatcher().setUserFunc<ABActionPacket>(this, &ABNetEngine::onPacketSV);
+
+			world.onPhaseChanged = [this](BattlePhase phase)
+			{
+				if (phase == BattlePhase::Combat)
+				{
+					onCombatPhaseStart();
+				}
+			};
 		}
 		else
 		{
 			// Client: No longer needs to register combat streaming packet handlers here
 			// Setup replay manager with World reference - moved outside
 		}
+
+		bReplayPlaying = false;
 
 		mSimAccumulator = 0;
 		mAccTime = 0;
@@ -80,7 +105,7 @@ namespace AutoBattler
 		if (mNetWorker->isServer())
 		{
 			// Server: Check Clients
-			int localPlayerId = mStage->getWorld().getLocalPlayerIndex();
+			int localPlayerId = GetWorld().getLocalPlayerIndex();
 			for (auto it = mNetWorker->getPlayerManager()->createIterator(); it; ++it)
 			{
 				GamePlayer* player = it.getElement();
@@ -175,17 +200,42 @@ namespace AutoBattler
 					mNetWorker->sendTcpCommand(&packet);
 				}
 
-				// Poll and broadcast combat events
-				broadcastCombatEvents();
 
-				// Process combat results from worker threads (thread-safe)
+				// Periodic Sync Broadcast (Server -> Clients) to fix drift
+				mSyncTimer += time;
+				if (mSyncTimer >= SyncInterval)
 				{
-					std::lock_guard<std::mutex> lock(mResultMutex);
-					for (auto& result : mCombatResults)
+					mSyncTimer = 0;
+					ABSyncPacket packet;
+					packet.frameID = mNextFrameID;
+					packet.checksum = 0;
+					packet.playerId = 0;
+					packet.status = 0;
+
+					World& world = GetWorld();
+					packet.round = world.getRound();
+					packet.phase = (int)world.getPhase();
+					packet.phaseTimer = world.getPhaseTimer();
+					packet.playerGold = 0;
+					packet.playerHP = 0;
+					packet.shopHash = 0;
+
+					mNetWorker->sendTcpCommand(&packet);
+				}
+
+				{
+					// Poll and broadcast combat events
+					broadcastCombatEvents();
+
+					// Process combat results from worker threads (thread-safe)
 					{
-						onCombatComplete(result);
+						std::lock_guard<std::mutex> lock(mResultMutex);
+						for (auto& result : mCombatResults)
+						{
+							onCombatComplete(result);
+						}
+						mCombatResults.clear();
 					}
-					mCombatResults.clear();
 				}
 
 				mAccTime += time;
@@ -199,7 +249,6 @@ namespace AutoBattler
 		}
 		else
 		{
-
 			// Client: Check Server
 			mConnectionTimeout += time;
 			if (mConnectionTimeout > TimeoutSpan)
@@ -210,9 +259,6 @@ namespace AutoBattler
 					if (OnTimeout)
 						OnTimeout(mStage->getWorld().getLocalPlayerIndex(), true);
 				}
-				// Client returns? Existing code returned. But maybe we shouldn't return if we want to try sending heartbeat?
-				// But if connection lost, sending is futile.
-				// Existing code: return;
 			}
 
 			if (bIsTimeout && mConnectionTimeout <= TimeoutSpan)
@@ -234,7 +280,7 @@ namespace AutoBattler
 
 				ABSyncPacket packet;
 				packet.frameID = mLastReceivedFrame;
-				packet.checksum = 0; // TODO: World Hash
+				packet.checksum = 0; 
 				packet.playerId = mStage->getWorld().getLocalPlayerIndex();
 				
 				// Fill Validation Data
@@ -250,15 +296,20 @@ namespace AutoBattler
 				int sh = 0;
 				for (int val : player.mShopList) sh = sh * 31 + val;
 				packet.shopHash = sh;
+				packet.phaseTimer = world.getPhaseTimer();
 
 				mWorker->sendTcpCommand(&packet);
 			}
 		}
 
-		// Update combat replay playback (both server and client)
-		mReplayManager.update(float(time) / 1000.0f);  // Convert ms to seconds
+		if (bReplayPlaying)
+		{
+			mReplayManager.update(float(time) / 1000.0f);
+			applyCompletedReplayResults();
+		}
 
-		long deltaTime = mStage->getTickTime();
+
+		long deltaTime = mIsDedicatedServer ? TickRate : mStage->getTickTime();
 		if (!bIsPaused)
 			mLocalTimeAccumulator += time;
 
@@ -268,13 +319,15 @@ namespace AutoBattler
 		{
 			mSimAccumulator -= deltaTime;
 			mLocalTimeAccumulator -= deltaTime;
-
-			BattlePhase oldPhase = mStage->getPhase();
-			mStage->runLogic(float(deltaTime) / 1000.0f);
-
-			if (mNetWorker->isServer() && oldPhase != BattlePhase::Combat && mStage->getPhase() == BattlePhase::Combat)
+			
+			// ✅ Dedicated Server Support: Tick Independent World
+			if (mIsDedicatedServer)
 			{
-				onCombatPhaseStart();
+				GetWorld().tick(float(deltaTime) / 1000.0f);
+			}
+			else
+			{
+				mStage->runLogic(float(deltaTime) / 1000.0f);
 			}
 
 			steps++;
@@ -285,12 +338,14 @@ namespace AutoBattler
 	{
 		CHECK(mNetWorker->isServer());
 
-		// Determinism: Execute in the exact same order as sent to clients
-		for (auto const& data : mPendingActions)
+		if (mStage)
 		{
-			mStage->executeAction(data.port, data.item);
+			// Determinism: Execute in the exact same order as sent to clients
+			for (auto const& data : mPendingActions)
+			{
+				mStage->executeAction(data.port, data.item);
+			}
 		}
-
 		addSimuateTime(TickRate * numFrame);
 
 		ABFramePacket packet;
@@ -334,7 +389,7 @@ namespace AutoBattler
 
 		// === Server-side Action validation ===
 		ActionError error;
-		if (!mStage->getWorld().validateAction(packet->port, packet->item, &error))
+		if (!GetWorld().validateAction(packet->port, packet->item, &error))
 		{
 			LogWarning(0, "Rejected action from player %d: type=%d, error=%d (%s)", 
 					   packet->port, packet->item.type, error.code, error.message);
@@ -371,7 +426,7 @@ namespace AutoBattler
 				mPlayerTimeouts[packet->playerId] = 0;
 
 				// Compare State
-				World& world = mStage->getWorld();
+				World& world = GetWorld();
 				Player const& svPlayer = world.getPlayer(packet->playerId);
 
 				// Calc Server Shop Hash
@@ -406,6 +461,20 @@ namespace AutoBattler
 				if (OnTimeout)
 					OnTimeout(packet->playerId, false);
 			}
+			else
+			{
+				// Sync Time Logic
+				World& world = GetWorld();
+				if (world.getPhase() == (BattlePhase)packet->phase)
+				{
+					float timeDiff = std::abs(world.getPhaseTimer() - packet->phaseTimer);
+					if (timeDiff > 0.5f)
+					{
+						world.setPhaseTimer(packet->phaseTimer);
+						// LogMsg("Client: PhaseTimer corrected. Drift=%.2f", timeDiff);
+					}
+				}
+			}
 		}
 
 		//LogMsg("Client Sync: Frame %u Hash %u", packet->frameID, packet->checksum);
@@ -437,9 +506,11 @@ namespace AutoBattler
 			return;
 
 		LogMsg("ABNetEngine: Combat phase started, submitting combats...");
+		
+		World& world = GetWorld();
 
 		// Get all match pairings
-		TArray<World::MatchPair> const& matches = mStage->getWorld().getMatches();
+		TArray<World::MatchPair> const& matches = world.getMatches();
 		
 		// Check if this is PVE or PVP round
 		bool isPVE = matches.empty();
@@ -451,7 +522,7 @@ namespace AutoBattler
 			
 			for (int playerIndex = 0; playerIndex < AB_MAX_PLAYER_NUM; ++playerIndex)
 			{
-				Player const& player = mStage->getWorld().getPlayer(playerIndex);
+				Player const& player = world.getPlayer(playerIndex);
 				
 				// Skip dead players
 				if (player.getHp() <= 0)
@@ -479,12 +550,14 @@ namespace AutoBattler
 				
 				// Submit PVE combat (player vs environment)
 				uint32 combatID = mCombatManager.submitCombat(
-					playerIndex, -1,  // -1 indicates PVE (no away player)
+					playerIndex, INDEX_NONE,  // -1 indicates PVE (no away player)
 					playerUnits, enemyUnits,
 					[this](CombatResult result) {
 						// This callback executes in worker thread
 						// Should use thread-safe queue to pass to main thread
 						LogMsg("PVE Combat %u completed in worker thread", result.combatID);
+						std::lock_guard<std::mutex> lock(mResultMutex);
+						mCombatResults.push_back(result);
 					}
 				);
 				
@@ -495,9 +568,9 @@ namespace AutoBattler
 				ABCombatStartPacket packet;
 				packet.combatID = combatID;
 				packet.homeIndex = playerIndex;
-				packet.awayIndex = -1;
-				packet.homeUnits = playerUnits;
-				packet.awayUnits = enemyUnits;
+				packet.awayIndex = INDEX_NONE;
+				packet.homeUnits = std::move(playerUnits);
+				packet.awayUnits = std::move(enemyUnits);
 				mNetWorker->sendTcpCommand(&packet);
 			}
 		}
@@ -508,8 +581,8 @@ namespace AutoBattler
 			
 			for (World::MatchPair const& match : matches)
 			{
-				Player const& homePlayer = mStage->getWorld().getPlayer(match.home);
-				Player const& awayPlayer = mStage->getWorld().getPlayer(match.away);
+				Player const& homePlayer = world.getPlayer(match.home);
+				Player const& awayPlayer = world.getPlayer(match.away);
 				
 				// Collect home player units
 				TArray<UnitSnapshot> homeUnits;
@@ -563,8 +636,8 @@ namespace AutoBattler
 				packet.combatID = combatID;
 				packet.homeIndex = match.home;
 				packet.awayIndex = match.away;
-				packet.homeUnits = homeUnits;
-				packet.awayUnits = awayUnits;
+				packet.homeUnits = std::move(homeUnits);
+				packet.awayUnits = std::move(awayUnits);
 				mNetWorker->sendTcpCommand(&packet);
 			}
 		}
@@ -575,15 +648,12 @@ namespace AutoBattler
 	// Poll and broadcast combat events (called in update)
 	void ABNetEngine::broadcastCombatEvents()
 	{
-		auto batches = mCombatManager.pollEventBatches();
+		auto batches = mCombatManager.pollEventBatches(4);
 
 		for (auto& batch : batches)
 		{
-			LogMsg("Broadcasting %d combat events for combat %u (batch %u)",
-				batch.events.size(), batch.combatID, batch.batchIndex);
-
-			// Feed events to Local Server Replay (Host Player)
-			mReplayManager.enqueueEvents(batch.combatID, batch.events);
+			// LogMsg("Broadcasting %d combat events for combat %u (batch %u)",
+			//	batch.events.size(), batch.combatID, batch.batchIndex);
 
 			// Create and send ABCombatEventPacket
 			ABCombatEventPacket packet;
@@ -592,6 +662,9 @@ namespace AutoBattler
 			packet.events = std::move(batch.events);
 			mNetWorker->sendTcpCommand(&packet);
 		}
+		
+		// ✅ After broadcasting events, check if any completed combats can send their End packet
+		sendPendingCombatEndPackets();
 	}
 
 	// Combat completion callback
@@ -606,66 +679,14 @@ namespace AutoBattler
 			mPendingCombatIDs.end()
 		);
 
-		// Send ABCombatEndPacket
-		ABCombatEndPacket packet;
-		packet.combatID = result.combatID;
-		packet.homePlayerIndex = result.homePlayerIndex;
-		packet.awayPlayerIndex = result.awayPlayerIndex;
-		packet.winnerIndex = result.winnerIndex;
-		packet.homeDamage = result.homeDamage;
-		packet.awayDamage = result.awayDamage;
-		packet.duration = result.duration;
-		mNetWorker->sendTcpCommand(&packet);
-
-		// Apply combat result to World using shared method
-		World& world = mStage->getWorld();
+		// ✅ DON'T send CombatEnd immediately - cache it and wait for all events to be sent
+		mCompletedCombats[result.combatID] = result;
+		LogMsg("ABNetEngine: Combat %u result cached, waiting for all events to be sent", result.combatID);
 		
-		// Calculate alive units from result
-		// If damage > 0, player lost (0 alive)
-		// Otherwise use damage formula inverse: damage = 2 + aliveCount
-		int homeAlive = 0;
-		int awayAlive = 0;
-		
-		if (result.homeDamage > 0)
-		{
-			// Home lost
-			homeAlive = 0;
-			awayAlive = result.homeDamage - 2;  // Reverse: damage = 2 + awayAlive
-		}
-		else if (result.awayDamage > 0)
-		{
-			// Away lost
-			awayAlive = 0;
-			homeAlive = result.awayDamage - 2;  // Reverse: damage = 2 + homeAlive
-		}
-		else
-		{
-			// Draw or both alive - use winner to determine
-			if (result.winnerIndex == result.homePlayerIndex)
-			{
-				homeAlive = 1;  // At least one survived
-				awayAlive = 0;
-			}
-			else if (result.winnerIndex == result.awayPlayerIndex)
-			{
-				homeAlive = 0;
-				awayAlive = 1;
-			}
-		}
-		
-		// Mark replay as ended for server-side replay manager
-		mReplayManager.markEnded(result.combatID, result.winnerIndex);
-		
-		bool isPVE = (result.awayPlayerIndex == -1);
-		world.applyCombatResult(result.homePlayerIndex, result.awayPlayerIndex,
-		                        homeAlive, awayAlive, isPVE);
-
-		// If all combats completed, switch back to preparation phase
-		if (mPendingCombatIDs.empty())
-		{
-			LogMsg("ABNetEngine: All combats completed, switching to preparation phase");
-			world.changePhase(BattlePhase::Preparation);
-		}
+		// ✅ NOTE: Do NOT apply results or change phase here directly!
+		// For Host/Listen Server, we must wait for the local Replay to finish.
+		// We rely on the NP_COMBAT_END packet being sent (even to self via loopback)
+		// and processed by onCombatEndPacket -> applyCompletedReplayResults.
 	}
 
 	// ========================================================================
@@ -676,16 +697,34 @@ namespace AutoBattler
 	{
 		auto* packet = cp->cast<ABCombatStartPacket>();
 
+		bReplayPlaying = true;
+
+		// Sync: Ensure Client enters Combat Phase immediately when Server starts it.
+		// This corrects any drift caused by prolonged Replays or Client lag.
+		if (GetWorld().getPhase() != BattlePhase::Combat)
+		{
+			LogMsg("Client: Force switching to Combat Phase (Sync from Server)");
+			GetWorld().changePhase(BattlePhase::Combat);
+		}
+
+		// Fix: Ensure enemies from previous round (PVE) are cleaned up.
+		// If Client skipped Preparation phase (due to lag/sync), they might persist.
+		GetWorld().cleanupEnemies();
+
 		LogMsg("Client: Combat %u started (Home=%d vs Away=%d, %d vs %d units)",
 			packet->combatID, packet->homeIndex, packet->awayIndex,
 			packet->homeUnits.size(), packet->awayUnits.size());
 
 		// Setup combat replay
-		mReplayManager.setupReplay(
-			packet->combatID,
-			packet->homeIndex, packet->awayIndex,
-			packet->homeUnits, packet->awayUnits
-		);
+		// Dedicated Server skips replay recording to finish immediately
+		if (!mIsDedicatedServer)
+		{
+			mReplayManager.setupReplay(
+				packet->combatID,
+				packet->homeIndex, packet->awayIndex,
+				packet->homeUnits, packet->awayUnits
+			);
+		}
 	}
 
 	void ABNetEngine::onCombatEventPacket(IComPacket* cp)
@@ -696,7 +735,11 @@ namespace AutoBattler
 			packet->combatID, packet->batchIndex, packet->events.size());
 
 		// Enqueue events for replay
-		mReplayManager.enqueueEvents(packet->combatID, packet->events);
+		// Dedicated Server skips events
+		if (!mIsDedicatedServer)
+		{
+			mReplayManager.enqueueEvents(packet->combatID, packet->events);
+		}
 	}
 
 	void ABNetEngine::onCombatEndPacket(IComPacket* cp)
@@ -708,33 +751,109 @@ namespace AutoBattler
 			packet->homeDamage, packet->awayDamage, packet->duration);
 
 		// Mark combat as ended
-		mReplayManager.markEnded(packet->combatID, packet->winnerIndex);
-
-		// Apply result to Client World to sync HP/Gold/Wins
-		int homeAlive = 0;
-		int awayAlive = 0;
-
-
-		if (packet->winnerIndex == packet->homePlayerIndex)
+		if (!mIsDedicatedServer)
 		{
-			// Home won, calculate approximate alive count from damage dealt
-			homeAlive = (packet->awayDamage >= 2) ? (packet->awayDamage - 2) : 1;
-		}
-		else if (packet->winnerIndex == packet->awayPlayerIndex)
-		{
-			// Away won (or PVE Environment if index is -1)
-			awayAlive = (packet->homeDamage >= 2) ? (packet->homeDamage - 2) : 1;
+			mReplayManager.markEnded(packet->combatID, packet->winnerIndex);
 		}
 
-		bool isPVE = (packet->awayPlayerIndex == -1);
-		mStage->getWorld().applyCombatResult(
-			packet->homePlayerIndex, packet->awayPlayerIndex,
-			homeAlive, awayAlive, isPVE
-		);
+		// ✅ DON'T apply result immediately - cache it and wait for replay to finish
+		PendingCombatResult pending;
+		pending.homePlayerIndex = packet->homePlayerIndex;
+		pending.awayPlayerIndex = packet->awayPlayerIndex;
+		pending.winnerIndex = packet->winnerIndex;
+		pending.homeDamage = packet->homeDamage;
+		pending.awayDamage = packet->awayDamage;
+		pending.duration = packet->duration;
+		
+		mPendingCombatResults[packet->combatID] = pending;
+		LogMsg("Client: Combat %u result cached, waiting for replay to finish", packet->combatID);
+	}
 
-		// Switch to Preparation phase after combat ends (sync with Server)
-		// Note: In future with multiple concurrent combats, this should wait for all combats
-		mStage->getWorld().changePhase(BattlePhase::Preparation);
+	World& ABNetEngine::GetWorld()
+	{
+		if (mIsDedicatedServer)
+			return *mDedicatedWorld;
+		return mStage->getWorld();
+	}
+
+	// ========================================================================
+	// Server: Send pending CombatEnd packets after all events delivered
+	// ========================================================================
+	void ABNetEngine::sendPendingCombatEndPackets()
+	{
+		for (auto it = mCompletedCombats.begin(); it != mCompletedCombats.end();)
+		{
+			uint32 combatID = it->first;
+			
+			// ✅ Check if this combat still has more events to send
+			if (mCombatManager.hasMoreEvents(combatID))
+			{
+				++it;  // Still has events, wait for next call
+				continue;
+			}
+			
+			// ✅ All events sent, now send CombatEnd
+			CombatResult& result = it->second;
+			
+			ABCombatEndPacket packet;
+			packet.combatID = result.combatID;
+			packet.homePlayerIndex = result.homePlayerIndex;
+			packet.awayPlayerIndex = result.awayPlayerIndex;
+			packet.winnerIndex = result.winnerIndex;
+			packet.homeDamage = result.homeDamage;
+			packet.awayDamage = result.awayDamage;
+			packet.duration = result.duration;
+			mNetWorker->sendTcpCommand(&packet);
+			
+			LogMsg("Sent CombatEnd for combat %u (all events delivered)", combatID);
+			
+			it = mCompletedCombats.erase(it);
+		}
+	}
+
+	// ========================================================================
+	// Client: Apply combat results after replay finishes
+	// ========================================================================
+	void ABNetEngine::applyCompletedReplayResults()
+	{
+		for (auto it = mPendingCombatResults.begin(); it != mPendingCombatResults.end();)
+		{
+			uint32 combatID = it->first;
+			
+			// ✅ Check if replay is still playing
+			if (!mReplayManager.isReplayFinished(combatID))
+			{
+				++it;  // Still playing, wait
+				continue;
+			}
+
+			auto& result = it->second;
+			
+			// Calculate aliveCount
+			int homeAlive = 0, awayAlive = 0;
+			if (result.winnerIndex == result.homePlayerIndex)
+				homeAlive = (result.awayDamage >= 2) ? (result.awayDamage - 2) : 1;
+			else if (result.winnerIndex == result.awayPlayerIndex)
+				awayAlive = (result.homeDamage >= 2) ? (result.homeDamage - 2) : 1;
+			
+			bool isPVE = (result.awayPlayerIndex == -1);
+			mStage->getWorld().applyCombatResult(
+				result.homePlayerIndex, result.awayPlayerIndex,
+				homeAlive, awayAlive, isPVE
+			);
+			
+			LogMsg("Client: Applied combat result for combat %u after replay finished", combatID);
+			
+			it = mPendingCombatResults.erase(it);
+		}
+		
+		// ✅ All replays finished, switch phase
+		if (mPendingCombatResults.empty() && mReplayManager.allReplaysFinished())
+		{
+			LogMsg("Client: All replays finished, switching to Preparation phase");
+			mStage->getWorld().changePhase(BattlePhase::Preparation);
+			bReplayPlaying = false;
+		}
 	}
 
 } // namespace AutoBattler

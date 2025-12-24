@@ -8,12 +8,14 @@
 #include "ABCombatDefs.h" // Includes CombatEvent definition
 
 #include "DataStructure/Array.h"
+#include <functional>
 
 
 namespace AutoBattler
 {
 	enum class BattlePhase
 	{
+		None,
 		Preparation,
 		Combat,
 		End,
@@ -151,6 +153,9 @@ namespace AutoBattler
 
 
 		bool validateAction(int playerIndex, ABActionItem const& action, ActionError* outError = nullptr);
+
+
+		std::function< void (BattlePhase) > onPhaseChanged;
 
 	private:
 		bool validateBuyUnit(Player const& player, struct ActionBuyUnit const& action, ActionError* outError);

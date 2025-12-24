@@ -34,7 +34,7 @@ namespace AutoBattler
 		union EventData
 		{
 			float damageAmount;      // UnitTakeDamage
-			Vector2 movePosition;    // UnitMove
+			Vec2i moveTo;    // UnitMove
 			float healAmount;        // UnitHeal
 			float manaGained;        // UnitManaGain
 			int skillID;             // UnitCastSkill
@@ -60,7 +60,7 @@ namespace AutoBattler
 				op & data.damageAmount;
 				break;
 			case CombatEventType::UnitMove:
-				op & data.movePosition;
+				op & data.moveTo;
 				break;
 			case CombatEventType::UnitHeal:
 				op & data.healAmount;

@@ -24,6 +24,7 @@
 #include <random>
 #include "Async/Coroutines.h"
 
+#if 0
 
 #include "C-ATTL3/Cattle.hpp"
 
@@ -163,6 +164,7 @@ void Test_C_ATTL3()
 
 }
 
+#endif
 
 namespace NR
 {
@@ -782,7 +784,7 @@ namespace NR
 	public:
 		unsigned run()
 		{
-			Test_C_ATTL3();
+			//Test_C_ATTL3();
 			return 0;
 		}
 

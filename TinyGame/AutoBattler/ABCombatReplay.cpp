@@ -24,7 +24,7 @@ namespace AutoBattler
 		replay.combatID = combatID;
 		replay.homePlayerIndex = homeIndex;
 		replay.awayPlayerIndex = awayIndex;
-		replay.playbackTime = 0;
+		replay.playbackTime = -0.2f;
 		replay.ended = false;
 		replay.winnerIndex = -1;
 		replay.playbackSpeed = 1.0f;
@@ -40,6 +40,39 @@ namespace AutoBattler
 			Player& homePlayer = mWorld->getPlayer(homeIndex);
 			PlayerBoard& homeBoard = homePlayer.getBoard();
 
+			// Reset Home Units (Important to clear stale targets from previous rounds)
+			for (auto const& snapshot : homeUnits)
+			{
+				Unit* homeUnit = findUnitByID(snapshot.unitID);
+				if (homeUnit)
+				{
+					homeUnit->resetRound();
+
+					// Fix: Ensure home unit is attached to the board. 
+					// Logic quirks in PVE/ListenServer might leave it detached.
+					if (homeUnit->getInternalBoard() == nullptr)
+					{
+						LogWarning(0, "SetupReplay: HomeUnit %d was detached. Re-placing at (%d,%d)", 
+							homeUnit->getUnitId(), snapshot.location.pos.x, snapshot.location.pos.y);
+						
+						if (homeBoard.isValid(snapshot.location.pos))
+						{
+							// Force clear target cell if needed (though it should be empty if unit is detached)
+							// Actually, safely place it.
+							homeUnit->place(homeBoard, snapshot.location.pos);
+							homeUnit->stopMove();
+						}
+					}
+					// Also sync position directly to ensure visual start matches snapshot
+					else
+					{
+						// Optional: Teleport to snapshotted position if drifted?
+						// homeUnit->setPos(homeBoard.getWorldPos(snapshot.location.pos.x, snapshot.location.pos.y));
+					}
+				}
+
+			}
+
 			// Create and place away units from snapshots
 			for (auto const& snapshot : awayUnits)
 			{
@@ -48,34 +81,94 @@ namespace AutoBattler
 				// This simplifies ID logic (no need to track copy IDs vs real IDs).
 				Unit* awayUnit = findUnitByID(snapshot.unitID);
 
-				if (awayUnit)
+				if (!awayUnit)
 				{
-					// Calculate mirrored position on Home Board
-					int targetX = PlayerBoard::MapSize.x - 1 - snapshot.location.pos.x;
-					int targetY = PlayerBoard::MapSize.y - 1 - snapshot.location.pos.y;
+					// If unit not found (e.g. Ghost Unit with unique ID, or PVE unit not synced),
+					// Create a visual clone for replay purposes.
+					// LogMsg("SetupReplay: Creating Visual Clone for ID=%d", snapshot.unitID);
+					awayUnit = new Unit();
+					awayUnit->setUnitId(snapshot.unitID);
+					awayUnit->setTypeId(snapshot.unitTypeID);
+					awayUnit->setStats(snapshot.stats);
+					awayUnit->setTeam(UnitTeam::Enemy); // Visual clones are enemies
+					awayUnit->setIsGhost(true); // Always ghost/visual
+
+					// Place it
+					// Ghost Units (ID Offset) are pre-mirrored on Server. Do not mirror again.
+					bool bIsGhost = UnitIdHelper::IsGhost(snapshot.unitID);
+					Vec2i target = (awayIndex == -1 || bIsGhost) ? snapshot.location.pos : PlayerBoard::Mirror(snapshot.location.pos);
 					
-					// Remove from current board (wherever it is - usually Away Player's board)
-					if (awayUnit->getInternalBoard())
+					if (homeBoard.isValid(target))
 					{
-						Vec2i oldCoord = awayUnit->getInternalBoard()->getCoord(awayUnit->getPos());
-						if (awayUnit->getInternalBoard()->isValid(oldCoord))
-							awayUnit->getInternalBoard()->setUnit(oldCoord.x, oldCoord.y, nullptr);
+						Unit* existingUnit = homeBoard.getUnit(target.x, target.y);
+						if (existingUnit)
+						{
+							// LogWarning(0, "SetupReplay: Clone Collision at (%d,%d). Clearing.", target.x, target.y);
+							homeBoard.setUnit(target.x, target.y, nullptr);
+						}
 					}
 
-					// Place on Home Board at mirrored position
-					// Use setUnit to update grid occupation
-					homePlayer.getBoard().setUnit(targetX, targetY, awayUnit);
-					awayUnit->setInternalBoard(&homePlayer.getBoard());
+					awayUnit->place(homeBoard, target);
+					homePlayer.mEnemyUnits.push_back(awayUnit);
 
-					// Update Transform
-					Vector2 worldPos = homePlayer.getBoard().getWorldPos(targetX, targetY);
-					// LogMsg("Teleport OrigUnit[%d] to (%d,%d) WorldPos=(%.1f, %.1f)", awayUnit->getUnitId(), targetX, targetY, worldPos.x, worldPos.y);
-					awayUnit->setPos(worldPos);
+					// Continue loop as we are done with this unit
+					continue;
+				}
+
+				if (awayUnit)
+				{
+					// PVE units (Index -1) are already on the Home Board's coordinate system.
+					// PVP units come from the Opponent's Board and need mirroring.
+					// Ghosts (ID Offset) are pre-mirrored.
+					bool bIsGhost = UnitIdHelper::IsGhost(snapshot.unitID);
+					Vec2i target;
+					
+					if (awayIndex == -1 || bIsGhost)
+					{
+						target = snapshot.location.pos;
+					}
+					else
+					{
+						target = PlayerBoard::Mirror(snapshot.location.pos);
+					}
+					
+					// Force Team to Enemy for Replay Visuals (so they look Red/Enemy color)
+					awayUnit->setTeam(UnitTeam::Enemy);
+					
+					// Safety check: Ensure target cell is free before placing
+					if (homeBoard.isValid(target))
+					{
+						Unit* existingUnit = homeBoard.getUnit(target.x, target.y);
+						if (existingUnit && existingUnit != awayUnit)
+						{
+							LogWarning(0, "SetupReplay: Collision at (%d,%d). Removing existing unit ID=%d for ReplayUnit ID=%d", 
+								target.x, target.y, existingUnit->getUnitId(), awayUnit->getUnitId());
+							// Check if we should delete or just detach? 
+							// Replay logic implies we are overriding state.
+							// Detach simply:
+							homeBoard.setUnit(target.x, target.y, nullptr);
+						}
+					}
+
+					awayUnit->place(homeBoard, target);
+					LogMsg("Teleport OrigUnit[%d] to (%d,%d)", awayUnit->getUnitId(), target.x, target.y);
 					awayUnit->stopMove(); // Ensure stationary
 
 					// Add to Enemy List reference (for easy access/cleanup logic)
-					// Note: cleanupEnemies won't delete it because it's a real player unit.
-					homePlayer.mEnemyUnits.push_back(awayUnit);
+					// Note: PVE units are already in this list from spawnPVEModule.
+					bool bAlreadyInList = false;
+					for (Unit* u : homePlayer.mEnemyUnits)
+					{
+						if (u == awayUnit)
+						{
+							bAlreadyInList = true;
+							break;
+						}
+					}
+					if (!bAlreadyInList)
+					{
+						homePlayer.mEnemyUnits.push_back(awayUnit);
+					}
 
 					// Sync Stats from Snapshot (optional but good for safety)
 					// awayUnit->setStats(snapshot.stats); 
@@ -102,13 +195,13 @@ namespace AutoBattler
 			{
 				float startTime = events[0].timestamp;
 				float endTime = events.back().timestamp;
-				LogMsg("Client Replay: Enqueue %d events for Combat %u (TimeRange=[%.2f, %.2f])", 
-					events.size(), combatID, startTime, endTime);
+				// LogMsg("Client Replay: Enqueue %d events for Combat %u (TimeRange=[%.2f, %.2f])", 
+				// 	events.size(), combatID, startTime, endTime);
 			}
 			for (auto const& event : events)
 			{
-				LogMsg("  < CliEvent: T=%.3f Type=%d Src=%d Tgt=%d", 
-					event.timestamp, (int)event.type, event.sourceUnitID, event.targetUnitID);
+				// LogMsg("  < CliEvent: T=%.3f Type=%d Src=%d Tgt=%d", 
+				// 	event.timestamp, (int)event.type, event.sourceUnitID, event.targetUnitID);
 				it->second.eventQueue.push(event);
 			}
 		}
@@ -159,8 +252,17 @@ namespace AutoBattler
 
 			if (replay.ended && replay.eventQueue.empty())
 			{
-				LogMsg("CombatReplay: Combat %u completed", replay.combatID);
-				it = mActiveReplays.erase(it);
+				// Wait for effects to finish
+				replay.finishTimer += dt;
+				if (replay.finishTimer >= CombatReplay::FinishDelay)
+				{
+					LogMsg("CombatReplay: Combat %u completed (after delay)", replay.combatID);
+					it = mActiveReplays.erase(it);
+				}
+				else
+				{
+					++it;
+				}
 			}
 			else
 			{
@@ -191,6 +293,26 @@ namespace AutoBattler
 		LogMsg("CombatReplay: Cleared all");
 	}
 
+	bool CombatReplayManager::isReplayFinished(uint32 combatID) const
+	{
+		auto it = mActiveReplays.find(combatID);
+		if (it == mActiveReplays.end())
+			return true;  // No replay = finished
+		
+		// Finished if marked ended AND no events left
+		return it->second.ended && it->second.eventQueue.empty();
+	}
+
+	bool CombatReplayManager::allReplaysFinished() const
+	{
+		for (auto const& pair : mActiveReplays)
+		{
+			if (!pair.second.ended || !pair.second.eventQueue.empty())
+				return false;
+		}
+		return true;
+	}
+
 	void CombatReplayManager::applyCombatEvent(CombatEvent const& event)
 {
 	if (!mWorld) return;
@@ -198,25 +320,33 @@ namespace AutoBattler
 	switch (event.type)
 	{
 	case CombatEventType::UnitAttack:
-	{
-		Unit* source = findUnitByID(event.sourceUnitID);
-		Unit* target = findUnitByID(event.targetUnitID);
-		if (source && target)
 		{
-			mWorld->applyUnitAttack(*source, *target);
+			Unit* source = findUnitByID(event.sourceUnitID);
+			Unit* target = findUnitByID(event.targetUnitID);
+			if (source && target)
+			{
+				mWorld->applyUnitAttack(*source, *target);
+			}
 		}
-	}
-	break;
+		break;
 	case CombatEventType::UnitMove:
-	{
-		Unit* unit = findUnitByID(event.sourceUnitID);
-		if (unit && unit->getInternalBoard())
 		{
-			Vec2i gridPos = unit->getInternalBoard()->getCoord(event.data.movePosition);
-			mWorld->applyUnitMove(*unit, gridPos, false);
+			Unit* unit = findUnitByID(event.sourceUnitID);
+			if (unit && unit->getInternalBoard())
+			{
+				Vector2 currentPos = unit->getPos();
+				Vector2 targetPos = unit->getInternalBoard()->getWorldPos(event.data.moveTo.x, event.data.moveTo.y);
+				LogMsg("Replay Move Unit %d: Cur=(%.1f, %.1f) Tgt=(%.1f, %.1f) Dist=%.1f", 
+					unit->getUnitId(), currentPos.x, currentPos.y, targetPos.x, targetPos.y, Math::Distance(currentPos, targetPos));
+
+				mWorld->applyUnitMove(*unit, event.data.moveTo, false);
+			}
+			else
+			{
+				LogMsg("Replay Move Failed: Unit %d not found or no board", event.sourceUnitID);
+			}
 		}
-	}
-	break;
+		break;
 	case CombatEventType::UnitTakeDamage:
 	{
 		Unit* target = findUnitByID(event.targetUnitID);
@@ -227,33 +357,33 @@ namespace AutoBattler
 	}
 	break;
 	case CombatEventType::UnitDeath:
-	{
-		Unit* target = findUnitByID(event.sourceUnitID);
-		if (target)
 		{
-			target->takeDamage(target->getStats().hp + 1.0f); // Fast kill
+			Unit* target = findUnitByID(event.sourceUnitID);
+			if (target)
+			{
+				target->takeDamage(target->getStats().hp + 1.0f); // Fast kill
+			}
 		}
-	}
-	break;
+		break;
 	case CombatEventType::UnitHeal:
-	{
-		Unit* target = findUnitByID(event.targetUnitID);
-		if (target)
 		{
-			mWorld->applyUnitHeal(*target, event.data.healAmount);
+			Unit* target = findUnitByID(event.targetUnitID);
+			if (target)
+			{
+				mWorld->applyUnitHeal(*target, event.data.healAmount);
+			}
 		}
-	}
-	break;
+		break;
 	case CombatEventType::UnitCastSkill:
-	{
-		Unit* source = findUnitByID(event.sourceUnitID);
-		Unit* target = findUnitByID(event.targetUnitID);
-		if (source)
 		{
-			mWorld->applyUnitCastSkill(*source, event.data.skillID, target);
+			Unit* source = findUnitByID(event.sourceUnitID);
+			Unit* target = findUnitByID(event.targetUnitID);
+			if (source)
+			{
+				mWorld->applyUnitCastSkill(*source, event.data.skillID, target);
+			}
 		}
-	}
-	break;
+		break;
 	case CombatEventType::UnitManaGain:
 	{
 		Unit* target = findUnitByID(event.sourceUnitID);
@@ -266,47 +396,43 @@ namespace AutoBattler
 	}
 }
 
-Unit* CombatReplayManager::findUnitByID(int unitID)
-{
-	if (!mWorld)
-		return nullptr;
+	Unit* CombatReplayManager::findUnitByID(int unitID)
+	{
+		if (!mWorld)
+			return nullptr;
 
-	// Optimization: Decode PlayerIndex from UnitID (High 16 bits)
-	int playerIndex = (unitID >> 16) & 0xFFFF;
+		// Optimization: Decode PlayerIndex from UnitID (High 16 bits)
+	int playerIndex = UnitIdHelper::GetPlayer(unitID);
 
-		if (playerIndex >= 0 && playerIndex < AB_MAX_PLAYER_NUM)
+	if (playerIndex >= 0 && playerIndex < AB_MAX_PLAYER_NUM)
+	{
+		Player& player = mWorld->getPlayer(playerIndex);
+		for (Unit* unit : player.mUnits)
 		{
-			Player& player = mWorld->getPlayer(playerIndex);
-			for (Unit* unit : player.mUnits)
-			{
-				if (unit->getUnitId() == unitID)
-					return unit;
-			}
-			// Just in case, try enemy list
-			for (Unit* unit : player.mEnemyUnits)
-			{
-				if (unit->getUnitId() == unitID)
-					return unit;
-			}
+			if (unit->getUnitId() == unitID)
+				return unit;
 		}
-
-		// Fallback for legacy IDs
-		for (int i = 0; i < AB_MAX_PLAYER_NUM; ++i)
+		// Just in case, try enemy list
+		for (Unit* unit : player.mEnemyUnits)
 		{
-			Player& player = mWorld->getPlayer(i);
-
-			for (Unit* unit : player.mUnits)
-			{
-				if (unit->getUnitId() == unitID)
-					return unit;
-			}
-			for (Unit* unit : player.mEnemyUnits)
-			{
-				if (unit->getUnitId() == unitID)
-					return unit;
-			}
+			if (unit->getUnitId() == unitID)
+				return unit;
 		}
-		return nullptr;
 	}
+
+	// Fallback: Search all players' mEnemyUnits (Ghost Clones might be stored in Opponent's list)
+	for (int i = 0; i < AB_MAX_PLAYER_NUM; ++i)
+	{
+		Player& player = mWorld->getPlayer(i);
+		for (Unit* unit : player.mEnemyUnits)
+		{
+			if (unit->getUnitId() == unitID)
+				return unit;
+		}
+	}
+
+	LogWarning(0,"Replay : Can't find unit %d", unitID);
+	return nullptr;
+}
 
 } // namespace AutoBattler

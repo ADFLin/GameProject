@@ -45,9 +45,9 @@ namespace Phy2D
 		else
 		{
 			mMass = mDensity * info.m;
-			mInvMass = 1 / info.m; 
+			mInvMass = 1.0f / mMass; 
 			mI    = mDensity * info.I;
-			mInvI = 1 / info.I;
+			mInvI = 1.0f / mI;
 		}
 	}
 

@@ -19,6 +19,12 @@ PacketDispatcher::~PacketDispatcher()
 		delete com.cp;
 	}
 	mProcCPList.clear();
+
+	for (auto& com : mDispatchList)
+	{
+		delete com.cp;
+	}
+	mDispatchList.clear();
 }
 
 PacketDispatcher::PacketHandler* PacketDispatcher::findHandler(ComID packetId)
@@ -87,9 +93,12 @@ void PacketDispatcher::enqueue(IComPacket* packet, PacketHandler* handler)
 
 void PacketDispatcher::procCommand()
 {
-	NET_MUTEX_LOCK( mMutexProcCPList );
+	{
+		NET_MUTEX_LOCK(mMutexProcCPList);
+		mDispatchList.swap(mProcCPList);
+	}
 
-	for (auto& com : mProcCPList)
+	for (auto& com : mDispatchList)
 	{
 		if (com.handler)
 		{
@@ -103,14 +112,17 @@ void PacketDispatcher::procCommand()
 		delete com.cp;
 	}
 
-	mProcCPList.clear();
+	mDispatchList.clear();
 }
 
 void PacketDispatcher::procCommand(ComVisitor& visitor)
 {
-	NET_MUTEX_LOCK( mMutexProcCPList );
+	{
+		NET_MUTEX_LOCK(mMutexProcCPList);
+		mDispatchList.swap(mProcCPList);
+	}
 
-	for (auto iter = mProcCPList.begin(); iter != mProcCPList.end(); )
+	for (auto iter = mDispatchList.begin(); iter != mDispatchList.end(); )
 	{
 		UserCom& com = *iter;
 
@@ -131,15 +143,21 @@ void PacketDispatcher::procCommand(ComVisitor& visitor)
 		{
 		case CVR_DISCARD:
 			delete com.cp;
-			iter = mProcCPList.erase(iter);
+			iter = mDispatchList.erase(iter);
 			break;
 		case CVR_TAKE:
-			iter = mProcCPList.erase(iter);
+			iter = mDispatchList.erase(iter);
 			break;
 		case CVR_RESERVE:
 			++iter;
 			break;
 		}
+	}
+
+	if (!mDispatchList.empty())
+	{
+		NET_MUTEX_LOCK(mMutexProcCPList);
+		mProcCPList.splice(mProcCPList.begin(), mDispatchList);
 	}
 }
 

@@ -105,7 +105,7 @@ namespace Phy2D
 			if ( mMotionType != BodyMotion::eStatic )
 			{
 				mLinearVel += mInvMass * mLinearImpulse;
-				mAngularVel += mInvI * mAngularVel;
+				mAngularVel += mInvI * mAngularImpulse;
 			}
 			mLinearImpulse = Vector2::Zero();
 			mAngularImpulse = 0;

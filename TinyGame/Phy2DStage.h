@@ -91,6 +91,12 @@ namespace Phy2D
 			return ERenderSystem::D3D11;
 		}
 
+
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
+		{
+			systemConfigs.bWasUsedPlatformGraphics = true;
+		}
+
 	};
 
 	class TINY_API CollideTestStage : public Phy2DStageBase
@@ -142,7 +148,8 @@ namespace Phy2D
 
 		void doCollisionTest()
 		{
-			mIsCollided = mCollision.test(&mObjects[0], &mObjects[1], mContact);
+			//mIsCollided = mCollision.testManifold(&mObjects[0], &mObjects[1], mManifold);
+			mIsCollided = mCollision.testManifold(&mObjects[0], &mObjects[1], mManifold);
 		}
 
 
@@ -154,7 +161,7 @@ namespace Phy2D
 			return true;
 		}
 	protected:
-		Contact mContact;
+		ContactManifold mManifold;
 
 		bool  mIsCollided;
 		CollideObject mObjects[2];
@@ -215,6 +222,7 @@ namespace Phy2D
 		World        mWorld;
 		BoxShape     mBoxShape[2];
 		BoxShape     mBoxShape2;
+		BoxShape     mDynamicBoxShape;  // Shape for spawning dynamic boxes
 		CircleShape  mCircleShape;
 		PolygonShape mShape3;
 

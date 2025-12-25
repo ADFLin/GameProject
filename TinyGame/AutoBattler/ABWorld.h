@@ -91,7 +91,8 @@ namespace AutoBattler
 		
 		void resolveCombat();
 		void restoreUnits();
-
+		
+		void setRound(int round) { mRound = round; }
 		int getRound() const { return mRound; }
 		RoundManager const& getRoundManager() const { return mRoundManager; }
 		UnitDataManager const& getUnitDataManager() const { return mUnitDataManager; }
@@ -122,6 +123,10 @@ namespace AutoBattler
 		// Network Mode Control
 		void setNetworkMode(bool enabled) { mbNetworkMode = enabled; }
 		bool isNetworkMode() const { return mbNetworkMode; }
+		
+		// Authority Control: Explicitly set if this World is authoritative (Server/Host)
+		void setAuthority(bool auth) { mbIsAuthority = auth; }
+		bool isAuthority() const { return mbIsAuthority; }
 
 		// ========================================================================
 		// Combat Action Application (shared by Units and Replay)
@@ -165,6 +170,10 @@ namespace AutoBattler
 		bool validateDeployUnit(Player const& player, struct ActionDeployUnit const& action, ActionError* outError);
 		bool validateRetractUnit(Player const& player, struct ActionRetractUnit const& action, ActionError* outError);
 
+	public:
+		int  getPlayerCount() const { return (int)mPlayers.size(); }
+		bool isValidPlayer(int index) const { return index >= 0 && index < mPlayers.size(); }
+
 	private:
 		RoundManager    mRoundManager;
 		UnitDataManager mUnitDataManager;
@@ -174,6 +183,7 @@ namespace AutoBattler
 		
 		TArray<Player> mPlayers;
 		int            mLocalPlayerIndex = 0;
+
 		
 		TArray<Unit*> mEnemyUnits;
 
@@ -194,6 +204,7 @@ namespace AutoBattler
 		bool        mPlayingReplay = false;
 		bool        mAutoResolveCombat = true;
 		bool        mbNetworkMode = false;  // If true, skip local unit teleportation in PVP
+		bool        mbIsAuthority = true;   // Default true (Standalone), set to false for Client in Net Mode
 		
 		bool        mUseLocalRandom = false;
 		unsigned int mRandomSeed = 1;

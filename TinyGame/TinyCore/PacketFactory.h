@@ -10,9 +10,6 @@ class SocketBuffer;
 typedef uint32 ComID;
 typedef fastdelegate::FastDelegate< void (IComPacket*) > ComProcFunc;
 
-// ========================================
-// PacketFactory: 负责 packet 的创建和 factory 管理
-// ========================================
 class PacketFactory
 {
 public:
@@ -43,11 +40,8 @@ public:
 	void removeFactory(){ removeFactory(GamePacketT::PID); }
 
 	TINY_API ICPFactory* findFactory(ComID com);
-
-	// 从 SocketBuffer 中解析并创建 Packet
 	TINY_API IComPacket* createPacketFromBuffer(SocketBuffer& buffer, int group = -1, void* userData = nullptr);
 
-	// 静态辅助方法
 	TINY_API static uint32 WriteBuffer(SocketBuffer& buffer, IComPacket* cp);
 	TINY_API static bool ReadBuffer(SocketBuffer& buffer, IComPacket* cp);
 
@@ -66,10 +60,10 @@ private:
 template<class GamePacketT>
 PacketFactory::ICPFactory* PacketFactory::addFactoryInternal()
 {
-	NET_RWLOCK_WRITE( mRWLockCPFactoryMap );
 	ICPFactory* factory = findFactory(GamePacketT::PID);
 	if (factory == nullptr)
 	{
+		NET_RWLOCK_WRITE(mRWLockCPFactoryMap);
 		factory = new CPFactory<GamePacketT>;
 		mCPFactoryMap.insert(std::make_pair(GamePacketT::PID, factory));
 	}

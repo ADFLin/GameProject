@@ -1276,16 +1276,22 @@ void LocalWorker::postChangeState( NetActionState oldState )
 
 void LocalWorker::doUpdate(long time)
 {
-	//MUTEX_LOCK(mMutexBuffer);
+
+}
+
+
+void LocalWorker::update_NetThread(long time)
+{	
+	NET_MUTEX_LOCK(mMutexBuffer);
 	try
 	{
-		while( mSendBuffer.getAvailableSize() )
+		while (mSendBuffer.getAvailableSize())
 		{
-			if( !FNetCommand::EvalCommand(GGamePacketFactory, mServer->getPacketDispatcher(), mSendBuffer) )
+			if (!FNetCommand::EvalCommand(GGamePacketFactory, mServer->getPacketDispatcher(), mSendBuffer))
 				break;
 		}
 	}
-	catch( ComException& )
+	catch (ComException&)
 	{
 
 
@@ -1295,37 +1301,32 @@ void LocalWorker::doUpdate(long time)
 
 	try
 	{
-		while( mRecvBuffer.getAvailableSize() )
+		while (mRecvBuffer.getAvailableSize())
 		{
-			if( !FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), mRecvBuffer) )
+			if (!FNetCommand::EvalCommand(GGamePacketFactory, getPacketDispatcher(), mRecvBuffer))
 				break;
 		}
 	}
-	catch( ComException& )
+	catch (ComException&)
 	{
 
 
 
 	}
 	mRecvBuffer.clear();
-}
-
-
-void LocalWorker::update_NetThread(long time)
-{
 
 }
 
 bool LocalWorker::sendCommand(int channel , IComPacket* cp , EWorkerSendFlag flag)
 {
-	//MUTEX_LOCK(mMutexBuffer);
+	NET_MUTEX_LOCK(mMutexBuffer);
 	FNetCommand::Write( mSendBuffer , cp );
 	return true;
 }
 
 void LocalWorker::recvCommand(IComPacket* cp)
 {
-	//MUTEX_LOCK(mMutexBuffer);
+	NET_MUTEX_LOCK(mMutexBuffer);
 	FNetCommand::Write( mRecvBuffer , cp );
 }
 

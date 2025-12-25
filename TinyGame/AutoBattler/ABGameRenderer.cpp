@@ -442,18 +442,20 @@ namespace AutoBattler
 		float alpha = unit.getAlpha();
 		Vector2 mPos = unit.getPos();
 
-		if (unit.isDead())
-		{
-			g.beginBlend(mPos, Vec2i(22, 22), alpha);
-			//RenderUtility::SetBrush(g, EColor::Gray, (uint8)(alpha * 255));
-		}
-		else if (unit.getTeam() == UnitTeam::Player)
+		if (unit.getTeam() == UnitTeam::Player)
 		{
 			RenderUtility::SetBrush(g, EColor::Blue);
 		}
 		else
 		{
 			RenderUtility::SetBrush(g, EColor::Red);
+		}
+
+		if (unit.isDead())
+		{
+			g.beginBlend(mPos, Vec2i(22, 22), alpha);
+			// Optional: Override color for dead units? Or keep team color but faded.
+			// RenderUtility::SetBrush(g, EColor::Gray); 
 		}
 		
 		RenderUtility::SetPen(g, EColor::White);

@@ -85,6 +85,7 @@ private:
 	NET_RWLOCK( mRWLockHandlerMap )
 
 	ComPacketList mProcCPList;
+	ComPacketList mDispatchList;
 	NET_MUTEX( mMutexProcCPList )
 };
 

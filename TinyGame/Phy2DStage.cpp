@@ -9,6 +9,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/GlobalShader.h"
 #include "RHI/ShaderManager.h"
+#include "RandomUtility.h"
 
 namespace Phy2D
 {
@@ -16,7 +17,7 @@ namespace Phy2D
 
 
 	Coroutines::ExecutionHandle GExecHandle;
-	bool gDebugStep = true;
+	bool gDebugStep = false;
 
 	class MinkowskiSunProgram : public GlobalShaderProgram
 	{
@@ -211,13 +212,17 @@ namespace Phy2D
 
 		if ( mIsCollided )
 		{
-			RenderUtility::SetPen(g, EColor::Green);
-			g.drawLine(mContact.pos[0], mObjects[0].getPos());
-			g.drawLine(mContact.pos[1], mObjects[1].getPos());
-			RenderUtility::SetPen(g, EColor::Yellow);
-			g.drawLine(mObjects[0].getPos() + mContact.normal * mContact.depth, mObjects[0].getPos());
+			for(int i = 0; i < mManifold.mNumContacts; ++i)
+			{
+				ManifoldPoint& p = mManifold.mPoints[i];
+				RenderUtility::SetPen(g, EColor::Green);
+				g.drawLine(p.pos[0], mObjects[0].getPos());
+				g.drawLine(p.pos[1], mObjects[1].getPos());
+				RenderUtility::SetPen(g, EColor::Yellow);
+				g.drawLine(mObjects[0].getPos() + mManifold.mContact.normal * p.depth, mObjects[0].getPos());
+			}
 			RenderUtility::SetPen(g, EColor::Purple);
-			g.drawLine(mObjects[0].getPos() - mContact.normal, mObjects[0].getPos());
+			g.drawLine(mObjects[0].getPos() - mManifold.mContact.normal, mObjects[0].getPos());
 
 			XForm2D const& worldTrans = mObjects[0].mXForm;
 			//g.pushXForm();
@@ -271,9 +276,9 @@ namespace Phy2D
 
 		g.popXForm();
 
-		if( mIsCollided )
+		if( mIsCollided && mManifold.mNumContacts > 0 )
 		{
-			str.format("%f , %f , %f", mContact.normal.x, mContact.normal.y, mContact.depth);
+			str.format("%f , %f , %f", mManifold.mContact.normal.x, mManifold.mContact.normal.y, mManifold.mPoints[0].depth);
 			g.drawText(10, 20, str);
 		}
 
@@ -344,10 +349,12 @@ namespace Phy2D
 		mBoxShape[0].mHalfExt = Vector2(20, 5);
 		mBoxShape[1].mHalfExt = Vector2(5, 20);
 		mBoxShape2.mHalfExt = Vector2(4, 4);
+		mDynamicBoxShape.mHalfExt = Vector2(2, 2);  // Dynamic box: 4x4 size
 		mCircleShape.setRadius(1);
 
 		BodyInfo info;
 		info.linearDamping = 0.2;
+		info.angularDamping = 0.5;  // Add angular damping to stop rotation
 		RigidBody* body;
 		body = mWorld.createRigidBody(&mBoxShape[0], info);
 		body->setMotionType(BodyMotion::eStatic);
@@ -357,6 +364,7 @@ namespace Phy2D
 		body->setMotionType(BodyMotion::eStatic);
 		body->setPos(Vector2(0, 40));
 
+#if 0
 		body = mWorld.createRigidBody(&mBoxShape[1], info);
 		body->setMotionType(BodyMotion::eStatic);
 		body->setPos(Vector2(-10, 20));
@@ -364,15 +372,29 @@ namespace Phy2D
 		body = mWorld.createRigidBody(&mBoxShape[1], info);
 		body->setMotionType(BodyMotion::eStatic);
 		body->setPos(Vector2(10, 20));
+#endif
 
 
+#if 0
 		body = mWorld.createRigidBody(&mCircleShape, info);
-		body->setPos(Vector2(0, 6));
+		body->setPos(Vector2(0, 10));  // Raised from 6 to 10
 		mBody[0] = body;
 
 		body = mWorld.createRigidBody(&mCircleShape, info);
-		body->setPos(Vector2(0, 8));
+		body->setPos(Vector2(0, 14));  // Raised from 8 to 14
 		mBody[1] = body;
+
+		// Add initial dynamic boxes (Box2D style)
+		body = mWorld.createRigidBody(&mDynamicBoxShape, info);
+		body->setPos(Vector2(-3, 20));
+		body->mXForm.rotate(0.2f);
+		body->synTransform();
+#endif
+
+		body = mWorld.createRigidBody(&mDynamicBoxShape, info);
+		body->setPos(Vector2(3, 25));
+		body->mXForm.rotate(-0.15f);
+		body->synTransform();
 
 		//body = mWorld.createRigidBody( &mCircleShape , info );
 		//body->setPos( Vector2( 0 , 20 ) );
@@ -391,7 +413,6 @@ namespace Phy2D
 
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();
 
 		float scale = 10;
@@ -416,9 +437,10 @@ namespace Phy2D
 			RenderUtility::SetPen(g, EColor::White);
 			renderObject(g, *body);
 			CollisionProxy* proxy = body->mProxy;
-
+#if 0
 			RenderUtility::SetPen(g, EColor::Yellow);
 			g.drawRect(proxy->aabb.min, proxy->aabb.max - proxy->aabb.min);
+#endif
 
 			RenderUtility::SetPen(g, EColor::Red);
 			Vector2 const xDir = body->mXForm.getRotation().getXDir();
@@ -439,33 +461,40 @@ namespace Phy2D
 		if( !mWorld.mColManager.mMainifolds.empty() )
 		{
 			ContactManifold& cm = *mWorld.mColManager.mMainifolds[0];
-			Contact& c = cm.mContect;
+			Contact& c = cm.mContact;
 
 			RigidBody* bodyA = static_cast<RigidBody*>(c.object[0]);
 			RigidBody* bodyB = static_cast<RigidBody*>(c.object[1]);
 
-			Vector2 cp = 0.5 * (c.pos[0] + c.pos[1]);
+			// Use first contact point for debug display
+			if (cm.mNumContacts > 0)
+			{
+				ManifoldPoint& mp = cm.mPoints[0];
+				Vector2 cp = 0.5 * (mp.pos[0] + mp.pos[1]);
 
-			Vector2 vA = bodyA->getVelFromWorldPos(cp);
-			Vector2 vB = bodyB->getVelFromWorldPos(cp);
-			Vector2 rA = cp - bodyA->mPosCenter;
-			Vector2 rB = cp - bodyB->mPosCenter;
-			Vector2 vrel = vB - vA;
-			float vn = vrel.dot(c.normal);
+				Vector2 vA = bodyA->getVelFromWorldPos(cp);
+				Vector2 vB = bodyB->getVelFromWorldPos(cp);
+				Vector2 rA = cp - bodyA->mPosCenter;
+				Vector2 rB = cp - bodyB->mPosCenter;
+				Vector2 vrel = vB - vA;
+				float vn = vrel.dot(c.normal);
 
-			Vector2 cpA = bodyA->mXForm.transformPosition(c.posLocal[0]);
-			Vector2 cpB = bodyB->mXForm.transformPosition(c.posLocal[1]);
+				Vector2 cpA = bodyA->mXForm.transformPosition(mp.posLocal[0]);
+				Vector2 cpB = bodyB->mXForm.transformPosition(mp.posLocal[1]);
 
-			//#TODO: normal change need concerned
-			float depth2 = c.normal.dot(cpA - cpB);
+				//#TODO: normal change need concerned
+				float depth2 = c.normal.dot(cpA - cpB);
 
-			str.format("vn = %f depth = %f", vn, depth2);
-			g.drawText(100, 20, str);
+				str.format("vn = %f depth = %f numPoints = %d", vn, depth2, cm.mNumContacts);
+				g.drawText(100, 20, str);
+			}
 		}
+#if 0
 		str.format("v = %f %f", mBody[0]->mLinearVel.x, mBody[0]->mLinearVel.y);
 		g.drawText(100, 30, str);
 		str.format("v = %f %f", mBody[1]->mLinearVel.x, mBody[1]->mLinearVel.y);
 		g.drawText(100, 40, str);
+#endif
 
 
 		//g.drawText( 10 , 10 , str.format( "%f , %f , %f" , mContact.normal.x , mContact.normal.y , mContact.depth ) );
@@ -490,7 +519,19 @@ namespace Phy2D
 				{
 					BodyInfo info;
 					RigidBody* body = mWorld.createRigidBody(&mCircleShape, info);
-					body->setPos(Vector2(0, 30));
+					body->setPos(Vector2( 0.1 * RandFloat(), 30));
+				}
+				break;
+			case EKeyCode::B:  // Spawn dynamic box (Box2D style)
+				{
+					BodyInfo info;
+					info.linearDamping = 0.1f;
+					info.angularDamping = 0.1f;
+					RigidBody* body = mWorld.createRigidBody(&mDynamicBoxShape, info);
+					body->setPos(Vector2(2.0f * RandFloat() - 1.0f, 30));
+					// Add slight rotation to make stacking more interesting
+					body->mXForm.rotate(0.1f * RandFloat() - 0.05f);
+					body->synTransform();
 				}
 				break;
 			case EKeyCode::F2:

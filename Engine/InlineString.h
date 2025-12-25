@@ -129,11 +129,13 @@ public:
 	FORCEINLINE void append(CharT const* str)
 	{
 #if INLINE_STRING_USE_LENGTH_MEMBER
+		// Need length of str
+		size_t len = FCString::Strlen(str);
 		FCString::Copy(mData + mLength, CHAR_COUNT - mLength, str);
-		mLength += num;
-		mData[mLength] = 0;
+		mLength += len;
+		// mData[mLength] = 0; // Copy usually null terminates if enough space
 #else
-		FCString::CatN(mData, str, num);
+		FCString::Cat(mData, str);
 #endif
 	}
 
@@ -142,7 +144,7 @@ public:
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		FCString::CopyN(mData + mLength, CHAR_COUNT - mLength, str, num);
 		mLength += num;
-		mData[mLength] = 0;
+		mData[mLength] = 0; // CopyN might not null terminate correctly if exact fitting
 #else
 		FCString::CatN(mData, str, num);
 #endif

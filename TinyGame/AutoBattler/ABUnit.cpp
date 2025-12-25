@@ -75,6 +75,27 @@ namespace AutoBattler
 
 		if (world.getPhase() == BattlePhase::Combat)
 		{
+			// Debug Log: Check why AI isn't running
+			// Check Player 0 (High 16 bits == 0)
+			if ((mUnitId >> 16) == 0)
+			{
+				static int sLogCounter = 0;
+				if (sLogCounter++ % 120 == 0) // Once every 2 sec roughly
+				{
+					LogMsg("UnitUpdate Diag (P0): ID=%d Board=%p AutoResolve=%d NetMode=%d Team=%d Target=%p", 
+						mUnitId, mCurrentBoard, world.isAutoResolveCombat(), world.isNetworkMode(), (int)mTeam, mTarget);
+				}
+			}
+
+		// Specific tracking for Unit ID=1
+		if (mUnitId == 1)
+		{
+			static int sUnit1Log = 0;
+			if (sUnit1Log++ % 60 == 0)
+				LogMsg("Unit1 Update: Board=%p Phase=%d AutoResolve=%d Target=%p", 
+					mCurrentBoard, (int)world.getPhase(), world.isAutoResolveCombat(), mTarget);
+		}
+
 			if (!mCurrentBoard)
 				return;
 
@@ -123,6 +144,10 @@ namespace AutoBattler
 				if (mTarget == nullptr)
 				{
 					findTarget(world);
+					if (mCurrentBoard && mCurrentBoard->getOwner()->getIndex() == 0 && mTarget)
+					{
+						LogMsg("Unit %d (P0) Found Target %d at Dist %.2f", mUnitId, mTarget->getUnitId(), Math::Distance(mPos, mTarget->getPos()));
+					}
 				}
 
 				if (mTarget)
@@ -134,6 +159,9 @@ namespace AutoBattler
 						mAttackTimer -= dt;
 						if (mAttackTimer <= 0)
 						{
+							if (mCurrentBoard && mCurrentBoard->getOwner()->getIndex() == 0)
+								LogMsg("Unit %d (P0) Attacking Target %d", mUnitId, mTarget->getUnitId());
+							
 							attack(mTarget, world);
 							mAttackTimer = 1.0f / mStats.attackSpeed;
 							mActionCooldown = 0.3f; // Recovery after attack
@@ -144,13 +172,23 @@ namespace AutoBattler
 						// Move towards target
 						if (!mMovingToNextCell) // Only start new step if not already moving (though update prevents this usually)
 						{
+							if (mCurrentBoard && mCurrentBoard->getOwner()->getIndex() == 0)
+								LogMsg("Unit %d (P0) StartMove to Target %d (Dist %.2f > Range %.2f)", mUnitId, mTarget->getUnitId(), dist, mStats.range);
+							
 							startMoveStep(mTarget->getPos(), world);
 						}
 					}
 				}
 				else
 				{
-					// No target found, do nothing or wander
+					// No target found
+					if (mCurrentBoard && mCurrentBoard->getOwner()->getIndex() == 0)
+					{
+						// Rate limit log
+						static int sLogCounter = 0;
+						if (sLogCounter++ % 60 == 0)
+							LogMsg("Unit %d (P0) No Target Found", mUnitId);
+					}
 				}
 			} // end of AI check
 
@@ -279,6 +317,17 @@ namespace AutoBattler
 		Vec2i gridPos = board.getCoord(mPos);
 		Vec2i targetGridPos = board.getCoord(targetPos);
 
+		// Debug for Player 0
+		if ((mUnitId >> 16) == 0)
+		{
+			static int sMoveLogCounter = 0;
+			if (sMoveLogCounter++ % 60 == 0)
+			{
+				LogMsg("StartMove (P0): Unit %d at (%d,%d) -> Target (%d,%d). DistSq=%.2f", 
+					mUnitId, gridPos.x, gridPos.y, targetGridPos.x, targetGridPos.y, (mPos - targetPos).length2());
+			}
+		}
+
 #if 0
 		// Use A* Pathfinding
 		BattleAStar astar(board, *this, targetGridPos);
@@ -359,6 +408,11 @@ namespace AutoBattler
 						foundBetter = true;
 					}
 				}
+				else if ((mUnitId >> 16) == 0)
+				{
+					// Debug blocked
+					// Only log if close
+				}
 			}
 		}
 
@@ -379,8 +433,13 @@ namespace AutoBattler
 		else
 		{
 			// No better neighbor found (stuck or reached best local spot)
-			// LogMsg("U%d STUCK. Grid=(%d, %d) Dist=%.2f Target=(%.1f, %.1f)", 
-			// 	mUnitId, gridPos.x, gridPos.y, Math::Sqrt(currentDistSq), targetPos.x, targetPos.y);
+			if ((mUnitId >> 16) == 0)
+			{
+				static int sStuckLog = 0;
+				if (sStuckLog++ % 60 == 0)
+					LogMsg("Unit %d (P0) STUCK. Grid=(%d, %d) Dist=%.2f Target=(%.1f, %.1f)", 
+						mUnitId, gridPos.x, gridPos.y, Math::Sqrt(currentDistSq), targetPos.x, targetPos.y);
+			}
 		}
 	}
 
@@ -407,8 +466,12 @@ namespace AutoBattler
 		if (mStats.hp <= 0)
 		{
 			mStats.hp = 0;
-			mState = SectionState::Dead;
-			mDeathTimer = 1.0f; // Start fade-out (1 second)
+			
+			if (mState != SectionState::Dead)
+			{
+				mState = SectionState::Dead;
+				mDeathTimer = 1.0f; // Start fade-out (1 second)
+			}
 			
 			// Clear cell occupation when unit dies
 			if (mCurrentBoard)
@@ -469,9 +532,16 @@ namespace AutoBattler
 	void Unit::holdInternal(PlayerBoard& board, Vec2i const& pos)
 	{
 		remove();
-		CHECK(board.getUnit(pos.x, pos.y) == nullptr || board.getUnit(pos.x, pos.y) == this);
+		Unit* existingUnit = board.getUnit(pos.x, pos.y);
+		if (existingUnit != nullptr && existingUnit != this)
+		{
+			LogMsg("holdInternal CONFLICT: Unit %d trying to place at (%d,%d) but Unit %d is already there!",
+				mUnitId, pos.x, pos.y, existingUnit->getUnitId());
+		}
+		CHECK(existingUnit == nullptr || existingUnit == this);
 		setInternalBoard(&board);
 		board.setUnit(pos.x, pos.y, this);
+		LogMsg("holdInternal: Unit %d placed at (%d,%d) Board=%p", mUnitId, pos.x, pos.y, &board);
 
 		mHoldLocation.type = ECoordType::Board;
 		mHoldLocation.pos = pos;

@@ -60,15 +60,34 @@ namespace Phy2D
 		LinkHook hook;
 	};
 
+	// Box2D style: ManifoldPoint stores per-contact-point data
+	struct ManifoldPoint
+	{
+		Vector2 posLocal[2];  // Local position on each body
+		Vector2 pos[2];       // World position on each body
+		float   depth;        // Penetration depth at this point
+
+		// Accumulated impulses for warm starting (per-point)
+		float   normalImpulse;
+		float   tangentImpulse;
+
+		ManifoldPoint()
+			: depth(0)
+			, normalImpulse(0)
+			, tangentImpulse(0)
+		{
+		}
+	};
+
+	// Contact stores shared data for a collision pair
 	struct Contact
 	{
 		CollideObject* object[2];
-		Vector2 posLocal[2];
-		Vector2 pos[2];
-		Vector2 normal;
-		float depth;
-		
+		Vector2 normal;       // Collision normal (A -> B)
 	};
+
+	// Box2D style ContactManifold: supports up to 2 contact points for 2D
+	static constexpr int MaxManifoldPoints = 2;
 
 	class ContactManifold
 	{
@@ -76,48 +95,118 @@ namespace Phy2D
 
 		ContactManifold()
 		{
-			impulse = 0;
-			mNumContact = 0;
+			mNumContacts = 0;
 		}
-		void addContact( Contact const& c )
+
+		void addContact(Contact const& c, ManifoldPoint const& point)
 		{
-			mContect = c;
+			mContact = c;
+			if (mNumContacts == 0)
+			{
+				mAge = 0;
+			}
+			// Add point if we have room
+			if (mNumContacts < MaxManifoldPoints)
+			{
+				mPoints[mNumContacts] = point;
+				mNumContacts++;
+			}
+		}
+
+		void setContact(Contact const& c, ManifoldPoint const* points, int numPoints)
+		{
+			mContact = c;
+			mNumContacts = Math::Min(numPoints, MaxManifoldPoints);
+			for (int i = 0; i < mNumContacts; ++i)
+			{
+				mPoints[i] = points[i];
+			}
 			mAge = 0;
-			if ( mNumContact == 0 )
-				impulse = 0;
-			mNumContact = 1;
+		}
+
+		// Legacy single-point interface for backward compatibility
+		void addContact(Contact const& c)
+		{
+			ManifoldPoint point;
+			// Note: This requires the old Contact format with posLocal/pos/depth
+			// For now, we'll handle this in the collision detection code
+			mContact.object[0] = c.object[0];
+			mContact.object[1] = c.object[1];
+			mContact.normal = c.normal;
+			mAge = 0;
+			mNumContacts = 0;  // Will be set by collision algorithm
 		}
 
 		bool update()
 		{
-			if ( mNumContact == 0 )
+			if (mNumContacts == 0)
 				return false;
 
 			++mAge;
-			if ( mAge != 1 )
+			if (mAge != 1)
 			{
-				Contact& c = mContect;
 				return false;
 			}
 			return true;
 		}
 
-		float   impulse;
+		void reset()
+		{
+			mNumContacts = 0;
+			for (int i = 0; i < MaxManifoldPoints; ++i)
+			{
+				mPoints[i].normalImpulse = 0;
+				mPoints[i].tangentImpulse = 0;
+			}
+			impulse = 0;
+			tangentImpulse = 0;
+		}
+
+		// Per-manifold velocity bias (computed from max relative velocity)
 		float   velocityBias;
-		int     mNumContact;
+		float   impulse;
+		float   tangentImpulse;
+		int     mNumContacts;
 		int     mAge;
-		Contact mContect;
+		Contact mContact;
+		ManifoldPoint mPoints[MaxManifoldPoints];
+
+		// Added for Position Solver stability
+		Vector2       localNormal;  // Normal in reference body's local space
+		Vector2       localPoint;   // Reference point on reference body (optional, for future use)
+		bool          refIsA;       // Flag to store which body is reference
 	};
 
 	class CollisionAlgo
 	{
 	public:
 		virtual ~CollisionAlgo() = default;
-		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c) = 0;
 		
-		bool test(CollideObject& objA, CollideObject& objB, Contact& c)
+		// Legacy single-point test (for backward compatibility)
+		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point) = 0;
+		
+		// Multi-point manifold test - default implementation uses single-point test
+		virtual bool testManifold(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, ContactManifold& manifold)
 		{
-			return test(objA, *objA.mShape, objB, *objB.mShape, c);
+			Contact c;
+			ManifoldPoint point;
+			if (test(objA, shapeA, objB, shapeB, c, point))
+			{
+				manifold.mContact = c;
+				manifold.mPoints[0] = point;
+				manifold.mNumContacts = 1;
+				manifold.mAge = 0;
+				// Default local normal logic (assume A is reference for simplification in legacy path)
+				manifold.refIsA = true;
+				manifold.localNormal = objA.mXForm.transformVectorInv(c.normal);
+				return true;
+			}
+			return false;
+		}
+		
+		bool testManifold(CollideObject& objA, CollideObject& objB, ContactManifold& manifold)
+		{
+			return testManifold(objA, *objA.mShape, objB, *objB.mShape, manifold);
 		}
 	};
 
@@ -214,11 +303,11 @@ namespace Phy2D
 			mBroadphase.removeObject( obj );
 		}
 
-		bool test( CollideObject* objA , CollideObject* objB , Contact& c )
+		bool testManifold(CollideObject* objA, CollideObject* objB, ContactManifold& manifold)
 		{                                                                
 			int index = ToIndex(objA->mShape->getType(), objB->mShape->getType());
 			CollisionAlgo* algo = mMap[index];
-			return algo->test( *objA , *objB , c );
+			return algo->testManifold(*objA, *objB, manifold);
 		}
 
 		static int ToIndex(Shape::Type a, Shape::Type b)
@@ -266,14 +355,14 @@ namespace Phy2D
 			return v0 - mBToALocal.transformPosition(v1);
 		}
 
-		void  buildContact(Edge* e, Contact &c);
+		void  buildContact(Edge* e, Contact& c, ManifoldPoint& point);
 
 		Edge* addEdge(Vertex* sv, Vector2 const& b);
 		void  updateEdge(Edge* e, Vector2 const& b);
 		Edge* insertEdge(Edge* cur, Vertex* sv);
 		Edge* getClosetEdge();
 
-		void generateContact(Contact& c);
+		void generateContact(Contact& c, ManifoldPoint& point);
 
 
 		XForm2D     mBToALocal;

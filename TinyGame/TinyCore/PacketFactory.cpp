@@ -43,27 +43,22 @@ PacketFactory::ICPFactory* PacketFactory::findFactory(ComID com)
 
 IComPacket* PacketFactory::createPacketFromBuffer(SocketBuffer& buffer, int group /*= -1*/, void* userData /*= nullptr*/)
 {
-	// 保存当前 buffer 位置，以便出错时回退
 	size_t oldUseSize = buffer.getUseSize();
 
-	// 读取封包 ID
 	ComID comID;
 	if (buffer.getAvailableSize() < sizeof(ComID))
 		return nullptr;
 
 	buffer.take(comID);
 
-	// 查找封包工厂
 	auto factory = findFactory(comID);
 	if (!factory)
 	{
-		// 未知封包类型，回退并停止解析
 		buffer.setUseSize(oldUseSize);
 		LogWarning(0, "PacketFactory: Unknown packet ID: %u", comID);
 		return nullptr;
 	}
 
-	// 创建封包实例
 	IComPacket* packet = factory->createCom();
 	if (!packet)
 	{
@@ -71,14 +66,11 @@ IComPacket* PacketFactory::createPacketFromBuffer(SocketBuffer& buffer, int grou
 		return nullptr;
 	}
 
-	// 设置封包的群组和用户数据（用于旧系统兼容）
 	packet->mGroup = group;
 	packet->mUserData = userData;
 
-	// 读取封包数据
 	if (!PacketFactory::ReadBuffer(buffer, packet))
 	{
-		// 读取失败，释放封包并回退
 		delete packet;
 		buffer.setUseSize(oldUseSize);
 		return nullptr;
@@ -87,9 +79,6 @@ IComPacket* PacketFactory::createPacketFromBuffer(SocketBuffer& buffer, int grou
 	return packet;
 }
 
-// ========================================
-// Static Helper Methods
-// ========================================
 
 uint32 PacketFactory::WriteBuffer(SocketBuffer& buffer, IComPacket* cp)
 {

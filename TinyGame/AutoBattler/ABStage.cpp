@@ -183,14 +183,12 @@ namespace AutoBattler
 
 	bool LevelStage::setupNetwork(NetWorker* netWorker, INetEngine** engine)
 	{
-		ABNetEngine* netEngine = new ABNetEngine(this);
-		*engine = netEngine;
-		mNetEngine = netEngine;
-
+		mNetEngine = new ABNetEngine(this);
+		*engine = mNetEngine;
 		// Disable local combat resolution in favor of Network/Async logic
 		mWorld.setAutoResolveCombat(false);
 
-		netEngine->OnTimeout = [this](int playerId, bool bLost)
+		mNetEngine->OnTimeout = [this](int playerId, bool bLost)
 		{
 			mIsConnectionLost = bLost;
 		};

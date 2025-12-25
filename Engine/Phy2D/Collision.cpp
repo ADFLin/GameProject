@@ -16,25 +16,27 @@ namespace Phy2D
 	class CollisionAlgoGJK : public CollisionAlgo
 	{
 	public:
-		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c);
+		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point) override;
 	};
 
 	class CollisionAlgoCircle : public CollisionAlgo
 	{	
 	public:
-		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c);
+		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point) override;
 	};
 
 	class CollisionAlgoBoxCircle : public CollisionAlgo
 	{
 	public:
-		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c);
+		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point) override;
 	};
 
 	class BoxBoxAlgo : public CollisionAlgo
 	{
 	public:
-		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c);
+		virtual bool test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point) override;
+		// Override testManifold to provide two contact points for box-box edge-face contacts
+		virtual bool testManifold(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, ContactManifold& manifold) override;
 		SATSolver mSolver;
 	};
 
@@ -44,6 +46,7 @@ namespace Phy2D
 		static CollisionAlgoGJK        StaticGJKAlgo;
 		static CollisionAlgoCircle     StaticCircleAlgo;
 		static CollisionAlgoBoxCircle  StaticBoxCircleAlgo;
+		static BoxBoxAlgo              StaticBoxBoxAlgo;  // Add this
 
 		std::fill_n( mMap , ARRAY_SIZE(mMap) , &StaticGJKAlgo );
 
@@ -54,7 +57,8 @@ namespace Phy2D
 		};
 
 		RegisterAlgo(Shape::eCircle, Shape::eCircle, StaticCircleAlgo);
-		//RegisterAlgo(Shape::eBox, Shape::eCircle, StaticBoxCircleAlgo);
+		RegisterAlgo(Shape::eBox, Shape::eCircle, StaticBoxCircleAlgo);  // Enable specialized box-circle collision
+		RegisterAlgo(Shape::eBox, Shape::eBox, StaticBoxBoxAlgo);        // Enable specialized box-box collision
 		
 		mDefaultConvexAlgo = &StaticGJKAlgo;
 	}
@@ -65,20 +69,37 @@ namespace Phy2D
 
 		for (ProxyPair* pair : mPairManager.mProxyList)
 		{
-			Contact  contact;
 			CollideObject* objA = pair->proxy[0]->object;
 			CollideObject* objB = pair->proxy[1]->object;
-			if ( test( objA , objB , contact ) )
+			
+			// Skip pure collision objects
+			if ( pair->proxy[0]->object->getType() == PhyObject::eCollideType ||
+				 pair->proxy[1]->object->getType() == PhyObject::eCollideType )
 			{
-				if ( pair->proxy[0]->object->getType() != PhyObject::eCollideType &&
-					 pair->proxy[1]->object->getType() != PhyObject::eCollideType )
+				continue;
+			}
+			
+			// Skip if both are static
+			if ( static_cast< RigidBody* >( objA )->mMotionType == BodyMotion::eStatic && 
+				 static_cast< RigidBody* >( objB )->mMotionType == BodyMotion::eStatic )
+			{
+				continue;
+			}
+			
+			// CRITICAL FIX: Check if collision exists before using manifold
+			if ( testManifold(objA, objB, pair->manifold) )
+			{
+				// Collision detected, manifold is populated with contact data
+				// Mark manifold as active (will be picked up by update())
+				if (pair->manifold.mAge != 0)
 				{
-					if ( static_cast< RigidBody* >( objA )->mMotionType == BodyMotion::eStatic && 
-						 static_cast< RigidBody* >( objB )->mMotionType == BodyMotion::eStatic )
-						 continue;
-
-					pair->manifold.addContact( contact );
+					// This is a continuing contact, preserve it
 				}
+			}
+			else
+			{
+				// No collision - reset the manifold to ensure clean state
+				pair->manifold.mNumContacts = 0;
 			}
 		}
 
@@ -88,6 +109,10 @@ namespace Phy2D
 			if ( pair->manifold.update() )
 			{
 				mMainifolds.push_back( &pair->manifold );
+			}
+			else
+			{
+				pair->manifold.reset();
 			}
 		}
 
@@ -204,7 +229,7 @@ namespace Phy2D
 		return  sv;
 	}
 
-	void MinkowskiBase::buildContact( Edge* e, Contact &c )
+	void MinkowskiBase::buildContact( Edge* e, Contact& c, ManifoldPoint& point )
 	{
 		Edge* next = e->next;
 
@@ -224,15 +249,15 @@ namespace Phy2D
 		}
 		XForm2D const& worldTrans = mObjects[0]->mXForm;
 		c.normal = worldTrans.transformVector( e->normal );
-		c.depth  = e->depth;
+		point.depth = e->depth;
 
 		c.object[0] = mObjects[0];
 		c.object[1] = mObjects[1];
-		c.posLocal[0] = p[0] * ( mShapes[0]->getSupport( e->sv->dir ) ) +
+		point.posLocal[0] = p[0] * ( mShapes[0]->getSupport( e->sv->dir ) ) +
 			            p[1] * ( mShapes[0]->getSupport( next->sv->dir ) );
-		c.posLocal[1] = mBToALocal.transformPositionInv( c.posLocal[0] - d );
-		c.pos[0] = mObjects[0]->mXForm.transformPosition( c.posLocal[0] );
-		c.pos[1] = mObjects[1]->mXForm.transformPosition( c.posLocal[1] );
+		point.posLocal[1] = mBToALocal.transformPositionInv( point.posLocal[0] - d );
+		point.pos[0] = mObjects[0]->mXForm.transformPosition( point.posLocal[0] );
+		point.pos[1] = mObjects[1]->mXForm.transformPosition( point.posLocal[1] );
 	}
 
 	MinkowskiBase::Edge* MinkowskiBase::addEdge( Vertex* sv , Vector2 const& b )
@@ -281,7 +306,7 @@ namespace Phy2D
 		return edge;
 	}
 
-	void MinkowskiBase::generateContact(Contact& c)
+	void MinkowskiBase::generateContact(Contact& c, ManifoldPoint& point)
 	{
 		if ((mSv[0]->v - mSv[1]->v).cross(mSv[0]->v - mSv[2]->v) < 0)
 			std::swap(mSv[0], mSv[1]);
@@ -305,7 +330,7 @@ namespace Phy2D
 			Edge* newEdge = insertEdge(bestEdge, sv);
 		}
 
-		buildContact(bestEdge, c);
+		buildContact(bestEdge, c, point);
 	}
 
 	GJK::GJK()
@@ -444,7 +469,7 @@ namespace Phy2D
 		return false;
 	}
 
-	bool CollisionAlgoGJK::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c)
+	bool CollisionAlgoGJK::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point)
 	{
 		static bool bUseGJK = false;
 		if (bUseGJK)
@@ -462,7 +487,7 @@ namespace Phy2D
 
 			{
 				TIME_SCOPE("GenContact");
-				StaticGJK.generateContact(c);
+				StaticGJK.generateContact(c, point);
 			}
 			return true;
 		}
@@ -481,13 +506,13 @@ namespace Phy2D
 			
 			{
 				TIME_SCOPE("GenContact");
-				StaticMPR.generateContact(c);
+				StaticMPR.generateContact(c, point);
 			}
 			return true;
 		}
 	}
 
-	bool CollisionAlgoCircle::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c)
+	bool CollisionAlgoCircle::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point)
 	{
 		assert( shapeA.getType() == Shape::eCircle &&
 			    shapeB.getType() == Shape::eCircle );
@@ -498,39 +523,40 @@ namespace Phy2D
 		Vector2 offset = objB.getPos() - objA.getPos();
 		float r = ca.getRadius() + cb.getRadius();
 		float len2 = offset.length2();
-		if ( len2 > r * r )
+		float const kContactBreakThreshold = 0.02f;
+		if ( len2 > (r + kContactBreakThreshold) * (r + kContactBreakThreshold) )
 			return false;
 
 		float len = Math::Sqrt( len2 );
 		if ( len < FLOAT_DIV_ZERO_EPSILON )
 		{
-			c.depth = r;
+			point.depth = r;
 			c.normal = Vector2(1,0);
 		}
 		else
 		{
-			c.depth  = len - r;
+			point.depth  = r - len;
 			c.normal = offset / len;
 		}
 
 		c.object[0] = &objA;
 		c.object[1] = &objB;
-		c.pos[0] = objA.getPos() + ca.getRadius() * c.normal;
-		c.pos[1] = objB.getPos() - cb.getRadius() * c.normal;
-		c.posLocal[0] = objA.mXForm.transformPositionInv( c.pos[0] );
-		c.posLocal[1] = objB.mXForm.transformPositionInv( c.pos[1] );
+		point.pos[0] = objA.getPos() + ca.getRadius() * c.normal;
+		point.pos[1] = objB.getPos() - cb.getRadius() * c.normal;
+		point.posLocal[0] = objA.mXForm.transformPositionInv( point.pos[0] );
+		point.posLocal[1] = objB.mXForm.transformPositionInv( point.pos[1] );
 		return true;
 	}
 
-	bool CollisionAlgoBoxCircle::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c)
+	bool CollisionAlgoBoxCircle::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point)
 	{
 		if (shapeA.getType() == Shape::eCircle)
 		{
-			if (test(objB, shapeB, objA, shapeA, c))
+			if (test(objB, shapeB, objA, shapeA, c, point))
 			{
 				std::swap(c.object[0], c.object[1]);
-				std::swap(c.posLocal[0], c.posLocal[1]);
-				std::swap(c.pos[0], c.pos[1]);
+				std::swap(point.posLocal[0], point.posLocal[1]);
+				std::swap(point.pos[0], point.pos[1]);
 				c.normal = -c.normal;
 				return true;
 			}
@@ -556,8 +582,8 @@ namespace Phy2D
 			if ((offsetAbs - boxHalfSize).length2() > Math::Square(radius))
 				return false;
 			
-			c.posLocal[0] = Vector2(Math::Sign(offset.x) * boxHalfSize.x , Math::Sign(offset.y) * boxHalfSize.y);
-			normalLocal = offset - c.posLocal[0];
+			point.posLocal[0] = Vector2(Math::Sign(offset.x) * boxHalfSize.x , Math::Sign(offset.y) * boxHalfSize.y);
+			normalLocal = offset - point.posLocal[0];
 			float len = normalLocal.normalize();
 			if (len == 0)
 			{
@@ -568,7 +594,7 @@ namespace Phy2D
 			{
 				normalLocal = -normalLocal;
 			}
-			c.depth  = radius - len;
+			point.depth  = radius - len;
 		}
 		else
 		{
@@ -577,50 +603,255 @@ namespace Phy2D
 			bool bHorizonal;	
 			if (offsetAbs.x > boxHalfSize.x)
 			{
-				CHECK(depthV.x > 0);
+				CHECK(depthV.x >= 0);
 				bHorizonal = true;
 			}
 			else if (offsetAbs.y > boxHalfSize.y)
 			{
-				CHECK(depthV.y > 0);
+				CHECK(depthV.y >= 0);
 				bHorizonal = false;
 			}
 			else
 			{
-				CHECK(depthV.x > 0 && depthV.y > 0);
+				CHECK(depthV.x >= 0 && depthV.y >= 0);
 				bHorizonal = depthV.x <= depthV.y;
 			}
 
 			if (bHorizonal)
 			{
-				c.depth = depthV.x;
+				point.depth = depthV.x;
 				normalLocal = Vector2(Math::Sign(offset.x), 0);
-				c.posLocal[0] = Vector2(normalLocal.x * boxHalfSize.x, offset.y);
+				point.posLocal[0] = Vector2(normalLocal.x * boxHalfSize.x, offset.y);
 			}
 			else
 			{
-				c.depth = depthV.y;
+				point.depth = depthV.y;
 				normalLocal = Vector2(0, Math::Sign(offset.y));
-				c.posLocal[0] = Vector2(offset.x, normalLocal.y * boxHalfSize.y);
+				point.posLocal[0] = Vector2(offset.x, normalLocal.y * boxHalfSize.y);
 			}
 		}
 
 		c.object[0] = &objA;
 		c.object[1] = &objB;
 		c.normal = objA.mXForm.transformVector(normalLocal);
-		c.pos[0] = objA.mXForm.transformPosition(c.posLocal[0]);
-		c.pos[1] = objA.mXForm.transformPosition(offset - radius * normalLocal);
-		c.posLocal[1] = objB.mXForm.transformPositionInv(c.pos[1]);
+		point.pos[0] = objA.mXForm.transformPosition(point.posLocal[0]);
+		point.pos[1] = objA.mXForm.transformPosition(offset - radius * normalLocal);
+		point.posLocal[1] = objB.mXForm.transformPositionInv(point.pos[1]);
 		return true;
 	}
 
-	bool BoxBoxAlgo::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c)
+	// Helper struct for BoxBox collision internal data
+	struct BoxBoxCollisionData
 	{
+		Vector2 axes[4];
+		Vector2 normal;
+		float minOverlap;
+		int bestAxis;
+		bool refIsA;
+		Vector2 corners[4];
+		int cornerIndices[4];
+		int numIncidentCorners;
+	};
+
+	// Common SAT test for box-box, returns collision data
+	static bool BoxBoxSATTest(CollideObject& objA, BoxShape& boxA, CollideObject& objB, BoxShape& boxB, BoxBoxCollisionData& data)
+	{
+		XForm2D const& xfA = objA.mXForm;
+		XForm2D const& xfB = objB.mXForm;
+
+		Vector2 hA = boxA.mHalfExt;
+		Vector2 hB = boxB.mHalfExt;
+
+		Vector2 pA = objA.getPos();
+		Vector2 pB = objB.getPos();
+		Vector2 d = pB - pA;
+
+		// Axes: A's x,y and B's x,y
+		data.axes[0] = xfA.transformVector(Vector2(1, 0));
+		data.axes[1] = xfA.transformVector(Vector2(0, 1));
+		data.axes[2] = xfB.transformVector(Vector2(1, 0));
+		data.axes[3] = xfB.transformVector(Vector2(0, 1));
+
+		data.minOverlap = std::numeric_limits<float>::max();
+		data.bestAxis = -1;
+
+		for (int i = 0; i < 4; ++i)
+		{
+			Vector2 const& L = data.axes[i];
+			float projA = Math::Abs(data.axes[0].dot(L)) * hA.x + Math::Abs(data.axes[1].dot(L)) * hA.y;
+			float projB = Math::Abs(data.axes[2].dot(L)) * hB.x + Math::Abs(data.axes[3].dot(L)) * hB.y;
+
+			float dist = Math::Abs(d.dot(L)) - (projA + projB);
+
+			if (dist > 0)
+				return false;
+
+			// Stability Bias: Prefer separation axes aligned with gravity (vertical Y axis)
+			// Aggressively bias towards vertical (0.8 factor means we prefer vertical axis
+			// even if the penetration on tilted axis is 20% smaller).
+			// This effectively locks the contact normal to vertical for stable stacking.
+			float verticality = Math::Abs(L.y);
+			if (verticality > 0.98f)
+			{
+				dist *= 0.80f; // Strongly prefer this axis
+			}
+
+			if (dist > -data.minOverlap)
+			{
+				data.minOverlap = -dist;
+				data.bestAxis = i;
+			}
+		}
+
+		// Collision detected
+		data.normal = data.axes[data.bestAxis];
+		if (d.dot(data.normal) < 0)
+			data.normal = -data.normal;
+
+		// Identify Reference and Incident
+		data.refIsA = (data.bestAxis < 2);
+		BoxShape* incBox = data.refIsA ? &boxB : &boxA;
+		XForm2D const& incXf = data.refIsA ? xfB : xfA;
+
+		// Find incident vertices
+		Vector2 searchDir = data.refIsA ? -data.normal : data.normal;
+
+		Vector2 allCorners[4] = {
+			incXf.transformPosition(Vector2(incBox->mHalfExt.x, incBox->mHalfExt.y)),
+			incXf.transformPosition(Vector2(-incBox->mHalfExt.x, incBox->mHalfExt.y)),
+			incXf.transformPosition(Vector2(-incBox->mHalfExt.x, -incBox->mHalfExt.y)),
+			incXf.transformPosition(Vector2(incBox->mHalfExt.x, -incBox->mHalfExt.y))
+		};
+
+		// Find max projection
+		float maxProj = -std::numeric_limits<float>::max();
+		for (int i = 0; i < 4; ++i)
+		{
+			float proj = allCorners[i].dot(searchDir);
+			if (proj > maxProj)
+				maxProj = proj;
+		}
 
 
+		// Collect vertices close to max projection (these form the incident edge/face)
+		// For a box of size 4x4, edge length is 4, so we need a reasonable tolerance
+		// Use 1% of typical box dimension as slop (0.04)
+		float const kFeatureSlop = 0.04f;  // Restored to allow stable 2-point face contact
+		data.numIncidentCorners = 0;
+		for (int i = 0; i < 4; ++i)
+		{
+			float proj = allCorners[i].dot(searchDir);
+			if (proj >= maxProj - kFeatureSlop)
+			{
+				data.corners[data.numIncidentCorners] = allCorners[i];
+				data.cornerIndices[data.numIncidentCorners] = i;
+				data.numIncidentCorners++;
+			}
+		}
 
-		return false;
+		return true;
+	}
 
+	bool BoxBoxAlgo::test(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, Contact& c, ManifoldPoint& point)
+	{
+		assert(shapeA.getType() == Shape::eBox && shapeB.getType() == Shape::eBox);
+
+		BoxShape& boxA = static_cast<BoxShape&>(shapeA);
+		BoxShape& boxB = static_cast<BoxShape&>(shapeB);
+
+		BoxBoxCollisionData data;
+		if (!BoxBoxSATTest(objA, boxA, objB, boxB, data))
+			return false;
+
+		c.normal = data.normal;
+		c.object[0] = &objA;
+		c.object[1] = &objB;
+		point.depth = data.minOverlap;
+
+		// Average the incident corners for single-point output
+		Vector2 accumPos = Vector2::Zero();
+		for (int i = 0; i < data.numIncidentCorners; ++i)
+		{
+			accumPos += data.corners[i];
+		}
+		Vector2 cp = accumPos * (1.0f / data.numIncidentCorners);
+
+		if (data.refIsA)
+		{
+			point.pos[1] = cp;
+			point.pos[0] = cp - data.normal * data.minOverlap;
+		}
+		else
+		{
+			point.pos[0] = cp;
+			point.pos[1] = cp + data.normal * data.minOverlap;
+		}
+
+		point.posLocal[0] = objA.mXForm.transformPositionInv(point.pos[0]);
+		point.posLocal[1] = objB.mXForm.transformPositionInv(point.pos[1]);
+
+		return true;
+	}
+
+	bool BoxBoxAlgo::testManifold(CollideObject& objA, Shape& shapeA, CollideObject& objB, Shape& shapeB, ContactManifold& manifold)
+	{
+		assert(shapeA.getType() == Shape::eBox && shapeB.getType() == Shape::eBox);
+
+		BoxShape& boxA = static_cast<BoxShape&>(shapeA);
+		BoxShape& boxB = static_cast<BoxShape&>(shapeB);
+
+		BoxBoxCollisionData data;
+		if (!BoxBoxSATTest(objA, boxA, objB, boxB, data))
+			return false;
+
+
+		manifold.mContact.normal = data.normal;
+		manifold.mContact.object[0] = &objA;
+		manifold.mContact.object[1] = &objB;
+		manifold.mAge = 0;
+		// Store local normal for Position Solver
+		manifold.refIsA = data.refIsA;
+		if (data.refIsA)
+			manifold.localNormal = objA.mXForm.transformVectorInv(data.normal);
+		else
+			manifold.localNormal = objB.mXForm.transformVectorInv(data.normal);
+
+		// Create contact points for each incident corner (up to MaxManifoldPoints)
+		int numPoints = Math::Min(data.numIncidentCorners, MaxManifoldPoints);
+		manifold.mNumContacts = numPoints;
+
+		for (int i = 0; i < numPoints; ++i)
+		{
+			ManifoldPoint& point = manifold.mPoints[i];
+			Vector2 cp = data.corners[i];
+
+			point.depth = data.minOverlap;
+
+			if (data.refIsA)
+			{
+				point.pos[1] = cp;
+				// Fix: Add normal * overlap to get point on reference surface (A)
+				// Since normal points A->B, and cp (on B) is inside A due to penetration
+				point.pos[0] = cp + data.normal * data.minOverlap;
+			}
+			else
+			{
+				point.pos[0] = cp;
+				// Fix: Subtract normal * overlap to get point on reference surface (B)
+				// Since normal points A->B, and cp (on A) is inside B
+				point.pos[1] = cp - data.normal * data.minOverlap;
+			}
+
+			point.posLocal[0] = objA.mXForm.transformPositionInv(point.pos[0]);
+			point.posLocal[1] = objB.mXForm.transformPositionInv(point.pos[1]);
+			
+			// CRITICAL: Reset impulses for new contact points
+			// Without warm starting contact ID matching, we reset each frame
+			point.normalImpulse = 0.0f;
+			point.tangentImpulse = 0.0f;
+		}
+
+		return true;
 	}
 
 

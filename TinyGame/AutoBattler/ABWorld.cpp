@@ -115,31 +115,16 @@ namespace AutoBattler
 		// Cleanup previous enemies for ALL players
 		for (auto& player : mPlayers)
 		{
-			PlayerBoard& board = player.getBoard();
 			for (auto unit : player.mEnemyUnits)
 			{
-				unit->remove();
-
-				// Only delete if this is NOT a real player unit (i.e., it's a PVE enemy or ghost clone)
-				// Check if this unit belongs to any player's mUnits
-				bool isRealPlayerUnit = false;
-				for (auto& otherPlayer : mPlayers)
+				// Ghost/PVE units are marked with isGhost=true
+				// Real player units (teleported in PVP) have isGhost=false
+				if (unit->isGhost())
 				{
-					for (auto playerUnit : otherPlayer.mUnits)
-					{
-						if (playerUnit == unit)
-						{
-							isRealPlayerUnit = true;
-							break;
-						}
-					}
-					if (isRealPlayerUnit) break;
-				}
-				
-				if (!isRealPlayerUnit)
-				{
+					unit->remove();
 					delete unit;
 				}
+				// Real player units are restored via restoreUnits(), don't touch them here
 			}
 			player.mEnemyUnits.clear();
 		}
@@ -158,14 +143,22 @@ namespace AutoBattler
 
 		bool isPVE = (roundConfig.type == RoundType::PVE);
 
+		LogMsg("SetupRound [R%d] isPVE=%d (Enemies=%d)", mRound, isPVE, roundConfig.enemies.size());
+
+		bool bIsAuthority = !mbNetworkMode || (mLocalPlayerIndex == 0);
+
 		if (isPVE)
 		{
 			mMatches.clear();
 			// PVE: Spawn enemies for each player
+			// PVE: Spawn enemies for each player
+			// Spawn PVE units on BOTH Server and Client to ensure deterministic IDs for Replays.
+			// Network mode no longer disables client-side spawn, relying on deterministic logic.
 			for (int i = 0; i < mPlayers.size(); ++i)
 			{
 				spawnPVEModule(i, mRound);
 			}
+
 		}
 		else
 		{
@@ -209,7 +202,7 @@ namespace AutoBattler
 		RoundConfig const& roundConfig = mRoundManager.getRoundConfig(round - 1);
 
 		int spawnIndex = 0;
-	for(auto const& enemyInfo : roundConfig.enemies)
+		for(auto const& enemyInfo : roundConfig.enemies)
 		{
 			Unit* enemy = new Unit();
 			enemy->setTeam(UnitTeam::Enemy);
@@ -232,6 +225,9 @@ namespace AutoBattler
 			int uniqueUnitId = UnitIdHelper::MakePVE(playerIndex, spawnIndex);
 			enemy->setUnitId(uniqueUnitId);
 			
+			LogMsg("SpawnPVE [R%d] Player %d: Index %d -> ID %d (Pos %d,%d)", 
+				round, playerIndex, spawnIndex, uniqueUnitId, loc.pos.x, loc.pos.y);
+
 			spawnIndex++;
 		}
 	}
@@ -374,14 +370,17 @@ namespace AutoBattler
 			PlayerBoard& board = player.getBoard();
 			for (auto unit : player.mUnits)
 			{
+				
 				// Set internal board to owner's board
 				unit->remove();
 				unit->restoreStartState(board);
 
 				// Ensure unit is set to correct team
 				unit->setTeam(UnitTeam::Player);
+				
 			}
 		}
+
 	}
 
 
@@ -555,8 +554,8 @@ namespace AutoBattler
 
 			if (mPhaseTimer <= 0)
 			{
-				bool bIsAuthority = !mbNetworkMode || (mLocalPlayerIndex == 0);
-				if (bIsAuthority)
+				// Use Explicit Authority Flag
+				if (isAuthority())
 				{
 					switch (mPhase)
 					{
@@ -592,6 +591,8 @@ namespace AutoBattler
 
 	void World::changePhase(BattlePhase phase)
 	{
+		if (mPhase == phase) return;
+
 		LogMsg("ChangePhase: %d Matches: %d", (int)phase, mMatches.size());
 		mPhase = phase;
 		switch (mPhase)
@@ -615,7 +616,11 @@ namespace AutoBattler
 					// Keep going for testing?
 				}
 
-				mRound++;
+				if (isAuthority())
+				{
+					mRound++;
+				}
+
 				mPhaseTimer = AB_PHASE_PREP_TIME;
 
 				for (auto& player : mPlayers)
@@ -627,17 +632,23 @@ namespace AutoBattler
 				}
 			
 				restoreUnits(); // Register units to board
+				
+				// Cleanup logic should run on both? 
+				// Yes, Client needs to clear visual enemies.
 				cleanupEnemies(); // Cleanup old enemies
 
-				for (auto& player : mPlayers)
+				if (isAuthority())
 				{
-					if (player.getHp() <= 0) continue;
-
-					// Income
-					int interest = Math::Min(player.getGold() / 10, 5);
-					int income = 5 + interest;
-					player.addGold(income);
-					player.refreshShop();
+					for (auto& player : mPlayers)
+					{
+						if (player.getHp() <= 0) continue;
+	
+						// Income
+						int interest = Math::Min(player.getGold() / 10, 5);
+						int income = 5 + interest;
+						player.addGold(income);
+						player.refreshShop();
+					}
 				}
 		}
 			break;

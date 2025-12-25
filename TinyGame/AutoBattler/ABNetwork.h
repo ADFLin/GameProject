@@ -29,6 +29,20 @@ namespace AutoBattler
 		NP_COMBAT_START,   // Combat start notification
 		NP_COMBAT_EVENT,   // Combat event streaming
 		NP_COMBAT_END,     // Combat end result
+		NP_SHOP_UPDATE,    // Shop content sync
+	};
+
+	class ABShopUpdatePacket : public GamePacketT<ABShopUpdatePacket, NP_SHOP_UPDATE>
+	{
+	public:
+		uint8 playerId;
+		TArray<int> shopList; // Should be 5 integers
+
+		template < class BufferOP >
+		void operateBuffer(BufferOP& op)
+		{
+			op & playerId & shopList;
+		}
 	};
 
 	class ABActionPacket : public GamePacketT<ABActionPacket, NP_ACTION>
@@ -286,6 +300,7 @@ namespace AutoBattler
 		void onCombatStartPacket(IComPacket* cp);
 		void onCombatEventPacket(IComPacket* cp);
 		void onCombatEndPacket(IComPacket* cp);
+		void onShopUpdatePacket(IComPacket* cp);
 
 		LevelStage* mStage;
 		ComWorker* mWorker;

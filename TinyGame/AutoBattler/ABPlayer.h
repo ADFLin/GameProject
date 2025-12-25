@@ -25,9 +25,11 @@ namespace AutoBattler
 
 		int getGold() const { return mGold; }
 		void addGold(int val) { mGold += val; }
+		void setGold(int val) { mGold = val; } // Added setter
 		bool spendGold(int val);
 
 		int getHp() const { return mHp; }
+		void setHp(int val) { mHp = val; } // Added setter
 		void takeDamage(int val);
 
 		void setLevel(int level)

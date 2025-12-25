@@ -7,6 +7,7 @@ enum class EGameStageMode
 	Single  ,
 	Net     ,
 	Replay  ,
+	DedicatedServer,
 };
 
 enum GameAttribName
@@ -16,7 +17,8 @@ enum GameAttribName
 	ATTR_NET_SUPPORT     ,
 	ATTR_SINGLE_SUPPORT  ,
 	ATTR_REPLAY_SUPPORT  ,
-	ATTR_AI_SUPPORT      ,
+	ATTR_DEDICATED_SERVER_SUPPORT,
+	ATTR_AI_SUPPORT,
 	ATTR_GRAPRHICS_SWAP_SUPPORT,
 	ATTR_INPUT_DEFUAULT_SETTING ,
 

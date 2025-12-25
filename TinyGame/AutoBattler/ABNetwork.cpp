@@ -11,10 +11,10 @@ namespace AutoBattler
 	REGISTER_GAME_PACKET(ABActionPacket);
 	REGISTER_GAME_PACKET(ABFramePacket);
 	REGISTER_GAME_PACKET(ABSyncPacket);
-	REGISTER_GAME_PACKET(ABActionRejectPacket);
 	REGISTER_GAME_PACKET(ABCombatStartPacket);
 	REGISTER_GAME_PACKET(ABCombatEventPacket);
 	REGISTER_GAME_PACKET(ABCombatEndPacket);
+	REGISTER_GAME_PACKET(ABShopUpdatePacket);
 
 	// Client-side replay manager moved to member variable
 
@@ -37,6 +37,7 @@ namespace AutoBattler
 		mWorker->getPacketDispatcher().setUserFunc<ABCombatStartPacket>(this, &ABNetEngine::onCombatStartPacket);
 		mWorker->getPacketDispatcher().setUserFunc<ABCombatEventPacket>(this, &ABNetEngine::onCombatEventPacket);
 		mWorker->getPacketDispatcher().setUserFunc<ABCombatEndPacket>(this, &ABNetEngine::onCombatEndPacket);
+		mWorker->getPacketDispatcher().setUserFunc<ABShopUpdatePacket>(this, &ABNetEngine::onShopUpdatePacket);
 
 		// Check for Dedicated Server mode
 		if (mStage == nullptr)
@@ -71,6 +72,45 @@ namespace AutoBattler
 
 			world.onPhaseChanged = [this](BattlePhase phase)
 			{
+				if (mNetWorker->isServer())
+				{
+					// Broadcast Phase Change via Sync Packet
+					// Now we send ONE packet PER PLAYER to sync their specific State (Gold/HP) correctly.
+					World& w = GetWorld();
+					int numPlayers = w.getPlayerCount(); // Assuming helper exists or use vector size
+
+					for (int i = 0; i < numPlayers; ++i)
+					{
+						Player& p = w.getPlayer(i);
+						if (p.getHp() <= 0 && w.getRound() > 0) continue; // Optional: skip dead? Better to sync dead state too.
+
+						ABSyncPacket packet;
+						packet.frameID = mNextFrameID;
+						packet.checksum = 0;
+						packet.playerId = i; // Identify which player this data belongs to
+						packet.status = 0;
+
+						packet.round = w.getRound();
+						packet.phase = (int)w.getPhase();
+						packet.phaseTimer = w.getPhaseTimer();
+
+						packet.playerGold = p.getGold();
+						packet.playerHP = p.getHp();
+						packet.shopHash = 0; // TODO: Sync shop hash?
+
+						mNetWorker->sendTcpCommand(&packet);
+
+						if (phase == BattlePhase::Preparation)
+						{
+							ABShopUpdatePacket shopPacket;
+							shopPacket.playerId = i;
+							shopPacket.shopList = p.mShopList;
+							mNetWorker->sendTcpCommand(&shopPacket);
+						}
+					}
+					LogMsg("NetEngine: Broadcast Phase Change to %d (Synced Players)", (int)phase);
+				}
+
 				if (phase == BattlePhase::Combat)
 				{
 					onCombatPhaseStart();
@@ -94,6 +134,31 @@ namespace AutoBattler
 
 		std::fill(std::begin(mPlayerTimeouts), std::end(mPlayerTimeouts), 0);
 		std::fill(std::begin(mPlayerTimeoutStatus), std::end(mPlayerTimeoutStatus), false);
+
+		// Important: Explicitly set Authority.
+		// Server matches NetWorker::isServer(). Client is NOT authority.
+		bool isServer = mNetWorker->isServer();
+		world.setAuthority(isServer);
+		
+		// Send initial Sync Packet immediately if Server
+		if (isServer)
+		{
+			// Server broadcasts initial state (existing logic)
+			ABSyncPacket packet;
+			packet.frameID = mNextFrameID;
+			packet.checksum = 0;
+			packet.playerId = 0;
+			packet.status = 0; 
+			packet.round = world.getRound();
+			packet.phase = (int)world.getPhase();
+			packet.phaseTimer = world.getPhaseTimer();
+			packet.playerGold = 0;
+			packet.playerHP = 0;
+			packet.shopHash = 0;
+
+			mNetWorker->sendTcpCommand(&packet);
+			LogMsg("NetEngine: Sent initial Sync Packet.");
+		}
 
 		return true;
 	}
@@ -159,7 +224,7 @@ namespace AutoBattler
 			{
 				bIsPaused = true;
 
-				// Send Timeout Packet
+					// Send Timeout Packet
 				if (!bServerPaused)
 				{
 					bServerPaused = true;
@@ -168,6 +233,10 @@ namespace AutoBattler
 					packet.checksum = 0;
 					packet.playerId = 0; // TODO: Find who timed out?
 					packet.status = 1;
+					// Initialize validation data to 0 to avoid garbage
+					packet.round = 0; packet.phase = 0; packet.phaseTimer = 0.0f;
+					packet.playerGold = 0; packet.playerHP = 0; packet.shopHash = 0;
+					
 					mNetWorker->sendTcpCommand(&packet);
 					mSyncTimer = 0;
 				}
@@ -182,6 +251,10 @@ namespace AutoBattler
 						packet.checksum = 0;
 						packet.playerId = 0;
 						packet.status = 1;
+						// Initialize validation data to 0
+						packet.round = 0; packet.phase = 0; packet.phaseTimer = 0.0f;
+						packet.playerGold = 0; packet.playerHP = 0; packet.shopHash = 0;
+						
 						mNetWorker->sendTcpCommand(&packet);
 					}
 				}
@@ -197,6 +270,21 @@ namespace AutoBattler
 					packet.checksum = 0;
 					packet.playerId = 0;
 					packet.status = 2;
+					
+					// Fill validation data correctly for Restore
+					World& world = GetWorld();
+					packet.round = world.getRound();
+					packet.phase = (int)world.getPhase();
+					packet.phaseTimer = world.getPhaseTimer();
+					
+					// Note: Player-specific data (Gold/HP) is hard to fill for "Broadcast".
+					// Restore packet is broadcast? sendTcpCommand is broadcast.
+					// If we fill 0, client validation might fail or sync to 0.
+					// But Client only syncs Phase/Timer from this packet in current logic.
+					packet.playerGold = 0; 
+					packet.playerHP = 0; 
+					packet.shopHash = 0;
+					
 					mNetWorker->sendTcpCommand(&packet);
 				}
 
@@ -282,6 +370,8 @@ namespace AutoBattler
 				packet.frameID = mLastReceivedFrame;
 				packet.checksum = 0; 
 				packet.playerId = mStage->getWorld().getLocalPlayerIndex();
+				// Initialize status to 0 (Heartbeat) as it was previously uninitialized
+				packet.status = 0; 
 				
 				// Fill Validation Data
 				World& world = mStage->getWorld();
@@ -421,6 +511,7 @@ namespace AutoBattler
 		if (mNetWorker->isServer())
 		{
 			// Server Logic: Heartbeat from Client
+			
 			if (packet->playerId < AB_MAX_PLAYER_NUM)
 			{
 				mPlayerTimeouts[packet->playerId] = 0;
@@ -451,6 +542,8 @@ namespace AutoBattler
 			// Client Logic: Status from Server
 			mConnectionTimeout = 0; // Server is alive
 
+			LogMsg("Client: Recv SyncPacket (Status=%d, Ph=%d, R=%d)", packet->status, packet->phase, packet->round);
+
 			if (packet->status == 1) // Timeout
 			{
 				if (OnTimeout)
@@ -465,13 +558,59 @@ namespace AutoBattler
 			{
 				// Sync Time Logic
 				World& world = GetWorld();
-				if (world.getPhase() == (BattlePhase)packet->phase)
+				// Force Sync Phase if different
+				if (world.getPhase() != (BattlePhase)packet->phase)
 				{
+					LogMsg("Client Sync: Phase Mismatch! Force Sync (Ph: %d -> %d)", (int)world.getPhase(), packet->phase);
+					
+					// IMPORTANT: Sync Round BEFORE changing phase!
+					// changePhase() triggers setupRound(), which depends on the current Round number.
+					if (world.getRound() != packet->round)
+					{
+						LogMsg("Client Sync: Round Mismatch! Force Sync (R: %d -> %d)", world.getRound(), packet->round);
+						world.setRound(packet->round);
+					}
+
+					world.changePhase((BattlePhase)packet->phase);
+					world.setPhaseTimer(packet->phaseTimer);
+					
+					// Force sync player state on phase change mismatch
+					Player& player = world.getLocalPlayer();
+					if (player.getGold() != packet->playerGold)
+					{
+						// Hacky set? Player::setGold?
+						// Assume drift is small or handled by actions. 
+						// But if phase is wrong, everything might be wrong.
+					}
+				}
+				else
+				{
+					// Same Phase, adjust timer drift
 					float timeDiff = std::abs(world.getPhaseTimer() - packet->phaseTimer);
 					if (timeDiff > 0.5f)
 					{
 						world.setPhaseTimer(packet->phaseTimer);
 						// LogMsg("Client: PhaseTimer corrected. Drift=%.2f", timeDiff);
+					}
+				}
+
+				// Always Sync Player State (Gold, HP) from Server
+				// Packet carries data for 'packet->playerId'
+				if (world.isValidPlayer(packet->playerId))
+				{
+					Player& player = world.getPlayer(packet->playerId);
+					
+					if (player.getGold() != packet->playerGold)
+					{
+						// Only log for Local Player to reduce spam
+						if (packet->playerId == world.getLocalPlayerIndex())
+							LogMsg("Client Sync: Player %d Gold correction %d -> %d", packet->playerId, player.getGold(), packet->playerGold);
+						
+						player.setGold(packet->playerGold);
+					}
+					if (player.getHp() != packet->playerHP)
+					{
+						player.setHp(packet->playerHP);
 					}
 				}
 			}
@@ -500,6 +639,21 @@ namespace AutoBattler
 		}
 	}
 
+	void ABNetEngine::onShopUpdatePacket(IComPacket* cp)
+	{
+		auto* packet = cp->cast<ABShopUpdatePacket>();
+		World& world = GetWorld();
+
+		if (world.isValidPlayer(packet->playerId))
+		{
+			Player& player = world.getPlayer(packet->playerId);
+			player.mShopList = packet->shopList;
+
+			if (packet->playerId == world.getLocalPlayerIndex())
+				LogMsg("Client: Recv Shop Update [ %d %d %d %d %d ]",
+					player.mShopList[0], player.mShopList[1], player.mShopList[2], player.mShopList[3], player.mShopList[4]);
+		}
+	}
 	void ABNetEngine::onCombatPhaseStart()
 	{
 		if (!mNetWorker->isServer())
@@ -563,6 +717,11 @@ namespace AutoBattler
 				
 				mPendingCombatIDs.push_back(combatID);
 				LogMsg("ABNetEngine: PVE Combat %u submitted for Player %d", combatID, playerIndex);
+
+				// Log Sent IDs
+				std::string sHome = "Sent PVE HomeUnits: ";
+				for(auto& u : playerUnits) sHome += std::to_string(u.unitID) + " ";
+				LogMsg("%s", sHome.c_str());
 
 				// Send Start Packet to Clients
 				ABCombatStartPacket packet;
@@ -697,23 +856,27 @@ namespace AutoBattler
 	{
 		auto* packet = cp->cast<ABCombatStartPacket>();
 
+		LogMsg("Client: Recv CombatStartPacket FrameID=%u", packet->combatID); // Using combatID as pseudo-frame tracker, need better seq?
+
 		bReplayPlaying = true;
 
 		// Sync: Ensure Client enters Combat Phase immediately when Server starts it.
 		// This corrects any drift caused by prolonged Replays or Client lag.
 		if (GetWorld().getPhase() != BattlePhase::Combat)
 		{
-			LogMsg("Client: Force switching to Combat Phase (Sync from Server)");
+			LogMsg("Client: Force switching to Combat Phase (Sync from Server CombatPacket)");
 			GetWorld().changePhase(BattlePhase::Combat);
 		}
 
-		// Fix: Ensure enemies from previous round (PVE) are cleaned up.
-		// If Client skipped Preparation phase (due to lag/sync), they might persist.
-		GetWorld().cleanupEnemies();
 
 		LogMsg("Client: Combat %u started (Home=%d vs Away=%d, %d vs %d units)",
 			packet->combatID, packet->homeIndex, packet->awayIndex,
 			packet->homeUnits.size(), packet->awayUnits.size());
+
+		// Log Recv IDs
+		std::string sHome = "Recv PVE HomeUnits: ";
+		for(auto& u : packet->homeUnits) sHome += std::to_string(u.unitID) + " ";
+		LogMsg("%s", sHome.c_str());
 
 		// Setup combat replay
 		// Dedicated Server skips replay recording to finish immediately
@@ -756,7 +919,7 @@ namespace AutoBattler
 			mReplayManager.markEnded(packet->combatID, packet->winnerIndex);
 		}
 
-		// ✅ DON'T apply result immediately - cache it and wait for replay to finish
+		// DON'T apply result immediately - cache it and wait for replay to finish
 		PendingCombatResult pending;
 		pending.homePlayerIndex = packet->homePlayerIndex;
 		pending.awayPlayerIndex = packet->awayPlayerIndex;
@@ -785,14 +948,14 @@ namespace AutoBattler
 		{
 			uint32 combatID = it->first;
 			
-			// ✅ Check if this combat still has more events to send
+			// Check if this combat still has more events to send
 			if (mCombatManager.hasMoreEvents(combatID))
 			{
 				++it;  // Still has events, wait for next call
 				continue;
 			}
 			
-			// ✅ All events sent, now send CombatEnd
+			// All events sent, now send CombatEnd
 			CombatResult& result = it->second;
 			
 			ABCombatEndPacket packet;
@@ -820,7 +983,7 @@ namespace AutoBattler
 		{
 			uint32 combatID = it->first;
 			
-			// ✅ Check if replay is still playing
+			// Check if replay is still playing
 			if (!mReplayManager.isReplayFinished(combatID))
 			{
 				++it;  // Still playing, wait
@@ -847,7 +1010,7 @@ namespace AutoBattler
 			it = mPendingCombatResults.erase(it);
 		}
 		
-		// ✅ All replays finished, switch phase
+		// All replays finished, switch phase
 		if (mPendingCombatResults.empty() && mReplayManager.allReplaysFinished())
 		{
 			LogMsg("Client: All replays finished, switching to Preparation phase");

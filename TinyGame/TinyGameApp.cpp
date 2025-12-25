@@ -966,12 +966,7 @@ bool TinyGameApp::initializeGame()
 					stage->initWorker(worker);
 					havePlayGame = true;
 				}
-			}
-			
-			if (havePlayGame)
-			{
-				::Global::ModuleManager().changeGame("AutoBattler");
-			}
+			}			
 		}
 
 		char const* gameName;

@@ -41,7 +41,7 @@ public:
 	{
 
 	}
-	virtual void setupInputAI( IPlayerManager& manager )
+	virtual void setupInputAI( IPlayerManager& manager , ActionProcessor& processor )
 	{
 
 	}
@@ -69,7 +69,7 @@ public:
 			updater.tick();
 		updater.updateFrame( numFrame );
 	}
-	virtual void setupInputAI( IPlayerManager& manager )
+	virtual void setupInputAI( IPlayerManager& manager , ActionProcessor& processor )
 	{
 
 	}
@@ -1412,7 +1412,7 @@ bool NetLevelStageMode::loadLevel(GameLevelInfo const& info)
 	getStage()->setupScene(*playerMgr);
 
 	if( haveServer() )
-		mNetEngine->setupInputAI(*playerMgr);
+		mNetEngine->setupInputAI(*playerMgr, getActionProcessor());
 
 	if( !buildNetEngine() )
 	{

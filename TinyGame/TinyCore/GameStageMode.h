@@ -57,10 +57,14 @@ public:
 	EGameState     getGameState() { return mGameState; }
 	StageManager*  getManager() { return mCurStage->getManager();  }
 
+	// Action Processing - Mode controls input processing
+	ActionProcessor& getActionProcessor() { return mProcessor; }
+
 	EGameState      mGameState;
 	EGameStageMode const mStageMode;
 	GameStageBase* mCurStage;
 	long           mReplayFrame;
+	ActionProcessor mProcessor;
 
 protected:
 

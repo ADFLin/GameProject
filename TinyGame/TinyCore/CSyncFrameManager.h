@@ -69,29 +69,36 @@ public:
 };
 
 class  CSyncFrameManager : public INetFrameManager
-	                     , public IActionLanucher
+	                     , public IActionLauncher
 					     , public IActionInput
 {
 public:
 	CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector );
-	//NetFrameManager
-	int   evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames );
+
+	// INetFrameManager
+	void  attachTo(ActionProcessor& processor) override;
+	ActionProcessor& getCollectionProcessor() override { return mProcessor; }
+	int   evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames ) override;
+	void  resetFrameData() override = 0;
+	void  release() override = 0;
+
 	virtual void  onPrevEvalFrame(){}
-	void  setupInput(ActionProcessor& processor)
-	{
-		processor.addInput(*this);
-	}
-	ActionProcessor& getActionProcessor(){ return mProcessor; }
 	virtual bool  sendFrameData() = 0;
-	//ActionInpput
-	bool  scanInput( bool beUpdateFrame );
-	bool  checkAction( ActionParam& param );
+
+	// IActionInput - provides synchronized frame data during execution
+	bool  scanInput( bool beUpdateFrame ) override;
+	bool  checkAction( ActionParam& param ) override;
 
 protected:
-
+	void collectInputs();  // Trigger collection via own processor (launcher pattern)
+	
 	bool  bClearData;
 
+	// Own processor for collection phase (uses this as launcher)
 	ActionProcessor       mProcessor;
+	// Reference to main processor (for providing synced input during execution)
+	ActionProcessor*      mMainProcessor = nullptr;
+
 	FrameDataManager      mFrameMgr;
 	IFrameActionTemplate* mActionTemplate;
 	INetFrameCollector*   mFrameCollector;

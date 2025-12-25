@@ -280,7 +280,7 @@ namespace AutoBattler
 
 		void broadcastFrame(int numFrame);
 
-		void setupInputAI(IPlayerManager& manager) override {}
+		void setupInputAI(IPlayerManager& manager, ActionProcessor& processor) override {}
 		void release() override { delete this; }
 
 		void onFramePacket(IComPacket* cp);

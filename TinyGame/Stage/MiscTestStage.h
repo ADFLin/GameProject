@@ -1472,7 +1472,7 @@ namespace Net
 				updater.tick();
 			updater.updateFrame( numFrame );
 		}
-		void setupInputAI( IPlayerManager& manager ) override
+		void setupInputAI( IPlayerManager& manager , ActionProcessor& processor ) override
 		{
 
 		}

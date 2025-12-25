@@ -65,7 +65,7 @@ namespace GreedySnake
 
 
 	class Scene : public Level::Listener
-		        , public IActionLanucher
+		        , public IActionLauncher
 	{
 	public:
 	

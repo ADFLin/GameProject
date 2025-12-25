@@ -12,12 +12,15 @@ class ActionProcessor;
 class INetFrameManager
 {
 public:
-	virtual ActionProcessor& getActionProcessor() = 0;
+	// Attach this manager to a main ActionProcessor
+	// The manager registers as IActionInput to provide synced data during execution
+	virtual void attachTo(ActionProcessor& processor) = 0;
+
+	// Get the processor used for input collection phase
+	virtual ActionProcessor& getCollectionProcessor() = 0;
 
 	virtual int  evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames )= 0;
 	virtual void resetFrameData() = 0;
-
-	virtual void setupInput(ActionProcessor& processor) = 0;
 
 	virtual void release() = 0;
 };
@@ -32,7 +35,7 @@ public:
 
 	bool build( BuildParam& buildParam );
 	void update( IFrameUpdater& updater , long time );
-	void setupInputAI( IPlayerManager& manager );
+	void setupInputAI( IPlayerManager& manager , ActionProcessor& processor );
 	void restart();
 	void release(){ delete this; }
 	ComWorker*        mWorker;

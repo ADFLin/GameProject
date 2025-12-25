@@ -20,8 +20,11 @@ bool CFrameActionEngine::build( BuildParam& buildParam )
 	mWorker   = buildParam.worker;
 	mTickTime = buildParam.tickTime;
 
-	mNetFrameMgr->setupInput(*buildParam.processor);
-	buildParam.game->getInputControl().setupInput( mNetFrameMgr->getActionProcessor() );
+	// Add InputControl to frame manager's collection processor
+	buildParam.game->getInputControl().setupInput(mNetFrameMgr->getCollectionProcessor());
+	
+	// Attach frame manager to main processor (registers as IActionInput for execution)
+	mNetFrameMgr->attachTo(*buildParam.processor);
 
 	return true;
 }
@@ -43,7 +46,7 @@ void CFrameActionEngine::update( IFrameUpdater& updater , long time )
 	}
 }
 
-void CFrameActionEngine::setupInputAI( IPlayerManager& manager )
+void CFrameActionEngine::setupInputAI( IPlayerManager& manager , ActionProcessor& processor )
 {
 	for( IPlayerManager::Iterator iter = manager.createIterator(); iter ; ++iter )
 	{
@@ -52,7 +55,7 @@ void CFrameActionEngine::setupInputAI( IPlayerManager& manager )
 		{
 			IActionInput* input = player->getAI()->getActionInput();
 			if ( input )
-				mNetFrameMgr->getActionProcessor().addInput( *input );
+				processor.addInput( *input );
 		}
 	}
 }

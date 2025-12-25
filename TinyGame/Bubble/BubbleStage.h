@@ -11,13 +11,13 @@ namespace Bubble
 	class Mode;
 
 	class LevelStage : public GameStageBase
-		             , public IActionLanucher
+		             , public IActionLauncher
 	{
 		typedef GameStageBase BaseClass;
 	public:
 		LevelStage();
 
-		//IActionLanucher
+		//IActionLauncher
 		void  fireAction( ActionTrigger& trigger );
 		//GameSubStage
 		void  tick();

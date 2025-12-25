@@ -135,7 +135,7 @@ namespace Tetris
 	};
 
 	class GameWorld : public Level::EventListener
-		            , public IActionLanucher
+		            , public IActionLauncher
 		            , public Noncopyable
 	{
 	public:
@@ -156,7 +156,7 @@ namespace Tetris
 		LevelData*   createPlayerLevel( GamePlayer* player );
 		LevelData*   findPlayerData( unsigned id );
 
-		// IActionLanucher
+		// IActionLauncher
 		void         fireAction( ActionTrigger& trigger );
 		void         fireLevelAction(ActionPort port, ActionTrigger& trigger );
 

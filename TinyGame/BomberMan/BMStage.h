@@ -24,7 +24,7 @@ namespace BomberMan
 	
 
 	class LevelStage : public GameStageBase
-		             , public IActionLanucher
+		             , public IActionLauncher
 		             , public IActionListener
 	{
 		typedef GameStageBase BaseClass;

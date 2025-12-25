@@ -84,7 +84,8 @@ public:
 	void             setupStageMode(GameStageMode* mode);
 	GameStageMode*   getStageMode() { return mStageMode; }
 
-	ActionProcessor& getActionProcessor() { return mProcessor; }
+	// Forwards to GameStageMode, implemented in .cpp
+	ActionProcessor& getActionProcessor();
 	IGameModule*     getGame() { return mGame; }
 	long             getTickTime() { return mTickTime; }
 
@@ -93,7 +94,6 @@ public:
 	EGameStageMode   getModeType() const;
 
 	GameStageMode*   mStageMode;
-	ActionProcessor  mProcessor;
 	IGameModule*     mGame;
 	long             mTickTime;
 };

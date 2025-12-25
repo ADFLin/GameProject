@@ -22,7 +22,7 @@
 #	define TINY_API
 #endif //TG_DLL
 
-#define TINY_USE_NET_THREAD 1
+#define TINY_USE_NET_THREAD 0
 
 #ifndef TINY_USE_NET_THREAD
 #define TINY_USE_NET_THREAD 0

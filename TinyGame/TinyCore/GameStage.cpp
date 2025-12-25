@@ -137,3 +137,8 @@ EGameStageMode GameStageBase::getModeType() const
 {
 	return mStageMode->getModeType();
 }
+
+ActionProcessor& GameStageBase::getActionProcessor()
+{
+	return mStageMode->getActionProcessor();
+}

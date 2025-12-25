@@ -80,7 +80,7 @@ private:
 	friend class ActionProcessor;
 };
 
-class  IActionLanucher
+class  IActionLauncher
 {
 public:
 	//call ActionTrigger::detect and act action if return ture
@@ -110,6 +110,68 @@ enum ControlFlag
 	CTF_BLOCK_ACTION   = BIT(1),
 };
 
+//////////////////////////////////////////////////////////////////////////
+// ActionInputManager - Manages input sources
+//////////////////////////////////////////////////////////////////////////
+class ActionInputManager
+{
+public:
+	struct InputInfo
+	{
+		IActionInput* input;
+		ActionPort    port;
+	};
+
+	TINY_API void addInput(IActionInput& input, ActionPort targetPort = ERROR_ACTION_PORT);
+	TINY_API bool removeInput(IActionInput& input);
+	TINY_API void clearInputs();
+
+	// Scan all input sources and collect active inputs
+	TINY_API void scanInputs(bool bUpdateFrame);
+	// Clear active input list
+	TINY_API void clearActiveInputs();
+
+	// Check if an action is triggered
+	TINY_API bool checkAction(ActionParam& param);
+
+	TArray<InputInfo> const& getInputList() const { return mInputList; }
+	TArray<InputInfo*> const& getActiveInputs() const { return mActiveInputs; }
+
+private:
+	TArray<InputInfo>  mInputList;
+	TArray<InputInfo*> mActiveInputs;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// ActionListenerManager - Manages action listeners
+//////////////////////////////////////////////////////////////////////////
+class ActionListenerManager
+{
+public:
+	TINY_API void addListener(IActionListener& listener);
+	TINY_API bool removeListener(IActionListener& listener);
+	TINY_API void clearListeners();
+
+	TINY_API void notifyScanStart(bool bUpdateFrame);
+	TINY_API void notifyScanEnd();
+	TINY_API void notifyFireAction(ActionParam& param);
+
+	template<class TFunc>
+	void visitListeners(TFunc&& func)
+	{
+		for (auto listener : mListeners)
+		{
+			func(listener);
+		}
+	}
+
+private:
+	TArray<IActionListener*> mListeners;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// ActionProcessor - Coordinator integrating input and listener management
+//////////////////////////////////////////////////////////////////////////
 class  ActionProcessor
 {
 public:
@@ -118,41 +180,32 @@ public:
 	TINY_API void beginAction( unsigned flag = 0 );
 	TINY_API void endAction();
 
-	TINY_API void setLanucher( IActionLanucher* lanucher );
+	TINY_API void setLanucher( IActionLauncher* lanucher );
+	
+	// Listener management - delegates to ActionListenerManager
 	TINY_API void addListener( IActionListener& listener );
 	TINY_API bool removeListener(IActionListener& listener);
 	
+	// Input source management - delegates to ActionInputManager
 	TINY_API void addInput   ( IActionInput& input , ActionPort targetPort = ERROR_ACTION_PORT );
 	TINY_API bool removeInput( IActionInput& input );
+
+	// Access sub-managers
+	ActionInputManager& getInputManager() { return mInputManager; }
+	ActionListenerManager& getListenerManager() { return mListenerManager; }
 
 public:
 	void prevFireActionPrivate( ActionParam& param );
 	bool checkActionPrivate( ActionParam& param );
+
 protected:
 	TINY_API void scanControl( unsigned flag = 0 );
-	TINY_API void scanControl( IActionLanucher& lanucher , unsigned flag = 0 );
+	TINY_API void scanControl( IActionLauncher& lanucher , unsigned flag = 0 );
+
 private:
-
-	template< class TFunc >
-	void visitListener(TFunc&& func)
-	{
-		for (auto listener : mListeners)
-		{
-			func(listener);
-		}
-	}
-
-	struct InputInfo
-	{
-		IActionInput* input;
-		unsigned     port;
-	};
-	TArray< InputInfo >  mInputList;
-	TArray< InputInfo* > mActiveInputs;
-
-	TArray< IActionListener* > mListeners;
-
-	IActionLanucher* mLanucher;
+	ActionInputManager    mInputManager;
+	ActionListenerManager mListenerManager;
+	IActionLauncher*      mLanucher;
 };
 
 

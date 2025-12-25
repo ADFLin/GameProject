@@ -87,13 +87,29 @@ CSyncFrameManager::CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFra
 {
 	mActionTemplate = actionTemp;
 	mFrameCollector = frameCollector;
-	mProcessor.setLanucher( this );
-
-	mFrameCollector->setupAction(mProcessor);
 	bClearData = false;
 	
+	// Setup own processor for collection phase
+	mProcessor.setLanucher(this);
+	mFrameCollector->setupAction(mProcessor);
 }
 
+void CSyncFrameManager::attachTo(ActionProcessor& processor)
+{
+	mMainProcessor = &processor;
+	// Only register as input source on main processor (provides synced data during execution)
+	processor.addInput(*this);
+	// Note: NOT adding as listener - collection uses own mProcessor with launcher pattern
+}
+
+void CSyncFrameManager::collectInputs()
+{
+	// Use own processor for collection (this is the launcher, so fireAction will be called)
+	mProcessor.beginAction(CTF_BLOCK_ACTION);  // BLOCK_ACTION means don't execute, just collect
+	mProcessor.endAction();
+}
+
+// IActionInput Implementation - for providing synced data during execution phase
 bool CSyncFrameManager::scanInput( bool beUpdateFrame )
 {
 	if ( !beUpdateFrame )
@@ -194,6 +210,9 @@ SVSyncFrameManager::~SVSyncFrameManager()
 
 bool SVSyncFrameManager::sendFrameData()
 {
+	// Trigger collection phase - collects local inputs via main ActionProcessor
+	collectInputs();
+	
 	for( ClientFrameDataList::iterator iter = mFrameDataList.begin();
 		 iter != mFrameDataList.end() ; )
 	{
@@ -243,7 +262,7 @@ bool SVSyncFrameManager::sendFrameData()
 
 	mUpdateDataBits |= mLocalDataBits;
 
-	mProcessor.beginAction( CTF_BLOCK_ACTION );
+	// Input collection is now handled by main ActionProcessor via IActionListener
 
 	int const MaxWaitDiffFrame = 30;
 	if ( mCheckDataBits != mUpdateDataBits )
@@ -272,7 +291,6 @@ bool SVSyncFrameManager::sendFrameData()
 #endif
 			mUpdateDataBits = 0;
 			++mCountDataDelay;
-			mProcessor.endAction();
 			return false;
 		}
 	}
@@ -299,7 +317,6 @@ bool SVSyncFrameManager::sendFrameData()
 	mFrameMgr.addFrameData( mFrameStream->frame , buffer );
 	mUpdateDataBits = 0;
 
-	mProcessor.endAction();
 	return true;
 }
 
@@ -439,7 +456,8 @@ CLSyncFrameManager::~CLSyncFrameManager()
 
 bool CLSyncFrameManager::sendFrameData()
 {
-	mProcessor.beginAction( CTF_BLOCK_ACTION );
+	// Trigger collection phase - collects local inputs via main ActionProcessor
+	collectInputs();
 
 	int32 frame = mFrameMgr.getFrame() + 1;
 	mFrameStream->frame = frame;
@@ -469,7 +487,6 @@ bool CLSyncFrameManager::sendFrameData()
 		mLastSendDataFrame = mFrameMgr.getFrame();
 	}
 
-	mProcessor.endAction();
 	return true;
 }
 

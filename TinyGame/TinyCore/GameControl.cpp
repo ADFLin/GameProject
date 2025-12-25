@@ -7,12 +7,117 @@
 
 namespace
 {
-	class EmptyIActionLanucher : public IActionLanucher
+	class EmptyIActionLanucher : public IActionLauncher
 	{
 	public:
 		virtual void fireAction( ActionTrigger& trigger ){}
 	} gEmptyLanucher;
 }
+
+//////////////////////////////////////////////////////////////////////////
+// ActionInputManager Implementation
+//////////////////////////////////////////////////////////////////////////
+
+void ActionInputManager::addInput(IActionInput& input, ActionPort targetPort)
+{
+	InputInfo info;
+	info.input = &input;
+	info.port = targetPort;
+	mInputList.push_back(info);
+}
+
+bool ActionInputManager::removeInput(IActionInput& input)
+{
+	assert(mActiveInputs.empty());
+	return mInputList.removePred([&input](InputInfo const& info) { return info.input == &input; });
+}
+
+void ActionInputManager::clearInputs()
+{
+	assert(mActiveInputs.empty());
+	mInputList.clear();
+}
+
+void ActionInputManager::scanInputs(bool bUpdateFrame)
+{
+	for (auto& info : mInputList)
+	{
+		if (info.input->scanInput(bUpdateFrame))
+		{
+			mActiveInputs.push_back(&info);
+		}
+	}
+}
+
+void ActionInputManager::clearActiveInputs()
+{
+	mActiveInputs.clear();
+}
+
+bool ActionInputManager::checkAction(ActionParam& param)
+{
+	bool result = false;
+	for (auto pInfo : mActiveInputs)
+	{
+		if (pInfo->port == ERROR_ACTION_PORT || pInfo->port == param.port)
+		{
+			IActionInput* input = pInfo->input;
+			if (input->checkAction(param))
+			{
+				result = true;
+			}
+		}
+	}
+	return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// ActionListenerManager Implementation
+//////////////////////////////////////////////////////////////////////////
+
+void ActionListenerManager::addListener(IActionListener& listener)
+{
+	CHECK(mListeners.findIndex(&listener) == INDEX_NONE);
+	mListeners.push_back(&listener);
+}
+
+bool ActionListenerManager::removeListener(IActionListener& listener)
+{
+	return mListeners.remove(&listener);
+}
+
+void ActionListenerManager::clearListeners()
+{
+	mListeners.clear();
+}
+
+void ActionListenerManager::notifyScanStart(bool bUpdateFrame)
+{
+	visitListeners([&](IActionListener* listener)
+	{
+		listener->onScanActionStart(bUpdateFrame);
+	});
+}
+
+void ActionListenerManager::notifyScanEnd()
+{
+	visitListeners([&](IActionListener* listener)
+	{
+		listener->onScanActionEnd();
+	});
+}
+
+void ActionListenerManager::notifyFireAction(ActionParam& param)
+{
+	visitListeners([&](IActionListener* listener)
+	{
+		listener->onFireAction(param);
+	});
+}
+
+//////////////////////////////////////////////////////////////////////////
+// ActionProcessor Implementation
+//////////////////////////////////////////////////////////////////////////
 
 ActionProcessor::ActionProcessor() 
 	:mLanucher( &gEmptyLanucher )
@@ -25,22 +130,13 @@ void ActionProcessor::scanControl( unsigned flag /*= 0 */ )
 	scanControl( *mLanucher , flag );
 }
 
-void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
+void ActionProcessor::scanControl( IActionLauncher& lanucher , unsigned flag )
 {
 	bool bUpdateFrame = !( flag & CTF_FREEZE_FRAME );
 
-	visitListener([&](IActionListener* listener)
-	{
-		listener->onScanActionStart(bUpdateFrame);
-	});
+	mListenerManager.notifyScanStart(bUpdateFrame);
 	
-	for( auto info : mInputList )
-	{
-		if ( info.input->scanInput( bUpdateFrame ) )
-		{
-			mActiveInputs.push_back( &info );
-		}
-	}
+	mInputManager.scanInputs(bUpdateFrame);
 
 	ActionTrigger trigger;
 	trigger.mParam.bUpdateFrame = bUpdateFrame;
@@ -49,51 +145,29 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 	trigger.mParam.port = ERROR_ACTION_PORT;
 	lanucher.fireAction( trigger );
 
-	visitListener([&](IActionListener* listener)
-	{
-		listener->onScanActionEnd();
-	});
+	mListenerManager.notifyScanEnd();
 
-	mActiveInputs.clear();
+	mInputManager.clearActiveInputs();
 }
 
 bool ActionProcessor::checkActionPrivate( ActionParam& param )
 {
-	bool result = false;
-	for( auto pInfo : mActiveInputs )
-	{
-		if ( pInfo->port == ERROR_ACTION_PORT || pInfo->port == param.port )
-		{
-			IActionInput* input = pInfo->input;
-			if( input->checkAction(param) )
-			{
-				result = true;
-			}
-		}
-	}
-	return result;
+	return mInputManager.checkAction(param);
 }
 
 void ActionProcessor::addInput( IActionInput& input , ActionPort targetPort )
 {
-	InputInfo info;
-	info.input = &input;
-	info.port = targetPort;
-	mInputList.push_back(info);
+	mInputManager.addInput(input, targetPort);
 }
 
 bool ActionProcessor::removeInput( IActionInput& input )
 {
-	assert(mActiveInputs.empty());
-	return mInputList.removePred( [&input](InputInfo const& info) { return info.input == &input; });
+	return mInputManager.removeInput(input);
 }
 
 void ActionProcessor::prevFireActionPrivate( ActionParam& param )
 {
-	visitListener([&](IActionListener* listener)
-	{
-		listener->onFireAction(param);
-	});
+	mListenerManager.notifyFireAction(param);
 }
 
 void ActionProcessor::beginAction( unsigned flag /*= 0 */ )
@@ -108,19 +182,22 @@ void ActionProcessor::endAction()
 
 void ActionProcessor::addListener( IActionListener& listener )
 {
-	CHECK(mListeners.findIndex(&listener) == INDEX_NONE);
-	mListeners.push_back(&listener);
+	mListenerManager.addListener(listener);
 }
 
 bool ActionProcessor::removeListener(IActionListener& listener)
 {
-	return mListeners.remove(&listener);
+	return mListenerManager.removeListener(listener);
 }
 
-void ActionProcessor::setLanucher( IActionLanucher* lanucher )
+void ActionProcessor::setLanucher( IActionLauncher* lanucher )
 {
 	mLanucher = (lanucher) ? lanucher : &gEmptyLanucher;
 }
+
+//////////////////////////////////////////////////////////////////////////
+// ActionTrigger Implementation
+//////////////////////////////////////////////////////////////////////////
 
 bool ActionTrigger::detect(ActionPort port, ControlAction action)
 {

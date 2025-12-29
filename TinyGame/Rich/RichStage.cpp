@@ -1,6 +1,6 @@
 #include "RichStage.h"
 
-#include "GameStageMode.h"
+#include "GameMode.h"
 
 #include "RichWorldEditor.h"
 #include "RichAI.h"
@@ -75,8 +75,8 @@ namespace Rich
 	
 		switch( getStageMode()->getModeType() )
 		{
-		case EGameStageMode::Single:
-		case EGameStageMode::Net:
+		case EGameMode::Single:
+		case EGameMode::Net:
 
 			break;
 		}

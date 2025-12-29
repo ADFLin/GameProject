@@ -11,16 +11,15 @@
 #include "CppVersion.h"
 
 
-
 class  IGameModule;
 class  IReplayRecorder;
 class  IPlayerManager;
 class  GameStageBase;
 
-class ReplayStageMode;
-class NetLevelStageMode;
+class ReplayGameMode;
+class NetGameMode;
 
-class GameStageMode
+class GameModeBase
 {
 public:
 
@@ -28,10 +27,9 @@ public:
 	{
 		NEXT_UI_ID = UI_GAME_STAGE_MODE_ID,
 	};
-	GameStageMode(EGameStageMode mode);
-	virtual ~GameStageMode();
-	virtual bool prevStageInit() { return true; }
-	virtual bool postStageInit() {  return true; }
+	GameModeBase(EGameMode mode);
+	virtual ~GameModeBase();
+	virtual bool initializeStage(GameStageBase* stage) { return true; }
 	virtual void onEnd(){}
 	virtual void onRestart(uint64& seed) {}
 	virtual MsgReply onKey(KeyMsg const& msg) { return MsgReply::Unhandled();  }
@@ -45,23 +43,22 @@ public:
 	virtual IPlayerManager* getPlayerManager() = 0;
 	virtual bool   prevChangeState(EGameState state) { return true; }
 
-	virtual ReplayStageMode* getReplayMode() { return nullptr; }
-	virtual NetLevelStageMode* getNetLevelMode() { return nullptr; }
+	virtual ReplayGameMode* getReplayMode() { return nullptr; }
+	virtual NetGameMode* getNetLevelMode() { return nullptr; }
 	
-	EGameStageMode getModeType() const { return mStageMode;  }
+	EGameMode getModeType() const { return mStageMode;  }
 	bool  changeState(EGameState state);
 	bool  togglePause();
 
 	GameStageBase* getStage() { return mCurStage; }
-	IGameModule*   getGame() { return mCurStage->getGame(); }
+	IGameModule*   getGame() { return mCurStage ? mCurStage->getGame() : nullptr; }
 	EGameState     getGameState() { return mGameState; }
-	StageManager*  getManager() { return mCurStage->getManager();  }
 
 	// Action Processing - Mode controls input processing
 	ActionProcessor& getActionProcessor() { return mProcessor; }
 
 	EGameState      mGameState;
-	EGameStageMode const mStageMode;
+	EGameMode const mStageMode;
 	GameStageBase* mCurStage;
 	long           mReplayFrame;
 	ActionProcessor mProcessor;
@@ -72,12 +69,12 @@ protected:
 };
 
 
-class LevelStageMode : public GameStageMode
+class GameLevelMode : public GameModeBase
 {
-	using BaseClass = GameStageMode;
+	using BaseClass = GameModeBase;
 public:
-	LevelStageMode(EGameStageMode mode);
-	~LevelStageMode();
+	GameLevelMode(EGameMode mode);
+	~GameLevelMode();
 	void   onRestart(uint64& seed) override;
 	bool   saveReplay(char const* name) override;
 

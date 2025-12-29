@@ -462,8 +462,6 @@ bool ServerTransportImpl::ConnectionListener::notifyConnectionRecv(NetConnection
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnection* con)
 {
-	LogMsg("DEBUG: notifyConnectionAccpet called, con=%p", con);
-	
 	TcpServer* server = static_cast<TcpServer*>(con);
 	
 	NetSocket conSocket;
@@ -501,9 +499,7 @@ void ServerTransportImpl::ConnectionListener::notifyConnectionAccpet(NetConnecti
 		mOwner->postToGameThread([owner = mOwner, newId]() {
 			owner->mCallbacks.onConnectionEstablished(newId);
 		});
-	}
-	
-	LogMsg("DEBUG: notifyConnectionAccpet completed for SessionId=%d", newId);
+	}	
 }
 
 void ServerTransportImpl::ConnectionListener::notifyConnectionClose(NetConnection* con, NetCloseReason reason)

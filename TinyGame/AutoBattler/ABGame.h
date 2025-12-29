@@ -16,7 +16,10 @@ namespace AutoBattler
 		StageBase*      createStage( unsigned id ) override;
 		bool            queryAttribute( GameAttribute& value ) override;
 
-		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameMode modeType ) override;
+		
+		// Dedicated server support
+		INetEngine* createNetEngine() override;
 
 		void  doRelease() { delete this; }
 	private:

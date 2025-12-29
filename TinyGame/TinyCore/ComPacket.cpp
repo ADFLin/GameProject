@@ -81,11 +81,6 @@ void ComEvaluator::procCommand(  ComVisitor& visitor )
 	mDispatcher.procCommand(visitor);
 }
 
-void ComEvaluator::procCommand(IComPacket* cp)
-{
-	mDispatcher.procCommand(cp);
-}
-
 void ComEvaluator::removeProcesserFunc( void* processer )
 {
 	mDispatcher.removeProcesserFunc(processer);

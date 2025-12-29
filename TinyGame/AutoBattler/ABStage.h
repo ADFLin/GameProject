@@ -96,7 +96,7 @@ namespace AutoBattler
 		BattlePhase getPhase() const { return mWorld.getPhase(); }
 		PlayerBoard& getPlayerBoard() { return mWorld.getLocalPlayerBoard(); }
 		World& getWorld() override { return mWorld; }
-		bool isNetMode() const override { return getModeType() == EGameStageMode::Net; }
+		bool isNetMode() const override { return getModeType() == EGameMode::Net; }
 	
 		// IPlayerControllerContext
 		Vector2 screenToWorld(Vector2 const& screenPos) const override;

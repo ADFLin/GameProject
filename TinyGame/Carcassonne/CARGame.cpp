@@ -49,7 +49,7 @@ namespace CAR
 		return false;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameMode modeType )
 	{
 		changeDefaultStage(manger, modeType);
 	}
@@ -95,10 +95,8 @@ namespace CAR
 			auto* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
 			return true;
 		}
-		void clearUserUI() override
-		{
-			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
-		}
+
+
 		void doSetupSetting( bool beServer ) override
 		{
 			mExpMask.clear();

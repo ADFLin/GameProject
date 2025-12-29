@@ -15,7 +15,7 @@ namespace Chromatron
 		void  enter() override{}
 		void  exit() override{} 
 		//
-		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameMode modeType ) override;
 	public:
 		char const*           getName() override{ return CHROMATRON_NAME;   }
 		InputControl&         getInputControl() override{ return IGameModule::getInputControl(); }

@@ -9,7 +9,7 @@
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
 
-#include "GameStageMode.h"
+#include "GameMode.h"
 #include "CSyncFrameManager.h"
 
 namespace BomberMan
@@ -119,13 +119,13 @@ namespace BomberMan
 		
 		switch( getModeType() )
 		{
-		case EGameStageMode::Net:
+		case EGameMode::Net:
 			{
 				GamePlayer* player = playerMgr.getUser();
 				inputControl.setPortControl( player->getActionPort() , 0 );
 			}
 			break;
-		case EGameStageMode::Single:
+		case EGameMode::Single:
 			{
 				inputControl.setPortControl( 0 , 0 );
 				inputControl.setPortControl( 1 , 1 );
@@ -166,16 +166,16 @@ namespace BomberMan
 			case STEP_GAME_OVER:
 				switch( getModeType() )
 				{
-				case EGameStageMode::Net:
+				case EGameMode::Net:
 					if (::Global::GameNet().getNetWorker()->isServer())
 					{
 						::Global::GameNet().getNetWorker()->changeState(NAS_ROOM_ENTER);
 					}
 					break;
-				case EGameStageMode::Single:
+				case EGameMode::Single:
 					getManager()->changeStage( STAGE_GAME_MENU );
 					break;
-				case EGameStageMode::Replay:
+				case EGameMode::Replay:
 					getManager()->changeStage( STAGE_MAIN_MENU );
 					break;
 				}

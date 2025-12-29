@@ -1,5 +1,5 @@
 #include "TinyGamePCH.h"
-#include "ReplayStageMode.h"
+#include "ReplayGameMode.h"
 
 #include "GameModule.h"
 #include "GameModuleManager.h"
@@ -193,7 +193,7 @@ void ReplayEditStage::viewReplay()
 	IGameModule* game = Global::ModuleManager().changeGame( mGameInfo.name );
 	if ( game )
 	{
-		game->beginPlay( *getManager() , EGameStageMode::Replay );
+		game->beginPlay( *getManager() , EGameMode::Replay );
 		//#TODO
 		StageBase* nextStage = getManager()->getNextStage();
 		if( auto gameStage = nextStage->getGameStage() )
@@ -207,26 +207,23 @@ void ReplayEditStage::viewReplay()
 	}
 }
 
-ReplayStageMode::ReplayStageMode() 
-	:BaseClass(EGameStageMode::Replay)
+ReplayGameMode::ReplayGameMode() 
+	:BaseClass(EGameMode::Replay)
 	, mPlayerManager(new LocalPlayerManager)
 {
 
 }
 
-LocalPlayerManager* ReplayStageMode::getPlayerManager()
+LocalPlayerManager* ReplayGameMode::getPlayerManager()
 {
 	return mPlayerManager.get();
 }
 
-bool ReplayStageMode::prevStageInit()
+bool ReplayGameMode::initializeStage(GameStageBase* stage)
 {
-	if( !BaseClass::prevStageInit() )
-		return false;
-
-	GameStageBase* stage = getStage();
 	ReplayInfo   info;
 	ReplayHeader header;
+	//Use mReplayFilePath directly or ... the method uses it? Yes.
 	if( !ReplayBase::LoadReplayInfo(mReplayFilePath.c_str(), header, info) )
 	{
 		return false;
@@ -237,6 +234,9 @@ bool ReplayStageMode::prevStageInit()
 	{
 		return false;
 	}
+
+	if( !stage->onInit() )
+		return false;
 
 	//// Replay Input////////////
 
@@ -269,15 +269,6 @@ bool ReplayStageMode::prevStageInit()
 
 	stage->getActionProcessor().addInput(*mReplayInput.get());
 	///////////////////////////////////////////////////////////////
-
-	return true;
-}
-bool ReplayStageMode::postStageInit()
-{
-	if( !BaseClass::postStageInit() )
-		return false;
-
-	GameStageBase* stage = getStage();
 
 	::Global::GUI().cleanupWidget();
 
@@ -338,7 +329,8 @@ bool ReplayStageMode::postStageInit()
 	return true;
 }
 
-bool ReplayStageMode::loadReplay(char const* path)
+
+bool ReplayGameMode::loadReplay(char const* path)
 {
 	if( !path )
 		return false;
@@ -349,12 +341,12 @@ bool ReplayStageMode::loadReplay(char const* path)
 	return true;
 }
 
-void ReplayStageMode::onEnd()
+void ReplayGameMode::onEnd()
 {
 	BaseClass::onEnd();
 }
 
-void ReplayStageMode::updateTime(GameTimeSpan deltaTime)
+void ReplayGameMode::updateTime(GameTimeSpan deltaTime)
 {
 	if( !mReplayInput->isValid() )
 		return;
@@ -409,7 +401,7 @@ void ReplayStageMode::updateTime(GameTimeSpan deltaTime)
 	mProgressSlider->setValue(totalFrame ? int(1000 * mReplayFrame / totalFrame) : 0);
 }
 
-bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
+bool ReplayGameMode::onWidgetEvent(int event, int id, GWidget* ui)
 {
 	switch( id )
 	{
@@ -459,7 +451,7 @@ bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	return BaseClass::onWidgetEvent(event, id, ui);
 }
 
-void ReplayStageMode::onRestart(uint64& seed)
+void ReplayGameMode::onRestart(uint64& seed)
 {
 	seed = mReplayInput->getSeed();
 

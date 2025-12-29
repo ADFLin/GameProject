@@ -3,8 +3,13 @@
 
 #include "GameConfig.h"
 #include "FastDelegate/FastDelegate.h"
+
+
+#include "DataStructure/Array.h"
+
 #include <list>
 #include <unordered_map>
+
 
 class IComPacket;
 class ComVisitor;
@@ -12,25 +17,29 @@ class PacketFactory;
 typedef uint32 ComID;
 typedef fastdelegate::FastDelegate< void (IComPacket*) > ComProcFunc;
 
-// ========================================
-// PacketDispatcher: 负责 packet 的分发和处理
-// ========================================
+
 class PacketDispatcher
 {
 public:
 	typedef ComProcFunc ProcFunc;
 
+	struct UserHandler
+	{
+		void*    userProcesser;
+		ProcFunc func;
+	};
+
 	// Packet Handler 信息
 	struct PacketHandler
 	{
 		PacketHandler()
-			: userProcesser(nullptr)
-			, workerProcesser(nullptr)
+			: workerProcesser(nullptr)
 		{}
 
-		void*    userProcesser;
 		void*    workerProcesser;
-		ProcFunc userFunc;         //app thread;
+
+
+		TArray<UserHandler> userHanlders;         //app thread;
 		ProcFunc workerFunc;       //app thread;
 		ProcFunc workerFuncSocket; //socket thread;
 	};
@@ -49,13 +58,16 @@ public:
 	template<class T, class TFunc>
 	bool setUserFunc(ComID id, T* processer, TFunc func)
 	{
+		if (!func)
+			return false;
+
 		NET_RWLOCK_WRITE(mRWLockHandlerMap);
 		PacketHandler& handler = mHandlerMap[id];
-		handler.userProcesser = processer;
-		if (func)
-		{
-			handler.userFunc.bind(processer, func);
-		}
+
+		UserHandler userHandler;
+		userHandler.userProcesser = processer;
+		userHandler.func.bind(processer, func);
+		handler.userHanlders.push_back(userHandler);
 		return true;
 	}
 
@@ -69,7 +81,6 @@ public:
 	TINY_API void enqueue(IComPacket* packet, PacketHandler* handler);
 	TINY_API void procCommand();
 	TINY_API void procCommand(ComVisitor& visitor);
-	TINY_API void procCommand(IComPacket* cp);
 
 private:
 	struct UserCom

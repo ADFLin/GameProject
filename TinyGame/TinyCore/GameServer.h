@@ -276,7 +276,7 @@ public:
 
 	TINY_API bool sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag );
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
-
+	ServerPlayerListener* getListener() { return mListener; }
 	//auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
 	PlayerId insertPlayer(ServerPlayer* player, char const* name, PlayerType type);
 
@@ -318,12 +318,15 @@ struct ServerResolveContext
 
 	ServerWorker& server;
 };
+
 class ServerEventResolver
 {
 public:
 	//Socket Thread
 	virtual PlayerConnetionClosedAction resolveConnectClosed_NetThread( ServerResolveContext& context , NetCloseReason reason) { return PlayerConnetionClosedAction::Remove;  }
 	virtual void  resolveReconnect_NetThread( ServerResolveContext& context ){}
+
+	virtual void  resolveChangeActionState(NetActionState state) = 0;
 };
 
 #if USE_NEW_NETWORK
@@ -382,7 +385,7 @@ public:
 			mPlayerManager->setListener(listener); 
 	}
 
-	void  generatePlayerStatus( SPPlayerStatus& comPS );
+	TINY_API void  generatePlayerStatus( SPPlayerStatus& comPS );
 	/////////////////////////////////////////////////
 
 	void removeClient(NetClientData* client)

@@ -39,11 +39,19 @@ struct GameLevelInfo
 
 class LocalPlayerManager;
 
-class GameStageMode;
+class GameModeBase;
 class INetEngine;
 class IFrameActionTemplate;
 
-class GameStageBase : public StageBase
+class IFrameUpdater
+{
+public:
+	virtual void tick(){}
+	virtual void updateFrame(int frame){}
+};
+
+
+class GameStageBase : public StageBase, public IFrameUpdater
 {
 	using BaseClass = StageBase;
 public:
@@ -68,8 +76,6 @@ public:
 	void onUpdate(GameTimeSpan deltaTime) override;
 
 	virtual void onRestart(bool beInit) {}
-	virtual void tick() {}
-	virtual void updateFrame(int frame) {}
 
 	MsgReply onMouse(MouseMsg const& msg) override { return MsgReply::Unhandled(); }
 	MsgReply onKey(KeyMsg const& msg) override;
@@ -81,19 +87,19 @@ public:
 	virtual void onChangeState(EGameState state) {}
 	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return nullptr; }           
 
-	void             setupStageMode(GameStageMode* mode);
-	GameStageMode*   getStageMode() { return mStageMode; }
+	void            setupStageMode(GameModeBase* mode);
+	GameModeBase*   getStageMode() { return mStageMode; }
 
-	// Forwards to GameStageMode, implemented in .cpp
+	// Forwards to GameModeBase, implemented in .cpp
 	ActionProcessor& getActionProcessor();
 	IGameModule*     getGame() { return mGame; }
 	long             getTickTime() { return mTickTime; }
 
 	bool             changeState(EGameState state);
-	EGameState        getGameState() const;
-	EGameStageMode   getModeType() const;
+	EGameState       getGameState() const;
+	EGameMode        getModeType() const;
 
-	GameStageMode*   mStageMode;
+	GameModeBase*   mStageMode;
 	IGameModule*     mGame;
 	long             mTickTime;
 };

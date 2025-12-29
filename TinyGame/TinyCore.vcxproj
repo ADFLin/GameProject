@@ -283,7 +283,7 @@
     <ClInclude Include="Misc\NeuralNetworkRenderer.h" />
     <ClInclude Include="SuperFractial\SelectRectBase.h" />
     <ClInclude Include="TinyCore\GameGraphics2D.h" />
-    <ClInclude Include="TinyCore\GameStageMode.h" />
+    <ClInclude Include="TinyCore\GameMode.h" />
     <ClInclude Include="TinyCore\GameRenderSetup.h" />
     <ClInclude Include="TinyCore\NetStageController.h" />
     <ClInclude Include="TinyCore\RenderLayer.h" />
@@ -689,7 +689,7 @@
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
     <ClCompile Include="TinyCore\GameModule.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />
-    <ClCompile Include="TinyCore\GameStageMode.cpp" />
+    <ClCompile Include="TinyCore\GameMode.cpp" />
     <ClCompile Include="TinyCore\NetStageController.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">

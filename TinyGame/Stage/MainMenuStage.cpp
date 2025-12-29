@@ -201,7 +201,7 @@ void MainMenuStage::playSingleGame(char const* name)
 	IGameModule* game = Global::ModuleManager().changeGame(name);
 	if (game)
 	{
-		game->beginPlay(*getManager(), EGameStageMode::Single);
+		game->beginPlay(*getManager(), EGameMode::Single);
 	}
 }
 
@@ -442,7 +442,8 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				auto stage = new Net::TestStage;
 				ClientWorker* worker = static_cast< ClientWorker* >( ::Global::GameNet().buildNetwork( false ) );
-				auto stageMode = new NetLevelStageMode;
+				auto stageMode = new NetGameMode;
+				stageMode->mStageManager = getManager();
 				stageMode->initWorker(worker, NULL);
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage( stage );
@@ -452,7 +453,8 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				auto stage = new Net::TestStage;
 				ServerWorker* server = static_cast<ServerWorker*>(::Global::GameNet().buildNetwork(true));
-				auto stageMode = new NetLevelStageMode;
+				auto stageMode = new NetGameMode;
+				stageMode->mStageManager = getManager();
 				stageMode->initWorker(server->createLocalWorker(::Global::GetUserProfile().name), server);
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage(stage);
@@ -496,7 +498,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			return false;
 		Poker::GameRule rule = Poker::GameRule(id - UI_GROUP_CARD_INDEX);
 		static_cast<Poker::GameModule*>(game)->setRule(rule);
-		game->beginPlay(*getManager(), EGameStageMode::Single);
+		game->beginPlay(*getManager(), EGameMode::Single);
 		return false;
 	}
 	else if (id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP)

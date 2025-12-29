@@ -28,7 +28,7 @@ namespace Cube
 		return false;
 	}
 
-	void GameModule::beginPlay(StageManager& manger, EGameStageMode modeType)
+	void GameModule::beginPlay(StageManager& manger, EGameMode modeType)
 	{
 		changeDefaultStage(manger, modeType);
 	}

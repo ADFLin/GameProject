@@ -16,7 +16,7 @@ namespace Rich
 		void  enter() override {}
 		void  exit() override {}
 		//
-		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameMode modeType ) override;
 		void endPlay() override;
 
 		bool queryAttribute(GameAttribute& value) override;

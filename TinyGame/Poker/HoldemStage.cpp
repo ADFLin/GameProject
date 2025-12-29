@@ -125,16 +125,16 @@ namespace Holdem {
 			}
 		}
 
-		if ( getModeType() == EGameStageMode::Net )
+		if ( getModeType() == EGameMode::Net )
 		{
-			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
+			ComWorker* worker = static_cast< NetGameMode* >( getStageMode() )->getWorker();
 			if ( mServerLevel )
 			{
 				mServerLevel->setupTransfer( new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker() ) );
 			}
 			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 		}
-		else if ( getModeType() == EGameStageMode::Single )
+		else if ( getModeType() == EGameMode::Single )
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;
@@ -150,7 +150,7 @@ namespace Holdem {
 
 		::Global::GUI().cleanupWidget();
 		mScene->setupWidget();
-		if ( mServerLevel && getModeType() == EGameStageMode::Single )
+		if ( mServerLevel && getModeType() == EGameMode::Single )
 		{
 			mDevPanel = new DevBetPanel( UI_ANY , Vec2i( 100 , 300 ) , NULL );
 			mDevPanel->mServer = mServerLevel;

@@ -34,8 +34,20 @@ NetRoomSettingHelper::NetRoomSettingHelper()
 	mServer       = NULL;
 }
 
+NetRoomSettingHelper::~NetRoomSettingHelper()
+{
+	if (mSettingPanel)
+	{
+		mSettingPanel->setEventCallback(WidgetEventCallBack());
+	}
+}
+
+
 void NetRoomSettingHelper::setMaxPlayerNum( int num )
 {
+	if (getPlayerListPanel() == nullptr)
+		return;
+
 	typedef PlayerListPanel::Slot Slot;
 	if ( num > MAX_PLAYER_NUM )
 	{
@@ -117,7 +129,11 @@ void NetRoomSettingHelper::importSetting( DataStreamBuffer& buffer )
 
 void NetRoomSettingHelper::exportSetting( DataStreamBuffer& buffer )
 {
-	int numSlot = getPlayerListPanel()->getSlotNum();
+	int numSlot = 0;
+	if (getPlayerListPanel())
+	{
+		numSlot = getPlayerListPanel()->getSlotNum();
+	}
 	buffer.fill( numSlot );
 	doExportSetting( buffer );
 }
@@ -155,6 +171,12 @@ void NetRoomSettingHelper::sendPlayerStatusSV()
 	SPPlayerStatus PSCom;
 	mServer->generatePlayerStatus( PSCom );
 	mServer->sendTcpCommand( &PSCom );
+}
+
+void NetRoomSettingHelper::clearUserUI()
+{
+	getSettingPanel()->removeChildWithMask(0xfffffff);
+	onClearUserUI();
 }
 
 void NetRoomSettingHelper::emptySlotSV( SlotId id , SlotState state )

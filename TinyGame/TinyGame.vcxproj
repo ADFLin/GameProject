@@ -339,9 +339,11 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\GlobalStageRegister.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Stage\MiscTestStage.cpp" />
+    <ClCompile Include="TinyCore\DedicatedServerMode.cpp" />
     <ClCompile Include="TinyCore\NetGameMode.cpp" />
-    <ClCompile Include="TinyCore\ReplayStageMode.cpp" />
-    <ClCompile Include="TinyCore\SingleStageMode.cpp" />
+    <ClCompile Include="TinyCore\ReplayGameMode.cpp" />
+    <ClCompile Include="TinyCore\ServerStatusPanel.cpp" />
+    <ClCompile Include="TinyCore\SingleGameMode.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGameEditor.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
@@ -411,9 +413,11 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
     <ClInclude Include="Stage\MiscTestStage.h" />
+    <ClInclude Include="TinyCore\DedicatedServerMode.h" />
     <ClInclude Include="TinyCore\NetGameMode.h" />
-    <ClInclude Include="TinyCore\ReplayStageMode.h" />
-    <ClInclude Include="TinyCore\SingleStageMode.h" />
+    <ClInclude Include="TinyCore\ReplayGameMode.h" />
+    <ClInclude Include="TinyCore\ServerStatusPanel.h" />
+    <ClInclude Include="TinyCore\SingleGameMode.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
   </ItemGroup>

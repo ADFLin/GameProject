@@ -93,6 +93,26 @@ namespace AutoBattler
 		}
 	};
 
+	class World;
+	class Player;
+
+	// Static helper for executing actions on World (independent of Stage)
+	// Used by both LevelStage and DedicatedServerMode
+	namespace FABAction
+	{
+		// Execute a game logic action on World
+		// Returns true if action was executed successfully
+		// Visual-only actions (like ACT_SYNC_DRAG) return false and should be handled by Stage
+		bool Execute(World& world, ActionPort port, ABActionItem const& item);
+		
+		// Check if action type requires Stage for visual handling
+		inline bool RequiresStage(uint8 actionType)
+		{
+			return actionType == ACT_SYNC_DRAG;
+		}
+	}
+
+
 	struct ABFrameData
 	{
 		uint32 port;

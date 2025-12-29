@@ -25,7 +25,6 @@ namespace Tetris
 
 		}
 		//SettingHepler
-		void          clearUserUI();
 		void          doSetupSetting( bool beServer );
 		void          doExportSetting( DataStreamBuffer& buffer );
 		void          doImportSetting( DataStreamBuffer& buffer );

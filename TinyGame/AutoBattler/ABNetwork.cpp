@@ -2,6 +2,7 @@
 #include "ABNetwork.h"
 #include "ABStage.h"
 #include "ABBot.h"
+#include "ABAction.h"
 #include "ABCombatReplay.h"
 
 namespace AutoBattler
@@ -10,6 +11,7 @@ namespace AutoBattler
 
 	REGISTER_GAME_PACKET(ABActionPacket);
 	REGISTER_GAME_PACKET(ABFramePacket);
+	REGISTER_GAME_PACKET(ABActionRejectPacket);
 	REGISTER_GAME_PACKET(ABSyncPacket);
 	REGISTER_GAME_PACKET(ABCombatStartPacket);
 	REGISTER_GAME_PACKET(ABCombatEventPacket);
@@ -18,32 +20,59 @@ namespace AutoBattler
 
 	// Client-side replay manager moved to member variable
 
+	// Default constructor for dedicated server mode
+	ABNetEngine::ABNetEngine()
+		: mStage(nullptr)
+		, mWorker(nullptr)
+		, mNetWorker(nullptr)
+		, mIsDedicatedServer(false)
+	{
+	}
+
 	ABNetEngine::ABNetEngine(LevelStage* stage)
 		: mStage(stage)
+		, mWorker(nullptr)
+		, mNetWorker(nullptr)
+		, mIsDedicatedServer(false)
 	{
+	}
+	
+	IFrameUpdater* ABNetEngine::getDedicatedUpdater()
+	{
+		if (mIsDedicatedServer && mDedicatedWorld)
+		{
+			return mDedicatedWorld.get();
+		}
+		return nullptr;
 	}
 
 	bool ABNetEngine::build(BuildParam& param)
 	{
-		LogMsg("NetEngine Build: Worker=%p", param.worker);
+		LogMsg("NetEngine Build: Worker=%p, bDedicatedServer=%d", param.worker, param.bDedicatedServer);
 		mWorker = param.worker;
 		mNetWorker = param.netWorker;
+		mIsDedicatedServer = param.bDedicatedServer;
 
 		mNetWorker->getPacketDispatcher().setUserFunc<ABFramePacket>(this, &ABNetEngine::onFramePacket);
 		mNetWorker->getPacketDispatcher().setUserFunc<ABSyncPacket>(this, &ABNetEngine::onSyncPacket); // Register for both
 
 		// Register combat streaming packet handlers (for both server and client)
 		// Server needs these to receive its own broadcasts for host player replay
-		mWorker->getPacketDispatcher().setUserFunc<ABCombatStartPacket>(this, &ABNetEngine::onCombatStartPacket);
-		mWorker->getPacketDispatcher().setUserFunc<ABCombatEventPacket>(this, &ABNetEngine::onCombatEventPacket);
-		mWorker->getPacketDispatcher().setUserFunc<ABCombatEndPacket>(this, &ABNetEngine::onCombatEndPacket);
-		mWorker->getPacketDispatcher().setUserFunc<ABShopUpdatePacket>(this, &ABNetEngine::onShopUpdatePacket);
+		// Note: mWorker might be null in some dedicated server configurations
+		if (mWorker)
+		{
+			mWorker->getPacketDispatcher().setUserFunc<ABCombatStartPacket>(this, &ABNetEngine::onCombatStartPacket);
+			mWorker->getPacketDispatcher().setUserFunc<ABCombatEventPacket>(this, &ABNetEngine::onCombatEventPacket);
+			mWorker->getPacketDispatcher().setUserFunc<ABCombatEndPacket>(this, &ABNetEngine::onCombatEndPacket);
+			mWorker->getPacketDispatcher().setUserFunc<ABShopUpdatePacket>(this, &ABNetEngine::onShopUpdatePacket);
+		}
 
 		// Check for Dedicated Server mode
-		if (mStage == nullptr)
+		if (mIsDedicatedServer || mStage == nullptr)
 		{
 			mIsDedicatedServer = true;
-			mDedicatedWorld = std::make_unique<World>();
+			mDedicatedWorld = std::make_unique<DedicatedWorld>();
+			mDedicatedWorld->setTickTime(param.tickTime);
 			
 			// Initialize Dedicated World
 			mDedicatedWorld->init();
@@ -428,14 +457,19 @@ namespace AutoBattler
 	{
 		CHECK(mNetWorker->isServer());
 
-		if (mStage)
+		// Execute actions on World (works for both Stage and Dedicated modes)
+		for (auto const& data : mPendingActions)
 		{
-			// Determinism: Execute in the exact same order as sent to clients
-			for (auto const& data : mPendingActions)
+			// Execute game logic action on World
+			FABAction::Execute(GetWorld(), data.port, data.item);
+			
+			// If Stage exists, also handle visual-only actions
+			if (mStage && FABAction::RequiresStage(data.item.type))
 			{
 				mStage->executeAction(data.port, data.item);
 			}
 		}
+		
 		addSimuateTime(TickRate * numFrame);
 
 		ABFramePacket packet;
@@ -500,7 +534,8 @@ namespace AutoBattler
 			return;  // Reject this action, don't add to pending
 		}
 
-		// Validation passed, buffer action for broadcast
+		// Validation passed - action will be executed in broadcastFrame()
+		// Buffer action for broadcast to clients
 		mPendingActions.push_back({ packet->port, packet->item });
 	}
 
@@ -1016,6 +1051,40 @@ namespace AutoBattler
 			LogMsg("Client: All replays finished, switching to Preparation phase");
 			mStage->getWorld().changePhase(BattlePhase::Preparation);
 			bReplayPlaying = false;
+		}
+	}
+
+	DedicatedWorld::DedicatedWorld()
+		: World()
+		, mTickTime(33)
+		, mCurrentFrame(0)
+	{
+	}
+
+	void DedicatedWorld::tick()
+	{
+		// Call World's tick with delta time
+		float dt = float(mTickTime) / 1000.0f;
+		World::tick(dt);
+	}
+
+	void DedicatedWorld::updateFrame(int frame)
+	{
+		// In dedicated mode, frame updates are handled internally
+		// This is called by INetEngine after tick()
+		// Could be used for post-tick cleanup or state sync
+		mCurrentFrame += frame;
+	}
+
+	void ABNetEngine::configLevelSetting(GameLevelInfo& info)
+	{
+		// For dedicated server mode, provide seed from DedicatedWorld
+		if (mIsDedicatedServer && mDedicatedWorld)
+		{
+			info.seed = mDedicatedWorld->getRandomSeed();
+			info.data = nullptr;
+			info.numData = 0;
+			LogMsg("[ABNetEngine] configLevelSetting: seed=%llu", info.seed);
 		}
 	}
 

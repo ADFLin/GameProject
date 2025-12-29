@@ -16,7 +16,7 @@ namespace Zuma
 		void  enter() override;
 		void  exit() override;
 		//
-		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		virtual void beginPlay( StageManager& manger, EGameMode modeType ) override;
 	public:
 		virtual char const*       getName(){ return ZUMA_NAME; }
 		virtual InputControl&     getInputControl(){ return IGameModule::getInputControl(); }

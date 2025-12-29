@@ -514,11 +514,6 @@ private:
 	bool bAlloced;
 };
 
-class SPNetControlRequest : public GamePacketT< SPNetControlRequest, SP_NET_CONTROL_REQUEST >
-{
-public:
-	uint8 action;
-};
 
 class CPNetControlReply : public GamePacketT< CPNetControlReply, CP_NET_CONTROL_REPLAY >
 {

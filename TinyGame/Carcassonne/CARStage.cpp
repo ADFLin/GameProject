@@ -1593,9 +1593,9 @@ namespace CAR
 		::Global::GUI().cleanupWidget();
 
 		int userSlotId = playerManager.getUser()->getActionPort();
-		if ( getModeType() == EGameStageMode::Net )
+		if ( getModeType() == EGameMode::Net )
 		{
-			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
+			ComWorker* worker = static_cast< NetGameMode* >( getStageMode() )->getWorker();
 			mInput.setRemoteSender( new CWorkerDataTransfer( worker , userSlotId ) );
 			if ( ::Global::GameNet().getNetWorker()->isServer() )
 			{
@@ -1629,10 +1629,10 @@ namespace CAR
 	{
 		if ( mGameLogic.mbGameStarted )
 		{
-			if( getModeType() == EGameStageMode::Single )
+			if( getModeType() == EGameMode::Single )
 				return true;
 
-			if( getModeType() == EGameStageMode::Net )
+			if( getModeType() == EGameMode::Net )
 			{
 				if( getActionPlayerId() == getStageMode()->getPlayerManager()->getUser()->getActionPort() )
 					return true;

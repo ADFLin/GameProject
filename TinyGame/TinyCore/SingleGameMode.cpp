@@ -1,29 +1,27 @@
 #include "TinyGamePCH.h"
-#include "SingleStageMode.h"
+#include "SingleGameMode.h"
 
 #include "GameModule.h"
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
 #include "GameStage.h"
 
-SingleStageMode::SingleStageMode() 
-	:BaseClass(EGameStageMode::Single)
+SingleGameMode::SingleGameMode() 
+	:BaseClass(EGameMode::Single)
 	,mPlayerManager(new LocalPlayerManager)
 {
 
 }
 
-SingleStageMode::~SingleStageMode()
+SingleGameMode::~SingleGameMode()
 {
 
 }
 
-bool SingleStageMode::postStageInit()
+bool SingleGameMode::initializeStage(GameStageBase* stage)
 {
-	if( !BaseClass::postStageInit() )
+	if (!stage->onInit())
 		return false;
-
-	GameStageBase* stage = getStage();
 
 	stage->setupLocalGame(*mPlayerManager.get());
 	stage->setupScene(*mPlayerManager.get());
@@ -54,14 +52,14 @@ bool SingleStageMode::postStageInit()
 	return true;
 }
 
-void SingleStageMode::onRestart(uint64& seed)
+void SingleGameMode::onRestart(uint64& seed)
 {
 	//seed = ::generateRandSeed();
 	seed = 0;
 	BaseClass::onRestart(seed);
 }
 
-void SingleStageMode::updateTime(GameTimeSpan deltaTime)
+void SingleGameMode::updateTime(GameTimeSpan deltaTime)
 {
 	mDeltaTimeAcc += 1000.0 * deltaTime;
 	int frame = Math::FloorToInt(mDeltaTimeAcc / mCurStage->getTickTime());
@@ -92,7 +90,7 @@ void SingleStageMode::updateTime(GameTimeSpan deltaTime)
 		::Global::GUI().scanHotkey(getGame()->getInputControl());
 }
 
-bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
+bool SingleGameMode::onWidgetEvent(int event, int id, GWidget* ui)
 {
 	switch( id )
 	{
@@ -149,7 +147,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	return BaseClass::onWidgetEvent(event, id, ui);
 }
 
-bool SingleStageMode::prevChangeState(EGameState state)
+bool SingleGameMode::prevChangeState(EGameState state)
 {
 	switch( state )
 	{
@@ -160,7 +158,7 @@ bool SingleStageMode::prevChangeState(EGameState state)
 	return true;
 }
 
-LocalPlayerManager* SingleStageMode::getPlayerManager()
+LocalPlayerManager* SingleGameMode::getPlayerManager()
 {
 	return mPlayerManager.get();
 }

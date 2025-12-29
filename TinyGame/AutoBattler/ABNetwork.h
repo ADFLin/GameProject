@@ -238,6 +238,24 @@ namespace AutoBattler
 	};
 
 
+	class DedicatedWorld : public World, public IFrameUpdater
+	{
+	public:
+		DedicatedWorld();
+		~DedicatedWorld() = default;
+
+		// IFrameUpdater interface
+		void tick() override;
+		void updateFrame(int frame) override;
+
+		// Configuration
+		void setTickTime(long tickTimeMs) { mTickTime = tickTimeMs; }
+		long getTickTime() const { return mTickTime; }
+
+	private:
+		long mTickTime = 33;  // Default ~30 FPS
+		int  mCurrentFrame = 0;
+	};
 
 	class ABNetEngine : public INetEngine
 	{
@@ -248,9 +266,19 @@ namespace AutoBattler
 
 		bool bServerPaused = false;
 
+		// Default constructor for dedicated server mode (no Stage)
+		ABNetEngine();
+		
+		// Constructor with Stage for normal mode
 		ABNetEngine(LevelStage* stage);
+		
+		// Set Stage after construction (for normal mode)
+		void setStage(LevelStage* stage) { mStage = stage; }
 
 		bool build(BuildParam& param) override;
+		
+		// INetEngine: Get dedicated updater for headless mode
+		IFrameUpdater* getDedicatedUpdater() override;
 
 		TArray<ABActionData> mPendingActions;
 
@@ -282,6 +310,9 @@ namespace AutoBattler
 
 		void setupInputAI(IPlayerManager& manager, ActionProcessor& processor) override {}
 		void release() override { delete this; }
+		
+		// Configure level settings for network sync (dedicated server mode)
+		void configLevelSetting(GameLevelInfo& info) override;
 
 		void onFramePacket(IComPacket* cp);
 		void onPacketSV(IComPacket* cp);
@@ -307,7 +338,7 @@ namespace AutoBattler
 		NetWorker* mNetWorker;
 
 		bool mIsDedicatedServer = false;
-		std::unique_ptr<World> mDedicatedWorld;
+		std::unique_ptr<DedicatedWorld> mDedicatedWorld;
 		
 		// Helper to get the authoritative World (Dedicated or Stage's)
 		World& GetWorld();

@@ -215,6 +215,7 @@ namespace AutoBattler
 		// Random Number Generation
 		void setUseLocalRandom(bool useLocal) { mUseLocalRandom = useLocal; }
 		void setRandomSeed(unsigned int seed) { mRandomSeed = seed; }
+		unsigned int getRandomSeed() const { return mRandomSeed; }
 		int getRand();
 
 		struct Projectile

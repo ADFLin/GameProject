@@ -14,7 +14,8 @@
 
 #include "GameGUISystem.h"
 #include "GameStage.h"
-#include "GameStageMode.h"
+#include "GameMode.h"
+#include "NetGameMode.h"
 #include "GameGlobal.h"
 #include "MiscTestRegister.h"
 
@@ -30,9 +31,10 @@
 #include "Stage/MainMenuStage.h"
 
 #include "NetGameMode.h"
+#include "DedicatedServerMode.h"
 
-#include "SingleStageMode.h"
-#include "ReplayStageMode.h"
+#include "SingleGameMode.h"
+#include "ReplayGameMode.h"
 
 #include "PlatformThread.h"
 #include "SystemPlatform.h"
@@ -609,7 +611,12 @@ TinyGameApp::TinyGameApp()
 
 TinyGameApp::~TinyGameApp()
 {
-
+	// Clean up mode managed by StageManager
+	if (mStageMode)
+	{
+		delete mStageMode;
+		mStageMode = nullptr;
+	}
 }
 
 
@@ -769,29 +776,13 @@ bool TinyGameApp::initializeGame()
 {
 	DateTime appStartTime = SystemPlatform::GetLocalTime();
 
+	CommandLineArgs commandLineArgs;
+
 	// Check for -Output parameter to create log file
-	char const* cmdLine = FCommandLine::Get();
-	char const* outputParam = FCString::StrStr(cmdLine, "-Output");
-	if (outputParam)
+	char const* outputFileName = commandLineArgs.getValue("-Output");
+	if (outputFileName && *outputFileName)
 	{
-		// Skip "-Output" and any whitespace
-		outputParam += 7; // strlen("-Output")
-		while (*outputParam == ' ' || *outputParam == '\t')
-			++outputParam;
-		
-		// Extract filename (until next space or end)
-		char logFileName[256];
-		int i = 0;
-		while (*outputParam && *outputParam != ' ' && *outputParam != '\t' && i < 255)
-		{
-			logFileName[i++] = *outputParam++;
-		}
-		logFileName[i] = '\0';
-		
-		if (i > 0)
-		{
-			GRedirectedStdOut = CreateFileA(logFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		}
+		GRedirectedStdOut = CreateFileA(outputFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
 	CreateConsole();
@@ -845,9 +836,9 @@ bool TinyGameApp::initializeGame()
 	}
 
 #if TINY_WITH_EDITOR
-	if (!FCString::StrStr(FCommandLine::Get(), "-NoEditor"))
+	if (!commandLineArgs.hasFlag("-NoEditor"))
 	{
-		bool bEnableEditor = FCString::StrStr(FCommandLine::Get(), "-Editor");
+		bool bEnableEditor = commandLineArgs.hasFlag("-Editor");
 		if (!bEnableEditor)
 		{
 			bEnableEditor = ::Global::GameConfig().getBoolValue("Editor", CONFIG_SECTION, false);
@@ -944,29 +935,47 @@ bool TinyGameApp::initializeGame()
 
 		bool havePlayGame = false;
 
-		if (FCString::StrStr(FCommandLine::Get(), "-AutoNet"))
+
+
+		if (commandLineArgs.hasFlag("-AutoNet"))
 		{
-			if (FCString::StrStr(FCommandLine::Get(), "-Server"))
+			if (commandLineArgs.hasFlag("-Server"))
 			{
 				ServerWorker* server = createServer();
 				if (server)
 				{
 					LocalWorker* worker = server->createLocalWorker(::Global::GetUserProfile().name);
-					NetRoomStage* stage = static_cast<NetRoomStage*>(changeStage(STAGE_NET_ROOM));
-					stage->initWorker(worker, server);
+					NetGameMode* netMode = new NetGameMode;
+					netMode->mStageManager = this;
+					netMode->initWorker(worker, server);
+					mStageMode = netMode;
+					changeStage(STAGE_NET_ROOM);
 					havePlayGame = true;
 				}
 			}
-			else if (FCString::StrStr(FCommandLine::Get(), "-Client"))
+			else if (commandLineArgs.hasFlag("-Client"))
 			{
 				ClientWorker* worker = createClinet();
 				if (worker)
 				{
-					NetRoomStage* stage = static_cast<NetRoomStage*>(changeStage(STAGE_NET_ROOM));
-					stage->initWorker(worker);
+					NetGameMode* netMode = new NetGameMode;
+					netMode->mStageManager = this;
+					netMode->initWorker(worker);
+					mStageMode = netMode;
+					changeStage(STAGE_NET_ROOM);
 					havePlayGame = true;
 				}
 			}			
+		}
+		else if (commandLineArgs.hasFlag("-Server"))
+		{
+			const char* game = commandLineArgs.getValue("-game", "AutoBattler");
+
+			if (game)
+			{
+				startDedicatedServer(game);
+				havePlayGame = true;
+			}
 		}
 
 		char const* gameName;
@@ -975,7 +984,7 @@ bool TinyGameApp::initializeGame()
 			IGameModule* game = ::Global::ModuleManager().changeGame(gameName);
 			if (game)
 			{
-				game->beginPlay(*this, EGameStageMode::Single);
+				game->beginPlay(*this, EGameMode::Single);
 				havePlayGame = true;
 			}
 		}
@@ -1008,10 +1017,10 @@ void TinyGameApp::finalizeGame()
 
 	ExecutionRegisterCollection::Get().cleanup();
 
-	closeNetwork();
-
 	//cleanup widget before delete game instance
 	Global::GUI().cleanupWidget(true , true);
+
+	closeNetwork();
 
 	Global::ModuleManager().cleanupModuleInstances();
 
@@ -1060,11 +1069,13 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 	::Global::GetDrawEngine().update(updateTime);
 
+#if 0
 	if (mStageMode && mStageMode->getStage() == nullptr)
 	{
 		delete mStageMode;
 		mStageMode = nullptr;
 	}
+#endif
 	checkNewStage();
 
 	if (mNetWorker)
@@ -1081,6 +1092,13 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 		PROFILE_ENTRY("Stage Update");
 		GameTimeSpan deltaTime;
 		deltaTime.value = CVarTimeDilation * updateTime / 1000.0f;
+		
+		// Mode handles time update directly (direct routing)
+		if (mStageMode)
+		{
+			mStageMode->updateTime(deltaTime);
+		}
+		
 		getCurStage()->update(deltaTime);
 	}
 
@@ -1226,6 +1244,57 @@ ClientWorker* TinyGameApp::createClinet()
 	return worker;
 }
 
+bool TinyGameApp::startDedicatedServer(char const* gameName, int port)
+{
+	LogMsg("[DedicatedServer] Starting dedicated server for game: %s", gameName);
+	
+	// Close any existing network
+	closeNetwork();
+	
+	// Create the server worker
+	ServerWorker* server = new ServerWorker;
+	if (!server->startNetwork())
+	{
+		LogError("[DedicatedServer] Failed to start network");
+		delete server;
+		return false;
+	}
+	mNetWorker = server;
+	
+	// Create DedicatedServerMode
+	DedicatedServerMode* dedicatedMode = new DedicatedServerMode();
+	
+	// Configure the dedicated server
+	DedicatedServerMode::Config config;
+	config.gameName = gameName;
+	config.minPlayers = 2;
+	config.maxPlayers = 8;
+	config.countdownSeconds = 3.0f;
+	config.autoRestart = true;
+	config.headless = true;
+	dedicatedMode->configure(config);
+	
+	// Setup the mode with server
+	dedicatedMode->mStageManager = this;
+	dedicatedMode->initWorker(nullptr, server);  // No local worker, just server
+	
+	// Initialize the server (in headless mode, pass nullptr for stage)
+	if (!dedicatedMode->initializeServer(nullptr))
+	{
+		LogError("[DedicatedServer] Failed to initialize server");
+		delete dedicatedMode;
+		closeNetwork();
+		return false;
+	}
+	
+	// Store the mode
+	mStageMode = dedicatedMode;
+	
+	LogMsg("[DedicatedServer] Server started successfully, waiting for players...");
+	return true;
+}
+
+
 void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 {
 	mConsoleShowMode = mode;
@@ -1355,6 +1424,15 @@ MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 			break;
 		}
 	}
+	
+	// Mode gets first chance at key events (direct routing)
+	if (mStageMode)
+	{
+		MsgReply result = mStageMode->onKey(msg);
+		if (result.isHandled())
+			return result;
+	}
+	
 	MsgReply result = ::Global::GUI().procKeyMsg(msg);
 	if( !result.isHandled() )
 	{
@@ -1702,9 +1780,19 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 		newStage = curGame->createStage( stageId );
 		if ( newStage )
 		{
-			if (GameStageBase* gameStage = newStage->getGameStage())
+		if (GameStageBase* gameStage = newStage->getGameStage())
 			{
-				GameStageMode* stageMode = createGameStageMode(stageId);
+				GameModeBase* stageMode = nullptr;
+				if (stageId == STAGE_NET_GAME)
+				{
+					// For net game, reuse the existing mode created in UI_BUILD_CLIENT/UI_CREATE_SERVER
+					stageMode = mStageMode;
+				}
+				
+				if (stageMode == nullptr)
+				{
+					stageMode = createGameStageMode(stageId);
+				}
 				gameStage->setupStageMode(stageMode);
 			}
 		}
@@ -1731,18 +1819,18 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 	return newStage;
 }
 
-GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
+GameModeBase* TinyGameApp::createGameStageMode(StageID stageId)
 {
-	GameStageMode* stageMode = nullptr;
+	GameModeBase* stageMode = nullptr;
 
 	switch( stageId )
 	{
 #define CASE_STAGE( idx , Class )\
 				case idx : stageMode  = new Class; break;
 
-		CASE_STAGE(STAGE_SINGLE_GAME, SingleStageMode)
-		CASE_STAGE(STAGE_NET_GAME, NetLevelStageMode)
-		CASE_STAGE(STAGE_REPLAY_GAME, ReplayStageMode)
+		CASE_STAGE(STAGE_SINGLE_GAME, SingleGameMode)
+		CASE_STAGE(STAGE_NET_GAME, NetGameMode)
+		CASE_STAGE(STAGE_REPLAY_GAME, ReplayGameMode)
 
 #undef CASE_STAGE
 	}
@@ -1785,17 +1873,21 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	if (gameStage)
 	{
 		mStageMode = gameStage->getStageMode();
-		if (!mStageMode->prevStageInit())
+		if (!mStageMode->initializeStage(gameStage))
 		{
-			LogWarning(0, "Can't PrevInit Stage");
+			LogWarning(0, "Can't Initialize Stage Mode");
 			return false;
 		}
-	}
 
-	if (!stage->onInit())
+		setTickTime(gameStage->getTickTime());
+	}
+	else
 	{
-		LogWarning(0, "Can't Initialize Stage");
-		return false;
+		if (!stage->onInit())
+		{
+			LogWarning(0, "Can't Initialize Stage");
+			return false;
+		}
 	}
 
 	if (renderSetup)
@@ -1804,17 +1896,6 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 			return false;
 
 		Render::ShaderManager::Get().cleanupLoadedSource();
-	}
-
-	if (gameStage)
-	{
-		if (!mStageMode->postStageInit())
-		{
-			LogWarning(0, "Can't PostInit Stage");
-			return false;
-		}
-
-		setTickTime(gameStage->getTickTime());
 	}
 
 	stage->postInit();
@@ -1838,6 +1919,18 @@ void TinyGameApp::finalizeStage(StageBase* stage)
 	if (gameStage)
 	{
 		setTickTime(gDefaultTickTime);
+		
+		// Handle mode lifecycle during stage transition
+		// If the stage's mode is not the StageManager's active mode,
+		// it means a new mode was assigned and the stage's mode should be cleaned up
+		GameModeBase* stageMode = gameStage->getStageMode();
+		if (stageMode && stageMode != mStageMode)
+		{
+			// This mode was either:
+			// 1. An old mode that was replaced by a new mStageMode
+			// 2. Should not happen in normal flow
+			// The EmptyStageMode case is already handled in GameStageBase::onEnd
+		}
 	}
 
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
@@ -1896,8 +1989,14 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 		return;
 	if ( id >= UI_STAGE_ID )
 		return;
-	//if ( !mGameMode->onWidgetEvent( event , id , ui ) )
-	//	return false;
+	
+	// Mode handles widget events directly (direct routing)
+	if (mStageMode)
+	{
+		if (!mStageMode->onWidgetEvent(event, id, ui))
+			return;
+	}
+	
 	if ( id >= UI_GAME_STAGE_MODE_ID )
 		return;
 
@@ -1946,8 +2045,17 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 			if ( !worker )
 				return;
 
+			NetGameMode* netMode = new NetGameMode;
+
+			netMode->mStageManager = this;
+			netMode->initWorker(worker);
+			
+			// NetGameMode is now managed by StageManager
+			// Stages access it through getManager()->getActiveMode()
+			mStageMode = netMode;
+
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
-			stage->initWorker( worker );
+			// stage->initWorker( worker ); // Worker is now in NetGameMode
 		}
 		break;
 	case UI_CREATE_SERVER:
@@ -1961,8 +2069,13 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 
 			LocalWorker* worker = server->createLocalWorker(::Global::GetUserProfile().name );
 
+			NetGameMode* netMode = new NetGameMode;
+			netMode->mStageManager = this;
+			netMode->initWorker(worker, server);
+			mStageMode = netMode;
+
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
-			stage->initWorker( worker , server );	
+			// stage->initWorker( worker , server );	
 		}
 		break;
 	case UI_GAME_MENU:

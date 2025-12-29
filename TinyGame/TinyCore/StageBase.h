@@ -9,6 +9,7 @@ class StageManager;
 class IGameModule;
 class GameModuleManager;
 class GameStageBase;
+class GameModeBase;
 class MouseMsg;
 class NetWorker;
 class GWidget;
@@ -93,6 +94,9 @@ public:
 	void                setNextStage( StageBase* chStage );
 	StageBase*          changeStage( StageID stageId );
 	void                setErrorMsg( char const* msg ){ /*mErrorMsg = msg;*/  }
+
+	// GameMode management - allows stages to access the active mode
+	virtual GameModeBase* getActiveMode() { return nullptr; }
 
 protected:
 

@@ -46,7 +46,7 @@ namespace BomberMan
 		return false;
 	}
 
-	void GameModule::beginPlay(StageManager& manger, EGameStageMode modeType)
+	void GameModule::beginPlay(StageManager& manger, EGameMode modeType)
 	{
 		changeDefaultStage(manger, modeType);
 	}
@@ -65,10 +65,7 @@ namespace BomberMan
 			UI_WIN_ROUND  = UI_GAME_ID ,
 			UI_PLAYER_NUMBER_CHOICE ,
 		};
-		virtual void clearUserUI()
-		{
-			getSettingPanel()->removeChildWithMask( MASK_BASE );
-		}
+
 		virtual void doSetupSetting( bool beServer )
 		{
 			IMapGenerator* mapGen = new CSimpleMapGen( Vec2i(15,13) , NULL );

@@ -101,6 +101,6 @@ if (mode->initializeStage(stage)) {
 
 1.  [ ] **Step 1**: Update `GameStageMode` (Base) & `GameStageBase` interfaces.
 2.  [ ] **Step 2**: Refactor `SingleStageMode` & `ReplayStageMode`.
-3.  [ ] **Step 3**: Refactor `NetGameMode` (Move logic from `NetRoomStage` to here, rm `NetStageData`).
-4.  [ ] **Step 4**: Update `NetRoomStage` to be View-Only.
+3.  [ ] **Step 3**: Refactor `NetGameMode`.
+4.  [ ] **Step 4**: Move session control logic from `NetRoomStage` to `NetGameMode`, rm `NetStageData`, Update `NetRoomStage` to be View-Only.
 5.  [ ] **Step 5**: Implement `DedicatedLevelStageMode`.

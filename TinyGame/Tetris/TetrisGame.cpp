@@ -179,12 +179,12 @@ namespace Tetris
 
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameMode modeType )
 	{
 		LogMsg( "Run Tetris!!!" );
 		::Global::GetDrawEngine().setupSystem(this);
 
-		if( modeType == EGameStageMode::Single )
+		if( modeType == EGameMode::Single )
 		{
 			manger.changeStage(STAGE_GAME_MENU);
 		}

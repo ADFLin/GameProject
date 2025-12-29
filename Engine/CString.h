@@ -288,6 +288,9 @@ struct FCString
 	FORCEINLINE static  char const* Strrchr(char const* str, char c) { return ::strrchr(str, c); }
 	FORCEINLINE static  wchar_t const* Strrchr(wchar_t const* str, wchar_t c) { return ::wcsrchr(str, c); }
 
+	FORCEINLINE static  char const* Strchr(char const* str, char c) { return ::strchr(str, c); }
+	FORCEINLINE static  wchar_t const* Strchr(wchar_t const* str, wchar_t c) { return ::wcschr(str, c); }
+
 	FORCEINLINE static char const* StrStr(char const* s, char const* subStr) { return ::strstr(s, subStr); }
 	FORCEINLINE static wchar_t const* StrStr(wchar_t const* s, wchar_t const* subStr) { return ::wcsstr(s, subStr); }
 

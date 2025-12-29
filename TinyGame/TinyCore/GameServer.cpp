@@ -155,6 +155,8 @@ void ServerWorker::postChangeState( NetActionState oldState )
 	com.setServerState(getActionState());
 	sendTcpCommand( &com );
 
+	mEventResolver->resolveChangeActionState(getActionState());
+
 	if ( mNetListener )
 		mNetListener->onChangeActionState( getActionState() );
 }

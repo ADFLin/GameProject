@@ -1,8 +1,8 @@
 #ifndef ReplayStage_h__
 #define ReplayStage_h__
 
-#include "GameStageMode.h"
-#include "SingleStageMode.h"
+#include "GameMode.h"
+#include "SingleGameMode.h"
 #include "GameWidget.h"
 #include "GameReplay.h"
 
@@ -75,10 +75,9 @@ protected:
 	GButton*         mViewButton;
 };
 
-class  ReplayStageMode : public LevelStageMode
-	                   , public IGameReplayFeature
+class  ReplayGameMode : public GameLevelMode
 {
-	typedef LevelStageMode BaseClass;
+	typedef GameLevelMode BaseClass;
 public:
 
 	enum
@@ -91,7 +90,7 @@ public:
 		NEXT_UI_ID,
 	};
 
-	ReplayStageMode();
+	ReplayGameMode();
 
 	void setReplayPath(String const& path)
 	{
@@ -99,11 +98,10 @@ public:
 	}
 
 	LocalPlayerManager* getPlayerManager();
-	virtual ReplayStageMode* getReplayMode() override { return this; }
+	virtual ReplayGameMode* getReplayMode() override { return this; }
 	
 protected:
-	bool prevStageInit();
-	bool postStageInit();
+	bool initializeStage(GameStageBase* stage) override;
 	bool loadReplay(char const* path);
 	void onEnd();
 	void updateTime(GameTimeSpan deltaTime);

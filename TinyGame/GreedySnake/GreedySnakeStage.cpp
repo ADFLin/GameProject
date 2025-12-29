@@ -8,7 +8,7 @@
 
 #include "GameWidgetID.h"
 #include "GameGUISystem.h"
-#include "GameStageMode.h"
+#include "GameMode.h"
 
 #include "CSyncFrameManager.h"
 
@@ -31,7 +31,7 @@ namespace GreedySnake
 
 		if ( mGameMode == NULL )
 		{
-			if( getModeType() == EGameStageMode::Net )
+			if( getModeType() == EGameMode::Net )
 			{
 				mGameMode = new BattleMode;
 			}
@@ -76,8 +76,8 @@ namespace GreedySnake
 
 		switch( getModeType() )
 		{
-		case EGameStageMode::Single:
-		case EGameStageMode::Net:
+		case EGameMode::Single:
+		case EGameMode::Net:
 			{
 				GamePlayer* player = playerManager.getUser();
 				getGame()->getInputControl().setPortControl( player->getActionPort() , 0 );
@@ -139,7 +139,7 @@ namespace GreedySnake
 		case EGameState::End:
 			switch( getModeType() )
 			{
-			case EGameStageMode::Single:
+			case EGameMode::Single:
 				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LOCTEXT("Do You Want To Play Game Again ?") );
 				break;
@@ -155,7 +155,7 @@ namespace GreedySnake
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getModeType() == EGameStageMode::Single )
+				if ( getModeType() == EGameMode::Single )
 					getManager()->changeStage( STAGE_MAIN_MENU );
 			}
 			break;

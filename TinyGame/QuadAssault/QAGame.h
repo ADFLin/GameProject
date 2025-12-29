@@ -15,7 +15,7 @@ public:
 	virtual InputControl& getInputControl() override;
 
 	virtual bool queryAttribute(GameAttribute& value) override;
-	virtual void beginPlay(StageManager& manger, EGameStageMode modeType) override;
+	virtual void beginPlay(StageManager& manger, EGameMode modeType) override;
 	virtual void endPlay() override;
 
 };

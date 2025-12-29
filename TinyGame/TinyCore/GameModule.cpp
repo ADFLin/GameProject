@@ -43,11 +43,11 @@ InputControl& IGameModule::getInputControl()
 	return GEmptyInputControl;
 }
 
-bool IGameModule::changeDefaultStage(StageManager& stageManager, EGameStageMode modeType)
+bool IGameModule::changeDefaultStage(StageManager& stageManager, EGameMode modeType)
 {
 	switch( modeType )
 	{
-	case EGameStageMode::Single:
+	case EGameMode::Single:
 		{
 			GameAttribute value(ATTR_SINGLE_SUPPORT);
 			if( queryAttribute(value) && value.iVal )
@@ -62,7 +62,7 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, EGameStageMode 
 			}
 		}
 		break;
-	case EGameStageMode::Replay:
+	case EGameMode::Replay:
 		{
 			GameAttribute value(ATTR_REPLAY_SUPPORT);
 			if( queryAttribute(value) && value.iVal )
@@ -77,7 +77,7 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, EGameStageMode 
 			}
 		}
 		break;
-	case EGameStageMode::Net:
+	case EGameMode::Net:
 		{
 			GameAttribute value(ATTR_NET_SUPPORT);
 			if( queryAttribute(value) && value.iVal )

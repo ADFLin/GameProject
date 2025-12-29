@@ -17,8 +17,7 @@ class  NetRoomSettingHelper : public SettingHepler
 {
 public:
 	TINY_API NetRoomSettingHelper();
-
-	
+	TINY_API ~NetRoomSettingHelper();
 
 	template < class T >
 	T*  getWidget( int id )
@@ -41,9 +40,11 @@ public:
 	TINY_API void emptySlotSV( SlotId id , SlotState state );
 	TINY_API void sendPlayerStatusSV();
 
-	virtual void clearUserUI() = 0;
+	TINY_API void clearUserUI();
+
 	virtual void setupGame( StageManager& manager, StageBase* gameStage ){}
 	virtual void doSetupSetting( bool beServer ) = 0;
+	virtual void onClearUserUI(){}
 	virtual void doExportSetting( DataStreamBuffer& buffer ) = 0;
 	virtual void doImportSetting( DataStreamBuffer& buffer ) = 0;
 
@@ -54,9 +55,11 @@ public:
 	PlayerListPanel*  getPlayerListPanel(){ return mPlayerListPanel; }
 	GameSettingPanel* getSettingPanel(){ return mSettingPanel; }
 	TINY_API void              setMaxPlayerNum( int num );
-protected:
 
+
+protected:
 	ServerWorker*     mServer;
+
 	PlayerListPanel*  mPlayerListPanel;
 	GameSettingPanel* mSettingPanel;
 };

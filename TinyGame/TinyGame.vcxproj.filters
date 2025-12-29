@@ -68,12 +68,6 @@
     <ClCompile Include="TinyCore\NetGameMode.cpp">
       <Filter>StageMode</Filter>
     </ClCompile>
-    <ClCompile Include="TinyCore\ReplayStageMode.cpp">
-      <Filter>StageMode</Filter>
-    </ClCompile>
-    <ClCompile Include="TinyCore\SingleStageMode.cpp">
-      <Filter>StageMode</Filter>
-    </ClCompile>
     <ClCompile Include="..\OtherLib\NesEmu\ControllerPorts.cpp">
       <Filter>OtherLibs\NesEmu</Filter>
     </ClCompile>
@@ -182,6 +176,18 @@
     <ClCompile Include="TinyGameEditor.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="TinyCore\ReplayGameMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\SingleGameMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\DedicatedServerMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\ServerStatusPanel.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CellWalker.h">
@@ -215,12 +221,6 @@
       <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="TinyCore\NetGameMode.h">
-      <Filter>StageMode</Filter>
-    </ClInclude>
-    <ClInclude Include="TinyCore\ReplayStageMode.h">
-      <Filter>StageMode</Filter>
-    </ClInclude>
-    <ClInclude Include="TinyCore\SingleStageMode.h">
       <Filter>StageMode</Filter>
     </ClInclude>
     <ClInclude Include="..\OtherLib\NesEmu\CircularBuffer.h">
@@ -375,6 +375,18 @@
     </ClInclude>
     <ClInclude Include="AngryBird\HeaderPCH.h">
       <Filter>GameAngryBird</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\ReplayGameMode.h">
+      <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\SingleGameMode.h">
+      <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\DedicatedServerMode.h">
+      <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\ServerStatusPanel.h">
+      <Filter>StageMode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

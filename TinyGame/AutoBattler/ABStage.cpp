@@ -7,6 +7,7 @@
 #include "ABGameRenderer.h"
 #include "ABViewCamera.h"
 #include "ABGameHUD.h"
+#include "NetGameMode.h"
 
 #include "RenderUtility.h"
 #include "GameGlobal.h"
@@ -63,7 +64,7 @@ namespace AutoBattler
 
 	void LevelStage::tick()
 	{
-		if (getModeType() != EGameStageMode::Net)
+		if (getModeType() != EGameMode::Net)
 		{
 			runLogic(float(getTickTime()) / 1000.0f);
 		}
@@ -71,7 +72,7 @@ namespace AutoBattler
 
 	IFrameActionTemplate* LevelStage::createActionTemplate(unsigned version)
 	{
-		if (getModeType() == EGameStageMode::Net)
+		if (getModeType() == EGameMode::Net)
 		{
 			ABFrameActionTemplate* ptr = nullptr;
 			auto netMode = getGameStage()->getStageMode()->getNetLevelMode();
@@ -133,7 +134,7 @@ namespace AutoBattler
 		}
 
 		bool bCanCreateBot = true;
-		if (getModeType() == EGameStageMode::Net)
+		if (getModeType() == EGameMode::Net)
 		{
 			if (!::Global::GameNet().haveServer())
 				bCanCreateBot = false;
@@ -351,7 +352,7 @@ namespace AutoBattler
 	void LevelStage::sendAction(ABActionItem const& item)
 	{
 		unsigned id = ERROR_PLAYER_ID;
-		if (getModeType() == EGameStageMode::Net)
+		if (getModeType() == EGameMode::Net)
 		{
 			auto* manager = getGameStage()->getStageMode()->getPlayerManager();
 			id = manager->getUserID();
@@ -365,7 +366,7 @@ namespace AutoBattler
 
 	void LevelStage::sendAction(ActionPort port, ABActionItem const& item)
 	{
-		if (getModeType() == EGameStageMode::Net)
+		if (getModeType() == EGameMode::Net)
 		{
 			if (mNetEngine)
 			{
@@ -453,7 +454,7 @@ namespace AutoBattler
 	void LevelStage::onUpdate(GameTimeSpan deltaTime)
 	{
 		BaseClass::onUpdate(deltaTime);
-		if (getModeType() != EGameStageMode::Net)
+		if (getModeType() != EGameMode::Net)
 		{
 		// Logic is handled in tick(), avoid double update
 		// mWorld.tick(deltaTime);

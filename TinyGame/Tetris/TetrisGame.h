@@ -29,7 +29,7 @@ namespace Tetris
 		StageBase*      createStage( unsigned id );
 		bool            queryAttribute( GameAttribute& value );
 
-		void  beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void  beginPlay( StageManager& manger, EGameMode modeType ) override;
 		void  endPlay() override;
 		void  enter() override;
 		void  exit() override;

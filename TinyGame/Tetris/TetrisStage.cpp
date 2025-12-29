@@ -86,16 +86,16 @@ namespace Tetris
 
 		switch( getModeType() )
 		{
-		case EGameStageMode::Single:
+		case EGameMode::Single:
 			mGameMode->setupSingleGame(inputConrol);
 			break;
-		case EGameStageMode::Replay:
-			if ( getModeType() == EGameStageMode::Replay )
+		case EGameMode::Replay:
+			if ( getModeType() == EGameMode::Replay )
 			{
 				flag |= LevelMode::eReplay;
 			}
 			break;
-		case EGameStageMode::Net: 
+		case EGameMode::Net: 
 			{
 				GamePlayer* player = playerMgr.getPlayer( playerMgr.getUserID() );
 				inputConrol.setPortControl( player->getActionPort() , 0 );
@@ -207,7 +207,7 @@ namespace Tetris
 		switch( getGameState() )
 		{
 		case EGameState::Start:
-			if ( mGameTime > 2500 || getModeType() == EGameStageMode::Replay )
+			if ( mGameTime > 2500 || getModeType() == EGameMode::Replay )
 				changeState( EGameState::Run );
 			break;
 		}
@@ -226,7 +226,7 @@ namespace Tetris
 		case EGameState::End:
 			switch( getModeType() )
 			{
-			case  EGameStageMode::Single:
+			case  EGameMode::Single:
 				{
 					IPlayerManager* playerManager = getStageMode()->getPlayerManager();
 					mLastGameOrder = mGameMode->markRecord( 
@@ -254,7 +254,7 @@ namespace Tetris
 						UI_RESTART_GAME , "Do You Want To Play Game Again ?" );
 				}
 				break;
-			case EGameStageMode::Net:
+			case EGameMode::Net:
 				if ( ::Global::GameNet().getNetWorker()->isServer() )
 				{
 					::Global::GUI().showMessageBox( 
@@ -304,7 +304,7 @@ namespace Tetris
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getModeType() == EGameStageMode::Single )
+				if ( getModeType() == EGameMode::Single )
 				{
 					RecordStage* stage = (RecordStage*)getManager()->changeStage( STAGE_RECORD_GAME );
 					stage->setPlayerOrder( mLastGameOrder );
@@ -372,7 +372,7 @@ namespace Tetris
 
 	bool LevelStage::setupGame( GameInfo &gameInfo )
 	{
-		if ( getStageMode() && getModeType() != EGameStageMode::Net )
+		if ( getStageMode() && getModeType() != EGameMode::Net )
 		{
 			LocalPlayerManager* playerManager = static_cast< LocalPlayerManager* >(getStageMode()->getPlayerManager() );
 			for( int i = 0 ; i < gameInfo.numLevel ; ++i )

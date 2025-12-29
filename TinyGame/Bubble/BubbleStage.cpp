@@ -4,7 +4,7 @@
 #include "BubbleGame.h"
 #include "BubbleAction.h"
 
-#include "GameStageMode.h"
+#include "GameMode.h"
 #include "CSyncFrameManager.h"
 
 #include "GameGUISystem.h"

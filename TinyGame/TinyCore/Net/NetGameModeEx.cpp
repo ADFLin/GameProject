@@ -518,7 +518,7 @@ void NetRoomStageEx::onGameStarting()
 	}
 	
 	// 開始遊戲
-	runningGame->beginPlay(*getManager(), EGameStageMode::Net);
+	runningGame->beginPlay(*getManager(), EGameMode::Net);
 	
 	StageBase* nextStage = getManager()->getNextStage();
 	if (nextStage)
@@ -538,7 +538,7 @@ void NetRoomStageEx::onGameStarting()
 //========================================
 
 NetLevelStageModeEx::NetLevelStageModeEx()
-	: LevelStageMode(EGameStageMode::Net)
+	: GameLevelMode(EGameStageMode::Net)
 {
 }
 

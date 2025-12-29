@@ -16,7 +16,7 @@ namespace Rich
 		return nullptr;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameMode modeType )
 	{
 		::Global::GetDrawEngine().setupSystem(this);
 		changeDefaultStage(manger, modeType);

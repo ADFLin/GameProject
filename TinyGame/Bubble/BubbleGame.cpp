@@ -196,10 +196,7 @@ namespace Bubble
 	class BuNetRoomSettingHelper : public NetRoomSettingHelper
 	{
 	public:
-		virtual void          clearUserUI()
-		{
 
-		}
 		virtual void          doSetupSetting( bool beServer )
 		{
 
@@ -219,7 +216,7 @@ namespace Bubble
 		return NULL;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameMode modeType )
 	{
 		changeDefaultStage(manger, modeType);
 	}

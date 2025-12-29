@@ -21,7 +21,7 @@ namespace TowerDefend
 		StageBase*      createStage( unsigned id );
 		bool            queryAttribute( GameAttribute& value ){ return false; }
 
-		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameMode modeType ) override;
 
 	private:
 		CInputControl    mInputControl;

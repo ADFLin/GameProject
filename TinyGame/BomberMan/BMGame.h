@@ -16,7 +16,7 @@ namespace BomberMan
 		void  enter() override {}
 		void  exit() override {}
 		//
-		void beginPlay(StageManager& manger, EGameStageMode modeType) override;
+		void beginPlay(StageManager& manger, EGameMode modeType) override;
 	public:
 
 		virtual char const*           getName(){ return BOMBER_MAN_NAME; }

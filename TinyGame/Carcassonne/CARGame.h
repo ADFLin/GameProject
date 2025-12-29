@@ -18,7 +18,7 @@ namespace CAR
 		void  exit() override{} 
 
 		//
-		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameMode modeType ) override;
 	public:
 		char const*           getName() override{ return CAR_GAME_NAME; }
 		InputControl&         getInputControl() override{ return IGameModule::getInputControl(); }

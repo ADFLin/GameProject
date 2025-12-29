@@ -47,7 +47,7 @@ namespace GreedySnake
 		return false;
 	}
 
-	void GameModule::beginPlay(StageManager& manger, EGameStageMode modeType)
+	void GameModule::beginPlay(StageManager& manger, EGameMode modeType)
 	{
 		::Global::GetDrawEngine().setupSystem(this);
 		changeDefaultStage(manger, modeType);
@@ -82,10 +82,7 @@ namespace GreedySnake
 	{
 
 	public:
-		virtual void clearUserUI()
-		{
 
-		}
 		virtual void doSetupSetting( bool beServer )
 		{
 			setMaxPlayerNum( BattleMode::MaxPlayerNum );

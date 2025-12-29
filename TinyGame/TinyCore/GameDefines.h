@@ -1,7 +1,7 @@
 #ifndef GameDefines_h__b6b703c3_77d6_4143_b3b2_b76eee58d347
 #define GameDefines_h__b6b703c3_77d6_4143_b3b2_b76eee58d347
 
-enum class EGameStageMode
+enum class EGameMode
 {
 	Unknow  ,
 	Single  ,

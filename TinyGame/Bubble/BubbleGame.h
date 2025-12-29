@@ -30,7 +30,7 @@ namespace Bubble
 		StageBase*      createStage( unsigned id );
 		bool            queryAttribute( GameAttribute& value );
 		SettingHepler*  createSettingHelper( SettingHelperType type );
-		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameMode modeType ) override;
 
 		void enter() override;
 		void exit() override;

@@ -134,7 +134,7 @@ bool QuadAssaultModule::queryAttribute(GameAttribute& value)
 	return false;
 }
 
-void QuadAssaultModule::beginPlay(StageManager& manger, EGameStageMode modeType)
+void QuadAssaultModule::beginPlay(StageManager& manger, EGameMode modeType)
 {
 	ProxyStage* stage = new ProxyStage;
 	manger.setNextStage(stage);

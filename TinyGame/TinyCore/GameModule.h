@@ -21,10 +21,8 @@ class InputControl;
 class IPlayerManager;
 class GameStage;
 class ReplayTemplate;
-
 struct ReplayInfo;
-
-
+class INetEngine;
 
 class SettingListener
 {
@@ -81,7 +79,7 @@ public:
 	virtual void enter(){}
 	virtual void exit(){} 
 	//
-	virtual void beginPlay(StageManager& manger, EGameStageMode modeType) = 0;
+	virtual void beginPlay(StageManager& manger, EGameMode modeType) = 0;
 	virtual void endPlay(){}
 
 	virtual void notifyStageInitialized(StageBase* stage){}
@@ -89,6 +87,8 @@ public:
 
 	virtual IGameInstance*        createInstance() { return nullptr; }
 	virtual IFameStateContainer*  createFrameStateCOntainer(){ return nullptr; }
+
+	virtual INetEngine*  createNetEngine() { return nullptr; }
 
 	virtual void startupModule() override;
 	virtual void shutdownModule() override;
@@ -103,7 +103,7 @@ public:
 	//old replay version
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }
 
-	bool changeDefaultStage(StageManager& stageManager, EGameStageMode modeType);
+	bool changeDefaultStage(StageManager& stageManager, EGameMode modeType);
 };
 
 

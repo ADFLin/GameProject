@@ -18,7 +18,7 @@ namespace Cube
 		StageBase*      createStage( unsigned id );
 		bool            queryAttribute( GameAttribute& value );
 
-		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		virtual void beginPlay( StageManager& manger, EGameMode modeType ) override;
 		virtual void enter();
 		virtual void exit();
 

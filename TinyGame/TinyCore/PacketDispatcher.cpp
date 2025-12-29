@@ -49,7 +49,7 @@ bool PacketDispatcher::recvCommand(IComPacket* cp)
 			(handler->workerFuncSocket)(cp);
 		}
 
-		if (handler->workerFunc || handler->userFunc)
+		if (handler->workerFunc || handler->userHanlders.size())
 		{
 			enqueue(cp, handler);
 			return true;
@@ -73,10 +73,17 @@ void PacketDispatcher::removeProcesserFunc(void* processer)
 			handler.workerFunc.clear();
 			handler.workerFuncSocket.clear();
 		}
-		if (handler.userProcesser == processer)
+
+		for (auto iter = handler.userHanlders.begin(); iter != handler.userHanlders.end(); )
 		{
-			handler.userProcesser = nullptr;
-			handler.userFunc.clear();
+			if (iter->userProcesser == processer)
+			{
+				iter = handler.userHanlders.erase(iter);
+			}
+			else
+			{
+				++iter;
+			}
 		}
 	}
 }
@@ -105,8 +112,13 @@ void PacketDispatcher::procCommand()
 			if (com.handler->workerFunc)
 				(com.handler->workerFunc)(com.cp);
 
-			if (com.handler->userFunc)
-				(com.handler->userFunc)(com.cp);
+			if (!com.handler->userHanlders.empty())
+			{
+				for (auto& userHandler : com.handler->userHanlders)
+				{
+					(userHandler.func)(com.cp);
+				}
+			}
 		}
 
 		delete com.cp;
@@ -133,9 +145,12 @@ void PacketDispatcher::procCommand(ComVisitor& visitor)
 				(com.handler->workerFunc)(com.cp);
 			}
 
-			if (com.handler->userFunc)
+			if (!com.handler->userHanlders.empty())
 			{
-				(com.handler->userFunc)(com.cp);
+				for (auto& userHandler : com.handler->userHanlders)
+				{
+					(userHandler.func)(com.cp);
+				}
 			}
 		}
 
@@ -158,14 +173,5 @@ void PacketDispatcher::procCommand(ComVisitor& visitor)
 	{
 		NET_MUTEX_LOCK(mMutexProcCPList);
 		mProcCPList.splice(mProcCPList.begin(), mDispatchList);
-	}
-}
-
-void PacketDispatcher::procCommand(IComPacket* cp)
-{
-	auto handler = findHandler(cp->getID());
-	if (handler && handler->userFunc)
-	{
-		(handler->userFunc)(cp);
 	}
 }

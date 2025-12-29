@@ -1,11 +1,11 @@
 #include "TinyGamePCH.h"
-#include "GameStageMode.h"
+#include "GameMode.h"
 
 #include "GameReplay.h"
 #include "GameModule.h"
 #include "GameAction.h"
 
-GameStageMode::GameStageMode(EGameStageMode mode) 
+GameModeBase::GameModeBase(EGameMode mode) 
 	:mStageMode(mode)
 	, mCurStage(nullptr)
 	, mGameState(EGameState::End)
@@ -14,12 +14,12 @@ GameStageMode::GameStageMode(EGameStageMode mode)
 
 }
 
-GameStageMode::~GameStageMode()
+GameModeBase::~GameModeBase()
 {
 
 }
 
-bool GameStageMode::changeState(EGameState state)
+bool GameModeBase::changeState(EGameState state)
 {
 	if( mGameState == state )
 		return true;
@@ -28,27 +28,34 @@ bool GameStageMode::changeState(EGameState state)
 		return false;
 
 	mGameState = state;
-	mCurStage->onChangeState(state);
+	if (mCurStage)
+	{
+		mCurStage->onChangeState(state);
+	}
 	return true;
 }
 
-void GameStageMode::restart(bool beInit)
+void GameModeBase::restart(bool beInit)
 {
 	getGame()->getInputControl().restart();
 	doRestart(beInit);
 }
 
-void GameStageMode::doRestart(bool bInit)
+void GameModeBase::doRestart(bool bInit)
 {
 	uint64 seed;
 	onRestart(seed);
 	::Global::RandSeedNet(seed);
-	mCurStage->onRestart(bInit);
+	if (mCurStage)
+	{
+		mCurStage->onRestart(bInit);
+	}
+
 	mReplayFrame = 0;
 	changeState(EGameState::Start);
 }
 
-bool GameStageMode::togglePause()
+bool GameModeBase::togglePause()
 {
 	if( getGameState() == EGameState::Run )
 		return changeState(EGameState::Pause);
@@ -58,18 +65,18 @@ bool GameStageMode::togglePause()
 }
 
 
-LevelStageMode::LevelStageMode(EGameStageMode mode)
+GameLevelMode::GameLevelMode(EGameMode mode)
 	:BaseClass(mode)
 {
 
 }
 
-LevelStageMode::~LevelStageMode()
+GameLevelMode::~GameLevelMode()
 {
 
 }
 
-bool LevelStageMode::saveReplay(char const* name)
+bool GameLevelMode::saveReplay(char const* name)
 {
 	if( getGameState() == EGameState::Start )
 		return false;
@@ -90,14 +97,14 @@ bool LevelStageMode::saveReplay(char const* name)
 	return mReplayRecorder->save(path);
 }
 
-void LevelStageMode::onRestart(uint64& seed)
+void GameLevelMode::onRestart(uint64& seed)
 {
 	BaseClass::onRestart(seed);
 	if( mReplayRecorder.get() )
 		mReplayRecorder->start(seed);
 }
 
-bool LevelStageMode::buildReplayRecorder()
+bool GameLevelMode::buildReplayRecorder()
 {
 	IGameModule* game = getGame();
 	if( !game )

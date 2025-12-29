@@ -147,11 +147,6 @@ namespace Tetris
 		slider->setValue( mInfo.modeNormal.startGravityLevel );
 	}
 
-	void CNetRoomSettingHelper::clearUserUI()
-	{
-		mSettingPanel->removeChildWithMask( MASK_BASE | MASK_MODE );
-	}
-
 	void CNetRoomSettingHelper::setupMaxPlayerNumUI( int num )
 	{
 		GChoice* choice = getWidget< GChoice >( UI_PLAYER_NUMBER_CHOICE );

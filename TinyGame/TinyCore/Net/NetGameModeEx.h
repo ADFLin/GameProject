@@ -140,10 +140,10 @@ private:
  * - 支援 Direct Level（跳過 Room）
  * - 支援 Late Join
  */
-class NetLevelStageModeEx : public LevelStageMode
+class NetLevelStageModeEx : public GameModeBase
                           , public IFrameUpdater
 {
-	typedef LevelStageMode BaseClass;
+	typedef GameLevelMode BaseClass;
 	
 public:
 	enum
@@ -156,7 +156,7 @@ public:
 	~NetLevelStageModeEx();
 	
 	//========================================
-	// LevelStageMode
+	// GameModeBase
 	//========================================
 	bool prevStageInit() override;
 	bool postStageInit() override;

@@ -5,13 +5,13 @@
 #include "GameModuleManager.h"
 #include "GameReplay.h"
 #include "GameAction.h"
-#include "GameStageMode.h"
+#include "GameMode.h"
 #include "GameGUISystem.h"
 
-class EmptyStageMode : public GameStageMode
+class EmptyStageMode : public GameModeBase
 {
 public:
-	EmptyStageMode():GameStageMode( EGameStageMode::Unknow ){}
+	EmptyStageMode():GameModeBase( EGameMode::Unknow ){}
 	IPlayerManager* getPlayerManager() override
 	{
 		return &mPlayerManager;
@@ -88,34 +88,48 @@ bool GameStageBase::onInit()
 
 void GameStageBase::onEnd()
 {
-	mStageMode->onEnd();
-	mStageMode->mCurStage = nullptr;
+	if (mStageMode)
+	{
+		mStageMode->onEnd();
+		mStageMode->mCurStage = nullptr;
+		
+		// Release EmptyStageMode if created internally (getModeType == Unknow)
+		// Modes created by StageManager (Net, Single, Replay) are managed by StageManager
+		if (mStageMode->getModeType() == EGameMode::Unknow)
+		{
+			delete mStageMode;
+			mStageMode = nullptr;
+		}
+	}
 	BaseClass::onEnd();
 }
 
 void GameStageBase::onUpdate(GameTimeSpan deltaTime)
 {
-	mStageMode->updateTime(deltaTime);
+	// Note: Mode's updateTime is now called directly by StageManager
+	// This method only handles Stage-specific update logic
 	BaseClass::onUpdate(deltaTime);
 }
 
 MsgReply GameStageBase::onKey(KeyMsg const& msg)
 {
-	return mStageMode->onKey(msg);
+	// Note: Mode's onKey is now called directly by StageManager
+	// This method only handles Stage-specific key events
+	return MsgReply::Unhandled();
 }
 
 bool GameStageBase::onWidgetEvent(int event, int id, GWidget* ui)
 {
-	if( !mStageMode->onWidgetEvent(event, id, ui) )
-		return false;
-
+	// Note: Mode's onWidgetEvent is now called directly by StageManager
+	// This method only handles Stage-specific widget events
+	
 	if( id >= UI_GAME_STAGE_MODE_ID )
-		return false;
+		return true;  // Let StageManager handle Mode-level events
 
 	return BaseClass::onWidgetEvent(event, id, ui);
 }
 
-void GameStageBase::setupStageMode(GameStageMode* mode)
+void GameStageBase::setupStageMode(GameModeBase* mode)
 {
 	assert(mStageMode == nullptr);
 	mStageMode = mode;
@@ -133,7 +147,7 @@ EGameState GameStageBase::getGameState() const
 	return mStageMode->getGameState();
 }
 
-EGameStageMode GameStageBase::getModeType() const
+EGameMode GameStageBase::getModeType() const
 {
 	return mStageMode->getModeType();
 }

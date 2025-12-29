@@ -230,7 +230,7 @@ namespace Zuma
 		mCore = NULL;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameMode modeType )
 	{		
 		if( mCore == NULL )
 		{

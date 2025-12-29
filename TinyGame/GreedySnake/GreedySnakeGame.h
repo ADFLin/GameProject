@@ -14,7 +14,7 @@ namespace GreedySnake
 	{
 	public:
 		
-		void beginPlay(StageManager& manger, EGameStageMode modeType) override;
+		void beginPlay(StageManager& manger, EGameMode modeType) override;
 		void endPlay() override;
 
 

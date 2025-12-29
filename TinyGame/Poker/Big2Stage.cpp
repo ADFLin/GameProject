@@ -84,8 +84,8 @@ namespace Big2 {
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )
 	{
-		if ( ( getModeType() == EGameStageMode::Net && ::Global::GameNet().getNetWorker()->isServer() ) ||
-			   getModeType() == EGameStageMode::Single )
+		if ( ( getModeType() == EGameMode::Net && ::Global::GameNet().getNetWorker()->isServer() ) ||
+			   getModeType() == EGameMode::Single )
 		{
 			mServerLevel = new ServerLevel;
 		}
@@ -131,16 +131,16 @@ namespace Big2 {
 			}
 		}
 
-		if (getModeType() == EGameStageMode::Net)
+		if (getModeType() == EGameMode::Net)
 		{
-			ComWorker* worker = static_cast<NetLevelStageMode*>(getStageMode())->getWorker();
+			ComWorker* worker = static_cast<NetGameMode*>(getStageMode())->getWorker();
 			if (mServerLevel)
 			{
 				mServerLevel->setupTransfer(new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker() ));
 			}
 			mClientLevel->setupTransfer(new CWorkerDataTransfer(worker, userSlotId));
 		}
-		else if (getModeType() == EGameStageMode::Single)
+		else if (getModeType() == EGameMode::Single)
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;

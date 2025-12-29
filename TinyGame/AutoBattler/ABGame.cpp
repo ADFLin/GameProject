@@ -1,6 +1,7 @@
 #include "ABPCH.h"
 #include "ABGame.h"
 #include "ABStage.h"
+#include "ABNetwork.h"
 #include "GameSettingHelper.h"
 #include "NetGameMode.h"
 #include "GameSettingPanel.h"
@@ -27,18 +28,24 @@ namespace AutoBattler
 			mUseBot = true;
 		}
 
-		virtual void clearUserUI() override
+		virtual void onClearUserUI() override
 		{
 			mUIUseBot = NULL;
 		}
 
-
 		virtual void doSetupSetting( bool beServer ) override
 		{
 			setMaxPlayerNum( AB_MAX_PLAYER_NUM );
-			mUIUseBot = mSettingPanel->addCheckBox( UI_USE_BOT , "Use Bot For Empty Slot" );
-			if (mUIUseBot)
-				mUIUseBot->bChecked = mUseBot;
+			if (mSettingPanel)
+			{
+				mUIUseBot = mSettingPanel->addCheckBox(UI_USE_BOT, "Use Bot For Empty Slot");
+				if (mUIUseBot)
+					mUIUseBot->bChecked = mUseBot;
+			}
+			else
+			{
+
+			}
 		}
 
 
@@ -105,9 +112,9 @@ namespace AutoBattler
 		return false;
 	}
 
-	void GameModule::beginPlay(StageManager& manger, EGameStageMode modeType)
+	void GameModule::beginPlay(StageManager& manger, EGameMode modeType)
 	{
-		if (modeType == EGameStageMode::Net)
+		if (modeType == EGameMode::Net)
 		{
 			manger.changeStage(STAGE_NET_GAME);
 		}
@@ -117,4 +124,12 @@ namespace AutoBattler
 		}
 	}
 
+	INetEngine* GameModule::createNetEngine()
+	{
+		// Create ABNetEngine for dedicated server mode
+		ABNetEngine* engine = new ABNetEngine();
+		return engine;
+	}
+
 }//namespace AutoBattler
+

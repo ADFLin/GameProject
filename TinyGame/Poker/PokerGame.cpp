@@ -87,7 +87,7 @@ namespace Poker
 		return false;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameMode modeType )
 	{
 		changeDefaultStage(manger, modeType);
 	}
@@ -138,10 +138,7 @@ namespace Poker
 			}
 			return true;
 		}
-		virtual void clearUserUI()
-		{
-			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
-		}
+
 		virtual void doSetupSetting( bool beServer )
 		{
 			setupBaseUI();

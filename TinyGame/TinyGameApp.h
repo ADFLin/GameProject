@@ -32,7 +32,7 @@ class ClientWorker;
 class LevelMode;
 enum  StageID;
 
-class GameStageMode;
+class GameModeBase;
 class InputControl;
 
 
@@ -127,6 +127,9 @@ public:
 	NetWorker*  getNetWorker(){ return mNetWorker; }
 	NetWorker*  buildNetwork( bool beServer );	
 	void        closeNetwork();
+	
+	// Dedicated Server Support
+	bool        startDedicatedServer(char const* gameName, int port = 10101);
 
 	//IGUIDelegate
 	virtual void addGUITask(TaskBase* task, bool bGlobal) override;
@@ -151,12 +154,13 @@ public:
 protected:
 	//StageManager
 	StageBase*     createStage( StageID stageId );
-	GameStageMode* createGameStageMode(StageID stageId);
+	GameModeBase* createGameStageMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
 	bool           initializeStage(StageBase* stage);
 	void           finalizeStage(StageBase* stage);
 	void           postStageChange(StageBase* stage);
 	void           prevStageChange();
+	GameModeBase*  getActiveMode() override { return mStageMode; }
 	//~StageManager
 
 	void  importUserProfile();
@@ -191,7 +195,7 @@ private:
 
 	bool               mbLockFPS;
 	GameWindow         mGameWindow;
-	GameStageMode*     mStageMode;
+	GameModeBase*     mStageMode;
 	RenderEffect*      mRenderEffect;
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;

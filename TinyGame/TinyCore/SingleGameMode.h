@@ -14,6 +14,7 @@ public:
 	SingleGameMode();
 	~SingleGameMode();
 
+	bool   initialize() override;
 	bool   initializeStage(GameStageBase* stage) override;
 	void   onRestart(uint64& seed);
 	void   updateTime(GameTimeSpan deltaTime);

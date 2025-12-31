@@ -23,34 +23,26 @@ namespace AutoBattler
 	class BotController;
 	class ABGameRenderer;
 
-	class LevelStage : public GameStageBase
-		             , public IGameRenderSetup
-					 , public IGameActionControl
-					 , public IPlayerControllerContext
+	class LevelStageBase : public GameStageBase
+		                 , public IGameActionControl
 	{
 		using BaseClass = GameStageBase;
 	public:
-		LevelStage();
 
-		ABNetEngine* mNetEngine = nullptr;
+		void onEnd();
 
-		bool onInit() override;
-		void onEnd() override;
-		void onUpdate(GameTimeSpan deltaTime) override;
-		void onRender(float dFrame) override;
+		void configLevelSetting(GameLevelInfo& info)
+		{
+			info.seed = ::Global::Random();
+		}
 
+		void setupLevel(GameLevelInfo const& info)
+		{
+			::Global::RandSeedNet(info.seed);
+		}
 
-		void onRestart(bool beInit) override;
-		void tick() override;
-
-
-		void runLogic(float dt);
-
-		void executeAction(ActionPort port, ABActionItem const& item);
-		void sendAction(ABActionItem const& item);
-		void sendAction(ActionPort port, ABActionItem const& item);
-		IFrameActionTemplate* createActionTemplate(unsigned version) override;
-
+		virtual void sendAction(ActionPort port, ABActionItem const& item) = 0;
+		virtual void executeAction(ActionPort port, ABActionItem const& item) = 0;
 		// IGameActionControl
 		virtual void buyUnit(Player& player, int slotIndex) override;
 		virtual void sellUnit(Player& player, int slotIndex) override;
@@ -61,10 +53,46 @@ namespace AutoBattler
 		virtual void syncDrag(Player& player, int srcType, int srcIndex, int posX, int posY, bool bDrop) override;
 
 
-		virtual void configLevelSetting(GameLevelInfo& info);
+		World& getWorld() { return mWorld; }
+
+		void runLogic(float dt);
+
+	protected:
+		World mWorld;
+		TArray<BotController*> mBots;
+
+		ABNetEngine* mNetEngine = nullptr;
+
+	};
+
+
+
+	class LevelStage : public LevelStageBase
+		             , public IGameRenderSetup
+					 , public IPlayerControllerContext
+	{
+		using BaseClass = LevelStageBase;
+	public:
+		LevelStage();
+
+		bool onInit() override;
+		void onUpdate(GameTimeSpan deltaTime) override;
+		void onRender(float dFrame) override;
+
+
+		void onRestart(bool beInit) override;
+		void tick() override;
+
+		void executeAction(ActionPort port, ABActionItem const& item);
+		void sendAction(ABActionItem const& item);
+		void sendAction(ActionPort port, ABActionItem const& item);
+		IFrameActionTemplate* createActionTemplate(unsigned version) override;
+
+
+
+
 
 		virtual void setupLocalGame(LocalPlayerManager& playerManager);
-		virtual void setupLevel(GameLevelInfo const& info);
 		virtual void setupScene(IPlayerManager& playerManager);
 
 		bool setupNetwork(NetWorker* worker, INetEngine** engine) override;
@@ -79,8 +107,7 @@ namespace AutoBattler
 		bool mUseBots = true;
 
 	protected:
-		World mWorld;
-		TArray<BotController*> mBots;
+
 
 		ABViewCamera mCamera;
 
@@ -95,7 +122,7 @@ namespace AutoBattler
 	public:
 		BattlePhase getPhase() const { return mWorld.getPhase(); }
 		PlayerBoard& getPlayerBoard() { return mWorld.getLocalPlayerBoard(); }
-		World& getWorld() override { return mWorld; }
+
 		bool isNetMode() const override { return getModeType() == EGameMode::Net; }
 	
 		// IPlayerControllerContext
@@ -103,10 +130,20 @@ namespace AutoBattler
 		Unit* pickUnit(Vec2i screenPos) override;
 		UnitLocation screenToDropTarget(Vec2i screenPos) override;
 		Vector2 worldToScreen(Vector2 const& worldPos) const;
+		World& getWorld() override { return mWorld; }
 	
 	private:
 		// Helper: find closest unit to worldPos within pickRadius
 		Unit* pickUnitAtWorldPos(Vector2 worldPos, float pickRadius);
+	};
+
+	class DedicatedLevelStage : public LevelStageBase
+	{
+	public:
+
+		void executeAction(ActionPort port, ABActionItem const& item);
+		void sendAction(ActionPort port, ABActionItem const& item);
+
 	};
 
 }//namespace AutoBattler

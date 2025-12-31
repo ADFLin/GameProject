@@ -444,7 +444,10 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				ClientWorker* worker = static_cast< ClientWorker* >( ::Global::GameNet().buildNetwork( false ) );
 				auto stageMode = new NetGameMode;
 				stageMode->mStageManager = getManager();
-				stageMode->initWorker(worker, NULL);
+				if (!stageMode->initialize())
+				{
+
+				}
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage( stage );
 			}
@@ -453,9 +456,13 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				auto stage = new Net::TestStage;
 				ServerWorker* server = static_cast<ServerWorker*>(::Global::GameNet().buildNetwork(true));
+				server->createLocalWorker(::Global::GetUserProfile().name);
 				auto stageMode = new NetGameMode;
 				stageMode->mStageManager = getManager();
-				stageMode->initWorker(server->createLocalWorker(::Global::GetUserProfile().name), server);
+				if (!stageMode->initialize())
+				{
+
+				}
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage(stage);
 

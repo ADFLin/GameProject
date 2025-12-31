@@ -146,7 +146,8 @@ bool NetRoomStage::onInit()
 	{
 		ClientWorker* worker = getClientWorker();
 
-		worker->setClientListener(this);
+		// ClientListener 由 NetGameMode 設置，不需要在這裡重複設置
+		// NetGameMode::onServerEvent 會轉發事件到 Stage
 		if ( worker->getActionState() == NAS_DISSCONNECT )
 		{
 			mConnectPanel  = new ServerListPanel( worker , Vec2i( 0 , 0 ) , NULL );
@@ -160,7 +161,7 @@ bool NetRoomStage::onInit()
 		}
 	}
 
-	getWorker()->changeState( NAS_ROOM_ENTER );
+	// 進入房間狀態由 NetGameMode 控制，這裡只觸發 UI 初始化
 	LogMsg("Net Room Init");
 	return true;
 }
@@ -457,6 +458,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 	return BaseClass::onWidgetEvent( event , id , ui );
 }
 
+// 由 NetGameMode::onServerEvent 轉發呼叫 - 只處理 UI 更新
 void NetRoomStage::onServerEvent( ClientListener::EventID event , unsigned msg )
 {
 	if ( mConnectPanel )
@@ -467,12 +469,13 @@ void NetRoomStage::onServerEvent( ClientListener::EventID event , unsigned msg )
 	switch( event )
 	{
 	case ClientListener::eCON_CLOSE:
+		// UI: 切換回主選單
 		getManager()->changeStage( STAGE_MAIN_MENU );
 		break;
 	case ClientListener::eLOGIN_RESULT:
+		// UI: 顯示完整設定面板
 		if ( msg )
 		{
-			getWorker()->changeState(NAS_ROOM_WAIT);
 			setupUI(true);
 		}
 		break;
@@ -516,9 +519,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 	switch( com->state )
 	{
-	case NAS_ROOM_ENTER:
-		getWorker()->changeState( NAS_ROOM_WAIT );
-		break;
+	// NAS_ROOM_ENTER 的 changeState 已移至 NetGameMode::procPlayerState
 	case NAS_LEVEL_SETUP:
 		{
 			// ✅ 只處理 UI 更新
@@ -597,11 +598,7 @@ void NetRoomStage::procPlayerStateSv(IComPacket* cp)
 
 	switch( com->state )
 	{
-	case NAS_ROOM_ENTER:
-		{
-			getMode()->sendGameSetting( com->playerId );
-		}
-		break;
+	// NAS_ROOM_ENTER 的 sendGameSetting 已移至 NetGameMode::onAddPlayer
 	case NAS_ROOM_WAIT:
 		{
 			mReadyButton->enable( false );
@@ -655,16 +652,8 @@ void NetRoomStage::procPlayerStatus(IComPacket* cp)
 void NetRoomStage::procSlotState(IComPacket* cp)
 {
 	SPSlotState* com = cp->cast< SPSlotState >();
-	for( int i = 0 ; i < MAX_PLAYER_NUM ; ++i )
-	{
-		if ( com->state[i] >= 0 )
-		{
-			GamePlayer* player = getWorker()->getPlayerManager()->getPlayer( PlayerId( com->state[i] ) );
-			if ( player )
-				player->setSlot( i );
-		}
-	}
-
+	// 業務邏輯 (player->setSlot) 已移至 NetGameMode::procSlotState
+	// 這裡只做 UI 刷新
 	mPlayerPanel->refreshPlayerList(com->idx, com->state);
 }
 
@@ -675,20 +664,21 @@ void NetRoomStage::procRawData(IComPacket* cp)
 	switch( com->id )
 	{
 	case NetGameMode::SETTING_DATA_ID:
-		// ✅ Client 接收遊戲設定 - 使用統一的 switchGame 接口
+		// Client 接收遊戲設定 - setupGame + importSetting 是 UI 邏輯
 		if ( !haveServer() )
 		{
 			try
 			{
 				char gameName[128];
 				com->buffer.take(gameName, sizeof(gameName));
-				mSettingPanel->setGame(gameName);  // 更新 UI 選單
+				mSettingPanel->setGame(gameName);  // UI: 更新遊戲選單
 
+				// UI: 創建 Helper 並導入設定到面板
 				NetGameMode::GameSwitchContext ctx;
 				ctx.playerPanel = mPlayerPanel;
 				ctx.settingPanel = mSettingPanel;
 				ctx.listener = this;
-				ctx.importBuffer = &com->buffer;  // 導入設定數據
+				ctx.importBuffer = &com->buffer;  // 導入設定數據到 UI
 				
 				getMode()->switchGame(gameName, ctx);
 				mSettingPanel->adjustChildLayout();
@@ -699,7 +689,6 @@ void NetRoomStage::procRawData(IComPacket* cp)
 			}
 		}
 		break;
-
 	}
 }
 
@@ -763,19 +752,7 @@ bool GameStartTask::onUpdate( long time )
 }
 
 
-void NetGameMode::initWorker( ComWorker* worker , ServerWorker* server /*= NULL */ )
-{
-	mWorker = worker;
-	mServer = server;
-	registerNetEvent();
 
-	if (haveServer())
-	{
-		mServer->setEventResolver(this);
-		mServer->getPlayerManager()->setListener(this);  // ✅ 註冊為 PlayerListener
-	}
-
-}
 
 void NetGameMode::unregisterNetEvent( void* processor )
 {
@@ -846,6 +823,49 @@ NetGameMode::~NetGameMode()
 	}
 }
 
+bool NetGameMode::initialize()
+{
+	// Initialize worker from Global::GameNet()
+	IGameNetInterface& gameNet = ::Global::GameNet();
+	NetWorker* netWorker = gameNet.getNetWorker();
+	
+	if (!netWorker)
+	{
+		LogWarning(0, "NetGameMode::initialize - No network worker available");
+		return false;
+	}
+	
+	// Determine if we're server or client
+	if (gameNet.haveServer())
+	{
+		// Server mode: netWorker is ServerWorker
+		mServer = static_cast<ServerWorker*>(netWorker);
+		mWorker = mServer->getLocalWorker();  // Get the local worker from server
+	}
+	else
+	{
+		// Client mode: netWorker is ClientWorker
+		mWorker = static_cast<ClientWorker*>(netWorker);
+		mServer = nullptr;
+	}
+	
+	// Register network events
+	registerNetEvent();
+	
+	if (haveServer())
+	{
+		mServer->setEventResolver(this);
+		mServer->getPlayerManager()->setListener(this);  // 註冊為 PlayerListener
+	}
+	else
+	{
+		mNetEngine = &gEmptyNetEngine;
+		getClientWorker()->setClientListener(this);
+	}
+	
+	return true;
+}
+
 bool NetGameMode::initializeStage(GameStageBase* stage)
 {
 
@@ -869,10 +889,8 @@ bool NetGameMode::initializeStage(GameStageBase* stage)
 	}
 	else if (!getClientWorker()->haveConnect())
 	{
-		mNetEngine = &gEmptyNetEngine;
-
-		getClientWorker()->setClientListener(this);
-
+		// ClientListener is now set in initialize()
+		// Show server list panel for connection
 		ServerListPanel* panel = new ServerListPanel(getClientWorker(), Vec2i(0, 0), NULL);
 
 		panel->setPos(::Global::GUI().calcScreenCenterPos(panel->getSize()));
@@ -1084,15 +1102,7 @@ void NetGameMode::resolveChangeActionState(NetActionState state)
 	case NAS_LEVEL_LOAD:
 		{			
 			SPLevelInfo info;
-			if (getStage())
-			{
-				getStage()->configLevelSetting(info);
-			}
-			else if (mNetEngine)
-			{
-				// Dedicated server mode: get level info from NetEngine
-				mNetEngine->configLevelSetting(info);
-			}
+			getStage()->configLevelSetting(info);
 			mServer->sendTcpCommand(&info);
 		}
 		break;
@@ -1110,8 +1120,13 @@ void NetGameMode::procPlayerState(IComPacket* cp)
 	{
 	case NAS_ROOM_ENTER:
 		{
+			// 業務邏輯：進入房間後切換到等待狀態
+			if (mWorker)
+			{
+				mWorker->changeState(NAS_ROOM_WAIT);
+			}
+			// Stage 切換
 			NetRoomStage* stage = static_cast<NetRoomStage*>( getManager()->changeStage(STAGE_NET_ROOM));
-			// stage->initWorker(mWorker, mServer); // Worker initialization moved to NetGameMode
 		}
 		break;
 	case NAS_LEVEL_SETUP:
@@ -1274,6 +1289,7 @@ void NetGameMode::onServerEvent(ClientListener::EventID event, unsigned msg)
 {
 	InlineString< 256 > str;
 
+	// 業務邏輯處理
 	switch( event )
 	{
 	case ClientListener::eCON_CLOSE:
@@ -1281,7 +1297,27 @@ void NetGameMode::onServerEvent(ClientListener::EventID event, unsigned msg)
 		::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
 		break;
 	case ClientListener::eLOGIN_RESULT:
+		// 業務邏輯：登入成功後切換到房間等待狀態
+		if (msg && mWorker)
+		{
+			mWorker->changeState(NAS_ROOM_WAIT);
+		}
 		break;
+	}
+	
+	// 轉發事件給 Stage 處理 UI 更新
+	// 使用 StageManager 獲取當前 Stage（可能是 NetRoomStage 或其他 StageBase）
+	if (mStageManager)
+	{
+		StageBase* curStage = mStageManager->getCurStage();
+		if (curStage)
+		{
+			// 使用 dynamic_cast 檢查 Stage 是否實作 ClientListener
+			if (ClientListener* stageListener = dynamic_cast<ClientListener*>(curStage))
+			{
+				stageListener->onServerEvent(event, msg);
+			}
+		}
 	}
 }
 
@@ -1327,7 +1363,7 @@ bool NetGameMode::loadLevel(GameLevelInfo const& info)
 		return false;
 	}
 
-	if( !buildReplayRecorder() )
+	if( !buildReplayRecorder(getStage()) )
 	{
 
 	}
@@ -1548,9 +1584,8 @@ void NetGameMode::procRawData(IComPacket* cp)
 	switch (com->id)
 	{
 	case SETTING_DATA_ID:
-		// ✅ Client 端的遊戲設定導入由 NetRoomStage::procRawData 處理
-		// 因為需要連接 UI panels 後才能安全地調用 importSetting()
-		// NetGameMode 這裡不處理 Client 端邏輯
+		// Client 端的遊戲設定導入由 NetRoomStage::procRawData 處理
+		// 因為 setupGame + importSetting 是 UI 遏輯 (填充設定面板)
 		break;
 	}
 }

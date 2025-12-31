@@ -219,6 +219,19 @@ LocalPlayerManager* ReplayGameMode::getPlayerManager()
 	return mPlayerManager.get();
 }
 
+bool ReplayGameMode::initialize()
+{
+	// Mode-specific initialization (independent of Stage)
+	// Preload replay info to verify validity before stage creation
+	ReplayInfo   info;
+	ReplayHeader header;
+	if( !ReplayBase::LoadReplayInfo(mReplayFilePath.c_str(), header, info) )
+	{
+		return false;
+	}
+	return true;
+}
+
 bool ReplayGameMode::initializeStage(GameStageBase* stage)
 {
 	ReplayInfo   info;

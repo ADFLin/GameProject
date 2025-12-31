@@ -274,6 +274,9 @@
     <ClCompile Include="TestMisc\Stage\SobelTrainStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\CollisionBenchmarkStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />

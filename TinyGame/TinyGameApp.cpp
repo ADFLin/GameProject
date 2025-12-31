@@ -600,7 +600,7 @@ static TinyGameApp*     GApp;
 TinyGameApp::TinyGameApp()
 	:mRenderEffect( nullptr )
 	,mNetWorker( nullptr )
-	,mStageMode( nullptr )
+	,mGameMode( nullptr )
 {
 	mShowErrorMsg = false;
 
@@ -612,10 +612,10 @@ TinyGameApp::TinyGameApp()
 TinyGameApp::~TinyGameApp()
 {
 	// Clean up mode managed by StageManager
-	if (mStageMode)
+	if (mGameMode)
 	{
-		delete mStageMode;
-		mStageMode = nullptr;
+		delete mGameMode;
+		mGameMode = nullptr;
 	}
 }
 
@@ -945,12 +945,15 @@ bool TinyGameApp::initializeGame()
 				if (server)
 				{
 					LocalWorker* worker = server->createLocalWorker(::Global::GetUserProfile().name);
-					NetGameMode* netMode = new NetGameMode;
-					netMode->mStageManager = this;
-					netMode->initWorker(worker, server);
-					mStageMode = netMode;
-					changeStage(STAGE_NET_ROOM);
-					havePlayGame = true;
+					// Global::GameNet().getNetWorker() is now updated with server
+					GameModeBase* netMode = createGameMode(STAGE_NET_GAME);
+					if (netMode)
+					{
+						static_cast<NetGameMode*>(netMode)->mStageManager = this;
+						mGameMode = netMode;
+						changeStage(STAGE_NET_ROOM);
+						havePlayGame = true;
+					}
 				}
 			}
 			else if (commandLineArgs.hasFlag("-Client"))
@@ -958,12 +961,15 @@ bool TinyGameApp::initializeGame()
 				ClientWorker* worker = createClinet();
 				if (worker)
 				{
-					NetGameMode* netMode = new NetGameMode;
-					netMode->mStageManager = this;
-					netMode->initWorker(worker);
-					mStageMode = netMode;
-					changeStage(STAGE_NET_ROOM);
-					havePlayGame = true;
+					// Global::GameNet().getNetWorker() is updated
+					GameModeBase* netMode = createGameMode(STAGE_NET_GAME);
+					if (netMode)
+					{
+						static_cast<NetGameMode*>(netMode)->mStageManager = this;
+						mGameMode = netMode;
+						changeStage(STAGE_NET_ROOM);
+						havePlayGame = true;
+					}
 				}
 			}			
 		}
@@ -1070,10 +1076,10 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 	::Global::GetDrawEngine().update(updateTime);
 
 #if 0
-	if (mStageMode && mStageMode->getStage() == nullptr)
+	if (mGameMode && mGameMode->getStage() == nullptr)
 	{
-		delete mStageMode;
-		mStageMode = nullptr;
+		delete mGameMode;
+		mGameMode = nullptr;
 	}
 #endif
 	checkNewStage();
@@ -1094,9 +1100,9 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 		deltaTime.value = CVarTimeDilation * updateTime / 1000.0f;
 		
 		// Mode handles time update directly (direct routing)
-		if (mStageMode)
+		if (mGameMode)
 		{
-			mStageMode->updateTime(deltaTime);
+			mGameMode->updateTime(deltaTime);
 		}
 		
 		getCurStage()->update(deltaTime);
@@ -1276,7 +1282,17 @@ bool TinyGameApp::startDedicatedServer(char const* gameName, int port)
 	
 	// Setup the mode with server
 	dedicatedMode->mStageManager = this;
-	dedicatedMode->initWorker(nullptr, server);  // No local worker, just server
+	
+	// initWorker(nullptr, server) is removed, initialize() handles it via Global
+	
+	// Initialize the mode itself
+	if (!dedicatedMode->initialize())
+	{
+		LogError("[DedicatedServer] Failed to initialize mode");
+		delete dedicatedMode;
+		closeNetwork();
+		return false;
+	}
 	
 	// Initialize the server (in headless mode, pass nullptr for stage)
 	if (!dedicatedMode->initializeServer(nullptr))
@@ -1288,7 +1304,7 @@ bool TinyGameApp::startDedicatedServer(char const* gameName, int port)
 	}
 	
 	// Store the mode
-	mStageMode = dedicatedMode;
+	mGameMode = dedicatedMode;
 	
 	LogMsg("[DedicatedServer] Server started successfully, waiting for players...");
 	return true;
@@ -1426,9 +1442,9 @@ MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 	}
 	
 	// Mode gets first chance at key events (direct routing)
-	if (mStageMode)
+	if (mGameMode)
 	{
-		MsgReply result = mStageMode->onKey(msg);
+		MsgReply result = mGameMode->onKey(msg);
 		if (result.isHandled())
 			return result;
 	}
@@ -1517,7 +1533,7 @@ void TinyGameApp::render( float dframe )
 	if ( getNextStage() || mbInitializingStage )
 		return;
 
-	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
+	bool bDrawScene = ( mGameMode == nullptr ) || mGameMode->canRender();
 
 	IGraphics2D& g = ::Global::GetIGraphics2D();
 	{
@@ -1786,12 +1802,12 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 				if (stageId == STAGE_NET_GAME)
 				{
 					// For net game, reuse the existing mode created in UI_BUILD_CLIENT/UI_CREATE_SERVER
-					stageMode = mStageMode;
+					stageMode = mGameMode;
 				}
 				
 				if (stageMode == nullptr)
 				{
-					stageMode = createGameStageMode(stageId);
+					stageMode = createGameMode(stageId);
 				}
 				gameStage->setupStageMode(stageMode);
 			}
@@ -1819,14 +1835,14 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 	return newStage;
 }
 
-GameModeBase* TinyGameApp::createGameStageMode(StageID stageId)
+GameModeBase* TinyGameApp::createGameMode(StageID stageId)
 {
-	GameModeBase* stageMode = nullptr;
+	GameModeBase* gameMode = nullptr;
 
 	switch( stageId )
 	{
 #define CASE_STAGE( idx , Class )\
-				case idx : stageMode  = new Class; break;
+				case idx : gameMode  = new Class; break;
 
 		CASE_STAGE(STAGE_SINGLE_GAME, SingleGameMode)
 		CASE_STAGE(STAGE_NET_GAME, NetGameMode)
@@ -1834,8 +1850,22 @@ GameModeBase* TinyGameApp::createGameStageMode(StageID stageId)
 
 #undef CASE_STAGE
 	}
-	return stageMode;
+
+	// Initialize the mode itself (independent of stage)
+	if (gameMode)
+	{
+		if (!gameMode->initialize())
+		{
+			LogWarning(0, "Can't Initialize Game Mode");
+			delete gameMode;
+			return nullptr;
+		}
+	}
+
+	return gameMode;
 }
+
+// createNetGameMode removed, use createGameMode(STAGE_NET_GAME) instead
 
 
 StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
@@ -1872,10 +1902,13 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 	if (gameStage)
 	{
-		mStageMode = gameStage->getStageMode();
-		if (!mStageMode->initializeStage(gameStage))
+		mGameMode = gameStage->getStageMode();
+		
+		// Initialize stage-specific resources
+		// Note: Mode's initialize() was already called in createGameMode()
+		if (!mGameMode->initializeStage(gameStage))
 		{
-			LogWarning(0, "Can't Initialize Stage Mode");
+			LogWarning(0, "Can't Initialize Stage via Mode");
 			return false;
 		}
 
@@ -1924,10 +1957,10 @@ void TinyGameApp::finalizeStage(StageBase* stage)
 		// If the stage's mode is not the StageManager's active mode,
 		// it means a new mode was assigned and the stage's mode should be cleaned up
 		GameModeBase* stageMode = gameStage->getStageMode();
-		if (stageMode && stageMode != mStageMode)
+		if (stageMode && stageMode != mGameMode)
 		{
 			// This mode was either:
-			// 1. An old mode that was replaced by a new mStageMode
+			// 1. An old mode that was replaced by a new mGameMode
 			// 2. Should not happen in normal flow
 			// The EmptyStageMode case is already handled in GameStageBase::onEnd
 		}
@@ -1991,9 +2024,9 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 		return;
 	
 	// Mode handles widget events directly (direct routing)
-	if (mStageMode)
+	if (mGameMode)
 	{
-		if (!mStageMode->onWidgetEvent(event, id, ui))
+		if (!mGameMode->onWidgetEvent(event, id, ui))
 			return;
 	}
 	
@@ -2045,14 +2078,12 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 			if ( !worker )
 				return;
 
-			NetGameMode* netMode = new NetGameMode;
-
-			netMode->mStageManager = this;
-			netMode->initWorker(worker);
+			GameModeBase* netMode = createGameMode(STAGE_NET_GAME);
+			if (!netMode)
+				return;
 			
-			// NetGameMode is now managed by StageManager
-			// Stages access it through getManager()->getActiveMode()
-			mStageMode = netMode;
+			static_cast<NetGameMode*>(netMode)->mStageManager = this;
+			mGameMode = netMode;
 
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
 			// stage->initWorker( worker ); // Worker is now in NetGameMode
@@ -2069,10 +2100,12 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 
 			LocalWorker* worker = server->createLocalWorker(::Global::GetUserProfile().name );
 
-			NetGameMode* netMode = new NetGameMode;
-			netMode->mStageManager = this;
-			netMode->initWorker(worker, server);
-			mStageMode = netMode;
+			GameModeBase* netMode = createGameMode(STAGE_NET_GAME);
+			if (!netMode)
+				return;
+			
+			static_cast<NetGameMode*>(netMode)->mStageManager = this;
+			mGameMode = netMode;
 
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
 			// stage->initWorker( worker , server );	

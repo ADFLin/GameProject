@@ -97,6 +97,8 @@ namespace AutoBattler
 		case STAGE_SINGLE_GAME:
 		case STAGE_NET_GAME:
 			return new LevelStage;
+		case STAGE_DEDICATED_GAME:
+			return new DedicatedLevelStage;
 		}
 		return NULL;
 	}
@@ -117,6 +119,11 @@ namespace AutoBattler
 		if (modeType == EGameMode::Net)
 		{
 			manger.changeStage(STAGE_NET_GAME);
+		}
+		else if (modeType == EGameMode::DedicatedServer)
+		{
+
+
 		}
 		else
 		{

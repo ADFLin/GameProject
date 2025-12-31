@@ -76,8 +76,10 @@ namespace Render
 
 			std::fill_n(mBoundedConstBuffers, ARRAY_SIZE(mBoundedConstBuffers), nullptr);
 			std::fill_n(mBoundedSRVs, ARRAY_SIZE(mBoundedSRVs), nullptr);
-			std::fill_n(mBoundedConstBuffers, ARRAY_SIZE(mBoundedConstBuffers), nullptr);
+			std::fill_n(mBoundedSRVResources, ARRAY_SIZE(mBoundedSRVResources), nullptr);
 			std::fill_n(mBoundedSamplers, ARRAY_SIZE(mBoundedSamplers), nullptr);
+			std::fill_n(mBoundedUAVs, ARRAY_SIZE(mBoundedUAVs), nullptr);
+
 			mUAVUsageCount = 0;
 			mUAVDirtyMask = 0;
 		}

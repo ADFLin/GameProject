@@ -39,17 +39,7 @@ public:
 	virtual void restart(){}
 	virtual void setupInputAI( IPlayerManager& manager , ActionProcessor& processor ) = 0;
 	virtual void release() = 0;
-	
-	// Called by DedicatedServerMode when game is ready to start
-	// Used to trigger initial game state setup (e.g., world init)
-	virtual void onGameStart() {}
-	
-	// Get internal IFrameUpdater for dedicated server mode
-	// Returns nullptr if not in dedicated server mode or not supported
-	virtual IFrameUpdater* getDedicatedUpdater() { return nullptr; }
-	
-	// Configure level settings for network sync (used by DedicatedServerMode)
-	virtual void configLevelSetting(struct GameLevelInfo& info) {}
+
 };
 
 #endif // INetEngine_h__

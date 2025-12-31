@@ -395,6 +395,8 @@ public:
 		mClientManager.removeClient(client);
 	}
 
+	LocalWorker* getLocalWorker() { return mLocalWorker.get(); }
+
 protected:
 	void procLogin      ( IComPacket* cp);
 	void procEcho       ( IComPacket* cp);

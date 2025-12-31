@@ -72,9 +72,53 @@ void DedicatedServerMode::requestShutdown()
 
 bool DedicatedServerMode::initializeServer(GameStageBase* stage)
 {
-	logState("Initializing Server");
+	logState("Initializing Server Stage");
 
-	// Server should already be created and passed in via initWorker()
+	// Game module and helper setup is now done in initialize()
+	// Here we focus on stage-specific initialization
+
+	CHECK(stage);
+
+	// Stage-based mode: Stage provides IFrameUpdater and World
+	logState("Using Stage-based mode");
+		
+	mUpdater = stage;
+	stage->setupStageMode(this);
+
+	// Initialize the stage
+	if (!stage->onInit())
+	{
+		LogError("[DedicatedServerMode] Stage init failed");
+		return false;
+	}
+
+
+	// Register server packet handlers
+	setupServerProcFunc(getServer()->getPacketDispatcher());
+	if (getWorker())
+	{
+		setupWorkerProcFunc(getWorker()->getPacketDispatcher());
+	}
+
+	// Create status UI (if not headless)
+	createServerStatusUI();
+
+	// Transition to waiting state
+	transitionTo(EServerState::WaitingForPlayers);
+
+	logState("Server initialized successfully");
+	return true;
+}
+
+bool DedicatedServerMode::initialize()
+{
+	if (!NetGameMode::initialize())
+		return false;
+
+	logState("Initializing DedicatedServerMode");
+	
+	// Mode-specific initialization (independent of Stage)
+	// Verify server worker is available
 	if (!haveServer())
 	{
 		LogError("[DedicatedServerMode] No server worker available");
@@ -112,76 +156,7 @@ bool DedicatedServerMode::initializeServer(GameStageBase* stage)
 			return false;
 		}
 	}
-
-	if (stage)
-	{
-		// Stage-based mode: Stage provides IFrameUpdater and World
-		logState("Using Stage-based mode");
-		
-		mUpdater = stage;
-		stage->setupStageMode(this);
-
-		// Initialize the stage
-		if (!stage->onInit())
-		{
-			LogError("[DedicatedServerMode] Stage init failed");
-			return false;
-		}
-	}
-	else
-	{
-		// Headless mode: INetEngine provides World and IFrameUpdater
-		logState("Using headless mode (no Stage)");
-
-		mNetEngine = game->createNetEngine();
-		if (mNetEngine == nullptr)
-		{
-			LogError("[DedicatedServerMode] Failed to create NetEngine for %s", mConfig.gameName);
-			return false;
-		}
-
-		// Build INetEngine with dedicated server flag
-		INetEngine::BuildParam buildParam;
-		buildParam.netWorker = mServer;
-		buildParam.worker = getWorker();
-		buildParam.processor = &getActionProcessor();
-		buildParam.game = game;
-		buildParam.tickTime = gDefaultTickTime;
-		buildParam.bDedicatedServer = true;
-		// Build the network engine
-		if (!mNetEngine->build(buildParam))
-		{
-			LogError("[DedicatedServerMode] NetEngine build failed");
-			mNetEngine->release();
-			mNetEngine = nullptr;
-			return false;
-		}
-
-		// Get the dedicated updater (DedicatedWorld that implements IFrameUpdater)
-		mUpdater = mNetEngine->getDedicatedUpdater();
-		if (mUpdater == nullptr)
-		{
-			LogError("[DedicatedServerMode] NetEngine does not support headless mode (no DedicatedUpdater)");
-			mNetEngine->release();
-			mNetEngine = nullptr;
-			return false;
-		}
-	}
-
-	// Register server packet handlers
-	setupServerProcFunc(getServer()->getPacketDispatcher());
-	if (getWorker())
-	{
-		setupWorkerProcFunc(getWorker()->getPacketDispatcher());
-	}
-
-	// Create status UI (if not headless)
-	createServerStatusUI();
-
-	// Transition to waiting state
-	transitionTo(EServerState::WaitingForPlayers);
-
-	logState("Server initialized successfully");
+	
 	return true;
 }
 
@@ -393,13 +368,7 @@ void DedicatedServerMode::startGameSession()
 	}
 	
 	// Server-side: start game directly (no stage, headless mode)
-	//Global::ModuleManager().getRunningGame()->beginPlay(*getManager(), EGameMode::DedicatedServer);
-	
-	// Notify net engine that game is starting
-	if (mNetEngine)
-	{
-		mNetEngine->onGameStart();
-	}
+	Global::ModuleManager().getRunningGame()->beginPlay(*getManager(), EGameMode::DedicatedServer);
 	
 	// Change to run state
 	changeState(EGameState::Run);

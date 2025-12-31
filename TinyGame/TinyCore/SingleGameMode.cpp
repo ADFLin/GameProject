@@ -18,6 +18,14 @@ SingleGameMode::~SingleGameMode()
 
 }
 
+bool SingleGameMode::initialize()
+{
+	// Mode-specific initialization (independent of Stage)
+	// Currently SingleGameMode has PlayerManager created in constructor,
+	// so nothing extra needed here
+	return true;
+}
+
 bool SingleGameMode::initializeStage(GameStageBase* stage)
 {
 	if (!stage->onInit())
@@ -37,7 +45,7 @@ bool SingleGameMode::initializeStage(GameStageBase* stage)
 		}
 	}
 
-	if( !buildReplayRecorder() )
+	if( !buildReplayRecorder(stage) )
 	{
 
 	}

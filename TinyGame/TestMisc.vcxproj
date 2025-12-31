@@ -449,6 +449,7 @@
     <ClCompile Include="TestMisc\Stage\AStarStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AudioTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\BloxorzStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\CollisionBenchmarkStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CompressionTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CSGTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CurveBuilderStage.cpp" />

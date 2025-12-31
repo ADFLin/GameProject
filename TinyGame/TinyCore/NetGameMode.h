@@ -118,6 +118,7 @@ public:
 	NetGameMode();
 	~NetGameMode();
 
+	bool initialize() override;
 	bool initializeStage(GameStageBase* stage) override;
 	void onEnd();
 	
@@ -206,7 +207,6 @@ public:
 	virtual NetGameMode* getNetLevelMode() override { return this; }
 
 	// NetStageData Inlining
-	void       initWorker(ComWorker* worker, ServerWorker* server = nullptr);
 	
 	void  registerNetEvent();
 	void  unregisterNetEvent(void* processor);

@@ -101,6 +101,7 @@ public:
 	virtual ReplayGameMode* getReplayMode() override { return this; }
 	
 protected:
+	bool initialize() override;
 	bool initializeStage(GameStageBase* stage) override;
 	bool loadReplay(char const* path);
 	void onEnd();

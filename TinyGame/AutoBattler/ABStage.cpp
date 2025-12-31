@@ -21,6 +21,98 @@ namespace AutoBattler
 	TConsoleVariable<bool> CVarRenderDebug{true, "AB.RenderDebug", CVF_TOGGLEABLE };
 
 
+	void LevelStageBase::onEnd()
+	{
+		for (auto bot : mBots)
+		{
+			delete bot;
+		}
+		mBots.clear();
+
+		mWorld.cleanup();
+		// mController, mRenderer, mHUD are automatically cleaned up by unique_ptr
+		BaseClass::onEnd();
+	}
+
+	void LevelStageBase::runLogic(float dt)
+	{
+		for (auto bot : mBots)
+			bot->update(dt);
+		mWorld.tick(dt);
+	}
+
+	void LevelStageBase::buyUnit(Player& player, int slotIndex)
+	{
+		ABActionItem item;
+		item.type = ACT_BUY_UNIT;
+		item.buy.slotIndex = slotIndex;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
+	void LevelStageBase::sellUnit(Player& player, int slotIndex)
+	{
+		ABActionItem item;
+		item.type = ACT_SELL_UNIT;
+		item.sell.slotIndex = slotIndex;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
+	void LevelStageBase::refreshShop(Player& player)
+	{
+		ABActionItem item;
+		item.type = ACT_REFRESH_SHOP;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
+	void LevelStageBase::buyExperience(Player& player)
+	{
+		ABActionItem item;
+		item.type = ACT_LEVEL_UP;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
+	void LevelStageBase::deployUnit(Player& player, int srcType, int srcX, int srcY, int destX, int destY)
+	{
+		ABActionItem item;
+		item.type = ACT_DEPLOY_UNIT;
+		item.deploy.srcType = srcType;
+		item.deploy.srcX = srcX;
+		item.deploy.srcY = srcY;
+		item.deploy.destX = destX;
+		item.deploy.destY = destY;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
+	void LevelStageBase::retractUnit(Player& player, int srcType, int srcX, int srcY, int benchIndex)
+	{
+		ABActionItem item;
+		item.type = ACT_RETRACT_UNIT;
+		item.retract.srcType = srcType;
+		item.retract.srcX = srcX;
+		item.retract.srcY = srcY;
+		item.retract.benchIndex = benchIndex;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
+	void LevelStageBase::syncDrag(Player& player, int srcType, int srcIndex, int posX, int posY, bool bDrop)
+	{
+		ABActionItem item;
+		item.type = ACT_SYNC_DRAG;
+		item.syncDrag.srcType = srcType;
+		item.syncDrag.srcIndex = srcIndex;
+		item.syncDrag.posX = posX;
+		item.syncDrag.posY = posY;
+		item.syncDrag.bDrop = bDrop ? 1 : 0;
+		ActionPort port = (ActionPort)player.getIndex();
+		sendAction(port, item);
+	}
+
 	LevelStage::LevelStage()
 		: mController(std::make_unique<ABPlayerController>(*this, *this))
 		, mRenderer(std::make_unique<ABGameRenderer>())
@@ -37,29 +129,9 @@ namespace AutoBattler
 		return true;
 	}
 
-	void LevelStage::onEnd()
-	{
-		for (auto bot : mBots)
-		{
-			delete bot;
-		}
-		mBots.clear();
-
-		mWorld.cleanup();
-		// mController, mRenderer, mHUD are automatically cleaned up by unique_ptr
-		BaseClass::onEnd();
-	}
-
 	void LevelStage::onRestart(bool beInit)
 	{
 		mWorld.restart();
-	}
-
-	void LevelStage::runLogic(float dt)
-	{
-		for (auto bot : mBots)
-			bot->update(dt);
-		mWorld.tick(dt);
 	}
 
 	void LevelStage::tick()
@@ -89,10 +161,6 @@ namespace AutoBattler
 		return nullptr;
 	}
 
-	void LevelStage::configLevelSetting(GameLevelInfo& info)
-	{
-		info.seed = ::Global::Random();
-	}
 
 	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)
 	{
@@ -109,10 +177,7 @@ namespace AutoBattler
 		}
 	}
 
-	void LevelStage::setupLevel(GameLevelInfo const& info)
-	{
-		::Global::RandSeedNet(info.seed);
-	}
+
 
 	void LevelStage::setupScene(IPlayerManager& playerManager)
 	{
@@ -379,78 +444,6 @@ namespace AutoBattler
 		}
 	}
 
-	void LevelStage::buyUnit(Player& player, int slotIndex)
-	{
-		ABActionItem item;
-		item.type = ACT_BUY_UNIT;
-		item.buy.slotIndex = slotIndex;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
-	void LevelStage::sellUnit(Player& player, int slotIndex)
-	{
-		ABActionItem item;
-		item.type = ACT_SELL_UNIT;
-		item.sell.slotIndex = slotIndex;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
-	void LevelStage::refreshShop(Player& player)
-	{
-		ABActionItem item;
-		item.type = ACT_REFRESH_SHOP;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
-	void LevelStage::buyExperience(Player& player)
-	{
-		ABActionItem item;
-		item.type = ACT_LEVEL_UP;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
-	void LevelStage::deployUnit(Player& player, int srcType, int srcX, int srcY, int destX, int destY)
-	{
-		ABActionItem item;
-		item.type = ACT_DEPLOY_UNIT;
-		item.deploy.srcType = srcType;
-		item.deploy.srcX = srcX;
-		item.deploy.srcY = srcY;
-		item.deploy.destX = destX;
-		item.deploy.destY = destY;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
-	void LevelStage::retractUnit(Player& player, int srcType, int srcX, int srcY, int benchIndex)
-	{
-		ABActionItem item;
-		item.type = ACT_RETRACT_UNIT;
-		item.retract.srcType = srcType;
-		item.retract.srcX = srcX;
-		item.retract.srcY = srcY;
-		item.retract.benchIndex = benchIndex;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
-	void LevelStage::syncDrag(Player& player, int srcType, int srcIndex, int posX, int posY, bool bDrop)
-	{
-		ABActionItem item;
-		item.type = ACT_SYNC_DRAG;
-		item.syncDrag.srcType = srcType;
-		item.syncDrag.srcIndex = srcIndex;
-		item.syncDrag.posX = posX;
-		item.syncDrag.posY = posY;
-		item.syncDrag.bDrop = bDrop ? 1 : 0;
-		ActionPort port = (ActionPort)player.getIndex();
-		sendAction(port, item);
-	}
-
 	void LevelStage::onUpdate(GameTimeSpan deltaTime)
 	{
 		BaseClass::onUpdate(deltaTime);
@@ -669,6 +662,19 @@ namespace AutoBattler
 			}
 		}
 		return BaseClass::onKey(msg);
+	}
+
+	void DedicatedLevelStage::executeAction(ActionPort port, ABActionItem const& item)
+	{
+		FABAction::Execute(mWorld, port, item);
+	}
+
+	void DedicatedLevelStage::sendAction(ActionPort port, ABActionItem const& item)
+	{
+		if (mNetEngine)
+		{
+			mNetEngine->sendAction(port, item);
+		}
 	}
 
 }

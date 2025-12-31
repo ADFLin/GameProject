@@ -29,7 +29,7 @@ namespace AutoBattler
 	{
 	}
 
-	ABNetEngine::ABNetEngine(LevelStage* stage)
+	ABNetEngine::ABNetEngine(LevelStageBase* stage)
 		: mStage(stage)
 		, mWorker(nullptr)
 		, mNetWorker(nullptr)
@@ -37,14 +37,6 @@ namespace AutoBattler
 	{
 	}
 	
-	IFrameUpdater* ABNetEngine::getDedicatedUpdater()
-	{
-		if (mIsDedicatedServer && mDedicatedWorld)
-		{
-			return mDedicatedWorld.get();
-		}
-		return nullptr;
-	}
 
 	bool ABNetEngine::build(BuildParam& param)
 	{
@@ -67,20 +59,7 @@ namespace AutoBattler
 			mWorker->getPacketDispatcher().setUserFunc<ABShopUpdatePacket>(this, &ABNetEngine::onShopUpdatePacket);
 		}
 
-		// Check for Dedicated Server mode
-		if (mIsDedicatedServer || mStage == nullptr)
-		{
-			mIsDedicatedServer = true;
-			mDedicatedWorld = std::make_unique<DedicatedWorld>();
-			mDedicatedWorld->setTickTime(param.tickTime);
-			
-			// Initialize Dedicated World
-			mDedicatedWorld->init();
-			LogMsg("NetEngine: Dedicated Server Mode Enabled (No Stage)");
-		}
-		
-		World& world = GetWorld();
-
+		World& world = getWorld();
 
 
 		// Setup replay manager (for both server and client)
@@ -105,7 +84,7 @@ namespace AutoBattler
 				{
 					// Broadcast Phase Change via Sync Packet
 					// Now we send ONE packet PER PLAYER to sync their specific State (Gold/HP) correctly.
-					World& w = GetWorld();
+					World& w = getWorld();
 					int numPlayers = w.getPlayerCount(); // Assuming helper exists or use vector size
 
 					for (int i = 0; i < numPlayers; ++i)
@@ -199,7 +178,7 @@ namespace AutoBattler
 		if (mNetWorker->isServer())
 		{
 			// Server: Check Clients
-			int localPlayerId = GetWorld().getLocalPlayerIndex();
+			int localPlayerId = getWorld().getLocalPlayerIndex();
 			for (auto it = mNetWorker->getPlayerManager()->createIterator(); it; ++it)
 			{
 				GamePlayer* player = it.getElement();
@@ -301,7 +280,7 @@ namespace AutoBattler
 					packet.status = 2;
 					
 					// Fill validation data correctly for Restore
-					World& world = GetWorld();
+					World& world = getWorld();
 					packet.round = world.getRound();
 					packet.phase = (int)world.getPhase();
 					packet.phaseTimer = world.getPhaseTimer();
@@ -329,7 +308,7 @@ namespace AutoBattler
 					packet.playerId = 0;
 					packet.status = 0;
 
-					World& world = GetWorld();
+					World& world = getWorld();
 					packet.round = world.getRound();
 					packet.phase = (int)world.getPhase();
 					packet.phaseTimer = world.getPhaseTimer();
@@ -438,17 +417,8 @@ namespace AutoBattler
 		{
 			mSimAccumulator -= deltaTime;
 			mLocalTimeAccumulator -= deltaTime;
-			
-			// ✅ Dedicated Server Support: Tick Independent World
-			if (mIsDedicatedServer)
-			{
-				GetWorld().tick(float(deltaTime) / 1000.0f);
-			}
-			else
-			{
-				mStage->runLogic(float(deltaTime) / 1000.0f);
-			}
 
+			mStage->runLogic(float(deltaTime) / 1000.0f);
 			steps++;
 		}
 	}
@@ -460,13 +430,15 @@ namespace AutoBattler
 		// Execute actions on World (works for both Stage and Dedicated modes)
 		for (auto const& data : mPendingActions)
 		{
+			mStage->executeAction(data.port, data.item);
+
 			// Execute game logic action on World
-			FABAction::Execute(GetWorld(), data.port, data.item);
+			FABAction::Execute(getWorld(), data.port, data.item);
 			
 			// If Stage exists, also handle visual-only actions
 			if (mStage && FABAction::RequiresStage(data.item.type))
 			{
-				mStage->executeAction(data.port, data.item);
+
 			}
 		}
 		
@@ -513,7 +485,7 @@ namespace AutoBattler
 
 		// === Server-side Action validation ===
 		ActionError error;
-		if (!GetWorld().validateAction(packet->port, packet->item, &error))
+		if (!getWorld().validateAction(packet->port, packet->item, &error))
 		{
 			LogWarning(0, "Rejected action from player %d: type=%d, error=%d (%s)", 
 					   packet->port, packet->item.type, error.code, error.message);
@@ -552,7 +524,7 @@ namespace AutoBattler
 				mPlayerTimeouts[packet->playerId] = 0;
 
 				// Compare State
-				World& world = GetWorld();
+				World& world = getWorld();
 				Player const& svPlayer = world.getPlayer(packet->playerId);
 
 				// Calc Server Shop Hash
@@ -592,7 +564,7 @@ namespace AutoBattler
 			else
 			{
 				// Sync Time Logic
-				World& world = GetWorld();
+				World& world = getWorld();
 				// Force Sync Phase if different
 				if (world.getPhase() != (BattlePhase)packet->phase)
 				{
@@ -677,7 +649,7 @@ namespace AutoBattler
 	void ABNetEngine::onShopUpdatePacket(IComPacket* cp)
 	{
 		auto* packet = cp->cast<ABShopUpdatePacket>();
-		World& world = GetWorld();
+		World& world = getWorld();
 
 		if (world.isValidPlayer(packet->playerId))
 		{
@@ -696,7 +668,7 @@ namespace AutoBattler
 
 		LogMsg("ABNetEngine: Combat phase started, submitting combats...");
 		
-		World& world = GetWorld();
+		World& world = getWorld();
 
 		// Get all match pairings
 		TArray<World::MatchPair> const& matches = world.getMatches();
@@ -897,10 +869,10 @@ namespace AutoBattler
 
 		// Sync: Ensure Client enters Combat Phase immediately when Server starts it.
 		// This corrects any drift caused by prolonged Replays or Client lag.
-		if (GetWorld().getPhase() != BattlePhase::Combat)
+		if (getWorld().getPhase() != BattlePhase::Combat)
 		{
 			LogMsg("Client: Force switching to Combat Phase (Sync from Server CombatPacket)");
-			GetWorld().changePhase(BattlePhase::Combat);
+			getWorld().changePhase(BattlePhase::Combat);
 		}
 
 
@@ -967,10 +939,8 @@ namespace AutoBattler
 		LogMsg("Client: Combat %u result cached, waiting for replay to finish", packet->combatID);
 	}
 
-	World& ABNetEngine::GetWorld()
+	World& ABNetEngine::getWorld()
 	{
-		if (mIsDedicatedServer)
-			return *mDedicatedWorld;
 		return mStage->getWorld();
 	}
 
@@ -1051,40 +1021,6 @@ namespace AutoBattler
 			LogMsg("Client: All replays finished, switching to Preparation phase");
 			mStage->getWorld().changePhase(BattlePhase::Preparation);
 			bReplayPlaying = false;
-		}
-	}
-
-	DedicatedWorld::DedicatedWorld()
-		: World()
-		, mTickTime(33)
-		, mCurrentFrame(0)
-	{
-	}
-
-	void DedicatedWorld::tick()
-	{
-		// Call World's tick with delta time
-		float dt = float(mTickTime) / 1000.0f;
-		World::tick(dt);
-	}
-
-	void DedicatedWorld::updateFrame(int frame)
-	{
-		// In dedicated mode, frame updates are handled internally
-		// This is called by INetEngine after tick()
-		// Could be used for post-tick cleanup or state sync
-		mCurrentFrame += frame;
-	}
-
-	void ABNetEngine::configLevelSetting(GameLevelInfo& info)
-	{
-		// For dedicated server mode, provide seed from DedicatedWorld
-		if (mIsDedicatedServer && mDedicatedWorld)
-		{
-			info.seed = mDedicatedWorld->getRandomSeed();
-			info.data = nullptr;
-			info.numData = 0;
-			LogMsg("[ABNetEngine] configLevelSetting: seed=%llu", info.seed);
 		}
 	}
 

@@ -104,7 +104,7 @@ void GameLevelMode::onRestart(uint64& seed)
 		mReplayRecorder->start(seed);
 }
 
-bool GameLevelMode::buildReplayRecorder()
+bool GameLevelMode::buildReplayRecorder(GameStageBase* stage)
 {
 	IGameModule* game = getGame();
 	if( !game )
@@ -116,17 +116,17 @@ bool GameLevelMode::buildReplayRecorder()
 	if( replaySupport.iVal == 0 )
 		return false;
 
-	ActionProcessor& processor = getStage()->getActionProcessor();
+	ActionProcessor& processor = stage->getActionProcessor();
 	IPlayerManager* playerManager = getPlayerManager();
 
-	if( IFrameActionTemplate* actionTemplate = getStage()->createActionTemplate(LAST_VERSION) )
+	if( IFrameActionTemplate* actionTemplate = stage->createActionTemplate(LAST_VERSION) )
 	{
 		actionTemplate->setupPlayer(*playerManager);
 		mReplayRecorder.reset(
 			new ReplayRecorder(actionTemplate, mReplayFrame));
 
 		GameAttribute dataValue(ATTR_REPLAY_INFO_DATA, &mReplayRecorder->getReplay().getInfo());
-		if( !getStage()->queryAttribute(dataValue) )
+		if( !stage->queryAttribute(dataValue) )
 		{
 			mReplayRecorder.clear();
 		}

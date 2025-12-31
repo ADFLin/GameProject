@@ -706,8 +706,9 @@ public:
 		}
 	}
 
-	bool     empty()  const { return !mNum; }
+	bool     empty()    const { return !mNum; }
 	size_t   size()     const { return mNum; }
+	size_t   capacity() const { return ArrayData::getMaxSize(); }
 	void     clear() 
 	{ 
 		eraseToEnd(begin()); 

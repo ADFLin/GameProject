@@ -1317,7 +1317,7 @@ namespace Render
 
 	bool D3D11ResourceBoundState::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
 	{
-		FMemory::Zero(this, sizeof(*this));
+		clear();
 		for( int i = 0; i < MaxConstBufferNum; ++i )
 		{
 			if( !mConstBuffers[i].initializeResource(device) )

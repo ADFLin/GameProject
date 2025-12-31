@@ -29,6 +29,13 @@ public:
 	};
 	GameModeBase(EGameMode mode);
 	virtual ~GameModeBase();
+	
+	// Initialize the mode itself (before stage creation or independently)
+	// Override this to setup mode-specific resources that don't depend on Stage
+	virtual bool initialize() { return true; }
+	
+	// Called when Stage is created to setup stage-specific resources
+	// This should call stage->onInit() and setup scene/UI
 	virtual bool initializeStage(GameStageBase* stage) { return true; }
 	virtual void onEnd(){}
 	virtual void onRestart(uint64& seed) {}
@@ -79,7 +86,7 @@ public:
 	bool   saveReplay(char const* name) override;
 
 protected:
-	bool buildReplayRecorder();
+	bool buildReplayRecorder(GameStageBase* Stage);
 	TPtrHolder< IReplayRecorder > mReplayRecorder;
 };
 

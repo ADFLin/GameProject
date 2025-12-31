@@ -33,6 +33,8 @@ class LevelMode;
 enum  StageID;
 
 class GameModeBase;
+class NetGameMode;
+
 class InputControl;
 
 
@@ -154,13 +156,13 @@ public:
 protected:
 	//StageManager
 	StageBase*     createStage( StageID stageId );
-	GameModeBase* createGameStageMode(StageID stageId);
+	GameModeBase*  createGameMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
 	bool           initializeStage(StageBase* stage);
 	void           finalizeStage(StageBase* stage);
 	void           postStageChange(StageBase* stage);
 	void           prevStageChange();
-	GameModeBase*  getActiveMode() override { return mStageMode; }
+	GameModeBase*  getActiveMode() override { return mGameMode; }
 	//~StageManager
 
 	void  importUserProfile();
@@ -195,7 +197,7 @@ private:
 
 	bool               mbLockFPS;
 	GameWindow         mGameWindow;
-	GameModeBase*     mStageMode;
+	GameModeBase*     mGameMode;
 	RenderEffect*      mRenderEffect;
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;

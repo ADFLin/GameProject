@@ -64,6 +64,7 @@ public:
 	void requestShutdown();
 
 	// === GameModeBase overrides ===
+	bool initialize() override;
 	bool initializeStage(GameStageBase* stage) override;
 	void onEnd() override;
 	void updateTime(GameTimeSpan deltaTime) override;

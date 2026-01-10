@@ -3,7 +3,7 @@
 #define BuddyAllocator_H_58E49EC4_DA48_4FE0_A9EB_B6F69A0FE500
 
 #include "BitUtility.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 #include <vector>
 #include <unordered_set>

@@ -1,6 +1,6 @@
 #include "Stage/TestStageHeader.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "FileSystem.h"
 #include "StringParse.h"
 #include <sstream>
@@ -33,8 +33,8 @@ void PreprocessorTest()
 	LogMsg("%d", ENTRY(AA));
 	using namespace CPP;
 	Preprocessor preprocessor;
-	preprocessor.bReplaceMarcoText = true;
-	preprocessor.addSreachDir("Test");
+	preprocessor.bReplaceMacroText = true;
+	preprocessor.addSearchDir("Test");
 	CodeBufferSource source;
 	char const* filePath = "Test/PTest.h";
 	source.appendFile(filePath);

@@ -62,21 +62,21 @@ public:
 
 			ScoreType dist = processRegion( p , state , newState );
 
-			addSreachNode( newState , node , dist );
+			addSearchNode( newState , node , dist );
 		}
 	}
 
-	virtual  rcPath*  sreachPath( Vec2i const& from )
+	virtual  rcPath*  searchPath( Vec2i const& from )
 	{
-		PROFILE_ENTRY( "sreachPath" );
+		PROFILE_ENTRY( "searchPath" );
 
 		FindState startState;
 		//FIXME
 		startState.region = 0;
 		startState.pos = from;
 
-		startSreach( startState );
-		static int maxSreachStep = 100000;
+		startSearch( startState );
+		static int maxSearchStep = 100000;
 		int result;
 		int step = 0;
 
@@ -84,14 +84,14 @@ public:
 		{
 
 			++step;
-			if ( step > maxSreachStep )
+			if ( step > maxSearchStep )
 				return NULL;
 
-			result = sreachStep();
+			result = searchStep();
 		}
-		while( result == ASTAR_SREACHING );
+		while( result == ASTAR_SEARCHING );
 
-		if ( result == ASTAR_SREACH_FAIL )
+		if ( result == ASTAR_SEARCH_FAIL )
 			return NULL;
 
 		//int dir = 0;
@@ -157,12 +157,12 @@ public:
 		getMap().resize( size.x , size.y );
 	}
 
-	virtual  rcPath*  sreachPath( Vec2i const& from )
+	virtual  rcPath*  searchPath( Vec2i const& from )
 	{
-		PROFILE_ENTRY( "sreachPath" );
-		SreachResult sreachResult;
-		startSreach( from , sreachResult );
-		static int maxSreachStep = 100000;
+		PROFILE_ENTRY( "searchPath" );
+		SearchResult searchResult;
+		startSearch( from , searchResult );
+		static int maxSearchStep = 100000;
 		int result;
 		int step = 0;
 
@@ -170,14 +170,14 @@ public:
 		{
 
 			++step;
-			if ( step > maxSreachStep )
+			if ( step > maxSearchStep )
 				return NULL;
 
-			result = sreachStep(sreachResult);
+			result = searchStep(searchResult);
 		}
-		while( result == AStar::eSREACHING );
+		while( result == AStar::eSEARCHING );
 
-		if ( result == AStar::eSREACH_FAIL )
+		if ( result == AStar::eSEARCH_FAIL )
 			return NULL;
 
 		int dir = 0;
@@ -283,7 +283,7 @@ public:
 			}
 
 			ScoreType dist = data.haveRoad() ? 1 : 2;
-			addSreachNode( pos , curNode , dist );
+			addSearchNode( pos , curNode , dist );
 		}
 	}
 

@@ -274,12 +274,12 @@ public:
 					AStar::FindState state;
 					state.pos = startPos;
 					state.region = curRegion;
-					AStar::PortalAStar::SreachResult sreachResult;
+					AStar::PortalAStar::SearchResult searchResult;
 					astar.mEndPos = endPos;
-					if ( astar.sreach( state , sreachResult) )
+					if ( astar.search( state , searchResult) )
 					{
 						path.clear();
-						astar.constructPath( sreachResult.globalNode ,
+						astar.constructPath( searchResult.globalNode ,
 							[this](AStar::PortalAStar::NodeType* node)
 							{
 								path.push_back(node->state);

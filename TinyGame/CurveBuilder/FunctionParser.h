@@ -2,6 +2,7 @@
 #define FunctionParser_H
 
 #include "ExpressionParser.h"
+#include "ExpressionCompiler.h"
 
 namespace CB
 {
@@ -24,7 +25,12 @@ namespace CB
 		bool         compile(Expression& expr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult);
 		bool         parse(Expression& expr, int numInput, ValueLayout inputLayouts[], ParseResult& parseResult);
 
+		void         setExecType(ECodeExecType type) { mExecType = type; }
+		void         setGenerateSIMD(bool bSIMD) { mbGenerateSIMD = bSIMD; }
+
 	private:
+		ECodeExecType mExecType = ECodeExecType::Asm;
+		bool         mbGenerateSIMD = true;
 		SymbolTable  mSymbolDefine;
 	};
 }//namespace CB

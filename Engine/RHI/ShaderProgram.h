@@ -335,19 +335,6 @@ namespace Render
 	 ClearShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME) )
 
 
-#define CSHADER_MEMBER_PARAM_ACCESSIABLE(NAME) CShaderMemberParamAccessiable_##NAME
-#define ACCESS_SHADER_MEMBER_PARAM(NAME)\
-	struct CSHADER_MEMBER_PARAM_ACCESSIABLE(NAME)\
-	{\
-		template< typename T >\
-		static auto Requires(T& t) -> decltype\
-		(\
-			t.SHADER_MEMBER_PARAM(NAME)\
-		);\
-		template< typename T >\
-		static auto Get(T& t){ return t.SHADER_MEMBER_PARAM(NAME); }\
-	};
-
 	template< typename TShaderParamAccessor, typename TShaderType, typename T>
 	FORCEINLINE void SetShaderParamValueInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, T const& value)
 	{
@@ -361,8 +348,18 @@ namespace Render
 		}
 	}
 
+#define DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
+	struct ShaderParamAccessor\
+	{\
+		template< typename T > static auto Requires(T& t) -> decltype(t.SHADER_MEMBER_PARAM(PARAM_NAME));\
+		template< typename T > static auto Get(T& t){ return t.SHADER_MEMBER_PARAM(PARAM_NAME); }\
+	};\
+
 #define SET_SHADER_PARAM_VALUE(COMMANDLIST, SHADER , PARAM_NAME, VALUE)\
-		SetShaderParamValueInternal<CSHADER_MEMBER_PARAM_ACCESSIABLE(PARAM_NAME)>(COMMANDLIST, SHADER, #PARAM_NAME, VALUE)
+	([&]() {\
+		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
+		SetShaderParamValueInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #PARAM_NAME, (VALUE));\
+	}())
 		
 
 

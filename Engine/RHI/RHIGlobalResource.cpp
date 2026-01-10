@@ -123,18 +123,21 @@ namespace Render
 				return false;
 		}
 
-		TIME_SCOPE("SimpleBasePass");
-		ShaderCompileOption option;
-		VertexFactoryType::DefaultType->getCompileOption(option);
+		{
+			TIME_SCOPE("SimpleBasePass");
+			ShaderCompileOption option;
+			VertexFactoryType::DefaultType->getCompileOption(option);
 
-		if (!ShaderManager::Get().loadFile(
-			GSimpleBasePass,
-			"Shader/SimpleBasePass",
-			SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option))
-			return false;
+			if (!ShaderManager::Get().loadFile(
+				GSimpleBasePass,
+				"Shader/SimpleBasePass",
+				SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option))
+				return false;
+		}
 
 		for (uint32 i = 0; i < SimplePipelineProgram::PermutationDomain::GetPermutationCount(); ++i)
 		{
+			TIME_SCOPE("SimplePipelineProgram");
 			ShaderManager::Get().getGlobalShaderT< SimplePipelineProgram >(i);
 		}
 		return true;

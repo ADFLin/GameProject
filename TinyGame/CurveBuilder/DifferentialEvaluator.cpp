@@ -1,4 +1,5 @@
 #include "DifferentialEvaluator.h"
+#include "LogSystem.h"
 
 
 void DifferentialEvaluator::eval(ExpressionTreeData const& evalData, ExpressionTreeData& outputData)
@@ -361,7 +362,7 @@ DifferentialEvaluator::Index DifferentialEvaluator::emitBop(TokenType op, Index 
 				resultValue = leftValue.constValue.asReal / rightValue.constValue.asReal;
 				break;
 			case ExprParse::BOP_POW:
-				resultValue = pow(leftValue.constValue.asReal, rightValue.constValue.asReal);
+				resultValue = pow(leftValue.constValue.asReal, (double)rightValue.constValue.asReal);
 				break;
 			default:
 				NEVER_REACH("");

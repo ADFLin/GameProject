@@ -32,7 +32,7 @@ public:
 	TINY_API ~ClientWorker();
 
 	TINY_API void connect(char const* hostName, char const* loginName);
-	TINY_API void sreachLanServer();
+	TINY_API void searchLanServer();
 
 	//NetWorker
 	bool  isServer(){   return false;  }

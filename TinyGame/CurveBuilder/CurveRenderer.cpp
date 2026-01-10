@@ -239,11 +239,6 @@ namespace CB
 		}
 	}
 
-
-
-	ACCESS_SHADER_MEMBER_PARAM(LocalToWorld);
-	ACCESS_SHADER_MEMBER_PARAM(WorldToLocal);
-
 	struct SurfaceRender
 	{
 		SurfaceRender(Surface3D& surface)

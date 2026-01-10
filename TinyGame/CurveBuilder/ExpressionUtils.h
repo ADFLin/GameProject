@@ -2,6 +2,9 @@
 #define ExpressionUtils_h__
 
 #include "Template/ArrayView.h"
+#include "ExpressionCore.h"
+#include "ExpressionTree.h"
+#include "ExpressionEvaluator.h"
 #include "ExpressionParser.h"
 
 class FExpressUtils
@@ -11,10 +14,11 @@ public:
 	static bool Parse();
 	static std::string Differentiate(char const* exprssion, char const* x);
 
-	template< typename RT>
-	static RT EvalutePosfixCodes(TArrayView<ExprParse::Unit const> codes)
+	template< typename RT >
+	static RT EvalutePosfixCodes(TArrayView<ExprParse::Unit const> codes, TArrayView<RealType const> inputs)
 	{
 		ExprEvaluatorBase evaluator;
+		evaluator.mInputs = inputs;
 		DoEvalate(evaluator, codes);
 		return RT(evaluator.popStack());
 	}
@@ -23,7 +27,7 @@ public:
 	static RT EvalutePosfixCodes(TArrayView<ExprParse::Unit const> codes, Args ...args)
 	{
 		ExprEvaluatorBase evaluator;
-		RealType inputs[] = { args... };
+		RealType inputs[] = { (RealType)args... };
 		evaluator.mInputs = inputs;
 		DoEvalate(evaluator, codes);
 		return RT(evaluator.popStack());

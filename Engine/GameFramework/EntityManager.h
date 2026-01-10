@@ -2,7 +2,7 @@
 #define Entity_h__
 
 #include "Core/TypeHash.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "CoreShare.h"
 
 #include "DataStructure/Array.h"

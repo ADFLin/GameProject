@@ -1,6 +1,9 @@
 #ifndef DifferentialEvaluator_h__
 #define DifferentialEvaluator_h__
 
+#include "ExpressionCore.h"
+#include "SymbolTable.h"
+#include "ExpressionTree.h"
 #include "ExpressionParser.h"
 
 class DifferentialEvaluator : public ExprParse
@@ -33,7 +36,7 @@ public:
 			DEFAULT_FUNC_SYMBOL_LIST(FUNC_INFO_OP)
 		};
 	#undef FUNC_INFO_OP
-		return StaticMap[symbol];
+		return StaticMap[(int)symbol];
 	}
 
 	static void DefineFuncSymbol(SymbolTable& table)
@@ -69,14 +72,14 @@ public:
 	{
 		auto entry = GetFuncSymbolEntry(symbol);
 
-		int indexFuncOp = mOutputData->codes.size();
+		int indexFuncOp = (int)mOutputData->codes.size();
 		mOutputData->codes.push_back(Unit{ entry });
 
-		int indexFuncNode = mOutputData->nodes.size();
+		int indexFuncNode = (int)mOutputData->nodes.size();
 		Node node;
 		node.indexOp = indexFuncOp;
-		node.children[CN_LEFT] = 0;
-		node.children[CN_RIGHT] = 0;
+		node.children[ExprParse::CN_LEFT] = 0;
+		node.children[ExprParse::CN_RIGHT] = 0;
 		mOutputData->nodes.push_back(node);
 
 
@@ -141,18 +144,18 @@ public:
 	Index emitExprInternal(int index)
 	{
 		ExpressionTreeData const& readData = bOutput ? *mOutputData : *mEvalData;
-		if (IsLeaf(index))
+		if (ExprParse::IsLeaf(index))
 		{
-			Unit const& unit = readData.codes[LEAF_UNIT_INDEX(index)];
+			Unit const& unit = readData.codes[ExprParse::LEAF_UNIT_INDEX(index)];
 
-			if (unit.type == VALUE_CONST)
+			if (unit.type == ExprParse::VALUE_CONST)
 			{
 				bool bEqualOne = false;
 				switch (unit.constValue.layout)
 				{
-				case ValueLayout::Int32:  bEqualOne = (unit.constValue.asInt32 == 1);
-				case ValueLayout::Double: bEqualOne = (unit.constValue.asDouble == 1.0);
-				case ValueLayout::Float:  bEqualOne = (unit.constValue.asFloat == 1.0f);
+				case ValueLayout::Int32:  bEqualOne = (unit.constValue.asInt32 == 1); break;
+				case ValueLayout::Double: bEqualOne = (unit.constValue.asDouble == 1.0); break;
+				case ValueLayout::Float:  bEqualOne = (unit.constValue.asFloat == 1.0f); break;
 				}
 				if (bEqualOne)
 					return Index::Identity();
@@ -175,11 +178,11 @@ public:
 		return mOutputData->addOpCode(opCopy, 
 			[&](Node& node)
 			{
-				int indexNodeLeft = outputTree_R<bOutput>(nodeCopy.children[CN_LEFT]);
-				int indexNodeRight = outputTree_R<bOutput>(nodeCopy.children[CN_RIGHT]);
+				int indexNodeLeft = outputTree_R<bOutput>(nodeCopy.children[ExprParse::CN_LEFT]);
+				int indexNodeRight = outputTree_R<bOutput>(nodeCopy.children[ExprParse::CN_RIGHT]);
 
-				node.children[CN_LEFT] = indexNodeLeft;
-				node.children[CN_RIGHT] = indexNodeRight;
+				node.children[ExprParse::CN_LEFT] = indexNodeLeft;
+				node.children[ExprParse::CN_RIGHT] = indexNodeRight;
 			}
 		);
 	}
@@ -190,7 +193,7 @@ public:
 		if (index == 0)
 			return 0;
 		
-		if (IsLeaf(index))
+		if (ExprParse::IsLeaf(index))
 		{
 			ExpressionTreeData const& readData = bOutput ? *mOutputData : *mEvalData;
 			Unit const& unit = readData.getLeafCode(index);
@@ -248,6 +251,5 @@ public:
 
 	bool isEqualValue(Index indexLeft, Index indexRight);
 };
-
 
 #endif // DifferentialEvaluator_h__

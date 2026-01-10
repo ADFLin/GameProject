@@ -4,7 +4,7 @@
 #ifndef D3D12Utility_H_8286EFBB_EBBD_42EF_A628_A96A7810CF00
 #define D3D12Utility_H_8286EFBB_EBBD_42EF_A628_A96A7810CF00
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "Core/IntegerType.h"
 
 #include "Platform/Windows/ComUtility.h"

@@ -1,6 +1,9 @@
 #ifndef ExprByteCode_h__
 #define ExprByteCode_h__
 
+#include "../ExpressionCore.h"
+#include "../SymbolTable.h"
+#include "../ExpressionTree.h"
 #include "../ExpressionParser.h"
 
 
@@ -23,6 +26,8 @@ namespace EExprByteCode
 		Const,
 		Variable,
 #endif
+		Temp,
+		Store,
 
 #if EBC_USE_COMPOSITIVE_CODE_LEVEL
 
@@ -151,6 +156,7 @@ struct ExprByteCodeExecData
 
 #if EBC_USE_VALUE_BUFFER
 	int               numInput;
+	int               numTemp;
 	TArray<RealType*> vars;
 
 	template< typename T >
@@ -185,6 +191,7 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>
 {
 	ExprByteCodeExecData& mOutput;
 	int mNumCmd = 0;
+	int mMaxTempIndex = -1;
 
 	ExprByteCodeCompiler(ExprByteCodeExecData& output)
 		:mOutput(output)
@@ -200,9 +207,12 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>
 
 	void codeEnd();
 
-	void preLoadConst(ConstValueInfo const& value)
+	void preLoadCode(ExprParse::Unit const& code)
 	{
-		int index = mOutput.constValues.addUnique(value.asReal);
+		if (code.type == ExprParse::VALUE_CONST)
+		{
+			mOutput.constValues.addUnique(code.constValue.asReal);
+		}
 	}
 
 	void codeConstValue(ConstValueInfo const& value);
@@ -212,6 +222,33 @@ struct ExprByteCodeCompiler : public TCodeGenerator<ExprByteCodeCompiler>
 	void codeFunction(FuncSymbolInfo const& info);
 	void codeBinaryOp(TokenType type, bool isReverse);
 	void codeUnaryOp(TokenType type);
+
+	void codeExprTemp(ExprTempInfo const& tempInfo)
+	{
+		if (mMaxTempIndex < tempInfo.tempIndex)
+			mMaxTempIndex = tempInfo.tempIndex;
+
+		pushValue(EExprByteCode::Temp, tempInfo.tempIndex);
+	}
+
+	void codeStoreTemp(int16 tempIndex)
+	{
+#if EBC_USE_LAZY_STACK_PUSH
+		// Ensure any pending value is materialized so we can store it
+		auto& top = mStacks.back();
+		if (top.byteCode != EExprByteCode::None)
+		{
+			outputCmd(top.byteCode, top.index);
+			// Mark as emitted but KEEP it on stack because Store doesn't consume it
+			top.byteCode = EExprByteCode::None; 
+		}
+#endif
+		if (mMaxTempIndex < tempIndex)
+			mMaxTempIndex = tempIndex;
+
+		CHECK(tempIndex < 255);
+		outputCmd(EExprByteCode::Store, (uint8)tempIndex);
+	}
 
 #if EBC_USE_LAZY_STACK_PUSH
 	void visitSeparetor()
@@ -303,7 +340,8 @@ public:
 
 private:
 	TValue doExecute(ExprByteCodeExecData const& execData);
-	int  execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue);
+	// Use __restrict to help compiler optimize pointer aliasing
+	int  execCode(uint8 const* __restrict pCode, TValue* __restrict & pValueStack, TValue& topValue, TValue* __restrict tempValues);
 
 	ExprByteCodeExecData const* mExecData;
 	TArrayView<TValue const> mInputs;

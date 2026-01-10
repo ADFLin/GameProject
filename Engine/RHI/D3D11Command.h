@@ -317,7 +317,7 @@ namespace Render
 		}
 		void RHIFlushCommand()
 		{
-			//mDeviceContext->Flush();
+			mDeviceContext->Flush();
 			mRenderTargetsState = nullptr;
 		}
 
@@ -435,7 +435,7 @@ namespace Render
 		bool bUseFixedShaderPipeline = true;
 
 		RHIResource* mVertexShader = nullptr;
-		TArray< uint8 >* mVertexShaderByteCode;
+		TArray< uint8 >* mVertexShaderByteCode = nullptr;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;
 		TComPtr< ID3D11Device > mDevice;
 		RHIInputLayout* mInputLayout = nullptr;

@@ -7,7 +7,7 @@
 #include "Math/Vector2.h"
 #include "InlineString.h"
 #include "Core/IntegerType.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "TemplateMisc.h"
 
 #define USE_TRANSLATE

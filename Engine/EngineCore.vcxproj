@@ -420,7 +420,7 @@
     <ClInclude Include="Module\ModuleManager.h" />
     <ClInclude Include="ObjectHandle.h" />
     <ClInclude Include="Clock.h" />
-    <ClInclude Include="MarcoCommon.h" />
+    <ClInclude Include="MacroCommon.h" />
     <ClInclude Include="CompilerConfig.h" />
     <ClInclude Include="ConsoleSystem.h" />
     <ClInclude Include="Cpp11StdConfig.h" />

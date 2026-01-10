@@ -29,11 +29,11 @@ namespace CPP
 			BitwiseXOR,
 			BitwiseAND,
 			Equality,
-			Comparsion,
+			Comparison,
 			Shift,
 			Addition,
 			Multiplication,
-			Preifx,
+			Prefix,
 		};
 	};
 
@@ -45,10 +45,10 @@ namespace CPP
 	op( BitwiseAND , & , EOperatorPrecedence::BitwiseAND )\
 	op( EQ , == , EOperatorPrecedence::Equality )\
 	op( NEQ, != , EOperatorPrecedence::Equality )\
-	op(	CompGE, >= , EOperatorPrecedence::Comparsion )\
-	op( CompG , > , EOperatorPrecedence::Comparsion )\
-	op( CompLE, <= , EOperatorPrecedence::Comparsion )\
-	op( CompL , < , EOperatorPrecedence::Comparsion )\
+	op(	CompGE, >= , EOperatorPrecedence::Comparison )\
+	op( CompG , > , EOperatorPrecedence::Comparison )\
+	op( CompLE, <= , EOperatorPrecedence::Comparison )\
+	op( CompL , < , EOperatorPrecedence::Comparison )\
 	op( LShift, <<  , EOperatorPrecedence::Shift )\
 	op( RShift, >> , EOperatorPrecedence::Shift )\
 	op( Add , + , EOperatorPrecedence::Addition )\
@@ -58,12 +58,12 @@ namespace CPP
 	op( Rem , % , EOperatorPrecedence::Multiplication)\
 
 #define UNARY_OPERATOR_LIST(op)\
-	op( Plus , + , EOperatorPrecedence::Preifx)\
-	op( Minus , - , EOperatorPrecedence::Preifx)\
-	op( LogicalNOT , ! , EOperatorPrecedence::Preifx)\
-	op( BitwiseNOT , ~ , EOperatorPrecedence::Preifx)\
-	op( Inc , ++ , EOperatorPrecedence::Preifx)\
-	op( Dec , -- , EOperatorPrecedence::Preifx)\
+	op( Plus , + , EOperatorPrecedence::Prefix)\
+	op( Minus , - , EOperatorPrecedence::Prefix)\
+	op( LogicalNOT , ! , EOperatorPrecedence::Prefix)\
+	op( BitwiseNOT , ~ , EOperatorPrecedence::Prefix)\
+	op( Inc , ++ , EOperatorPrecedence::Prefix)\
+	op( Dec , -- , EOperatorPrecedence::Prefix)\
 
 	namespace EOperator
 	{
@@ -116,7 +116,7 @@ namespace CPP
 		std::ostream& mStream;
 	};
 
-	class FExpressionUitlity
+	class FExpressionUtility
 	{
 	public:
 		static int FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType);
@@ -203,7 +203,7 @@ namespace CPP
 	};
 
 	template< class T >
-	class CodeTokenUtiliyT : public FCodeParse
+	class CodeTokenUtilityT : public FCodeParse
 	{
 	public:
 		T* _this() { return static_cast<T*>(this); }
@@ -295,7 +295,7 @@ namespace CPP
 	};
 
 
-	class CodeLoc : public CodeTokenUtiliyT< CodeLoc >
+	class CodeLoc : public CodeTokenUtilityT< CodeLoc >
 	{
 	public:
 		bool isEoF() const { return *mCur == 0; }
@@ -398,7 +398,6 @@ namespace CPP
 		virtual HashString  getFilePath() { return HashString(); }
 		virtual char const* getSourceName() { return ""; }
 	};
-
 
 	class CodeStringSource : public CodeSource
 	{
@@ -507,22 +506,22 @@ namespace CPP
 		Preprocessor();
 		~Preprocessor();
 
-		void pushInput(CodeSource& sorce);
+		void pushInput(CodeSource& source);
 		void translate();
-		void translate(CodeSource& sorce);
+		void translate(CodeSource& source);
 		void setOutput(CodeOutput& output);
 		void setSourceLibrary(CodeSourceLibrary& sourceLibrary);
-		void addSreachDir(char const* dir);
+		void addSearchDir(char const* dir);
 		void addDefine(char const* name, int value);
 		void addInclude(char const* fileName, bool bSystemPath = false);
 
 		void getUsedIncludeFiles(std::unordered_set< HashString >& outFiles);
 
-		bool bSupportMarcoArg = true;
-		bool bReplaceMarcoText = false;
-		bool bAllowRedefineMarco = false;
+		bool bSupportMacroArg = true;
+		bool bReplaceMacroText = false;
+		bool bAllowRedefineMacro = false;
 		bool bCommentIncludeFileName = true;
-		bool bAddLineMarco = true;
+		bool bAddLineMacro = true;
 		enum LineFormat
 		{
 			LF_LineNumber,
@@ -532,7 +531,7 @@ namespace CPP
 	private:
 
 
-		enum EControlPraseResult
+		enum EControlParseResult
 		{
 			OK,
 			ExitBlock,
@@ -540,7 +539,7 @@ namespace CPP
 		};
 
 		bool parseCode(bool bSkip);
-		bool parseControlLine(EControlPraseResult& result);
+		bool parseControlLine(EControlParseResult& result);
 		bool parseInclude();
 		bool parseDefine();
 		bool parseIf();
@@ -562,49 +561,54 @@ namespace CPP
 			return parseExpression(ret);
 		}
 
-		bool tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType);
-		bool parseExprOp(int& ret , EOperatorPrecedence::Type precedence = EOperatorPrecedence::Type(0));
-		
-		template< EOperatorPrecedence::Type Precedence >
-		bool tokenOp(EOperator::Type& outType);
-		template< EOperatorPrecedence::Type Precedence >
-		bool parseExprOp(int& ret);
 
-
-		bool parseExprFactor(int& ret);
-		bool parseExprValue(int& ret);
 
 		bool ensureInputValid();
 		bool IsInputEnd();
 		bool skipToNextLine();
 
 
-		bool expandMarco(StringView const& lineText, std::string& outText );
+		bool expandMacro(StringView const& lineText, std::string& outText );
 
-		struct ExpandMarcoResult
+		struct ExpandMacroResult
 		{
-			int numRefMarco;
-			int numRefMarcoWithArgs;
+			int numRefMacro;
+			int numRefMacroWithArgs;
 
-			ExpandMarcoResult()
+			ExpandMacroResult()
 			{
-				numRefMarco = 0;
-				numRefMarcoWithArgs = 0;
+				numRefMacro = 0;
+				numRefMacroWithArgs = 0;
 			}
 
-			void append(ExpandMarcoResult const& other)
+			void append(ExpandMacroResult const& other)
 			{
-				numRefMarco += other.numRefMarco;
-				numRefMarcoWithArgs += other.numRefMarcoWithArgs;
+				numRefMacro += other.numRefMacro;
+				numRefMacroWithArgs += other.numRefMacroWithArgs;
 			}
 
-			bool isExpanded() const { return !!numRefMarco || !!numRefMarcoWithArgs; }
+			bool isExpanded() const { return !!numRefMacro || !!numRefMacroWithArgs; }
 		};
-		bool expandMarco(StringView const& lineText, std::string& outText, ExpandMarcoResult& outExpandResult);
+		bool expandMacro(StringView const& lineText, std::string& outText, ExpandMacroResult& outExpandResult);
 
 
-		bool checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult);
-		bool expandMarcoInternal(class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult);
+		struct MacroSymbol;
+		struct MacroExpansionContext
+		{
+			MacroSymbol const* macro;
+			MacroExpansionContext const* parent;
+
+			bool isSuppressed(MacroSymbol const* target) const
+			{
+				if (macro == target) return true;
+				return parent ? parent->isSuppressed(target) : false;
+			}
+		};
+
+		bool checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMacroResult& outResult, int depth, MacroExpansionContext const* context);
+		bool expandMacroInternal(class LineStringViewCode& code, std::string& outText, ExpandMacroResult& outResult, int depth, MacroExpansionContext const* context);
+
+		static constexpr int MAX_MACRO_EXPANSION_DEPTH = 256;
 
 		bool tokenControl(StringView& outName);
 
@@ -647,7 +651,7 @@ namespace CPP
 			throw SyntaxError(msg);
 		}
 
-		struct MarcoSymbol
+		struct MacroSymbol
 		{
 			//StringView  name;
 			std::string expr;
@@ -663,6 +667,8 @@ namespace CPP
 			{
 				int indexArg;
 				int offset;
+				bool bStringify = false;
+				bool bConcat = false;
 			};
 			TArray< ArgEntry > argEntries;
 			ArgEntry vaArgs;
@@ -672,19 +678,17 @@ namespace CPP
 			int evalFrame;
 		};
 
-		MarcoSymbol* findMarco(StringView const& name);
+		MacroSymbol* findMacro(StringView const& name);
 
-		MarcoSymbol* findMarcoInLineText(StringView& inoutText)
+		MacroSymbol* findMacroInLineText(StringView& inoutText)
 		{
 
-
-
-
+			return nullptr;
 		}
 
 
 		int mIfScopeDepth;
-		std::unordered_map< HashString, MarcoSymbol > mMarcoSymbolMap;
+		std::unordered_map< HashString, MacroSymbol > mMacroSymbolMap;
 		int mCurFrame = 0;
 		bool bRequestSourceLine = false;
 		
@@ -722,10 +726,9 @@ namespace CPP
 		CodeOutput* mOutput;
 
 		std::unordered_set< HashString >  mPragmaOnceSet;
-		TArray< std::string > mFileSreachDirs;
+		TArray< std::string > mFileSearchDirs;
 		std::unordered_set< HashString >  mUsedFiles;
-		EOperator::Type mParsedCachedOP = EOperator::None;
-		EOperatorPrecedence::Type mParesedCacheOPPrecedence;
+
 
 		CodeSourceLibrary* mSourceLibrary = nullptr;
 		bool mbSourceLibraryManaged = false;
@@ -736,24 +739,32 @@ namespace CPP
 	class ExpressionEvaluator
 	{
 	public:
-		ExpressionEvaluator(Preprocessor& preprocessor, CodeLoc const& loc)
-			:mProcesser(preprocessor)
-			,mLoc(loc)
+		ExpressionEvaluator(CodeLoc const& loc)
+			:mLoc(loc)
 		{
-
-
-
 		}
 
-		bool evaluate(int& ret)
-		{
+		bool evaluate(int& ret);
 
+		bool parseExpression(int& ret);
+		bool parseExprOp(int& ret, EOperatorPrecedence::Type precedence = EOperatorPrecedence::Type(0));
+		
+		template< EOperatorPrecedence::Type Precedence >
+		bool parseExprOp(int& ret);
 
+		bool parseExprFactor(int& ret);
+		bool parseExprValue(int& ret);
 
-		}
+		bool tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType);
+		
+		template< EOperatorPrecedence::Type Precedence >
+		bool tokenOp(EOperator::Type& outType);
 
+		CodeLoc& getInput() { return mLoc; }
+	private:
 		CodeLoc mLoc;
-		Preprocessor& mProcesser;
+		EOperator::Type mParsedCachedOP = EOperator::None;
+		EOperatorPrecedence::Type mParesedCachedOPPrecedence;
 	};
 
 }

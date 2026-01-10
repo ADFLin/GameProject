@@ -687,9 +687,6 @@
     <ClInclude Include="Template\ArrayView.h">
       <Filter>Template</Filter>
     </ClInclude>
-    <ClInclude Include="MarcoCommon.h">
-      <Filter>Config</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Color.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -1053,8 +1050,8 @@
     <ClInclude Include="AI\NNModel.h">
       <Filter>AI</Filter>
     </ClInclude>
-    <ClInclude Include="Core\String.h">
-      <Filter>Core</Filter>
+    <ClInclude Include="MacroCommon.h">
+      <Filter>Config</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

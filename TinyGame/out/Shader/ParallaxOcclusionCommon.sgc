@@ -46,7 +46,7 @@ POMOutput POMapping(in sampler2D dispTexture, in POMParameters parameters, float
 		texCur -= dt;
 		texDepth = GetDispDepth(dispTexture, parameters , texCur);
 	}
-	//#TODO: binary sreach?
+	//#TODO: binary search?
 	POMOutput pomOutput;
 	if ( curDepth > 0 )
 	{

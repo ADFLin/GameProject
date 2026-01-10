@@ -130,7 +130,7 @@ void ServerListPanel::refreshServerList()
 {
 	mServerList.clear();
 	mServerListCtrl->removeAllItem();
-	mWorker->sreachLanServer();
+	mWorker->searchLanServer();
 	mConButton->enable( false );
 }
 

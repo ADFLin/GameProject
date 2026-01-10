@@ -109,6 +109,8 @@ namespace CB
 			mMeshBuilder->bindTime(GTime);
 			mMeshBuilder->initializeRHI();
 			mMeshBuilder->getSymbolDefine().defineFunc("Test", Test);
+			mMeshBuilder->setExecType(mExecType);
+			mMeshBuilder->setGenerateSIMD(mbUseSIMD);
 	
 			::Global::GUI().cleanupWidget();
 
@@ -138,6 +140,31 @@ namespace CB
 
 			auto frame = WidgetUtility::CreateDevFrame();
 			frame->addCheckBox("Pause", bPauseTime);
+			
+			GChoice* choice = frame->addChoice("CPU Exec Type");
+			choice->addItem("Asm");
+			choice->addItem("ByteCode");
+			choice->addItem("Interp");
+			choice->setSelection((int)mExecType - 1);
+			choice->onEvent = [this](int event, GWidget* widget)
+			{
+				if (event == EVT_CHOICE_SELECT)
+				{
+					mExecType = (ECodeExecType)(widget->cast<GChoice>()->getSelection() + 1);
+					recompileSurfaces();
+				}
+				return false;
+			};
+
+			frame->addCheckBox("Use SIMD", mbUseSIMD)->onEvent = [this](int event, GWidget* widget)
+			{
+				if (event == EVT_CHECK_BOX_CHANGE)
+				{
+					mbUseSIMD = widget->cast<GCheckBox>()->bChecked;
+					recompileSurfaces();
+				}
+				return false;
+			};
 
 			ProfileSystem::Get().resetSample();
 			restart();
@@ -146,6 +173,23 @@ namespace CB
 
 
 		bool bPauseTime = false;
+		ECodeExecType mExecType = ECodeExecType::Asm;
+		bool mbUseSIMD = false;
+
+		void recompileSurfaces()
+		{
+			mMeshBuilder->setExecType(mExecType);
+			mMeshBuilder->setGenerateSIMD(mbUseSIMD);
+			for (auto current : mSurfaceList)
+			{
+				auto surface = static_cast<Surface3D*>(current);
+				if (surface->getFunction()->getEvalType() == EEvalType::CPU)
+				{
+					mMeshBuilder->parseFunction(*surface->getFunction());
+					surface->addUpdateBits(RUF_FUNCTION);
+				}
+			}
+		}
 
 		Surface3D* mSurface;
 		GTextCtrl* mTextCtrl;
@@ -391,6 +435,9 @@ namespace CB
 							{
 								SurfaceXYFunc* func = new SurfaceXYFunc(true);
 								func->setExpr(TestExpr);
+								mMeshBuilder->setExecType(mExecType);
+								mMeshBuilder->setGenerateSIMD(mbUseSIMD);
+								mMeshBuilder->parseFunction(*func);
 								mSurface->setFunction(func);
 							}
 							break;
@@ -398,6 +445,9 @@ namespace CB
 							{
 								SurfaceXYFunc* func = new SurfaceXYFunc(false);
 								func->setExpr(TestExpr);
+								mMeshBuilder->setExecType(mExecType);
+								mMeshBuilder->setGenerateSIMD(mbUseSIMD);
+								mMeshBuilder->parseFunction(*func);
 								mSurface->setFunction(func);
 							}
 							break;

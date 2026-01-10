@@ -1,6 +1,6 @@
-#include "CPreprocessor.h"
+﻿#include "CPreprocessor.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "FileSystem.h"
 #include "InlineString.h"
 #include "Holder.h"
@@ -46,7 +46,7 @@ namespace CPP
 		}
 	}
 
-	void Preprocessor::pushInput(CodeSource& sorce)
+	void Preprocessor::pushInput(CodeSource& source)
 	{
 		if (mInput.source)
 		{
@@ -70,7 +70,7 @@ namespace CPP
 			mInputStack.push_back(entry);
 		}
 
-		mInput.source = &sorce;
+		mInput.source = &source;
 		mInput.resetSeek();
 	}
 
@@ -81,10 +81,10 @@ namespace CPP
 		parseCode(false);
 	}
 
-	void Preprocessor::translate(CodeSource& sorce)
+	void Preprocessor::translate(CodeSource& source)
 	{
 		mInputStack.clear();
-		mInput.source = &sorce;
+		mInput.source = &source;
 		mInput.resetSeek();
 
 		mBlockStateStack.clear();
@@ -111,15 +111,31 @@ namespace CPP
 
 		while (!IsInputEnd())
 		{
-			EControlPraseResult result = EControlPraseResult::OK;
+			if (isSkipText())
+			{
+				while (!IsInputEnd())
+				{
+					CodeLoc lineStart = mInput;
+					mInput.skipSpaceInLine();
+					if (mInput.tokenChar('#'))
+					{
+						mInput.setLoc(lineStart);
+						break;
+					}
+					mInput.setLoc(lineStart);
+					mInput.skipToNextLine();
+				}
+			}
+
+			EControlParseResult result = EControlParseResult::OK;
 			CodeLoc start = mInput;
 			if (parseControlLine(result))
 			{
-				if (result == EControlPraseResult::ExitBlock)
+				if (result == EControlParseResult::ExitBlock)
 				{
 					break;
 				}
-				else if (result == EControlPraseResult::RetainText && !bSkip)
+				else if (result == EControlParseResult::RetainText && !bSkip)
 				{
 					mInput.setLoc(start);
 					mInput.skipToNextLine();
@@ -131,11 +147,11 @@ namespace CPP
 				mInput.setLoc(start);
 				mInput.skipToNextLine();
 
-				if (bReplaceMarcoText)
+				if (bReplaceMacroText)
 				{
 					StringView lineText = mInput.getDifference(start);
 					std::string text;
-					expandMarco(lineText, text);
+					expandMacro(lineText, text);
 					emitCode(StringView(text));
 				}
 				else
@@ -152,7 +168,7 @@ namespace CPP
 		return true;
 	}
 
-	bool Preprocessor::parseControlLine(EControlPraseResult& result)
+	bool Preprocessor::parseControlLine(EControlParseResult& result)
 	{
 		mInput.skipSpaceInLine();
 
@@ -182,17 +198,17 @@ namespace CPP
 					return false;
 				}
 
-				if (bReplaceMarcoText)
+				if (bReplaceMacroText)
 				{
-					result = EControlPraseResult::OK;
+					result = EControlParseResult::OK;
 				}
 				else
 				{
-					result = EControlPraseResult::RetainText;
+					result = EControlParseResult::RetainText;
 				}
 			}
 #else
-			result = EControlPraseResult::RetainText;
+			result = EControlParseResult::RetainText;
 #endif
 			break;
 		case HashValue("include"):
@@ -212,34 +228,34 @@ namespace CPP
 #if PARSE_DEFINE_IF
 			if (!parseIf())
 			{
-				result = EControlPraseResult::RetainText;
+				result = EControlParseResult::RetainText;
 			}
 #else
-			result = EControlPraseResult::RetainText;
+			result = EControlParseResult::RetainText;
 #endif
 			break;
 		case HashValue("ifdef"):
 #if PARSE_DEFINE_IF
 			if (!parseIfdef())
 			{
-				result = EControlPraseResult::RetainText;
+				result = EControlParseResult::RetainText;
 			}
 #else
-			result = EControlPraseResult::RetainText;
+			result = EControlParseResult::RetainText;
 #endif
 			break;
 		case HashValue("ifndef"):
 #if PARSE_DEFINE_IF
 			if (!parseIfndef())
 			{
-				result = EControlPraseResult::RetainText;
+				result = EControlParseResult::RetainText;
 			}
 #else
-			result = EControlPraseResult::RetainText;
+			result = EControlParseResult::RetainText;
 #endif
 			break;
 		case HashValue("line"):
-			result = EControlPraseResult::RetainText;
+			result = EControlParseResult::RetainText;
 			break;
 		case HashValue("undef"):
 			if (isSkipText())
@@ -253,13 +269,13 @@ namespace CPP
 					return false;
 				}
 
-				if (bReplaceMarcoText)
+				if (bReplaceMacroText)
 				{
-					result = EControlPraseResult::OK;
+					result = EControlParseResult::OK;
 				}
 				else
 				{
-					result = EControlPraseResult::RetainText;
+					result = EControlParseResult::RetainText;
 				}
 			}
 			break;
@@ -277,7 +293,7 @@ namespace CPP
 				}
 				else
 				{
-					result = EControlPraseResult::RetainText;
+					result = EControlParseResult::RetainText;
 				}
 			}
 			break;
@@ -286,9 +302,9 @@ namespace CPP
 		case HashValue("endif"):
 #if PARSE_DEFINE_IF
 			mInput.setLoc(saveLoc);
-			result = EControlPraseResult::ExitBlock;
+			result = EControlParseResult::ExitBlock;
 #else
-			result = EControlPraseResult::RetainText;
+			result = EControlParseResult::RetainText;
 #endif
 			break;
 		case HashValue("error"):
@@ -306,7 +322,7 @@ namespace CPP
 			break;
 		default:
 			{
-				result = EControlPraseResult::RetainText;
+				result = EControlParseResult::RetainText;
 				return true;
 			}
 		}
@@ -323,8 +339,8 @@ namespace CPP
 			PARSE_ERROR("Error include Format");
 
 		std::string expendText;
-		ExpandMarcoResult expandResult;
-		if (!expandMarco(pathText, expendText, expandResult))
+		ExpandMacroResult expandResult;
+		if (!expandMacro(pathText, expendText, expandResult))
 		{
 			return false;
 		}
@@ -422,21 +438,21 @@ namespace CPP
 
 		mInput.skipSpaceInLine();
 
-		StringView marcoName;
-		if (!mInput.tokenIdentifier(marcoName))
+		StringView macroName;
+		if (!mInput.tokenIdentifier(macroName))
 			return false;
 
 		mInput.skipSpaceInLine();
 
-		MarcoSymbol marco;
-		marco.vaArgs.indexArg = INDEX_NONE;
-		marco.vaArgs.offset = -1;
+		MacroSymbol macro;
+		macro.vaArgs.indexArg = INDEX_NONE;
+		macro.vaArgs.offset = -1;
 
 		if (mInput.tokenChar('('))
 		{
-			if (!bSupportMarcoArg)
+			if (!bSupportMacroArg)
 			{
-				PARSE_ERROR("Marco don't support Arg input");
+				PARSE_ERROR("Macro don't support Arg input");
 			}
 
 			TArray< StringView > argList;
@@ -461,7 +477,7 @@ namespace CPP
 					if (!mInput.tokenChar(')'))
 						return false;
 					
-					marco.vaArgs.indexArg = argList.size();
+					macro.vaArgs.indexArg = argList.size();
 					break;
 				}
 				else
@@ -499,68 +515,103 @@ namespace CPP
 			};
 
 			mInput.skipSpaceInLine();
-			marco.numArgs = argList.size();
+			macro.numArgs = argList.size();
+
+			bool bNextArgConcat = false;
 
 			while (!mInput.isEoL())
 			{
-				bool bHadConcatArg = false;
+				// Handle Concat Operator ##
+				if (mInput[0] == '#' && mInput[1] == '#')
+				{
+					// Strip trailing space in expr (optimized: single resize instead of multiple pop_back)
+					{
+						size_t newLen = macro.expr.size();
+						size_t limit = 0;
+						if (!macro.argEntries.empty())
+						{
+							limit = macro.argEntries.back().offset;
+						}
+
+						while (newLen > limit && FCString::IsSpace(macro.expr[newLen - 1]))
+							--newLen;
+						macro.expr.resize(newLen);
+					}
+
+					// Mark previous arg as concat if it's at the end
+					if (!macro.argEntries.empty())
+					{
+						auto& lastEntry = macro.argEntries.back();
+						if (lastEntry.offset == macro.expr.size())
+						{
+							lastEntry.bConcat = true;
+						}
+					}
+
+					bNextArgConcat = true;
+					mInput.advance();
+					mInput.advance();
+					mInput.skipSpaceInLine();
+					continue;
+				}
+
 				bool bHadArgString = false;
 				StringView exprUnit;
 
+				// Handle Stringify Operator #
 				if (mInput[0] == '#')
 				{
-					if (mInput[1] == '#')
-					{
-						bHadConcatArg = true;
-						mInput.advance();
-						mInput.advance();
-					}
-					else
-					{
-						bHadArgString = true;
-						mInput.advance();
-					}
+					bHadArgString = true;
+					mInput.advance();
+					// Note: mInput.skipSpaceInLine() should arguably happen here too by standard, 
+					// but let's stick to simple logic first.
 				}
-
 
 				if (mInput.tokenIdentifier(exprUnit))
 				{
 					if (bHadArgString)
-						marco.expr += '\"';
+						macro.expr += '\"';
 
-					if (marco.vaArgs.indexArg != INDEX_NONE && exprUnit == "__VA_ARGS__")
+					if (macro.vaArgs.indexArg != INDEX_NONE && exprUnit == "__VA_ARGS__")
 					{
-						marco.vaArgs.offset = marco.expr.size();
-						marco.bVaEatComma = bHadConcatArg;
+						macro.vaArgs.offset = macro.expr.size();
+						macro.vaArgs.bConcat = bNextArgConcat;
+						macro.vaArgs.bStringify = bHadArgString;
 					}
 					else
 					{
 						int idxArg = FindArg(exprUnit);
 						if (idxArg != INDEX_NONE)
 						{
-							MarcoSymbol::ArgEntry entry;
+							MacroSymbol::ArgEntry entry;
 							entry.indexArg = idxArg;
-							entry.offset = marco.expr.size();
-							marco.argEntries.push_back(entry);
+							entry.offset = macro.expr.size();
+							entry.bStringify = bHadArgString;
+							entry.bConcat = bNextArgConcat;
+							macro.argEntries.push_back(entry);
 						}
 						else
 						{
-							marco.expr.append(exprUnit.begin(), exprUnit.end());
+							if (bHadArgString)
+								macro.expr += '#'; // Was not an arg, so # is just a char
+
+							macro.expr.append(exprUnit.begin(), exprUnit.end());
 						}
 					}
 
 					if (bHadArgString)
-						marco.expr += '\"';
+						macro.expr += '\"';
+					
+					bNextArgConcat = false;
 				}
 				else
 				{
 					if (bHadArgString)
-						marco.expr += '#';
-					else if (bHadConcatArg)
-						marco.expr += "##";
-
-					marco.expr += mInput[0];
+						macro.expr += '#';
+					
+					macro.expr += mInput[0];
 					mInput.advance();
+					bNextArgConcat = false;
 				}
 			}
 
@@ -569,7 +620,7 @@ namespace CPP
 		{
 			mInput.skipSpaceInLine();
 
-			marco.numArgs = 0;
+			macro.numArgs = 0;
 			StringView exprText;
 			if (mInput.tokenLineString(exprText))
 			{
@@ -584,35 +635,35 @@ namespace CPP
 					}
 				}
 
-				marco.expr.append(exprText.begin(), exprText.end());
-				marco.evalFrame = -1;
+				macro.expr.append(exprText.begin(), exprText.end());
+				macro.evalFrame = -1;
 			}
 			else
 			{
-				marco.expr = "";
-				marco.evalFrame = INT_MAX;
-				marco.cachedEvalValue = 0;
+				macro.expr = "";
+				macro.evalFrame = INT_MAX;
+				macro.cachedEvalValue = 0;
 			}
 		}
 
-		HashString marcoString{ marcoName , true };
-		auto iter = mMarcoSymbolMap.find(marcoString);
-		if (iter != mMarcoSymbolMap.end())
+		HashString macroString{ macroName , true };
+		auto iter = mMacroSymbolMap.find(macroString);
+		if (iter != mMacroSymbolMap.end())
 		{
-			if (bAllowRedefineMarco)
+			if (bAllowRedefineMacro)
 			{
-				PARSE_WARNING("Marco %s is defined : %s -> %s" , marcoString.c_str() , iter->second.expr.c_str() ,  marco.expr.c_str() );
-				mMarcoSymbolMap.emplace_hint(iter, marcoString, std::move(marco));
+				PARSE_WARNING("Macro %s is defined : %s -> %s" , macroString.c_str() , iter->second.expr.c_str() ,  macro.expr.c_str() );
+				mMacroSymbolMap.emplace_hint(iter, macroString, std::move(macro));
 				++mCurFrame;
 			}
 			else
 			{
-				PARSE_ERROR("Marco %s is defined", marcoString.c_str());
+				PARSE_ERROR("Macro %s is defined", macroString.c_str());
 			}
 		}
 		else
 		{
-			mMarcoSymbolMap.emplace(marcoString, std::move(marco));
+			mMacroSymbolMap.emplace(macroString, std::move(macro));
 		}
 		skipToNextLine();
 		return true;
@@ -787,9 +838,9 @@ namespace CPP
 
 		HashString nameKey;
 		if (!HashString::Find(idName, true, nameKey))
-			return nullptr;
+			return false;
 
-		mMarcoSymbolMap.erase(nameKey);
+		mMacroSymbolMap.erase(nameKey);
 		return true;
 	}
 
@@ -801,7 +852,7 @@ namespace CPP
 		if (!mInput.tokenIdentifier(idName))
 			return false;
 
-		ret = (findMarco(idName) == nullptr) ? 0 : 1;
+		ret = (findMacro(idName) == nullptr) ? 0 : 1;
 		return true;
 	}
 
@@ -809,227 +860,11 @@ namespace CPP
 	{
 		mInput.skipSpaceInLine();
 
-#if USE_TEMPLATE_PARSE_OP
-		if (!parseExprOp< EOperatorPrecedence::Type(0)>(ret))
+		ExpressionEvaluator evaluator(mInput);
+		if (!evaluator.evaluate(ret))
 			return false;
-#else
-		if ( !parseExprOp(ret) )
-			return false;
-#endif
-		return true;
-	}
-
-	bool Preprocessor::parseExprOp(int& ret, EOperatorPrecedence::Type precedence /*= 0*/)
-	{
-		char const* debugView = mInput.getCur();
-
-		if (precedence == EOperatorPrecedence::Preifx)
-		{
-			return parseExprFactor(ret);
-		}
-
-		if (!parseExprOp(ret, EOperatorPrecedence::Type(precedence + 1)))
-			return false;
-
-		EOperator::Type op;
-		while (tokenOp(precedence, op))
-		{
-			mInput.skipSpaceInLine();
-
-			int rhs;
-			if (!parseExprOp(rhs, EOperatorPrecedence::Type(precedence + 1)))
-				return false;
-
-			switch (op)
-			{
-#define CASE_OP( NAME , OP , P ) case EOperator::NAME: ret = ret OP rhs; break;
-				BINARY_OPERATOR_LIST(CASE_OP)
-#undef  CASE_OP
-			default:
-				break;
-			}
-		}
-		return true;
-	}
-
-	template< EOperatorPrecedence::Type Precedence >
-	bool Preprocessor::parseExprOp(int& ret)
-	{
-		char const* debugView = mInput.getCur();
-
-		if (!parseExprOp<EOperatorPrecedence::Type(Precedence + 1)>(ret))
-			return false;
-
-		EOperator::Type op;
-		while (tokenOp< Precedence >(op))
-		{
-			mInput.skipSpaceInLine();
-
-			int rhs;
-			if (!parseExprOp<EOperatorPrecedence::Type(Precedence + 1)>(rhs))
-				return false;
-
-			switch (op)
-			{
-#define CASE_OP( NAME , OP , P ) case EOperator::NAME: if constexpr ( P == Precedence ) ret = ret OP rhs; break;
-				BINARY_OPERATOR_LIST(CASE_OP)
-#undef  CASE_OP
-			default:
-				break;
-			}
-		}
-		return true;
-	}
-
-	template<>
-	bool Preprocessor::parseExprOp< EOperatorPrecedence::Preifx >(int& ret)
-	{
-		return parseExprFactor(ret);
-	}
-
-
-	bool Preprocessor::parseExprFactor(int& ret)
-	{
-		switch (mInput[0])
-		{
-		case '+':
-			if (mInput[1] == '+')
-			{
-				mInput.advanceNoEoL(2);
-				if (!parseExprFactor(ret))
-					return false;
-
-				++ret;
-			}
-			else
-			{
-				mInput.advanceNoEoL(1);
-				if (!parseExprFactor(ret))
-					return false;
-			}
-			break;
-		case '-':
-			if (mInput[1] == '-')
-			{
-				mInput.advanceNoEoL(2);
-				if (!parseExprFactor(ret))
-					return false;
-
-				--ret;
-			}
-			else
-			{
-				mInput.advanceNoEoL(1);
-				if (!parseExprFactor(ret))
-					return false;
-
-				ret = -ret;
-			}
-			break;
-		case '~':
-			{
-				mInput.advanceNoEoL(1);
-				if (!parseExprFactor(ret))
-					return false;
-				ret = ~ret;
-			}
-			break;
-		case '!':
-			{
-				mInput.advanceNoEoL(1);
-				if (!parseExprFactor(ret))
-					return false;
-
-				ret = !ret;
-			}
-			break;
-		default:
-			if (!parseExprValue(ret))
-				return false;
-		}
-
-		mInput.skipSpaceInLine();
-		return true;
-	}
-
-	bool Preprocessor::parseExprValue(int& ret)
-	{
-		if (mInput.tokenChar('('))
-		{
-			parseExpression(ret);
-
-			if (!mInput.tokenChar(')'))
-				PARSE_ERROR("Expression is invalid : less \')\'" );
-
-			return true;
-		}
-		else if (mInput.tokenNumber(ret))
-		{
-			mInput.skipSpaceInLine();
-			return true;
-		}
-
-
-		ret = 0;
-		return true;
-	}
-
-	bool Preprocessor::tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType)
-	{
-#if USE_OPERATION_CACHE
-		if (mParsedCachedOP == EOperator::None)
-		{
-			if (mInput.isEoL())
-			{
-				return false;
-			}
-
-			int len = FExpressionUitlity::FindOperatorToEnd(mInput.getCur(), precedence, mParsedCachedOP);
-			if (len == 0)
-				return false;
-
-			assert(len <= 2);
-			mParesedCacheOPPrecedence = FExpressionUitlity::GetOperationInfo(mParsedCachedOP).precedence;
-			mInput.advanceNoEoL(len);
-		}
-
-		if (mParesedCacheOPPrecedence != precedence)
-			return false;
-
-		outType = mParsedCachedOP;
-		mParsedCachedOP = EOperator::None;
-		return true;
-
-#else
-		if (mInput.isEoL())
-		{
-			return false;
-		}
-
-		int len = FExpressionUitlity::FindOperator(mInput.getCur(), precedence, outType);
-		if (len == 0)
-			return false;
-
-		assert(len <= 2);
-		mInput.advanceNoEoL(len);
-		return true;
-#endif
-	}
-
-	template< EOperatorPrecedence::Type Precedence >
-	NOINLINE bool Preprocessor::tokenOp(EOperator::Type& outType)
-	{
-		if (mInput.isEoL())
-		{
-			return false;
-		}
-
-		int len = FExpressionUitlity::FindOperator< Precedence >(mInput.getCur(), outType);
-		if (len == 0)
-			return false;
-
-		assert(len <= 2);
-		mInput.advanceNoEoL(len);
+		
+		mInput.setLoc(evaluator.getInput());
 		return true;
 	}
 
@@ -1073,7 +908,7 @@ namespace CPP
 	}
 
 	class LineStringViewCode : public StringView
-					       , public CodeTokenUtiliyT<LineStringViewCode>
+					         , public CodeTokenUtilityT<LineStringViewCode>
 	{
 	public:
 		LineStringViewCode(std::string const& code)
@@ -1144,32 +979,32 @@ namespace CPP
 			temp.skipSpaceInLine();
 			if (temp.length() == 0)
 			{
-				auto marco = findMarco(id);
-				if (marco == nullptr)
+				auto macro = findMacro(id);
+				if (macro == nullptr)
 				{
 					PARSE_WARNING( "%s is not defined" , id.toCString() );
 					ret = 0;
 				}
 				else
 				{
-					if (marco->evalFrame < mCurFrame)
+					if (macro->evalFrame < mCurFrame)
 					{
 						std::string expandedExpr;
-						if (!expandMarco(marco->expr, expandedExpr))
+						if (!expandMacro(macro->expr, expandedExpr))
 						{
 							return false;
 						}
 						CodeLoc exprLoc;
 						exprLoc.mCur = expandedExpr.c_str();
 						exprLoc.mLineCount = 0;
-						if (!parseExpression(exprLoc, marco->cachedEvalValue))
+						if (!parseExpression(exprLoc, macro->cachedEvalValue))
 						{
-							PARSE_ERROR("Define \"%s\" is not Const Expresstion", id.toCString());
+							PARSE_ERROR("Define \"%s\" is not Const Expression", id.toCString());
 						}
-						marco->evalFrame = mCurFrame;
+						macro->evalFrame = mCurFrame;
 					}
 
-					ret = marco->cachedEvalValue;
+					ret = macro->cachedEvalValue;
 				}
 
 				return true;
@@ -1179,15 +1014,15 @@ namespace CPP
 		std::string exprTextConv;
 
 
-		ExpandMarcoResult expandResult;
+		ExpandMacroResult expandResult;
 		bool bHadExpanded = false;
 		if (id.length())
 		{
-			if (!checkIdentifierToExpand(id, exprCode, exprTextConv, expandResult))
+			if (!checkIdentifierToExpand(id, exprCode, exprTextConv, expandResult, 0, nullptr))
 				return false;
 		}
 
-		if (!expandMarcoInternal(exprCode, exprTextConv, expandResult))
+		if (!expandMacroInternal(exprCode, exprTextConv, expandResult, 0, nullptr))
 		{
 			return false;
 		}
@@ -1197,7 +1032,7 @@ namespace CPP
 		exprLoc.mLineCount = 0;
 		if (!parseExpression(exprLoc, ret))
 		{
-			PARSE_ERROR("Condition Expresstion of If eval Fail : %s", exprText.toCString());
+			PARSE_ERROR("Condition Expression of If eval Fail : %s", exprText.toCString());
 			return false;
 		}
 
@@ -1212,25 +1047,39 @@ namespace CPP
 	}
 
 
-	bool Preprocessor::expandMarco(StringView const& lineText,std::string& outText)
+	bool Preprocessor::expandMacro(StringView const& lineText,std::string& outText)
 	{
-		ExpandMarcoResult expandResult;
+		ExpandMacroResult expandResult;
 		LineStringViewCode codeView(lineText);
-		return expandMarcoInternal(codeView, outText, expandResult);
+		return expandMacroInternal(codeView, outText, expandResult, 0, nullptr);
 	}
 
-	bool Preprocessor::expandMarco(StringView const& lineText, std::string& outText, ExpandMarcoResult& outExpandResult)
+	bool Preprocessor::expandMacro(StringView const& lineText, std::string& outText, ExpandMacroResult& outExpandResult)
 	{
 		LineStringViewCode codeView(lineText);
-		return expandMarcoInternal(codeView, outText, outExpandResult);
+		return expandMacroInternal(codeView, outText, outExpandResult, 0, nullptr);
 	}
 
-	bool Preprocessor::checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult)
+	bool Preprocessor::checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMacroResult& outResult, int depth, MacroExpansionContext const* context)
 	{
-		MarcoSymbol* marco = findMarco(id);
-		if (marco)
+		if (depth >= MAX_MACRO_EXPANSION_DEPTH)
 		{
-			if (marco->numArgs > 0)
+			PARSE_ERROR("Macro expansion depth exceeded maximum limit (%d) for: %s", MAX_MACRO_EXPANSION_DEPTH, id.toCString());
+			return false;
+		}
+
+		MacroSymbol* macro = findMacro(id);
+		if (macro)
+		{
+			if (context && context->isSuppressed(macro))
+			{
+				outText.append(id.begin(), id.end());
+				return true;
+			}
+			
+			MacroExpansionContext newContext{ macro, context };
+
+			if (macro->numArgs > 0)
 			{
 				TArray< StringView > argList;
 
@@ -1252,7 +1101,7 @@ namespace CPP
 						end = FStringParse::FindCharN(code.getCur(), code.getCur() + code.size(), ',', ')', '(');
 						if (*end == 0)
 						{
-							PARSE_ERROR("Marco Syntax Error : %s", (char const*)id.toCString());
+							PARSE_ERROR("Macro Syntax Error : %s", (char const*)id.toCString());
 						}
 
 						code.offsetTo(end + 1);
@@ -1265,7 +1114,7 @@ namespace CPP
 							char const* pFind = FStringParse::FindCharN(code.getCur(), code.getCur() + code.size(), ')', '(');
 							if (*pFind == 0)
 							{
-								PARSE_ERROR("Marco Syntax Error : %s", (char const*)id.toCString());
+								PARSE_ERROR("Macro Syntax Error : %s", (char const*)id.toCString());
 							}
 
 							code.offsetTo(pFind + 1);
@@ -1289,97 +1138,110 @@ namespace CPP
 				}
 
 
-				if (marco->numArgs != argList.size() && marco->vaArgs.indexArg == INDEX_NONE)
+				if (macro->numArgs != argList.size() && macro->vaArgs.indexArg == INDEX_NONE)
 				{
-					PARSE_WARNING("Marco Args Count is not match");
+					PARSE_WARNING("Macro Args Count is not match");
 				}
+
+				// Pre-expand arguments
+				TArray<std::string> expandedArgs;
+				expandedArgs.resize(argList.size());
+				for (int i = 0; i < argList.size(); ++i)
+				{
+					LineStringViewCode codeView(argList[i]);
+					// Use newContext?? No, args are expanded in the caller's context?
+					// Standard says: "Macro arguments are expanded... before being substituted"
+					// This expansion happens in the CURRENT context, not the new macro's context.
+					if (!expandMacroInternal(codeView, expandedArgs[i], outResult, depth + 1, context))
+					{
+						PARSE_ERROR("Expand Arg Error : %s", argList[i].toCString());
+						return false;
+					}
+				}
+
+				// Construct substitution text
+				std::string substitutionText;
+				// Reserve heuristic size
+				substitutionText.reserve(macro->expr.size() + argList.size() * 16);
 
 				int lastAppendOffset = 0;
 				auto CheckAppendPrevExpr = [&]( int inOffset)
 				{
 					if (lastAppendOffset != inOffset)
 					{
-						auto itStart = marco->expr.begin() + lastAppendOffset;
-						auto itEnd = marco->expr.begin() + inOffset;
-						outText.append(itStart, itEnd);
+						auto itStart = macro->expr.begin() + lastAppendOffset;
+						auto itEnd = macro->expr.begin() + inOffset;
+						substitutionText.append(itStart, itEnd);
 
 						lastAppendOffset = inOffset;
 					}
 				};
 
-
-				auto OutputArg = [&](StringView const& arg)
-				{
-#if 1
-					std::string expandText;
-					LineStringViewCode codeView(arg);
-					if (!expandMarcoInternal(codeView, expandText, outResult))
-					{
-						PARSE_ERROR("Expand Arg Error : %s", arg.toCString());
-						return false;
-					}
-					outText += expandText;
-#else
-					outText.append(arg.begin(), arg.end());
-#endif
-				};
-
-				for (auto const& entry : marco->argEntries)
+				for (auto const& entry : macro->argEntries)
 				{
 					CheckAppendPrevExpr(entry.offset);
 
-					if (entry.indexArg < argList.size())
+					if (entry.indexArg < expandedArgs.size())
 					{
-						auto const& arg = argList[entry.indexArg];
-						OutputArg(arg);
+						if (entry.bStringify || entry.bConcat)
+							substitutionText.append(argList[entry.indexArg].begin(), argList[entry.indexArg].end());
+						else
+							substitutionText += expandedArgs[entry.indexArg];
 					}
 				}
 
-				if (marco->vaArgs.indexArg != INDEX_NONE && marco->vaArgs.offset >= 0 )
+				if (macro->vaArgs.indexArg != INDEX_NONE && macro->vaArgs.offset >= 0 )
 				{
-					CheckAppendPrevExpr(marco->vaArgs.offset);
+					CheckAppendPrevExpr(macro->vaArgs.offset);
 
-					if (marco->vaArgs.indexArg < argList.size())
+					if (macro->vaArgs.indexArg < expandedArgs.size())
 					{
-						for (int indexArg = marco->vaArgs.indexArg; indexArg < argList.size(); ++indexArg)
+						for (int indexArg = macro->vaArgs.indexArg; indexArg < expandedArgs.size(); ++indexArg)
 						{
-							auto const& arg = argList[indexArg];
+							if (indexArg != macro->vaArgs.indexArg)
+								substitutionText += ",";
 
-							if (indexArg != marco->vaArgs.indexArg)
-								outText += ",";
-
-							OutputArg(arg);
+							if (macro->vaArgs.bConcat || macro->vaArgs.bStringify)
+								substitutionText.append(argList[indexArg].begin(), argList[indexArg].end());
+							else
+								substitutionText += expandedArgs[indexArg];
 						}
 					}
-					else if (marco->bVaEatComma)
+					else if (macro->bVaEatComma)
 					{
-						for( auto index = outText.size() - 1; index ; --index)
+						for( auto index = substitutionText.size() - 1; index ; --index)
 						{
-							if (outText[index] == ',')
+							if (substitutionText[index] == ',')
 							{
-								outText.erase(index);
+								substitutionText.erase(index);
 								break;
 							}
 
-							if (!FCString::IsSpace(outText[index]))
+							if (!FCString::IsSpace(substitutionText[index]))
 								break;
 						}
 					}
 				}
 
-				CheckAppendPrevExpr(marco->expr.size());
+				CheckAppendPrevExpr(macro->expr.size());
 
-				outResult.numRefMarcoWithArgs += 1;
-			}
-			else
-			{
-				LineStringViewCode codeView(marco->expr);
-				if (!expandMarcoInternal(codeView, outText, outResult))
+				// Deep Expand the result
+				LineStringViewCode subCode(substitutionText);
+				if (!expandMacroInternal(subCode, outText, outResult, depth + 1, &newContext))
 				{
 					return false;
 				}
 
-				outResult.numRefMarco += 1;
+				outResult.numRefMacroWithArgs += 1;
+			}
+			else
+			{
+				LineStringViewCode codeView(macro->expr);
+				if (!expandMacroInternal(codeView, outText, outResult, depth + 1, &newContext))
+				{
+					return false;
+				}
+				outResult.numRefMacro += 1;
 			}
 		}
 		else
@@ -1390,33 +1252,32 @@ namespace CPP
 		return true;
 	}
 
-	bool Preprocessor::expandMarcoInternal(class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult)
+	bool Preprocessor::expandMacroInternal(class LineStringViewCode& code, std::string& outText, ExpandMacroResult& outResult, int depth, MacroExpansionContext const* context)
 	{
+		if (depth >= MAX_MACRO_EXPANSION_DEPTH)
+		{
+			PARSE_ERROR("Macro expansion depth exceeded maximum limit (%d)", MAX_MACRO_EXPANSION_DEPTH);
+			return false;
+		}
+
 		while (!code.isEOF())
 		{
 			StringView id;
 			if (code.tokenIdentifier(id))
 			{
-				if (!checkIdentifierToExpand(id, code, outText, outResult))
-					return false;
+				if (!checkIdentifierToExpand(id, code, outText, outResult, depth, context))
+						return false;
 			}
 			else
 			{
-				outText += code.getChar();
-				code.advance();
+				// Batch append non-identifier characters for better performance
+				char const* start = code.getCur();
+				do
+				{
+					code.advance();
+				} while (!code.isEOF() && !FCodeParse::IsValidStartCharForIdentifier(code.getChar()));
+				outText.append(start, code.getCur() - start);
 			}
-		}
-
-		if (outResult.numRefMarcoWithArgs)
-		{
-			std::string tempText = std::move(outText);
-			LineStringViewCode tempCode(tempText);
-			ExpandMarcoResult childResult;
-			if (!expandMarcoInternal(tempCode, outText, childResult))
-				return false;
-
-			outResult.append(childResult);
-			return true;
 		}
 
 		return true;
@@ -1429,23 +1290,34 @@ namespace CPP
 			fullPath = name;
 			return true;
 		}
-		for( int i = 0; i < mFileSreachDirs.size(); ++i )
+		// Reserve capacity to reduce reallocations
+		size_t maxDirLen = 0;
+		for (auto const& dir : mFileSearchDirs)
 		{
-			fullPath = mFileSreachDirs[i] + name;
+			if (dir.size() > maxDirLen)
+				maxDirLen = dir.size();
+		}
+		fullPath.reserve(maxDirLen + name.size());
+
+		for (auto const& dir : mFileSearchDirs)
+		{
+			fullPath = dir;
+			fullPath += name;
 			if( FFileSystem::IsExist(fullPath.c_str()) )
 				return true;
 		}
 		return false;
 	}
 
-	Preprocessor::MarcoSymbol* Preprocessor::findMarco(StringView const& name)
+
+	Preprocessor::MacroSymbol* Preprocessor::findMacro(StringView const& name)
 	{
 		HashString nameKey;
 		if (!HashString::Find(name, true, nameKey))
 			return nullptr;
 
-		auto iter = mMarcoSymbolMap.find(nameKey);
-		if (iter == mMarcoSymbolMap.end())
+		auto iter = mMacroSymbolMap.find(nameKey);
+		if (iter == mMacroSymbolMap.end())
 			return nullptr;
 
 
@@ -1467,10 +1339,10 @@ namespace CPP
 		mSourceLibrary = &sourceLibrary;
 	}
 
-	void Preprocessor::addSreachDir(char const* dir)
+	void Preprocessor::addSearchDir(char const* dir)
 	{
-		mFileSreachDirs.push_back(dir);
-		std::string& dirAdd = mFileSreachDirs.back();
+		mFileSearchDirs.push_back(dir);
+		std::string& dirAdd = mFileSearchDirs.back();
 		if( dirAdd[dirAdd.length() - 1] != '/' )
 		{
 			dirAdd += '/';
@@ -1479,16 +1351,16 @@ namespace CPP
 
 	void Preprocessor::addDefine(char const* name, int value)
 	{
-		MarcoSymbol marco;
-		marco.expr = FStringConv::From(value);
-		marco.evalFrame = INT_MAX;
-		marco.cachedEvalValue = value;
-		mMarcoSymbolMap.emplace( HashString(name, true) , std::move(marco));
+		MacroSymbol macro;
+		macro.expr = FStringConv::From(value);
+		macro.evalFrame = INT_MAX;
+		macro.cachedEvalValue = value;
+		mMacroSymbolMap.emplace( HashString(name, true) , std::move(macro));
 	}
 
 	void Preprocessor::addInclude(char const* fileName, bool bSystemPath)
 	{
-
+		//#TODO
 	}
 
 	void Preprocessor::getUsedIncludeFiles(std::unordered_set< HashString >& outFiles)
@@ -1498,26 +1370,26 @@ namespace CPP
 
 	void Preprocessor::emitSourceLine(int lineOffset)
 	{
-		InlineString< 512 > lineMarco;
+		InlineString< 512 > lineMacro;
 		int len = 0;
 		switch (lineFormat)
 		{
 		case LF_LineNumber:
-			len = lineMarco.format("#line %d\n", mInput.getLine() + lineOffset);
+			len = lineMacro.format("#line %d\n", mInput.getLine() + lineOffset);
 			break;
 		case LF_LineNumberAndFilePath:
-			len = lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, mInput.getSourceName());
+			len = lineMacro.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, mInput.getSourceName());
 			break;
 		}
 		if (len)
 		{
-			mOutput->push(StringView(lineMarco.c_str(), len));
+			mOutput->push(StringView(lineMacro.c_str(), len));
 		}
 	}
 
 	void Preprocessor::emitCode(StringView const& code)
 	{
-		if (bAddLineMarco && bRequestSourceLine)
+		if (bAddLineMacro && bRequestSourceLine)
 		{
 			for (int i = 0; i < code.size(); ++i)
 			{
@@ -1634,7 +1506,7 @@ namespace CPP
 		{ EOperator::Mul, EOperator::Rem },
 	};
 
-	int FExpressionUitlity::FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType)
+	int FExpressionUtility::FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType)
 	{
 		OpRange range = PrecedenceOpRange[precedence];
 		for (int i = range.first; i <= range.last; ++i)
@@ -1651,7 +1523,7 @@ namespace CPP
 	}
 
 	template< EOperatorPrecedence::Type Precedence >
-	NOINLINE int FExpressionUitlity::FindOperator(char const* code, EOperator::Type& outType)
+	NOINLINE int FExpressionUtility::FindOperator(char const* code, EOperator::Type& outType)
 	{
 		constexpr OpRange range = PrecedenceOpRange[Precedence];
 		for (int i = range.first; i <= range.last; ++i)
@@ -1667,7 +1539,7 @@ namespace CPP
 		return 0;
 	}
 
-	int FExpressionUitlity::FindOperatorToEnd(char const* code, EOperatorPrecedence::Type precedenceStart, EOperator::Type& outType)
+	int FExpressionUtility::FindOperatorToEnd(char const* code, EOperatorPrecedence::Type precedenceStart, EOperator::Type& outType)
 	{
 		constexpr int PrecedenceStartIndex[] =
 		{
@@ -1703,7 +1575,7 @@ namespace CPP
 #undef OPINFO_OP
 	};
 
-	constexpr OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
+	constexpr OperationInfo FExpressionUtility::GetOperationInfo(EOperator::Type type)
 	{
 		return OpInfos[type];
 	}
@@ -1746,4 +1618,271 @@ namespace CPP
 		mSourceMap.clear();
 	}
 
+	bool ExpressionEvaluator::evaluate(int& ret)
+	{
+		return parseExpression(ret);
+	}
+
+	bool ExpressionEvaluator::parseExpression(int& ret)
+	{
+		mLoc.skipSpaceInLine();
+
+#if USE_TEMPLATE_PARSE_OP
+		if (!parseExprOp< EOperatorPrecedence::Type(0)>(ret))
+			return false;
+#else
+		if (!parseExprOp(ret))
+			return false;
+#endif
+		return true;
+	}
+
+	bool ExpressionEvaluator::parseExprOp(int& ret, EOperatorPrecedence::Type precedence)
+	{
+		if (precedence == EOperatorPrecedence::Prefix)
+		{
+			return parseExprFactor(ret);
+		}
+
+		if (!parseExprOp(ret, EOperatorPrecedence::Type(precedence + 1)))
+			return false;
+
+		EOperator::Type op;
+		while (tokenOp(precedence, op))
+		{
+			mLoc.skipSpaceInLine();
+
+			int rhs;
+			if (!parseExprOp(rhs, EOperatorPrecedence::Type(precedence + 1)))
+				return false;
+
+			if ((op == EOperator::Div || op == EOperator::Rem) && rhs == 0)
+			{
+				// Division by zero error
+				return false;
+			}
+
+			switch (op)
+			{
+#define CASE_OP( NAME , OP , P ) case EOperator::NAME: ret = ret OP rhs; break;
+				BINARY_OPERATOR_LIST(CASE_OP)
+#undef  CASE_OP
+			default:
+				break;
+			}
+		}
+		return true;
+	}
+
+	template< EOperatorPrecedence::Type Precedence >
+	bool ExpressionEvaluator::parseExprOp(int& ret)
+	{
+		if (!parseExprOp<EOperatorPrecedence::Type(Precedence + 1)>(ret))
+			return false;
+
+		EOperator::Type op;
+		while (tokenOp< Precedence >(op))
+		{
+			mLoc.skipSpaceInLine();
+
+			int rhs;
+			if (!parseExprOp<EOperatorPrecedence::Type(Precedence + 1)>(rhs))
+				return false;
+
+			if constexpr (Precedence == EOperatorPrecedence::Multiplication)
+			{
+				if ((op == EOperator::Div || op == EOperator::Rem) && rhs == 0)
+				{
+					// Division by zero error
+					return false;
+				}
+			}
+
+			switch (op)
+			{
+#define CASE_OP( NAME , OP , P ) case EOperator::NAME: if constexpr ( P == Precedence ) ret = ret OP rhs; break;
+				BINARY_OPERATOR_LIST(CASE_OP)
+#undef  CASE_OP
+			default:
+				break;
+			}
+		}
+		return true;
+	}
+
+	template<>
+	bool ExpressionEvaluator::parseExprOp< EOperatorPrecedence::Prefix >(int& ret)
+	{
+		return parseExprFactor(ret);
+	}
+
+	bool ExpressionEvaluator::parseExprFactor(int& ret)
+	{
+		switch (mLoc[0])
+		{
+		case '+':
+			if (mLoc[1] == '+')
+			{
+				mLoc.advanceNoEoL(2);
+				if (!parseExprFactor(ret))
+					return false;
+
+				++ret;
+			}
+			else
+			{
+				mLoc.advanceNoEoL(1);
+				if (!parseExprFactor(ret))
+					return false;
+			}
+			break;
+		case '-':
+			if (mLoc[1] == '-')
+			{
+				mLoc.advanceNoEoL(2);
+				if (!parseExprFactor(ret))
+					return false;
+
+				--ret;
+			}
+			else
+			{
+				mLoc.advanceNoEoL(1);
+				if (!parseExprFactor(ret))
+					return false;
+
+				ret = -ret;
+			}
+			break;
+		case '~':
+			{
+				mLoc.advanceNoEoL(1);
+				if (!parseExprFactor(ret))
+					return false;
+				ret = ~ret;
+			}
+			break;
+		case '!':
+			{
+				mLoc.advanceNoEoL(1);
+				if (!parseExprFactor(ret))
+					return false;
+
+				ret = !ret;
+			}
+			break;
+		default:
+			if (!parseExprValue(ret))
+				return false;
+		}
+
+		mLoc.skipSpaceInLine();
+		return true;
+	}
+
+	bool ExpressionEvaluator::parseExprValue(int& ret)
+	{
+		if (mLoc.tokenChar('('))
+		{
+			parseExpression(ret);
+
+			if (!mLoc.tokenChar(')'))
+			{
+				// Error: Expression is invalid: missing ')'
+				return false;
+			}
+
+			return true;
+		}
+		else if (mLoc.tokenNumber(ret))
+		{
+			mLoc.skipSpaceInLine();
+			return true;
+		}
+
+		ret = 0;
+		return true;
+	}
+
+	bool ExpressionEvaluator::tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType)
+	{
+#if USE_OPERATION_CACHE
+		if (mParsedCachedOP == EOperator::None)
+		{
+			if (mInput.isEoL())
+			{
+				return false;
+			}
+
+			int len = FExpressionUtility::FindOperatorToEnd(mInput.getCur(), precedence, mParsedCachedOP);
+			if (len == 0)
+				return false;
+
+			assert(len <= 2);
+			mParesedCachedOPPrecedence = FExpressionUtility::GetOperationInfo(mParsedCachedOP).precedence;
+			mInput.advanceNoEoL(len);
+		}
+
+		if (mParesedCachedOPPrecedence != precedence)
+			return false;
+
+		outType = mParsedCachedOP;
+		mParsedCachedOP = EOperator::None;
+		return true;
+#else
+		if (mLoc.isEoL())
+		{
+			return false;
+		}
+
+		int len = FExpressionUtility::FindOperator(mLoc.getCur(), precedence, outType);
+		if (len == 0)
+			return false;
+
+		assert(len <= 2);
+		mLoc.advanceNoEoL(len);
+		return true;
+#endif
+	}
+
+	template< EOperatorPrecedence::Type Precedence >
+	NOINLINE bool ExpressionEvaluator::tokenOp(EOperator::Type& outType)
+	{
+		if (mLoc.isEoL())
+		{
+			return false;
+		}
+
+		int len = FExpressionUtility::FindOperator< Precedence >(mLoc.getCur(), outType);
+		if (len == 0)
+			return false;
+
+		assert(len <= 2);
+		mLoc.advanceNoEoL(len);
+		return true;
+	}
+
+	// Explicit instantiations for template methods
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::LogicalOR>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::LogicalAND>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::BitwiseOR>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::BitwiseXOR>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::BitwiseAND>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::Equality>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::Comparison>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::Shift>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::Addition>(int&);
+	template bool ExpressionEvaluator::parseExprOp<EOperatorPrecedence::Multiplication>(int&);
+
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::LogicalOR>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::LogicalAND>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::BitwiseOR>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::BitwiseXOR>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::BitwiseAND>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::Equality>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::Comparison>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::Shift>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::Addition>(EOperator::Type&);
+	template bool ExpressionEvaluator::tokenOp<EOperatorPrecedence::Multiplication>(EOperator::Type&);
+	
 }//namespace CPP

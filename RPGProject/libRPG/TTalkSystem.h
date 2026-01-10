@@ -28,7 +28,7 @@ public:
 	bool speak( CNPCBase* npc , int flag = 0 );
 	void speakNextSection();
 
-	TalkContent* sreachTalkTable( CNPCBase* speaker , int flag = 0 );
+	TalkContent* searchTalkTable( CNPCBase* speaker , int flag = 0 );
 	TalkState    getTalkState() const { return m_talkState; }
 
 private:

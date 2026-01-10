@@ -10,7 +10,7 @@
 #include "Platform.h"
 
 #include "InlineString.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "ColorName.h"
 
 #include "RHI/RHIGraphics2D.h"

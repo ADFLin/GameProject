@@ -3,7 +3,7 @@
 #define CppVersion_H_A68F36BE_5E61_4EF2_8674_82EF117FF939
 
 #include "CompilerConfig.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 #if CPP_COMPILER_MSVC
 #	if ( _MSC_VER >= 1914 && _MSVC_LANG > 201402L ) 

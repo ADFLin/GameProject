@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Common">
@@ -104,6 +104,21 @@
     <ClInclude Include="CurveBuilder\ExpressionParser.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionCore.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\SymbolTable.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionTree.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionEvaluator.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionOptimizer.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
     <ClInclude Include="CurveBuilder\FunctionParser.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
@@ -156,9 +171,6 @@
       <Filter>CurveBuilder</Filter>
     </ClInclude>
     <ClInclude Include="CurveBuilder\Backend\ExprByteCode.h">
-      <Filter>CurveBuilder\Backend</Filter>
-    </ClInclude>
-    <ClInclude Include="CurveBuilder\Backend\FPUCode.h">
       <Filter>CurveBuilder\Backend</Filter>
     </ClInclude>
     <ClInclude Include="CurveBuilder\Backend\AsmetaBase.h">
@@ -410,6 +422,9 @@
     <ClInclude Include="TinyCore\GameMode.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="CurveBuilder\Backend\AsmCode.h">
+      <Filter>CurveBuilder\Backend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -449,6 +464,18 @@
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\ExpressionParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\SymbolTable.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionTree.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionEvaluator.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionOptimizer.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\FunctionParser.cpp">
@@ -500,9 +527,6 @@
       <Filter>CurveBuilder</Filter>
     </ClCompile>
     <ClCompile Include="CurveBuilder\Backend\ExprByteCode.cpp">
-      <Filter>CurveBuilder\Backend</Filter>
-    </ClCompile>
-    <ClCompile Include="CurveBuilder\Backend\FPUCode.cpp">
       <Filter>CurveBuilder\Backend</Filter>
     </ClCompile>
     <ClCompile Include="..\OtherLib\ANNT\Types\XAlignedAllocator.cpp">
@@ -666,6 +690,9 @@
     </ClCompile>
     <ClCompile Include="TinyCore\GameMode.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Backend\AsmCode.cpp">
+      <Filter>CurveBuilder\Backend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

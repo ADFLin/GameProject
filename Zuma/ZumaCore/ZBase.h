@@ -1,7 +1,7 @@
 #ifndef ZBase_h__
 #define ZBase_h__
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "Math/TVector2.h"
 #include "Math/Vector2.h"
 #include "LogSystem.h"

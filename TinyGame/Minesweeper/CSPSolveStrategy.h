@@ -175,7 +175,7 @@ namespace Mine
 		}
 
 
-		bool sreach()
+		bool search()
 		{
 			int level = 0;
 			int numSolution = 0;

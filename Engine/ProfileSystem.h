@@ -5,7 +5,7 @@
 #include "CoreShare.h"
 
 #include "Core/IntegerType.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "LogSystem.h"
 #include "Clock.h"
 #include "Holder.h"

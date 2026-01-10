@@ -39,7 +39,7 @@ void FExpressUtils::DoEvalate(ExprEvaluatorBase &evaluator, TArrayView<ExprParse
 
 #if 0
 	int index = 0;
-	int numCodes = codes.size();
+	int numCodes = (int)codes.size();
 #define OP evaluator.exec(codes[index]); ++index;
 	DUFF_DEVICE_8(codes.size(), OP);
 #undef OP
@@ -52,4 +52,3 @@ void FExpressUtils::DoEvalate(ExprEvaluatorBase &evaluator, TArrayView<ExprParse
 #endif
 #endif
 }
-

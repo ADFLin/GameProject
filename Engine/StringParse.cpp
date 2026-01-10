@@ -1,6 +1,111 @@
 #include "StringParse.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
+
+#if defined(_M_X64) || defined(__SSE2__)
+#define STRING_PARSE_USE_SIMD 1
+#include <emmintrin.h>
+#include <intrin.h>
+#endif
+
+
+#if STRING_PARSE_USE_SIMD
+namespace
+{
+	FORCEINLINE char const* FindChar_SIMD(char const* str, char c)
+	{
+		__m128i target = _mm_set1_epi8(c);
+		__m128i zero = _mm_setzero_si128();
+
+		while (true)
+		{
+			__m128i chunk = _mm_loadu_si128((const __m128i*)str);
+			__m128i eq_c = _mm_cmpeq_epi8(chunk, target);
+			
+			// We need to stop at c OR zero.
+			// Optimize: if c == 0, we just look for zero (eq_c covers it).
+			// If c != 0, we need (eq_c | eq_zero).
+			if (c != 0)
+			{
+				__m128i eq_z = _mm_cmpeq_epi8(chunk, zero);
+				eq_c = _mm_or_si128(eq_c, eq_z);
+			}
+
+			int mask = _mm_movemask_epi8(eq_c);
+			if (mask != 0)
+			{
+				unsigned long index;
+				_BitScanForward(&index, mask);
+				return str + index;
+			}
+			str += 16;
+		}
+	}
+
+	FORCEINLINE char const* FindChar2_SIMD(char const* str, char c1, char c2)
+	{
+		__m128i target1 = _mm_set1_epi8(c1);
+		__m128i target2 = _mm_set1_epi8(c2);
+		__m128i zero = _mm_setzero_si128();
+
+		while (true)
+		{
+			__m128i chunk = _mm_loadu_si128((const __m128i*)str);
+			__m128i eq_c1 = _mm_cmpeq_epi8(chunk, target1);
+			__m128i eq_c2 = _mm_cmpeq_epi8(chunk, target2);
+			__m128i eq_z  = _mm_cmpeq_epi8(chunk, zero);
+
+			__m128i combined = _mm_or_si128(eq_c1, eq_c2);
+			combined = _mm_or_si128(combined, eq_z);
+
+			int mask = _mm_movemask_epi8(combined);
+			if (mask != 0)
+			{
+				unsigned long index;
+				_BitScanForward(&index, mask);
+				return str + index;
+			}
+			str += 16;
+		}
+	}
+
+	FORCEINLINE char const* FindCharN2_SIMD(char const* str, char const* strEnd, char c1, char c2)
+	{
+		__m128i target1 = _mm_set1_epi8(c1);
+		__m128i target2 = _mm_set1_epi8(c2);
+		__m128i zero = _mm_setzero_si128();
+
+		while (str + 16 <= strEnd)
+		{
+			__m128i chunk = _mm_loadu_si128((const __m128i*)str);
+			__m128i eq_c1 = _mm_cmpeq_epi8(chunk, target1);
+			__m128i eq_c2 = _mm_cmpeq_epi8(chunk, target2);
+			__m128i eq_z = _mm_cmpeq_epi8(chunk, zero);
+
+			__m128i combined = _mm_or_si128(eq_c1, eq_c2);
+			combined = _mm_or_si128(combined, eq_z);
+
+			int mask = _mm_movemask_epi8(combined);
+			if (mask != 0)
+			{
+				unsigned long index;
+				_BitScanForward(&index, mask);
+				return str + index;
+			}
+			str += 16;
+		}
+
+		while (str < strEnd && *str != 0)
+		{
+			if (*str == c1 || *str == c2)
+				break;
+			++str;
+		}
+		return str;
+	}
+}
+#endif
+
 
 template< typename CharT >
 static int CountCharReverse(CharT const* str , CharT const* last , CharT c )
@@ -227,6 +332,13 @@ FORCEINLINE bool CheckChars(CharT c, CharT c1, Chars ...chars)
 template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c)
 {
+#if STRING_PARSE_USE_SIMD
+	if constexpr (sizeof(CharT) == 1)
+	{
+		return (CharT const*)FindChar_SIMD((char const*)str, (char)c);
+	}
+#endif
+
 	while( *str != 0 )
 	{
 		if (CheckChars(*str, c))
@@ -239,6 +351,13 @@ CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c)
 template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2)
 {
+#if STRING_PARSE_USE_SIMD
+	if constexpr (sizeof(CharT) == 1)
+	{
+		return (CharT const*)FindChar2_SIMD((char const*)str, (char)c1, (char)c2);
+	}
+#endif
+
 	while( *str != 0 )
 	{
 		if (CheckChars(*str, c1, c2))
@@ -313,6 +432,13 @@ CharT const* TStringParse< CharT >::FindCharN(CharT const* str, CharT const* str
 template< typename CharT >
 CharT const* TStringParse< CharT >::FindCharN(CharT const* str, CharT const* strEnd, CharT c1, CharT c2)
 {
+#if STRING_PARSE_USE_SIMD
+	if constexpr (sizeof(CharT) == 1)
+	{
+		return (CharT const*)FindCharN2_SIMD((char const*)str, (char const*)strEnd, (char)c1, (char)c2);
+	}
+#endif
+
 	while (*str != 0 && str < strEnd )
 	{
 		if (CheckChars(*str, c1, c2))

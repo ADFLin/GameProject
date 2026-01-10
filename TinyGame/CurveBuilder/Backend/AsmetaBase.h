@@ -103,6 +103,10 @@ namespace Asmeta
 			eES = 0x0 , eCS = 0x1, eSS = 0x2, eDS = 0x3, eFS = 0x4 , eGS = 0x5 ,
 		};
 
+		// Helper to check if register code needs REX.B bit (for extended registers R8-R15)
+		static ASMETA_INLINE bool isExtended(Code code) { return (code & 0x8) != 0; }
+		// Get the lower 3 bits of register code for ModR/M encoding
+		static ASMETA_INLINE uint8 lowBits(Code code) { return code & 0x7; }
 	};
 
 
@@ -155,6 +159,20 @@ namespace Asmeta
 	public:
 		RegST( uint8 idx ): mIndex( idx ){}
 		uint8 index() const { return mIndex; }
+	private:
+		uint8 mIndex;
+	};
+
+	// XMM register class for SSE operations
+	class RegXMM
+	{
+	public:
+		RegXMM(uint8 idx) : mIndex(idx) {}
+		uint8 index() const { return mIndex; }
+		// Check if this is an extended register (xmm8-xmm15) requiring REX.B/R
+		bool isExtended() const { return mIndex >= 8; }
+		// Get low 3 bits for encoding
+		uint8 lowBits() const { return mIndex & 0x7; }
 	private:
 		uint8 mIndex;
 	};
@@ -287,6 +305,116 @@ namespace Asmeta
 		template< class T >
 		friend  class AssemblerT;
 	};
+
+#if TARGET_PLATFORM_64BITS
+	// 64-bit memory pointer class with full REX prefix support
+	class RegPtr64
+	{
+	public:
+		typedef RegPtr64 RefType;
+		
+		// Constructors for Reg64 base register
+		RegPtr64(Reg64 const& base)                                                  { init(base); }
+		RegPtr64(Reg64 const& base, int8 disp)                                       { init(base, MOD_DISP8, disp); }
+		RegPtr64(Reg64 const& base, int32 disp)                                      { init(base, GetDispMode(disp), disp); }
+		RegPtr64(Reg64 const& base, Reg64 const& index, uint8 shift)                 { init(base, MOD_M, index, shift, 0); }
+		RegPtr64(Reg64 const& base, Reg64 const& index, uint8 shift, int32 disp)     { init(base, GetDispMode(disp), index, shift, disp); }
+		RegPtr64(Reg64 const& base, Reg64 const& index, uint8 shift, int8 disp)      { init(base, MOD_DISP8, index, shift, disp); }
+
+		// Get REX prefix byte (0 if not needed, 0x4X if needed)
+		uint8 getREXByte(uint8 w, uint8 r) const
+		{
+			// REX prefix: 0100WRXB
+			// W = 1 for 64-bit operand size
+			// R = extension of ModR/M reg field
+			// X = extension of SIB index field
+			// B = extension of ModR/M r/m field or SIB base field
+			if (w || r || mREX_X || mREX_B)
+				return uint8(0x40 | (w << 3) | (r << 2) | (mREX_X << 1) | mREX_B);
+			return 0;
+		}
+
+		bool needsREX(uint8 w, uint8 r) const { return w || r || mREX_X || mREX_B; }
+
+	private:
+		static FlagModRM GetDispMode(int32 disp)
+		{
+			return (int8(disp) == disp) ? MOD_DISP8 : MOD_DISP32;
+		}
+
+		void init(Reg64 const& base)
+		{
+			mREX_B = Reg::isExtended(base.code()) ? 1 : 0;
+			mREX_X = 0;
+			uint8 baseCode = Reg::lowBits(base.code());
+
+			// RSP (or R12) requires SIB byte
+			if (baseCode == Reg::eSP)
+			{
+				mModByte = MOD_RM_BYTE(MOD_M, 0, RM_MD_SIB);
+				mSIBByte = SIB_BYTE(0, SIB_NOINDEX, Reg::eSP);
+			}
+			// RBP (or R13) with no displacement requires disp8=0
+			else if (baseCode == Reg::eBP)
+			{
+				mModByte = MOD_RM_BYTE(MOD_DISP8, 0, RM_DR_EBP);
+				mSIBByte = 0;
+			}
+			else
+			{
+				mModByte = MOD_RM_BYTE(MOD_M, 0, baseCode);
+				mSIBByte = 0;
+			}
+			mDisp = 0;
+		}
+
+		void init(Reg64 const& base, uint8 mod, int32 disp)
+		{
+			mREX_B = Reg::isExtended(base.code()) ? 1 : 0;
+			mREX_X = 0;
+			uint8 baseCode = Reg::lowBits(base.code());
+
+			// RSP (or R12) requires SIB byte
+			if (baseCode == Reg::eSP)
+			{
+				mModByte = MOD_RM_BYTE(mod, 0, RM_MD_SIB);
+				mSIBByte = SIB_BYTE(0, SIB_NOINDEX, Reg::eSP);
+			}
+			else
+			{
+				mModByte = MOD_RM_BYTE(mod, 0, baseCode);
+				mSIBByte = 0;
+			}
+			mDisp = disp;
+		}
+
+		void init(Reg64 const& base, uint8 mod, Reg64 const& index, uint8 shift, int32 disp)
+		{
+			uint8 baseCode = Reg::lowBits(base.code());
+			uint8 indexCode = Reg::lowBits(index.code());
+			
+			mREX_B = Reg::isExtended(base.code()) ? 1 : 0;
+			mREX_X = Reg::isExtended(index.code()) ? 1 : 0;
+			
+			assert(indexCode != SIB_NOINDEX); // RSP cannot be used as index
+			assert(shift < 4);
+			
+			mModByte = MOD_RM_BYTE(mod, 0, RM_MD_SIB);
+			mSIBByte = SIB_BYTE(shift, indexCode, baseCode);
+			mDisp = disp;
+		}
+
+	public:
+		uint8   mModByte;
+		uint8   mSIBByte;
+		uint8   mREX_B;   // REX.B bit for base register extension
+		uint8   mREX_X;   // REX.X bit for index register extension
+		SysInt  mDisp;
+		
+		template<class T>
+		friend class AssemblerT;
+	};
+#endif
 
 	template< class Ref , int Size >
 	class RefMem

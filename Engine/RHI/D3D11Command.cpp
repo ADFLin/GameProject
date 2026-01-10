@@ -1,4 +1,4 @@
-#include "D3D11Command.h"
+﻿#include "D3D11Command.h"
 
 #include "D3D11ShaderCommon.h"
 
@@ -115,16 +115,20 @@ namespace Render
 		{
 			mDeviceContextImmdiate->End(mQueryDisjoint);
 
+			static constexpr int QUERY_TIMEOUT_MS = 1000;
+			static constexpr int SLEEP_INTERVAL_MS = 1;
 			int count = 0;
+			int maxRetries = QUERY_TIMEOUT_MS / SLEEP_INTERVAL_MS;
 			while (mDeviceContextImmdiate->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE)
 			{
-				SystemPlatform::Sleep(0);
-#if 1
-				++count;
-				if ( count > 100000)
+				if (++count > maxRetries)
+				{
+					LogWarning(0, "GPU query timeout after %dms", QUERY_TIMEOUT_MS);
 					return false;
-#endif
+				}
+				SystemPlatform::Sleep(SLEEP_INTERVAL_MS);
 			}
+
 			D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
 			mDeviceContextImmdiate->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
 			if (tsDisjoint.Disjoint)
@@ -155,22 +159,30 @@ namespace Render
 
 		virtual void startTiming(uint32 timingHandle) override
 		{
-			mDeviceContext->End(mSamples[timingHandle].startQeury);
+			CHECK(timingHandle < mSamples.size());
+			mDeviceContext->End(mSamples[timingHandle].startQuery);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
 		{
+			CHECK(timingHandle < mSamples.size());
 			mDeviceContext->End(mSamples[timingHandle].endQuery);
 		}
 
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
 		{
+			if (timingHandle >= mSamples.size())
+			{
+				LogError(0, "Invalid timing handle: %u (max: %zu)", timingHandle, mSamples.size());
+				return false;
+			}
+
 			Sample& sample = mSamples[timingHandle];
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.startQeury, NULL, 0, 0));
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.startQuery, NULL, 0, 0));
 			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.endQuery, NULL, 0, 0));
 
 			UINT64 startData;
-			mDeviceContextImmdiate->GetData(sample.startQeury, &startData, sizeof(startData), 0);
+			mDeviceContextImmdiate->GetData(sample.startQuery, &startData, sizeof(startData), 0);
 			UINT64 endData;
 			mDeviceContextImmdiate->GetData(sample.endQuery, &endData, sizeof(endData), 0);
 			outDuration = endData - startData;
@@ -189,9 +201,16 @@ namespace Render
 				mDeviceContextImmdiate->Begin(queryDisjoint);
 				mDeviceContextImmdiate->End(queryDisjoint);
 
-				while( RESULT_FAILED(mDeviceContextImmdiate->GetData(queryDisjoint, NULL, 0, 0) ) )
+				int retryCount = 0;
+				static constexpr int MAX_RETRIES = 1000;
+				while (RESULT_FAILED(mDeviceContextImmdiate->GetData(queryDisjoint, NULL, 0, 0)))
 				{
-					SystemPlatform::Sleep(0);
+					if (++retryCount > MAX_RETRIES)
+					{
+						LogError(0, "Failed to get GPU frequency after %d retries", MAX_RETRIES);
+						return 0.0;
+					}
+					SystemPlatform::Sleep(1);
 				}
 
 				D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
@@ -216,11 +235,11 @@ namespace Render
 
 		struct Sample
 		{
-			TComPtr< ID3D11Query > startQeury;
+			TComPtr< ID3D11Query > startQuery;
 			TComPtr< ID3D11Query > endQuery;
 
-			Sample(TComPtr< ID3D11Query >&& startQeury, TComPtr< ID3D11Query >&& endQuery)
-				:startQeury(startQeury), endQuery(endQuery)
+			Sample(TComPtr< ID3D11Query >&& startQuery, TComPtr< ID3D11Query >&& endQuery)
+				:startQuery(startQuery), endQuery(endQuery)
 			{
 			}
 		};
@@ -704,99 +723,92 @@ namespace Render
 		mDeviceContextImmdiate->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
+	static void ReadMappedData(ID3D11DeviceContext* context, ID3D11Resource* resource, UINT subresource, int rowSize, int height, uint8* outData)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		HRESULT hr = context->Map(resource, subresource, D3D11_MAP_READ, 0, &mappedResource);
+		if (hr != S_OK)
+			return;
+
+		if (mappedResource.RowPitch == rowSize)
+		{
+			FMemory::Copy(outData, mappedResource.pData, rowSize * height);
+		}
+		else
+		{
+			uint8* pData = outData;
+			uint8 const* pCopyData = (uint8*)mappedResource.pData;
+			for (int i = 0; i < height; ++i)
+			{
+				FMemory::Copy(pData, pCopyData, rowSize);
+				pData += rowSize;
+				pCopyData += mappedResource.RowPitch;
+			}
+		}
+		context->Unmap(resource, subresource);
+	}
+
 	void D3D11System::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
-		auto GetFormatClientSize = [](ETexture::Format format) -> int
-		{
-			int formatSize = ETexture::GetFormatSize(format);
-			return formatSize;
-		};
-		int formatSize = GetFormatClientSize(format);
+		int formatSize = ETexture::GetFormatSize(format);
 
 		int dataRowSize = Math::Max(texture.getSizeX() >> level, 1) * formatSize;
 		int dataHeight = Math::Max(texture.getSizeY() >> level, 1);
 		int dataSize = dataRowSize * dataHeight;
-		outData.resize(dataSize);
 
+		outData.clear();
+		outData.addUninitialized(dataSize);
 
-		ID3D11Texture2D* copyResource = nullptr;
-		TComPtr<ID3D11Texture2D> stagingTexture;
-		//if (texture.getDesc().creationFlags & TCF_AllowCPUAccess)
-		//{
-		//	copyResource = D3D11Cast::GetResource(texture);
-		//}
-		//else
+		if (texture.getDesc().creationFlags & TCF_AllowCPUAccess)
 		{
+			ReadMappedData(mDeviceContextImmdiate, D3D11Cast::GetResource(texture), level, dataRowSize, dataHeight, outData.data());
+		}
+		else
+		{
+			TComPtr<ID3D11Texture2D> stagingTexture;
 			if (!createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture, level))
 			{
 				return;
 			}
-			//mDeviceContextImmdiate->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
 			mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, D3D11Cast::GetResource(texture), level, nullptr);
-			copyResource = stagingTexture.get();
+			ReadMappedData(mDeviceContextImmdiate, stagingTexture, 0, dataRowSize, dataHeight, outData.data());
 		}
-
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		HRESULT hr = mDeviceContextImmdiate->Map(copyResource, 0, D3D11_MAP_READ, 0, &mappedResource);
-		if (hr != S_OK)
-		{
-			return;
-		}
-		if (mappedResource.RowPitch == dataRowSize)
-		{
-			FMemory::Copy(outData.data(), mappedResource.pData, outData.size());
-		}
-		else
-		{
-			uint8* pData = outData.data();
-			uint8 const* pCopyData = (uint8*)mappedResource.pData;
-			for (int i = 0; i < dataHeight; ++i)
-			{
-				FMemory::Copy(pData, pCopyData, dataRowSize);
-				pData += dataRowSize;
-				pCopyData += mappedResource.RowPitch;
-			}
-		}
-		mDeviceContextImmdiate->Unmap(copyResource, level);
 	}
 
 	void D3D11System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
-		auto GetFormatClientSize = [](ETexture::Format format) -> int
-		{
-			int formatSize = ETexture::GetFormatSize(format);
-			return formatSize;
-		};
-
-		int formatSize = GetFormatClientSize(format);
+		int formatSize = ETexture::GetFormatSize(format);
 		int textureSize = Math::Max(texture.getSize() >> level, 1);
-		int faceDataSize = textureSize * textureSize * formatSize;
-		outData.resize(ETexture::FaceCount * faceDataSize);
+		int dataRowSize = textureSize * formatSize;
+		int faceDataSize = dataRowSize * textureSize;
 
-		bool bAllowCPUAccess = false;
-		if (bAllowCPUAccess)
+		outData.clear();
+		outData.addUninitialized(ETexture::FaceCount * faceDataSize);
+
+		bool bAllowCPUAccess = !!(texture.getDesc().creationFlags & TCF_AllowCPUAccess);
+		
+		TComPtr<ID3D11Texture2D> stagingTexture;
+		if (!bAllowCPUAccess)
 		{
-
+			if (!createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture, level))
+				return;
 		}
-		else
+
+		uint8* pData = outData.data();
+		for (int face = 0; face < ETexture::FaceCount; ++face)
 		{
+			UINT subresource = D3D11CalcSubresource(level, face, texture.getNumMipLevel());
 
-			TComPtr<ID3D11Texture2D> stagingTexture;
-			createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture, level);
-
-			uint8* pData = outData.data();
-			for (int face = 0; face < ETexture::FaceCount; ++face)
+			if (bAllowCPUAccess)
 			{
-				UINT subresource = D3D11CalcSubresource(level, face, texture.getNumMipLevel());
-				mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0,
-					D3D11Cast::GetResource(texture),
-					subresource, nullptr);
-				D3D11_MAPPED_SUBRESOURCE mappedResource;
-				mDeviceContextImmdiate->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
-				memcpy(pData, mappedResource.pData, faceDataSize);
-				pData += faceDataSize;
-				mDeviceContextImmdiate->Unmap(stagingTexture, 0);
+				ReadMappedData(mDeviceContextImmdiate, D3D11Cast::GetResource(texture), subresource, dataRowSize, textureSize, pData);
 			}
+			else
+			{
+				mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, D3D11Cast::GetResource(texture), subresource, nullptr);
+				ReadMappedData(mDeviceContextImmdiate, stagingTexture, 0, dataRowSize, textureSize, pData);
+			}
+			pData += faceDataSize;
 		}
 	}
 
@@ -825,7 +837,7 @@ namespace Render
 	void D3D11System::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
 	{
 		auto& bufferImpl = static_cast<D3D11Buffer&>(buffer);
-		if ( bufferImpl.isDyanmic() )
+		if ( bufferImpl.isDynamic() )
 		{
 			void* dstData = RHILockBuffer(&buffer, ELockAccess::WriteDiscard, start * buffer.getElementSize(), numElements * buffer.getElementSize());
 			if (dstData )
@@ -1179,42 +1191,81 @@ namespace Render
 
 		}
 #endif
-		TArray< D3D11_SUBRESOURCE_DATA > initDataList;
-		if( data )
+
+		if (data)
 		{
-#if 0
-			if (creationFlags & TCF_GenerateMips)
+			if (desc.creationFlags & TCF_GenerateMips)
 			{
-				initDataList.resize(1);
-				auto& initData = initDataList[0];
+				D3D11_SUBRESOURCE_DATA initData;
 				initData.pSysMem = (void *)data;
-				initData.SysMemPitch = width * pixelSize;
-				initData.SysMemSlicePitch = initData.SysMemPitch * height;
+				initData.SysMemPitch = desc.dimension.x * pixelSize;
+				initData.SysMemSlicePitch = initData.SysMemPitch * desc.dimension.y;
+
+				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, nullptr, &outResult.resource));
+				mDeviceContextImmdiate->UpdateSubresource(outResult.resource, 0, nullptr, initData.pSysMem, initData.SysMemPitch, initData.SysMemSlicePitch);
 			}
 			else
-#endif
 			{
+				TArray< D3D11_SUBRESOURCE_DATA > initDataList;
 				initDataList.resize(d3dDesc.MipLevels);
 
+				uint8* pData = (uint8*)data;
 				int level = 0;
 				for (auto& initData : initDataList)
 				{
-					initData.pSysMem = (void *)data;
-					initData.SysMemPitch = (desc.dimension.x >> level) * pixelSize;
-					initData.SysMemSlicePitch = initData.SysMemPitch * (desc.dimension.y >> level);
+					int w = Math::Max(1, desc.dimension.x >> level);
+					int h = Math::Max(1, desc.dimension.y >> level);
+					initData.pSysMem = (void *)pData;
+					initData.SysMemPitch = w * pixelSize;
+					initData.SysMemSlicePitch = initData.SysMemPitch * h;
+
+					pData += initData.SysMemSlicePitch;
 					++level;
 				}
+
+				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, initDataList.data(), &outResult.resource));
 			}
 		}
+		else
+		{
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, nullptr, &outResult.resource));
+		}
 
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, data ? initDataList.data() : nullptr , &outResult.resource));
 		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.numSamples, desc.creationFlags, outResult));
+
 
 		if (desc.creationFlags & TCF_GenerateMips)
 		{
 			TComPtr<ID3D11ShaderResourceView> SRV = outResult.SRV;
 			mDeviceContextImmdiate->GenerateMips(SRV);
 		}
+
+
+		if (bDepthFormat)
+		{
+			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+			depthStencilDesc.Format = D3D11Translate::To(desc.format);
+			switch (depthStencilDesc.Format)
+			{
+			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+			case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+				depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+				break;
+			}
+
+			if (desc.numSamples > 1)
+			{
+				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+			}
+			else
+			{
+				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+				depthStencilDesc.Texture2D.MipSlice = 0;
+			}
+
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateDepthStencilView(outResult.resource, &depthStencilDesc, &outResult.DSV));
+		}
+
 		return true;
 	}
 
@@ -1338,15 +1389,20 @@ namespace Render
 
 	bool D3D11ResourceBoundState::clearTexture(ShaderParameter const& parameter)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedSRVNum);
 		if (mBoundedSRVs[parameter.mLoc] != nullptr)
 		{
 			mBoundedSRVs[parameter.mLoc] = nullptr;
+			mBoundedSRVResources[parameter.mLoc] = nullptr;
 			mSRVDirtyMask |= BIT(parameter.mLoc);
-			if (mMaxSRVBoundIndex == parameter.mLoc)
-			{
-				--mMaxSRVBoundIndex;
-			}
 
+			if (parameter.mLoc == mMaxSRVBoundIndex)
+			{
+				while (mMaxSRVBoundIndex >= 0 && mBoundedSRVs[mMaxSRVBoundIndex] == nullptr)
+				{
+					--mMaxSRVBoundIndex;
+				}
+			}
 			return true;
 		}
 		return false;
@@ -1354,10 +1410,12 @@ namespace Render
 
 	bool D3D11ResourceBoundState::clearUAV(ShaderParameter const& parameter)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		if (mBoundedUAVs[parameter.mLoc] != nullptr)
 		{
 			--mUAVUsageCount;
-			mBoundedSRVs[parameter.mLoc] = nullptr;
+			CHECK(mUAVUsageCount >= 0);
+			mBoundedUAVs[parameter.mLoc] = nullptr;
 			mUAVDirtyMask |= BIT(parameter.mLoc);
 			return true;
 		}
@@ -1366,6 +1424,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedSRVNum);
 		auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
 		if( resViewImpl )
 		{
@@ -1427,6 +1486,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setRWSubTexture(ShaderParameter const& parameter, RHITextureBase& texture, int subIndex, int level)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		ID3D11UnorderedAccessView* UAV = nullptr;
 		switch (texture.getType())
 		{
@@ -1452,25 +1512,28 @@ namespace Render
 
 		if (mBoundedUAVs[parameter.mLoc] != UAV)
 		{
-			if (UAV == nullptr)
+			if (mBoundedUAVs[parameter.mLoc] != nullptr)
 			{
-				mUAVUsageCount -= 1;
+				--mUAVUsageCount;
 			}
-			else if (mBoundedUAVs[parameter.mLoc] == nullptr)
-			{
-				mUAVUsageCount += 1;
-			}
-			CHECK(mUAVUsageCount >= 0);
+
 			mBoundedUAVs[parameter.mLoc] = UAV;
+			if (UAV != nullptr)
+			{
+				++mUAVUsageCount;
+			}
+
+			CHECK(mUAVUsageCount >= 0 && mUAVUsageCount <= MaxSimulatedBoundedUAVNum);
 			mUAVDirtyMask |= BIT(parameter.mLoc);
 		}
 	}
 
 	void D3D11ResourceBoundState::clearRWTexture(ShaderParameter const& parameter)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		if (mBoundedUAVs[parameter.mLoc] != nullptr)
 		{
-			mUAVUsageCount -= 1;
+			--mUAVUsageCount;
 			CHECK(mUAVUsageCount >= 0);
 			mBoundedUAVs[parameter.mLoc] = nullptr;
 			mUAVDirtyMask |= BIT(parameter.mLoc);
@@ -1479,6 +1542,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setSampler(ShaderParameter const& parameter, RHISamplerState& sampler)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedSamplerNum);
 		auto& samplerImpl = D3D11Cast::To(sampler);
 		if( mBoundedSamplers[parameter.mLoc] != samplerImpl.getResource() )
 		{
@@ -1489,6 +1553,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setUniformBuffer(ShaderParameter const& parameter, RHIBuffer& buffer)
 	{
+		CHECK(parameter.mLoc < MaxSimulatedBoundedBufferNum);
 		D3D11Buffer& bufferImpl = D3D11Cast::To(buffer);
 		if( mBoundedConstBuffers[parameter.mLoc] != bufferImpl.mResource )
 		{
@@ -1502,6 +1567,7 @@ namespace Render
 	{
 		if (op == EAccessOp::ReadOnly)
 		{
+			CHECK(parameter.mLoc < MaxSimulatedBoundedSRVNum);
 			ID3D11ShaderResourceView* SRV = static_cast<D3D11Buffer&>(buffer).mSRV;
 			if (mBoundedSRVs[parameter.mLoc] != SRV)
 			{
@@ -1514,20 +1580,23 @@ namespace Render
 		}
 		else
 		{
+			CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
 			ID3D11UnorderedAccessView* UAV = static_cast<D3D11Buffer&>(buffer).mUAV;
 
 			if (mBoundedUAVs[parameter.mLoc] != UAV)
 			{
-				if (UAV == nullptr)
+				if (mBoundedUAVs[parameter.mLoc] != nullptr)
 				{
-					mUAVUsageCount -= 1;
+					--mUAVUsageCount;
 				}
-				else if (mBoundedUAVs[parameter.mLoc] == nullptr)
-				{
-					mUAVUsageCount += 1;
-				}
-				CHECK(mUAVUsageCount >= 0);
+
 				mBoundedUAVs[parameter.mLoc] = UAV;
+				if (UAV != nullptr)
+				{
+					++mUAVUsageCount;
+				}
+
+				CHECK(mUAVUsageCount >= 0 && mUAVUsageCount <= MaxSimulatedBoundedUAVNum);
 				mUAVDirtyMask |= BIT(parameter.mLoc);
 			}
 		}
@@ -1604,7 +1673,6 @@ namespace Render
 
 	}
 
-
 	template< EShader::Type TypeValue >
 	void D3D11ResourceBoundState::clearSRVResource(ID3D11DeviceContext* context, RHIResource& resource)
 	{
@@ -1612,7 +1680,7 @@ namespace Render
 		{
 			if (mBoundedSRVResources[index] == &resource)
 			{
-				mBoundedSRVResources[index] == nullptr;
+				mBoundedSRVResources[index] = nullptr;
 				mBoundedSRVs[index] = nullptr;
 
 				if (mMaxSRVBoundIndex == index)
@@ -1627,6 +1695,7 @@ namespace Render
 			}
 		}
 	}
+
 	template< EShader::Type TypeValue >
 	void D3D11ResourceBoundState::clearSRVResource(ID3D11DeviceContext* context)
 	{
@@ -1742,7 +1811,7 @@ namespace Render
 
 	void D3D11Context::RHISetViewports(ViewportInfo const viewports[], int numViewports)
 	{
-		assert(numViewports < ARRAY_SIZE(mViewportStates));
+		CHECK(numViewports < ARRAY_SIZE(mViewportStates));
 		for (int i = 0; i < numViewports; ++i)
 		{
 			auto& viewportState = mViewportStates[i];
@@ -1759,7 +1828,6 @@ namespace Render
 
 	void D3D11Context::RHISetScissorRect(int x, int y, int w, int h)
 	{
-		D3D11_VIEWPORT const& vp = mViewportStates[0];
 		D3D11_RECT rect;	
 
 		rect.left = x;
@@ -2149,10 +2217,8 @@ namespace Render
 			return static_cast<D3D11Texture3D&>(texture).getResource();
 		case ETexture::TypeCube:
 			return static_cast<D3D11TextureCube&>(texture).getResource();
-#if 0
 		case ETexture::Type2DArray:
 			return static_cast<D3D11Texture2DArray&>(texture).getResource();
-#endif
 		}
 
 		NEVER_REACH("GetTextureResource");
@@ -2785,11 +2851,13 @@ namespace Render
 		mInputLayout = nullptr;
 	}
 
+	static constexpr int32 D3D11_CONSTANT_BUFFER_ALIGN = 16;
+	static constexpr int32 D3D11_CONSTANT_BUFFER_INITIAL_SIZE = 2048;
 	bool ShaderConstDataBuffer::initializeResource(ID3D11Device* device)
 	{
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-		bufferDesc.ByteWidth = ( 2048 + 255 ) / 256 * 256;
+		bufferDesc.ByteWidth = AlignArbitrary(D3D11_CONSTANT_BUFFER_INITIAL_SIZE, D3D11_CONSTANT_BUFFER_ALIGN);
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bufferDesc.CPUAccessFlags = 0;
@@ -2829,7 +2897,7 @@ namespace Render
 	{ 
 		if (mUpdateDataSize)
 		{
-			context->UpdateSubresource(resource, 0, nullptr, &mDataBuffer[0], mUpdateDataSize, mUpdateDataSize);
+			context->UpdateSubresource(resource, 0, nullptr, &mDataBuffer[0], 0, 0);
 			mUpdateDataSize = 0;
 		}
 	}
@@ -2838,7 +2906,7 @@ namespace Render
 	{
 		if (mDataBuffer.size() < newSize)
 		{
-			mDataBuffer.resize(newSize);
+			mDataBuffer.resize(AlignArbitrary(newSize, D3D11_CONSTANT_BUFFER_ALIGN));
 		}
 	}
 

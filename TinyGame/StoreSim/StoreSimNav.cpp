@@ -174,14 +174,14 @@ namespace StoreSim
 		mGoalArea = &mMesh->areas[indexTo];
 
 		mPath.clear();
-		SreachResult sreachResult;
-		if (!sreach(state, sreachResult))
+		SearchResult searchResult;
+		if (!search(state, searchResult))
 		{
 			return false;
 		}
 
-		sreachResult.globalNode->child = nullptr;
-		this->constructPath(sreachResult.globalNode, [](NodeType* node)
+		searchResult.globalNode->child = nullptr;
+		this->constructPath(searchResult.globalNode, [](NodeType* node)
 		{
 			if (node->parent)
 			{
@@ -206,7 +206,7 @@ namespace StoreSim
 				return portal;
 			};
 
-			auto curNode = sreachResult.startNode;
+			auto curNode = searchResult.startNode;
 
 			curNode = curNode->child;
 			Vector2 viewPos = fromPos;
@@ -297,7 +297,7 @@ namespace StoreSim
 		}
 		else
 		{
-			buildPath(sreachResult.globalNode);
+			buildPath(searchResult.globalNode);
 		}
 
 		mPath.push_back(toPos);

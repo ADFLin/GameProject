@@ -31,6 +31,7 @@ namespace Render
 	class D3D11Texture2D;
 	class D3D11Texture3D;
 	class D3D11TextureCube;
+	class D3D11Texture2DArray;
 	class D3D11Buffer;
 	class D3D11RasterizerState;
 	class D3D11BlendState;
@@ -63,6 +64,12 @@ namespace Render
 	{ 
 		typedef ID3D11Texture2D ResourceType;
 		typedef D3D11TextureCube ImplType;
+	};
+	template<>
+	struct TD3D11TypeTraits< RHITexture2DArray >
+	{ 
+		typedef ID3D11Texture2D ResourceType;
+		typedef D3D11Texture2DArray ImplType;
 	};
 
 	template<>
@@ -142,7 +149,8 @@ namespace Render
 		{
 			if (mResource != nullptr)
 			{
-				LogWarning(0, "D3D11Resource no release");
+				LogWarning(0, "D3D11Resource not properly released, forcing cleanup");
+				releaseResource();
 			}
 		}
 
@@ -317,10 +325,12 @@ namespace Render
 
 	struct Texture2DCreationResult
 	{
-		TComPtr< ID3D11Texture2D > resource;
+		TComPtr< ID3D11Texture2D >           resource;
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
+		TComPtr< ID3D11DepthStencilView >    DSV;
 	};
+
 	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult);
 
 	struct TextureCubeCreationResult
@@ -434,6 +444,30 @@ namespace Render
 			});
 		}
 
+
+		ID3D11RenderTargetView* getRenderTarget_Texture2DArray(ID3D11Resource* texture, ETexture::Format format, int indexLayer, int level, int numSamples)
+		{
+			RenderTargetKey key;
+			key.level = level;
+			key.arrayIndex = indexLayer;
+			return getRednerTargetInternal(key, texture, [=](D3D11_RENDER_TARGET_VIEW_DESC& desc)
+			{
+				desc.Format = D3D11Translate::To(format);
+				if (numSamples > 1)
+				{
+					desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+					desc.Texture2DMSArray.ArraySize = 1;
+					desc.Texture2DMSArray.FirstArraySlice = indexLayer;
+				}
+				else
+				{
+					desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+					desc.Texture2DArray.ArraySize = 1;
+					desc.Texture2DArray.FirstArraySlice = indexLayer;
+					desc.Texture2DArray.MipSlice = level;
+				}
+			});
+		}
 
 		template< class TFunc >
 		ID3D11RenderTargetView* getRednerTargetInternal(RenderTargetKey const& key ,ID3D11Resource* texture, TFunc&& SetupDescFunc)
@@ -551,41 +585,12 @@ namespace Render
 			:TD3D11Texture< RHITexture2D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mResource = creationResult.resource.detach();
-
-			if (ETexture::IsDepthStencil(mDesc.format))
-			{
-				TComPtr<ID3D11Device> device;
-				mResource->GetDevice(&device);
-				D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-				depthStencilDesc.Format = D3D11Translate::To(mDesc.format);
-				switch (depthStencilDesc.Format)
-				{
-				case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
-				case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
-					depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-					break;
-				}
-
-				if (mDesc.numSamples > 1)
-				{
-					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-				}
-				else
-				{
-					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-					depthStencilDesc.Texture2D.MipSlice = 0;
-				}
-
-				VERIFY_D3D_RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
-			}
+			mDSV = creationResult.DSV.detach();
 		}
 
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 		{
-			if (format != getFormat())
-			{
-				int i = 1;
-			}
+
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
@@ -597,16 +602,13 @@ namespace Render
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * ETexture::GetFormatSize(format), w * h * ETexture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, w * ETexture::GetFormatSize(format), 0);
 			return true;
 		}
 
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 		{
-			if (format != getFormat())
-			{
-				int i = 1;
-			}
+
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
@@ -619,7 +621,7 @@ namespace Render
 			box.top = oy;
 			box.bottom = oy + h;
 			//@FIXME : error
-			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * ETexture::GetFormatSize(format), h * dataImageWidth * ETexture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * ETexture::GetFormatSize(format), 0);
 			return true;
 		}
 
@@ -706,10 +708,6 @@ namespace Render
 
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level )
 		{
-			if (format != getFormat())
-			{
-				int i = 1;
-			}
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
@@ -723,7 +721,7 @@ namespace Render
 			box.bottom = oy + h;
 
 			UINT subresource = D3D11CalcSubresource(level, face, getNumMipLevel());
-			deviceContext->UpdateSubresource(mResource, subresource, &box, data, w * ETexture::GetFormatSize(format), w * h * ETexture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, subresource, &box, data, w * ETexture::GetFormatSize(format), 0);
 			return true;
 		}
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
@@ -734,8 +732,6 @@ namespace Render
 				{
 					return false;
 				}
-
-				int i = 1;
 			}
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
@@ -750,8 +746,7 @@ namespace Render
 			box.bottom = oy + h;
 
 			UINT subresource = D3D11CalcSubresource(level, face, getNumMipLevel());
-			//@FIXME : error
-			deviceContext->UpdateSubresource(mResource, subresource, &box, data, dataImageWidth * ETexture::GetFormatSize(format), h * dataImageWidth * ETexture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, subresource, &box, data, dataImageWidth * ETexture::GetFormatSize(format), 0);
 			return true;
 		}
 
@@ -771,6 +766,64 @@ namespace Render
 		{
 			return mViewStorage.getRenderTargetArray_TextureCube(mResource, mDesc.format, level, mDesc.numSamples);
 		}
+		D3D11ResourceViewStorage mViewStorage;
+		ID3D11DepthStencilView*  mDSV = nullptr;
+	};
+
+	struct Texture2DArrayCreationResult
+	{
+		TComPtr< ID3D11Texture2D > resource;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+		uint32 creationFlags;
+	};
+
+	class D3D11Texture2DArray : public TD3D11Texture< RHITexture2DArray >
+	{
+		using BaseClass = TD3D11Texture< RHITexture2DArray >;
+	public:
+		D3D11Texture2DArray(TextureDesc const& desc, Texture2DArrayCreationResult& creationResult)
+			: TD3D11Texture< RHITexture2DArray >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
+		{
+			mResource = creationResult.resource.detach();
+
+			if (ETexture::IsDepthStencil(mDesc.format))
+			{
+				TComPtr<ID3D11Device> device;
+				mResource->GetDevice(&device);
+				D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+				depthStencilDesc.Format = D3D11Translate::ToDSV(D3D11Translate::To(mDesc.format));
+
+				if (mDesc.numSamples > 1)
+				{
+					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+					depthStencilDesc.Texture2DMSArray.FirstArraySlice = 0;
+					depthStencilDesc.Texture2DMSArray.ArraySize = mDesc.dimension.z;
+				}
+				else
+				{
+					depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+					depthStencilDesc.Texture2DArray.FirstArraySlice = 0;
+					depthStencilDesc.Texture2DArray.ArraySize = mDesc.dimension.z;
+					depthStencilDesc.Texture2DArray.MipSlice = 0;
+				}
+
+				VERIFY_D3D_RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
+			}
+		}
+
+		void releaseResource()
+		{
+			mViewStorage.releaseResource();
+			SAFE_RELEASE(mDSV);
+			BaseClass::releaseResource();
+		}
+
+		ID3D11RenderTargetView* getRenderTargetView(int indexLayer, int level)
+		{
+			return mViewStorage.getRenderTarget_Texture2DArray(mResource, mDesc.format, indexLayer, level, mDesc.numSamples);
+		}
+
 		D3D11ResourceViewStorage mViewStorage;
 		ID3D11DepthStencilView*  mDSV = nullptr;
 	};
@@ -795,7 +848,7 @@ namespace Render
 		}
 
 
-		bool isDyanmic() const
+		bool isDynamic() const
 		{
 			return !!(getDesc().creationFlags & BCF_CpuAccessWrite);
 		}
@@ -891,7 +944,7 @@ namespace Render
 
 		TArray< D3D11_INPUT_ELEMENT_DESC > mDescList;
 		uint32 mAttriableMask;
-		ID3D11InputLayout* mUniversalResource;
+		ID3D11InputLayout* mUniversalResource = nullptr;
 		std::unordered_map< RHIResource*, ID3D11InputLayout* > mResourceMap;
 	};
 
@@ -919,20 +972,12 @@ namespace Render
 
 		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level);
 		virtual int  addTexture(RHITexture2D& target, int level);
-		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level)
-		{
-			return INDEX_NONE;
-
-		}
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level);
 		virtual int  addTextureArray(RHITextureCube& target, int level);
 
 		virtual void setTexture(int idx, RHITexture2D& target, int level);
 		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level);
-		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
-		{
-
-
-		}
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level);
 
 
 		virtual void setTextureArray(int idx, RHITextureCube& target, int level);
@@ -970,7 +1015,11 @@ namespace Render
 		}
 		virtual void present(bool bVSync) override
 		{
-			mResource->Present(bVSync ? 1 : 0, 0);
+			HRESULT hr = mResource->Present(bVSync ? 1 : 0, 0);
+			if (FAILED(hr))
+			{
+				LogWarning(0, "D3D11SwapChain::present failed (HRESULT: 0x%08X)", hr);
+			}
 		}
 
 		void bitbltToDevice(HDC hTargetDC)

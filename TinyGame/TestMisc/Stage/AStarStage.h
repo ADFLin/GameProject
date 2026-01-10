@@ -62,7 +62,7 @@ namespace AStar
 			return 0 <= dif.x && dif.x < mClearance &&
 				   0 <= dif.y && dif.y < mClearance;
 		}
-		//  call addSreachNode for all possible next state
+		//  call addSearchNode for all possible next state
 		void      processNeighborNode( NodeType& node )
 		{
 			
@@ -82,7 +82,7 @@ namespace AStar
 					continue;
 
 				mask |= BIT( i );
-				addSreachNode( newPos , node , 1000 );
+				addSearchNode( newPos , node , 1000 );
 			}
 
 
@@ -97,7 +97,7 @@ namespace AStar
 				if ( tile.clearance < mClearance )
 					continue;
 
-				addSreachNode( newPos , node , 1414 );
+				addSearchNode( newPos , node , 1414 );
 			}
 		}
 
@@ -395,10 +395,10 @@ namespace AStar
 
 		void findPath()
 		{
-			MyAStar::SreachResult sreachResult;
-			if( mAStar.sreach(mStartPos, sreachResult) )
+			MyAStar::SearchResult searchResult;
+			if( mAStar.search(mStartPos, searchResult) )
 			{
-				mGlobalNode = sreachResult.globalNode;
+				mGlobalNode = searchResult.globalNode;
 			}
 			else
 			{

@@ -21,11 +21,11 @@
 
 namespace AStar
 {
-	enum ESrachStatus
+	enum ESearchStatus
 	{
-		eSREACHING,
-		eSREACH_SUCCESS,
-		eSREACH_FAIL,
+		eSEARCHING,
+		eSEARCH_SUCCESS,
+		eSEARCH_FAIL,
 	};
 
 
@@ -146,7 +146,7 @@ namespace AStar
 		ScoreType calcDistance( StateType& a, StateType& b){  NEVER_REACH("Need impl calcDistance"); return 0; }
 		bool      isEqual(StateType& state1,StateType& state2 ){  NEVER_REACH("Need impl isEqual"); return false; }
 		bool      isGoal (StateType& state ){ NEVER_REACH("Need impl isGoal"); return false; }
-		//  call addSreachNode for all possible next state
+		//  call addSearchNode for all possible next state
 		void      processNeighborNode( NodeType& node ){  NEVER_REACH("Need impl processNeighborNode"); }
 
 
@@ -182,28 +182,28 @@ namespace AStar
 		MapType&    getMap(){ return mMap; }
 
 
-		struct SreachResult
+		struct SearchResult
 		{
 			NodeType*   startNode;
 			NodeType*   globalNode;
 		};
 
 
-		void startSreach( StateType const& start , SreachResult& sreachResult);
-		ESrachStatus  sreachStep(SreachResult& sreachResult);
+		void startSearch( StateType const& start , SearchResult& searchResult);
+		ESearchStatus  searchStep(SearchResult& searchResult);
 
-		bool sreach( StateType const& start, SreachResult& sreachResult)
+		bool search( StateType const& start, SearchResult& searchResult)
 		{
-			startSreach( start , sreachResult);
+			startSearch( start , searchResult);
 
 			int result;
 			do 
 			{
-				result = sreachStep(sreachResult);
+				result = searchStep(searchResult);
 			}
-			while ( result == eSREACHING );
+			while ( result == eSEARCHING );
 
-			return result == eSREACH_SUCCESS;
+			return result == eSEARCH_SUCCESS;
 		}
 
 		template< class TFunc >
@@ -247,11 +247,11 @@ namespace AStar
 				cleanupCache();
 			}
 		}
-		bool addSreachNode( StateType& nextState , NodeType& node )
+		bool addSearchNode( StateType& nextState , NodeType& node )
 		{
-			return addSreachNode( nextState , node , _this()->calcDistance( node.state , nextState ) );
+			return addSearchNode( nextState , node , _this()->calcDistance( node.state , nextState ) );
 		}
-		bool addSreachNode( StateType& nextState , NodeType& node , ScoreType dist );
+		bool addSearchNode( StateType& nextState , NodeType& node , ScoreType dist );
 
 		void cleanupNonpathNode( bool bAddToCache )
 		{
@@ -333,7 +333,7 @@ namespace AStar
 #define CLASS_PARAM T,MT,AP,MP,QP
 
 	template< TEMPLATE_PARAM >
-	void AStarT< CLASS_PARAM >::startSreach( StateType const& start , SreachResult& sreachResult)
+	void AStarT< CLASS_PARAM >::startSearch( StateType const& start , SearchResult& searchResult)
 	{
 		ASTAR_PROFILE( "start" );
 
@@ -346,18 +346,18 @@ namespace AStar
 		node->g = 0;
 		node->flag = 0;
 
-		sreachResult.startNode = node;
+		searchResult.startNode = node;
 		mQueue.insert( node );
 	}
 
 	template< TEMPLATE_PARAM >
-	ESrachStatus  AStarT< CLASS_PARAM >::sreachStep( SreachResult& sreachResult)
+	ESearchStatus  AStarT< CLASS_PARAM >::searchStep( SearchResult& searchResult)
 	{
 		NodeType* node;
 		for(;;)
 		{
 			if ( mQueue.empty() )
-				return eSREACH_FAIL;
+				return eSEARCH_FAIL;
 
 			node = mQueue.front();
 
@@ -377,8 +377,8 @@ namespace AStar
 
 		if ( _this()->isGoal( node->state ) )
 		{
-			sreachResult.globalNode = node;
-			return eSREACH_SUCCESS;
+			searchResult.globalNode = node;
+			return eSEARCH_SUCCESS;
 		}
 
 		{
@@ -386,13 +386,13 @@ namespace AStar
 			_this()->processNeighborNode( *node );
 		}
 
-		return eSREACHING;
+		return eSEARCHING;
 	}
 
 	template< TEMPLATE_PARAM >
-	bool AStarT< CLASS_PARAM >::addSreachNode( StateType& nextState , NodeType& nodeLink , ScoreType dist )
+	bool AStarT< CLASS_PARAM >::addSearchNode( StateType& nextState , NodeType& nodeLink , ScoreType dist )
 	{
-		//ASTAR_PROFILE( "addSreachNode" );
+		//ASTAR_PROFILE( "addSearchNode" );
 
 		ScoreType newG = nodeLink.g + dist;
 

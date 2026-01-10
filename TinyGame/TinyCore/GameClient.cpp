@@ -347,7 +347,7 @@ bool ClientWorker::sendCommand(int channel, IComPacket* cp, EWorkerSendFlag flag
 }
 
 
-void ClientWorker::sreachLanServer()
+void ClientWorker::searchLanServer()
 {
 	CSPComMsg com;
 	com.str =  "server_info";

@@ -30,6 +30,7 @@ namespace CB
 				mUsedInputMask |= parserResult.isUsingInput("x") ? BIT(0) : 0;
 				mUsedInputMask |= parserResult.isUsingInput("y") ? BIT(1) : 0;
 				setDynamic(parserResult.isUsingVar("t"));
+				bSupportSIMD = mExpr.getEvalResource<ExecutableCode>().isSupportSIMD();
 			}
 		}
 		return isParsed();
@@ -87,6 +88,7 @@ namespace CB
 				mUsedInputMask |= parseResult.isUsingInput("u") ? BIT(0) : 0;
 				mUsedInputMask |= parseResult.isUsingInput("v") ? BIT(1) : 0;
 			}
+			bSupportSIMD = mAixsExpr[0].getEvalResource<ExecutableCode>().isSupportSIMD();
 		}
 
 
@@ -120,6 +122,7 @@ namespace CB
 			if( parser.compile(mCoordExpr[i] , ARRAY_SIZE(inputLayouts) , inputLayouts, parseResult) )
 				bDynamic |= parseResult.isUsingVar("t");
 		}
+		bSupportSIMD = mCoordExpr[0].getEvalResource<ExecutableCode>().isSupportSIMD();
 
 		setDynamic(bDynamic);
 		return isParsed();

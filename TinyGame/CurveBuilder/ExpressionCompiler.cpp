@@ -5,11 +5,14 @@
 #include <algorithm>
 
 #include "ProfileSystem.h"
+#include "LogSystem.h"
 
 
 ExpressionCompiler::ExpressionCompiler()
 {
 	mOptimization = true;
+	mbGenerateSIMD = false;
+	mTargetType = ECodeExecType::Asm;
 }
 
 bool ExpressionCompiler::compile( char const* expr, SymbolTable const& table, ParseResult&  parseResult, ExecutableCode& data , int numInput , ValueLayout inputLayouts[] )
@@ -22,22 +25,75 @@ bool ExpressionCompiler::compile( char const* expr, SymbolTable const& table, Pa
 
 #if 1
 		if (mOptimization)
-			parseResult.optimize();
+		{
+			// Log before optimization
+			LogDevMsg(0, "=== Before Optimization ===");
+			parseResult.printPostfixCodes();
+			
+			if (parseResult.optimize())
+			{
+				// Log after optimization
+				LogDevMsg(0, "=== After Optimization ===");
+				parseResult.printPostfixCodes();
+			}
+		}
 #endif
 
 
 		{
 			TIME_SCOPE("Generate Code");
-#if ENABLE_FPU_CODE
-			FPUCodeGeneratorV0 generator;
-			generator.setCodeData(&data.mData);
-			parseResult.generateCode(generator, numInput, inputLayouts);
-#elif ENABLE_BYTE_CODE
-			ExprByteCodeCompiler generator(data.mData);
-			parseResult.generateCode(generator, numInput, inputLayouts);
+
+			switch (mTargetType)
+			{
+#if ENABLE_ASM_CODE
+			case ECodeExecType::Asm:
+			{
+				if (mbGenerateSIMD)
+				{
+#if TARGET_PLATFORM_64BITS
+					SSESIMDCodeGeneratorX64 generator;
+					generator.setCodeData(&data.initAsm());
+					parseResult.generateCode(generator, numInput, inputLayouts);
 #else
-			data.mCodes = parseResult.genratePosifxCodes();
+					return false;
 #endif
+				}
+				else
+				{
+#if TARGET_PLATFORM_64BITS
+					SSECodeGeneratorX64 generator;
+#else
+					FPUCodeGeneratorV0 generator;
+#endif
+					generator.setCodeData(&data.initAsm());
+					parseResult.generateCode(generator, numInput, inputLayouts);
+				}
+			}
+			break;
+#endif
+
+#if ENABLE_BYTE_CODE
+			case ECodeExecType::ByteCode:
+			{
+				ExprByteCodeCompiler generator(data.initByteCode());
+				parseResult.generateCode(generator, numInput, inputLayouts);
+			}
+			break;
+#endif
+
+#if ENABLE_INTERP_CODE
+			case ECodeExecType::Interp:
+			{
+				data.initInterp() = parseResult.genratePosifxCodes();
+			}
+			break;
+#endif
+
+			default:
+				return false;
+			}
+
+			data.setSIMD(mbGenerateSIMD || mTargetType == ECodeExecType::ByteCode);
 		}
 		return true;
 	}
@@ -63,15 +119,3 @@ ExecutableCode::~ExecutableCode()
 {
 
 }
-
-void ExecutableCode::clearCode()
-{
-#if ENABLE_FPU_CODE
-	mData.clear();
-#elif ENABLE_BYTE_CODE
-	mData.clear();
-#else
-	mCodes.clear();
-#endif
-}
-

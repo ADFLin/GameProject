@@ -106,17 +106,19 @@ namespace Render
 		return GCullModeMapD3D11[int(mode)].dest;
 	}
 
+	DEFINE_MAP_INFO(FillModeMapInfoD3D11, EFillMode, D3D11_FILL_MODE);
+
+#define FILL_MODE_LIST_D3D11( op )\
+	op(EFillMode::Point, D3D11_FILL_SOLID)\
+	op(EFillMode::Wireframe, D3D11_FILL_WIREFRAME)\
+	op(EFillMode::Solid, D3D11_FILL_SOLID)\
+	op(EFillMode::System, D3D11_FILL_SOLID)
+
+	DEFINE_DATA_MAP(FillModeMapInfoD3D11, GFillModeMapD3D11, FILL_MODE_LIST_D3D11);
+
 	D3D11_FILL_MODE D3D11Translate::To(EFillMode mode)
 	{
-		switch( mode )
-		{
-		case EFillMode::Wireframe: return D3D11_FILL_WIREFRAME;
-		case EFillMode::Solid: return D3D11_FILL_SOLID;
-		case EFillMode::System:
-		case EFillMode::Point:
-			return D3D11_FILL_SOLID;
-		}
-		return D3D11_FILL_SOLID;
+		return GFillModeMapD3D11[int(mode)].dest;
 	}
 
 	DEFINE_MAP_INFO(LockAccessMapInfoD3D11, ELockAccess, D3D11_MAP);
@@ -134,33 +136,36 @@ namespace Render
 		return GLockAccessMapD3D11[int(access)].dest;
 	}
 
+	DEFINE_MAP_INFO(SamplerFilterMapInfoD3D11, ESampler::Filter, D3D11_FILTER);
+
+#define SAMPLER_FILTER_LIST_D3D11( op )\
+	op(ESampler::Point, D3D11_FILTER_MIN_MAG_MIP_POINT)\
+	op(ESampler::Bilinear, D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT)\
+	op(ESampler::Trilinear, D3D11_FILTER_MIN_MAG_MIP_LINEAR)\
+	op(ESampler::AnisotroicPoint, D3D11_FILTER_ANISOTROPIC)\
+	op(ESampler::AnisotroicLinear, D3D11_FILTER_ANISOTROPIC)
+
+	DEFINE_DATA_MAP(SamplerFilterMapInfoD3D11, GSamplerFilterMapD3D11, SAMPLER_FILTER_LIST_D3D11);
+
 	D3D11_FILTER D3D11Translate::To(ESampler::Filter filter)
 	{
-		switch( filter )
-		{
-		case ESampler::Point:
-			return D3D11_FILTER_MIN_MAG_MIP_POINT;
-		case ESampler::Bilinear:
-			return D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-		case ESampler::Trilinear:
-			return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		case ESampler::AnisotroicPoint:
-		case ESampler::AnisotroicLinear:
-			return D3D11_FILTER_ANISOTROPIC;
-		}
-		return D3D11_FILTER_MIN_MAG_MIP_POINT;
+		return GSamplerFilterMapD3D11[filter].dest;
 	}
+
+	DEFINE_MAP_INFO(SamplerAddressModeMapInfoD3D11, ESampler::AddressMode, D3D11_TEXTURE_ADDRESS_MODE);
+
+#define SAMPLER_ADDRESS_MODE_LIST_D3D11( op )\
+	op(ESampler::Wrap, D3D11_TEXTURE_ADDRESS_WRAP)\
+	op(ESampler::Mirror, D3D11_TEXTURE_ADDRESS_MIRROR)\
+	op(ESampler::Clamp, D3D11_TEXTURE_ADDRESS_CLAMP)\
+	op(ESampler::Border, D3D11_TEXTURE_ADDRESS_BORDER)\
+	op(ESampler::MirrorOnce, D3D11_TEXTURE_ADDRESS_WRAP)
+
+	DEFINE_DATA_MAP(SamplerAddressModeMapInfoD3D11, GSamplerAddressModeMapD3D11, SAMPLER_ADDRESS_MODE_LIST_D3D11);
 
 	D3D11_TEXTURE_ADDRESS_MODE D3D11Translate::To(ESampler::AddressMode mode)
 	{
-		switch( mode )
-		{
-		case ESampler::Wrap:   return D3D11_TEXTURE_ADDRESS_WRAP;
-		case ESampler::Clamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
-		case ESampler::Mirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
-		case ESampler::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
-		}
-		return D3D11_TEXTURE_ADDRESS_WRAP;
+		return GSamplerAddressModeMapD3D11[mode].dest;
 	}
 
 	DEFINE_MAP_INFO(CompareFuncMapInfoD3D11, ECompareFunc, D3D11_COMPARISON_FUNC);
@@ -255,11 +260,18 @@ namespace Render
 	{
 		for (auto& pair : mResourceMap)
 		{
-			pair.second->Release();
+			if (pair.second)
+			{
+				pair.second->Release();
+			}
 		}
 		mResourceMap.clear();
-		mUniversalResource->Release();
-		mUniversalResource = nullptr;
+
+		if (mUniversalResource)
+		{
+			mUniversalResource->Release();
+			mUniversalResource = nullptr;
+		}
 	}
 
 	ID3D11InputLayout* D3D11InputLayout::getShaderLayout(ID3D11Device* device, RHIResource* resource , TArray< uint8 > const& shaderByteCode)
@@ -300,6 +312,14 @@ namespace Render
 		return indexSlot;
 	}
 
+	int D3D11FrameBuffer::addTexture(RHITexture2DArray& target, int indexLayer, int level)
+	{
+		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
+		int indexSlot = mRenderTargetsState.numColorBuffers;
+		setTexture(indexSlot, target, indexLayer, level);
+		return indexSlot;
+	}
+
 	int D3D11FrameBuffer::addTextureArray(RHITextureCube& target, int level)
 	{
 		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
@@ -329,6 +349,16 @@ namespace Render
 		bStateDirty = true;
 	}
 
+
+	void D3D11FrameBuffer::setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
+	{
+		CHECK(idx <= mRenderTargetsState.numColorBuffers);
+		if (idx == mRenderTargetsState.numColorBuffers)
+			mRenderTargetsState.numColorBuffers += 1;
+		mRenderTargetsState.colorResources[idx] = &target;
+		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11Texture2DArray&>(target).getRenderTargetView(indexLayer, level);
+		bStateDirty = true;
+	}
 
 	void D3D11FrameBuffer::setTextureArray(int idx, RHITextureCube& target, int level)
 	{

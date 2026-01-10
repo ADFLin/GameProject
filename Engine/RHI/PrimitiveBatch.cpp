@@ -84,8 +84,6 @@ namespace Render
 		mVertexBuffer.release();
 	}
 
-	ACCESS_SHADER_MEMBER_PARAM(VertexTransform);
-
 	void SimpleElementRenderer::draw(RHICommandList& commandList, Matrix4 const& worldToClip, SimpleVertex* vertices, int numVertices)
 	{
 		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteDiscard);

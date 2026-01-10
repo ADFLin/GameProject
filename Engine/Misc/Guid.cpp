@@ -7,7 +7,7 @@
 #pragma comment (lib,"Ole32.lib")
 #else
 #include <stdlib.h>
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #endif
 
 Guid Guid::New()

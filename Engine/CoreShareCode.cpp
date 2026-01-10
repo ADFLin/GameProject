@@ -1,5 +1,5 @@
 #include "CoreShare.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #if CORE_SHARE_CODE
 #include "ProfileSystem.cpp"
 #include "LogSystem.cpp"

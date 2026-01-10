@@ -2,7 +2,7 @@
 
 #include "LogSystem.h"
 #include "ProfileSystem.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "TemplateMisc.h"
 
 namespace DLX

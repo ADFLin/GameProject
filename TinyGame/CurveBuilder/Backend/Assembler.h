@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <vector>
+#include <type_traits>
 
 namespace Asmeta
 {
@@ -117,6 +118,29 @@ namespace Asmeta
 
 	ASMETA_INLINE RegST st( uint8 idx = 0 ){ assert( idx < 8 ); return RegST( idx );  }
 
+	// XMM registers (SSE)
+	RegXMM const xmm0 = RegXMM(0);
+	RegXMM const xmm1 = RegXMM(1);
+	RegXMM const xmm2 = RegXMM(2);
+	RegXMM const xmm3 = RegXMM(3);
+	RegXMM const xmm4 = RegXMM(4);
+	RegXMM const xmm5 = RegXMM(5);
+	RegXMM const xmm6 = RegXMM(6);
+	RegXMM const xmm7 = RegXMM(7);
+
+#if TARGET_PLATFORM_64BITS
+	RegXMM const xmm8 = RegXMM(8);
+	RegXMM const xmm9 = RegXMM(9);
+	RegXMM const xmm10 = RegXMM(10);
+	RegXMM const xmm11 = RegXMM(11);
+	RegXMM const xmm12 = RegXMM(12);
+	RegXMM const xmm13 = RegXMM(13);
+	RegXMM const xmm14 = RegXMM(14);
+	RegXMM const xmm15 = RegXMM(15);
+#endif
+
+	ASMETA_INLINE RegXMM xmm(uint8 idx) { assert(idx < 16); return RegXMM(idx); }
+
 
 #define DEF_REF_MEM( Type , Param , InputRef )\
 	ASMETA_INLINE RefMem< Type , 0 >  ptr      ( Param ){ return RefMem< Type , 0 >( InputRef );  }\
@@ -174,6 +198,48 @@ namespace Asmeta
 	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift ){ return RefMem< RegPtr , 10 >( RegPtr( base , index , shift ) );  }
 
 #if TARGET_PLATFORM_64BITS
+	// Memory addressing helper functions for 64-bit registers (Reg64)
+	DEF_REF_MEM( RegPtr64, Reg64 const& base, RegPtr64( base ) )
+
+	ASMETA_INLINE RefMem< RegPtr64 , 0 >  ptr      ( Reg64 const& base , int8 disp ){ return RefMem< RegPtr64 , 0 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 1 >  byte_ptr ( Reg64 const& base , int8 disp ){ return RefMem< RegPtr64 , 1 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 2 >  word_ptr ( Reg64 const& base , int8 disp ){ return RefMem< RegPtr64 , 2 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 4 >  dword_ptr( Reg64 const& base , int8 disp ){ return RefMem< RegPtr64 , 4 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 8 >  qword_ptr( Reg64 const& base , int8 disp ){ return RefMem< RegPtr64 , 8 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 10 > tword_ptr( Reg64 const& base , int8 disp ){ return RefMem< RegPtr64 , 10 >( RegPtr64( base , disp ) );  }
+
+	ASMETA_INLINE RefMem< RegPtr64 , 0 >  ptr      ( Reg64 const& base , int32 disp ){ return RefMem< RegPtr64 , 0 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 1 >  byte_ptr ( Reg64 const& base , int32 disp ){ return RefMem< RegPtr64 , 1 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 2 >  word_ptr ( Reg64 const& base , int32 disp ){ return RefMem< RegPtr64 , 2 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 4 >  dword_ptr( Reg64 const& base , int32 disp ){ return RefMem< RegPtr64 , 4 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 8 >  qword_ptr( Reg64 const& base , int32 disp ){ return RefMem< RegPtr64 , 8 >( RegPtr64( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 10 > tword_ptr( Reg64 const& base , int32 disp ){ return RefMem< RegPtr64 , 10 >( RegPtr64( base , disp ) );  }
+
+	ASMETA_INLINE RefMem< RegPtr64 , 0 >  ptr      ( Reg64 const& base , Reg64 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr64 , 0 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 1 >  byte_ptr ( Reg64 const& base , Reg64 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr64 , 1 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 2 >  word_ptr ( Reg64 const& base , Reg64 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr64 , 2 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 4 >  dword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr64 , 4 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 8 >  qword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr64 , 8 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 10 > tword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr64 , 10 >( RegPtr64( base , index , shift , disp ) );  }
+
+	ASMETA_INLINE RefMem< RegPtr64 , 0 >  ptr      ( Reg64 const& base , Reg64 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr64 , 0 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 1 >  byte_ptr ( Reg64 const& base , Reg64 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr64 , 1 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 2 >  word_ptr ( Reg64 const& base , Reg64 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr64 , 2 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 4 >  dword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr64 , 4 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 8 >  qword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr64 , 8 >( RegPtr64( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 10 > tword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr64 , 10 >( RegPtr64( base , index , shift , disp ) );  }
+
+	ASMETA_INLINE RefMem< RegPtr64 , 0 >  ptr      ( Reg64 const& base , Reg64 const& index , uint8 shift ){ return RefMem< RegPtr64 , 0 >( RegPtr64( base , index , shift ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 1 >  byte_ptr ( Reg64 const& base , Reg64 const& index , uint8 shift ){ return RefMem< RegPtr64 , 1 >( RegPtr64( base , index , shift ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 2 >  word_ptr ( Reg64 const& base , Reg64 const& index , uint8 shift ){ return RefMem< RegPtr64 , 2 >( RegPtr64( base , index , shift ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 4 >  dword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift ){ return RefMem< RegPtr64 , 4 >( RegPtr64( base , index , shift ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 8 >  qword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift ){ return RefMem< RegPtr64 , 8 >( RegPtr64( base , index , shift ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 10 > tword_ptr( Reg64 const& base , Reg64 const& index , uint8 shift ){ return RefMem< RegPtr64 , 10 >( RegPtr64( base , index , shift ) );  }
+	ASMETA_INLINE RefMem< RegPtr64 , 16 > xmmword_ptr(Reg64 const& base, int32 disp) { return RefMem< RegPtr64 , 16 >(RegPtr64(base, disp)); }
+	ASMETA_INLINE RefMem< RegPtr64 , 16 > xmmword_ptr(Reg64 const& base, Reg64 const& index, uint8 shift, int32 disp) { return RefMem< RegPtr64 , 16 >(RegPtr64(base, index, shift, disp)); }
+#endif
+
+#if TARGET_PLATFORM_64BITS
 #	define SYSTEM_PTR qword_ptr
 	//ASMETA_INLINE Disp< 8 > disp64(void* val) { return Disp< 8 >(val); }
 #else
@@ -190,6 +256,9 @@ namespace Asmeta
 	ASMETA_INLINE Disp< 2 > disp( uint16 val ){ return Disp< 2 >( val ); }
 	ASMETA_INLINE Disp< 1 > disp( uint8 val ) { return Disp< 1 >( val ); }
 
+	ASMETA_INLINE RefMem< LabelPtr , 16 > xmmword_ptr(Label* label, int32 offset) { return RefMem< LabelPtr , 16 >(LabelPtr(label, offset)); }
+	ASMETA_INLINE RefMem< RegPtr , 16 > xmmword_ptr(Reg32 const& base, int32 disp) { return RefMem< RegPtr , 16 >(RegPtr(base, disp)); }
+
 	ASMETA_INLINE Immediate< 4 > imm32( int32 val ){ return Immediate< 4 >( val , true ); }
 	ASMETA_INLINE Immediate< 2 > imm16( int16 val ){ return Immediate< 2 >( val , true ); }
 	ASMETA_INLINE Immediate< 1 > imm8( int8 val ){ return Immediate< 1 >( val , true ); }
@@ -203,6 +272,11 @@ namespace Asmeta
 	ASMETA_INLINE Immediate< 0 > imm( uint32 val ){ return Immediate< 0 >( val ); }
 	ASMETA_INLINE Immediate< 0 > imm( uint16 val ){ return Immediate< 0 >( val ); }
 	ASMETA_INLINE Immediate< 0 > imm( uint8 val ){ return Immediate< 0 >( val ); }
+
+#if TARGET_PLATFORM_64BITS
+	ASMETA_INLINE Immediate< 8 > imm64( int64 val ){ return Immediate< 8 >( val , true ); }
+	ASMETA_INLINE Immediate< 8 > imm64u( uint64 val ){ return Immediate< 8 >( val ); }
+#endif
 
 
 	template< class T >
@@ -255,6 +329,39 @@ namespace Asmeta
 		template< class Ref >
 		ASMETA_INLINE void mov( RegSeg const& dst , RefMem< Ref , 2 >const& src ) {  encodeIntInistRM< 2 >( 0x8e , src.ref()  , dst.code() ); }
 
+#if TARGET_PLATFORM_64BITS
+		// movabs r64, imm64 - move 64-bit immediate value to 64-bit register
+		// Opcode: REX.W + B8+rd io
+		ASMETA_INLINE void movabs( Reg64 const& dst, Immediate< 8 > const& imm )
+		{
+			// REX.W prefix is required for 64-bit operand
+			encodeREXPrefixSingle<8>(dst.code());
+			_this()->emitByte(0xB8 | Reg::lowBits(dst.code()));
+			_this()->emitQWord(imm.value());
+		}
+
+		// movabs r64, imm64 - alternative using raw int64
+		ASMETA_INLINE void movabs( Reg64 const& dst, int64 imm )
+		{
+			movabs(dst, imm64(imm));
+		}
+
+		// movabs r64, imm64 - alternative using raw uint64
+		ASMETA_INLINE void movabs( Reg64 const& dst, uint64 imm )
+		{
+			movabs(dst, imm64u(imm));
+		}
+
+		// LEA r64, m - Load Effective Address
+		template< int Size >
+		ASMETA_INLINE void lea( Reg64 const& dst, RefMem< RegPtr64, Size > const& src )
+		{
+			encodeREXPrefixMem<8>(dst.code(), src.reference());
+			_this()->emitByte(0x8D);
+			encodeModRM(src.reference(), Reg::lowBits(dst.code()));
+		}
+#endif
+
 
 #define DEF_ALU_INST( NAME , CODE )\
 	template< int Size >\
@@ -276,6 +383,7 @@ namespace Asmeta
 		DEF_ALU_INST(xor, igXOR);
 
 #undef DEF_ALU_INST
+
 
 		template< int Size >
 		ASMETA_INLINE void cmp( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igCMP , dst , src.code() ); }
@@ -646,13 +754,60 @@ namespace Asmeta
 		ASMETA_INLINE void encodePushPopInist( IntInstCode code , RMType const& rm )
 		{
 			assert( code == igPOP || code == igPUSH );
+#if TARGET_PLATFORM_64BITS
+			static_assert( Size == 2 || Size == 4 || Size == 8 );
+			if constexpr (Size == 8)
+			{
+				// In 64-bit mode, push/pop 64-bit registers use the short encoding (50+r for push, 58+r for pop)
+				// or FF /6 for push r/m64, 8F /0 for pop r/m64
+				if constexpr (std::is_same_v<RMType, RegX86<8>>)
+				{
+					// Short encoding for register push/pop (no REX needed unless extended register)
+					uint8 baseOp = (code == igPUSH) ? 0x50 : 0x58;
+					if (Reg::isExtended(rm.code()))
+						encodeREXPrefix(0, 0, 0, 1);
+					_this()->emitByte(baseOp | Reg::lowBits(rm.code()));
+				}
+				else
+				{
+					// Memory operand - use FF /6 for push or 8F /0 for pop
+					encodeIntInist2< Size >( code , rm );
+				}
+			}
+			else
+#else
 			static_assert( Size == 2 || Size == 4 );
-			encodeIntInist2< Size >( code , rm );
+#endif
+			{
+				encodeIntInist2< Size >( code , rm );
+			}
 		}
 
 		template< class Ref , int Size >
 		ASMETA_INLINE void call( RefMem< Ref , Size > const& ptr ){  encodeIntInist2< 4 >( igCALL , ptr ); }
 		ASMETA_INLINE void call( Reg32 const& reg )               {  encodeIntInist2< 4 >( igCALL , reg ); }
+
+#if TARGET_PLATFORM_64BITS
+		// x64 call instruction: call r64
+		ASMETA_INLINE void call( Reg64 const& reg )
+		{
+			// In 64-bit mode, CALL r64 uses FF /2 with no REX.W needed (default 64-bit)
+			// But REX.B is needed for extended registers (R8-R15)
+			if (Reg::isExtended(reg.code()))
+				encodeREXPrefix(0, 0, 0, 1);
+			_this()->emitByte(0xFF);
+			encodeModRM(reg, Reg::eDX); // /2 = opcode extension in reg field
+		}
+
+		// x64 call with 64-bit memory operand
+		template< int Size >
+		ASMETA_INLINE void call( RefMem< RegPtr64, Size > const& ptr )
+		{
+			encodeREXPrefixMem<Size>(Reg::eDX, ptr.reference());  // /2 in reg field
+			_this()->emitByte(0xFF);
+			encodeModRM(ptr.reference(), Reg::eDX);
+		}
+#endif
 
 
 		ASMETA_INLINE void encodeByteInist( uint8 opA )
@@ -699,7 +854,21 @@ namespace Asmeta
 		ASMETA_INLINE void encodeALUInist( IntInstCode code , RegX86< Size > const& reg , Immediate< ImmSize > const& imm )
 		{
 			if ( reg.code() == Reg::eAX )
-				encodeAccumInist< Size >( INT_INIST_OPA( code ) | 0x04 , imm );
+			{
+#if TARGET_PLATFORM_64BITS
+				if constexpr (Size == 8)
+				{
+					// For 64-bit RAX operations, emit REX.W prefix first
+					encodeREXPrefix(1, 0, 0, 0);
+					_this()->emitByte(INT_INIST_OPA(code) | 0x04 | 0x01);
+					encodeImmediateForce<4>(imm);
+				}
+				else
+#endif
+				{
+					encodeAccumInist< Size >( INT_INIST_OPA( code ) | 0x04 , imm );
+				}
+			}
 			else
 				encodeIntInistSW< Size >( code , reg , imm );
 		}
@@ -722,7 +891,7 @@ namespace Asmeta
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void encodeIntInistSW( uint8 op , Immediate< ImmSize > const& imm )
 		{
-			uint8 s = Size > imm.size() ? 1 : 0 ;
+			uint8 s = ( Size > 1 && imm.size() == 1 ) ? 1 : 0 ;
 			encodeIntInistW< Size >( op | ( s << 1 ) );
 		}
 
@@ -753,8 +922,33 @@ namespace Asmeta
 		template< int Size , class RMType >
 		ASMETA_INLINE void encodeIntInistWRM( uint8 op , RMType const& rm , uint8 reg )
 		{
-			encodeIntInistW< Size >( op );
-			encodeModRM( rm , reg );
+#if TARGET_PLATFORM_64BITS
+			if constexpr (Size == 8)
+			{
+				// For 64-bit operations, emit REX.W prefix
+				// We need to check if we're dealing with register or memory operand
+				if constexpr (std::is_same_v<RMType, RegX86<8>>)
+				{
+					encodeREXPrefixReg<Size>((Reg::Code)reg, rm.code());
+				}
+				else if constexpr (std::is_same_v<RMType, RegPtr64>)
+				{
+					encodeREXPrefixMem<Size>((Reg::Code)reg, rm);
+				}
+				else
+				{
+					// Default: just emit REX.W
+					encodeREXPrefix(1, Reg::isExtended((Reg::Code)reg) ? 1 : 0, 0, 0);
+				}
+				_this()->emitByte(op | 0x01);
+				encodeModRM(rm, reg);
+			}
+			else
+#endif
+			{
+				encodeIntInistW< Size >( op );
+				encodeModRM( rm , reg );
+			}
 		}
 
 		template< int Size , class RMType >
@@ -793,9 +987,40 @@ namespace Asmeta
 		ASMETA_INLINE void encodeIntInistSW( IntInstCode code , RMType const& rm , Immediate< ImmSize > const& imm  )
 		{
 			static_assert( Size >= ImmSize );
-			encodeIntInistSW< Size >( INT_INIST_OPB( code ) , imm );
-			encodeModRM( rm , INT_INIST_OPR( code ) );
-			encodeImmediateNotForce( imm );
+#if TARGET_PLATFORM_64BITS
+			if constexpr (Size == 8)
+			{
+				// For 64-bit operations, emit REX.W prefix
+				if constexpr (std::is_same_v<RMType, RegX86<8>>)
+				{
+					uint8 b = Reg::isExtended(rm.code()) ? 1 : 0;
+					encodeREXPrefix(1, 0, 0, b);
+				}
+				else if constexpr (std::is_same_v<RMType, RegPtr64>)
+				{
+					encodeREXPrefixMem<Size>(INT_INIST_OPR(code), rm);
+				}
+				else
+				{
+					encodeREXPrefix(1, 0, 0, 0);
+				}
+				// Use imm32 sign-extended for 64-bit operations (opcode 0x81)
+				// s bit = 0 for imm32
+				uint8 s = (imm.size() == 1) ? 1 : 0;
+				_this()->emitByte(INT_INIST_OPB(code) | (s << 1) | 0x01);
+				encodeModRM(rm, INT_INIST_OPR(code));
+				if (s)
+					encodeImmediateForce<1>(imm);
+				else
+					encodeImmediateForce<4>(imm);
+			}
+			else
+#endif
+			{
+				encodeIntInistSW< Size >( INT_INIST_OPB( code ) , imm );
+				encodeModRM( rm , INT_INIST_OPR( code ) );
+				encodeImmediateNotForce( imm );
+			}
 		}
 
 		template< int Size , class RMType , int ImmSize >
@@ -858,11 +1083,96 @@ namespace Asmeta
 			encodeImmediateForce< Size >( imm );
 		}
 
-#if TARGET_PLATFORM_64BITS	
+#if TARGET_PLATFORM_64BITS
+		// Emit REX prefix byte: 0100WRXB
+		// W = 1 for 64-bit operand size
+		// R = extension of ModR/M reg field (bit 3 of register)
+		// X = extension of SIB index field
+		// B = extension of ModR/M r/m field or SIB base field
 		void encodeREXPrefix(uint8 w, uint8 r, uint8 x, uint8 b)
 		{
-			// 0100WRXB
 			_this()->emitByte( ( 0x4 << 4 ) | ( w << 3 ) | ( r << 2 ) | ( x << 1 ) | b );
+		}
+
+		// Emit REX prefix for register-to-register operations
+		template< int Size >
+		ASMETA_INLINE void encodeREXPrefixReg(Reg::Code reg, Reg::Code rm)
+		{
+			if constexpr (Size == 8)
+			{
+				uint8 r = Reg::isExtended(reg) ? 1 : 0;
+				uint8 b = Reg::isExtended(rm) ? 1 : 0;
+				encodeREXPrefix(1, r, 0, b); // W=1 for 64-bit
+			}
+			else
+			{
+				// For smaller sizes, only emit REX if extended registers are used
+				uint8 r = Reg::isExtended(reg) ? 1 : 0;
+				uint8 b = Reg::isExtended(rm) ? 1 : 0;
+				if (r || b)
+					encodeREXPrefix(0, r, 0, b);
+			}
+		}
+
+		// Emit REX prefix for memory operations with RegPtr64
+		template< int Size >
+		ASMETA_INLINE void encodeREXPrefixMem(Reg::Code reg, RegPtr64 const& mem)
+		{
+			uint8 r = Reg::isExtended(reg) ? 1 : 0;
+			if constexpr (Size == 8)
+			{
+				encodeREXPrefix(1, r, mem.mREX_X, mem.mREX_B);
+			}
+			else
+			{
+				if (r || mem.mREX_X || mem.mREX_B)
+					encodeREXPrefix(0, r, mem.mREX_X, mem.mREX_B);
+			}
+		}
+
+		// Emit REX prefix for single register operations (like push, pop)
+		template< int Size >
+		ASMETA_INLINE void encodeREXPrefixSingle(Reg::Code code)
+		{
+			if constexpr (Size == 8)
+			{
+				uint8 b = Reg::isExtended(code) ? 1 : 0;
+				encodeREXPrefix(1, 0, 0, b);
+			}
+			else
+			{
+				uint8 b = Reg::isExtended(code) ? 1 : 0;
+				if (b)
+					encodeREXPrefix(0, 0, 0, b);
+			}
+		}
+
+		// 64-bit integer instruction encoding with REX prefix
+		template< int Size, class RMType >
+		ASMETA_INLINE void encodeIntInist64(IntInstCode code, RMType const& rm, Reg::Code reg)
+		{
+			static_assert(Size == 8, "This function is for 64-bit operations");
+			encodeREXPrefixReg<Size>(reg, rm.code());
+			_this()->emitByte(INT_INIST_OPA(code) | 0x01); // W bit in opcode
+			encodeModRM(rm, reg);
+		}
+
+		template< int Size >
+		ASMETA_INLINE void encodeIntInist64(IntInstCode code, RegPtr64 const& rm, Reg::Code reg)
+		{
+			static_assert(Size == 8, "This function is for 64-bit operations");
+			encodeREXPrefixMem<Size>(reg, rm);
+			_this()->emitByte(INT_INIST_OPA(code) | 0x01);
+			encodeModRM(rm, reg);
+		}
+
+		template< int Size >
+		ASMETA_INLINE void encodeIntInist64R(IntInstCode code, RegPtr64 const& rm, Reg::Code reg)
+		{
+			static_assert(Size == 8, "This function is for 64-bit operations");
+			encodeREXPrefixMem<Size>(reg, rm);
+			_this()->emitByte(INT_INIST_OPA(code) | 0x03); // W bit + direction
+			encodeModRM(rm, reg);
 		}
 #endif
 	public:
@@ -1018,6 +1328,626 @@ namespace Asmeta
 				uint8( 0xe0 | op ) );
 		}
 
+		//=============================================================================
+		// SSE Instructions
+		//=============================================================================
+	public:
+		// SSE prefix bytes
+		static constexpr uint8 SSE_PREFIX_NONE = 0x00;   // Packed single (PS)
+		static constexpr uint8 SSE_PREFIX_66 = 0x66;     // Packed double (PD)
+		static constexpr uint8 SSE_PREFIX_F3 = 0xF3;     // Scalar single (SS)
+		static constexpr uint8 SSE_PREFIX_F2 = 0xF2;     // Scalar double (SD)
+
+		//-----------------------------------------------------------------------------
+		// MOVSS - Move Scalar Single-Precision Floating-Point Values
+		//-----------------------------------------------------------------------------
+		// movss xmm1, xmm2
+		ASMETA_INLINE void movss(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_F3, 0x0F, 0x10, dst, src);
+		}
+		// movss xmm, m32
+		template< class Ref >
+		ASMETA_INLINE void movss(RegXMM const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F3, 0x0F, 0x10, dst, src);
+		}
+		// movss m32, xmm
+		template< class Ref >
+		ASMETA_INLINE void movss(RefMem< Ref, 4 > const& dst, RegXMM const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F3, 0x0F, 0x11, src, dst);
+		}
+
+		//-----------------------------------------------------------------------------
+		// MOVSD - Move Scalar Double-Precision Floating-Point Values
+		//-----------------------------------------------------------------------------
+		// movsd xmm1, xmm2
+		ASMETA_INLINE void movsd(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_F2, 0x0F, 0x10, dst, src);
+		}
+		// movsd xmm, m64
+		template< class Ref >
+		ASMETA_INLINE void movsd(RegXMM const& dst, RefMem< Ref, 8 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F2, 0x0F, 0x10, dst, src);
+		}
+		// movsd m64, xmm
+		template< class Ref >
+		ASMETA_INLINE void movsd(RefMem< Ref, 8 > const& dst, RegXMM const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F2, 0x0F, 0x11, src, dst);
+		}
+
+		//-----------------------------------------------------------------------------
+		// MOVAPS/MOVUPS - Move Aligned/Unaligned Packed Single-Precision
+		//-----------------------------------------------------------------------------
+		ASMETA_INLINE void movaps(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_NONE, 0x0F, 0x28, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movaps(RegXMM const& dst, RefMem< Ref, 16 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_NONE, 0x0F, 0x28, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movaps(RefMem< Ref, 16 > const& dst, RegXMM const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_NONE, 0x0F, 0x29, src, dst);
+		}
+
+		ASMETA_INLINE void movups(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_NONE, 0x0F, 0x10, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movups(RegXMM const& dst, RefMem< Ref, 16 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_NONE, 0x0F, 0x10, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movups(RefMem< Ref, 16 > const& dst, RegXMM const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_NONE, 0x0F, 0x11, src, dst);
+		}
+
+		//-----------------------------------------------------------------------------
+		// SHUFPS - Shuffle Packed Single-Precision Floating-Point Values
+		//-----------------------------------------------------------------------------
+		ASMETA_INLINE void shufps(RegXMM const& dst, RegXMM const& src, uint8 imm8)
+		{
+			encodeSSEImm(SSE_PREFIX_NONE, 0x0F, 0xC6, dst, src, imm8);
+		}
+		template< class Ref >
+		ASMETA_INLINE void shufps(RegXMM const& dst, RefMem< Ref, 16 > const& src, uint8 imm8)
+		{
+			encodeSSEImmMem(SSE_PREFIX_NONE, 0x0F, 0xC6, dst, src, imm8);
+		}
+
+		//-----------------------------------------------------------------------------
+		// INSERTPS - Insert Scalar Single-Precision Floating-Point Value
+		//-----------------------------------------------------------------------------
+		ASMETA_INLINE void insertps(RegXMM const& dst, RegXMM const& src, uint8 imm8)
+		{
+			encodeSSEImm(SSE_PREFIX_66, 0x0F, 0x3A, 0x21, dst, src, imm8);
+		}
+		template< class Ref >
+		ASMETA_INLINE void insertps(RegXMM const& dst, RefMem< Ref, 4 > const& src, uint8 imm8)
+		{
+			encodeSSEImmMem(SSE_PREFIX_66, 0x0F, 0x3A, 0x21, dst, src, imm8);
+		}
+
+		//-----------------------------------------------------------------------------
+		// MOVAPD/MOVUPD - Move Aligned/Unaligned Packed Double-Precision
+		//-----------------------------------------------------------------------------
+		ASMETA_INLINE void movapd(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_66, 0x0F, 0x28, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movapd(RegXMM const& dst, RefMem< Ref, 16 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_66, 0x0F, 0x28, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movapd(RefMem< Ref, 16 > const& dst, RegXMM const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_66, 0x0F, 0x29, src, dst);
+		}
+
+		ASMETA_INLINE void movupd(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_66, 0x0F, 0x10, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movupd(RegXMM const& dst, RefMem< Ref, 16 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_66, 0x0F, 0x10, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void movupd(RefMem< Ref, 16 > const& dst, RegXMM const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_66, 0x0F, 0x11, src, dst);
+		}
+
+		//-----------------------------------------------------------------------------
+		// SSE Arithmetic - Scalar Single (SS)
+		//-----------------------------------------------------------------------------
+#define DEF_SSE_ARITH_SS(NAME, OPCODE) \
+		ASMETA_INLINE void NAME(RegXMM const& dst, RegXMM const& src) { encodeSSE(SSE_PREFIX_F3, 0x0F, OPCODE, dst, src); } \
+		template< class Ref > ASMETA_INLINE void NAME(RegXMM const& dst, RefMem< Ref, 4 > const& src) { encodeSSEMem(SSE_PREFIX_F3, 0x0F, OPCODE, dst, src); }
+
+		DEF_SSE_ARITH_SS(addss, 0x58)
+		DEF_SSE_ARITH_SS(subss, 0x5C)
+		DEF_SSE_ARITH_SS(mulss, 0x59)
+		DEF_SSE_ARITH_SS(divss, 0x5E)
+		DEF_SSE_ARITH_SS(minss, 0x5D)
+		DEF_SSE_ARITH_SS(maxss, 0x5F)
+		DEF_SSE_ARITH_SS(sqrtss, 0x51)
+		DEF_SSE_ARITH_SS(rcpss, 0x53)
+		DEF_SSE_ARITH_SS(rsqrtss, 0x52)
+
+#undef DEF_SSE_ARITH_SS
+
+
+		//-----------------------------------------------------------------------------
+		// SSE Arithmetic - Scalar Double (SD)
+		//-----------------------------------------------------------------------------
+#define DEF_SSE_ARITH_SD(NAME, OPCODE) \
+		ASMETA_INLINE void NAME(RegXMM const& dst, RegXMM const& src) { encodeSSE(SSE_PREFIX_F2, 0x0F, OPCODE, dst, src); } \
+		template< class Ref > ASMETA_INLINE void NAME(RegXMM const& dst, RefMem< Ref, 8 > const& src) { encodeSSEMem(SSE_PREFIX_F2, 0x0F, OPCODE, dst, src); }
+
+		DEF_SSE_ARITH_SD(addsd, 0x58)
+		DEF_SSE_ARITH_SD(subsd, 0x5C)
+		DEF_SSE_ARITH_SD(mulsd, 0x59)
+		DEF_SSE_ARITH_SD(divsd, 0x5E)
+		DEF_SSE_ARITH_SD(minsd, 0x5D)
+		DEF_SSE_ARITH_SD(maxsd, 0x5F)
+		DEF_SSE_ARITH_SD(sqrtsd, 0x51)
+
+#undef DEF_SSE_ARITH_SD
+
+		//-----------------------------------------------------------------------------
+		// SSE Arithmetic - Packed Single (PS)
+		//-----------------------------------------------------------------------------
+#define DEF_SSE_ARITH_PS(NAME, OPCODE) \
+		ASMETA_INLINE void NAME(RegXMM const& dst, RegXMM const& src) { encodeSSE(SSE_PREFIX_NONE, 0x0F, OPCODE, dst, src); } \
+		template< class Ref > ASMETA_INLINE void NAME(RegXMM const& dst, RefMem< Ref, 16 > const& src) { encodeSSEMem(SSE_PREFIX_NONE, 0x0F, OPCODE, dst, src); }
+
+		DEF_SSE_ARITH_PS(addps, 0x58)
+		DEF_SSE_ARITH_PS(subps, 0x5C)
+		DEF_SSE_ARITH_PS(mulps, 0x59)
+		DEF_SSE_ARITH_PS(divps, 0x5E)
+		DEF_SSE_ARITH_PS(minps, 0x5D)
+		DEF_SSE_ARITH_PS(maxps, 0x5F)
+		DEF_SSE_ARITH_PS(xorps, 0x57)
+		DEF_SSE_ARITH_PS(andps, 0x54)
+		DEF_SSE_ARITH_PS(andnps, 0x55)
+		DEF_SSE_ARITH_PS(orps, 0x56)
+		DEF_SSE_ARITH_PS(sqrtps, 0x51)
+		DEF_SSE_ARITH_PS(rcpps, 0x53)
+		DEF_SSE_ARITH_PS(rsqrtps, 0x52)
+
+#undef DEF_SSE_ARITH_PS
+
+		//-----------------------------------------------------------------------------
+		// SSE Arithmetic - Packed Double (PD)
+		//-----------------------------------------------------------------------------
+#define DEF_SSE_ARITH_PD(NAME, OPCODE) \
+		ASMETA_INLINE void NAME(RegXMM const& dst, RegXMM const& src) { encodeSSE(SSE_PREFIX_66, 0x0F, OPCODE, dst, src); } \
+		template< class Ref > ASMETA_INLINE void NAME(RegXMM const& dst, RefMem< Ref, 16 > const& src) { encodeSSEMem(SSE_PREFIX_66, 0x0F, OPCODE, dst, src); }
+
+		DEF_SSE_ARITH_PD(addpd, 0x58)
+		DEF_SSE_ARITH_PD(subpd, 0x5C)
+		DEF_SSE_ARITH_PD(mulpd, 0x59)
+		DEF_SSE_ARITH_PD(divpd, 0x5E)
+		DEF_SSE_ARITH_PD(minpd, 0x5D)
+		DEF_SSE_ARITH_PD(maxpd, 0x5F)
+		DEF_SSE_ARITH_PD(xorpd, 0x57)
+		DEF_SSE_ARITH_PD(andpd, 0x54)
+		DEF_SSE_ARITH_PD(andnpd, 0x55)
+		DEF_SSE_ARITH_PD(orpd, 0x56)
+		DEF_SSE_ARITH_PD(sqrtpd, 0x51)
+
+#undef DEF_SSE_ARITH_PD
+
+		//-----------------------------------------------------------------------------
+		// SSE Comparison - COMISS/COMISD (set EFLAGS)
+		//-----------------------------------------------------------------------------
+		ASMETA_INLINE void comiss(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_NONE, 0x0F, 0x2F, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void comiss(RegXMM const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_NONE, 0x0F, 0x2F, dst, src);
+		}
+
+		ASMETA_INLINE void comisd(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_66, 0x0F, 0x2F, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void comisd(RegXMM const& dst, RefMem< Ref, 8 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_66, 0x0F, 0x2F, dst, src);
+		}
+
+		ASMETA_INLINE void ucomiss(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_NONE, 0x0F, 0x2E, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void ucomiss(RegXMM const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_NONE, 0x0F, 0x2E, dst, src);
+		}
+
+		ASMETA_INLINE void ucomisd(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_66, 0x0F, 0x2E, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void ucomisd(RegXMM const& dst, RefMem< Ref, 8 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_66, 0x0F, 0x2E, dst, src);
+		}
+
+		//-----------------------------------------------------------------------------
+		// SSE Conversion - Float <-> Double
+		//-----------------------------------------------------------------------------
+		// cvtss2sd xmm, xmm/m32 - Convert Scalar Single to Scalar Double
+		ASMETA_INLINE void cvtss2sd(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_F3, 0x0F, 0x5A, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvtss2sd(RegXMM const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F3, 0x0F, 0x5A, dst, src);
+		}
+
+		// cvtsd2ss xmm, xmm/m64 - Convert Scalar Double to Scalar Single
+		ASMETA_INLINE void cvtsd2ss(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_F2, 0x0F, 0x5A, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvtsd2ss(RegXMM const& dst, RefMem< Ref, 8 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F2, 0x0F, 0x5A, dst, src);
+		}
+
+		//-----------------------------------------------------------------------------
+		// SSE Conversion - Integer <-> Float
+		//-----------------------------------------------------------------------------
+		// cvtsi2ss xmm, r32/m32 - Convert Signed Integer to Scalar Single
+		ASMETA_INLINE void cvtsi2ss(RegXMM const& dst, Reg32 const& src)
+		{
+			encodeSSEToGP(SSE_PREFIX_F3, 0x0F, 0x2A, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvtsi2ss(RegXMM const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F3, 0x0F, 0x2A, dst, src);
+		}
+
+		// cvtsi2sd xmm, r32/m32 - Convert Signed Integer to Scalar Double
+		ASMETA_INLINE void cvtsi2sd(RegXMM const& dst, Reg32 const& src)
+		{
+			encodeSSEToGP(SSE_PREFIX_F2, 0x0F, 0x2A, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvtsi2sd(RegXMM const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEMem(SSE_PREFIX_F2, 0x0F, 0x2A, dst, src);
+		}
+
+#if TARGET_PLATFORM_64BITS
+		// cvtsi2ss xmm, r64/m64 - Convert Signed Integer (64-bit) to Scalar Single
+		ASMETA_INLINE void cvtsi2ss(RegXMM const& dst, Reg64 const& src)
+		{
+			encodeSSEToGP64(SSE_PREFIX_F3, 0x0F, 0x2A, dst, src);
+		}
+
+		// cvtsi2sd xmm, r64/m64 - Convert Signed Integer (64-bit) to Scalar Double
+		ASMETA_INLINE void cvtsi2sd(RegXMM const& dst, Reg64 const& src)
+		{
+			encodeSSEToGP64(SSE_PREFIX_F2, 0x0F, 0x2A, dst, src);
+		}
+#endif
+
+		// cvtss2si r32, xmm/m32 - Convert Scalar Single to Signed Integer (rounded)
+		ASMETA_INLINE void cvtss2si(Reg32 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP(SSE_PREFIX_F3, 0x0F, 0x2D, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvtss2si(Reg32 const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEFromGPMem(SSE_PREFIX_F3, 0x0F, 0x2D, dst, src);
+		}
+
+		// cvtsd2si r32, xmm/m64 - Convert Scalar Double to Signed Integer (rounded)
+		ASMETA_INLINE void cvtsd2si(Reg32 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP(SSE_PREFIX_F2, 0x0F, 0x2D, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvtsd2si(Reg32 const& dst, RefMem< Ref, 8 > const& src)
+		{
+			encodeSSEFromGPMem(SSE_PREFIX_F2, 0x0F, 0x2D, dst, src);
+		}
+
+#if TARGET_PLATFORM_64BITS
+		// cvtss2si r64, xmm/m32 - Convert Scalar Single to Signed Integer 64-bit (rounded)
+		ASMETA_INLINE void cvtss2si(Reg64 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP64(SSE_PREFIX_F3, 0x0F, 0x2D, dst, src);
+		}
+
+		// cvtsd2si r64, xmm/m64 - Convert Scalar Double to Signed Integer 64-bit (rounded)
+		ASMETA_INLINE void cvtsd2si(Reg64 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP64(SSE_PREFIX_F2, 0x0F, 0x2D, dst, src);
+		}
+#endif
+
+		// cvttss2si r32, xmm/m32 - Convert with Truncation Scalar Single to SI
+		ASMETA_INLINE void cvttss2si(Reg32 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP(SSE_PREFIX_F3, 0x0F, 0x2C, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvttss2si(Reg32 const& dst, RefMem< Ref, 4 > const& src)
+		{
+			encodeSSEFromGPMem(SSE_PREFIX_F3, 0x0F, 0x2C, dst, src);
+		}
+
+		// cvttsd2si r32, xmm/m64 - Convert with Truncation Scalar Double to SI
+		ASMETA_INLINE void cvttsd2si(Reg32 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP(SSE_PREFIX_F2, 0x0F, 0x2C, dst, src);
+		}
+		template< class Ref >
+		ASMETA_INLINE void cvttsd2si(Reg32 const& dst, RefMem< Ref, 8 > const& src)
+		{
+			encodeSSEFromGPMem(SSE_PREFIX_F2, 0x0F, 0x2C, dst, src);
+		}
+
+#if TARGET_PLATFORM_64BITS
+		// cvttss2si r64, xmm/m32 - Convert with Truncation Scalar Single to SI64
+		ASMETA_INLINE void cvttss2si(Reg64 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP64(SSE_PREFIX_F3, 0x0F, 0x2C, dst, src);
+		}
+
+		// cvttsd2si r64, xmm/m64 - Convert with Truncation Scalar Double to SI64
+		ASMETA_INLINE void cvttsd2si(Reg64 const& dst, RegXMM const& src)
+		{
+			encodeSSEFromGP64(SSE_PREFIX_F2, 0x0F, 0x2C, dst, src);
+		}
+#endif
+
+
+
+		//-----------------------------------------------------------------------------
+		// PXOR - Packed XOR (useful for zeroing XMM registers)
+		//-----------------------------------------------------------------------------
+		ASMETA_INLINE void pxor(RegXMM const& dst, RegXMM const& src)
+		{
+			encodeSSE(SSE_PREFIX_66, 0x0F, 0xEF, dst, src);
+		}
+
+	protected:
+		//-----------------------------------------------------------------------------
+		// SSE Encoding Helpers
+		//-----------------------------------------------------------------------------
+		
+		// Encode SSE instruction: xmm, xmm
+		ASMETA_INLINE void encodeSSE(uint8 prefix, uint8 escape, uint8 opcode, RegXMM const& dst, RegXMM const& src)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+			
+#if TARGET_PLATFORM_64BITS
+			// Emit REX if needed for extended XMM registers (xmm8-xmm15)
+			if (dst.isExtended() || src.isExtended())
+			{
+				uint8 r = dst.isExtended() ? 1 : 0;
+				uint8 b = src.isExtended() ? 1 : 0;
+				encodeREXPrefix(0, r, 0, b);
+			}
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			_this()->emitByte(MOD_RM_BYTE(MOD_R, dst.lowBits(), src.lowBits()));
+		}
+
+		// Encode SSE instruction: xmm, m
+		template< class Ref, int Size >
+		ASMETA_INLINE void encodeSSEMem(uint8 prefix, uint8 escape, uint8 opcode, RegXMM const& xmm, RefMem< Ref, Size > const& mem)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+
+#if TARGET_PLATFORM_64BITS
+			if constexpr (std::is_same_v<Ref, RegPtr64>)
+			{
+				uint8 r = xmm.isExtended() ? 1 : 0;
+				// Directly emit REX prefix with correct R bit for extended XMM registers
+				// Cannot use encodeREXPrefixMem here because it expects a register code,
+				// not a pre-computed R flag value
+				if (r || mem.reference().mREX_X || mem.reference().mREX_B)
+					encodeREXPrefix(0, r, mem.reference().mREX_X, mem.reference().mREX_B);
+			}
+			else if (xmm.isExtended())
+			{
+				encodeREXPrefix(0, 1, 0, 0);
+			}
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			encodeModRM(mem.reference(), xmm.lowBits());
+		}
+
+		// Encode SSE instruction: xmm, r32 (for cvtsi2ss/cvtsi2sd)
+		ASMETA_INLINE void encodeSSEToGP(uint8 prefix, uint8 escape, uint8 opcode, RegXMM const& xmm, Reg32 const& gp)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+
+#if TARGET_PLATFORM_64BITS
+			if (xmm.isExtended() || Reg::isExtended(gp.code()))
+			{
+				uint8 r = xmm.isExtended() ? 1 : 0;
+				uint8 b = Reg::isExtended(gp.code()) ? 1 : 0;
+				encodeREXPrefix(0, r, 0, b);
+			}
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			_this()->emitByte(MOD_RM_BYTE(MOD_R, xmm.lowBits(), Reg::lowBits(gp.code())));
+		}
+
+#if TARGET_PLATFORM_64BITS
+		// Encode SSE instruction: xmm, r64 (for cvtsi2ss/cvtsi2sd with 64-bit integer)
+		ASMETA_INLINE void encodeSSEToGP64(uint8 prefix, uint8 escape, uint8 opcode, RegXMM const& xmm, Reg64 const& gp)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+
+			// REX.W is required for 64-bit operand
+			uint8 r = xmm.isExtended() ? 1 : 0;
+			uint8 b = Reg::isExtended(gp.code()) ? 1 : 0;
+			encodeREXPrefix(1, r, 0, b);
+
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			_this()->emitByte(MOD_RM_BYTE(MOD_R, xmm.lowBits(), Reg::lowBits(gp.code())));
+		}
+#endif
+
+		// Encode SSE instruction: r32, xmm (for cvtss2si/cvtsd2si)
+		ASMETA_INLINE void encodeSSEFromGP(uint8 prefix, uint8 escape, uint8 opcode, Reg32 const& gp, RegXMM const& xmm)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+
+#if TARGET_PLATFORM_64BITS
+			if (Reg::isExtended(gp.code()) || xmm.isExtended())
+			{
+				uint8 r = Reg::isExtended(gp.code()) ? 1 : 0;
+				uint8 b = xmm.isExtended() ? 1 : 0;
+				encodeREXPrefix(0, r, 0, b);
+			}
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			_this()->emitByte(MOD_RM_BYTE(MOD_R, Reg::lowBits(gp.code()), xmm.lowBits()));
+		}
+
+		// Encode SSE instruction: r32, m (for cvtss2si/cvtsd2si with memory)
+		template< class Ref, int Size >
+		ASMETA_INLINE void encodeSSEFromGPMem(uint8 prefix, uint8 escape, uint8 opcode, Reg32 const& gp, RefMem< Ref, Size > const& mem)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+
+#if TARGET_PLATFORM_64BITS
+			if (Reg::isExtended(gp.code()))
+			{
+				encodeREXPrefix(0, 1, 0, 0);
+			}
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			encodeModRM(mem.reference(), Reg::lowBits(gp.code()));
+		}
+
+#if TARGET_PLATFORM_64BITS
+		// Encode SSE instruction with immediate: xmm, xmm, imm8
+		ASMETA_INLINE void encodeSSEImm(uint8 prefix, uint8 escape, uint8 opcode, RegXMM const& dst, RegXMM const& src, uint8 imm8)
+		{
+			encodeSSE(prefix, escape, opcode, dst, src);
+			_this()->emitByte(imm8);
+		}
+
+		// Encode SSE instruction with immediate: xmm, xmm, subopcode, imm8
+		ASMETA_INLINE void encodeSSEImm(uint8 prefix, uint8 escape, uint8 escape2, uint8 opcode, RegXMM const& dst, RegXMM const& src, uint8 imm8)
+		{
+			if (prefix != SSE_PREFIX_NONE) _this()->emitByte(prefix);
+#if TARGET_PLATFORM_64BITS
+			if (dst.isExtended() || src.isExtended())
+				encodeREXPrefix(0, dst.isExtended(), 0, src.isExtended());
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(escape2);
+			_this()->emitByte(opcode);
+			_this()->emitByte(MOD_RM_BYTE(MOD_R, dst.lowBits(), src.lowBits()));
+			_this()->emitByte(imm8);
+		}
+
+		// Encode SSE instruction with immediate: xmm, m, imm8
+		template< class Ref, int Size >
+		ASMETA_INLINE void encodeSSEImmMem(uint8 prefix, uint8 escape, uint8 opcode, RegXMM const& xmm, RefMem< Ref, Size > const& mem, uint8 imm8)
+		{
+			encodeSSEMem(prefix, escape, opcode, xmm, mem);
+			_this()->emitByte(imm8);
+		}
+
+		// Encode SSE instruction with immediate: xmm, m, subopcode, imm8
+		template< class Ref, int Size >
+		ASMETA_INLINE void encodeSSEImmMem(uint8 prefix, uint8 escape, uint8 escape2, uint8 opcode, RegXMM const& xmm, RefMem< Ref, Size > const& mem, uint8 imm8)
+		{
+			if (prefix != SSE_PREFIX_NONE) _this()->emitByte(prefix);
+#if TARGET_PLATFORM_64BITS
+			encodeSSEMemREX(xmm, mem);
+#endif
+			_this()->emitByte(escape);
+			_this()->emitByte(escape2);
+			_this()->emitByte(opcode);
+			encodeModRM(mem.reference(), xmm.lowBits());
+			_this()->emitByte(imm8);
+		}
+
+	private:
+#if TARGET_PLATFORM_64BITS
+		template< class Ref, int Size >
+		ASMETA_INLINE void encodeSSEMemREX(RegXMM const& xmm, RefMem< Ref, Size > const& mem)
+		{
+			if constexpr (std::is_same_v<Ref, RegPtr64>)
+			{
+				uint8 r = xmm.isExtended() ? 1 : 0;
+				if (r || mem.reference().mREX_X || mem.reference().mREX_B)
+					encodeREXPrefix(0, r, mem.reference().mREX_X, mem.reference().mREX_B);
+			}
+			else if (xmm.isExtended())
+			{
+				encodeREXPrefix(0, 1, 0, 0);
+			}
+		}
+#endif
+	public:
+		ASMETA_INLINE void encodeSSEFromGP64(uint8 prefix, uint8 escape, uint8 opcode, Reg64 const& gp, RegXMM const& xmm)
+		{
+			if (prefix != SSE_PREFIX_NONE)
+				_this()->emitByte(prefix);
+
+			// REX.W is required for 64-bit operand
+			uint8 r = Reg::isExtended(gp.code()) ? 1 : 0;
+			uint8 b = xmm.isExtended() ? 1 : 0;
+			encodeREXPrefix(1, r, 0, b);
+
+			_this()->emitByte(escape);
+			_this()->emitByte(opcode);
+			_this()->emitByte(MOD_RM_BYTE(MOD_R, Reg::lowBits(gp.code()), xmm.lowBits()));
+		}
+#endif
+
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void encodeImmediate( Immediate< ImmSize > const& imm , bool forceSize )
 		{
@@ -1039,6 +1969,9 @@ namespace Asmeta
 			case 1: _this()->emitByte( imm.value() ); break;
 			case 2: _this()->emitWord( imm.value() ); break;
 			case 4: _this()->emitDWord( imm.value() ); break;
+#if TARGET_PLATFORM_64BITS
+			case 8: _this()->emitQWord( imm.value() ); break;
+#endif
 			}
 		}
 
@@ -1068,6 +2001,12 @@ namespace Asmeta
 			{
 				_this()->emitDWord(value);
 			}
+#if TARGET_PLATFORM_64BITS
+			else if constexpr (Size == 8)
+			{
+				_this()->emitQWord(value);
+			}
+#endif
 		}
 
 		template< class Ref , int Size >
@@ -1079,13 +2018,30 @@ namespace Asmeta
 		ASMETA_INLINE void encodeModRM( Label* label , uint8 reg )
 		{
 			_this()->emitByte( MOD_RM_BYTE(  MOD_M , reg , RM_M_DISP ) );
+#if TARGET_PLATFORM_64BITS
+			// x64 uses RIP-relative addressing (Mod=00, R/M=101), which takes a 32-bit displacement
+			addLabelLink( label , Label::eLinkRel , 4 );
+			_this()->emitDWord( 0xdededede );
+#else
+			// x86 uses absolute addressing
 			addLabelLink( label , Label::eLinkAbs , sizeof( SysInt ) );
 			_this()->emitPtr( (void*)0xdededede );
+#endif
 		}
 
 		ASMETA_INLINE void encodeModRM( LabelPtr const& refPtr , uint8 reg )
 		{
-			encodeModRM( refPtr.mLabel, reg );
+			_this()->emitByte( MOD_RM_BYTE(  MOD_M , reg , RM_M_DISP ) );
+#if TARGET_PLATFORM_64BITS
+			// x64 uses RIP-relative addressing (Mod=00, R/M=101), which takes a 32-bit displacement
+			// Pass the label offset as dispOffset so it gets added during relocation
+			addLabelLink( refPtr.mLabel , Label::eLinkRel , 4 , refPtr.mOffset );
+			_this()->emitDWord( 0xdededede );
+#else
+			// x86 uses absolute addressing
+			addLabelLink( refPtr.mLabel , Label::eLinkAbs , sizeof( SysInt ) , refPtr.mOffset );
+			_this()->emitPtr( (void*)0xdededede );
+#endif
 		}
 
 		ASMETA_INLINE void encodeModRM( Address const& refPtr , uint8  reg )
@@ -1122,8 +2078,30 @@ namespace Asmeta
 #if TARGET_PLATFORM_64BITS
 		ASMETA_INLINE void encodeModRM(RegX86< 8 > const& r, uint8 reg)
 		{
-			assert((r.code() & 0x7) == r.code());
-			_this()->emitByte( MOD_RM_BYTE(MOD_R, reg & 0x7 , r.code()) );
+			// For 64-bit registers, we use low 3 bits for ModR/M
+			// REX prefix should be emitted before the opcode, not here
+			_this()->emitByte( MOD_RM_BYTE(MOD_R, Reg::lowBits((Reg::Code)reg), Reg::lowBits(r.code())) );
+		}
+
+		// ModR/M encoding for 64-bit memory addressing (RegPtr64)
+		ASMETA_INLINE void encodeModRM(RegPtr64 const& refPtr, uint8 reg)
+		{
+			_this()->emitByte( uint8( refPtr.mModByte | ( Reg::lowBits((Reg::Code)reg) << 3 ) ) );
+
+			uint8 mod = refPtr.mModByte >> 6;
+			assert( mod != MOD_R );
+			if ( ( refPtr.mModByte & 0x7 ) == RM_MD_SIB )
+				_this()->emitByte( refPtr.mSIBByte );
+
+			switch( mod )
+			{
+			case MOD_DISP8: 
+				_this()->emitByte( uint8( refPtr.mDisp ) );
+				break;
+			case MOD_DISP32: 
+				_this()->emitDWord( uint32(refPtr.mDisp) ); 
+				break;
+			}
 		}
 #endif
 
@@ -1187,6 +2165,31 @@ namespace Asmeta
 			mLabelList.clear();
 		}
 
+		void adjustLabelLinks( SysInt startOffset, SysInt delta )
+		{
+			for( LabelList::iterator iter = mLabelList.begin();
+				 iter != mLabelList.end() ; ++iter )
+			{
+				Label* label = *iter;
+				
+				// Adjust bound label offsets
+				if ( label->mState == Label::eBound )
+				{
+					if ( label->mOffset >= (SysUint)startOffset )
+						label->mOffset += delta;
+				}
+
+				// Adjust link offsets
+				for( auto link = label->getLink(); link; link = link->next )
+				{
+					if ( link->offset >= startOffset )
+					{
+						link->offset += delta;
+					}
+				}
+			}
+		}
+
 	protected:
 
 
@@ -1237,7 +2240,12 @@ namespace Asmeta
 				disp += reinterpret_cast< SysInt >( baseAddr ) + link->dispOffset;
 				break;
 			case Label::eLinkRel:
-				assert( 0 );
+				// RIP-relative displacement
+				// disp = TargetAddress - ReturnAddress
+				// TargetAddress = label->mOffset
+				// ReturnAddress = link->offset + link->dispSize
+				disp = label->mOffset - ( link->offset + link->dispSize );
+				disp += link->dispOffset;
 				break;
 			}
 

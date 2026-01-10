@@ -7,7 +7,7 @@
 
 #include "LogSystem.h"
 #include "GpuProfiler.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 #pragma comment(lib , "DXGI.lib")
 

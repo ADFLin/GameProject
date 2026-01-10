@@ -82,13 +82,26 @@ namespace CB
 			Curve3DFunc* func = static_cast<Curve3DFunc*>(context.func);
 
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
-			for (int i = 0; i < paramS.numData; ++i)
+			auto& codeX = func->mCoordExpr[0].getEvalResource<ExecutableCode>();
+			auto& codeY = func->mCoordExpr[1].getEvalResource<ExecutableCode>();
+			auto& codeZ = func->mCoordExpr[2].getEvalResource<ExecutableCode>();
+
+			codeX.visit([&](auto& execX)
 			{
-				Vector3* pPos = (Vector3*)(posData);
-				func->evalExpr(*pPos, s);
-				s += ds;
-				posData += data->getVertexSize();
-			}
+				using ExecutorType = std::decay_t<decltype(execX)>;
+				auto execY = codeY.getExecutor<ExecutorType>();
+				auto execZ = codeZ.getExecutor<ExecutorType>();
+
+				for (int i = 0; i < paramS.numData; ++i)
+				{
+					Vector3* pPos = (Vector3*)(posData);
+					pPos->x = execX.template eval<RealType>(s);
+					pPos->y = execY.template eval<RealType>(s);
+					pPos->z = execZ.template eval<RealType>(s);
+					s += ds;
+					posData += data->getVertexSize();
+				}
+			});
 		}
 		if (flag & RUF_COLOR)
 		{
@@ -143,41 +156,103 @@ namespace CB
 			{
 				float const* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
 				int numBlock = Math::AlignCount(paramU.numData, FloatVector::Size);
-				for (int i = 0; i < numBlock; ++i)
-				{
-					FloatVector u{ pU , EAligned::Value };
 
-					FloatVector x;
-					FloatVector y;
-					FloatVector z;
-					func->evalExpr(u, FloatVector::Zero(), x, y, z);
-					for (int j = 0; j < paramV.numData; ++j)
+				if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
+				{
+					auto& codeX = func->mAixsExpr[0].getEvalResource<ExecutableCode>();
+					auto& codeY = func->mAixsExpr[1].getEvalResource<ExecutableCode>();
+					auto& codeZ = func->mAixsExpr[2].getEvalResource<ExecutableCode>();
+
+					codeX.visit([&](auto& execX) {
+						using ExecutorType = std::decay_t<decltype(execX)>;
+						auto execY = codeY.getExecutor<ExecutorType>();
+						auto execZ = codeZ.getExecutor<ExecutorType>();
+						for (int i = 0; i < numBlock; ++i)
+						{
+							FloatVector u{ pU , EAligned::Value };
+							FloatVector vx = execX.template eval<FloatVector>(u, FloatVector::Zero());
+							FloatVector vy = execY.template eval<FloatVector>(u, FloatVector::Zero());
+							FloatVector vz = execZ.template eval<FloatVector>(u, FloatVector::Zero());
+
+							for (int j = 0; j < paramV.numData; ++j)
+							{
+								int idx = paramU.numData * j + i * FloatVector::Size;
+								uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NY_OP(INDEX)\
+	*reinterpret_cast<Vector3*>(pPos) = Vector3(vx[INDEX], vy[INDEX], vz[INDEX]);\
+	pPos += vertexSize;
+								SIMD_ELEMENT_LIST(SET_POS_NY_OP);
+#undef  SET_POS_NY_OP
+							}
+							pU += FloatVector::Size;
+						}
+					});
+				}
+				else
+				{
+					for (int i = 0; i < numBlock; ++i)
 					{
-						int idx = paramU.numData * j + i * FloatVector::Size;
-						uint8* pPos = posData + idx * vertexSize;
+						FloatVector u{ pU , EAligned::Value };
+						FloatVector x, y, z;
+						func->evalExpr(u, FloatVector::Zero(), x, y, z);
+						for (int j = 0; j < paramV.numData; ++j)
+						{
+							int idx = paramU.numData * j + i * FloatVector::Size;
+							uint8* pPos = posData + idx * vertexSize;
 
 #define SET_POS_NY_OP(INDEX)\
 	*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], y[INDEX], z[INDEX]);\
 	pPos += vertexSize;
-						SIMD_ELEMENT_LIST(SET_POS_NY_OP);
+							SIMD_ELEMENT_LIST(SET_POS_NY_OP);
 #undef  SET_POS_NY_OP
+						}
+						pU += FloatVector::Size;
 					}
-					pU += FloatVector::Size;
 				}
 			}
 			else
 			{
-				for (int i = 0; i < paramU.numData; ++i)
+				if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
 				{
-					float u = paramU.getRangeMin() + i * du;
-					Vector3 value;
-					func->evalExpr(u, 0, value);
-					for (int j = 0; j < paramV.numData; ++j)
+					auto& codeX = func->mAixsExpr[0].getEvalResource<ExecutableCode>();
+					auto& codeY = func->mAixsExpr[1].getEvalResource<ExecutableCode>();
+					auto& codeZ = func->mAixsExpr[2].getEvalResource<ExecutableCode>();
+
+					codeX.visit([&](auto& execX) {
+						using ExecutorType = std::decay_t<decltype(execX)>;
+						auto execY = codeY.getExecutor<ExecutorType>();
+						auto execZ = codeZ.getExecutor<ExecutorType>();
+						for (int i = 0; i < paramU.numData; ++i)
+						{
+							float u = paramU.getRangeMin() + i * du;
+							Vector3 value;
+							value.x = execX.template eval<RealType>(u, 0);
+							value.y = execY.template eval<RealType>(u, 0);
+							value.z = execZ.template eval<RealType>(u, 0);
+							for (int j = 0; j < paramV.numData; ++j)
+							{
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+								*pPos = value;
+							}
+						}
+					});
+				}
+				else
+				{
+					for (int i = 0; i < paramU.numData; ++i)
 					{
-						float v = paramV.getRangeMin() + j * dv;
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-						*pPos = value;
+						float u = paramU.getRangeMin() + i * du;
+						Vector3 value;
+						func->evalExpr(u, 0, value);
+						for (int j = 0; j < paramV.numData; ++j)
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							int idx = paramU.numData * j + i;
+							Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+							*pPos = value;
+						}
 					}
 				}
 			}
@@ -189,45 +264,105 @@ namespace CB
 			{
 				float const* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
 				int numBlock = Math::AlignCount(paramV.numData, FloatVector::Size);
-				for (int j = 0; j < numBlock; ++j)
-				{
-					FloatVector v{ pV , EAligned::Value };
 
-					FloatVector x;
-					FloatVector y;
-					FloatVector z;
-					func->evalExpr(FloatVector::Zero(), v, x, y, z);
-					for (int i = 0; i < paramU.numData; ++i)
+				if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
+				{
+					auto& codeX = func->mAixsExpr[0].getEvalResource<ExecutableCode>();
+					auto& codeY = func->mAixsExpr[1].getEvalResource<ExecutableCode>();
+					auto& codeZ = func->mAixsExpr[2].getEvalResource<ExecutableCode>();
+
+					codeX.visit([&](auto& execX) {
+						using ExecutorType = std::decay_t<decltype(execX)>;
+						auto execY = codeY.getExecutor<ExecutorType>();
+						auto execZ = codeZ.getExecutor<ExecutorType>();
+						for (int j = 0; j < numBlock; ++j)
+						{
+							FloatVector v{ pV , EAligned::Value };
+							FloatVector vx = execX.template eval<FloatVector>(FloatVector::Zero(), v);
+							FloatVector vy = execY.template eval<FloatVector>(FloatVector::Zero(), v);
+							FloatVector vz = execZ.template eval<FloatVector>(FloatVector::Zero(), v);
+
+							for (int i = 0; i < paramU.numData; ++i)
+							{
+								int idx = paramU.numData * FloatVector::Size * j + i;
+								uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NX_OP(INDEX)\
+		*reinterpret_cast<Vector3*>(pPos) = Vector3(vx[INDEX], vy[INDEX], vz[INDEX]);\
+		pPos += paramU.numData * vertexSize;
+								SIMD_ELEMENT_LIST(SET_POS_NX_OP);
+#undef  SET_POS_NX_OP
+							}
+							pV += FloatVector::Size;
+						}
+					});
+				}
+				else
+				{
+					for (int j = 0; j < numBlock; ++j)
 					{
-						int idx = paramU.numData * FloatVector::Size * j + i;
-						uint8* pPos = posData + idx * vertexSize;
+						FloatVector v{ pV , EAligned::Value };
+						FloatVector x, y, z;
+						func->evalExpr(FloatVector::Zero(), v, x, y, z);
+						for (int i = 0; i < paramU.numData; ++i)
+						{
+							int idx = paramU.numData * FloatVector::Size * j + i;
+							uint8* pPos = posData + idx * vertexSize;
 
 #define SET_POS_NX_OP(INDEX)\
 		*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], y[INDEX], z[INDEX]);\
 		pPos += paramU.numData * vertexSize;
-						SIMD_ELEMENT_LIST(SET_POS_NX_OP);
+							SIMD_ELEMENT_LIST(SET_POS_NX_OP);
 #undef  SET_POS_NX_OP
+						}
+						pV += FloatVector::Size;
 					}
-					pV += FloatVector::Size;
 				}
 			}
 			else
 			{
-				for (int j = 0; j < paramV.numData; ++j)
+				if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
 				{
-					float v = paramV.getRangeMin() + j * dv;
-					Vector3 value;
-					func->evalExpr(0, v, value);
-					for (int i = 0; i < paramU.numData; ++i)
+					auto& codeX = func->mAixsExpr[0].getEvalResource<ExecutableCode>();
+					auto& codeY = func->mAixsExpr[1].getEvalResource<ExecutableCode>();
+					auto& codeZ = func->mAixsExpr[2].getEvalResource<ExecutableCode>();
+
+					codeX.visit([&](auto& execX) {
+						using ExecutorType = std::decay_t<decltype(execX)>;
+						auto execY = codeY.getExecutor<ExecutorType>();
+						auto execZ = codeZ.getExecutor<ExecutorType>();
+						for (int j = 0; j < paramV.numData; ++j)
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							Vector3 value;
+							value.x = execX.template eval<RealType>(0, v);
+							value.y = execY.template eval<RealType>(0, v);
+							value.z = execZ.template eval<RealType>(0, v);
+							for (int i = 0; i < paramU.numData; ++i)
+							{
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+								*pPos = value;
+							}
+						}
+					});
+				}
+				else
+				{
+					for (int j = 0; j < paramV.numData; ++j)
 					{
-						float u = paramU.getRangeMin() + i * du;
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-						*pPos = value;
+						float v = paramV.getRangeMin() + j * dv;
+						Vector3 value;
+						func->evalExpr(0, v, value);
+						for (int i = 0; i < paramU.numData; ++i)
+						{
+							int idx = paramU.numData * j + i;
+							Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+							*pPos = value;
+						}
 					}
 				}
 			}
-
 		}
 		break;
 		case BIT(0) | BIT(1):
@@ -242,34 +377,95 @@ namespace CB
 				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
 #endif
 				int numBlock = numData / FloatVector::Size;
-				for (int i = 0; i < numBlock; ++i)
+
+				if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
 				{
+					auto& codeX = func->mAixsExpr[0].getEvalResource<ExecutableCode>();
+					auto& codeY = func->mAixsExpr[1].getEvalResource<ExecutableCode>();
+					auto& codeZ = func->mAixsExpr[2].getEvalResource<ExecutableCode>();
+
+					codeX.visit([&](auto& execX) {
+						using ExecutorType = std::decay_t<decltype(execX)>;
+						auto execY = codeY.getExecutor<ExecutorType>();
+						auto execZ = codeZ.getExecutor<ExecutorType>();
+						for (int i = 0; i < numBlock; ++i)
+						{
 #if REORDER_CACHE
-					FloatVector u{ pUV , EAligned::Value };
-					FloatVector v{ pUV + FloatVector::Size , EAligned::Value };
+							FloatVector u{ pUV , EAligned::Value };
+							FloatVector v{ pUV + FloatVector::Size , EAligned::Value };
 #else
-					FloatVector u{ SIMD_ELEMENT_LIST(UV_X_OP) };
-					FloatVector v{ SIMD_ELEMENT_LIST(UV_Y_OP) };
+							FloatVector u{ SIMD_ELEMENT_LIST(UV_X_OP) };
+							FloatVector v{ SIMD_ELEMENT_LIST(UV_Y_OP) };
 #endif
-					FloatVector x, y, z;
-					func->evalExpr(u, v, x, y, z);
-					SIMD_ELEMENT_LIST(SET_POS_OP);
+							FloatVector x = execX.template eval<FloatVector>(u, v);
+							FloatVector y = execY.template eval<FloatVector>(u, v);
+							FloatVector z = execZ.template eval<FloatVector>(u, v);
+
+							SIMD_ELEMENT_LIST(SET_POS_OP);
 
 #if REORDER_CACHE
-					pUV += 2 * FloatVector::Size;
+							pUV += 2 * FloatVector::Size;
 #else
-					pUV += FloatVector::Size;
+							pUV += FloatVector::Size;
 #endif
+						}
+					});
+				}
+				else
+				{
+					for (int i = 0; i < numBlock; ++i)
+					{
+#if REORDER_CACHE
+						FloatVector u{ pUV , EAligned::Value };
+						FloatVector v{ pUV + FloatVector::Size , EAligned::Value };
+#else
+						FloatVector u{ SIMD_ELEMENT_LIST(UV_X_OP) };
+						FloatVector v{ SIMD_ELEMENT_LIST(UV_Y_OP) };
+#endif
+						FloatVector x, y, z;
+						func->evalExpr(u, v, x, y, z);
+						SIMD_ELEMENT_LIST(SET_POS_OP);
+
+#if REORDER_CACHE
+						pUV += 2 * FloatVector::Size;
+#else
+						pUV += FloatVector::Size;
+#endif
+					}
 				}
 			}
 			else
 			{
 				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
-				for (int i = 0; i < numData; ++i)
+				if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
 				{
-					func->evalExpr(pUV->x, pUV->y, *reinterpret_cast<Vector3*>(pPos));
-					pPos += vertexSize;
-					++pUV;
+					auto& codeX = func->mAixsExpr[0].getEvalResource<ExecutableCode>();
+					auto& codeY = func->mAixsExpr[1].getEvalResource<ExecutableCode>();
+					auto& codeZ = func->mAixsExpr[2].getEvalResource<ExecutableCode>();
+
+					codeX.visit([&](auto& execX) {
+						using ExecutorType = std::decay_t<decltype(execX)>;
+						auto execY = codeY.getExecutor<ExecutorType>();
+						auto execZ = codeZ.getExecutor<ExecutorType>();
+						for (int i = 0; i < numData; ++i)
+						{
+							Vector3* pVal = reinterpret_cast<Vector3*>(pPos);
+							pVal->x = execX.template eval<RealType>(pUV->x, pUV->y);
+							pVal->y = execY.template eval<RealType>(pUV->x, pUV->y);
+							pVal->z = execZ.template eval<RealType>(pUV->x, pUV->y);
+							pPos += vertexSize;
+							++pUV;
+						}
+					});
+				}
+				else
+				{
+					for (int i = 0; i < numData; ++i)
+					{
+						func->evalExpr(pUV->x, pUV->y, *reinterpret_cast<Vector3*>(pPos));
+						pPos += vertexSize;
+						++pUV;
+					}
 				}
 			}
 		}
@@ -277,7 +473,16 @@ namespace CB
 		default:
 		{
 			Vector3 value;
-			func->evalExpr(0, 0, value);
+			if constexpr (std::is_same_v<TSurfaceUVFunc, SurfaceUVFunc>)
+			{
+				value.x = func->mAixsExpr[0].getEvalResource<ExecutableCode>().evalT<RealType>(0, 0);
+				value.y = func->mAixsExpr[1].getEvalResource<ExecutableCode>().evalT<RealType>(0, 0);
+				value.z = func->mAixsExpr[2].getEvalResource<ExecutableCode>().evalT<RealType>(0, 0);
+			}
+			else
+			{
+				func->evalExpr(0, 0, value);
+			}
 
 			Vector2 const* pUV = (Vector2*)data.getCachedData();
 			uint8* pPos = posData;
@@ -312,43 +517,99 @@ namespace CB
 			{
 				float const* pU = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
 				int numBlock = Math::AlignCount(paramU.numData, FloatVector::Size);
-				for (int i = 0; i < numBlock; ++i)
+				
+				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					FloatVector x{ pU , EAligned::Value };
-					FloatVector z;
-					func->evalExpr(x, FloatVector::Zero(), z);
-					for (int j = 0; j < paramV.numData; ++j)
+					auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+					code.visit([&](auto& executor)
 					{
-						float v = paramV.getRangeMin() + j * dv;
-						int idx = paramU.numData * j + i * FloatVector::Size;
-						uint8* pPos = posData + idx * vertexSize;
+						for (int i = 0; i < numBlock; ++i)
+						{
+							FloatVector x{ pU , EAligned::Value };
+							FloatVector z = executor.template eval<FloatVector>(x, FloatVector::Zero());
+							for (int j = 0; j < paramV.numData; ++j)
+							{
+								float v = paramV.getRangeMin() + j * dv;
+								int idx = paramU.numData * j + i * FloatVector::Size;
+								uint8* pPos = posData + idx * vertexSize;
 
 #define SET_POS_NY_OP(INDEX)\
 	*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], v, z[INDEX]);\
 	pPos += vertexSize;
-						SIMD_ELEMENT_LIST(SET_POS_NY_OP);
+								SIMD_ELEMENT_LIST(SET_POS_NY_OP);
 #undef  SET_POS_NY_OP
+							}
+							pU += FloatVector::Size;
+						}
+					});
+				}
+				else
+				{
+					for (int i = 0; i < numBlock; ++i)
+					{
+						FloatVector x{ pU , EAligned::Value };
+						FloatVector z;
+						func->evalExpr(x, FloatVector::Zero(), z);
+						for (int j = 0; j < paramV.numData; ++j)
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							int idx = paramU.numData * j + i * FloatVector::Size;
+							uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NY_OP(INDEX)\
+	*reinterpret_cast<Vector3*>(pPos) = Vector3(x[INDEX], v, z[INDEX]);\
+	pPos += vertexSize;
+							SIMD_ELEMENT_LIST(SET_POS_NY_OP);
+#undef  SET_POS_NY_OP
+						}
+						pU += FloatVector::Size;
 					}
-					pU += FloatVector::Size;
 				}
 			}
 			else
 			{
-				for (int i = 0; i < paramU.numData; ++i)
+				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					float u = paramU.getRangeMin() + i * du;
-					Vector3 value;
-					value.x = u;
-					value.y = 0;
-					func->evalExpr(value.x, value.y, value.z);
-
-					for (int j = 0; j < paramV.numData; ++j)
+					auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+					code.visit([&](auto& executor)
 					{
-						float v = paramV.getRangeMin() + j * dv;
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-						value.y = v;
-						*pPos = value;
+						for (int i = 0; i < paramU.numData; ++i)
+						{
+							float u = paramU.getRangeMin() + i * du;
+							Vector3 value;
+							value.x = u;
+							value.y = 0;
+							value.z = executor.template eval<float>(value.x, value.y);
+
+							for (int j = 0; j < paramV.numData; ++j)
+							{
+								float v = paramV.getRangeMin() + j * dv;
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+								value.y = v;
+								*pPos = value;
+							}
+						}
+					});
+				}
+				else
+				{
+					for (int i = 0; i < paramU.numData; ++i)
+					{
+						float u = paramU.getRangeMin() + i * du;
+						Vector3 value;
+						value.x = u;
+						value.y = 0;
+						func->evalExpr(value.x, value.y, value.z);
+
+						for (int j = 0; j < paramV.numData; ++j)
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							int idx = paramU.numData * j + i;
+							Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+							value.y = v;
+							*pPos = value;
+						}
 					}
 				}
 			}
@@ -360,45 +621,103 @@ namespace CB
 			{
 				float const* pV = (float*)Math::AlignUp<intptr_t>((intptr_t)data.getCachedData(), CacheAlign);
 				int numBlock = Math::AlignCount(paramV.numData, FloatVector::Size);
-				for (int j = 0; j < numBlock; ++j)
+				
+				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					FloatVector y{ pV , EAligned::Value };
-					FloatVector z;
-					func->evalExpr(FloatVector::Zero(), y, z);
-					for (int i = 0; i < paramU.numData; ++i)
+					auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+					code.visit([&](auto& executor)
 					{
-						float u = paramU.getRangeMin() + i * du;
-						int idx = paramU.numData * FloatVector::Size * j + i;
-						uint8* pPos = posData + idx * vertexSize;
+						for (int j = 0; j < numBlock; ++j)
+						{
+							FloatVector y{ pV , EAligned::Value };
+							FloatVector z = executor.template eval<FloatVector>(FloatVector::Zero(), y);
+							for (int i = 0; i < paramU.numData; ++i)
+							{
+								float u = paramU.getRangeMin() + i * du;
+								int idx = paramU.numData * FloatVector::Size * j + i;
+								uint8* pPos = posData + idx * vertexSize;
 
 #define SET_POS_NX_OP(INDEX)\
 		*reinterpret_cast<Vector3*>(pPos) = Vector3(u, y[INDEX], z[INDEX]);\
 		pPos += paramU.numData * vertexSize;
-						SIMD_ELEMENT_LIST(SET_POS_NX_OP);
+								SIMD_ELEMENT_LIST(SET_POS_NX_OP);
 #undef  SET_POS_NX_OP
+							}
+							pV += FloatVector::Size;
+						}
+					});
+				}
+				else
+				{
+					for (int j = 0; j < numBlock; ++j)
+					{
+						FloatVector y{ pV , EAligned::Value };
+						FloatVector z;
+						func->evalExpr(FloatVector::Zero(), y, z);
+						for (int i = 0; i < paramU.numData; ++i)
+						{
+							float u = paramU.getRangeMin() + i * du;
+							int idx = paramU.numData * FloatVector::Size * j + i;
+							uint8* pPos = posData + idx * vertexSize;
+
+#define SET_POS_NX_OP(INDEX)\
+		*reinterpret_cast<Vector3*>(pPos) = Vector3(u, y[INDEX], z[INDEX]);\
+		pPos += paramU.numData * vertexSize;
+							SIMD_ELEMENT_LIST(SET_POS_NX_OP);
+#undef  SET_POS_NX_OP
+						}
+						pV += FloatVector::Size;
 					}
-					pV += FloatVector::Size;
 				}
 			}
 			else
 			{
-				for (int j = 0; j < paramV.numData; ++j)
+				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					float v = paramV.getRangeMin() + j * dv;
-
-					Vector3 value;
-					value.x = 0;
-					value.y = v;
-					func->evalExpr(value.x, value.y, value.z);
-
-					for (int i = 0; i < paramU.numData; ++i)
+					auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+					code.visit([&](auto& executor)
 					{
-						float u = paramU.getRangeMin() + i * du;
+						for (int j = 0; j < paramV.numData; ++j)
+						{
+							float v = paramV.getRangeMin() + j * dv;
 
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
-						value.x = u;
-						*pPos = value;
+							Vector3 value;
+							value.x = 0;
+							value.y = v;
+							value.z = executor.template eval<float>(value.x, value.y);
+
+							for (int i = 0; i < paramU.numData; ++i)
+							{
+								float u = paramU.getRangeMin() + i * du;
+
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+								value.x = u;
+								*pPos = value;
+							}
+						}
+					});
+				}
+				else
+				{
+					for (int j = 0; j < paramV.numData; ++j)
+					{
+						float v = paramV.getRangeMin() + j * dv;
+
+						Vector3 value;
+						value.x = 0;
+						value.y = v;
+						func->evalExpr(value.x, value.y, value.z);
+
+						for (int i = 0; i < paramU.numData; ++i)
+						{
+							float u = paramU.getRangeMin() + i * du;
+
+							int idx = paramU.numData * j + i;
+							Vector3* pPos = (Vector3*)(posData + idx * vertexSize);
+							value.x = u;
+							*pPos = value;
+						}
 					}
 				}
 			}
@@ -416,96 +735,165 @@ namespace CB
 				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
 #endif
 
-
-#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
-				FloatVector valueBuffer[64];
-				if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
-				{
-					func->mExpr.getEvalResource<ExecutableCode>().initValueBuffer(valueBuffer);
-				}
-#endif
-
 				int numBlock = Math::AlignCount(numData, FloatVector::Size);
-				for (int i = 0; i < numBlock; ++i)
+				
+				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-#if REORDER_CACHE
-					FloatVector x{ pUV , EAligned::Value };
-					FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
-#else
-					FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
-					FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
-#endif
-
-					FloatVector z;
-#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
-					if constexpr (std::is_same_v< TSurfaceXYFunc, SurfaceXYFunc>)
+					auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+					
+					// ByteCode with valueBuffer optimization
+					if (code.getActiveType() == ECodeExecType::ByteCode)
 					{
-						valueBuffer[0] = x;
-						valueBuffer[1] = y;
-						func->evalExpr(TArrayView<FloatVector const>(valueBuffer), z);
+#if EBC_USE_VALUE_BUFFER
+						FloatVector valueBuffer[64];
+						code.initValueBuffer(valueBuffer);
+						code.visit([&](auto& executor)
+						{
+							for (int i = 0; i < numBlock; ++i)
+							{
+#if REORDER_CACHE
+								FloatVector x{ pUV , EAligned::Value };
+								FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
+#else
+								FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
+								FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
+#endif
+								valueBuffer[0] = x;
+								valueBuffer[1] = y;
+								FloatVector z = executor.template eval<FloatVector>(TArrayView<FloatVector const>(valueBuffer, 64));
+								SIMD_ELEMENT_LIST(SET_POS_OP);
+#if REORDER_CACHE
+								pUV += 2 * FloatVector::Size;
+#else
+								pUV += FloatVector::Size;
+#endif
+							}
+						});
+#else
+						code.visit([&](auto& executor)
+						{
+							for (int i = 0; i < numBlock; ++i)
+							{
+#if REORDER_CACHE
+								FloatVector x{ pUV , EAligned::Value };
+								FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
+#else
+								FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
+								FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
+#endif
+								FloatVector z = executor.template eval<FloatVector>(x, y);
+								SIMD_ELEMENT_LIST(SET_POS_OP);
+#if REORDER_CACHE
+								pUV += 2 * FloatVector::Size;
+#else
+								pUV += FloatVector::Size;
+#endif
+							}
+						});
+#endif
 					}
 					else
-#endif
 					{
-						func->evalExpr(x, y, z);
-					}
-
-					SIMD_ELEMENT_LIST(SET_POS_OP);
-
+						code.visit([&](auto& executor)
+						{
+							for (int i = 0; i < numBlock; ++i)
+							{
 #if REORDER_CACHE
-					pUV += 2 * FloatVector::Size;
+								FloatVector x{ pUV , EAligned::Value };
+								FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
 #else
-					pUV += FloatVector::Size;
+								FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
+								FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
 #endif
+								FloatVector z = executor.template eval<FloatVector>(x, y);
+								SIMD_ELEMENT_LIST(SET_POS_OP);
+#if REORDER_CACHE
+								pUV += 2 * FloatVector::Size;
+#else
+								pUV += FloatVector::Size;
+#endif
+							}
+						});
+					}
+				}
+				else
+				{
+					for (int i = 0; i < numBlock; ++i)
+					{
+#if REORDER_CACHE
+						FloatVector x{ pUV , EAligned::Value };
+						FloatVector y{ pUV + FloatVector::Size , EAligned::Value };
+#else
+						FloatVector x{ SIMD_ELEMENT_LIST(UV_X_OP) };
+						FloatVector y{ SIMD_ELEMENT_LIST(UV_Y_OP) };
+#endif
+						FloatVector z;
+						func->evalExpr(x, y, z);
+						SIMD_ELEMENT_LIST(SET_POS_OP);
+#if REORDER_CACHE
+						pUV += 2 * FloatVector::Size;
+#else
+						pUV += FloatVector::Size;
+#endif
+					}
 				}
 			}
 			else
 			{
 				Vector2 const* pUV = (Vector2 const*)data.getCachedData();
 
-#if ENABLE_BYTE_CODE && EBC_USE_VALUE_BUFFER
 				if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
 				{
-					RealType valueBuffer[64];
-					func->mExpr.getEvalResource<ExecutableCode>().initValueBuffer(valueBuffer);
-#if 0
-					float z;
-
-#define EVAL_OP     valueBuffer[0] = pUV->x;\
-					valueBuffer[1] = pUV->y;\
-					func->evalExpr(TArrayView<RealType const>(valueBuffer), z);\
-					*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);\
-					pPos += vertexSize;\
-					++pUV;\
-
-					DUFF_DEVICE_4(numData, EVAL_OP);
-#undef EVAL_OP
-#else
-					for (int i = 0; i < numData; ++i)
+					auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+					
+					// ByteCode with valueBuffer optimization
+					if (code.getActiveType() == ECodeExecType::ByteCode)
 					{
-						valueBuffer[0] = pUV->x;
-						valueBuffer[1] = pUV->y;
-						RealType z;
-						func->evalExpr(TArrayView<RealType const>(valueBuffer), z);
-						*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
-						pPos += vertexSize;
-						++pUV;
-					}
+#if EBC_USE_VALUE_BUFFER
+						RealType valueBuffer[64];
+						code.initValueBuffer(valueBuffer);
+						code.visit([&](auto& executor)
+						{
+							for (int i = 0; i < numData; ++i)
+							{
+								valueBuffer[0] = pUV->x;
+								valueBuffer[1] = pUV->y;
+								float z = executor.template eval<float>(TArrayView<RealType const>(valueBuffer, 64));
+								*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
+								pPos += vertexSize;
+								++pUV;
+							}
+						});
+#else
+						code.visit([&](auto& executor)
+						{
+							for (int i = 0; i < numData; ++i)
+							{
+								float z = executor.template eval<float>(pUV->x, pUV->y);
+								*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
+								pPos += vertexSize;
+								++pUV;
+							}
+						});
 #endif
+					}
+					else
+					{
+						code.visit([&](auto& executor)
+						{
+							for (int i = 0; i < numData; ++i)
+							{
+								float z = executor.template eval<float>(pUV->x, pUV->y);
+								*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);
+								pPos += vertexSize;
+								++pUV;
+							}
+						});
+					}
 				}
 				else
-#endif
 				{
-
 					float z;
-#if 1
-
-#define EVAL_OP 	func->evalExpr(pUV->x, pUV->y, z);\
-					*reinterpret_cast<Vector3*>(pPos) = Vector3(pUV->x, pUV->y, z);\
-					pPos += vertexSize; ++pUV;
-					DUFF_DEVICE_4(numData, EVAL_OP);
-#undef EVAL_OP
-#else
 					for (int i = 0; i < numData; ++i)
 					{
 						func->evalExpr(pUV->x, pUV->y, z);
@@ -513,7 +901,6 @@ namespace CB
 						pPos += vertexSize;
 						++pUV;
 					}
-#endif
 				}
 			}
 		}
@@ -521,7 +908,16 @@ namespace CB
 		default:
 		{
 			Vector3 value = Vector3::Zero();
-			func->evalExpr(value.x, value.y, value.z);
+			
+			if constexpr (std::is_same_v<TSurfaceXYFunc, SurfaceXYFunc>)
+			{
+				auto& code = func->mExpr.getEvalResource<ExecutableCode>();
+				value.z = code.evalT<float>(value.x, value.y);
+			}
+			else
+			{
+				func->evalExpr(value.x, value.y, value.z);
+			}
 
 			Vector2 const* pUV = (Vector2*)data.getCachedData();
 			uint8* pPos = posData;

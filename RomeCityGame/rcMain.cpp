@@ -341,7 +341,7 @@ public:// System Message
 			//{
 			//	if ( mLevelMap->isRange( mapPos ) )
 			//	{
-			//		if( mPathFinder.sreach( mapPos ) )
+			//		if( mPathFinder.search( mapPos ) )
 			//		{
 			//			rcPathFinder::SNode* node = mPathFinder.getPath();
 

@@ -372,13 +372,13 @@ void rcLevelCity::updateSettler( long time )
 rcPath* rcLevelCity::createPath( Vec2i const& from , Vec2i const& to )
 {
 	mPathFinder->setupDestion( to );
-	return mPathFinder->sreachPath(from);
+	return mPathFinder->searchPath(from);
 }
 
 rcPath* rcLevelCity::createPath( Vec2i const& from , unsigned blgID )
 {
 	mPathFinder->setupDestion( mBuildingMgr->getBuilding( blgID ) );
-	return mPathFinder->sreachPath(from);
+	return mPathFinder->searchPath(from);
 }
 
 rcBuilding* rcLevelCity::tryTransportProduct( rcWorker* worker , unsigned pTag, int numProduct )

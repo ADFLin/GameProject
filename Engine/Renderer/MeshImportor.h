@@ -7,7 +7,7 @@
 #include "HashString.h"
 #include "CoreShare.h"
 #include "Meta/IsBaseOf.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "DataStructure/Array.h"
 
 #include <memory>

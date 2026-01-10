@@ -13,6 +13,8 @@ constexpr int GetOpCmdSizeConstexpr(EExprByteCode::Type op)
 	case EExprByteCode::Const:
 	case EExprByteCode::Variable:
 #endif
+	case EExprByteCode::Temp:
+	case EExprByteCode::Store:
 #if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
 	case EExprByteCode::IAdd:
 	case EExprByteCode::ISub:
@@ -97,7 +99,10 @@ static char const* GetOpString(uint8 opCode)
 #if !EBC_USE_VALUE_BUFFER
 	case EExprByteCode::Const: return "C";
 	case EExprByteCode::Variable:  return "V";
+	case EExprByteCode::Temp: return "Temp";
 #endif
+
+	case EExprByteCode::Store: return "Store";
 
 	case EExprByteCode::Add: return "+";
 	case EExprByteCode::Sub: return "-";
@@ -231,6 +236,12 @@ constexpr EExprByteCode::Type tryMergeOpConstexpr(EExprByteCode::Type leftOp, EE
 #if EBC_USE_COMPOSITIVE_CODE_LEVEL >= 2
 
 #if EBC_USE_VALUE_BUFFER
+	MERGE_OP(Input, Add, IAdd)
+	MERGE_OP(Input, Sub, ISub)
+	MERGE_OP(Input, SubR, ISubR)
+	MERGE_OP(Input, Mul, IMul)
+	MERGE_OP(Input, Div, IDiv)
+	MERGE_OP(Input, DivR, IDivR)
 	MERGE_OP(Input, SMul, ISMul)
 	MERGE_OP(ISMul, Add, ISMulAdd)
 	MERGE_OP(ISMul, Sub, ISMulSub)
@@ -332,6 +343,12 @@ int tryMergeOpCmd(uint8* pCodeL, uint8* pCodeR, uint8* pMergeCode)
 	case EExprByteCode::SMulDiv:
 		return 1;
 #if EBC_USE_VALUE_BUFFER
+	case EExprByteCode::IAdd:
+	case EExprByteCode::ISub:
+	case EExprByteCode::ISubR:
+	case EExprByteCode::IMul:
+	case EExprByteCode::IDiv:
+	case EExprByteCode::IDivR:
 	case EExprByteCode::ISMul:
 	case EExprByteCode::ISMulAdd:
 	case EExprByteCode::ISMulSub:
@@ -485,6 +502,7 @@ void ExprByteCodeCompiler::codeInit(int numInput, ValueLayout inputLayouts[])
 	mStacks.clear();
 
 	mNumCmd = 0;
+	mMaxTempIndex = -1;
 #if EBC_USE_VALUE_BUFFER
 	mOutput.numInput = numInput;
 #endif
@@ -494,6 +512,32 @@ void ExprByteCodeCompiler::codeInit(int numInput, ValueLayout inputLayouts[])
 void ExprByteCodeCompiler::codeEnd()
 {
 	//LogMsg("Num Cmd = %d", mNumCmd);
+
+#if EBC_USE_VALUE_BUFFER
+	mOutput.numTemp = mMaxTempIndex + 1;
+
+	int tempOffset = mOutput.numInput + mOutput.constValues.size() + mOutput.vars.size();
+	// Patch Temp indices and convert Temp -> Input for optimization
+	int pos = 0;
+	int len = mOutput.codes.size();
+	uint8* pCodes = mOutput.codes.data();
+
+	while (pos < len)
+	{
+		EExprByteCode::Type op = (EExprByteCode::Type)pCodes[pos];
+		if (op == EExprByteCode::Temp)
+		{
+			pCodes[pos] = EExprByteCode::Input; // Convert to Input
+			pCodes[pos + 1] += tempOffset; // Shift index
+		}
+		else if (op == EExprByteCode::Store)
+		{
+			pCodes[pos + 1] += tempOffset; // Shift index
+		}
+		// Advance
+		pos += GetNextOpCmdOffset(op);
+	}
+#endif
 
 #if EBC_USE_COMPOSITIVE_CODE_LEVEL
 	mNumCmd = ComposteCodes(mOutput.codes);
@@ -640,21 +684,19 @@ void ExprByteCodeCompiler::codeBinaryOp(TokenType type, bool isReverse)
 	case BOP_DIV: opCode = isReverse ? EExprByteCode::DivR : EExprByteCode::Div; break;
 	}
 
-	if (rightValue.byteCode == EExprByteCode::None)
+	if (leftValue.byteCode == rightValue.byteCode && leftValue.index == rightValue.index &&
+		(type == BOP_MUL) && (rightValue.byteCode != EExprByteCode::None))
+	{
+		outputCmd(EExprByteCode::SMul);
+	}
+	else if (rightValue.byteCode == EExprByteCode::None)
 	{
 		outputCmd(opCode);
 	}
 	else
 	{
-		if (leftValue.byteCode == rightValue.byteCode && leftValue.index == rightValue.index &&
-			(type == BOP_MUL))
-		{
-			outputCmd(EExprByteCode::SMul);
-		}
-		else
-		{
-			outputCmd(EExprByteCode::Type(opCode + rightValue.byteCode), rightValue.index);
-		}
+		outputCmd(rightValue.byteCode, rightValue.index);
+		outputCmd(opCode);
 	}
 #else
 #if EBC_USE_LAZY_STACK_PUSH
@@ -712,12 +754,20 @@ TValue TByteCodeExecutor<TValue>::doExecute(ExprByteCodeExecData const& execData
 	uint8 const* pCodeEnd = pCode + numCodes;
 	TValue  stackValues[32];
 	TValue* stackValue = stackValues;
+#if !EBC_USE_VALUE_BUFFER
+	TValue  tempValues[256];
+#else
+	TValue* tempValues = const_cast<TValue*>(mInputs.data());
+#endif
 	TValue  topValue = 0.0;
 #if 1
 	switch (*pCode)
 	{
 	case EExprByteCode::Input:
 		topValue = GET_INPUT(pCode[1]);
+		break;
+	case EExprByteCode::Temp:
+		topValue = tempValues[pCode[1]];
 		break;
 #if !EBC_USE_VALUE_BUFFER
 	case EExprByteCode::Const:
@@ -786,7 +836,7 @@ TValue TByteCodeExecutor<TValue>::doExecute(ExprByteCodeExecData const& execData
 	pCode += GetNextOpCmdOffset(EExprByteCode::Type(*pCode));
 #endif
 #endif
-#define EXECUTE_CODE() execCode(pCode, stackValue, topValue)
+#define EXECUTE_CODE() execCode(pCode, stackValue, topValue, tempValues)
 
 #if EBC_USE_FIXED_OP_CMD_SIZE
 #if 0
@@ -794,7 +844,6 @@ TValue TByteCodeExecutor<TValue>::doExecute(ExprByteCodeExecData const& execData
 	{
 		EXECUTE_CODE();
 		pCode += EBC_USE_FIXED_SIZE;
-	}
 #else
 
 	int numOp = (pCodeEnd - pCode) / EBC_USE_FIXED_OP_CMD_SIZE;
@@ -844,7 +893,7 @@ FORCEINLINE TValue InvokeInternal(RT(*func)(Args...), TValue* args, TIndexList<I
 }
 
 template<typename TValue>
-FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*& pValueStack, TValue& topValue)
+FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* __restrict pCode, TValue* __restrict & pValueStack, TValue& topValue, TValue* __restrict tempValues)
 {
 	auto pushStack = [&pValueStack](TValue const& value)
 	{
@@ -873,7 +922,14 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 		pushStack(topValue);
 		topValue = GET_VAR(pCode[1]);
 		return 2;
+	case EExprByteCode::Temp:
+		pushStack(topValue);
+		topValue = tempValues[pCode[1]];
+		return 2;
 #endif
+	case EExprByteCode::Store:
+		tempValues[pCode[1]] = topValue;
+		return 2;
 	case EExprByteCode::Add:
 		{
 			auto const& lhs = popStack();
@@ -1297,4 +1353,5 @@ FORCEINLINE int TByteCodeExecutor<TValue>::execCode(uint8 const* pCode, TValue*&
 
 template RealType TByteCodeExecutor<RealType>::doExecute(ExprByteCodeExecData const& code);
 template FloatVector TByteCodeExecutor<FloatVector>::doExecute(ExprByteCodeExecData const& code);
+template double TByteCodeExecutor<double>::doExecute(ExprByteCodeExecData const& code);
 

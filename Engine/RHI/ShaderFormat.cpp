@@ -100,22 +100,22 @@ namespace Render
 		{
 			preprocessor.setSourceLibrary(*sourceLibrary);
 		}
-		preprocessor.bReplaceMarcoText = true;
-		preprocessor.bAllowRedefineMarco = true;
-		preprocessor.bAddLineMarco = settings.bAddLineMarco;
+		preprocessor.bReplaceMacroText = true;
+		preprocessor.bAllowRedefineMacro = true;
+		preprocessor.bAddLineMacro = settings.bAddLineMacro;
 		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);
 
 		char const* DefaultDir = "Shader";
 		preprocessor.setOutput(codeOutput);
-		preprocessor.addSreachDir(DefaultDir);
+		preprocessor.addSearchDir(DefaultDir);
 		if ( path )
 		{
 			StringView dir = FFileUtility::GetDirectory(path);
 			if (dir != DefaultDir)
 			{
-				preprocessor.addSreachDir(dir.toCString());
+				preprocessor.addSearchDir(dir.toCString());
 			}
 		}
 

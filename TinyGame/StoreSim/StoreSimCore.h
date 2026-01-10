@@ -2,7 +2,7 @@
 #ifndef StoreSimCore_H_A71F5561_617E_4DCE_8061_B3D38B01B4D5
 #define StoreSimCore_H_A71F5561_617E_4DCE_8061_B3D38B01B4D5
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "Math/Vector2.h"
 #include "Math/Math2D.h"
 #include "Math/GeometryPrimitive.h"

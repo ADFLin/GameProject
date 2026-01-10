@@ -1,6 +1,6 @@
 #include "ClassTree.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 void ClassTreeNode::offsetQueryIndex(int offset)
 {

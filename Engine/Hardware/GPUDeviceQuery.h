@@ -3,7 +3,7 @@
 #define GPUDeviceQuery_H_73D9B0F7_A077_471E_AA45_F0C93B6DCB4A
 
 #include "Core/IntegerType.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 #include <string>
 

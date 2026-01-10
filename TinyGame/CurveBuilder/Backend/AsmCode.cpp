@@ -1,4 +1,4 @@
-#include "FPUCode.h"
+#include "AsmCode.h"
 
 #include <iostream>
 
@@ -66,44 +66,44 @@ static void  FreeExecutableMemory(void* ptr)
 
 #endif
 
-FPUCodeData::FPUCodeData(int size /*= 0*/)
+AsmCodeBuffer::AsmCodeBuffer(int size /*= 0*/)
 {
 	mMaxCodeSize = (size) ? size : 64;
 	mCode = (uint8*)AllocExecutableMemory(mMaxCodeSize);
 	assert(mCode);
-	clearCode();
+	clear();
 }
 
-FPUCodeData::~FPUCodeData()
+AsmCodeBuffer::~AsmCodeBuffer()
 {
 	FreeExecutableMemory(mCode);
 }
 
-void FPUCodeData::setCode(unsigned pos, uint8 byte)
+void AsmCodeBuffer::setCode(unsigned pos, uint8 byte)
 {
 	assert(pos < getCodeLength());
 	mCode[pos] = byte;
 }
-void FPUCodeData::setCode(unsigned pos, void* ptr)
+void AsmCodeBuffer::setCode(unsigned pos, void* ptr)
 {
 	assert(pos < getCodeLength());
 	*reinterpret_cast<void**>(mCode + pos) = ptr;
 }
 
-void FPUCodeData::pushCode(uint8 byte)
+void AsmCodeBuffer::pushCode(uint8 byte)
 {
 	checkCodeSize(1);
 	pushCodeInternal(byte);
 }
 
-void FPUCodeData::pushCode(uint8 byte1, uint8 byte2)
+void AsmCodeBuffer::pushCode(uint8 byte1, uint8 byte2)
 {
 	checkCodeSize(2);
 	pushCodeInternal(byte1);
 	pushCodeInternal(byte2);
 }
 
-void FPUCodeData::pushCode(uint8 byte1, uint8 byte2, uint8 byte3)
+void AsmCodeBuffer::pushCode(uint8 byte1, uint8 byte2, uint8 byte3)
 {
 	checkCodeSize(3);
 	pushCodeInternal(byte1);
@@ -111,21 +111,21 @@ void FPUCodeData::pushCode(uint8 byte1, uint8 byte2, uint8 byte3)
 	pushCodeInternal(byte3);
 }
 
-void FPUCodeData::pushCode(uint8 const* data, int size)
+void AsmCodeBuffer::pushCode(uint8 const* data, int size)
 {
 	checkCodeSize(size);
 	FMemory::Copy(mCodeEnd, data, size);
 	mCodeEnd += size;
 }
 
-void FPUCodeData::pushCodeInternal(uint8 byte)
+void AsmCodeBuffer::pushCodeInternal(uint8 byte)
 {
 	*mCodeEnd = byte;
 	++mCodeEnd;
 }
 
 
-void FPUCodeData::printCode()
+void AsmCodeBuffer::printCode()
 {
 	std::cout << std::hex;
 	int num = getCodeLength();
@@ -143,7 +143,7 @@ void FPUCodeData::printCode()
 	std::cout << std::dec << std::endl;
 }
 
-void FPUCodeData::checkCodeSize(int freeSize)
+void AsmCodeBuffer::checkCodeSize(int freeSize)
 {
 	int codeNum = getCodeLength();
 	if (codeNum + freeSize <= mMaxCodeSize)
@@ -163,9 +163,8 @@ void FPUCodeData::checkCodeSize(int freeSize)
 	mMaxCodeSize = newSize;
 }
 
-void FPUCodeData::clearCode()
+void AsmCodeBuffer::clear()
 {
-	FPUCodeData::clearCode();
 	FMemory::Set(mCode, 0, mMaxCodeSize);
 	mCodeEnd = mCode;
 }

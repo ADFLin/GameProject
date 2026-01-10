@@ -79,7 +79,7 @@ namespace StoreSim
 			return state.area == mGoalArea;
 		}
 
-		//  call addSreachNode for all possible next state
+		//  call addSearchNode for all possible next state
 		void      processNeighborNode(NodeType& aNode)
 		{
 			auto area = aNode.state.area;
@@ -97,13 +97,13 @@ namespace StoreSim
 				state.entrance = indexLink;
 				state.pos = link.pos;
 				state.posIndex = 0;
-				addSreachNode(state, aNode);
+				addSearchNode(state, aNode);
 				state.pos = state.area->vertices[indexPolygon];
 				state.posIndex = 1;
-				addSreachNode(state, aNode);
+				addSearchNode(state, aNode);
 				state.pos = state.area->vertices[(indexPolygon + 1) % state.area->vertices.size()];
 				state.posIndex = 2;
-				addSreachNode(state, aNode);
+				addSearchNode(state, aNode);
 			}
 		}
 

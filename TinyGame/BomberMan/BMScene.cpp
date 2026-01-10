@@ -5,7 +5,7 @@
 
 #include "Image/GIFLoader.h"
 #include "BitmapDC.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 #include "BMRender.h"
 

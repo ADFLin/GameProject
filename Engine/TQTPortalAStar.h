@@ -54,7 +54,7 @@ namespace AStar
 		{ 
 			return state.region->getRect().isInRange( mEndPos );
 		}
-		//  call addSreachNode for all possible next state
+		//  call addSearchNode for all possible next state
 
 
 		void      processNeighborNode( NodeType& node )
@@ -78,7 +78,7 @@ namespace AStar
 
 				ScoreType dist = processRegion( p , state , newState );
 
-				addSreachNode( newState , node , dist );
+				addSearchNode( newState , node , dist );
 			}
 		}
 

@@ -44,7 +44,7 @@ TTalkSystem::TTalkSystem()
 	
 	m_talkSpeed = 15.0 / 30;
 }
-TalkContent* TTalkSystem::sreachTalkTable( CNPCBase* speaker , int flag  )
+TalkContent* TTalkSystem::searchTalkTable( CNPCBase* speaker , int flag  )
 {
 	unsigned npcID = 0;
 	return &talkContentTable[ flag ];
@@ -140,7 +140,7 @@ bool TTalkSystem::speak( CNPCBase* npc , int flag )
 
 	unsigned npcID = 1;
 
-	m_curContent = sreachTalkTable( npc , flag );
+	m_curContent = searchTalkTable( npc , flag );
 	
 	if ( m_curContent )
 	{

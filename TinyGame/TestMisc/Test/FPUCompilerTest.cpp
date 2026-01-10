@@ -2,6 +2,7 @@
 #include "CurveBuilder/ExpressionCompiler.h"
 #include <cmath>
 
+
 namespace
 {
 	float gc;
@@ -48,15 +49,19 @@ double foo(double x)
 	return 2 * x;
 }
 
+double t = 3;
 
+//#define EXPR x+sin(y)+10
+#define EXPR sin(sqrt(x*x + y*y) - 1*t) + cos(sqrt(x*x + y*y) + 3*t)
+//#define EXPR x*y+x*y
 __declspec(noinline) double FooTest(double x, double y, float z)
 {
-	return sin(x);
+	return EXPR;
 }
 
 __declspec(noinline) double FooTest2(double x, double y, float z)
 {
-	return sin(x);
+	return EXPR;
 }
 
 
@@ -69,6 +74,7 @@ __declspec(noinline) double DoubleTest(double x)
 {
 	return x + x;
 }
+
 void AsmTest()
 {
 	DoubleTest(100.0);
@@ -84,20 +90,19 @@ void TestExprCompile()
 	double x = 1;
 	double y = 2;
 	float z = 10;
+
 #if 1
 	{
 		ga = 1.2f;
 		foo();
 		auto pFun = rand() % 2 ? FooTest : FooTest2;
-		float z = 3;
+		// Remove local z=3 to use outer z=10 for comparison
 		gc = pFun(x,y,z);
 
-		LogMsg("%f", gc);
+		LogMsg("FooTest: %f", gc);
 	}
 #endif
 
-
-#if ENABLE_FPU_CODE
 	ParseResult parseResult;
 	ExecutableCode code;
 	ValueLayout layouts[] = { ValueLayout::Double , ValueLayout::Double ,ValueLayout::Float };
@@ -106,9 +111,12 @@ void TestExprCompile()
 	table.defineVarInput("x", 0);
 	table.defineVarInput("y", 1);
 	table.defineVarInput("z", 2);
+	table.defineVar("t", &t);
 	table.defineFunc("sin", static_cast<double(*)(double)>(sin));
+	table.defineFunc("cos", static_cast<double(*)(double)>(cos));
 	table.defineFunc("foo", static_cast<double(*)(double)>(foo));
-	if (!compiler.compile("sin(x)", table, parseResult, code, ARRAY_SIZE(layouts) , layouts))
+	table.defineFunc("sqrt", static_cast<double(*)(double)>(sqrt));
+	if (!compiler.compile(MAKE_STRING(EXPR), table, parseResult, code, ARRAY_SIZE(layouts) , layouts))
 	{
 		return;
 	}
@@ -116,7 +124,6 @@ void TestExprCompile()
 
 	double value = code.evalT< double >(x,y,z);
 	LogMsg("%lf %lf", value , z);
-#endif
 }
 
 REGISTER_MISC_TEST_ENTRY("Expr Compile Test", TestExprCompile);

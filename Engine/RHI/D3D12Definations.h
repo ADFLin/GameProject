@@ -2,7 +2,7 @@
 #ifndef D3D12Definations_H_38C48893_1792_4DA4_8C98_1D743AE3EE94
 #define D3D12Definations_H_38C48893_1792_4DA4_8C98_1D743AE3EE94
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "Core/IntegerType.h"
 #include "Platform/Windows/ComUtility.h"
 

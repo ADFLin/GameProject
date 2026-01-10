@@ -38,7 +38,7 @@ namespace MV
 			return isEqual( mGoal , state );
 		}
 
-		//  call addSreachNode for all possible next state
+		//  call addSearchNode for all possible next state
 		void      processNeighborNode( NodeType& aNode )
 		{  
 			BlockSurface& surface = aNode.getSurface();
@@ -95,12 +95,12 @@ namespace MV
 					state.block = destSurface->getBlock();
 					state.prevBlockNode  = node;
 					state.faceDirL = Block::LocalDir( *destSurface );
-					addSreachNode( state , aNode , 1 );
+					addSearchNode( state , aNode , 1 );
 				}
 			}
 		}
 
-		SreachResult mSreachResult;
+		SearchResult mSearchResult;
 		FindState    mGoal;
 	};
 
@@ -109,7 +109,7 @@ namespace MV
 	bool PathFinder::find(FindState const& from , FindState const& to )
 	{
 		GFinderImpl.mGoal = to;
-		if ( !GFinderImpl.sreach( from , GFinderImpl.mSreachResult) )
+		if ( !GFinderImpl.search( from , GFinderImpl.mSearchResult) )
 			return false;
 
 		return true;
@@ -207,8 +207,8 @@ namespace MV
 	{
 		path.mNodes.clear();
 
-		GFinderImpl.mSreachResult.globalNode->child = nullptr;
-		GFinderImpl.constructPath(GFinderImpl.mSreachResult.globalNode,
+		GFinderImpl.mSearchResult.globalNode->child = nullptr;
+		GFinderImpl.constructPath(GFinderImpl.mSearchResult.globalNode,
 			[](AStarFinder::NodeType* node)
 			{
 				if(node->parent)
@@ -218,7 +218,7 @@ namespace MV
 			}
 		);
 
-		AStarFinder::NodeType* aNode = GFinderImpl.mSreachResult.startNode;
+		AStarFinder::NodeType* aNode = GFinderImpl.mSearchResult.startNode;
 		AStarFinder::NodeType* aNodeNext; 
 
 		Block*   prevBlock = nullptr;

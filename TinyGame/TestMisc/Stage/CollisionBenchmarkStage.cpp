@@ -119,13 +119,13 @@ namespace CollisionBenchmark
 
 		// Custom Collision System (Left Side)
 		SimpleCollision::SpatialHashSystem<Monster> mSpatialHash;
-		std::vector<std::unique_ptr<Monster>> mLeftMonsters;
+		TArray<std::unique_ptr<Monster>> mLeftMonsters;
 		Vector2 mLeftTarget;
 		float mLeftCollisionTime = 0.0f;
 
 		// Box2D Physics System (Right Side)
 		GameWorld mBox2DWorld;
-		std::vector<std::unique_ptr<Box2DMonster>> mRightMonsters;
+		TArray<std::unique_ptr<Box2DMonster>> mRightMonsters;
 		Vector2 mRightTarget;
 		float mRightCollisionTime = 0.0f;
 
@@ -456,7 +456,6 @@ namespace CollisionBenchmark
 
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
-			
 			systemConfigs.screenWidth = 1600;
 			systemConfigs.screenHeight = 800;
 		}

@@ -72,6 +72,9 @@ namespace CB
 
 		void releaseRHI();
 
+		void  setExecType(ECodeExecType type) { mParser.setExecType(type); }
+		void  setGenerateSIMD(bool bSIMD) { mParser.setGenerateSIMD(bSIMD); }
+
 		SymbolTable& getSymbolDefine(){ return mParser.getSymbolDefine(); }
 
 	private:

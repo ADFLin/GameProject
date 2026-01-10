@@ -302,7 +302,7 @@ namespace AutoBattler
 
 						if (isWalkable)
 						{
-							addSreachNode(nextPos, node);
+							addSearchNode(nextPos, node);
 						}
 					}
 				}
@@ -331,9 +331,9 @@ namespace AutoBattler
 #if 0
 		// Use A* Pathfinding
 		BattleAStar astar(board, *this, targetGridPos);
-		BattleAStar::SreachResult result;
+		BattleAStar::SearchResult result;
 		
-		if (astar.sreach(gridPos, result))
+		if (astar.search(gridPos, result))
 		{
 			// Path found!
 			// We need the immediate next step (the child of startNode in the path)

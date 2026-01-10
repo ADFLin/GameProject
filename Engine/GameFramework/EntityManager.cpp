@@ -1,7 +1,7 @@
 #include "EntityManager.h"
 #include "Math/Base.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "CoreShare.h"
 
 namespace ECS

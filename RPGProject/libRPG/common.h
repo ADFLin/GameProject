@@ -10,7 +10,7 @@ typedef TVector2< int > Vec2i;
 
 #include "CppVersion.h"
 #include "LogSystem.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "FastDelegate/FastDelegate.h"
 
 #include <vector>

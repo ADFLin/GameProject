@@ -430,9 +430,6 @@ namespace Cube
 		return meshData;
 	}
 
-	ACCESS_SHADER_MEMBER_PARAM(LocalToWorld);
-	ACCESS_SHADER_MEMBER_PARAM(WorldToClip);
-
 	double GTriTime = 0.0;
 	struct RnederContext
 	{

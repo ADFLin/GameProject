@@ -33,7 +33,7 @@ namespace CB
 
 		Curve3DFunc* clone() override;
 	private:
-
+		friend class ShapeMeshBuilder;
 		Expression   mCoordExpr[3];
 	};
 

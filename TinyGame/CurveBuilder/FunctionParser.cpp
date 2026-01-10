@@ -37,6 +37,8 @@ namespace CB
 	bool FunctionParser::compile(Expression& expr, int numInput , ValueLayout inputLayouts[], ParseResult& parseResult)
 	{
 		ExpressionCompiler  compiler;
+		compiler.setTargetType(mExecType);
+		compiler.enableSIMD(mbGenerateSIMD);
 		expr.mIsParsed = compiler.compile(expr.getExprString().c_str(), mSymbolDefine, parseResult, expr.acquireEvalResource<ExecutableCode>(), numInput , inputLayouts);
 		return expr.mIsParsed;
 	}

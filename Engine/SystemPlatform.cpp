@@ -1,6 +1,6 @@
 #include "SystemPlatform.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 
 #include "Core/DateTime.h"
 #include "Core/ScopeGuard.h"

@@ -1,7 +1,7 @@
 #include "OpenGLCommand.h"
 
 #include "GpuProfiler.h"
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "Core/IntegerType.h"
 
 #include "GLExtensions.h"

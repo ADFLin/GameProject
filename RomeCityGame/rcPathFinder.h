@@ -14,7 +14,7 @@ class rcPathFinder
 {
 public:
 	virtual ~rcPathFinder(){}
-	virtual  rcPath*  sreachPath( Vec2i const& from ) = 0;
+	virtual  rcPath*  searchPath( Vec2i const& from ) = 0;
 
 	void   setLevelMap( rcLevelMap* levelMap ){  mLevelMap = levelMap; }
 	

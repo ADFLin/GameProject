@@ -2,7 +2,7 @@
 
 #include "D3DSharedCommon.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "BitUtility.h"
 
 #include "CoreShare.h"

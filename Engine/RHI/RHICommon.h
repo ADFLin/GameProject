@@ -5,7 +5,7 @@
 #include "RHIType.h"
 #include "RHIDefine.h"
 
-#include "MarcoCommon.h"
+#include "MacroCommon.h"
 #include "HashString.h"
 #include "RefCount.h"
 #include "Serialize/SerializeFwd.h"

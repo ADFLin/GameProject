@@ -23,12 +23,12 @@ namespace IDA
 		ScoreType calcDistance( StateType& a, StateType& b){  NEVER_REACH("Need impl calcDistance"); return 0; }
 		bool      isEqual(StateType& state1,StateType& state2 ){  NEVER_REACH("Need impl isEqual"); return false; }
 		bool      isGoal (StateType& state ){ NEVER_REACH("Need impl isGoal"); return false; }
-		//  call addSreachNode for all possible next state
+		//  call addSearchNode for all possible next state
 		template < class TFunc >
 		void      processNeighborNode( StateType& node , ScoreType const& score , TFunc& func ){  NEVER_REACH("Need impl processNeighborNode"); }
 
 	public:
-		void startSreach()
+		void startSearch()
 		{
 
 		}
@@ -40,22 +40,22 @@ namespace IDA
 			RS_NO_FOUND = 2 ,
 		};
 
-		struct SreachResult
+		struct SearchResult
 		{
-			SreachResult( ScoreType inScore , ResultState inState )
+			SearchResult( ScoreType inScore , ResultState inState )
 				:state(inState),score(inScore){}
-			SreachResult(  ResultState inState )
+			SearchResult(  ResultState inState )
 				:state(inState){}
 
 			ResultState state;
 			ScoreType   score;
 		};
 
-		struct SreachNeighborFunc
+		struct SearchNeighborFunc
 		{
 			bool operator()( StateType const& newState , ScoreType const& score )
 			{
-				result = sreachInternal( newState , score , *this );
+				result = searchInternal( newState , score , *this );
 				if ( result.state == RS_FOUND )
 					return false;
 
@@ -66,42 +66,42 @@ namespace IDA
 				return true;
 			}
 
-			static SreachResult sreachInternal( StateType const& state , ScoreType const& score , SreachNeighborFunc& func )
+			static SearchResult searchInternal( StateType const& state , ScoreType const& score , SearchNeighborFunc& func )
 			{
 				if ( score > func.threshold )
 				{
-					return SreachResult( RS_OVER_THRESHOLD , score );
+					return SearchResult( RS_OVER_THRESHOLD , score );
 				}
 				if ( func.mThis->isGoal( state ) )
 				{
-					return SreachResult( RS_FOUND );
+					return SearchResult( RS_FOUND );
 				}
 
 				func.mThis->processNeighborNode( state , score , func);
 				if (func.result.state == RS_FOUND )
-					return SreachResult( RS_FOUND );
+					return SearchResult( RS_FOUND );
 
-				return SreachResult( RS_NO_FOUND );
+				return SearchResult( RS_NO_FOUND );
 			}
 
 	
 			T* mThis;
-			SreachResult result;
+			SearchResult result;
 			ScoreType    threshold;
 			ScoreType    minScore;
 		};
 
-		bool sreach( StateType const& start )
+		bool search( StateType const& start )
 		{
-			startSreach( start );
+			startSearch( start );
 
-			SreachNeighborFunc func;
+			SearchNeighborFunc func;
 			func.mThis = _this();
 			ScoreType threshold = calcHeuristic( start );
 			for(;;)
 			{
 				func.minScore = std::numeric_limits< ScoreType >::max();
-				SreachResult result = SreachNeighborFunc::sreachInternal( start , ScoreType(0) , func);
+				SearchResult result = SearchNeighborFunc::searchInternal( start , ScoreType(0) , func);
 
 				if ( result.state == RS_FOUND )
 				{

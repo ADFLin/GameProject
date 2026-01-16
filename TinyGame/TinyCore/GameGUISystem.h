@@ -66,9 +66,17 @@ public:
 	typedef Tween::GroupTweener< float > Tweener;
 	Tweener&     getTweener(){ return mTweener; }
 	template< class TFun >
-	void         addMotion( GWidget* widget , Vec2i const& from , Vec2i const& to , long time , long delay = 0 , Tween::FinishCallback cb = Tween::FinishCallback() )
+	auto     addMotion( GWidget* widget , Vec2i const& from , Vec2i const& to , long time , long delay = 0 , Tween::FinishCallback cb = Tween::FinishCallback() )
 	{
-		mTweener.tween< TFun , WidgetPos >( *widget , from , to , time , delay ).finishCallback( cb );
+		auto& tween = mTweener.tween< TFun , WidgetPos >( *widget , from , to , time , delay );
+		auto pTween = &tween;
+		widget->addTween(pTween);
+		tween.finishCallback([widget, pTween, cb]()
+		{
+			widget->removeTween(pTween);
+			if (cb) cb();
+		});
+		return pTween;
 	}
 
 	TINY_API GWidget* findTopWidget( int id );

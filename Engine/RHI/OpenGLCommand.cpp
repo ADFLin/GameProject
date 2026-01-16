@@ -1236,19 +1236,19 @@ namespace Render
 	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(OpenGLCast::GetHandle(shaderProgram), param, *texture.getBaseResourceView());
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shaderProgram), param, *OpenGLCast::ToTextureBase(texture).getBaseResourceView());
 	}
 
 	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(OpenGLCast::GetHandle(shaderProgram), param, *texture.getBaseResourceView(), sampler);
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shaderProgram), param, *OpenGLCast::ToTextureBase(texture).getBaseResourceView(), sampler);
 	}
 
 	void OpenGLContext::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, *texture.getBaseResourceView(), sampler);
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, *OpenGLCast::ToTextureBase(texture).getBaseResourceView(), sampler);
 	}
 
 	void OpenGLContext::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
@@ -1260,7 +1260,7 @@ namespace Render
 	void OpenGLContext::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, *texture.getBaseResourceView());
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, *OpenGLCast::ToTextureBase(texture).getBaseResourceView());
 	}
 
 	void OpenGLContext::setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
@@ -1273,7 +1273,7 @@ namespace Render
 	void OpenGLContext::setShaderRWTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 		CHECK_PARAMETER(param);
-		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*OpenGLCast::ToTextureBase(texture).getBaseResourceView());
 		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
 		int indexSlot = fetchSamplerStateSlot(shaderHandle, param.mLoc);
 		glBindImageTexture(indexSlot, resourceViewImpl.handle, level, TRUE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
@@ -1284,7 +1284,7 @@ namespace Render
 	void OpenGLContext::setShaderRWSubTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, int subIndex, int level, EAccessOp op)
 	{
 		CHECK_PARAMETER(param);
-		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*OpenGLCast::ToTextureBase(texture).getBaseResourceView());
 		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
 		int indexSlot = fetchSamplerStateSlot(shaderHandle, param.mLoc);
 		glBindImageTexture(indexSlot, resourceViewImpl.handle, level, FALSE, subIndex, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
@@ -2072,6 +2072,19 @@ namespace Render
 		//glValidateProgramPipeline(getHandle());
 
 		return true;
+	}
+	void OpenGLContext::RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
+	{
+		if (transition == EResourceTransition::UAV || transition == EResourceTransition::UAVBarrier)
+		{
+			// 確保所有的 UAV 寫入在下一次存取前完成
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		}
+		else if (transition == EResourceTransition::SRV)
+		{
+			// 確保寫入完成，以便接下來作為 Texture 或 Buffer 讀取
+			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+		}
 	}
 }
 

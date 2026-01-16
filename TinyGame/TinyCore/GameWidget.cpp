@@ -11,56 +11,44 @@
 #include <cmath>
 #include "ProfileSystem.h"
 
-WidgetRenderer  gRenderer;
+DefaultWidgetRenderer gDefaultRenderer;
+UnrealWidgetRenderer   gUnrealRenderer;
+WidgetRenderer*  gActiveWidgetRenderer = &gUnrealRenderer;
 
-
-void WidgetRenderer::drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color, bool beEnable )
+void DefaultWidgetRenderer::drawButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, ButtonState state, WidgetColor const& color, bool beEnable)
 {
 	Vec2i renderPos = pos;
+	if (state == BS_PRESS)
+		renderPos += Vec2i(1, 1);
 
-	//switch ( state )
-	//{
-	//case BS_HIGHLIGHT:
-	//case BS_NORMAL:
-	//case BS_PRESS:
-	//	RenderUtility::setPen( g , EColor::Gray );
-	//	break;
-	//	//case BS_PRESS:
-	//	//	color = YELLOW;
-	//	//	RenderUtility::setPen( g , GRAY );
-	//	//	break;
-	//}
-	if ( state == BS_PRESS )
-		renderPos += Vec2i( 1 , 1 );
-
-	if ( state == BS_HIGHLIGHT )
-		RenderUtility::SetPen( g , EColor::White );
+	if (state == BS_HIGHLIGHT)
+		RenderUtility::SetPen(g, EColor::White);
 	else
-		RenderUtility::SetPen( g , EColor::Black );
+		RenderUtility::SetPen(g, EColor::Black);
 
-	if( beEnable )
+	if (beEnable)
 	{
 		color.setupBrush(g, COLOR_NORMAL);
 	}
 	else
 	{
-		RenderUtility::SetBrush(g,EColor::Gray, COLOR_NORMAL);
+		RenderUtility::SetBrush(g, EColor::Gray, COLOR_NORMAL);
 	}
 #define DRAW_CAPSULE 1
 
 #if DRAW_CAPSULE
-	RenderUtility::DrawCapsuleX( g , renderPos , size );
+	RenderUtility::DrawCapsuleX(g, renderPos, size);
 #else
 	g.drawRect(renderPos, size);
 #endif
-	RenderUtility::SetPen( g , EColor::Null );
-	RenderUtility::SetBrush( g ,  EColor::White , COLOR_NORMAL );
+	RenderUtility::SetPen(g, EColor::Null);
+	RenderUtility::SetBrush(g, EColor::White, COLOR_NORMAL);
 #if DRAW_CAPSULE
-	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 2 ) , size - Vec2i( 4 , 6 ) );
+	RenderUtility::DrawCapsuleX(g, renderPos + Vec2i(3, 2), size - Vec2i(4, 6));
 #else
 	g.drawRect(renderPos + Vec2i(3, 2), size - Vec2i(4, 6));
 #endif
-	if( beEnable )
+	if (beEnable)
 	{
 		color.setupBrush(g, COLOR_DEEP);
 	}
@@ -69,20 +57,36 @@ void WidgetRenderer::drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const
 		RenderUtility::SetBrush(g, EColor::White, COLOR_DEEP);
 	}
 #if DRAW_CAPSULE
-	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 4  ) , size - Vec2i( 4 , 6 ) );
+	RenderUtility::DrawCapsuleX(g, renderPos + Vec2i(3, 4), size - Vec2i(4, 6));
 #else
 	g.drawRect(renderPos + Vec2i(3, 4), size - Vec2i(4, 6));
 #endif
+
+	if (title && title[0] != '\0')
+	{
+		RenderUtility::SetFont(g, fontType);
+		g.setBrush(Color3ub(255, 255, 255));
+
+		if (state == BS_PRESS)
+		{
+			g.setTextColor(Color3ub(255, 0, 0));
+			renderPos.x += 2;
+			renderPos.y += 2;
+		}
+		else
+		{
+			g.setTextColor(Color3ub(255, 255, 0));
+		}
+		g.drawText(renderPos, size, title, EHorizontalAlign::Center, false);
+	}
 }
 
-void WidgetRenderer::drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color, bool beEnable /*= true */ )
+void DefaultWidgetRenderer::drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color, bool beEnable /*= true */ )
 {
 
 }
 
-
-
-void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , WidgetColor const& color)
+void DefaultWidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , WidgetColor const& color)
 {
 	RenderUtility::SetBrush( g ,  EColor::White  );
 	RenderUtility::SetPen( g , EColor::Black );
@@ -92,14 +96,14 @@ void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const&
 
 }
 
-void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , WidgetColor const& color, float alpha )
+void DefaultWidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , WidgetColor const& color, float alpha )
 {
 	g.beginBlend( pos , size , alpha );
 	drawPanel( g , pos , size , color );
 	g.endBlend();
 }
 
-void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size  , WidgetColor const& color)
+void DefaultWidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size  , WidgetColor const& color)
 {
 
 	int border = 2;
@@ -110,7 +114,7 @@ void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const
 	g.drawRect( pos + Vec2i( border ,border) , size - 2 * Vec2i( border , border ) );
 }
 
-void WidgetRenderer::drawSilder( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize )
+void DefaultWidgetRenderer::drawSilder( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize )
 {
 	RenderUtility::SetPen(g, EColor::Black);
 	RenderUtility::SetBrush( g , EColor::Blue );
@@ -119,6 +123,563 @@ void WidgetRenderer::drawSilder( IGraphics2D& g , Vec2i const& pos , Vec2i const
 	g.drawRoundRect( tipPos , tipSize , Vec2i( 3 , 3 ) );
 	RenderUtility::SetBrush( g , EColor::Yellow );
 	g.drawRoundRect( tipPos + Vec2i( 2 , 2 ) , tipSize - Vec2i( 4 , 4 ) , Vec2i( 1 , 1 ) );
+}
+
+void DefaultWidgetRenderer::drawCheckBox(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, bool bChecked, ButtonState state)
+{
+	int brushColor;
+	int colorType[2];
+	if ( bChecked )
+	{
+		brushColor = EColor::Red;
+		colorType[0] = COLOR_NORMAL;
+		colorType[1] = COLOR_DEEP;
+		RenderUtility::SetPen( g , (state == BS_HIGHLIGHT) ?  EColor::Yellow : EColor::White );
+	}
+	else
+	{
+		brushColor = EColor::Blue;
+		colorType[0] = COLOR_NORMAL;
+		colorType[1] = COLOR_DEEP;
+		RenderUtility::SetPen( g , (state == BS_HIGHLIGHT) ? EColor::Yellow : EColor::Black );
+	}
+	RenderUtility::SetBrush(g, brushColor, colorType[0]);
+	g.drawRect( pos , size );
+
+	RenderUtility::SetBrush(g, brushColor, colorType[1]);
+	RenderUtility::SetPen(g, brushColor);
+	g.drawRect(pos + Vec2i(3, 3), size - 2 * Vec2i(3, 3));
+
+	if (title && title[0] != '\0')
+	{
+		RenderUtility::SetFont(g, fontType);
+		g.setTextColor(Color3ub(255, 255, 0));
+		g.drawText((bChecked) ? pos : pos + Vec2i(1, 1), size, title);
+	}
+}
+
+void DefaultWidgetRenderer::drawChoice(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* selectValue, ButtonState state, EHorizontalAlign alignment)
+{
+	int border = 2;
+	RenderUtility::SetPen( g , EColor::Black );
+	RenderUtility::SetBrush( g , EColor::White );
+	g.drawRoundRect( pos , size ,Vec2i( 5 , 5 ) );
+
+	RenderUtility::SetBrush(g, EColor::Blue, COLOR_DEEP);
+	g.drawRoundRect( pos + Vec2i( border ,border) , size - 2 * Vec2i( border , border ) , Vec2i( 2 , 2 ) );
+
+	if ( selectValue )
+	{
+		RenderUtility::SetFont( g , FONT_S8 );
+		g.setTextColor( Color3ub(255 , 255 , 0) );
+		if (alignment == EHorizontalAlign::Center)
+		{
+			g.drawText(pos, size, selectValue);
+		}
+		else if (alignment == EHorizontalAlign::Left)
+		{
+			g.drawText(pos + Vec2i(6, 0), selectValue);
+		}
+		else
+		{
+			// Right-align dummy logic or implement properly
+			g.drawText(pos, size, selectValue);
+		}
+	}
+}
+
+void DefaultWidgetRenderer::drawChoiceItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected)
+{
+	g.beginBlend( pos , size , 0.8f );
+	RenderUtility::SetPen( g , EColor::Black );
+	RenderUtility::SetBrush( g , EColor::Blue , COLOR_LIGHT );
+	g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
+	g.endBlend();
+
+	if ( bSelected )
+		g.setTextColor(Color3ub(255 , 255 , 255) );
+	else
+		g.setTextColor(Color3ub(0, 0 , 0) );
+
+	RenderUtility::SetFont( g , FONT_S8 );
+	g.drawText( pos , size , value );
+}
+
+void DefaultWidgetRenderer::drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
+{
+	g.beginBlend( pos , size , 0.8f );
+	RenderUtility::SetPen( g , EColor::Black );
+	RenderUtility::SetBrush( g , EColor::Blue  );
+	g.drawRoundRect( pos + Vec2i(2,1), size - Vec2i(4,2) , Vec2i( 5 , 5 ) );
+	g.endBlend();
+}
+
+void DefaultWidgetRenderer::drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color)
+{
+	if (bSelected)
+	{
+		g.beginBlend( pos , size , 0.8f );
+		RenderUtility::SetPen( g , EColor::Black );
+		color.setupBrush( g , COLOR_NORMAL );
+		g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
+		g.endBlend();
+
+		g.setTextColor(Color3ub(255 , 255 , 255) );
+	}
+	else
+		g.setTextColor(Color3ub(255 , 255 , 0) );
+
+	RenderUtility::SetFont( g , FONT_S10 );
+	g.drawText( pos , size , value );
+}
+
+void DefaultWidgetRenderer::drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color)
+{
+	RenderUtility::SetPen( g , EColor::Black );
+	color.setupBrush(g, COLOR_LIGHT);
+	g.drawRoundRect( pos , size , Vec2i( 12 , 12 ) );
+}
+
+void DefaultWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment)
+{
+	RenderUtility::SetPen(g, EColor::Black);
+
+	RenderUtility::SetBrush( g , EColor::Gray  );
+	g.drawRect( pos , size );
+	RenderUtility::SetBrush( g , EColor::Gray , COLOR_LIGHT );
+
+	Vec2i inPos = pos + Vec2i( 2 , 2 );
+	Vec2i inSize = size - Vec2i( 4 , 4 );
+	g.drawRect( inPos , inSize );
+
+	if ( bEnable )
+		g.setTextColor( Color3ub(0 , 0 , 0) );
+	else
+		g.setTextColor( Color3ub(125 , 125 , 125) );
+
+	RenderUtility::SetFont( g , FONT_S10 );
+
+	if (alignment == EHorizontalAlign::Center)
+	{
+		g.drawText(pos, size, value, EHorizontalAlign::Center, false);
+	}
+	else
+	{
+		Vec2i textPos = pos + Vec2i(6, 3);
+		g.drawText(textPos, value);
+	}
+}
+
+void DefaultWidgetRenderer::drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType)
+{
+	RenderUtility::SetFont(g, fontType);
+	g.setTextColor(Color3ub(255, 255, 0));
+	g.drawText(pos, text);
+}
+
+void DefaultWidgetRenderer::drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state)
+{
+	int color = bSelected ? (EColor::Green) : (EColor::Blue);
+	RenderUtility::DrawBlock(g, pos, size, color);
+
+	if (title && title[0] != '\0')
+	{
+		RenderUtility::SetFont(g, FONT_S8);
+		if (bSelected)
+			g.setTextColor(Color3ub(255, 255, 255));
+		else
+			g.setTextColor(Color3ub(255, 255, 0));
+
+		g.drawText(pos, size, title);
+	}
+}
+
+void DefaultWidgetRenderer::drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
+{
+	RenderUtility::SetBrush(g, EColor::Null);
+	g.setPen(Color3ub(255, 255, 255), 0);
+	g.drawLine(pos, pos + Vec2i(size.x - 1, 0));
+}
+
+void DefaultWidgetRenderer::drawNoteBookBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
+{
+	WidgetColor color;
+	color.setValue(Color3ub(50, 100, 150));
+	drawPanel(g, pos, size, color, 0.9f);
+}
+
+void DefaultWidgetRenderer::drawScrollBar(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, bool bHorizontal, Vec2i const& thumbPos, Vec2i const& thumbSize, ButtonState minusState, ButtonState plusState, ButtonState thumbState)
+{
+	int btnSize = 16;
+	// Track
+	RenderUtility::SetBrush(g, EColor::Blue, COLOR_DEEP);
+	RenderUtility::SetPen(g, EColor::Black);
+	g.drawRect(pos, size);
+
+	// Buttons
+	Vec2i btn1Pos = pos;
+	Vec2i btn2Pos = bHorizontal ? pos + Vec2i(size.x - btnSize, 0) : pos + Vec2i(0, size.y - btnSize);
+	Vec2i btnSizeVec(btnSize, btnSize);
+
+	auto drawBtn = [&](Vec2i const& p, ButtonState state) {
+		RenderUtility::SetBrush(g, EColor::Blue, (state == BS_PRESS) ? COLOR_DEEP : COLOR_NORMAL);
+		RenderUtility::SetPen(g, (state == BS_HIGHLIGHT) ? EColor::White : EColor::Black);
+		g.drawRect(p, btnSizeVec);
+	};
+	drawBtn(btn1Pos, minusState);
+	drawBtn(btn2Pos, plusState);
+
+	// Thumb
+	RenderUtility::SetBrush(g, EColor::Yellow, (thumbState == BS_PRESS) ? COLOR_DEEP : COLOR_NORMAL);
+	RenderUtility::SetPen(g, (thumbState == BS_HIGHLIGHT) ? EColor::White : EColor::Black);
+	g.drawRoundRect(pos + thumbPos, thumbSize, Vec2i(4, 4));
+}
+
+void UnrealWidgetRenderer::drawButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, ButtonState state, WidgetColor const& color, bool beEnable)
+{
+	Color3ub colorBG = beEnable ? Color3ub(65, 65, 65) : Color3ub(45, 45, 45);
+	
+	if (!color.bUseName)
+	{
+		colorBG = color.value;
+	}
+
+	Color3ub colorBorder = Color3ub(30, 30, 30);
+	Color3ub colorHighlight = Color3ub(90, 90, 90);
+
+	if (state == BS_HIGHLIGHT)
+	{
+		if (!color.bUseName)
+		{
+			// Make custom color brighter on highlight
+			colorBG = Color3ub(std::min(255, colorBG.r + 20), std::min(255, colorBG.g + 20), std::min(255, colorBG.b + 20));
+		}
+		else
+		{
+			colorBG = Color3ub(85, 85, 85);
+		}
+		colorHighlight = Color3ub(120, 120, 120);
+	}
+	else if (state == BS_PRESS)
+	{
+		colorBG = Color3ub(40, 40, 40);
+		colorHighlight = Color3ub(30, 30, 30);
+	}
+
+	// Shadow / Outer Border
+	g.setBrush(colorBorder);
+	RenderUtility::SetPen(g, EColor::Null);
+	g.drawRect(pos, size);
+
+	// Main Body
+	g.setBrush(colorBG);
+	g.drawRect(pos + Vec2i(1, 1), size - Vec2i(2, 2));
+
+	// Top Bevel
+	if (state != BS_PRESS)
+	{
+		g.setPen(colorHighlight);
+		g.drawLine(pos + Vec2i(1, 1), pos + Vec2i(size.x - 2, 1));
+	}
+
+	// Bottom Accent Line
+	if (state == BS_HIGHLIGHT || state == BS_PRESS)
+	{
+		g.setBrush(Color3ub(0, 120, 215));
+		g.drawRect(pos + Vec2i(1, size.y - 3), Vec2i(size.x - 2, 2));
+	}
+
+	if (title && title[0] != '\0')
+	{
+		RenderUtility::SetFont(g, fontType);
+		Vec2i textPos = pos;
+		if (state == BS_PRESS) textPos += Vec2i(1, 1);
+
+		if (beEnable)
+			g.setTextColor(state == BS_HIGHLIGHT ? Color3ub(255, 255, 255) : Color3ub(230, 230, 230));
+		else
+			g.setTextColor(Color3ub(100, 100, 100));
+
+		// Use the correct rectangle to ensure center alignment
+		g.drawText(textPos, size, title);
+	}
+}
+
+void UnrealWidgetRenderer::drawButton2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, ButtonState state, WidgetColor const& color, bool beEnable /*= true */)
+{
+}
+
+
+void UnrealWidgetRenderer::drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color)
+{
+	// Base layer (Unreal Dark Gray)
+	g.setBrush(Color3ub(35, 35, 35));
+	RenderUtility::SetPen(g, EColor::Null);
+	g.drawRect(pos, size);
+
+	// Subtle Outer Shadow/Border
+	g.setPen(Color3ub(15, 15, 15));
+	g.drawRect(pos, size);
+
+	// UE-style header/top line (slightly lighter)
+	g.setBrush(Color3ub(50, 50, 50));
+	g.drawRect(pos + Vec2i(1, 1), Vec2i(size.x - 2, 2));
+
+	// Internal Highlight Line (Bevel)
+	g.setPen(Color3ub(45, 45, 45));
+	g.drawLine(pos + Vec2i(1, 4), pos + Vec2i(1, size.y - 2));
+}
+
+void UnrealWidgetRenderer::drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color, float alpha)
+{
+	// Even with alpha, we want a solid base feel to avoid "muddy" black transparency
+	g.beginBlend(pos, size, alpha);
+	drawPanel(g, pos, size, color);
+	g.endBlend();
+}
+
+void UnrealWidgetRenderer::drawPanel2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color)
+{
+	drawPanel(g, pos, size, color);
+}
+
+void UnrealWidgetRenderer::drawSilder(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, Vec2i const& tipPos, Vec2i const& tipSize)
+{
+	// Track
+	g.setBrush(Color3ub(25, 27, 30));
+	g.setPen(Color3ub(45, 45, 45));
+	g.drawRect(pos, size);
+
+	// Thumb (Tip)
+	g.setBrush(Color3ub(60, 65, 70));
+	RenderUtility::SetPen(g, EColor::Null);
+	g.drawRoundRect(tipPos, tipSize, Vec2i(4, 4));
+}
+
+void UnrealWidgetRenderer::drawCheckBox(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, bool bChecked, ButtonState state)
+{
+	Vec2i boxSize(16, 16);
+	// Center the box vertically within the widget height
+	Vec2i renderPos = pos + Vec2i(2, (size.y - boxSize.y) / 2);
+
+	// Box background (inset look)
+	g.setBrush(Color3ub(15, 15, 15));
+	g.setPen(Color3ub(60, 60, 60));
+	if (state == BS_HIGHLIGHT) g.setPen(Color3ub(100, 100, 100));
+	g.drawRect(renderPos, boxSize);
+
+	if (bChecked)
+	{
+		g.setBrush(Color3ub(0, 120, 215));
+		RenderUtility::SetPen(g, EColor::Null);
+		g.drawRect(Vector2(renderPos) + Vector2(2.0, 2.0), Vec2i(11, 11));
+	}
+
+	if (title && title[0] != '\0')
+	{
+		RenderUtility::SetFont(g, fontType);
+		g.setTextColor(Color3ub(200, 200, 200));
+		g.drawText(pos + Vec2i(boxSize.x + 10, 0), size - Vec2i(boxSize.x + 10, 0), title);
+	}
+}
+
+void UnrealWidgetRenderer::drawChoice(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* selectValue, ButtonState state, EHorizontalAlign alignment)
+{
+	// Input area
+	Color3ub colorBG(18, 18, 18);
+	if (state == BS_HIGHLIGHT) colorBG = Color3ub(28, 28, 28);
+	
+	g.setBrush(colorBG);
+	g.setPen(Color3ub(80, 80, 80)); 
+	g.drawRect(pos, size);
+
+	// Top intent
+	g.setPen(Color3ub(10, 10, 10));
+	g.drawLine(pos + Vec2i(1, 1), pos + Vec2i(size.x - 2, 1));
+
+	// Side arrow section
+	int arrowWidth = 20;
+	Vec2i arrowAreaPos = pos + Vec2i(size.x - arrowWidth, 1);
+	Vec2i arrowAreaSize = Vec2i(arrowWidth - 1, size.y - 2);
+	g.setBrush(Color3ub(50, 50, 50));
+	g.setPen(Color3ub(30, 30, 30));
+	g.drawRect(arrowAreaPos, arrowAreaSize);
+
+	// Draw Center Arrow (Triangle) - Precisely Balanced for RHI
+	g.setBrush(Color3ub(200, 200, 200));
+	RenderUtility::SetPen(g, EColor::Null);
+	Vec2i cp = arrowAreaPos + arrowAreaSize / 2;
+	Vector2 pts[3] = { cp + Vec2i(-4, -2), cp + Vec2i(4, -2), cp + Vec2i(0, 2) };
+	g.drawPolygon(pts, 3);
+
+	if (selectValue)
+	{
+		RenderUtility::SetFont(g, FONT_S8);
+		g.setTextColor(Color3ub(240, 240, 240));
+		if (alignment == EHorizontalAlign::Center)
+		{
+			g.drawText(pos, size, selectValue, EHorizontalAlign::Center, false);
+		}
+		else
+		{
+			g.drawText(pos + Vec2i(6, 0), Vec2i(size.x - arrowWidth - 6, size.y), selectValue, EHorizontalAlign::Left, false);
+		}
+	}
+}
+
+void UnrealWidgetRenderer::drawChoiceItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected)
+{
+	if (bSelected)
+	{
+		g.setBrush(Color3ub(0, 120, 215));
+		RenderUtility::SetPen(g, EColor::Null);
+		g.drawRect(pos, size);
+		g.setTextColor(Color3ub(255, 255, 255));
+	}
+	else
+	{
+		g.setBrush(Color3ub(40, 40, 40));
+		RenderUtility::SetPen(g, EColor::Null);
+		g.drawRect(pos, size);
+		g.setTextColor(Color3ub(200, 200, 200));
+	}
+
+	RenderUtility::SetFont(g, FONT_S8);
+	g.drawText(pos, size, value);
+}
+
+void UnrealWidgetRenderer::drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
+{
+	g.setBrush(Color3ub(30, 30, 30));
+	g.setPen(Color3ub(80, 80, 80));
+	g.drawRect(pos, size);
+}
+
+void UnrealWidgetRenderer::drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color)
+{
+	if (bSelected)
+	{
+		g.setBrush(Color3ub(0, 120, 215));
+		RenderUtility::SetPen(g, EColor::Null);
+		g.drawRect(pos, size);
+		g.setTextColor(Color3ub(255, 255, 255));
+	}
+	else
+	{
+		g.setTextColor(Color3ub(180, 180, 180));
+	}
+
+	RenderUtility::SetFont(g, FONT_S10);
+	g.drawText(pos, size, value);
+}
+
+void UnrealWidgetRenderer::drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color)
+{
+	g.setBrush(Color3ub(20, 20, 20));
+	g.setPen(Color3ub(10, 10, 10));
+	g.drawRect(pos, size);
+}
+
+void UnrealWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment)
+{
+	g.setBrush(Color3ub(12, 12, 12));
+	g.setPen(bFocus ? Color3ub(0, 150, 255) : Color3ub(75, 75, 75)); 
+	g.drawRect(pos, size);
+
+	if (bEnable)
+		g.setTextColor(Color3ub(240, 240, 240));
+	else
+		g.setTextColor(Color3ub(100, 100, 100));
+
+	RenderUtility::SetFont(g, FONT_S10);
+	if (alignment == EHorizontalAlign::Center)
+	{
+		g.drawText(pos, size, value, EHorizontalAlign::Center, false);
+	}
+	else
+	{
+		// Left-aligned with vertical centering for text controls
+		g.drawText(pos + Vec2i(6, 0), Vec2i(size.x - 6, size.y), value, EHorizontalAlign::Left, false);
+	}
+}
+
+void UnrealWidgetRenderer::drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType)
+{
+	RenderUtility::SetFont(g, fontType);
+	g.setTextColor(Color3ub(225, 225, 225));
+	// Use 4-argument call to enable centering within size
+	g.drawText(pos, size, text);
+}
+
+void UnrealWidgetRenderer::drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state)
+{
+	Color3ub colorBG = bSelected ? Color3ub(40, 40, 40) : Color3ub(25, 25, 25);
+	if (state == BS_HIGHLIGHT) colorBG = Color3ub(50, 50, 50);
+
+	g.setBrush(colorBG);
+	g.setPen(Color3ub(20, 20, 20));
+	g.drawRect(pos, size);
+
+	if (bSelected)
+	{
+		g.setBrush(Color3ub(255, 255, 255));
+		RenderUtility::SetPen(g, EColor::Null);
+		g.drawRect(pos + Vec2i(2, size.y - 2), Vec2i(size.x - 4, 2));
+	}
+
+	if (title && title[0] != '\0')
+	{
+		RenderUtility::SetFont(g, FONT_S8);
+		g.setTextColor(bSelected ? Color3ub(255, 255, 255) : Color3ub(160, 160, 160));
+		g.drawText(pos, size, title);
+	}
+}
+
+void UnrealWidgetRenderer::drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
+{
+	g.setPen(Color3ub(40, 40, 40));
+	RenderUtility::SetBrush(g, EColor::Null);
+	g.drawLine(pos, pos + Vec2i(size.x - 1, 0));
+}
+
+void UnrealWidgetRenderer::drawNoteBookBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
+{
+	g.setBrush(Color3ub(35, 35, 35));
+	g.setPen(Color3ub(20, 20, 20));
+	g.drawRect(pos, size);
+}
+
+void UnrealWidgetRenderer::drawScrollBar(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, bool bHorizontal, Vec2i const& thumbPos, Vec2i const& thumbSize, ButtonState minusState, ButtonState plusState, ButtonState thumbState)
+{
+	int btnSize = 16;
+	Color3ub colorTrack(45, 45, 48);
+	Color3ub colorThumb(62, 62, 66);
+	Color3ub colorThumbHover(104, 104, 104);
+	Color3ub colorThumbPress(0, 122, 204);
+	Color3ub colorArrow(200, 200, 200);
+
+	// Track
+	g.setBrush(colorTrack);
+	RenderUtility::SetPen(g, EColor::Null);
+	g.drawRect(pos, size);
+
+	// Thumb
+	Color3ub colorT = colorThumb;
+	if (thumbState == BS_PRESS) colorT = colorThumbPress;
+	else if (thumbState == BS_HIGHLIGHT) colorT = colorThumbHover;
+	g.setBrush(colorT);
+	g.drawRect(pos + thumbPos, thumbSize);
+
+	// Arrows (simplified)
+	auto drawArrow = [&](Vec2i p, int dir, ButtonState state) {
+		if (state == BS_HIGHLIGHT) g.setBrush(Color3ub(80, 80, 80));
+		else if (state == BS_PRESS) g.setBrush(Color3ub(100, 100, 100));
+		else return;
+		g.drawRect(p, Vec2i(btnSize, btnSize));
+	};
+	drawArrow(pos, 0, minusState);
+	Vec2i btn2Pos = bHorizontal ? pos + Vec2i(size.x - btnSize, 0) : pos + Vec2i(0, size.y - btnSize);
+	drawArrow(btn2Pos, 1, plusState);
 }
 
 GWidget::GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
@@ -133,6 +694,7 @@ GWidget::GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent )
 
 GWidget::~GWidget()
 {
+	cleanupTweens();
 	removeMotionTask();
 	if ( callback )
 		callback->release();
@@ -176,6 +738,29 @@ void GWidget::removeMotionTask()
 {
 	if ( motionTask )
 		motionTask->stop();
+}
+
+void GWidget::addTween(void* tween)
+{
+	mTweens.push_back(tween);
+}
+
+void GWidget::removeTween(void* tween)
+{
+	auto iter = std::find(mTweens.begin(), mTweens.end(), tween);
+	if (iter != mTweens.end())
+	{
+		mTweens.erase(iter);
+	}
+}
+
+void GWidget::cleanupTweens()
+{
+	for (auto tween : mTweens)
+	{
+		::Global::GUI().getTweener().remove(static_cast<Tween::IComponentT<float>*>(tween));
+	}
+	mTweens.clear();
 }
 
 void GWidget::refresh()
@@ -230,9 +815,18 @@ bool GWidget::doClipTest()
 	return true;
 }
 
+void GWidget::SetStyle(Style style)
+{
+	switch (style)
+	{
+	case Style::Default: gActiveWidgetRenderer = &gDefaultRenderer; break;
+	case Style::Unreal: gActiveWidgetRenderer = &gUnrealRenderer; break;
+	}
+}
+
 WidgetRenderer& GWidget::getRenderer()
 {
-	return gRenderer;
+	return *gActiveWidgetRenderer;
 }
 
 Vec2i const GMsgBox::BoxSize( 300 , 150 );
@@ -282,12 +876,14 @@ void GMsgBox::onRender()
 	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i pos = getWorldPos();
-	RenderUtility::SetFont( g , FONT_S12 );
-	g.setTextColor( Color3ub(255 , 255 , 0) );
-	g.drawText( pos , Vec2i( BoxSize.x , BoxSize.y - 30 ) , mTitle.c_str() );
+	getRenderer().drawText(g, pos, Vec2i(BoxSize.x, BoxSize.y - 30), mTitle.c_str(), FONT_S12);
 }
 
-
+void GText::onRender()
+{
+	IGraphics2D& g = Global::GetIGraphics2D();
+	getRenderer().drawText(g, getWorldPos(), getSize(), mText.c_str(), mFontType);
+}
 
 UIMotionTask::UIMotionTask( GWidget* _ui , Vec2i const& _ePos , long time , WidgetMotionType type ) 
 	:LifeTimeTask( time )
@@ -394,39 +990,8 @@ void GButton::onMouse( bool beInside )
 void GButton::onRender()
 {
 	PROFILE_FUNCTION();
-
 	IGraphics2D& g = Global::GetIGraphics2D();
-
-	Vec2i pos  = getWorldPos();
-	Vec2i size = getSize();
-
-	{
-		PROFILE_ENTRY("Button");
-		//assert( !useColorKey );
-		gRenderer.drawButton(g, pos, size, getButtonState(), mColor, isEnable());
-	}
-
-	if ( !mTitle.empty() )
-	{
-		RenderUtility::SetFont( g , mFontType );
-		g.setBrush(Color3ub(255, 255, 255));
-
-		if ( getButtonState() == BS_PRESS )
-		{
-			g.setTextColor( Color3ub(255 , 0 , 0) );
-			pos.x += 2;
-			pos.y += 2;
-		}
-		else
-		{
-			g.setTextColor( Color3ub(255 , 255 , 0) );
-		}
-		{
-			PROFILE_ENTRY("Text");
-			g.drawText(pos, size, mTitle.c_str(), false);
-		}
-		
-	}
+	getRenderer().drawButton(g, getWorldPos(), getSize(), mTitle.c_str(), mFontType, getButtonState(), mColor, isEnable());
 }
 
 GNoteBook::GNoteBook( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
@@ -437,57 +1002,20 @@ GNoteBook::GNoteBook( int id , Vec2i const& pos , Vec2i const& size , GWidget* p
 
 void GNoteBook::doRenderButton( PageButton* button )
 {
-	Graphics2D&  g = Global::GetGraphics2D();
-
-	Vec2i pos = button->getWorldPos();
-	//g.drawRect( pos , button->getSize() );
-
-	int color = button->page == getCurPage() ? ( EColor::Green ) : ( EColor::Blue );
-	RenderUtility::DrawBlock( g , pos , button->getSize() , color );
-	//uiSys._drawButton( pos , button->getSize()  , button->getButtonState() , color );
-
-	if ( !button->title.empty() )
-	{
-		RenderUtility::SetFont( g , FONT_S8 );
-
-		if ( button->page == getCurPage() )
-		{
-			g.setTextColor(Color3ub(255 , 255 , 255) );
-		}
-		else
-		{
-			g.setTextColor(Color3ub(255 , 255 , 0) );
-		}
-
-		g.drawText( pos , button->getSize() , button->title.c_str() );
-	}
+	IGraphics2D&  g = Global::GetIGraphics2D();
+	getRenderer().drawNoteBookButton(g, button->getWorldPos(), button->getSize(), button->title.c_str(), button->page == getCurPage(), button->getButtonState());
 }
 
 void GNoteBook::doRenderPage( Page* page )
 {
-	Vec2i pos = page->getWorldPos();
-	Vec2i size = page->getSize();
-
-	Graphics2D& g = Global::GetGraphics2D();
-
-	//g.beginBlend( pos , size  , 0.6 );
-	{
-		RenderUtility::SetBrush( g , EColor::Null );
-		g.setPen( Color3ub(255,255,255) , 0 );
-		g.drawLine( pos , pos + Vec2i( size.x - 1, 0 ) );
-		//g.drawRect( pos  , size  );
-	}
-	//g.endBlend();
-	//page->postRender();
-
+	IGraphics2D& g = Global::GetIGraphics2D();
+	getRenderer().drawNoteBookPage(g, page->getWorldPos(), page->getSize());
 }
 
 void GNoteBook::doRenderBackground()
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-	WidgetColor color;
-	color.setValue(Color3ub(50, 100, 150));
-	gRenderer.drawPanel( g , getWorldPos() , getSize() , color , 0.9f );
+	getRenderer().drawNoteBookBackground(g, getWorldPos(), getSize());
 }
 
 GTextCtrl::GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent ) 
@@ -498,121 +1026,28 @@ GTextCtrl::GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent )
 
 void GTextCtrl::onRender()
 {
-	Vec2i pos = getWorldPos();
-
 	IGraphics2D& g = Global::GetIGraphics2D();
-
-	RenderUtility::SetPen(g, EColor::Black);
-
-	Vec2i size = getSize();
-	RenderUtility::SetBrush( g , EColor::Gray  );
-	g.drawRect( pos , size );
-	RenderUtility::SetBrush( g , EColor::Gray , COLOR_LIGHT );
-
-	Vec2i inPos = pos + Vec2i( 2 , 2 );
-	Vec2i inSize = size - Vec2i( 4 , 4 );
-	g.drawRect( inPos , inSize );
-
-	if ( isEnable() )
-		g.setTextColor( Color3ub(0 , 0 , 0) );
-	else
-		g.setTextColor( Color3ub(125 , 125 , 125) );
-
-	RenderUtility::SetFont( g , FONT_S10 );
-
-	Vec2i textPos = pos + Vec2i( 6 , 3 );
-	g.drawText( textPos , getValue() );
-
-
-	static int blink = 0;
-
-	if ( isFocus() )
-	{
-		int const blinkCycleTime = 1400;
-		blink += gDefaultTickTime;
-		if ( blink > blinkCycleTime )
-			blink -= blinkCycleTime;
-
-		if ( blink < blinkCycleTime / 2 )
-		{
-			Vec2i rSize;
-			//FIXME
-#if 0
-			if ( mKeyInPos )
-			{
-				rSize = g.calcTextExtentSize( getValue() , mKeyInPos );
-			}
-			else
-			{
-				rSize = g.calcTextExtentSize( getValue() , 1 );
-				rSize.x = 0;
-			}
-			RenderUtility::setPen( g , Color::eBlack );
-			RenderUtility::setBrush( g , Color::eBlack );
-			g.drawRect( textPos + Vec2i( rSize.x , 0 ) , Vec2i( 1 ,rSize.y ) );
-#endif
-		}
-	}
+	getRenderer().drawTextCtrl(g, getWorldPos(), getSize(), getValue(), isFocus(), isEnable(), mAlignment);
 }
 
 
 void GChoice::onRender()
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-
-	Vec2i pos = getWorldPos();
-	Vec2i size = getSize();
-
-	//assert( !useColorKey );
-
-	int border = 2;
-	RenderUtility::SetPen( g , EColor::Black );
-	RenderUtility::SetBrush( g , EColor::White );
-	g.drawRoundRect( pos , size ,Vec2i( 5 , 5 ) );
-	mColor.setupBrush( g , COLOR_DEEP );
-	g.drawRoundRect( pos + Vec2i( border ,border) , size - 2 * Vec2i( border , border ) , Vec2i( 2 , 2 ) );
-
-	//::Global::getGUI()._drawPanel( g , pos , size , BS_NORMAL , mColor , true );
-	if ( getSelectValue() )
-	{
-		RenderUtility::SetFont( g , FONT_S8 );
-		g.setTextColor( Color3ub(255 , 255 , 0) );
-		g.drawText( pos , size , getSelectValue() );
-	}
+	getRenderer().drawChoice(g, getWorldPos(), getSize(), getSelectValue(), BS_NORMAL, mAlignment);
 }
 
 void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool bSelected )
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-
 	Vec2i size( getSize().x , getMenuItemHeight() );
-
-	g.beginBlend( pos , size , 0.8f );
-	RenderUtility::SetPen( g , EColor::Black );
-	RenderUtility::SetBrush( g , EColor::Blue , COLOR_LIGHT );
-	g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
-	g.endBlend();
-
-	if ( bSelected )
-		g.setTextColor(Color3ub(255 , 255 , 255) );
-	else
-		g.setTextColor(Color3ub(0, 0 , 0) );
-
-	RenderUtility::SetFont( g , FONT_S8 );
-	g.drawText( pos , size , item.value.c_str() );
+	getRenderer().drawChoiceItem(g, pos, size, item.value.c_str(), bSelected);
 }
 
 void GChoice::doRenderMenuBG( Menu* menu )
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-
-	Vec2i pos =  menu->getWorldPos();
-	Vec2i size = menu->getSize();
-	g.beginBlend( pos , size , 0.8f );
-	RenderUtility::SetPen( g , EColor::Black );
-	RenderUtility::SetBrush( g , EColor::Blue  );
-	g.drawRoundRect( pos + Vec2i(2,1), size - Vec2i(4,2) , Vec2i( 5 , 5 ) );
-	g.endBlend();
+	getRenderer().drawChoiceMenuBG(g, menu->getWorldPos(), menu->getSize());
 }
 
 GChoice::GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
@@ -646,12 +1081,12 @@ void GPanel::onRender()
 	{
 	case eRoundRectType:
 		g.beginBlend( pos , size , mAlpha );
-		gRenderer.drawPanel( g , pos , size  , mColor );
+		gActiveWidgetRenderer->drawPanel( g , pos , size  , mColor );
 		g.endBlend();
 		break;
 	case eRectType:
 		g.beginBlend( pos , size , mAlpha );
-		gRenderer.drawPanel2( g , pos , size , mColor );
+		gActiveWidgetRenderer->drawPanel2( g , pos , size , mColor );
 		g.endBlend();
 		break;
 	}
@@ -676,32 +1111,14 @@ GListCtrl::GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* p
 void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool bSelected )
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-
 	Vec2i size( getSize().x , getItemHeight() );
-
-	if (bSelected)
-	{
-		g.beginBlend( pos , size , 0.8f );
-		RenderUtility::SetPen( g , EColor::Black );
-		mColor.setupBrush( g , COLOR_NORMAL );
-		g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
-		g.endBlend();
-
-		g.setTextColor(Color3ub(255 , 255 , 255) );
-	}
-	else
-		g.setTextColor(Color3ub(255 , 255 , 0) );
-
-	RenderUtility::SetFont( g , FONT_S10 );
-	g.drawText( pos , size , item.value.c_str() );
+	getRenderer().drawListItem(g, pos, size, item.value.c_str(), bSelected, mColor);
 }
 
 void GListCtrl::doRenderBackground( Vec2i const& pos , Vec2i const& size )
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-	RenderUtility::SetPen( g , EColor::Black );
-	mColor.setupBrush(g, COLOR_LIGHT);
-	g.drawRoundRect( pos , size , Vec2i( 12 , 12 ) );
+	getRenderer().drawListBackground(g, pos, size, mColor);
 }
 
 GFrame::GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
@@ -1021,15 +1438,13 @@ void GSlider::renderValue( GWidget* widget )
 	if (onGetShowValue)
 	{
 		std::string value = onGetShowValue();
-		g.drawText(pos, size, value.c_str());
+		getRenderer().drawText(g, pos, size, value.c_str(), mFontType);
 	}
 	else
 	{
 		InlineString< 256 > str;
 		str.format("%d", getValue());
-		RenderUtility::SetFont(g, FONT_S10);
-		g.drawText(pos, size, str);
-
+		getRenderer().drawText(g, pos, size, str, FONT_S10);
 	}
 }
 
@@ -1041,7 +1456,7 @@ void GSlider::showValue()
 void GSlider::onRender()
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-	gRenderer.drawSilder( g , getWorldPos() , getSize() , getTipWidget()->getWorldPos() , TipSize );
+	getRenderer().drawSilder( g , getWorldPos() , getSize() , getTipWidget()->getWorldPos() , getTipWidget()->getSize() );
 }
 
 GCheckBox::GCheckBox(int id , Vec2i const& pos , Vec2i const& size , GWidget* parent) 
@@ -1067,35 +1482,7 @@ void GCheckBox::onMouse(bool beInside)
 void GCheckBox::onRender()
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-	Vec2i pos  = getWorldPos();
-	Vec2i size = getSize();
-
-	int brushColor;
-	int colorType[2];
-	if ( bChecked )
-	{
-		brushColor = EColor::Red;
-		colorType[0] = COLOR_NORMAL;
-		colorType[1] = COLOR_DEEP;
-		RenderUtility::SetPen( g , (getButtonState() == BS_HIGHLIGHT) ?  EColor::Yellow : EColor::White );
-	}
-	else
-	{
-		brushColor = EColor::Blue;
-		colorType[0] = COLOR_NORMAL;
-		colorType[1] = COLOR_DEEP;
-		RenderUtility::SetPen( g , (getButtonState() == BS_HIGHLIGHT) ? EColor::Yellow : EColor::Black );
-	}
-	RenderUtility::SetBrush(g, brushColor, colorType[0]);
-	g.drawRect( pos , size );
-
-	RenderUtility::SetBrush(g, brushColor, colorType[1]);
-	RenderUtility::SetPen(g, brushColor);
-	g.drawRect(pos + Vec2i(3, 3), size - 2 * Vec2i(3, 3));
-
-	RenderUtility::SetFont( g , FONT_S8 );
-	g.setTextColor(Color3ub(255 , 255 , 0) );
-	g.drawText((bChecked) ? pos : pos + Vec2i(1,1) , size , mTitle.c_str() );
+	getRenderer().drawCheckBox(g, getWorldPos(), getSize(), mTitle.c_str(), mFontType, bChecked, getButtonState());
 }
 
 
@@ -1172,16 +1559,6 @@ GText::GText( Vec2i const& pos, Vec2i const& size, GWidget* parent)
 	setRerouteMouseMsgUnhandled();
 }
 
-void GText::onRender()
-{
-	IGraphics2D& g = Global::GetIGraphics2D();
-	Vec2i pos = getWorldPos();
-	Vec2i size = getSize();
-
-	RenderUtility::SetFont(g, FONT_S8);
-	g.setTextColor(Color3ub(255, 255, 0));
-	g.drawText(pos, size, mText.c_str());
-}
 
 // GScrollBar Implementation
 
@@ -1279,73 +1656,7 @@ int GScrollBar::calcValueFromPos(Vec2i const& pos)
 void GScrollBar::onRender()
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-	Vec2i pos = getWorldPos();
-	Vec2i size = getSize();
-	int btnSize = 16;
-
-	// Colors
-	Color3ub colorTrack(45, 45, 48);
-	Color3ub colorThumb(62, 62, 66);
-	Color3ub colorThumbHover(104, 104, 104);
-	Color3ub colorThumbPress(150, 150, 150); // Or active color
-	Color3ub colorArrow(200, 200, 200);
-	Color3ub colorBtnHover(62, 62, 66);
-	Color3ub colorBtnPress(0, 122, 204);
-
-	// Draw Track
-	g.setBrush(colorTrack);
-	RenderUtility::SetPen(g, EColor::Null);
-	g.drawRect(pos, size);
-
-	// Draw Buttons
-	Vec2i btn1Pos = pos;
-	Vec2i btn2Pos = mbHorizontal ? pos + Vec2i(size.x - btnSize, 0) : pos + Vec2i(0, size.y - btnSize);
-	Vec2i btnSizeVec(btnSize, btnSize);
-
-	// Button 1 (Minus)
-	if (mPressPart == PART_MINUS) g.setBrush(colorBtnPress);
-	else if (mHoverPart == PART_MINUS) g.setBrush(colorBtnHover);
-	else g.setBrush(colorTrack); // Transparent/Track color
-	g.drawRect(btn1Pos, btnSizeVec);
-
-	// Button 2 (Plus)
-	if (mPressPart == PART_PLUS) g.setBrush(colorBtnPress);
-	else if (mHoverPart == PART_PLUS) g.setBrush(colorBtnHover);
-	else g.setBrush(colorTrack);
-	g.drawRect(btn2Pos, btnSizeVec);
-
-	// Draw Arrows
-	g.setBrush(colorArrow);
-	// ... draw triangles ...
-	// Helper to draw arrow
-	auto drawArrow = [&](Vec2i p, int dir) 
-	{
-		// dir: 0=left, 1=right, 2=up, 3=down
-		Vector2 center = Vector2(p) + Vector2(btnSize / 2.0f, btnSize / 2.0f);
-		float s = 4.0f;
-		Vector2 v[3];
-		if (dir == 0) { v[0] = center + Vector2(-s, 0); v[1] = center + Vector2(s, -s); v[2] = center + Vector2(s, s); }
-		else if (dir == 1) { v[0] = center + Vector2(s, 0); v[1] = center + Vector2(-s, -s); v[2] = center + Vector2(-s, s); }
-		else if (dir == 2) { v[0] = center + Vector2(0, -s); v[1] = center + Vector2(-s, s); v[2] = center + Vector2(s, s); }
-		else if (dir == 3) { v[0] = center + Vector2(0, s); v[1] = center + Vector2(-s, -s); v[2] = center + Vector2(s, -s); }
-		g.drawPolygon(v, 3);
-	};
-
-	if (mbHorizontal) { drawArrow(btn1Pos, 0); drawArrow(btn2Pos, 1); }
-	else { drawArrow(btn1Pos, 2); drawArrow(btn2Pos, 3); }
-
-	// Draw Thumb
-	Vec2i thumbWorldPos = pos + mThumbPos;
-	if (mPressPart == PART_THUMB) g.setBrush(colorThumbPress);
-	else if (mHoverPart == PART_THUMB) g.setBrush(colorThumbHover);
-	else g.setBrush(colorThumb);
-
-	// Rounded rect for thumb
-	g.drawRoundRect(thumbWorldPos, mThumbSize, Vector2(4, 4));
-
-
-
-	//g.enablePen(true);
+	getRenderer().drawScrollBar(g, getWorldPos(), getSize(), mbHorizontal, mThumbPos, mThumbSize, mPressPart == PART_MINUS ? BS_PRESS : (mHoverPart == PART_MINUS ? BS_HIGHLIGHT : BS_NORMAL), mPressPart == PART_PLUS ? BS_PRESS : (mHoverPart == PART_PLUS ? BS_HIGHLIGHT : BS_NORMAL), mPressPart == PART_THUMB ? BS_PRESS : (mHoverPart == PART_THUMB ? BS_HIGHLIGHT : BS_NORMAL));
 }
 
 MsgReply GScrollBar::onMouseMsg(MouseMsg const& msg)

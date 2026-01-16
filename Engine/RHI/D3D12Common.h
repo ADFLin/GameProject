@@ -643,8 +643,19 @@ namespace Render
 
 	};
 
+	class D3D12TextureBase
+	{
+	public:
+		virtual ~D3D12TextureBase() {}
+		virtual ID3D12Resource* getD3D12Resource() = 0;
+		D3D12_RESOURCE_STATES mCurrentStates;
+		D3D12PooledHeapHandle mSRV;
+		D3D12PooledHeapHandle mRTVorDSV;
+		D3D12PooledHeapHandle mUAV;
+	};
+
 	template< class TRHIResource >
-	class TD3D12Texture : public TD3D12Resource< TRHIResource >
+	class TD3D12Texture : public TD3D12Resource< TRHIResource >, public D3D12TextureBase
 	{
 	public:
 		TD3D12Texture(TextureDesc const& desc)
@@ -652,18 +663,17 @@ namespace Render
 			mDesc = desc;
 		}
 
-		virtual void releaseResource()
+		virtual ID3D12Resource* getD3D12Resource() override { return mResource; }
+
+		virtual void* getNativeInternal() override { return static_cast<D3D12TextureBase*>(this); }
+
+		virtual void releaseResource() override
 		{
 			TD3D12Resource< TRHIResource >::releaseResource();
 			D3D12DescriptorHeapPool::FreeHandle(mSRV);
 			D3D12DescriptorHeapPool::FreeHandle(mRTVorDSV);
 			D3D12DescriptorHeapPool::FreeHandle(mUAV);
 		}
-
-		D3D12_RESOURCE_STATES mCurrentStates;
-		D3D12PooledHeapHandle mSRV;
-		D3D12PooledHeapHandle mRTVorDSV;
-		D3D12PooledHeapHandle mUAV;
 	};
 
 	class D3D12Texture1D : public TD3D12Texture< RHITexture1D >
@@ -706,6 +716,8 @@ namespace Render
 			return true;
 		}
 		virtual void releaseResource();
+
+		virtual void* getNativeInternal() override { return this; }
 
 		bool isDyanmic() const
 		{
@@ -752,6 +764,33 @@ namespace Render
 
 		D3D12_SAMPLER_DESC    mDesc;
 		D3D12PooledHeapHandle mHandle;
+	};
+
+	struct D3D12Cast
+	{
+		template< class TRHIResource >
+		static auto* To(TRHIResource* resource) { return static_cast<typename TD3D12TypeTraits< TRHIResource >::ImplType*>(resource); }
+
+		template< class TRHIResource >
+		static auto& To(TRHIResource& resource) { return static_cast<typename TD3D12TypeTraits< TRHIResource >::ImplType&>(resource); }
+
+		template < class T >
+		static auto* To(TRHIResourceRef<T>& ptr) { return D3D12Cast::To(ptr.get()); }
+
+		static ID3D12Resource* GetResource(RHIResource& RHIObject);
+		static ID3D12Resource* GetResource(RHIResource* RHIObject) { return RHIObject ? GetResource(*RHIObject) : nullptr; }
+		template< class T >
+		static ID3D12Resource* GetResource(TRHIResourceRef<T>& refPtr) { return GetResource(refPtr.get()); }
+
+		static D3D12TextureBase& ToTextureBase(RHITextureBase& resource)
+		{
+			return *static_cast<D3D12TextureBase*>(resource.getNativeInternal());
+		}
+		template< class TRHIResource >
+		static D3D12TextureBase& ToTextureBase(TD3D12Texture< TRHIResource >& texture)
+		{
+			return static_cast<D3D12TextureBase&>(texture);
+		}
 	};
 }
 

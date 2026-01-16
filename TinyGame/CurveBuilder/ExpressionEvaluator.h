@@ -46,8 +46,8 @@ public:
 	void execFuncCall(FuncSymbolInfo const& funcSymbol);
 
 	TArrayView<RealType const> mInputs;
-	TArray<RealType, TInlineAllocator<16> > mTempValues;
-	TArray<Unit, TInlineAllocator<32> > mValueStack;
+	TArray<RealType, TFixedAllocator<16> > mTempValues;
+	TArray<Unit, TFixedAllocator<32> > mValueStack;
 };
 
 class ExprTreeEvaluator : public ExprEvaluatorBase

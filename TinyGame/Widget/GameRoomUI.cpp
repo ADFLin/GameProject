@@ -17,6 +17,7 @@ SlotFrame::SlotFrame( Slot& slot , Vec2i const& pos , Vec2i const& size , Player
 	setRenderType( eRectType );
 
 	mStateChoice = new GChoice( UI_PLAYER_SLOT ,  Vec2i( 30 , 2 ) , Vec2i( 100 , 25 ) , this );
+	mStateChoice->setAlignment(EHorizontalAlign::Left);
 	mStateChoice->setUserData( intptr_t(&slot) );
 	mStateChoice->addItem( LOCTEXT("Open") ); //0
 	mStateChoice->addItem( LOCTEXT("Close") );//1
@@ -50,22 +51,21 @@ MsgReply SlotFrame::onMouseMsg( MouseMsg const& msg )
 
 void SlotFrame::onRender()
 {
-	BaseClass::onRender();
-
+	IGraphics2D& g = Global::GetIGraphics2D();
 	Vec2i pos = getWorldPos();
+	Vec2i size = getSize();
 
-	Graphics2D& g = Global::GetGraphics2D();
-	InlineString< 512 > str;
-	if ( getSlot().info )
-	{
-		str.format( "%d %d" , getSlot().id , getSlot().info->slot );
+	// Draw Slot Background with Border
+	g.setPen(Color3ub(45, 140, 180), 1);
+	g.setBrush(Color3ub(30, 32, 36)); 
+	g.drawRoundRect(pos, size, Vec2i(6, 6));
 
-	}
-	else
-	{
-		str.format( "%d" , getSlot().id  );
-	}
-	g.drawText( pos , str );
+	// Draw only Slot Index (1, 2, 3...) at the far left
+	RenderUtility::SetFont(g, FONT_S10);
+	g.setTextColor(Color3ub(120, 120, 120)); // Muted Gray
+	char idxStr[8];
+	sprintf(idxStr, "%d", (int)getSlot().id + 1);
+	g.drawText(pos + Vec2i(10, 5), idxStr);
 }
 
 
@@ -355,7 +355,14 @@ PlayerId PlayerListPanel::emptySlot( SlotId id , SlotState state )
 
 void PlayerListPanel::onRender()
 {
-	BaseClass::onRender();
+	IGraphics2D& g = Global::GetIGraphics2D();
+	Vec2i pos = getWorldPos();
+	Vec2i size = getSize();
+
+	// Semitransparent dark background for the panel
+	g.setPen(Color3ub(50, 60, 80), 1);
+	g.setBrush(Color3ub(20, 25, 30));
+	g.drawRoundRect(pos, size, Vec2i(10, 10));
 }
 
 ComMsgPanel::ComMsgPanel( int _id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
@@ -374,6 +381,7 @@ ComMsgPanel::ComMsgPanel( int _id , Vec2i const& pos , Vec2i const& size , GWidg
 	int texCtrlLen = size.x - 2 * offset - btnSize.x - 5;
 	//GPanel*    panel    = new GPanel( UI_ANY , panelPos , panelSize , this );
 	mMsgTextCtrl = new GTextCtrl( UI_MSG_CTRL , ctrlPos ,  texCtrlLen  , this );
+	mMsgTextCtrl->setAlignment(EHorizontalAlign::Left);
 	GButton* button = new GButton( UI_MSG_CTRL , ctrlPos + Vec2i( texCtrlLen + 5 , 0 ) , btnSize , this );
 	button->setTitle( "Send" );
 	//GSlider*   slider   = new GSlider( UI_MSG_SLIDER , TVec2D( size.x - 10  , 0 ) , size.y - btnSize.y - 5  , false , this  );
@@ -417,16 +425,23 @@ bool ComMsgPanel::onChildEvent( int event , int id , GWidget* ui )
 
 void ComMsgPanel::renderText( GWidget* ui )
 {
-	Graphics2D& g = Global::GetGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
+	Vec2i p = ui->getWorldPos();
+	Vec2i s = ui->getSize();
 
-	Vec2i pos = ui->getWorldPos() + Vec2i( 10 , 10 );
+	// Panel BG
+	g.setPen(Color3ub(50, 60, 80), 1);
+	g.setBrush(Color3ub(20, 25, 35));
+	g.drawRoundRect(p, s, Vec2i(10, 10));
+
+	Vec2i pos = p + Vec2i( 10 , 10 );
 	RenderUtility::SetFont( g , FONT_S8 );
 	for( MsgList::iterator iter = mMsgList.begin();
 		iter != mMsgList.end() ; ++ iter )
 	{
 		g.setTextColor(iter->color);
 		g.drawText( pos , iter->msg.c_str() );
-		pos.y += 15;
+		pos.y += 18;
 	}
 }
 

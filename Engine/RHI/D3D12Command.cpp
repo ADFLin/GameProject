@@ -1,6 +1,8 @@
 #include "D3D12Command.h"
 #include "D3D12ShaderCommon.h"
 #include "D3D12Utility.h"
+#include "D3D12Buffer.h"
+#include "D3D12Buffer.h"
 
 #include "RHIGlobalResource.h"
 #include "RHIMisc.h"
@@ -290,8 +292,8 @@ namespace Render
 			infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
 		}
 
-
 		D3D12DescriptorHeapPool::Get().initialize(mDevice);
+		D3D12DynamicBufferManager::Get().initialize(mDevice);
 
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -1201,7 +1203,8 @@ namespace Render
 
 	bool D3D12System::updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level /*= 0*/)
 	{
-		mRenderContext.waitForGpu();
+		// Optimization: Use DynamicBufferManager (Ring Buffer) and Graphics Queue to avoid CPU Sync Stall (waitForGpu)
+		// This assumes we are inside a frame (RHIBeginRender called).
 
 		auto Desc = textureResource->GetDesc();
 		Desc.Width = width;
@@ -1213,19 +1216,11 @@ namespace Render
 		mDevice->GetCopyableFootprints(&Desc, level, 1, 0, &layout, &numRows, &rowSizesInBytes, &RequiredSize);
 		const UINT64 uploadBufferSize = (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT * RequiredSize + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT - 1) / D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 
-
-		TComPtr<ID3D12Resource> textureCopy;
-
-		// Create the GPU upload buffer.
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommittedResource(
-			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&FD3D12Init::BufferDesc(uploadBufferSize),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&textureCopy)));
-
-		textureCopy->SetName(L"TextureUpload");
+		D3D12BufferAllocation allocation;
+		if (!D3D12DynamicBufferManager::Get().allocFrame(uploadBufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, allocation))
+		{
+			return false;
+		}
 
 
 		D3D12_SUBRESOURCE_DATA textureData = {};
@@ -1235,40 +1230,49 @@ namespace Render
 
 
 
-		BYTE* pData;
-		textureCopy->Map(0, nullptr, reinterpret_cast<void**>(&pData));
-
+		// Direct CPU Copy to Persistent Mapped Buffer
+		BYTE* pData = allocation.cpuAddress;
 		D3D12_MEMCPY_DEST DestData = { pData + layout.Offset, layout.Footprint.RowPitch, SIZE_T(layout.Footprint.RowPitch) * SIZE_T(numRows) };
 		MemcpySubresource(&DestData, &textureData, static_cast<SIZE_T>(rowSizesInBytes), numRows);
 
-		textureCopy->Unmap(0, nullptr);
+		// Record Copy Commands on Graphics Command List
+		// Ensure we are using the main graphics command list which handles barriers correctly.
+		auto commandList = mRenderContext.mGraphicsCmdList;
+		
+		// Transition to COPY_DEST
+		D3D12_RESOURCE_BARRIER BarrierDesc = {};
+		BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		BarrierDesc.Transition.pResource = textureResource;
+		BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		BarrierDesc.Transition.StateBefore = states;
+		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
-		mCopyCmdAllocator->Reset();
-		mCopyCmdList->Reset(mCopyCmdAllocator, nullptr);
-
-		mCopyCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(textureResource, states, D3D12_RESOURCE_STATE_COPY_DEST));
-
+		bool bNeedTransition = (BarrierDesc.Transition.StateBefore != BarrierDesc.Transition.StateAfter);
+		if (bNeedTransition)
 		{
-			D3D12_TEXTURE_COPY_LOCATION Dst;
-			Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			Dst.pResource = textureResource;
-			Dst.SubresourceIndex = level;
-			D3D12_TEXTURE_COPY_LOCATION Src;
-			Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-			Src.pResource = textureCopy;
-			Src.PlacedFootprint = layout;
-			mCopyCmdList->CopyTextureRegion(&Dst, ox, oy, 0, &Src, nullptr);
+			commandList->ResourceBarrier(1, &BarrierDesc);
 		}
 
+		D3D12_TEXTURE_COPY_LOCATION Dst = {};
+		Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		Dst.pResource = textureResource;
+		Dst.SubresourceIndex = level;
 
-		mCopyCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(textureResource, D3D12_RESOURCE_STATE_COPY_DEST, states));
+		D3D12_TEXTURE_COPY_LOCATION Src = {};
+		Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		Src.pResource = allocation.ptr;
+		Src.PlacedFootprint = layout;
+		Src.PlacedFootprint.Offset += (allocation.gpuAddress - allocation.ptr->GetGPUVirtualAddress());
 
-		mCopyResources.push_back(std::move(textureCopy));
-		mCopyCmdList->Close();
-		ID3D12CommandList* ppCommandLists[] = { mCopyCmdList };
-		mCopyCmdQueue->ExecuteCommandLists(ARRAY_SIZE(ppCommandLists), ppCommandLists);
+		commandList->CopyTextureRegion(&Dst, ox, oy, 0, &Src, nullptr);
 
-		waitCopyCommand();
+		// Transition back
+		if (bNeedTransition)
+		{
+			std::swap(BarrierDesc.Transition.StateBefore, BarrierDesc.Transition.StateAfter);
+			commandList->ResourceBarrier(1, &BarrierDesc);
+		}
 		return true;
 	}
 
@@ -2286,23 +2290,37 @@ namespace Render
 		{
 		case EResourceTransition::UAV:
 			return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-#if 0
 		case EResourceTransition::SRV:
 			return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
-#endif
 		case EResourceTransition::RenderTarget:
 			return D3D12_RESOURCE_STATE_RENDER_TARGET;
+
 		}
 		NEVER_REACH("GetResourceStates");
 		return D3D12_RESOURCE_STATE_COMMON;
 	}
 	void D3D12Context::RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
 	{
-		D3D12_RESOURCE_BARRIER barriers[16];
+		if (transition == EResourceTransition::UAVBarrier)
+		{
+			TArray< D3D12_RESOURCE_BARRIER, TInlineAllocator<16> > barriers;
+			for (auto resource : resources)
+			{
+				if (resource == nullptr)
+					continue;
 
-		CHECK(resources.size() < ARRAY_SIZE(barriers));
+				barriers.push_back(FD3D12Init::UAVBarrier(D3D12Cast::GetResource(*resource)));
+			}
 
-		int numBarrier = 0;
+			if (barriers.size())
+			{
+				mGraphicsCmdList->ResourceBarrier(barriers.size(), barriers.data());
+			}
+			return;
+		}
+
+		TArray< D3D12_RESOURCE_BARRIER, TInlineAllocator<16> > barriers;
+
 		for (auto resource : resources)
 		{
 			if ( resource == nullptr )
@@ -2314,71 +2332,42 @@ namespace Render
 				break;
 			case EResourceType::Texture:
 				{
-					switch (static_cast<RHITextureBase*>(resource)->getType())
+					D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(static_cast<RHITextureBase&>(*resource));
+					auto toState = GetResourceStates(transition);
+					if (textureImpl.mCurrentStates != toState)
 					{
-					case ETexture::Type1D:
-						{
-							D3D12Texture1D* textureImpl = static_cast<D3D12Texture1D*>(resource);
-							auto toState = GetResourceStates(transition);
-							if (textureImpl->mCurrentStates != toState)
-							{
-								barriers[numBarrier] = FD3D12Init::TransitionBarrier(textureImpl->getResource(), textureImpl->mCurrentStates, toState,
-									D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAG_NONE);
-								textureImpl->mCurrentStates = toState;
-								++numBarrier;
-							}
-						}
-						break;
-					case ETexture::Type2D:
-						{
-							D3D12Texture2D* textureImpl = static_cast<D3D12Texture2D*>(resource);
-							auto toState = GetResourceStates(transition);
-							if (textureImpl->mCurrentStates != toState)
-							{
-								barriers[numBarrier] = FD3D12Init::TransitionBarrier(textureImpl->getResource(), textureImpl->mCurrentStates, toState,
-									D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAG_NONE);
-								textureImpl->mCurrentStates = toState;
-								++numBarrier;
-							}
-						}
-						break;
-					case ETexture::Type3D:
-						break;
-					case ETexture::TypeCube:
-						break;
+						barriers.push_back(FD3D12Init::TransitionBarrier(textureImpl.getD3D12Resource(), textureImpl.mCurrentStates, toState,
+							D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAG_NONE));
+						textureImpl.mCurrentStates = toState;
 					}
 				}
 				break;
 			}
-
 		}
 
-		if (numBarrier)
+		if (barriers.size())
 		{
-			mGraphicsCmdList->ResourceBarrier(numBarrier, barriers);
+			mGraphicsCmdList->ResourceBarrier(barriers.size(), barriers.data());
 		}
+	}
+
+	ID3D12Resource* GetTextureResource(RHITextureBase& texture);
+
+	ID3D12Resource* D3D12Cast::GetResource(RHIResource& resource)
+	{
+		if (resource.getResourceType() == EResourceType::Buffer)
+			return static_cast<D3D12Buffer&>(resource).getResource();
+
+		if (resource.getResourceType() == EResourceType::Texture)
+			return GetTextureResource(static_cast<RHITextureBase&>(resource));
+
+		return nullptr;
 	}
 
 	ID3D12Resource* GetTextureResource(RHITextureBase& texture)
 	{
-		switch (texture.getType())
-		{
-		case ETexture::Type1D:
-			return static_cast<D3D12Texture1D&>(texture).getResource();
-		case ETexture::Type2D:
-			return static_cast<D3D12Texture2D&>(texture).getResource();
-		case ETexture::Type3D:
-			return static_cast<D3D12Texture3D&>(texture).getResource();
-		case ETexture::TypeCube:
-			return static_cast<D3D12TextureCube&>(texture).getResource();
-#if 0
-		case ETexture::Type2DArray:
-			return static_cast<D3D12Texture2DArray&>(texture).getResource();
-#endif
-		}
-
-		NEVER_REACH("GetTextureResource");
-		return nullptr;
+		D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
+		return textureImpl.getD3D12Resource();
 	}
 
 	void D3D12Context::RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
@@ -2546,7 +2535,8 @@ namespace Render
 
 	void D3D12Context::setShaderTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture)
 	{
-		auto const& handle = static_cast<D3D12Texture2D&>(texture).mSRV;
+		D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
+		auto const& handle = textureImpl.mSRV;
 		updateCSUHeapUsage(handle);
 
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
@@ -2609,29 +2599,12 @@ namespace Render
 	void D3D12Context::setShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
 
-		D3D12PooledHeapHandle const* handle;
-		ID3D12Resource* resource;
-		switch (texture.getType())
-		{
-		case ETexture::Type1D: 
-			handle = &static_cast<D3D12Texture1D&>(texture).mUAV; 
-			resource = static_cast<D3D12Texture1D&>(texture).getResource(); 
-			break;
-		case ETexture::Type2D:
-			handle = &static_cast<D3D12Texture2D&>(texture).mUAV; 
-			resource = static_cast<D3D12Texture2D&>(texture).getResource(); 
-			break;
-#if 0
-		case ETexture::Type3D:
-			handle = &static_cast<D3D12Texture3D&>(texture).mUAV;
-			resource = static_cast<D3D12Texture3D&>(texture).getResource();
-			break;
-#endif
-		}
+		D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
+		auto const* handle = &textureImpl.mUAV;
+		ID3D12Resource* resource = textureImpl.getD3D12Resource();
 
 		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
 
-		mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0));
 		//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
 
 		updateCSUHeapUsage(*handle);
@@ -2670,7 +2643,6 @@ namespace Render
 		if (resource)
 		{
 			//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
-			mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0));
 		}
 	}
 

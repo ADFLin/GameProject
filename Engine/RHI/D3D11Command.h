@@ -56,7 +56,8 @@ namespace Render
 			
 		}
 
-		bool initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext);
+		bool initialize(EShader::Type type, TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext);
+		EShader::Type mShaderType = EShader::Type::Vertex;
 
 		void releaseResource()
 		{
@@ -88,6 +89,7 @@ namespace Render
 		void bindShader(class D3D11ShaderData& shader);
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
 		bool clearTexture(ShaderParameter const& parameter);
+		bool clearTextureByLoc(int loc);
 		bool clearUAV(ShaderParameter const& parameter);
 		void setRWTexture(ShaderParameter const& parameter, RHITextureBase& texture, int level);
 		void setRWSubTexture(ShaderParameter const& parameter, RHITextureBase& texture, int subIndex, int level);
@@ -109,6 +111,8 @@ namespace Render
 		void clearSRVResource(ID3D11DeviceContext* context,RHIResource& resource);
 		template< EShader::Type TypeValue >
 		void clearSRVResource(ID3D11DeviceContext* context);
+
+		void clearUAVResource(ID3D11UnorderedAccessView* UAV);
 
 
 		template< EShader::Type TypeValue >
@@ -311,10 +315,7 @@ namespace Render
 
 		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 
-		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
-		{
-
-		}
+		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
 		void RHIFlushCommand()
 		{
 			mDeviceContext->Flush();
@@ -330,18 +331,12 @@ namespace Render
 
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
-		void RHIClearSRVResource(RHIResource* resource)
-		{
-			if (resource)
-			{
-				clearSRVResource(*resource);
-			}
-		}
 
 
 		void commitGraphicsShaderState();
 
 		void commitComputeState();
+		void commitUAVState();
 		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, uint32 const* pIndices, EPrimitive& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
 
 

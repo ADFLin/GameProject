@@ -154,7 +154,7 @@ namespace DLX
 		int getRowSize() const { return mRowCount; }
 		NodeLink header;
 		TArray< MatrixColumn > mCols;
-		TArray< Node, FixedSizeAllocator > mNodes;
+		TArray< Node, CappedAllocator > mNodes;
 		int mRowCount;
 	};
 
@@ -198,10 +198,10 @@ namespace DLX
 			++mSolutionCount;
 		}
 
-		TArray< LevelInfo, FixedSizeAllocator > mLevelStack;
+		TArray< LevelInfo, CappedAllocator > mLevelStack;
 
 		int mSolutionCount = 0;
-		TArray< int , FixedSizeAllocator > mSolution;
+		TArray< int , CappedAllocator > mSolution;
 		Matrix* mMat;
 	};
 

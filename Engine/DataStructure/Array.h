@@ -199,7 +199,7 @@ struct DefaultAllocator
 	};
 };
 
-struct FixedSizeAllocator
+struct CappedAllocator
 {
 	template< class T >
 	struct TArrayData : TDynamicArrayData<T>
@@ -218,9 +218,9 @@ struct FixedSizeAllocator
 };
 
 template < size_t TotalSize >
-struct TInlineAllocator
+struct TFixedAllocator
 {
-	enum 
+	enum
 	{
 		IsDynamic = 0,
 	};
@@ -240,7 +240,7 @@ struct TInlineAllocator
 		void   alloc(size_t OldSize, size_t numNewElements)
 		{
 		}
-		size_t getMaxSize() const { return TotalSize;  }
+		size_t getMaxSize() const { return TotalSize; }
 		T*     getAllocation() const { return (T*)mStorage; }
 
 		void reserve(size_t size)
@@ -252,6 +252,162 @@ struct TInlineAllocator
 
 		}
 		TCompatibleByte< T >  mStorage[TotalSize];
+		void swap(TArrayData& other)
+		{
+			//Fixed storage can't swap
+			//CHECK(0);
+		}
+	};
+};
+
+
+template < size_t NumInlineElements, class SecondaryAllocator = DefaultAllocator >
+struct TInlineAllocator
+{
+	enum { IsDynamic = 1 };
+
+	template< class T >
+	struct TArrayData : private SecondaryAllocator::template TArrayData<T>
+	{
+		using BaseDynamicData = typename SecondaryAllocator::template TArrayData<T>;
+
+		TArrayData()
+		{
+			this->mStorage = (void*)mInlineStorage;
+			this->mMaxSize = NumInlineElements;
+		}
+
+		~TArrayData()
+		{
+			if (isUsingInline())
+			{
+				this->mStorage = nullptr;
+				this->mMaxSize = 0;
+			}
+		}
+
+		bool isUsingInline() const
+		{
+			return this->mStorage == (void*)mInlineStorage;
+		}
+
+		bool needAlloc(size_t OldSize, size_t numNewElements)
+		{
+			return OldSize + numNewElements > this->mMaxSize;
+		}
+
+		void alloc(size_t oldSize, size_t numNewElements)
+		{
+			if (isUsingInline())
+			{
+				// Switch to Heap
+				size_t growSize = oldSize + numNewElements;
+				growSize += (3 * growSize) / 8;
+
+				size_t allocSize = sizeof(T) * growSize;
+				void* newAlloc = FMemory::Alloc(allocSize);
+				CHECK_ALLOC_PTR(newAlloc);
+				
+				if (oldSize)
+				{
+					FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)this->mStorage);
+				}
+				
+				this->mStorage = newAlloc;
+				this->mMaxSize = growSize;
+			}
+			else
+			{
+				BaseDynamicData::alloc(oldSize, numNewElements);
+			}
+		}
+		
+		void reserve(size_t oldSize, size_t size)
+		{
+			if (size > this->mMaxSize)
+			{
+				if( isUsingInline() )
+				{
+					//Force alloc to heap
+					alloc(oldSize, size - oldSize);
+				}
+				else
+				{
+					BaseDynamicData::reserve(oldSize, size);
+				}
+			}
+		}
+
+		size_t getMaxSize() const { return BaseDynamicData::getMaxSize(); }
+		T*     getAllocation() const { return BaseDynamicData::getAllocation(); }
+
+		void shrinkTofit(size_t size)
+		{
+			if (!isUsingInline())
+			{
+				if (size <= NumInlineElements)
+				{
+					// Move back to inline
+					if (size)
+					{
+						FTypeMemoryOp::MoveSequence((T*)mInlineStorage, size, (T*)this->mStorage);
+					}
+					
+					// Free heap storage which is managed by BaseDynamicData
+					// BaseDynamicData::cleanup() is not public or virtual, so we rely on BaseDynamicData's methods or logic
+					// BaseDynamicData::mStorage is accessible.
+					FMemory::Free(this->mStorage);
+
+					this->mStorage = (void*)mInlineStorage;
+					this->mMaxSize = NumInlineElements;
+				}
+				else
+				{
+					BaseDynamicData::shrinkTofit(size);
+				}
+			}
+		}
+
+		void swap(TArrayData& other)
+		{
+			if (isUsingInline() && other.isUsingInline())
+			{
+				// Both inline: swap contents? TArray logic swaps mNum, but TArrayData usually swaps storage pointer.
+				// Swapping inline storage involves moving elements.
+				// TArray::swap handles mNum swap.
+				// But TArrayData::swap expects to swap pointers. Since pointers are fixed to 'this', we must move data?
+				// TArray::swap assumes cheap pointer swap. If storage is local, swap is expensive (copy).
+				// We should probably NOT support cheap swap for inline allocator or implement deep swap.
+				// For now, let's implement deep copy swap for inline part.
+				// Wait, TArray::swap calls ArrayData::swap(other).
+				
+				// Implementing full swap logic for mixed Inline/Heap states is complex.
+				// Simplification: Standard TArray swap just swaps pointers.
+				// If we swap pointers, 'this->mStorage' will point to 'other.mInlineStorage', which is dangerous as 'other' might die.
+				
+				// Standard solution: If either is inline, fall back to element-wise swap (slow) or promote both to heap (safe but alloc).
+				// Or, don't support swap if inline.
+				
+				// Let's defer swap implementation or make it promote to Heap if one is inline?
+				// Promoting to heap defeats the purpose.
+				// Element-wise swap is needed.
+				// But ArrayData doesn't know 'mNum' (element count).
+				
+				// Currently, just Error or fallback to heap promote?
+				// Let's assert for now to be safe, as correct swap without mNum is impossible for inline storage.
+				CHECK(0 && "Swap not fully supported for TInlineAllocator");
+			}
+			else if (!isUsingInline() && !other.isUsingInline())
+			{
+				BaseDynamicData::swap(other);
+			}
+			else
+			{
+				CHECK(0 && "Swap not fully supported for TInlineAllocator");
+			}
+		}
+
+		TCompatibleByte< T > mInlineStorage[NumInlineElements];
 	};
 };
 

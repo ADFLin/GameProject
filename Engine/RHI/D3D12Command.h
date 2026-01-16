@@ -243,13 +243,6 @@ namespace Render
 
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
-		void RHIClearSRVResource(RHIResource* resource)
-		{
-			if (resource)
-			{
-				clearSRVResource(*resource);
-			}
-		}
 		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
 
 		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);

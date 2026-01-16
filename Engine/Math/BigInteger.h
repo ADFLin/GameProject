@@ -384,6 +384,9 @@ unsigned TBigUint<NumWord>::mul( BaseType n )
 	else
 		dn = NumWord - 1;
 
+	if ( dn == -1 )
+		return 0;
+
 	unsigned c = mulElement( dn , BaseType(n) );
 	for( int i = dn - 1; i >= 0  ; --i )
 		c += mulElement( i , BaseType(n) );
@@ -435,9 +438,9 @@ void TBigUint<NumWord>::shiftLeftElement( unsigned offset , unsigned fill )
 	{
 		elements[ i ] = elements[ i - offset ];
 	}
-	for ( ; i >= 0 ; --i )
+	for ( int j = (int)offset - 1 ; j >= 0 ; --j )
 	{
-		elements[ i ] = fill;
+		elements[ j ] = fill;
 	}
 }
 
@@ -716,7 +719,7 @@ void TBigUint<NumWord>::convertToString( TBigUint& temp , std::string& str , uns
 		if ( i == fNum )
 			str.push_back('.');
 	}
-	while ( !temp.isZero() );
+	while (!temp.isZero() || i <= fNum);
 	std::reverse( str.begin() , str.end() );
 }
 

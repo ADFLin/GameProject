@@ -6,14 +6,12 @@
 #include <unordered_set>
 #include <sstream>
 
-// Forward declaration if not available strictly via headers (assuming LogMsg exists as per TestAssert.h assumption)
-// In a real scenario, we might include "LogSystem.h" or similar.
-
 class StringTest
 {
 public:
-	static RunResult run()
+	static EUTRunResult run()
 	{
+		using FbString = TString<char>;
 		// 1. Small String
 		{
 			FbString str = "Small";
@@ -53,7 +51,7 @@ public:
 			// Test CoW
 			FbString copyStr = str;
 			UT_ASSERT_EQ(copyStr.category(), FbString::Large);
-			UT_ASSERT_EQ((void*)copyStr.c_str(), (void*)str.c_str()); // Shared buffer check
+			UT_ASSERT(copyStr.c_str() == str.c_str()); // Shared buffer check
 			
 			// Modify copy - should trigger Unshare
 			copyStr += 'B';

@@ -1,0 +1,184 @@
+#include "Common.sgc"
+
+cbuffer MParamsBlock
+{
+	double2 CoordParam;     // Slot 0: Center High
+	double2 CoordParam2;    // Slot 1: Ratio High
+	float4  ColorMapParam;  // Slot 2
+	double2 CoordParamLow;  // Slot 3: Center Low
+	double2 CoordParam2Low; // Slot 4: Ratio Low
+	double2 Rotate;         // Slot 5: Cos, Sin
+	int2    ViewSize;       // Slot 6
+	int     MaxIteration;
+	int     Padding;
+	double2 RefCoord;       // Slot 7: Display Only
+	double2 RefCoordLow;    // Slot 8
+	double2 CenterToRefDelta_Rel; // Slot 9: (Center - Ref) / PixelWidth
+	float2  ViewportRatio;        // Slot 10: The world-scale of a single pixel (could be 10^-500)
+	int     PaddingAlignment[20];
+}
+
+DEFINE_TEXTURE(Texture1D, ColorMapTexture);
+DEFINE_RW_STRUCTURED_BUFFER(double2, OrbitBuffer);
+
+#if COMPILER_HLSL
+RWTexture2D< float4 > ColorRWTexture;
+#else
+layout(rgba32f) uniform writeonly image2D ColorRWTexture;
+#endif
+
+#ifndef SIZE_X
+#define SIZE_X 8
+#endif
+#ifndef SIZE_Y
+#define SIZE_Y 8
+#endif
+
+
+CS_NUM_THREADS(SIZE_X, SIZE_Y, 1)
+CS_ENTRY(MainCS)
+{
+	uint3	DTid = SvDispatchThreadID;
+	
+	double2 centerFull = CoordParam + CoordParamLow;
+	double2 ratioFull  = CoordParam2 + CoordParam2Low;
+	double2 viewSize_f = (double2)ViewSize;
+	double  bailoutSq  = (double)ColorMapParam.z;
+
+
+	double2 pixelOffset = (double2)DTid.xy - 0.5 * viewSize_f;
+	double2 vRel = pixelOffset * ratioFull;
+
+	// Official Rotation: x' = x*cos + y*sin, y' = -x*sin + y*cos
+	double2 p_offset;
+	p_offset.x = Rotate.x * vRel.x + Rotate.y * vRel.y;
+	p_offset.y = -Rotate.y * vRel.x + Rotate.x * vRel.y;
+
+	// Reconstructed absolute coordinate
+	double2 c_pixel = centerFull + p_offset;
+
+	// 3. Absolute DC calculation (World Units)
+	double2 pixelOffset_db = (double2)DTid.xy - 0.5 * viewSize_f;
+	double2 dc = pixelOffset_db * ratioFull + CenterToRefDelta_Rel;
+
+	bool bBufferValid = (dot(OrbitBuffer[1], OrbitBuffer[1]) > 0.0);
+
+	int iter = 0;
+	if (!bBufferValid)
+	{
+		double2 z = 0;
+		for (iter = 0; iter < MaxIteration; ++iter)
+		{
+			double2 z_next;
+			z_next.x = z.x * z.x - z.y * z.y + c_pixel.x;
+			z_next.y = 2.0 * z.x * z.y + c_pixel.y;
+			z = z_next;
+			if (dot(z, z) > bailoutSq) break;
+		}
+	}
+	else
+	{
+		double2 dz = 0; 
+		for (iter = 0; iter < MaxIteration; ++iter)
+		{
+			double2 Zn = OrbitBuffer[iter];
+
+			double2 dz_next;
+			// dz_next = 2.0 * Zn * dz + dz^2 + dc
+			dz_next.x = 2.0 * (Zn.x * dz.x - Zn.y * dz.y) + (dz.x * dz.x - dz.y * dz.y) + dc.x;
+			dz_next.y = 2.0 * (Zn.x * dz.y + Zn.y * dz.x) + (2.0 * dz.x * dz.y) + dc.y;
+
+			dz = dz_next;
+
+			// Ultra-Deep Escape Check (Preserves precision up to E300)
+			// Objective: |Zn + dz|^2 > bailoutSq
+			// Expand: |Zn|^2 + 2*dot(Zn, dz) + |dz|^2 > bailoutSq
+			// Reorder to avoid precision loss: 2*dot(Zn, dz) + |dz|^2 > (bailoutSq - |Zn|^2)
+			
+			double dotZn = dot(Zn, Zn);
+			double dotDz = dot(dz, dz);
+			
+			if (dotZn > bailoutSq) break; // Ref escaped, we definitely escaped
+
+			double neededDelta = bailoutSq - dotZn;
+			double providedDelta = 2.0 * dot(Zn, dz) + dotDz;
+			
+			if (providedDelta > neededDelta) break;
+		}
+	}
+
+	float3 color = (iter == MaxIteration) ? float3(0, 0, 0) : TEXTURE_SAMPLE(ColorMapTexture, float(iter) / float(MaxIteration) * ColorMapParam.x * 50 + ColorMapParam.y).rgb;
+#if 0
+
+	if (iter < MaxIteration)
+	{
+		float f = log2(float(iter) + 1.0) / 10.0;
+		color.r = saturate(0.5 * sin(12.0 * f + 0.0) + 0.5);
+		color.g = saturate(0.5 * sin(12.0 * f + 2.0) + 0.5);
+		color.b = saturate(0.5 * sin(12.0 * f + 4.0) + 0.5);
+	}
+#endif
+
+
+#if COMPILER_HLSL
+	ColorRWTexture[DTid.xy] = float4(color, float(iter));
+#else
+	imageStore(ColorRWTexture, DTid.xy, float4(color, float(iter)));
+#endif
+}
+
+DEFINE_RW_STRUCTURED_BUFFER(uint2, ResultBuffer);
+
+groupshared uint gs_MaxIter;
+groupshared uint gs_PackedCoord;
+groupshared uint gs_MinDistSq;
+
+CS_NUM_THREADS(16, 16, 1)
+CS_ENTRY(AnalysisCS)
+{
+	uint3 DTid = SvDispatchThreadID;
+	uint Gid = SvGroupIndex;
+	float2 viewSize_f = (float2)ViewSize;
+
+	if (Gid == 0)
+	{
+		gs_MaxIter = 0;
+		gs_PackedCoord = 0;
+		gs_MinDistSq = 0xffffffff;
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	uint iter = 0;
+	if (all(DTid.xy < uint2(viewSize_f)))
+	{
+		iter = uint(ColorRWTexture[DTid.xy].w);
+	}
+
+	InterlockedMax(gs_MaxIter, iter);
+	GroupMemoryBarrierWithGroupSync();
+
+	if (iter == gs_MaxIter && gs_MaxIter > 0)
+	{
+		float2 center = 0.5 * viewSize_f;
+		float2 diff = float2(DTid.xy) - center;
+		uint distSq = uint(dot(diff, diff));
+
+		uint oldDist;
+		InterlockedMin(gs_MinDistSq, distSq, oldDist);
+		if (distSq <= gs_MinDistSq)
+		{
+			gs_PackedCoord = (DTid.x << 16) | (DTid.y & 0xffff);
+		}
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	if (Gid == 0 && gs_MaxIter > 0)
+	{
+		uint prevMax;
+		InterlockedMax(ResultBuffer[0].x, gs_MaxIter, prevMax);
+		if (gs_MaxIter >= prevMax)
+		{
+			ResultBuffer[0].y = gs_PackedCoord;
+		}
+	}
+}

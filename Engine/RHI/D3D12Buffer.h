@@ -6,6 +6,7 @@
 
 #include "DataStructure/Array.h"
 #include "Memory/BuddyAllocator.h"
+#include "PlatformThread.h"
 
 namespace Render
 {
@@ -119,23 +120,29 @@ namespace Render
 			mDevice = device;
 			mResourceSize = resourceSize;
 			mSizeUsage = 0;
+			mCurrentPage.resource = nullptr;
+			mCurrentPage.cpuAddr = nullptr;
 		}
 
 		bool alloc(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation);
 
 		void markFence();
 
-		bool createHeap();
-		bool lockCurrentResource();
-
-		int mIndexCur = 0;
+		struct Page
+		{
+			ID3D12Resource* resource;
+			uint8* cpuAddr;
+		};
+		bool createNewPage(Page& outPage);
 
 		ID3D12DeviceRHI* mDevice = nullptr;
 		uint32 mResourceSize = 0;
 		uint32 mSizeUsage = 0;
-		uint8* mCpuPtr = nullptr;
 
-		TArray< ID3D12Resource* > mResources;
+		Page mCurrentPage;
+		TArray< Page > mFreePages;
+		TArray< Page > mUsedPages;
+		RWLock mLock;
 	};
 
 	class D3D12UploadHeapPage
@@ -220,6 +227,10 @@ namespace Render
 				delete page;
 			}
 			mHeapPages.clear();
+			for( auto allocator : mFrameAllocators )
+			{
+				delete allocator;
+			}
 			mFrameAllocators.clear();
 			mDevice = nullptr;
 		}
@@ -234,7 +245,7 @@ namespace Render
 		ID3D12DeviceRHI* mDevice = nullptr;
 
 		TArray< D3D12UploadHeapPage* > mHeapPages;
-		TArray< D3D12FrameHeapAllocator > mFrameAllocators;
+		TArray< D3D12FrameHeapAllocator* > mFrameAllocators;
 
 	};
 

@@ -3,55 +3,109 @@
 #pragma optionNV(fastmath off)
 #pragma optionNV(fastprecision off)
 
-#define USE_DOUBLE_SIM 0
-
-#if USE_DOUBLE_SIM
-#include "DoubleSim.sgc"
-#define ScalarType  float2
-#define ComplexType float4
-#else
-#include "ComplexCommon.sgc"
-#define ScalarType  float
-#define ComplexType float2
-void StoreValue(out float outValue, float s)
-{
-	outValue = s;
-}
-void StoreValue(out float2 outValue, float2 s)
-{
-	outValue = s;
-}
-float Compare(float a, float b)
-{
-	if (a < b)
-	{
-		return -1.;
-	}
-	if (a > b)
-	{
-		return 1.;
-	}
-	return 0.;
-}
+// -------------------------------------------------------------------------
+// Macro Definitions & Preprocessor Hacks
+// -------------------------------------------------------------------------
+#ifndef USE_NATIVE_DOUBLE
+#	define USE_NATIVE_DOUBLE 0
+#endif
+#ifndef USE_DOUBLE_SIM
+#	define USE_DOUBLE_SIM 0
 #endif
 
+// Always define USE_DOUBLE_INPUT based on the above
+#undef USE_DOUBLE_INPUT
+#if USE_NATIVE_DOUBLE
+#	define USE_DOUBLE_INPUT 1
+#else
+#	if USE_DOUBLE_SIM
+#		define USE_DOUBLE_INPUT 1
+#	else
+#		define USE_DOUBLE_INPUT 0
+#	endif
+#endif
 
+// 對抗引擎預處理器刪除 'precise' 關鍵字
+#undef precise
+#define DS_PRECISE precise
+
+// -------------------------------------------------------------------------
+// Precision Selection
+// -------------------------------------------------------------------------
+#if USE_NATIVE_DOUBLE && USE_DOUBLE_SIM
+  #define DS_BASE_TYPE double
+  #define DS_TYPE      double2
+  #include "DoubleSim.sgc"
+  #define ScalarType   double2
+  #define ComplexType  double4
+
+  inline ComplexType RotateDS(ScalarType c, ScalarType s, ComplexType v)
+  {
+	DS_PRECISE double2 tx = DSMul(c, v.xy);
+	DS_PRECISE double2 ty = DSMul(s, v.zw);
+	DS_PRECISE double2 sx = DSMul(s, v.xy);
+	DS_PRECISE double2 cy = DSMul(c, v.zw);
+	return double4(DSAdd(tx, ty), DSSub(cy, sx));
+  }
+#elif USE_NATIVE_DOUBLE
+  #include "ComplexCommon.sgc"
+  #define ScalarType  double
+  #define ComplexType double2
+  ComplexType ComplexAdd(ComplexType a, ComplexType b) { return a + b; }
+  ComplexType ComplexSub(ComplexType a, ComplexType b) { return a - b; }
+  ComplexType ComplexMul(ComplexType a, ComplexType b) { return double2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+  ScalarType  ComplexAbsSquare(ComplexType a) { return a.x*a.x + a.y*a.y; }
+  void StoreValueN(out double outValue, float s) { outValue = double(s); }
+  float CompareN(double a, double b) { return float(a - b); }
+#elif USE_DOUBLE_SIM
+  #define DS_BASE_TYPE float
+  #define DS_TYPE      float2
+  #include "DoubleSim.sgc"
+  #define ScalarType  float2
+  #define ComplexType float4
+
+  inline ComplexType RotateDS(ScalarType c, ScalarType s, ComplexType v)
+  {
+	DS_PRECISE float2 tx = DSMul(c, v.xy);
+	DS_PRECISE float2 ty = DSMul(s, v.zw);
+	DS_PRECISE float2 sx = DSMul(s, v.xy);
+	DS_PRECISE float2 cy = DSMul(c, v.zw);
+	return float4(DSAdd(tx, ty), DSSub(cy, sx));
+  }
+  void StoreValueDS(out float2 v, float a) { v = float2(a, 0.0); }
+#else
+  #include "ComplexCommon.sgc"
+  #define ScalarType  float
+  #define ComplexType float2
+  void StoreValueF(out float outValue, float s) { outValue = s; }
+  float CompareF(float a, float b) { return a - b; }
+#endif
+
+float2 RotateF(float c, float s, float2 v) { return float2(c * v.x + s * v.y, -s * v.x + c * v.y); }
+
+// -------------------------------------------------------------------------
+// Resources & CBuffer: MATCHING CPP LAYOUT
+// -------------------------------------------------------------------------
 #if COMPUTE_SHADER
-
 cbuffer MParamsBlock
 {
-uniform float4 CoordParam;  //xy = center pos , zw = min pos ;
-uniform float4 CoordParam2; //xy = dx dy , zw = rect rotation cos sin;
-uniform float4 ColorMapParam; // x = density , y = color rotation , bailoutSquare;
-uniform int   MaxIteration;
+uniform double2 CoordParam;
+uniform double2 CoordParam2;
+uniform float4  ColorMapParam;
+#if USE_DOUBLE_INPUT
+uniform double2 CoordParamLow;
+uniform double2 CoordParam2Low;
+#endif
+uniform double2 Rotate;
 uniform int2  ViewSize;
+uniform int   MaxIteration;
 }
+
 
 #if COMPILER_HLSL
 RWTexture2D< float4 > ColorRWTexture;
 #else
 layout(rgba32f) uniform writeonly image2D  ColorRWTexture;
-//layout(r32ui) uniform writeonly uimage2D IteratorRWTexture;
 #endif
 DEFINE_TEXTURE( Texture1D , ColorMapTexture );
 
@@ -62,21 +116,6 @@ DEFINE_TEXTURE( Texture1D , ColorMapTexture );
 #define SIZE_Y 8
 #endif
 
-#if USE_DOUBLE_SIM
-ComplexType Rotate(ScalarType c, ScalarType s, ComplexType v)
-{
-	float4 result;
-	result.xy = DSAdd(DSMul(c, v.xy), DSMul(s, v.zw));
-	result.zw = DSSub(DSMul(c, v.zw), DSMul(s, v.xy));
-	return result;
-}
-#endif
-
-float2 Rotate(float c, float s, float2 v)
-{
-	return float2(c * v.x + s * v.y, -s * v.x + c * v.y);
-}
-
 CS_NUM_THREADS(SIZE_X, SIZE_Y, 1)
 CS_ENTRY(MainCS)
 {
@@ -84,45 +123,67 @@ CS_ENTRY(MainCS)
 	if (pixelPos.x >= ViewSize.x || pixelPos.y >= ViewSize.y)
 		return;
 
-	//float2 pos = CoordParam.zw + float2(pixelPos) * CoordParam2.xy;
-	//float2 z0 = center + Rotate(rc, rs, ComplexSub(pos, center));
-#if 1
-	ComplexType pos;
-	StoreValue(pos, CoordParam.zw);
-	ComplexType delta;
-	StoreValue(delta, float2(pixelPos));
-#if USE_DOUBLE_SIM
-	ScalarType sx;
-	StoreValue(sx, CoordParam2.x);
-	ScalarType sy;
-	StoreValue(sy, CoordParam2.y);
-	delta.xy = DSMul(delta.xy, sx);
-	delta.zw = DSMul(delta.zw, sy);
-#else
-	delta *= CoordParam2.xy;
-#endif
-	pos = ComplexAdd(pos, delta);
-
-
-	ComplexType center;
-	StoreValue(center, CoordParam.xy);
-	ScalarType rc;
-	StoreValue(rc, CoordParam2.z);
-	ScalarType rs;
-	StoreValue(rs, CoordParam2.w);
-	ComplexType z0 = center;
-	z0 = ComplexAdd(z0, Rotate(rc, rs, ComplexSub(pos, center)));
-#else
-	float2 pos = CoordParam.zw + float2(pixelPos) * CoordParam2.xy;
-	float2 z0f = CoordParam.xy + Rotate(CoordParam2.z, CoordParam2.w, pos - CoordParam.xy);
 	ComplexType z0;
-	StoreValue(z0, z0f);
+
+#if USE_NATIVE_DOUBLE && USE_DOUBLE_SIM
+	ScalarType sx, sy;
+	ComplexType center;
+
+	sx = double2(CoordParam2.x, CoordParam2Low.x);
+	sy = double2(CoordParam2.y, CoordParam2Low.y);
+	center.xy = double2(CoordParam.x, CoordParamLow.x);
+	center.zw = double2(CoordParam.y, CoordParamLow.y);
+
+	DS_PRECISE double2 dx = double2(double(pixelPos.x) - 0.5 * double(ViewSize.x), 0.0);
+	DS_PRECISE double2 dy = double2(double(pixelPos.y) - 0.5 * double(ViewSize.y), 0.0);
+	
+	// 使用 Double-Double 旋轉與位移計算 z0
+	z0 = ComplexAdd(center, RotateDS(double2(Rotate.x, 0.0), double2(Rotate.y, 0.0), double4(DSMul(dx, sx), DSMul(dy, sy))));
+
+#elif USE_NATIVE_DOUBLE
+	double2 center, ratio;
+	center = CoordParam + CoordParamLow;
+	ratio  = CoordParam2 + CoordParam2Low;
+	
+	double rc = Rotate.x;
+	double rs = Rotate.y;
+	double2 vRel = (double2(pixelPos) - 0.5 * double2(ViewSize)) * ratio;
+	z0 = center + double2(rc * vRel.x + rs * vRel.y, -rs * vRel.x + rc * vRel.y);
+
+#elif USE_DOUBLE_SIM
+	ScalarType sx, sy;
+	ComplexType center;
+
+	// 強制對每個輸入 double 進行拆分，捕捉 float(d) 丟失的低位精確度
+	#define TO_DS(H, L) float2(float(H), float(H - double(float(H))) + float(L))
+
+	sx = TO_DS(CoordParam2.x, CoordParam2Low.x);
+	sy = TO_DS(CoordParam2.y, CoordParam2Low.y);
+	center.xy = TO_DS(CoordParam.x, CoordParamLow.x);
+	center.zw = TO_DS(CoordParam.y, CoordParamLow.y);
+
+	float2 rc = TO_DS(Rotate.x, 0.0);
+	float2 rs = TO_DS(Rotate.y, 0.0);
+
+	DS_PRECISE float2 dx = float2(float(pixelPos.x) - 0.5f * float(ViewSize.x), 0.0);
+	DS_PRECISE float2 dy = float2(float(pixelPos.y) - 0.5f * float(ViewSize.y), 0.0);
+	z0 = ComplexAdd(center, RotateDS(rc, rs, float4(DSMul(dx, sx), DSMul(dy, sy))));
+
+#else
+	float2 vRel = (float2(pixelPos) - 0.5f * float2(ViewSize)) * float2(CoordParam2);
+	z0 = float2(CoordParam) + RotateF(float(Rotate.x), float(Rotate.y), vRel);
 #endif
 
 	ScalarType threshold;
-	StoreValue(threshold, ColorMapParam.z);
+#if USE_DOUBLE_SIM
+	threshold = StoreValue(ColorMapParam.z);
+#elif USE_NATIVE_DOUBLE
+	StoreValueN(threshold, ColorMapParam.z);
+#else
+	StoreValueF(threshold, ColorMapParam.z);
+#endif
 
-	ComplexType z = z0;
+	DS_PRECISE ComplexType z = z0;
 	int iteration = 0;
 
 	LOOP
@@ -130,24 +191,21 @@ CS_ENTRY(MainCS)
 	{
 		z = ComplexAdd(ComplexMul(z, z) , z0);
 		ScalarType rSquare = ComplexAbsSquare(z);
-		if ( Compare(rSquare, threshold) > 0)
-			break;
+#if USE_DOUBLE_SIM
+		if ( Compare(rSquare, threshold) > 0) break;
+#elif USE_NATIVE_DOUBLE
+		if ( CompareN(rSquare, threshold) > 0) break;
+#else
+		if ( CompareF(rSquare, threshold) > 0) break;
+#endif
 	}
 
-	//imageStore(IteratorRWTexture, pixelPos, uint4(iteration));
-	float3 color = (iteration == MaxIteration) ? float3(0,0,0) : TEXTURE_SAMPLE(ColorMapTexture, float(iteration) / float(MaxIteration) * ColorMapParam.x * 50 + ColorMapParam.y).rgb;
+	float3 color = (iteration == MaxIteration) ? float3(0, 0, 0) : TEXTURE_SAMPLE(ColorMapTexture, float(iteration) / float(MaxIteration) * ColorMapParam.x * 50 + ColorMapParam.y).rgb;
 
-
-	float d = float(iteration) / float(MaxIteration);
 #if COMPILER_HLSL
-	ColorRWTexture[pixelPos] = float4(color, 1);
+	ColorRWTexture[pixelPos] = float4(color, float(iteration));
 #else
-	imageStore(ColorRWTexture, pixelPos, float4( color , 1 ) );
-	//imageStore(ColorRWTexture, pixelPos, float4( float(iteration) / float(100) ));
-	//imageStore(ColorRWTexture, pixelPos, float4(float(100) / float(100)));
+	imageStore(ColorRWTexture, pixelPos, float4(color, float(iteration)));
 #endif
-
-
 }
-
 #endif

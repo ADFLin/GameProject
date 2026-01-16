@@ -7,7 +7,7 @@
 #include "Array.h"
 
 template< class T, size_t N >
-using TInlineArray = TArray< T, TInlineAllocator<N> >;
+using TInlineArray = TArray< T, TFixedAllocator<N> >;
 
 #else
 

@@ -35,7 +35,7 @@ enum class ECodeExecType : uint8
 
 struct CodeDataEmpty {};
 
-namespace CB_Internal
+namespace ExprInternal
 {
 	template< typename RT, typename ...Args >
 	FORCEINLINE RT CallAsm(void const* ptr, Args... args)
@@ -88,7 +88,7 @@ struct TCodeExecutor<AsmCodeBuffer>
 	template<typename RT, typename ...Args>
 	FORCEINLINE RT eval(Args ...args) const
 	{
-		return CB_Internal::CallAsm<RT>(mData.getCode(), args...);
+		return ExprInternal::CallAsm<RT>(mData.getCode(), args...);
 	}
 };
 #endif

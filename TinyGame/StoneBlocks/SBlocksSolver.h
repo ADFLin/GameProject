@@ -239,7 +239,7 @@ namespace SBlocks
 		uint32* mTestFramePtr;
 		int     mMaxCount;
 		PieceShape::InitData mCachedShapeData;
-		TArray<Vec2i, FixedSizeAllocator> mCachedQueryList;
+		TArray<Vec2i, CappedAllocator> mCachedQueryList;
 
 		void setup(MarkMap const& map, SolveOption const& option);
 		void copyFrom(MapSolveData const& rhs);

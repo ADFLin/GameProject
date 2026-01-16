@@ -309,8 +309,6 @@ namespace Render
 
 	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc);
 
-	RHI_API void RHIClearSRVResource(RHICommandList& commandList, RHIResource* resource);
-
 	RHI_API void RHIResolveTexture(RHICommandList& commandList, RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 
 
@@ -352,6 +350,7 @@ namespace Render
 	{
 		UAV,
 		SRV,
+		UAVBarrier,
 		RenderTarget,
 	};
 	RHI_API void RHIResourceTransition(RHICommandList& commandList, TArrayView<RHIResource*> resources, EResourceTransition transition);

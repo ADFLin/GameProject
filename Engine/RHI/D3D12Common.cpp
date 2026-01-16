@@ -401,7 +401,6 @@ namespace Render
 		mHandle = D3D12DescriptorHeapPool::Alloc(desc);
 	}
 
-
 	void D3D12Buffer::releaseResource()
 	{
 		if (mDynamicAllocation.ptr)

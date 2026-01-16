@@ -43,7 +43,6 @@ namespace Render
 		RHI_FUNC(void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler));
 
 		RHI_FUNC(void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex));
-		RHI_FUNC(void RHIClearSRVResource(RHIResource* resource));
 		RHI_FUNC(void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ));
 
 

@@ -91,10 +91,12 @@ bool ReplayEditStage::onInit()
 	Vec2i panelPos( 170 , 30 );
 	Vec2i panelSize( 250 , 500 );
 	mRLPanel = new ReplayListPanel( UI_REPLAYLIST_PANEL , panelPos , panelSize , NULL );
+	mRLPanel->setRenderType(GPanel::eRectType);
 	::Global::GUI().addWidget( mRLPanel );
 	mRLPanel->loadDir( REPLAY_DIR );
 
 	GPanel* infoPanel = new GPanel( UI_ANY , panelPos + Vec2i( panelSize.x + 10 , 0 ) , Vec2i( 200 , 400 ) , NULL );
+	infoPanel->setRenderType(GPanel::eRectType);
 	::Global::GUI().addWidget( infoPanel );
 	infoPanel->setRenderCallback( RenderCallBack::Create( this , &ReplayEditStage::renderReplayInfo ));
 
@@ -157,6 +159,22 @@ bool ReplayEditStage::onWidgetEvent( int event , int id , GWidget* ui )
 		return false;
 	}
 	return true;
+}
+
+void ReplayEditStage::onRender(float dFrame)
+{
+	IGraphics2D& g = Global::GetIGraphics2D();
+	g.beginRender();
+
+	Vec2i screenSize = Global::GetScreenSize();
+
+	RenderUtility::DrawDashboardBackground(g);
+
+	// Sidebar-like accent highlight
+	g.setPen(Color3ub(45, 140, 180), 2); // Cyan accent
+	g.drawLine(Vec2i(150, 0), Vec2i(150, screenSize.y));
+
+	g.endRender();
 }
 
 void ReplayEditStage::renderReplayInfo( GWidget* ui )

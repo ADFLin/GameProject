@@ -1366,8 +1366,9 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11ResourceBoundState::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
+	bool D3D11ResourceBoundState::initialize(EShader::Type type, TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
 	{
+		mShaderType = type;
 		clear();
 		for( int i = 0; i < MaxConstBufferNum; ++i )
 		{
@@ -1389,14 +1390,24 @@ namespace Render
 
 	bool D3D11ResourceBoundState::clearTexture(ShaderParameter const& parameter)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedSRVNum);
-		if (mBoundedSRVs[parameter.mLoc] != nullptr)
-		{
-			mBoundedSRVs[parameter.mLoc] = nullptr;
-			mBoundedSRVResources[parameter.mLoc] = nullptr;
-			mSRVDirtyMask |= BIT(parameter.mLoc);
+		return clearTextureByLoc(parameter.mLoc);
+	}
 
-			if (parameter.mLoc == mMaxSRVBoundIndex)
+	bool D3D11ResourceBoundState::clearTextureByLoc(int loc)
+	{
+		CHECK(loc < MaxSimulatedBoundedSRVNum);
+		if (mBoundedSRVs[loc] != nullptr)
+		{
+			if (mBoundedSRVResources[loc] && mBoundedSRVResources[loc]->getResourceType() == EResourceType::Texture)
+			{
+				D3D11Cast::ToTextureBase(static_cast<RHITextureBase&>(*mBoundedSRVResources[loc])).removeBind(mShaderType, loc, false);
+			}
+
+			mBoundedSRVs[loc] = nullptr;
+			mBoundedSRVResources[loc] = nullptr;
+			mSRVDirtyMask |= BIT(loc);
+
+			if (loc == mMaxSRVBoundIndex)
 			{
 				while (mMaxSRVBoundIndex >= 0 && mBoundedSRVs[mMaxSRVBoundIndex] == nullptr)
 				{
@@ -1422,51 +1433,48 @@ namespace Render
 		return false;
 	}
 
+
 	void D3D11ResourceBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
 	{
 		CHECK(parameter.mLoc < MaxSimulatedBoundedSRVNum);
-		auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
+		D3D11TextureBase& textureBase =  D3D11Cast::ToTextureBase(texture);
+		D3D11ShaderResourceView* resViewImpl = &textureBase.mSRV;
+		
 		if( resViewImpl )
 		{
 			if( mBoundedSRVs[parameter.mLoc] != resViewImpl->getResource() )
 			{
+				if (mBoundedSRVs[parameter.mLoc] != nullptr)
+				{
+					if (mBoundedSRVResources[parameter.mLoc] && mBoundedSRVResources[parameter.mLoc]->getResourceType() == EResourceType::Texture)
+					{
+						D3D11Cast::ToTextureBase(static_cast<RHITextureBase&>(*mBoundedSRVResources[parameter.mLoc])).removeBind(mShaderType, parameter.mLoc, false);
+					}
+				}
+
 				mBoundedSRVs[parameter.mLoc] = resViewImpl->getResource();
 				mBoundedSRVResources[parameter.mLoc] = &texture;
 				mSRVDirtyMask |= BIT(parameter.mLoc);
 				if (mMaxSRVBoundIndex < parameter.mLoc)
 					mMaxSRVBoundIndex = parameter.mLoc;
+
+				textureBase.addBind(mShaderType, parameter.mLoc, false);
 			}
 		}
 		else
 		{
+			if (mBoundedSRVs[parameter.mLoc] != nullptr)
+			{
+				clearTexture(parameter);
+			}
 			LogWarning(0, "Texture don't have SRV");
 		}
 	}
 
 	void D3D11ResourceBoundState::setRWTexture(ShaderParameter const& parameter, RHITextureBase& texture, int level)
 	{
-		ID3D11UnorderedAccessView* UAV = nullptr;
-		switch (texture.getType())
-		{
-		case ETexture::Type1D:
-			{
-				auto& textureImpl = static_cast<D3D11Texture1D&>(texture);
-				UAV = textureImpl.mUAV;
-			}
-			break;
-		case ETexture::Type2D:
-			{
-				auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
-				UAV = textureImpl.mUAV;
-			}
-			break;
-		case ETexture::Type3D:
-			{
-				auto& textureImpl = static_cast<D3D11Texture3D&>(texture);
-				UAV = textureImpl.mUAV;
-			}
-			break;
-		}
+		D3D11TextureBase& textureImpl = D3D11Cast::ToTextureBase(texture);
+		ID3D11UnorderedAccessView* UAV = textureImpl.mUAV;
 
 		if (mBoundedUAVs[parameter.mLoc] != UAV)
 		{
@@ -1478,37 +1486,33 @@ namespace Render
 			{
 				mUAVUsageCount += 1;
 			}
+			else
+			{
+				// Replacing existing UAV? We don't seemingly track UAV resources in array like SRVResources.
+				// But we should track binds if we want optimization.
+				// However, D3D11ResourceBoundState tracking for UAV Resources is missing in original code (only ID3D11UnorderedAccessView* array).
+				// We cannot reliably call removeBind on old resource if we don't know what it was.
+				// Optimization: We accept that we can't unbind OLD UAVs from tracking if we don't track them in Context.
+				// BUT, RHIResourceTransition relies on SRV tracking to unbind SRVs.
+				// UAV->SRV transition is rare and uses clearUAVResource which checks pointer.
+				// For now, let's only addBind for the NEW texture if it's not null.
+			}
 			CHECK(mUAVUsageCount >= 0);
 			mBoundedUAVs[parameter.mLoc] = UAV;
 			mUAVDirtyMask |= BIT(parameter.mLoc);
+
+			if (UAV)
+			{
+				textureImpl.addBind(mShaderType, parameter.mLoc, true);
+			}
 		}
 	}
 
 	void D3D11ResourceBoundState::setRWSubTexture(ShaderParameter const& parameter, RHITextureBase& texture, int subIndex, int level)
 	{
 		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
-		ID3D11UnorderedAccessView* UAV = nullptr;
-		switch (texture.getType())
-		{
-		case ETexture::Type1D:
-			{
-				auto& textureImpl = static_cast<D3D11Texture1D&>(texture);
-				UAV = textureImpl.mUAV;
-			}
-			break;
-		case ETexture::Type2D:
-			{
-				auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
-				UAV = textureImpl.mUAV;
-			}
-			break;
-		case ETexture::Type3D:
-			{
-				auto& textureImpl = static_cast<D3D11Texture3D&>(texture);
-				UAV = textureImpl.mUAV;
-			}
-			break;
-		}
+		D3D11TextureBase& textureImpl = D3D11Cast::ToTextureBase(texture);
+		ID3D11UnorderedAccessView* UAV = textureImpl.mUAV;
 
 		if (mBoundedUAVs[parameter.mLoc] != UAV)
 		{
@@ -1521,6 +1525,7 @@ namespace Render
 			if (UAV != nullptr)
 			{
 				++mUAVUsageCount;
+				textureImpl.addBind(mShaderType, parameter.mLoc, true);
 			}
 
 			CHECK(mUAVUsageCount >= 0 && mUAVUsageCount <= MaxSimulatedBoundedUAVNum);
@@ -1640,12 +1645,6 @@ namespace Render
 			D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, count, mBoundedConstBuffers + index);
 		});
 
-		commitSAVState<TypeValue>(context);
-
-		if constexpr (TypeValue == EShader::Compute)
-		{
-			commitUAVState(context);
-		}
 
 		UpdateDirtyState<MaxSimulatedBoundedSamplerNum>(mSamplerDirtyMask, [this, context](int index, int count)
 		{
@@ -1734,10 +1733,23 @@ namespace Render
 
 	void D3D11ResourceBoundState::commitUAVState(ID3D11DeviceContext* context)
 	{
-		UpdateDirtyState< MaxSimulatedBoundedUAVNum >(mUAVDirtyMask, [this, context](int index, int count)
+		UpdateDirtyState< D3D11ResourceBoundState::MaxSimulatedBoundedUAVNum >(mUAVDirtyMask, [this, context](int index, int count)
 		{
 			context->CSSetUnorderedAccessViews(index, count, mBoundedUAVs + index, nullptr);
 		});
+	}
+
+	void D3D11ResourceBoundState::clearUAVResource(ID3D11UnorderedAccessView* UAV)
+	{
+		for (int i = 0; i < D3D11ResourceBoundState::MaxSimulatedBoundedUAVNum; ++i)
+		{
+			if (mBoundedUAVs[i] == UAV)
+			{
+				mBoundedUAVs[i] = nullptr;
+				mUAVDirtyMask |= BIT(i);
+				--mUAVUsageCount;
+			}
+		}
 	}
 
 	template< EShader::Type TypeValue >
@@ -1748,8 +1760,8 @@ namespace Render
 
 		if constexpr (TypeValue == EShader::Compute)
 		{
-			ID3D11UnorderedAccessView* EmptyUAVs[MaxSimulatedBoundedSRVNum] = { nullptr };
-			context->CSSetUnorderedAccessViews(0, MaxSimulatedBoundedUAVNum, EmptyUAVs, nullptr);
+			ID3D11UnorderedAccessView* EmptyUAVs[D3D11ResourceBoundState::MaxSimulatedBoundedUAVNum] = { nullptr };
+			context->CSSetUnorderedAccessViews(0, D3D11ResourceBoundState::MaxSimulatedBoundedUAVNum, EmptyUAVs, nullptr);
 		}
 	}
 
@@ -1760,7 +1772,7 @@ namespace Render
 		for( int i = 0; i < EShader::CountSM5; ++i )
 		{
 			mBoundedShaders[i].resource = nullptr;
-			mResourceBoundStates[i].initialize(device, deviceContext);
+			mResourceBoundStates[i].initialize((EShader::Type)i, device, deviceContext);
 		}
 
 		uint32 dynamicVBufferSize[] = { sizeof(float) * 512 , sizeof(float) * 1024 , sizeof(float) * 1024 * 4 , sizeof(float) * 1024 * 8 };
@@ -2207,22 +2219,8 @@ namespace Render
 
 	ID3D11Resource* GetTextureResource(RHITextureBase& texture)
 	{
-		switch (texture.getType())
-		{
-		case ETexture::Type1D:
-			return static_cast<D3D11Texture1D&>(texture).getResource();
-		case ETexture::Type2D:
-			return static_cast<D3D11Texture2D&>(texture).getResource();
-		case ETexture::Type3D:
-			return static_cast<D3D11Texture3D&>(texture).getResource();
-		case ETexture::TypeCube:
-			return static_cast<D3D11TextureCube&>(texture).getResource();
-		case ETexture::Type2DArray:
-			return static_cast<D3D11Texture2DArray&>(texture).getResource();
-		}
-
-		NEVER_REACH("GetTextureResource");
-		return nullptr;
+		D3D11TextureBase& textureImpl = D3D11Cast::ToTextureBase(texture);
+		return textureImpl.getD3D11Resource();
 	}
 
 	void D3D11Context::RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
@@ -2286,19 +2284,15 @@ namespace Render
 #undef SET_SHADER_OP
 		}
 
-		if ( mResourceBoundStates[EShader::Pixel].mUAVUsageCount )
-		{
-			auto& shaderBoundState = mResourceBoundStates[EShader::Pixel];
-			mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
-				D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL, nullptr, nullptr,
-				0, shaderBoundState.mUAVUsageCount, shaderBoundState.mBoundedUAVs, nullptr);
-
-		}
+		commitUAVState();
+		mResourceBoundStates[EShader::Compute].commitSAVState<EShader::Compute>(mDeviceContext.get());
+		mResourceBoundStates[EShader::Compute].commitUAVState(mDeviceContext.get());
 
 #define COMMIT_SHADER_STATE_OP( SHADER_TYPE )\
 		if( mGfxBoundedShaderMask & BIT(SHADER_TYPE) )\
 		{\
 			mResourceBoundStates[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
+			mResourceBoundStates[SHADER_TYPE].commitSAVState<SHADER_TYPE>(mDeviceContext.get());\
 		}
 
 		GRAPHIC_SHADER_LIST(COMMIT_SHADER_STATE_OP)
@@ -2313,13 +2307,9 @@ namespace Render
 
 	void D3D11Context::commitComputeState()
 	{
-#if 0
-		mResourceBoundStates[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext);
-		mResourceBoundStates[EShader::Pixel].clearSRVResource<EShader::Pixel>(mDeviceContext);
-		mResourceBoundStates[EShader::Hull].clearSRVResource<EShader::Hull>(mDeviceContext);
-		mResourceBoundStates[EShader::Domain].clearSRVResource<EShader::Domain>(mDeviceContext);
-		mResourceBoundStates[EShader::Geometry].clearSRVResource<EShader::Geometry>(mDeviceContext);
-#endif
+#define COMMIT_SAV_OP( SHADER_TYPE ) mResourceBoundStates[SHADER_TYPE].commitSAVState<SHADER_TYPE>(mDeviceContext.get());
+		GRAPHIC_SHADER_LIST(COMMIT_SAV_OP);
+#undef COMMIT_SAV_OP
 
 		if( mBoundedShaderDirtyMask & BIT(EShader::Compute) )
 		{
@@ -2327,6 +2317,20 @@ namespace Render
 			mBoundedShaderDirtyMask &= ~BIT(EShader::Compute);
 		}
 		mResourceBoundStates[EShader::Compute].commitState<EShader::Compute>(mDeviceContext.get());
+		mResourceBoundStates[EShader::Compute].commitSAVState<EShader::Compute>(mDeviceContext.get());
+		mResourceBoundStates[EShader::Compute].commitUAVState(mDeviceContext.get());
+	}
+
+	void D3D11Context::commitUAVState()
+	{
+		auto& shaderBoundState = mResourceBoundStates[EShader::Pixel];
+		if (shaderBoundState.mUAVDirtyMask)
+		{
+			shaderBoundState.mUAVDirtyMask = 0;
+			mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
+				D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL, nullptr, nullptr,
+				0, D3D11ResourceBoundState::MaxSimulatedBoundedUAVNum, shaderBoundState.mBoundedUAVs, nullptr);
+		}
 	}
 
 	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
@@ -2767,14 +2771,82 @@ namespace Render
 		mResourceBoundStates[type].setStructuredBuffer(param, buffer, op);
 	}
 
+	void D3D11Context::RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
+	{
+		if (transition == EResourceTransition::SRV)
+		{
+			// Unbind from UAV if going to SRV
+			for (auto resource : resources)
+			{
+				ID3D11UnorderedAccessView* UAV = nullptr;
+				if (resource->getResourceType() == EResourceType::Buffer)
+				{
+					UAV = static_cast<D3D11Buffer*>(resource->getNativeInternal())->mUAV;
+				}
+				else if (resource->getResourceType() == EResourceType::Texture)
+				{
+					auto& textureImpl = D3D11Cast::ToTextureBase(static_cast<RHITextureBase&>(*resource));
+					UAV = textureImpl.mUAV;
+					
+					TArray<D3D11TextureBase::D3D11BindSlot, TInlineAllocator<16>> slotsToUnbind;
+					for(auto& slot : textureImpl.mBoundSlots)
+					{
+						if (slot.isUAV)
+							slotsToUnbind.push_back(slot);
+					}
+					
+					// D3D11Context doesn't track UAV resources in mBoundedUAVResources like SRVs, so using BoundSlots is less reliable if we didn't track "removeBind" in all places (we don't track old UAV unbind in setRWTexture fully).
+					// But clearUAVResource below is safe: it scans all UAV slots. 
+					// Optimizing UAV->SRV is less critical than SRV->UAV because UAV slots are few (8).
+				}
+
+				if (UAV)
+				{
+					// Use scanning for UAVs as we don't have full tracking and loop count is small (8)
+					mResourceBoundStates[EShader::Compute].clearUAVResource(UAV);
+					mResourceBoundStates[EShader::Pixel].clearUAVResource(UAV);
+				}
+			}
+		}
+		else if (transition == EResourceTransition::UAV)
+		{
+			// SRV -> UAV: Critical Optimization path
+			for (auto resource : resources)
+			{
+				if (resource->getResourceType() == EResourceType::Texture)
+				{
+					auto& textureImpl = D3D11Cast::ToTextureBase(static_cast<RHITextureBase&>(*resource));
+					
+					TArray<D3D11TextureBase::D3D11BindSlot, TInlineAllocator<16>> slotsToUnbind;
+					for(auto& slot : textureImpl.mBoundSlots)
+					{
+						if (!slot.isUAV)
+							slotsToUnbind.push_back(slot);
+					}
+
+					for(auto& slot : slotsToUnbind)
+					{
+						mResourceBoundStates[slot.stage].clearTextureByLoc(slot.slotIndex);
+					}
+				}
+				else
+				{
+					// Fallback for Buffers or if optimization fails
+					#define OP(STAGE) mResourceBoundStates[STAGE].clearSRVResource<STAGE>(mDeviceContext.get(), *resource);
+					GRAPHIC_SHADER_LIST(OP)
+					mResourceBoundStates[EShader::Compute].clearSRVResource<EShader::Compute>(mDeviceContext.get(), *resource);
+					#undef OP
+				}
+			}
+		}
+	}
+
 	void D3D11Context::clearSRVResource(RHIResource& resource)
 	{
-		mResourceBoundStates[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext, resource);
-		mResourceBoundStates[EShader::Pixel].clearSRVResource<EShader::Pixel>(mDeviceContext, resource);
-		mResourceBoundStates[EShader::Geometry].clearSRVResource<EShader::Geometry>(mDeviceContext, resource);
+#define OP(STAGE) mResourceBoundStates[STAGE].clearSRVResource<STAGE>(mDeviceContext, resource);
+		GRAPHIC_SHADER_LIST(OP)
 		mResourceBoundStates[EShader::Compute].clearSRVResource<EShader::Compute>(mDeviceContext, resource);
-		mResourceBoundStates[EShader::Hull].clearSRVResource<EShader::Hull>(mDeviceContext, resource);
-		mResourceBoundStates[EShader::Domain].clearSRVResource<EShader::Domain>(mDeviceContext, resource);
+#undef OP
 	}
 
 	template < class ValueType >

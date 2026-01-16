@@ -130,7 +130,7 @@ BigUintBase::BaseType BigUintBase::convertCharToNum( char c )
 
 char BigUintBase::convertNumToChar( BaseType n )
 {
-	assert(  0 <= n && n < 15  );
+	assert(  0 <= n && n <= 15  );
 	return ( n < 10 ) ? ( '0' + n ) : ( 'a' + ( n - 10 ) );
 }
 
@@ -138,9 +138,3 @@ bool BigUintBase::checkStr( char const* str )
 {
 	return true;
 }
-
-
-
-
-
-

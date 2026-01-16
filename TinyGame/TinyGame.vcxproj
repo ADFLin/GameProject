@@ -140,7 +140,8 @@ copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
-copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\
+copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -192,7 +193,8 @@ copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
-copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\
+copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -243,7 +245,8 @@ copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
-copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\
+copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -291,7 +294,8 @@ copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
-copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\
+copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -460,11 +464,17 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ProjectReference Include="..\Engine\VulkanRHI.vcxproj">
       <Project>{52b9b264-2b19-4211-a6f7-723ab74a0e03}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\UnitTest\UnitTest.vcxproj">
+      <Project>{f5e5a6b7-2c1f-4e96-bb3b-55b7159cde42}</Project>
+    </ProjectReference>
     <ProjectReference Include="TinyCore.vcxproj">
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
     </ProjectReference>
     <ProjectReference Include="TinyShare.vcxproj">
       <Project>{f3b972df-7aed-4d2e-99af-5ad3bc736f61}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\UnitTest\UnitTest.vcxproj">
+      <Project>{F5E5A6B7-2C1F-4E96-BB3B-55B7159CDE42}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

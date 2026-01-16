@@ -9,55 +9,38 @@ namespace Render
 
 	D3D12FrameHeapAllocator::~D3D12FrameHeapAllocator()
 	{
-		for (auto res : mResources)
+		if (mCurrentPage.resource) mCurrentPage.resource->Release();
+		for (auto& page : mFreePages)
 		{
-			res->Release();
+			if (page.resource) page.resource->Release();
+		}
+		for (auto& page : mUsedPages)
+		{
+			if (page.resource) page.resource->Release();
 		}
 	}
 
 	void D3D12FrameHeapAllocator::markFence()
 	{
-		for (int index = 0; index < mIndexCur; ++index)
+		if (mCurrentPage.resource && mSizeUsage > 0)
 		{
-			ID3D12Resource* resource = mResources[index];
+			mUsedPages.push_back(mCurrentPage);
+			mCurrentPage.resource = nullptr;
+			mCurrentPage.cpuAddr = nullptr;
+			mSizeUsage = 0;
+		}
+
+		for (auto& page : mUsedPages)
+		{
 			D3D12FenceResourceManager::Get().addFuncRelease(
-				[this, resource]()
+				[this, page]()
 				{
-					mResources.push_back(resource);
+					RWLock::WriteLocker locker(mLock);
+					mFreePages.push_back(page);
 				}
 			);
 		}
-
-		if (mSizeUsage != 0)
-		{
-			if (mCpuPtr)
-			{
-				mResources[mIndexCur]->Unmap(0, nullptr);
-				mCpuPtr = nullptr;
-			}
-
-			ID3D12Resource* resource = mResources[mIndexCur];
-			D3D12FenceResourceManager::Get().addFuncRelease(
-				[this, resource]()
-				{
-					mResources.push_back(resource);
-				}
-			);
-			++mIndexCur;
-		}
-
-		if (mIndexCur != 0)
-		{
-			mResources.erase(mResources.begin(), mResources.begin() + mIndexCur);
-		}
-
-		mIndexCur = 0;
-		mSizeUsage = 0;
-		mCpuPtr = nullptr;
-		if (mIndexCur != mResources.size())
-		{
-			lockCurrentResource();
-		}
+		mUsedPages.clear();
 	}
 
 	bool D3D12FrameHeapAllocator::alloc(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation)
@@ -71,38 +54,38 @@ namespace Render
 		if (allocSize > mResourceSize)
 			return false;
 
-		CHECK(allocSize <= mResourceSize);
-		if (mIndexCur == mResources.size())
+		bool bNeedNewPage = false;
+		if (mCurrentPage.resource == nullptr)
 		{
-			if (!createHeap())
-			{
-				return false;
-			}
-			mSizeUsage = 0;
+			bNeedNewPage = true;
 		}
 		else if (mSizeUsage + allocSize > mResourceSize)
 		{
-			if (mCpuPtr)
-			{
-				mResources[mIndexCur]->Unmap(0, nullptr);
-				mCpuPtr = nullptr;
-			}
-
-			++mIndexCur;
-			if (mIndexCur < mResources.size())
-			{
-				if (!lockCurrentResource())
-					return false;
-			}
-			else if (!createHeap())
-			{
-				return false;
-			}
+			mUsedPages.push_back(mCurrentPage);
+			mCurrentPage.resource = nullptr;
+			mCurrentPage.cpuAddr = nullptr;
 			mSizeUsage = 0;
+			bNeedNewPage = true;
 		}
 
-		if ( mSizeUsage == 0)
+		if (bNeedNewPage)
 		{
+			{
+				RWLock::WriteLocker locker(mLock);
+				if (mFreePages.size())
+				{
+					mCurrentPage = mFreePages.back();
+					mFreePages.pop_back();
+				}
+			}
+
+			if (mCurrentPage.resource == nullptr)
+			{
+				if (!createNewPage(mCurrentPage))
+					return false;
+			}
+			mSizeUsage = 0;
+
 			if (alignment && (mSizeUsage % alignment) != 0)
 			{
 				allocSize = size + alignment - mSizeUsage % alignment;
@@ -119,18 +102,15 @@ namespace Render
 			pos = AlignArbitrary(pos, alignment);
 		}
 
-		CHECK(mCpuPtr);
-		CHECK(pos + size <= mResourceSize);
-
-		outAllocation.ptr = mResources[mIndexCur];
+		outAllocation.ptr = mCurrentPage.resource;
 		outAllocation.gpuAddress = outAllocation.ptr->GetGPUVirtualAddress() + pos;
-		outAllocation.cpuAddress = mCpuPtr + pos;
+		outAllocation.cpuAddress = mCurrentPage.cpuAddr + pos;
 		outAllocation.size = size;
 		mSizeUsage += allocSize;
 		return true;
 	}
 
-	bool D3D12FrameHeapAllocator::createHeap()
+	bool D3D12FrameHeapAllocator::createNewPage(Page& outPage)
 	{
 		ID3D12Resource* resource = nullptr;
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommittedResource(
@@ -142,34 +122,27 @@ namespace Render
 			IID_PPV_ARGS(&resource)));
 
 		resource->SetName(L"FrameHeap");
-
-		mResources.push_back(resource);
-		if (!lockCurrentResource())
-			return false;
-
-		return true;
-	}
-
-	bool D3D12FrameHeapAllocator::lockCurrentResource()
-	{
+		outPage.resource = resource;
+		
 		D3D12_RANGE range = { 0,0 };
-		VERIFY_D3D_RESULT_RETURN_FALSE(mResources[mIndexCur]->Map(0, &range, (void**)&mCpuPtr));
+		VERIFY_D3D_RESULT_RETURN_FALSE(outPage.resource->Map(0, &range, (void**)&outPage.cpuAddr));
+
 		return true;
 	}
 
 	bool D3D12DynamicBufferManager::addFrameAllocator(uint32 size)
 	{
-		D3D12FrameHeapAllocator allocator;
-		allocator.initialize(mDevice, size);
-		mFrameAllocators.push_back(std::move(allocator));
+		D3D12FrameHeapAllocator* allocator = new D3D12FrameHeapAllocator();
+		allocator->initialize(mDevice, size);
+		mFrameAllocators.push_back(allocator);
 		return true;
 	}
 
 	void D3D12DynamicBufferManager::markFence()
 	{
-		for (auto& allocator : mFrameAllocators)
+		for (auto allocator : mFrameAllocators)
 		{
-			allocator.markFence();
+			allocator->markFence();
 		}
 	}
 
@@ -207,16 +180,16 @@ namespace Render
 
 	bool D3D12DynamicBufferManager::allocFrame(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation)
 	{
-		for (auto& allocator : mFrameAllocators)
+		for (auto allocator : mFrameAllocators)
 		{
-			if (allocator.alloc(size, alignment, outAllocation))
+			if (allocator->alloc(size, alignment, outAllocation))
 				return true;
 		}
 
 		if (!addFrameAllocator(size))
 			return false;
 
-		if (!mFrameAllocators.back().alloc(size, alignment, outAllocation))
+		if (!mFrameAllocators.back()->alloc(size, alignment, outAllocation))
 			return false;
 
 		return true;

@@ -61,6 +61,7 @@ protected:
 	virtual void onUpdate(GameTimeSpan deltaTime){}
 	virtual void onEnd(){}
 	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
+	virtual void onRender( float dFrame ) override;
 
 	void viewReplay();
 

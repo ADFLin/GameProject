@@ -195,7 +195,7 @@ struct NetSelectSet
 	bool canWrite(NetSocket& socket);
 	bool haveExcept(NetSocket& socket);
 
-	TArray< NetSocket*, TInlineAllocator<FD_SETSIZE> > mSockets;
+	TArray< NetSocket*, TFixedAllocator<FD_SETSIZE> > mSockets;
 	fd_set mRead;
 	fd_set mWrite;
 	fd_set mExcept;

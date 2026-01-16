@@ -267,7 +267,7 @@ namespace Shadertoy
 
 			bool bRenderCubeMapOnePass = bRenderCubeMap && bAllowRenderCubeOnePass;
 
-			TArray< PooledRenderTargetRef, TInlineAllocator<4> > outputBuffers;
+			TArray< PooledRenderTargetRef, TFixedAllocator<4> > outputBuffers;
 			HashString debugName;
 			int index;
 			IntVector2 viewportSize = bRenderCubeMap ? IntVector2(CubeMapSize, CubeMapSize) : screenSize;
@@ -439,7 +439,15 @@ namespace Shadertoy
 					}
 				}
 
+				for (int i = 0; i < pass.info->outputs.size(); ++i)
+				{
+					RHIResourceTransition(commandList, { outputBuffers[i]->resolvedTexture }, EResourceTransition::UAV);
+				}
 				RHIDispatchCompute(commandList, Math::AlignCount(viewportSize.x, GROUP_SIZE), Math::AlignCount(viewportSize.y, GROUP_SIZE), 1);
+				for (int i = 0; i < pass.info->outputs.size(); ++i)
+				{
+					RHIResourceTransition(commandList, { outputBuffers[i]->resolvedTexture }, EResourceTransition::SRV);
+				}
 			}
 
 			index = 0;
@@ -518,7 +526,16 @@ namespace Shadertoy
 				++index;
 			}
 
+			for (int i = 0; i < pass.info->outputs.size(); ++i)
+			{
+				RHIResourceTransition(commandList, { outputBuffers[i]->resolvedTexture }, EResourceTransition::UAV);
+			}
+
 			RHIDispatchCompute(commandList, Math::AlignCount(viewportSize.x, GROUP_SIZE), Math::AlignCount(viewportSize.y, GROUP_SIZE), 6);
+			for (int i = 0; i < pass.info->outputs.size(); ++i)
+			{
+				RHIResourceTransition(commandList, { outputBuffers[i]->resolvedTexture }, EResourceTransition::SRV);
+			}
 
 			index = 0;
 			for (auto const& output : pass.info->outputs)
@@ -580,7 +597,9 @@ namespace Shadertoy
 				passShader.setSoundParameters(commandList, timeOffset, sampleOffset);
 
 				int dispatchCount = Math::AlignCount(SoundTextureSize, GROUP_SIZE);
+				RHIResourceTransition(commandList, { mTexSound }, EResourceTransition::UAV);
 				RHIDispatchCompute(commandList, dispatchCount, dispatchCount, 1);
+				RHIResourceTransition(commandList, { mTexSound }, EResourceTransition::SRV);
 				RHIFlushCommand(commandList);
 
 				int numRead = Math::Min(sampleCount - indexBlock * blockFrame, blockFrame);

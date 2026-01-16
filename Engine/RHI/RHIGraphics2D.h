@@ -20,22 +20,6 @@
 
 using Render::ESimpleBlendMode;
 
-enum class EVerticalAlign
-{
-	Top,
-	Bottom,
-	Center,
-	Fill,
-};
-
-
-enum class EHorizontalAlign
-{
-	Left,
-	Right,
-	Center,
-	Fill,
-};
 
 class RHIGraphics2D : public Render::GraphicsDefinition
 {
@@ -223,6 +207,7 @@ public:
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip);
 	void drawText(Vector2 const& pos, Vector2 const& size, float scale, char const* str, bool bClip);
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
+	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment, bool bClip = false);
 	void drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
 	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices);

@@ -53,7 +53,6 @@ namespace Render
 		}
 	}
 
-
 	class FOpenGLBase
 	{
 	public:

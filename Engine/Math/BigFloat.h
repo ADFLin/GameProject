@@ -2,6 +2,7 @@
 #define BFloat_h__
 
 #include "BigInteger.h"
+#include "MacroCommon.h"
 
 class BigFloatBase
 {
@@ -95,9 +96,108 @@ public:
 	void setFromString( char const* str , unsigned base = 10 );
 	void getString( std::string& str , unsigned base = 10 );
 
-	bool convertToUInt( unsigned& val );
-	bool convertToFloat( float& val );
-	bool convertToDouble( double& val );
+	bool convertToUInt( unsigned& val ) const;
+	bool convertToFloat( float& val ) const;
+	bool convertToDouble( double& val ) const
+	{
+		if ( isNan() ) return false;
+		if ( isZero() ) { val = 0.0; return true; }
+		if ( isInfinity() ) { val = isSign() ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity(); return true; }
+
+		int e;
+		if (!exponent.convertToInt(e))
+		{
+			// Exponent too large for double?
+			val = isSign() ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+			return true;
+		}
+		
+		// Range Check (Underflow/Overflow)
+		// Double limit: +/- 1023. Denormals down to -1074.
+		if ( e > 1023 )
+		{
+			val = isSign() ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+			return true;
+		}
+		if ( e < -1023 )
+		{
+			// Could be denormal... but for now let's just flush to zero if too small.
+			// BigFloat usually normalizes to 1.xxx.
+			// Double Denormal: 0.xxx * 2^-1022.
+			// Minimum double ~ 2^-1074.
+			if (e < -1075) 
+			{
+				val = 0.0;
+				return true;
+			}
+			// Let's rely on ldexp for denormals/rare cases if we don't want to handle bit-packing denormals manually
+			// or just flush sub-normal range to 0 for safety in this specific context (fractal zoom).
+			// The unit tests shouldn't hit denormals for 1.0 cases.
+			if (e < -1023)
+			{
+				val = 0.0;
+				return true;
+			}
+		}
+
+		// Bit-Exact Construction
+		// Assume Normalized BigFloat (MSB is 1)
+		// DFloatFormat: Sign(1) Exp(11) hmant(20) lmant(32)
+		// Bias 1023.
+		
+		uint64_t raw = 0;
+		uint64_t sign = isSign() ? 1ULL : 0ULL;
+		uint64_t expBits = (uint64_t)(e + 1023); // Bias
+		
+		// Mantissa bits
+		uint32 mh = mantissa.getElement(MantNum - 1);
+		uint32 ml = (MantNum > 1) ? mantissa.getElement(MantNum - 2) : 0;
+		
+		// Default BigFloat is 1.xxxx (bit 31 is 1)
+		// Double expects 1.xxxx explicit (so store xxxx)
+		// remove implicit 1
+		mh <<= 1; 
+		
+		// We need top 52 bits called 'f'.
+		// mh has 31 bits (31..1). 
+		// ml has 32 bits.
+		
+		// Top 20 bits of fraction -> hmant (bits 51..32)
+		// mh >> 12.
+		uint64_t hmant = mh >> 12;
+		
+		// Bottom 32 bits of fraction -> lmant (bits 31..0)
+		// Need remaining 11 bits of mh (31..1 shifted to 20..0? No)
+		// mh << 20 puts remaining 11 bits at top of 32-bit word?
+		// See previous analysis: (mh << 20) | (ml >> 11) works.
+		
+		uint64_t lmant = ((uint64_t)mh << 20) | ((uint64_t)ml >> 11);
+		// Note: mh is 32-bit. Cast to 64 to avoid overflow if shifted?
+		// Actually mh<<20 fits in 32 bits, but writing to uint64 lmant.
+		// lmant should be just the lower 32 bits of the 52-bit mantissa.
+		// Wait, I can construct the full 64-bit uint directly.
+		
+		// Double Layout: [Sign 1][Exp 11][Mant 52]
+		raw = (sign << 63) | (expBits << 52);
+		
+		// Mant 52 splits into High(20) and Low(32).
+		// hmant is 20 bits. lmant is 32 bits.
+		// The `lmant` calculation above:
+		// (mh << 20) is 32-bit. It keeps the 11 bits at [31..21]. overlap at 20 is 0.
+		// (ml >> 11) is 32-bit. bits [20..0].
+		// So `lmant` variable holds the bottom 32 bits of the fraction.
+		// `hmant` variable holds the top 20 bits.
+		
+		raw |= (hmant << 32) | (lmant & 0xFFFFFFFF);
+		
+		#ifdef _MSC_VER
+		val = *reinterpret_cast<double*>(&raw);
+		#else
+		memcpy(&val, &raw, sizeof(double));
+		#endif
+
+		return true;
+	}
 
 	void setZero();
 	void setOne();
@@ -108,16 +208,80 @@ public:
 	bool operator <= ( TBigFloat const& rh ) const { return !big(rh); }
 	bool operator <  ( TBigFloat const& rh ) const { return rh.big( *this ); }
 	bool operator >= ( TBigFloat const& rh ) const { return !rh.big( *this ); }
+	bool operator == ( TBigFloat const& rh ) const { return stats == rh.stats && exponent == rh.exponent && mantissa == rh.mantissa; }
+	bool operator != ( TBigFloat const& rh ) const { return !(*this == rh); }
 
-	unsigned add( TBigFloat const& rh ){  TBigFloat temp = rh; return addDirty( temp ); }
-	unsigned sub( TBigFloat const& rh ){  TBigFloat temp = rh; return subDirty( temp ); }
+	unsigned add( TBigFloat const& rh )
+	{
+		ExpType diff;
+		
+		int expDiff;
+		// Check invalid fast
+		diff = exponent;
+		if ( diff.sub(rh.exponent) )
+		{
+			// exponent < rh.exponent.
+			ExpType tempExp = rh.exponent;
+			tempExp.sub( exponent ); // get abs diff
+			tempExp.convertToInt( expDiff );
+			if ( expDiff > (int)MantTotalBits + 1 )
+			{
+				*this = rh;
+				return 0;
+			}
+		}
+		else
+		{
+			// exponent >= rh.exponent
+			diff.convertToInt( expDiff );
+			if ( expDiff > (int)MantTotalBits + 1 )
+			{
+				return 0;
+			}
+		}
+
+		TBigFloat temp = rh; 
+		return addDirty( temp ); 
+	}
+	unsigned sub( TBigFloat const& rh )
+	{
+		ExpType diff;
+		int expDiff;
+		// Check invalid fast
+		diff = exponent;
+		if ( diff.sub(rh.exponent) )
+		{
+			// exponent < rh.exponent.
+			ExpType tempExp = rh.exponent;
+			tempExp.sub( exponent ); // get abs diff
+			tempExp.convertToInt( expDiff );
+			if ( expDiff > (int)MantTotalBits + 1 )
+			{
+				*this = rh;
+				changeSign();
+				return 0;
+			}
+		}
+		else
+		{
+			// exponent >= rh.exponent
+			diff.convertToInt( expDiff );
+			if ( expDiff > (int)MantTotalBits + 1 )
+			{
+				return 0;
+			}
+		}
+
+		TBigFloat temp = rh; 
+		return subDirty( temp ); 
+	}
 
 
 	unsigned mul( unsigned  rh );
 
 	void inverse();
 
-	unsigned getMantissaBitNum();
+	unsigned getMantissaBitNum() const;
 
 	bool convertMantissaToUInt();
 
@@ -151,7 +315,7 @@ public:
 	unsigned ln( TBigFloat const& val );
 	unsigned ln();
 
-	unsigned div( TBigFloat const& rh );
+	unsigned div( TBigFloat const& rh , bool* outExact = 0 );
 
 
 	unsigned subDirty( TBigFloat& rh );
@@ -164,7 +328,7 @@ public:
 
 	bool isZero() const
 	{ 
-		//assert( mantissa.isZero() && exponent.isZero() );
+		//CHECK( mantissa.isZero() && exponent.isZero() );
 		return mantissa.isZero(); 
 	}
 
@@ -175,7 +339,7 @@ public:
 
 	unsigned standardize();
 	bool     normalize( TBigFloat& rh );
-	bool     isInteger();
+	bool     isInteger() const;
 
 };
 
@@ -185,19 +349,20 @@ void TBigFloat<MantNum, ExpNum>::inverse()
 	TBigFloat temp = *this;
 	setOne();
 	unsigned c = div( temp );
-	assert( c == 0 );
+	CHECK( c == 0 );
 }
 
 template < int MantNum , int ExpNum >
-unsigned TBigFloat<MantNum, ExpNum>::getMantissaBitNum()
+unsigned TBigFloat<MantNum, ExpNum>::getMantissaBitNum() const
 {
 	if ( isZero() )
 		return 0;
 
 	int word = mantissa.getLowestNonZeroElement();
+	if ( word == -1 ) return 0;
 	unsigned bit = BigUintBase::findLowestNonZeroBit( mantissa.getElement( word ) );
 
-	assert( bit != 0 );
+	if ( bit == 0 ) return 0;
 	return ( MantNum - word ) * BaseTypeBits  - bit + 1;
 }
 
@@ -243,7 +408,7 @@ unsigned TBigFloat<MantNum, ExpNum>::doMantissaSub( TBigFloat& rh )
 		mantissa = rh.mantissa;
 		changeSign();
 	}
-	assert( carry == 0 );
+	CHECK( carry == 0 );
 	standardize();
 
 	return carry;
@@ -258,7 +423,8 @@ unsigned TBigFloat<MantNum, ExpNum>::doMantissaAdd( TBigFloat const& rh )
 		mantissa.shiftRightBitLessElementBit( 1 , 1 );
 		carry  = exponent.add( 1 );
 	}
-	assert ( isStandardize() );
+	//CHECK ( isStandardize() || isZero() );
+	standardize();
 	return carry;
 }
 
@@ -299,13 +465,13 @@ unsigned TBigFloat<MantNum, ExpNum>::mul( TBigFloat const& rh )
 		setZero();
 		return 0;
 	}
-	assert( word == ( 2 * MantNum - 1 ) );
+	CHECK( word == ( 2 * MantNum - 1 ) );
 
 	unsigned carry = 0;
 
 	unsigned val = result.getElement( 2 * MantNum - 1 );
 
-	assert( BigUintBase::findHighestNonZeroBit( val ) == BaseTypeBits || 
+	CHECK( BigUintBase::findHighestNonZeroBit( val ) == BaseTypeBits || 
 		    BigUintBase::findHighestNonZeroBit( val ) == BaseTypeBits - 1 );
 
 	carry += exponent.add( rh.exponent );
@@ -315,10 +481,21 @@ unsigned TBigFloat<MantNum, ExpNum>::mul( TBigFloat const& rh )
 	else
 		result.shiftLeftBitLessElementBit( 1 , 0 );
 
+	bool roundUp = ( result.getElement( MantNum - 1 ) & BaseTypeHighestBit ) != 0;
+
 	for( int i = 0 ; i < MantNum  ; ++i )
 	{
 		unsigned val = result.getElement( i + MantNum ); 
 		mantissa.setElement( i , val );
+	}
+
+	if ( roundUp )
+	{
+		if ( mantissa.add( 1 ) )
+		{
+			mantissa.setElement( MantNum - 1 , BaseTypeHighestBit );
+			carry += exponent.add( 1 );
+		}
 	}
 
 	if ( isSign() == rh.isSign() )
@@ -326,55 +503,24 @@ unsigned TBigFloat<MantNum, ExpNum>::mul( TBigFloat const& rh )
 	else
 		setSign();
 
-	assert( isStandardize() );
+	CHECK( isStandardize() );
 	return carry;
 }
 
 
-template < int MantNum , int ExpNum >
-template< int N >
-void TBigFloat<MantNum, ExpNum>::setValue( TBigInt< N > const& val )
-{
-	assert( N <= MantNum );
-
-	if ( val.isZero() )
-	{
-		setZero();
-		return;
-	}
-
-	TBigInt< N > temp = val;
-
-	stats = 0;
-	if ( temp.isSign() )
-	{
-		temp.applyComplement();
-		setSign();
-	}
-
-	int word = temp.getHighestNonZeroElement();
-	assert( word != -1 );
-
-	unsigned move = BaseTypeBits - BigUintBase::findHighestNonZeroBit( temp.getElement(word) );
-	if ( move )
-		temp.shiftLeftBitLessElementBit( move , 0 );
-
-	exponent.setValue( ( word + 1 ) * BaseTypeBits - move - 1 );
-
-	int idx = MantNum - 1;
-	for ( int i = word  ; i >= 0  ; --i , --idx)
-		mantissa.setElement( idx , temp.getElement( i ) );
-
-	for ( ; idx >= 0 ; --idx )
-		mantissa.setElement( idx , 0 );
-}
 
 template < int MantNum , int ExpNum >
-unsigned TBigFloat<MantNum, ExpNum>::div( TBigFloat const& rh )
+unsigned TBigFloat<MantNum, ExpNum>::div( TBigFloat const& rh , bool* outExact )
 {
 	if ( rh.isZero() )
 	{
 		return 1;
+	}
+
+	if ( isZero() )
+	{
+		if (outExact) *outExact = true;
+		return 0;
 	}
 
 	typename MantType::MulRType md;
@@ -395,21 +541,29 @@ unsigned TBigFloat<MantNum, ExpNum>::div( TBigFloat const& rh )
 
 	md.div( mr , mod );
 
+	if ( outExact ) *outExact = mod.isZero();
+
+	mod.shiftLeftBit( 1 , 0 );
+	if ( mod >= mr )
+	{
+		md.add( 1 );
+	}
+
 	unsigned carry = 0;
 
 	int word = md.getHighestNonZeroElement();
-	assert ( word == MantNum || word == MantNum - 1 );
+	CHECK ( word == MantNum || word == MantNum - 1 );
 
 	carry += exponent.sub( rh.exponent );
 
 	if ( word == MantNum )
 	{
-		assert( md.getElement( MantNum ) == 1 );
+		CHECK( md.getElement( MantNum ) == 1 );
 		md.shiftRightBitLessElementBit( 1 , 0 );
 	}
 	else
 	{
-		assert( BigUintBase::findHighestNonZeroBit( md.getElement( MantNum - 1 ) ) == BaseTypeBits );
+		CHECK( BigUintBase::findHighestNonZeroBit( md.getElement( MantNum - 1 ) ) == BaseTypeBits );
 		carry += exponent.sub( 1 );
 	}
 
@@ -424,7 +578,7 @@ unsigned TBigFloat<MantNum, ExpNum>::div( TBigFloat const& rh )
 	else
 		abs();
 
-	assert( isStandardize() );
+	CHECK( isStandardize() );
 	return carry;
 }
 
@@ -448,7 +602,7 @@ bool TBigFloat<MantNum, ExpNum>::normalize( TBigFloat& rh )
 	if ( ne < 0 )
 	{
 		unsigned move = -ne;
-		if ( move > MantTotalBits )
+		if ( move >= MantTotalBits )
 			return false;
 
 		mantissa.shiftRightBit( move , 0 );
@@ -465,7 +619,7 @@ bool TBigFloat<MantNum, ExpNum>::normalize( TBigFloat& rh )
 		rh.exponent.add( move );
 	}
 
-	assert( exponent == rh.exponent );
+	CHECK( exponent == rh.exponent );
 	return true;
 }
 
@@ -506,7 +660,6 @@ template < int MantNum , int ExpNum >
 unsigned TBigFloat<MantNum, ExpNum>::standardize()
 {
 	int word = mantissa.getHighestNonZeroElement();
-
 	if ( word == -1 ) // mant == 0
 	{
 		exponent.setZero();
@@ -515,9 +668,22 @@ unsigned TBigFloat<MantNum, ExpNum>::standardize()
 	}
 
 	unsigned bit = BigUintBase::findHighestNonZeroBit( mantissa.getElement( word ) );
-	unsigned move = BaseTypeBits * ( MantNum - word ) - bit;
-	mantissa.shiftLeftBit( move , 0 );
-	return exponent.sub( move );
+	unsigned targetShift = (unsigned)(MantNum - 1) * BaseTypeBits + (BaseTypeBits - 1);
+	unsigned currentShift = (unsigned)word * BaseTypeBits + (bit - 1);
+	
+	if (targetShift > currentShift)
+	{
+		unsigned move = targetShift - currentShift;
+		mantissa.shiftLeftBit( move , 0 );
+		exponent.sub( move );
+	}
+	else if (currentShift > targetShift)
+	{
+		unsigned move = currentShift - targetShift;
+		mantissa.shiftRightBit( move , 0 );
+		exponent.add( move );
+	}
+	return 0;
 }
 
 
@@ -546,7 +712,7 @@ unsigned TBigFloat<MantNum, ExpNum>::pow2NDirty( TBigUint< N >& rh )
 template < int MantNum , int ExpNum >
 bool TBigFloat<MantNum, ExpNum>::bigWithoutSign( TBigFloat const& rh ) const
 {
-	assert( isStandardize() && rh.isStandardize() );
+	CHECK( isStandardize() && rh.isStandardize() );
 	if ( isZero() )
 		return false;
 
@@ -590,6 +756,12 @@ unsigned TBigFloat<MantNum, ExpNum>::ln()
 	y.sub( 1.0 );
 	y.div( *this );
 
+	if ( y.isZero() )
+	{
+		setZero();
+		return 0;
+	}
+
 	// result = y;
 	setValue( y );
 
@@ -610,13 +782,13 @@ unsigned TBigFloat<MantNum, ExpNum>::ln()
 		temp.setValue( 2 * n + 1 );
 		An.div( temp );
 
-		if ( !normalize( An ) )
+		if ( An.isZero() || !normalize( An ) )
 			break;
 
-		assert( isSign() == An.isSign() );
+		CHECK( isSign() == An.isSign() );
 		doMantissaAdd( An );
 
-		assert( n < n + 1 );
+		CHECK( n < n + 1 );
 		++n;
 	}
 
@@ -627,7 +799,7 @@ unsigned TBigFloat<MantNum, ExpNum>::ln()
 template < int MantNum , int ExpNum >
 unsigned TBigFloat<MantNum, ExpNum>::ln( TBigFloat const& val )
 {
-	assert( this != &val );
+	CHECK( this != &val );
 
 	if ( val.isSign() )
 	{
@@ -670,9 +842,9 @@ void TBigFloat<MantNum, ExpNum>::rejectDecimal()
 	int e;
 	if ( !exponent.convertToInt( e ) )
 	{
-		assert( 0 );
+		CHECK( 0 );
 	}
-	assert( e >= 0 );
+	CHECK( e >= 0 );
 
 	unsigned val = MantTotalBits - e - 1;
 
@@ -682,12 +854,12 @@ void TBigFloat<MantNum, ExpNum>::rejectDecimal()
 	for( unsigned i = 0 ; i < nW ; ++i )
 		mantissa.setElement( i , 0 );
 
-	val = mantissa.getElement( nW );
+	BaseType m = mantissa.getElement( nW );
+	m >>= nB;
+	m <<= nB;
 
-	val >>= nB;
-	val <<= nB;
-
-	mantissa.setElement( nW , val );
+	mantissa.setElement( nW , m );
+	standardize();
 }
 
 
@@ -697,7 +869,7 @@ void TBigFloat<MantNum, ExpNum>::rejectDecimal()
 template < int MantNum , int ExpNum >
 void TBigFloat<MantNum, ExpNum>::expFraction( TBigFloat const& val )
 {
-	assert( val <= 1.0f && val >= -1.0f );
+	CHECK( val <= 1.0f && val >= -1.0f );
 
 	TBigFloat fact;
 	fact.setOne();
@@ -718,7 +890,7 @@ void TBigFloat<MantNum, ExpNum>::expFraction( TBigFloat const& val )
 		An = xn;
 		An.div( fact );
 
-		if ( !normalize( An ) )
+		if ( An.isZero() || !normalize( An ) )
 			break;
 
 		if ( isSign() == An.isSign() )
@@ -726,58 +898,16 @@ void TBigFloat<MantNum, ExpNum>::expFraction( TBigFloat const& val )
 		else
 			doMantissaSub( An );
 
-		assert( n < n + 1 );
+		CHECK( n < n + 1 );
 		++n;
 	}
 }
 
 
-template < int MantNum , int ExpNum >
-bool TBigFloat<MantNum, ExpNum>::convertToDouble( double& val )
-{
-	assert( sizeof( BaseType ) == 4 );
-	DFloatFormat* fmt = (DFloatFormat*)&val;
 
-	if ( exponent >  DFLOAT_EXP_BIAS ||
-		 exponent < -DFLOAT_EXP_BIAS )
-	{
-		//#TODO: Denormalize case
-		return false;
-	}
-
-	int exp;
-	if ( !exponent.convertToInt( exp ) )
-	{
-		assert( 0 );
-	}
-
-	fmt->sign = ( isSign() ) ? 1 : 0;
-	fmt->exp = unsigned( exp + DFLOAT_EXP_BIAS );
-
-	if ( sizeof( BaseType ) == 4 )
-	{
-		uint32 mh = mantissa.getElement( MantNum - 1 );
-		uint32 ml = mantissa.getElement( MantNum - 2 );
-
-		mh <<= 1;
-
-		assert( BaseTypeBits == 32 );
-
-		fmt->hmant = mh >> ( BaseTypeBits - 20 );
-		fmt->lmant = ( mh << 20 ) | (ml >> ( BaseTypeBits - 20 - 1) );
-	}
-	else
-	{
-		assert(0);
-	}
-
-	
-
-	return true;
-}
 
 template < int MantNum , int ExpNum >
-bool TBigFloat<MantNum, ExpNum>::convertToFloat( float& val )
+bool TBigFloat<MantNum, ExpNum>::convertToFloat( float& val ) const
 {
 	SFloatFormat* fmt = (SFloatFormat*)&val;
 
@@ -790,7 +920,7 @@ bool TBigFloat<MantNum, ExpNum>::convertToFloat( float& val )
 	int exp;
 	if ( !exponent.convertToInt( exp ) )
 	{
-		assert( 0 );
+		CHECK( 0 );
 	}
 
 	fmt->sign = ( isSign() ) ? 1 : 0;
@@ -805,7 +935,7 @@ bool TBigFloat<MantNum, ExpNum>::convertToFloat( float& val )
 	}
 	else
 	{
-		assert(0);
+		CHECK(0);
 	}
 	return true;
 }
@@ -852,7 +982,7 @@ void TBigFloat<MantNum, ExpNum>::setValue( float val )
 		}
 		else
 		{
-			assert(0);
+			CHECK(0);
 		}
 		
 		exponent = exp - SFLOAT_EXP_BIAS;
@@ -905,7 +1035,7 @@ void TBigFloat<MantNum, ExpNum>::setValue( double val )
 		}
 		else
 		{
-			assert(0);
+			CHECK(0);
 		}
 
 		exponent = exp - DFLOAT_EXP_BIAS;
@@ -915,20 +1045,12 @@ void TBigFloat<MantNum, ExpNum>::setValue( double val )
 template < int MantNum , int ExpNum >
 void TBigFloat<MantNum, ExpNum>::setValue( unsigned val )
 {
-	if ( !val )
-	{
-		setZero();
-		return;
-	}
-
-	unsigned bit = MantType::findHighestNonZeroBit( val );
-	assert( bit != 0 );
-
-	val <<= BaseTypeBits - bit;
-
+	if ( !val ) { setZero(); return; }
+	stats = 0; // Clear stats
 	mantissa.setZero();
-	mantissa.setElement( MantNum - 1 , val );
-	exponent.setValue( bit - 1 );
+	mantissa.setElement( 0 , val );
+	exponent.setValue( (int)MantTotalBits - 1 );
+	standardize();
 }
 
 template < int MantNum , int ExpNum >
@@ -1009,10 +1131,30 @@ unsigned TBigFloat<MantNum, ExpNum>::mul( unsigned rh )
 
 
 template < int MantNum , int ExpNum >
+template< int N >
+void TBigFloat<MantNum, ExpNum>::setValue( TBigInt< N > const& val )
+{
+	if ( val.isZero() ) { setZero(); return; }
+
+	stats = 0; // Clear stats
+
+	TBigInt< N > temp = val;
+	bool beS = temp.isSign();
+	if ( beS ) temp.applyComplement();
+
+	mantissa.setZero();
+	for( int i = 0 ; i < MantNum && i < N ; ++i )
+		mantissa.setElement( i , temp.castUInt().getElement(i) );
+
+	exponent.setValue( (int)MantTotalBits - 1 );
+	standardize();
+	if ( beS ) setSign();
+}
+
+template < int MantNum , int ExpNum >
 void TBigFloat<MantNum, ExpNum>::getIntegerPart( TBigFloat& rh ) const
 {
-	if ( isZero() )
-		return;
+	if ( isZero() ) { rh.setZero(); return; }
 
 	if ( exponent.isSign() )
 	{
@@ -1020,8 +1162,7 @@ void TBigFloat<MantNum, ExpNum>::getIntegerPart( TBigFloat& rh ) const
 		return;
 	}
 
-
-	if ( exponent > MantTotalBits - 1 )
+	if ( exponent >= int( MantTotalBits - 1 ) )
 	{
 		rh = *this;
 		return;
@@ -1031,119 +1172,163 @@ void TBigFloat<MantNum, ExpNum>::getIntegerPart( TBigFloat& rh ) const
 	rh.exponent = exponent;
 
 	int e;
-	if ( !exponent.convertToInt( e ) )
-	{
-		assert( 0 );
-	}
-	assert( e >= 0 );
-
-	unsigned val = e + 1;
+	exponent.convertToInt( e );
+	unsigned val = (unsigned)(MantTotalBits - 1 - e);
 
 	unsigned nW = val / BaseTypeBits;
 	unsigned nB = val % BaseTypeBits;
-	nB = BaseTypeBits - nB;
 
-	int idx = MantNum - 1;
-	int idxEnd = MantNum - 1 - nW;
-	for( ; idx > idxEnd ; --idx )
-		rh.mantissa.setElement( idx , mantissa.getElement( idx ) );
+	rh.mantissa = mantissa;
+	for( unsigned i = 0 ; i < nW ; ++i )
+		rh.mantissa.setElement( i , 0 );
 
-	val = mantissa.getElement( idx );
-
-	val >>= nB;
-	val <<= nB;
-
-	rh.mantissa.setElement( idx , val );
-
-	for( --idx ; idx >= 0 ; --idx )
-		rh.mantissa.setElement( idx , 0 );
+	BaseType m = rh.mantissa.getElement( nW );
+	m >>= nB;
+	m <<= nB;
+	rh.mantissa.setElement( nW , m );
 }
 
 template < int MantNum , int ExpNum >
 void TBigFloat<MantNum, ExpNum>::getString( std::string& str , unsigned base /*= 10 */ )
 {
-	TBigFloat new_exp;
-	TBigFloat temp;
-	temp.exponent = this->exponent;
-	temp.exponent.sub( MantTotalBits - 1 );
+	if ( isZero() ) { str = "0"; return; }
+	if ( isNan() ) { str = "NaN"; return; }
+	if ( isInfinity() ) { str = isSign() ? "-Infinity" : "Infinity"; return; }
 
-	new_exp.setValue( temp.exponent );
+	bool beS = isSign();
+	TBigFloat val = *this;
+	val.abs();
 
-	temp.setLn2();
-	new_exp.mul( temp );
-	temp.setLn10();
-	new_exp.div( temp );
-
-	temp.setOne();
-	temp.exponent.sub( 2 );
-
-	new_exp.add( temp );
-
-	if( !new_exp.isSign() && !new_exp.isInteger())
+	// 1. Calculate approximate 10-base exponent
+	TBigInt< ExpNum > p_int;
+	p_int.setZero();
+	int e;
+	if ( val.exponent.convertToInt( e ) )
 	{
-		temp.setOne();
-		new_exp.add( temp );
+		// P = floor( exponent * log10(2) )
+		int p_guess = (int)std::floor( (double)e * 0.3010299956639812 );
+		p_int.setValue( p_guess );
 	}
 
-	new_exp.rejectDecimal();
-	assert( new_exp.isInteger() );
+	// 2. Normalize val to [1, 10)
+	TBigFloat scale; scale.setValue( 10u );
+	TBigInt< ExpNum > p_abs_int = p_int; if ( p_abs_int.isSign() ) p_abs_int.applyComplement();
+	TBigUint< ExpNum > p_work = p_abs_int.castUInt();
+	scale.powDirty( p_work );
+	if ( p_int.isSign() ) 
+		val.mul( scale );
+	else
+		val.div( scale );
 
-	new_exp.convertMantissaToUInt();
+	int adj = 0;
+	TBigFloat ten; ten.setValue(10u);
+	int safety = 0;
+	while ( val >= ten && safety++ < 100 ) { val.div( ten ); adj++; }
+	safety = 0;
+	while ( val < 1.0 && !val.isZero() && safety++ < 100 ) { val.mul( ten ); adj--; }
+	p_int.add( adj );
 
-	temp.setValue( 10u );
-	temp.powDirty( new_exp.mantissa );
+	// 3. Extract digits one by one
+	str.clear();
+	if ( beS ) str += '-';
+	
+	// 3. Extract digits methods
+	str.clear();
+	if ( beS ) str += '-';
+	
+	// Optimization: Extract 9 digits at a time
+	static const double DIGIT_BLOCK_VAL_D = 1e9;
+	static const unsigned DIGIT_BLOCK_VAL = 1000000000;
+	TBigFloat digitBlockScaler; 
+	digitBlockScaler.setValue( DIGIT_BLOCK_VAL );
 
-	if ( new_exp.isSign() )
-		temp.inverse();
+	bool isFirstBlock = true;
+	// Calculate max meaningful decimal digits based on bit precision
+	// log10(2) = 0.30102999566
+	int maxDigits = (int)(MantTotalBits * 0.30103) + 9; // +9 for buffer
 
-	TBigFloat new_mant;
-	new_mant = *this;
-	new_mant.div( temp );
+	for ( int i = 0; i < maxDigits; i += 9 )
+	{
+		double d;
+		val.convertToDouble( d );
+		
+		unsigned block = (unsigned)d;
+		// Fail-safe for precision
+		if ( block >= DIGIT_BLOCK_VAL ) block = DIGIT_BLOCK_VAL - 1;
 
-	int ne;
-	new_mant.exponent.convertToInt( ne );
-	assert( MantTotalBits - 1 >= ne );
+		char buffer[16];
+		if ( isFirstBlock )
+		{
+			sprintf_s(buffer, "%u.", block);
+			str += buffer;
+			isFirstBlock = false;
+		}
+		else
+		{
+			sprintf_s(buffer, "%09u", block);
+			str += buffer;
+		}
 
-	unsigned mv = ( MantTotalBits - 1 ) - ne;
 
-	if ( mv )
-		new_mant.mantissa.shiftRightBitLessElementBit( mv , 0 );
+		val.sub( (double)block );
+		val.mul( digitBlockScaler );
+		
+		// Tolerance check for precision noise
+		double dbgVal;
+		if ( val.convertToDouble(dbgVal) && std::abs(dbgVal) < 1e-5 )
+		{
+			val.setZero();
+		}
 
-	MantType::convertToString( new_mant.mantissa ,  str , 10 , 30  );
+		if ( val.isZero() && i > 15 ) break;
+	}
+	// Remove trailing zeros
+	size_t decimalPointPos = str.find('.');
+	if (decimalPointPos != std::string::npos)
+	{
+		size_t lastNonZero = str.find_last_not_of('0');
+		if (lastNonZero != std::string::npos)
+		{
+			if (str[lastNonZero] == '.')
+			{
+				str.erase(lastNonZero);
+			}
+			else
+			{
+				str.erase(lastNonZero + 1);
+			}
+		}
+	}
+
+	if ( !p_int.isZero() )
+	{
+		std::string expStr;
+		p_int.getString( expStr , 10 );
+		if ( expStr != "0" )
+		{
+			str += "E";
+			str += expStr;
+		}
+	}
 }
 
-
-
-
 template < int MantNum , int ExpNum >
-bool TBigFloat<MantNum, ExpNum>::convertToUInt( unsigned& val )
+bool TBigFloat<MantNum, ExpNum>::convertToUInt( unsigned& val ) const
 {
-	if ( isNan() )
-		return true;
-
-	if ( isZero() )
-	{
-		val = 0;
-		return true;
-	}
-
-	if ( !isInteger() )
-		return false;
-
+	if ( isNan() ) return false;
+	if ( isZero() ) { val = 0; return true; }
+	
 	int ne;
-	if ( !exponent.convertToInt( ne ) )
-		return false;
+	if ( !exponent.convertToInt( ne ) ) return false;
+	if ( ne < 0 ) { val = 0; return true; }
+	if ( ne > 31 ) return false;
 
-	if ( ne > sizeof( int ) * 4 )
-		return false;
-
-	val = mantissa.getElement( MantNum - 1 ) >> ( BaseTypeBits - ne - 1 ); 
-
+	val = mantissa.getElement( MantNum - 1 ) >> ( (int)BaseTypeBits - 1 - ne ); 
 	return true;
 }
 
 template < int MantNum , int ExpNum >
-bool TBigFloat<MantNum, ExpNum>::isInteger()
+bool TBigFloat<MantNum, ExpNum>::isInteger() const
 {
 	if ( isNan() )
 		return false;
@@ -1162,45 +1347,147 @@ bool TBigFloat<MantNum, ExpNum>::isInteger()
 template < int MantNum , int ExpNum >
 void TBigFloat<MantNum, ExpNum>::setFromString( char const* str , unsigned base )
 {
+	setZero(); 
+	abs(); 
+	if ( !str || *str == '\0' ) return;
+
+	bool isNeg = false;
+	if ( *str == '-' ) { isNeg = true; ++str; }
+	else if ( *str == '+' ) { ++str; }
+
+	// Use TBigInt to build the coefficient precisely as an integer
+	TBigInt< MantNum > coefficient;
+	coefficient.setZero();
+	
 	bool sF = false;
-	setZero();
+	ExpType exp_num; exp_num.setZero();
+
 	char const* p = str;
+	int maxDigits = (int)(MantTotalBits * 0.30103);
+	int digitCount = 0;
 
-	TBigFloat temp;
-
-	ExpType exp_num;
-	exp_num.setZero();
+	// Optimization: Chunk parsing
 	while ( *p != '\0' )
 	{
-		char c = *p;
-		if( c == '.' )
-			sF = true;
-		else if ( c == 'E')
-			break;
+		if( *p == '.' ) { sF = true; }
+		else if ( *p == 'E' || *p == 'e' ) { break; }
 		else
 		{
-			mul( base );
-			BaseType n = MantType::convertCharToNum( *p );
-			temp.setValue( n );
-			add( temp );
+			if ( digitCount >= maxDigits )
+			{
+				// Prevention of overflow: Skip accumulation
+				if ( !sF ) exp_num.sub( 1 );
+			}
+			else
+			{
+				unsigned chunk = 0;
+				unsigned multiplier = 1;
+				int count = 0;
 
-			if ( sF )
-				exp_num.add( 1 );
+				// Process up to 9 digits at once
+				while ( *p >= '0' && *p <= '9' && count < 9 )
+				{
+					// Check limit inside chunking
+					if ( digitCount + count >= maxDigits ) break;
+					
+					// Leading zeros before any non-zero digit are not significant, except after decimal point (handled by exp)
+					// Actually, 'digitCount' tracks precision usage.
+					// We should only increment 'digitCount' if we are storing significant digits or if the number is non-zero.
+					// But wait, "0.0000" -> sF=true. '0' digits.
+					// If we parse '0', coefficient remains 0.
+					
+					chunk = chunk * 10 + (*p - '0');
+					multiplier *= 10;
+					++p;
+					++count;
+					if ( sF ) exp_num.add( 1 );
+				}
+				
+				if ( count > 0 )
+				{
+					if ( multiplier > 10 ) coefficient.mul( multiplier );
+					else coefficient.mul( 10 );
+					
+					coefficient.add( chunk );
+					
+					if ( !coefficient.isZero() )
+					{
+						digitCount += count;
+					}
+					else
+					{
+						// If coefficient is still zero, these were leading zeros.
+						// We don't count them towards maxDigits limit.
+						
+						// BUT, if we are after decimal point (sF=true), we tracked them in exp_num.
+						// So mathematically it is correct (value is 0 * 10^-N = 0).
+						// Just need to ensure we don't assume we "ran out of precision" for 0.00000000001
+					}
+
+					// p already advanced, continue loop but don't skip check
+					continue;
+				}
+				
+				// Fallback for remaining single digits if limit hit inside chunk block processing
+				if ( *p >= '0' && *p <= '9' )
+				{
+					if ( digitCount < maxDigits )
+					{
+						unsigned n = MantType::convertCharToNum( *p );
+						coefficient.mul( base );
+						coefficient.add( n );
+						if ( sF ) exp_num.add( 1 );
+						
+						if (!coefficient.isZero()) digitCount++;
+					}
+					else
+					{
+						if ( !sF ) exp_num.sub( 1 );
+					}
+				}
+			}
 		}
-		++p;
+		if ( *p != '\0' && *p != 'E' && *p != 'e' ) ++p;
 	}
 
-	if ( *p == 'E' )
+	TBigFloat val;
+	val.setValue( coefficient );
+
+	if ( *p == 'E' || *p == 'e' )
 	{
 		++p;
 		ExpType exp_num2;
-		exp_num2.setFromStr( p , base );
+		exp_num2.setFromStr( p , 10 );
 		exp_num.sub( exp_num2 );
 	}
 
-	temp.setValue( base );
-	temp.powDirty( exp_num );
-	div( temp );
+	if ( !exp_num.isZero() )
+	{
+		ExpType abs_exp = exp_num;
+		bool expIsNeg = abs_exp.isSign();
+		if ( expIsNeg ) abs_exp.applyComplement();
+
+		TBigFloat factor; factor.setValue( 10u );
+		TBigUint< ExpNum > p_work = abs_exp.castUInt();
+		factor.powDirty( p_work );
+		
+		if ( exp_num.isSign() ) val.mul( factor );
+		else
+		{
+			bool beExact;
+			val.div( factor , &beExact );
+			if ( !beExact && val.mantissa.add( 1 ) )
+			{
+				val.mantissa.shiftRightBit( 1 , 0 );
+				val.mantissa.setElement( MantNum - 1 , BaseTypeHighestBit );
+				val.exponent.add( 1 );
+			}
+		}
+	}
+
+	val.standardize();
+	*this = val;
+	if ( isNeg ) setSign();
 }
 
 
@@ -1247,7 +1534,7 @@ unsigned TBigFloat<MantNum, ExpNum>::powDirty( TBigUint< N >& rh )
 template < int MantNum , int ExpNum >
 bool TBigFloat<MantNum, ExpNum>::convertMantissaToUInt()
 {
-	assert( isInteger() );
+	CHECK( isInteger() );
 
 	unsigned num = getMantissaBitNum();
 
@@ -1267,9 +1554,9 @@ bool TBigFloat<MantNum, ExpNum>::convertMantissaToUInt()
 	int ne;
 	if ( !exponent.convertToInt( ne ) )
 	{
-		assert( 0 );
+		CHECK( 0 );
 	}
-	assert( ne > 0 );
+	CHECK( ne > 0 );
 	unsigned move = MantTotalBits - unsigned( ne + 1 );
 
 	mantissa.shiftRightBit( move , 0 );

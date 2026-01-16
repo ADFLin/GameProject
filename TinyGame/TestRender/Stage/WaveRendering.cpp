@@ -314,6 +314,7 @@ namespace Render
 			if (bOnepassFFT)
 			{
 				mFFTHCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[inoutReadIndex], 0, EAccessOp::ReadAndWrite);
+				RHIResourceTransition(commandList, { mFFTTextures[inoutReadIndex] }, EResourceTransition::UAV);
 				RHIDispatchCompute(commandList, 1, textureSize.y, 1);
 				mFFTHCS->clearRWTexture(commandList, SHADER_PARAM(TexOut));
 			}
@@ -325,6 +326,8 @@ namespace Render
 					mFFTHCS->setTexture(commandList, SHADER_PARAM(TexIn), mFFTTextures[inoutReadIndex]);
 					mFFTHCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[1 - inoutReadIndex], 0, EAccessOp::WriteOnly);
 					mFFTHCS->setParam(commandList, SHADER_PARAM(FFTStride), stride);
+					RHIResourceTransition(commandList, { mFFTTextures[inoutReadIndex] }, EResourceTransition::SRV);
+					RHIResourceTransition(commandList, { mFFTTextures[1 - inoutReadIndex] }, EResourceTransition::UAV);
 					RHIDispatchCompute(commandList, 1, textureSize.y, 1);
 
 					mFFTHCS->clearTexture(commandList, SHADER_PARAM(TexIn));
@@ -339,6 +342,7 @@ namespace Render
 			if (bOnepassFFT)
 			{
 				mFFTVCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[inoutReadIndex], 0, EAccessOp::ReadAndWrite);
+				RHIResourceTransition(commandList, { mFFTTextures[inoutReadIndex] }, EResourceTransition::UAV);
 				RHIDispatchCompute(commandList, 1, textureSize.x, 1);
 				mFFTVCS->clearRWTexture(commandList, SHADER_PARAM(TexOut));
 			}
@@ -350,6 +354,8 @@ namespace Render
 					mFFTVCS->setTexture(commandList, SHADER_PARAM(TexIn), mFFTTextures[inoutReadIndex]);
 					mFFTVCS->setRWTexture(commandList, SHADER_PARAM(TexOut), *mFFTTextures[1 - inoutReadIndex], 0, EAccessOp::WriteOnly);
 					mFFTVCS->setParam(commandList, SHADER_PARAM(FFTStride), stride);
+					RHIResourceTransition(commandList, { mFFTTextures[inoutReadIndex] }, EResourceTransition::SRV);
+					RHIResourceTransition(commandList, { mFFTTextures[1 - inoutReadIndex] }, EResourceTransition::UAV);
 					RHIDispatchCompute(commandList, 1, textureSize.x, 1);
 
 					mFFTVCS->clearTexture(commandList, SHADER_PARAM(TexIn));
@@ -363,17 +369,16 @@ namespace Render
 				RHISetComputeShader(commandList, mScaleValueCS->getRHI());
 				mScaleValueCS->setRWTexture(commandList, SHADER_PARAM(TexDest), *mFFTTextures[inoutReadIndex], 0, EAccessOp::ReadAndWrite);
 				mScaleValueCS->setParam(commandList, SHADER_PARAM(Scale), Vector2(1.0 / textureSize.x, 1.0 / textureSize.y));
+				RHIResourceTransition(commandList, { mFFTTextures[inoutReadIndex] }, EResourceTransition::UAV);
 				RHIDispatchCompute(commandList, textureSize.x / ScaleValueCS::GroupSize, textureSize.y / ScaleValueCS::GroupSize, 1);
 				mScaleValueCS->clearRWTexture(commandList, SHADER_PARAM(TexDest));
+				RHIResourceTransition(commandList, { mFFTTextures[inoutReadIndex] }, EResourceTransition::SRV);
 			}
 		}
 
 		void TestFFT(RHICommandList& commandList)
 		{
 			GPU_PROFILE("TestFFT");
-			RHIClearSRVResource(commandList, mFFTTextures[0]);
-			RHIClearSRVResource(commandList, mFFTTextures[1]);
-
 			RHIResourceTransition(commandList, { mFFTTextures[0] , mFFTTextures[1] } , EResourceTransition::UAV);
 			RHISetComputeShader(commandList, mFillValueCS->getRHI());
 			mFillValueCS->setTexture(commandList, SHADER_PARAM(TexSource), mFFTTestTex);
@@ -387,7 +392,6 @@ namespace Render
 				doFFT2D(commandList, false, readIndex);
 			}
 
-			RHIClearSRVResource(commandList, mFFTResultTex);
 			RHIResourceTransition(commandList, { mFFTResultTex }, EResourceTransition::UAV);
 			
 			RHISetComputeShader(commandList, mNormalizeCS->getRHI());
@@ -422,8 +426,7 @@ namespace Render
 			GPU_PROFILE("GenerateWave");
 			CHECK(mTextureDisp->getSizeX() == mTextureDisp->getSizeY() && (mTextureDisp->getSizeX() % WaveGenerateCS::GroupSize == 0));
 
-			RHIClearSRVResource(commandList, mTextureDisp);
-			RHIClearSRVResource(commandList, mTextureDispDiff);
+			RHIResourceTransition(commandList, { mTextureDisp, mTextureDispDiff }, EResourceTransition::UAV);
 			RHISetComputeShader(commandList, mWaveGenerateCS->getRHI());
 			mWaveGenerateCS->setRWTexture(commandList, SHADER_PARAM(TexDisp), *mTextureDisp, 0, EAccessOp::WriteOnly);
 			mWaveGenerateCS->setRWTexture(commandList, SHADER_PARAM(TexDispDiff), *mTextureDispDiff, 0, EAccessOp::WriteOnly);
@@ -432,11 +435,14 @@ namespace Render
 			float lengthScale = mTileLength / mTextureDisp->getSizeX();
 			mWaveGenerateCS->setParam(commandList, SHADER_PARAM(LengthScale), lengthScale);
 			mWaveGenerateCS->setParam(commandList, SHADER_PARAM(NumWaveParams), (int)mWaveDataList.size());
+			mWaveGenerateCS->setParam(commandList, SHADER_PARAM(NumWaveParams), (int)mWaveDataList.size());
 			SetStructuredStorageBuffer(commandList, *mWaveGenerateCS, mWaveParamsBuffer);
 
+			RHIResourceTransition(commandList, { mWaveParamsBuffer.getRHI() }, EResourceTransition::SRV);
 			RHIDispatchCompute(commandList, mTextureDisp->getSizeX() / WaveGenerateCS::GroupSize, mTextureDisp->getSizeX() / WaveGenerateCS::GroupSize, 1);
 			mWaveGenerateCS->clearRWTexture(commandList, SHADER_PARAM(TexDisp));
 			mWaveGenerateCS->clearRWTexture(commandList, SHADER_PARAM(TexDispDiff));
+			RHIResourceTransition(commandList, { mTextureDisp, mTextureDispDiff }, EResourceTransition::SRV);
 		}
 
 		void updateWaveParams()

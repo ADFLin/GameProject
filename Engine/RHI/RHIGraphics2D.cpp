@@ -433,6 +433,11 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	}
 }
 
+void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment, bool bClip)
+{
+	drawText(pos, size, str, alignment, EVerticalAlign::Center, bClip);
+}
+
 void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip /*= false */)
 {
 	if (!mFont || !mFont->isValid())

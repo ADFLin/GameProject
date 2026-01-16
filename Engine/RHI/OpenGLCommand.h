@@ -128,14 +128,7 @@ namespace Render
 		void RHISetIndexBuffer(RHIBuffer* buffer);
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
-		void RHIClearSRVResource(RHIResource* resource)
-		{
-
-		}
-		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
-		{
-
-		}
+		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
 
 		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 

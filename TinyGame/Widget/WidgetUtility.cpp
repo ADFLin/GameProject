@@ -146,6 +146,15 @@ GText* DevFrame::addText(char const* pText, bool bUseBroder)
 	} , bUseBroder);
 }
 
+GListCtrl* DevFrame::addListCtrl(int id, Vec2i const& size)
+{
+	return addWidget<GListCtrl>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
+	{
+		GListCtrl* widget = new GListCtrl(id, widgetPos, size, this);
+		return widget;
+	});
+}
+
 void DevFrame::refresh()
 {
 	for (auto child = createChildrenIterator(); child; ++child)

@@ -172,6 +172,7 @@ public:
 	GChoice*   addChoice(int id = UI_ANY);
 	GChoice*   addChoice(char const* title, int id = UI_ANY);
 	GText*     addText(char const* pText, bool bUseBroder = false);
+	GListCtrl* addListCtrl(int id, Vec2i const& size);
 
 
 	void refresh();

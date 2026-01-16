@@ -45,4 +45,6 @@
 
 #define EXPORT_FUNC(func) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;
 
+
+
 #undef EXPORT_FUNC

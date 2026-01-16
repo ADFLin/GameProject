@@ -280,10 +280,13 @@ namespace Render
 
 		D3D11_SHADER_DESC shaderDesc;
 		reflection->GetDesc(&shaderDesc);
+		LogMsg("Reflecting Shader Resources (Num: %d):", shaderDesc.BoundResources);
 		for( int i = 0; i < shaderDesc.BoundResources; ++i )
 		{
 			D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 			reflection->GetResourceBindingDesc(i, &bindDesc);
+
+			LogMsg("  Found Resource: %s (Type: %d, Slot: %d)", bindDesc.Name, bindDesc.Type, bindDesc.BindPoint);
 
 			switch( bindDesc.Type )
 			{
@@ -366,14 +369,22 @@ namespace Render
 				}
 				break;
 			case D3D_SIT_UAV_RWTYPED:
-			case D3D_SIT_UAV_APPEND_STRUCTURED:
 			case D3D_SIT_STRUCTURED:
+			case D3D_SIT_UAV_RWSTRUCTURED:
+			case D3D_SIT_BYTEADDRESS:
+			case D3D_SIT_UAV_RWBYTEADDRESS:
+			case D3D_SIT_UAV_APPEND_STRUCTURED:
+			case D3D_SIT_UAV_CONSUME_STRUCTURED:
+			case D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
 				{
 					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::StorageBuffer;
 #endif
 				}
+				break;
+			default:
+				LogWarning(0, "Unknown D3D shader bind type: %d (Name: %s)", bindDesc.Type, bindDesc.Name);
 				break;
 			}
 		}

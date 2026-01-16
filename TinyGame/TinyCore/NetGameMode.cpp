@@ -126,11 +126,11 @@ bool NetRoomStage::onInit()
 	{
 		setupServerProcFunc(getServer()->getPacketDispatcher());
 
-		// ✅ 先設置遊戲並初始化 helper，然後才能添加玩家
+		// ???�設置�??�並?��???helper，然後�??�添?�玩�?
 		IGameModule* curGame = Global::ModuleManager().getRunningGame();
 		mSettingPanel->setGame( curGame ? curGame->getName() : NULL );
 
-		// 現在 helper 已經創建並初始化，可以安全地添加玩家
+		// ?�在 helper 已�??�建並�?始�?，可以�??�地添�??�家
 		for( auto iter = getServer()->getPlayerManager()->createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
@@ -146,8 +146,8 @@ bool NetRoomStage::onInit()
 	{
 		ClientWorker* worker = getClientWorker();
 
-		// ClientListener 由 NetGameMode 設置，不需要在這裡重複設置
-		// NetGameMode::onServerEvent 會轉發事件到 Stage
+		// ClientListener ??NetGameMode 設置，�??�要在?�裡?��?設置
+		// NetGameMode::onServerEvent ?��??��?件到 Stage
 		if ( worker->getActionState() == NAS_DISSCONNECT )
 		{
 			mConnectPanel  = new ServerListPanel( worker , Vec2i( 0 , 0 ) , NULL );
@@ -161,7 +161,7 @@ bool NetRoomStage::onInit()
 		}
 	}
 
-	// 進入房間狀態由 NetGameMode 控制，這裡只觸發 UI 初始化
+	// ?�入?��??�?�由 NetGameMode ?�制，這裡?�觸??UI ?��???
 	LogMsg("Net Room Init");
 	return true;
 }
@@ -193,7 +193,13 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 
 	long const timeUIAnim = 1000;
 
-	Vec2i panelPos = Vec2i( 20 , 20 );
+	Vec2i sizeSettingPanel(350, 400); // Move definition up
+	Vec2i screenSize = Global::GetScreenSize();
+	Vec2i totalSize(PlayerListPanel::WidgetSize.x + 10 + sizeSettingPanel.x, std::max((int)PlayerListPanel::WidgetSize.y + 20 + 230, (int)sizeSettingPanel.y + 80));
+	Vec2i startPos = (screenSize - totalSize) / 2;
+	if (startPos.y < 40) startPos.y = 40;
+
+	Vec2i panelPos = startPos;
 	{
 		if ( mPlayerPanel == nullptr )
 		{
@@ -217,7 +223,6 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 	}
 
 
-	Vec2i sizeSettingPanel( 350 , 400 );
 	{
 		Vec2i pos = panelPos + Vec2i( PlayerListPanel::WidgetSize.x + 10 , 0 ); 
 		if( mSettingPanel == nullptr )
@@ -296,12 +301,14 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 
 		button->setFontType(FONT_S10);
 		mReadyButton = button;
+		mReadyButton->setColor(Color3ub(60, 140, 220));
 		::Global::GUI().addWidget(button);
 
 		btnPos += Vec2i(0, btnSize.y + 5);
 		button = new GButton(UI_MAIN_MENU, btnPos, btnSize, NULL);
 		button->setFontType(FONT_S10);
 		button->setTitle(LOCTEXT("Exit"));
+		button->setColor(Color3ub(60, 140, 220));
 		::Global::GUI().addWidget(button);
 		mExitButton = button;
 		{
@@ -310,7 +317,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		}
 	}
 
-	// ✅ 連接 Helper 與 UI panels (從 Mode 獲取 Helper)
+	// ????�� Helper ??UI panels (�?Mode ?��? Helper)
 	if (bFullSetting)
 	{
 		NetGameMode::GameSwitchContext ctx;
@@ -350,14 +357,40 @@ void NetRoomStage::setupWorkerProcFunc(PacketDispatcher& dispatcher)
 
 
 
-void NetRoomStage::onRender( float dFrame )
+void NetRoomStage::onRender(float dFrame)
 {
-	//Graphics2D& g = de->getGraphics2D();
-	//Vec2i basePos = de->getScreenSize();
-	//basePos /= 2;
-	//g.setBrush( ColorKey3( 255 , 255 , 0 ) );
-	//g.drawRect( basePos + 20 * mPos , Vec2i( 20 , 20 ) );
+	IGraphics2D& g = Global::GetIGraphics2D();
+	g.beginRender();
 
+	Vec2i screenSize = Global::GetScreenSize();
+
+	// Draw Background Gradient (Manual Loop)
+	Color3ub color1(10, 15, 25);
+	Color3ub color2(25, 35, 55);
+	int steps = 15;
+	int stepHeight = screenSize.y / steps + 1;
+	RenderUtility::SetPen(g, EColor::Null);
+	for (int i = 0; i < steps; ++i)
+	{
+		float t = (float)i / (steps - 1);
+		Color3ub color(
+			color1.r + (int)(t * (color2.r - color1.r)),
+			color1.g + (int)(t * (color2.g - color1.g)),
+			color1.b + (int)(t * (color2.b - color1.b))
+		);
+		g.setBrush(color);
+		g.drawRect(Vec2i(0, i * stepHeight), Vec2i(screenSize.x, stepHeight));
+	}
+
+	// Draw Abstract Grid Effect
+	g.setPen(Color3ub(40, 60, 100), 1);
+	int gridSpacing = 40;
+	for (int x = 0; x < screenSize.x; x += gridSpacing)
+		g.drawLine(Vec2i(x, 0), Vec2i(x, screenSize.y));
+	for (int y = 0; y < screenSize.y; y += gridSpacing)
+		g.drawLine(Vec2i(0, y), Vec2i(screenSize.x, y));
+
+	g.endRender();
 }
 
 bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
@@ -365,7 +398,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 	switch( id )
 	{
 	case UI_GAME_CHOICE:
-		// ✅ Server 切換遊戲 - 使用統一的 switchGame 接口
+		// ??Server ?��??�戲 - 使用統�???switchGame ?�口
 		if (haveServer())
 		{
 			NetGameMode::GameSwitchContext ctx;
@@ -424,7 +457,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 	case UI_NET_ROOM_START: // Server
 		if (getMode()->startGame())
 		{
-			// UI 更新
+			// UI ?�新
 			mReadyButton->enable(false);
 			mExitButton->enable(false);
 		}
@@ -458,7 +491,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 	return BaseClass::onWidgetEvent( event , id , ui );
 }
 
-// 由 NetGameMode::onServerEvent 轉發呼叫 - 只處理 UI 更新
+// ??NetGameMode::onServerEvent 轉發?�叫 - ?��???UI ?�新
 void NetRoomStage::onServerEvent( ClientListener::EventID event , unsigned msg )
 {
 	if ( mConnectPanel )
@@ -469,11 +502,11 @@ void NetRoomStage::onServerEvent( ClientListener::EventID event , unsigned msg )
 	switch( event )
 	{
 	case ClientListener::eCON_CLOSE:
-		// UI: 切換回主選單
+		// UI: ?��??�主?�單
 		getManager()->changeStage( STAGE_MAIN_MENU );
 		break;
 	case ClientListener::eLOGIN_RESULT:
-		// UI: 顯示完整設定面板
+		// UI: 顯示完整設�??�板
 		if ( msg )
 		{
 			setupUI(true);
@@ -519,10 +552,10 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 	switch( com->state )
 	{
-	// NAS_ROOM_ENTER 的 changeState 已移至 NetGameMode::procPlayerState
+	// NAS_ROOM_ENTER ??changeState 已移??NetGameMode::procPlayerState
 	case NAS_LEVEL_SETUP:
 		{
-			// ✅ 只處理 UI 更新
+			// ???��???UI ?�新
 			mReadyButton->enable( false );
 			mExitButton->enable( false );
 		}
@@ -598,7 +631,7 @@ void NetRoomStage::procPlayerStateSv(IComPacket* cp)
 
 	switch( com->state )
 	{
-	// NAS_ROOM_ENTER 的 sendGameSetting 已移至 NetGameMode::onAddPlayer
+	// NAS_ROOM_ENTER ??sendGameSetting 已移??NetGameMode::onAddPlayer
 	case NAS_ROOM_WAIT:
 		{
 			mReadyButton->enable( false );
@@ -634,7 +667,7 @@ void NetRoomStage::procMsg(IComPacket* cp)
 			if ( !player )
 				return;
 			str.format( "%s : %s " , player->getName() , com->content.c_str() );
-			mMsgPanel->addMessage( str , Color3ub( 255 , 255 , 0 ) );
+			mMsgPanel->addMessage( str , Color3ub( 255 , 255 , 255 ) );
 			//CFly::Msg( "( ID = %d ):%s" , com->playerID , com->str );
 		}
 		break;
@@ -652,8 +685,8 @@ void NetRoomStage::procPlayerStatus(IComPacket* cp)
 void NetRoomStage::procSlotState(IComPacket* cp)
 {
 	SPSlotState* com = cp->cast< SPSlotState >();
-	// 業務邏輯 (player->setSlot) 已移至 NetGameMode::procSlotState
-	// 這裡只做 UI 刷新
+	// 業�??�輯 (player->setSlot) 已移??NetGameMode::procSlotState
+	// ?�裡?��? UI ?�新
 	mPlayerPanel->refreshPlayerList(com->idx, com->state);
 }
 
@@ -664,21 +697,21 @@ void NetRoomStage::procRawData(IComPacket* cp)
 	switch( com->id )
 	{
 	case NetGameMode::SETTING_DATA_ID:
-		// Client 接收遊戲設定 - setupGame + importSetting 是 UI 邏輯
+		// Client ?�收?�戲設�? - setupGame + importSetting ??UI ?�輯
 		if ( !haveServer() )
 		{
 			try
 			{
 				char gameName[128];
 				com->buffer.take(gameName, sizeof(gameName));
-				mSettingPanel->setGame(gameName);  // UI: 更新遊戲選單
+				mSettingPanel->setGame(gameName);  // UI: ?�新?�戲?�單
 
-				// UI: 創建 Helper 並導入設定到面板
+				// UI: ?�建 Helper 並�??�設定到?�板
 				NetGameMode::GameSwitchContext ctx;
 				ctx.playerPanel = mPlayerPanel;
 				ctx.settingPanel = mSettingPanel;
 				ctx.listener = this;
-				ctx.importBuffer = &com->buffer;  // 導入設定數據到 UI
+				ctx.importBuffer = &com->buffer;  // 導入設�??��???UI
 				
 				getMode()->switchGame(gameName, ctx);
 				mSettingPanel->adjustChildLayout();
@@ -692,7 +725,7 @@ void NetRoomStage::procRawData(IComPacket* cp)
 	}
 }
 
-// ✅ 舊方法已搬移到 NetGameMode
+// ???�方法已?�移??NetGameMode
 // generateSetting, setupGame, sendGameSetting, onAddPlayer, onRemovePlayer
 
 void NetRoomStage::onModify( GWidget* ui )
@@ -855,7 +888,7 @@ bool NetGameMode::initialize()
 	if (haveServer())
 	{
 		mServer->setEventResolver(this);
-		mServer->getPlayerManager()->setListener(this);  // 註冊為 PlayerListener
+		mServer->getPlayerManager()->setListener(this);  // 註�???PlayerListener
 	}
 	else
 	{
@@ -884,8 +917,8 @@ bool NetGameMode::initializeStage(GameStageBase* stage)
 
 	if (haveServer())
 	{
-		// ✅ Helper 會在 NetRoomStage::onInit 中透過 mSettingPanel->setGame() 自動創建
-		// 不需要在這裡預先創建，避免重複創建和初始化時機問題
+		// ??Helper ?�在 NetRoomStage::onInit 中透�? mSettingPanel->setGame() ?��??�建
+		// 不�?要在?�裡?��??�建，避?��?複創建�??��??��?機�?�?
 	}
 	else if (!getClientWorker()->haveConnect())
 	{
@@ -920,7 +953,7 @@ void NetGameMode::onEnd()
 	if( haveServer() )
 	{
 		mServer->setEventResolver(nullptr);
-		mServer->getPlayerManager()->setListener(nullptr);  // ✅ 取消 PlayerListener 註冊
+		mServer->getPlayerManager()->setListener(nullptr);  // ???��? PlayerListener 註�?
 	}
 	BaseClass::onEnd();
 }
@@ -1120,12 +1153,12 @@ void NetGameMode::procPlayerState(IComPacket* cp)
 	{
 	case NAS_ROOM_ENTER:
 		{
-			// 業務邏輯：進入房間後切換到等待狀態
+			// 業�??�輯：進入?��?後�??�到等�??�??
 			if (mWorker)
 			{
 				mWorker->changeState(NAS_ROOM_WAIT);
 			}
-			// Stage 切換
+			// Stage ?��?
 			NetRoomStage* stage = static_cast<NetRoomStage*>( getManager()->changeStage(STAGE_NET_ROOM));
 		}
 		break;
@@ -1289,7 +1322,7 @@ void NetGameMode::onServerEvent(ClientListener::EventID event, unsigned msg)
 {
 	InlineString< 256 > str;
 
-	// 業務邏輯處理
+	// 業�??�輯?��?
 	switch( event )
 	{
 	case ClientListener::eCON_CLOSE:
@@ -1297,7 +1330,7 @@ void NetGameMode::onServerEvent(ClientListener::EventID event, unsigned msg)
 		::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
 		break;
 	case ClientListener::eLOGIN_RESULT:
-		// 業務邏輯：登入成功後切換到房間等待狀態
+		// 業�??�輯：登?��??��??��??�房?��?待�???
 		if (msg && mWorker)
 		{
 			mWorker->changeState(NAS_ROOM_WAIT);
@@ -1305,14 +1338,14 @@ void NetGameMode::onServerEvent(ClientListener::EventID event, unsigned msg)
 		break;
 	}
 	
-	// 轉發事件給 Stage 處理 UI 更新
-	// 使用 StageManager 獲取當前 Stage（可能是 NetRoomStage 或其他 StageBase）
+	// 轉發事件�?Stage ?��? UI ?�新
+	// 使用 StageManager ?��??��? Stage（可?�是 NetRoomStage ?�其�?StageBase�?
 	if (mStageManager)
 	{
 		StageBase* curStage = mStageManager->getCurStage();
 		if (curStage)
 		{
-			// 使用 dynamic_cast 檢查 Stage 是否實作 ClientListener
+			// 使用 dynamic_cast 檢查 Stage ?�否實�? ClientListener
 			if (ClientListener* stageListener = dynamic_cast<ClientListener*>(curStage))
 			{
 				stageListener->onServerEvent(event, msg);
@@ -1382,7 +1415,7 @@ void NetGameMode::resolveReconnect_NetThread(ServerResolveContext& context)
 	assert(IsInNetThread());
 }
 
-// === ServerPlayerListener 實作 ===
+// === ServerPlayerListener 實�? ===
 void NetGameMode::onAddPlayer(PlayerId id)
 {
 	sendGameSetting(id);
@@ -1495,7 +1528,7 @@ void NetGameMode::bindHelperToUI(GameSwitchContext const& ctx)
 	mHelper->setupSetting(getServer());
 }
 
-// === 遊戲啟動 ===
+// === ?�戲?��? ===
 bool NetGameMode::startGame()
 {
 	if (!mHelper || !mHelper->checkSettingSV())
@@ -1503,17 +1536,17 @@ bool NetGameMode::startGame()
 
 	assert(haveServer());
 
-	// 發送 Server 準備好的狀態
+	// ?��?Server 準�?好�??�??
 	CSPPlayerState com;
 	com.playerId = getServer()->getPlayerManager()->getUserID();
 	com.state = NAS_ROOM_READY;
 	getServer()->sendTcpCommand(&com);
 
-	// 同步玩家狀態和設定
+	// ?�步?�家?�?��?設�?
 	mHelper->sendPlayerStatusSV();
 	sendGameSetting();
 
-	// 啟動倒數計時
+	// ?��??�數計�?
 	scheduleGameStart();
 	return true;
 }
@@ -1555,17 +1588,17 @@ void NetGameMode::transitionToLevel()
 	}
 }
 
-// === Lobby 封包處理 (業務邏輯) ===
+// === Lobby 封�??��? (業�??�輯) ===
 void NetGameMode::procPlayerStatus(IComPacket* cp)
 {
-	// SPPlayerStatus 通常由 Server 發送給 Client，Mode 不需要處理
-	// NetRoomStage 會處理 UI 更新
+	// SPPlayerStatus ?�常??Server ?�送給 Client，Mode 不�?要�???
+	// NetRoomStage ?��???UI ?�新
 }
 
 void NetGameMode::procSlotState(IComPacket* cp)
 {
 	SPSlotState* com = cp->cast<SPSlotState>();
-	// 更新玩家 Slot 分配
+	// ?�新?�家 Slot ?��?
 	for (int i = 0; i < MAX_PLAYER_NUM; ++i)
 	{
 		if (com->state[i] >= 0)
@@ -1584,8 +1617,8 @@ void NetGameMode::procRawData(IComPacket* cp)
 	switch (com->id)
 	{
 	case SETTING_DATA_ID:
-		// Client 端的遊戲設定導入由 NetRoomStage::procRawData 處理
-		// 因為 setupGame + importSetting 是 UI 遏輯 (填充設定面板)
+		// Client 端�??�戲設�?導入??NetRoomStage::procRawData ?��?
+		// ?�為 setupGame + importSetting ??UI ?�輯 (填�?設�??�板)
 		break;
 	}
 }

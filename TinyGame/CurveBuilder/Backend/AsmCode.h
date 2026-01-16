@@ -709,7 +709,7 @@ class FPUCodeGeneratorV1 : public FPUCodeGeneratorBase
 {
 
 public:
-	std::vector< RealType > mConstTable;
+	TArray< RealType > mConstTable;
 
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
@@ -832,8 +832,8 @@ protected:
 
 
 	}
-	std::vector< int > mRegStack;
-	std::vector< ValueInfo > mStackValues;
+	TArray< int > mRegStack;
+	TArray< ValueInfo > mStackValues;
 
 };
 
@@ -870,9 +870,12 @@ public:
 	};
 
 	SSECodeGeneratorX64Base()
+		:mbIsSIMD(false)
 	{
-
+		mNumInstruction = 0;
 	}
+
+	bool mbIsSIMD;
 
 	TArray< StackValue >  mInputStack;
 	TArray< StackValue >  mConstStack;
@@ -887,18 +890,8 @@ public:
 		return xmm(6 + idx);
 	}
 
-	int32 mXMMSaveCodeStart = 0;
-	TArray<int32> mXMMSaveOffsets;
-	TArray<int32> mXMMSaveInstrSizes;
-	int32 mXMMSaveCodeEnd = 0;
-	int32 mMaxXMMStackUsage = 0;
-	int32 mReservedInputCount = 0;
 
-	void updateStackUsage()
-	{
-		if ((int)mXMMStack.size() > mMaxXMMStackUsage)
-			mMaxXMMStackUsage = (int)mXMMStack.size();
-	}
+	int32 mReservedInputCount = 0;
 
 	int addConstValue(ConstValueInfo const& val)
 	{
@@ -953,10 +946,6 @@ public:
 	int           mNumXMMUsed;
 	TArray< ValueInfo > mXMMStack;  // Stack of values in XMM registers
 
-	// Simulated state for accurate mMaxStackDepth calculation
-	TokenType     mSimulatedPrevType;
-	TArray<bool>  mInputUsed;
-
 	// Initialize code generation for x64
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
@@ -974,104 +963,17 @@ public:
 			}
 		}
 
+
 		mConstStorage.clear();
 		mConstStack.clear();
-		mNumTemps = 0;
 
-		mSimulatedStackDepth = 0;
-		mMaxStackDepth = 0;
-		mSimulatedPrevType = TOKEN_NONE;
-		mInputUsed.clear();
-		mInputUsed.resize(numInput, false);
+
+		// Initialize XMM stack
+		mXMMStack.clear();
+		mRegAllocator.reset(numInput);
+		mCurPushIndex = 0;
 	}
 
-	void preLoadCode(ExprParse::Unit const& code)
-	{
-		if (code.type == VALUE_CONST)
-		{
-			addConstValue(code.constValue);
-		}
-		else if (code.type == VALUE_EXPR_TEMP)
-		{
-			if (mNumTemps < code.exprTemp.tempIndex + 1)
-				mNumTemps = code.exprTemp.tempIndex + 1;
-		}
-		else if (code.type == VALUE_INPUT)
-		{
-			mInputUsed[code.input.index] = true;
-		}
-
-		if (code.storeIndex != -1)
-		{
-			if (mNumTemps < code.storeIndex + 1)
-				mNumTemps = code.storeIndex + 1;
-		}
-
-		if (IsValue(code.type))
-		{
-			if (IsValue(mSimulatedPrevType))
-			{
-				mSimulatedStackDepth += 1;
-			}
-			mSimulatedPrevType = code.type;
-		}
-		else if (IsBinaryOperator(code.type))
-		{
-			if (IsValue(mSimulatedPrevType))
-			{
-				// Optimizer will use mSimulatedPrevType as second operand directly
-				mSimulatedPrevType = TOKEN_NONE;
-			}
-			else
-			{
-				mSimulatedStackDepth -= 1;
-			}
-		}
-		else if (IsUnaryOperator(code.type))
-		{
-			// Unary ops always process the previous value or stack top
-			if (IsValue(mSimulatedPrevType))
-			{
-				// Value is effectively "pushed" and processed
-				mSimulatedStackDepth += 1;
-				mSimulatedPrevType = TOKEN_NONE;
-			}
-			// Result replaces stack top/prev value, depth doesn't change
-		}
-		else if (IsFunction(code.type))
-		{
-			int numArgs = (code.type == FUNC_DEF) ? code.symbol->func.getArgNum() : code.funcSymbol.numArgs;
-			if (numArgs > 0)
-			{
-				if (IsValue(mSimulatedPrevType))
-				{
-					// Count effectively used stack items
-					int usedFromStack = numArgs - 1;
-					mSimulatedStackDepth -= usedFromStack;
-					mSimulatedPrevType = TOKEN_NONE;
-				}
-				else
-				{
-					mSimulatedStackDepth -= (numArgs - 1);
-				}
-			}
-			else
-			{
-				// Func with 0 args is like a value
-				if (IsValue(mSimulatedPrevType))
-					mSimulatedStackDepth += 1;
-				mSimulatedPrevType = TOKEN_FUNC;
-			}
-		}
-
-		if (mSimulatedStackDepth > mMaxStackDepth)
-		{
-			mMaxStackDepth = mSimulatedStackDepth;
-		}
-	}
-
-	int           mMaxStackDepth;
-	int           mSimulatedStackDepth;
 
 	// Emit SSE binary operation with XMM register
 	int emitBOP(TokenType opType, bool isReverse, RegXMM const& dst, RegXMM const& src)
@@ -1089,9 +991,9 @@ public:
 			{
 				// dst = src - dst
 				// Use xmm1 as scratch
-				Asm::movsd(xmm1, dst);  // temp = dst
+				Asm::movsd(xmm5, dst);  // temp = dst
 				Asm::movsd(dst, src);    // dst = src
-				Asm::subsd(dst, xmm1);  // dst = src - temp
+				Asm::subsd(dst, xmm5);  // dst = src - temp
 				return 3;
 			}
 			else
@@ -1103,9 +1005,9 @@ public:
 			if (isReverse)
 			{
 				// dst = src / dst
-				Asm::movsd(xmm1, dst);
+				Asm::movsd(xmm5, dst);
 				Asm::movsd(dst, src);
-				Asm::divsd(dst, xmm1);
+				Asm::divsd(dst, xmm5);
 				return 3;
 			}
 			else
@@ -1136,9 +1038,9 @@ public:
 			if (isReverse)
 			{
 				// Use xmm1 as scratch
-				Asm::movsd(xmm1, dst);
+				Asm::movsd(xmm5, dst);
 				Asm::movsd(dst, qword_ptr(std::forward<Args>(args)...));
-				Asm::subsd(dst, xmm1);
+				Asm::subsd(dst, xmm5);
 				return 3;
 			}
 			else
@@ -1149,9 +1051,9 @@ public:
 		case BOP_DIV:
 			if (isReverse)
 			{
-				Asm::movsd(xmm1, dst);
+				Asm::movsd(xmm5, dst);
 				Asm::movsd(dst, qword_ptr(std::forward<Args>(args)...));
-				Asm::divsd(dst, xmm1);
+				Asm::divsd(dst, xmm5);
 				return 3;
 			}
 			else
@@ -1269,36 +1171,6 @@ public:
 		return 0;
 	}
 
-	int emitLoadValue(ValueInfo const& info, RegXMM const& dst)
-	{
-		switch (info.type)
-		{
-		case VALUE_VARIABLE:
-			{
-				Asm::movabs(rax, (uint64)info.var->ptr);
-				return 1 + emitLoadValueWithBaseLayout(info.var->layout, dst, rax);
-			}
-		case VALUE_INPUT:
-			{
-				StackValue& inputValue = mInputStack[info.input.index];
-				return emitLoadValueWithLayout(inputValue.layout, dst, rbp, inputValue.offset);
-			}
-		case VALUE_CONST:
-			{
-				StackValue& constValue = mConstStack[info.idxCV];
-				return emitLoadValueWithLayout(constValue.layout, dst, &mConstLabel, constValue.offset);
-			}
-		case VALUE_EXPR_TEMP:
-			{
-				// Load temporary expression value from stack
-				int offset = GetTempStackOffset(info.idxTemp);
-				Asm::movsd(dst, qword_ptr(rbp, offset));
-				return 1;
-			}
-		}
-		return 0;
-	}
-
 	int findXMMWithValue(ValueInfo const& value)
 	{
 		for (int i = 0; i < (int)mXMMStack.size(); ++i)
@@ -1330,28 +1202,397 @@ public:
 	}
 
 public:
-	int mNumTemps = 0;
 
-	int GetTempStackOffset(int index)
+
+	static int GetTempStackOffset(int index)
 	{
 		// XMM saves end at: -16 - (MaxXMMStackSize * 16) = -176
 		return -176 - 8 - index * 8;
 	}
 
-	int GetTempStackOffsetSIMD(int index)
+	static int GetTempStackOffsetSIMD(int index)
 	{
 		// SIMD temps need 16-byte alignment and 16-byte size
 		// Start after XMM saves (-176)
 		return -176 - 16 - index * 16;
 	}
-protected:
-	int32 mStackReserve;
-	int32 mStackReservePos;
+
+	virtual int emitLoadValue(ValueInfo const& info, RegXMM const& dst)
+	{
+		if (info.idxXMM != INDEX_NONE)
+		{
+			if (xmm(info.idxXMM).index() != dst.index())
+			{
+				if (mbIsSIMD)
+					Asm::movups(dst, xmm(info.idxXMM));
+				else
+					Asm::movsd(dst, xmm(info.idxXMM));
+				return 1;
+			}
+			return 0;
+		}
+		switch (info.type)
+		{
+		case VALUE_VARIABLE:
+			{
+				Asm::movabs(rax, (uint64)info.var->ptr);
+				return 1 + emitLoadValueWithBaseLayout(info.var->layout, dst, rax);
+			}
+		case VALUE_INPUT:
+			{
+				StackValue& inputValue = mInputStack[info.input.index];
+				return emitLoadValueWithLayout(inputValue.layout, dst, rbp, inputValue.offset);
+			}
+		case VALUE_CONST:
+			{
+				StackValue& constValue = mConstStack[info.idxCV];
+				return emitLoadValueWithLayout(constValue.layout, dst, &mConstLabel, constValue.offset);
+			}
+		case VALUE_EXPR_TEMP:
+			{
+				// Load temporary expression value from stack
+				int offset = GetTempStackOffset(info.idxTemp);
+				Asm::movsd(dst, qword_ptr(rbp, offset));
+				return 1;
+			}
+		}
+		return 0;
+	}
+
+
+
+	struct RegAllocator : public ExprParse
+	{
+		static int const ScratchReg = 5; // xmm5
+		TArray<int> volatileFree;
+		TArray<int> nonVolatileFree;
+		uint32      usedMask = 0;
+
+		// Simulation State
+		struct AllocEvent
+		{
+			uint32 index : 24;
+			uint32 bAlloc : 1;
+			int32  refIndex : 7; // -1 if new alloc, else index in current simulated stack to reuse
+		};
+		TArray<AllocEvent> mAllocEvents;
+
+		TArray<bool>       mPushCrossesCall;
+		TArray<int>        mPushStack; 
+		TArray<Unit>       mSimStackValue;
+		Unit               mSimPrevUnit;
+		TokenType          mSimulatedPrevType;
+		TArray<bool>       mInputUsed;
+		int                mNumTemps = 0;
+		int                mCurPushIndex = 0;
+
+		void reset(int numInput)
+		{
+			// Simulation Reset
+			mAllocEvents.clear();
+			mPushCrossesCall.clear();
+			mPushStack.clear();
+			mSimStackValue.clear();
+			mSimPrevUnit = Unit();
+			mSimulatedPrevType = TOKEN_NONE;
+			mInputUsed.clear();
+			mInputUsed.resize(numInput, false);
+			mNumTemps = 0;
+			mCurPushIndex = 0;
+		}
+
+		int findValueInSimStack(ExprParse::Unit const& code)
+		{
+			for (int i = 0; i < (int)mSimStackValue.size(); ++i)
+			{
+				if (code.type == mSimStackValue[i].type)
+				{
+					switch (code.type)
+					{
+					case VALUE_CONST: if (code.constValue == mSimStackValue[i].constValue) return i; break;
+					case VALUE_VARIABLE: if (code.variable.ptr == mSimStackValue[i].variable.ptr) return i; break;
+					case VALUE_INPUT: if (code.input.index == mSimStackValue[i].input.index) return i; break;
+					case VALUE_EXPR_TEMP: if (code.exprTemp.tempIndex == mSimStackValue[i].exprTemp.tempIndex) return i; break;
+					}
+				}
+			}
+			return -1;
+		}
+
+		void pushSimValue(ExprParse::Unit const& code)
+		{
+			int refIdx = findValueInSimStack(code);
+			mPushStack.push_back(mCurPushIndex);
+			mSimStackValue.push_back(code);
+			mAllocEvents.push_back({ (uint32)mCurPushIndex, 1, (int8)refIdx });
+			if (mPushCrossesCall.size() <= mCurPushIndex) mPushCrossesCall.resize(mCurPushIndex + 1);
+			mPushCrossesCall[mCurPushIndex] = false;
+			mCurPushIndex++;
+		}
+
+		void popSimStack(int count)
+		{
+			for (int i = 0; i < count; ++i)
+			{
+				if (!mPushStack.empty())
+				{
+					mAllocEvents.push_back({ (uint32)mPushStack.back(), 0, -1 });
+					mPushStack.pop_back();
+					mSimStackValue.pop_back();
+				}
+			}
+		}
+
+		static int const RegSlotBase = 128;
+
+		void resetRegisters()
+		{
+			volatileFree.clear();
+			for (int i = 4; i >= 1; --i) volatileFree.push_back(i);
+
+			nonVolatileFree.clear();
+			for (int i = 15; i >= 6; --i) nonVolatileFree.push_back(i);
+
+			usedMask = 0;
+		}
+
+		void preLoadCode(ExprParse::Unit const& code)
+		{
+			if (IsValue(code.type))
+			{
+				if (IsValue(mSimulatedPrevType))
+				{
+					pushSimValue(mSimPrevUnit);
+				}
+				mSimPrevUnit = code;
+				mSimulatedPrevType = code.type;
+			}
+			else if (IsFunction(code.type))
+			{
+				int numArgs = (code.type == FUNC_DEF) ? code.symbol->func.getArgNum() : code.funcSymbol.numArgs;
+				if (IsValue(mSimulatedPrevType))
+				{
+					pushSimValue(mSimPrevUnit);
+				}
+
+				// Inform simulation that remaining items on stack will cross this call.
+				// Arguments do not cross the call because they are consumed (popped) by it.
+				int numRemaining = (int)mPushStack.size() - numArgs;
+				for (int i = 0; i < numRemaining; ++i)
+				{
+					int idx = mPushStack[i];
+					if (idx < mPushCrossesCall.size()) mPushCrossesCall[idx] = true;
+				}
+
+				if (numArgs > 0)
+				{
+					popSimStack(numArgs);
+				}
+
+				// Function Result Push (matches codeFunction increment)
+				mPushStack.push_back(mCurPushIndex);
+				mSimStackValue.push_back(Unit(code.type)); 
+				mAllocEvents.push_back({ (uint32)mCurPushIndex, 1, -1 });
+				if (mPushCrossesCall.size() <= mCurPushIndex) mPushCrossesCall.resize(mCurPushIndex + 1);
+				mPushCrossesCall[mCurPushIndex] = false;
+				mCurPushIndex++;
+
+				mSimPrevUnit = Unit();
+				mSimulatedPrevType = TOKEN_FUNC;
+			}
+			else if (IsBinaryOperator(code.type))
+			{
+				if (code.type == BOP_ASSIGN)
+				{
+					// No stack change
+				}
+				else
+				{
+					if (!IsValue(mSimulatedPrevType))
+					{
+						// Case 2: Right operand is on stack
+						popSimStack(1);
+					}
+					// Case 1 & 2: Result stays in left operand stack slot
+				}
+
+				mSimPrevUnit = Unit();
+				mSimulatedPrevType = TOKEN_BINARY_OP;
+			}
+			else if (IsUnaryOperator(code.type))
+			{
+				if (IsValue(mSimulatedPrevType))
+				{
+					pushSimValue(mSimPrevUnit);
+				}
+				
+				mSimPrevUnit = Unit();
+				mSimulatedPrevType = TOKEN_UNARY_OP;
+			}
+
+			// Property tracking
+			if (code.type == VALUE_EXPR_TEMP)
+			{
+				if (mNumTemps < code.exprTemp.tempIndex + 1)
+					mNumTemps = code.exprTemp.tempIndex + 1;
+			}
+			else if (code.type == VALUE_INPUT)
+			{
+				mInputUsed[code.input.index] = true;
+			}
+
+			if (code.storeIndex != -1)
+			{
+				if (mNumTemps < code.storeIndex + 1)
+					mNumTemps = code.storeIndex + 1;
+			}
+		}
+
+		int alloc(bool preferVolatile)
+		{
+			int reg = -1;
+			if (preferVolatile && !volatileFree.empty()) { reg = volatileFree.back(); volatileFree.pop_back(); }
+			else if (!nonVolatileFree.empty()) { reg = nonVolatileFree.back(); nonVolatileFree.pop_back(); }
+			else if (!volatileFree.empty()) { reg = volatileFree.back(); volatileFree.pop_back(); }
+			if (reg != -1) usedMask |= (1 << reg);
+			return reg;
+		}
+
+		void free(int reg)
+		{
+			if (reg >= 1 && reg <= 4) volatileFree.push_back(reg);
+			else if (reg >= 6 && reg <= 15) nonVolatileFree.push_back(reg);
+		}
+
+		// Emit SSE binary operation with XMM register
+
+		void generateAllocPlan(TArray<int>& outPlan)
+		{
+			outPlan.clear();
+			if (mAllocEvents.empty())
+				return;
+
+			resetRegisters();
+			int maxPushIdx = 0;
+			for (auto const& ev : mAllocEvents) if ((int)ev.index > maxPushIdx) maxPushIdx = ev.index;
+			outPlan.resize(maxPushIdx + 1, -1);
+
+			TArray<uint32> activePushes; 
+			for (auto const& ev : mAllocEvents)
+			{
+				if (ev.bAlloc)
+				{
+					int regIdx = -1;
+					if (ev.refIndex != -1)
+					{
+						uint32 refEventIdx = activePushes[ev.refIndex];
+						regIdx = outPlan[refEventIdx];
+					}
+					else
+					{
+						bool bCrossesCall = (ev.index < mPushCrossesCall.size()) ? mPushCrossesCall[ev.index] : true;
+						regIdx = alloc(!bCrossesCall);
+					}
+
+					// If exhausted, assign to an anonymous stack slot
+					if (regIdx == -1)
+					{
+						regIdx = RegSlotBase + mNumTemps++;
+					}
+
+					outPlan[ev.index] = regIdx;
+					activePushes.push_back(ev.index);
+				}
+				else
+				{
+					for (int i = (int)activePushes.size() - 1; i >= 0; --i)
+					{
+						if (activePushes[i] == ev.index)
+						{
+							int reg = outPlan[ev.index];
+							activePushes.erase(activePushes.begin() + i);
+
+							if (reg < RegSlotBase)
+							{
+								bool isStillUsed = false;
+								for (uint32 otherIdx : activePushes) { if (outPlan[otherIdx] == reg) { isStillUsed = true; break; } }
+								if (!isStillUsed) free(reg);
+							}
+							break;
+						}
+					}
+				}
+			}
+		}
+	};
+	
+	RegAllocator mRegAllocator;
+	
+	TArray<int>  mAllocPlan;
+	int mCurPushIndex = 0;
+
+	void preLoadCode(ExprParse::Unit const& code)
+	{
+		if (code.type == VALUE_CONST)
+		{
+			addConstValue(code.constValue);
+		}
+		mRegAllocator.preLoadCode(code);
+	}
+
+	// checkAndLoadPrevValue replacement that uses mAllocPlan
+	void checkAndLoadPrevValue()
+	{
+		if (!ExprParse::IsValue(mPrevValue.type))
+			return;
+
+		int xmmIdx = -1;
+		if (mCurPushIndex < mAllocPlan.size())
+			xmmIdx = mAllocPlan[mCurPushIndex];
+		
+		mCurPushIndex++;
+
+		if (xmmIdx == -1) throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Register allocation failed (Plan missing)");
+
+		if (xmmIdx >= RegAllocator::RegSlotBase)
+		{
+			// Spill to memory slot
+			int slotIdx = xmmIdx - RegAllocator::RegSlotBase;
+			int offset = mbIsSIMD ? GetTempStackOffsetSIMD(slotIdx) : GetTempStackOffset(slotIdx);
+			
+			// If already in register, just move to memory. If not, use ScratchReg as window.
+			int currentReg = findXMMWithValue(mPrevValue);
+			if (currentReg != INDEX_NONE)
+			{
+				if (mbIsSIMD) Asm::movups(xmmword_ptr(rbp, offset), xmm(currentReg));
+				else Asm::movsd(qword_ptr(rbp, offset), xmm(currentReg));
+				mNumInstruction++;
+			}
+			else
+			{
+				mNumInstruction += emitLoadValue(mPrevValue, xmm(RegAllocator::ScratchReg));
+				if (mbIsSIMD) Asm::movups(xmmword_ptr(rbp, offset), xmm(RegAllocator::ScratchReg));
+				else Asm::movsd(qword_ptr(rbp, offset), xmm(RegAllocator::ScratchReg));
+				mNumInstruction++;
+			}
+		}
+		else
+		{
+			// Load to physical register
+			RegXMM dstReg = xmm(xmmIdx);
+			int currentReg = findXMMWithValue(mPrevValue);
+			CHECK(currentReg == INDEX_NONE || currentReg == xmmIdx);
+			mNumInstruction += emitLoadValue(mPrevValue, dstReg);
+		}
+
+		mXMMStack.push_back(mPrevValue);
+		mXMMStack.back().idxXMM = xmmIdx;
+	}
 };
 
 
 class SSECodeGeneratorX64 : public TCodeGenerator<SSECodeGeneratorX64>
-	, public SSECodeGeneratorX64Base
+	                      , public SSECodeGeneratorX64Base
 {
 	using BaseClass = SSECodeGeneratorX64Base;
 public:
@@ -1359,6 +1600,7 @@ public:
 
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
+		mbIsSIMD = false;
 		mData->clear();
 		mNumXMMUsed = 0;
 		mNumInstruction = 0;
@@ -1369,57 +1611,56 @@ public:
 		Asm::clearLink();
 
 		BaseClass::codeInit(numInput, inputLayouts);
-
-		// Initialize XMM stack
-		mXMMStack.clear();
 	}
-
+	
 	void postLoadCode()
 	{
 		// Function prologue for x64
 		Asm::push(rbp);
 		Asm::mov(rbp, rsp);
 
+		if (IsValue(mRegAllocator.mSimulatedPrevType))
+		{
+			mRegAllocator.pushSimValue(mRegAllocator.mSimPrevUnit);
+		}
+
 		// Calculate precise stack size
-		int tempSize = mNumTemps * 8;
+		int tempSize = mRegAllocator.mNumTemps * 8;
 		if (tempSize % 16 != 0) tempSize += 8; // Maintain 16-byte alignment
 		int finalStackSize = 32 + 16 * MaxXMMStackSize + tempSize + 32;
 
-		mStackReserve = finalStackSize;
-		mStackReservePos = mData->getCodeLength();
-		Asm::sub(rsp, imm32(mStackReserve));
+		Asm::sub(rsp, imm32(finalStackSize));
 		mNumInstruction += 3;
 
 		// Calculate precise input reserve count for Shadow Space storage
 		mReservedInputCount = 0;
-		for (int i = 0; i < (int)std::min(mInputUsed.size(), (size_t)4); ++i)
+		for (int i = 0; i < (int)std::min(mRegAllocator.mInputUsed.size(), (size_t)4); ++i)
 		{
-			if (mInputUsed[i])
+			if (mRegAllocator.mInputUsed[i])
 				mReservedInputCount = i + 1;
 		}
 
-		// Only reserve registers for the actual expression stack depth.
-		// Inputs will be loaded from Shadow Space (rbp+10h, etc.) on demand.
-		mMaxXMMStackUsage = mMaxStackDepth;
+		// Generate the allocation plan based on collected stack info
+		mRegAllocator.generateAllocPlan(mAllocPlan);
+		mCurPushIndex = 0;
 
-		// Save non-volatile XMM registers (xmm6 - xmm15) based on actual stack depth
-		mXMMSaveCodeStart = mData->getCodeLength();
-		mXMMSaveOffsets.resize(MaxXMMStackSize);
-		mXMMSaveInstrSizes.resize(MaxXMMStackSize);
-
+		// Save non-volatile XMM registers (xmm6 - xmm15)
+		// We save all of them here based on the simulation plan
 		for (int i = 0; i < MaxXMMStackSize; ++i)
 		{
-			int start = mData->getCodeLength();
-			Asm::movsd(qword_ptr(rbp, -16 - (i * 16)), stackXMM(i));
-			mXMMSaveOffsets[i] = start;
-			mXMMSaveInstrSizes[i] = mData->getCodeLength() - start;
+			int reg = 6 + i;
+
+			// Save only if used in simulation
+			if (mRegAllocator.usedMask & (1 << reg))
+			{
+				Asm::movsd(qword_ptr(rbp, -16 - (i * 16)), xmm(reg));
+			}
 		}
-		mXMMSaveCodeEnd = mData->getCodeLength();
 
 		// Save first 4 floating-point args to shadow space only (if used)
 		for (int i = 0; i < mReservedInputCount; ++i)
 		{
-			if (mInputUsed[i])
+			if (mRegAllocator.mInputUsed[i])
 			{
 				// We only store use-index inputs to shadow space. 
 				// The expression generator (emitLoadValue) already knows how to read from here.
@@ -1474,7 +1715,7 @@ public:
 		if (numLive < 0) numLive = 0;
 
 		// Check stack overflow
-		if (mReservedInputCount + numLive + 1 >= MaxXMMStackSize)
+		if (mReservedInputCount + numLive + 1 >= MaxXMMStackSize + 4)
 		{
 			throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Expression too complex (stack overflow)");
 		}
@@ -1486,7 +1727,15 @@ public:
 			if (srcStackIdx < (int)mXMMStack.size())
 			{
 				int phyIdx = mXMMStack[srcStackIdx].idxXMM;
-				Asm::movsd(xmm(i), stackXMM(phyIdx));
+				if (phyIdx >= RegAllocator::RegSlotBase)
+				{
+					int offset = GetTempStackOffset(phyIdx - RegAllocator::RegSlotBase);
+					Asm::movsd(xmm(i), qword_ptr(rbp, offset));
+				}
+				else
+				{
+					Asm::movsd(xmm(i), xmm(phyIdx));
+				}
 				++mNumInstruction;
 			}
 		}
@@ -1499,7 +1748,18 @@ public:
 			{
 				int phyIdx = mXMMStack[srcStackIdx].idxXMM;
 				int stackOffset = 32 + (i - 4) * 8;
-				Asm::movsd(qword_ptr(rsp, int8(stackOffset)), stackXMM(phyIdx));
+				if (phyIdx >= RegAllocator::RegSlotBase)
+				{
+					// Use xmm5 as scratch if spilled
+					int offset = GetTempStackOffset(phyIdx - RegAllocator::RegSlotBase);
+					Asm::movsd(xmm5, qword_ptr(rbp, offset));
+					Asm::movsd(qword_ptr(rsp, int8(stackOffset)), xmm5);
+					mNumInstruction++;
+				}
+				else
+				{
+					Asm::movsd(qword_ptr(rsp, int8(stackOffset)), xmm(phyIdx));
+				}
 				++mNumInstruction;
 			}
 		}
@@ -1514,20 +1774,28 @@ public:
 		{
 			mXMMStack.pop_back();
 		}
+		
+		int resultReg = -1;
+		if (mCurPushIndex < mAllocPlan.size())
+			resultReg = mAllocPlan[mCurPushIndex];
 
-		// Result is in xmm0 (volatile), save it to a non-volatile stackXMM register
-		int resultIdx = mReservedInputCount + numLive;
-		Asm::movsd(stackXMM(resultIdx), xmm0);
+		mCurPushIndex++; // Consume one push ID for the result
+
+		if (resultReg >= RegAllocator::RegSlotBase)
+		{
+			int offset = GetTempStackOffset(resultReg - RegAllocator::RegSlotBase);
+			Asm::movsd(qword_ptr(rbp, offset), xmm0);
+		}
+		else
+		{
+			Asm::movsd(xmm(resultReg), xmm0);
+		}
 		++mNumInstruction;
-
-		// Update stack usage
-		int newStackTop = resultIdx + 1;
-		if (newStackTop > mMaxXMMStackUsage) mMaxXMMStackUsage = newStackTop;
 
 		// Push result to our stack with correct physical register index
 		mXMMStack.emplace_back();
 		mXMMStack.back().type = TOKEN_FUNC;
-		mXMMStack.back().idxXMM = resultIdx;
+		mXMMStack.back().idxXMM = resultReg;
 
 		mPrevValue.type = TOKEN_FUNC;
 		mPrevValue.idxXMM = INDEX_NONE;
@@ -1564,7 +1832,7 @@ public:
 		// The called function is required to preserve them.
 
 		int numLive = (int)mXMMStack.size() - numParam;
-		if (mReservedInputCount + numLive + 1 >= MaxXMMStackSize) // +1 for result
+		if (mReservedInputCount + numLive + 1 >= MaxXMMStackSize + 4) // +1 for result
 		{
 			throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Expression too complex (stack overflow)");
 		}
@@ -1575,7 +1843,15 @@ public:
 		{
 			int srcStackIdx = numLive + i;
 			int phyIdx = mXMMStack[srcStackIdx].idxXMM;
-			Asm::movsd(xmm(i), stackXMM(phyIdx));
+			if (phyIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffset(phyIdx - RegAllocator::RegSlotBase);
+				Asm::movsd(xmm(i), qword_ptr(rbp, offset));
+			}
+			else
+			{
+				Asm::movsd(xmm(i), xmm(phyIdx));
+			}
 			++mNumInstruction;
 		}
 
@@ -1587,25 +1863,33 @@ public:
 		// 4. Handle Inverse Trig functions (Cot, Sec, Csc)
 		if (info.id == EFuncSymbol::Cot || info.id == EFuncSymbol::Sec || info.id == EFuncSymbol::Csc)
 		{
-			// result = 1.0 / result
-			// Load 1.0
-			ConstValueInfo oneVal(1.0);
-			int idx = addConstValue(oneVal);
-			StackValue& constValue = mConstStack[idx];
-
-			// Use xmm1 as scratch (result is in xmm0)
-			Asm::movsd(xmm0, xmm1); // result = xmm1
-			mNumInstruction += 3;
+			// result (xmm0) = 1.0 / result (xmm0)
+			// Load 1.0 into xmm1
+			ValueInfo vi;
+			vi.type = VALUE_CONST;
+			vi.idxCV = addConstValue(ConstValueInfo(1.0));
+			mNumInstruction += emitLoadValue(vi, xmm1);
+			Asm::divsd(xmm1, xmm0);
+			Asm::movsd(xmm0, xmm1);
+			mNumInstruction += 2;
 		}
 
-		// 5. Place result (xmm0) onto the stack
-		int resultIdx = numLive;
-		Asm::movsd(stackXMM(resultIdx), xmm(0));
-		++mNumInstruction;
+		int resultReg = -1;
+		if (mCurPushIndex < mAllocPlan.size())
+			resultReg = mAllocPlan[mCurPushIndex];
 
-		// Update Stack Usage
-		int newStackTop = resultIdx + 1;
-		if (newStackTop > mMaxXMMStackUsage) mMaxXMMStackUsage = newStackTop;
+		mCurPushIndex++;
+
+		if (resultReg >= RegAllocator::RegSlotBase)
+		{
+			int offset = GetTempStackOffset(resultReg - RegAllocator::RegSlotBase);
+			Asm::movsd(qword_ptr(rbp, offset), xmm0);
+		}
+		else
+		{
+			Asm::movsd(xmm(resultReg), xmm0);
+		}
+		++mNumInstruction;
 
 		// Update XMMStack state
 		for (int i = 0; i < numParam; ++i)
@@ -1615,7 +1899,7 @@ public:
 
 		mXMMStack.emplace_back();
 		mXMMStack.back().type = TOKEN_FUNC;
-		mXMMStack.back().idxXMM = resultIdx;
+		mXMMStack.back().idxXMM = resultReg;
 
 		mPrevValue.type = TOKEN_FUNC;
 		mPrevValue.idxXMM = INDEX_NONE;
@@ -1637,8 +1921,8 @@ public:
 					// Store from the top of XMM stack
 					if (!mXMMStack.empty())
 					{
-						int srcXMM = (int)mXMMStack.size() - 1;
-						mNumInstruction += emitStoreValueWithLayout(inputValue.layout, stackXMM(srcXMM), rbp, inputValue.offset);
+						int stackXMM = mXMMStack[(int)mXMMStack.size() - 1].idxXMM;
+						mNumInstruction += emitStoreValueWithLayout(inputValue.layout, xmm(stackXMM), rbp, inputValue.offset);
 					}
 				}
 				break;
@@ -1646,9 +1930,9 @@ public:
 				{
 					if (!mXMMStack.empty())
 					{
-						int srcXMM = (int)mXMMStack.size() - 1;
+						int stackXMM = mXMMStack[(int)mXMMStack.size() - 1].idxXMM;
 						Asm::movabs(rax, (uint64)mPrevValue.var->ptr);
-						mNumInstruction += 1 + emitStoreValueWithBaseLayout(mPrevValue.var->layout, stackXMM(srcXMM), rax);
+						mNumInstruction += 1 + emitStoreValueWithBaseLayout(mPrevValue.var->layout, xmm(stackXMM), rax);
 					}
 				}
 				break;
@@ -1674,25 +1958,25 @@ public:
 				case VALUE_VARIABLE:
 					{
 						Asm::movabs(rax, (uint64)mPrevValue.var->ptr);
-						mNumInstruction += 1 + emitBOPWithBaseLayout(opType, isReverse, mPrevValue.var->layout, stackXMM(dstXMM), rax);
+						mNumInstruction += 1 + emitBOPWithBaseLayout(opType, isReverse, mPrevValue.var->layout, xmm(dstXMM), rax);
 					}
 					break;
 				case VALUE_INPUT:
 					{
 						StackValue& inputValue = mInputStack[mPrevValue.input.index];
-						mNumInstruction += emitBOPWithLayout(opType, isReverse, inputValue.layout, stackXMM(dstXMM), rbp, inputValue.offset);
+						mNumInstruction += emitBOPWithLayout(opType, isReverse, inputValue.layout, xmm(dstXMM), rbp, inputValue.offset);
 					}
 					break;
 				case VALUE_CONST:
 					{
 						StackValue& constValue = mConstStack[mPrevValue.idxCV];
-						mNumInstruction += emitBOPWithLayout(opType, isReverse, constValue.layout, stackXMM(dstXMM), &mConstLabel, constValue.offset);
+						mNumInstruction += emitBOPWithLayout(opType, isReverse, constValue.layout, xmm(dstXMM), &mConstLabel, constValue.offset);
 					}
 					break;
 				case VALUE_EXPR_TEMP:
 					{
 						int offset = GetTempStackOffset(mPrevValue.idxTemp);
-						mNumInstruction += emitBOPMem(opType, isReverse, stackXMM(dstXMM), rbp, offset);
+						mNumInstruction += emitBOPMem(opType, isReverse, xmm(dstXMM), rbp, offset);
 					}
 					break;
 				}
@@ -1715,7 +1999,37 @@ public:
 				if (srcXMM != INDEX_NONE && !mXMMStack.empty())
 				{
 					dstXMM = mXMMStack.back().idxXMM;
-					mNumInstruction += emitBOP(opType, isReverse, stackXMM(dstXMM), stackXMM(srcXMM));
+					if (dstXMM >= RegAllocator::RegSlotBase)
+					{
+						// Reload destination to scratch, compute, then spill back
+						int offset = GetTempStackOffset(dstXMM - RegAllocator::RegSlotBase);
+						Asm::movsd(xmm(RegAllocator::ScratchReg), qword_ptr(rbp, offset));
+
+						if (srcXMM >= RegAllocator::RegSlotBase)
+						{
+							int srcOffset = GetTempStackOffset(srcXMM - RegAllocator::RegSlotBase);
+							mNumInstruction += emitBOPMem(opType, isReverse, xmm(RegAllocator::ScratchReg), rbp, srcOffset);
+						}
+						else
+						{
+							mNumInstruction += emitBOP(opType, isReverse, xmm(RegAllocator::ScratchReg), xmm(srcXMM));
+						}
+
+						Asm::movsd(qword_ptr(rbp, offset), xmm(RegAllocator::ScratchReg));
+						mNumInstruction += 2;
+					}
+					else
+					{
+						if (srcXMM >= RegAllocator::RegSlotBase)
+						{
+							int srcOffset = GetTempStackOffset(srcXMM - RegAllocator::RegSlotBase);
+							mNumInstruction += emitBOPMem(opType, isReverse, xmm(dstXMM), rbp, srcOffset);
+						}
+						else
+						{
+							mNumInstruction += emitBOP(opType, isReverse, xmm(dstXMM), xmm(srcXMM));
+						}
+					}
 				}
 			}
 		}
@@ -1732,11 +2046,26 @@ public:
 		{
 			// Negate: xorpd with sign bit mask or use subsd from 0
 			int xmmIdx = mXMMStack.empty() ? mReservedInputCount : mXMMStack.back().idxXMM;
-			// Use xmm1 as scratch
-			Asm::xorpd(xmm1, xmm1);           // zero
-			Asm::subsd(xmm1, stackXMM(xmmIdx));     // 0 - value
-			Asm::movsd(stackXMM(xmmIdx), xmm1);     // store back
-			mNumInstruction += 3;
+			
+			if (xmmIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffset(xmmIdx - RegAllocator::RegSlotBase);
+				Asm::movsd(xmm(RegAllocator::ScratchReg), qword_ptr(rbp, offset));
+				
+				Asm::xorpd(xmm1, xmm1);           // zero
+				Asm::subsd(xmm1, xmm(RegAllocator::ScratchReg));     // 0 - value
+				
+				Asm::movsd(qword_ptr(rbp, offset), xmm1);
+				mNumInstruction += 4;
+			}
+			else
+			{
+				// Use xmm5 as scratch
+				Asm::xorpd(xmm5, xmm5);           // zero
+				Asm::subsd(xmm5, xmm(xmmIdx));     // 0 - value
+				Asm::movsd(xmm(xmmIdx), xmm5);     // store back
+				mNumInstruction += 3;
+			}
 		}
 
 		mPrevValue.type = TOKEN_FUNC;
@@ -1745,10 +2074,7 @@ public:
 
 	void codeEnd()
 	{
-		if (IsValue(mPrevValue.type))
-		{
-			checkAndLoadPrevValue();
-		}
+		checkAndLoadPrevValue();
 
 		// Move result to xmm0 if not already there
 		// The result is at the top of the stack
@@ -1758,56 +2084,28 @@ public:
 			// Function return value must be in xmm0.
 			// We need to use the physical register index stored in idxXMM
 			int resultXMMIdx = mXMMStack.back().idxXMM;
-			Asm::movsd(xmm0, stackXMM(resultXMMIdx));
+			if (resultXMMIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffset(resultXMMIdx - RegAllocator::RegSlotBase);
+				Asm::movsd(xmm0, qword_ptr(rbp, offset));
+			}
+			else
+			{
+				Asm::movsd(xmm0, xmm(resultXMMIdx));
+			}
 			++mNumInstruction;
 		}
 
 		// Restore used non-volatile XMM registers (xmm6+)
-		// We used registers 0 to mMaxXMMStackUsage-1
-		int numRestore = mMaxXMMStackUsage;
-		if (numRestore > (int)MaxXMMStackSize)
-			numRestore = (int)MaxXMMStackSize;
-
-		for (int i = 0; i < numRestore; ++i)
+		for (int i = 0; i < MaxXMMStackSize; ++i)
 		{
-			Asm::movsd(stackXMM(i), qword_ptr(rbp, -16 - (i * 16)));
-			++mNumInstruction;
-		}
-
-		auto removeCode = [this](int start, int size) {
-			if (size > 0)
+			int reg = 6 + i;
+			if (mRegAllocator.usedMask & (1 << reg))
 			{
-				int codeAfter = mData->getCodeLength() - (start + size);
-
-				if (codeAfter > 0)
-				{
-					memmove(mData->mCode + start, mData->mCode + start + size, codeAfter);
-				}
-				this->adjustLabelLinks(start + size, -size);
-				mData->mCodeEnd -= size;
-			}
-		};
-
-		// Optimize: Remove unused XMM save instructions from the prologue
-		// We only remove the SAVE instructions that were pre-emitted for registers beyond actualUsed.
-		int actualUsed = mMaxXMMStackUsage;
-		int preEstimated = MaxXMMStackSize;
-		if (actualUsed < preEstimated)
-		{
-			int numToRemove = preEstimated - actualUsed;
-			if (numToRemove > 0)
-			{
-				// Remove excess SAVE instructions from the prologue in reverse order.
-				// No need to remove RESTORE instructions because we only emitted numRestore of them above.
-				for (int i = 0; i < numToRemove; ++i)
-				{
-					int idx = (preEstimated - 1) - i;
-					removeCode(mXMMSaveOffsets[idx], mXMMSaveInstrSizes[idx]);
-					mNumInstruction -= 1;
-				}
+				Asm::movsd(xmm(reg), qword_ptr(rbp, -16 - (i * 16)));
+				++mNumInstruction;
 			}
 		}
-
 
 		// Function epilogue
 		Asm::mov(rsp, rbp);
@@ -1852,32 +2150,13 @@ public:
 
 		// Store to stack memory
 		int offset = GetTempStackOffset(tempIndex);
-		Asm::movsd(qword_ptr(rbp, offset), stackXMM(regIdx));
+		Asm::movsd(qword_ptr(rbp, offset), xmm(regIdx));
 		++mNumInstruction;
 
-		if (tempIndex >= mNumTemps)
-			mNumTemps = tempIndex + 1;
 	}
 
 protected:
-	void checkAndLoadPrevValue()
-	{
-		if (!ExprParse::IsValue(mPrevValue.type))
-			return;
 
-		// Allocate next XMM register
-		int xmmIdx = (int)mXMMStack.size();
-		RegXMM dstReg = stackXMM(xmmIdx);
-
-		// Load the value into XMM register
-		mNumInstruction += emitLoadValue(mPrevValue, dstReg);
-
-		// Push to stack
-		mXMMStack.push_back(mPrevValue);
-		mXMMStack.back().idxXMM = xmmIdx;
-
-		updateStackUsage();
-	}
 
 
 
@@ -1895,28 +2174,15 @@ public:
 
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
+		mbIsSIMD = true;
 		mData->clear();
 		mNumXMMUsed = 0;
 		mNumInstruction = 0;
 		mPrevValue.type = TOKEN_NONE;
-		mXMMStack.clear();
+		mPrevValue.var = nullptr;
 		Asm::clearLink();
 
-		mInputStack.resize(numInput);
-		for (int i = 0; i < numInput; ++i)
-		{
-			mInputStack[i].layout = inputLayouts[i];
-			if (i < 4)
-				mInputStack[i].offset = 16 + i * 8;
-			else
-				mInputStack[i].offset = 16 + 32 + (i - 4) * 8;
-		}
-
-		mConstStorage.clear();
-		mConstStack.clear();
-		mNumTemps = 0;
-		mSimulatedStackDepth = 0;
-		mMaxStackDepth = 0;
+		BaseClass::codeInit(numInput, inputLayouts);
 	}
 
 	void postLoadCode()
@@ -1925,47 +2191,58 @@ public:
 		Asm::push(rbp);
 		Asm::mov(rbp, rsp);
 
-		int tempSize = mNumTemps * 16;
+		if (IsValue(mRegAllocator.mSimulatedPrevType))
+		{
+			mRegAllocator.pushSimValue(mRegAllocator.mSimPrevUnit);
+		}
+
+		// Calculate precise stack size. SIMD needs more space for temps? 
+		// Actually xmmword is 16 bytes. tempIndex counts slots. 
+		// If tempIndex is used for SIMD, each slot is 16 bytes.
+		// GetTempStackOffsetSIMD confirms index*16.
+		int tempSize = mRegAllocator.mNumTemps * 16;
 		int finalStackSize = 32 + 16 * MaxXMMStackSize + tempSize + 64;
 
-		mStackReserve = finalStackSize;
-		mStackReservePos = mData->getCodeLength();
-		Asm::sub(rsp, imm32(mStackReserve));
+		Asm::sub(rsp, imm32(finalStackSize));
 		mNumInstruction += 3;
 
 		// Calculate precise input reserve count for Shadow Space storage
 		mReservedInputCount = 0;
-		for (int i = 0; i < (int)std::min(mInputUsed.size(), (size_t)4); ++i)
+		for (int i = 0; i < (int)std::min(mRegAllocator.mInputUsed.size(), (size_t)4); ++i)
 		{
-			if (mInputUsed[i])
+			if (mRegAllocator.mInputUsed[i])
 				mReservedInputCount = i + 1;
 		}
 
-		// Only reserve registers for the actual expression stack depth.
-		// Inputs will be loaded from Shadow Space (rbp+10h, etc.) on demand.
-		mMaxXMMStackUsage = mMaxStackDepth;
+		// Generate the allocation plan based on collected stack info
+		mRegAllocator.generateAllocPlan(mAllocPlan);
+		mCurPushIndex = 0;
 
-		// SIMD: Save non-volatile XMM registers using movups (128-bit)
-		mXMMSaveCodeStart = mData->getCodeLength();
-		mXMMSaveOffsets.resize(MaxXMMStackSize);
-
-		int numSave = std::max(0, mMaxXMMStackUsage);
-		if (numSave > MaxXMMStackSize)
-			numSave = MaxXMMStackSize;
-
-		for (int i = 0; i < numSave; ++i)
+		// Save non-volatile XMM registers (xmm6 - xmm15)
+		// We save all of them here based on the simulation plan
+		for (int i = 0; i < MaxXMMStackSize; ++i)
 		{
-			mXMMSaveOffsets[i] = mData->getCodeLength();
-			Asm::movups(xmmword_ptr(rbp, -16 - (i * 16)), stackXMM(i));
-		}
-		mXMMSaveCodeEnd = mData->getCodeLength();
+			int reg = 6 + i;
 
-		// SIMD: Save first 4 floating-point args to shadow space only (if used)
+			// Save only if used in simulation
+			if (mRegAllocator.usedMask & (1 << reg))
+			{
+				Asm::movups(xmmword_ptr(rbp, -16 - (i * 16)), xmm(reg));
+			}
+		}
+
+		// SIMD: Save first 4 scalar args to shadow space (if used)
+		// Even in SIMD mode, JIT inputs are usually scalar unless specifically handled.
 		for (int i = 0; i < mReservedInputCount; ++i)
 		{
-			if (mInputUsed[i])
+			if (mRegAllocator.mInputUsed[i])
 			{
-				Asm::movups(xmmword_ptr(rbp, int8(mInputStack[i].offset)), xmm(i));
+				// Use movss or movsd to avoid overwriting adjacent shadow slots (8 bytes each)
+				// Assuming float/double inputs.
+				if (mInputStack[i].layout == ValueLayout::Double || mInputStack[i].layout == ValueLayout::DoublePtr)
+					Asm::movsd(qword_ptr(rbp, int8(mInputStack[i].offset)), xmm(i));
+				else
+					Asm::movss(dword_ptr(rbp, int8(mInputStack[i].offset)), xmm(i));
 			}
 		}
 
@@ -2010,11 +2287,9 @@ public:
 
 		int regIdx = mXMMStack.back().idxXMM;
 		int offset = GetTempStackOffsetSIMD(tempIndex);
-		Asm::movups(xmmword_ptr(rbp, offset), stackXMM(regIdx));
+		Asm::movups(xmmword_ptr(rbp, offset), xmm(regIdx));
 		mNumInstruction++;
 
-		if (tempIndex >= mNumTemps)
-			mNumTemps = tempIndex + 1;
 	}
 
 	// Internal SIMD wrappers to get addresses
@@ -2043,57 +2318,122 @@ public:
 		int numParam = info.getArgNum();
 		int numLive = (int)mXMMStack.size() - numParam;
 
-		// We need to call this scalar function 4 times (for each SIMD lane)
-		// 1. Prepare result accumulator in xmm15 (we'll assemble results here)
-		Asm::xorps(xmm15, xmm15);
+		// Use the plan's assigned result register as the accumulator
+		// Note: The plan assumes arguments are popped (freed) before result is pushed (allocated).
+		// So resultReg MIGHT reuse an argument register.
+		int accRegIdx = -1;
+		if (mCurPushIndex < mAllocPlan.size())
+			accRegIdx = mAllocPlan[mCurPushIndex];
+		mCurPushIndex++;
+
+		if (accRegIdx == -1) throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Register allocation failed");
+
+
+		// Check for conflict: Does accRegIdx alias any live input argument?
+		bool hasConflict = false;
+		for (int i = 0; i < numParam; ++i)
+		{
+			if (mXMMStack[numLive + i].idxXMM == accRegIdx)
+			{
+				hasConflict = true;
+				break;
+			}
+		}
+
+		// If conflict, we must save the input value elsewhere because accReg will be overwritten
+		if (hasConflict)
+		{
+			Asm::sub(rsp, imm32(16));
+			if (accRegIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(accRegIdx - RegAllocator::RegSlotBase);
+				Asm::movups(xmm0, xmmword_ptr(rbp, offset));
+				Asm::movups(xmmword_ptr(rsp, 0), xmm0);
+			}
+			else
+			{
+				Asm::movups(xmmword_ptr(rsp, 0), xmm(accRegIdx));
+			}
+			mNumInstruction += 2;
+		}
+
+		// Use ScratchReg as accumulator if result is spilled
+		int physicalAccIdx = (accRegIdx >= RegAllocator::RegSlotBase) ? RegAllocator::ScratchReg : accRegIdx;
+		RegXMM accReg = xmm(physicalAccIdx);
+		Asm::xorps(accReg, accReg);
 
 		for (int lane = 0; lane < 4; ++lane)
 		{
-			// a. Extract parameters for the current lane and put them in XMM0...XMM3
 			for (int i = 0; i < numParam && i < 4; ++i)
 			{
+				RegXMM srcReg = xmm(0); // Initialize
 				int srcPhyIdx = mXMMStack[numLive + i].idxXMM;
-				RegXMM srcReg = stackXMM(srcPhyIdx);
 
-				// Move the target lane value to the lowest position (Scalar pos)
+				if (hasConflict && srcPhyIdx == accRegIdx)
+				{
+					// Load from spill
+					Asm::movups(xmm0, xmmword_ptr(rsp, 0)); 
+					srcReg = xmm0;
+					mNumInstruction++;
+				}
+				else if (srcPhyIdx >= RegAllocator::RegSlotBase)
+				{
+					// Load from spilled virtual register slot
+					int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
+					Asm::movups(xmm(RegAllocator::ScratchReg), xmmword_ptr(rbp, offset)); 
+					srcReg = xmm(RegAllocator::ScratchReg);
+					mNumInstruction++;
+				}
+				else
+				{
+					srcReg = xmm(srcPhyIdx);
+				}
+				
+
 				if (lane == 0) {
 					Asm::movss(xmm(i), srcReg);
 				}
 				else {
-					// Use shufps or rotate to bring lane i to index 0
 					Asm::movaps(xmm(i), srcReg);
 					Asm::shufps(xmm(i), xmm(i), uint8(lane));
 				}
 				mNumInstruction += 2;
 			}
 
-			// b. Call the scalar function (Result in XMM0)
+			// Call Scalar Function
+			// Since we iterate lanes, we call the scalar function implementation
 			Asm::movabs(rax, (uint64)info.funcPtr);
 			Asm::call(rax);
 			mNumInstruction += 2;
 
-			// c. Insert the result into the corresponding lane of our assembly register (xmm15)
-			if (lane == 0) {
-				Asm::movss(xmm15, xmm0);
-			}
-			else {
-				// Use insertps to put xmm0[0] into xmm15[lane]
-				// Lane bits are (lane << 4)
-				Asm::insertps(xmm15, xmm0, uint8(lane << 4));
-				mNumInstruction++;
-			}
+			// Insert result (xmm0) into accumulator
+			// 0x00 -> lane 0, 0x10 -> lane 1, 0x20 -> lane 2, 0x30 -> lane 3
+			uint8 mask = (lane << 4); 
+			Asm::insertps(accReg, xmm0, mask);
+			mNumInstruction++;
 		}
 
-		// 3. Pop parameters from stack
-		for (int i = 0; i < numParam; ++i) mXMMStack.pop_back();
+		if (hasConflict)
+		{
+			Asm::add(rsp, imm32(16));
+			mNumInstruction++;
+		}
 
-		// 4. Save the assembled 4-lane result back to stack
-		int resultIdx = mReservedInputCount + numLive;
-		Asm::movaps(stackXMM(resultIdx), xmm15);
+		// If result was spilled, move from scratch register to stack slot
+		if (accRegIdx >= RegAllocator::RegSlotBase)
+		{
+			int offset = GetTempStackOffsetSIMD(accRegIdx - RegAllocator::RegSlotBase);
+			Asm::movups(xmmword_ptr(rbp, offset), accReg);
+			mNumInstruction++;
+		}
+		for (int i = 0; i < numParam; ++i)
+		{
+			mXMMStack.pop_back();
+		}
+
 		mXMMStack.emplace_back();
 		mXMMStack.back().type = TOKEN_FUNC;
-		mXMMStack.back().idxXMM = resultIdx;
-		mNumInstruction++;
+		mXMMStack.back().idxXMM = accRegIdx;
 
 		mPrevValue.type = TOKEN_FUNC;
 		mPrevValue.idxXMM = INDEX_NONE;
@@ -2104,9 +2444,8 @@ public:
 		checkAndLoadPrevValue();
 		if (info.id == EFuncSymbol::Sqrt)
 		{
-			// Direct SIMD instruction for SQRT
 			int xmmIdx = mXMMStack.back().idxXMM;
-			Asm::sqrtps(stackXMM(xmmIdx), stackXMM(xmmIdx));
+			Asm::sqrtps(xmm(xmmIdx), xmm(xmmIdx));
 			mNumInstruction++;
 			return;
 		}
@@ -2117,10 +2456,20 @@ public:
 		int numParam = info.numArgs;
 		int numLive = (int)mXMMStack.size() - numParam;
 
-		// Map arguments to parameter registers (XMM0...)
 		for (int i = 0; i < numParam; ++i)
 		{
-			Asm::movups(xmm(i), stackXMM(mXMMStack[numLive + i].idxXMM));
+			if (i >= 4) throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "SIMD function calls with > 4 parameters not supported in JIT");
+			
+			int srcPhyIdx = mXMMStack[numLive + i].idxXMM;
+			if (srcPhyIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
+				Asm::movups(xmm(i), xmmword_ptr(rbp, offset));
+			}
+			else
+			{
+				Asm::movups(xmm(i), xmm(srcPhyIdx));
+			}
 			mNumInstruction++;
 		}
 
@@ -2128,12 +2477,24 @@ public:
 		Asm::call(rax);
 		mNumInstruction += 2;
 
-		// Cleanup stack
-		for (int i = 0; i < numParam; ++i) mXMMStack.pop_back();
+		for (int i = 0; i < numParam; ++i) {
+			mXMMStack.pop_back();
+		}
 
-		// Save result
-		int resultIdx = numLive;
-		Asm::movups(stackXMM(resultIdx), xmm0);
+		int resultIdx = -1;
+		if (mCurPushIndex < mAllocPlan.size())
+			resultIdx = mAllocPlan[mCurPushIndex];
+		mCurPushIndex++;
+
+		if (resultIdx >= RegAllocator::RegSlotBase)
+		{
+			int offset = GetTempStackOffsetSIMD(resultIdx - RegAllocator::RegSlotBase);
+			Asm::movups(xmmword_ptr(rbp, offset), xmm0);
+		}
+		else
+		{
+			Asm::movups(xmm(resultIdx), xmm0);
+		}
 		mXMMStack.emplace_back();
 		mXMMStack.back().type = TOKEN_FUNC;
 		mXMMStack.back().idxXMM = resultIdx;
@@ -2156,7 +2517,7 @@ public:
 						throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Input value layout is not pointer when assign");
 					if (!mXMMStack.empty()) {
 						int srcPhyIdx = mXMMStack.back().idxXMM;
-						Asm::movups(xmmword_ptr(rbp, inputValue.offset), stackXMM(srcPhyIdx));
+						Asm::movups(xmmword_ptr(rbp, inputValue.offset), xmm(srcPhyIdx));
 						mNumInstruction++;
 					}
 				}
@@ -2166,7 +2527,7 @@ public:
 					if (!mXMMStack.empty()) {
 						int srcPhyIdx = mXMMStack.back().idxXMM;
 						Asm::movabs(rax, (uint64)mPrevValue.var->ptr);
-						Asm::movups(xmmword_ptr(rax, 0), stackXMM(srcPhyIdx));
+						Asm::movups(xmmword_ptr(rax, 0), xmm(srcPhyIdx));
 						mNumInstruction += 2;
 					}
 				}
@@ -2176,16 +2537,22 @@ public:
 		else
 		{
 			// Determine destination (left operand)
-			int dstXMMIdx;
+			int dstXMMIdx = INDEX_NONE;
 			if (IsValue(mPrevValue.type) && mPrevValue.idxXMM == INDEX_NONE) {
 				dstXMMIdx = mXMMStack.empty() ? mReservedInputCount : mXMMStack.back().idxXMM;
 			}
 			else {
-				dstXMMIdx = (mXMMStack.size() >= 2) ? mXMMStack[mXMMStack.size() - 2].idxXMM : mReservedInputCount;
+				// Right operand is on stack (or cached reg), so Dst is below it.
+				// If Right is on Stack, Dst is Back-1.
+				// If Right is Cached Reg (idxXMM != NONE), Dst is Back.
+				if (mPrevValue.idxXMM != INDEX_NONE)
+					dstXMMIdx = mXMMStack.back().idxXMM;
+				else
+					dstXMMIdx = (mXMMStack.size() >= 2) ? mXMMStack[mXMMStack.size() - 2].idxXMM : mReservedInputCount;
 			}
-			RegXMM dst = stackXMM(dstXMMIdx);
+			RegXMM dst = xmm(dstXMMIdx);
 
-			auto emitSIMDBOP = [&](RegXMM src) {
+			auto emitSIMDBOP = [&](auto const& src) {
 				switch (opType) {
 				case BOP_ADD: Asm::addps(dst, src); break;
 				case BOP_MUL: Asm::mulps(dst, src); break;
@@ -2203,19 +2570,36 @@ public:
 
 			if (mPrevValue.idxXMM != INDEX_NONE)
 			{
-				emitSIMDBOP(stackXMM(mPrevValue.idxXMM));
-				mXMMStack.pop_back();
+				int srcPhyIdx = mPrevValue.idxXMM;
+				if (srcPhyIdx >= RegAllocator::RegSlotBase)
+				{
+					int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
+					emitSIMDBOP(xmmword_ptr(rbp, offset));
+				}
+				else
+				{
+					emitSIMDBOP(xmm(srcPhyIdx));
+				}
 			}
 			else if (IsValue(mPrevValue.type))
 			{
-				emitLoadValueSIMD(mPrevValue, xmm1);
+				emitLoadValue(mPrevValue, xmm1);
 				emitSIMDBOP(xmm1);
 			}
 			else
 			{
 				// Both are results on stack
 				int srcPhyIdx = mXMMStack.back().idxXMM;
-				emitSIMDBOP(stackXMM(srcPhyIdx));
+				if (srcPhyIdx >= RegAllocator::RegSlotBase)
+				{
+					int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
+					emitSIMDBOP(xmmword_ptr(rbp, offset));
+				}
+				else
+				{
+					emitSIMDBOP(xmm(srcPhyIdx));
+				}
+
 				mXMMStack.pop_back();
 			}
 		}
@@ -2231,7 +2615,7 @@ public:
 		{
 			// Negate all 4 lanes: xorps with 0x80000000
 			int xmmIdx = mXMMStack.back().idxXMM;
-			RegXMM reg = stackXMM(xmmIdx);
+			RegXMM reg = xmm(xmmIdx);
 
 			// Use a constant -0.0f (which is 0x80000000 bit mask)
 			ConstValueInfo maskVal(-0.0f);
@@ -2253,54 +2637,27 @@ public:
 
 	void codeEnd()
 	{
-		if (IsValue(mPrevValue.type)) checkAndLoadPrevValue();
+		checkAndLoadPrevValue();
+		
 		if (!mXMMStack.empty())
 		{
 			int resultXMMIdx = mXMMStack.back().idxXMM;
-			Asm::movups(xmm0, stackXMM(resultXMMIdx));
+			Asm::movups(xmm0, xmm(resultXMMIdx));
+			// Note: result must be in xmm0. stackXMM(i) assumption is broken if we use RegAllocator indices.
+			// mXMMStack now stores PHYSICAL indices.
 			mNumInstruction++;
 		}
 
 		// Standard Epilogue: Restore used non-volatile XMM registers (xmm6+)
-		int numRestore = mMaxXMMStackUsage;
-		if (numRestore > (int)MaxXMMStackSize)
-			numRestore = (int)MaxXMMStackSize;
-
-		for (int i = 0; i < numRestore; ++i) {
-			Asm::movups(stackXMM(i), xmmword_ptr(rbp, -16 - (i * 16)));
-			mNumInstruction++;
-		}
-
-		auto removeCode = [this](int start, int size) {
-			if (size > 0)
-			{
-				int codeAfter = mData->getCodeLength() - (start + size);
-				if (codeAfter > 0)
-				{
-					memmove(mData->mCode + start, mData->mCode + start + size, codeAfter);
-				}
-				this->adjustLabelLinks(start + size, -size);
-				mData->mCodeEnd -= size;
-			}
-		};
-
-		// Optimize: Remove unused XMM save instructions from the prologue
-		int actualUsed = mMaxXMMStackUsage;
-		int preEstimated = MaxXMMStackSize;
-		if (actualUsed < preEstimated)
+		for (int i = 0; i < MaxXMMStackSize; ++i)
 		{
-			int numToRemove = preEstimated - actualUsed;
-			if (numToRemove > 0)
+			int reg = 6 + i;
+			if (mRegAllocator.usedMask & (1 << reg))
 			{
-				for (int i = 0; i < numToRemove; ++i)
-				{
-					int idx = (preEstimated - 1) - i;
-					removeCode(mXMMSaveOffsets[idx], mXMMSaveInstrSizes[idx]);
-					mNumInstruction -= 1;
-				}
+				Asm::movups(xmm(reg), xmmword_ptr(rbp, -16 - (i * 16)));
+				mNumInstruction++;
 			}
 		}
-
 
 		Asm::mov(rsp, rbp); Asm::pop(rbp); Asm::ret();
 		mNumInstruction += 3;
@@ -2314,8 +2671,18 @@ public:
 	}
 
 	// Override loading to keep values as float and broadcast them
-	int emitLoadValueSIMD(ValueInfo const& info, RegXMM const& dst)
+	int emitLoadValue(ValueInfo const& info, RegXMM const& dst) override
 	{
+		if (info.idxXMM != INDEX_NONE)
+		{
+			if (xmm(info.idxXMM).index() != dst.index())
+			{
+				Asm::movups(dst, xmm(info.idxXMM));
+				return 1;
+			}
+			return 0;
+		}
+
 		switch (info.type)
 		{
 		case VALUE_VARIABLE:
@@ -2346,19 +2713,6 @@ public:
 			}
 		}
 		return 0;
-	}
-
-	void checkAndLoadPrevValue()
-	{
-		if (!ExprParse::IsValue(mPrevValue.type)) return;
-		int xmmIdx = mReservedInputCount + (int)mXMMStack.size();
-		RegXMM dstReg = stackXMM(xmmIdx);
-
-		int count = emitLoadValueSIMD(mPrevValue, dstReg);
-
-		mXMMStack.push_back(mPrevValue);
-		mXMMStack.back().idxXMM = xmmIdx;
-		updateStackUsage();
 	}
 };
 

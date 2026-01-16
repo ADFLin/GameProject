@@ -53,13 +53,19 @@
 #include "Launch/CommandlLine.h"
 #include <unordered_set>
 #include "Core/FNV1a.h"
+#include "UnitTest/TestClass.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
+ 
+#ifndef NDEBUG
+extern "C" __declspec(dllimport) int GUnitTestAnchorSymbol;
+#endif
 
 int    GDevMsgLevel = -1;
 int64  GRenderFrame = 0;
 int    GShowProfileYOffset = 0;
+
 
 namespace
 {
@@ -804,6 +810,13 @@ bool TinyGameApp::initializeGame()
 		TIME_SCOPE("Global Initialize");
 		::Global::Initialize();
 	}
+
+#ifndef NDEBUG
+	{
+		volatile int forceLink = GUnitTestAnchorSymbol;
+	}
+	UT_RUN_TEST();
+#endif
 
 #if SYS_PLATFORM_WIN && 0
 	{

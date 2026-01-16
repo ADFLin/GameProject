@@ -52,7 +52,8 @@ public:
 	virtual void  drawPolygon(Vector2 pos[], int num) = 0;
 	virtual void  setTextColor(Color3ub const& color) = 0;
 	virtual void  drawText(Vector2 const& pos, char const* str) = 0;
-	virtual void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip = false) = 0;
+	virtual void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip) = 0;
+	virtual void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment = EHorizontalAlign::Center, bool beClip = false) = 0;
 
 	virtual void  beginXForm() = 0;
 	virtual void  finishXForm() = 0;

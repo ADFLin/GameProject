@@ -115,6 +115,13 @@ public:
 	{
 		NEXT_UI_ID = UI_WIDGET_ID ,
 	};
+	enum class Style
+	{
+		Default,
+		Unreal,
+	};
+	static TINY_API void SetStyle(Style style);
+
 	TINY_API GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent );
 	TINY_API ~GWidget();
 	int  getID(){ return mID; }
@@ -206,6 +213,11 @@ protected:
 	TaskBase* motionTask;
 	int       mFontType;
 	int       mID;
+
+	TINY_API void addTween(void* tween);
+	TINY_API void removeTween(void* tween);
+	void cleanupTweens();
+	std::vector<void*> mTweens;
 };
 
 class WidgetPos
@@ -445,6 +457,9 @@ public:
 	void onEditText(){ sendEvent( EVT_TEXTCTRL_VALUE_CHANGED ); }
 	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_COMMITTED ); }
 	TINY_API void onRender();
+
+	GTextCtrl& setAlignment(EHorizontalAlign alignment) { mAlignment = alignment; return *this; }
+	EHorizontalAlign mAlignment = EHorizontalAlign::Center;
 };
 
 class GText : public GUI::Widget
@@ -472,6 +487,8 @@ public:
 	void doRenderMenuBG( Menu* menu );
 	int  getMenuItemHeight(){ return 20; }
 
+	GChoice& setAlignment(EHorizontalAlign alignment) { mAlignment = alignment; return *this; }
+	EHorizontalAlign mAlignment = EHorizontalAlign::Center;
 };
 
 class  GListCtrl : public GUI::ListCtrlT< GListCtrl >
@@ -612,12 +629,71 @@ public:
 class WidgetRenderer
 {
 public:
-	TINY_API void  drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color , bool beEnable = true );
-	TINY_API void  drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color, bool beEnable = true );
-	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , WidgetColor const& color, float alpha );
-	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , WidgetColor const& color);
-	TINY_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , WidgetColor const& color);
-	TINY_API void  drawSilder( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize );
+	virtual ~WidgetRenderer() {}
+	virtual void  drawButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, ButtonState state, WidgetColor const& color, bool beEnable = true) = 0;
+	virtual void  drawButton2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, ButtonState state, WidgetColor const& color, bool beEnable = true) = 0;
+	virtual void  drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color, float alpha) = 0;
+	virtual void  drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) = 0;
+	virtual void  drawPanel2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) = 0;
+	virtual void  drawSilder(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, Vec2i const& tipPos, Vec2i const& tipSize) = 0;
+	virtual void  drawCheckBox(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, bool bChecked, ButtonState state) = 0;
+	virtual void  drawChoice(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* selectValue, ButtonState state, EHorizontalAlign alignment) = 0;
+	virtual void  drawChoiceItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected) = 0;
+	virtual void  drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) = 0;
+	virtual void  drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color) = 0;
+	virtual void  drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) = 0;
+	virtual void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment) = 0;
+	virtual void  drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType) = 0;
+	virtual void  drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state) = 0;
+	virtual void  drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) = 0;
+	virtual void  drawNoteBookBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) = 0;
+	virtual void  drawScrollBar(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, bool bHorizontal, Vec2i const& thumbPos, Vec2i const& thumbSize, ButtonState minusState, ButtonState plusState, ButtonState thumbState) = 0;
+};
+
+class DefaultWidgetRenderer : public WidgetRenderer
+{
+public:
+	TINY_API void  drawButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, ButtonState state, WidgetColor const& color, bool beEnable = true) override;
+	TINY_API void  drawButton2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, ButtonState state, WidgetColor const& color, bool beEnable = true) override;
+	TINY_API void  drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color, float alpha) override;
+	TINY_API void  drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
+	TINY_API void  drawPanel2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
+	TINY_API void  drawSilder(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, Vec2i const& tipPos, Vec2i const& tipSize) override;
+	TINY_API void  drawCheckBox(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, bool bChecked, ButtonState state) override;
+	TINY_API void  drawChoice(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* selectValue, ButtonState state, EHorizontalAlign alignment) override;
+	TINY_API void  drawChoiceItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected) override;
+	TINY_API void  drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
+	TINY_API void  drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color) override;
+	TINY_API void  drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
+	TINY_API void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment) override;
+	TINY_API void  drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType) override;
+	TINY_API void  drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state) override;
+	TINY_API void  drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
+	TINY_API void  drawNoteBookBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
+	TINY_API void  drawScrollBar(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, bool bHorizontal, Vec2i const& thumbPos, Vec2i const& thumbSize, ButtonState minusState, ButtonState plusState, ButtonState thumbState) override;
+};
+
+class UnrealWidgetRenderer : public WidgetRenderer
+{
+public:
+	TINY_API void  drawButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, ButtonState state, WidgetColor const& color, bool beEnable = true) override;
+	TINY_API void  drawButton2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, ButtonState state, WidgetColor const& color, bool beEnable = true) override;
+	TINY_API void  drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color, float alpha) override;
+	TINY_API void  drawPanel(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
+	TINY_API void  drawPanel2(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
+	TINY_API void  drawSilder(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, Vec2i const& tipPos, Vec2i const& tipSize) override;
+	TINY_API void  drawCheckBox(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, int fontType, bool bChecked, ButtonState state) override;
+	TINY_API void  drawChoice(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* selectValue, ButtonState state, EHorizontalAlign alignment) override;
+	TINY_API void  drawChoiceItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected) override;
+	TINY_API void  drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
+	TINY_API void  drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color) override;
+	TINY_API void  drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
+	TINY_API void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment) override;
+	TINY_API void  drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType) override;
+	TINY_API void  drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state) override;
+	TINY_API void  drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
+	TINY_API void  drawNoteBookBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
+	TINY_API void  drawScrollBar(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, bool bHorizontal, Vec2i const& thumbPos, Vec2i const& thumbSize, ButtonState minusState, ButtonState plusState, ButtonState thumbState) override;
 };
 
 #endif // GameWidget_h__

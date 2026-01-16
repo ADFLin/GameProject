@@ -111,7 +111,7 @@ namespace SBlocks
 		int result = 1;
 #if 1
 		mCachedQueryList.clear();
-		TArray< Vec2i , FixedSizeAllocator >& queryList = mCachedQueryList;
+		TArray< Vec2i , CappedAllocator >& queryList = mCachedQueryList;
 		queryList.push_back(pos);
 
 		while (!queryList.empty())
@@ -175,7 +175,7 @@ namespace SBlocks
 
 		int result = 1;
 		mCachedQueryList.clear();
-		TArray< Vec2i, FixedSizeAllocator >& queryList = mCachedQueryList;
+		TArray< Vec2i, CappedAllocator >& queryList = mCachedQueryList;
 
 		Vec2i curPos = pos;
 		for(;;)
@@ -227,7 +227,7 @@ namespace SBlocks
 
 		int result = 1;
 		mCachedQueryList.clear();
-		TArray< Vec2i, FixedSizeAllocator >& queryList = mCachedQueryList;
+		TArray< Vec2i, CappedAllocator >& queryList = mCachedQueryList;
 
 		Vec2i curPos = pos;
 
@@ -312,7 +312,7 @@ namespace SBlocks
 		mCachedShapeData.blocks.push_back(PieceShapeData::Block(pos, MarkMap::GetType(data)));
 #if 1
 		mCachedQueryList.clear();
-		TArray< Vec2i, FixedSizeAllocator >& queryList = mCachedQueryList;
+		TArray< Vec2i, CappedAllocator >& queryList = mCachedQueryList;
 		queryList.push_back(pos);
 		while (!queryList.empty())
 		{
@@ -363,7 +363,7 @@ namespace SBlocks
 		}
 
 		mCachedQueryList.clear();
-		TArray< Vec2i , FixedSizeAllocator >& queryList = mCachedQueryList;
+		TArray< Vec2i , CappedAllocator >& queryList = mCachedQueryList;
 
 		auto TestPos = [&](Vec2i const& testPos)
 		{

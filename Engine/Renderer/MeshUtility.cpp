@@ -312,7 +312,7 @@ namespace Render
 			uint32 vertexId;
 			uint32 triangleId;
 		};
-		TArray<Pair, FixedSizeAllocator> pairs;
+		TArray<Pair, CappedAllocator> pairs;
 		pairs.reserve( 3 * numTirangle);
 
 		uint32 const* pTri = triIndices;

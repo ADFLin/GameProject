@@ -1,210 +1,81 @@
-#include "Common.sgc"
+#ifndef DOUBLE_SIM_SGC
+#define DOUBLE_SIM_SGC
 
-// Double emulation based on GLSL Mandelbrot Shader by Henry Thasler (www.thasler.org/blog)
-//
-// Emulation based on Fortran-90 double-single package. See http://crd.lbl.gov/~dhbailey/mpdist/
-// Substract: res = ds_add(a, b) => res = a + b
-#if 1
-float DSMulFrc(float a, float b)
-{
-	return lerp(0.0, a * b, b != 0.0 ? 1.0 : 0.0);
-}
+// "Industrial Grade" Robust Double-Single Math Library
+// Polymorphic implementation to support Double-Double when Native Double is available.
 
-float DSPlusFrc(float a, float b)
-{
-	return lerp(a, a + b, b != 0.0 ? 1.0 : 0.0);
-}
-
-float DSMinusFrc(float a, float b)
-{
-	return lerp(a, a - b, b != 0.0 ? 1.0 : 0.0);
-}
-#else
-float DSMulFrc(float a, float b)
-{
-	return a * b;
-}
-
-float DSPlusFrc(float a, float b)
-{
-	return a + b;
-}
-
-float DSMinusFrc(float a, float b)
-{
-	return a - b;
-}
+#ifndef DS_BASE_TYPE
+#define DS_BASE_TYPE float
 #endif
 
-float2 DSAdd(float2 dsa, float2 dsb)
-{
-#if 1
-	float2 dsc;
-	float t1, t2, e;
-
-	t1 = DSPlusFrc(dsa.x, dsb.x);
-	e = DSMinusFrc(t1, dsa.x);
-	t2 = DSPlusFrc(DSPlusFrc(DSPlusFrc(DSMinusFrc(dsb.x, e), DSMinusFrc(dsa.x, DSMinusFrc(t1, e))), dsa.y), dsb.y);
-	dsc.x = DSPlusFrc(t1, t2);
-	dsc.y = DSMinusFrc(t2, DSMinusFrc(dsc.x, t1));
-	return dsc;
-#else
-	float2 dsc;
-	float t1, t2, e;
-
-	t1 = dsa.x + dsb.x;
-	e = t1 - dsa.x;
-	t2 = ((dsb.x - e) + (dsa.x - (t1 - e))) + dsa.y + dsb.y;
-
-	dsc.x = t1 + t2;
-	dsc.y = t2 - (dsc.x - t1);
-	return dsc;
+#ifndef DS_TYPE
+#define DS_TYPE float2
 #endif
+
+#undef DS_PRECISE
+#define DS_PRECISE precise
+
+// 強化版 DSAdd：針對極致縮放級別優化，確保低位不遺失
+DS_PRECISE DS_TYPE DSAdd(DS_TYPE a, DS_TYPE b)
+{
+	DS_PRECISE DS_BASE_TYPE s = a.x + b.x;
+	DS_PRECISE DS_BASE_TYPE t = s - a.x;
+	DS_PRECISE DS_BASE_TYPE e = (a.x - (s - t)) + (b.x - t);
+	e += (a.y + b.y);
+	DS_PRECISE DS_BASE_TYPE s2 = s + e;
+	DS_PRECISE DS_BASE_TYPE e2 = e + (s - s2);
+	return DS_TYPE(s2, e2);
 }
 
-// Substract: res = ds_sub(a, b) => res = a - b
-float2 DSSub(float2 dsa, float2 dsb)
+DS_PRECISE DS_TYPE DSSub(DS_TYPE a, DS_TYPE b)
 {
-#if 1
-	float2 dsc;
-	float e, t1, t2;
+	return DSAdd(a, DS_TYPE(-b.x, -b.y));
+}
 
-	t1 = DSMinusFrc(dsa.x, dsb.x);
-	e = DSMinusFrc(t1, dsa.x);
-	t2 = DSMinusFrc(DSPlusFrc(DSPlusFrc(DSMinusFrc(DSMinusFrc(0.0, dsb.x), e), DSMinusFrc(dsa.x, DSMinusFrc(t1, e))), dsa.y), dsb.y);
-
-	dsc.x = DSPlusFrc(t1, t2);
-	dsc.y = DSMinusFrc(t2, DSMinusFrc(dsc.x, t1));
-	return dsc;
+DS_PRECISE DS_TYPE DSMul(DS_TYPE a, DS_TYPE b)
+{
+	// Specific splits for different base types
+#if USE_NATIVE_DOUBLE && USE_DOUBLE_SIM
+	const DS_BASE_TYPE split = 134217729.0; // 2^27 + 1
 #else
-	float2 dsc;
-	float e, t1, t2;
-
-	t1 = dsa.x - dsb.x;
-	e = t1 - dsa.x;
-	t2 = ((-dsb.x - e) + (dsa.x - (t1 - e))) + dsa.y - dsb.y;
-
-	dsc.x = t1 + t2;
-	dsc.y = t2 - (dsc.x - t1);
-	return dsc;
+	const DS_BASE_TYPE split = 4097.0;       // 2^12 + 1
 #endif
+
+	DS_PRECISE DS_BASE_TYPE cona = a.x * split;
+	DS_PRECISE DS_BASE_TYPE ax = cona - (cona - a.x);
+	DS_PRECISE DS_BASE_TYPE ay = a.x - ax;
+	DS_PRECISE DS_BASE_TYPE conb = b.x * split;
+	DS_PRECISE DS_BASE_TYPE bx = conb - (conb - b.x);
+	DS_PRECISE DS_BASE_TYPE by = b.x - bx;
+
+	DS_PRECISE DS_BASE_TYPE r1 = a.x * b.x;
+	DS_PRECISE DS_BASE_TYPE r2 = ay * by - (((r1 - ax * bx) - ay * bx) - ax * by);
+	r2 += (a.x * b.y + a.y * b.x);
+
+	DS_PRECISE DS_BASE_TYPE s2 = r1 + r2;
+	DS_PRECISE DS_BASE_TYPE e2 = r2 + (r1 - s2);
+	return DS_TYPE(s2, e2);
 }
 
-// Compare: res = -1 if a < b
-//              = 0 if a == b
-//              = 1 if a > b
-float Compare(float2 dsa, float2 dsb)
-{
-	if (dsa.x < dsb.x) {
-		return -1.;
-	}
-	if (dsa.x > dsb.x) {
-		return 1.;
-	}
-	if (dsa.y < dsb.y) {
-		return -1.;
-	}
-	if (dsa.y > dsb.y) {
-		return 1.;
-	}
-	return 0.;
-}
-
-// Multiply: res = ds_mul(a, b) => res = a * b
-float2 DSMul(float2 dsa, float2 dsb)
-{
-#if 1
-	float2 dsc;
-	float c11, c21, c2, e, t1, t2;
-	float a1, a2, b1, b2, cona, conb, split = 8193.;
-
-	cona = DSMulFrc(dsa.x, split);
-	conb = DSMulFrc(dsb.x, split);
-	a1 = DSMinusFrc(cona, DSMinusFrc(cona, dsa.x));
-	b1 = DSMinusFrc(conb, DSMinusFrc(conb, dsb.x));
-	a2 = DSMinusFrc(dsa.x, a1);
-	b2 = DSMinusFrc(dsb.x, b1);
-
-	c11 = DSMulFrc(dsa.x, dsb.x);
-	c21 = DSPlusFrc(DSMulFrc(a2, b2), DSPlusFrc(DSMulFrc(a2, b1), DSPlusFrc(DSMulFrc(a1, b2), DSMinusFrc(DSMulFrc(a1, b1), c11))));
-
-	c2 = DSPlusFrc(DSMulFrc(dsa.x, dsb.y), DSMulFrc(dsa.y, dsb.x));
-
-	t1 = DSPlusFrc(c11, c2);
-	e = DSMinusFrc(t1, c11);
-	t2 = DSPlusFrc(DSPlusFrc(DSMulFrc(dsa.y, dsb.y), DSPlusFrc(DSMinusFrc(c2, e), DSMinusFrc(c11, DSMinusFrc(t1, e)))), c21);
-
-	dsc.x = DSPlusFrc(t1, t2);
-	dsc.y = DSMinusFrc(t2, DSMinusFrc(dsc.x, t1));
-
-	return dsc;
+// 4D complex type: x (real.hi), y (real.lo), z (imag.hi), w (imag.lo)
+#if USE_NATIVE_DOUBLE && USE_DOUBLE_SIM
+  #define DS_COMPLEX_TYPE double4
 #else
-	float dsc;
-	float c11, c21, c2, e, t1, t2;
-	float a1, a2, b1, b2, cona, conb, split = 8193.;
-
-	cona = dsa.x * split;
-	conb = dsb.x * split;
-	a1 = cona - (cona - dsa.x);
-	b1 = conb - (conb - dsb.x);
-	a2 = dsa.x - a1;
-	b2 = dsb.x - b1;
-
-	c11 = dsa.x * dsb.x;
-	c21 = a2 * b2 + (a2 * b1 + (a1 * b2 + (a1 * b1 - c11)));
-
-	c2 = dsa.x * dsb.y + dsa.y * dsb.x;
-
-	t1 = c11 + c2;
-	e = t1 - c11;
-	t2 = dsa.y * dsb.y + ((c2 - e) + (c11 - (t1 - e))) + c21;
-
-	dsc.x = t1 + t2;
-	dsc.y = t2 - (dsc.x - t1);
-	return dsc;
+  #define DS_COMPLEX_TYPE float4
 #endif
-}
 
-// create double-single number from float
-void StoreValue(out float2 v , float a)
+inline DS_COMPLEX_TYPE ComplexAdd(DS_COMPLEX_TYPE a, DS_COMPLEX_TYPE b) { return DS_COMPLEX_TYPE(DSAdd(a.xy, b.xy), DSAdd(a.zw, b.zw)); }
+inline DS_COMPLEX_TYPE ComplexSub(DS_COMPLEX_TYPE a, DS_COMPLEX_TYPE b) { return DS_COMPLEX_TYPE(DSSub(a.xy, b.xy), DSSub(a.zw, b.zw)); }
+inline DS_COMPLEX_TYPE ComplexMul(DS_COMPLEX_TYPE a, DS_COMPLEX_TYPE b)
 {
-	v = float2(a, 0.0);
+	// 使用更高的局部精度進行複數乘法
+	DS_PRECISE DS_TYPE re = DSSub(DSMul(a.xy, b.xy), DSMul(a.zw, b.zw));
+	DS_PRECISE DS_TYPE im = DSAdd(DSMul(a.xy, b.zw), DSMul(a.zw, b.xy));
+	return DS_COMPLEX_TYPE(re, im);
 }
+inline DS_TYPE ComplexAbsSquare(DS_COMPLEX_TYPE a) { return DSAdd(DSMul(a.xy, a.xy), DSMul(a.zw, a.zw)); }
 
-void StoreValue(out float4 v, float2 a)
-{
-	v = float4(a.x, 0., a.y, 0.);
-}
+inline DS_TYPE StoreValue(DS_BASE_TYPE a) { return DS_TYPE(a, 0.0); }
+inline float Compare(DS_TYPE dsa, DS_TYPE dsb) { return float((dsa.x != dsb.x) ? (dsa.x - dsb.x) : (dsa.y - dsb.y)); }
 
-float4 dcSet(float2 a, float2 ad)
-{
-	return float4(a.x, ad.x, a.y, ad.y);
-}
-
-// Multiply double-complex with double
-float4 ComplexMul(float4 a, float2 b)
-{
-	return float4(DSMul(a.xy, b), DSMul(a.wz, b));
-}
-
-float4 ComplexSub(float4 a, float4 b)
-{
-	return float4(DSSub(a.xy, b.xy), DSSub(a.zw, b.zw));
-}
-
-float4 ComplexMul(float4 a, float4 b)
-{
-	return float4(DSSub(DSMul(a.xy, b.xy), DSMul(a.zw, b.zw)), DSAdd(DSMul(a.xy, b.zw), DSMul(a.zw, b.xy)));
-}
-
-float4 ComplexAdd(float4 a, float4 b)
-{
-	return float4(DSAdd(a.xy, b.xy), DSAdd(a.zw, b.zw));
-}
-
-// Length of double complex
-float2 ComplexAbsSquare(float4 a)
-{
-	return DSAdd(DSMul(a.xy, a.xy), DSMul(a.zw, a.zw));
-}
-
+#endif // DOUBLE_SIM_SGC

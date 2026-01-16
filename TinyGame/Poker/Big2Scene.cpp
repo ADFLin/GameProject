@@ -116,14 +116,7 @@ namespace Big2 {
 			Vec2i pos  = getWorldPos();
 			Vec2i size = getSize();
 
-			WidgetColor color;
-			color.setName(EColor::Blue);
-			GWidget::getRenderer().drawButton( g , pos  , size , getButtonState() , color, isEnable() );
-
 			char const* str = "??";
-			if ( getButtonState() == BS_PRESS )
-				pos += Vec2i(2,2);
-
 			switch( mAction )
 			{
 			case eSINGLE:         str = "Single";    break;
@@ -137,8 +130,10 @@ namespace Big2 {
 			case ePASS:           str = "Pass";   break;
 			case eCLEAR_SELECT:   str = "Clear";  break;
 			}
-			RenderUtility::SetFont( g , FONT_S8 );
-			g.drawText( pos , size , str );
+
+			WidgetColor color;
+			color.setName(EColor::Blue);
+			GWidget::getRenderer().drawButton( g , pos  , size , str , FONT_S8 , getButtonState() , color , isEnable() );
 		}
 	};
 	Vec2i const gTablePosOffset[] = { Vec2i( 0, 8 ) , Vec2i( 20 , 0 ) , Vec2i( 0 , -8 ) , Vec2i( -20 , 0 ) };

@@ -84,7 +84,8 @@ public:
 	void  setTextColor(Color3ub const& color);
 	void  drawText( Vec2i const& pos , char const* str );
 	void  drawText( int x , int y , char const* str ){ drawText( Vec2i(x,y) , str ); }
-	void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip = false );
+	void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip ) { drawText(pos, size, str, EHorizontalAlign::Center, beClip); }
+	void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , EHorizontalAlign alignment = EHorizontalAlign::Center , bool beClip = false );
 
 	Vec2i calcTextExtentSize( char const* str , int num );
 

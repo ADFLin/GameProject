@@ -61,4 +61,25 @@ char const* translateData =
 
 	"#Player\n"
 	"<1>玩家\n"
+
+        "#Player Name\n"
+        "<1>玩家名稱\n"
+
+        "#Language\n"
+        "<1>語言\n"
+
+        "#User\n"
+        "<1>使用者\n"
+
+        "#Accept\n"
+        "<1>接受\n"
+
+        "#Set Default\n"
+        "<1>設為預設\n"
+
+        "#Traditional Chinese\n"
+        "<1>繁體中文\n"
+
+        "#English\n"
+        "<1>英文\n"
 };

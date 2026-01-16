@@ -6,7 +6,7 @@
 
 #include "RenderUtility.h"
 
-int const TitleLength = 130;
+int const TitleLength = 165;
 
 BaseSettingPanel::BaseSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
 	:BaseClass( id , pos , size , parent )
@@ -90,14 +90,21 @@ void BaseSettingPanel::renderTitle( GWidget* ui )
 {
 	int borderX = 4;
 	IGraphics2D& g = Global::GetIGraphics2D();
+	Vec2i p = getWorldPos();
+	Vec2i s = getSize();
+
+	// Panel Background
+	g.setPen(Color3ub(50, 60, 80), 1);
+	g.setBrush(Color3ub(20, 25, 30));
+	g.drawRoundRect(p, s, Vec2i(10, 10));
 
 	RenderUtility::SetFont( g , FONT_S10 );
-	g.setTextColor(Color3ub(255 , 200 , 100) );
+	g.setTextColor(Color3ub(255 , 255 , 255) );
 
 	for( SettingInfoVec::iterator iter = mSettingInfoVec.begin();
 		iter != mSettingInfoVec.end() ; ++iter )
 	{
-		Vec2i pos = getWorldPos() + iter->titlePos;
+		Vec2i pos = p + iter->titlePos;
 		g.drawText( pos + Vec2i(5,3) , iter->title.c_str() );
 	}
 }
@@ -162,9 +169,10 @@ void GameSettingPanel::setGame(char const* name)
 void GameSettingPanel::renderTitle(GWidget* ui)
 {
 	int borderX = 4;
-	Graphics2D& g = Global::GetGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	BaseClass::renderTitle(ui);
+	g.setTextColor(Color3ub(255, 255, 255));
 	Vec2i uiPos(borderX + 5, 5 + 3);
 	g.drawText(getWorldPos() + uiPos, LOCTEXT("Game Name"));
 }

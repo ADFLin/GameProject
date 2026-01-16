@@ -145,7 +145,8 @@ public:
 
 	void setTextColor(Color3ub const& color) override { mImpl->setTextColor(color);  }
 	void drawText(Vector2 const& pos , char const* str ) override { mImpl->drawText(VRef(pos) , str ); }
-	void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip) override { mImpl->drawText(VRef(pos) , size , str , beClip  ); }
+	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip) override { mImpl->drawText(VRef(pos), size, str, beClip); }
+	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment, bool beClip) override { mImpl->drawText(VRef(pos), size, str, alignment, beClip); }
 
 	void  beginXForm() override { mImpl->beginXForm(); }
 	void  finishXForm() override { mImpl->finishXForm(); }
@@ -674,7 +675,7 @@ public:
 		RenderUtility::SetBrush(mGraphics2D, GColors[color]);
 
 		mGraphics2D.drawRect(pos, size);
-		mGraphics2D.drawText(pos, size, node->getName(), true);
+		mGraphics2D.drawText(pos, size, node->getName(), EHorizontalAlign::Center, true);
 	}
 	bool onEnterChild(VisitContext const& context)
 	{ 

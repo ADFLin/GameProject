@@ -255,90 +255,6 @@ namespace Render
 		}
 	};
 
-	template< class RHITextureType >
-	class TD3D11Texture : public TD3D11Resource< RHITextureType >
-	{
-	protected:
-
-		TD3D11Texture(TextureDesc const& desc, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
-			:mSRV(SRV),mUAV(UAV)
-		{
-			mDesc = desc;
-		}
-
-		virtual void releaseResource()
-		{
-			mSRV.release();
-			SAFE_RELEASE(mUAV);
-			TD3D11Resource< RHITextureType >::releaseResource();
-		}
-		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
-
-	public:
-
-		enum EDepthFormat
-		{
-			DepthFormat,
-		};
-
-		D3D11ShaderResourceView    mSRV;
-		ID3D11UnorderedAccessView* mUAV;
-	};
-
-
-
-	struct Texture1DCreationResult
-	{
-		TComPtr< ID3D11Texture1D > resource;
-		TComPtr< ID3D11ShaderResourceView >  SRV;
-		TComPtr< ID3D11UnorderedAccessView > UAV;
-	};
-
-	class D3D11Texture1D : public TD3D11Texture< RHITexture1D >
-	{
-	public:
-		D3D11Texture1D(TextureDesc const& desc, Texture1DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture1D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
-		{
-			mResource = creationResult.resource.detach();
-		}
-
-		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0)
-		{
-
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.front = 0;
-			box.back = 1;
-			box.left = offset;
-			box.right = offset + length;
-			box.top = 0;
-			box.bottom = 1;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, length * ETexture::GetFormatSize(format), length * ETexture::GetFormatSize(format));
-			return true;
-
-		}
-	};
-
-	struct Texture2DCreationResult
-	{
-		TComPtr< ID3D11Texture2D >           resource;
-		TComPtr< ID3D11ShaderResourceView >  SRV;
-		TComPtr< ID3D11UnorderedAccessView > UAV;
-		TComPtr< ID3D11DepthStencilView >    DSV;
-	};
-
-	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult);
-
-	struct TextureCubeCreationResult
-	{
-		TComPtr< ID3D11Texture2D > resource;
-		TComPtr< ID3D11ShaderResourceView >  SRV;
-		TComPtr< ID3D11UnorderedAccessView > UAV;
-	};
 
 	struct D3D11ResourceViewStorage
 	{
@@ -576,6 +492,138 @@ namespace Render
 		std::unordered_map< UnorderedAccessKey, ID3D11UnorderedAccessView*, MemberFuncHasher > mUAViewMap;
 	};
 
+	class D3D11TextureBase
+	{
+	public:
+		D3D11TextureBase(ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
+			:mSRV(SRV), mUAV(UAV)
+		{
+		}
+		virtual ~D3D11TextureBase() {}
+		virtual ID3D11Resource* getD3D11Resource() = 0;
+		D3D11ShaderResourceView    mSRV;
+		ID3D11UnorderedAccessView* mUAV = nullptr;
+		D3D11ResourceViewStorage   mViewStorage;
+
+		struct D3D11BindSlot
+		{
+			uint32 stage : 4;
+			uint32 isUAV : 1;
+			uint32 slotIndex : 16;
+			uint32 padding : 11;
+
+			bool operator==(D3D11BindSlot const& rhs) const
+			{
+				return stage == rhs.stage && isUAV == rhs.isUAV && slotIndex == rhs.slotIndex;
+			}
+		};
+
+		TArray<D3D11BindSlot, TInlineAllocator<8>> mBoundSlots;
+
+		void addBind(int stage, int slotIndex, bool isUAV)
+		{
+			D3D11BindSlot info;
+			info.stage = stage;
+			info.slotIndex = slotIndex;
+			info.isUAV = isUAV;
+			mBoundSlots.addUnique(info);
+		}
+
+		void removeBind(int stage, int slotIndex, bool isUAV)
+		{
+			D3D11BindSlot info;
+			info.stage = stage;
+			info.slotIndex = slotIndex;
+			info.isUAV = isUAV;
+			mBoundSlots.removeSwap(info);
+		}
+	};
+
+	template< class RHITextureType >
+	class TD3D11Texture : public TD3D11Resource< RHITextureType >, public D3D11TextureBase
+	{
+	protected:
+
+		TD3D11Texture(TextureDesc const& desc, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
+			:TD3D11Resource< RHITextureType >()
+			,D3D11TextureBase(SRV, UAV)
+		{
+			mDesc = desc;
+		}
+
+		virtual void releaseResource()
+		{
+			mViewStorage.releaseResource();
+			mSRV.release();
+			SAFE_RELEASE(mUAV);
+			TD3D11Resource< RHITextureType >::releaseResource();
+		}
+		virtual void* getNativeInternal() override { return static_cast<D3D11TextureBase*>(this); }
+		virtual ID3D11Resource* getD3D11Resource() override { return mResource; }
+
+	public:
+
+		enum EDepthFormat
+		{
+			DepthFormat,
+		};
+	};
+
+
+
+	struct Texture1DCreationResult
+	{
+		TComPtr< ID3D11Texture1D > resource;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+	};
+
+	class D3D11Texture1D : public TD3D11Texture< RHITexture1D >
+	{
+	public:
+		D3D11Texture1D(TextureDesc const& desc, Texture1DCreationResult& creationResult)
+			:TD3D11Texture< RHITexture1D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
+		{
+			mResource = creationResult.resource.detach();
+		}
+
+		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0)
+		{
+
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+			TComPtr<ID3D11DeviceContext> deviceContext;
+			device->GetImmediateContext(&deviceContext);
+			D3D11_BOX box;
+			box.front = 0;
+			box.back = 1;
+			box.left = offset;
+			box.right = offset + length;
+			box.top = 0;
+			box.bottom = 1;
+			deviceContext->UpdateSubresource(mResource, level, &box, data, length * ETexture::GetFormatSize(format), length * ETexture::GetFormatSize(format));
+			return true;
+
+		}
+	};
+
+	struct Texture2DCreationResult
+	{
+		TComPtr< ID3D11Texture2D >           resource;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+		TComPtr< ID3D11DepthStencilView >    DSV;
+	};
+
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult);
+
+	struct TextureCubeCreationResult
+	{
+		TComPtr< ID3D11Texture2D > resource;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+	};
+
 	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >
 	{
 		using BaseClass = TD3D11Texture< RHITexture2D >;
@@ -586,6 +634,12 @@ namespace Render
 		{
 			mResource = creationResult.resource.detach();
 			mDSV = creationResult.DSV.detach();
+		}
+
+		void releaseResource()
+		{
+			SAFE_RELEASE(mDSV);
+			BaseClass::releaseResource();
 		}
 
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
@@ -636,19 +690,11 @@ namespace Render
 		}
 
 
-		void releaseResource()
-		{
-			mViewStorage.releaseResource();
-			SAFE_RELEASE(mDSV);
-			BaseClass::releaseResource();
-		}
-
 		ID3D11RenderTargetView* getRenderTargetView(int level)
 		{
 			return mViewStorage.getRendnerTarget_Texture2D(mResource, mDesc.format, level, mDesc.numSamples);
 		}
 
-		D3D11ResourceViewStorage mViewStorage;
 		ID3D11DepthStencilView*  mDSV = nullptr;
 	};
 
@@ -706,6 +752,12 @@ namespace Render
 			}
 		}
 
+		void releaseResource()
+		{
+			SAFE_RELEASE(mDSV);
+			BaseClass::releaseResource();
+		}
+
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level )
 		{
 			TComPtr<ID3D11Device> device;
@@ -750,14 +802,6 @@ namespace Render
 			return true;
 		}
 
-		void releaseResource()
-		{
-			mViewStorage.releaseResource();
-			SAFE_RELEASE(mDSV);
-			BaseClass::releaseResource();
-		}
-
-
 		ID3D11RenderTargetView* getRenderTargetView(ETexture::Face face, int level)
 		{
 			return mViewStorage.getRenderTarget_TextureCube(mResource, mDesc.format, face, level, mDesc.numSamples);
@@ -766,7 +810,7 @@ namespace Render
 		{
 			return mViewStorage.getRenderTargetArray_TextureCube(mResource, mDesc.format, level, mDesc.numSamples);
 		}
-		D3D11ResourceViewStorage mViewStorage;
+
 		ID3D11DepthStencilView*  mDSV = nullptr;
 	};
 
@@ -814,7 +858,6 @@ namespace Render
 
 		void releaseResource()
 		{
-			mViewStorage.releaseResource();
 			SAFE_RELEASE(mDSV);
 			BaseClass::releaseResource();
 		}
@@ -824,7 +867,6 @@ namespace Render
 			return mViewStorage.getRenderTarget_Texture2DArray(mResource, mDesc.format, indexLayer, level, mDesc.numSamples);
 		}
 
-		D3D11ResourceViewStorage mViewStorage;
 		ID3D11DepthStencilView*  mDSV = nullptr;
 	};
 
@@ -846,6 +888,8 @@ namespace Render
 			mSRV = creationResult.SRV.detach();
 			mUAV = creationResult.UAV.detach();
 		}
+
+		virtual void* getNativeInternal() override { return this; }
 
 
 		bool isDynamic() const
@@ -1079,6 +1123,16 @@ namespace Render
 
 		template< class T >
 		static auto GetResource(TRHIResourceRef<T>& refPtr) { return D3D11Cast::To(refPtr)->getResource(); }
+
+		static D3D11TextureBase& ToTextureBase(RHITextureBase& resource)
+		{
+			return *static_cast<D3D11TextureBase*>(resource.getNativeInternal());
+		}
+		template< class TRHIResource >
+		static D3D11TextureBase& ToTextureBase(TD3D11Texture< TRHIResource >& texture)
+		{
+			return static_cast<D3D11TextureBase&>(texture);
+		}
 	};
 
 

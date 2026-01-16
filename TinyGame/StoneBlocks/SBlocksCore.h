@@ -197,7 +197,7 @@ namespace SBlocks
 			operator Int16Point2D() const { return pos; }
 		};
 
-		TArray< Block , FixedSizeAllocator > blocks;
+		TArray< Block , CappedAllocator > blocks;
 
 		void initialize(PieceShapeDesc const& desc);
 		void standardize(Int16Point2D& outBoundSize);

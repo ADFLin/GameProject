@@ -151,10 +151,6 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetComputeShader(shader));
 	}
 
-	void RHIClearSRVResource(RHICommandList& commandList, RHIResource* resource)
-	{
-		RHI_COMMAND_FUNC(commandList, RHIClearSRVResource(resource));
-	}
 
 	void RHIResolveTexture(RHICommandList& commandList, RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
 	{

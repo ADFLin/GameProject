@@ -1,4 +1,3 @@
-
 #include "Common.sgc"
 
 
@@ -17,7 +16,7 @@ struct NormalGenParamsData
 	uint   totalCount;
 	uint   vertexStride;
 	uint   normalOffset;
-	uint   padding;
+	uint   numVertices;
 };
 
 
@@ -36,20 +35,45 @@ DEFINE_STRUCTURED_BUFFER(float, VertexInput);
 #if USE_SHARE_TRIANGLE_INFO
 DEFINE_STRUCTURED_BUFFER(float, VertexOutput);
 #else
-DEFINE_STRUCTURED_BUFFER(uint, VertexOutput);
+DEFINE_STRUCTURED_BUFFER(int, VertexOutput);
+
+#define FIXED_POINT_SCALE 1048576.0f
+
+CS_NUM_THREADS(64, 1, 1)
+CS_ENTRY(ClearCS)
+{
+	uint vertexId = SvDispatchThreadID.x;
+	if (vertexId >= GenParams.numVertices)
+		return;
+
+	uint normalIndex = vertexId * GenParams.vertexStride + GenParams.normalOffset;
+	VertexOutput[normalIndex + 0] = 0;
+	VertexOutput[normalIndex + 1] = 0;
+	VertexOutput[normalIndex + 2] = 0;
+}
+
 void UpdateValue(uint index, float Add)
 {
-	uint oldValue = VertexOutput[index];
-	for (;;)
-	{
-		uint newValue = asuint(asfloat(oldValue) + Add);
-		uint value;
-		InterlockedCompareExchange(VertexOutput[index], oldValue, newValue, value);
-		if (value == oldValue)
-			break;
+	InterlockedAdd(VertexOutput[index], int(Add * FIXED_POINT_SCALE));
+}
 
-		oldValue = value;
-	}
+CS_NUM_THREADS(64, 1, 1)
+CS_ENTRY(NormalizeCS)
+{
+	uint vertexId = SvDispatchThreadID.x;
+	if (vertexId >= GenParams.numVertices)
+		return;
+
+	uint normalIndex = vertexId * GenParams.vertexStride + GenParams.normalOffset;
+	float3 N;
+	N.x = float(VertexOutput[normalIndex + 0]) / FIXED_POINT_SCALE;
+	N.y = float(VertexOutput[normalIndex + 1]) / FIXED_POINT_SCALE;
+	N.z = float(VertexOutput[normalIndex + 2]) / FIXED_POINT_SCALE;
+
+	N = normalize(N);
+	VertexOutput[normalIndex + 0] = asint(N.x);
+	VertexOutput[normalIndex + 1] = asint(N.y);
+	VertexOutput[normalIndex + 2] = asint(N.z);
 }
 #endif
 

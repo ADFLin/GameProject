@@ -1718,7 +1718,7 @@ namespace CAR
 		g.setTextColor(Color3ub(0 , 0 , 0) );
 		InlineString< 128 > str;
 		str.format("%s", gActorShortNames[type]);
-		g.drawText( pos , size , str , true );
+		g.drawText( pos , size , str , EHorizontalAlign::Center , true );
 	}
 
 	void SelectButton::onRender()

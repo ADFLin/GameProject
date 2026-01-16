@@ -324,6 +324,7 @@ namespace Render
 		}
 
 		virtual void setDebugName( char const* name){}
+		virtual void* getNativeInternal() { return nullptr; }
 
 
 		static CORE_API void DumpResource();
@@ -457,7 +458,6 @@ namespace Render
 		virtual RHITexture3D* getTexture3D() { return nullptr; }
 		virtual RHITextureCube* getTextureCube() { return nullptr; }
 		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
-		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
 
 		TextureDesc const& getDesc() const { return mDesc; }
 		ETexture::Type   getType() const { return mDesc.type; }

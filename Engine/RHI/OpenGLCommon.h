@@ -180,8 +180,23 @@ namespace Render
 		GLenum typeEnum;
 	};
 
+	class OpenGLTextureBase
+	{
+	public:
+		RHIShaderResourceView* getBaseResourceView()
+		{
+			mView.handle = getHandle();
+			mView.typeEnum = getGLTypeEnum();
+			return &mView;
+		}
+		virtual GLuint getHandle() const = 0;
+		virtual GLenum getGLTypeEnum() const = 0;
+	protected:
+		OpenGLShaderResourceView mView;
+	};
+
 	template< class RHITextureType >
-	class TOpengGLTexture : public TOpenGLResource< RHITextureType , GLFactory::Texture >
+	class TOpengGLTexture : public TOpenGLResource< RHITextureType , GLFactory::Texture >, public OpenGLTextureBase
 	{
 	public:
 		TOpengGLTexture(TextureDesc const& desc)
@@ -190,10 +205,16 @@ namespace Render
 			mDesc = desc;
 		}
 
-		GLenum getGLTypeEnum() const
+		GLenum getGLTypeEnum() const override
 		{
 			return (mDesc.numSamples > 1) ? TypeEnumGLMultisample : TypeEnumGL;
 		}
+
+		GLuint getHandle() const override
+		{
+			return TOpenGLResource< RHITextureType, GLFactory::Texture >::getHandle();
+		}
+
 		void bind() const
 		{
 			glBindTexture(getGLTypeEnum(), getHandle());
@@ -204,17 +225,17 @@ namespace Render
 			glBindTexture(getGLTypeEnum(), 0);
 		}
 
-		RHIShaderResourceView* getBaseResourceView()
+		virtual void* getNativeInternal() override { return static_cast<OpenGLTextureBase*>(this); }
+
+		void updateView()
 		{
 			mView.handle = mGLObject.mHandle;
 			mView.typeEnum = getGLTypeEnum();
-			return &mView;
 		}
+
 	protected:
 		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
 		static GLenum const TypeEnumGLMultisample = OpenGLTextureTraits< RHITextureType >::EnumValueMultisample;
-
-		OpenGLShaderResourceView mView;
 	};
 
 	class OpenGLTexture1D : public TOpengGLTexture< RHITexture1D >
@@ -686,6 +707,17 @@ namespace Render
 
 		template < class TRHIResource >
 		static auto To(TRHIResourceRef<TRHIResource>& ptr) { return To(ptr.get()); }
+
+		static OpenGLTextureBase& ToTextureBase(RHITextureBase& resource)
+		{
+			return *static_cast<OpenGLTextureBase*>(resource.getNativeInternal());
+		}
+
+		template< class TRHIResource >
+		static OpenGLTextureBase& ToTextureBase(TOpengGLTexture< TRHIResource >& texture)
+		{
+			return static_cast<OpenGLTextureBase&>(texture);
+		}
 
 		template < class TRHIResource >
 		static auto To(TRHIResourceRef<TRHIResource> const& ptr) { return To(ptr.get()); }

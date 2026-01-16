@@ -174,6 +174,7 @@ void GroupMemoryBarrierWithGroupSync();
 #endif //COMPUTE_SHADER
 
 #define DEFINE_STRUCTURED_BUFFER( TYPE , NAME ) StructuredBuffer< TYPE > NAME
+#define DEFINE_RW_STRUCTURED_BUFFER( TYPE , NAME ) RWStructuredBuffer< TYPE > NAME
 
 
 #define DEFINE_TEXTURE( TYPE , NAME )\

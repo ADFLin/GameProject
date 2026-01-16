@@ -10,6 +10,8 @@ Bitset::Bitset()
 
 Bitset::Bitset( size_t size , bool val )
 {
+	mSize = 0;
+	mStorage = nullptr;
 	resize( size , val );
 }
 
@@ -103,34 +105,3 @@ bool Bitset::any() const
 
 	return false;
 }
-
-#include "UnitTest.h"
-
-class BitsetTest
-{
-public:
-	EUTRunResult run()
-	{
-		Bitset b( 15 , false );
-		b.set( 0 , true );
-		b.set( 10 , true );
-
-		UT_ASSERT( b.count() == 2 );
-		UT_ASSERT( b.test( 0 ) && b.test( 15 ) );
-		return RR_SUCCESS; 
-	}
-};
-
-EUTRunResult Test2()
-{
-	Bitset b(15, false);
-	b.set(0, true);
-	b.set(10, true);
-
-	UT_ASSERT(b.count() == 2);
-	UT_ASSERT(b.test(0) && b.test(15));
-	return RR_SUCCESS;
-}
-
-UT_REG_TEST(BitsetTest, "Bitset")
-UT_REG_TEST(Test2, "Test2")

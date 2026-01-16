@@ -292,7 +292,7 @@ void WinGdiGraphics2D::drawText( Vec2i const& pos , char const* str )
 	::TextOut( getRenderDC() , pos.x , pos.y  , str , (int)strlen(str) );
 }
 
-void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip /*= false */ )
+void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char const* str , EHorizontalAlign alignment , bool beClip /*= false */ )
 {
 	GDI_PROFILE("DrawText");
 	RECT rect;
@@ -301,7 +301,14 @@ void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char con
 	rect.right = pos.x + size.x;
 	rect.bottom = pos.y + size.y;
 
-	UINT format = DT_CENTER | DT_SINGLELINE | DT_VCENTER;
+	UINT format = DT_SINGLELINE | DT_VCENTER;
+	switch (alignment)
+	{
+	case EHorizontalAlign::Left:   format |= DT_LEFT; break;
+	case EHorizontalAlign::Center: format |= DT_CENTER; break;
+	case EHorizontalAlign::Right:  format |= DT_RIGHT; break;
+	}
+
 	if ( !beClip )
 		format |= DT_NOCLIP;
 	::DrawText( getRenderDC() , str , (int)FCString::Strlen( str ), &rect , format  );

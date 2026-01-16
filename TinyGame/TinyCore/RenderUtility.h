@@ -109,6 +109,76 @@ public:
 	{
 		g.drawRoundRect( pos , size , Vec2i( 2 * size.y / 3 , size.y ) );
 	}
+
+	template< class TGraphics2D >
+	static void DrawDashboardBackground(TGraphics2D& g)
+	{
+		Vec2i screenSize = Global::GetScreenSize();
+
+		// Draw Background Gradient
+		Color3ub color1(10, 15, 25);
+		Color3ub color2(25, 35, 55);
+		int steps = 15;
+		int stepHeight = screenSize.y / steps + 1;
+		SetPen(g, EColor::Null);
+		for (int i = 0; i < steps; ++i)
+		{
+			float t = (float)i / (steps - 1);
+			Color3ub color(
+				color1.r + (int)(t * (color2.r - color1.r)),
+				color1.g + (int)(t * (color2.g - color1.g)),
+				color1.b + (int)(t * (color2.b - color1.b))
+			);
+			g.setBrush(color);
+			g.drawRect(Vec2i(0, i * stepHeight), Vec2i(screenSize.x, stepHeight));
+		}
+
+		// Draw subtle grid
+		g.setPen(Color3ub(40, 60, 100), 1);
+		int gridSpacing = 40;
+		for (int x = 0; x < screenSize.x; x += gridSpacing)
+			g.drawLine(Vec2i(x, 0), Vec2i(x, screenSize.y));
+		for (int y = 0; y < screenSize.y; y += gridSpacing)
+			g.drawLine(Vec2i(0, y), Vec2i(screenSize.x, y));
+	}
+
+	enum ArrowDir
+	{
+		eUp,
+		eDown,
+		eLeft,
+		eRight
+	};
+
+	template< class TGraphics2D >
+	static void DrawTriangle(TGraphics2D& g, Vec2i const& pos, Vec2i const& size, ArrowDir dir)
+	{
+		Math::Vector2 p[3];
+		switch (dir)
+		{
+		case eUp:
+			p[0] = Math::Vector2(pos.x + size.x / 2.0f, pos.y);
+			p[1] = Math::Vector2(pos.x, pos.y + size.y);
+			p[2] = Math::Vector2(pos.x + size.x, pos.y + size.y);
+			break;
+		case eDown:
+			p[0] = Math::Vector2(pos.x, pos.y);
+			p[1] = Math::Vector2(pos.x + size.x, pos.y);
+			p[2] = Math::Vector2(pos.x + size.x / 2.0f, pos.y + size.y);
+			break;
+		case eLeft:
+			p[0] = Math::Vector2(pos.x + size.x, pos.y);
+			p[1] = Math::Vector2(pos.x, pos.y + size.y / 2.0f);
+			p[2] = Math::Vector2(pos.x + size.x, pos.y + size.y);
+			break;
+		case eRight:
+			p[0] = Math::Vector2(pos.x, pos.y);
+			p[1] = Math::Vector2(pos.x + size.x, pos.y + size.y / 2.0f);
+			p[2] = Math::Vector2(pos.x, pos.y + size.y);
+			break;
+		}
+		g.drawPolygon(p, 3);
+	}
 };
 
 

@@ -105,7 +105,10 @@ namespace Render
 		mProgGenerateHeight->setStorageBuffer(commandList, SHADER_PARAM(CraterBlock), *mCraterData.getRHI(), EAccessOp::ReadOnly);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(NumCraters), (int)mCraterData.getElementNum());
 
+		RHIResource* TransitionResources[] = { mMeshOffsetData.getRHI() };
+		RHIResourceTransition(commandList, TransitionResources, EResourceTransition::UAV);
 		RHIDispatchCompute(commandList, (numVertices + 127) / 128, 1, 1);
+		RHIResourceTransition(commandList, TransitionResources, EResourceTransition::SRV);
 		RHIFlushCommand(commandList);
 
 	}
@@ -113,7 +116,7 @@ namespace Render
 	bool PlantRenderingStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(mProgGenerateHeight = ShaderManager::Get().getGlobalShaderT<GenerateHeightProgram>());
-		VERIFY_RETURN_FALSE(mProgRender = ShaderManager::Get().getGlobalShaderT<RenderProgram>());
+	//VERIFY_RETURN_FALSE(mProgRender = ShaderManager::Get().getGlobalShaderT<RenderProgram>());
 
 		generateCraterData();
 		VERIFY_RETURN_FALSE(buildPlantMesh());

@@ -330,7 +330,12 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define DEFINE_STRUCTURED_BUFFER( TYPE , NAME )\
 	layout(std430) buffer NAME##Block\
 	{\
-		restrict TYPE NAME[];\
+		restrict readonly TYPE NAME[];\
+	}
+#define DEFINE_RW_STRUCTURED_BUFFER( TYPE , NAME )\
+	layout(std430) buffer NAME##Block\
+	{\
+		TYPE NAME[];\
 	}
 	
 #define TEXTURE_SAMPLE( NAME , UV ) texture(NAME, UV)

@@ -313,6 +313,9 @@
     <ClInclude Include="TinyCore\StageBase.h" />
     <ClInclude Include="TinyCore\UserProfile.h" />
     <ClInclude Include="TinyGamePCH.h" />
+    <ClInclude Include="TinyCore\CommonWidgets.h" />
+    <ClInclude Include="TinyCore\ExecutionManager.h" />
+    <ClInclude Include="TinyCore\ExecutionPanel.h" />
     <ClInclude Include="Widget\OptionNoteBook.h" />
     <ClInclude Include="Widget\ServerListPanel.h" />
   </ItemGroup>
@@ -707,6 +710,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TinyCore\CommonWidgets.cpp" />
+    <ClCompile Include="TinyCore\ExecutionManager.cpp" />
+    <ClCompile Include="TinyCore\ExecutionPanel.cpp" />
     <ClCompile Include="Widget\OptionNoteBook.cpp" />
     <ClCompile Include="Widget\ServeListPanel.cpp" />
     <ClCompile Include="Widget\WidgetUtility.cpp" />

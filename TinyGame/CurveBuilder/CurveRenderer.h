@@ -32,7 +32,7 @@ namespace CB
 	public:
 		CurveRenderer();
 
-		bool initialize( Vec2i const& screenSize );
+		bool initializeRHI( Vec2i const& screenSize );
 
 		void beginRender(RHICommandList& commandList);
 		void endRender();

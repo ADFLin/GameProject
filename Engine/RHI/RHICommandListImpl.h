@@ -77,6 +77,7 @@ namespace Render
 		RHI_FUNC(void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer));
 		RHI_FUNC(void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer));
+		RHI_FUNC(void clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op));
 
 		RHI_FUNC(void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc));
 		RHI_FUNC(void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc));
@@ -106,6 +107,7 @@ namespace Render
 		RHI_FUNC(void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer));
 		RHI_FUNC(void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer));
+		RHI_FUNC(void clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op));
 	};
 
 

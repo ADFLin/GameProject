@@ -173,6 +173,8 @@ namespace Render
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
+		void clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op) {}
+
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc);
@@ -211,6 +213,8 @@ namespace Render
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
+		void clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op) {}
+
 
 		template< class TShaderObject >
 		void setShaderUniformBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIBuffer& buffer);

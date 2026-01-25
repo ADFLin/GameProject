@@ -59,8 +59,10 @@ CodeEditorBase::CodeEditorBase(int id, Vec2i const& pos, Vec2i const& size, GWid
 	Vec2i buttonSize(ButtonSizeX, ButtonSizeY);
 	mMinSize = Vec2i(MinSizeX, MinSizeY);
 	mExecButton = new ExecButton(UI_EXEC, Vec2i(Margin, Margin), buttonSize, this);
+	mExecButton->isExecutingFunc = []() { return TFWR::IViewModel::Get().isExecutingCode(); };
 	mExecStepButton = new ExecButton(UI_EXEC_STEP, Vec2i(2 * Margin + buttonSize.x, Margin), buttonSize, this);
 	mExecStepButton->bStep = true;
+	mExecStepButton->isExecutingFunc = mExecButton->isExecutingFunc;
 	mMinimizeButton = new MinimizeButton(UI_MINIMIZE_BUTTON, Vec2i(size.x - Margin - 2 * buttonSize.x - Margin, Margin), buttonSize, this);
 	mCloseButton = new CloseButton(UI_CLOSE_BUTTON, Vec2i(size.x - Margin - buttonSize.x, Margin), buttonSize, this);
 
@@ -203,132 +205,8 @@ bool CodeEditorBase::onChildEvent(int event, int id, GWidget* ui)
 	return true;
 }
 
-ExecButton::ExecButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent) 
-	:BaseClass(id, pos, size, parent)
-{
-	mID = id;
-}
-void ExecButton::onRender()
-{
-	Vec2i pos = getWorldPos();
-	Vec2i size = getSize();
-	RHIGraphics2D& g = Global::GetRHIGraphics2D();
+// Button implementations moved to CommonWidgets.cpp
 
-	g.enablePen(false);
-	if (mState == BS_PRESS)
-	{
-		g.setBrush(Color3ub(136, 155, 53));
-	}
-	else if (mState == BS_HIGHLIGHT)
-	{
-		g.setBrush(Color3ub(116, 135, 33));
-	}
-	else
-	{
-		g.setBrush(Color3ub(96, 115, 13));
-	}
-	g.drawRoundRect(pos, size, Vector2(4, 4));
-
-	g.pushXForm();
-	g.translateXForm(pos.x, pos.y);
-
-	if (TFWR::IViewModel::Get().isExecutingCode())
-	{
-		RenderUtility::SetPen(g, EColor::White);
-		RenderUtility::SetBrush(g, EColor::White);
-		if (bStep)
-		{
-			g.drawRect(Vector2(size.x / 4, size.y / 4), Vector2(size.x / 6, size.y / 2));
-			g.drawRect(Vector2(size.x / 4 + size.x / 3, size.y / 4), Vector2(size.x / 6, size.y / 2));
-		}
-		else
-		{
-			g.drawRect(Vector2(size.x / 4, size.y / 4), Vector2(size.x / 2, size.y / 2));
-		}
-	}
-	else
-	{
-		Vector2 vertices[] =
-		{
-			Vector2(size.x / 4, size.y / 4),
-			Vector2(3 * size.x / 4, size.y / 2),
-			Vector2(size.x / 4, 3 * size.y / 4),
-		};
-
-		RenderUtility::SetPen(g, EColor::White);
-		RenderUtility::SetBrush(g, EColor::White);
-		g.enablePen(true);
-		g.enableBrush(!bStep);
-		g.drawPolygon(vertices, ARRAY_SIZE(vertices));
-		g.enableBrush(true);
-
-	}
-
-	g.popXForm();
-}
-
-CloseButton::CloseButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-	:BaseClass(id, pos, size, parent)
-{
-
-}
-
-void CloseButton::onRender()
-{
-	Vec2i pos = getWorldPos();
-	Vec2i size = getSize();
-	RHIGraphics2D& g = Global::GetRHIGraphics2D();
-
-	g.enablePen(false);
-	if (mState == BS_PRESS)
-	{
-		g.setBrush(Color3ub(190, 20, 20));
-	}
-	else if (mState == BS_HIGHLIGHT)
-	{
-		g.setBrush(Color3ub(150, 20, 20));
-	}
-	else
-	{
-		g.setBrush(Color3ub(86, 86, 86));
-	}
-	g.drawRoundRect(pos, size, Vector2(4, 4));
-
-	RenderUtility::SetPen(g, EColor::White, 1.5);
-	g.drawLine(pos + Vec2i(size.x / 4, size.y / 4), pos + Vec2i(3 * size.x / 4, 3 * size.y / 4));
-	g.drawLine(pos + Vec2i(size.x / 4, 3 * size.y / 4), pos + Vec2i(3 * size.x / 4, size.y / 4));
-}
-
-MinimizeButton::MinimizeButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-	:BaseClass(id, pos, size, parent)
-{
-}
-
-void MinimizeButton::onRender()
-{
-	Vec2i pos = getWorldPos();
-	Vec2i size = getSize();
-	RHIGraphics2D& g = Global::GetRHIGraphics2D();
-
-	g.enablePen(false);
-	if (mState == BS_PRESS)
-	{
-		g.setBrush(Color3ub(120, 120, 120));
-	}
-	else if (mState == BS_HIGHLIGHT)
-	{
-		g.setBrush(Color3ub(100, 100, 100));
-	}
-	else
-	{
-		g.setBrush(Color3ub(86, 86, 86));
-	}
-	g.drawRoundRect(pos, size, Vector2(4, 4));
-
-	// Draw a thick horizontal line using drawRect
-	RenderUtility::SetBrush(g, EColor::White); // Set brush color to white
-	g.drawRect(pos + Vec2i(size.x / 4, size.y / 2 - 1), Vec2i(size.x / 2, 3)); // 3 pixels thick
-}
 
 void CodeEditCanvas::moveCursor(int dx, int dy)
 {

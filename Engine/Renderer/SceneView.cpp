@@ -142,7 +142,7 @@ namespace Render
 		updateRHIResource();
 		if (pInfo)
 		{
-			program.setUniformBuffer(commandList, pInfo->blockName, *mUniformBuffer);
+			program.setUniformBuffer(commandList, pInfo->variableName, *mUniformBuffer);
 		}
 		else
 		{
@@ -156,7 +156,7 @@ namespace Render
 		updateRHIResource();
 		if (pInfo)
 		{
-			shader.setUniformBuffer(commandList, pInfo->blockName, *mUniformBuffer);
+			shader.setUniformBuffer(commandList, pInfo->variableName, *mUniformBuffer);
 		}
 		else
 		{

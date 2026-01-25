@@ -172,6 +172,8 @@ namespace Render
 			}
 		}
 
+		void clearBuffer(RHICommandList& commandList, ShaderParameter const& param, EAccessOp op);
+
 		struct CachedParameter : public ShaderParameter
 		{
 			void* ptr;
@@ -235,6 +237,8 @@ namespace Render
 	public:
 		TRefCountPtr< RHIResourceType > mRHIResource;
 	};
+
+
 
 	extern template class TShaderFuncHelper< RHIShaderProgram >;
 	extern template class TShaderFuncHelper< RHIShader >;

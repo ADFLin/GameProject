@@ -453,27 +453,39 @@ void main()
 
 	bool FOpenGLShader::GetResourceParameter(GLuint handle, EShaderResourceType type, char const* name, ShaderParameter& outParameter)
 	{
-		int index = -1;
-		switch (type)
-		{
-		case EShaderResourceType::Uniform:
-			index = glGetProgramResourceIndex(handle, GL_UNIFORM_BLOCK, name);
-			break;
-		case EShaderResourceType::Storage:
-			index = glGetProgramResourceIndex(handle, GL_SHADER_STORAGE_BLOCK, name);
-			break;
-		case EShaderResourceType::AtomicCounter:
+		auto GetIndex = [&](char const* parameterName) -> int
+		{ 
+			switch (type)
 			{
-				int indexTemp = glGetProgramResourceIndex(handle, GL_UNIFORM, name);
-				if (indexTemp != -1)
-				{
-					GLint loc = -1;
-					const GLenum properties[] = { GL_ATOMIC_COUNTER_BUFFER_INDEX };
-					glGetProgramResourceiv(handle, GL_UNIFORM, indexTemp, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, &loc);
-					index = loc;
-				}
+			case EShaderResourceType::Uniform:
+				return glGetProgramResourceIndex(handle, GL_UNIFORM_BLOCK, parameterName);
+			case EShaderResourceType::Storage:
+				return glGetProgramResourceIndex(handle, GL_SHADER_STORAGE_BLOCK, parameterName);
 			}
-			break;
+			return -1;
+		};
+
+		int index = -1;
+		if (type == EShaderResourceType::AtomicCounter)
+		{
+			int indexTemp = glGetProgramResourceIndex(handle, GL_UNIFORM, name);
+			if (indexTemp != -1)
+			{
+				GLint loc = -1;
+				const GLenum properties[] = { GL_ATOMIC_COUNTER_BUFFER_INDEX };
+				glGetProgramResourceiv(handle, GL_UNIFORM, indexTemp, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, &loc);
+				index = loc;
+			}
+		}
+		else
+		{
+			index = GetIndex(name);
+			if (index == -1 && type == EShaderResourceType::Storage)
+			{
+				// Fallback: try with "Block" suffix
+				std::string nameBlock = std::string(name) + "Block";
+				index = GetIndex(nameBlock.c_str());
+			}
 		}
 		if (index == -1)
 			return false;
@@ -500,6 +512,16 @@ void main()
 #if SHADER_DEBUG
 				param.mbindType = BlockTypeInterface == GL_UNIFORM_BLOCK ? EShaderParamBindType::UniformBuffer : EShaderParamBindType::StorageBuffer;
 #endif
+				// Secret Rename: Register alias without "Block" suffix
+				int len = FCString::Strlen(name);
+				if (BlockTypeInterface == GL_SHADER_STORAGE_BLOCK && len > 5 && FCString::Compare(name + len - 5, "Block") == 0)
+				{
+					std::string strippedName(name, len - 5);
+					auto& param2 = parameterMap.addParameter(strippedName.c_str(), idxBlock);
+#if SHADER_DEBUG
+					param2.mbindType = param.mbindType;
+#endif
+				}
 			}
 		};
 

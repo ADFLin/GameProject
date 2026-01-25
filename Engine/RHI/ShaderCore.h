@@ -323,36 +323,27 @@ namespace Render
 
 	struct StructuredBufferInfo
 	{
-		char const* blockName;
 		char const* variableName;
 
-		StructuredBufferInfo(char const* bloackName , char const* varName = nullptr)
-			:blockName(bloackName)
-			,variableName(varName)
+		StructuredBufferInfo(char const* varName)
+			:variableName(varName)
 		{
 		}
-
-		char const* getParameterName(EShaderResourceType resourceType) const
-		{
-			return (*StaticGetParameterNameFunc)(*this, resourceType);
-		}
-		using GetParameterNameFunc = char const* (*)(StructuredBufferInfo const& structInfo, EShaderResourceType resourceType);
-		CORE_API static GetParameterNameFunc StaticGetParameterNameFunc;
 	};
 
 #define MAKE_STRUCTUREED_BUFFER_INFO( NAME ) Render::StructuredBufferInfo{ #NAME"Block" , #NAME }
 
-#define DECLARE_UNIFORM_BUFFER_STRUCT( NAME)\
+#define DECLARE_UNIFORM_BUFFER_STRUCT(NAME)\
 	static Render::StructuredBufferInfo& GetStructInfo()\
 	{\
-		static Render::StructuredBufferInfo sMyStruct( #NAME , nullptr );\
+		static Render::StructuredBufferInfo sMyStruct( #NAME);\
 		return sMyStruct;\
 	}
 
-#define DECLARE_BUFFER_STRUCT( VAR )\
+#define DECLARE_BUFFER_STRUCT(NAME)\
 	static Render::StructuredBufferInfo& GetStructInfo()\
 	{\
-		static Render::StructuredBufferInfo sMyStruct( #VAR"Block" , #VAR );\
+		static Render::StructuredBufferInfo sMyStruct(#NAME);\
 		return sMyStruct;\
 	}
 
@@ -366,7 +357,7 @@ namespace Render
 
 		FORCEINLINE bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) 
 		{
-			return getResourceParameter(resourceType, structInfo.getParameterName(resourceType), outParam);
+			return getResourceParameter(resourceType, structInfo.variableName, outParam);
 		}
 	};
 

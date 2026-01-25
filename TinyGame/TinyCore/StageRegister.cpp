@@ -160,62 +160,62 @@ void ExecutionEntryInfo::RecordHistory(ExecutionEntryInfo const& info)
 	config.setStringValues(EntryName, SectionName, execHistroy, true);
 }
 
-TINY_API IMiscTestCore* GTestCore = nullptr;
-bool FMiscTestUtil::IsTesting()
+TINY_API IExecutionServices* GExecutionServices = nullptr;
+bool FExecutionUtil::IsTesting()
 {
-	return !!GTestCore;
+	return !!GExecutionServices;
 }
 
-void FMiscTestUtil::Pause()
+void FExecutionUtil::Pause()
 {
-	if (GTestCore)
+	if (GExecutionServices)
 	{
-		GTestCore->pauseExecution(Thread::GetCurrentThreadId());
+		GExecutionServices->pauseExecution(Thread::GetCurrentThreadId());
 	}
 }
 
-MiscRenderScope FMiscTestUtil::RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe)
+ExecutionRenderScope FExecutionUtil::RegisterRender(ExecutionRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe)
 {
-	if (GTestCore)
+	if (GExecutionServices)
 	{
-		return GTestCore->registerRender(Thread::GetCurrentThreadId(), func, size, bTheadSafe);
+		return GExecutionServices->registerRender(Thread::GetCurrentThreadId(), func, size, bTheadSafe);
 	}
 
-	return MiscRenderScope{};
+	return ExecutionRenderScope{};
 }
 
-EKeyCode::Type FMiscTestUtil::WaitInputKey()
+EKeyCode::Type FExecutionUtil::WaitInputKey()
 {
-	if (GTestCore)
+	if (GExecutionServices)
 	{
-		return GTestCore->waitInputKey(Thread::GetCurrentThreadId());
+		return GExecutionServices->waitInputKey(Thread::GetCurrentThreadId());
 	}
 
 	return EKeyCode::None;
 }
 
-std::string FMiscTestUtil::WaitInputText(char const* defaultText)
+std::string FExecutionUtil::WaitInputText(char const* defaultText)
 {
-	if (GTestCore)
+	if (GExecutionServices)
 	{
-		return GTestCore->waitInputText(Thread::GetCurrentThreadId(), defaultText);
+		return GExecutionServices->waitInputText(Thread::GetCurrentThreadId(), defaultText);
 	}
 
 	return "";
 }
 
-IMiscTestCore::IMiscTestCore()
+IExecutionServices::IExecutionServices()
 {
-	if (GTestCore == nullptr)
+	if (GExecutionServices == nullptr)
 	{
-		GTestCore = this;
+		GExecutionServices = this;
 	}
 }
 
-IMiscTestCore::~IMiscTestCore()
+IExecutionServices::~IExecutionServices()
 {
-	if (GTestCore == this)
+	if (GExecutionServices == this)
 	{
-		GTestCore = nullptr;
+		GExecutionServices = nullptr;
 	}
 }

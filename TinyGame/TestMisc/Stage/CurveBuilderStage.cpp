@@ -95,10 +95,8 @@ namespace CB
 			mUpdateThreadPool->init(numThread);
 #endif
 
-			Vec2i screenSize = ::Global::GetScreenSize();
+
 			mRenderer = std::make_unique<CurveRenderer>();
-			if( !mRenderer->initialize(screenSize) )
-				return false;
 
 			mCamera.setPos(Vector3(20, 20, 20));
 			mCamera.setViewDir(Vector3(-1, -1, -1), Vector3(0, 0, 1));
@@ -492,6 +490,16 @@ namespace CB
 		ERenderSystem getDefaultRenderSystem() override
 		{
 			return ERenderSystem::OpenGL;
+		}
+
+
+		bool setupRenderResource(ERenderSystem systemName) override
+		{
+			Vec2i screenSize = ::Global::GetScreenSize();
+			if (!mRenderer->initializeRHI(screenSize))
+				return false;
+
+			return true;
 		}
 
 	protected:

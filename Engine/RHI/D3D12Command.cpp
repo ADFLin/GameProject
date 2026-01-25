@@ -2634,17 +2634,45 @@ namespace Render
 	void D3D12Context::clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param)
 	{
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
-		clearShaderRWTexture(shaderImpl.getType(), shaderImpl, param);
+		auto shaderType = shaderImpl.getType();
+		auto const& slotInfo = shaderImpl.rootSignature.slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
+		{
+			if (shaderType == EShader::Compute)
+			{
+				mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
+			}
+			else
+			{
+				mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
+			}
+		}
+
+		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = nullptr;
 	}
 
 	void D3D12Context::clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param)
 	{
-		ID3D12Resource* resource = mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource;
-		if (resource)
+		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
 		{
-			//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
+			if (shaderType == EShader::Compute)
+			{
+				mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
+			}
+			else
+			{
+				mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
+			}
 		}
+
+		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = nullptr;
 	}
+
 
 	void D3D12Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
 	{
@@ -2815,6 +2843,73 @@ namespace Render
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
 		setShaderStorageBuffer(shaderImpl.getType(), shaderImpl, param, buffer, op);
 	}
+
+	void D3D12Context::clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op)
+	{
+		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, op](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
+		{
+			auto const& slotInfo = shaderData.rootSignature.slots[shaderParam.bindIndex];
+			uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+			if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV || slotInfo.type == ShaderParameterSlotInfo::eSRV)
+			{
+				if (shaderType == EShader::Compute)
+				{
+					if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
+						mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
+					else
+						mGraphicsCmdList->SetComputeRootShaderResourceView(rootSlot, 0);
+				}
+				else
+				{
+					if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
+						mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
+					else
+						mGraphicsCmdList->SetGraphicsRootShaderResourceView(rootSlot, 0);
+				}
+			}
+
+			if (op != EAccessOp::ReadOnly)
+			{
+				mResourceBoundStates[shaderType].mUAVStates[shaderParam.bindIndex].resource = nullptr;
+			}
+		});
+	}
+
+	void D3D12Context::clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op)
+	{
+		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+		auto shaderType = shaderImpl.getType();
+
+		auto const& slotInfo = shaderImpl.rootSignature.slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV || slotInfo.type == ShaderParameterSlotInfo::eSRV)
+		{
+			if (shaderType == EShader::Compute)
+			{
+				if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
+					mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
+				else
+					mGraphicsCmdList->SetComputeRootShaderResourceView(rootSlot, 0);
+			}
+			else
+			{
+				if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
+					mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
+				else
+					mGraphicsCmdList->SetGraphicsRootShaderResourceView(rootSlot, 0);
+			}
+		}
+
+		if (op != EAccessOp::ReadOnly)
+		{
+			mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = nullptr;
+		}
+	}
+
+
 
 	void D3D12Context::setShaderMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
 	{

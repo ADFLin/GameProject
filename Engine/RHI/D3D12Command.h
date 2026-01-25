@@ -292,6 +292,8 @@ namespace Render
 
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer){}
+		void clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op);
+
 
 		void clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
 
@@ -375,6 +377,8 @@ namespace Render
 		{
 
 		}
+		void clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op);
+
 
 		void clearSRVResource(RHIResource& resource)
 		{

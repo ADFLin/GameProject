@@ -24,146 +24,24 @@
 #include "StringParse.h"
 #include "UserProfile.h"
 
+#include "SystemPlatform.h"
+#include "MiscTestRegister.h"
+#include "CommonWidgets.h"
+#include "MenuLayoutHelper.h"
+
+
+#include "ExecutionManager.h"
+#include "ExecutionPanel.h"
+
+
 extern void RegisterStageGlobal();
+extern TINY_API IExecutionServices* GExecutionServices;
 
-//--- Custom Launcher Item Widget ---
-class GLauncherItem : public GWidget
-{
-	typedef GWidget BaseClass;
-public:
-	ExecutionEntryInfo mInfo;
-	GButton* mLaunchBtn;
 
-	GLauncherItem(int id, ExecutionEntryInfo const& info, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-		:BaseClass(pos, size, parent)
-		,mInfo(info)
-	{
-		mID = id;
-		// Create the "Launch" button at the bottom right
-		int btnW = 70;
-		int btnH = 30;
-		mLaunchBtn = new GButton(id, Vec2i(size.x - btnW - 10, size.y - btnH - 12), Vec2i(btnW, btnH), this);
-		mLaunchBtn->setTitle("Launch");
-	}
+// GLauncherItem moved to WorkspaceRenderer.cpp
 
-	void onRender() override
-	{
-		IGraphics2D& g = Global::GetIGraphics2D();
-		Vec2i p = getWorldPos();
-		Vec2i s = getSize();
 
-		// Draw Card Background
-		g.setPen(Color3ub(45, 140, 180)); // Cyan border
-		g.setBrush(Color3ub(35, 38, 42)); // Dark Slate
-		g.drawRoundRect(p, s, Vec2i(12, 12));
-
-		// Text Rendering
-		RenderUtility::SetFont(g, FONT_S12);
-		g.setTextColor(Color3ub(255, 255, 255));
-		g.drawText(p + Vec2i(15, 12), mInfo.title); // Title
-
-		RenderUtility::SetFont(g, FONT_S8);
-		g.setTextColor(Color3ub(120, 180, 220)); // Subtle Cyan
-		char const* category = (mInfo.categories.empty()) ? "General" : mInfo.categories.begin()->c_str();
-		g.drawText(p + Vec2i(15, 36), category); // Row 2: Technical Tags (Category)
-
-		// Row 3: Dynamic Status (Replaces Ready)
-		char const* statusStr = "ACTIVE";
-		Color3ub statusColor(140, 180, 140); // Default Muted Green
-
-		switch (mInfo.group)
-		{
-		case EExecGroup::Dev:
-		case EExecGroup::SingleDev:
-		case EExecGroup::FeatureDev:
-			statusStr = "DEVELOPING";
-			statusColor = Color3ub(220, 180, 60); // Golden Yellow
-			break;
-		case EExecGroup::GraphicsTest:
-		case EExecGroup::PhyDev:
-		case EExecGroup::Test:
-			statusStr = "EXPERIMENTAL";
-			statusColor = Color3ub(180, 120, 220); // Purple/Cyan
-			break;
-		case EExecGroup::SingleGame:
-			statusStr = "STABLE";
-			statusColor = Color3ub(100, 220, 100); // Bright Green
-			break;
-		}
-
-		g.setTextColor(statusColor);
-		RenderUtility::SetFont(g, FONT_S8);
-		g.drawText(p + Vec2i(15, s.y - 23), statusStr); 
-	}
-
-	MsgReply onMouseMsg(MouseMsg const& msg) override
-	{
-		return BaseClass::onMouseMsg(msg);
-	}
-};
-
-class GSidebarButton : public GButtonBase
-{
-	typedef GButtonBase BaseClass;
-public:
-	GSidebarButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-		:BaseClass(id, pos, size, parent)
-	{
-	}
-
-	void setTitle(char const* str) { mTitle = str; }
-	
-	void onRender() override
-	{
-		IGraphics2D& g = Global::GetIGraphics2D();
-		
-		Vec2i pos = getWorldPos();
-		Vec2i size = getSize();
-
-		if (getButtonState() == BS_HIGHLIGHT || getButtonState() == BS_PRESS)
-		{
-			g.setBrush(Color3ub(65, 70, 75)); // More visible highlight
-		}
-		else if ( bSelected )
-		{
-			g.setBrush(Color3ub(55, 120, 180)); // Brighter selected
-		}
-		else
-		{
-			g.setBrush(Color3ub(30, 33, 36)); // Normal
-		}
-		RenderUtility::SetPen(g, EColor::Null);
-		g.drawRoundRect(pos, size, Vec2i(4, 4));
-
-		if (bGroupTitle)
-		{
-			// Render Group Arrow/indicator
-			Vec2i arrowPos = pos + Vec2i(10, size.y / 2 - 4);
-			g.setPen(Color3ub(120, 120, 120));
-			if( bExpanded )
-				RenderUtility::DrawTriangle(g, arrowPos, Vec2i(8, 8), RenderUtility::eDown);
-			else
-				RenderUtility::DrawTriangle(g, arrowPos, Vec2i(8, 8), RenderUtility::eRight);
-		}
-
-		RenderUtility::SetFont(g, bGroupTitle ? FONT_S10 : FONT_S8);
-		g.setTextColor(bSelected ? Color3ub(255, 255, 255) : Color3ub(180, 180, 180));
-		
-		// Always use the same text position for consistent alignment
-		int textX = 30;
-		g.drawText(pos + Vec2i(textX, (size.y - 12) / 2), mTitle.c_str());
-	}
-
-	void onMouse(bool beIn) override
-	{
-		BaseClass::onMouse(beIn);
-	}
-
-	String mTitle;
-	bool bSelected = false;
-	bool bGroupTitle = false;
-	bool bExpanded = false;
-};
+// GSidebarButton moved to SidebarNavigator
 
 class MainOptionBook : public GNoteBook
 {
@@ -270,6 +148,14 @@ SingleDevEntry GSingleDev[] =
 #undef STAGE_INFO
 };
 
+
+MainMenuStage::MainMenuStage()
+	: mNavigator()
+	, mWorkspaceRenderer()
+{
+
+}
+
 bool MainMenuStage::onInit()
 {
 	if ( !BaseClass::onInit() )
@@ -318,20 +204,115 @@ bool MainMenuStage::onInit()
 	getManager()->setTickTime( gDefaultTickTime );
 
 	::Global::GUI().cleanupWidget();
+	mWorkspaceRenderer.init();
 
 	// Set Default Group
 	mCurGroup = EExecGroup::NumGroup;
+	// mNavigator.setMode(SidebarNavigator::ViewMode::History); // Remnant removed
+	// mSidebarMode = ViewMode::Group; // Removed
+
+	int const LayerGroup = (int)ViewMode::Group;
+	int const LayerCategory = (int)ViewMode::Category;
+	int const LayerHistory = (int)ViewMode::History;
+
+	using Item = SidebarNavigator::SidebarItem;
+	// Helper to cast enum
+	auto G = [](EExecGroup g) { return (int)g; };
+
+	mNavigator.clearItems(LayerGroup);
+
+	// Standard Group Layer items
+	mNavigator.addItem(LayerGroup, Item{ "View History", UI_VIEW_HISTORY, G(EExecGroup::NumGroup) });
+	mNavigator.addItem(LayerGroup, Item{ "Game Dev", UI_GAME_DEV_GROUP, G(EExecGroup::Dev), {
+		{ "Card Game..", UI_CARD_GAME_DEV_GROUP, G(EExecGroup::Dev) },
+		{ "Net Test( Server )", UI_NET_TEST_SV, G(EExecGroup::Dev) },
+		{ "Net Test( Client )", UI_NET_TEST_CL, G(EExecGroup::Dev) },
+	} });
+	mNavigator.addItem(LayerGroup, Item{ "Game Dev 2", UI_GAME_DEV2_GROUP, G(EExecGroup::SingleDev) });
+	mNavigator.addItem(LayerGroup, Item{ "Physics Test", UI_GAME_DEV3_GROUP, G(EExecGroup::PhyDev) });
+	mNavigator.addItem(LayerGroup, Item{ "Dev Test", UI_GAME_DEV4_GROUP, G(EExecGroup::Dev4) });
+	mNavigator.addItem(LayerGroup, Item{ "Graphic Test", UI_GRAPHIC_TEST_GROUP, G(EExecGroup::GraphicsTest) });
+	mNavigator.addItem(LayerGroup, Item{ "Test", UI_TEST_GROUP, G(EExecGroup::Test) });
+	mNavigator.addItem(LayerGroup, Item{ "Feature Dev", UI_FEATURE_DEV_GROUP, G(EExecGroup::FeatureDev) });
+	mNavigator.addItem(LayerGroup, Item{ "Misc Test", UI_MISC_TEST_GROUP, G(EExecGroup::MiscTest), {
+		{ "Test Stages", UI_MISC_TEST_STAGE_SUBGROUP, G(EExecGroup::MiscTest) },
+		{ "Test Functions", UI_MISC_TEST_FUNC_SUBGROUP, G(EExecGroup::MiscTest) },
+	} });
+	mNavigator.addItem(LayerGroup, Item{ "Single Player", UI_SINGLEPLAYER, G(EExecGroup::SingleGame) });
+	mNavigator.addItem(LayerGroup, Item{ "Multi Player", UI_MULTIPLAYER, G(EExecGroup::NumGroup), {
+		{ "Create Server", UI_CREATE_SERVER, G(EExecGroup::NumGroup) },
+		{ "Connect Server", UI_BUILD_CLIENT, G(EExecGroup::NumGroup) },
+	} });
+	mNavigator.addItem(LayerGroup, Item{ "View Replay", UI_VIEW_REPLAY, G(EExecGroup::NumGroup) });
+
+	// Populate Categories
+	mNavigator.clearItems(LayerCategory);
+	auto registeredCats = ExecutionRegisterCollection::Get().getRegisteredCategories();
+	int catIdx = 0;
+	for (auto const& cat : registeredCats)
+	{
+		mNavigator.addItem(LayerCategory, Item{ cat, UI_GROUP_START_INDEX + 300 + catIdx, 0 });
+		catIdx++;
+	}
+
+	// Selection Logic
+	mNavigator.setSelectionPolicy([this](SidebarNavigator::SidebarItem const& item, int level) -> bool
+	{
+		if (mCurViewMode == ViewMode::Category)
+		{
+			return item.name.compare(mCurCategory) == 0;
+		}
+		
+		// Group or History mode
+		if (level == 1)
+		{
+			if (mCurViewMode == ViewMode::History)
+			{
+				return item.id == UI_VIEW_HISTORY;
+			}
+			
+			// Only highlight groups if in Group View Mode
+			if (mCurViewMode != ViewMode::Group)
+				return false;
+
+			bool bSelected = ((int)mCurGroup == item.userData);
+			if (mCurGroup == EExecGroup::NumGroup && item.id != UI_ANY)
+			{
+				if (item.id == UI_MULTIPLAYER && mCurGroup == EExecGroup::NumGroup) bSelected = true;
+			}
+			return bSelected;
+		}
+		else
+		{
+			return (mCurSubGroup == item.id) && (mCurSubGroup != UI_ANY);
+		}
+	});
+
+
+
+	// Set Default View to History but Sidebar Mode to Group (to show list)
 	mCurViewMode = ViewMode::History;
-	mSidebarMode = ViewMode::Group;
+	mNavigator.setMode((int)ViewMode::Group);
 
 	// Initialize Sidebar and Default Workspace
-	mScrollBar = new GSlider(UI_SCROLLBAR, Vec2i(Global::GetScreenSize().x - 25, 80), Global::GetScreenSize().y - 160, false, nullptr);
-	::Global::GUI().addWidget(mScrollBar);
-	mScrollBar->show(false);
+	// mScrollBar moved to WorkspaceRenderer
+
+	mExecutionManager.setCommandQueue([this](std::function<void()> func)
+	{
+		addGameThreadCommnad(std::move(func));
+	});
 
 	refreshMainWorkspace();
 
+	GExecutionServices = &mExecutionManager;
+
 	return true;
+}
+
+void MainMenuStage::onUpdate(GameTimeSpan deltaTime)
+{
+	BaseClass::onUpdate(deltaTime);
+	processGameThreadCommands();
 }
 
 void MainMenuStage::onRender(float dFrame)
@@ -343,22 +324,23 @@ void MainMenuStage::onRender(float dFrame)
 
 	RenderUtility::DrawDashboardBackground(g);
 
-	int sidebarWidth = 200;
+	int sidebarWidth = MenuLayout::SidebarWidth;
 	int screenHeight = Global::GetScreenSize().y;
 
 	// Draw Sidebar Background Panel
-	g.setPen(Color3ub(45, 140, 180), 1);
-	g.setBrush(Color3ub(20, 23, 26)); 
-	g.drawRect(Vec2i(0, 0), Vec2i(sidebarWidth, screenHeight));
+	// Draw Sidebar Background Panel
+	g.setPen(MenuLayout::SidebarBorderColor, 1);
+	g.setBrush(MenuLayout::SidebarBgColor); 
+	g.drawRect(Vec2i(0, 0), Vec2i(MenuLayout::SidebarWidth, screenHeight));
 
 	// Draw Header background
-	g.setBrush(Color3ub(35, 38, 42));
+	g.setBrush(MenuLayout::HeaderBgColor);
 	RenderUtility::SetPen(g, EColor::Null);
-	g.drawRect(Vec2i(1, 1), Vec2i(sidebarWidth - 2, 60));
+	g.drawRect(Vec2i(1, 1), Vec2i(MenuLayout::SidebarWidth - 2, MenuLayout::HeaderHeight));
 
 	// Draw vertical separator line
-	g.setPen(Color3ub(45, 140, 180), 2);
-	g.drawLine(Vec2i(sidebarWidth, 0), Vec2i(sidebarWidth, screenHeight));
+	g.setPen(MenuLayout::SidebarBorderColor, 2);
+	g.drawLine(Vec2i(MenuLayout::SidebarWidth, 0), Vec2i(MenuLayout::SidebarWidth, screenHeight));
 
 	// Sidebar Title
 	RenderUtility::SetFont(g, FONT_S12);
@@ -368,253 +350,52 @@ void MainMenuStage::onRender(float dFrame)
 	g.endRender();
 }
 
-void MainMenuStage::createSidebar(bool bClearTweens, bool bAnimateChange)
-{
-	// Clean up old sidebar widgets if any
-	// Prioritize clearing animations to prevent accessing destroyed widgets
-	if (bClearTweens)
-	{
-		::Global::GUI().getTweener().clear();
-	}
-	for (auto ui : mSidebarWidgets) 
-	{ 
-		ui->destroy(); 
-	}
-	mSidebarWidgets.clear();
 
-	int sidebarWidth = 180;
-	int sidebarX = 10;
-	int btnHeight = 28;
-	int screenHeight = Global::GetScreenSize().y;
-
-	// Calculate content limits
-	int topLimit = 145;  // Below MODE/HISTORY buttons
-	int bottomLimit = screenHeight - 60; // Above Option/Exit buttons
-	int viewportHeight = bottomLimit - topLimit;
-
-	int totalContentHeight = 0;
-	if (mSidebarMode == ViewMode::Category)
-	{
-		totalContentHeight = (int)ExecutionRegisterCollection::Get().getRegisteredCategories().size() * (btnHeight + 4);
-	}
-	else
-	{
-		totalContentHeight = 11 * (btnHeight + 4); // Based on static cats array size
-	}
-
-	mMaxSidebarScroll = std::max(0, totalContentHeight - viewportHeight + 20); // Add a small padding
-
-	int currentY = topLimit + mSidebarScrollOffset;
-
-	if (mSidebarMode == ViewMode::Group || mSidebarMode == ViewMode::History)
-	{
-		struct CatEntry { char const* name; EExecGroup group; int id = UI_ANY; };
-		CatEntry cats[] = {
-			{"Game Dev", EExecGroup::Dev, UI_GAME_DEV_GROUP},
-			{"Game Dev 2", EExecGroup::SingleDev, UI_GAME_DEV2_GROUP},
-			{"Physics Test", EExecGroup::PhyDev, UI_GAME_DEV3_GROUP},
-			{"Dev Test", EExecGroup::Dev4, UI_GAME_DEV4_GROUP},
-			{"Graphic Test", EExecGroup::GraphicsTest, UI_GRAPHIC_TEST_GROUP},
-			{"Test", EExecGroup::Test, UI_TEST_GROUP},
-			{"Feature Dev", EExecGroup::FeatureDev, UI_FEATURE_DEV_GROUP},
-			{"Misc Test", EExecGroup::MiscTest, UI_MISC_TEST_GROUP},
-			{"Single Player", EExecGroup::SingleGame, UI_SINGLEPLAYER},
-			{"Multi Player", EExecGroup::NumGroup, UI_MULTIPLAYER},
-			{"View Replay", EExecGroup::NumGroup, UI_VIEW_REPLAY}
-		};
-
-		auto hasSubGroup = [&](CatEntry const& cat)
-		{
-			if (cat.id == UI_MULTIPLAYER) return true;
-			if (cat.group == EExecGroup::Dev) return true;
-			return false;
-		};
-		
-		int expandedPushHeight = 0;
-		GWidget* expandedGroupWidget = nullptr;
-
-		auto AddSidebarBtn = [&](int id, char const* name, bool bSelected, int level = 1, bool bIsGroup = false, bool bIsExpanded = false)
-		{
-			if (currentY >= topLimit - btnHeight && currentY <= bottomLimit)
-			{
-				int x = sidebarX + (level - 1) * 15;
-				int w = sidebarWidth - 20 - (level - 1) * 15;
-				GSidebarButton* btn = new GSidebarButton(id, Vec2i(x, currentY), Vec2i(w, (level > 1 ? btnHeight - 2 : btnHeight)), nullptr);
-				btn->setTitle(name);
-				btn->bSelected = bSelected && mCurViewMode == ViewMode::Group;
-				btn->bGroupTitle = bIsGroup;
-				btn->bExpanded = bIsExpanded;
-
-				::Global::GUI().addWidget(btn);
-				mSidebarWidgets.push_back(btn);
-
-				
-				if (level > 1) // Animate sub-items
-				{
-					Vec2i startPos = Vec2i(x - 20, currentY);
-					Vec2i endPos = Vec2i(x, currentY);
-					// Ensure we are at start pos immediately in case frame update is slow
-					btn->setPos(startPos); 
-					::Global::GUI().addMotion<Easing::OQuad>(btn, startPos, endPos, 200, (currentY - topLimit) / 2);
-				}
-				else if (bAnimateChange && expandedPushHeight > 0) // Animate push down for items below expanded group
-				{
-					Vec2i startPos = Vec2i(x, currentY - expandedPushHeight);
-					Vec2i endPos = Vec2i(x, currentY);
-					//btn->setPos(startPos); // Wait, this might flash if we don't handle it right
-					::Global::GUI().addMotion<Easing::OQuad>(btn, startPos, endPos, 200, 0);
-				}
-				
-			}
-			currentY += (level > 1 ? btnHeight - 2 : btnHeight) + 4;
-		};
-
-		for (auto const& cat : cats)
-		{
-			int yBeforeGroup = currentY;
-			bool bGroupSelected = (mCurGroup == cat.group) && (mCurViewMode == ViewMode::Group);
-			if (mCurGroup == EExecGroup::NumGroup)
-			{
-				bGroupSelected = (cat.id == UI_MULTIPLAYER) && (mCurViewMode == ViewMode::Group);
-			}
-			else if (cat.id == UI_VIEW_REPLAY)
-			{
-				bGroupSelected = false;
-			}
-
-			char const* title = cat.name;
-
-			AddSidebarBtn(cat.id != UI_ANY ? cat.id : (UI_GROUP_START_INDEX + (int)cat.group), title, bGroupSelected, 1, hasSubGroup(cat), bGroupSelected);
-
-			if (bGroupSelected)
-			{
-				if (cat.id == UI_MULTIPLAYER)
-				{
-					AddSidebarBtn(UI_CREATE_SERVER, LOCTEXT("Create Server"), mCurSubGroup == UI_CREATE_SERVER, 2);
-					AddSidebarBtn(UI_BUILD_CLIENT, LOCTEXT("Connect Server"), mCurSubGroup == UI_BUILD_CLIENT, 2);
-				}
-				else if (cat.group == EExecGroup::Dev)
-				{
-					AddSidebarBtn(UI_CARD_GAME_DEV_GROUP, "Card Game..", mCurSubGroup == UI_CARD_GAME_DEV_GROUP, 2);
-					if (mCurSubGroup == UI_CARD_GAME_DEV_GROUP)
-					{
-						/*
-						using namespace Poker;
-						for (int i = 0; i < RULE_COUNT; ++i)
-						{
-							AddSidebarBtn(UI_GROUP_CARD_INDEX + i, ToRuleString((GameRule)i), false, 3);
-						}
-						*/
-					}
-					AddSidebarBtn(UI_NET_TEST_SV, LOCTEXT("Net Test( Server )"), mCurSubGroup == UI_NET_TEST_SV, 2);
-					AddSidebarBtn(UI_NET_TEST_CL, LOCTEXT("Net Test( Client )"), mCurSubGroup == UI_NET_TEST_CL, 2);
-				}
-				
-				// AddSidebarBtn(UI_BACK_GROUP, LOCTEXT("Back"), false, 2);
-				
-				expandedPushHeight = currentY - (yBeforeGroup + btnHeight + 4);
-			}
-		}
-	}
-	else if (mSidebarMode == ViewMode::Category)
-	{
-		auto registeredCats = ExecutionRegisterCollection::Get().getRegisteredCategories();
-		int idx = 0;
-		for (auto const& cat : registeredCats)
-		{
-			if (currentY >= topLimit - btnHeight && currentY <= bottomLimit)
-			{
-				GSidebarButton* btn = new GSidebarButton(UI_GROUP_START_INDEX + 300 + idx, Vec2i(sidebarX, currentY), Vec2i(sidebarWidth - 20, btnHeight), nullptr);
-				btn->setTitle(cat.c_str());
-				btn->bSelected = (mCurCategory == cat && mCurViewMode == ViewMode::Category);
-				::Global::GUI().addWidget(btn);
-				mSidebarWidgets.push_back(btn);
-			}
-			currentY += btnHeight + 4;
-			idx++;
-		}
-	}
-
-	// --- Fixed Elements (Not Scaled by Scroll) ---
-	
-	// View Mode Toggle (Wide Button) - Fixed at top under Dashboard Header
-	GButton* modeBtn = new GButton(UI_MAIN_GROUP, Vec2i(sidebarX, 70), Vec2i(sidebarWidth - 20, 32), nullptr);
-	if (mSidebarMode == ViewMode::Category)
-	{
-		modeBtn->setTitle("MODE: CATEGORY");
-		modeBtn->setColor(Color3ub(60, 140, 220));
-	}
-	else
-	{
-		modeBtn->setTitle("MODE: GROUP");
-		modeBtn->setColor(Color3ub(60, 140, 220));
-	}
-	::Global::GUI().addWidget(modeBtn);
-	mSidebarWidgets.push_back(modeBtn);
-
-	// History Button - Fixed at top below Mode
-	GSidebarButton* historyBtn = new GSidebarButton(UI_VIEW_HISTORY, Vec2i(sidebarX, 105), Vec2i(sidebarWidth - 20, 32), nullptr);
-	historyBtn->setTitle("VIEW HISTORY");
-	historyBtn->bSelected = (mCurViewMode == ViewMode::History);
-	::Global::GUI().addWidget(historyBtn);
-	mSidebarWidgets.push_back(historyBtn);
-
-	// Basic Options & Exit - Wider buttons at the bottom
-	int bottomBtnW = (sidebarWidth - 30) / 2;
-	GButton* optionBtn = new GButton(UI_GAME_OPTION, Vec2i(sidebarX, screenHeight - 50), Vec2i(bottomBtnW, 35), nullptr);
-	optionBtn->setTitle("Option");
-	::Global::GUI().addWidget(optionBtn);
-	mSidebarWidgets.push_back(optionBtn);
-
-	GButton* exitBtn = new GButton(UI_EXIT_GAME, Vec2i(sidebarX + bottomBtnW + 10, screenHeight - 50), Vec2i(bottomBtnW, 35), nullptr);
-	exitBtn->setTitle("Exit");
-	::Global::GUI().addWidget(exitBtn);
-	mSidebarWidgets.push_back(exitBtn);
-}
+// Removed createSidebar
+// createSidebar implementation moved to SidebarNavigator
 
 void MainMenuStage::refreshMainWorkspace()
 {
 	clearTask();
 	mSkipTasks.clear();
-	mScrollOffset = 0;
-	if (mScrollBar) { mScrollBar->setValue(0); mScrollBar->show(false); }
+	mWorkspaceRenderer.resetScroll();
+	
+	std::vector<WorkspaceItem> items;
 
-	int sidebarWidth = 200;
-	int startX = sidebarWidth + 20;
-	int startY = 50; // Balanced top position
+	// Helper to convert Info to Item
+	auto ConvertToItem = [&](ExecutionEntryInfo const& info, int id) -> WorkspaceItem
+	{
+		WorkspaceItem item;
+		item.title = info.title;
+		item.detail = (info.categories.empty()) ? "General" : info.categories.begin()->c_str();
+		item.uiID = id;
+		
+		item.statusText = "ACTIVE";
+		item.statusColor = Color3ub(140, 180, 140); // Default Green
 
-	// Clear previous UI and animations to prevent crash on rapid switching
-	// Reverted cleanupWidget as it was too aggressive
-	::Global::GUI().getTweener().clear();
-	for (auto ui : mGroupUI) 
-	{ 
-		ui->destroy(); 
-	}
-	mGroupUI.clear();
-	int cardWidth = 220;
-	int cardHeight = 110;
-	int spacing = 20;
-
-	int columns = (Global::GetScreenSize().x - startX - 40) / (cardWidth + spacing);
-	if (columns < 1) columns = 1;
+		switch (info.group)
+		{
+		case EExecGroup::Dev:
+		case EExecGroup::SingleDev:
+		case EExecGroup::FeatureDev:
+			item.statusText = "DEVELOPING";
+			item.statusColor = Color3ub(220, 180, 60); // Golden Yellow
+			break;
+		case EExecGroup::GraphicsTest:
+		case EExecGroup::PhyDev:
+		case EExecGroup::Test:
+			item.statusText = "EXPERIMENTAL";
+			item.statusColor = Color3ub(180, 120, 220); // Purple
+			break;
+		case EExecGroup::SingleGame:
+			item.statusText = "STABLE";
+			item.statusColor = Color3ub(100, 220, 100); // Bright Green
+			break;
+		}
+		return item;
+	};
 
 	int idx = 0;
-	int delay = 0;
-
-	auto AddCard = [&](ExecutionEntryInfo const& info)
-	{
-		int x = startX + (idx % columns) * (cardWidth + spacing);
-		int ry = (idx / columns) * (cardHeight + spacing);
-		int y = startY + ry;
-
-		GLauncherItem* item = new GLauncherItem(UI_GROUP_STAGE_INDEX + idx, info, Vec2i(::Global::GetScreenSize().x + 50, y), Vec2i(cardWidth, cardHeight), nullptr);
-		::Global::GUI().addWidget(item);
-		mGroupUI.push_back(item);
-
-		::Global::GUI().addMotion<Easing::OQuad>(item, Vec2i(::Global::GetScreenSize().x + 50, y), Vec2i(x, y), 350, delay);
-		delay += 15;
-		idx++;
-	};
 
 	if (mCurSubGroup == UI_CARD_GAME_DEV_GROUP)
 	{
@@ -632,22 +413,11 @@ void MainMenuStage::refreshMainWorkspace()
 						game->beginPlay(*getManager(), EGameMode::Single);
 					}
 				},
-				EExecGroup::Dev,
-				0
+				EExecGroup::Dev
 			);
-			
 			// Use special ID for custom cards
 			int cardId = UI_POKER_CARD_START + i;
-			int x = startX + (idx % columns) * (cardWidth + spacing);
-			int ry = (idx / columns) * (cardHeight + spacing);
-			int y = startY + ry;
-
-			GLauncherItem* item = new GLauncherItem(cardId, info, Vec2i(::Global::GetScreenSize().x + 50, y), Vec2i(cardWidth, cardHeight), nullptr);
-			::Global::GUI().addWidget(item);
-			mGroupUI.push_back(item);
-
-			::Global::GUI().addMotion<Easing::OQuad>(item, Vec2i(::Global::GetScreenSize().x + 50, y), Vec2i(x, y), 350, delay);
-			delay += 15;
+			items.push_back(ConvertToItem(info, cardId));
 			idx++;
 		}
 	}
@@ -660,7 +430,11 @@ void MainMenuStage::refreshMainWorkspace()
 		for (auto const& title : historyTitles)
 		{
 			ExecutionEntryInfo const* info = ExecutionRegisterCollection::Get().findExecutionByTitle(title.c_str());
-			if (info) AddCard(*info);
+			if (info)
+			{
+				items.push_back(ConvertToItem(*info, UI_GROUP_STAGE_INDEX + idx));
+				idx++;
+			}
 		}
 	}
 	else if (mCurViewMode == ViewMode::Category)
@@ -668,41 +442,40 @@ void MainMenuStage::refreshMainWorkspace()
 		if (!mCurCategory.empty())
 		{
 			auto infosPtr = ExecutionRegisterCollection::Get().getExecutionsByCategory(mCurCategory);
-			for (auto const* pInfo : infosPtr) AddCard(*pInfo);
+			for (auto const* pInfo : infosPtr)
+			{
+				items.push_back(ConvertToItem(*pInfo, UI_GROUP_STAGE_INDEX + idx));
+				idx++;
+			}
 		}
 	}
 	else if (mCurGroup == EExecGroup::NumGroup)
 	{
 		// Shell group - no cards to display
 	}
+	else if (mCurGroup == EExecGroup::MiscTest)
+	{
+		auto const& execInfos = ExecutionRegisterCollection::Get().getGroupExecutions(
+			(mCurSubGroup == UI_MISC_TEST_FUNC_SUBGROUP) ? EExecGroup::MiscTestFunc : EExecGroup::MiscTest);
+
+		for (auto const& info : execInfos)
+		{
+			items.push_back(ConvertToItem(info, UI_GROUP_STAGE_INDEX + idx));
+			idx++;
+		}
+	}
 	else
 	{
 		auto const& execInfos = ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup);
-		for (auto const& info : execInfos) AddCard(info);
-	}
-
-	if (idx > 0)
-	{
-		int totalRows = (idx + columns - 1) / columns;
-		int totalHeight = totalRows * (cardHeight + spacing);
-		int viewportHeight = Global::GetScreenSize().y - startY - 60; // Align with sidebar bottom limit
-
-		if (totalHeight > viewportHeight)
+		for (auto const& info : execInfos)
 		{
-			mScrollBar->setRange(0, std::max(0, totalHeight - viewportHeight + 10));
-			
-			// Dynamic Tip Size
-			int scrollBarLength = mScrollBar->getSize().y;
-			int tipHeight = (int)((float)viewportHeight / totalHeight * scrollBarLength);
-			if (tipHeight < 30) tipHeight = 30; // Min height for usability
-			if (tipHeight > scrollBarLength) tipHeight = scrollBarLength;
-
-			mScrollBar->getTipWidget()->setSize(Vec2i(mScrollBar->getSize().x, tipHeight));
-			mScrollBar->show(true);
+			items.push_back(ConvertToItem(info, UI_GROUP_STAGE_INDEX + idx));
+			idx++;
 		}
 	}
 
-	createSidebar(false);
+	mWorkspaceRenderer.refresh(items);
+	mNavigator.createSidebar(nullptr, false, false);
 }
 
 void MainMenuStage::updateHistoryList()
@@ -713,21 +486,28 @@ void MainMenuStage::updateHistoryList()
 
 MsgReply MainMenuStage::onMouse(MouseMsg const& msg)
 {
-	if (msg.x() < 200)
+	if (msg.x() < MenuLayout::SidebarWidth)
 	{
 		if (msg.onWheelFront())
 		{
-			mSidebarScrollOffset += 30;
-			if (mSidebarScrollOffset > 0) mSidebarScrollOffset = 0;
-			createSidebar();
+			mNavigator.handleMouseWheel(30);
 			return MsgReply::Handled();
 		}
 		else if (msg.onWheelBack())
 		{
-			mSidebarScrollOffset -= 30;
-			if (mSidebarScrollOffset < -mMaxSidebarScroll) mSidebarScrollOffset = -mMaxSidebarScroll;
-			createSidebar();
+			mNavigator.handleMouseWheel(-30);
 			return MsgReply::Handled();
+		}
+	}
+	else
+	{
+		if (msg.onWheelFront())
+		{
+			mWorkspaceRenderer.handleMouseWheel(30);
+		}
+		else if (msg.onWheelBack())
+		{
+			mWorkspaceRenderer.handleMouseWheel(-30);
 		}
 	}
 	return BaseClass::onMouse(msg);
@@ -741,8 +521,8 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	if (id >= UI_GROUP_START_INDEX && id < UI_GROUP_STAGE_INDEX)
 	{
-		// Sidebar selection
-		if (mSidebarMode == ViewMode::Group || mSidebarMode == ViewMode::History)
+	// Sidebar selection
+		if (mNavigator.getMode() == (int)ViewMode::Group || mNavigator.getMode() == (int)ViewMode::History)
 		{
 			if (id < UI_GROUP_START_INDEX + MAX_NUM_GROUP)
 			{
@@ -750,15 +530,24 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				if (mCurGroup == group && mCurSubGroup == UI_ANY && mCurViewMode == ViewMode::Group)
 					return false;
 
+				EExecGroup oldGroup = mCurGroup;
 				mCurGroup = group;
 				mCurSubGroup = UI_ANY;
-				mCurSubGroup = UI_ANY;
 				mCurViewMode = ViewMode::Group;
+				
+				// Sync Navigator
+				mNavigator.setMode((int)ViewMode::Group);
+
 				refreshMainWorkspace();
-				createSidebar(false, true);
+				// Only animate if group structure changes (opened/closed different group)
+				// refreshMainWorkspace already calls createSidebar(false, false)
+				if (oldGroup != mCurGroup)
+				{
+					mNavigator.createSidebar(nullptr, false, true);
+				}
 			}
 		}
-		else if (mSidebarMode == ViewMode::Category)
+		else if (mNavigator.getMode() == (int)ViewMode::Category)
 		{
 			int idx = id - (UI_GROUP_START_INDEX + 300);
 			auto registeredCats = ExecutionRegisterCollection::Get().getRegisteredCategories();
@@ -769,6 +558,9 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 				mCurCategory = registeredCats[idx];
 				mCurViewMode = ViewMode::Category;
+				// Sync Navigator
+				// mNavigator.setCategory(mCurCategory); // Removed
+
 				refreshMainWorkspace();
 			}
 		}
@@ -778,14 +570,21 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	switch (id)
 	{
 	case UI_MAIN_GROUP:
-		mSidebarMode = (mSidebarMode == ViewMode::Group) ? ViewMode::Category : ViewMode::Group;
-		if (mSidebarMode == ViewMode::Category && mCurCategory.empty())
 		{
-			auto registeredCats = ExecutionRegisterCollection::Get().getRegisteredCategories();
-			if (registeredCats.size() > 0) mCurCategory = registeredCats[0];
+			auto newMode = (mNavigator.getMode() == (int)ViewMode::Group) ? ViewMode::Category : ViewMode::Group;
+			// mCurViewMode = newMode; // Don't change view mode, only sidebar mode
+			mNavigator.setMode((int)newMode);
+
+			if (newMode == ViewMode::Category && mCurCategory.empty())
+			{
+				auto registeredCats = ExecutionRegisterCollection::Get().getRegisteredCategories();
+				if (registeredCats.size() > 0) mCurCategory = registeredCats[0];
+			}
+			
+			mNavigator.resetScroll();
+			// refreshMainWorkspace(); // Don't refresh workspace
+			mNavigator.createSidebar(nullptr, true, false); // Only refresh sidebar
 		}
-		mSidebarScrollOffset = 0; // Reset scroll when switching view
-		createSidebar(); // Only refresh sidebar, don't change workspace items
 		return false;
 
 	case UI_VIEW_REPLAY:
@@ -793,8 +592,13 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		return false;
 
 	case UI_VIEW_HISTORY:
-		mCurViewMode = (mCurViewMode == ViewMode::History) ? ViewMode::Group : ViewMode::History;
-		refreshMainWorkspace();
+		{
+			mCurViewMode = ViewMode::History;
+			mCurGroup = EExecGroup::NumGroup; // Clear current group selection
+			refreshMainWorkspace();
+			// Ensure sidebar updates (to show View History selected)
+			mNavigator.createSidebar(nullptr, false, false);
+		}
 		return false;
 
 	case UI_GAME_OPTION:
@@ -810,8 +614,27 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		mCurGroup = EExecGroup::NumGroup;
 		mCurSubGroup = UI_ANY;
 		mCurViewMode = ViewMode::Group;
+		
+		mNavigator.setMode((int)ViewMode::Group);
+
 		// Special: Shell groups with no entries don't refresh the workspace
-		createSidebar(true, true);
+		mNavigator.createSidebar(nullptr, true, true);
+		return false;
+
+	case UI_MISC_TEST_GROUP:
+		{
+			EExecGroup group = EExecGroup::MiscTest;
+			if (mCurGroup == group && mCurSubGroup == UI_ANY && mCurViewMode == ViewMode::Group)
+				return false;
+
+			mCurGroup = group;
+			mCurSubGroup = UI_ANY;
+			mCurViewMode = ViewMode::Group;
+
+			mNavigator.setMode((int)ViewMode::Group);
+
+			mNavigator.createSidebar(nullptr, false, true);
+		}
 		return false;
 
 	case UI_GAME_DEV_GROUP:
@@ -822,7 +645,6 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	case UI_GRAPHIC_TEST_GROUP:
 	case UI_TEST_GROUP:
 	case UI_SINGLEPLAYER:
-	case UI_MISC_TEST_GROUP:
 		{
 			EExecGroup group = EExecGroup::NumGroup;
 			switch(id)
@@ -835,30 +657,51 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			case UI_GRAPHIC_TEST_GROUP: group = EExecGroup::GraphicsTest; break;
 			case UI_TEST_GROUP: group = EExecGroup::Test; break;
 			case UI_SINGLEPLAYER: group = EExecGroup::SingleGame; break;
-			case UI_MISC_TEST_GROUP: group = EExecGroup::MiscTest; break;
 			}
 
 			if (mCurGroup == group && mCurSubGroup == UI_ANY && mCurViewMode == ViewMode::Group)
 				return false;
 
+			EExecGroup oldGroup = mCurGroup;
 			mCurGroup = group;
 			mCurSubGroup = UI_ANY;
 			mCurViewMode = ViewMode::Group;
 			refreshMainWorkspace();
-			createSidebar(false, true); // Update sidebar selection and animation
+			// Only animate if group structure changes
+			if (oldGroup != mCurGroup)
+			{
+				mNavigator.createSidebar(nullptr, false, true);
+			}
 		}
 		return false;
 
 	case UI_CARD_GAME_DEV_GROUP:
 		mCurSubGroup = UI_CARD_GAME_DEV_GROUP;
+		// mNavigator.setSubGroup(mCurSubGroup);
 		refreshMainWorkspace();
-		createSidebar(false, true);
+		// Update sidebar to show selection
+		mNavigator.createSidebar(nullptr, false, false);
+		return false;
+
+	case UI_MISC_TEST_STAGE_SUBGROUP:
+		mCurSubGroup = UI_MISC_TEST_STAGE_SUBGROUP;
+		// mNavigator.setSubGroup(mCurSubGroup);
+		refreshMainWorkspace();
+		mNavigator.createSidebar(nullptr, false, false);
+		return false;
+
+	case UI_MISC_TEST_FUNC_SUBGROUP:
+		mCurSubGroup = UI_MISC_TEST_FUNC_SUBGROUP;
+		// mNavigator.setSubGroup(mCurSubGroup);
+		refreshMainWorkspace();
+		mNavigator.createSidebar(nullptr, false, false);
 		return false;
 
 	case UI_BACK_GROUP:
 		mCurSubGroup = UI_ANY;
+		// mNavigator.setSubGroup(mCurSubGroup);
 		refreshMainWorkspace();
-		createSidebar(false, true);
+		mNavigator.createSidebar(nullptr, false, true);
 		return false;
 
 	case UI_CREATE_SERVER: return true;
@@ -870,22 +713,8 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		changeStage(new NetTestStage());
 		return false;
 
-	case UI_SCROLLBAR:
-		{
-			int offset = mScrollBar->getValue();
-			int diff = offset - mScrollOffset;
-			if (diff != 0)
-			{
-				mScrollOffset = offset;
-				for (auto ui : mGroupUI)
-				{
-					Vec2i pos = ui->getPos();
-					pos.y -= diff;
-					ui->setPos(pos);
-				}
-			}
-		}
-		return false;
+	// UI_SCROLLBAR case removed
+
 	}
 
 	if (id >= UI_POKER_CARD_START && id < UI_POKER_CARD_START + Poker::RULE_COUNT)
@@ -910,7 +739,21 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			PropertySet& config = ::Global::GameConfig();
 			TArray< std::string > historyTitles;
 			config.getStringValues("Entry", "ExecHistory", historyTitles);
-			if (idx < (int)historyTitles.size()) info = ExecutionRegisterCollection::Get().findExecutionByTitle(historyTitles[idx].c_str());
+			
+			int findIdx = 0;
+			for (auto const& title : historyTitles)
+			{
+				ExecutionEntryInfo const* pInfo = ExecutionRegisterCollection::Get().findExecutionByTitle(title.c_str());
+				if (pInfo)
+				{
+					if (findIdx == idx)
+					{
+						info = pInfo;
+						break;
+					}
+					findIdx++;
+				}
+			}
 		}
 		else if (mCurViewMode == ViewMode::Category)
 		{
@@ -918,6 +761,19 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				auto infos = ExecutionRegisterCollection::Get().getExecutionsByCategory(mCurCategory);
 				if (idx < (int)infos.size()) info = infos[idx];
+			}
+		}
+		else if (mCurGroup == EExecGroup::MiscTest)
+		{
+			if (mCurSubGroup == UI_MISC_TEST_FUNC_SUBGROUP)
+			{
+				auto const& execInfos = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTestFunc);
+				if (idx < (int)execInfos.size()) info = &execInfos[idx];
+			}
+			else
+			{
+				auto const& execInfos = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
+				if (idx < (int)execInfos.size()) info = &execInfos[idx];
 			}
 		}
 		else
@@ -935,7 +791,34 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 void MainMenuStage::execEntry(ExecutionEntryInfo const& info)
 {
 	ExecutionEntryInfo::RecordHistory(info);
-	info.execFunc(*this);
+	if (info.group == EExecGroup::MiscTestFunc)
+	{
+		char const* name = info.title;
+		Async([this, name, func = info.execFunc](Thread* thread)
+		{
+			thread->setDisplayName(InlineString<>::Make("%s Thread", name));
+			if (GExecutionServices)
+			{
+				mExecutionManager.registerThread(thread, name);
+
+				class EmptyContext : public IGameExecutionContext
+				{
+				public:
+					virtual void changeStage(StageBase* stage) {}
+					virtual void playSingleGame(char const* name) {}
+				};
+				func(EmptyContext());
+				if (GExecutionServices)
+				{
+					mExecutionManager.unregisterThread(thread);
+				}
+			}
+		});
+	}
+	else
+	{
+		info.execFunc(*this);
+	}
 }
 
 void MainMenuStage::changeStage(StageBase* stage) { getManager()->setNextStage(stage); }
@@ -943,4 +826,20 @@ void MainMenuStage::playSingleGame(char const* name)
 {
 	IGameModule* game = Global::ModuleManager().changeGame(name);
 	if (game) game->beginPlay(*getManager(), EGameMode::Single);
+}
+
+
+void MainMenuStage::processGameThreadCommands()
+{
+	Mutex::Locker locker(mMutexGameThreadCommands);
+	for (auto const& command : mGameThreadCommands)
+	{
+		command();
+	}
+	mGameThreadCommands.clear();
+}
+
+void MainMenuStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+{
+	systemConfigs.bWasUsedPlatformGraphics = true;
 }

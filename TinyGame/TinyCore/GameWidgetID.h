@@ -45,8 +45,7 @@ enum
 	UI_MULTIPLAYER ,
 	UI_CREATE_SERVER ,
 	UI_BUILD_CLIENT ,
-
-
+	UI_EXECUTE_PANEL,
 };
 
 #endif // GameWidgetID_h__

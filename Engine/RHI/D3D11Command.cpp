@@ -672,7 +672,7 @@ namespace Render
 		}
 		if (desc.creationFlags & BCF_Structured)
 		{
-			bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 			bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 			bufferDesc.StructureByteStride = desc.elementSize;
 		}
@@ -1607,6 +1607,19 @@ namespace Render
 		}
 	}
 
+	void D3D11ResourceBoundState::clearStructuredBuffer(ShaderParameter const& parameter, EAccessOp op)
+	{
+		if (op == EAccessOp::ReadOnly)
+		{
+			clearTextureByLoc(parameter.mLoc);
+		}
+		else
+		{
+			clearUAV(parameter);
+		}
+	}
+
+
 	void D3D11ResourceBoundState::setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize)
 	{
 		assert(parameter.bindIndex < MaxConstBufferNum);
@@ -1883,7 +1896,6 @@ namespace Render
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		if (numCommand > 1)
 		{
-
 			if (commandStride == 0)
 			{
 				commandStride = commandBuffer->getElementSize();
@@ -2770,6 +2782,23 @@ namespace Render
 		auto type = shaderImpl.mResource.type;
 		mResourceBoundStates[type].setStructuredBuffer(param, buffer, op);
 	}
+
+	void D3D11Context::clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, op](EShader::Type type, ShaderParameter const& shaderParam)
+		{
+			mResourceBoundStates[type].clearStructuredBuffer(shaderParam, op);
+		});
+	}
+
+	void D3D11Context::clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mResourceBoundStates[type].clearStructuredBuffer(param, op);
+	}
+
 
 	void D3D11Context::RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
 	{

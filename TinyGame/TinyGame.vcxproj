@@ -342,6 +342,8 @@ copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\GlobalStageRegister.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
+    <ClCompile Include="Stage\SidebarNavigator.cpp" />
+    <ClCompile Include="Stage\WorkspaceRenderer.cpp" />
     <ClCompile Include="Stage\MiscTestStage.cpp" />
     <ClCompile Include="TinyCore\DedicatedServerMode.cpp" />
     <ClCompile Include="TinyCore\NetGameMode.cpp" />
@@ -414,6 +416,9 @@ copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
+    <ClInclude Include="Stage\MenuLayoutHelper.h" />
+    <ClInclude Include="Stage\SidebarNavigator.h" />
+    <ClInclude Include="Stage\WorkspaceRenderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
     <ClInclude Include="Stage\MiscTestStage.h" />

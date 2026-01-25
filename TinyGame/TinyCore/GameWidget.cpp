@@ -11,6 +11,55 @@
 #include <cmath>
 #include "ProfileSystem.h"
 
+class ScissorClipStack
+{
+public:
+	void push(Vec2i const& pos, Vec2i const& size);
+	void pop();
+
+	using SRect = Math::TAABBox< Vec2i >;
+	TArray< SRect > mStack;
+};
+
+ScissorClipStack gClipStack;
+
+void ScissorClipStack::push(Vec2i const& pos, Vec2i const& size)
+{
+	SRect rect;
+	rect.min = pos;
+	rect.max = pos + size;
+
+	auto& g = Global::GetIGraphics2D();
+	if (mStack.empty())
+	{
+		g.beginClip(pos, size);
+	}
+	else
+	{
+		rect = rect.intersection(mStack.back());
+		if (!rect.isValid())
+		{
+			rect.max = rect.min;
+		}
+		g.beginClip(rect.min, rect.getSize());
+	}
+
+	mStack.push_back(rect);
+}
+
+void ScissorClipStack::pop()
+{
+	mStack.pop_back();
+	auto& g = Global::GetIGraphics2D();
+	g.endClip();
+
+	if (!mStack.empty())
+	{
+		SRect& rect = mStack.back();
+		g.beginClip(rect.min, rect.getSize());
+	}
+}
+
 DefaultWidgetRenderer gDefaultRenderer;
 UnrealWidgetRenderer   gUnrealRenderer;
 WidgetRenderer*  gActiveWidgetRenderer = &gUnrealRenderer;
@@ -690,6 +739,7 @@ GWidget::GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent )
 	motionTask = NULL; 
 	mFontType  = FONT_S8;
 	useHotKey  = false;
+	mClipEnable = false;
 }
 
 GWidget::~GWidget()
@@ -812,7 +862,29 @@ bool GWidget::doClipTest()
 {
 	if ( isTop() )
 		return true;
+
+	if (getParent()->mClipEnable)
+	{
+		return getParent()->getBoundRect().isIntersect(getBoundRect());
+	}
+
 	return true;
+}
+
+void GWidget::onPrevRender()
+{
+	if (mClipEnable)
+	{
+		gClipStack.push(getWorldPos(), getSize());
+	}
+}
+
+void GWidget::onPostRenderChildren()
+{
+	if (mClipEnable)
+	{
+		gClipStack.pop();
+	}
 }
 
 void GWidget::SetStyle(Style style)
@@ -1607,8 +1679,19 @@ void GScrollBar::updateThumbSize()
 	if (total <= 0) 
 		total = 1;
 
-	int thumbLen = Math::Clamp(trackLen * mPageSize / total, 10, trackLen);
+	int thumbLen = 16;
+	if (!mbFixedThumb)
+	{
+		thumbLen = Math::Clamp(trackLen * mPageSize / total, 10, trackLen);
+	}
 	mThumbSize = mbHorizontal ? Vec2i(thumbLen, 16) : Vec2i(16, thumbLen);
+}
+
+void GScrollBar::setFixedThumb(bool beFixed)
+{
+	mbFixedThumb = beFixed;
+	updateThumbSize();
+	updateThumbPos();
 }
 
 void GScrollBar::updateThumbPos()
@@ -1772,4 +1855,9 @@ void GScrollBar::onResize(Vec2i const& size)
 	BaseClass::onResize(size);
 	updateThumbSize();
 	updateThumbPos();
+}
+GButtonBase::GButtonBase(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+	:BaseClass(pos, size, parent)
+{
+	mID = id;
 }

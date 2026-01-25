@@ -7,11 +7,11 @@
 #if COMPUTE_SHADER
 
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-void MainCS()
+CS_NUM_THREADS(1, 1, 1)
+CS_ENTRY(MainCS)
 {
 
-	if( gl_LocalInvocationIndex == 0 )
+	if( SvGroupIndex == 0 )
 	{
 
 
@@ -25,7 +25,7 @@ void MainCS()
 
 	TiledLightInfo lightInfo;
 
-	float4 viewPos = View.worldToView * float4(lightInfo.pos, 1);
+	float4 viewPos = mul(View.worldToView, float4(lightInfo.pos, 1));
 	for( int i = 0; i < 4; ++i )
 	{
 

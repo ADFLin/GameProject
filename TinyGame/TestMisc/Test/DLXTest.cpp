@@ -17,7 +17,7 @@ void DLXTest()
 	mat.build(6, 7, data);
 	static const float Length = 50;
 	static const float Border = 5;
-	auto renderScope = FMiscTestUtil::RegisterRender([&mat](IGraphics2D& g)
+	auto renderScope = FExecutionUtil::RegisterRender([&mat](IGraphics2D& g)
 	{
 		g.setTextColor(Color3f(1, 1, 0));
 		g.translateXForm(Border, Border + 20);
@@ -40,22 +40,22 @@ void DLXTest()
 		);
 	}, Vec2i(mat.getColSize() * Length + 2 * Border, mat.getRowSize() * Length + 2 * Border + 20) );
 
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 	mat.cover(mat.mCols[0]);
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 	DLX::Node& node = DLX::Node::GetFromRow(*mat.mCols[0].rowLink.next);
 	mat.cover(node);
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 
 	mat.uncover(node);
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 
 	mat.uncover(mat.mCols[0]);
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 
 	DLX::Solver solver(mat);
 	solver.solveAll();
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 
 }
 

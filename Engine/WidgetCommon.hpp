@@ -49,22 +49,23 @@ void WButtonT< Impl , CoreImpl >::setButtonState( ButtonState state )
 	mState = state;
 }
 
-template < class Impl, class CoreImpl >
-unsigned TItemOwnerUI<Impl, CoreImpl>::addItem( char const* str )
+template < class Impl, class CoreImpl, class T >
+template < typename Q, typename Enable >
+unsigned TItemOwnerUI<Impl, CoreImpl, T>::addItem( Q const& val )
 { 
-	mItemList.push_back( Item( str ) );
+	mItemList.push_back( Item( val ) );
 	unsigned pos = unsigned( mItemList.size() - 1 );
 	_this()->onAddItem( mItemList.back() );
 	return pos; 
 }
 
-template < class Impl, class CoreImpl >
-void  TItemOwnerUI<Impl, CoreImpl>::removeItem( unsigned pos )
+template < class Impl, class CoreImpl, class T >
+void  TItemOwnerUI<Impl, CoreImpl, T>::removeItem( int pos )
 {
-	if ( pos >= mItemList.size() )
+	if ( pos < 0 || pos >= (int)mItemList.size() )
 		return;
 
-	ItemVec::iterator iter = mItemList.begin() + pos;
+	typename ItemVec::iterator iter = mItemList.begin() + pos;
 
 	_this()->onRemoveItem( *iter );
 	mItemList.erase( iter );
@@ -75,8 +76,8 @@ void  TItemOwnerUI<Impl, CoreImpl>::removeItem( unsigned pos )
 }
 
 
-template < class Impl, class CoreImpl >
-void  TItemOwnerUI<Impl, CoreImpl>::removeAllItem()
+template < class Impl, class CoreImpl, class T >
+void  TItemOwnerUI<Impl, CoreImpl, T>::removeAllItem()
 {
 	for( int i = 0 ; i < (int)mItemList.size() ; ++i )
 	{
@@ -86,31 +87,38 @@ void  TItemOwnerUI<Impl, CoreImpl>::removeAllItem()
 	mCurSelect = INDEX_NONE;
 }
 
-template < class Impl, class CoreImpl >
-void TItemOwnerUI<Impl, CoreImpl>::removeItem( char const* str )
+template < class Impl, class CoreImpl, class T >
+template < typename Q, typename Enable >
+void TItemOwnerUI<Impl, CoreImpl, T>::removeItem( Q const& val )
 {
-	struct FindValue
-	{
-		FindValue( char const* str ):str( str ){}
-		bool operator()( Item const& item ) const { return item.value == str;  }
-		char const* str;
-	};
+	typename ItemVec::iterator iter = std::find_if(mItemList.begin(), mItemList.end(), [&](Item const& item) {
+		return item.value == val;
+	});
 
-	assert( str );
-	ItemVec::iterator iter = std::find_if( 
-		mItemList.begin() , mItemList.end() , FindValue( str ) );
-
-	if ( iter != mItemList.end() )
+	if (iter != mItemList.end())
 	{
-		if ( mCurSelect != INDEX_NONE && iter == mItemList.begin() + mCurSelect )
+		size_t pos = std::distance(mItemList.begin(), iter);
+		if (mCurSelect != INDEX_NONE && mCurSelect == (int)pos)
 			mCurSelect = INDEX_NONE;
-		_this()->onRemoveItem( *iter );
-		mItemList.erase( iter );
+		_this()->onRemoveItem(*iter);
+		mItemList.erase(iter);
 	}
 }
 
-template < class Impl, class CoreImpl >
-void TItemOwnerUI<Impl, CoreImpl>::tryMoveSelect( bool beNext )
+template < class Impl, class CoreImpl, class T >
+template < typename Q, typename Enable >
+int TItemOwnerUI<Impl, CoreImpl, T>::findItem( Q const& value ) const
+{
+	for (int i = 0; i < (int)mItemList.size(); ++i)
+	{
+		if (mItemList[i].value == value)
+			return i;
+	}
+	return INDEX_NONE;
+}
+
+template < class Impl, class CoreImpl, class T >
+void TItemOwnerUI<Impl, CoreImpl, T>::tryMoveSelect( bool beNext )
 {
 	if ( mCurSelect == INDEX_NONE)
 	{
@@ -137,8 +145,8 @@ void TItemOwnerUI<Impl, CoreImpl>::tryMoveSelect( bool beNext )
 	_this()->onItemSelect( mCurSelect );
 }
 
-template < class Impl, class CoreImpl >
-MsgReply TItemOwnerUI<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
+template < class Impl, class CoreImpl, class T >
+MsgReply TItemOwnerUI<Impl, CoreImpl, T>::onKeyMsg(KeyMsg const& msg)
 {
 	if ( msg.isDown() )
 	{
@@ -155,8 +163,8 @@ MsgReply TItemOwnerUI<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
 	return MsgReply::Unhandled();
 }
 
-template < class Impl, class CoreImpl >
-MsgReply WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
+template < class Impl, class CoreImpl, class T >
+MsgReply WChoiceT<Impl, CoreImpl, T>::onMouseMsg( MouseMsg const& msg )
 {
 	CoreImpl::onMouseMsg( msg );
 
@@ -186,8 +194,8 @@ MsgReply WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 }
 
 
-template < class Impl, class CoreImpl >
-void WChoiceT<Impl, CoreImpl>::destroyMenu()
+template < class Impl, class CoreImpl, class T >
+void WChoiceT<Impl, CoreImpl, T>::destroyMenu()
 {
 	if ( mMenu )
 	{
@@ -198,8 +206,8 @@ void WChoiceT<Impl, CoreImpl>::destroyMenu()
 	}
 }
 
-template < class Impl, class CoreImpl >
-MsgReply WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg )
+template < class Impl, class CoreImpl, class T >
+MsgReply WChoiceT<Impl, CoreImpl, T>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg )
 {
 	assert(mMenu == menu);
 	Vec2i menuSize = menu->getSize();
@@ -223,8 +231,8 @@ MsgReply WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg con
 	return MsgReply::Handled();
 }
 
-template < class Impl, class CoreImpl >
-void WChoiceT<Impl, CoreImpl>::notifyRenderMenu( Menu* menu )
+template < class Impl, class CoreImpl, class T >
+void WChoiceT<Impl, CoreImpl, T>::notifyRenderMenu( Menu* menu )
 {
 	_this()->doRenderMenuBG( menu );
 	Vec2i pos = menu->getWorldPos();
@@ -484,8 +492,8 @@ WNoteBookT<Impl, CoreImpl >::addPage( char const* title )
 	return page;
 }
 
-template < class Impl , class CoreImpl  >
-void WListCtrlT< Impl , CoreImpl >::onRender()
+template < class Impl , class CoreImpl, class T >
+void WListCtrlT< Impl , CoreImpl, T >::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -501,8 +509,8 @@ void WListCtrlT< Impl , CoreImpl >::onRender()
 	}
 }
 
-template < class Impl , class CoreImpl  >
-MsgReply WListCtrlT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
+template < class Impl , class CoreImpl, class T >
+MsgReply WListCtrlT< Impl , CoreImpl, T >::onMouseMsg( MouseMsg const& msg )
 {
 	unsigned posItem = mIndexShowStart + ( msg.getPos().y - getWorldPos().y ) / _this()->getItemHeight(); 
 	if ( posItem < mItemList.size() )
@@ -522,8 +530,8 @@ MsgReply WListCtrlT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 }
 
 
-template < class Impl , class CoreImpl  >
-void WListCtrlT< Impl , CoreImpl >::ensureVisible( unsigned pos )
+template < class Impl , class CoreImpl, class T >
+void WListCtrlT< Impl , CoreImpl, T >::ensureVisible( unsigned pos )
 {
 	int diff = int(pos) - mIndexShowStart;
 	if ( diff < 0 )

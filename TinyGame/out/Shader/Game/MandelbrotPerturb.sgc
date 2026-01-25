@@ -1,25 +1,119 @@
 #include "Common.sgc"
+// Force Recompile v2
+
+#pragma optionNV(fastmath off)
+#pragma optionNV(fastprecision off)
+
+// -------------------------------------------------------------------------
+// Macro Definitions & Precision Selection (same as Mandelbrot.sgc)
+// -------------------------------------------------------------------------
+#ifndef USE_NATIVE_DOUBLE
+#	define USE_NATIVE_DOUBLE 0
+#endif
+#ifndef USE_DOUBLE_SIM
+#	define USE_DOUBLE_SIM 0
+#endif
+
+// USE_DOUBLE_DOUBLE: Only enable double-double when both flags are set
+#define USE_DOUBLE_DOUBLE (USE_NATIVE_DOUBLE && USE_DOUBLE_SIM)
+
+// Prevents the engine preprocessor from stripping the 'precise' keyword.
+#undef precise
+#define DS_PRECISE precise
+
+// ============================================================================
+// Double-Double Arithmetic for Perturbation (using double2 = hi + lo)
+// ============================================================================
+
+// ULTRA-RESILIENT DOUBLE-DOUBLE MATH
+// Use specific code patterns to prevent FMA/Fast-Math from destroying precision
+DS_PRECISE double2 DSAdd(double2 a, double2 b)
+{
+	DS_PRECISE double s = a.x + b.x;
+	DS_PRECISE double t = s - a.x;
+	DS_PRECISE double eb = b.x - t;
+	DS_PRECISE double ea = a.x - (s - t);
+	DS_PRECISE double e = ea + eb;
+	// CRITICAL: Must use precise for the low-order term accumulation
+	DS_PRECISE double loSum = a.y + b.y;
+	e = e + loSum;
+	DS_PRECISE double s2 = s + e;
+	DS_PRECISE double e2 = e + (s - s2);
+	return double2(s2, e2);
+}
+
+DS_PRECISE double2 DSSub(double2 a, double2 b)
+{
+	return DSAdd(a, double2(-b.x, -b.y));
+}
+
+DS_PRECISE double2 DSMul(double2 a, double2 b)
+{
+	const double split = 134217729.0;
+	DS_PRECISE double ca = a.x * split;
+	DS_PRECISE double ax = ca - (ca - a.x);
+	DS_PRECISE double ay = a.x - ax;
+	DS_PRECISE double cb = b.x * split;
+	DS_PRECISE double bx = cb - (cb - b.x);
+	DS_PRECISE double by = b.x - bx;
+	DS_PRECISE double r1 = a.x * b.x;
+	DS_PRECISE double r2 = ay * by - (((r1 - ax * bx) - ay * bx) - ax * by);
+	// CRITICAL: Must use precise for the low-order term accumulation
+	DS_PRECISE double cross1 = a.x * b.y;
+	DS_PRECISE double cross2 = a.y * b.x;
+	r2 = r2 + cross1 + cross2;
+	DS_PRECISE double s2 = r1 + r2;
+	DS_PRECISE double e2 = r2 + (r1 - s2);
+	return double2(s2, e2);
+}
+
+DS_PRECISE void DSComplexMul(double2 ar, double2 ai, double2 br, double2 bi, out double2 outR, out double2 outI)
+{
+	DS_PRECISE double2 rr = DSMul(ar, br);
+	DS_PRECISE double2 ii = DSMul(ai, bi);
+	DS_PRECISE double2 ri = DSMul(ar, bi);
+	DS_PRECISE double2 ir = DSMul(ai, br);
+	outR = DSSub(rr, ii);
+	outI = DSAdd(ri, ir);
+}
+
+DS_PRECISE double2 DSLengthSq(double2 r, double2 i)
+{
+	return DSAdd(DSMul(r, r), DSMul(i, i));
+}
+
+// ============================================================================
 
 cbuffer MParamsBlock
 {
-	double2 CoordParam;     // Slot 0: Center High
-	double2 CoordParam2;    // Slot 1: Ratio High
-	float4  ColorMapParam;  // Slot 2
-	double2 CoordParamLow;  // Slot 3: Center Low
-	double2 CoordParam2Low; // Slot 4: Ratio Low
-	double2 Rotate;         // Slot 5: Cos, Sin
-	int2    ViewSize;       // Slot 6
-	int     MaxIteration;
-	int     Padding;
-	double2 RefCoord;       // Slot 7: Display Only
-	double2 RefCoordLow;    // Slot 8
-	double2 CenterToRefDelta_Rel; // Slot 9: (Center - Ref) / PixelWidth
-	float2  ViewportRatio;        // Slot 10: The world-scale of a single pixel (could be 10^-500)
-	int     PaddingAlignment[20];
+	double2 CoordParam;       // Slot 0: Center High
+	double2 CoordParam2;      // Slot 1: Ratio High
+	float4  ColorMapParam;    // Slot 2: bailsq at .z
+	double2 CoordParamLow;    // Slot 3: Center Low
+	double2 CoordParam2Low;   // Slot 4: Ratio Low
+	double2 Rotate;           // Slot 5: Cos, Sin
+	int2    ViewSize;         // Slot 6: offset 96
+	int     MaxIteration;     // offset 104
+	int     Padding;          // offset 108
+	double2 RefCoord;         // Slot 7: offset 112
+	double2 RefCoordLow;      // Slot 8: offset 128
+	double2 CenterToRefDelta_Rel;     // Slot 9: offset 144
+	double2 CenterToRefDelta_Rel_Low; // Slot 10: offset 160
+	float   ZoomScale;        // Slot 11: offset 176
+	float   MaxIter_f;        // offset 180
+	float   PaddingScale[2];  // offset 184
+	double2 InvNormalizationScale;   // Slot 12: offset 192
+	int     PaddingAlignment[12];    // Fill out the block
 }
 
+struct OrbitPoint
+{
+	double2 h;  double2 l;
+	double2 ah; double2 al;
+	double2 bh; double2 bl;
+};
 DEFINE_TEXTURE(Texture1D, ColorMapTexture);
-DEFINE_RW_STRUCTURED_BUFFER(double2, OrbitBuffer);
+DEFINE_STRUCTURED_BUFFER(OrbitPoint, OrbitBuffer);
 
 #if COMPILER_HLSL
 RWTexture2D< float4 > ColorRWTexture;
@@ -35,100 +129,408 @@ layout(rgba32f) uniform writeonly image2D ColorRWTexture;
 #endif
 
 
+#if USE_DOUBLE_SIM
+	// =========================================================================
+	// FLOAT-FLOAT (SIMULATED DOUBLE) PRECISION PATH (Intermediate precision, high speed)
+	// =========================================================================
+	
+	// --- DF (Double-Float) Math Helpers using float2 (Hi, Lo) ---
+	float2 DFAdd(float2 a, float2 b)
+	{
+		float s = a.x + b.x;
+		float t = s - a.x;
+		float e = (a.x - (s - t)) + (b.x - t);
+		e += (a.y + b.y);
+		float s2 = s + e;
+		float e2 = e + (s - s2);
+		return float2(s2, e2);
+	}
+	float2 DFSub(float2 a, float2 b) { return DFAdd(a, float2(-b.x, -b.y)); }
+	// Manual TwoProduct for compatibility
+	float2 TwoProductF(float a, float b)
+	{
+		float x = a * b;
+		// Split a
+		float c = 4097.0 * a;
+		float abig = c - a;
+		float ahi = c - abig;
+		float alo = a - ahi;
+		// Split b
+		c = 4097.0 * b;
+		float bbig = c - b;
+		float bhi = c - bbig;
+		float blo = b - bhi;
+		
+		float err = x - (ahi * bhi);
+		err -= (ahi * blo);
+		err -= (alo * bhi);
+		err -= (alo * blo);
+		return float2(x, -err); // err is usually (a*b - x)
+	}
+
+	float2 DFMul(float2 a, float2 b)
+	{
+		float2 prod = TwoProductF(a.x, b.x);
+		prod.y += a.x * b.y + a.y * b.x;
+		// Quick normalize
+		float s2 = prod.x + prod.y;
+		float e2 = prod.y - (s2 - prod.x);
+		return float2(s2, e2);
+	}
+	float2 DFSplitDouble(double v) { float h = (float)v; return float2(h, (float)(v - (double)h)); }
+	float2 ScaleFloat(float2 a, float scaleVal) { return float2(a.x * scaleVal, a.y * scaleVal); }
+#endif
+
 CS_NUM_THREADS(SIZE_X, SIZE_Y, 1)
+
 CS_ENTRY(MainCS)
 {
 	uint3	DTid = SvDispatchThreadID;
-	
-	double2 centerFull = CoordParam + CoordParamLow;
-	double2 ratioFull  = CoordParam2 + CoordParam2Low;
 	double2 viewSize_f = (double2)ViewSize;
-	double  bailoutSq  = (double)ColorMapParam.z;
+	double  bailoutValue = (double)ColorMapParam.z;
 
+	uint iter = 0;
 
-	double2 pixelOffset = (double2)DTid.xy - 0.5 * viewSize_f;
-	double2 vRel = pixelOffset * ratioFull;
+#if USE_DOUBLE_DOUBLE
+	// =========================================================================
+	// DOUBLE-DOUBLE PRECISION PATH (slow but most accurate)
+	// =========================================================================
+	// 1. Precise Coordinate Construction (dc)
+	DS_PRECISE double2 dcR, dcI;
+	{
+		double2 pxRel = (double2)DTid.xy - 0.5 * viewSize_f;
+		
+		DS_PRECISE double2 ratioRX = double2(CoordParam2.x, CoordParam2Low.x);
+		DS_PRECISE double2 ratioRY = double2(CoordParam2.y, CoordParam2Low.y);
+		
+		DS_PRECISE double2 scaledX = DSMul(double2(pxRel.x, 0.0), ratioRX);
+		DS_PRECISE double2 scaledY = DSMul(double2(pxRel.y, 0.0), ratioRY);
+		
+		DS_PRECISE double2 cosDD = double2(Rotate.x, 0.0);
+		DS_PRECISE double2 sinDD = double2(Rotate.y, 0.0);
+		
+		DS_PRECISE double2 dx = DSAdd(DSMul(scaledX, cosDD), DSMul(scaledY, sinDD));
+		DS_PRECISE double2 dy = DSAdd(DSMul(scaledY, cosDD), DSMul(double2(-scaledX.x, -scaledX.y), sinDD));
+		
+		DS_PRECISE double2 baseR = double2(CenterToRefDelta_Rel.x, CenterToRefDelta_Rel_Low.x);
+		DS_PRECISE double2 baseI = double2(CenterToRefDelta_Rel.y, CenterToRefDelta_Rel_Low.y);
+		
+		dcR = DSAdd(baseR, dx);
+		dcI = DSAdd(baseI, dy);
+	}
 
-	// Official Rotation: x' = x*cos + y*sin, y' = -x*sin + y*cos
-	double2 p_offset;
-	p_offset.x = Rotate.x * vRel.x + Rotate.y * vRel.y;
-	p_offset.y = -Rotate.y * vRel.x + Rotate.x * vRel.y;
+	// 2. Perturbation Loop (double-double)
+	double2 orbitH = OrbitBuffer[10].h;
+	double orbitMagSq = dot(orbitH, orbitH);
+	bool bBufferValid = (orbitMagSq > 1e-100);
 
-	// Reconstructed absolute coordinate
-	double2 c_pixel = centerFull + p_offset;
-
-	// 3. Absolute DC calculation (World Units)
-	double2 pixelOffset_db = (double2)DTid.xy - 0.5 * viewSize_f;
-	double2 dc = pixelOffset_db * ratioFull + CenterToRefDelta_Rel;
-
-	bool bBufferValid = (dot(OrbitBuffer[1], OrbitBuffer[1]) > 0.0);
-
-	int iter = 0;
 	if (!bBufferValid)
 	{
-		double2 z = 0;
-		for (iter = 0; iter < MaxIteration; ++iter)
+		DS_PRECISE double2 cR = DSAdd(double2(CoordParam.x, CoordParamLow.x), dcR);
+		DS_PRECISE double2 cI = DSAdd(double2(CoordParam.y, CoordParamLow.y), dcI);
+		DS_PRECISE double2 zr = double2(0,0), zi = double2(0,0);
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
 		{
-			double2 z_next;
-			z_next.x = z.x * z.x - z.y * z.y + c_pixel.x;
-			z_next.y = 2.0 * z.x * z.y + c_pixel.y;
-			z = z_next;
-			if (dot(z, z) > bailoutSq) break;
+			DS_PRECISE double2 zr2 = DSMul(zr, zr);
+			DS_PRECISE double2 zi2 = DSMul(zi, zi);
+			if (zr2.x + zi2.x > bailoutValue) break;
+			DS_PRECISE double2 nextI = DSAdd(DSMul(double2(2,0), DSMul(zr, zi)), cI);
+			zr = DSAdd(DSSub(zr2, zi2), cR);
+			zi = nextI;
 		}
 	}
 	else
 	{
-		double2 dz = 0; 
-		for (iter = 0; iter < MaxIteration; ++iter)
+		DS_PRECISE double2 dzR = double2(0.0, 0.0);
+		DS_PRECISE double2 dzI = double2(0.0, 0.0);
+
+		// Optimized Double-Double Loop
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
 		{
-			double2 Zn = OrbitBuffer[iter];
+			double2 zRefR = OrbitBuffer[iter].h; 
+			double2 zRefI = OrbitBuffer[iter].l; 
 
-			double2 dz_next;
-			// dz_next = 2.0 * Zn * dz + dz^2 + dc
-			dz_next.x = 2.0 * (Zn.x * dz.x - Zn.y * dz.y) + (dz.x * dz.x - dz.y * dz.y) + dc.x;
-			dz_next.y = 2.0 * (Zn.x * dz.y + Zn.y * dz.x) + (2.0 * dz.x * dz.y) + dc.y;
-
-			dz = dz_next;
-
-			// Ultra-Deep Escape Check (Preserves precision up to E300)
-			// Objective: |Zn + dz|^2 > bailoutSq
-			// Expand: |Zn|^2 + 2*dot(Zn, dz) + |dz|^2 > bailoutSq
-			// Reorder to avoid precision loss: 2*dot(Zn, dz) + |dz|^2 > (bailoutSq - |Zn|^2)
+			// dz = dz * (2*zRef + dz) + dc
+			// Use simple DD math where possible
+			double2 tr = DSAdd(DSAdd(dzR, dzR), zRefR);
+			double2 ti = DSAdd(DSAdd(dzI, dzI), zRefI);
 			
-			double dotZn = dot(Zn, Zn);
-			double dotDz = dot(dz, dz);
-			
-			if (dotZn > bailoutSq) break; // Ref escaped, we definitely escaped
+			double2 dzSqR, dzSqI;
+			DSComplexMul(dzR, dzI, tr, ti, dzSqR, dzSqI);
+			dzR = DSAdd(dzSqR, dcR);
+			dzI = DSAdd(dzSqI, dcI);
 
-			double neededDelta = bailoutSq - dotZn;
-			double providedDelta = 2.0 * dot(Zn, dz) + dotDz;
+			// Standard Bailout: |Z_ref + dz|^2
+			double2 fullR = DSAdd(OrbitBuffer[iter + 1].h, dzR);
+			double2 fullI = DSAdd(OrbitBuffer[iter + 1].l, dzI);
 			
-			if (providedDelta > neededDelta) break;
+			if (fullR.x*fullR.x + fullI.x*fullI.x > bailoutValue) 
+			{
+				iter++;
+				break;
+			}
 		}
 	}
 
-	float3 color = (iter == MaxIteration) ? float3(0, 0, 0) : TEXTURE_SAMPLE(ColorMapTexture, float(iter) / float(MaxIteration) * ColorMapParam.x * 50 + ColorMapParam.y).rgb;
-#if 0
-
-	if (iter < MaxIteration)
+#elif USE_NATIVE_DOUBLE
+	// =========================================================================
+	// NATIVE DOUBLE PRECISION PATH (fast, good for moderate zoom)
+	// =========================================================================
+	// 1. Coordinate Construction (regular double)
+	double dcR, dcI;
 	{
-		float f = log2(float(iter) + 1.0) / 10.0;
-		color.r = saturate(0.5 * sin(12.0 * f + 0.0) + 0.5);
-		color.g = saturate(0.5 * sin(12.0 * f + 2.0) + 0.5);
-		color.b = saturate(0.5 * sin(12.0 * f + 4.0) + 0.5);
+		double2 pxRel = (double2)DTid.xy - 0.5 * viewSize_f;
+		double ratioX = CoordParam2.x + CoordParam2Low.x;
+		double ratioY = CoordParam2.y + CoordParam2Low.y;
+		
+		double scaledX = pxRel.x * ratioX;
+		double scaledY = pxRel.y * ratioY;
+		
+		double cosR = Rotate.x;
+		double sinR = Rotate.y;
+		
+		double dx = scaledX * cosR + scaledY * sinR;
+		double dy = scaledY * cosR - scaledX * sinR;
+		
+		double baseR = CenterToRefDelta_Rel.x + CenterToRefDelta_Rel_Low.x;
+		double baseI = CenterToRefDelta_Rel.y + CenterToRefDelta_Rel_Low.y;
+		
+		dcR = baseR + dx;
+		dcI = baseI + dy;
+	}
+
+	// 2. Perturbation Loop (regular double - much faster!)
+	double2 orbitH = OrbitBuffer[10].h;
+	double orbitMagSq = dot(orbitH, orbitH);
+	bool bBufferValid = (orbitMagSq > 1e-100);
+
+	if (!bBufferValid)
+	{
+		double cR = CoordParam.x + CoordParamLow.x + dcR;
+		double cI = CoordParam.y + CoordParamLow.y + dcI;
+		double zr = 0.0, zi = 0.0;
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
+		{
+			double zr2 = zr * zr;
+			double zi2 = zi * zi;
+			if (zr2 + zi2 > bailoutValue) break;
+			double nextI = 2.0 * zr * zi + cI;
+			zr = zr2 - zi2 + cR;
+			zi = nextI;
+		}
+	}
+	else
+	{
+		double dzR = 0.0;
+		double dzI = 0.0;
+
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
+		{
+			double zRefR = OrbitBuffer[iter].h.x;
+			double zRefI = OrbitBuffer[iter].h.y;
+
+			// dz = dz * (2*zRef + dz) + dc
+			double tr = 2.0 * zRefR + dzR;
+			double ti = 2.0 * zRefI + dzI;
+			double nR = dzR * tr - dzI * ti + dcR;
+			double nI = dzR * ti + dzI * tr + dcI;
+			dzR = nR; dzI = nI;
+
+			// Standard Bailout: |Z_ref + dz|^2
+			double fullR = OrbitBuffer[iter + 1].h.x + dzR;
+			double fullI = OrbitBuffer[iter + 1].h.y + dzI;
+			
+			if (fullR*fullR + fullI*fullI > bailoutValue) 
+			{
+				iter++;
+				break;
+			}
+		}
+	}
+
+#elif USE_DOUBLE_SIM
+	// =========================================================================
+	// FLOAT-FLOAT (SIMULATED DOUBLE) PRECISION PATH (Intermediate precision, high speed)
+	// =========================================================================
+
+	// 1. Coordinate Construction (converted to float-float)
+	float2 dcR, dcI;
+	{
+		float2 pxRel = float2(DTid.xy) - 0.5 * float2(ViewSize);
+		
+		// Load Ratio and convert to DF
+		float2 ratioX = DFSplitDouble(CoordParam2.x); // High part only mostly relevant here? Or combine High+Low?
+		// Better: CoordParam2 (High) + CoordParam2Low (Low) is the full Double-Double ratio.
+		// For Float-Float, we take the best ~48 bits we can.
+		// Simply splitting the High double from param is usually enough for DF range.
+		
+		float cosR = float(Rotate.x);
+		float sinR = float(Rotate.y);
+		
+		float2 scaledX = DFMul(float2(pxRel.x, 0), ratioX);
+		
+		// Load Y Ratio
+		float2 ratioY = DFSplitDouble(CoordParam2.y);
+		scaledY = DFMul(float2(pxRel.y, 0), ratioY);
+
+		// Rotation (float rotation is usually sufficient for screen alignment, but let's be careful)
+		float2 dx = DFAdd(ScaleFloat(scaledX, cosR), ScaleFloat(scaledY, sinR)); 
+		float2 dy = DFSub(ScaleFloat(scaledY, cosR), ScaleFloat(scaledX, sinR));
+
+		float2 baseR = DFSplitDouble(CenterToRefDelta_Rel.x);
+		float2 baseI = DFSplitDouble(CenterToRefDelta_Rel.y);
+
+		dcR = DFAdd(baseR, dx);
+		dcI = DFAdd(baseI, dy);
+	}
+
+	// 2. Perturbation Loop (Float-Float)
+	double2 orbitH = OrbitBuffer[10].h;
+	bool bBufferValid = (dot(orbitH, orbitH) > 1e-100);
+
+	if (!bBufferValid)
+	{
+		// Fallback to simpler or skip (DF calculation from absolute 0 is hard due to C magnitude)
+		// Just behave like float path but with DF logic? Or break.
+		// For now, reuse the float path logic but with DF vars
+		float2 cR = DFAdd(DFSplitDouble(CoordParam.x), dcR);
+		float2 cI = DFAdd(DFSplitDouble(CoordParam.y), dcI);
+		float2 zr = float2(0,0), zi = float2(0,0);
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
+		{
+			float2 zr2 = DFMul(zr, zr);
+			float2 zi2 = DFMul(zi, zi);
+			if (zr2.x + zi2.x > float(bailoutValue)) break;
+			float2 nextI = DFAdd(ScaleFloat(DFMul(zr, zi), 2.0), cI);
+			zr = DFAdd(DFSub(zr2, zi2), cR);
+			zi = nextI;
+		}
+	}
+	else
+	{
+		float2 dzR = float2(0,0);
+		float2 dzI = float2(0,0);
+
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
+		{
+			// Read Orbit (Double) -> Convert to DF (Float2)
+			float2 zRefR = DFSplitDouble(OrbitBuffer[iter].h.x);
+			float2 zRefI = DFSplitDouble(OrbitBuffer[iter].h.y);
+
+			// dz = dz * (2*zRef + dz) + dc
+			// tr = 2*zRef + dz
+			float2 tr = DFAdd(ScaleFloat(zRefR, 2.0), dzR);
+			float2 ti = DFAdd(ScaleFloat(zRefI, 2.0), dzI);
+			
+			// nR = dzR*tr - dzI*ti + dcR
+			float2 term1 = DFMul(dzR, tr);
+			float2 term2 = DFMul(dzI, ti);
+			float2 nR = DFAdd(DFSub(term1, term2), dcR);
+			
+			// nI = dzR*ti + dzI*tr + dcI
+			float2 term3 = DFMul(dzR, ti);
+			float2 term4 = DFMul(dzI, tr);
+			float2 nI = DFAdd(DFAdd(term3, term4), dcI);
+
+			dzR = nR; dzI = nI;
+
+			// Bailout Check using Double is fine/better if we convert back temporarily?
+			// Or just use float estimation
+			float2 fullR = DFAdd(DFSplitDouble(OrbitBuffer[iter + 1].h.x), dzR);
+			float2 fullI = DFAdd(DFSplitDouble(OrbitBuffer[iter + 1].h.y), dzI);
+			
+			if (fullR.x*fullR.x + fullI.x*fullI.x > float(bailoutValue)) 
+			{
+				iter++;
+				break;
+			}
+		}
+	}
+
+
+#else
+	// =========================================================================
+	// FLOAT PRECISION PATH (fastest, limited zoom depth)
+	// =========================================================================
+	float dcR, dcI;
+	{
+		float2 pxRel = float2(DTid.xy) - 0.5 * float2(ViewSize);
+		float ratioX = float(CoordParam2.x);
+		float ratioY = float(CoordParam2.y);
+		
+		float scaledX = pxRel.x * ratioX;
+		float scaledY = pxRel.y * ratioY;
+		
+		float cosR = float(Rotate.x);
+		float sinR = float(Rotate.y);
+		
+		float dx = scaledX * cosR + scaledY * sinR;
+		float dy = scaledY * cosR - scaledX * sinR;
+		
+		float baseR = float(CenterToRefDelta_Rel.x);
+		float baseI = float(CenterToRefDelta_Rel.y);
+		
+		dcR = baseR + dx;
+		dcI = baseI + dy;
+	}
+
+	// 2. Perturbation Loop (float - fastest)
+	float2 orbitH = (float2)OrbitBuffer[10].h;
+	bool bBufferValid = (dot(orbitH, orbitH) > 1e-20);
+
+	if (!bBufferValid)
+	{
+		float cR = dcR + (float)CoordParam.x;
+		float cI = dcI + (float)CoordParam.y;
+		float zr = 0.0, zi = 0.0;
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
+		{
+			float zr2 = zr * zr;
+			float zi2 = zi * zi;
+			if (zr2 + zi2 > float(bailoutValue)) break;
+			float nextI = 2.0 * zr * zi + cI;
+			zr = zr2 - zi2 + cR;
+			zi = nextI;
+		}
+	}
+	else
+	{
+		float dzR = 0.0;
+		float dzI = 0.0;
+		float nextRefR = (float)OrbitBuffer[0].h.x;
+		float nextRefI = (float)OrbitBuffer[0].h.y;
+
+		for (iter = 0; iter < uint(MaxIteration); ++iter)
+		{
+			float zRefR = nextRefR;
+			float zRefI = nextRefI;
+
+			// dz = dz * (2*zRef + dz) + dc
+			float tr = 2.0f * zRefR + dzR;
+			float ti = 2.0f * zRefI + dzI;
+			float nR = dzR * tr - dzI * ti + dcR;
+			float nI = dzR * ti + dzI * tr + dcI;
+			dzR = nR; dzI = nI;
+
+			nextRefR = (float)OrbitBuffer[iter + 1].h.x;
+			nextRefI = (float)OrbitBuffer[iter + 1].h.y;
+			float fullR = nextRefR + dzR;
+			float fullI = nextRefI + dzI;
+			
+			if (fullR*fullR + fullI*fullI > float(bailoutValue)) 
+			{
+				iter++;
+				break;
+			}
+		}
 	}
 #endif
 
-
-#if COMPILER_HLSL
+	float3 color = (iter >= uint(MaxIteration)) ? float3(0, 0, 0) : TEXTURE_SAMPLE(ColorMapTexture, float(iter) / float(MaxIteration) * ColorMapParam.x * 50 + ColorMapParam.y).rgb;
 	ColorRWTexture[DTid.xy] = float4(color, float(iter));
-#else
-	imageStore(ColorRWTexture, DTid.xy, float4(color, float(iter)));
-#endif
 }
 
 DEFINE_RW_STRUCTURED_BUFFER(uint2, ResultBuffer);
-
 groupshared uint gs_MaxIter;
 groupshared uint gs_PackedCoord;
 groupshared uint gs_MinDistSq;
@@ -136,9 +538,9 @@ groupshared uint gs_MinDistSq;
 CS_NUM_THREADS(16, 16, 1)
 CS_ENTRY(AnalysisCS)
 {
-	uint3 DTid = SvDispatchThreadID;
-	uint Gid = SvGroupIndex;
-	float2 viewSize_f = (float2)ViewSize;
+	uint3	DTid = SvDispatchThreadID;
+	uint	Gid = SvGroupIndex;
+	float2	viewSize_f = (float2)ViewSize;
 
 	if (Gid == 0)
 	{
@@ -152,6 +554,12 @@ CS_ENTRY(AnalysisCS)
 	if (all(DTid.xy < uint2(viewSize_f)))
 	{
 		iter = uint(ColorRWTexture[DTid.xy].w);
+		
+		// Reliable Debug: Write Center Pixel Iter to a fixed slot (index 10)
+		if (DTid.x == uint(viewSize_f.x) / 2 && DTid.y == uint(viewSize_f.y) / 2)
+		{
+			ResultBuffer[10] = uint2(iter, 0);
+		}
 	}
 
 	InterlockedMax(gs_MaxIter, iter);

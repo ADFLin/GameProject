@@ -3,6 +3,7 @@
 #define CodeEditor_H_C553B564_92FE_4953_A9B6_F81BD8FBA9D6
 
 #include "GameWidget.h"
+#include "CommonWidgets.h"
 
 #include "RHI/RHIGraphics2D.h"
 #include <optional>
@@ -65,32 +66,8 @@ public:
 	}
 };
 
-class ExecButton : public GButtonBase
-{
-	typedef GButtonBase BaseClass;
-public:
-	ExecButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
+// Buttons moved to CommonWidgets.h
 
-	void onRender();
-	bool bStep = false;
-};
-
-
-class MinimizeButton : public GButtonBase
-{
-	typedef GButtonBase BaseClass;
-public:
-	MinimizeButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
-	void onRender() override;
-};
-
-class CloseButton : public GButtonBase
-{
-	typedef GButtonBase BaseClass;
-public:
-	CloseButton(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
-	void onRender() override;
-};
 
 
 class CodeEditorSettings

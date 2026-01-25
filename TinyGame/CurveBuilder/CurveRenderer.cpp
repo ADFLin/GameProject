@@ -186,7 +186,7 @@ namespace CB
 		mAxis[2].numData = 10;
 	}
 
-	bool CurveRenderer::initialize( Vec2i const& screenSize )
+	bool CurveRenderer::initializeRHI( Vec2i const& screenSize )
 	{
 		VERIFY_RETURN_FALSE( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< CurveMeshProgram >(true) );
 		VERIFY_RETURN_FALSE( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< CurveMeshOITProgram >(true) );

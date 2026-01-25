@@ -242,7 +242,7 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 {
 	if (isRHIEnabled())
 	{
-		shutdownSystem(renderSetup == nullptr, false);
+		shutdownSystem(false, false);
 	}
 
 	mRenderSetup = renderSetup;

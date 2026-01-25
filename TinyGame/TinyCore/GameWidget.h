@@ -4,9 +4,12 @@
 #include "WidgetCore.h"
 #include "WidgetCommon.h"
 
+#include "GameGraphics2D.h"
+#include "Math/TVector2.h"
+#include "Math/TVector3.h"
+
 #include "GameConfig.h"
 #include "GameWidgetID.h"
-#include "GameGraphics2D.h"
 
 #include "Singleton.h"
 #include "TaskBase.h"
@@ -156,11 +159,13 @@ public:
 
 
 
-	void onPrevRender(){}
-	void onPostRenderChildren(){}
-	TINY_API void onPostRender();
+	TINY_API virtual void onPrevRender();
+	TINY_API virtual void onPostRenderChildren();
+	TINY_API virtual void onPostRender();
 	TINY_API bool doClipTest();
 	static TINY_API WidgetRenderer& getRenderer();
+
+	void setClipEnable(bool bEnable) { mClipEnable = bEnable; }
 
 	void setColor(Color3ub const& color) { mColor.setValue(color); }
 	void setColorName(int color) { mColor.setName(color); }
@@ -218,6 +223,8 @@ protected:
 	TINY_API void removeTween(void* tween);
 	void cleanupTweens();
 	std::vector<void*> mTweens;
+
+	bool      mClipEnable;
 };
 
 class WidgetPos
@@ -309,11 +316,8 @@ class  GButtonBase : public GUI::ButtonT< GButtonBase >
 {
 	typedef GUI::ButtonT< GButtonBase > BaseClass;
 public:
-	TINY_API GButtonBase( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent )
-		:BaseClass( pos , size , parent )
-	{
-		mID = id;
-	}
+	TINY_API GButtonBase( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
+
 	virtual void onHotkey( unsigned key ){ onClick();  }
 	virtual void onClick(){  sendEvent( EVT_BUTTON_CLICK );  }
 };
@@ -325,7 +329,7 @@ public:
 	TINY_API GButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 
 	void setTitle( char const* str ){ mTitle = str; }
-	virtual void onMouse( bool beInside );
+	TINY_API virtual void onMouse( bool beInside );
 	TINY_API void onRender();
 	String mTitle;
 };
@@ -473,6 +477,63 @@ public:
 	String mText;
 };
 
+class TINY_API GScrollBar : public GWidget
+{
+	using BaseClass = GWidget;
+public:
+	GScrollBar(int id, Vec2i const& pos, int length, bool beH, GWidget* parent);
+
+	void setRange(int range, int pageSize);
+	void setValue(int value);
+	int  getValue() const { return mValue; }
+
+	void onScrollChange(int value) { sendEvent(EVT_SCROLL_CHANGE); }
+
+	void setFixedThumb(bool beFixed);
+
+protected:
+	void onResize(Vec2i const& size) override;
+	void onRender() override;
+	MsgReply onMouseMsg(MouseMsg const& msg) override;
+	bool onChildEvent(int event, int id, GWidget* ui) override;
+
+	void updateThumbPos();
+	void updateThumbSize();
+	int  calcValueFromPos(Vec2i const& pos);
+
+	virtual void onMouse(bool beIn)
+	{
+		if (!beIn)
+		{
+			mHoverPart = PART_NONE;
+		}
+	}
+
+	enum EPart
+	{
+		PART_NONE,
+		PART_MINUS,
+		PART_PLUS,
+		PART_THUMB,
+		PART_TRACK,
+	};
+	EPart mHoverPart = PART_NONE;
+	EPart mPressPart = PART_NONE;
+
+	Vec2i mThumbPos;
+	Vec2i mThumbSize;
+
+	bool mbFixedThumb = false;
+	int mValue = 0;
+	int mRange = 100;
+	int mPageSize = 10;
+	bool mbHorizontal;
+
+	bool mbDragging = false;
+	Vec2i mDragStartPos;
+	int mDragStartValue;
+};
+
 class  GChoice : public GUI::ChoiceT< GChoice >
 {
 	using BaseClass = GUI::ChoiceT< GChoice >;
@@ -497,11 +558,173 @@ class  GListCtrl : public GUI::ListCtrlT< GListCtrl >
 public:
 	TINY_API GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
-	void onItemSelect( unsigned pos ){ ensureVisible(pos); sendEvent( EVT_LISTCTRL_SELECT ); }
-	void onItemLDClick( unsigned pos ){ sendEvent( EVT_LISTCTRL_DCLICK ); }
-	void doRenderItem( Vec2i const& pos , Item& item , bool bSelected);
-	void doRenderBackground( Vec2i const& pos , Vec2i const& size );
-	int  getItemHeight(){ return 20; }
+	virtual void onItemSelect( unsigned pos ){ ensureVisible(pos); sendEvent( EVT_LISTCTRL_SELECT ); }
+	virtual void onItemLDClick( unsigned pos ){ sendEvent( EVT_LISTCTRL_DCLICK ); }
+	virtual void doRenderItem( Vec2i const& pos , Item& item , bool bSelected);
+	virtual void doRenderBackground( Vec2i const& pos , Vec2i const& size );
+	virtual int  getItemHeight(){ return 20; }
+};
+
+template< typename T, typename TImpl >
+class GDataListCtrlBaseT : public GUI::ListCtrlT< TImpl, T >
+{
+	using BaseClass = typename GUI::ListCtrlT< TImpl, T >;
+public:
+	GDataListCtrlBaseT(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+		:BaseClass(pos, size, parent)
+	{
+		mID = id;
+	}
+
+	void onAddItem(typename BaseClass::Item& item) {}
+	void onRemoveItem(typename BaseClass::Item& item) {}
+
+	virtual void doRenderItem(Vec2i const& pos, typename BaseClass::Item& item, bool bSelected) {}
+	virtual void doRenderBackground(Vec2i const& pos, Vec2i const& size)
+	{
+		IGraphics2D& g = Global::GetIGraphics2D();
+		g.setBrush(Color3ub(20, 20, 20));
+		RenderUtility::SetPen(g, EColor::Null);
+		g.drawRect(pos, size);
+	}
+	virtual int  getItemHeight() { return mItemHeight; }
+	virtual void setItemHeight(int height) { mItemHeight = height; }
+	virtual void setSelection(int index) { BaseClass::setSelection(index); }
+	virtual void removeAllItems() { BaseClass::removeAllItem(); }
+
+protected:
+	int mItemHeight = 20;
+};
+
+template< typename T >
+class GDataListCtrlT : public GDataListCtrlBaseT< T, GDataListCtrlT<T> >
+{
+	using BaseClass = GDataListCtrlBaseT< T, GDataListCtrlT<T> >;
+public:
+	using BaseClass::BaseClass;
+};
+
+template< typename T, typename WidgetType >
+class GWidgetListT : public GDataListCtrlBaseT< T, GWidgetListT<T, WidgetType> >
+{
+	using BaseClass = GDataListCtrlBaseT< T, GWidgetListT<T, WidgetType> >;
+public:
+	GWidgetListT(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+		:BaseClass(id, pos, size, parent)
+	{
+		mItemHeight = 30;
+		mClipEnable = true;
+
+		int scrollWidth = 12;
+		mScrollBar = new GScrollBar(UI_ANY, Vec2i(size.x - scrollWidth, 0), size.y, false, this);
+		mScrollBar->setRange(0, 0);
+		mScrollBar->onEvent = [this](int event, GWidget*)
+		{
+			if (event == EVT_SCROLL_CHANGE) onUpdateUI();
+			return true;
+		};
+	}
+
+	void onAddItem(typename BaseClass::Item& item)
+	{
+		item.userData = new WidgetType(item.value, Vec2i(0, 0), Vec2i(getSize().x - 15, mItemHeight), this);
+		updateLayout();
+	}
+
+	void onRemoveItem(typename BaseClass::Item& item)
+	{
+		if (item.userData)
+		{
+			static_cast<WidgetType*>(item.userData)->destroy();
+			item.userData = nullptr;
+		}
+		updateLayout();
+	}
+
+	WidgetType* getItemWidget(int index) const
+	{
+		if (index < 0 || index >= (int)getItemNum())
+			return nullptr;
+		return static_cast<WidgetType*>(getItemData(index));
+	}
+
+	WidgetType* addItem(T const& data)
+	{
+		unsigned index = BaseClass::addItem(data);
+		return getItemWidget(index);
+	}
+
+	void setSelection(int index) override
+	{
+		if (getSelection() == index) return;
+		
+		WidgetType* old = getItemWidget(getSelection());
+		if (old)
+			old->setSelected(false);
+
+		BaseClass::setSelection(index);
+
+		WidgetType* next = getItemWidget(getSelection());
+		if (next)
+			next->setSelected(true);
+	}
+
+	void updateLayout()
+	{
+		int totalHeight = (int)getItemNum() * mItemHeight;
+		int viewHeight = getSize().y;
+		int maxScroll = totalHeight > viewHeight ? totalHeight - viewHeight : 0;
+		bool bShowScroll = totalHeight > viewHeight;
+
+		int itemWidth = getSize().x - (bShowScroll ? 12 : 0);
+
+		if (mScrollBar)
+		{
+			mScrollBar->setRange(maxScroll, viewHeight);
+			if (mScrollBar->getValue() > maxScroll)
+				mScrollBar->setValue(maxScroll);
+			mScrollBar->show(bShowScroll);
+		}
+
+		for (int i = 0; i < (int)getItemNum(); ++i)
+		{
+			if (WidgetType* widget = getItemWidget(i))
+			{
+				widget->setSize(Vec2i(itemWidth, mItemHeight));
+			}
+		}
+	}
+
+	void onUpdateUI() override
+	{
+		BaseClass::onUpdateUI();
+		
+		if (mScrollBar)
+		{
+			int scrollOffset = mScrollBar->getValue();
+			for (int i = 0; i < (int)getItemNum(); ++i)
+			{
+				if (WidgetType* widget = getItemWidget(i))
+					widget->setPos(Vec2i(0, i * mItemHeight - scrollOffset));
+			}
+		}
+	}
+
+	void doRenderItem(Vec2i const& pos, typename BaseClass::Item& item, bool bSelected) override
+	{
+		// Draw nothing here, as we use child widgets for rendering
+	}
+
+	void removeAllItems() override
+	{
+		BaseClass::removeAllItems();
+		updateLayout();
+	}
+
+	void setItemHeight(int height) override { mItemHeight = height; BaseClass::setItemHeight(height); updateLayout(); }
+
+protected:
+	GScrollBar* mScrollBar = nullptr;
 };
 
 class GFileListCtrl : public GListCtrl
@@ -520,59 +743,7 @@ public:
 
 };
 
-class TINY_API GScrollBar : public GWidget
-{
-	using BaseClass = GWidget;
-public:
-	GScrollBar(int id, Vec2i const& pos, int length, bool beH, GWidget* parent);
 
-	void setRange(int range, int pageSize);
-	void setValue(int value);
-	int  getValue() const { return mValue; }
-
-	void onScrollChange(int value) { sendEvent(EVT_SCROLL_CHANGE); }
-
-protected:
-	void onResize(Vec2i const& size) override;
-	void onRender() override;
-	MsgReply onMouseMsg(MouseMsg const& msg) override;
-	bool onChildEvent(int event, int id, GWidget* ui) override;
-
-	void updateThumbPos();
-	void updateThumbSize();
-	int  calcValueFromPos(Vec2i const& pos);
-
-	virtual void onMouse(bool beIn) 
-	{ 
-		if (!beIn)
-		{
-			mHoverPart = PART_NONE;
-		}
-	}
-
-	enum EPart
-	{
-		PART_NONE,
-		PART_MINUS,
-		PART_PLUS,
-		PART_THUMB,
-		PART_TRACK,
-	};
-	EPart mHoverPart = PART_NONE;
-	EPart mPressPart = PART_NONE;
-
-	Vec2i mThumbPos;
-	Vec2i mThumbSize;
-
-	int mValue = 0;
-	int mRange = 100;
-	int mPageSize = 10;
-	bool mbHorizontal;
-
-	bool mbDragging = false;
-	Vec2i mDragStartPos;
-	int mDragStartValue;
-};
 
 template< class TFun >
 class WidgetMotionTask : public TaskBase

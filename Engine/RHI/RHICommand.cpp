@@ -38,19 +38,11 @@ namespace Render
 	bool GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
 	uint64 GRHIRenderCount = 0;
 
-	char const* GetParameterNameDefault(StructuredBufferInfo const& structInfo, EShaderResourceType resourceType)
-	{
-		if (resourceType == EShaderResourceType::Storage)
-			return structInfo.variableName;
-
-		return structInfo.blockName;
-	}
 
 	void RHIInitGlobalParameters()
 	{
 		GRHIDeviceVendorName = DeviceVendorName::Unknown;
 
-		StructuredBufferInfo::StaticGetParameterNameFunc = GetParameterNameDefault;
 		GRHIClipZMin = 0;
 		GRHIProjectionYSign = 1;
 		GRHIViewportOrgToNDCPosY = 1;

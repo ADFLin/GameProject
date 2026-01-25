@@ -102,8 +102,8 @@ public:
 	}
 	T&             setTop(bool beAlways = false);
 	T&             makeFocus();
-	T&             clearFocus(bool bSubWidgetsIncluded = true);
-	T&             show(bool beS = true);
+	T&             clearFocus(bool bChildrenIncluded = true);
+	T&             show(bool beS = true, bool bChildrenIncluded = false);
 	T&             enable(bool beE = true);
 
 	T&             addChild(WidgetCoreT* ui);

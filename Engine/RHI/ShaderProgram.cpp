@@ -103,9 +103,15 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void Render::TShaderFuncHelper<RHIResourceType>::clearRWTexture(RHICommandList& commandList, ShaderParameter const& param)
+	void TShaderFuncHelper<RHIResourceType>::clearRWTexture(RHICommandList& commandList, ShaderParameter const& param)
 	{
 		GetContext(commandList).clearShaderRWTexture(*mRHIResource, param);
+	}
+
+	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::clearBuffer(RHICommandList& commandList, ShaderParameter const& param, EAccessOp op)
+	{
+		GetContext(commandList).clearShaderBuffer(*mRHIResource, param, op);
 	}
 
 	template< class RHIResourceType >

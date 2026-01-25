@@ -166,17 +166,19 @@ bool WidgetCoreT<T>::isFocus()
 }
 
 template< class T >
-T&  WidgetCoreT<T>::show( bool beS )
+T&  WidgetCoreT<T>::show( bool beS, bool bChildrenIncluded)
 {
 	bool bShown = isShow();
 	if ( bShown != beS )
 	{
 		enableFlag(WIF_HAD_HIDDEN, !beS);
 		_this()->onShow( beS );
-
-		for( auto ui = createChildrenIterator() ; ui ; ++ui )
+		if (bChildrenIncluded)
 		{
-			ui->show( beS );
+			for (auto ui = createChildrenIterator(); ui; ++ui)
+			{
+				ui->show(beS);
+			}
 		}
 	}
 	return *_this();
@@ -350,9 +352,9 @@ T& WidgetCoreT<T>::makeFocus()
 }
 
 template< class T >
-T& WidgetCoreT<T>::clearFocus(bool bSubWidgetsIncluded)
+T& WidgetCoreT<T>::clearFocus(bool bChildrenIncluded)
 {
-	getManager()->clearFocusWidget(this, bSubWidgetsIncluded);
+	getManager()->clearFocusWidget(this, bChildrenIncluded);
 	return *_this();
 }
 

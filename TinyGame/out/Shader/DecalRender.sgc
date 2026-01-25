@@ -8,22 +8,22 @@
 #include "MaterialProcess.sgc"
 #include "DeferredShadingCommon.sgc"
 
-uniform sampler2D NormalTexture;
+DEFINE_TEXTURE(Texture2D, NormalTexture);
 #endif
 
-uniform sampler2D WorldPositionTexture;
+DEFINE_TEXTURE(Texture2D, WorldPositionTexture);
 uniform float4x4  DecalTransform;
-in VSOutputParameters VSOutput;
 
-layout(location = 0) out float4 OutColor;
-
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
-	float3 worldPos = texture(WorldPositionTexture, VSOutput.UVs).rgb;
-	float  sceneDepth = texture(WorldPositionTexture, VSOutput.UVs).a;
-	float3 localPos = float3(DecalTransform * float4( worldPos , 1 ) );
+	float3 worldPos = TEXTURE_SAMPLE(WorldPositionTexture, VSOutput.UVs).rgb;
+	float  sceneDepth = TEXTURE_SAMPLE(WorldPositionTexture, VSOutput.UVs).a;
+	float3 localPos = float3(mul(DecalTransform, float4( worldPos , 1 ) ));
 
-	if ( sceneDepth == 0.0 || any(lessThan( localPos , float3(0.0) ) ) || any( greaterThan(localPos, float3(1.0)) ))
+	if ( sceneDepth == 0.0 || any(localPos < 0.0) || any(localPos > 1.0))
 		discard;
 
 	float2 DecalUV = localPos.xy;
@@ -31,7 +31,7 @@ void MainPS()
 
 	MaterialParametersPS materialParameters;
 	materialParameters.worldPos = worldPos;
-	materialParameters.worldNormal = DecodeNormal(texture(NormalTexture, VSOutput.UVs).rgb) );
+	materialParameters.worldNormal = DecodeNormal(TEXTURE_SAMPLE(NormalTexture, VSOutput.UVs).rgb);
 	materialParameters.texCoords[0] = DecalUV;
 
 	MaterialOutputPS materialOutput = InitMaterialOutputPS();

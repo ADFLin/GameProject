@@ -33,12 +33,13 @@ uniform NormalGenParamsData GenParams;
 DEFINE_STRUCTURED_BUFFER(float, VertexInput);
 
 #if USE_SHARE_TRIANGLE_INFO
-DEFINE_STRUCTURED_BUFFER(float, VertexOutput);
+DEFINE_RW_STRUCTURED_BUFFER(float, VertexOutput);
 #else
-DEFINE_STRUCTURED_BUFFER(int, VertexOutput);
+DEFINE_RW_STRUCTURED_BUFFER(int, VertexOutput);
 
 #define FIXED_POINT_SCALE 1048576.0f
 
+#if SHADER_ENTRY(ClearCS)
 CS_NUM_THREADS(64, 1, 1)
 CS_ENTRY(ClearCS)
 {
@@ -51,12 +52,14 @@ CS_ENTRY(ClearCS)
 	VertexOutput[normalIndex + 1] = 0;
 	VertexOutput[normalIndex + 2] = 0;
 }
+#endif
 
 void UpdateValue(uint index, float Add)
 {
 	InterlockedAdd(VertexOutput[index], int(Add * FIXED_POINT_SCALE));
 }
 
+#if SHADER_ENTRY(NormalizeCS)
 CS_NUM_THREADS(64, 1, 1)
 CS_ENTRY(NormalizeCS)
 {
@@ -75,6 +78,7 @@ CS_ENTRY(NormalizeCS)
 	VertexOutput[normalIndex + 1] = asint(N.y);
 	VertexOutput[normalIndex + 2] = asint(N.z);
 }
+#endif
 #endif
 
 DEFINE_STRUCTURED_BUFFER(uint, TriangleIndices);
@@ -116,10 +120,11 @@ float3 CalcNormal(uint triangleId)
 }
 
 
+#if SHADER_ENTRY(MainCS)
 CS_NUM_THREADS(16, 1, 1)
 CS_ENTRY(MainCS)
 {
-#if USE_SHARE_TRIANGLE_INFO
+	#if USE_SHARE_TRIANGLE_INFO
 
 	uint vertexIndex = SvDispatchThreadID.x;
 	if (vertexIndex >= GenParams.totalCount)
@@ -156,5 +161,6 @@ CS_ENTRY(MainCS)
 	WriteNormal(i2, N);
 #endif
 }
+#endif
 
 #endif

@@ -7,7 +7,7 @@ void AllocatorTest()
 	BuddyAllocatorBase allocator;
 	allocator.initialize(256, 16);
 
-	auto renderScope = FMiscTestUtil::RegisterRender([&](IGraphics2D& g)
+	auto renderScope = FExecutionUtil::RegisterRender([&](IGraphics2D& g)
 	{
 		Vector2 basePos = Vector2(20, 20);
 		float   blockSize = float(760) / (float(allocator.mSize) / allocator.mBlockSize);
@@ -36,7 +36,7 @@ void AllocatorTest()
 	}, Vec2i(800,60));
 
 
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 
 	TArray<BuddyAllocatorBase::Allocation> allocations;
 
@@ -54,14 +54,14 @@ void AllocatorTest()
 		{
 			LogMsg("allocate fail");
 		}
-		FMiscTestUtil::Pause();
+		FExecutionUtil::Pause();
 	}
 
 	while (!allocations.empty())
 	{
 		int index = rand() % allocations.size();
 		allocator.deallocate(allocations[index]);
-		FMiscTestUtil::Pause();
+		FExecutionUtil::Pause();
 		allocations.removeIndexSwap(index);
 	}
 }
@@ -120,7 +120,7 @@ void SkipListTest()
 	bool bNeedRefresh = false;
 	int  valueOp = INDEX_NONE;
 
-	auto renderScope = FMiscTestUtil::RegisterRender([&](IGraphics2D& g)
+	auto renderScope = FExecutionUtil::RegisterRender([&](IGraphics2D& g)
 	{
 		if (bNeedRefresh)
 		{
@@ -183,7 +183,7 @@ void SkipListTest()
 	bool bRunning = true;
 	while (bRunning)
 	{
-		EKeyCode::Type key = FMiscTestUtil::WaitInputKey();
+		EKeyCode::Type key = FExecutionUtil::WaitInputKey();
 		switch (key)
 		{
 		case EKeyCode::A:
@@ -207,12 +207,12 @@ void SkipListTest()
 	{
 		myList.insert(i);
 		bNeedRefresh = true;
-		FMiscTestUtil::Pause();
+		FExecutionUtil::Pause();
 	}
 	TEST_CHECK(myList.insert(5) == false);
 	myList.remove(5);
 	bNeedRefresh = true;
-	FMiscTestUtil::Pause();
+	FExecutionUtil::Pause();
 	TEST_CHECK(myList.remove(5) == false);
 }
 

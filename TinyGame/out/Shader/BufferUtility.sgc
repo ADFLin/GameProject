@@ -29,9 +29,10 @@ const int    FliterWidth = 0;
 uniform int2 BufferSize;
 uniform sampler3D SrcTexture;
 
-void BufferBlurHCS()
+CS_NUM_THREADS(SIZE_X, SIZE_Y, SIZE_Z)
+CS_ENTRY(BufferBlurHCS)
 {
-	int3 uvw = int3(gl_GlobalInvocationID.xyz);
+	int3 uvw = int3(SvDispatchThreadID.xyz);
 	float4 outData;
 	for( int i = -FliterWidth; i <= FliterWidth; ++i )
 	{
@@ -42,9 +43,10 @@ void BufferBlurHCS()
 	imageStore(TargetRWTexture, uvw , outData / float(2 * FliterWidth + 1));
 }
 
-void BufferBlurVCS()
+CS_NUM_THREADS(SIZE_X, SIZE_Y, SIZE_Z)
+CS_ENTRY(BufferBlurVCS)
 {
-	int3 uvw = int3(gl_GlobalInvocationID.xyz);
+	int3 uvw = int3(SvDispatchThreadID.xyz);
 	float4 outData;
 	for( int i = -FliterWidth; i <= FliterWidth; ++i )
 	{

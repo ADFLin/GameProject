@@ -5,21 +5,23 @@
 
 struct VertexInterpolatnsParam
 {
-	float3 normal;
+	float3 normal MEMBER_OUT(TEXCOORD0);
 };
 
 #if VERTEX_SHADER
 
-layout(location = ATTRIBUTE_POSITION) in float3 VertexPos;
-out VertexInterpolatnsParam OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 VertexPos, ATTRIBUTE_POSITION)
+	VS_INPUT_VERTEXID
+	VS_OUTPUT_STRUCT(VertexInterpolatnsParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
-	WaterVertexData data = WaterVertices[gl_VertexID];
+	WaterVertexData data = WaterVertices[SvVertexID];
 	float3 normal = float3(data.normal, 1);
 	normal = normalize(normal);
 	float3 worldPos = VertexPos + float3(0, 0, data.h);
 	OutputVS.normal = normal;
-	SvPosition = View.worldToClip * float4(worldPos , 1);
+	SvPosition = mul(View.worldToClip, float4(worldPos , 1));
 }
 
 #endif
@@ -27,9 +29,10 @@ void MainVS()
 
 #if PIXEL_SHADER
 
-in  VertexInterpolatnsParam OutputVS;
-layout(location = 0 ) out float4 OutColor;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VertexInterpolatnsParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
 	float3 n = normalize(OutputVS.normal);
 	float dif = saturate(dot(n, normalize( float3(1, 0, 1) ) ));

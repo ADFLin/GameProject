@@ -4,23 +4,23 @@
 
 struct OutputVSParam
 {
-	float3 pos;
-	float3 normal;
+	float3 pos MEMBER_OUT(TEXCOORD0);
+	float3 normal MEMBER_OUT(TEXCOORD1);
 };
 
 
 #if VERTEX_SHADER
 
-layout(location = ATTRIBUTE_POSITION) in float3 InPos;
-layout(location = ATTRIBUTE_COLOR) in float4 InColor;
-layout(location = ATTRIBUTE_NORMAL) in float3 InNormal;
-
-out OutputVSParam OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
 	OutputVS.pos = InPos;
 	OutputVS.normal = InNormal;
-	gl_Position = View.worldToClip * float4(InPos, 1.0);
+	SvPosition = mul(View.worldToClip, float4(InPos, 1.0));
 }
 
 #endif //VERTEX_SHADER
@@ -31,10 +31,10 @@ uniform float3 RefDirection = float3(0,0,1);
 uniform float4 LineParams = float4(10, 1, 1, 0);
 
 #if PIXEL_SHADER
-in OutputVSParam OutputVS;
-
-layout(location = 0) out float4 OutColor;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
 #if 0
 	float Height = dot(OutputVS.pos - RefLocation, RefDirection);
@@ -47,8 +47,8 @@ void MainPS()
 	float thinkness = LineParams.y;
 #endif
 
-	float frac = mod(Height + 0.5 * thinkness, LineParams.x);
-	if (frac > thinkness)
+	float fracVal = mod(Height + 0.5 * thinkness, LineParams.x);
+	if (fracVal > thinkness)
 	{
 		discard;
 	}
@@ -56,10 +56,10 @@ void MainPS()
 	OutColor = BaseColor;
 #else
 	float3 p = OutputVS.pos * 20.0;
-	vec3 f = fract(p);
-	vec3 df = abs( dFdx(p) ) + abs( dFdy(p) );
+	float3 f = frac(p);
+	float3 df = abs( ddx(p) ) + abs( ddy(p) );
 
-	vec3 g = smoothstep(df * 1.0, df * 2.0, f);
+	float3 g = smoothstep(df * 1.0, df * 2.0, f);
 
 	if (g.z > 0.01)
 		discard;

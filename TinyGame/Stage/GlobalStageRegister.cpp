@@ -14,7 +14,6 @@
 
 ExecutionEntryInfo GPreRegisterStageGroup[] =
 {
-	STAGE_INFO("Misc Test" , MiscTestStage , EExecGroup::Main) ,
 	//STAGE_INFO("Cantan Test" , Cantan::LevelStage , EExecGroup::GraphicsTest) ,
 	STAGE_INFO("RHIGraphics2D Test"   , RHIGraphics2DTestStage , EExecGroup::GraphicsTest) ,
 	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EExecGroup::GraphicsTest) ,

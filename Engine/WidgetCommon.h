@@ -5,6 +5,7 @@
 #include "DataStructure/Array.h"
 
 #include <algorithm>
+#include <type_traits>
 
 
 enum ButtonState
@@ -257,7 +258,19 @@ protected:
 };
 
 
-template < class Impl, class CoreImpl >
+template < class T >
+struct TUIValueTraits
+{
+    static char const* GetString( T const& val ) { return val.c_str(); }
+};
+
+template <>
+struct TUIValueTraits< char const* >
+{
+	static char const* GetString(char const* val) { return val; }
+};
+
+template < class Impl, class CoreImpl, class T = std::string >
 class TItemOwnerUI : public CoreImpl
 {
 private:
@@ -278,12 +291,14 @@ public:
 		removeAllItem();
 	}
 
-	unsigned addItem( char const* str );
-	void     removeItem( char const* str );
-	void     removeItem( unsigned pos );
+	template < typename Q, typename = typename std::enable_if< !std::is_integral<Q>::value >::type >
+	unsigned addItem( Q const& val );
+	template < typename Q, typename = typename std::enable_if< !std::is_integral<Q>::value >::type >
+	void     removeItem( Q const& val );
+	void     removeItem( int pos );
 	void     removeAllItem();
 
-	size_t   getItemNum(){ return mItemList.size(); }
+	size_t   getItemNum() const { return mItemList.size(); }
 	void*    getSelectedItemData()
 	{ 
 		if ( mCurSelect != INDEX_NONE )
@@ -292,21 +307,14 @@ public:
 	}
 
 	int      getSelection() const { return mCurSelect; }
-	void     setSelection( unsigned select )
+	void     setSelection( int select )
 	{ 
-		assert( select < mItemList.size() );
+		assert( mItemList.empty() || (select < (int)mItemList.size() && select >= INDEX_NONE) );
 		mCurSelect = select; 
 	}
 
-	int     findItem( char const* value ) const
-	{
-		for( int i = 0 ; i < (int)mItemList.size() ; ++i )
-		{
-			if ( mItemList[i].value == value )
-				return i;
-		}
-		return INDEX_NONE;
-	}
+	template < typename Q, typename = typename std::enable_if< !std::is_integral<Q>::value >::type >
+	int     findItem( Q const& value ) const;
 
 	void    setItemData( unsigned pos , void* data )
 	{
@@ -319,9 +327,9 @@ public:
 		return mItemList[pos].userData;
 	}
 
-	void    insertValue( unsigned pos , char const* str )
+	void    insertValue( unsigned pos , T const& val )
 	{
-		mItemList.insert( mItemList.begin() + pos , Item(str) );
+		mItemList.insert( mItemList.begin() + pos , Item(val) );
 		_this()->onAddItem( mItemList[pos] );
 	}
 
@@ -329,7 +337,15 @@ public:
 	{ 
 		if ( mCurSelect == INDEX_NONE)
 			return nullptr;
-		return mItemList[ mCurSelect ].value.c_str();
+		return TUIValueTraits<T>::GetString( mItemList[ mCurSelect ].value );
+	}
+
+	T const&    getSelectData() const
+	{
+		static T StaticValue = T();
+		if ( mCurSelect == INDEX_NONE )
+			return StaticValue;
+		return mItemList[ mCurSelect ].value;
 	}
 
 	void   modifySelection( unsigned pos )
@@ -343,9 +359,12 @@ protected:
 
 	struct Item : public Impl::ExtraData
 	{
-		Item( char const* val )
+		Item( T const& val )
 			:value( val ),userData( 0 ){}
-		std::string value;
+		template < typename Q >
+		Item( Q const& val )
+			:value( val ),userData( 0 ){}
+		T value;
 		void*       userData;
 	};
 
@@ -365,8 +384,8 @@ protected:
 
 
 
-template < class Impl, class CoreImpl >
-class WChoiceT : public TItemOwnerUI< Impl , CoreImpl >
+template < class Impl, class CoreImpl, class T = std::string >
+class WChoiceT : public TItemOwnerUI< Impl , CoreImpl, T >
 {
 private:
 	Impl* _this(){ return static_cast< Impl*>(this); }
@@ -374,7 +393,7 @@ private:
 public:
 
 	WChoiceT( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
-		:TItemOwnerUI< Impl , CoreImpl >( pos , size , parent )
+		:TItemOwnerUI< Impl , CoreImpl, T >( pos , size , parent )
 	{
 		mLightSelect = INDEX_NONE;
 	}
@@ -428,14 +447,14 @@ protected:
 };
 
 
-template < class Impl, class CoreImpl >
-class WListCtrlT : public TItemOwnerUI< Impl , CoreImpl >
+template < class Impl, class CoreImpl, class T = std::string >
+class WListCtrlT : public TItemOwnerUI< Impl , CoreImpl , T >
 {
 private:
 	Impl* _this(){ return static_cast< Impl*>(this); }
 public:
 	WListCtrlT( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
-		:TItemOwnerUI< Impl , CoreImpl >( pos , size , parent )
+		:TItemOwnerUI< Impl , CoreImpl, T >( pos , size , parent )
 	{
 		mIndexShowStart = 0;
 	}
@@ -472,9 +491,13 @@ public:
 	DEFINE_UI_CLASS(PanelT, WPanelT)
 	DEFINE_UI_CLASS(ButtonT, WButtonT)
 	DEFINE_UI_CLASS(TextCtrlT, WTextCtrlT)
-	DEFINE_UI_CLASS(ChoiceT, WChoiceT)
+	
+	template< class Impl , class T = std::string >
+	using ChoiceT = WChoiceT< Impl , CoreImpl , T >;
+	template< class Impl , class T = std::string >
+	using ListCtrlT = WListCtrlT< Impl , CoreImpl , T >;
+
 	DEFINE_UI_CLASS(NoteBookT, WNoteBookT)
-	DEFINE_UI_CLASS(ListCtrlT, WListCtrlT)
 
 #undef DEFINE_UI_CLASS
 

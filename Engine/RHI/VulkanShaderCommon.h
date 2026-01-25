@@ -77,10 +77,6 @@ namespace Render
 		{
 			return false;
 		}
-		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
-		{
-			return structInfo.blockName;
-		}
 
 		ShaderParameterMap mParameterMap;
 		VK_RESOURCE_TYPE(VkShaderModule)        mModule;
@@ -105,10 +101,6 @@ namespace Render
 		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam)
 		{
 			return false;
-		}
-		virtual char const* getParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
-		{
-			return structInfo.blockName;
 		}
 
 		void releaseResource()

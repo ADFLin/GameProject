@@ -154,16 +154,16 @@ ExecuteFunc MakeSimpleExection(TFunc&& func)
 
 
 class IGraphics2D;
-using MiscRenderFunc = std::function< void(IGraphics2D&) >;
+using ExecutionRenderFunc = std::function< void(IGraphics2D&) >;
 
-struct MiscRenderScope
+struct ExecutionRenderScope
 {
-	MiscRenderScope()
+	ExecutionRenderScope()
 	{
 		flag = nullptr;
 	}
 
-	MiscRenderScope(volatile int32* inFlag)
+	ExecutionRenderScope(volatile int32* inFlag)
 		:flag(inFlag)
 	{
 		if (flag)
@@ -172,7 +172,7 @@ struct MiscRenderScope
 		}
 	}
 
-	~MiscRenderScope()
+	~ExecutionRenderScope()
 	{
 		if (flag)
 		{
@@ -183,23 +183,23 @@ struct MiscRenderScope
 	volatile int32* flag;
 };
 
-class IMiscTestCore
+class IExecutionServices
 {
 public:
-	TINY_API IMiscTestCore();
-	TINY_API virtual ~IMiscTestCore();
+	TINY_API IExecutionServices();
+	TINY_API virtual ~IExecutionServices();
 
 	virtual void pauseExecution(uint32 threadId) = 0;
-	virtual MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe) = 0;
+	virtual ExecutionRenderScope registerRender(uint32 threadId, ExecutionRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe) = 0;
 	virtual EKeyCode::Type  waitInputKey(uint32 threadId) = 0;
 	virtual std::string     waitInputText(uint32 threadId, char const* defaultText) = 0;
 };
 
-struct TINY_API FMiscTestUtil
+struct TINY_API FExecutionUtil
 {
 	static bool IsTesting();
 	static void Pause();
-	static MiscRenderScope RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe = true);
+	static ExecutionRenderScope RegisterRender(ExecutionRenderFunc const& func, TVector2<int> const& size, bool bTheadSafe = true);
 	static EKeyCode::Type  WaitInputKey();
 	static std::string     WaitInputText(char const* defaultText);
 };

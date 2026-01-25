@@ -1289,13 +1289,13 @@ namespace CB
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamParamsData.bind(parameterMap, NormalGenParamsData::GetStructInfo().getParameterName(EShaderResourceType::Uniform));
-			mParamVertexOutput.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput).getParameterName(EShaderResourceType::Storage));
-			mParamVertexInput.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(VertexInput).getParameterName(EShaderResourceType::Storage));
-			mParamTriangleIndices.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIndices).getParameterName(EShaderResourceType::Storage));
+			mParamParamsData.bind(parameterMap, NormalGenParamsData::GetStructInfo().variableName);
+			mParamVertexOutput.bind(parameterMap, SHADER_PARAM(VertexOutput));
+			mParamVertexInput.bind(parameterMap, SHADER_PARAM(VertexInput));
+			mParamTriangleIndices.bind(parameterMap, SHADER_PARAM(TriangleIndices));
 #if USE_SHARE_TRIANGLE_INFO
-			mParamTriangleIdList.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(TriangleIdList).getParameterName(EShaderResourceType::Storage));
-			mParamShareTriangleInfos.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(ShareTriangleInfos).getParameterName(EShaderResourceType::Storage));
+			mParamTriangleIdList.bind(parameterMap, SHADER_PARAM(TriangleIdList));
+			mParamShareTriangleInfos.bind(parameterMap, SHADER_PARAM(ShareTriangleInfos));
 #endif
 		}
 
@@ -1347,8 +1347,8 @@ namespace CB
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamParamsData.bind(parameterMap, VertexGenParamsData::GetStructInfo().getParameterName(EShaderResourceType::Uniform));
-			mParamVertexOutput.bind(parameterMap, MAKE_STRUCTUREED_BUFFER_INFO(VertexOutput).getParameterName(EShaderResourceType::Storage));
+			mParamParamsData.bind(parameterMap, VertexGenParamsData::GetStructInfo().variableName);
+			mParamVertexOutput.bind(parameterMap, SHADER_PARAM(VertexOutput));
 		}
 
 		void setParameters(RHICommandList& commandList, RHIBuffer& ParamsBuffer, RHIBuffer& vertexBuffer)

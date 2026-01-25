@@ -210,10 +210,6 @@ namespace Render
 	};
 
 
-	char const* GetParameterNameOpenGL(StructuredBufferInfo const& structInfo, EShaderResourceType resourceType)
-	{
-		return structInfo.blockName;
-	}
 
 	bool OpenGLSystem::initialize(RHISystemInitParams const& initParam)
 	{
@@ -267,7 +263,6 @@ namespace Render
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 
-		StructuredBufferInfo::StaticGetParameterNameFunc = GetParameterNameOpenGL;
 
 		GRHIClipZMin = -1;
 		GRHIProjectionYSign = 1;

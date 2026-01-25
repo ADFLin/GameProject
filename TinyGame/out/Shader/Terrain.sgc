@@ -3,30 +3,30 @@
 
 struct OutputVSParam
 {
-	float2 UV;
-	float3 normal;
-	float3 data;
+	float2 UV MEMBER_OUT(TEXCOORD0);
+	float3 normal MEMBER_OUT(TEXCOORD1);
+	float3 data MEMBER_OUT(TEXCOORD2);
 };
 
 #if VERTEX_SHADER
 
 uniform float4x4 LocalToWorld;
-uniform sampler2D TextureHeight;
+DEFINE_TEXTURE(Texture2D, TextureHeight);
 
 uniform float3 TerrainScale;
 
 
 float  GetTerrainHeight(float2 uv)
 {
-	return texture(TextureHeight, uv).r * TerrainScale.z;
+	return TEXTURE_SAMPLE(TextureHeight, uv).r * TerrainScale.z;
 }
 float3 GetTerrainLocalPos(float2 uv)
 {
-	return float3(uv, texture(TextureHeight, uv).r) * TerrainScale;
+	return float3(uv, TEXTURE_SAMPLE(TextureHeight, uv).r) * TerrainScale;
 }
 float3 CalcTerrainNormal(float2 uv)
 {
-	int2 texSize = textureSize(TextureHeight, 0);
+	int2 texSize = TextureSize(TextureHeight);
 	float3 dtex = float3( float2(1.0) / float2(texSize) , 0 );
 
 #if 1
@@ -57,32 +57,33 @@ float3 CalcTerrainNormal(float2 uv)
 }
 
 
-layout(location = ATTRIBUTE_POSITION) in float4 InPos;
-
-out OutputVSParam OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 InPos, ATTRIBUTE_POSITION)
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
 	float height = GetTerrainHeight(InPos.xy);
-	float4 worldPos = LocalToWorld * float4(GetTerrainLocalPos(InPos.xy), 1);
+	float4 worldPos = mul(LocalToWorld , float4(GetTerrainLocalPos(InPos.xy), 1));
 	SvPosition = mul( View.worldToClip , worldPos );
 	OutputVS.UV = float2(InPos.x, InPos.y);
 	OutputVS.normal = CalcTerrainNormal(InPos.xy);
-	OutputVS.data = float3(InPos.x, InPos.y, texture(TextureHeight, InPos.xy).r);
+	OutputVS.data = float3(InPos.x, InPos.y, TEXTURE_SAMPLE(TextureHeight, InPos.xy).r);
 }
 
 #endif //VERTEX_SHADER
 
-uniform sampler2D TextureBaseColor;
+DEFINE_TEXTURE(Texture2D, TextureBaseColor);
 
 #if PIXEL_SHADER
 
-layout(location = 0) out float4 OutColor;
-in OutputVSParam OutputVS;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
 	float3 normal = normalize(OutputVS.normal);
 	float b = OutputVS.data.b;
-	float3 c = texture(TextureBaseColor, OutputVS.UV).rgb;
+	float3 c = TEXTURE_SAMPLE(TextureBaseColor, OutputVS.UV).rgb;
 	float shade = clamp(dot(normal, normalize(float3(1, 1, 1))), 0, 1);
 	c = c * shade;
 	OutColor = float4(c, 1);

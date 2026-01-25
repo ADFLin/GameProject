@@ -12,10 +12,10 @@
 
 struct OutputVSParam
 {
-	float3 localPos;
-	float3 worldPos;
-	float4 color;
-	float3 normal;
+	float3 localPos MEMBER_OUT(TEXCOORD0);
+	float3 worldPos MEMBER_OUT(TEXCOORD1);
+	float4 color    MEMBER_OUT(COLOR);
+	float3 normal   MEMBER_OUT(TEXCOORD3);
 };
 
 uniform float4x4 LocalToWorld;
@@ -50,11 +50,11 @@ PS_EARLY_DEPTH_TEST
 #endif
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
-	PS_INPUT_IS_FRONT_FACE
 #if USE_OIT
 #else
 	PS_OUTPUT(float4 OutColor, 0)
 #endif
+	PS_INPUT_IS_FRONT_FACE
 PS_ENTRY_END(MainPS)
 {
 	float3 N = normalize(OutputVS.normal);

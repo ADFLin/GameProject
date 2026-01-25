@@ -98,6 +98,8 @@ namespace Render
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
 		void setUniformBuffer(ShaderParameter const& parameter, RHIBuffer& buffer);
 		void setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOp op);
+		void clearStructuredBuffer(ShaderParameter const& parameter, EAccessOp op);
+
 		void setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize);
 
 		template< EShader::Type TypeValue >
@@ -371,6 +373,8 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 
+		void clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op);
+
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
 		{
@@ -406,6 +410,8 @@ namespace Render
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op);
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
+
+		void clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op);
 
 		void clearSRVResource(RHIResource& resource);
 

@@ -52,6 +52,8 @@ namespace Render
 		GRHISupportVPAndRTArrayIndexFromAnyShaderFeedingRasterizer = false;
 		GRHIRenderCount = 0;
 
+		GRHISupportRayTracing = false;
+
 		TChar const* cmdLine = FCommandLine::Get();
 		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
 	}
@@ -421,6 +423,28 @@ namespace Render
 	{
 		return EXECUTE_RHI_FUNC( RHICreateShader(type) );
 	}
+
+	RHIRayTracingPipelineState* RHI_TRACE_FUNC(RHICreateRayTracingPipelineState, RayTracingPipelineStateInitializer const& initializer)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateRayTracingPipelineState(initializer)));
+	}
+
+	RHIBottomLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateBottomLevelAccelerationStructure, RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBottomLevelAccelerationStructure(geometries, numGeometries, flags)));
+	}
+
+	RHITopLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateTopLevelAccelerationStructure, uint32 numInstances, EAccelerationStructureBuildFlags flags)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTopLevelAccelerationStructure(numInstances, flags)));
+	}
+
+	RHI_API RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState)
+	{
+		return EXECUTE_RHI_FUNC(RHICreateRayTracingShaderTable(pipelineState));
+	}
+
+
 
 	RHIShaderProgram* RHI_TRACE_FUNC(RHICreateShaderProgram)
 	{

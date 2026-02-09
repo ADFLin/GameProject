@@ -1874,7 +1874,7 @@ public:
 
 	virtual ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::D3D11;
+		return ERenderSystem::D3D12;
 	}
 	virtual bool setupRenderResource(ERenderSystem systemName) override
 	{

@@ -161,11 +161,41 @@ namespace Render
 	{
 		RHI_COMMAND_FUNC(commandList, RHIResourceTransition(resources, transition));
 	}
+	void RHICopyResource(RHICommandList& commandList, RHIResource& dest, RHIResource& src)
+	{
+		RHI_COMMAND_FUNC(commandList, RHICopyResource(dest, src));
+	}
 
 	void RHIFlushCommand(RHICommandList& commandList)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIFlushCommand());
 	}
+
+	void RHIBuildAccelerationStructure(RHICommandList& commandList, RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIBuildAccelerationStructure(dst, src, scratch));
+	}
+
+	void RHISetRayTracingPipelineState(RHICommandList& commandList, RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetRayTracingPipelineState(rtpso, sbt));
+	}
+
+	void RHIDispatchRays(RHICommandList& commandList, uint32 width, uint32 height, uint32 depth)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIDispatchRays(width, height, depth));
+	}
+
+	void RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList& commandList, RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIUpdateTopLevelAccelerationStructureInstances(tlas, instances, numInstances));
+	}
+
+	void RHISetShaderAccelerationStructure(RHICommandList& commandList, RHIShader* shader, char const* name, RHIAccelerationStructure* as)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetShaderAccelerationStructure(shader, name, as));
+	}
+
 #endif
 
 }//namespace Render

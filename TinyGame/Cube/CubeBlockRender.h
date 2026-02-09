@@ -8,9 +8,10 @@
 #include "Core/TypeHash.h"
 #include "Math/GeometryPrimitive.h"
 
+#include "CubeWorld.h"
+
 namespace Cube
 {
-	class IBlockAccess;
 	class Mesh;
 
 
@@ -39,6 +40,37 @@ namespace Cube
 		}
 	};
 
+	struct PaddedBlockAccess : public IBlockAccess
+	{
+		BlockId blocks[18][18][Chunk::LayerSize + 2];
+		Vec3i basePos;
+
+		void fill(class NeighborChunkAccess const& chunkAccess, Chunk* center, int layerIdx);
+
+		virtual BlockId  getBlockId(int x, int y, int z) override
+		{
+			int lx = x - basePos.x + 1;
+			int ly = y - basePos.y + 1;
+			int lz = z - basePos.z + 1;
+			if (lx < 0 || lx >= 18 || ly < 0 || ly >= 18 || lz < 0 || lz >= (Chunk::LayerSize + 2))
+				return BLOCK_NULL;
+			return blocks[lx][ly][lz];
+		}
+		virtual MetaType getBlockMeta(int x, int y, int z) override { return 0; }
+		virtual void  getNeighborBlockIds(Vec3i const& pos, BlockId outIds[]) override
+		{
+			int lx = pos.x - basePos.x + 1;
+			int ly = pos.y - basePos.y + 1;
+			int lz = pos.z - basePos.z + 1;
+			outIds[FACE_X] = blocks[lx + 1][ly][lz];
+			outIds[FACE_NX] = blocks[lx - 1][ly][lz];
+			outIds[FACE_Y] = blocks[lx][ly + 1][lz];
+			outIds[FACE_NY] = blocks[lx][ly - 1][lz];
+			outIds[FACE_Z] = blocks[lx][ly][lz + 1];
+			outIds[FACE_NZ] = blocks[lx][ly][lz - 1];
+		}
+	};
+
 	class BlockRenderer
 	{
 	public:
@@ -48,6 +80,7 @@ namespace Cube
 			bound.invalidate();
 		}
 
+		void     drawLayer(Chunk& chunk, int layerIdx);
 		void     draw(Vec3i const& offset, BlockId id );
 		void     drawSimple(unsigned faceMask, uint32 matId);
 		void     drawUnknown(unsigned faceMask);
@@ -120,6 +153,7 @@ namespace Cube
 		Vec3f   mVertexOffset;
 		Mesh::Vertex mCurVertex;
 		Math::TAABBox< Vec3f > bound;
+		Math::TAABBox< Vec3f > mOccluderBox;
 		TArray< BlockSurfaceQuad > mQuads;
 		TArray< BlockVertex > mVertices;
 		TArray< uint32 >      mIndices;

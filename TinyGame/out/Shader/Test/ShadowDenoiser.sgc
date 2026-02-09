@@ -1,0 +1,109 @@
+Texture2D<float4> gInput : register(t0);
+Texture2D<float4> gHistory : register(t1);
+Texture2D<float2> gDepth : register(t2); // R: Camera Depth, G: Blocker Distance
+RWTexture2D<float4> gOutput : register(u0);
+
+SamplerState gLinearSampler : register(s0);
+
+float4x4 gClipToWorld;
+float4x4 gWorldToPrevClip;
+float3   gCameraPos;
+float    gDenoiserAlpha;
+int      gSpatialRadius;
+float    gSigmaScale;
+float    gConfidenceScale;
+float    gMaxSpatialRadius;
+
+[numthreads(16, 16, 1)]
+void main(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    uint2 size;
+    gOutput.GetDimensions(size.x, size.y);
+    if (dispatchThreadID.x >= size.x || dispatchThreadID.y >= size.y) return;
+
+    uint2 center = dispatchThreadID.xy;
+    float4 centerVal = gInput[center];
+    float2 depthData = gDepth[center];
+    float  currentRayDepth = depthData.x;
+    float  blockerDist = depthData.y;
+
+    // --- Part 1: Contact Hardening Spatial Denoise ---
+    // Scale radius by blocker distance (smaller distance = sharper shadow)
+    // We normalize blockerDist relative to some reference (e.g. 10.0)
+    float hardeningFactor = saturate(blockerDist / 10.0);
+    int dynamicRadius = int(lerp(1.0, float(gSpatialRadius), hardeningFactor));
+    
+    float shadowSum = 0;
+    float weightSum = 0;
+    
+    float m1 = 0;
+    float m2 = 0;
+    float count = 0;
+
+    for (int y = -dynamicRadius; y <= dynamicRadius; ++y)
+    {
+        for (int x = -dynamicRadius; x <= dynamicRadius; ++x)
+        {
+            uint2 pos = clamp(center + int2(x, y), 0, size - 1);
+            float4 sampleVal = gInput[pos];
+            
+            float distSq = float(x*x + y*y);
+            float weight = exp(-distSq / max(1.0, float(dynamicRadius * dynamicRadius) / 2.0));
+            
+            float3 colorDiff = centerVal.rgb - sampleVal.rgb;
+            weight *= exp(-dot(colorDiff, colorDiff) * 10.0); 
+            
+            shadowSum += sampleVal.a * weight;
+            weightSum += weight;
+
+            if (abs(x) <= 1 && abs(y) <= 1)
+            {
+                float s = sampleVal.a;
+                m1 += s;
+                m2 += s * s;
+                count += 1.0;
+            }
+        }
+    }
+    float spatialShadow = shadowSum / weightSum;
+    
+    // Variance Clamping
+    float mu = m1 / count;
+    float sigma = sqrt(abs(m2 / count - mu * mu));
+    float minShadow = mu - gSigmaScale * sigma; 
+    float maxShadow = mu + gSigmaScale * sigma;
+
+    // --- Part 2: Reprojection ---
+    float2 screenUV = (float2(center) + 0.5) / float2(size);
+    float4 worldNear = mul(gClipToWorld, float4(screenUV.x * 2.0 - 1.0, 1.0 - screenUV.y * 2.0, 0, 1.0));
+    float3 rayDir = normalize(worldNear.xyz / worldNear.w - gCameraPos);
+    float3 worldPos = gCameraPos + rayDir * currentRayDepth;
+
+    float4 prevClip = mul(gWorldToPrevClip, float4(worldPos, 1.0));
+    prevClip.xyz /= prevClip.w;
+    float2 prevUV = float2(prevClip.x * 0.5 + 0.5, 0.5 - prevClip.y * 0.5);
+    
+    float temporalShadow = spatialShadow;
+
+    if (all(prevUV > 0.0) && all(prevUV < 1.0) && currentRayDepth < 950.0)
+    {
+        float4 historyVal = gHistory.SampleLevel(gLinearSampler, prevUV, 0);
+        float historyShadow = historyVal.a;
+
+        historyShadow = clamp(historyShadow, minShadow, maxShadow);
+        
+        float3 albedoDiff = abs(centerVal.rgb - historyVal.rgb);
+        float confidence = exp(-dot(albedoDiff, albedoDiff) * gConfidenceScale);
+        
+        float2 motion = (screenUV - prevUV) * size;
+        float motionLen = length(motion);
+        
+        float alpha = lerp(gDenoiserAlpha, 0.2, saturate(motionLen * 0.5));
+        alpha = lerp(0.4, alpha, confidence); 
+        
+        temporalShadow = lerp(historyShadow, spatialShadow, alpha);
+    }
+
+    float3 finalColor = centerVal.rgb * (0.05 + 0.95 * temporalShadow);
+    gOutput[center] = float4(finalColor, temporalShadow);
+}

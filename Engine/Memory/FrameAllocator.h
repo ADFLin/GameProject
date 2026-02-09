@@ -13,6 +13,7 @@ public:
 
 	void  cleanup();
 	void* alloc( size_t size );
+	void* alloc( size_t size, size_t alignment );
 	void  clearFrame();
 
 	struct Chunk
@@ -37,7 +38,7 @@ public:
 
 	void freePageList(Chunk* chunk);
 
-	int     mNextIndex = 0;;
+	int     mNextIndex = 0;
 	Chunk*  mUsageList;
 	Chunk*  mFreeList;
 	Chunk*  mCur;
@@ -62,7 +63,7 @@ struct StackMaker
 
 inline void* operator new ( size_t size , FrameAllocator& allocator  )
 {
-	void* out = allocator.alloc( size );
+	void* out = allocator.alloc( size , 16 );
 	if ( !out )
 		throw std::bad_alloc();
 
@@ -77,8 +78,5 @@ inline void* operator new[] ( size_t size , FrameAllocator& allocator  )
 
 	return out;
 }
-
-
-
 
 #endif // FrameAllocator_h__

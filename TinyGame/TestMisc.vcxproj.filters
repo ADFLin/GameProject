@@ -277,6 +277,9 @@
     <ClCompile Include="TestMisc\Stage\CollisionBenchmarkStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\ParallelCollision\ParallelCollision.cpp">
+      <Filter>ParallelCollision</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
@@ -467,6 +470,9 @@
     <ClInclude Include="TestMisc\Stage\TMachineStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="TestMisc\ParallelCollision\ParallelCollision.h">
+      <Filter>ParallelCollision</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Test">
@@ -516,6 +522,9 @@
     </Filter>
     <Filter Include="GameMonumentValley">
       <UniqueIdentifier>{54ec6160-7e12-4d39-9175-e5469d7962a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ParallelCollision">
+      <UniqueIdentifier>{56A8F1A2-D24D-4A7E-AA91-4093CD084011}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

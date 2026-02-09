@@ -1,0 +1,172 @@
+RWTexture2D<float4> gOutput : register(u0);
+RWTexture2D<float2> gDepthOutput : register(u1); // R: Camera Depth, G: Blocker Distance
+RaytracingAccelerationStructure gScene : register(t0);
+
+Texture2D gTexture : register(t1);
+SamplerState gTextureSampler : register(s0);
+
+struct Vertex
+{
+    float3 pos;
+    float2 uv;
+};
+cbuffer __LocalConstants : register(b0, space1)
+{
+    float4 gInstanceColor;
+    float3 gUVScale;
+};
+StructuredBuffer<Vertex> gVertices : register(t0, space1);
+
+struct RayPayload
+{
+    float4 color;
+    float  depth;
+    uint   isShadowRay;
+};
+
+//cbuffer __Globals : register(b0, space0)
+//{
+    float4x4 gClipToWorld;
+    float3   gCameraPos;
+    uint     gFrameIndex;
+    float3   gLightPos;
+    float    gLightRadius;
+    uint     gNumSamples;
+//}
+
+[shader("raygeneration")]
+void RayGen()
+{
+    uint2 launchIndex = DispatchRaysIndex().xy;
+    uint2 launchDim = DispatchRaysDimensions().xy;
+    float2 uv = (float2(launchIndex) + 0.5) / float2(launchDim);
+    float4 worldPos = mul(gClipToWorld, float4(uv.x * 2 - 1, 1 - uv.y * 2, 0, 1));
+    worldPos.xyz /= worldPos.w;
+
+    RayDesc ray;
+    ray.Origin = gCameraPos;
+    ray.Direction = normalize(worldPos.xyz - gCameraPos);
+    ray.TMin = 0.1; ray.TMax = 1000;
+
+    RayPayload payload;
+    payload.color = float4(0, 0, 0, 0);
+    payload.depth = 1000.0;
+    payload.isShadowRay = 0;
+    TraceRay(gScene, RAY_FLAG_NONE, 0xFF, 0, 1, 0, ray, payload);
+
+    gOutput[launchIndex] = payload.color;
+    // G channel will be filled in the closesthit shaders
+    gDepthOutput[launchIndex].x = payload.depth;
+}
+
+[shader("miss")]
+void RayMiss_Test(inout RayPayload payload)
+{
+    if (payload.isShadowRay) payload.color = float4(1, 1, 1, 1);
+    else {
+        float t = 0.5 * (WorldRayDirection().z + 1.0);
+        payload.color = float4(lerp(float3(1, 1, 1), float3(0.1, 0.2, 0.8), t), 1.0);
+        payload.depth = 1000.0;
+    }
+}
+
+uint PCGHash(uint seed) {
+    uint state = seed * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+// Returns visibility (x) and average blocker distance (y)
+float2 GetShadowInfo(float3 hitPoint, float3 lightPos, float lightRadius, uint2 pixelPos)
+{
+    float visibility = 0.0;
+    float blockerDistSum = 0.0;
+    uint  blockerCount = 0;
+    
+    uint numSamples = max(1, gNumSamples); 
+    uint seed = PCGHash(pixelPos.x + pixelPos.y * 1024 + gFrameIndex * 26699);
+    
+    float3 lightDir = normalize(lightPos - hitPoint);
+    float3 lightTangent = normalize(cross(lightDir, abs(lightDir.z) < 0.99 ? float3(0,0,1) : float3(1,0,0)));
+    float3 lightBitangent = cross(lightDir, lightTangent);
+
+    float jitter = float(PCGHash(seed)) / 4294967296.0;
+    for(uint i = 0; i < numSamples; ++i)
+    {
+        float theta = i * 2.39996 + jitter * 6.28318;
+        float r = sqrt(float(i) + jitter) / sqrt(float(numSamples)) * lightRadius;
+        
+        float3 samplePos = lightPos + (lightTangent * cos(theta) + lightBitangent * sin(theta)) * r;
+        float3 shadowDir = normalize(samplePos - hitPoint);
+        RayDesc ray;
+        ray.Origin = hitPoint + shadowDir * 0.01;
+        ray.Direction = shadowDir;
+        ray.TMin = 0.001; ray.TMax = distance(hitPoint, samplePos);
+
+        RayPayload shadowPayload;
+        shadowPayload.isShadowRay = 1; shadowPayload.color = float4(0,0,0,0);
+        shadowPayload.depth = ray.TMax; // Default to max distance
+        
+        // We use standard TraceRay to get the distance if it hits
+        TraceRay(gScene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0, ray, shadowPayload);
+        
+        if (shadowPayload.color.r < 0.5) // Hit occluder
+        {
+            blockerDistSum += shadowPayload.depth; 
+            blockerCount++;
+        }
+        else
+        {
+            visibility += 1.0;
+        }
+    }
+    
+    float avgBlockerDist = (blockerCount > 0) ? (blockerDistSum / float(blockerCount)) : 100.0;
+    return float2(visibility / float(numSamples), avgBlockerDist);
+}
+
+[shader("closesthit")]
+void TriangleHit(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attr)
+{
+    if (payload.isShadowRay) { 
+        payload.color = float4(0,0,0,1); 
+        payload.depth = RayTCurrent(); // Store occluder distance
+        return; 
+    }
+    
+    float t = RayTCurrent();
+    payload.depth = t;
+
+    float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * t;
+    float3 weights = float3(1 - attr.barycentrics.x - attr.barycentrics.y, attr.barycentrics.x, attr.barycentrics.y);
+    Vertex v0 = gVertices[PrimitiveIndex()*3+0], v1 = gVertices[PrimitiveIndex()*3+1], v2 = gVertices[PrimitiveIndex()*3+2];
+    float2 uv = v0.uv * weights.x + v1.uv * weights.y + v2.uv * weights.z;
+    float4 texColor = gTexture.SampleLevel(gTextureSampler, uv * gUVScale.xy, 0);
+    
+    float2 shadowInfo = GetShadowInfo(hitPoint, gLightPos, gLightRadius, DispatchRaysIndex().xy);
+    payload.color = float4(texColor.rgb * gInstanceColor.rgb, shadowInfo.x);
+    
+    gDepthOutput[DispatchRaysIndex().xy].y = shadowInfo.y;
+}
+
+[shader("closesthit")]
+void FloorHit(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attr)
+{
+    if (payload.isShadowRay) { 
+        payload.color = float4(0,0,0,1); 
+        payload.depth = RayTCurrent(); // Store occluder distance
+        return; 
+    }
+    
+    float t = RayTCurrent();
+    payload.depth = t;
+
+    float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * t;
+    float2 shadowInfo = GetShadowInfo(hitPoint, gLightPos, gLightRadius, DispatchRaysIndex().xy);
+    
+    float2 checkPos = floor(hitPoint.xy * 0.2);
+    float checker = (fmod(checkPos.x + checkPos.y, 2.0) == 0.0) ? 1.0 : 0.5;
+    payload.color = float4(float3(checker, checker, checker), shadowInfo.x);
+    
+    gDepthOutput[DispatchRaysIndex().xy].y = shadowInfo.y;
+}

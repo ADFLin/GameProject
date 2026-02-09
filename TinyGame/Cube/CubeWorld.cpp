@@ -9,6 +9,7 @@
 #include "IWorldEventListener.h"
 
 #include <algorithm>
+#include "ProfileSystem.h"
 
 
 namespace Cube
@@ -160,8 +161,12 @@ namespace Cube
 	{
 	public:
 
+
+
 		virtual void executeWork()
 		{
+			PROFILE_ENTRY("ChunkGenerate");
+			
 			chunk->state = EChunkLoadState::Generating;
 			LandGenerater gen;
 			gen.height = 256;

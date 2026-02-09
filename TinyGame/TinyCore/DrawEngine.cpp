@@ -9,6 +9,7 @@
 #include "RHI/RHICommand.h"
 
 #include "RHI/OpenGLCommand.h"
+#include "Renderer/RenderThread.h"
 
 #include "RHI/RHIGraphics2D.h"
 #include "GameGlobal.h"
@@ -58,14 +59,15 @@ namespace
 			GDefaultRHIName = ERenderSystem::Vulkan;
 		}
 	}
-
 	TConsoleVariable< bool > CVarUseMultisample{ false , "g.UseMultisample", CVF_TOGGLEABLE };
+
 	TConsoleVariableDelegate< char const* > CVarDefalultRHISystem
 	{
 		&GetDefaultRHI, &SetDefaultRHI,
 		"g.DefaultRHI",
 		0
 	};
+	TConsoleVariable< bool > CVarEnableRenderThread{ false , "g.EnableRenderThread", CVF_TOGGLEABLE };
 
 	ERenderSystem ConvTo(RHISystemName name)
 	{
@@ -147,6 +149,7 @@ public:
 	void drawText(Vector2 const& pos , char const* str ) override { mImpl->drawText(VRef(pos) , str ); }
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip) override { mImpl->drawText(VRef(pos), size, str, beClip); }
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment, bool beClip) override { mImpl->drawText(VRef(pos), size, str, alignment, beClip); }
+	Vec2i calcTextExtentSize(char const* str, int len) override { return mImpl->calcTextExtentSize(str, len); }
 
 	void  beginXForm() override { mImpl->beginXForm(); }
 	void  finishXForm() override { mImpl->finishXForm(); }
@@ -176,6 +179,7 @@ DrawEngine::DrawEngine()
 {
 	mbInitialized = false;
 	bRHIShutdownDeferred = false;
+	bEnableRenderThread = CVarEnableRenderThread;
 }
 
 DrawEngine::~DrawEngine()
@@ -240,7 +244,7 @@ void DrawEngine::update(long deltaTime)
 
 bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 {
-	if (isRHIEnabled())
+	if (isRHIEnabled() && mSystemLocked == ERenderSystem::None)
 	{
 		shutdownSystem(false, false);
 	}
@@ -577,6 +581,11 @@ bool DrawEngine::beginFrame()
 
 	if ( isRHIEnabled() )
 	{
+		if (canUseRenderThread())
+		{
+			RenderThread::FlushCommands();
+		}
+
 		if (mGLContext)
 		{
 			mGLContext->makeCurrent();
@@ -612,7 +621,18 @@ void DrawEngine::endFrame()
 	if ( isRHIEnabled() )
 	{
 		mRHIGraphics->endFrame();
-		RHIEndRender(!bUsePlatformBuffer);
+		bool bSwapBuffer = !bUsePlatformBuffer;
+		if (canUseRenderThread())
+		{
+			RenderThread::AddCommand("SwapBuffer", [bSwapBuffer]()
+			{
+				RHIEndRender(bSwapBuffer);
+			});
+		}
+		else
+		{
+			RHIEndRender(bSwapBuffer);
+		}
 	}
 	else
 	{
@@ -835,6 +855,17 @@ void DrawEngine::drawProfile(Vec2i const& pos, char const* category)
 		ProfileFrameVisualizeDraw draw(g, pos);
 		draw.visitNodes();
 	}
+}
+
+bool DrawEngine::canUseRenderThread() const
+{
+	if (!isRHIEnabled())
+		return false;
+
+	if (mSystemName == ERenderSystem::OpenGL)
+		return false;
+
+	return CVarEnableRenderThread;
 }
 
 void DrawEngine::changeScreenSize(int w, int h, bool bUpdateViewport /*= true*/)

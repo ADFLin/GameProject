@@ -177,6 +177,17 @@ public:
 		return FCString::PrintfV(mData, fmt, arg);
 	}
 
+	template<class ...Args>
+	FORCEINLINE int appendFormat(CharT const* fmt, Args&& ...args)
+	{
+		size_t currentLen = length();
+		int written = FCString::PrintfImpl(mData + currentLen, (int)(CHAR_COUNT - currentLen), fmt, TFormatArgPolicy<Args>::Convert(args)...);
+#if INLINE_STRING_USE_LENGTH_MEMBER
+		mLength = currentLen + written;
+#endif
+		return written;
+	}
+
 	FORCEINLINE void replace(CharT from, CharT to)
 	{
 		CharT* ptr = mData;

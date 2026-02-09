@@ -2,7 +2,9 @@
 #ifndef TestRHIStage_H_CAE7EE6B_BBA3_4470_80BE_5B234E975DD8
 #define TestRHIStage_H_CAE7EE6B_BBA3_4470_80BE_5B234E975DD8
 
+
 #include "Stage/TestRenderStageBase.h"
+
 
 namespace Render
 {

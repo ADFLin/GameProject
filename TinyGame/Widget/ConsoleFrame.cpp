@@ -7,6 +7,7 @@ ConsoleFrame::ConsoleFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget*
 {
 	setRenderType( GPanel::eRectType );
 	mCmdText = new ConsoleCmdTextCtrl(UI_COM_TEXT, Vec2i(3, size.y - 3 - GTextCtrl::UI_Height), size.x - 6, this);
+	mCmdText->setAlignment(EHorizontalAlign::Left);
 }
 
 ConsoleFrame::~ConsoleFrame()

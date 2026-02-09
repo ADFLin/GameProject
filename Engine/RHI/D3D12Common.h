@@ -6,6 +6,7 @@
 #include "D3DSharedCommon.h"
 #include "D3D12Buffer.h"
 #include "D3D12Utility.h"
+#include "RHIRayTracingTypes.h"
 
 #include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
@@ -109,6 +110,9 @@ namespace Render
 
 
 		static D3D12_PRIMITIVE_TOPOLOGY_TYPE ToTopologyType(EPrimitive type);
+		
+		static D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS To(EAccelerationStructureBuildFlags flags);
+		static D3D12_RAYTRACING_INSTANCE_FLAGS To(ERayTracingInstanceFlags flags);
 	};
 
 
@@ -260,37 +264,86 @@ namespace Render
 			return result;
 		}
 
-		template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
-		TSOSubobjectStreamTraits< SubobjectID >& addDataT()
+		void reserve(size_t subobjectCount, size_t bufferSize)
 		{
-			static_assert(std::is_trivially_destructible_v<TSOSubobjectStreamTraits< SubobjectID >>);
-			size_t offset = mBuffer.size();
-			mBuffer.insert(mBuffer.end(), sizeof(TSOSubobjectStreamTraits< SubobjectID >), 0);
+			mSubobjects.reserve(subobjectCount);
+			mBuffer.reserve(bufferSize);
+			mStrings.reserve(subobjectCount * 2);
+			mStringRef.reserve(subobjectCount * 2);
+		}
 
+		size_t allocRaw(size_t size, size_t alignment = alignof(void*))
+		{
+			size_t offset = (mBuffer.size() + alignment - 1) & ~(alignment - 1);
+			mBuffer.resize(offset + size);
+			return offset;
+		}
+
+		template<typename T>
+		T* getPtr(size_t offset) { return reinterpret_cast<T*>(mBuffer.data() + offset); }
+
+		template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
+		typename TSOSubobjectStreamTraits< SubobjectID >::DataType& addDataT()
+		{
+			using DataType = typename TSOSubobjectStreamTraits< SubobjectID >::DataType;
+			static_assert(std::is_trivially_destructible_v<DataType>);
+			
+			size_t offset = allocRaw(sizeof(DataType), alignof(DataType));
 			void* ptr = mBuffer.data() + offset;
-			FTypeMemoryOp::Construct<TSOSubobjectStreamTraits< SubobjectID >>(ptr);
+			FTypeMemoryOp::Construct<DataType>(ptr);
 
 			D3D12_STATE_SUBOBJECT subobject;
 			subobject.Type = SubobjectID;
 			subobject.pDesc = (void*)offset;
 			mSubobjects.push_back(subobject);
-			return *reinterpret_cast<TSOSubobjectStreamTraits< SubobjectID >*>(ptr);
+			return *reinterpret_cast<DataType*>(ptr);
 		}
 
-		void addString(WStringView const& str, LPCWSTR* pRef = nullptr)
+		struct StringPatchInfo
 		{
-			size_t offset = mBuffer.size();
+			size_t offsetInBuffer;
+			uint32 stringIndex;
+		};
+
+		void addString(WStringView const& str, size_t offsetInMember)
+		{
+			size_t stringOffset = mBuffer.size();
 			CHECK(str.length() > 0);
-			mBuffer.insert(mBuffer.end(), (uint8 const*)str.data() , (uint8 const*)(str.data()) + sizeof(*LPCWSTR(0)) * (str.length() + 1));
-			LPWSTR strData = (LPWSTR)&mBuffer[offset];
+			mBuffer.insert(mBuffer.end(), (uint8 const*)str.data(), (uint8 const*)(str.data()) + sizeof(wchar_t) * (str.length() + 1));
+			LPWSTR strData = (LPWSTR)&mBuffer[stringOffset];
 			strData[str.length()] = 0;
 
-			mStrings.push_back(LPCWSTR(offset));
+			uint32 stringIndex = (uint32)mStrings.size();
+			mStrings.push_back((LPCWSTR)stringOffset);
 
-			if (pRef)
+			if (offsetInMember != size_t(-1))
 			{
-				*pRef = (LPCWSTR)(mStrings.size() - 1);
-				mStringRef.push_back(pRef);
+				mStringRef.push_back({ offsetInMember, stringIndex });
+			}
+		}
+
+		void addString(WStringView const& str, LPCWSTR* pRef)
+		{
+			if (pRef == nullptr)
+			{
+				addString(str, size_t(-1));
+				return;
+			}
+
+			uint8* pBufStart = mBuffer.data();
+			uint8* pBufEnd = pBufStart + mBuffer.size();
+			if ((uint8*)pRef >= pBufStart && (uint8*)pRef < pBufEnd)
+			{
+				size_t offset = (uint8*)pRef - pBufStart;
+				addString(str, offset);
+			}
+			else
+			{
+				// For external pointers, we add the string but can only assign the pointer 
+				// after finalizing (or just assume it's settled). 
+				// In DXR PSO use-case, it's always in-buffer.
+				addString(str, size_t(-1));
+				// Optional: track external refs if needed.
 			}
 		}
 
@@ -305,13 +358,14 @@ namespace Render
 				ptr = LPCWSTR(mBuffer.data() + uint32(ptr));
 			}
 
-			for (auto pRef : mStringRef)
+			for (auto& patch : mStringRef)
 			{
-				*pRef = *(mStrings.data() + uint32(*pRef));
+				LPCWSTR* pTarget = (LPCWSTR*)(mBuffer.data() + patch.offsetInBuffer);
+				*pTarget = mStrings[patch.stringIndex];
 			}
 		}
 
-		TArray< LPCWSTR* > mStringRef;
+		TArray< StringPatchInfo > mStringRef;
 		TArray< LPCWSTR >  mStrings;
 		TArray< D3D12_STATE_SUBOBJECT> mSubobjects;
 		TArray< uint8 > mBuffer;
@@ -777,7 +831,22 @@ namespace Render
 		template < class T >
 		static auto* To(TRHIResourceRef<T>& ptr) { return D3D12Cast::To(ptr.get()); }
 
-		static ID3D12Resource* GetResource(RHIResource& RHIObject);
+		static ID3D12Resource* GetTextureResource(RHITextureBase& texture)
+		{
+			D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
+			return textureImpl.getD3D12Resource();
+		}
+
+		static ID3D12Resource* GetResource(RHIResource& resource)
+		{
+			if (resource.getResourceType() == EResourceType::Buffer)
+				return static_cast<D3D12Buffer&>(resource).getResource();
+
+			if (resource.getResourceType() == EResourceType::Texture)
+				return GetTextureResource(static_cast<RHITextureBase&>(resource));
+
+			return nullptr;
+		}
 		static ID3D12Resource* GetResource(RHIResource* RHIObject) { return RHIObject ? GetResource(*RHIObject) : nullptr; }
 		template< class T >
 		static ID3D12Resource* GetResource(TRHIResourceRef<T>& refPtr) { return GetResource(refPtr.get()); }

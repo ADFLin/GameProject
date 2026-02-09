@@ -25,6 +25,7 @@ namespace Cube
 
 	Block::Block( BlockId id ) :mId( id )
 		,mbSolid( true )
+		,mbFullCube( true )
 	{
 		if ( sBlockMap[ id ] )
 		{

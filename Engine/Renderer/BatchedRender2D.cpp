@@ -8,7 +8,6 @@
 //#TODO : Heap Corrupted when show console frame draw Round Rect
 
 #define USE_NEW_LINE_IDNEX 1
-#define USE_BATCHED_GROUP 1
 #define USE_SHAPE_CACHE 1
 
 namespace Render
@@ -836,26 +835,19 @@ namespace Render
 		mProgramCur = nullptr;
 		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 		setupInputState(commandList);
-		CHECK(mGroups.size() == 0);
 	}
 
-	void BatchedRender::render(RenderState const& renderState, RenderBatchedElementList& elementList)
+	void BatchedRender::render(RenderBatchedElementList& elementList)
 	{
-#if USE_BATCHED_GROUP
-		RenderGroup group;
-		group.elements = std::move(elementList.mElements);
-		group.state = renderState;
-		mGroups.push_back(std::move(group));
-#else
 		if (!tryLockBuffer())
 			return;
-
-		updateRenderState(*mCommandList, renderState);
-		emitElements(elementList.mElements, renderState);
+		RenderState currentState;
+		currentState.setInit();
+		//updateRenderState(*mCommandList, currentState);
+		emitElements(elementList.mElements, currentState);
 		elementList.releaseElements();
 		flushDrawCommand();
 		elementList.mAllocator.clearFrame();
-#endif
 	}
 
 	void BatchedRender::setViewportSize(int width, int height)
@@ -865,67 +857,19 @@ namespace Render
 		mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
 	}
 
-	void BatchedRender::flushGroup()
-	{
-		if (mGroups.empty())
-			return;
-
-		ON_SCOPE_EXIT
-		{
-			mGroups.clear();
-		};
-
-		if (!tryLockBuffer())
-			return;
-
-		mIndexRender = 0;
-		for (int index = 0; index < mGroups.size(); ++index)
-		{
-			mIndexEmit = index;
-			RenderGroup& group = mGroups[index];
-			group.indexStart = mIndexBuffer.usedCount;
-			emitElements(group.elements, group.state);
-			group.indexCount = mIndexBuffer.usedCount - group.indexStart;
-		}
-
-		flushDrawCommand();
-	}
-
 	void BatchedRender::flushDrawCommand(bool bForceUpdateState)
 	{
 		PROFILE_ENTRY("flushDrawCommand");
 
 		mTexVertexBuffer.unlock();
 		mIndexBuffer.unlock();
-
-#if USE_BATCHED_GROUP
-		for (; mIndexRender < mIndexEmit; ++mIndexRender)
+		if (mIndexBuffer.usedCount > 0)
 		{
-			RenderGroup& group = mGroups[mIndexRender];
-			updateRenderState(*mCommandList, group.state);
-			RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, group.indexStart, group.indexCount);
+			RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, 0, mIndexBuffer.usedCount);
 		}
-
-		{
-			RenderGroup& group = mGroups[mIndexEmit];
-			int count = mIndexBuffer.usedCount - group.indexStart;
-			if (count)
-			{
-				updateRenderState(*mCommandList, group.state);
-				RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, group.indexStart, count);
-			}
-			else if (bForceUpdateState)
-			{
-				updateRenderState(*mCommandList, group.state);
-			}
-			group.indexStart = 0;
-		}
-#else
-		RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, 0, mIndexBuffer.usedCount);
-#endif
 	}
 
-	void BatchedRender::emitElements(TArray<RenderBatchedElement*> const& elements, RenderState const& renderState)
+	void BatchedRender::emitElements(TArray<RenderBatchedElement*> const& elements, RenderState& inoutRenderState)
 	{
 		for (RenderBatchedElement* element : elements)
 		{
@@ -1280,13 +1224,13 @@ namespace Render
 					if (payload.renderer)
 					{
 						mbCustomState = true;
-						payload.renderer->render(*mCommandList, mBaseTransform, *element, renderState);
+						payload.renderer->render(*mCommandList, mBaseTransform, *element, inoutRenderState);
 						FObjectManage::Release(payload.renderer, payload.manageMode);
 					}
 					else
 					{
 						mbCustomState = false;
-						commitRenderState(*mCommandList, renderState);
+						commitRenderState(*mCommandList, inoutRenderState);
 					}
 				}
 				break;
@@ -1301,15 +1245,31 @@ namespace Render
 
 					}
 
-					payload.renderer->render(*mCommandList, mBaseTransform, *element, renderState);
+					payload.renderer->render(*mCommandList, mBaseTransform, *element, inoutRenderState);
 					if (element->type == RenderBatchedElement::CustomRenderAndState)
 					{
-						commitRenderState(*mCommandList, renderState);
+						commitRenderState(*mCommandList, inoutRenderState);
 					}
 					FObjectManage::Release(payload.renderer, payload.manageMode);
 				}
 				break;
+			case RenderBatchedElement::ModifyState:
+				{
+					ModifyStateBatchedElement* modifyState = static_cast<ModifyStateBatchedElement*>((RenderBatchedElementBase*)element);
+					
+					flushDrawCommand(false);
+					if (!tryLockBuffer())
+					{
 
+					}
+
+					inoutRenderState = modifyState->state;
+					if (modifyState->bResetAll)
+						commitRenderState(*mCommandList, inoutRenderState);
+					else
+						updateRenderState(*mCommandList, inoutRenderState);
+				}
+				break;
 			}
 		}
 	}
@@ -1377,9 +1337,7 @@ namespace Render
 
 	void BatchedRender::flush()
 	{
-#if USE_BATCHED_GROUP
-		flushGroup();
-#endif
+
 	}
 	
 	void BatchedRender::setupInputState(RHICommandList& commandList)

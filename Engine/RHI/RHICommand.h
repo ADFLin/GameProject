@@ -344,6 +344,10 @@ namespace Render
 
 	RHI_API void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader);
 
+	RHI_API RHIRayTracingPipelineState* RHI_TRACE_FUNC(RHICreateRayTracingPipelineState, RayTracingPipelineStateInitializer const& initializer);
+	RHI_API RHIBottomLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateBottomLevelAccelerationStructure, RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags);
+	RHI_API RHITopLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateTopLevelAccelerationStructure, uint32 numInstances, EAccelerationStructureBuildFlags flags);
+
 
 
 	enum class EResourceTransition
@@ -352,8 +356,19 @@ namespace Render
 		SRV,
 		UAVBarrier,
 		RenderTarget,
+		CopySrc,
+		CopyDest,
 	};
 	RHI_API void RHIResourceTransition(RHICommandList& commandList, TArrayView<RHIResource*> resources, EResourceTransition transition);
+
+	RHI_API void RHICopyResource(RHICommandList& commandList, RHIResource& dest, RHIResource& src);
+
+	RHI_API void RHIBuildAccelerationStructure(RHICommandList& commandList, RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch);
+	RHI_API void RHISetRayTracingPipelineState(RHICommandList& commandList, RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt = nullptr);
+	RHI_API void RHIDispatchRays(RHICommandList& commandList, uint32 width, uint32 height, uint32 depth);
+	RHI_API void RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList& commandList, RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances);
+	RHI_API void RHISetShaderAccelerationStructure(RHICommandList& commandList, RHIShader* shader, char const* name, RHIAccelerationStructure* as);
+
 
 	RHI_API void RHIFlushCommand(RHICommandList& commandList);
 
@@ -407,6 +422,12 @@ namespace Render
 
 		RHI_FUNC(RHIShader* RHICreateShader(EShader::Type type));
 		RHI_FUNC(RHIShaderProgram* RHICreateShaderProgram());
+
+		RHI_FUNC(RHIRayTracingPipelineState* RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer));
+
+		RHI_FUNC(RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags));
+		RHI_FUNC(RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags));
+		RHI_FUNC(RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState));
 	};
 
 #if RHI_USE_RESOURCE_TRACE

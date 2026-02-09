@@ -262,6 +262,13 @@ namespace Render
 #endif
 			return result;
 		}
+		ShaderParameter* findParameter(char const* name)
+		{
+			auto iter = mMap.find(name);
+			if (iter != mMap.end())
+				return &iter->second;
+			return nullptr;
+		}
 		void clear()
 		{
 			mMap.clear();
@@ -329,9 +336,12 @@ namespace Render
 			:variableName(varName)
 		{
 		}
-	};
 
-#define MAKE_STRUCTUREED_BUFFER_INFO( NAME ) Render::StructuredBufferInfo{ #NAME"Block" , #NAME }
+		char const* getParameterName(EShaderResourceType resourceType) const
+		{
+			return variableName;
+		}
+	};
 
 #define DECLARE_UNIFORM_BUFFER_STRUCT(NAME)\
 	static Render::StructuredBufferInfo& GetStructInfo()\
@@ -357,7 +367,7 @@ namespace Render
 
 		FORCEINLINE bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam) 
 		{
-			return getResourceParameter(resourceType, structInfo.variableName, outParam);
+			return getResourceParameter(resourceType, structInfo.getParameterName(resourceType), outParam);
 		}
 	};
 
@@ -402,6 +412,7 @@ namespace Render
 			eGraphiscsVsPsGsHsDs,
 			eMesh,
 			eCompute,
+			eRayTracing,
 			eShaderProgram,
 		};
 
@@ -409,6 +420,7 @@ namespace Render
 		{
 			TYPE_BIT_COUNT = 3,
 		};
+
 		union
 		{
 			struct
@@ -492,9 +504,16 @@ namespace Render
 
 		void initialize(RHIShader& shader)
 		{
-			CHECK(shader.getType() == EShader::Compute);
+			if (EShader::IsRayTracing(shader.getType()))
+			{
+				type = eRayTracing;
+			}
+			else
+			{
+				CHECK(shader.getType() == EShader::Compute);
+				type = eCompute;
+			}
 
-			type = eCompute;
 			sv = shader.mGUID;
 		}
 

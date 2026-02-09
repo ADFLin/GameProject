@@ -6,6 +6,8 @@
 
 #include "CubeMesh.h"
 #include "ProfileSystem.h"
+#include "CubeWorld.h"
+#include "CubeBlockRender.h"
 
 #include <unordered_map>
 
@@ -15,6 +17,292 @@ namespace Cube
 	static uint32 TexPosToMatId(uint32 x, uint32 y)
 	{
 		return x + 64 * y;
+	}
+
+	void PaddedBlockAccess::fill(NeighborChunkAccess const& chunkAccess, Chunk* center, int layerIdx)
+	{
+		memset(blocks, 0, sizeof(blocks));
+		basePos = Vec3i(center->getPos().x * ChunkSize, center->getPos().y * ChunkSize, layerIdx * Chunk::LayerSize);
+
+		auto fillLayer = [&](int ox, int oy, Chunk* chunk)
+		{
+			if (!chunk) return;
+			auto layer = chunk->mLayer[layerIdx];
+			if (!layer) return;
+
+			if (ox == 0 && oy == 0)
+			{
+				for (int x = 0; x < ChunkSize; ++x)
+					for (int y = 0; y < ChunkSize; ++y)
+						memcpy(&blocks[x + 1][y + 1][1], &layer->blockMap[x][y][0], Chunk::LayerSize * sizeof(BlockId));
+			}
+			else
+			{
+				int lx = (ox == 1) ? 17 : (ox == -1 ? 0 : -1);
+				int ly = (oy == 1) ? 17 : (oy == -1 ? 0 : -1);
+
+				if (ox != 0)
+				{
+					int sx = (ox == 1) ? 0 : ChunkSize - 1;
+					for (int y = 0; y < ChunkSize; ++y)
+						memcpy(&blocks[lx][y + 1][1], &layer->blockMap[sx][y][0], Chunk::LayerSize * sizeof(BlockId));
+				}
+				else if (oy != 0)
+				{
+					int sy = (oy == 1) ? 0 : ChunkSize - 1;
+					for (int x = 0; x < ChunkSize; ++x)
+						memcpy(&blocks[x + 1][ly][1], &layer->blockMap[x][sy][0], Chunk::LayerSize * sizeof(BlockId));
+				}
+			}
+		};
+
+		fillLayer(0, 0, center);
+		fillLayer(1, 0, chunkAccess.mNeighborChunks[FACE_X]);
+		fillLayer(-1, 0, chunkAccess.mNeighborChunks[FACE_NX]);
+		fillLayer(0, 1, chunkAccess.mNeighborChunks[FACE_Y]);
+		fillLayer(0, -1, chunkAccess.mNeighborChunks[FACE_NY]);
+
+		// Z neighbors
+		if (layerIdx > 0 && center->mLayer[layerIdx - 1])
+		{
+			auto layer = center->mLayer[layerIdx - 1];
+			for (int x = 0; x < ChunkSize; ++x)
+				for (int y = 0; y < ChunkSize; ++y)
+					blocks[x + 1][y + 1][0] = layer->blockMap[x][y][Chunk::LayerSize - 1];
+		}
+		if (layerIdx < Chunk::NumLayer - 1 && center->mLayer[layerIdx + 1])
+		{
+			auto layer = center->mLayer[layerIdx + 1];
+			for (int x = 0; x < ChunkSize; ++x)
+				for (int y = 0; y < ChunkSize; ++y)
+					blocks[x + 1][y + 1][Chunk::LayerSize + 1] = layer->blockMap[x][y][0];
+		}
+	}
+
+	struct BlockMeshInfo
+	{
+		uint32 matId;
+		bool bStandard;
+	};
+
+	static BlockMeshInfo GetBlockMeshInfo(BlockId id, FaceSide face, BlockId neighborZ)
+	{
+		Block* block = Block::Get(id);
+		if (block && block->isFullCube())
+		{
+			uint32 matId = 0;
+			switch (id)
+			{
+			case BLOCK_BASE: matId = TexPosToMatId(11, 0); break;
+			case BLOCK_ROCK: matId = TexPosToMatId(22, 7); break;
+			case BLOCK_WATER: matId = TexPosToMatId(4, 15); break;
+			case BLOCK_DIRT:
+			default:
+				{
+					static uint32 const materialIdMap[] =
+					{
+						TexPosToMatId(28,7), // X+
+						TexPosToMatId(28,7), // X-
+						TexPosToMatId(28,7), // Y+
+						TexPosToMatId(28,7), // Y-
+						TexPosToMatId(29,15), // Z+ (Top)
+						TexPosToMatId(24,2),  // Z- (Bottom)
+					};
+					matId = materialIdMap[face];
+					// Re-implement the special logic: if side face and Top is hidden, change material
+					if (GetFaceAxis(face) != 2 && neighborZ != 0)
+					{
+						matId = TexPosToMatId(4, 15);
+					}
+				}
+				break;
+			}
+			return { matId, true };
+		}
+		return { 0, false };
+	}
+
+	void BlockRenderer::drawLayer(Chunk& chunk, int layerIdx)
+	{
+		auto layer = chunk.mLayer[layerIdx];
+		if (!layer) return;
+
+		PaddedBlockAccess* paddedAccess = static_cast<PaddedBlockAccess*>(mBlockAccess);
+
+		// Calculate Occluder Box (Solid Core)
+		mOccluderBox.invalidate();
+		int maxVol = 0;
+		for (int z = 0; z < Chunk::LayerSize; ++z)
+		{
+			for (int y = 0; y < ChunkSize; ++y)
+			{
+				for (int x = 0; x < ChunkSize; ++x)
+				{
+					BlockId id = paddedAccess->blocks[x + 1][y + 1][z + 1];
+					if (id != 0)
+					{
+						Block* block = Block::Get(id);
+						if (block && block->isFullCube())
+						{
+							int ex = x, ey = y, ez = z;
+							while (ex + 1 < ChunkSize) { BlockId nid = paddedAccess->blocks[ex + 2][y + 1][z + 1]; if (nid == 0 || !Block::Get(nid)->isFullCube()) break; ex++; }
+							while (ey + 1 < ChunkSize) {
+								bool ok = true;
+								for (int tx = x; tx <= ex; ++tx) { BlockId nid = paddedAccess->blocks[tx + 1][ey + 2][z + 1]; if (nid == 0 || !Block::Get(nid)->isFullCube()) { ok = false; break; } }
+								if (!ok) break;
+								ey++;
+							}
+							while (ez + 1 < Chunk::LayerSize) {
+								bool ok = true;
+								for (int ty = y; ty <= ey; ++ty) {
+									for (int tx = x; tx <= ex; ++tx) { BlockId nid = paddedAccess->blocks[tx + 1][ty + 1][ez + 2]; if (nid == 0 || !Block::Get(nid)->isFullCube()) { ok = false; break; } }
+									if (!ok) break;
+								}
+								if (!ok) break;
+								ez++;
+							}
+							int vol = (ex - x + 1) * (ey - y + 1) * (ez - z + 1);
+							if (vol > maxVol) {
+								maxVol = vol;
+								mOccluderBox.min = Vec3f(mBasePos) + Vec3f(x, y, z);
+								mOccluderBox.max = Vec3f(mBasePos) + Vec3f(ex + 1, ey + 1, ez + 1);
+							}
+							if (maxVol >= (ChunkSize * ChunkSize * Chunk::LayerSize) / 2) goto end_occluder;
+						}
+					}
+				}
+			}
+		}
+	end_occluder:;
+
+
+		// Pre-reserve to avoid reallocations
+		mMesh->mVertices.reserve(mMesh->mVertices.size() + 1024);
+		mMesh->mIndices.reserve(mMesh->mIndices.size() + 1536);
+
+		int dims[3] = { ChunkSize, ChunkSize, Chunk::LayerSize };
+		uint32 mask[ChunkSize * Chunk::LayerSize];
+
+		for (int axis = 0; axis < 3; ++axis)
+		{
+			int u = (axis + 1) % 3;
+			int v = (axis + 2) % 3;
+			int du = dims[u];
+			int dv = dims[v];
+			int dk = dims[axis];
+
+			for (int k = 0; k < dk; ++k)
+			{
+				// Process both directions for this axis and slice
+				for (int side = 0; side < 2; ++side)
+				{
+					FaceSide curFace = getFaceSide(axis, side != 0);
+					Vec3i nOffset = GetFaceOffset(curFace);
+
+					memset(mask, 0, du * dv * sizeof(uint32));
+					bool bHasFace = false;
+
+					for (int j = 0; j < dv; ++j)
+					{
+						for (int i = 0; i < du; ++i)
+						{
+							Vec3i p;
+							p[axis] = k; p[u] = i; p[v] = j;
+							
+							int lx = p.x + 1;
+							int ly = p.y + 1;
+							int lz = p.z + 1;
+							BlockId id = paddedAccess->blocks[lx][ly][lz];
+							if (id == 0) continue;
+
+							BlockId neighborZ = paddedAccess->blocks[lx][ly][lz + 1];
+							BlockMeshInfo info = GetBlockMeshInfo(id, curFace, neighborZ);
+							if (!info.bStandard)
+							{
+								if (axis == 0 && side == 0) draw(p, id);
+								continue;
+							}
+
+							BlockId neighborId = paddedAccess->blocks[lx + nOffset.x][ly + nOffset.y][lz + nOffset.z];
+							bool bExposed = (id == BLOCK_WATER) ? (neighborId != id) : (neighborId == 0);
+							if (bExposed)
+							{
+								mask[i + j * du] = info.matId;
+								bHasFace = true;
+							}
+						}
+					}
+
+					if (!bHasFace) continue;
+
+					// Greedy merge
+					for (int j = 0; j < dv; ++j)
+					{
+						for (int i = 0; i < du; ++i)
+						{
+							uint32 matIdx = mask[i + j * du];
+							if (matIdx == 0) continue;
+
+							int w, h;
+							for (w = 1; i + w < du && mask[i + w + j * du] == matIdx; ++w);
+							bool done = false;
+							for (h = 1; j + h < dv; ++h)
+							{
+								for (int k_u = 0; k_u < w; ++k_u)
+								{
+									if (mask[i + k_u + (j + h) * du] != matIdx)
+									{
+										done = true;
+										break;
+									}
+								}
+								if (done) break;
+							}
+
+							Vec3i p_start;
+							p_start[axis] = k; p_start[u] = i; p_start[v] = j;
+							Vec3i s = { 0,0,0 };
+							s[u] = w; s[v] = h;
+
+							unsigned vStart = (unsigned)mMesh->mVertices.size();
+							auto faceVerts = GetFaceVertices(curFace);
+							Vec3f normal = GetFaceNoraml(curFace);
+
+							static Vec3f const faceUVVectorMap[FaceSide::COUNT][2] =
+							{
+								{ Vec3f(0,1,0), Vec3f(0,0,-1) }, { Vec3f(0,1,0), Vec3f(0,0,-1) },
+								{ Vec3f(1,0,0), Vec3f(0,0,-1) }, { Vec3f(1,0,0), Vec3f(0,0,-1) },
+								{ Vec3f(1,0,0), Vec3f(0,1,0) },  { Vec3f(1,0,0), Vec3f(0,1,0) },
+							};
+
+							for (int iv = 0; iv < 4; ++iv)
+							{
+								Mesh::Vertex vertex;
+								Vec3f localPos;
+								localPos.x = p_start.x + faceVerts[iv].x * (s.x ? s.x : 1);
+								localPos.y = p_start.y + faceVerts[iv].y * (s.y ? s.y : 1);
+								localPos.z = p_start.z + faceVerts[iv].z * (s.z ? s.z : 1);
+
+								vertex.pos = Vec3f(mBasePos) + localPos;
+								vertex.normal = normal;
+								vertex.color = mDebugColor;
+								vertex.uv = Vec2f(faceUVVectorMap[curFace][0].dot(vertex.pos), faceUVVectorMap[curFace][1].dot(vertex.pos));
+								vertex.meta = matIdx;
+								mMesh->mVertices.push_back(vertex);
+								bound += vertex.pos;
+							}
+
+							mMesh->mIndices.push_back(vStart + 0); mMesh->mIndices.push_back(vStart + 1); mMesh->mIndices.push_back(vStart + 2);
+							mMesh->mIndices.push_back(vStart + 0); mMesh->mIndices.push_back(vStart + 2); mMesh->mIndices.push_back(vStart + 3);
+
+							for (int ly = 0; ly < h; ++ly)
+								for (int lx = 0; lx < w; ++lx)
+									mask[i + lx + (j + ly) * du] = 0;
+						}
+					}
+				}
+			}
+		}
 	}
 
 
@@ -372,6 +660,8 @@ namespace Cube
 
 	void BlockRenderer::mergeBlockPrimitives()
 	{
+		PROFILE_ENTRY("mergeBlockPrimitives");
+
 		TArray< Edge > edges;
 		std::unordered_map< BlockVertex, uint32, MemberFuncHasher > vertexIdMap;
 

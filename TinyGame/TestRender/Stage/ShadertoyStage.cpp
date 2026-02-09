@@ -78,7 +78,6 @@ namespace Shadertoy
 			static MediaFoundationScope MFScope;
 
 			//path = "Shadertoy/Assets/dd.mp4";
-			path = "D:/AA/3DSVR-1534UF/3DSVR-1534-B.mp4";
 #if 1
 			TComPtr< IMFSourceResolver > sourceResolver;
 			CHECK_RETURN(MFCreateSourceResolver(&sourceResolver), false);
@@ -1459,7 +1458,7 @@ namespace Shadertoy
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 
 

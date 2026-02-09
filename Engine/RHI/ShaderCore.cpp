@@ -22,8 +22,14 @@ namespace Render
 		"DOMAIN_SHADER" ,
 		"TASK_SHADER" ,
 		"MESH_SHADER" ,
+		"RAY_GEN_SHADER" ,
+		"RAY_HIT_SHADER" ,
+		"RAY_MISS_SHADER" ,
+		"RAY_CLOSEST_HIT_SHADER" ,
+		"RAY_ANY_HIT_SHADER" ,
+		"RAY_INTERSECTION_SHADER" ,
+		"CALLABLE_SHADER" ,
 	};
-
 
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{

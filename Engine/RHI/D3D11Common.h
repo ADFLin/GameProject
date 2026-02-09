@@ -1115,6 +1115,17 @@ namespace Render
 		template < class T >
 		static auto* To(TRHIResourceRef<T>& ptr) { return D3D11Cast::To(ptr.get()); }
 
+		static ID3D11Resource* GetResource(RHIResource& resource)
+		{
+			if (resource.getResourceType() == EResourceType::Buffer)
+				return static_cast<D3D11Buffer*>(resource.getNativeInternal())->mResource;
+			if (resource.getResourceType() == EResourceType::Texture)
+				return static_cast<D3D11TextureBase*>(resource.getNativeInternal())->getD3D11Resource();
+			return nullptr;
+		}
+
+		static ID3D11Resource* GetResource(RHIResource* resource) { return resource ? GetResource(*resource) : nullptr; }
+
 		template< class T >
 		static auto GetResource(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getResource(); }
 
@@ -1122,7 +1133,7 @@ namespace Render
 		static auto GetResource(T* RHIObject) { return RHIObject ? D3D11Cast::To(RHIObject)->getResource() : nullptr; }
 
 		template< class T >
-		static auto GetResource(TRHIResourceRef<T>& refPtr) { return D3D11Cast::To(refPtr)->getResource(); }
+		static auto GetResource(TRHIResourceRef<T>& refPtr) { return GetResource(refPtr.get()); }
 
 		static D3D11TextureBase& ToTextureBase(RHITextureBase& resource)
 		{

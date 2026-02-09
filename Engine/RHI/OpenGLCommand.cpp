@@ -122,38 +122,40 @@ namespace Render
 
 		void start()
 		{
-			release();
-			glGenQueries(2, mHandles);
+			if (mHandles[0] == 0)
+			{
+				glGenQueries(2, mHandles);
+			}
 			glQueryCounter(mHandles[0], GL_TIMESTAMP);
 		}
 		void end()
 		{
 			glQueryCounter(mHandles[1], GL_TIMESTAMP);
 		}
-		bool getDuration(uint64& outDuration)
+		bool getDuration(uint64& outDuration, uint64& outStart)
 		{
-			GLuint isAvailable = GL_TRUE;
-			glGetQueryObjectuiv(mHandles[0], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
-			if( isAvailable == GL_TRUE )
+			if (mHandles[0] == 0)
+				return false;
+
+			GLuint isAvailable = GL_FALSE;
+			glGetQueryObjectuiv(mHandles[1], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
+
+			if (isAvailable == GL_TRUE)
 			{
-				glGetQueryObjectuiv(mHandles[1], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
+				GLuint64 startTimeStamp;
+				glGetQueryObjectui64v(mHandles[0], GL_QUERY_RESULT, &startTimeStamp);
+				GLuint64 endTimeStamp;
+				glGetQueryObjectui64v(mHandles[1], GL_QUERY_RESULT, &endTimeStamp);
 
-				if( isAvailable == GL_TRUE )
-				{
-					GLuint64 startTimeStamp;
-					glGetQueryObjectui64v(mHandles[0], GL_QUERY_RESULT, &startTimeStamp);
-					GLuint64 endTimeStamp;
-					glGetQueryObjectui64v(mHandles[1], GL_QUERY_RESULT, &endTimeStamp);
-
-					outDuration = endTimeStamp - startTimeStamp;
-					return true;
-				}
+				outDuration = endTimeStamp - startTimeStamp;
+				outStart = startTimeStamp;
+				return true;
 			}
 			return false;
 		}
 		void release()
 		{
-			if( mHandles[0] != 0 )
+			if (mHandles[0] != 0)
 			{
 				glDeleteQueries(2, mHandles);
 				mHandles[0] = mHandles[1] = 0;
@@ -196,10 +198,10 @@ namespace Render
 			timing.end();
 		}
 
-		bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
+		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
-			return timing.getDuration(outDuration);
+			return timing.getDuration(outDuration, outStart);
 		}
 		double getCycleToMillisecond() override
 		{
@@ -2080,6 +2082,11 @@ namespace Render
 			// 確保寫入完成，以便接下來作為 Texture 或 Buffer 讀取
 			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 		}
+	}
+
+	void OpenGLContext::RHICopyResource(RHIResource& dest, RHIResource& src)
+	{
+		// TODO
 	}
 }
 

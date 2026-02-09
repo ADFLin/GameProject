@@ -186,6 +186,9 @@ namespace Render
 				{
 					FRHIResourceTable::Register(*mResource, mKey);
 				}
+#if RHI_CHECK_RESOURCE_HASH
+				mResource->mSetupValue = ThisClass::GetSetupValue();
+#endif
 			}
 			void releaseRHI() final {  mResource.release();  }
 	

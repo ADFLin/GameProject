@@ -36,30 +36,39 @@ namespace Render
 			eSampler ,
 		};
 
-		EType  type;
-		uint8  slotOffset;
-		uint16 dataOffset;
-		uint32 dataSize;
-
+		EType  type = eGlobalValue;
+		uint8  slotOffset = 0;
+		uint16 dataOffset = 0;
+		uint32 dataSize = 0;
+		bool   bLocal = false;
 	};
 
 	struct ShaderRootSignature 
 	{
 		D3D12_SHADER_VISIBILITY visibility;
-		int    globalCBRegister = INDEX_NONE;
+		uint32 globalCBRegister = INDEX_NONE;
 		uint32 globalCBSize = 0;
+		uint32 localDataSize = 0;
+		
+		void release();
 
 		TArray< ShaderParameterSlotInfo >   slots;
 
 		TArray< D3D12_ROOT_PARAMETER1 >     parameters;
 		TArray< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
+		TArray< std::string >               parameterNames;
 		TArray< D3D12_STATIC_SAMPLER_DESC > samplers;
+
+		TArray< D3D12_ROOT_PARAMETER1 >     localParameters;
+		TArray< D3D12_DESCRIPTOR_RANGE1 >   localDescRanges;
+		TArray< std::string >               localParameterNames;
 	};
 
 	struct D3D12ShaderData
 	{
 		ShaderRootSignature  rootSignature;
 		TArray<uint8>   code;
+		std::string     entryPoint;
 
 		bool initialize(TComPtr<IDxcBlob>& shaderCode);
 		bool initialize(TArray<uint8>&& binaryCode);
@@ -77,7 +86,7 @@ namespace Render
 		}
 
 
-		static bool GenerateParameterMap(EShader::Type type, TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature);
+		static bool GenerateParameterMap(EShader::Type type, char const* entryName, TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature);
 		
 		virtual bool getParameter(char const* name, ShaderParameter& outParam)
 		{
@@ -106,16 +115,22 @@ namespace Render
 
 		void initializeParameterMap(TComPtr<IDxcLibrary>& library)
 		{
-			mParameterMap.clear();
 			for (int i = 0; i < mNumShaders; ++i)
 			{
 				auto& shaderData = mShaderDatas[i];
 				ShaderParameterMap parameterMap;
-				D3D12Shader::GenerateParameterMap(shaderData.type, shaderData.code, library, parameterMap, shaderData.rootSignature);
+				D3D12Shader::GenerateParameterMap(shaderData.type, shaderData.entryPoint.c_str(), shaderData.code, library, parameterMap, shaderData.rootSignature);
 				mParameterMap.addShaderParameterMap(i, parameterMap);
 			}
 
 			mParameterMap.finalizeParameterMap();
+
+			LogMsg("Merged Shader Program Parameter Map:");
+			for (auto const& pair : mParameterMap.mMap)
+			{
+				LogMsg("  [%s] Loc: %d, BindIndex: %u", 
+					pair.first.c_str(), (int)pair.second.mLoc, pair.second.bindIndex);
+			}
 		}
 
 		template< class TFunc >
@@ -193,9 +208,6 @@ namespace Render
 		virtual bool getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
 		virtual void precompileCode(ShaderSetupData& setupData) override;
-
-
-		void compileRTCodeTest();
 	};
 
 }//namespace Render

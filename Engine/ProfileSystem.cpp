@@ -9,13 +9,13 @@
 
 struct ProfileFrameData
 {
-	double durationSinceReset;
-	double duration;
+	int64 durationSinceReset;
+	int64 duration;
 };
 
 CORE_API extern HighResClock  GProfileClock;
-CORE_API extern int    GWriteIndex;
-CORE_API extern uint64 GFrameCount;
+CORE_API extern volatile int32 GWriteIndex;
+CORE_API extern volatile int64 GFrameCount;
 CORE_API extern RWLock GDataIndexLock;
 
 class ThreadProfileData
@@ -47,7 +47,7 @@ public:
 			node->notifyPause(tick);
 			node = node->mParent;
 		}
-		auto& writeData = mRootSample->mRecoredData[GWriteIndex];
+		auto& writeData = mRootSample->mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
 		writeData.execTime = frameData.duration;
 		writeData.execTimeTotal = frameData.durationSinceReset;
 	}
@@ -55,9 +55,9 @@ public:
 	void startFrame(uint64 tick)
 	{
 		ResumeNode(mCurSample);
-		auto& writeData = mRootSample->mRecoredData[GWriteIndex];
+		auto& writeData = mRootSample->mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
 		writeData.callCount = 1;
-		writeData.callCountTotal = GFrameCount;
+		writeData.callCountTotal = (int)SystemPlatform::AtomicRead(&GFrameCount);
 	}
 
 	static void ResumeNode(ProfileSampleNode* node)
@@ -131,13 +131,13 @@ public:
 	uint64 getFrameCountSinceReset() override { return GFrameCount; }
 	double getDurationSinceReset() override
 	{
-		return mRecordFrames[ProfileSampleNode::GetReadIndex()].durationSinceReset;
+		return (double)mRecordFrames[ProfileSampleNode::GetReadIndex()].durationSinceReset / Profile_GetTickRate();
 	}
 
 
 	double getLastFrameDuration() override
 	{
-		return mRecordFrames[ProfileSampleNode::GetReadIndex()].duration;
+		return (double)mRecordFrames[ProfileSampleNode::GetReadIndex()].duration / Profile_GetTickRate();
 	}
 
 
@@ -179,13 +179,10 @@ public:
 	static ThreadProfileData* GetThreadData(uint32 threadId);
 
 
-	static ProfileSystemImpl& Get() { return static_cast< ProfileSystemImpl& >( ProfileSystem::Get()); }
-
 	uint8      bFinalized : 1;
 	uint8      bEnabled   : 1;
 	uint8      bResampleRequested : 1;
 private:
-
 
 	friend class ThreadProfileData;
 
@@ -228,8 +225,8 @@ struct TimeScopeResult
 #if CORE_SHARE_CODE
 
 HighResClock  GProfileClock;
-int    GWriteIndex = 0;
-uint64 GFrameCount = 0;
+volatile int32 GWriteIndex = 0;
+volatile int64 GFrameCount = 0;
 RWLock GDataIndexLock;
 
 void Profile_GetTicks(uint64 * ticks)
@@ -246,12 +243,12 @@ TArray< TimeScopeResult* >& TimeScope::GetResultStack()
 
 int ProfileSampleNode::GetReadIndex()
 {
-	return 1 - GWriteIndex;
+	return 1 - SystemPlatform::AtomicRead(&GWriteIndex);
 }
 
 int ProfileSampleNode::GetWriteIndex()
 {
-	return GWriteIndex;
+	return SystemPlatform::AtomicRead(&GWriteIndex);
 }
 
 ProfileSystem& ProfileSystem::Get()
@@ -346,8 +343,8 @@ void ProfileSystemImpl::incrementFrameCount()
 	Profile_GetTicks(&tick);
 
 	auto& frameData = mRecordFrames[ProfileSampleNode::GetWriteIndex()];
-	frameData.durationSinceReset = double(tick - mResetTime) / Profile_GetTickRate();
-	frameData.duration = double(tick - mFrameStartTime) / Profile_GetTickRate();
+	frameData.durationSinceReset = (int64)(tick - mResetTime);
+	frameData.duration = (int64)(tick - mFrameStartTime);
 
 	{
 		RWLock::ReadLocker  DataMaplocker(GThreadDataMapLock);
@@ -356,8 +353,8 @@ void ProfileSystemImpl::incrementFrameCount()
 			pair.second->endFrame(frameData, tick);
 		}
 
-		++GFrameCount;
-		GWriteIndex = 1 - GWriteIndex;
+		SystemPlatform::AtomIncrement(&GFrameCount);
+		SystemPlatform::AtomExchange(&GWriteIndex, 1 - GWriteIndex);
 		mFrameStartTime = tick;
 
 		for (auto& pair : GThreadDataMap)
@@ -486,28 +483,34 @@ void ProfileSampleNode::resetFrame()
 
 void ProfileSampleNode::notifyCall()
 {
-	RWLock::ReadLocker locker(GDataIndexLock);
+	int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
+	int64 frameCount = SystemPlatform::AtomicRead(&GFrameCount);
 
-	auto& writeData = mRecoredData[GWriteIndex];
+	auto& writeData = mRecoredData[writeIndex];
 	if (mRecursionCounter == 0) 
 	{
-		if (mLastRecordFrame != GFrameCount)
+		if (mLastRecordFrame != frameCount)
 		{
-			mLastRecordFrame = GFrameCount;
+			mLastRecordFrame = frameCount;
 			resetFrame();
 		}
 
 		Profile_GetTicks(&mStartTime);
-		writeData.callCount += 1;
+		SystemPlatform::AtomIncrement(&writeData.callCount);
+		
 		ProfileTimestamp timestamp;
 		timestamp.start = mStartTime;
 		timestamp.end = mStartTime;
-		writeData.timestamps.push_back(timestamp);
-		writeData.frame = GFrameCount;
+		{
+			RWLock::ReadLocker locker(GDataIndexLock);
+			auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
+			writeDataSafe.timestamps.push_back(timestamp);
+		}
+		writeData.frame = frameCount;
 	}
 
 	++mRecursionCounter;
-	writeData.callCountTotal += 1;
+	SystemPlatform::AtomIncrement(&writeData.callCountTotal);
 }
 
 bool ProfileSampleNode::notifyReturn()
@@ -519,15 +522,22 @@ bool ProfileSampleNode::notifyReturn()
 	{ 
 		uint64 tick;
 		Profile_GetTicks(&tick);	
-		double time = (tick - mStartTime ) / Profile_GetTickRate();
+		int64 time = (int64)(tick - mStartTime);
 		{
-			RWLock::ReadLocker locker(GDataIndexLock);
-			auto& writeData = mRecoredData[GWriteIndex];
+			int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
+			auto& writeData = mRecoredData[writeIndex];
 
-			writeData.timestamps.back().end = tick;
+			{
+				RWLock::ReadLocker locker(GDataIndexLock);
+				auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
+				if (!writeDataSafe.timestamps.empty())
+				{
+					writeDataSafe.timestamps.back().end = tick;
+				}
+			}
 
-			writeData.execTime += time;
-			writeData.execTimeTotal += time;
+			SystemPlatform::AtomExchangeAdd(&writeData.execTime, time);
+			SystemPlatform::AtomExchangeAdd(&writeData.execTimeTotal, time);
 		}
 	}
 	return true;
@@ -535,26 +545,38 @@ bool ProfileSampleNode::notifyReturn()
 
 void ProfileSampleNode::notifyPause(uint64 tick)
 {
-	double time = (tick - mStartTime) / Profile_GetTickRate();
-	auto& writeData = mRecoredData[GetWriteIndex()];
+	int64 time = (int64)(tick - mStartTime);
+	auto& writeData = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
 
-	writeData.timestamps.back().end = tick;
-	writeData.execTime += time;
-	writeData.execTimeTotal += time;
+	{
+		//RWLock::ReadLocker locker(GDataIndexLock); // Called within WriteLock or single thread access
+		auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
+		if (!writeDataSafe.timestamps.empty())
+		{
+			writeDataSafe.timestamps.back().end = tick;
+		}
+	}
+	SystemPlatform::AtomExchangeAdd(&writeData.execTime, time);
+	SystemPlatform::AtomExchangeAdd(&writeData.execTimeTotal, time);
 	mStartTime = tick;
 }
 
 void ProfileSampleNode::notifyResume()
 {
-	mLastRecordFrame = GFrameCount;
+	int64 frameCount = SystemPlatform::AtomicRead(&GFrameCount);
+	mLastRecordFrame = frameCount;
 	resetFrame();
 
-	auto& writeData = mRecoredData[GetWriteIndex()];
+	// We need to add the timestamp to the buffer
 	ProfileTimestamp timestamp;
 	timestamp.start = mStartTime;
 	timestamp.end = mStartTime;
-	writeData.timestamps.push_back(timestamp);
-	writeData.frame = GFrameCount;
+	{
+		//RWLock::ReadLocker locker(GDataIndexLock);
+		auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
+		writeDataSafe.timestamps.push_back(timestamp);
+		writeDataSafe.frame = frameCount;
+	}
 }
 
 void ProfileSampleNode::showAllChild( bool beShow )

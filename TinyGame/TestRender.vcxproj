@@ -257,6 +257,7 @@
     <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D11TestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\D3D12RayTracingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp" />
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
@@ -298,6 +299,7 @@
     <ClCompile Include="TestRender\Stage\TemplateRenderingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp" />
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\VolumetricLightingStage.cpp" />
     <ClCompile Include="TestRender\Stage\WaveRendering.cpp" />
     <ClCompile Include="TestRender\TestRender.cpp" />
     <ClCompile Include="TestRender\TestRenderPCH.cpp">

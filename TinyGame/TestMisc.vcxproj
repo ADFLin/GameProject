@@ -299,6 +299,7 @@
     <ClInclude Include="TripleTown\TTResource.h" />
     <ClInclude Include="TripleTown\TTLevel.h" />
     <ClInclude Include="TripleTown\TTScene.h" />
+    <ClInclude Include="TestMisc\ParallelCollision\ParallelCollision.h" />
     <ClInclude Include="TripleTown\TTStage.h" />
   </ItemGroup>
   <ItemGroup>
@@ -502,6 +503,7 @@
     <ClCompile Include="TripleTown\TTLevel.cpp" />
     <ClCompile Include="TripleTown\TTScene.cpp" />
     <ClCompile Include="TripleTown\TTStage.cpp" />
+    <ClCompile Include="TestMisc\ParallelCollision\ParallelCollision.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

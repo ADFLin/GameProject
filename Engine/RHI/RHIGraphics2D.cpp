@@ -15,10 +15,11 @@
 
 using namespace Render;
 
+
 RHIGraphics2D::RHIGraphics2D()
 	:mAllocator(2048)
 	,mElementList(mAllocator)
-{
+{ 
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
 
@@ -139,9 +140,8 @@ void RHIGraphics2D::endRender()
 
 void RHIGraphics2D::setupCommittedRenderState()
 {
-	RHICommandList& commandList = getCommandList();
 	//mBatchedRender.setViewportSize(mBatchedRender.mWidth, mBatchedRender.mHeight);
-	mBatchedRender.commitRenderState(commandList, mRenderStateCommitted);
+	mElementList.modifyState(mRenderStateCommitted, true);
 }
 
 void RHIGraphics2D::commitRenderState()
@@ -174,6 +174,7 @@ void RHIGraphics2D::commitRenderState()
 		}
 
 		mDirtyState.value = 0;
+		mElementList.modifyState(mRenderStateCommitted, false);
 	}
 }
 
@@ -691,7 +692,7 @@ void RHIGraphics2D::flushBatchedElements()
 {
 	if ( !mElementList.isEmpty() )
 	{
-		mBatchedRender.render(mRenderStateCommitted, mElementList);
+		mBatchedRender.render(mElementList);
 		mNextLayer = 0;
 	}
 }
@@ -719,7 +720,7 @@ void RHIGraphics2D::setSampler(RHISamplerState& sampler)
 
 void RHIGraphics2D::preModifyRenderState()
 {
-	flushBatchedElements();
+
 }
 
 void RHIGraphics2D::setBlendState(ESimpleBlendMode mode)

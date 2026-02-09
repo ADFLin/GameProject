@@ -221,7 +221,7 @@ CS_ENTRY(MainCS)
 
 	// 2. Perturbation Loop (double-double)
 	double2 orbitH = OrbitBuffer[10].h;
-	double orbitMagSq = dot(orbitH, orbitH);
+	double orbitMagSq = orbitH.x * orbitH.x + orbitH.y * orbitH.y;
 	bool bBufferValid = (orbitMagSq > 1e-100);
 
 	if (!bBufferValid)
@@ -301,7 +301,7 @@ CS_ENTRY(MainCS)
 
 	// 2. Perturbation Loop (regular double - much faster!)
 	double2 orbitH = OrbitBuffer[10].h;
-	double orbitMagSq = dot(orbitH, orbitH);
+	double orbitMagSq = orbitH.x * orbitH.x + orbitH.y * orbitH.y;
 	bool bBufferValid = (orbitMagSq > 1e-100);
 
 	if (!bBufferValid)
@@ -386,7 +386,7 @@ CS_ENTRY(MainCS)
 
 	// 2. Perturbation Loop (Float-Float)
 	double2 orbitH = OrbitBuffer[10].h;
-	bool bBufferValid = (dot(orbitH, orbitH) > 1e-100);
+	bool bBufferValid = ((orbitH.x * orbitH.x + orbitH.y * orbitH.y) > 1e-100);
 
 	if (!bBufferValid)
 	{

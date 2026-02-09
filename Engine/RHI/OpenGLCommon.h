@@ -456,6 +456,8 @@ namespace Render
 			CHECK((start + numElements) * mDesc.elementSize <= getSize());
 			glNamedBufferSubData(getHandle(), start * mDesc.elementSize, mDesc.elementSize * numElements, data);
 		}
+
+		virtual void releaseResource() override;
 	};
 
 	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, GLFactory::Sampler >
@@ -646,7 +648,50 @@ namespace Render
 		};
 
 		typedef TOpenGLObject< RMPVertexArrayObject > VertexArrayObject;
-		std::unordered_map< InputStreamState, VertexArrayObject, MemberFuncHasher > mVAOMap;
+
+		struct VAOKey
+		{
+			struct Stream
+			{
+				GLuint bufferID;
+				intptr_t offset;
+				int32 stride;
+
+				bool operator==(const Stream& other) const 
+				{
+					return bufferID == other.bufferID && offset == other.offset && stride == other.stride;
+				}
+			};
+
+			Stream streams[8]; // MaxSimulationInputStreamSlots
+			int count;
+			uint32 hash;
+
+			bool operator==(const VAOKey& other) const
+			{
+				if (count != other.count)
+					return false;
+				for (int i = 0; i < count; ++i) 
+				{
+					if (!(streams[i] == other.streams[i])) 
+						return false;
+				}
+				return true;
+			}
+		};
+
+		struct VAOKeyHasher 
+		{
+			size_t operator()(const VAOKey& k) const { return k.hash; }
+		};
+
+		std::unordered_map< VAOKey, VertexArrayObject, VAOKeyHasher > mVAOMap;
+
+		void invalidateBuffer(GLuint bufferID);
+		static void NotifyBufferDestroyed(GLuint bufferID);
+		
+		static TArray<OpenGLInputLayout*> GAllLayouts;
+		~OpenGLInputLayout();
 		TArray< Element > mElements;
 		uint32 mAttributeMask;
 		virtual void releaseResource() override;

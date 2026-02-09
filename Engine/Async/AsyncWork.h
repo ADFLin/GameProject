@@ -5,6 +5,23 @@
 #include "PlatformThread.h"
 #include "Core/IntegerType.h"
 #include "DataStructure/Array.h"
+#include "DataStructure/CycleQueue.h"
+#include <atomic>
+
+class SpinLock
+{
+public:
+	void lock() { while (mHeld.test_and_set(std::memory_order_acquire)); }
+	void unlock() { mHeld.clear(std::memory_order_release); }
+	struct Locker
+	{
+		Locker(SpinLock& lock) : mLock(lock) { mLock.lock(); }
+		~Locker() { mLock.unlock(); }
+		SpinLock& mLock;
+	};
+private:
+	std::atomic_flag mHeld = ATOMIC_FLAG_INIT;
+};
 
 class IQueuedWork
 {
@@ -24,6 +41,7 @@ public:
 
 	void  init(int numThread , uint32 stackSize = 0);
 	void  addWork(IQueuedWork* work);
+	void  addWorks(IQueuedWork* works[], int count);
 	bool  retractWork(IQueuedWork* work);
 
 	template< class TFunc >
@@ -44,7 +62,7 @@ public:
 
 	void  waitAllThreadIdle();
 	void  waitAllWorkComplete();
-
+	void  waitAllWorkCompleteInWorker();
 	void  cencelAllWorks();
 
 	int   getQueuedWorkNum() { return (int)mQueuedWorks.size(); }
@@ -58,10 +76,12 @@ private:
 	IQueuedWork* doWorkCompleted(PoolRunableThread* runThread);
 
 	Mutex        mQueueMutex;
-	TArray< IQueuedWork* >       mQueuedWorks;
+	SpinLock     mQueueLock;
+	TCycleQueue< IQueuedWork* >  mQueuedWorks;
 	TArray< PoolRunableThread* > mQueuedThreads;
 
 	TArray< PoolRunableThread* > mAllThreads;
+	ConditionVariable            mWaitCompleteCV;
 };
 
 

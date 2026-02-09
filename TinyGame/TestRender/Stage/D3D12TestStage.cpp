@@ -259,8 +259,8 @@ namespace Render
 			::Global::GUI().cleanupWidget();
 
 
-			GButton* button = new GButton(UI_ANY, Vec2i(300, 300), Vec2i(200, 20), nullptr);
-			::Global::GUI().addWidget(button);
+			//GButton* button = new GButton(UI_ANY, Vec2i(300, 300), Vec2i(200, 20), nullptr);
+			//::Global::GUI().addWidget(button);
 
 			auto frame = WidgetUtility::CreateDevFrame();
 			frame->addText("aaa");
@@ -349,10 +349,12 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 
+
 			InputStreamInfo inputStream;
 			inputStream.buffer = mVertexBuffer;
 			RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 			RHISetIndexBuffer(commandList, mIndexBuffer);
+
 			{
 
 				auto pData = mCBuffer.lock();
@@ -362,7 +364,9 @@ namespace Render
 				mCBuffer.unlock();
 			}
 			SetStructuredUniformBuffer(commandList, *mProgTriangle, mCBuffer);
+			mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(0, 0, 0, Offset));
 			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0);
+
 
 			{
 				auto pData = mCBuffer.lock();

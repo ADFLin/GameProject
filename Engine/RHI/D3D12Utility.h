@@ -141,6 +141,28 @@ namespace Render
 
 			return result;
 		}
+		static D3D12_UNORDERED_ACCESS_VIEW_DESC BufferUAVDesc(
+			UINT structureByteStride,
+			UINT numElements = 1,
+			UINT64 firstElement = 0,
+			D3D12_BUFFER_UAV_FLAGS flags = D3D12_BUFFER_UAV_FLAG_NONE)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC result = {};
+
+			// 對於 Structured Buffer，Format 必須設為 DXGI_FORMAT_UNKNOWN
+			result.Format = DXGI_FORMAT_UNKNOWN;
+			result.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+
+			result.Buffer.FirstElement = firstElement;
+			result.Buffer.NumElements = numElements;
+			result.Buffer.StructureByteStride = structureByteStride;
+
+			// CounterOffsetInBytes 通常用於 Append/Consume Buffer，一般設為 0
+			result.Buffer.CounterOffsetInBytes = 0;
+			result.Buffer.Flags = flags;
+
+			return result;
+		}
 
 	};
 

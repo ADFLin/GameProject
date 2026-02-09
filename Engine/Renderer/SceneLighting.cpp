@@ -1,10 +1,16 @@
 #include "SceneLighting.h"
 
+#include "SceneView.h"
+#include "RHI/ShaderManager.h"
+#include "RHI/RHICommand.h"
+#include "Math/GeometryPrimitive.h"
+
 namespace Render
 {
 
 	IMPLEMENT_SHADER_PROGRAM(DeferredLightingProgram);
 	IMPLEMENT_SHADER_PROGRAM(LightingShowBoundProgram);
+
 
 	void LightInfo::setupShaderGlobalParam(RHICommandList& commandList, ShaderProgram& shaderProgram) const
 	{
@@ -21,4 +27,4 @@ namespace Render
 		shaderProgram.setParam(commandList, SHADER_PARAM(GLight.spotParam), spotParam);
 	}
 
-}
+}//namespace Render

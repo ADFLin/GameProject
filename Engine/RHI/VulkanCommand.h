@@ -169,6 +169,11 @@ namespace Render
 		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
 
+		RHIRayTracingPipelineState* RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer) { return nullptr; }
+		RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags) { return nullptr; }
+		RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags) { return nullptr; }
+		RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState) { return nullptr; }
+
 		bool createInstance(TArray<VkExtensionProperties> const& availableExtensions, bool enableValidation);
 #if SYS_PLATFORM_WIN
 		VkSurfaceKHR createWindowSurface(HWND hWnd);

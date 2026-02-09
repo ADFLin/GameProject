@@ -10,6 +10,8 @@ namespace Render
 {
 	int const GLDefalutUnpackAlignment = 4;
 
+	TArray<OpenGLInputLayout*> OpenGLInputLayout::GAllLayouts;
+
 	bool VerifyOpenGLStatus()
 	{
 		GLenum error = glGetError();
@@ -1142,6 +1144,7 @@ namespace Render
 
 	OpenGLInputLayout::OpenGLInputLayout(InputLayoutDesc const& desc)
 	{
+		GAllLayouts.push_back(this);
 		mAttributeMask = 0;
 		for( auto const& e : desc.mElements )
 		{
@@ -1561,7 +1564,21 @@ namespace Render
 
 	GLuint OpenGLInputLayout::bindVertexArray(InputStreamState const& state, bool bBindPointer)
 	{
-		auto iter = mVAOMap.find(state);
+		VAOKey key;
+		key.count = state.inputStreamCount;
+		key.hash = HashValue(key.count);
+
+		for (int i = 0; i < key.count; ++i)
+		{
+			auto& stream = state.inputStreams[i];
+			key.streams[i].bufferID = OpenGLCast::GetHandle(stream.buffer);
+			key.streams[i].offset = stream.offset;
+			key.streams[i].stride = stream.stride;
+
+			key.hash = HashCombine(key.hash, key.streams[i].bufferID, key.streams[i].offset, key.streams[i].stride);
+		}
+
+		auto iter = mVAOMap.find(key);
 		if (iter != mVAOMap.end())
 		{
 			glBindVertexArray(iter->second.mHandle);
@@ -1572,15 +1589,65 @@ namespace Render
 		if (vao.fetchHandle())
 		{
 			result = vao.mHandle;
-			mVAOMap.emplace(state, std::move(vao));
 			glBindVertexArray(result);
+
+			if (bBindPointer)
+				bindPointer(state);
+			else
+				bindAttrib(state);
+
+			mVAOMap.emplace(key, std::move(vao));
+			
 		}
 
-		if (bBindPointer)
-			bindPointer(state);
-		else
-			bindAttrib(state);
 		return result;
+	}
+
+	OpenGLInputLayout::~OpenGLInputLayout()
+	{
+		GAllLayouts.remove(this);
+	}
+
+	void OpenGLInputLayout::NotifyBufferDestroyed(GLuint bufferID)
+	{
+		for (auto layout : GAllLayouts)
+		{
+			layout->invalidateBuffer(bufferID);
+		}
+	}
+
+	void OpenGLInputLayout::invalidateBuffer(GLuint bufferID)
+	{
+		for (auto it = mVAOMap.begin(); it != mVAOMap.end(); )
+		{
+			bool bFound = false;
+			for (int i = 0; i < it->first.count; ++i)
+			{
+				if (it->first.streams[i].bufferID == bufferID)
+				{
+					bFound = true;
+					break;
+				}
+			}
+
+			if (bFound)
+			{
+				it = mVAOMap.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
+
+	void OpenGLBuffer::releaseResource()
+	{
+		if (mGLObject.isValid())
+		{
+			OpenGLInputLayout::NotifyBufferDestroyed(mGLObject.mHandle);
+		}
+		TOpenGLResource< RHIBuffer, GLFactory::Buffer >::releaseResource();
 	}
 
 	void OpenGLInputLayout::releaseResource()

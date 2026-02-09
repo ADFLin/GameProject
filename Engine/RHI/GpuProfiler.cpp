@@ -9,6 +9,12 @@ namespace Render
 	GpuProfiler::GpuProfiler()
 	{
 		mbStartSampling = false;
+		mIndexWriteBuffer = 0;
+		mIndexReadBuffer = 0;
+		for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
+		{
+			mBufferStatus[i] = false;
+		}
 	}
 
 #if CORE_SHARE_CODE
@@ -44,35 +50,40 @@ namespace Render
 			mCore->beginFrame();
 			mbStartSampling = true;
 			InlineString< 512 > str;
-			str.format("Frame : %s System", Literal::ToString(GRHISystem->getName()));
+			str.format("Frame : %s", Literal::ToString(GRHISystem->getName()));
 			mRootSample = startSample(str);
 		}
 	}
 
 	void GpuProfiler::readSamples(FrameData& frameData)
 	{
+		PROFILE_FUNCTION();
+
+		mCycleToSecond = mCore->getCycleToMillisecond();
 		mCore->beginReadback();
+		uint64 frameStart = 0;
 		for (int i = 0; i < frameData.numSampleUsed; ++i)
 		{
 			GpuProfileSample* sample = frameData.samples[i].get();
 			if (sample->timingHandle != RHI_ERROR_PROFILE_HANDLE)
 			{
-				uint64 time;
-				int count = 0;
-				while (!mCore->getTimingDuration(sample->timingHandle, time))
+				uint64 time, start;
+				if (mCore->getTimingDuration(sample->timingHandle, time, start))
 				{
-					if (count > 1000)
-					{
-						LogMsg("GpuProfiler Can't get sample %d %llu %d", i, GRHIRenderCount, count);
-					}
-					SystemPlatform::Sleep(0);
-					++count;
+					if (i == 0) frameStart = start;
+					sample->time = double(time) * mCycleToSecond;
+					sample->startTime = double(start - frameStart) * mCycleToSecond;
 				}
-				sample->time = double(time) * mCycleToSecond;
+				else
+				{
+					sample->time = -1;
+					sample->startTime = 0;
+				}
 			}
 			else
 			{
 				sample->time = -1;
+				sample->startTime = 0;
 			}
 		}
 		mCore->endReadback();
@@ -80,24 +91,20 @@ namespace Render
 
 	void GpuProfiler::endFrame()
 	{
-		bool bCanRead = false;
 		if( mCore )
 		{
 			if( mbStartSampling )
 			{
 				mbStartSampling = false;
 				endSample(*mRootSample);
-				if( mCore->endFrame() )
+				mCore->endFrame();
+
 				{
-					bCanRead = true;
+					RWLock::WriteLocker locker(mIndexLock);
+					mBufferStatus[mIndexWriteBuffer] = true;
+					mIndexWriteBuffer = (mIndexWriteBuffer + 1) % NUM_FRAME_BUFFER;
 				}
 			}
-		}
-
-		{
-			RWLock::WriteLocker locker(mIndexLock);
-			mIndexWriteBuffer = 1 - mIndexWriteBuffer;
-			mbCanRead = bCanRead;
 		}
 	}
 
@@ -156,10 +163,12 @@ namespace Render
 	bool GpuProfiler::beginRead()
 	{
 		mIndexLock.readLock();
-		if (mbCanRead)
+		// Find the most recent buffer that is ready, but at least 2 frames old to avoid stalling
+		int readIndex = (mIndexWriteBuffer + NUM_FRAME_BUFFER - 2) % NUM_FRAME_BUFFER;
+		if (mBufferStatus[readIndex])
 		{
-			readSamples(mFrameBuffers[1 - mIndexWriteBuffer]);
-			mbCanRead = false;
+			mIndexReadBuffer = readIndex;
+			readSamples(mFrameBuffers[readIndex]);
 		}
 		return true;
 	}

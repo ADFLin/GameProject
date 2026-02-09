@@ -109,7 +109,7 @@ namespace Cube
 		permutationVector.set< BlockRenderShaderProgram::DepthPass >(true);
 		mProgBlockRenderDepth = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >(permutationVector);
 
-		mTexBlockAtlas = RHIUtility::LoadTexture2DFromFile("Cube/blocks.png");
+		mTexBlockAtlas = RHIUtility::LoadTexture2DFromFile("Cube/blocks.png", TextureLoadOption().AutoMipMap());
 
 		InputLayoutDesc desc;
 		desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -182,6 +182,7 @@ namespace Cube
 
 					layer.meshPool = meshData;
 					layer.bound = updateLayer.bound;
+					layer.occluderBox = updateLayer.occluderBox;
 
 					meshData->vertexAllocator.alloc(updateLayer.vertexCount, 0, layer.vertexAllocation);
 					meshData->indexAllocator.alloc(updateLayer.indexCount, 0, layer.indexAlloction);
@@ -221,90 +222,9 @@ namespace Cube
 	}
 
 
-	class NeighborChunkAccess : public IBlockAccess
-	{
-	public:
-		NeighborChunkAccess(World& world, Chunk* chunk)
-		{
-			mChunk = chunk;
-			for (int i = 0; i < 4; ++i)
-			{
-				Vec3i offset = GetFaceOffset(FaceSide(i));
-				mNeighborChunks[i] = world.getChunk(ChunkPos(chunk->getPos() + Vec2i(offset.x, offset.y)), true);
-			}
-
-			mChunkOffset = ChunkSize * chunk->getPos();
-		}
-
-		Chunk* getChunk(int x, int y)
-		{
-			Vec2i offset = Vec2i(x, y) - mChunkOffset;
-			if (offset.x >= ChunkSize)
-			{
-				return mNeighborChunks[FaceSide::FACE_X];
-			}
-			if (offset.x < 0)
-			{
-				return mNeighborChunks[FaceSide::FACE_NX];
-			}
-			if (offset.y >= ChunkSize)
-			{
-				return mNeighborChunks[FaceSide::FACE_Y];
-			}
-			if (offset.y < 0)
-			{
-				return mNeighborChunks[FaceSide::FACE_NY];
-			}
-			return mChunk;
-		}
-
-		bool IsInRange(Chunk* chunk, int x, int y)
-		{
-			Vec2i offset = Vec2i(x, y) - ChunkSize * chunk->getPos();
-			return 0 <= offset.x && offset.x < ChunkSize &&
-				0 <= offset.y && offset.y < ChunkSize;
-		}
-
-		virtual BlockId  getBlockId(int x, int y, int z) final
-		{
-			if (x == -17 && y == 0)
-			{
-
-				int aa = 1;
-			}
-			auto chunk = getChunk(x, y);
-			if (chunk == nullptr)
-				return BLOCK_NULL;
 
 
-			CHECK(IsInRange(chunk, x, y));
 
-			return chunk->getBlockId(x, y, z);
-		}
-		virtual MetaType getBlockMeta(int x, int y, int z)
-		{
-			auto chunk = getChunk(x, y);
-			if (chunk == nullptr)
-				return 0;
-			CHECK(IsInRange(chunk, x, y));
-			return chunk->getBlockMeta(x, y, z);
-		}
-
-		void  getNeighborBlockIds(Vec3i const& pos, BlockId outIds[])
-		{
-			for (int i = 0; i < FaceSide::COUNT; ++i)
-			{
-				Vec3i nPos = pos + GetFaceOffset(FaceSide(i));
-				outIds[i] = getBlockId(nPos.x, nPos.y, nPos.z);
-			}
-		}
-
-
-		Vec2i  mChunkOffset;
-
-		Chunk* mChunk;
-		Chunk* mNeighborChunks[4];
-	};
 
 	void RenderEngine::updateRenderData(ChunkRenderData* data)
 	{
@@ -321,6 +241,8 @@ namespace Cube
 		mGereatePool->addFunctionWork(
 			[this, data, chunkAccess]()
 			{
+				PROFILE_ENTRY("Chunk Mesh Generate");
+
 				Chunk* chunk = data->chunk;
 				data->state = ChunkRenderData::eMeshGenerating;
 
@@ -349,12 +271,25 @@ namespace Cube
 				renderer.mMesh = &updateData.mesh;
 
 				renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
-				renderer.mBlockAccess = const_cast<NeighborChunkAccess*>(&chunkAccess);
+				
+				PaddedBlockAccess paddedAccess;
+				renderer.mBlockAccess = &paddedAccess;
+
 				for (int indexLayer = 0; indexLayer < ChunkRenderData::MaxLayerCount; ++indexLayer)
 				{
+					auto layer = chunk->mLayer[indexLayer];
+					if (!layer)
+						continue;
+
+					paddedAccess.fill(chunkAccess, chunk, indexLayer);
+
 					int indexStart = updateData.mesh.mIndices.size();
 					int vertexStart = updateData.mesh.mVertices.size();
-					chunk->render(renderer, indexLayer, ChunkRenderData::MaxLayerCount);
+
+					int zOff = indexLayer * Chunk::LayerSize;
+					renderer.setBasePos(Vec3i(chunk->getPos().x * ChunkSize, chunk->getPos().y * ChunkSize, zOff));
+					renderer.drawLayer(*chunk, indexLayer);
+
 					{
 						TIME_SCOPE(mMergeTimeAcc);
 						renderer.finalizeMesh();
@@ -362,15 +297,16 @@ namespace Cube
 
 					if (indexStart != updateData.mesh.mIndices.size())
 					{
-						auto& layer = updateData.layers[updateData.numLayer];
+						auto& layerData = updateData.layers[updateData.numLayer];
 						updateData.numLayer += 1;
 
-						layer.bound = renderer.bound;
-						layer.index = indexLayer;
-						layer.vertexOffset = vertexStart;
-						layer.vertexCount = updateData.mesh.mVertices.size() - layer.vertexOffset;
-						layer.indexOffset = indexStart;
-						layer.indexCount = updateData.mesh.mIndices.size() - layer.indexOffset;
+						layerData.bound = renderer.bound;
+						layerData.index = indexLayer;
+						layerData.occluderBox = renderer.mOccluderBox;
+						layerData.vertexOffset = vertexStart;
+						layerData.vertexCount = (uint32)updateData.mesh.mVertices.size() - layerData.vertexOffset;
+						layerData.indexOffset = indexStart;
+						layerData.indexCount = (uint32)updateData.mesh.mIndices.size() - layerData.indexOffset;
 					}
 
 					renderer.bound.invalidate();
@@ -437,7 +373,7 @@ namespace Cube
 		Matrix4 worldToClip;
 		TransformStack stack;
 
-
+#define USE_QUAD 0
 		template< typename TShader >
 		void setupShader(RHICommandList& commandList, TShader& shader)
 		{
@@ -561,7 +497,42 @@ namespace Cube
 
 
 
+
 		TArray<ChunkRenderData::Layer*> layerDrawList;
+		int64 visTriangleCount = 0;
+		int64 occludedTriangleCount = 0;
+		struct OccluderInfo
+		{
+			Math::TAABBox<Vec3f> box;
+			float minX, minY, maxX, maxY, minZ, maxZ;
+		};
+		TArray<OccluderInfo> activeOccluders;
+
+		auto ProjectBox = [&](Math::TAABBox<Vec3f> const& box, float& minX, float& minY, float& maxX, float& maxY, float& minZ, float& maxZ)
+		{
+			Vector3 v[8];
+			v[0] = Vector3(box.min.x, box.min.y, box.min.z);
+			v[1] = Vector3(box.max.x, box.min.y, box.min.z);
+			v[2] = Vector3(box.max.x, box.max.y, box.min.z);
+			v[3] = Vector3(box.min.x, box.max.y, box.min.z);
+			v[4] = Vector3(box.min.x, box.min.y, box.max.z);
+			v[5] = Vector3(box.max.x, box.min.y, box.max.z);
+			v[6] = Vector3(box.max.x, box.max.y, box.max.z);
+			v[7] = Vector3(box.min.x, box.max.y, box.max.z);
+
+			minX = minY = minZ = 2.0f; maxX = maxY = maxZ = -2.0f;
+			for (int i = 0; i < 8; ++i)
+			{
+				Vector4 clip = Vector4(v[i], 1.0f) * worldToClipRender;
+				if (clip.w <= 0.001f) return false; // Conservative: If any point is behind or on near plane, don't use as occluder
+
+				Vector3 ndc = clip.dividedVector();
+				minX = Math::Min(minX, ndc.x); maxX = Math::Max(maxX, ndc.x);
+				minY = Math::Min(minY, ndc.y); maxY = Math::Max(maxY, ndc.y);
+				minZ = Math::Min(minZ, ndc.z); maxZ = Math::Max(maxZ, ndc.z);
+			}
+			return (maxX > minX && maxY > minY);
+		};
 
 		auto ProcessChunk = [&](ChunkPos chunkPos)
 		{
@@ -604,7 +575,38 @@ namespace Cube
 			if (chunkVisibility == 0)
 				return;
 
-			for (int i = 0; i < data->numLayer; ++i)
+			// Optimization: Chunk-Level Occlusion Culling
+			{
+				float cMinX, cMinY, cMaxX, cMaxY, cMinZ, cMaxZ;
+				if (ProjectBox(data->bound, cMinX, cMinY, cMaxX, cMaxY, cMinZ, cMaxZ))
+				{
+					int testCount = (int)activeOccluders.size();
+					for (int i = 0; i < testCount; ++i)
+					{
+						auto const& occluder = activeOccluders[i];
+						if (cMinZ > occluder.maxZ - 0.001f && // Added epsilon
+							cMinX >= occluder.minX && cMaxX <= occluder.maxX &&
+							cMinY >= occluder.minY && cMaxY <= occluder.maxY)
+						{
+							// Statistics: Count all triangles in this chunk as occluded
+							for (int k = 0; k < data->numLayer; ++k)
+							{
+								if (data->layers[k].meshPool)
+									occludedTriangleCount += (data->layers[k].args.indexCountPerInstance / 3) * data->layers[k].args.instanceCount;
+							}
+							return; // Skip entire chunk
+						}
+					}
+				}
+			}
+
+			// Optimization: Determine layer traversal order (Top-to-Bottom for better occlusion seeding)
+			bool bFromTop = true; // Always try top-to-bottom to catch surfaces as occluders
+			int start = bFromTop ? data->numLayer - 1 : 0;
+			int end = bFromTop ? -1 : data->numLayer;
+			int step = bFromTop ? -1 : 1;
+
+			for (int i = start; i != end; i += step)
 			{
 				auto& layer = data->layers[i];
 				if (layer.meshPool == nullptr)
@@ -614,7 +616,47 @@ namespace Cube
 				if (layerVisibility == 0)
 					continue;
 
+				// Hard Distance Clip: If an object is further than 256 units, 
+				// just skip it. This is the ultimate way to save GPU vertex/pixel time.
+				Vector3 center = layer.bound.getCenter();
+				float distSq = (center - camPos).length2();
+				if (distSq > 256.0f * 256.0f)
+				{
+					occludedTriangleCount += (layer.args.indexCountPerInstance / 3) * layer.args.instanceCount;
+					continue;
+				}
+
 				layerDrawList.push_back(&layer);
+
+				if (distSq < 128.0f * 128.0f && layer.occluderBox.isValid())
+				{
+					float oMinX, oMinY, oMaxX, oMaxY, oMinZ, oMaxZ;
+					if (ProjectBox(layer.occluderBox, oMinX, oMinY, oMaxX, oMaxY, oMinZ, oMaxZ))
+					{
+						float area = (oMaxX - oMinX) * (oMaxY - oMinY);
+						if (area > 0.02f) // Lowered to 2% to catch more distant but important hills
+						{
+							OccluderInfo info = { layer.occluderBox, oMinX, oMinY, oMaxX, oMaxY, oMinZ, oMaxZ };
+							if (activeOccluders.size() < 32) // Increased to 32
+							{
+								activeOccluders.push_back(info);
+							}
+							else
+							{
+								// Replace the one that is FURTHEST away, as closer occluders are better
+								int worstIdx = -1;
+								float maxZ = -2.0f;
+								for(int k=0; k<32; ++k) {
+									if (activeOccluders[k].maxZ > maxZ) {
+										maxZ = activeOccluders[k].maxZ;
+										worstIdx = k;
+									}
+								}
+								if (oMaxZ < maxZ) activeOccluders[worstIdx] = info;
+							}
+						}
+					}
+				}
 			}
 
 			++chunkRenderCount;
@@ -647,22 +689,26 @@ namespace Cube
 			}
 
 			TArray< DrawCmdArgs > drawCmdList;
+			// Front-to-Back Sorting: Closest first to maximize Early-Z culling
+			std::sort(layerDrawList.begin(), layerDrawList.end(), [&](ChunkRenderData::Layer* a, ChunkRenderData::Layer* b)
+			{
+				float distA = (a->bound.getCenter() - camPos).length2();
+				float distB = (b->bound.getCenter() - camPos).length2();
+				return distA < distB;
+			});
+
+			triangleCount = 0;
 			for (auto layer : layerDrawList)
 			{
-				Vector3 center = layer->bound.getCenter();
-				float radiusSquare = layer->bound.getSize().length2() / 4;
-				float GMinScreenRadiusForDepthPrepass = 0.1f;
-				if (radiusSquare > (center - camPos).length2() * GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass)
+				triangleCount += (layer->args.indexCountPerInstance / 3) * layer->args.instanceCount;
+
+				auto meshPool = layer->meshPool;
+				if (meshPool->drawFrame != mRenderFrame)
 				{
-					auto meshPool = layer->meshPool;
-					if (meshPool->drawFrame != mRenderFrame)
-					{
-						meshPool->drawCmdList.clear();
-						meshPool->drawFrame = mRenderFrame;
-					}
-					meshPool->drawCmdList.push_back(layer->args);
-					triangleCount += layer->args.indexCountPerInstance / 3;
+					meshPool->drawCmdList.clear();
+					meshPool->drawFrame = mRenderFrame;
 				}
+				meshPool->drawCmdList.push_back(layer->args);
 			}
 
 			drawCmdList.clear();
@@ -675,12 +721,14 @@ namespace Cube
 				drawCmdList.append(mesh->drawCmdList);
 			}
 
+			// Re-enable Depth Prepass for Overdraw control
 			if (!drawCmdList.empty())
 			{
 				chunkLayerDepthPrepassCount = drawCmdList.size();
 				RHIUpdateBuffer(*mCmdBuffer, 0, drawCmdList.size(), drawCmdList.data());
 
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNearEqual>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
 				RHISetShaderProgram(commandList, mProgBlockRenderDepth->getRHI());
 				context.setupShader(commandList, *mProgBlockRenderDepth);
 
@@ -700,19 +748,6 @@ namespace Cube
 				}
 			}
 
-			++mRenderFrame;
-			for (auto layer : layerDrawList)
-			{
-				auto meshPool = layer->meshPool;
-				if (meshPool->drawFrame != mRenderFrame)
-				{
-					meshPool->drawCmdList.clear();
-					meshPool->drawFrame = mRenderFrame;
-				}
-				meshPool->drawCmdList.push_back(layer->args);
-				triangleCount += layer->args.indexCountPerInstance / 3;		
-			}
-
 			drawCmdList.clear();
 			for (auto mesh : mMeshPool)
 			{
@@ -726,12 +761,13 @@ namespace Cube
 			if ( !drawCmdList.empty() )
 			{
 				chunkLayerCount = drawCmdList.size();
-				RHIUpdateBuffer(*mCmdBuffer, 0, drawCmdList.size(), drawCmdList.data());
 
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNearEqual>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
 				RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
 				context.setupShader(commandList, *mProgBlockRender);
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI());
+
 				for (auto mesh : mMeshPool)
 				{
 					if (mesh->drawFrame != mRenderFrame)
@@ -787,9 +823,13 @@ namespace Cube
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
 		g.drawTextF(Vector2(10, 10), "chunkCount = %d, chunkRenderCount = %d", mChunkMap.size(), chunkRenderCount);
-		g.drawTextF(Vector2(10, 25), "triangleCount = %d", triangleCount);
-		g.drawTextF(Vector2(10, 40), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
-		g.drawTextF(Vector2(10, 55), "chunkMeshCount = %d %d %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
+		int64 totalPotential = triangleCount + occludedTriangleCount;
+		double cullingRate = totalPotential > 0 ? (double)occludedTriangleCount * 100.0 / totalPotential : 0.0;
+		g.drawTextF(Vector2(10, 25), "Total Poten: %lld", totalPotential);
+		g.drawTextF(Vector2(10, 40), "Occluded   : %lld (%.1f%% culled)", occludedTriangleCount, cullingRate);
+		g.drawTextF(Vector2(10, 55), "Final Drawn: %lld", triangleCount);
+		g.drawTextF(Vector2(10, 70), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
+		g.drawTextF(Vector2(10, 85), "chunkMeshCount = %d %d %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
 
 
 		g.drawCustomFunc([this, &g](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)

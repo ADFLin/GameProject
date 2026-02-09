@@ -37,6 +37,7 @@
 #include "Renderer/ShadowDepthRendering.cpp"
 #include "Renderer/RenderTargetPool.cpp"
 #include "Renderer/BatchedRender2D.cpp"
+#include "Renderer/RenderThread.cpp"
 
 #include "GameFramework/EntityManager.cpp"
 #include "Async/Coroutines.cpp"

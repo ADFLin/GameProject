@@ -32,6 +32,7 @@ namespace Render
 		Matrix4 translatedWorldToClip;
 		Matrix4 clipToTranslatedWorld;
 		Matrix4 worldToClipPrev;
+		Matrix4 worldToViewPrev;
 
 		Matrix4 viewToTranslatedWorld;
 

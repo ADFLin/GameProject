@@ -12,6 +12,7 @@ struct ViewParameters
 	float4x4 translatedWorldToClip;
 	float4x4 clipToTranslatedWorld;
 	float4x4 worldToClipPrev;
+	float4x4 worldToViewPrev;
 
 	float4    frustumPlanes[6];
 
@@ -23,6 +24,9 @@ struct ViewParameters
 	float  gameTime;
 
 	int    frameCount;
+	//float  frustumNear;
+	//float  frustumFar;
+	int    padding[3];
 
 };
 

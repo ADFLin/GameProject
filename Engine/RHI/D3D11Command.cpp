@@ -83,14 +83,16 @@ namespace Render
 	class D3D11ProfileCore : public RHIProfileCore
 	{
 	public:
+		static constexpr int NUM_FRAME_BUFFER = 4;
 
 		D3D11ProfileCore()
 		{
 			mCycleToMillisecond = 0;
+			mCurFrameIndex = 0;
 		}
 
 		bool init(TComPtr<ID3D11Device> const& device,
-			      TComPtr<ID3D11DeviceContext> const& deviceContextImmdiate,
+				  TComPtr<ID3D11DeviceContext> const& deviceContextImmdiate,
 				  TComPtr<ID3D11DeviceContext> const& deviceContext)
 		{
 			mDevice = device;
@@ -99,43 +101,26 @@ namespace Render
 
 			bDeferredContext = mDeviceContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED;
 
-			D3D11_QUERY_DESC desc;
-			desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-			desc.MiscFlags = 0;
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateQuery(&desc, &mQueryDisjoint));
+			for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
+			{
+				D3D11_QUERY_DESC desc;
+				desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+				desc.MiscFlags = 0;
+				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateQuery(&desc, &mQueryDisjoint[i]));
+			}
 
 			return true;
 		}
+
 		virtual void beginFrame() override
 		{
-			mDeviceContextImmdiate->Begin(mQueryDisjoint);
+			mDeviceContextImmdiate->Begin(mQueryDisjoint[mCurFrameIndex]);
 		}
 
 		virtual bool endFrame() override
 		{
-			mDeviceContextImmdiate->End(mQueryDisjoint);
-
-			static constexpr int QUERY_TIMEOUT_MS = 1000;
-			static constexpr int SLEEP_INTERVAL_MS = 1;
-			int count = 0;
-			int maxRetries = QUERY_TIMEOUT_MS / SLEEP_INTERVAL_MS;
-			while (mDeviceContextImmdiate->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE)
-			{
-				if (++count > maxRetries)
-				{
-					LogWarning(0, "GPU query timeout after %dms", QUERY_TIMEOUT_MS);
-					return false;
-				}
-				SystemPlatform::Sleep(SLEEP_INTERVAL_MS);
-			}
-
-			D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-			mDeviceContextImmdiate->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
-			if (tsDisjoint.Disjoint)
-			{
-				return false;
-			}
-			tsDisjoint.Frequency;	
+			mDeviceContextImmdiate->End(mQueryDisjoint[mCurFrameIndex]);
+			mCurFrameIndex = (mCurFrameIndex + 1) % NUM_FRAME_BUFFER;
 			return true;
 		}
 
@@ -144,94 +129,92 @@ namespace Render
 			D3D11_QUERY_DESC desc;
 			desc.Query = D3D11_QUERY_TIMESTAMP;
 			desc.MiscFlags = 0;
-			//if (bDeferredContext)
-			{
-				TComPtr< ID3D11Query > startQuery;
-				VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &startQuery), return RHI_ERROR_PROFILE_HANDLE;);
-				TComPtr< ID3D11Query > endQuery;
-				VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
 
-				uint32 result = mSamples.size();
-				mSamples.emplace_back(std::move(startQuery), std::move(endQuery));
-				return result;
-			}
+			TComPtr< ID3D11Query > startQuery;
+			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &startQuery), return RHI_ERROR_PROFILE_HANDLE;);
+			TComPtr< ID3D11Query > endQuery;
+			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
+
+			uint32 frameIndex = mCurFrameIndex;
+			uint32 result = (frameIndex << 24) | mFrameSamples[frameIndex].size();
+			mFrameSamples[frameIndex].emplace_back(std::move(startQuery), std::move(endQuery));
+			return result;
 		}
 
 		virtual void startTiming(uint32 timingHandle) override
 		{
-			CHECK(timingHandle < mSamples.size());
-			mDeviceContext->End(mSamples[timingHandle].startQuery);
+			uint32 frameIndex = timingHandle >> 24;
+			uint32 handle = timingHandle & 0xffffff;
+			CHECK(handle < mFrameSamples[frameIndex].size());
+			mDeviceContext->End(mFrameSamples[frameIndex][handle].startQuery);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
 		{
-			CHECK(timingHandle < mSamples.size());
-			mDeviceContext->End(mSamples[timingHandle].endQuery);
+			uint32 frameIndex = timingHandle >> 24;
+			uint32 handle = timingHandle & 0xffffff;
+			CHECK(handle < mFrameSamples[frameIndex].size());
+			mDeviceContext->End(mFrameSamples[frameIndex][handle].endQuery);
 		}
 
-		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
+		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) override
 		{
-			if (timingHandle >= mSamples.size())
+			uint32 frameIndex = timingHandle >> 24;
+			uint32 handle = timingHandle & 0xffffff;
+
+			if (handle >= mFrameSamples[frameIndex].size())
 			{
-				LogError(0, "Invalid timing handle: %u (max: %zu)", timingHandle, mSamples.size());
+				LogError(0, "Invalid timing handle: %u (max: %zu)", handle, mFrameSamples[frameIndex].size());
 				return false;
 			}
 
-			Sample& sample = mSamples[timingHandle];
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.startQuery, NULL, 0, 0));
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.endQuery, NULL, 0, 0));
+			if (mDeviceContextImmdiate->GetData(mQueryDisjoint[frameIndex], NULL, 0, 0) == S_FALSE)
+				return false;
+
+			D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
+			mDeviceContextImmdiate->GetData(mQueryDisjoint[frameIndex], &tsDisjoint, sizeof(tsDisjoint), 0);
+			if (tsDisjoint.Disjoint)
+			{
+				return false;
+			}
+			mCycleToMillisecond = double(1000) / tsDisjoint.Frequency;
+
+			Sample& sample = mFrameSamples[frameIndex][handle];
+			if (mDeviceContextImmdiate->GetData(sample.startQuery, NULL, 0, 0) == S_FALSE ||
+				mDeviceContextImmdiate->GetData(sample.endQuery, NULL, 0, 0) == S_FALSE)
+			{
+				return false;
+			}
 
 			UINT64 startData;
 			mDeviceContextImmdiate->GetData(sample.startQuery, &startData, sizeof(startData), 0);
 			UINT64 endData;
 			mDeviceContextImmdiate->GetData(sample.endQuery, &endData, sizeof(endData), 0);
 			outDuration = endData - startData;
+			outStart = startData;
 			return true;
 		}
 
 		virtual double getCycleToMillisecond() override
 		{
-			if( mCycleToMillisecond == 0 )
-			{
-				TComPtr< ID3D11Query > queryDisjoint;
-				D3D11_QUERY_DESC desc;
-				desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-				desc.MiscFlags = 0;
-				VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &queryDisjoint), return 0.0;);
-				mDeviceContextImmdiate->Begin(queryDisjoint);
-				mDeviceContextImmdiate->End(queryDisjoint);
-
-				int retryCount = 0;
-				static constexpr int MAX_RETRIES = 1000;
-				while (RESULT_FAILED(mDeviceContextImmdiate->GetData(queryDisjoint, NULL, 0, 0)))
-				{
-					if (++retryCount > MAX_RETRIES)
-					{
-						LogError(0, "Failed to get GPU frequency after %d retries", MAX_RETRIES);
-						return 0.0;
-					}
-					SystemPlatform::Sleep(1);
-				}
-
-				D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-				mDeviceContextImmdiate->GetData(queryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
-				mCycleToMillisecond = double(1000) / tsDisjoint.Frequency;
-			}
-
 			return mCycleToMillisecond;
-		}	
+		}
 
 		virtual void releaseRHI() override
 		{
-			mQueryDisjoint.reset();
-			mSamples.clear();
+			for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
+			{
+				mQueryDisjoint[i].reset();
+				mFrameSamples[i].clear();
+			}
 			mDeviceContext.reset();
 			mDeviceContextImmdiate.reset();
 			mDevice.reset();
 		}
-		double mCycleToMillisecond;
 
-		TComPtr< ID3D11Query > mQueryDisjoint;
+		double mCycleToMillisecond;
+		int mCurFrameIndex;
+		TComPtr< ID3D11Query > mQueryDisjoint[NUM_FRAME_BUFFER];
 
 		struct Sample
 		{
@@ -243,11 +226,10 @@ namespace Render
 			{
 			}
 		};
-		TArray< Sample > mSamples;
-
+		TArray< Sample > mFrameSamples[NUM_FRAME_BUFFER];
 
 		bool bDeferredContext;
-		TComPtr<ID3D11DeviceContext> mDeviceContext; 
+		TComPtr<ID3D11DeviceContext> mDeviceContext;
 		TComPtr<ID3D11DeviceContext> mDeviceContextImmdiate;
 		TComPtr<ID3D11Device> mDevice;
 	};
@@ -1027,15 +1009,15 @@ namespace Render
 		D3D11_DEPTH_STENCIL_DESC desc;
 		desc.DepthEnable = initializer.isDepthEnable();
 		desc.DepthWriteMask = initializer.bWriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-		desc.DepthFunc = D3D11Translate::To( initializer.depthFunc );
+		desc.DepthFunc = D3D11Translate::To(initializer.depthFunc);
 		desc.StencilEnable = initializer.bEnableStencil;
 		desc.StencilReadMask = initializer.stencilReadMask;
 		desc.StencilWriteMask = initializer.stencilWriteMask;
 
 		desc.FrontFace.StencilFunc = D3D11Translate::To(initializer.stencilFunc);
 		desc.FrontFace.StencilPassOp = D3D11Translate::To(initializer.zPassOp);
-		desc.FrontFace.StencilDepthFailOp = D3D11Translate::To( initializer.zFailOp );
-		desc.FrontFace.StencilFailOp = D3D11Translate::To( initializer.stencilFailOp );
+		desc.FrontFace.StencilDepthFailOp = D3D11Translate::To(initializer.zFailOp);
+		desc.FrontFace.StencilFailOp = D3D11Translate::To(initializer.stencilFailOp);
 	
 		desc.BackFace.StencilFunc = D3D11Translate::To(initializer.stencilFuncBack);
 		desc.BackFace.StencilPassOp = D3D11Translate::To(initializer.zPassOpBack);
@@ -1284,16 +1266,42 @@ namespace Render
 		d3dDesc.BindFlags = 0;
 		SetupTextureDesc(d3dDesc, desc.creationFlags, bDepthFormat);
 
-		D3D11_SUBRESOURCE_DATA initData = {};
 		if (data)
 		{
-			initData.pSysMem = (void *)data;
+			D3D11_SUBRESOURCE_DATA initData = {};
+			initData.pSysMem = (void*)data;
 			initData.SysMemPitch = desc.dimension.x * pixelSize;
 			initData.SysMemSlicePitch = initData.SysMemPitch * desc.dimension.y;
+
+			if (desc.creationFlags & TCF_GenerateMips)
+			{
+				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&d3dDesc, nullptr, &outResult.resource));
+				mDeviceContextImmdiate->UpdateSubresource(outResult.resource, 0, nullptr, initData.pSysMem, initData.SysMemPitch, initData.SysMemSlicePitch);
+			}
+			else if (d3dDesc.MipLevels > 1)
+			{
+				// If we have multiple mips but only Level 0 data, we create with null and update subresource 0.
+				// This assumes the data pointer only contains the first mip.
+				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&d3dDesc, nullptr, &outResult.resource));
+				mDeviceContextImmdiate->UpdateSubresource(outResult.resource, 0, nullptr, initData.pSysMem, initData.SysMemPitch, initData.SysMemSlicePitch);
+			}
+			else
+			{
+				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&d3dDesc, &initData, &outResult.resource));
+			}
+		}
+		else
+		{
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&d3dDesc, nullptr, &outResult.resource));
 		}
 
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&d3dDesc, data ? &initData : nullptr, &outResult.resource));
 		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.creationFlags, outResult));
+
+		if (desc.creationFlags & TCF_GenerateMips)
+		{
+			TComPtr<ID3D11ShaderResourceView> SRV = outResult.SRV;
+			mDeviceContextImmdiate->GenerateMips(SRV);
+		}
 		return true;
 	}
 
@@ -1395,7 +1403,7 @@ namespace Render
 
 	bool D3D11ResourceBoundState::clearTextureByLoc(int loc)
 	{
-		CHECK(loc < MaxSimulatedBoundedSRVNum);
+		CHECK(0 <= loc && loc < MaxSimulatedBoundedSRVNum);
 		if (mBoundedSRVs[loc] != nullptr)
 		{
 			if (mBoundedSRVResources[loc] && mBoundedSRVResources[loc]->getResourceType() == EResourceType::Texture)
@@ -1421,7 +1429,7 @@ namespace Render
 
 	bool D3D11ResourceBoundState::clearUAV(ShaderParameter const& parameter)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		if (mBoundedUAVs[parameter.mLoc] != nullptr)
 		{
 			--mUAVUsageCount;
@@ -1436,7 +1444,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedSRVNum);
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedSRVNum);
 		D3D11TextureBase& textureBase =  D3D11Cast::ToTextureBase(texture);
 		D3D11ShaderResourceView* resViewImpl = &textureBase.mSRV;
 		
@@ -1510,7 +1518,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setRWSubTexture(ShaderParameter const& parameter, RHITextureBase& texture, int subIndex, int level)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		D3D11TextureBase& textureImpl = D3D11Cast::ToTextureBase(texture);
 		ID3D11UnorderedAccessView* UAV = textureImpl.mUAV;
 
@@ -1535,7 +1543,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::clearRWTexture(ShaderParameter const& parameter)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedUAVNum);
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		if (mBoundedUAVs[parameter.mLoc] != nullptr)
 		{
 			--mUAVUsageCount;
@@ -1547,7 +1555,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setSampler(ShaderParameter const& parameter, RHISamplerState& sampler)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedSamplerNum);
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedSamplerNum);
 		auto& samplerImpl = D3D11Cast::To(sampler);
 		if( mBoundedSamplers[parameter.mLoc] != samplerImpl.getResource() )
 		{
@@ -1558,7 +1566,7 @@ namespace Render
 
 	void D3D11ResourceBoundState::setUniformBuffer(ShaderParameter const& parameter, RHIBuffer& buffer)
 	{
-		CHECK(parameter.mLoc < MaxSimulatedBoundedBufferNum);
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedBufferNum);
 		D3D11Buffer& bufferImpl = D3D11Cast::To(buffer);
 		if( mBoundedConstBuffers[parameter.mLoc] != bufferImpl.mResource )
 		{
@@ -2242,6 +2250,11 @@ namespace Render
 		mDeviceContext->ResolveSubresource(destResource, destSubIndex, srcResource, srcSubIndex, D3D11Translate::To(destTexture.getFormat()));
 	}
 
+	void D3D11Context::RHICopyResource(RHIResource& dest, RHIResource& src)
+	{
+		mDeviceContext->CopyResource(D3D11Cast::GetResource(dest), D3D11Cast::GetResource(src));
+	}
+
 	void D3D11Context::RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
 		int const MaxStreamNum = 16;
@@ -2868,6 +2881,14 @@ namespace Render
 				}
 			}
 		}
+		else if (transition == EResourceTransition::CopySrc || transition == EResourceTransition::CopyDest)
+		{
+			// Copy Src/Dest: Unbind from SRV to avoid hazards
+			for (auto resource : resources)
+			{
+				clearSRVResource(*resource);
+			}
+		}
 	}
 
 	void D3D11Context::clearSRVResource(RHIResource& resource)
@@ -2952,18 +2973,23 @@ namespace Render
 		mInputLayout = nullptr;
 	}
 
-	static constexpr int32 D3D11_CONSTANT_BUFFER_ALIGN = 16;
+	static constexpr uint32 D3D11_CONSTANT_BUFFER_ALIGN = 16;
 	static constexpr int32 D3D11_CONSTANT_BUFFER_INITIAL_SIZE = 2048;
 	bool ShaderConstDataBuffer::initializeResource(ID3D11Device* device)
 	{
+		uint32 initialSize = AlignArbitrary<uint32>(D3D11_CONSTANT_BUFFER_INITIAL_SIZE, D3D11_CONSTANT_BUFFER_ALIGN);
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
-		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-		bufferDesc.ByteWidth = AlignArbitrary(D3D11_CONSTANT_BUFFER_INITIAL_SIZE, D3D11_CONSTANT_BUFFER_ALIGN);
+		bufferDesc.ByteWidth = initialSize;
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bufferDesc.CPUAccessFlags = 0;
 		bufferDesc.MiscFlags = 0;
 		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, nullptr, &resource));
+
+		if (mDataBuffer.size() < initialSize)
+		{
+			mDataBuffer.resize(initialSize, 0);
+		}
 		return true;
 	}
 
@@ -2998,6 +3024,28 @@ namespace Render
 	{ 
 		if (mUpdateDataSize)
 		{
+			D3D11_BUFFER_DESC desc;
+			resource->GetDesc(&desc);
+
+			if (mUpdateDataSize > (int)desc.ByteWidth)
+			{
+				TComPtr<ID3D11Device> device;
+				context->GetDevice(&device);
+
+				D3D11_BUFFER_DESC bufferDesc = desc;
+				bufferDesc.ByteWidth = AlignArbitrary<uint32>(mUpdateDataSize, D3D11_CONSTANT_BUFFER_ALIGN);
+				if (FAILED(device->CreateBuffer(&bufferDesc, nullptr, &resource)))
+				{
+					return;
+				}
+				desc.ByteWidth = bufferDesc.ByteWidth;
+			}
+
+			if (mDataBuffer.size() < desc.ByteWidth)
+			{
+				mDataBuffer.resize(desc.ByteWidth, 0);
+			}
+
 			context->UpdateSubresource(resource, 0, nullptr, &mDataBuffer[0], 0, 0);
 			mUpdateDataSize = 0;
 		}
@@ -3007,7 +3055,7 @@ namespace Render
 	{
 		if (mDataBuffer.size() < newSize)
 		{
-			mDataBuffer.resize(AlignArbitrary(newSize, D3D11_CONSTANT_BUFFER_ALIGN));
+			mDataBuffer.resize(AlignArbitrary<uint32>(newSize, D3D11_CONSTANT_BUFFER_ALIGN));
 		}
 	}
 

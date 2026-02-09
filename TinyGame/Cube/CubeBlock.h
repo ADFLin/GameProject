@@ -29,6 +29,9 @@ namespace Cube
 		bool    isSolid(){ return mbSolid; }
 		Block&  setSolid( bool beS = true ){ mbSolid = beS; return *this; }
 
+		bool    isFullCube() { return mbFullCube; }
+		Block&  setFullCube(bool bFull = true) { mbFullCube = bFull; return *this; }
+
 		virtual unsigned    calcRenderFaceMask( IBlockAccess& blockAccess , Vec3i const& blockPos);
 		virtual bool        canPlaceItem( FaceSide face , ItemId itemId ){ return false; }
 		virtual void        onNeighborBlockModify( IBlockAccess& blockAccess , Vec3i const& blockPos, FaceSide face ){}
@@ -36,7 +39,7 @@ namespace Cube
 	private:
 		BlockId mId;
 		bool    mbSolid;
-		
+		bool    mbFullCube;
 	};
 
 	class LiquidBlock : public Block

@@ -93,6 +93,7 @@
     <ProjectGuid>{7E445617-BA57-48B1-8C08-52BA40C53663}</ProjectGuid>
     <RootNamespace>AllGame</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -159,6 +160,7 @@
       <Command>copy "$(TargetDir)TinyGame.exe" "$(ProjectDir)out\"
 copy "$(TargetDir)TinyShare.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)EngineShare.dll"  "$(ProjectDir)out\"
+copy "$(TargetDir)Editor.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)OpenGLRHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D11RHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D12RHI.dll"  "$(ProjectDir)out\"
@@ -171,6 +173,7 @@ exit 0</Command>
       <Command>copy "$(TargetDir)TinyGame.exe" "$(ProjectDir)out\"
 copy "$(TargetDir)TinyShare.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)EngineShare.dll"  "$(ProjectDir)out\"
+copy "$(TargetDir)Editor.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)OpenGLRHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D11RHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D12RHI.dll"  "$(ProjectDir)out\"
@@ -183,9 +186,11 @@ exit 0</Command>
       <Command>copy "$(TargetDir)TinyGame.exe" "$(ProjectDir)out\"
 copy "$(TargetDir)TinyShare.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)EngineShare.dll"  "$(ProjectDir)out\"
+copy "$(TargetDir)Editor.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)OpenGLRHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D11RHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D12RHI.dll"  "$(ProjectDir)out\"
+copy "$(TargetDir)VulkanRHI.dll"  "$(ProjectDir)out\"
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -194,9 +199,11 @@ exit 0</Command>
       <Command>copy "$(TargetDir)TinyGame.exe" "$(ProjectDir)out\"
 copy "$(TargetDir)TinyShare.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)EngineShare.dll"  "$(ProjectDir)out\"
+copy "$(TargetDir)Editor.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)OpenGLRHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D11RHI.dll"  "$(ProjectDir)out\"
 copy "$(TargetDir)D3D12RHI.dll"  "$(ProjectDir)out\"
+copy "$(TargetDir)VulkanRHI.dll"  "$(ProjectDir)out\"
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

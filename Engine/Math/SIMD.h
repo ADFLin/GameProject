@@ -267,6 +267,9 @@ namespace SIMD
 	template< int Size >
 	struct TFloatVector {};
 
+	template< int Size >
+	struct TIntVector {};
+
 
 	template<>
 	struct alignas(32) TFloatVector<8>
@@ -307,8 +310,53 @@ namespace SIMD
 		FORCEINLINE TFloatVector operator + (float rhs) const { return _mm256_add_ps(reg, _mm256_set1_ps(rhs)); }
 		FORCEINLINE TFloatVector operator - (float rhs) const { return _mm256_sub_ps(reg, _mm256_set1_ps(rhs)); }
 
+		FORCEINLINE TFloatVector operator <  (TFloatVector const& rhs) const { return _mm256_cmp_ps(reg, rhs.reg, _CMP_LT_OQ); }
+		FORCEINLINE TFloatVector operator <= (TFloatVector const& rhs) const { return _mm256_cmp_ps(reg, rhs.reg, _CMP_LE_OQ); }
+		FORCEINLINE TFloatVector operator >  (TFloatVector const& rhs) const { return _mm256_cmp_ps(reg, rhs.reg, _CMP_GT_OQ); }
+		FORCEINLINE TFloatVector operator >= (TFloatVector const& rhs) const { return _mm256_cmp_ps(reg, rhs.reg, _CMP_GE_OQ); }
+		FORCEINLINE TFloatVector operator == (TFloatVector const& rhs) const { return _mm256_cmp_ps(reg, rhs.reg, _CMP_EQ_OQ); }
+		FORCEINLINE TFloatVector operator != (TFloatVector const& rhs) const { return _mm256_cmp_ps(reg, rhs.reg, _CMP_NEQ_OQ); }
+
+		FORCEINLINE TFloatVector operator & (TFloatVector const& rhs) const { return _mm256_and_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator | (TFloatVector const& rhs) const { return _mm256_or_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator ^ (TFloatVector const& rhs) const { return _mm256_xor_ps(reg, rhs.reg); }
+
+		FORCEINLINE float sum() const
+		{
+			__m128 vlow = _mm256_castps256_ps128(reg);
+			__m128 vhigh = _mm256_extractf128_ps(reg, 1);
+			vlow = _mm_add_ps(vlow, vhigh);
+			__m128 shuf = _mm_movehdup_ps(vlow);
+			__m128 sums = _mm_add_ps(vlow, shuf);
+			shuf = _mm_movehl_ps(shuf, sums);
+			sums = _mm_add_ss(sums, shuf);
+			return _mm_cvtss_f32(sums);
+		}
+
+		template< int Scale >
+		FORCEINLINE static TFloatVector gather(float const* base, __m256i const& indices)
+		{
+			return _mm256_i32gather_ps(base, indices, Scale);
+		}
+
+		FORCEINLINE bool isAnyActive() const
+		{
+			return !_mm256_testz_si256(_mm256_castps_si256(reg), _mm256_castps_si256(reg));
+		}
+
 		static int constexpr Size = 8;
 		__m256 reg;
+	};
+
+	template<>
+	struct alignas(32) TIntVector<8>
+	{
+		TIntVector() = default;
+		FORCEINLINE TIntVector(int val) { reg = _mm256_set1_epi32(val); }
+		FORCEINLINE TIntVector(__m256i val) : reg(val) {}
+		FORCEINLINE static TIntVector load(int const* p) { return _mm256_loadu_si256((__m256i const*)p); }
+		operator __m256i () const { return reg; }
+		__m256i reg;
 	};
 
 	FORCEINLINE TFloatVector<8> operator * (float lhs, TFloatVector<8> const& rhs) { return _mm256_mul_ps(_mm256_set1_ps(lhs), rhs.reg); }
@@ -360,6 +408,31 @@ namespace SIMD
 		return _mm256_sqrt_ps(value.reg);
 	}
 
+	FORCEINLINE TFloatVector<8> rsqrt(TFloatVector<8> const& value)
+	{
+		return _mm256_rsqrt_ps(value.reg);
+	}
+
+	FORCEINLINE TFloatVector<8> min(TFloatVector<8> const& a, TFloatVector<8> const& b)
+	{
+		return _mm256_min_ps(a.reg, b.reg);
+	}
+
+	FORCEINLINE TFloatVector<8> max(TFloatVector<8> const& a, TFloatVector<8> const& b)
+	{
+		return _mm256_max_ps(a.reg, b.reg);
+	}
+
+	FORCEINLINE TFloatVector<8> select(TFloatVector<8> const& mask, TFloatVector<8> const& vTrue, TFloatVector<8> const& vFalse)
+	{
+		return _mm256_blendv_ps(vFalse.reg, vTrue.reg, mask.reg);
+	}
+
+	FORCEINLINE TFloatVector<8> abs(TFloatVector<8> const& v)
+	{
+		return _mm256_andnot_ps(_mm256_set1_ps(-0.0f), v.reg);
+	}
+
 
 	template<>
 	struct alignas(16) TFloatVector<4>
@@ -395,8 +468,57 @@ namespace SIMD
 		FORCEINLINE TFloatVector operator + (float rhs) const { return _mm_add_ps(reg, _mm_set1_ps(rhs)); }
 		FORCEINLINE TFloatVector operator - (float rhs) const { return _mm_sub_ps(reg, _mm_set1_ps(rhs)); }
 
+		FORCEINLINE TFloatVector operator <  (TFloatVector const& rhs) const { return _mm_cmplt_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator <= (TFloatVector const& rhs) const { return _mm_cmple_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator >  (TFloatVector const& rhs) const { return _mm_cmpgt_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator >= (TFloatVector const& rhs) const { return _mm_cmpge_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator == (TFloatVector const& rhs) const { return _mm_cmpeq_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator != (TFloatVector const& rhs) const { return _mm_cmpneq_ps(reg, rhs.reg); }
+
+		FORCEINLINE TFloatVector operator & (TFloatVector const& rhs) const { return _mm_and_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator | (TFloatVector const& rhs) const { return _mm_or_ps(reg, rhs.reg); }
+		FORCEINLINE TFloatVector operator ^ (TFloatVector const& rhs) const { return _mm_xor_ps(reg, rhs.reg); }
+
+		FORCEINLINE float sum() const
+		{
+			__m128 shuf = _mm_movehdup_ps(reg);
+			__m128 sums = _mm_add_ps(reg, shuf);
+			shuf = _mm_movehl_ps(shuf, sums);
+			sums = _mm_add_ss(sums, shuf);
+			return _mm_cvtss_f32(sums);
+		}
+
+		template< int Scale >
+		FORCEINLINE static TFloatVector gather(float const* base, __m128i const& indices)
+		{
+			// SSE doesn't have native gather, implement an optimized emulation
+			int const* pIdx = (int const*)&indices;
+			return _mm_setr_ps(
+				*(float const*)((uint8 const*)base + pIdx[0] * Scale),
+				*(float const*)((uint8 const*)base + pIdx[1] * Scale),
+				*(float const*)((uint8 const*)base + pIdx[2] * Scale),
+				*(float const*)((uint8 const*)base + pIdx[3] * Scale)
+			);
+		}
+
+		FORCEINLINE bool isAnyActive() const
+		{
+			return _mm_movemask_ps(reg) != 0;
+		}
+
 		static int constexpr Size = 4;
 		__m128 reg;
+	};
+
+	template<>
+	struct alignas(16) TIntVector<4>
+	{
+		TIntVector() = default;
+		FORCEINLINE TIntVector(int val) { reg = _mm_set1_epi32(val); }
+		FORCEINLINE TIntVector(__m128i val) : reg(val) {}
+		FORCEINLINE static TIntVector load(int const* p) { return _mm_loadu_si128((__m128i const*)p); }
+		operator __m128i () const { return reg; }
+		__m128i reg;
 	};
 
 
@@ -438,6 +560,35 @@ namespace SIMD
 	FORCEINLINE TFloatVector<4> sqrt(TFloatVector<4> const& value)
 	{
 		return _mm_sqrt_ps(value.reg);
+	}
+
+	FORCEINLINE TFloatVector<4> rsqrt(TFloatVector<4> const& value)
+	{
+		return _mm_rsqrt_ps(value.reg);
+	}
+
+	FORCEINLINE TFloatVector<4> min(TFloatVector<4> const& a, TFloatVector<4> const& b)
+	{
+		return _mm_min_ps(a.reg, b.reg);
+	}
+
+	FORCEINLINE TFloatVector<4> max(TFloatVector<4> const& a, TFloatVector<4> const& b)
+	{
+		return _mm_max_ps(a.reg, b.reg);
+	}
+
+	FORCEINLINE TFloatVector<4> select(TFloatVector<4> const& mask, TFloatVector<4> const& vTrue, TFloatVector<4> const& vFalse)
+	{
+#if SYS_PLATFORM_WIN
+		return _mm_blendv_ps(vFalse.reg, vTrue.reg, mask.reg);
+#else
+		return _mm_or_ps(_mm_and_ps(mask.reg, vTrue.reg), _mm_andnot_ps(mask.reg, vFalse.reg));
+#endif
+	}
+
+	FORCEINLINE TFloatVector<4> abs(TFloatVector<4> const& v)
+	{
+		return _mm_andnot_ps(_mm_set1_ps(-0.0f), v.reg);
 	}
 }//namespace SIMD
 

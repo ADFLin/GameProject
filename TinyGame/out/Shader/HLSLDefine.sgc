@@ -10,6 +10,26 @@
 #define mat4 float4x4
 #define mat3 float3x3
 
+#define restrict
+#define readonly
+#define writeonly
+
+#define image2D  RWTexture2D<float4>
+#define iimage2D RWTexture2D<int4>
+#define uimage2D RWTexture2D<uint4>
+
+#define image3D  RWTexture3D<float4>
+#define iimage3D RWTexture3D<int4>
+#define uimage3D RWTexture3D<uint4>
+
+#define sampler2D Texture2D<float4>
+#define sampler3D Texture3D<float4>
+#define isampler2D Texture2D<int4>
+#define usampler2D Texture2D<uint4>
+
+#define imageStore( Tex , Pos , Val ) Tex[Pos] = Val
+#define texelFetch( Tex , Pos , Lod ) Tex.Load(int4(Pos, Lod))
+
 #else
 
 #define SV_InstanceID
@@ -99,7 +119,7 @@ void GroupMemoryBarrierWithGroupSync();
 #define VS_INPUT(TYPE_DECL, LOC)         SHADER_INPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT_POINTSIZE              out float SvPointSize : PSIZE,
 #define VS_OUTPUT_VIEWPORT_INDEX         out uint SvViewportIndex : SV_ViewportArrayIndex,
-#define VS_OUTPUT_RENDERTARGET_IDNEX     out uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
+#define VS_OUTPUT_RENDERTARGET_INDEX     out uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
 #define VS_OUTPUT(TYPE_DECL , LOC)       out TYPE_DECL : TEXCOORD##LOC,
 #define VS_OUTPUT_STRUCT(TYPE_DECL, LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
 #define VS_ENTRY_END(NAME)               out float4 SvPosition : SV_POSITION)
@@ -120,7 +140,7 @@ void GroupMemoryBarrierWithGroupSync();
 #define PS_INPUT(TYPE_DECL, LOC)        in TYPE_DECL : TEXCOORD##LOC,
 #define PS_INPUT_STRUCT(TYPE_DECL, LOC) in TYPE_DECL,
 #define PS_INPUT_VIEWPORT_INDEX         in uint SvViewportIndex : SV_ViewportArrayIndex,
-#define PS_INPUT_RENDERTARGET_IDNEX     in uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
+#define PS_INPUT_RENDERTARGET_INDEX     in uint SvRenderTargetIndex : SV_RenderTargetArrayIndex,
 #define PS_INPUT_IS_FRONT_FACE          in bool SvIsFrontFace : SV_IsFrontFace,
 #define PS_OUTPUT(TYPE_DECL, LOC)       out TYPE_DECL : SV_Target##LOC,
 #define PS_OUTPUT_DEPTH                 out float SvDepth : SV_Depth,

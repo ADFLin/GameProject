@@ -16,6 +16,7 @@ class GLauncherItem : public GWidget
 public:
 	WorkspaceItem mData;
 	GButton* mLaunchBtn;
+	Vec2i mBasePos;
 
 	GLauncherItem(WorkspaceItem const& data, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 		:BaseClass(pos, size, parent)
@@ -91,7 +92,6 @@ WorkspaceRenderer::~WorkspaceRenderer()
 
 void WorkspaceRenderer::cleanupWidgets()
 {
-	::Global::GUI().getTweener().clear();
 	for (auto ui : mWidgets)
 	{
 		ui->destroy();
@@ -107,10 +107,13 @@ void WorkspaceRenderer::resetScroll()
 
 void WorkspaceRenderer::updateWidgetPositions(int diff)
 {
+	// User interaction overrides any pending animations
+
 	for (auto ui : mWidgets)
 	{
-		Vec2i pos = ui->getPos();
-		pos.y -= diff;
+		GLauncherItem* item = static_cast<GLauncherItem*>(ui);
+		Vec2i pos = item->mBasePos;
+		pos.y -= mScrollOffset;
 		ui->setPos(pos);
 	}
 }
@@ -134,8 +137,8 @@ void WorkspaceRenderer::handleMouseWheel(int change)
 
 void WorkspaceRenderer::refresh(std::vector<WorkspaceItem> const& items)
 {
-	resetScroll(); // Always reset scroll when loading new items
 	cleanupWidgets();
+	resetScroll(); // Always reset scroll when loading new items
 
 	int baseStartY = MenuLayout::HeaderHeight + 20;
 	int startX = MenuLayout::SidebarWidth + 20;
@@ -160,6 +163,7 @@ void WorkspaceRenderer::refresh(std::vector<WorkspaceItem> const& items)
 		int y = startY + ry;
 
 		GLauncherItem* widget = new GLauncherItem(itemData, Vec2i(::Global::GetScreenSize().x + 50, y), Vec2i(cardWidth, cardHeight), nullptr);
+		widget->mBasePos = Vec2i(x, baseStartY + ry);
 		::Global::GUI().addWidget(widget);
 		mWidgets.push_back(widget);
 

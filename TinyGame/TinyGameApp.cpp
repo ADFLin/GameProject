@@ -42,6 +42,7 @@
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
+#include "Renderer/RenderThread.h"
 #include "RHI/RHIGraphics2D.h"
 
 #include "Hardware/GPUDeviceQuery.h"
@@ -452,152 +453,7 @@ public:
 };
 
 
-class RenderExecuteContext
-{
 
-};
-class RenderCommand
-{
-public:
-	virtual void execute(RenderExecuteContext& context){}
-};
-
-
-class RenderCommand_FlushCommands : public RenderCommand
-{
-public:
-	bool wait(double time)
-	{
-		mEvent.wait(time);
-	}
-	void wait()
-	{
-		mEvent.wait();
-	}
-
-	virtual void execute(RenderExecuteContext& context)
-	{
-		mEvent.fire();
-	}
-
-	ThreadEvent mEvent;
-};
-
-template < typename TFunc >
-class TFuncRenderCommand : public RenderCommand
-{
-public:
-	TFuncRenderCommand(TFunc&& func)
-		:mFunc(func)
-	{
-
-	}
-
-	virtual void execute(RenderExecuteContext& context)
-	{
-		mFunc();
-	}
-
-	TFunc mFunc;
-};
-
-uint32 GRenderThreadId = 0;
-bool IsInRenderThread()
-{
-	return GRenderThreadId == PlatformThread::GetCurrentThreadId();
-}
-
-class RenderThread : public RunnableThreadT<RenderThread>
-{
-public:
-	Mutex mCommandMutex;
-	TCycleQueue< RenderCommand* > mCommandList;
-
-	void add(RenderCommand* commnad)
-	{
-		Mutex::Locker lock(mCommandMutex);
-		mCommandList.push_back(commnad);
-	}
-
-	static RenderThread* StaticInstance;
-
-	bool bRunning = true;
-	unsigned run() 
-	{ 
-		GRenderThreadId = PlatformThread::GetCurrentThreadId();
-		PlatformThread::SetThreadName(GRenderThreadId, "RenderThread");
-		ProfileSystem::Get().setThreadName(GRenderThreadId, "RenderThread");
-
-		RenderExecuteContext context;
-		while (bRunning)
-		{
-			RenderCommand* command = nullptr;
-			{
-				Mutex::Locker lock(mCommandMutex);
-
-				if (!mCommandList.empty())
-				{
-					command = mCommandList.front();
-					mCommandList.pop_front();
-				}
-			}
-			if (command)
-			{
-				command->execute(context);
-				delete command;
-			}
-			else
-			{
-				SystemPlatform::Sleep(0);
-			}
-		}
-
-		return 0; 
-	}
-
-	static bool IsRunning(){ return GRenderThreadId != 0; }
-
-	static void Initialzie()
-	{
-		StaticInstance = new RenderThread;
-		StaticInstance->start();
-	}
-
-	static void Finalize()
-	{
-		CHECK(StaticInstance);
-
-		FlushCommands();
-		StaticInstance->bRunning = false;
-		GRenderThreadId = 0;
-		StaticInstance->join();
-
-		delete StaticInstance;
-		StaticInstance = nullptr;
-	}
-
-	template< typename TCommand , typename ...TArgs >
-	static TCommand* AllocCommand(TArgs&& ...args)
-	{
-		TCommand* command = new TCommand(std::forward<TArgs>(args)...);
-		StaticInstance->add(command);
-		return command;
-	}
-	
-	template < typename TFunc >
-	static void AddCommand(char const* name, TFunc&& func)
-	{
-		AllocCommand<TFuncRenderCommand<TFunc>(std::forward<TFunc>(func));
-	}
-
-	static void FlushCommands()
-	{
-		auto command = AllocCommand<RenderCommand_FlushCommands>();
-		command->wait();
-	}
-};
-
-RenderThread* RenderThread::StaticInstance = nullptr;
 
 static GameLogPrinter   GLogPrinter;
 static GameConfigAsset  GGameConfigAsset;
@@ -1015,7 +871,7 @@ bool TinyGameApp::initializeGame()
 
 		mFPSCalc.init(mClock.getTimeMilliseconds());
 
-		RenderThread::Initialzie();
+		//RenderThread::Initialize();
 	}
 
 	::ProfileSystem::Get().resetSample();
@@ -1067,9 +923,9 @@ void TinyGameApp::finalizeGame()
 
 long TinyGameApp::handleGameUpdate( long shouldTime )
 {	
-	PROFILE_FUNCTION();
-
 	ProfileSystem::Get().incrementFrameCount();
+
+	PROFILE_FUNCTION();
 
 	long updateTime = shouldTime;
 	float deltaTime = float(updateTime) / 1000.0;
@@ -1540,6 +1396,7 @@ void TinyGameApp::render( float dframe )
 		return;
 
 	++GRenderFrame;
+
 	if (CVarProfileGPU)
 		GpuProfiler::Get().beginFrame();
 
@@ -1616,9 +1473,13 @@ void TinyGameApp::render( float dframe )
 
 		if (CVarDrawGPUUsage)
 		{
+			PROFILE_ENTRY("Draw GPU Usage");
 			struct LocalInit
 			{
 				GPUDeviceQuery* deviceQuery = nullptr;
+				GPUStatus       cachedStatus;
+				uint32          lastUpdateTime = 0;
+
 				LocalInit()
 				{
 					deviceQuery = GPUDeviceQuery::Create();
@@ -1638,35 +1499,38 @@ void TinyGameApp::render( float dframe )
 
 			static LocalInit sLocalInit;
 
-			GPUDeviceQuery* deviceQuery = sLocalInit.deviceQuery;
-			if (deviceQuery)
+			if (sLocalInit.deviceQuery)
 			{
-				GPUStatus status;
-				if (deviceQuery->getGPUStatus(0, status))
+				uint32 currentTime = SystemPlatform::GetTickCount();
+				if (currentTime - sLocalInit.lastUpdateTime > 500)
 				{
-					RenderUtility::SetFont(g, FONT_S8);
-
-					float const width = 15;
-
-					Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
-					Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100);
-					RenderUtility::SetPen(g, EColor::Red);
-					RenderUtility::SetBrush(g, EColor::Red);
-					g.drawRect(renderPos - renderSize, renderSize);
-
-					Vector2 textSize = Vector2(width, 20);
-					g.setTextColor(Color3ub(0, 255, 255));
-					g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
-
-					renderPos.x -= width + 5;
-					renderSize = Vector2(width, 100 * float(status.temperature) / 100);
-					RenderUtility::SetPen(g, EColor::Yellow);
-					RenderUtility::SetBrush(g, EColor::Yellow);
-					g.drawRect(renderPos - renderSize, renderSize);
-
-					g.setTextColor(Color3ub(0, 0, 255));
-					g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
+					sLocalInit.deviceQuery->getGPUStatus(0, sLocalInit.cachedStatus);
+					sLocalInit.lastUpdateTime = currentTime;
 				}
+
+				GPUStatus const& status = sLocalInit.cachedStatus;
+				RenderUtility::SetFont(g, FONT_S8);
+
+				float const width = 15;
+
+				Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
+				Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100);
+				RenderUtility::SetPen(g, EColor::Red);
+				RenderUtility::SetBrush(g, EColor::Red);
+				g.drawRect(renderPos - renderSize, renderSize);
+
+				Vector2 textSize = Vector2(width, 20);
+				g.setTextColor(Color3ub(0, 255, 255));
+				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
+
+				renderPos.x -= width + 5;
+				renderSize = Vector2(width, 100 * float(status.temperature) / 100);
+				RenderUtility::SetPen(g, EColor::Yellow);
+				RenderUtility::SetBrush(g, EColor::Yellow);
+				g.drawRect(renderPos - renderSize, renderSize);
+
+				g.setTextColor(Color3ub(0, 0, 255));
+
 			}
 		}
 
@@ -1679,9 +1543,9 @@ void TinyGameApp::render( float dframe )
 
 		if (CVarShowGPUProifle)
 		{
-
 			if (CVarProfileGPU && RHIIsInitialized())
 			{
+				PROFILE_ENTRY("Show GPU Profile");
 				SimpleTextLayout textlayout;
 				textlayout.offset = 15;
 				textlayout.posX = ::Global::GetScreenSize().x - 250;
@@ -1728,7 +1592,6 @@ void TinyGameApp::render( float dframe )
 	}
 
 	g.endRender();	
-
 
 	{
 		PROFILE_ENTRY("ProfileGPU.endFrame");

@@ -316,6 +316,7 @@ namespace Render
 		}
 
 		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
+		void RHICopyResource(RHIResource& dest, RHIResource& src);
 
 		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
 		void RHIFlushCommand()
@@ -341,6 +342,11 @@ namespace Render
 		void commitUAVState();
 		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, uint32 const* pIndices, EPrimitive& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
 
+		void RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch) {}
+		void RHISetRayTracingPipelineState(RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt) {}
+		void RHIDispatchRays(uint32 width, uint32 height, uint32 depth) {}
+		void RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances){}
+		void RHISetShaderAccelerationStructure(RHIShader* shader, char const* name, RHIAccelerationStructure* as) {}
 
 		//
 		template< EShader::Type TypeValue >
@@ -414,6 +420,8 @@ namespace Render
 		void clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op);
 
 		void clearSRVResource(RHIResource& resource);
+		
+
 
 		void setGfxShaderProgram(RHIShaderProgram& shaderProgram);
 
@@ -495,6 +503,11 @@ namespace Render
 
 		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
+
+		RHIRayTracingPipelineState* RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer) { return nullptr; }
+		RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags) { return nullptr; }
+		RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags) { return nullptr; }
+		RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState) { return nullptr; }
 
 		bool createTexture1DInternal(TextureDesc const& desc, void* data, Texture1DCreationResult& outResult);
 		bool createTexture2DInternal(TextureDesc const& desc, void* data, int dataAlign, Texture2DCreationResult& outResult);

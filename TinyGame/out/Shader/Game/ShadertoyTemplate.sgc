@@ -41,7 +41,7 @@ bool bDiscardPixel;
 VS_ENTRY_START(CubeOnePassVS)
 	VS_INPUT(float4 InPosition, ATTRIBUTE_POSITION)
 	VS_INPUT_INSTANCEID
-	VS_OUTPUT_RENDERTARGET_IDNEX
+	VS_OUTPUT_RENDERTARGET_INDEX
 VS_ENTRY_END(CubeOnePassVS)
 {
 	SvPosition = InPosition;
@@ -140,11 +140,18 @@ float4 Render(float2 fragCoord)
 PS_ENTRY_START(MainPS)
 	PS_OUTPUT(float4 OutColor, 0)
 #if RENDER_CUBE_ONE_PASS
-	PS_INPUT_RENDERTARGET_IDNEX
+	PS_INPUT_RENDERTARGET_INDEX
 #endif
 PS_ENTRY_END(MainPS)
 {
 	float2 fragCoord = SvPosition.xy;
+#if COMPILER_HLSL
+#if RENDER_IMAGE || RENDER_BUFFER
+	fragCoord.y = iResolution.y - fragCoord.y;
+#elif RENDER_CUBE
+	fragCoord.y = iViewportSize.y - fragCoord.y;
+#endif
+#endif
 #if RENDER_CUBE_ONE_PASS
 	OutColor = Render(fragCoord, SvRenderTargetIndex);
 #else
@@ -179,6 +186,13 @@ CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
 CS_ENTRY(MainCS)
 {
 	float2 fragCoord = float2(SvDispatchThreadID.x, SvDispatchThreadID.y) + 0.5;
+#if COMPILER_HLSL
+#if RENDER_IMAGE || RENDER_BUFFER
+	fragCoord.y = iResolution.y - fragCoord.y;
+#elif RENDER_CUBE
+	fragCoord.y = iViewportSize.y - fragCoord.y;
+#endif
+#endif
 #if RENDER_IMAGE
 	if (fragCoord.x > iResolution.x || fragCoord.y > iResolution.y)
 		return;

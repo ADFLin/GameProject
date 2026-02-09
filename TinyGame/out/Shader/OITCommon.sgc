@@ -3,8 +3,8 @@
 
 #if PIXEL_SHADER
 
-layout(rgba16f) uniform restrict image2D ColorStorageRWTexture;
-layout(rgba32i) uniform restrict iimage2D NodeAndDepthStorageRWTexture;
+layout(rgba16f) uniform image2D ColorStorageRWTexture;
+layout(rgba32i) uniform iimage2D NodeAndDepthStorageRWTexture;
 layout(r32ui) uniform coherent uimage2D NodeHeadRWTexture;
 layout(offset = 0, binding = 0) uniform atomic_uint NextIndex;
 

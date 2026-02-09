@@ -10,7 +10,7 @@
 #define SIZE_Z 8
 #endif
 
-uniform restrict writeonly image3D TargetRWTexture;
+uniform writeonly image3D TargetRWTexture;
 uniform float4 ClearValue;
 
 CS_NUM_THREADS(SIZE_X, SIZE_Y, SIZE_Z)

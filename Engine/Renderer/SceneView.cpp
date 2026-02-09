@@ -20,6 +20,7 @@ namespace Render
 		Matrix4  translatedWorldToClip;
 		Matrix4  clipToTranslatedWorld;
 		Matrix4  worldToClipPrev;
+		Matrix4  worldToViewPrev;
 
 		Vector4  frustumPlanes[6];
 
@@ -29,7 +30,9 @@ namespace Render
 		Vector3 direction;
 		float  gameTime;
 		int    frameCount;
-		int    dummy[3];
+		//float  frustumNear;
+		//float  frustumFar;
+		int    padding[3];
 	};
 
 	void ViewInfo::updateRHIResource()
@@ -56,6 +59,7 @@ namespace Render
 			data.translatedWorldToClip = AdjustProjectionMatrixForRHI(translatedWorldToClip);
 			data.clipToTranslatedWorld = AdjustProjectionMatrixInverseForRHI(clipToTranslatedWorld);
 			data.worldToClipPrev = AdjustProjectionMatrixForRHI(worldToClipPrev);
+			data.worldToViewPrev = worldToViewPrev;
 			data.gameTime = gameTime;
 			data.realTime = realTime;
 			for (int i = 0; i < 6; ++i)
@@ -67,6 +71,31 @@ namespace Render
 			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
 			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);
 			data.frameCount = frameCount;
+
+
+			// Calculate frustum near/far from clipToView matrix
+			float nearDepth, farDepth;
+			if constexpr (FRHIZBuffer::IsInverted)
+			{
+				nearDepth = 1.0f;
+				farDepth = GRHIClipZMin;
+			}
+			else
+			{
+				nearDepth = GRHIClipZMin;
+				farDepth = 1.0f;
+			}
+
+#if 0
+			Vector3 nearView = (Vector4(0, 0, nearDepth, 1) * clipToView).dividedVector();
+			Vector3 farView = (Vector4(0, 0, farDepth, 1) * clipToView).dividedVector();
+			data.frustumNear = Math::Abs(nearView.z);
+			data.frustumFar = Math::Abs(farView.z);
+
+			data.frustumNear = 0.01;
+			data.frustumFar = 800.0;
+#endif
+			
 			RHIUnlockBuffer(mUniformBuffer);
 		}
 	}
@@ -80,6 +109,7 @@ namespace Render
 	{
 		float det;
 		worldToClipPrev = worldToClip;
+		worldToViewPrev = worldToView;
 
 		Matrix4 translatedWorldToView = LookAtMatrix(viewRotation.rotate(FRenderView::FrontDirection()), viewRotation.rotate(FRenderView::UpDirection()));
 		viewToTranslatedWorld = translatedWorldToView.getTranspose();
@@ -108,6 +138,7 @@ namespace Render
 	{
 		float det;
 		worldToClipPrev = worldToClip;
+		worldToViewPrev = worldToView;
 
 		worldToView = inViewMatrix;
 

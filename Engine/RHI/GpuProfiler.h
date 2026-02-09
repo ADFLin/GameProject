@@ -29,7 +29,7 @@ namespace Render
 		virtual void startTiming(uint32 timingHandle) = 0;
 		virtual void endTiming(uint32 timingHandle) = 0;
 		virtual void beginReadback() {}
-		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) = 0;
+		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) = 0;
 		virtual void endReadback() {}
 		virtual double getCycleToMillisecond() = 0;
 	};
@@ -44,6 +44,7 @@ namespace Render
 
 		uint32 timingHandle;
 		float time;
+		float startTime;
 	};
 
 	struct GpuProfiler
@@ -81,12 +82,15 @@ namespace Render
 				numSampleUsed = 0;
 			}
 		};
-		FrameData const& getReadData() const { return mFrameBuffers[1 - mIndexWriteBuffer]; }
+		static constexpr int NUM_FRAME_BUFFER = 4;
+		FrameData const& getReadData() const { return mFrameBuffers[mIndexReadBuffer]; }
 		FrameData& getWriteData(){ return mFrameBuffers[mIndexWriteBuffer]; }
 		void readSamples(FrameData& frameData);
 
-		FrameData mFrameBuffers[2];
+		FrameData mFrameBuffers[NUM_FRAME_BUFFER];
 		int       mIndexWriteBuffer;
+		int       mIndexReadBuffer;
+		bool      mBufferStatus[NUM_FRAME_BUFFER];
 		RWLock    mIndexLock;
 
 		struct SampleGroup

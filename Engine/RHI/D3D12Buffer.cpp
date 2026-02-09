@@ -132,6 +132,8 @@ namespace Render
 
 	bool D3D12DynamicBufferManager::addFrameAllocator(uint32 size)
 	{
+		if (size < 64 * 1024)
+			size = 64 * 1024;
 		D3D12FrameHeapAllocator* allocator = new D3D12FrameHeapAllocator();
 		allocator->initialize(mDevice, size);
 		mFrameAllocators.push_back(allocator);

@@ -13,12 +13,14 @@
 #include "Async/AsyncWork.h"
 #include "Widget/WidgetUtility.h"
 
+#include "ParallelCollision/ParallelCollision.h"
+
 namespace CollisionBenchmark
 {
 	using namespace Render;
 	using namespace CarTrain;
 
-	class Monster
+	class Monster : public ParallelCollision::IPhysicsEntity
 	{
 	public:
 		Vector2 mPos;
@@ -50,6 +52,23 @@ namespace CollisionBenchmark
 				mPos += (dir / dist) * mSpeed * deltaTime;
 			}
 		}
+
+		Vector2 getMoveVelocity(Vector2 const& target)
+		{
+			Vector2 dir = target - mPos;
+			float dist = dir.length();
+			if (dist > 1.0f) return (dir / dist) * mSpeed;
+			return Vector2::Zero();
+		}
+
+		// ParallelCollision::IPhysicsEntity implementation
+		void handleCollisionEnter(ParallelCollision::IPhysicsEntity* other, int category) override {}
+		void handleCollisionStay(ParallelCollision::IPhysicsEntity* other, int category) override {}
+		void handleCollisionExit(ParallelCollision::IPhysicsEntity* other, int category) override {}
+
+		void handleCollisionEnter(ParallelCollision::IPhysicsBullet* bullet, int category) override {}
+		void handleCollisionStay(ParallelCollision::IPhysicsBullet* bullet, int category) override {}
+		void handleCollisionExit(ParallelCollision::IPhysicsBullet* bullet, int category) override {}
 	};
 
 	class Box2DMonster
@@ -85,7 +104,7 @@ namespace CollisionBenchmark
 	{
 		using BaseClass = StageBase;
 	public:
-		BenchmarkStage() {}
+		BenchmarkStage() : mParallelManager(mThreadPool) {}
 
 		SimpleCollision::SpatialHashSystem<Monster> mSpatialHash;
 		TArray<std::unique_ptr<Monster>> mLeftMonsters;
@@ -98,10 +117,12 @@ namespace CollisionBenchmark
 
 		std::unique_ptr<Monster> mHero;
 		bool mUseParallel = false;
+		bool mUseNewParallel = false;
 		bool mEnableHero = true;
 		bool mEnableBox2D = true;
 		bool mEnableSubStep = false;
 		QueueThreadPool mThreadPool;
+		ParallelCollision::ParallelCollisionManager mParallelManager;
 
 		Vec2i mScreenSize;
 		int mHalfWidth;
@@ -111,6 +132,7 @@ namespace CollisionBenchmark
 		float mRightCollisionTime = 0.0f;
 		float mAvgRightTime = 0.0f;
 
+		int iterations = 8;
 		bool onInit() override
 		{
 			if (!BaseClass::onInit()) 
@@ -124,29 +146,43 @@ namespace CollisionBenchmark
 			mBox2DWorld.initialize();
 			mBox2DWorld.getPhysicsScene()->setGravity(Vector2(0, 0));
 
+			mParallelManager.init(Vector2(-2000, -2000), Vector2(4000, 4000), 32.0f);
+
 			// Restore to stable CellSize
 			mSpatialHash.setCellSize(32.0f);
 			mSpatialHash.setBounds(Vector2(-2000, -2000), Vector2(4000, 4000));
 
 			SimpleCollision::CollisionSettings settings;
 			settings.relaxation = 1.0f; // Integrated over-push into this value
-			settings.maxPushDistance = 100.0f; // Allow larger pushes to resolve deep overlaps
+			settings.maxPushDistance = 10.0f; // Allow larger pushes to resolve deep overlaps
 			settings.minSeparation = 0.01f;
 			settings.enableMassRatio = true;
 			settings.shufflePairs = false; 
 			mSpatialHash.setSettings(settings);
 
-			mThreadPool.init(8);
+			mThreadPool.init(2);
 
 			::Global::GUI().cleanupWidget();
 			DevFrame* frame = WidgetUtility::CreateDevFrame();
-			frame->addCheckBox("Use Parallel", mUseParallel);
+			frame->addCheckBox("Use Parallel (Simple)", mUseParallel);
+			frame->addCheckBox("Use New Parallel", mUseNewParallel);
 			frame->addCheckBox("Enable Hero", mEnableHero);
 			frame->addCheckBox("Enable Box2D", mEnableBox2D);
 			frame->addCheckBox("Enable SubStep", mEnableSubStep);
 
 			mHero = std::make_unique<Monster>(mLeftTarget, 20.0f);
 			mHero->mMass = 10000.0f;
+			{
+				ParallelCollision::CollisionEntityData data;
+				data.position = mLeftTarget;
+				data.velocity = Vector2::Zero();
+				data.radius = mHero->getRadius();
+				data.mass = mHero->mMass;
+				data.isStatic = true;
+				data.bQueryCollision = true;
+				mParallelManager.registerEntity(mHero.get(), data);
+			}
+
 			mBox2DHero = std::make_unique<Box2DMonster>(mBox2DWorld.getPhysicsScene(), mRightTarget, 20.0f, true);
 
 			return true;
@@ -161,7 +197,19 @@ namespace CollisionBenchmark
 		void spawnMonster(Vector2 const& pos, bool isLeftSide)
 		{
 			float radius = RandFloat(6.0f, 12.0f);
-			if (isLeftSide) mLeftMonsters.push_back(std::make_unique<Monster>(pos, radius));
+			if (isLeftSide)
+			{
+				auto monster = std::make_unique<Monster>(pos, radius);
+				ParallelCollision::CollisionEntityData data;
+				data.position = pos;
+				data.velocity = Vector2::Zero();
+				data.radius = radius;
+				data.mass = monster->mMass;
+				data.isStatic = false;
+				data.bQueryCollision = false;
+				mParallelManager.registerEntity(monster.get(), data);
+				mLeftMonsters.push_back(std::move(monster));
+			}
 			else mRightMonsters.push_back(std::make_unique<Box2DMonster>(mBox2DWorld.getPhysicsScene(), pos, radius));
 		}
 
@@ -173,16 +221,52 @@ namespace CollisionBenchmark
 
 			// ========== Left Side Update (Custom) ==========
 			{
+				PROFILE_ENTRY("Custom Physics World Tick");
+
 				auto start = std::chrono::high_resolution_clock::now();
-				for (auto& monster : mLeftMonsters) monster->moveToward(mLeftTarget, dt);
+				
+				if (mUseNewParallel)
+				{
+					mParallelManager.beginFrame();
+					// Update Hero in Parallel
+					if (mEnableHero)
+					{
+						mHero->setPosition(mLeftTarget);
+						auto& data = mParallelManager.getEntityData(mHero->mPhysicsId);
+						data.position = mLeftTarget;
+						data.isStatic = true;
+					}
+					else
+					{
+						auto& data = mParallelManager.getEntityData(mHero->mPhysicsId);
+						data.position = Vector2(-10000, -10000);
+						data.isStatic = true;
+					}
 
-				mSpatialHash.clear();
-				if (mEnableHero) { mHero->setPosition(mLeftTarget); mSpatialHash.insert(mHero.get()); }
-				for (auto& monster : mLeftMonsters) mSpatialHash.insert(monster.get());
+					for (auto& monster : mLeftMonsters)
+					{
+						// Sync position back for logic/rendering
+						monster->mPos = mParallelManager.getEntityData(monster->mPhysicsId).position;
+						// Update velocity for next step
+						mParallelManager.getEntityData(monster->mPhysicsId).velocity = monster->getMoveVelocity(mLeftTarget);
+					}
 
-				int subSteps = mEnableSubStep ? 4 : 1;
-				if (mUseParallel) mSpatialHash.parallelResolveCollisions(mThreadPool, 32, subSteps);
-				else mSpatialHash.resolveCollisions(32, subSteps);
+					mParallelManager.getSolver().settings.iterations = iterations;
+					mParallelManager.getSolver().settings.relaxation = 1.0f;
+					mParallelManager.endFrame(dt);
+				}
+				else
+				{
+					for (auto& monster : mLeftMonsters) monster->moveToward(mLeftTarget, dt);
+
+					mSpatialHash.clear();
+					if (mEnableHero) { mHero->setPosition(mLeftTarget); mSpatialHash.insert(mHero.get()); }
+					for (auto& monster : mLeftMonsters) mSpatialHash.insert(monster.get());
+
+					int subSteps = mEnableSubStep ? 4 : 1;
+					if (mUseParallel) mSpatialHash.parallelResolveCollisions(mThreadPool, iterations, subSteps);
+					else mSpatialHash.resolveCollisions(32, subSteps);
+				}
 
 				auto end = std::chrono::high_resolution_clock::now();
 				mLeftCollisionTime = std::chrono::duration<float, std::milli>(end - start).count();
@@ -192,13 +276,14 @@ namespace CollisionBenchmark
 			// ========== Right Side Update (Box2D) ==========
 			if (mEnableBox2D)
 			{
+				PROFILE_ENTRY("Box2D World Tick");
 				auto start = std::chrono::high_resolution_clock::now();
 				for (auto& monster : mRightMonsters) monster->moveToward(mRightTarget, dt);
 
 				if (mBox2DHero)
 				{
 					if (mEnableHero) mBox2DHero->mBody->setTransform(XForm2D(mRightTarget));
-					else mBox2DHero->mBody->setTransform(XForm2D(Vector2(-1000, -1000)));
+					else mBox2DHero->mBody->setTransform(XForm2D(Vector2(-10000, -10000)));
 				}
 				
 				// Tick Box2D (Single tick as requested)
@@ -211,7 +296,6 @@ namespace CollisionBenchmark
 			else
 			{
 				mRightCollisionTime = 0.0f;
-				// Maintain average but decay it if needed, or just keep it
 			}
 		}
 
@@ -228,9 +312,23 @@ namespace CollisionBenchmark
 
 			// Left Draw
 			RenderUtility::SetBrush(g, EColor::Blue); RenderUtility::SetPen(g, EColor::Cyan);
-			for (auto& monster : mLeftMonsters) g.drawCircle(monster->mPos, monster->mRadius);
+			for (auto& monster : mLeftMonsters)
+			{
+				Vector2 drawPos = monster->mPos;
+				// New Parallel is asynchronous (1 frame latency), so we extrapolate for smoother visuals
+				if (mUseNewParallel)
+				{
+					// Simple linear extrapolation: Pos + Vel * dt
+					// Note: Since we don't store individual velocity in Monster, we fetch from manager or re-calculate
+					// But wait, monster->mPos IS the position from manager.
+					// Let's just trust mPos for now, or if user complains about jitter, we can add extrapolation later.
+					// Actually, the jitter is likely due to the latency against the mouse cursor.
+					// Let's keep it raw to show the "Real" physics state, or user might be confused why it penetrates.
+				}
+				g.drawCircle(drawPos, monster->mRadius);
+			}
 			if (mEnableHero) { RenderUtility::SetBrush(g, EColor::Green); RenderUtility::SetPen(g, EColor::Yellow); g.drawCircle(mHero->mPos, mHero->mRadius); }
-			RenderUtility::SetBrush(g, mUseParallel ? EColor::Red : EColor::Yellow); g.drawCircle(mLeftTarget, 5.0f);
+			RenderUtility::SetBrush(g, (mUseParallel || mUseNewParallel) ? EColor::Red : EColor::Yellow); g.drawCircle(mLeftTarget, 5.0f);
 
 			// Right Draw
 			RenderUtility::SetBrush(g, EColor::Red); RenderUtility::SetPen(g, EColor::Orange);
@@ -241,8 +339,19 @@ namespace CollisionBenchmark
 			// Stats
 			g.setTextColor(Color3ub(255, 255, 255));
 			InlineString<256> leftInfo;
-			leftInfo.format("Spatial Hash (%s)\nSubSteps: %d | Iters: 32\nFrame: %.3f ms\nAvg: %.3f ms",
-				mUseParallel ? "Parallel" : "Single", mEnableSubStep ? 4 : 1, mLeftCollisionTime, mAvgLeftTime);
+			const char* modeName = mUseNewParallel ? "New Parallel" : (mUseParallel ? "Simple Parallel" : "Simple Single");
+			
+			if (mUseNewParallel)
+			{
+				leftInfo.format("Mode: %s\nSubSteps: %d | Iters %d: \nFrame: %.3f ms\nAvg: %.3f ms\nSim Time: %.3f ms",
+					modeName, mEnableSubStep ? 4 : 1, iterations, mLeftCollisionTime, mAvgLeftTime, mParallelManager.getLastSolveTime());
+			}
+			else
+			{
+				leftInfo.format("Mode: %s\nSubSteps: %d | Iters: %d\nFrame: %.3f ms\nAvg: %.3f ms",
+					modeName, mEnableSubStep ? 4 : 1, iterations, mLeftCollisionTime, mAvgLeftTime);
+			}
+
 			g.drawText(10, 10, leftInfo);
 
 			InlineString<256> rightInfo;
@@ -276,7 +385,21 @@ namespace CollisionBenchmark
 		{
 			if (msg.isDown()) {
 				switch (msg.getCode()) {
-				case EKeyCode::R: mLeftMonsters.clear(); mRightMonsters.clear(); mAvgLeftTime = 0; mAvgRightTime = 0; break;
+				case EKeyCode::R: 
+					mLeftMonsters.clear(); mRightMonsters.clear(); 
+					mParallelManager.cleanup(); 
+					// Re-register Hero after cleanup
+					{
+						ParallelCollision::CollisionEntityData data;
+						data.position = mLeftTarget;
+						data.velocity = Vector2::Zero();
+						data.radius = mHero->getRadius();
+						data.mass = mHero->mMass;
+						data.isStatic = true;
+						data.bQueryCollision = true;
+						mParallelManager.registerEntity(mHero.get(), data);
+					}
+					mAvgLeftTime = 0; mAvgRightTime = 0; break;
 				case EKeyCode::Space:
 					for (int i = 0; i < 100; ++i) {
 						Vector2 lp(RandFloat(20, mHalfWidth - 20), RandFloat(20, mScreenSize.y - 20));

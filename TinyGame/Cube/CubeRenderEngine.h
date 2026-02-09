@@ -90,6 +90,7 @@ namespace Cube
 		{
 			int index;
 			Math::TAABBox< Vec3f > bound;
+			Math::TAABBox< Vec3f > occluderBox;
 
 			MeshRenderPoolData* meshPool;
 			DrawCmdArgs args;
@@ -152,6 +153,7 @@ namespace Cube
 			{
 				int index;
 				Math::TAABBox< Vec3f > bound;
+				Math::TAABBox< Vec3f > occluderBox;
 
 				uint32 vertexOffset;
 				uint32 vertexCount;

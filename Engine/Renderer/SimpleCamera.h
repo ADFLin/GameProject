@@ -80,7 +80,7 @@ namespace Render
 
 		void updatePosition(float deltaTime)
 		{
-			Vector3 acc = moveSpeedScale * ( moveForwardImpulse * getViewDir() + moveRightImpulse * getRightDir() );
+			Vector3 acc = moveSpeedScale * ( moveForwardImpulse * getViewDir() + moveRightImpulse * getRightDir() + moveUpImpulse * getUpDir() );
 			
 			if (bPhysicsMovement)
 			{
@@ -101,6 +101,7 @@ namespace Render
 		bool   bPhysicsMovement = true;
 		float  moveForwardImpulse = 0;
 		float  moveRightImpulse = 0;
+		float  moveUpImpulse = 0;
 
 	private:
 		void updateInternal()

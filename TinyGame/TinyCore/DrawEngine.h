@@ -123,6 +123,7 @@ public:
 	TINY_API void unlockSystem();
 
 	bool isInitialized() { return mbInitialized; }
+	TINY_API bool canUseRenderThread() const;
 
 	TINY_API bool  startupSystem(ERenderSystem targetName , RenderSystemConfigs const& configs = RenderSystemConfigs() );
 	TINY_API bool  setupRenderResource();
@@ -136,6 +137,7 @@ public:
 	bool        bUsePlatformBuffer = true;
 	bool        bBlockRender = false;
 	bool        bWasUsedPlatformGraphics = false;
+	bool        bEnableRenderThread = false;
 
 	BitmapDC&   getBufferDC(){ return mBufferDC; }
 private:

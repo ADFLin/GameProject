@@ -28,6 +28,9 @@
 #define cbuffer uniform
 #define asint floatBitsToInt
 #define asuint floatBitsToUint
+#define restrict 
+#define readonly 
+#define writeonly 
 float asfloat(int v){ return intBitsToFloat(v); }
 float asfloat(uint v) { return uintBitsToFloat(v); }
 
@@ -260,7 +263,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define VS_INPUT(TYPE_DECL, LOC)         SHADER_INPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT_POINTSIZE
 #define VS_OUTPUT_VIEWPORT_INDEX
-#define VS_OUTPUT_RENDERTARGET_IDNEX
+#define VS_OUTPUT_RENDERTARGET_INDEX
 #define VS_OUTPUT(TYPE_DECL, LOC)        SHADER_OUTPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT_STRUCT(TYPE_DECL, LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
 #define VS_ENTRY_END(NAME)               SHADER_ENTRY_END(NAME)
@@ -281,7 +284,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define PS_INPUT(TYPE_DECL, LOC)        SHADER_INPUT(TYPE_DECL , LOC)
 #define PS_INPUT_STRUCT(TYPE_DECL, LOC) SHADER_INPUT(TYPE_DECL , LOC)
 #define PS_INPUT_VIEWPORT_INDEX
-#define PS_INPUT_RENDERTARGET_IDNEX
+#define PS_INPUT_RENDERTARGET_INDEX
 #define PS_INPUT_IS_FRONT_FACE
 #define PS_OUTPUT(TYPE_DECL, LOC)       SHADER_OUTPUT(TYPE_DECL , LOC)
 #define PS_OUTPUT_DEPTH

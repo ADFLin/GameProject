@@ -209,6 +209,15 @@ public:
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment, bool bClip = false);
 	void drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
+	Vec2i calcTextExtentSize(char const* str, int len)
+	{
+		if (mFont && mFont->isValid())
+		{
+			Vector2 extent = mFont->calcTextExtent(TStringView<char>(str, len));
+			return Vec2i(Math::RoundToInt(extent.x), Math::RoundToInt(extent.y));
+		}
+		return Vec2i(0, 0);
+	}
 
 	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices);
 	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices, TArray<Color4Type> const& colors);

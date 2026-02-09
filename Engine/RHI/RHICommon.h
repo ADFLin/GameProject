@@ -55,12 +55,19 @@ namespace Render
 	class RHIShaderProgram;
 
 	class RHIPipelineState;
+	class RHIRayTracingPipelineState;
+	class RHIAccelerationStructure;
+	class RHIBottomLevelAccelerationStructure;
+	class RHITopLevelAccelerationStructure;
 
 	enum class EResourceType
 	{
 		Unknown,
 		Buffer,
 		Texture,
+		BottomLevelAccelerationStructure,
+		TopLevelAccelerationStructure,
+		RayTracingShaderTable,
 	};
 
 	enum EComponentType
@@ -325,7 +332,11 @@ namespace Render
 
 		virtual void setDebugName( char const* name){}
 		virtual void* getNativeInternal() { return nullptr; }
-
+		
+		EResourceType getResourceType() const
+		{
+			return mResourceType;
+		}
 
 		static CORE_API void DumpResource();
 #if RHI_USE_RESOURCE_TRACE
@@ -338,16 +349,11 @@ namespace Render
 			mTrace = trace;
 		}
 
-		EResourceType getResourceType()
-		{
-			return mResourceType;
-		}
-
 		HashString   mTypeName;
 		char const*  mTag = nullptr;
 		ResTraceInfo mTrace;
-		EResourceType mResourceType = EResourceType::Unknown;
 #endif
+		EResourceType mResourceType = EResourceType::Unknown;
 	};
 
 
@@ -1438,5 +1444,7 @@ struct ScopedTraceTag
 #define TRACE_RESOURCE_TAG( TAG )
 #define TRACE_RESOURCE_TAG_SCOPE( TAG )
 #endif
+
+#include "RHIRayTracingTypes.h"
 
 #endif // RHICommon_H_F71942CB_2583_4990_B63B_D7B4FC78E1DB

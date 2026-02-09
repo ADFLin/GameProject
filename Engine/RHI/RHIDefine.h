@@ -142,6 +142,12 @@ namespace Render
 		ReadAndWrite,
 	};
 
+	enum class EIndexBufferType
+	{
+		U16,
+		U32,
+	};
+
 	enum class EPrimitive
 	{
 		Points,
@@ -213,16 +219,24 @@ namespace Render
 			Task = 6,
 			Mesh = 7,
 
-#if 0
 			RayGen = 8,
 			RayHit = 9,
 			RayMiss = 10,
-#endif
+			
+			RayClosestHit = 11,
+			RayAnyHit = 12,
+			RayIntersection = 13,
+			Callable = 14,
 
 			Count,
 			CountSM5 = 6,
 			Empty = -1,
 		};
+
+		constexpr bool IsRayTracing(Type type)
+		{
+			return RayGen <= type && type <= Callable;
+		}
 
 		constexpr int  MaxStorageSize = 5;
 	};

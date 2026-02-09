@@ -129,10 +129,18 @@ namespace Render
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
 		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
+		void RHICopyResource(RHIResource& dest, RHIResource& src);
 
 		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 
 		void RHIFlushCommand();
+
+		void RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch) {}
+		void RHISetRayTracingPipelineState(RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt) {}
+		void RHIDispatchRays(uint32 width, uint32 height, uint32 depth) {}
+
+		void RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances) {}
+		void RHISetShaderAccelerationStructure(RHIShader* shader, char const* name, RHIAccelerationStructure* as) {}
 
 		//Shader
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
@@ -179,6 +187,9 @@ namespace Render
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc);
 		void RHISetComputeShader(RHIShader* shader);
+
+
+
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
@@ -453,6 +464,11 @@ namespace Render
 
 		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
+
+		RHIRayTracingPipelineState* RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer) { return nullptr; }
+		RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags) { return nullptr; }
+		RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags) { return nullptr; }
+		RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState) { return nullptr; }
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 		class OpenGLProfileCore* mProfileCore = nullptr;

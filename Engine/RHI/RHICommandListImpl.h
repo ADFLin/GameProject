@@ -47,6 +47,7 @@ namespace Render
 
 
 		RHI_FUNC(void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition));
+		RHI_FUNC(void RHICopyResource(RHIResource& dest, RHIResource& src));
 
 		RHI_FUNC(void RHIFlushCommand());
 
@@ -108,6 +109,12 @@ namespace Render
 		RHI_FUNC(void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer));
 		RHI_FUNC(void clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op));
+
+		RHI_FUNC(void RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch));
+		RHI_FUNC(void RHISetRayTracingPipelineState(RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt));
+		RHI_FUNC(void RHIDispatchRays(uint32 width, uint32 height, uint32 depth));
+		RHI_FUNC(void RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances));
+		RHI_FUNC(void RHISetShaderAccelerationStructure(RHIShader* shader, char const* name, RHIAccelerationStructure* as));
 	};
 
 

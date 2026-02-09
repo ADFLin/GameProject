@@ -57,8 +57,8 @@ void MainPS(PSInput input, out float4 ColorA : SV_TARGET0, out float4 ColorB : S
 	float4 color = float4(tc.r,tc1.r, 1, 1);
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
 	ColorA = float4(c, 1);
-	ColorA = float4(input.color);
-	ColorB = float4(1,0,0, 1);
+	//ColorA = float4(input.color);
+	ColorB = float4(c, 1);
 }
 
 #endif

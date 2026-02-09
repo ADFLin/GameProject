@@ -89,7 +89,7 @@ ImTextureID FImGui::GetTextureID(Render::RHITexture2D& texture)
 {
 	if (GRHISystem->getName() == RHISystemName::D3D11)
 	{
-		return static_cast<D3D11Texture2D&>(texture).getResource();
+		return (ImTextureID)static_cast<D3D11Texture2D&>(texture).mSRV.getResource();
 	}
 	else if (GRHISystem->getName() == RHISystemName::OpenGL)
 	{

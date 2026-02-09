@@ -18,6 +18,8 @@
 #define USE_PROFILE 1
 #endif
 
+#include "SystemPlatform.h"
+
 
 #if USE_PROFILE
 #	define	PROFILE_ENTRY( NAME , ... )    ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( NAME, ##__VA_ARGS__);
@@ -73,8 +75,8 @@ public:
 	char const*    getName() const { return mName; }
 	int	           getTotalCalls() const { return getReadData().callCountTotal; }
 	int            getFrameCalls() const { return getReadData().callCount; }
-	double         getTotalTime() const { return getReadData().execTimeTotal; }
-	double         getFrameExecTime() const { return getReadData().execTime; }
+	double         getTotalTime() const { return (double)getReadData().execTimeTotal / Profile_GetTickRate(); }
+	double         getFrameExecTime() const { return (double)getReadData().execTime / Profile_GetTickRate(); }
 	TArray<ProfileTimestamp> const& getFrameTimestamps() const { return getReadData().timestamps; }
 	uint64         getLastFrame() const { return getReadData().frame; }
 	void           showChild(bool beShow) { mIsShowChild = beShow; }
@@ -84,6 +86,7 @@ public:
 
 	CORE_API static int GetReadIndex();
 	CORE_API static int GetWriteIndex();
+
 
 	char const*         mCategory = nullptr;
 
@@ -112,8 +115,8 @@ protected:
 		int    callCount;
 		int    callCountTotal;
 
-		double execTime;
-		double execTimeTotal;
+		int64  execTime;
+		int64  execTimeTotal;
 
 		TArray<ProfileTimestamp> timestamps;
 

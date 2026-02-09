@@ -12,7 +12,7 @@
 float CalcRaidalAttenuation( float lightDist , float lightRadiusInv )
 {
 	float falloff = Square(saturate(1.0 - Square(lightDist * lightRadiusInv)));
-	return falloff * (1.0 / (lightDist * lightDist + 1.0));
+	return falloff * (1.0 / (lightDist * lightDist + 0.1));
 }
 
 float3 PhongShading(float3 diffuseColor , float3 specularColor , float3 N, float3 L, float3 V , float shininess )

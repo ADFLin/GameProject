@@ -1029,6 +1029,19 @@ namespace Render
 	}
 
 
+	std::string GetCompileInfo(ShaderManagedData& managedData)
+	{
+		std::string result = managedData.desc.filePath;
+		result += " ";
+		result += managedData.desc.entryName;
+		if (!managedData.sourceFile.empty())
+		{
+			result += ", source file :";
+			result += managedData.sourceFile;
+		}
+		return result;
+	}
+
 	bool ShaderManager::buildShader(ShaderManagedData& managedData, bool bForceReload)
 	{
 		if (!RHIIsInitialized())
@@ -1041,25 +1054,11 @@ namespace Render
 
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
-			if (!managedData.sourceFile.empty())
-			{
-				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.desc.filePath.c_str(), managedData.sourceFile.c_str());
-			}
-			else
-			{
-				LogDevMsg(0, "Use Cache Data : %s ", managedData.desc.filePath.c_str());
-			}
+			LogDevMsg(0, "Use Cache Data : %s", GetCompileInfo(managedData).c_str());
 		}
 		else
 		{
-			if (!managedData.sourceFile.empty())
-			{
-				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.desc.filePath.c_str(), managedData.sourceFile.c_str());
-			}
-			else
-			{
-				LogDevMsg(0, "Recompile shader : %s ", managedData.desc.filePath.c_str());
-			}
+			LogDevMsg(0, "Recompile shader : %s", GetCompileInfo(managedData).c_str());
 
 			ShaderSetupData setupData;
 			shader.mRHIResource.release();

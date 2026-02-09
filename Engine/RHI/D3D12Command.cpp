@@ -1,4 +1,5 @@
 #include "D3D12Command.h"
+#include "D3D12RayTracing.h"
 #include "D3D12ShaderCommon.h"
 #include "D3D12Utility.h"
 #include "D3D12Buffer.h"
@@ -17,6 +18,15 @@
 #include "RHITraceScope.h"
 #endif
 
+// Helper for Alignment
+template<typename T>
+inline T Align(T value, T alignment)
+{
+	return (value + alignment - 1) & ~(alignment - 1);
+}
+
+using namespace Render;
+
 namespace Render
 {
 	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D12, D3D12System);
@@ -25,22 +35,27 @@ namespace Render
 	class D3D12ProfileCore : public RHIProfileCore
 	{
 	public:
+		static constexpr int NUM_FRAME_BUFFER = 4;
 
 		D3D12ProfileCore()
 		{
 			mCycleToMillisecond = 0;
+			mCurFrameIndex = 0;
 		}
 
 		bool init(TComPtr<ID3D12DeviceRHI> const& device, double cycleToMillisecond)
 		{
 			mDevice = device;
 			mCycleToMillisecond = cycleToMillisecond;
-			VERIFY_RETURN_FALSE(addChunkResource());
-			mNextHandle = 1;
+			for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
+			{
+				VERIFY_RETURN_FALSE(addChunkResource(i));
+				mNextHandle[i] = 1;
+			}
 			return true;
 		}
 
-		bool addChunkResource()
+		bool addChunkResource(int frameIndex)
 		{
 			TimeStampChunk timeStamp;
 			D3D12_QUERY_HEAP_DESC desc;
@@ -71,88 +86,113 @@ namespace Render
 			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc,
 				D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&timeStamp.resultResource)));
 
-			mChunks.push_back(std::move(timeStamp));
+			mFrameChunks[frameIndex].push_back(std::move(timeStamp));
 			return true;
 		}
 
 		virtual void beginFrame() override
 		{
-			mCmdList->EndQuery(mChunks[0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 0);
+			mCmdList->EndQuery(mFrameChunks[mCurFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 0);
 		}
 
 		virtual bool endFrame() override
 		{
-			mCmdList->EndQuery(mChunks[0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 1);
-			for (auto& chunk : mChunks)
+			mCmdList->EndQuery(mFrameChunks[mCurFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 1);
+			for (auto& chunk : mFrameChunks[mCurFrameIndex])
 			{
 				mCmdList->ResolveQueryData(chunk.heap, D3D12_QUERY_TYPE_TIMESTAMP, 0, TimeStampChunk::Size * 2, chunk.resultResource, 0);
 			}
+			mCurFrameIndex = (mCurFrameIndex + 1) % NUM_FRAME_BUFFER;
 			return true;
 		}
 
 		virtual void beginReadback() override
 		{
-			for (auto& chunk : mChunks)
+			// Readback happens for a previous frame buffer, but we don't know which one here.
+			// GpuProfiler::beginRead will have set mIndexReadBuffer which determines which samples are read.
+			// Those samples already have handles encoding their frame index.
+			for (int f = 0; f < NUM_FRAME_BUFFER; ++f)
 			{
-				chunk.resultResource->Map(0, NULL, (void**)&chunk.timeStampData);
+				for (auto& chunk : mFrameChunks[f])
+				{
+					chunk.resultResource->Map(0, NULL, (void**)&chunk.timeStampData);
+				}
 			}
 		}
 
 		virtual void endReadback() override
 		{
-			for (auto& chunk : mChunks)
+			for (int f = 0; f < NUM_FRAME_BUFFER; ++f)
 			{
-				chunk.resultResource->Unmap(0, NULL);
+				for (auto& chunk : mFrameChunks[f])
+				{
+					chunk.resultResource->Unmap(0, NULL);
+					chunk.timeStampData = nullptr;
+				}
 			}
 		}
 
 		virtual uint32 fetchTiming() override
 		{
-			uint32 chunkIndex = mNextHandle / TimeStampChunk::Size;
-			uint32 index = 2 * (mNextHandle % TimeStampChunk::Size);
+			uint32 frameIndex = mCurFrameIndex;
+			uint32 chunkIndex = mNextHandle[frameIndex] / TimeStampChunk::Size;
+			uint32 index = 2 * (mNextHandle[frameIndex] % TimeStampChunk::Size);
 
 			if (index == 0)
 			{
-				if (!addChunkResource())
+				if (!addChunkResource(frameIndex))
 					return RHI_ERROR_PROFILE_HANDLE;
 			}
 
-			uint32 result = mNextHandle;
-			++mNextHandle;
+			uint32 result = (frameIndex << 24) | mNextHandle[frameIndex];
+			++mNextHandle[frameIndex];
 			return result;
 		}
 
 		virtual void startTiming(uint32 timingHandle) override
 		{
-			uint32 chunkIndex = timingHandle / TimeStampChunk::Size;
-			uint32 index = 2 * ( timingHandle % TimeStampChunk::Size );
-			mCmdList->EndQuery(mChunks[chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 0);
+			uint32 frameIndex = timingHandle >> 24;
+			uint32 handle = timingHandle & 0xffffff;
+			uint32 chunkIndex = handle / TimeStampChunk::Size;
+			uint32 index = 2 * (handle % TimeStampChunk::Size);
+			mCmdList->EndQuery(mFrameChunks[frameIndex][chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 0);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
 		{
-			uint32 chunkIndex = timingHandle / TimeStampChunk::Size;
-			uint32 index = 2 * (timingHandle % TimeStampChunk::Size);
-			mCmdList->EndQuery(mChunks[chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 1 );
+			uint32 frameIndex = timingHandle >> 24;
+			uint32 handle = timingHandle & 0xffffff;
+			uint32 chunkIndex = handle / TimeStampChunk::Size;
+			uint32 index = 2 * (handle % TimeStampChunk::Size);
+			mCmdList->EndQuery(mFrameChunks[frameIndex][chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 1);
 		}
 
-		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
+		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) override
 		{
-			uint32 chunkIndex = timingHandle / TimeStampChunk::Size;
-			uint32 index = 2 * (timingHandle % TimeStampChunk::Size);
+			uint32 frameIndex = timingHandle >> 24;
+			uint32 handle = timingHandle & 0xffffff;
+			uint32 chunkIndex = handle / TimeStampChunk::Size;
+			uint32 index = 2 * (handle % TimeStampChunk::Size);
 
-			auto timeStampData = mChunks[chunkIndex].timeStampData;
+			if (chunkIndex >= mFrameChunks[frameIndex].size())
+				return false;
+
+			auto timeStampData = mFrameChunks[frameIndex][chunkIndex].timeStampData;
 			if (timeStampData)
 			{
-				uint64 startData = mChunks[chunkIndex].timeStampData[index];
-				uint64 endData = mChunks[chunkIndex].timeStampData[index + 1];
+				uint64 startData = timeStampData[index];
+				uint64 endData = timeStampData[index + 1];
+				// On some hardware/drivers, Map can return without waiting if no range is specified, 
+				// but ResolveQueryData might still be in flight. 
+				// Usually with 2 frames of lag, the data will be 0 or ready.
+				if (startData == 0 && endData == 0)
+					return false;
+
 				outDuration = endData - startData;
+				outStart = startData;
+				return true;
 			}
-			else
-			{
-				outDuration = 0.0;
-			}
-			return true;
+			return false;
 		}
 
 		virtual double getCycleToMillisecond() override
@@ -162,7 +202,10 @@ namespace Render
 
 		virtual void releaseRHI() override
 		{
-			mChunks.clear();
+			for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
+			{
+				mFrameChunks[i].clear();
+			}
 			mDevice.reset();
 		}
 		double mCycleToMillisecond;
@@ -181,8 +224,9 @@ namespace Render
 				resultResource.reset();
 			}
 		};
-		uint32 mNextHandle;
-		TArray< TimeStampChunk > mChunks;
+		uint32 mNextHandle[NUM_FRAME_BUFFER];
+		TArray< TimeStampChunk > mFrameChunks[NUM_FRAME_BUFFER];
+		int mCurFrameIndex;
 		ID3D12GraphicsCommandListRHI* mReadBackCmdList;
 		ID3D12GraphicsCommandListRHI* mCmdList;
 		TComPtr<ID3D12DeviceRHI> mDevice;
@@ -274,6 +318,10 @@ namespace Render
 		if (SUCCEEDED(mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureOption5, sizeof(featureOption5))) )
 		{
 			GRHISupportRayTracing = featureOption5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+			if (GRHISupportRayTracing)
+			{
+				LogMsg("D3D12 Ray Tracing Enabled (Tier %d)", featureOption5.RaytracingTier);
+			}
 		}
 
 		D3D12_FEATURE_DATA_D3D12_OPTIONS7 featureOption7 = {};
@@ -838,8 +886,14 @@ namespace Render
 			}
 			else if (desc.creationFlags & BCF_CreateSRV)
 			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = FD3D12Init::BufferViewDesc(desc.elementSize);
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = FD3D12Init::BufferViewDesc(desc.elementSize, desc.numElements);
 				result->mSRV = D3D12DescriptorHeapPool::Alloc(resource, &srvDesc);
+			}
+
+			if (desc.creationFlags & BCF_CreateUAV)
+			{
+				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = FD3D12Init::BufferUAVDesc(desc.elementSize, desc.numElements);
+				result->mUAV = D3D12DescriptorHeapPool::Alloc(resource, &uavDesc);
 			}
 			return result;
 		}
@@ -1334,8 +1388,12 @@ namespace Render
 	{
 		TArray< D3D12_STATIC_SAMPLER_DESC > rootSamplers;
 		TArray< D3D12_ROOT_PARAMETER1 > rootParameters;
+		TArray< D3D12_DESCRIPTOR_RANGE1 > globalDescRanges;
+		TArray< std::string > globalParamNames;
 
 		std::unique_ptr< D3D12ShaderBoundState > boundState = std::make_unique< D3D12ShaderBoundState>();
+
+		bool processShaderData(EShader::Type shaderType, D3D12ShaderData& shaderData);
 
 		bool addShader(RHIShader* shader)
 		{
@@ -1343,60 +1401,162 @@ namespace Render
 				return false;
 
 			auto shaderImpl = static_cast<D3D12Shader*>(shader);
-			return addShaderData(shaderImpl->getType(), *shaderImpl);
+			return processShaderData(shaderImpl->getType(), *shaderImpl);
 		}
 		bool addShader(RHIShader& shader)
 		{
 			auto& shaderImpl = static_cast<D3D12Shader&>(shader);
-			return addShaderData(shaderImpl.getType(), shaderImpl);
+			return processShaderData(shaderImpl.getType(), shaderImpl);
 		}
 
 		bool addShaderData(D3D12ShaderProgram::ShaderData& shaderData)
 		{
-			return addShaderData(shaderData.type, shaderData);
+			return processShaderData(shaderData.type, shaderData);
 		}
 
-		bool addShaderData(EShader::Type shaderType, D3D12ShaderData& shaderData)
-		{
-			D3D12ShaderBoundState::ShaderInfo info;
-			info.type = shaderType;
-			info.data = &shaderData;
-			info.rootSlotStart = rootParameters.size();
-			boundState->mShaders.push_back(info);
+		bool createRootSignature(TComPtr<ID3D12DeviceRHI>& device, D3D12_ROOT_SIGNATURE_FLAGS flags);
+	};
 
-			bool result = false;
-			if (!shaderData.rootSignature.parameters.empty())
+	bool ShaderStateSetup::processShaderData(EShader::Type shaderType, D3D12ShaderData& shaderData)
+	{
+		D3D12ShaderBoundState::ShaderInfo info;
+		info.type = shaderType;
+		info.data = &shaderData;
+
+		auto& srcSig = shaderData.rootSignature;
+		info.parameterMap.resize(srcSig.slots.size());
+
+		TArray<uint32> paramToGlobalSlot;
+		bool bIsRayTracing = EShader::IsRayTracing(shaderType);
+
+						int numRootParameters = (int)rootParameters.size();
+		for (int i = 0; i < (int)srcSig.parameters.size(); ++i)
+		{
+			auto const& newParam = srcSig.parameters[i];
+			char const* newName = srcSig.parameterNames[i].c_str();
+
+			bool bIsGlobalValueCB = (FCString::Compare(newName, "$Globals") == 0 || FCString::Compare(newName, "__Globals") == 0);
+			bool bCanMerge = (!bIsGlobalValueCB || bIsRayTracing);
+
+			int foundIndex = -1;
+			if (bCanMerge)
 			{
-				rootParameters.append(shaderData.rootSignature.parameters);
-				result = true;
+				for (int j = 0; j < numRootParameters; ++j)
+				{
+					if (FCString::Compare(newName, globalParamNames[j].c_str()) == 0 &&
+						rootParameters[j].ParameterType == newParam.ParameterType)
+					{
+						bool bMatch = false;
+						switch (newParam.ParameterType)
+						{
+						case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+							bMatch = (rootParameters[j].Constants.ShaderRegister == newParam.Constants.ShaderRegister &&
+								      rootParameters[j].Constants.RegisterSpace == newParam.Constants.RegisterSpace);
+							break;
+						case D3D12_ROOT_PARAMETER_TYPE_CBV:
+						case D3D12_ROOT_PARAMETER_TYPE_SRV:
+						case D3D12_ROOT_PARAMETER_TYPE_UAV:
+							bMatch = (rootParameters[j].Descriptor.ShaderRegister == newParam.Descriptor.ShaderRegister &&
+								      rootParameters[j].Descriptor.RegisterSpace == newParam.Descriptor.RegisterSpace);
+							break;
+						case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+							// For tables, require name match
+							bMatch = (FCString::Compare(newName, globalParamNames[j].c_str()) == 0);
+							break;
+						}
+
+						if (bMatch)
+						{
+							foundIndex = j;
+							break;
+						}
+					}
+				}
 			}
 
-			rootSamplers.append(shaderData.rootSignature.samplers);
-			return result;
+			if (foundIndex != -1)
+			{
+				if (rootParameters[foundIndex].ShaderVisibility != newParam.ShaderVisibility)
+					rootParameters[foundIndex].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				paramToGlobalSlot.push_back((uint32)foundIndex);
+			}
+			else
+			{
+				uint32 newIndex = (uint32)rootParameters.size();
+				rootParameters.push_back(newParam);
+				globalParamNames.push_back(newName);
+				if (newParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+					globalDescRanges.push_back(srcSig.descRanges[i]);
+				else
+					globalDescRanges.push_back({});
+				paramToGlobalSlot.push_back(newIndex);
+			}
 		}
 
-		bool createRootSignature(TComPtr<ID3D12DeviceRHI>& device, D3D12_ROOT_SIGNATURE_FLAGS flags)
+		for (int i = 0; i < (int)srcSig.slots.size(); ++i)
 		{
+			auto const& slot = srcSig.slots[i];
+			if (slot.bLocal)
+			{
+				info.parameterMap[i] = 0x80000000 | slot.dataOffset;
+			}
+			else
+			{
+				info.parameterMap[i] = paramToGlobalSlot[slot.slotOffset];
+			}
+		}
+
+		boundState->mShaders.push_back(info);
+		rootSamplers.append(srcSig.samplers);
+		return true;
+	}
+
+	bool ShaderStateSetup::createRootSignature(TComPtr<ID3D12DeviceRHI>& device, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	{
+		// Fix up pDescriptorRanges pointers before serialization.
+		// globalDescRanges now contains the flattened range data for every root parameter.
+		for (int i = 0; i < (int)rootParameters.size(); ++i)
+		{
+			if (rootParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+			{
+				rootParameters[i].DescriptorTable.pDescriptorRanges = &globalDescRanges[i];
+			}
+		}
+
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
 			desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			desc.Desc_1_1.NumParameters = rootParameters.size();
+			desc.Desc_1_1.NumParameters = (UINT)rootParameters.size();
 			desc.Desc_1_1.pParameters = rootParameters.data();
-			desc.Desc_1_1.NumStaticSamplers = rootSamplers.size();
+			desc.Desc_1_1.NumStaticSamplers = (UINT)rootSamplers.size();
 			desc.Desc_1_1.pStaticSamplers = rootSamplers.data();
 			desc.Desc_1_1.Flags = flags;
 
+			if (!globalDescRanges.empty())
+			{
+				LogMsg("Building Integrated Root Signature: %d parameters, %d unique ranges", rootParameters.size(), globalDescRanges.size());
+				for (int i = 0; i < (int)rootParameters.size(); ++i)
+				{
+					auto const& p = rootParameters[i];
+					if (p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+						LogMsg("  Slot %d: Table (Type %d, Reg %d, Space %d)", i, globalDescRanges[i].RangeType, globalDescRanges[i].BaseShaderRegister, globalDescRanges[i].RegisterSpace);
+					else if (p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV || p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV || p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
+						LogMsg("  Slot %d: Direct (Type %d, Reg %d, Space %d)", i, p.ParameterType, p.Descriptor.ShaderRegister, p.Descriptor.RegisterSpace);
+				}
+			}
+
 			TComPtr<ID3DBlob> signature;
 			TComPtr<ID3DBlob> error;
-			if (FAILED(D3D12SerializeVersionedRootSignature(&desc, &signature, &error)))
+			HRESULT hr = D3D12SerializeVersionedRootSignature(&desc, &signature, &error);
+			if (FAILED(hr))
 			{
-				LogWarning(0, (char const*)error->GetBufferPointer());
+				if (error)
+					LogWarning(0, "Root Signature Serialization Error: %s", (char const*)error->GetBufferPointer());
 				return false;
 			}
 
 			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&boundState->mRootSignature)));
 			return true;
 		}
-	};
 
 	D3D12ShaderBoundState* D3D12System::getShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
@@ -1436,6 +1596,7 @@ namespace Render
 		mShaderBoundStateMap.emplace(key, result);
 		return result;
 	}
+
 
 	D3D12ShaderBoundState* D3D12System::getShaderBoundState(MeshShaderStateDesc const& stateDesc)
 	{
@@ -1535,6 +1696,27 @@ namespace Render
 		return result;
 	}
 
+	D3D12ShaderBoundState* D3D12System::getRayTracingBoundState(RayTracingPipelineStateInitializer const& initializer)
+	{
+		ShaderStateSetup stateSetup;
+
+		stateSetup.processShaderData(EShader::RayGen, *static_cast<D3D12Shader*>(initializer.rayGenShader));
+		if (initializer.missShader) stateSetup.processShaderData(EShader::RayMiss, *static_cast<D3D12Shader*>(initializer.missShader));
+		for (auto& shader : initializer.missShaders) stateSetup.processShaderData(EShader::RayMiss, *static_cast<D3D12Shader*>(shader.generalShader));
+		if (initializer.hitGroupShader) stateSetup.processShaderData(EShader::RayClosestHit, *static_cast<D3D12Shader*>(initializer.hitGroupShader));
+		for (auto& group : initializer.hitGroups) 
+		{
+			if (group.closestHitShader) stateSetup.processShaderData(EShader::RayClosestHit, *static_cast<D3D12Shader*>(group.closestHitShader));
+			if (group.anyHitShader) stateSetup.processShaderData(EShader::RayAnyHit, *static_cast<D3D12Shader*>(group.anyHitShader));
+			if (group.intersectionShader) stateSetup.processShaderData(EShader::RayIntersection, *static_cast<D3D12Shader*>(group.intersectionShader));
+		}
+
+		if (!stateSetup.createRootSignature(this->mDevice, D3D12_ROOT_SIGNATURE_FLAG_NONE))
+			return nullptr;
+
+		return stateSetup.boundState.release();
+	}
+
 	D3D12ShaderBoundState* D3D12System::getShaderBoundState(RHIShader& computeShader)
 	{
 		ShaderBoundStateKey key;
@@ -1632,6 +1814,8 @@ namespace Render
 			return iter->second;
 		}
 
+		LogMsg("Create Graphics Pipeline State");
+
 		D3D12PipelineStateStream stateStream;
 
 		if (renderState.inputLayout)
@@ -1707,6 +1891,8 @@ namespace Render
 			return iter->second;
 		}
 
+		LogMsg("Create Mesh Pipeline State");
+
 		D3D12PipelineStateStream stateStream;
 
 		for (auto& shaderInfo : boundState->mShaders)
@@ -1760,6 +1946,8 @@ namespace Render
 			return iter->second;
 		}
 
+		LogMsg("Create Compute Pipeline State");
+
 		D3D12PipelineStateStream stateStream;
 
 		for (auto& shaderInfo : boundState->mShaders)
@@ -1810,6 +1998,43 @@ namespace Render
 
 	}
 
+	uint32 D3D12Context::getRootSlot(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param)
+	{
+		D3D12ShaderBoundState* currentBoundState = nullptr;
+		if (shaderType == EShader::Compute)
+		{
+			currentBoundState = mComputeBoundState;
+		}
+		else if (EShader::IsRayTracing(shaderType))
+		{
+			currentBoundState = mCurrentRayTracingPipelineState ? (D3D12ShaderBoundState*)mCurrentRayTracingPipelineState->mBoundState : nullptr;
+		}
+		else
+		{
+			currentBoundState = mGfxBoundState;
+		}
+
+		if (currentBoundState)
+		{
+			for (auto const& shaderInfo : currentBoundState->mShaders)
+			{
+				if (shaderInfo.type == shaderType && shaderInfo.data == &shaderData)
+				{
+					if (param.bindIndex >= shaderInfo.parameterMap.size())
+						return INDEX_NONE;
+
+					uint32 mapping = shaderInfo.parameterMap[param.bindIndex];
+					if (mapping & 0x80000000)
+						return INDEX_NONE;
+
+					return mapping;
+				}
+			}
+		}
+
+		return INDEX_NONE;
+	}
+
 	bool D3D12Context::initialize(D3D12System* system)
 	{
 
@@ -1822,6 +2047,7 @@ namespace Render
 
 		for (int i = 0; i < EShader::Count; ++i)
 		{
+			mRootSlotStart[i] = 0;
 			VERIFY_RETURN_FALSE( mResourceBoundStates[i].initialize(mDevice) );
 		}
 
@@ -1832,7 +2058,7 @@ namespace Render
 		{
 			D3D12_INDIRECT_ARGUMENT_DESC args[1];
 			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
-			D3D12_COMMAND_SIGNATURE_DESC desc;
+			D3D12_COMMAND_SIGNATURE_DESC desc = {};
 			desc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
 			desc.NumArgumentDescs = ARRAY_SIZE(args);
 			desc.pArgumentDescs = args;
@@ -1841,7 +2067,7 @@ namespace Render
 		{
 			D3D12_INDIRECT_ARGUMENT_DESC args[1];
 			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
-			D3D12_COMMAND_SIGNATURE_DESC desc;
+			D3D12_COMMAND_SIGNATURE_DESC desc = {};
 			desc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 			desc.NumArgumentDescs = ARRAY_SIZE(args);
 			desc.pArgumentDescs   = args;
@@ -1852,7 +2078,7 @@ namespace Render
 		{
 			D3D12_INDIRECT_ARGUMENT_DESC args[1];
 			args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
-			D3D12_COMMAND_SIGNATURE_DESC desc;
+			D3D12_COMMAND_SIGNATURE_DESC desc = {};
 			desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
 			desc.NumArgumentDescs = ARRAY_SIZE(args);
 			desc.pArgumentDescs = args;
@@ -1876,6 +2102,8 @@ namespace Render
 
 		mGraphicsCmdList = frameData.graphicsCmdList;
 		frameData.fenceValue += 1;
+
+		resetCommandList();
 		return true;
 	}
 
@@ -1889,7 +2117,6 @@ namespace Render
 		for (int i = 1; i < numFrames; ++i)
 		{
 			VERIFY_RETURN_FALSE(mFrameDataList[i].init(mDevice));
-			//if (i != mFrameIndex)
 			{
 				mFrameDataList[i].graphicsCmdList->Close();
 			}
@@ -2018,7 +2245,8 @@ namespace Render
 			D3D12_INDEX_BUFFER_VIEW& mBufferView;
 		};
 
-		return DetermitPrimitiveTopologyUP(primitive, D3D12Translate::To(primitive) != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED, num, pIndices,  MyBuffer(mIndexBufferUP, outIndexBufferView), outPrimitiveDetermited, outIndexNum);
+		MyBuffer myBuffer(mIndexBufferUP, outIndexBufferView);
+		return DetermitPrimitiveTopologyUP(primitive, D3D12Translate::To(primitive) != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED, num, pIndices, myBuffer, outPrimitiveDetermited, outIndexNum);
 	}
 
 	void D3D12Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
@@ -2291,7 +2519,11 @@ namespace Render
 		case EResourceTransition::UAV:
 			return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 		case EResourceTransition::SRV:
-			return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+			return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+		case EResourceTransition::CopySrc:
+			return D3D12_RESOURCE_STATE_COPY_SOURCE;
+		case EResourceTransition::CopyDest:
+			return D3D12_RESOURCE_STATE_COPY_DEST;
 		case EResourceTransition::RenderTarget:
 			return D3D12_RESOURCE_STATE_RENDER_TARGET;
 
@@ -2351,38 +2583,28 @@ namespace Render
 		}
 	}
 
-	ID3D12Resource* GetTextureResource(RHITextureBase& texture);
-
-	ID3D12Resource* D3D12Cast::GetResource(RHIResource& resource)
+	void D3D12Context::RHICopyResource(RHIResource& dest, RHIResource& src)
 	{
-		if (resource.getResourceType() == EResourceType::Buffer)
-			return static_cast<D3D12Buffer&>(resource).getResource();
-
-		if (resource.getResourceType() == EResourceType::Texture)
-			return GetTextureResource(static_cast<RHITextureBase&>(resource));
-
-		return nullptr;
+		ID3D12Resource* destResource = D3D12Cast::GetResource(dest);
+		ID3D12Resource* srcResource = D3D12Cast::GetResource(src);
+		mGraphicsCmdList->CopyResource(destResource, srcResource);
 	}
 
-	ID3D12Resource* GetTextureResource(RHITextureBase& texture)
-	{
-		D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
-		return textureImpl.getD3D12Resource();
-	}
+
 
 	void D3D12Context::RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
 	{
-		ID3D12Resource* destResource = GetTextureResource(destTexture);
-		ID3D12Resource* srcResource = GetTextureResource(srcTexture);
+		ID3D12Resource* destResource = D3D12Cast::GetTextureResource(destTexture);
+		ID3D12Resource* srcResource = D3D12Cast::GetTextureResource(srcTexture);
 		mGraphicsCmdList->ResolveSubresource(destResource, destSubIndex, srcResource, srcSubIndex, D3D12Translate::To(destTexture.getFormat()));
 	}
 
 	void D3D12Context::RHIFlushCommand()
 	{
-#if 1
 		flushCommand();
 		static_cast<D3D12System*>(GRHISystem)->notifyFlushCommand();
-#endif
+		waitForGpu();
+		resetCommandList();
 	}
 
 	void D3D12Context::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
@@ -2390,6 +2612,222 @@ namespace Render
 		commitComputePipelineState();
 		mGraphicsCmdList->Dispatch(numGroupX, numGroupY, numGroupZ);
 		postDispatchCompute();
+	}
+
+	void D3D12Context::RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch)
+	{
+		if (dst->getResourceType() == EResourceType::BottomLevelAccelerationStructure)
+		{
+			auto* blasDst = static_cast<D3D12BottomLevelAccelerationStructure*>(dst);
+			// auto* blasSrc = static_cast<D3D12BottomLevelAccelerationStructure*>(src); // TODO: Handle update (src != nullptr)
+			
+			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+			buildDesc.Inputs = blasDst->mInputDesc;
+			buildDesc.DestAccelerationStructureData = blasDst->mResultAllocation.gpuAddress;
+			buildDesc.ScratchAccelerationStructureData = blasDst->mScartchAllocation.gpuAddress;
+			// buildDesc.SourceAccelerationStructureData
+			
+			mGraphicsCmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+			
+			// UAV barrier for immediate use
+			D3D12_RESOURCE_BARRIER barrier = FD3D12Init::UAVBarrier(blasDst->mResultAllocation.ptr);
+			mGraphicsCmdList->ResourceBarrier(1, &barrier);
+		}
+		else if (dst->getResourceType() == EResourceType::TopLevelAccelerationStructure)
+		{
+			auto* tlasDst = static_cast<D3D12TopLevelAccelerationStructure*>(dst);
+			
+			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+			buildDesc.Inputs = tlasDst->mInputDesc;
+			buildDesc.DestAccelerationStructureData = tlasDst->mResultAllocation.gpuAddress;
+			buildDesc.ScratchAccelerationStructureData = tlasDst->mScartchAllocation.gpuAddress;
+
+			mGraphicsCmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+			
+			D3D12_RESOURCE_BARRIER barrier = FD3D12Init::UAVBarrier(tlasDst->mResultAllocation.ptr);
+			mGraphicsCmdList->ResourceBarrier(1, &barrier);
+		}
+	}
+
+	void D3D12Context::RHISetRayTracingPipelineState(RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt)
+	{
+		auto* d3d12RtPso = static_cast<D3D12RayTracingPipelineState*>(rtpso);
+		mCurrentRayTracingPipelineState = d3d12RtPso;
+		mCurrentRayTracingShaderTable = static_cast<D3D12RayTracingShaderTable*>(sbt);
+
+		mGraphicsCmdList->SetPipelineState1(d3d12RtPso->mStateObject);
+
+		if (d3d12RtPso->mBoundState && d3d12RtPso->mBoundState->mRootSignature)
+		{
+			mGraphicsCmdList->SetComputeRootSignature(d3d12RtPso->mBoundState->mRootSignature);
+			for (auto& shaderInfo : d3d12RtPso->mBoundState->mShaders)
+			{
+				mRootSlotStart[shaderInfo.type] = shaderInfo.rootSlotStart;
+			}
+
+			mNumUsedHeaps = 0;
+			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
+		}
+	}
+
+	void D3D12Context::RHIDispatchRays(uint32 width, uint32 height, uint32 depth)
+	{
+		if (!mCurrentRayTracingPipelineState) return;
+
+		D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+
+		if (mCurrentRayTracingShaderTable)
+		{
+			auto* d3dShaderTable = static_cast<D3D12RayTracingShaderTable*>(mCurrentRayTracingShaderTable);
+			d3dShaderTable->upload();
+
+			dispatchDesc.RayGenerationShaderRecord.StartAddress = d3dShaderTable->getRayGenGPUAddr();
+			dispatchDesc.RayGenerationShaderRecord.SizeInBytes = d3dShaderTable->getRayGenSize();
+
+			dispatchDesc.MissShaderTable.StartAddress = d3dShaderTable->getMissGPUAddr();
+			dispatchDesc.MissShaderTable.SizeInBytes = d3dShaderTable->getMissSize();
+			dispatchDesc.MissShaderTable.StrideInBytes = d3dShaderTable->getMissStride();
+
+			dispatchDesc.HitGroupTable.StartAddress = d3dShaderTable->getHitGPUAddr();
+			dispatchDesc.HitGroupTable.SizeInBytes = d3dShaderTable->getHitSize();
+			dispatchDesc.HitGroupTable.StrideInBytes = d3dShaderTable->getHitStride();
+		}
+		else
+		{
+			uint32 rayGenSize = Math::AlignUp<uint32>(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+			uint32 numMiss = (uint32)mCurrentRayTracingPipelineState->mMissGroups.size();
+			uint32 maxMissLocalDataSize = 0;
+			for (auto const& group : mCurrentRayTracingPipelineState->mMissGroups)
+				maxMissLocalDataSize = std::max(maxMissLocalDataSize, group.localDataSize);
+			uint32 missStride = Math::AlignUp<uint32>(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + maxMissLocalDataSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+			uint32 missSize = Math::AlignUp<uint32>(numMiss * missStride, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+
+			uint32 numHit = (uint32)mCurrentRayTracingPipelineState->mHitGroups.size();
+			uint32 maxHitLocalDataSize = 0;
+			for (auto const& group : mCurrentRayTracingPipelineState->mHitGroups)
+				maxHitLocalDataSize = std::max(maxHitLocalDataSize, group.localDataSize);
+			uint32 hitStride = Math::AlignUp<uint32>(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + maxHitLocalDataSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+			uint32 hitSize = Math::AlignUp<uint32>(numHit * hitStride, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+
+			uint32 sbtTotalSize = rayGenSize + missSize + hitSize;
+
+			D3D12BufferAllocation sbtAlloc;
+			if (!D3D12DynamicBufferManager::Get().allocFrame(sbtTotalSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT, sbtAlloc))
+				return;
+
+			uint8* sbtData = (uint8*)sbtAlloc.cpuAddress;
+			D3D12_GPU_VIRTUAL_ADDRESS sbtGpuAddr = sbtAlloc.gpuAddress;
+
+			// 1. RayGen Record
+			FMemory::Copy(sbtData, mCurrentRayTracingPipelineState->mRayGen.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			dispatchDesc.RayGenerationShaderRecord.StartAddress = sbtGpuAddr;
+			dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGenSize;
+
+			// 2. Miss Table
+			if (numMiss > 0)
+			{
+				uint8* pMissSBT = sbtData + rayGenSize;
+				for (uint32 i = 0; i < numMiss; ++i)
+				{
+					auto const& group = mCurrentRayTracingPipelineState->mMissGroups[i];
+					FMemory::Copy(pMissSBT + i * missStride, group.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+				}
+				dispatchDesc.MissShaderTable.StartAddress = sbtGpuAddr + rayGenSize;
+				dispatchDesc.MissShaderTable.SizeInBytes = missSize;
+				dispatchDesc.MissShaderTable.StrideInBytes = missStride;
+			}
+
+			// 3. Hit Group Table
+			if (numHit > 0)
+			{
+				uint8* pHitSBT = sbtData + rayGenSize + missSize;
+				for (uint32 i = 0; i < numHit; ++i)
+				{
+					auto const& group = mCurrentRayTracingPipelineState->mHitGroups[i];
+					uint8* pRecord = pHitSBT + i * hitStride;
+					FMemory::Copy(pRecord, group.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+				}
+				dispatchDesc.HitGroupTable.StartAddress = sbtGpuAddr + rayGenSize + missSize;
+				dispatchDesc.HitGroupTable.SizeInBytes = hitSize;
+				dispatchDesc.HitGroupTable.StrideInBytes = hitStride;
+			}
+		}
+
+		dispatchDesc.Width = width;
+		dispatchDesc.Height = height;
+		dispatchDesc.Depth = depth;
+
+		mGraphicsCmdList->DispatchRays(&dispatchDesc);
+	}
+
+	void D3D12Context::RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances)
+	{
+		auto* d3d12Tlas = static_cast<D3D12TopLevelAccelerationStructure*>(tlas);
+		if (!d3d12Tlas->mInstanceAllocaton.ptr) return;
+
+		D3D12_RAYTRACING_INSTANCE_DESC* mappedInstances = nullptr;
+		D3D12_RANGE readRange = { 0, 0 };
+		HRESULT hr = d3d12Tlas->mInstanceAllocaton.ptr->Map(0, &readRange, (void**)&mappedInstances);
+		if (SUCCEEDED(hr))
+		{
+			for (uint32 i = 0; i < numInstances; ++i)
+			{
+				auto const& src = instances[i];
+				auto& dst = mappedInstances[i];
+
+				dst.Transform[0][0] = src.transform(0, 0); dst.Transform[0][1] = src.transform(1, 0); dst.Transform[0][2] = src.transform(2, 0); dst.Transform[0][3] = src.transform(3, 0);
+				dst.Transform[1][0] = src.transform(0, 1); dst.Transform[1][1] = src.transform(1, 1); dst.Transform[1][2] = src.transform(2, 1); dst.Transform[1][3] = src.transform(3, 1);
+				dst.Transform[2][0] = src.transform(0, 2); dst.Transform[2][1] = src.transform(1, 2); dst.Transform[2][2] = src.transform(2, 2); dst.Transform[2][3] = src.transform(3, 2);
+				
+				dst.InstanceID = src.instanceID;
+				dst.InstanceMask = src.instanceMask;
+				dst.InstanceContributionToHitGroupIndex = src.recordIndex;
+				dst.Flags = D3D12Translate::To((ERayTracingInstanceFlags)src.flags);
+				
+				if (src.blas)
+				{
+					auto* blas = static_cast<D3D12BottomLevelAccelerationStructure*>(src.blas);
+					dst.AccelerationStructure = blas->mResultAllocation.gpuAddress;
+				}
+				else
+				{
+					dst.AccelerationStructure = 0;
+				}
+			}
+
+			d3d12Tlas->mInstanceAllocaton.ptr->Unmap(0, nullptr);
+		}
+	}
+
+
+	void D3D12Context::RHISetShaderAccelerationStructure(RHIShader* shader, char const* name, RHIAccelerationStructure* as)
+	{
+		if (!mCurrentRayTracingPipelineState) return;
+		if (!as || as->getResourceType() != EResourceType::TopLevelAccelerationStructure) return;
+
+		auto* d3d12Tlas = static_cast<D3D12TopLevelAccelerationStructure*>(as);
+		
+		auto* d3d12Shader = static_cast<D3D12Shader*>(shader);
+		if (!d3d12Shader) return;
+
+		ShaderParameter param;
+		if (!d3d12Shader->getParameter(name, param)) return;
+		
+		ShaderParameterSlotInfo const& slotInfo = d3d12Shader->rootSignature.slots[param.bindIndex];
+		uint32 rootIndex = getRootSlot(d3d12Shader->getType(), *d3d12Shader, param); 
+		if (rootIndex == INDEX_NONE) return;
+		if (slotInfo.type == ShaderParameterSlotInfo::eSRV)
+		{
+			mGraphicsCmdList->SetComputeRootShaderResourceView(rootIndex, d3d12Tlas->mResultAllocation.gpuAddress);
+		}
+		else if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_SRV)
+		{
+			if (d3d12Tlas->mSRV.getGPUHandle().ptr != 0)
+			{
+				updateCSUHeapUsage(d3d12Tlas->mSRV);
+				mGraphicsCmdList->SetComputeRootDescriptorTable(rootIndex, d3d12Tlas->mSRV.getGPUHandle());
+			}
+		}
 	}
 
 	void D3D12Context::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
@@ -2430,6 +2868,11 @@ namespace Render
 		if (shaderProgramImpl->cachedState == nullptr)
 		{
 			shaderProgramImpl->cachedState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(*shaderProgramImpl);
+			if (shaderProgramImpl->cachedState == nullptr)
+			{
+				LogWarning(0, "D3D12 cached state nullptr!");
+				return;
+			}
 		}
 
 		if (shaderProgramImpl->cachedState->mShaders[0].type == EShader::Compute)
@@ -2472,19 +2915,27 @@ namespace Render
 		}
 	}
 
+
 	void D3D12Context::setShaderValueInternal(EShader::Type shaderType , D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size)
 	{
-		if (shaderData.rootSignature.globalCBSize <= 0)
+		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
+		if (slotInfo.bLocal)
 		{
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, (void*)pData, size, slotInfo.dataOffset);
+			}
 			return;
 		}
-		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
 
 		auto& resourceBoundState = mResourceBoundStates[shaderType];
 		if ( resourceBoundState.updateConstBuffer(shaderData) )
 		{
-			if (shaderType == EShader::Compute)
+			if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 			{
 				mGraphicsCmdList->SetComputeRootConstantBufferView(rootSlot, resourceBoundState.getConstantGPUAddress());
 			}
@@ -2498,17 +2949,24 @@ namespace Render
 
 	void D3D12Context::setShaderValueInternal(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size, uint32 elementSize, uint32 stride)
 	{
-		if (shaderData.rootSignature.globalCBSize <= 0)
+		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
+		if (slotInfo.bLocal)
 		{
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, (void*)pData, size, slotInfo.dataOffset);
+			}
 			return;
 		}
-		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
 
 		auto& resourceBoundState = mResourceBoundStates[shaderType];	
 		if (resourceBoundState.updateConstBuffer(shaderData))
 		{
-			if (shaderType == EShader::Compute)
+			if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 			{
 				mGraphicsCmdList->SetComputeRootConstantBufferView(rootSlot, resourceBoundState.getConstantGPUAddress());
 			}
@@ -2536,12 +2994,66 @@ namespace Render
 	void D3D12Context::setShaderTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
+
+		D3D12_RESOURCE_STATES requiredState = (shaderType == EShader::Pixel) ?
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE :
+			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+		if ((textureImpl.mCurrentStates & requiredState) != requiredState)
+		{
+			D3D12_RESOURCE_STATES nextState = textureImpl.mCurrentStates;
+			// If current state is a read state, we can combine flags
+			if ((textureImpl.mCurrentStates & D3D12_RESOURCE_STATE_GENERIC_READ) == textureImpl.mCurrentStates)
+			{
+				nextState |= requiredState;
+			}
+			else
+			{
+				nextState = requiredState;
+			}
+
+			if (textureImpl.mCurrentStates != nextState)
+			{
+				mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(textureImpl.getD3D12Resource(), textureImpl.mCurrentStates, nextState,
+					D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAG_NONE));
+				textureImpl.mCurrentStates = nextState;
+			}
+		}
+		
 		auto const& handle = textureImpl.mSRV;
 		updateCSUHeapUsage(handle);
 
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-		if (shaderType == EShader::Compute)
+		if (slotInfo.bLocal)
+		{
+			void* pData = nullptr;
+			uint32 size = 8;
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+			D3D12_GPU_VIRTUAL_ADDRESS addr;
+
+			if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_SRV)
+			{
+				gpuHandle = handle.getGPUHandle();
+				pData = &gpuHandle;
+			}
+			else
+			{
+				addr = textureImpl.getD3D12Resource()->GetGPUVirtualAddress();
+				pData = &addr;
+			}
+
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, pData, size, slotInfo.dataOffset);
+			}
+			return;
+		}
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
+
+		if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 		{
 			mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
 		}
@@ -2563,8 +3075,21 @@ namespace Render
 		updateSamplerHeapUsage(handle);
 
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-		if (shaderType == EShader::Compute)
+		if (slotInfo.bLocal)
+		{
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = handle.getGPUHandle();
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, &gpuHandle, 8, slotInfo.dataOffset);
+			}
+			return;
+		}
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
+
+		if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 		{
 			mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
 		}
@@ -2610,8 +3135,37 @@ namespace Render
 		updateCSUHeapUsage(*handle);
 
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-		if (shaderType == EShader::Compute)
+
+		if (slotInfo.bLocal)
+		{
+			void* pData = nullptr;
+			uint32 size = 8;
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+			D3D12_GPU_VIRTUAL_ADDRESS addr;
+
+			if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
+			{
+				gpuHandle = handle->getGPUHandle();
+				pData = &gpuHandle;
+			}
+			else
+			{
+				addr = textureImpl.getD3D12Resource()->GetGPUVirtualAddress();
+				pData = &addr;
+			}
+
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, pData, size, slotInfo.dataOffset);
+			}
+			return;
+		}
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
+
+		if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 		{
 			mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle->getGPUHandle());
 		}
@@ -2636,19 +3190,9 @@ namespace Render
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
 		auto shaderType = shaderImpl.getType();
 		auto const& slotInfo = shaderImpl.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-
-		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
-		{
-			if (shaderType == EShader::Compute)
-			{
-				mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
-			}
-			else
-			{
-				mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
-			}
-		}
+		uint32 rootSlot = getRootSlot(shaderType, shaderImpl, param);
+		if (rootSlot == INDEX_NONE)
+			return;
 
 		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = nullptr;
 	}
@@ -2656,19 +3200,9 @@ namespace Render
 	void D3D12Context::clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param)
 	{
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-
-		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
-		{
-			if (shaderType == EShader::Compute)
-			{
-				mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
-			}
-			else
-			{
-				mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
-			}
-		}
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
 
 		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = nullptr;
 	}
@@ -2687,13 +3221,41 @@ namespace Render
 	{
 		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
+
+		if (slotInfo.bLocal)
+		{
+			void* pData = nullptr;
+			uint32 size = 8;
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+			D3D12_GPU_VIRTUAL_ADDRESS address;
+
+			if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_CBV)
+			{
+				gpuHandle = bufferImpl.mCBV.getGPUHandle();
+				pData = &gpuHandle;
+			}
+			else
+			{
+				address = bufferImpl.isDyanmic() ? bufferImpl.mDynamicAllocation.gpuAddress : bufferImpl.getResource()->GetGPUVirtualAddress();
+				pData = &address;
+			}
+
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, pData, size, slotInfo.dataOffset);
+			}
+			return;
+		}
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
+
 		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_CBV)
 		{
 			auto const& handle = bufferImpl.mCBV;
 			updateCSUHeapUsage(handle);
-			uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-			if (shaderType == EShader::Compute)
+			if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 			{
 				mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
 			}
@@ -2713,9 +3275,8 @@ namespace Render
 			{
 				address = bufferImpl.getResource()->GetGPUVirtualAddress();
 			}
-			if (shaderType == EShader::Compute)
+			if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 			{
-
 				mGraphicsCmdList->SetComputeRootConstantBufferView(rootSlot, address);
 			}
 			else
@@ -2734,35 +3295,39 @@ namespace Render
 	void D3D12Context::setShaderStorageBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
 		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
-
 		ID3D12Resource* resource = bufferImpl.getResource();
-
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
 
+		if (slotInfo.bLocal)
+		{
+			D3D12_GPU_VIRTUAL_ADDRESS address;
+			void* pData = nullptr;
+			uint32 size = 8;
+			if (bufferImpl.isDyanmic())
+			{
+				address = bufferImpl.mDynamicAllocation.gpuAddress;
+				pData = &address;
+			}
+			else
+			{
+				address = bufferImpl.getResource()->GetGPUVirtualAddress();
+				pData = &address;
+			}
+
+			if (mCurrentRayTracingShaderTable)
+			{
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, pData, size, slotInfo.dataOffset);
+			}
+			return;
+		}
+
+		uint32 rootSlot = getRootSlot(shaderType, shaderData, param);
+		if (rootSlot == INDEX_NONE)
+			return;
 
 		switch (slotInfo.type)
 		{
 		case ShaderParameterSlotInfo::eUAV:
-			{
-				mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
-				//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0));
-				//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
-
-				auto const& handle = bufferImpl.mUAV;
-				updateCSUHeapUsage(handle);
-
-				if (shaderType == EShader::Compute)
-				{
-					mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
-				}
-				else
-				{
-					mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
-				}
-			}
-			break;
-		case ShaderParameterSlotInfo::eDescriptorTable_UAV:
 			{
 				D3D12_GPU_VIRTUAL_ADDRESS address;
 				if (bufferImpl.isDyanmic())
@@ -2775,15 +3340,29 @@ namespace Render
 					mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
 				}
 
-				//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0));
-				//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
-				if (shaderType == EShader::Compute)
+				if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 				{
 					mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, address);
 				}
 				else
 				{
 					mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, address);
+				}
+			}
+			break;
+		case ShaderParameterSlotInfo::eDescriptorTable_UAV:
+			{
+				mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
+				auto const& handle = bufferImpl.mUAV;
+				updateCSUHeapUsage(handle);
+
+				if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
+				{
+					mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
+				}
+				else
+				{
+					mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
 				}
 			}
 			break;
@@ -2799,7 +3378,7 @@ namespace Render
 					address = bufferImpl.getResource()->GetGPUVirtualAddress();
 				}
 
-				if (shaderType == EShader::Compute)
+				if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 				{
 					mGraphicsCmdList->SetComputeRootShaderResourceView(rootSlot, address);
 				}
@@ -2814,7 +3393,7 @@ namespace Render
 				auto const& handle = bufferImpl.mSRV;
 				updateCSUHeapUsage(handle);
 
-				if (shaderType == EShader::Compute)
+				if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 				{
 					mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
 				}
@@ -2830,6 +3409,9 @@ namespace Render
 
 	void D3D12Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
+		if (param.bindIndex == INDEX_NONE)
+			return;
+
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, &buffer, op](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
 		{
@@ -2840,35 +3422,23 @@ namespace Render
 
 	void D3D12Context::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOp op)
 	{
+		if (param.bindIndex == INDEX_NONE)
+			return;
+
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
 		setShaderStorageBuffer(shaderImpl.getType(), shaderImpl, param, buffer, op);
 	}
 
 	void D3D12Context::clearShaderBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, EAccessOp op)
 	{
+		if (param.bindIndex == INDEX_NONE)
+			return;
+
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, op](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
 		{
 			auto const& slotInfo = shaderData.rootSignature.slots[shaderParam.bindIndex];
-			uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-
-			if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV || slotInfo.type == ShaderParameterSlotInfo::eSRV)
-			{
-				if (shaderType == EShader::Compute)
-				{
-					if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
-						mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
-					else
-						mGraphicsCmdList->SetComputeRootShaderResourceView(rootSlot, 0);
-				}
-				else
-				{
-					if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
-						mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
-					else
-						mGraphicsCmdList->SetGraphicsRootShaderResourceView(rootSlot, 0);
-				}
-			}
+			uint32 rootSlot = getRootSlot(shaderType, shaderData, shaderParam);
 
 			if (op != EAccessOp::ReadOnly)
 			{
@@ -2879,29 +3449,14 @@ namespace Render
 
 	void D3D12Context::clearShaderBuffer(RHIShader& shader, ShaderParameter const& param, EAccessOp op)
 	{
+		if (param.bindIndex == INDEX_NONE)
+			return;
+
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
 		auto shaderType = shaderImpl.getType();
 
 		auto const& slotInfo = shaderImpl.rootSignature.slots[param.bindIndex];
-		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-
-		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV || slotInfo.type == ShaderParameterSlotInfo::eSRV)
-		{
-			if (shaderType == EShader::Compute)
-			{
-				if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
-					mGraphicsCmdList->SetComputeRootUnorderedAccessView(rootSlot, 0);
-				else
-					mGraphicsCmdList->SetComputeRootShaderResourceView(rootSlot, 0);
-			}
-			else
-			{
-				if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
-					mGraphicsCmdList->SetGraphicsRootUnorderedAccessView(rootSlot, 0);
-				else
-					mGraphicsCmdList->SetGraphicsRootShaderResourceView(rootSlot, 0);
-			}
-		}
+		uint32 rootSlot = getRootSlot(shaderType, shaderImpl, param);
 
 		if (op != EAccessOp::ReadOnly)
 		{
@@ -2961,15 +3516,8 @@ namespace Render
 
 	void D3D12Context::commitRenderTargetState()
 	{
-		//for (int i = 0; i < mRenderTargetsState->numColorBuffers; ++i)
-		//{
-		//	clearSRVResource(*mRenderTargetsState->colorResources[i]);
-		//}
-
-		//if (mRenderTargetsState->depthBuffer)
-		//{
-		//	clearSRVResource(*mRenderTargetsState->depthResource);
-		//}
+		if (mRenderTargetsState == nullptr)
+			return;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE handles[D3D12RenderTargetsState::MaxSimulationBufferCount];
 		for (int i = 0; i < mRenderTargetsState->numColorBuffers; ++i)
@@ -3129,9 +3677,15 @@ namespace Render
 
 	bool D3D12Context::beginFrame()
 	{
+		if (mbIsRecording)
+		{
+			mGraphicsCmdList->Close();
+			mbIsRecording = false;
+		}
 		FrameData& frameData = mFrameDataList[mFrameIndex];
 		VERIFY_RETURN_FALSE(frameData.beginFrame());
 		mGraphicsCmdList = frameData.graphicsCmdList;
+		mbIsRecording = true;
 
 		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(
 			static_cast<D3D12System*>(GRHISystem)->mSwapChain->mRenderTargetsStates[mFrameIndex].colorBuffers[0].resource,

@@ -215,7 +215,7 @@ namespace Render
 		bool initialize(ID3D12DeviceRHI* device)
 		{
 			mDevice = device;
-			addFrameAllocator(4 * 1024);
+			addFrameAllocator(64 * 1024);
 			return true;
 		}
 

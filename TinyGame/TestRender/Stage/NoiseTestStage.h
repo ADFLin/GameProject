@@ -6,6 +6,7 @@
 
 #include "RHI/Scene.h"
 #include "RHI/SceneRenderer.h"
+#include "Renderer/VolumetricLighting.h"
 
 #include "DataCacheInterface.h"
 #include "DataStreamBuffer.h"

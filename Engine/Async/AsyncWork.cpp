@@ -2,6 +2,9 @@
 
 #include "SystemPlatform.h"
 #include "InlineString.h"
+#include <intrin.h>
+#include "ProfileSystem.h"
+
 
 #include <cassert>
 
@@ -13,10 +16,10 @@ public:
 
 	unsigned run();
 	void     doWork(IQueuedWork* work);
-	void     waitTokill();
+	void     waitToKill();
 
 	QueueThreadPool*  mOwningPool;
-	IQueuedWork*      mWork;
+	std::atomic< IQueuedWork* > mWork;
 	ConditionVariable mWaitWorkCV;
 	Mutex             mWaitWorkMutex;
 	volatile int32    mWantDie;
@@ -61,7 +64,7 @@ void QueueThreadPool::cleanup()
 		Mutex::Locker locker(mQueueMutex);
 		for( PoolRunableThread* runThread : mAllThreads )
 		{
-			runThread->waitTokill();
+			runThread->waitToKill();
 			delete runThread;
 		}
 		mAllThreads.clear();
@@ -73,16 +76,18 @@ void QueueThreadPool::cleanup()
 void QueueThreadPool::addWork(IQueuedWork* work)
 {
 	assert(work);
-	Mutex::Locker locker(mQueueMutex);
-
-	if( mQueuedThreads.empty() )
+	PoolRunableThread* runThread = nullptr;
 	{
-		mQueuedWorks.push_back(work);
-		return;
-	}
+		SpinLock::Locker locker(mQueueLock);
+		if( mQueuedThreads.empty() )
+		{
+			mQueuedWorks.push_back(work);
+			return;
+		}
 
-	PoolRunableThread* runThread = mQueuedThreads.back();
-	mQueuedThreads.pop_back();
+		runThread = mQueuedThreads.back();
+		mQueuedThreads.pop_back();
+	}
 
 	runThread->doWork(work);
 }
@@ -90,11 +95,7 @@ void QueueThreadPool::addWork(IQueuedWork* work)
 bool QueueThreadPool::retractWork(IQueuedWork* work)
 {
 	Mutex::Locker locker(mQueueMutex);
-	auto iter = std::find(mQueuedWorks.begin(), mQueuedWorks.end(), work);
-	if( iter == mQueuedWorks.end() )
-		return false;
-	mQueuedWorks.erase(iter);
-	return true;
+	return false;
 }
 
 void QueueThreadPool::waitAllThreadIdle()
@@ -112,28 +113,47 @@ void QueueThreadPool::waitAllThreadIdle()
 
 void QueueThreadPool::waitAllWorkComplete()
 {
-	while( 1 )
+	Mutex::Locker locker(mQueueMutex);
+	mWaitCompleteCV.wait(locker, [this]()
 	{
-#if 1
-		{
-			Mutex::Locker locker(mQueueMutex);
-			if( mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty() )
-				break;
-		}
-		SystemPlatform::Sleep(0);
-#else
-		if (mQueueMutex.tryLock())
-		{
-			if (mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty())
-			{
-				mQueueMutex.unlock();
-				break;
-			}
+		SpinLock::Locker spinLock(mQueueLock);
+		return mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty();
+	});
+}
 
-			mQueueMutex.unlock();
+void QueueThreadPool::waitAllWorkCompleteInWorker()
+{
+	// 1. 先處理完佇列中的工作
+	while (true)
+	{
+		IQueuedWork* work = nullptr;
+		{
+			SpinLock::Locker locker(mQueueLock);
+			if (mQueuedWorks.empty())
+				break;
+			work = mQueuedWorks.front();
+			mQueuedWorks.pop_front();
 		}
-#endif
+
+		if (work)
+		{
+			work->executeWork();
+			work->release();
+		}
 	}
+
+	// 2. 等待其他 Work 執行緒也進入空閒狀態
+	// 這裡必須在鎖定狀態下檢查，確保沒有進行中的任務
+	Mutex::Locker locker(mQueueMutex);
+	mWaitCompleteCV.wait(locker, [this]()
+	{
+		SpinLock::Locker spinLock(mQueueLock);
+		// 對於主執行緒，當 mQueuedThreads.size() == mAllThreads.size() 時表示全部空閒
+		// 對於 Worker 執行緒，它此時不在 mQueuedThreads 中，所以是 size() + 1
+		int idleCount = (int)mQueuedThreads.size();
+		bool bFinished = mQueuedWorks.empty() && (idleCount == (int)mAllThreads.size() || idleCount == (int)mAllThreads.size() - 1);
+		return bFinished;
+	});
 }
 
 void QueueThreadPool::cencelAllWorks()
@@ -148,18 +168,52 @@ void QueueThreadPool::cencelAllWorks()
 	mQueuedWorks.clear();
 }
 
-IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)
+void QueueThreadPool::addWorks(IQueuedWork* works[], int count)
 {
-	Mutex::Locker locker(mQueueMutex);
-
-	if( mQueuedWorks.empty() )
+	if (count == 0) return;
+	
+	SpinLock::Locker locker(mQueueLock);
+	int workIdx = 0;
+	while( !mQueuedThreads.empty() && workIdx < count )
 	{
-		mQueuedThreads.push_back(runThread);
-		return nullptr;
+		PoolRunableThread* runThread = mQueuedThreads.back();
+		mQueuedThreads.pop_back();
+		runThread->doWork(works[workIdx++]);
 	}
 
-	IQueuedWork* outWork = mQueuedWorks.front();
-	mQueuedWorks.erase(mQueuedWorks.begin());
+	while( workIdx < count )
+	{
+		mQueuedWorks.push_back(works[workIdx++]);
+	}
+}
+
+IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)
+{
+	IQueuedWork* outWork = nullptr;
+	bool bShouldNotify = false;
+	{
+		SpinLock::Locker locker(mQueueLock);
+		if( mQueuedWorks.empty() )
+		{
+			mQueuedThreads.push_back(runThread);
+			// 判定是否所有任務都完成了 (包含考慮當前執行緒可能正在等待的情況)
+			if (mQueuedWorks.empty())
+			{
+				bShouldNotify = true;
+			}
+		}
+		else
+		{
+			outWork = mQueuedWorks.front();
+			mQueuedWorks.pop_front();
+		}
+	}
+
+	if (bShouldNotify)
+	{
+		Mutex::Locker lock(mQueueMutex);
+		mWaitCompleteCV.notifyAll();
+	}
 
 	return outWork;
 }
@@ -176,18 +230,39 @@ unsigned PoolRunableThread::run()
 	while ( !mWantDie )
 	{
 		{
-			Mutex::Locker locker(mWaitWorkMutex);
-			mWaitWorkCV.wait(locker, [this]()->bool { return mWork != nullptr || mWantDie; });
+			PROFILE_ENTRY("Worker.SpinWait");
+			for (int i = 0; i < 1000; ++i)
+			{
+				if (mWork.load(std::memory_order_relaxed) != nullptr || mWantDie)
+					break;
+				_mm_pause(); 
+			}
 		}
 
-		IQueuedWork* currentWork = mWork;
-		mWork = nullptr;
-		SystemPlatform::MemoryStoreFence();
-		while( currentWork )
 		{
-			currentWork->executeWork();
-			currentWork->release();
-			currentWork = mOwningPool->doWorkCompleted(this);
+			PROFILE_ENTRY("Worker.Idle");
+			if (mWork.load(std::memory_order_relaxed) == nullptr && !mWantDie)
+			{
+				Mutex::Locker locker(mWaitWorkMutex);
+				mWaitWorkCV.wait(locker, [this]()->bool { return mWork.load(std::memory_order_relaxed) != nullptr || mWantDie; });
+			}
+		}
+
+
+		IQueuedWork* currentWork = mWork.exchange(nullptr, std::memory_order_acq_rel);
+		if (currentWork)
+		{
+			PROFILE_ENTRY("Worker.WorkLoop");
+			while (currentWork)
+			{
+				currentWork->executeWork();
+				currentWork->release();
+
+				{
+					PROFILE_ENTRY("Worker.FetchNext");
+					currentWork = mOwningPool->doWorkCompleted(this);
+				}
+			}
 		}
 	}
 
@@ -196,14 +271,15 @@ unsigned PoolRunableThread::run()
 
 void PoolRunableThread::doWork(IQueuedWork* work)
 {
-	Mutex::Locker locker(mWaitWorkMutex);
-	mWork = work;
-	SystemPlatform::MemoryStoreFence();
-
-	mWaitWorkCV.notifyOne();
+	// 這裡不使用互斥鎖，以提高 addWorks 的效率，依賴 Exchange 與 CV 通知
+	mWork.store(work, std::memory_order_release);
+	{
+		Mutex::Locker locker(mWaitWorkMutex);
+		mWaitWorkCV.notifyOne();
+	}
 }
 
-void PoolRunableThread::waitTokill()
+void PoolRunableThread::waitToKill()
 {
 	{
 		Mutex::Locker locker(mWaitWorkMutex);

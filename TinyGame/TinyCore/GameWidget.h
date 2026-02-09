@@ -813,7 +813,7 @@ public:
 	virtual void  drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) = 0;
 	virtual void  drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color) = 0;
 	virtual void  drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) = 0;
-	virtual void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment) = 0;
+	virtual void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, int keyInPos, bool bFocus, bool bEnable, EHorizontalAlign alignment) = 0;
 	virtual void  drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType) = 0;
 	virtual void  drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state) = 0;
 	virtual void  drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) = 0;
@@ -836,7 +836,7 @@ public:
 	TINY_API void  drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
 	TINY_API void  drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color) override;
 	TINY_API void  drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
-	TINY_API void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment) override;
+	TINY_API void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, int keyInPos, bool bFocus, bool bEnable, EHorizontalAlign alignment) override;
 	TINY_API void  drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType) override;
 	TINY_API void  drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state) override;
 	TINY_API void  drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
@@ -859,7 +859,7 @@ public:
 	TINY_API void  drawChoiceMenuBG(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;
 	TINY_API void  drawListItem(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bSelected, WidgetColor const& color) override;
 	TINY_API void  drawListBackground(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, WidgetColor const& color) override;
-	TINY_API void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment) override;
+	TINY_API void  drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, int keyInPos, bool bFocus, bool bEnable, EHorizontalAlign alignment) override;
 	TINY_API void  drawText(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* text, int fontType) override;
 	TINY_API void  drawNoteBookButton(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* title, bool bSelected, ButtonState state) override;
 	TINY_API void  drawNoteBookPage(IGraphics2D& g, Vec2i const& pos, Vec2i const& size) override;

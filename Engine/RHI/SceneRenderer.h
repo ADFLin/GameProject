@@ -3,7 +3,7 @@
 #define SceneRenderer_H_D5144663_1B3D_486C_A523_45B46EC4482A
 
 #include "RHICommon.h"
-#include "ShaderCore.h"
+#include "RHI/ShaderCore.h"
 #include "Material.h"
 #include "RenderContext.h"
 
@@ -11,6 +11,7 @@
 #include "Renderer/BasePassRendering.h"
 #include "Renderer/ShadowDepthRendering.h"
 #include "Renderer/SceneLighting.h"
+#include "Renderer/VolumetricLighting.h"
 
 //#REMOVE ME
 #include "OpenGLCommon.h"
@@ -193,21 +194,7 @@ namespace Render
 	};
 
 
-	struct GPU_ALIGN TiledLightInfo
-	{
-		DECLARE_BUFFER_STRUCT(TiledLightList);
 
-		Vector3 pos;
-		int32   type; 
-		Vector3 color;
-		float   intensity;
-		Vector3 dir;
-		float   radius;
-		Vector4 param; // x y: spotAngle  , z : shadowFactor
-		Matrix4 worldToShadow;
-
-		void setValue(LightInfo const& light);
-	};
 
 	struct DecalInfo
 	{
@@ -239,35 +226,7 @@ namespace Render
 		RHITextureRef shadowMap;
 	};
 
-	class VolumetricLightingTech : public RenderTechnique
-	{	
 
-	public:
-
-		bool init(IntVector2 const& screenSize);
-
-		void releaseRHI()
-		{
-			mVolumeBufferA.release();
-			mVolumeBufferB.release();
-			mScatteringBuffer.release();
-			mTiledLightBuffer.release();
-		}
-
-		static int constexpr MaxTiledLightNum = 1024;
-		bool setupBuffer(IntVector2 const& screenSize, int sizeFactor, int depthSlices);
-
-
-		void render(RHICommandList& commandList, ViewInfo& view, TArray< LightInfo > const& lights);
-		RHITexture3DRef mVolumeBufferA;
-		RHITexture3DRef mVolumeBufferB;
-		RHITexture3DRef mScatteringBuffer;
-		RHITexture2DRef mShadowMapAtlas;
-		RHIBufferRef mTiledLightBuffer;
-
-		class ClearBufferProgram* mProgClearBuffer;
-		class LightScatteringProgram* mProgLightScattering;
-	};
 
 	class DeferredShadingTech : public RenderTechnique
 	{
@@ -308,6 +267,19 @@ namespace Render
 		MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory) override;
 
 		void reload();
+	};
+
+	class VolumetricLightingTech : public RenderTechnique
+	{
+	public:
+		bool init(IntVector2 const& screenSize);
+		void releaseRHI();
+		void render(RHICommandList& commandList, ViewInfo& view, TArray< LightInfo > const& lights);
+
+		VolumetricLightingResources mResources;
+
+		class ClearBufferProgram* mProgClearBuffer;
+		class LightScatteringProgram* mProgLightScattering;
 	};
 
 	struct OITShaderData

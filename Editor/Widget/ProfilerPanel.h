@@ -5,20 +5,17 @@
 #include "EditorPanel.h"
 #include "Math/Vector2.h"
 
-
 class ProfilerPanel : public IEditorPanel
 {
 public:
-
-
-	float scale = 1.0f;
-	bool  bPause = false;
-	bool  bShowAvg = false;
-	bool  bGrouped = false;
-
 	void render();
 	void getRenderParams(WindowRenderParams& params) const override;
+};
 
+class ProfilerListPanel : public IEditorPanel
+{
+public:
+	void render();
 };
 
 

@@ -197,8 +197,7 @@ namespace Render
 	};
 
 
-
-	struct RenderBatchedElement
+	struct RenderBatchedElementBase
 	{
 		enum EType
 		{
@@ -214,15 +213,21 @@ namespace Render
 			Line,
 			LineStrip,
 			ArcLine,
-			Text ,
+			Text,
 			ColoredText,
 			GradientRect,
+
+			ModifyState,
 			CustomState,
 			CustomRender,
 			CustomRenderAndState,
 		};
 
 		EType type;
+	};
+
+	struct RenderBatchedElement : RenderBatchedElementBase
+	{
 		RenderTransform2D transform;
 		int32 layer;
 	};
@@ -266,6 +271,21 @@ namespace Render
 	struct TRenderBatchedElement : RenderBatchedElement
 	{
 		TPayload payload;
+	};
+
+	struct ModifyStateBatchedElement : RenderBatchedElementBase
+	{
+		using RenderState = GraphicsDefinition::RenderState;
+
+		ModifyStateBatchedElement(RenderState const state, bool bResetAll)
+			:state(state)
+			,bResetAll(bResetAll)
+		{
+			type = RenderBatchedElementBase::ModifyState;
+		}
+
+		RenderState state;
+		bool bResetAll;
 	};
 
 	struct ShapePaintArgs
@@ -489,6 +509,15 @@ namespace Render
 		RenderBatchedElement& addCustomState(ICustomElementRenderer* renderer, EObjectManageMode mode);
 		RenderBatchedElement& addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode, bool bChangeState);
 
+		RenderBatchedElementBase& modifyState(GraphicsDefinition::RenderState const& state, bool bResetAll)
+		{
+			ModifyStateBatchedElement* ptr = (ModifyStateBatchedElement*)mAllocator.alloc(sizeof(ModifyStateBatchedElement));
+			FTypeMemoryOp::Construct(ptr, state, bResetAll);
+			mElements.push_back((RenderBatchedElement*)(ptr));
+			static_assert(std::is_trivially_destructible_v< ModifyStateBatchedElement >);
+			return *ptr;
+		}
+
 		template< class TPayload >
 		auto addElement()
 		{
@@ -636,7 +665,7 @@ namespace Render
 		void initializeRHI();
 		void releaseRHI();
 		void beginRender(RHICommandList& commandList);
-		void render(RenderState const& renderState, RenderBatchedElementList& elementList);
+		void render(RenderBatchedElementList& elementList);
 
 		void setViewportSize(int width, int height);
 
@@ -656,22 +685,8 @@ namespace Render
 
 		void emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs);
 		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
-		void emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState);
+		void emitElements(TArray<RenderBatchedElement* > const& elements, RenderState& inoutRenderState);
 		void emitLineStrip(TArrayView< Vector2 const > posList, Color4Type const& color, int width);
-
-		struct RenderGroup
-		{
-			RenderState state;
-			TArray<RenderBatchedElement* > elements;
-
-			int indexStart;
-			int indexCount;
-		};
-
-		TArray< RenderGroup > mGroups;
-		int mIndexRender = 0;
-		int mIndexEmit = 0;	
-		void flushGroup();
 
 
 		struct TexVertex

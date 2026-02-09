@@ -28,18 +28,7 @@ namespace Render
 {
 	int const OIT_StorageSize = 4096;
 
-	void TiledLightInfo::setValue(LightInfo const& light)
-	{
-		pos = light.pos;
-		type = (int32)light.type;
-		color = light.color;
-		intensity = light.intensity;
-		dir = light.dir;
-		radius = light.radius;
-		float angleInner = Math::Min(light.spotAngle.x, light.spotAngle.y);
-		param.x = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, angleInner)));
-		param.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, light.spotAngle.y)));
-	}
+
 
 
 
@@ -1593,195 +1582,7 @@ namespace Render
 		}	
 	}
 
-	class ClearBufferProgram : public GlobalShaderProgram
-	{
-		DECLARE_SHADER_PROGRAM(ClearBufferProgram, Global);
 
-		static int constexpr SizeX = 8;
-		static int constexpr SizeY = 8;
-		static int constexpr SizeZ = 8;
-
-
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			mParamBufferRW.bind(parameterMap, SHADER_PARAM(TargetRWTexture));
-			mParamClearValue.bind(parameterMap, SHADER_PARAM(ClearValue));
-		}
-
-		void setParameters(RHICommandList& commandList, RHITexture3D& Buffer , Vector4 const& clearValue)
-		{
-			setRWTexture(commandList, mParamBufferRW, Buffer, 0, EAccessOp::WriteOnly);
-			setParam(commandList, mParamClearValue, clearValue);
-		}
-		
-		void clearTexture(RHICommandList& commandList, RHITexture3D& buffer , Vector4 const& clearValue)
-		{
-			int nx = (buffer.getSizeX() + SizeX - 1) / SizeX;
-			int ny = (buffer.getSizeY() + SizeY - 1) / SizeY;
-			int nz = (buffer.getSizeZ() + SizeZ - 1) / SizeZ;
-			RHISetShaderProgram(commandList, getRHI());
-			setParameters(commandList, buffer, clearValue);
-			RHIDispatchCompute(commandList, nx, ny, nz);
-		}
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			option.addDefine(SHADER_PARAM(SIZE_X), SizeX);
-			option.addDefine(SHADER_PARAM(SIZE_Y), SizeY);
-			option.addDefine(SHADER_PARAM(SIZE_Z), SizeZ);
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/BufferUtility";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo entries[] =
-			{
-				{ EShader::Compute , SHADER_ENTRY(BufferClearCS) },
-			};
-			return entries;
-		}
-
-		ShaderParameter mParamBufferRW;
-		ShaderParameter mParamClearValue;
-	};
-
-	struct VolumetricLightingParameter
-	{
-		RHITexture3D*  volumeBuffer[2];
-		RHITexture3D*  scatteringBuffer[2];
-		RHIBuffer*     lightBuffer;
-		int            numLights;
-	};
-
-	class LightScatteringProgram : public GlobalShaderProgram
-	{
-		DECLARE_SHADER_PROGRAM(LightScatteringProgram, Global);
-
-		static int constexpr GroupSizeX = 8;
-		static int constexpr GroupSizeY = 8;
-
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			mParamVolumeBufferA.bind(parameterMap, SHADER_PARAM(VolumeBufferA));
-			mParamVolumeBufferB.bind(parameterMap, SHADER_PARAM(VolumeBufferB));
-			mParamScatteringRWBuffer.bind(parameterMap, SHADER_PARAM(ScatteringRWBuffer));
-			mParamTiledLightNum.bind(parameterMap, SHADER_PARAM(TiledLightNum));
-		}
-
-		void setParameters(RHICommandList& commandList, ViewInfo& view , VolumetricLightingParameter& parameter )
-		{
-			if (mParamVolumeBufferA.isBound())
-				setTexture(commandList, mParamVolumeBufferA, *parameter.volumeBuffer[0]);
-			if (mParamVolumeBufferB.isBound())
-				setTexture(commandList, mParamVolumeBufferB, *parameter.volumeBuffer[1]);
-			if (mParamScatteringRWBuffer.isBound())
-				setRWTexture(commandList, mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], 0, EAccessOp::WriteOnly);
-
-			setStructuredStorageBufferT<TiledLightInfo>(commandList, *parameter.lightBuffer);
-			view.setupShader(commandList, *this);
-			if (mParamTiledLightNum.isBound())
-				setParam(commandList, mParamTiledLightNum, parameter.numLights);
-		}
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			option.addDefine(SHADER_PARAM(GROUP_SIZE_X), GroupSizeX);
-			option.addDefine(SHADER_PARAM(GROUP_SIZE_Y), GroupSizeY);
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/VolumetricLighting";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo entries[] =
-			{
-				{ EShader::Compute , SHADER_ENTRY(LightScatteringCS) },
-			};
-			return entries;
-		}
-
-		ShaderParameter mParamVolumeBufferA;
-		ShaderParameter mParamVolumeBufferB;
-		ShaderParameter mParamScatteringRWBuffer;
-		ShaderParameter mParamTiledLightNum;
-	};
-
-	IMPLEMENT_SHADER_PROGRAM(ClearBufferProgram);
-	IMPLEMENT_SHADER_PROGRAM(LightScatteringProgram);
-
-	bool VolumetricLightingTech::init(IntVector2 const& screenSize)
-	{
-		mProgClearBuffer = ShaderManager::Get().getGlobalShaderT< ClearBufferProgram >(true);
-		if( mProgClearBuffer == nullptr )
-			return false;
-		mProgLightScattering = ShaderManager::Get().getGlobalShaderT< LightScatteringProgram >(true);
-		if( mProgLightScattering == nullptr )
-			return false;
-
-
-		if( !setupBuffer(screenSize, 10, 32) )
-			return false;
-		return true;
-	}
-
-
-	bool VolumetricLightingTech::setupBuffer(IntVector2 const& screenSize, int sizeFactor, int depthSlices)
-	{
-		int nx = (screenSize.x + sizeFactor - 1) / sizeFactor;
-		int ny = (screenSize.y + sizeFactor - 1) / sizeFactor;
-
-		mVolumeBufferA = RHICreateTexture3D(ETexture::RGBA16F, nx, ny, depthSlices);
-		mVolumeBufferB = RHICreateTexture3D(ETexture::RGBA16F, nx, ny, depthSlices);
-		mScatteringBuffer = RHICreateTexture3D(ETexture::RGBA16F, nx, ny, depthSlices);
-		mTiledLightBuffer = RHICreateVertexBuffer(sizeof(TiledLightInfo) , MaxTiledLightNum);
-
-		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
-	}
-
-	void VolumetricLightingTech::render(RHICommandList& commandList, ViewInfo& view, TArray< LightInfo > const& lights)
-	{
-		{
-			GPU_PROFILE("ClearBuffer");
-			mProgClearBuffer->clearTexture(commandList, *mVolumeBufferA, Vector4(0, 0, 0, 0));
-			mProgClearBuffer->clearTexture(commandList, *mVolumeBufferB, Vector4(0, 0, 0, 0));
-			mProgClearBuffer->clearTexture(commandList, *mScatteringBuffer, Vector4(0, 0, 0, 0));
-		}
-
-		TiledLightInfo* pInfo = (TiledLightInfo*)RHILockBuffer( mTiledLightBuffer , ELockAccess::WriteOnly, 0, sizeof(TiledLightInfo) * lights.size());
-		for( auto const& light : lights )
-		{
-			pInfo->pos = light.pos;
-			pInfo->type = (int)light.type;
-			pInfo->color = light.color;
-			pInfo->intensity = light.intensity;
-			pInfo->dir = light.dir;
-			pInfo->radius = light.radius;
-			Vector3 spotParam;
-			float angleInner = Math::Min(light.spotAngle.x, light.spotAngle.y);
-			spotParam.x = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, angleInner)));
-			spotParam.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, light.spotAngle.y)));
-			pInfo->param = Vector4(spotParam.x,spotParam.y, light.bCastShadow ? 1.0 : 0.0 , 0.0);
-			++pInfo;
-		}
-		RHIUnlockBuffer(mTiledLightBuffer);
-
-		VolumetricLightingParameter parameter;
-		parameter.volumeBuffer[0] = mVolumeBufferA;
-		parameter.volumeBuffer[1] = mVolumeBufferB;
-		parameter.scatteringBuffer[0] = mScatteringBuffer;
-		parameter.lightBuffer = mTiledLightBuffer;
-		parameter.numLights = lights.size();
-
-
-		{
-			GPU_PROFILE("LightScattering");
-			RHISetShaderProgram(commandList, mProgLightScattering->getRHI());
-			mProgLightScattering->setParameters(commandList, view , parameter);
-		}
-	}
 
 	
 #if CORE_SHARE_CODE
@@ -1789,5 +1590,44 @@ namespace Render
 #endif
 
 
+	bool VolumetricLightingTech::init(IntVector2 const& screenSize)
+	{
+		mProgClearBuffer = ShaderManager::Get().getGlobalShaderT< ClearBufferProgram >(true);
+		mProgLightScattering = ShaderManager::Get().getGlobalShaderT< LightScatteringProgram >(true);
+		return mProgClearBuffer && mProgLightScattering && mResources.prepare(screenSize, 8, 128);
+	}
+
+	void VolumetricLightingTech::releaseRHI()
+	{
+		mResources.releaseRHI();
+	}
+
+	void VolumetricLightingTech::render(RHICommandList& commandList, ViewInfo& view, TArray< LightInfo > const& lights)
+	{
+		GPU_PROFILE("VolumetricLighting");
+
+		mProgClearBuffer->clearTexture(commandList, *mResources.mVolumeBufferA, Vector4(0, 0, 0, 0));
+		mProgClearBuffer->clearTexture(commandList, *mResources.mVolumeBufferB, Vector4(0, 0, 0, 0));
+		mProgClearBuffer->clearTexture(commandList, *mResources.mScatteringBuffer, Vector4(0, 0, 0, 0));
+
+
+		TiledLightInfo* pLightData = mResources.mTiledLightBuffer.lock();
+		if( pLightData )
+		{
+			for( int i = 0; i < lights.size(); ++i )
+			{
+				pLightData[i].setValue(lights[i]);
+			}
+			mResources.mTiledLightBuffer.unlock();
+		}
+
+
+		int nx = (mResources.mScatteringBuffer->getSizeX() + LightScatteringProgram::GroupSizeX - 1) / LightScatteringProgram::GroupSizeX;
+		int ny = (mResources.mScatteringBuffer->getSizeY() + LightScatteringProgram::GroupSizeY - 1) / LightScatteringProgram::GroupSizeY;
+
+		RHISetShaderProgram(commandList, mProgLightScattering->getRHI());
+		mProgLightScattering->setParameters(commandList, view, mResources, lights.size());
+		RHIDispatchCompute(commandList, nx, ny, 1);
+	}
 
 }//namespace Render

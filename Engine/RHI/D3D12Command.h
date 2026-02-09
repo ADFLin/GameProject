@@ -8,6 +8,7 @@
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
 #include "RHIGlobalResource.h"
+#include "RHIRaytracingTypes.h"
 
 #include "ShaderCore.h"
 
@@ -29,6 +30,7 @@ class IDXGIFactory1;
 namespace Render
 {
 	class D3D12System;
+	class D3D12RayTracingPipelineState;
 
 	constexpr int ConstBufferMultipleSize = 256;
 
@@ -42,6 +44,7 @@ namespace Render
 			EShader::Type type;
 			D3D12ShaderData* data;
 			uint rootSlotStart;
+			TArray<uint32> parameterMap; // Maps original parameter index to global root index
 		};
 		ShaderBoundStateKey     cachedKey;
 		TArray< ShaderInfo >    mShaders;
@@ -244,11 +247,16 @@ namespace Render
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
 		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
+		void RHICopyResource(RHIResource& dest, RHIResource& src);
 
 		void RHIResolveTexture(RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex);
 		void RHIFlushCommand();
 
-
+		void RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch);
+		void RHISetRayTracingPipelineState(RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt);
+		void RHIDispatchRays(uint32 width, uint32 height, uint32 depth);
+		void RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances);
+		void RHISetShaderAccelerationStructure(RHIShader* shader, char const* name, RHIAccelerationStructure* as);
 
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim) { setShaderValueT(shaderProgram, param, val, dim); }
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shaderProgram, param, val, dim); }
@@ -304,6 +312,7 @@ namespace Render
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc);
+
 		void RHISetComputeShader(RHIShader* shader);
 
 
@@ -397,7 +406,11 @@ namespace Render
 
 		void flushCommand()
 		{
-			mGraphicsCmdList->Close();
+			if (mbIsRecording)
+			{
+				mGraphicsCmdList->Close();
+				mbIsRecording = false;
+			}
 			ID3D12CommandList* ppCommandLists[] = { mGraphicsCmdList };
 			mCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 		}
@@ -405,6 +418,9 @@ namespace Render
 		void resetCommandList()
 		{
 			mFrameDataList[mFrameIndex].resetCommandList(mPiplineStateCommitted);
+			mbIsRecording = true;
+			mNumUsedHeaps = 0;
+			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
 			commitRenderTargetState();
 		}
 
@@ -417,7 +433,11 @@ namespace Render
 		RHIRasterizerStateRef   mRasterizerStatePending;
 		RHIDepthStencilStateRef mDepthStencilStatePending;
 		RHIBlendStateRef        mBlendStateStatePending;
+		
+		class D3D12RayTracingPipelineState* mCurrentRayTracingPipelineState = nullptr;
+		class D3D12RayTracingShaderTable* mCurrentRayTracingShaderTable = nullptr;
 
+		bool mbIsRecording = false;
 		TComPtr< ID3D12CommandSignature > mDrawCmdSignature;
 		TComPtr< ID3D12CommandSignature > mDrawIndexedCmdSignature;
 		TComPtr< ID3D12CommandSignature > mDispatchMeshCmdSignature;
@@ -480,11 +500,7 @@ namespace Render
 		int mNumUsedHeaps = 0;
 
 
-		uint32 getRootSlot(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param)
-		{
-			auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
-			return mRootSlotStart[shaderType] + slotInfo.slotOffset;
-		}
+		uint32 getRootSlot(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
 		uint32 mRootSlotStart[EShader::Count];
 		D3D12ResourceBoundState mResourceBoundStates[EShader::Count];
 
@@ -592,12 +608,18 @@ namespace Render
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
 
+		virtual RHIBuffer* RHICreateBuffer(BufferDesc const& desc, void* data) override;
+
+		virtual RHIRayTracingPipelineState* RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer) override;
+		virtual RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags) override;
+		virtual RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags) override;
+		virtual RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState) override;
+
 
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level = 0);
 
-		RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data);
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
@@ -627,8 +649,6 @@ namespace Render
 
 		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
-
-		
 		bool getHardwareAdapter(
 			IDXGIFactory1* pFactory,
 			_In_ D3D_FEATURE_LEVEL featureLevel,
@@ -751,6 +771,7 @@ namespace Render
 		D3D12ShaderBoundState* getShaderBoundState(RHIShader& computeShader);
 
 		D3D12ShaderBoundState* getShaderBoundState(D3D12ShaderProgram& shaderProgram);
+		D3D12ShaderBoundState* getRayTracingBoundState(RayTracingPipelineStateInitializer const& initializer);
 		D3D12PipelineState* getPipelineState(
 			GraphicsRenderStateDesc const& renderState,
 			D3D12ShaderBoundState* boundState, 

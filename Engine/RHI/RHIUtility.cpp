@@ -165,7 +165,7 @@ namespace Render
 			numMipLevel = CalcMipmapLevel(Math::Max(imageData.width, imageData.height));
 		}
 
-		if (option.numMipLevel > 1)
+		if (numMipLevel > 1)
 		{
 			flags |= TCF_GenerateMips;
 		}
@@ -228,7 +228,6 @@ namespace Render
 		}
 		return ETexture::R8;
 	}
-
 
 	bool TextureLoadOption::isRGBTextureSupported() const
 	{

@@ -55,7 +55,42 @@ void* FrameAllocator::alloc(size_t size)
 	}
 
 	uint8* out = &mCur->storage[0] + mOffset;
-	mOffset += size;
+	mOffset += (uint32)size;
+	return out;
+}
+
+void* FrameAllocator::alloc(size_t size, size_t alignment)
+{
+	uint32 alignedOffset = (mOffset + (uint32)alignment - 1) & ~((uint32)alignment - 1);
+
+	if (mCur->size < alignedOffset + size)
+	{
+		Chunk* newPage = nullptr;
+		if (mFreeList)
+		{
+			if (mFreeList->size > size + alignment)
+			{
+				newPage = mFreeList;
+				mFreeList = mFreeList->link;
+			}
+		}
+		if (newPage == nullptr)
+		{
+			size_t allocSize = 2 * mCur->size;
+			while (allocSize < size + alignment) { allocSize *= 2; }
+			newPage = allocChunk(allocSize);
+			CHECK(newPage != nullptr);
+		}
+
+		mCur->link = newPage;
+		newPage->link = nullptr;
+		mCur = newPage;
+		mOffset = 0;
+		alignedOffset = 0;
+	}
+
+	uint8* out = &mCur->storage[0] + alignedOffset;
+	mOffset = alignedOffset + (uint32)size;
 	return out;
 }
 
@@ -117,7 +152,7 @@ void FrameAllocator::freeStack(StackMarkInfo& info)
 	mOffset = info.offset;
 }
 
-FrameAllocator::FrameAllocator::Chunk* FrameAllocator::allocChunk(size_t size)
+FrameAllocator::Chunk* FrameAllocator::allocChunk(size_t size)
 {
 	Chunk* chunk = (Chunk*)FMemory::Alloc(size + sizeof(Chunk));
 	chunk->index = mNextIndex++;

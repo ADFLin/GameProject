@@ -260,6 +260,7 @@
     <None Include="..\TinyGame\out\Shader\Test\HLSLTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\D3D12Simple.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\RayTracingTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc" />
     <None Include="..\TinyGame\out\Shader\TexturePreview.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />

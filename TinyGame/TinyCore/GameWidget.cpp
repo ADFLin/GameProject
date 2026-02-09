@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include "ProfileSystem.h"
+#include "SystemPlatform.h"
 
 class ScissorClipStack
 {
@@ -289,7 +290,7 @@ void DefaultWidgetRenderer::drawListBackground(IGraphics2D& g, Vec2i const& pos,
 	g.drawRoundRect( pos , size , Vec2i( 12 , 12 ) );
 }
 
-void DefaultWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment)
+void DefaultWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, int keyInPos, bool bFocus, bool bEnable, EHorizontalAlign alignment)
 {
 	RenderUtility::SetPen(g, EColor::Black);
 
@@ -316,6 +317,28 @@ void DefaultWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i
 	{
 		Vec2i textPos = pos + Vec2i(6, 3);
 		g.drawText(textPos, value);
+	}
+
+	if (bFocus && bEnable)
+	{
+		if ((SystemPlatform::GetTickCount() / 500) % 2 == 0)
+		{
+			Vec2i extent = g.calcTextExtentSize(value, keyInPos);
+			int cursorX;
+			if (alignment == EHorizontalAlign::Center)
+			{
+				Vec2i totalExtent = g.calcTextExtentSize(value, (int)strlen(value));
+				cursorX = pos.x + (size.x - totalExtent.x) / 2 + extent.x;
+			}
+			else
+			{
+				cursorX = pos.x + 6 + extent.x;
+			}
+
+			int cursorY = pos.y + (size.y - 14) / 2;
+			g.setPen(Color3ub(0, 0, 0));
+			g.drawLine(Vec2i(cursorX, cursorY), Vec2i(cursorX, cursorY + 14));
+		}
 	}
 }
 
@@ -629,7 +652,7 @@ void UnrealWidgetRenderer::drawListBackground(IGraphics2D& g, Vec2i const& pos, 
 	g.drawRect(pos, size);
 }
 
-void UnrealWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, bool bFocus, bool bEnable, EHorizontalAlign alignment)
+void UnrealWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i const& size, char const* value, int keyInPos, bool bFocus, bool bEnable, EHorizontalAlign alignment)
 {
 	g.setBrush(Color3ub(12, 12, 12));
 	g.setPen(bFocus ? Color3ub(0, 150, 255) : Color3ub(75, 75, 75)); 
@@ -649,6 +672,28 @@ void UnrealWidgetRenderer::drawTextCtrl(IGraphics2D& g, Vec2i const& pos, Vec2i 
 	{
 		// Left-aligned with vertical centering for text controls
 		g.drawText(pos + Vec2i(6, 0), Vec2i(size.x - 6, size.y), value, EHorizontalAlign::Left, false);
+	}
+
+	if (bFocus && bEnable)
+	{
+		if ((SystemPlatform::GetTickCount() / 500) % 2 == 0)
+		{
+			Vec2i extent = g.calcTextExtentSize(value, keyInPos);
+			int cursorX;
+			if (alignment == EHorizontalAlign::Center)
+			{
+				Vec2i totalExtent = g.calcTextExtentSize(value, (int)strlen(value));
+				cursorX = pos.x + (size.x - totalExtent.x) / 2 + extent.x;
+			}
+			else
+			{
+				cursorX = pos.x + 6 + extent.x;
+			}
+
+			int cursorY = pos.y + (size.y - 14) / 2;
+			g.setPen(Color3ub(255, 255, 255));
+			g.drawLine(Vec2i(cursorX, cursorY), Vec2i(cursorX, cursorY + 14));
+		}
 	}
 }
 
@@ -1099,7 +1144,7 @@ GTextCtrl::GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent )
 void GTextCtrl::onRender()
 {
 	IGraphics2D& g = Global::GetIGraphics2D();
-	getRenderer().drawTextCtrl(g, getWorldPos(), getSize(), getValue(), isFocus(), isEnable(), mAlignment);
+	getRenderer().drawTextCtrl(g, getWorldPos(), getSize(), getValue(), mKeyInPos, isFocus(), isEnable(), mAlignment);
 }
 
 

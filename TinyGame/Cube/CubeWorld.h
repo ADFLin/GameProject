@@ -136,7 +136,7 @@ namespace Cube
 		ChunkProvider()
 		{
 			mGeneratePool = new QueueThreadPool();
-			mGeneratePool->init(8);
+			mGeneratePool->init(4);
 		}
 
 		~ChunkProvider()
@@ -209,6 +209,81 @@ namespace Cube
 	};
 
 
+	class NeighborChunkAccess : public IBlockAccess
+	{
+	public:
+		NeighborChunkAccess(World& world, Chunk* chunk)
+		{
+			mChunk = chunk;
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec3i offset = GetFaceOffset(FaceSide(i));
+				mNeighborChunks[i] = world.getChunk(ChunkPos(chunk->getPos() + Vec2i(offset.x, offset.y)), true);
+			}
+
+			mChunkOffset = ChunkSize * chunk->getPos();
+		}
+
+		Chunk* getChunk(int x, int y)
+		{
+			Vec2i offset = Vec2i(x, y) - mChunkOffset;
+			if (offset.x >= ChunkSize)
+			{
+				return mNeighborChunks[FaceSide::FACE_X];
+			}
+			if (offset.x < 0)
+			{
+				return mNeighborChunks[FaceSide::FACE_NX];
+			}
+			if (offset.y >= ChunkSize)
+			{
+				return mNeighborChunks[FaceSide::FACE_Y];
+			}
+			if (offset.y < 0)
+			{
+				return mNeighborChunks[FaceSide::FACE_NY];
+			}
+			return mChunk;
+		}
+
+		bool IsInRange(Chunk* chunk, int x, int y)
+		{
+			Vec2i offset = Vec2i(x, y) - ChunkSize * chunk->getPos();
+			return 0 <= offset.x && offset.x < ChunkSize &&
+				0 <= offset.y && offset.y < ChunkSize;
+		}
+
+		virtual BlockId  getBlockId(int x, int y, int z) final
+		{
+			auto chunk = getChunk(x, y);
+			if (chunk == nullptr)
+				return BLOCK_NULL;
+
+			CHECK(IsInRange(chunk, x, y));
+			return chunk->getBlockId(x, y, z);
+		}
+		virtual MetaType getBlockMeta(int x, int y, int z)
+		{
+			auto chunk = getChunk(x, y);
+			if (chunk == nullptr)
+				return 0;
+			CHECK(IsInRange(chunk, x, y));
+			return chunk->getBlockMeta(x, y, z);
+		}
+
+		void  getNeighborBlockIds(Vec3i const& pos, BlockId outIds[])
+		{
+			for (int i = 0; i < FaceSide::COUNT; ++i)
+			{
+				Vec3i nPos = pos + GetFaceOffset(FaceSide(i));
+				outIds[i] = getBlockId(nPos.x, nPos.y, nPos.z);
+			}
+		}
+
+		Vec2i  mChunkOffset;
+		Chunk* mChunk;
+		Chunk* mNeighborChunks[4];
+	};
 }//namespace Cube
 
 #endif // CubeWorld_h__

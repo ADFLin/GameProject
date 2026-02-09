@@ -234,6 +234,29 @@ namespace Render
 		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
 	}
 
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS D3D12Translate::To(EAccelerationStructureBuildFlags flags)
+	{
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS result = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+		if (HaveBits(flags, EAccelerationStructureBuildFlags::AllowUpdate)) result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+		if (HaveBits(flags, EAccelerationStructureBuildFlags::AllowCompaction)) result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION;
+		if (HaveBits(flags, EAccelerationStructureBuildFlags::PreferFastTrace)) result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		if (HaveBits(flags, EAccelerationStructureBuildFlags::PreferFastBuild)) result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+		if (HaveBits(flags, EAccelerationStructureBuildFlags::MinimizeMemory)) result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY;
+		return result;
+	}
+
+	D3D12_RAYTRACING_INSTANCE_FLAGS D3D12Translate::To(ERayTracingInstanceFlags flags)
+	{
+		D3D12_RAYTRACING_INSTANCE_FLAGS result = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+		if (HaveBits(flags, ERayTracingInstanceFlags::TriangleCullDisable)) result |= D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
+		if (HaveBits(flags, ERayTracingInstanceFlags::TriangleFrontCounterClockwise)) result |= D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
+		if (HaveBits(flags, ERayTracingInstanceFlags::ForceOpaque)) result |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE;
+		if (HaveBits(flags, ERayTracingInstanceFlags::ForceNonOpaque)) result |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_NON_OPAQUE;
+		return result;
+	}
+
+
+
 	bool D3D12SwapChain::initialize(TComPtr<IDXGISwapChainRHI>& resource, TComPtr<ID3D12DeviceRHI>& device, int bufferCount)
 	{
 		mResource = resource.detach();
@@ -467,6 +490,7 @@ namespace Render
 		}
 		return INDEX_NONE;
 	}
+
 
 
 }//namespace Render

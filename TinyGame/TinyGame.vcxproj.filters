@@ -188,6 +188,12 @@
     <ClCompile Include="TinyCore\ServerStatusPanel.cpp">
       <Filter>StageMode</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\SidebarNavigator.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\WorkspaceRenderer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CellWalker.h">
@@ -387,6 +393,15 @@
     </ClInclude>
     <ClInclude Include="TinyCore\ServerStatusPanel.h">
       <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\MenuLayoutHelper.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\SidebarNavigator.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\WorkspaceRenderer.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -91,8 +91,12 @@ public:
 
 	void addWindow(EditorWindow& window)
 	{
-	
 		mWindowMap.emplace(window.getHWnd(), &window);
+	}
+
+	void removeWindow(EditorWindow& window)
+	{
+		mWindowMap.erase(window.getHWnd());
 	}
 
 	void release() override
@@ -471,6 +475,13 @@ public:
 		}
 
 		EditorWindow* window = iter->second;
+		
+		// Handle WM_DESTROY before processing to clean up the map
+		if (msg == WM_DESTROY)
+		{
+			mWindowMap.erase(iter);
+		}
+		
 		return window->processMessage(*mRenderer, hWnd, msg, wParam, lParam);
 	}
 

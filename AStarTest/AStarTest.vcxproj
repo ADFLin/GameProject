@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{BD466434-8C72-4BC5-A090-CBD57DC0D19F}</ProjectGuid>
     <RootNamespace>AStarTest</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

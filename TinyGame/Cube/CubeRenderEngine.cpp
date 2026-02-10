@@ -39,6 +39,7 @@ namespace Cube
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
+#if 0
 			if (domain.get< DepthPass >())
 			{
 				static ShaderEntryInfo const entries[] =
@@ -47,6 +48,7 @@ namespace Cube
 				};
 				return entries;
 			}
+#endif
 
 			static ShaderEntryInfo const entries[] =
 			{
@@ -77,16 +79,16 @@ namespace Cube
 
 	bool GPreRenderDepth = true;
 
-	RenderEngine::RenderEngine( int w , int h )
+	RenderEngine::RenderEngine(int w, int h)
 	{
 		mClientWorld = NULL;
-		mAspect        = float( w ) / h ;
+		mAspect = float(w) / h;
 		mViewSize = Vec2i(w, h);
 
 
-		mRenderWidth  = 0;
+		mRenderWidth = 0;
 		mRenderHeight = ChunkBlockMaxHeight;
-		mRenderDepth  = 0;
+		mRenderDepth = 0;
 
 		mGereatePool = new QueueThreadPool;
 		mGereatePool->init(4);
@@ -119,7 +121,7 @@ namespace Cube
 		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 		mBlockInputLayout = RHICreateInputLayout(desc);
 
-		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), 4096 * 16, BCF_DrawIndirectArgs);
+		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), 4096 * 16, BCF_DrawIndirectArgs | BCF_CreateSRV);
 
 		mSceneFrameBuffer = RHICreateFrameBuffer();
 		resizeRenderTarget();
@@ -141,15 +143,15 @@ namespace Cube
 
 	void RenderEngine::setupWorld(World& world)
 	{
-		if ( mClientWorld )
+		if (mClientWorld)
 		{
-			mClientWorld->removeListener( *this );
+			mClientWorld->removeListener(*this);
 			mClientWorld->mChunkProvider->mListener = nullptr;
 		}
 
 		mClientWorld = &world;
 		mClientWorld->mChunkProvider->mListener = this;
-		mClientWorld->addListener( *this );
+		mClientWorld->addListener(*this);
 	}
 
 
@@ -159,7 +161,7 @@ namespace Cube
 		if (!mPendingAddList.empty())
 		{
 			mMutexPedingAdd.lock();
-			TArray<UpdatedRenderData> localAddList( std::move(mPendingAddList) );
+			TArray<UpdatedRenderData> localAddList(std::move(mPendingAddList));
 			mMutexPedingAdd.unlock();
 
 			for (auto const& updateData : localAddList)
@@ -240,83 +242,83 @@ namespace Cube
 
 		mGereatePool->addFunctionWork(
 			[this, data, chunkAccess]()
+		{
+			PROFILE_ENTRY("Chunk Mesh Generate");
+
+			Chunk* chunk = data->chunk;
+			data->state = ChunkRenderData::eMeshGenerating;
+
+			Mesh mesh;
+			BlockRenderer renderer;
+
+			int const ColorMap[] =
 			{
-				PROFILE_ENTRY("Chunk Mesh Generate");
+				EColor::Red,
+				EColor::Green,
+				EColor::Blue,
+				EColor::Cyan,
+				EColor::Magenta,
+				EColor::Yellow,
 
-				Chunk* chunk = data->chunk;
-				data->state = ChunkRenderData::eMeshGenerating;
+				EColor::Orange,
+				EColor::Purple,
+				EColor::Pink,
+				EColor::Brown,
+				EColor::Gold,
+			};
 
-				Mesh mesh;
-				BlockRenderer renderer;
+			UpdatedRenderData updateData;
+			updateData.chunkData = data;
+			updateData.numLayer = 0;
+			renderer.mMesh = &updateData.mesh;
 
-				int const ColorMap[] =
+			renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
+
+			PaddedBlockAccess paddedAccess;
+			renderer.mBlockAccess = &paddedAccess;
+
+			for (int indexLayer = 0; indexLayer < ChunkRenderData::MaxLayerCount; ++indexLayer)
+			{
+				auto layer = chunk->mLayer[indexLayer];
+				if (!layer)
+					continue;
+
+				paddedAccess.fill(chunkAccess, chunk, indexLayer);
+
+				int indexStart = updateData.mesh.mIndices.size();
+				int vertexStart = updateData.mesh.mVertices.size();
+
+				int zOff = indexLayer * Chunk::LayerSize;
+				renderer.setBasePos(Vec3i(chunk->getPos().x * ChunkSize, chunk->getPos().y * ChunkSize, zOff));
+				renderer.drawLayer(*chunk, indexLayer);
+
 				{
-					EColor::Red,
-					EColor::Green,
-					EColor::Blue,
-					EColor::Cyan,
-					EColor::Magenta,
-					EColor::Yellow,
-
-					EColor::Orange,
-					EColor::Purple,
-					EColor::Pink,
-					EColor::Brown,
-					EColor::Gold,
-				};
-
-				UpdatedRenderData updateData;
-				updateData.chunkData = data;
-				updateData.numLayer = 0;
-				renderer.mMesh = &updateData.mesh;
-
-				renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
-				
-				PaddedBlockAccess paddedAccess;
-				renderer.mBlockAccess = &paddedAccess;
-
-				for (int indexLayer = 0; indexLayer < ChunkRenderData::MaxLayerCount; ++indexLayer)
-				{
-					auto layer = chunk->mLayer[indexLayer];
-					if (!layer)
-						continue;
-
-					paddedAccess.fill(chunkAccess, chunk, indexLayer);
-
-					int indexStart = updateData.mesh.mIndices.size();
-					int vertexStart = updateData.mesh.mVertices.size();
-
-					int zOff = indexLayer * Chunk::LayerSize;
-					renderer.setBasePos(Vec3i(chunk->getPos().x * ChunkSize, chunk->getPos().y * ChunkSize, zOff));
-					renderer.drawLayer(*chunk, indexLayer);
-
-					{
-						TIME_SCOPE(mMergeTimeAcc);
-						renderer.finalizeMesh();
-					}
-
-					if (indexStart != updateData.mesh.mIndices.size())
-					{
-						auto& layerData = updateData.layers[updateData.numLayer];
-						updateData.numLayer += 1;
-
-						layerData.bound = renderer.bound;
-						layerData.index = indexLayer;
-						layerData.occluderBox = renderer.mOccluderBox;
-						layerData.vertexOffset = vertexStart;
-						layerData.vertexCount = (uint32)updateData.mesh.mVertices.size() - layerData.vertexOffset;
-						layerData.indexOffset = indexStart;
-						layerData.indexCount = (uint32)updateData.mesh.mIndices.size() - layerData.indexOffset;
-					}
-
-					renderer.bound.invalidate();
+					TIME_SCOPE(mMergeTimeAcc);
+					renderer.finalizeMesh();
 				}
 
+				if (indexStart != updateData.mesh.mIndices.size())
 				{
-					Mutex::Locker locker(mMutexPedingAdd);
-					mPendingAddList.push_back(std::move(updateData));
+					auto& layerData = updateData.layers[updateData.numLayer];
+					updateData.numLayer += 1;
+
+					layerData.bound = renderer.bound;
+					layerData.index = indexLayer;
+					layerData.occluderBox = renderer.mOccluderBox;
+					layerData.vertexOffset = vertexStart;
+					layerData.vertexCount = (uint32)updateData.mesh.mVertices.size() - layerData.vertexOffset;
+					layerData.indexOffset = indexStart;
+					layerData.indexCount = (uint32)updateData.mesh.mIndices.size() - layerData.indexOffset;
 				}
+
+				renderer.bound.invalidate();
 			}
+
+			{
+				Mutex::Locker locker(mMutexPedingAdd);
+				mPendingAddList.push_back(std::move(updateData));
+			}
+		}
 		);
 	}
 
@@ -329,14 +331,14 @@ namespace Cube
 		mSceneFrameBuffer->setTexture(0, *mSceneTexture);
 		mSceneFrameBuffer->setDepth(*mSceneDepthTexture);
 
-		mHZBTexture = RHICreateTexture2D(ETexture::D32FS8, mViewSize.x, mViewSize.y, 4, numSamples, TCF_CreateSRV | TCF_CreateUAV);
+		mHZBTexture = RHICreateTexture2D(ETexture::R32F, mViewSize.x, mViewSize.y, 4, numSamples, TCF_CreateSRV | TCF_CreateUAV);
 
 		GTextureShowManager.registerTexture("SceneTexture", mSceneTexture);
 	}
 
 	void RenderEngine::notifyViewSizeChanged(Vec2i const& newSize)
 	{
-		if (mSceneTexture.isValid() && mViewSize == newSize )
+		if (mSceneTexture.isValid() && mViewSize == newSize)
 			return;
 
 		mViewSize = newSize;
@@ -379,10 +381,10 @@ namespace Cube
 		{
 			SET_SHADER_PARAM_VALUE(commandList, shader, LocalToWorld, stack.get());
 			SET_SHADER_PARAM_VALUE(commandList, shader, WorldToClip, worldToClip);
-			
+
 		}
 
-		void setupShader(RHICommandList& commandList, LinearColor const& color = LinearColor(1,1,1,1))
+		void setupShader(RHICommandList& commandList, LinearColor const& color = LinearColor(1, 1, 1, 1))
 		{
 			RHISetFixedShaderPipelineState(commandList, stack.get() * worldToClip, color);
 		}
@@ -390,7 +392,7 @@ namespace Cube
 
 	using Math::Plane;
 
-	static void GetFrustomPlanes(Vector3 const& worldPos, Vector3 const& viewDir,  Matrix4 const& clipToWorld, Plane outPlanes[])
+	static void GetFrustomPlanes(Vector3 const& worldPos, Vector3 const& viewDir, Matrix4 const& clipToWorld, Plane outPlanes[])
 	{
 		Vector3 centerNearPos = (Vector4(0, 0, 0, 1) * clipToWorld).dividedVector();
 		Vector3 centerFarPos = (Vector4(0, 0, 1, 1) * clipToWorld).dividedVector();
@@ -409,7 +411,7 @@ namespace Cube
 	}
 
 
-	void RenderEngine::renderWorld( ICamera& camera )
+	void RenderEngine::renderWorld(ICamera& camera)
 	{
 		GPU_PROFILE("Render World");
 
@@ -421,7 +423,7 @@ namespace Cube
 
 		RHISetFrameBuffer(commandList, mSceneFrameBuffer);
 		RHISetViewport(commandList, 0, 0, mViewSize.x, mViewSize.y);
-		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0,0,0,1), 1);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
 
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -461,7 +463,7 @@ namespace Cube
 
 		if (mDebugCamera)
 		{
-			mDebugPrimitives.addCubeLine(camPos, Quaternion{ BasisMaterix::FromZY(camera.getViewDir(), camera.getUpDir()) }, Vec3f(0.5,0.5,0.5), LinearColor(1, 0, 0, 1), 4);
+			mDebugPrimitives.addCubeLine(camPos, Quaternion{ BasisMaterix::FromZY(camera.getViewDir(), camera.getUpDir()) }, Vec3f(0.5, 0.5, 0.5), LinearColor(1, 0, 0, 1), 4);
 
 
 			Vector3 vertices[8];
@@ -477,18 +479,18 @@ namespace Cube
 
 		{
 			context.stack.push();
-			context.stack.translate(Vector3(0,10,0));
+			context.stack.translate(Vector3(0, 10, 0));
 			float len = 10;
 			context.setupShader(commandList);
 			DrawUtility::AixsLine(commandList, len);
 			context.stack.pop();
 		}
 
-		int bx = Math::FloorToInt( camPos.x );
-		int by = Math::FloorToInt( camPos.y );
+		int bx = Math::FloorToInt(camPos.x);
+		int by = Math::FloorToInt(camPos.y);
 
 		ChunkPos cPos;
-		cPos.setBlockPos( bx , by );
+		cPos.setBlockPos(bx, by);
 		int viewDist = 20;
 
 		int chunkRenderCount = 0;
@@ -560,7 +562,7 @@ namespace Cube
 
 
 			int chunkVisibility = FViewUtils::IsVisible(clipPlanes, data->bound);
-			if ( mDebugCamera )
+			if (mDebugCamera)
 			{
 				int const ColorMap[] =
 				{
@@ -646,7 +648,7 @@ namespace Cube
 								// Replace the one that is FURTHEST away, as closer occluders are better
 								int worstIdx = -1;
 								float maxZ = -2.0f;
-								for(int k=0; k<32; ++k) {
+								for (int k = 0; k < 32; ++k) {
 									if (activeOccluders[k].maxZ > maxZ) {
 										maxZ = activeOccluders[k].maxZ;
 										worstIdx = k;
@@ -712,77 +714,71 @@ namespace Cube
 			}
 
 			drawCmdList.clear();
+			drawCmdList.reserve(2048); // Pre-reserve to kill the 17ms MergeTimeAcc
 			for (auto mesh : mMeshPool)
 			{
 				if (mesh->drawFrame != mRenderFrame)
 					continue;
 
-				mesh->cmdOffset = sizeof(DrawCmdArgs) * drawCmdList.size();
+				mesh->cmdOffset = sizeof(DrawCmdArgs) * (uint32)drawCmdList.size();
 				drawCmdList.append(mesh->drawCmdList);
 			}
 
-			// Re-enable Depth Prepass for Overdraw control
 			if (!drawCmdList.empty())
 			{
-				chunkLayerDepthPrepassCount = drawCmdList.size();
-				RHIUpdateBuffer(*mCmdBuffer, 0, drawCmdList.size(), drawCmdList.data());
+				RHIUpdateBuffer(*mCmdBuffer, 0, (uint32)drawCmdList.size(), drawCmdList.data());
 
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
-				RHISetShaderProgram(commandList, mProgBlockRenderDepth->getRHI());
-				context.setupShader(commandList, *mProgBlockRenderDepth);
-
-				for (auto mesh : mMeshPool)
+				// 3. Z-Prepass (Depth Only)
 				{
-					if (mesh->drawFrame != mRenderFrame)
-						continue;
+					GPU_PROFILE("Z-Prepass");
+					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::Less>::GetRHI());
+					RHISetBlendState(commandList, TStaticBlendState<CWM_None>::GetRHI());
+					RHISetShaderProgram(commandList, mProgBlockRenderDepth->getRHI());
+					context.setupShader(commandList, *mProgBlockRenderDepth);
 
-					InputStreamInfo inputstream;
-					inputstream.buffer = mesh->vertexBuffer;
-					inputstream.offset = 0;
-					inputstream.stride = mesh->vertexBuffer->getElementSize();
+					for (auto mesh : mMeshPool)
+					{
+						if (mesh->drawCmdList.empty()) continue;
 
-					RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
-					RHISetIndexBuffer(commandList, mesh->indexBuffer);
-					RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, mesh->drawCmdList.size());
+						InputStreamInfo inputstream;
+						inputstream.buffer = mesh->vertexBuffer;
+						inputstream.offset = 0;
+						inputstream.stride = mesh->vertexBuffer->getElementSize();
+						RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
+						RHISetIndexBuffer(commandList, mesh->indexBuffer);
+
+						RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, (uint32)mesh->drawCmdList.size());
+					}
 				}
-			}
 
-			drawCmdList.clear();
-			for (auto mesh : mMeshPool)
-			{
-				if (mesh->drawFrame != mRenderFrame)
-					continue;
-
-				mesh->cmdOffset = sizeof(DrawCmdArgs) * drawCmdList.size();
-				drawCmdList.append(mesh->drawCmdList);
-			}
-
-			if ( !drawCmdList.empty() )
-			{
-				chunkLayerCount = drawCmdList.size();
-
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
-				RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
-				context.setupShader(commandList, *mProgBlockRender);
-				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<>::GetRHI());
-
-				for (auto mesh : mMeshPool)
+				// 4. Base Pass (Color + Lighting)
 				{
-					if (mesh->drawFrame != mRenderFrame)
-						continue;
+					GPU_PROFILE("Base Pass");
+					chunkLayerCount = (int)drawCmdList.size();
+					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::LessEqual>::GetRHI());
+					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+					RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
+					context.setupShader(commandList, *mProgBlockRender);
+					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 
-					InputStreamInfo inputstream;
-					inputstream.buffer = mesh->vertexBuffer;
-					inputstream.offset = 0;
-					inputstream.stride = mesh->vertexBuffer->getElementSize();
+					chunkMeshCount = 0; // Reset for accurate display
+					for (auto mesh : mMeshPool)
+					{
+						if (mesh->drawFrame != mRenderFrame) continue;
+						if (mesh->drawCmdList.empty()) continue;
 
-					RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
-					RHISetIndexBuffer(commandList, mesh->indexBuffer);
+						InputStreamInfo inputstream;
+						inputstream.buffer = mesh->vertexBuffer;
+						inputstream.offset = 0;
+						inputstream.stride = mesh->vertexBuffer->getElementSize();
+						RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
+						RHISetIndexBuffer(commandList, mesh->indexBuffer);
 
-					RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, mesh->drawCmdList.size());
-					++chunkMeshCount;
+						RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, (uint32)mesh->drawCmdList.size());
+						++chunkMeshCount;
+					}
 				}
 			}
 		}
@@ -790,21 +786,21 @@ namespace Cube
 
 
 
-#if 1
+#if 0
 		BlockPosInfo info;
-		BlockId id = world.rayBlockTest( camPos , camera.getViewDir() , 100 , &info );
-		if ( id )
+		BlockId id = world.rayBlockTest(camPos, camera.getViewDir(), 100, &info);
+		if (id)
 		{
 			context.stack.push();
 			context.stack.translate(Vector3(info.x, info.y, info.z) + 0.1 * GetFaceNoraml(info.face));
-			context.setupShader(commandList, LinearColor(1,1,1,1));
+			context.setupShader(commandList, LinearColor(1, 1, 1, 1));
 			TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineLoop, GetFaceVertices(info.face), 4);
 			context.stack.pop();
 		}
 #endif
 
 		{
-			mDebugPrimitives.drawDynamic(commandList,  mViewSize, worldToClipRender, cameraRender->getViewDir().cross(cameraRender->getUpDir()), cameraRender->getUpDir());
+			mDebugPrimitives.drawDynamic(commandList, mViewSize, worldToClipRender, cameraRender->getViewDir().cross(cameraRender->getUpDir()), cameraRender->getUpDir());
 		}
 
 		mDebugPrimitives.clear();
@@ -825,22 +821,24 @@ namespace Cube
 		g.drawTextF(Vector2(10, 10), "chunkCount = %d, chunkRenderCount = %d", mChunkMap.size(), chunkRenderCount);
 		int64 totalPotential = triangleCount + occludedTriangleCount;
 		double cullingRate = totalPotential > 0 ? (double)occludedTriangleCount * 100.0 / totalPotential : 0.0;
-		g.drawTextF(Vector2(10, 25), "Total Poten: %lld", totalPotential);
-		g.drawTextF(Vector2(10, 40), "Occluded   : %lld (%.1f%% culled)", occludedTriangleCount, cullingRate);
-		g.drawTextF(Vector2(10, 55), "Final Drawn: %lld", triangleCount);
+		g.drawTextF(Vector2(10, 25), "Total Tri: %lld", totalPotential);
+		g.drawTextF(Vector2(10, 40), "Occluded Tri: %lld (%.1f%% culled)", occludedTriangleCount, cullingRate);
+		g.drawTextF(Vector2(10, 55), "Drawn Tri: %lld", triangleCount);
 		g.drawTextF(Vector2(10, 70), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
-		g.drawTextF(Vector2(10, 85), "chunkMeshCount = %d %d %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
+		g.drawTextF(Vector2(10, 85), "chunkMeshCount = %d, chunkLayerCount = %d, chunkLayerDepthPrepassCount = %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
 
+#if 0
 
 		g.drawCustomFunc([this, &g](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
-			DrawUtility::DrawDepthTexture(commandList, baseTransform, *mSceneDepthTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 200), Vector2(400, 200), 0, 100 );
+			DrawUtility::DrawDepthTexture(commandList, baseTransform, *mSceneDepthTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 200), Vector2(400, 200), 0, 100);
 		});
 
 		g.drawCustomFunc([this, &g](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
 			DrawUtility::DrawTexture(commandList, baseTransform, *mSceneTexture, TStaticSamplerState<>::GetRHI(), Vector2(200, 500), Vector2(400, 200));
 		});
+#endif
 		g.endRender();
 
 	}
@@ -854,31 +852,31 @@ namespace Cube
 
 	}
 
-	void RenderEngine::onModifyBlock( int bx , int by , int bz )
+	void RenderEngine::onModifyBlock(int bx, int by, int bz)
 	{
-		ChunkPos cPos; 
+		ChunkPos cPos;
 		{
-			cPos.setBlockPos( bx + 1 , by );
-			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
-			if ( iter != mChunkMap.end() )
+			cPos.setBlockPos(bx + 1, by);
+			ChunkDataMap::iterator iter = mChunkMap.find(cPos.hash_value());
+			if (iter != mChunkMap.end())
 				iter->second->bNeedUpdate = true;
 		}
 		{
-			cPos.setBlockPos( bx - 1 , by );
-			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
-			if ( iter != mChunkMap.end() )
+			cPos.setBlockPos(bx - 1, by);
+			ChunkDataMap::iterator iter = mChunkMap.find(cPos.hash_value());
+			if (iter != mChunkMap.end())
 				iter->second->bNeedUpdate = true;
 		}
 		{
-			cPos.setBlockPos( bx , by + 1 );
-			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
-			if ( iter != mChunkMap.end() )
+			cPos.setBlockPos(bx, by + 1);
+			ChunkDataMap::iterator iter = mChunkMap.find(cPos.hash_value());
+			if (iter != mChunkMap.end())
 				iter->second->bNeedUpdate = true;
 		}
 		{
-			cPos.setBlockPos( bx , by - 1 );
-			ChunkDataMap::iterator iter = mChunkMap.find( cPos.hash_value() );
-			if ( iter != mChunkMap.end() )
+			cPos.setBlockPos(bx, by - 1);
+			ChunkDataMap::iterator iter = mChunkMap.find(cPos.hash_value());
+			if (iter != mChunkMap.end())
 				iter->second->bNeedUpdate = true;
 		}
 	}

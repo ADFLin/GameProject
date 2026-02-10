@@ -48,7 +48,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>D3D12RHI</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.20206.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
     <ProjectName>D3D12RHI</ProjectName>
     <ProjectGuid>{D4A8C158-1D66-4F50-BC31-EC5789098431}</ProjectGuid>
   </PropertyGroup>

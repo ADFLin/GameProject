@@ -425,6 +425,15 @@
     <ClInclude Include="CurveBuilder\Backend\AsmCode.h">
       <Filter>CurveBuilder\Backend</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\CommonWidgets.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\ExecutionManager.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\ExecutionPanel.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -694,6 +703,9 @@
     <ClCompile Include="CurveBuilder\Backend\AsmCode.cpp">
       <Filter>CurveBuilder\Backend</Filter>
     </ClCompile>
+    <ClCompile Include="TinyCore\CommonWidgets.cpp" />
+    <ClCompile Include="TinyCore\ExecutionManager.cpp" />
+    <ClCompile Include="TinyCore\ExecutionPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="TinyCore\ColorName.h">

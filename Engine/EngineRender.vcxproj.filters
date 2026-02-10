@@ -177,6 +177,8 @@
     <ClCompile Include="RHI\RHIUtility.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\RenderThread.cpp" />
+    <ClCompile Include="Renderer\VolumetricLighting.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RHI\RHITraceScope.h">
@@ -371,6 +373,8 @@
     <ClInclude Include="RHI\RHIMisc.h">
       <Filter>RHI</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\RenderThread.h" />
+    <ClInclude Include="Renderer\VolumetricLighting.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

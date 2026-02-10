@@ -286,6 +286,8 @@ bool DrawEngine::resetupSystem(ERenderSystem systemName)
 	{
 		return false;
 	}
+
+	return true;
 }
 
 bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI, bool bSetupDeferred)

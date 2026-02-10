@@ -21,17 +21,20 @@ uniform float4x4 WorldToClip;
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+#if !DEPTH_PASS
 	VS_INPUT(float3 InNoraml, ATTRIBUTE_NORMAL)
 	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
 	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
 	VS_INPUT(uint   InMeta, ATTRIBUTE_TEXCOORD2)
 	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	VS_OUTPUT(flat uint2 OutAtlasPos, 4)
+#endif
 VS_ENTRY_END(MainVS)
 {
 	float4 worldPos = mul( LocalToWorld, float4(InPos, 1.0));
-	float3 normal = mul(LocalToWorld, float4(InNoraml, 0.0)).xyz;
 	SvPosition = mul( WorldToClip , worldPos);
+#if !DEPTH_PASS
+	float3 normal = mul(LocalToWorld, float4(InNoraml, 0.0)).xyz;
 	VSOutput.color = InColor;
 	VSOutput.normal = InNoraml;
 	VSOutput.worldPos = worldPos.xyz;
@@ -39,6 +42,7 @@ VS_ENTRY_END(MainVS)
 
 	OutAtlasPos.y = InMeta / 64;
 	OutAtlasPos.x = InMeta % 64;
+#endif
 }
 
 #endif //VERTEX_SHADER
@@ -52,19 +56,21 @@ PS_ENTRY_START(MainPS)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
-
+#if !DEPTH_PASS
 	float3 N = normalize(VSOutput.normal);
 	float3 L = normalize(float3(0.3,0.2,1.0));
 
 	float2 texUV = float2( (float(InAtlasPos.x) + frac(VSOutput.uv.x)) / 64.0 , (float(InAtlasPos.y) + frac(VSOutput.uv.y)) / 32.0 );
-	float4 baseColor = TEXTURE_SAMPLE(BlockTexture, texUV);
+	// Manually calculate gradients to avoid Mipmap corruption at atlas boundaries
+	float2 dDX = ddx(VSOutput.uv / float2(64.0, 32.0));
+	float2 dDY = ddy(VSOutput.uv / float2(64.0, 32.0));
+	float4 baseColor = TEXTURE_SAMPLE_GRAD(BlockTexture, texUV, dDX, dDY);
 
 	float NoL = saturate(dot(N,L));
 	OutColor = float4(baseColor.rgb * saturate(NoL + 0.2 ) * VSOutput.color.rgb, 1);
-
-	//OutColor = float4( 0.5 * N + 0.5 , 1.0);
-	//OutColor = float4(InAtlasPos, 0 , 1.0);
-	//OutColor = float4(frac(VSOutput.uv.x), frac(VSOutput.uv.y), 0 , 1);
+#else
+	OutColor = float4(0, 0, 0, 0); // Minimal output for depth pass
+#endif
 }
 
 #endif //PIXEL_SHADER

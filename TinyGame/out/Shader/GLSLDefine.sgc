@@ -343,6 +343,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 	
 #define TEXTURE_SAMPLE( NAME , UV ) texture(NAME, UV)
 #define TEXTURE_SAMPLE_LEVEL( NAME , UV , LOD ) textureLod( NAME , UV , LOD )
+#define TEXTURE_SAMPLE_GRAD( NAME , UV , DDX , DDY ) textureGrad( NAME , UV , DDX , DDY )
 
 #define TEXTURE_FETCH( NAME , UV , LOD ) texelFetch(NAME, UV, LOD)
 

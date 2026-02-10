@@ -1845,7 +1845,12 @@ void TinyGameApp::finalizeStage(StageBase* stage)
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if (renderSetup)
 	{
-		Global::GetDrawEngine().setupSystem(nullptr);
+		// Only shutdown the render system if we're transitioning to another stage
+		// During finalizeGame, release() will handle the full shutdown
+		if (getNextStage() != nullptr)
+		{
+			Global::GetDrawEngine().setupSystem(nullptr);
+		}
 	}
 }
 

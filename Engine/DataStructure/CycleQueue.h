@@ -125,6 +125,8 @@ public:
 				{
 					FTypeMemoryOp::MoveSequence(getElement(mNum), mIndexCur, getElement(0));
 					mIndexNext += mNum;
+					if (mIndexNext >= ArrayData::getMaxSize())
+						mIndexNext -= ArrayData::getMaxSize();
 				}
 				else
 				{

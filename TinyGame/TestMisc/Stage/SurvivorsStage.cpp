@@ -232,7 +232,7 @@ namespace Survivors
 			mParallelManager.addWall(Vector2(-500, -500), Vector2(-400, mScreenSize.y + 500));
 			mParallelManager.addWall(Vector2(mScreenSize.x + 400, -500), Vector2(mScreenSize.x + 500, mScreenSize.y + 500));
 
-			mThreadPool.init(std::max(1u, (uint32)SystemPlatform::GetProcessorNumber() - 1));
+			mThreadPool.init(std::max(1u, (uint32)4));
 
 			::Global::GUI().cleanupWidget();
 			DevFrame* frame = WidgetUtility::CreateDevFrame();

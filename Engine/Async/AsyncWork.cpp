@@ -5,17 +5,14 @@
 #include <intrin.h>
 #include "ProfileSystem.h"
 
-
 #include <cassert>
 
-
-static void  DoWork(IQueuedWork* work)
+static void  ExecuteWork(IQueuedWork* work)
 {
-	PROFILE_ENTRY("Worker.DoWork");
+	PROFILE_ENTRY("Worker.ExecuteWork");
 	work->executeWork();
 	work->release();
 }
-
 
 class PoolRunableThread : public RunnableThreadT< PoolRunableThread >
 {
@@ -145,18 +142,14 @@ void QueueThreadPool::waitAllWorkCompleteInWorker()
 
 		if (work)
 		{
-			DoWork(work);
+			ExecuteWork(work);
 		}
 	}
 
-	// 2. 等待其他 Work 執行緒也進入空閒狀態
-	// 這裡必須在鎖定狀態下檢查，確保沒有進行中的任務
 	Mutex::Locker locker(mQueueMutex);
 	mWaitCompleteCV.wait(locker, [this]()
 	{
 		SpinLock::Locker spinLock(mQueueLock);
-		// 對於主執行緒，當 mQueuedThreads.size() == mAllThreads.size() 時表示全部空閒
-		// 對於 Worker 執行緒，它此時不在 mQueuedThreads 中，所以是 size() + 1
 		int idleCount = (int)mQueuedThreads.size();
 		bool bFinished = mQueuedWorks.empty() && (idleCount == (int)mAllThreads.size() || idleCount == (int)mAllThreads.size() - 1);
 		return bFinished;
@@ -178,19 +171,32 @@ void QueueThreadPool::cencelAllWorks()
 void QueueThreadPool::addWorks(IQueuedWork* works[], int count)
 {
 	if (count == 0) return;
-	
-	SpinLock::Locker locker(mQueueLock);
-	int workIdx = 0;
-	while( !mQueuedThreads.empty() && workIdx < count )
+
+	PoolRunableThread* dispatched[64];
+	int numDispatched = 0;
+
 	{
-		PoolRunableThread* runThread = mQueuedThreads.back();
-		mQueuedThreads.pop_back();
-		runThread->doWork(works[workIdx++]);
+		SpinLock::Locker locker(mQueueLock);
+		int workIdx = 0;
+		while( !mQueuedThreads.empty() && workIdx < count )
+		{
+			PoolRunableThread* runThread = mQueuedThreads.back();
+			mQueuedThreads.pop_back();
+			runThread->mWork.store(works[workIdx++], std::memory_order_release);
+			dispatched[numDispatched++] = runThread;
+		}
+
+		while( workIdx < count )
+		{
+			mQueuedWorks.push_back(works[workIdx++]);
+		}
 	}
 
-	while( workIdx < count )
+	// Wake threads outside the lock (CV notify may block on mWaitWorkMutex)
+	for (int i = 0; i < numDispatched; ++i)
 	{
-		mQueuedWorks.push_back(works[workIdx++]);
+		Mutex::Locker locker(dispatched[i]->mWaitWorkMutex);
+		dispatched[i]->mWaitWorkCV.notifyOne();
 	}
 }
 
@@ -203,7 +209,6 @@ IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)
 		if( mQueuedWorks.empty() )
 		{
 			mQueuedThreads.push_back(runThread);
-			// 判定是否所有任務都完成了 (包含考慮當前執行緒可能正在等待的情況)
 			if (mQueuedWorks.empty())
 			{
 				bShouldNotify = true;
@@ -262,7 +267,7 @@ unsigned PoolRunableThread::run()
 			PROFILE_ENTRY("Worker.WorkLoop");
 			while (currentWork)
 			{
-				DoWork(currentWork);
+				ExecuteWork(currentWork);
 
 				{
 					PROFILE_ENTRY("Worker.FetchNext");
@@ -277,7 +282,6 @@ unsigned PoolRunableThread::run()
 
 void PoolRunableThread::doWork(IQueuedWork* work)
 {
-	// 這裡不使用互斥鎖，以提高 addWorks 的效率，依賴 Exchange 與 CV 通知
 	mWork.store(work, std::memory_order_release);
 	{
 		Mutex::Locker locker(mWaitWorkMutex);

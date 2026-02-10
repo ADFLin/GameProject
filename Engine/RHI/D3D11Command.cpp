@@ -337,6 +337,8 @@ namespace Render
 		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		if ( initParam.bDebugMode )
 			deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+
+		LogWarning(0, "=== D3D11 Initialize: bDebugMode = %s ===", initParam.bDebugMode ? "TRUE" : "FALSE");
 	
 		VERIFY_D3D_RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContextImmdiate));
 
@@ -2980,9 +2982,9 @@ namespace Render
 		uint32 initialSize = AlignArbitrary<uint32>(D3D11_CONSTANT_BUFFER_INITIAL_SIZE, D3D11_CONSTANT_BUFFER_ALIGN);
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = initialSize;
-		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		bufferDesc.MiscFlags = 0;
 		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, nullptr, &resource));
 
@@ -3034,6 +3036,8 @@ namespace Render
 
 				D3D11_BUFFER_DESC bufferDesc = desc;
 				bufferDesc.ByteWidth = AlignArbitrary<uint32>(mUpdateDataSize, D3D11_CONSTANT_BUFFER_ALIGN);
+				bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+				bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 				if (FAILED(device->CreateBuffer(&bufferDesc, nullptr, &resource)))
 				{
 					return;
@@ -3046,7 +3050,12 @@ namespace Render
 				mDataBuffer.resize(desc.ByteWidth, 0);
 			}
 
-			context->UpdateSubresource(resource, 0, nullptr, &mDataBuffer[0], 0, 0);
+			D3D11_MAPPED_SUBRESOURCE mapped;
+			if (SUCCEEDED(context->Map(resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+			{
+				FMemory::Copy(mapped.pData, &mDataBuffer[0], mUpdateDataSize);
+				context->Unmap(resource, 0);
+			}
 			mUpdateDataSize = 0;
 		}
 	}

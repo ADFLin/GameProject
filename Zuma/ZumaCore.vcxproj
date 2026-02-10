@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1C8656B6-5629-401E-8264-E62D33DD7E34}</ProjectGuid>
     <RootNamespace>ZumaCOre</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

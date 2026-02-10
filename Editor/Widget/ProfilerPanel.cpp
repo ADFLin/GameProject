@@ -342,8 +342,10 @@ public:
 		if (node->getLastFrame() != mCurrentFrame)
 			return false;
 
+#if 0
 		if (node->getFrameCalls() == 0)
 			return false;
+#endif
 
 		return !node->getFrameTimestamps().empty();
 	}

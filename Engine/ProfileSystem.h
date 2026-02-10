@@ -102,7 +102,7 @@ protected:
 
 	void				unlink();
 	void				reset();
-	void                resetFrame();
+	void                resetFrame(int writeIndex);
 	void				notifyCall();
 	bool				notifyReturn();
 	void                notifyPause(uint64 tick);

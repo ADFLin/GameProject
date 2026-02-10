@@ -532,12 +532,10 @@ namespace Render
 	{
 		if (paintArgs.bUseBrush)
 		{
-			PROFILE_ENTRY("EmitPolygon");
 			emitPolygon(v, numV, paintArgs.brushColor);
 		}
 		if (paintArgs.bUsePen)
 		{
-			PROFILE_ENTRY("EmitPolygonLine");
 			emitPolygonLine(v, numV, paintArgs.penColor, paintArgs.penWidth);
 		}
 	}
@@ -592,7 +590,6 @@ namespace Render
 	{
 		if (paintArgs.bUseBrush)
 		{
-			PROFILE_ENTRY("EmitCachedPolygon");
 			CHECK(cachedData.posList.size() > 2);
 			int numTriangle = (cachedData.posList.size() - 2);
 
@@ -613,8 +610,6 @@ namespace Render
 		}
 		if (paintArgs.bUsePen)
 		{
-			PROFILE_ENTRY("EmitCachedPolygonLine");
-
 			ShapeCachedData* lineData = GetShapeCache().getShapeLine(cachedData, paintArgs.penWidth);
 
 #if USE_POLYGON_LINE_NEW
@@ -928,7 +923,6 @@ namespace Render
 				break;
 			case RenderBatchedElement::Circle:
 				{
-					PROFILE_ENTRY("Emit Circle");
 					RenderBatchedElementList::CirclePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CirclePayload >(element);
 #if USE_SHAPE_CACHE
 					ShapeCachedData* cachedData = GetShapeCache().getCircle(GetCircleSemgmentNum(payload.radius));
@@ -961,8 +955,6 @@ namespace Render
 				break;
 			case RenderBatchedElement::RoundRect:
 				{
-					PROFILE_ENTRY("Emit RoundRect");
-
 					RenderBatchedElementList::RoundRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::RoundRectPayload >(element);
 #if USE_SHAPE_CACHE
 					ShapeCachedData* cachedData = GetShapeCache().getRoundRect(payload.rectSize, payload.circleRadius);
@@ -1076,7 +1068,6 @@ namespace Render
 				break;
 			case RenderBatchedElement::Text:
 				{
-					PROFILE_ENTRY("Text Vertices");
 					RenderBatchedElementList::TextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextPayload >(element);
 
 					int numChar = payload.verticesCount / 4;
@@ -1135,7 +1126,6 @@ namespace Render
 				break;
 			case RenderBatchedElement::ColoredText:
 				{
-					PROFILE_ENTRY("Text Vertices");
 					RenderBatchedElementList::ColoredTextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ColoredTextPayload >(element);
 
 					int numChar = payload.verticesCount / 4;

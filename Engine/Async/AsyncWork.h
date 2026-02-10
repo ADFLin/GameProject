@@ -8,21 +8,6 @@
 #include "DataStructure/CycleQueue.h"
 #include <atomic>
 
-class SpinLock
-{
-public:
-	void lock() { while (mHeld.test_and_set(std::memory_order_acquire)); }
-	void unlock() { mHeld.clear(std::memory_order_release); }
-	struct Locker
-	{
-		Locker(SpinLock& lock) : mLock(lock) { mLock.lock(); }
-		~Locker() { mLock.unlock(); }
-		SpinLock& mLock;
-	};
-private:
-	std::atomic_flag mHeld = ATOMIC_FLAG_INIT;
-};
-
 class IQueuedWork
 {
 public:

@@ -156,45 +156,50 @@ public:
 	ThreadView* mCurrentThread = nullptr;
 	double      mTickRate;
 	uint64      mTickStart;
+	uint64      mCurrentFrame;
 
 	void collect()
 	{
-		uint64 currentFrame = ProfileSystem::Get().getFrameCountSinceReset();
-		if (GFrameSnapshot.frameCount == currentFrame)
+		mCurrentFrame = ProfileSystem::Get().getFrameCountSinceReset();
+		if (GFrameSnapshot.frameCount == mCurrentFrame)
 			return;
 
 		if (GProfilerState.bPause)
 		{
-			GFrameSnapshot.frameCount = currentFrame;
+			GFrameSnapshot.frameCount = mCurrentFrame;
 			return;
 		}
 
 		GFrameSnapshot.clear();
-		GFrameSnapshot.frameCount = currentFrame;
+		GFrameSnapshot.frameCount = mCurrentFrame;
 		mTickRate = Profile_GetTickRate();
 
 		TArray<uint32> threadIds;
 		ProfileSystem::Get().getAllThreadIds(threadIds);
 
+		uint64 systemFrame = ProfileSystem::Get().getFrameCountSinceReset();
 		for (uint32 threadId : threadIds)
 		{
+			ProfileReadScope scope;
+			ProfileSampleNode* root = ProfileSystem::Get().getRootSample(threadId);
+			if (!root) continue;
+
+			// Skip threads that haven't been active for more than 2 frames
+			if (root->getLastFrame() + 2 < systemFrame)
+				continue;
+
 			GFrameSnapshot.threads.emplace_back();
 			mCurrentThread = &GFrameSnapshot.threads.back();
 			mCurrentThread->threadId = threadId;
 
-			ProfileReadScope scope;
-			ProfileSampleNode* root = ProfileSystem::Get().getRootSample(threadId);
-			if (root)
-			{
-				mCurrentThread->name = root->getName();
-				mCurrentThread->time = root->getFrameExecTime();
+			mCurrentThread->name = root->getName();
+			mCurrentThread->time = root->getFrameExecTime();
 
-				NodePersistentStat& stat = GNodeStats[root];
-				stat.timeAvg = 0.9 * stat.timeAvg + 0.1 * root->getFrameExecTime();
-				double time = (GProfilerState.bShowAvg) ? stat.timeAvg : root->getFrameExecTime();
-			}
-
-
+			NodePersistentStat& stat = GNodeStats[root];
+			stat.timeAvg = 0.9 * stat.timeAvg + 0.1 * root->getFrameExecTime();
+			
+			mCurrentFrame = root->getLastFrame(); 
+			mTickRate = Profile_GetTickRate();
 			visitNodes(threadId);
 		}
 
@@ -253,13 +258,11 @@ public:
 			{
 				siblings.push_back(child);
 				NodePersistentStat& stat = GNodeStats[child];
-				if (stat.firstRelativeStart < 0)
+				// Update relative start time to current frame to handle sorting jitter
+				auto const& ts = child->getFrameTimestamps();
+				if (!ts.empty())
 				{
-					auto const& ts = child->getFrameTimestamps();
-					if (!ts.empty())
-					{
-						stat.firstRelativeStart = (double)(ts[0].start - mTickStart) / mTickRate;
-					}
+					stat.firstRelativeStart = (double)(ts[0].start - mTickStart) / mTickRate;
 				}
 			}
 			child = child->getSibling();
@@ -289,7 +292,8 @@ public:
 
 		if (!bIsRoot)
 		{
-			SampleView& currentView = mCurrentThread->samples[currentIdx];
+			// RE-FETCH SampleView by index because the array might have reallocated during recursion!
+			SampleView& currentView = mCurrentThread->samples[currentIdx]; 
 			currentView.timeSelf = currentView.time - childTotalTime;
 			
 			NodePersistentStat& stat = GNodeStats[context.node];
@@ -333,7 +337,12 @@ public:
 
 	bool filterNode(ProfileSampleNode* node)
 	{
-		if (node->getLastFrame() + 1 < ProfileSystem::Get().getFrameCountSinceReset())
+		// Critical check: Only accept nodes that match the current thread-root's frame index.
+		// If a node wasn't called in the same frame as its root, it's definitely residual data.
+		if (node->getLastFrame() != mCurrentFrame)
+			return false;
+
+		if (node->getFrameCalls() == 0)
 			return false;
 
 		return !node->getFrameTimestamps().empty();

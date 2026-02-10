@@ -177,6 +177,17 @@ public:
 	SRWLOCK mImpl;
 };
 
+class WindowsSpinLock : public Noncopyable
+{
+public:
+	WindowsSpinLock() { InitializeSRWLock(&mImpl); }
+	void lock() { AcquireSRWLockExclusive(&mImpl); }
+	void unlock() { ReleaseSRWLockExclusive(&mImpl); }
+	bool tryLock() { return !!TryAcquireSRWLockExclusive(&mImpl); }
+private:
+	SRWLOCK mImpl;
+};
+
 class WindowsThreadEvent : public Noncopyable
 {
 
@@ -222,6 +233,7 @@ using PlatformThread = WindowsThread;
 using PlatformMutex = WindowsMutex;
 using PlatformConditionVariable = WindowsConditionVariable;
 using PlatformRWLock = WindowsRWLock;
+using PlatformSpinLock = WindowsSpinLock;
 using PlatformThreadEvent = WindowsThreadEvent;
 
 #elif SYS_SUPPORT_POSIX_THREAD
@@ -303,9 +315,32 @@ protected:
 	}
 };
 
+#include <atomic>
+class PosixSpinLock : public Noncopyable
+{
+public:
+	PosixSpinLock() { mLocked.clear(); }
+	void lock()
+	{
+		while (mLocked.test_and_set(std::memory_order_acquire))
+		{
+#if defined(__i386__) || defined(__x86_64__)
+			__builtin_ia32_pause();
+#elif defined(__arm__) || defined(__aarch64__)
+			asm volatile("yield" ::: "memory");
+#endif
+		}
+	}
+	void unlock() { mLocked.clear(std::memory_order_release); }
+	bool tryLock() { return !mLocked.test_and_set(std::memory_order_acquire); }
+private:
+	std::atomic_flag mLocked = ATOMIC_FLAG_INIT;
+};
+
 using PlatformThread = PosixThread;
 using PlatformMutex = PosixMutex;
 using PlatformConditionVariable = PosixConditionVariable;
+using PlatformSpinLock = PosixSpinLock;
 #else
 #error "Thread Not Support!"
 #endif
@@ -410,6 +445,53 @@ public:
 	};
 private: 
 	friend class ConditionVariable;
+};
+
+class SpinLock : public PlatformSpinLock
+{
+public:
+#if _DEBUG
+	SpinLock() :mOwnerThreadId(0) {}
+	void lock()
+	{
+		uint32 threadId = PlatformThread::GetCurrentThreadId();
+		if (mOwnerThreadId == threadId)
+		{
+			// Deadlock detected: Reentrant lock attempt on non-reentrant SpinLock!
+			SystemPlatform::DebugBreak();
+		}
+		PlatformSpinLock::lock();
+		mOwnerThreadId = threadId;
+	}
+
+	void unlock()
+	{
+		mOwnerThreadId = 0;
+		PlatformSpinLock::unlock();
+	}
+
+	bool tryLock()
+	{
+		if (PlatformSpinLock::tryLock())
+		{
+			mOwnerThreadId = PlatformThread::GetCurrentThreadId();
+			return true;
+		}
+		return false;
+	}
+private:
+	uint32 mOwnerThreadId;
+#endif
+
+public:
+	class Locker
+	{
+	public:
+		Locker(SpinLock& lock) :mLock(lock) { mLock.lock(); }
+		~Locker() { mLock.unlock(); }
+	private:
+		SpinLock& mLock;
+	};
 };
 
 class RWLock : public PlatformRWLock

@@ -32,7 +32,7 @@ struct FMemory
 
 	static void* Realloc(void* ptr, size_t size)
 	{
-		return ::realloc(ptr, size);
+ 		return ::realloc(ptr, size);
 	}
 
 	static void* Expand(void* ptr, size_t size)

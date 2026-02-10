@@ -471,18 +471,20 @@ void ProfileSampleNode::reset()
 	}
 }
 
-void ProfileSampleNode::resetFrame()
+void ProfileSampleNode::resetFrame(int writeIndex)
 {
-	auto const& readData = mRecoredData[GetReadIndex()];
-	auto& writeData = mRecoredData[GetWriteIndex()];
+	auto const& readData = mRecoredData[1 - writeIndex];
+	auto& writeData = mRecoredData[writeIndex];
 
 	writeData.resetFrame();
 	writeData.callCountTotal = readData.callCountTotal;
 	writeData.execTimeTotal = readData.execTimeTotal;
+	writeData.frame = 0; // Clear frame to mark as uninitialized for current index
 }
 
 void ProfileSampleNode::notifyCall()
 {
+	RWLock::ReadLocker locker(GDataIndexLock);
 	int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
 	int64 frameCount = SystemPlatform::AtomicRead(&GFrameCount);
 
@@ -492,7 +494,7 @@ void ProfileSampleNode::notifyCall()
 		if (mLastRecordFrame != frameCount)
 		{
 			mLastRecordFrame = frameCount;
-			resetFrame();
+			resetFrame(writeIndex);
 		}
 
 		Profile_GetTicks(&mStartTime);
@@ -501,11 +503,7 @@ void ProfileSampleNode::notifyCall()
 		ProfileTimestamp timestamp;
 		timestamp.start = mStartTime;
 		timestamp.end = mStartTime;
-		{
-			RWLock::ReadLocker locker(GDataIndexLock);
-			auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
-			writeDataSafe.timestamps.push_back(timestamp);
-		}
+		writeData.timestamps.push_back(timestamp);
 		writeData.frame = frameCount;
 	}
 
@@ -515,6 +513,9 @@ void ProfileSampleNode::notifyCall()
 
 bool ProfileSampleNode::notifyReturn()
 {
+	RWLock::ReadLocker locker(GDataIndexLock);
+	int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
+
 	--mRecursionCounter;
 	if (mRecursionCounter != 0)
 		return false;
@@ -524,16 +525,10 @@ bool ProfileSampleNode::notifyReturn()
 		Profile_GetTicks(&tick);	
 		int64 time = (int64)(tick - mStartTime);
 		{
-			int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
 			auto& writeData = mRecoredData[writeIndex];
-
+			if (!writeData.timestamps.empty())
 			{
-				RWLock::ReadLocker locker(GDataIndexLock);
-				auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
-				if (!writeDataSafe.timestamps.empty())
-				{
-					writeDataSafe.timestamps.back().end = tick;
-				}
+				writeData.timestamps.back().end = tick;
 			}
 
 			SystemPlatform::AtomExchangeAdd(&writeData.execTime, time);
@@ -545,16 +540,15 @@ bool ProfileSampleNode::notifyReturn()
 
 void ProfileSampleNode::notifyPause(uint64 tick)
 {
-	int64 time = (int64)(tick - mStartTime);
-	auto& writeData = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
+	// Internal: notifyPause is called by incrementFrameCount which holds WriteLock.
+	// Do NOT acquire ReadLock here to avoid non-reentrant deadlock.
+	int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
 
+	int64 time = (int64)(tick - mStartTime);
+	auto& writeData = mRecoredData[writeIndex];
+	if (!writeData.timestamps.empty())
 	{
-		//RWLock::ReadLocker locker(GDataIndexLock); // Called within WriteLock or single thread access
-		auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
-		if (!writeDataSafe.timestamps.empty())
-		{
-			writeDataSafe.timestamps.back().end = tick;
-		}
+		writeData.timestamps.back().end = tick;
 	}
 	SystemPlatform::AtomExchangeAdd(&writeData.execTime, time);
 	SystemPlatform::AtomExchangeAdd(&writeData.execTimeTotal, time);
@@ -563,20 +557,19 @@ void ProfileSampleNode::notifyPause(uint64 tick)
 
 void ProfileSampleNode::notifyResume()
 {
+	// Internal: notifyResume is called by incrementFrameCount which holds WriteLock.
+	int32 writeIndex = SystemPlatform::AtomicRead(&GWriteIndex);
 	int64 frameCount = SystemPlatform::AtomicRead(&GFrameCount);
-	mLastRecordFrame = frameCount;
-	resetFrame();
 
-	// We need to add the timestamp to the buffer
+	mLastRecordFrame = frameCount;
+	resetFrame(writeIndex);
+
+	auto& writeData = mRecoredData[writeIndex];
 	ProfileTimestamp timestamp;
 	timestamp.start = mStartTime;
 	timestamp.end = mStartTime;
-	{
-		//RWLock::ReadLocker locker(GDataIndexLock);
-		auto& writeDataSafe = mRecoredData[SystemPlatform::AtomicRead(&GWriteIndex)];
-		writeDataSafe.timestamps.push_back(timestamp);
-		writeDataSafe.frame = frameCount;
-	}
+	writeData.timestamps.push_back(timestamp);
+	writeData.frame = frameCount;
 }
 
 void ProfileSampleNode::showAllChild( bool beShow )

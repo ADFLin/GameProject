@@ -9,6 +9,14 @@
 #include <cassert>
 
 
+static void  DoWork(IQueuedWork* work)
+{
+	PROFILE_ENTRY("Worker.DoWork");
+	work->executeWork();
+	work->release();
+}
+
+
 class PoolRunableThread : public RunnableThreadT< PoolRunableThread >
 {
 public:
@@ -137,8 +145,7 @@ void QueueThreadPool::waitAllWorkCompleteInWorker()
 
 		if (work)
 		{
-			work->executeWork();
-			work->release();
+			DoWork(work);
 		}
 	}
 
@@ -255,8 +262,7 @@ unsigned PoolRunableThread::run()
 			PROFILE_ENTRY("Worker.WorkLoop");
 			while (currentWork)
 			{
-				currentWork->executeWork();
-				currentWork->release();
+				DoWork(currentWork);
 
 				{
 					PROFILE_ENTRY("Worker.FetchNext");

@@ -186,9 +186,9 @@ void QueueThreadPool::addWorks(IQueuedWork* works[], int count)
 			dispatched[numDispatched++] = runThread;
 		}
 
-		while( workIdx < count )
+		if( workIdx < count )
 		{
-			mQueuedWorks.push_back(works[workIdx++]);
+			mQueuedWorks.addRange(works + workIdx, works + count);
 		}
 	}
 

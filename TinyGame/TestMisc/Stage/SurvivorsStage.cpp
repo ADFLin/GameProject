@@ -141,6 +141,7 @@ namespace Survivors
 		int mMaxHP = 1000;
 		int mHP = 1000;
 		Vector2 mFacing = Vector2(1, 0);
+		Vector2 mJoystickDir = Vector2::Zero();
 		SurvivorsStage* mStage = nullptr;
 
 		// Skill States
@@ -211,6 +212,7 @@ namespace Survivors
 
 			mScreenSize = ::Global::GetScreenSize();
 			mHero = std::make_unique<Hero>(Vector2(mScreenSize.x / 2.0f, mScreenSize.y / 2.0f), this);
+			mCameraPos = mHero->mPos;
 
 			mParallelManager.init(Vector2(-2000, -2000), Vector2(mScreenSize.x + 2000, mScreenSize.y + 2000), 32.0f);
 			
@@ -368,6 +370,19 @@ namespace Survivors
 			for (auto& m : mMonsters) m->update(heroPos, dt);
 			for (auto& b : mBullets) b->update(dt);
 
+			// Update Camera (inertia follow)
+			if (mHero)
+			{
+				float lerpSpeed = 1.0f - std::exp(-mCameraFollowSpeed * dt);
+				mCameraPos += (mHero->mPos - mCameraPos) * lerpSpeed;
+			}
+			{
+				float zoomLerp = 1.0f - std::exp(-5.0f * dt);
+				mCameraZoom += (mCameraZoomTarget - mCameraZoom) * zoomLerp;
+			}
+			mWorldToScreen = RenderTransform2D::LookAt(Vector2(mScreenSize), mCameraPos, 0.0f, mCameraZoom);
+			mScreenToWorld = mWorldToScreen.inverse();
+
 			for (auto it = mVisuals.begin(); it != mVisuals.end();)
 			{
 				it->timer -= dt;
@@ -422,6 +437,9 @@ namespace Survivors
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.04f, 0.04f, 0.08f, 1), 1);
 
 			g.beginRender();
+
+			// Apply camera transform
+			g.transformXForm(mWorldToScreen, true);
 			
 			if (mHero)
 			{
@@ -461,11 +479,17 @@ namespace Survivors
 			}
 
 
+			// Compute visible world-space bounds for culling
+			Vector2 viewMin = mScreenToWorld.transformPosition(Vector2::Zero());
+			Vector2 viewMax = mScreenToWorld.transformPosition(Vector2(mScreenSize));
+			if (viewMin.x > viewMax.x) std::swap(viewMin.x, viewMax.x);
+			if (viewMin.y > viewMax.y) std::swap(viewMin.y, viewMax.y);
+
 			RenderUtility::SetPen(g, EColor::Black);
 			for (auto& m : mMonsters)
 			{
-				if (m->mPos.x < -m->mRadius || m->mPos.x > mScreenSize.x + m->mRadius ||
-					m->mPos.y < -m->mRadius || m->mPos.y > mScreenSize.y + m->mRadius)
+				if (m->mPos.x < viewMin.x - m->mRadius || m->mPos.x > viewMax.x + m->mRadius ||
+					m->mPos.y < viewMin.y - m->mRadius || m->mPos.y > viewMax.y + m->mRadius)
 					continue;
 
 				if (m->mStunTimer > 0) RenderUtility::SetBrush(g, EColor::White);
@@ -475,8 +499,8 @@ namespace Survivors
 
 			for (auto& b : mBullets)
 			{
-				if (b->mPos.x < -b->mRadius || b->mPos.x > mScreenSize.x + b->mRadius ||
-					b->mPos.y < -b->mRadius || b->mPos.y > mScreenSize.y + b->mRadius)
+				if (b->mPos.x < viewMin.x - b->mRadius || b->mPos.x > viewMax.x + b->mRadius ||
+					b->mPos.y < viewMin.y - b->mRadius || b->mPos.y > viewMax.y + b->mRadius)
 					continue;
 
 				if (b->mCategory == Category_Bullet) { g.setBrush(Color3f(1, 1, 0)); g.setPen(Color3f(1, 1, 0)); }
@@ -649,7 +673,33 @@ namespace Survivors
 				g.enableBrush(true);
 				g.enablePen(true);
 			}
+			
+			// Switch to screen space for UI overlay
+			g.pushXForm();
+			g.identityXForm();
 
+			// Draw Virtual Joystick
+			if (mVJoystickActive)
+			{
+				float outerRadius = mVJoystickRadius;
+				float innerRadius = 12.0f;
+
+				// Outer ring
+				g.enableBrush(false);
+				g.setPen(Color4f(1, 1, 1, 0.4f), 2);
+				g.drawCircle(mVJoystickCenter, outerRadius);
+
+				// Inner knob
+				Vector2 offset = mVJoystickCurrentPos - mVJoystickCenter;
+				float dist = offset.length();
+				if (dist > outerRadius)
+					offset = offset * (outerRadius / dist);
+
+				g.enableBrush(true);
+				g.setBrush(Color4f(1, 1, 1, 0.5f));
+				g.setPen(Color4f(1, 1, 1, 0.8f), 1);
+				g.drawCircle(mVJoystickCenter + offset, innerRadius);
+			}
 
 			g.setTextColor(Color3ub(255, 255, 255));
 			InlineString<512> info;
@@ -658,6 +708,8 @@ namespace Survivors
 				mParallelManager.getLastSolveTime(), mParallelManager.getSolver().settings.iterations);
 			g.drawText(20, 20, info);
 
+			g.popXForm();
+
 			g.endRender();
 		}
 
@@ -665,12 +717,51 @@ namespace Survivors
 		{
 			if (mHero)
 			{
-				if (msg.onMoving() || msg.onLeftDown()) mHero->mMoveTarget = msg.getPos();
+				if (msg.onLeftDown())
+				{
+					mVJoystickActive = true;
+					mVJoystickCenter = msg.getPos();
+					mVJoystickCurrentPos = msg.getPos();
+					mHero->mJoystickDir = Vector2::Zero();
+				}
+				else if (msg.onLeftUp())
+				{
+					mVJoystickActive = false;
+					mHero->mJoystickDir = Vector2::Zero();
+				}
+				else if (msg.onMoving() && mVJoystickActive && msg.isLeftDown())
+				{
+					mVJoystickCurrentPos = msg.getPos();
+					Vector2 offset = Vector2(msg.getPos()) - mVJoystickCenter;
+					float dist = offset.length();
+					if (dist > 5.0f)
+					{
+						float t = std::min(dist / mVJoystickRadius, 1.0f);
+						mHero->mJoystickDir = (offset / dist) * t;
+					}
+					else
+					{
+						mHero->mJoystickDir = Vector2::Zero();
+					}
+				}
+
+				if (msg.onWheelFront())
+				{
+					mCameraZoomTarget *= 1.1f;
+					mCameraZoomTarget = std::min(mCameraZoomTarget, 5.0f);
+				}
+				else if (msg.onWheelBack())
+				{
+					mCameraZoomTarget *= 0.9f;
+					mCameraZoomTarget = std::max(mCameraZoomTarget, 0.2f);
+				}
+
 				if (msg.onRightDown()) mHero->performSlash(msg.getPos());
 				if (msg.onMiddleDown()) mHero->performShockwave();
 			}
 			return BaseClass::onMouse(msg);
 		}
+
 
 		MsgReply onKey(KeyMsg const& msg) override
 		{
@@ -719,6 +810,9 @@ namespace Survivors
 		std::vector<std::unique_ptr<GameBullet>> mBullets;
 		std::vector<VisualEffect> mVisuals;
 
+		RenderTransform2D mWorldToScreen;
+		RenderTransform2D mScreenToWorld;
+
 		Vec2i mScreenSize;
 		float mSpawnRate = 5.0f; // Actions per sec
 		float mSpawnTimer = 0;
@@ -730,6 +824,18 @@ namespace Survivors
 		bool mShowBullets = false;
 		bool mShowEvents = false;
 		bool mShowWalls = false;
+
+		// Virtual Joystick
+		bool mVJoystickActive = false;
+		Vector2 mVJoystickCenter;
+		Vector2 mVJoystickCurrentPos;
+		float mVJoystickRadius = 60.0f;
+
+		// Camera
+		Vector2 mCameraPos = Vector2::Zero();
+		float mCameraZoom = 1.0f;
+		float mCameraZoomTarget = 1.0f;
+		float mCameraFollowSpeed = 4.0f;
 	};
 
 	// Implement Monster methods after SurvivorsStage definition
@@ -801,22 +907,20 @@ namespace Survivors
 		if (InputManager::Get().isKeyDown(EKeyCode::S)) moveDir.y += 1;
 		if (InputManager::Get().isKeyDown(EKeyCode::A)) moveDir.x -= 1;
 		if (InputManager::Get().isKeyDown(EKeyCode::D)) moveDir.x += 1;
+
+		// Virtual joystick overrides keyboard if active
+		if (mJoystickDir.length2() > 0.01f)
+		{
+			moveDir = mJoystickDir;
+		}
+
 		if (moveDir.length2() > 0.1f)
 		{
-			moveDir.normalize();
+			if (moveDir.length2() > 1.0f)
+				moveDir.normalize();
 			mFacing = moveDir;
 			mPos += moveDir * 300.0f * dt;
 			mMoveTarget = mPos;
-		}
-		else
-		{
-			Vector2 dir = mMoveTarget - mPos;
-			float dist = dir.length();
-			if (dist > 5.0f)
-			{
-				mFacing = dir / dist;
-				mPos += mFacing * 300.0f * dt;
-			}
 		}
 
 		// Fire Bullets

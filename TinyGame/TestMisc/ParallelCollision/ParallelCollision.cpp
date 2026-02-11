@@ -11,7 +11,7 @@
 #include "Math/SIMD.h"
 
 #define USE_COLLISION_COLORING 0
-#define USE_SIMD_LEGACY 0
+#define USE_SIMD_LEGACY 1
 
 namespace ParallelCollision
 {
@@ -172,8 +172,8 @@ namespace ParallelCollision
 		size_t checkAlign = alignof(WorkType) > 16 ? alignof(WorkType) : 16;
 
 		uint8* chunkStart = (uint8*)allocator.alloc(workSize * numTasks, checkAlign);
-		TArray<IQueuedWork*> works;
-		works.reserve(numTasks);
+		IQueuedWork** works;
+		works = (IQueuedWork**)allocator.alloc(sizeof(IQueuedWork*) * numTasks);
 
 		for (int i = 0; i < numTasks; ++i)
 		{
@@ -181,10 +181,10 @@ namespace ParallelCollision
 			int end = Math::Min(start + batchSize, count);
 			TaskRunner runner = { start, end, func , taskName };
 			WorkType* work = new (chunkStart + i * workSize) WorkType(std::move(runner));
-			works.push_back(work);
+			works[i] = work;
 		}
 
-		threadPool.addWorks(works.data(), (int)works.size());
+		threadPool.addWorks(works , numTasks);
 		threadPool.waitAllWorkCompleteInWorker();
 	}
 

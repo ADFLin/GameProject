@@ -50,6 +50,29 @@ public:
 		FTypeMemoryOp::Construct(ptr, value);
 	}
 
+	template< typename Iter >
+	void addRange(Iter itBegin, Iter itEnd)
+	{
+		size_t addSize = (size_t)std::distance(itBegin, itEnd);
+		if (addSize == 0)
+			return;
+
+		T* ptr = addUninitialized(addSize);
+		size_t indexStart = ptr - ArrayData::getAllocation();
+		size_t maxSize = ArrayData::getMaxSize();
+		size_t numTail = maxSize - indexStart;
+
+		if (addSize <= numTail)
+		{
+			FTypeMemoryOp::ConstructSequence(ptr, addSize, itBegin, itEnd);
+		}
+		else
+		{
+			FTypeMemoryOp::ConstructSequence(ptr, numTail, itBegin, std::next(itBegin, numTail));
+			FTypeMemoryOp::ConstructSequence(getElement(0), addSize - numTail, std::next(itBegin, numTail), itEnd);
+		}
+	}
+
 	void pop_front()
 	{
 		assert(mNum);
@@ -113,13 +136,13 @@ public:
 		checkIndex();
 	}
 
-	T* addUninitialized()
+	T* addUninitialized(size_t addSize = 1)
 	{
-		if (ArrayData::needAlloc(mNum, 1))
+		if (ArrayData::needAlloc(mNum, addSize))
 		{
 			if (mIndexCur != 0)
 			{
-				ArrayData::alloc(mNum, 1);
+				ArrayData::alloc(mNum, addSize);
 				size_t growSize = ArrayData::getMaxSize() - mNum;
 				if (growSize >= mIndexNext)
 				{
@@ -137,16 +160,16 @@ public:
 			}
 			else
 			{
-				ArrayData::alloc(mNum, 1);
+				ArrayData::alloc(mNum, addSize);
 				mIndexNext = mNum;
 			}
 		}
 
 		T* result = getElement(mIndexNext);
-		++mIndexNext;
-		if (mIndexNext == ArrayData::getMaxSize())
-			mIndexNext = 0;
-		++mNum;
+		mIndexNext += addSize;
+		if (mIndexNext >= ArrayData::getMaxSize())
+			mIndexNext -= ArrayData::getMaxSize();
+		mNum += addSize;
 
 		checkIndex();
 		return result;
@@ -252,6 +275,21 @@ public:
 
 	}
 
+	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
+	void append(Iter itBegin, Iter itEnd)
+	{
+		addRange(itBegin, itEnd);
+	}
+
+	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
+	void addRange(Iter itBegin, Iter itEnd)
+	{
+		for (; itBegin != itEnd; ++itBegin)
+		{
+			push_back(*itBegin);
+		}
+	}
+
 	template< class Q >
 	void push_back(Q&& value)
 	{
@@ -261,6 +299,7 @@ public:
 			++mIndexStart;
 			if (mIndexStart == N)
 				mIndexStart = 0;
+
 		}
 		else
 		{

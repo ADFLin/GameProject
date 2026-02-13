@@ -1201,6 +1201,8 @@ MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 {
 	MsgReply result;
 
+	InputManager::Get().procMouseEvent(msg);
+
 	IGameModule* game = Global::ModuleManager().getRunningGame();
 	if (game)
 	{
@@ -1225,7 +1227,7 @@ MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 		return result;
 
 	result = getCurStage()->onMouse(msg);
-	InputManager::Get().procMouseEvent(msg);
+
 
 	if (result.isHandled())
 		return result;
@@ -1252,6 +1254,8 @@ MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 
 MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 {
+	InputManager::Get().procKeyEvent(msg.getCode(), msg.isDown());
+
 	if ( msg.isDown() )
 	{
 		switch (msg.getCode())
@@ -1362,7 +1366,6 @@ void TinyGameApp::handleWindowPaint(HDC hDC)
 bool TinyGameApp::handleWindowActivation( bool beA )
 {
 	//LogMsg("Window %s", beA ? "Active" : "Deactive");
-	InputManager::Get().bActive = beA;
 
 	return true;
 }

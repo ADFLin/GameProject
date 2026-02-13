@@ -151,6 +151,8 @@ public:
 	void resizeViewport(int w, int h) override;
 	void renderViewport(IEditorRenderContext& context) override;
 	void onViewportMouseEvent(MouseMsg const& msg) override;
+	void onViewportKeyEvent(unsigned key, bool isDown) override;
+	void onViewportCharEvent(unsigned code) override;
 #endif
 
 protected:

@@ -15,6 +15,13 @@
 #include <memory>
 #include <algorithm>
 #include <cmath>
+#include "RHI/ShaderProgram.h"
+#include "RHI/GlobalShader.h"
+#include "RHI/ShaderManager.h"
+#include "RHI/RHIGlobalResource.h"
+#include "RHI/RHIUtility.h"
+#include "Image/ImageData.h"
+
 
 namespace Survivors
 {
@@ -31,6 +38,68 @@ namespace Survivors
 		Category_HeroAbility = 16,
 		Category_Fence = 32,
 	};
+
+	struct MonsterInstanceData
+	{
+		Vector2 pos;
+		Vector2 size;
+		Vector2 uvPos;
+		Vector2 uvSize;
+		float scale;
+		LinearColor color;
+	};
+
+	class MonsterInputLayout : public StaticRHIResourceT<MonsterInputLayout, RHIInputLayout>
+	{
+	public:
+		static RHIInputLayoutRef CreateRHI()
+		{
+			return RHICreateInputLayout(GetSetupValue());
+		}
+		static InputLayoutDesc GetSetupValue()
+		{
+			InputLayoutDesc desc;
+			desc.addElement(0, EVertex::ATTRIBUTE0, EVertex::Float2); // InPos
+			desc.addElement(0, EVertex::ATTRIBUTE1, EVertex::Float2); // InSize
+			desc.addElement(0, EVertex::ATTRIBUTE2, EVertex::Float2); // InUVPos
+			desc.addElement(0, EVertex::ATTRIBUTE3, EVertex::Float2); // InUVSize
+			desc.addElement(0, EVertex::ATTRIBUTE4, EVertex::Float1); // InScale
+			desc.addElement(0, EVertex::ATTRIBUTE5, EVertex::Float4); // InColor
+			return desc;
+		}
+		static uint32 GetHashKey()
+		{
+			return GetSetupValue().getTypeHash();
+		}
+	};
+
+	class MonsterShaderProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(MonsterShaderProgram, Global);
+	public:
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName() { return "Shader/Game/SurvivorsMonster"; }
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+
+		void bindMonsterTexture(RHICommandList& commandList, RHITexture2D& texture)
+		{
+			setTexture(commandList, SHADER_PARAM(MonsterTexture), texture, SHADER_SAMPLER(MonsterTexture), TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+		}
+		void setWorldToClip(RHICommandList& commandList, Matrix4 const& matrix)
+		{
+			setParam(commandList, SHADER_PARAM(WorldToClip), matrix);
+		}
+	};
+	IMPLEMENT_SHADER_PROGRAM(MonsterShaderProgram);
 
 	enum class VisualType
 	{
@@ -52,20 +121,34 @@ namespace Survivors
 
 	class SurvivorsStage;
 
+	enum class MonsterType
+	{
+		Golem,
+		Slime,
+		Count
+	};
+
 	class Monster : public IPhysicsEntity
 	{
 	public:
+		MonsterType mType = MonsterType::Golem;
 		Vector2 mPos;
 		Vector2 mVel = Vector2::Zero();
 		Vector2 mKnockbackVel = Vector2::Zero();
 		float mStunTimer = 0;
 		float mRadius = 10.0f;
+		float mScale = 1.0f;
 		float mSpeed = 80.0f;
 		int mHP = 50;
 		bool mIsDead = false;
 		SurvivorsStage* mStage = nullptr;
 
-		Monster(Vector2 const& pos, SurvivorsStage* stage) : mPos(pos), mStage(stage) {}
+		Monster(Vector2 const& pos, SurvivorsStage* stage, MonsterType type = MonsterType::Golem) 
+			: mPos(pos), mStage(stage), mType(type) 
+		{
+			if (type == MonsterType::Golem) { mSpeed = 50.0f; mHP = 500; mRadius = 30.0f; }
+			else if (type == MonsterType::Slime) { mSpeed = 130.0f; mHP = 20; mRadius = 10.0f; }
+		}
 
 		void handleCollisionEnter(IPhysicsEntity* other, int category) override;
 		void handleCollisionStay(IPhysicsEntity* other, int category) override; 
@@ -100,7 +183,7 @@ namespace Survivors
 	public:
 		Vector2 mPos;
 		Vector2 mVel;
-		float mRadius = 4.0f;
+		float mRadius = 12.0f;
 		float mLifeTime = 5.0f;
 		bool mIsDead = false;
 		int mCategory = Category_Bullet;
@@ -132,6 +215,13 @@ namespace Survivors
 		}
 	};
 
+	struct Gem
+	{
+		Vector2 pos;
+		int     value;
+		bool    isDead = false;
+	};
+
 	class Hero : public IPhysicsEntity
 	{
 	public:
@@ -140,6 +230,9 @@ namespace Survivors
 		float mRadius = 15.0f;
 		int mMaxHP = 1000;
 		int mHP = 1000;
+		int mLevel = 1;
+		int mXP = 0;
+		int mNextLevelXP = 100;
 		Vector2 mFacing = Vector2(1, 0);
 		Vector2 mJoystickDir = Vector2::Zero();
 		SurvivorsStage* mStage = nullptr;
@@ -147,23 +240,28 @@ namespace Survivors
 		// Skill States
 		float mBulletRate = 6.0f; // Actions per sec
 		float mBulletTimer = 0;
-		bool mEnableOrbs = false;
+		int   mOrbCount = 4;
+		bool  mEnableOrbs = false;
 		float mOrbRotation = 0;
 		std::vector<std::unique_ptr<GameBullet>> mOrbBullets;
 
 		float mDamageFlashTimer = 0;
 		float mDamageTimer = 0;
+		bool  mbInvincible = false;
 
 		Hero(Vector2 const& pos, SurvivorsStage* stage) : mPos(pos), mMoveTarget(pos), mStage(stage) {}
 
 		void takeDamage(int amount)
 		{
+			if (mbInvincible) return;
 			if (mDamageTimer > 0) return;
 			mHP -= amount;
 			if (mHP < 0) mHP = 0;
 			mDamageFlashTimer = 0.2f;
 			mDamageTimer = 0.2f; // Reduced invincibility for better feedback
 		}
+
+		int getLevel() { return mLevel; }
 
 		void handleCollisionEnter(IPhysicsEntity* other, int category) override 
 		{
@@ -184,6 +282,9 @@ namespace Survivors
 		}
 		void handleCollisionStay(IPhysicsBullet* bullet, int category) override {}
 		void handleCollisionExit(IPhysicsBullet* bullet, int category) override {}
+
+		Render::RHITexture2DRef mTexture;
+		Vector2 mTextureSize;
 
 		void update(float dt);
 		void updateOrbs(float dt);
@@ -214,7 +315,51 @@ namespace Survivors
 			mHero = std::make_unique<Hero>(Vector2(mScreenSize.x / 2.0f, mScreenSize.y / 2.0f), this);
 			mCameraPos = mHero->mPos;
 
+			// Load Hero Texture
+			mHero->mTexture = RHIUtility::LoadTexture2DFromFile("Survivor/Hero.png", TextureLoadOption().AutoMipMap());
+			if (mHero->mTexture.isValid())
+			{
+				mHero->mTextureSize = Vector2(mHero->mTexture->getSizeX(), mHero->mTexture->getSizeY());
+			}
+
 			mParallelManager.init(Vector2(-2000, -2000), Vector2(mScreenSize.x + 2000, mScreenSize.y + 2000), 32.0f);
+			
+			// Load Map Texture
+			mMapTexture = RHIUtility::LoadTexture2DFromFile("Survivor/Map.png", TextureLoadOption().AutoMipMap());
+
+			// Load Monster Textures
+			mMonsterTextures[(int)MonsterType::Golem] = RHIUtility::LoadTexture2DFromFile("Survivor/Golem.png");
+			mMonsterTextures[(int)MonsterType::Slime] = RHIUtility::LoadTexture2DFromFile("Survivor/Slime.png");
+
+			// Process monster textures with Color Key if they were loaded manually (or fallback to procedural)
+			auto processTexture = [&](Render::RHITexture2DRef& tex, char const* path, Color4ub fallbackColor)
+			{
+				ImageData imageData;
+				if (imageData.load(path, ImageLoadOption().UpThreeComponentToFour()))
+				{
+					Color4ub* pPixel = (Color4ub*)imageData.data;
+					for (int i = 0; i < imageData.width * imageData.height; ++i)
+					{
+						if (pPixel[i].r > 240 && pPixel[i].g > 240 && pPixel[i].b > 240) pPixel[i].a = 0;
+					}
+					int numMip = RHIUtility::CalcMipmapLevel(std::max(imageData.width, imageData.height));
+					tex = RHICreateTexture2D(ETexture::RGBA8, imageData.width, imageData.height, numMip, 1, TCF_DefalutValue | TCF_GenerateMips, imageData.data);
+				}
+				else if (!tex.isValid())
+				{
+					// Simple procedural monster fallback
+					int w = 32, h = 32;
+					TArray<Color4ub> pixels; pixels.resize(w * h);
+					for (int i = 0; i < w * h; ++i) pixels[i] = fallbackColor;
+					tex = RHICreateTexture2D(ETexture::RGBA8, w, h, 0, 1, TCF_DefalutValue, pixels.data());
+				}
+			};
+
+			processTexture(mMonsterTextures[(int)MonsterType::Golem], "Survivor/Golem.png", Color4ub(150, 100, 50, 255));
+			processTexture(mMonsterTextures[(int)MonsterType::Slime], "Survivor/Slime.png", Color4ub(100, 255, 100, 255));
+			processTexture(mHeroBulletTexture, "Survivor/Knife.png", Color4ub(255, 255, 255, 255));
+			processTexture(mMonsterBulletTexture, "Survivor/MagicOrb.png", Color4ub(200, 100, 255, 255));
+			processTexture(mOrbBulletTexture, "Survivor/Fireball.png", Color4ub(255, 150, 50, 255));
 			
 			{
 				CollisionEntityData data;
@@ -235,6 +380,7 @@ namespace Survivors
 			mParallelManager.addWall(Vector2(mScreenSize.x + 400, -500), Vector2(mScreenSize.x + 500, mScreenSize.y + 500));
 
 			mThreadPool.init(std::max(1u, (uint32)4));
+			mParallelManager.getSolver().settings.frameTargetSubStep = 1.0f / 120.0f;
 
 			::Global::GUI().cleanupWidget();
 			DevFrame* frame = WidgetUtility::CreateDevFrame();
@@ -257,6 +403,9 @@ namespace Survivors
 			frame->addCheckBox("Show Bullets", mShowBullets);
 			frame->addCheckBox("Show Events", mShowEvents);
 			frame->addCheckBox("Show Walls", mShowWalls);
+			FWidgetProperty::Bind(frame->addSlider("Golem Draw Scale"), mMonsterDrawScales[(int)MonsterType::Golem], 1.0f, 10.0f);
+			FWidgetProperty::Bind(frame->addSlider("Slime Draw Scale"), mMonsterDrawScales[(int)MonsterType::Slime], 1.0f, 10.0f);
+
 
 			return true;
 		}
@@ -281,16 +430,15 @@ namespace Survivors
 			else if (side < 3) pos = Vector2(-margin, RandFloat(0, mScreenSize.y));
 			else pos = Vector2(mScreenSize.x + margin, RandFloat(0, mScreenSize.y));
 
-			auto monster = std::make_unique<Monster>(pos, this);
-			CollisionEntityData data;
-			data.position = pos;
-			data.velocity = Vector2::Zero();
-			data.isStatic = false;
-			data.bQueryCollision = true;
-			data.categoryId = Category_Monster;
-			data.targetMask = Category_Hero | Category_HeroAbility | Category_Bullet;
-
+			MonsterType type = MonsterType::Slime;
 			if (RandFloat(0, 1) < 0.01f) // 1% chance for Large Monster
+			{
+				type = MonsterType::Golem;
+			}
+
+			auto monster = std::make_unique<Monster>(pos, this, type);
+			CollisionEntityData data;
+			if (type == MonsterType::Golem)
 			{
 				monster->mRadius = 30.0f;
 				monster->mHP = 500;
@@ -300,8 +448,16 @@ namespace Survivors
 			{
 				data.mass = 1.0f;
 			}
-			
+
+			data.position = pos;
+			data.velocity = Vector2::Zero();
+			data.isStatic = false;
+			data.bQueryCollision = true;
+			data.categoryId = Category_Monster;
+			data.targetMask = Category_Hero | Category_HeroAbility | Category_Bullet;
+
 			data.radius = monster->mRadius;
+			data.mass = (monster->mType == MonsterType::Golem) ? 20.0f : 1.0f;
 			mParallelManager.registerEntity(monster.get(), data);
 			mMonsters.push_back(std::move(monster));
 		}
@@ -315,6 +471,7 @@ namespace Survivors
 					Vector2 dir = mHero->mPos - m->mPos;
 					dir.normalize();
 					auto bullet = std::make_unique<GameBullet>(m->mPos, dir * 200.0f, Category_MonsterBullet);
+					bullet->mRadius = 6.0f;
 					CollisionBulletData bdata;
 					bdata.position = bullet->mPos;
 					bdata.velocity = bullet->mVel;
@@ -322,7 +479,7 @@ namespace Survivors
 					bdata.targetMask = Category_Hero | Category_Bullet;
 					bdata.bQueryBulletCollision = true;
 					bdata.shapeType = ShapeType::Circle;
-					bdata.shapeParams = Vector3(6.0f, 0, 0);
+					bdata.shapeParams = Vector3(bullet->mRadius, 0, 0);
 					mParallelManager.registerBullet(bullet.get(), bdata);
 					mBullets.push_back(std::move(bullet));
 				}
@@ -357,75 +514,149 @@ namespace Survivors
 			PROFILE_ENTRY("Game Tick");
 			float dt = deltaTime.value;
 
-			mSpawnTimer += dt;
-			if (mSpawnRate > 0 && mSpawnTimer > 1.0f / mSpawnRate) { mSpawnTimer = 0; spawnMonster(); }
+			if (mbPaused || (mHero && mHero->mHP <= 0))
+			{
+				// Keep camera moving even in pause/gameover but stop simulation
+			}
+			else
+			{
+				mSpawnTimer += dt;
+				if (mSpawnRate > 0 && mSpawnTimer > 1.0f / mSpawnRate) { mSpawnTimer = 0; spawnMonster(); }
 
-			mMonsterFireTimer += dt;
-			if (mMonsterFireRate > 0 && mMonsterFireTimer > 1.0f / mMonsterFireRate) { mMonsterFireTimer = 0; monsterFire(); }
+				mMonsterFireTimer += dt;
+				if (mMonsterFireRate > 0 && mMonsterFireTimer > 1.0f / mMonsterFireRate) { mMonsterFireTimer = 0; monsterFire(); }
 
-			Vector2 heroPos = mHero ? mHero->mPos : Vector2::Zero();
+				Vector2 heroPos = mHero ? mHero->mPos : Vector2::Zero();
 
-			// Update Logic
-			if (mHero) mHero->update(dt);
-			for (auto& m : mMonsters) m->update(heroPos, dt);
-			for (auto& b : mBullets) b->update(dt);
+				// Update Logic
+				if (mHero) mHero->update(dt);
+				for (auto& m : mMonsters) m->update(heroPos, dt);
+				for (auto& b : mBullets) b->update(dt);
+			}
 
-			// Update Camera (inertia follow)
+			// Update Camera (inertia follow) should stay outside of pause logic for smooth zoom/transition if any
 			if (mHero)
 			{
-				float lerpSpeed = 1.0f - std::exp(-mCameraFollowSpeed * dt);
+				float lerpSpeed = 1.0f - std::exp(-mCameraFollowSpeed * deltaTime.value);
 				mCameraPos += (mHero->mPos - mCameraPos) * lerpSpeed;
 			}
 			{
-				float zoomLerp = 1.0f - std::exp(-5.0f * dt);
+				float zoomLerp = 1.0f - std::exp(-5.0f * deltaTime.value);
 				mCameraZoom += (mCameraZoomTarget - mCameraZoom) * zoomLerp;
 			}
 			mWorldToScreen = RenderTransform2D::LookAt(Vector2(mScreenSize), mCameraPos, 0.0f, mCameraZoom);
 			mScreenToWorld = mWorldToScreen.inverse();
 
-			for (auto it = mVisuals.begin(); it != mVisuals.end();)
+			if (!mbPaused)
 			{
-				it->timer -= dt;
-				if (it->type == VisualType::Slash && mHero) it->pos = mHero->mPos;
-				if (it->timer <= 0) it = mVisuals.erase(it);
-				else ++it;
-			}
+				for (auto it = mVisuals.begin(); it != mVisuals.end();)
+				{
+					it->timer -= dt;
+					if (it->type == VisualType::Slash && mHero) it->pos = mHero->mPos;
+					if (it->timer <= 0) it = mVisuals.erase(it);
+					else ++it;
+				}
 
-			// Sync FROM Objects TO Physics
-			if (mHero && mHero->mPhysicsId != -1)
-			{
-				auto& data = mParallelManager.getEntityData(mHero->mPhysicsId);
-				CHECK(mParallelManager.mReceivers[mHero->mPhysicsId].entity == mHero.get());
-				data.position = mHero->mPos;
-				data.radius = mHero->mRadius;
-			}
-			for (auto& m : mMonsters)
-			{
-				auto& data = mParallelManager.getEntityData(m->mPhysicsId);
-				data.position = m->mPos;
-				data.velocity = m->mVel;
-			}
-			for (auto& b : mBullets)
-			{
-				auto& data = mParallelManager.getBulletData(b->mBulletId);
-				data.position = b->mPos;
-				data.velocity = b->mVel;
-				if (b->mVel.length2() > 0.001f)
-                    data.rotation = std::atan2(b->mVel.y, b->mVel.x);
-			}
+				// Sync FROM Objects TO Physics
+				if (mHero && mHero->mPhysicsId != -1)
+				{
+					auto& data = mParallelManager.getEntityData(mHero->mPhysicsId);
+					CHECK(mParallelManager.mReceivers[mHero->mPhysicsId].entity == mHero.get());
+					data.position = mHero->mPos;
+					data.radius = mHero->mRadius;
+				}
+				for (auto& m : mMonsters)
+				{
+					auto& data = mParallelManager.getEntityData(m->mPhysicsId);
+					data.position = m->mPos;
+					data.velocity = m->mVel;
+				}
+				for (auto& b : mBullets)
+				{
+					// Slash follows hero
+					if (mHero && b->mCategory == Category_HeroAbility)
+					{
+						auto& data = mParallelManager.getBulletData(b->mBulletId);
+						if (data.shapeType == ShapeType::Arc)
+						{
+							b->mPos = mHero->mPos;
+						}
+					}
 
-			// Clean up
-			mMonsters.erase(std::remove_if(mMonsters.begin(), mMonsters.end(), [this](auto& m) {
-				if (m->mIsDead) { mParallelManager.unregisterEntity(m.get()); return true; }
-				return false;
-			}), mMonsters.end());
+					auto& data = mParallelManager.getBulletData(b->mBulletId);
+					data.position = b->mPos;
+					data.velocity = b->mVel;
+					if (b->mVel.length2() > 0.001f)
+						data.rotation = std::atan2(b->mVel.y, b->mVel.x);
+				}
 
-			mBullets.erase(std::remove_if(mBullets.begin(), mBullets.end(), [this](auto& b) {
-				if (b->mIsDead) { mParallelManager.unregisterBullet(b.get()); return true; }
-				return false;
-			}), mBullets.end());
 
-			mParallelManager.endFrame(dt);
+				// Clean up
+				mMonsters.erase(std::remove_if(mMonsters.begin(), mMonsters.end(), [this](auto& m) {
+					if (m->mIsDead) { 
+						Gem gem;
+						gem.pos = m->mPos;
+						gem.value = (m->mType == MonsterType::Golem) ? 10 : 1;
+						mGems.push_back(gem);
+						mParallelManager.unregisterEntity(m.get()); 
+						return true; 
+					}
+					return false;
+				}), mMonsters.end());
+
+				mBullets.erase(std::remove_if(mBullets.begin(), mBullets.end(), [this](auto& b) {
+					if (b->mIsDead) { mParallelManager.unregisterBullet(b.get()); return true; }
+					return false;
+				}), mBullets.end());
+
+				// Gems Update
+				if (mHero)
+				{
+					for (auto& gem : mGems)
+					{
+						float distSq = (gem.pos - mHero->mPos).length2();
+						if (distSq < Square(200.0f)) // Sucking range
+						{
+							Vector2 dir = mHero->mPos - gem.pos;
+							gem.pos += dir * (8.0f * dt); // Simple magnetic movement
+							if (distSq < Square(mHero->mRadius + 10.0f))
+							{
+								mHero->mXP += gem.value;
+								gem.isDead = true;
+								while (mHero->mXP >= mHero->mNextLevelXP)
+								{
+									mHero->mXP -= mHero->mNextLevelXP;
+									mHero->mLevel++;
+									mHero->mNextLevelXP = (int)(mHero->mNextLevelXP * 1.3f);
+									VisualEffect ve;
+									ve.pos = mHero->mPos;
+									ve.timer = ve.duration = 0.5f;
+									ve.type = VisualType::Shockwave;
+									ve.radius = 400.0f;
+									mVisuals.push_back(ve);
+									
+									// Level Up Benefits
+									mHero->mHP = std::min(mHero->mMaxHP, mHero->mHP + (int)(mHero->mMaxHP * 0.2f)); // Heal 20%
+									mHero->mBulletRate *= 1.1f; // Fire restriction lifted a bit
+									if (mHero->mLevel % 5 == 0 && mHero->mOrbCount < 24) // Cap at 24
+									{
+										mHero->mOrbCount++;
+										// Properly unregister before clearing to avoid physics ghosts
+										for (auto& b : mHero->mOrbBullets) 
+											mParallelManager.unregisterBullet(b.get());
+										mHero->mOrbBullets.clear(); 
+									}
+									ve.radius = 400.0f;
+									mVisuals.push_back(ve);
+								}
+							}
+						}
+					}
+					mGems.erase(std::remove_if(mGems.begin(), mGems.end(), [](auto& g) { return g.isDead; }), mGems.end());
+				}
+
+				mParallelManager.endFrame(dt);
+			}
 		}
 
 		void onRender(float dFrame) override
@@ -440,44 +671,6 @@ namespace Survivors
 
 			// Apply camera transform
 			g.transformXForm(mWorldToScreen, true);
-			
-			if (mHero)
-			{
-				if (mHero->mDamageFlashTimer > 0)
-					RenderUtility::SetBrush(g, EColor::Red);
-				else
-					RenderUtility::SetBrush(g, EColor::Green);
-
-				RenderUtility::SetPen(g, EColor::White);
-				g.drawCircle(mHero->mPos, mHero->mRadius);
-
-				// Draw Health Bar
-				{
-					float barWidth = 60.0f;
-					float barHeight = 6.0f;
-					Vector2 barPos = mHero->mPos + Vector2(-barWidth * 0.5f, mHero->mRadius + 10.0f);
-					
-					// Border
-					g.setPen(Color4f(0,0,0,1), 1);
-					g.setBrush(Color4f(0,0,0,1));
-					g.drawRect(barPos - Vector2(1, 1), Vector2(barWidth + 2, barHeight + 2));
-
-					// Background
-					g.enablePen(false);
-					g.setBrush(Color3f(0.3f, 0.1f, 0.1f));
-					g.drawRect(barPos, Vector2(barWidth, barHeight));
-
-					// Fill
-					float hpRange = (float)mHero->mHP / mHero->mMaxHP;
-					g.setBrush(Color3f(1.0f - hpRange, hpRange, 0.0f));
-					g.drawRect(barPos, Vector2(barWidth * hpRange, barHeight));
-					g.enablePen(true);
-				}
-
-				RenderUtility::SetBrush(g, EColor::Cyan);
-				for (auto& b : mHero->mOrbBullets) g.drawCircle(b->mPos, b->mRadius);
-			}
-
 
 			// Compute visible world-space bounds for culling
 			Vector2 viewMin = mScreenToWorld.transformPosition(Vector2::Zero());
@@ -485,28 +678,232 @@ namespace Survivors
 			if (viewMin.x > viewMax.x) std::swap(viewMin.x, viewMax.x);
 			if (viewMin.y > viewMax.y) std::swap(viewMin.y, viewMax.y);
 
-			RenderUtility::SetPen(g, EColor::Black);
-			for (auto& m : mMonsters)
-			{
-				if (m->mPos.x < viewMin.x - m->mRadius || m->mPos.x > viewMax.x + m->mRadius ||
-					m->mPos.y < viewMin.y - m->mRadius || m->mPos.y > viewMax.y + m->mRadius)
-					continue;
 
-				if (m->mStunTimer > 0) RenderUtility::SetBrush(g, EColor::White);
-				else RenderUtility::SetBrush(g, EColor::Red);
-				g.drawCircle(m->mPos, m->mRadius);
+
+			// 2. Tiled Map
+			if (mMapTexture.isValid())
+			{
+				g.setBlendState(ESimpleBlendMode::None);
+				float tileSize = 256.0f; // World size per tile
+				int xStart = (int)std::floor(viewMin.x / tileSize);
+				int yStart = (int)std::floor(viewMin.y / tileSize);
+				int xEnd = (int)std::ceil(viewMax.x / tileSize);
+				int yEnd = (int)std::ceil(viewMax.y / tileSize);
+
+				g.setBrush(Color3f::White());
+				g.setTexture(const_cast<RHITexture2D&>(*mMapTexture));
+				g.setSampler(TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+
+
+				Vector2 startPos(xStart * tileSize, yStart * tileSize);
+				Vector2 totalSize((xEnd - xStart + 1) * tileSize, (yEnd - yStart + 1) * tileSize);
+				Vector2 startUV(xStart, yStart);
+				Vector2 sizeUV(xEnd - xStart + 1, yEnd - yStart + 1);
+
+				g.drawTexture(startPos, totalSize, startUV, sizeUV);
+			}
+			
+			// 1. Draw Gems
+			g.setBrush(Color3f(0.2f, 1.0f, 0.5f));
+			g.enablePen(false);
+			for (auto& gem : mGems)
+			{
+				if (gem.pos.x < viewMin.x - 5 || gem.pos.x > viewMax.x + 5 ||
+					gem.pos.y < viewMin.y - 5 || gem.pos.y > viewMax.y + 5)
+					continue;
+				g.drawCircle(gem.pos, 3.0f);
+			}
+			g.enablePen(true);
+
+			// 2. Draw Sorted Monsters
+			{
+				std::vector<Monster*> visibleMonsters;
+				for (auto& m : mMonsters)
+				{
+					if (m->mPos.x < viewMin.x - m->mRadius || m->mPos.x > viewMax.x + m->mRadius ||
+						m->mPos.y < viewMin.y - m->mRadius || m->mPos.y > viewMax.y + m->mRadius)
+						continue;
+					visibleMonsters.push_back(m.get());
+				}
+
+				// Optional: Sort by Y for 45-degree depth perception if needed within batches
+				std::sort(visibleMonsters.begin(), visibleMonsters.end(), [](Monster* a, Monster* b) {
+					return a->mPos.y < b->mPos.y;
+				});
+
+				// Group by type for instanced rendering
+				std::vector<Monster*> monstersByType[(int)MonsterType::Count];
+				for (auto* m : visibleMonsters)
+				{
+					monstersByType[(int)m->mType].push_back(m);
+				}
+
+				for (int i = 0; i < (int)MonsterType::Count; ++i)
+				{
+					auto& typeMonsters = monstersByType[i];
+					if (typeMonsters.empty()) continue;
+
+					auto const& tex = mMonsterTextures[i];
+					if (tex.isValid())
+					{
+						std::vector<MonsterInstanceData> instanceData;
+						instanceData.reserve(typeMonsters.size());
+						for (auto* m : typeMonsters)
+						{
+							float drawScale = mMonsterDrawScales[i];
+							Vector2 spriteSize = Vector2(m->mRadius * 2, m->mRadius * 2);
+							MonsterInstanceData data;
+							data.pos = m->mPos;
+							data.size = spriteSize;
+							data.uvPos = Vector2(0, 0);
+							data.uvSize = Vector2(1, 1);
+							Vector2 toHero = mHero ? (mHero->mPos - m->mPos) : Vector2::Zero();
+							if (toHero.x > 0) { data.uvPos.x = 1; data.uvSize.x = -1; }
+							data.scale = m->mScale * drawScale;
+							// Simple stun/hit flash color
+							data.color = (m->mStunTimer > 0) ? LinearColor(5, 5, 5, 1) : LinearColor(1, 1, 1, 1);
+							instanceData.push_back(data);
+						}
+
+						g.drawCustomFunc([&tex, data = std::move(instanceData)](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
+						{
+							MonsterShaderProgram* shader = ShaderManager::Get().getGlobalShaderT<MonsterShaderProgram>();
+							if (shader)
+							{
+								RHISetShaderProgram(commandList, shader->getRHI());
+								shader->setWorldToClip(commandList, element.transform.toMatrix4() * baseTransform);
+								shader->bindMonsterTexture(commandList, const_cast<RHITexture2D&>(*tex));
+								RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+								RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
+								RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+								VertexDataInfo info;
+								info.ptr = data.data();
+								info.size = (int)(data.size() * sizeof(MonsterInstanceData));
+								info.stride = sizeof(MonsterInstanceData);
+
+								RHISetInputStream(commandList, &MonsterInputLayout::GetRHI(), nullptr, 0);
+								RHIDrawPrimitiveUP(commandList, EPrimitive::Points, (int)data.size(), &info, 1);
+							}
+						});
+					}
+					else
+					{
+						for (auto* m : typeMonsters)
+						{
+							if (m->mStunTimer > 0) RenderUtility::SetBrush(g, EColor::White);
+							else RenderUtility::SetBrush(g, EColor::Red);
+							g.drawCircle(m->mPos, m->mRadius);
+						}
+					}
+				}
 			}
 
+			// 3. Draw Hero (Last to stay on top of monsters as requested)
+			if (mHero)
+			{
+				if (mHero->mTexture.isValid())
+				{
+					g.setBlendState(ESimpleBlendMode::Translucent);
+					Vector2 spriteSize = Vector2(60, 60);
+					Vector2 pos = mHero->mPos - 0.5f * spriteSize;
+					
+					Vector2 uvPos(0, 0); Vector2 uvSize(1, 1);
+					if (mHero->mFacing.x > 0) { uvPos.x = 1; uvSize.x = -1; }
+
+					if (mHero->mDamageFlashTimer > 0) g.setTextColor(Color3f(1, 0, 0));
+					
+					g.setBrush(Color3f::White());
+					g.setTexture(const_cast<RHITexture2D&>(*mHero->mTexture));
+					g.setSampler(TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+					g.drawTexture(pos, spriteSize, uvPos, uvSize);
+				}
+				else
+				{
+					if (mHero->mDamageFlashTimer > 0) RenderUtility::SetBrush(g, EColor::Red);
+					else RenderUtility::SetBrush(g, EColor::Green);
+					g.drawCircle(mHero->mPos, mHero->mRadius);
+				}
+
+				// Draw Health Bar
+				{
+					float barWidth = 60.0f;
+					float barHeight = 6.0f;
+					Vector2 barPos = mHero->mPos + Vector2(-barWidth * 0.5f, mHero->mRadius + 10.0f);
+					g.setPen(Color4f(0,0,0,1), 1);
+					g.setBrush(Color4f(0,0,0,1));
+					g.drawRect(barPos - Vector2(1, 1), Vector2(barWidth + 2, barHeight + 2));
+					g.enablePen(false);
+					g.setBrush(Color3f(0.3f, 0.1f, 0.1f));
+					g.drawRect(barPos, Vector2(barWidth, barHeight));
+					float hpRange = (float)mHero->mHP / mHero->mMaxHP;
+					g.setBrush(Color3f(1.0f - hpRange, hpRange, 0.0f));
+					g.drawRect(barPos, Vector2(barWidth * hpRange, barHeight));
+					g.enablePen(true);
+				}
+
+				RenderUtility::SetBrush(g, EColor::Cyan);
+				for (auto& b : mHero->mOrbBullets)
+				{
+					if (mOrbBulletTexture.isValid())
+					{
+						Vector2 dir = b->mPos - mHero->mPos;
+						// Tangent direction for orbital motion (CCW)
+						float angle = Math::ATan2(dir.y, dir.x) + 0.5f * Math::PI;
+						// Adjust by 90 degrees if the tail was pointing outwards
+						float visualAngle = angle - Math::DegToRad(90.0f);
+
+						g.pushXForm();
+						g.translateXForm(b->mPos.x, b->mPos.y);
+						g.rotateXForm(visualAngle);
+						g.setBrush(Color3f::White());
+						g.setTexture(const_cast<RHITexture2D&>(*mOrbBulletTexture));
+						g.drawTexture(Vector2(-b->mRadius * 1.8f, -b->mRadius * 1.8f), Vector2(b->mRadius * 3.6f, b->mRadius * 3.6f));
+						g.popXForm();
+					}
+					else
+					{
+						RenderUtility::SetBrush(g, EColor::Cyan);
+						g.drawCircle(b->mPos, b->mRadius);
+					}
+				}
+			}
+
+			// 4. Draw Bullets
 			for (auto& b : mBullets)
 			{
 				if (b->mPos.x < viewMin.x - b->mRadius || b->mPos.x > viewMax.x + b->mRadius ||
 					b->mPos.y < viewMin.y - b->mRadius || b->mPos.y > viewMax.y + b->mRadius)
 					continue;
 
-				if (b->mCategory == Category_Bullet) { g.setBrush(Color3f(1, 1, 0)); g.setPen(Color3f(1, 1, 0)); }
-				else { g.setBrush(Color3f(1, 0.5f, 0)); g.setPen(Color3f(1, 0.5f, 0)); }
-				g.drawCircle(b->mPos, b->mRadius);
+				RHITexture2D* tex = nullptr;
+				float offsetDeg = 0;
+				if (b->mCategory == Category_Bullet) { tex = mHeroBulletTexture.get(); offsetDeg = 135.0f; }
+				else if (b->mCategory == Category_MonsterBullet) { tex = mMonsterBulletTexture.get(); offsetDeg = 0.0f; }
+
+				if (tex)
+				{
+					float angle = Math::ATan2(b->mVel.y, b->mVel.x);
+					float visualAngle = angle - Math::DegToRad(offsetDeg);
+
+					float visualScale = (b->mCategory == Category_Bullet) ? 0.8f : 2.5f;
+
+					g.pushXForm();
+					g.translateXForm(b->mPos.x, b->mPos.y);
+					g.rotateXForm(visualAngle);
+					g.setBrush(Color3f::White());
+					g.setTexture(*tex);
+					g.drawTexture(Vector2(-b->mRadius * visualScale, -b->mRadius * visualScale), Vector2(b->mRadius * 2 * visualScale, b->mRadius * 2 * visualScale));
+					g.popXForm();
+				}
+				else
+				{
+					if (b->mCategory == Category_Bullet) { g.setBrush(Color3f(1, 1, 0)); g.setPen(Color3f(1, 1, 0)); }
+					else { g.setBrush(Color3f(1, 0.5f, 0)); g.setPen(Color3f(1, 0.5f, 0)); }
+					g.drawCircle(b->mPos, b->mRadius);
+				}
 			}
+
             
 			for (auto& v : mVisuals)
 			{
@@ -514,13 +911,19 @@ namespace Survivors
 				if (v.type == VisualType::Slash)
 				{
 					g.setPen(Color3f(1, 0.9f, 0.2f), 4);
-					g.drawArcLine(v.pos, v.radius, v.rotation - 1.0f, 2.0f);
+					float fov = Math::DegToRad(v.angle);
+					g.drawArcLine(v.pos, v.radius, v.rotation - fov * 0.5f, fov);
 				}
 				else if (v.type == VisualType::Shockwave)
 				{
 					float curR = v.radius * (1.0f - alpha);
-					g.setPen(Color3f(0.2f, 0.8f, 1.0f), 5);
+					g.enablePen(false);
+					g.enableBrush(true);
+					g.beginBlend(alpha * 0.5f);
+					g.setBrush(Color3f(0.2f, 0.8f, 1.0f));
 					g.drawCircle(v.pos, curR);
+					g.endBlend();
+					g.enablePen(true);
 				}
 				else if (v.type == VisualType::HitSpark)
 				{
@@ -572,9 +975,7 @@ namespace Survivors
 					Vector2 pos = solver.bulletPositions[i];
 					ShapeType type = solver.bulletShapeTypes[i];
 					Vector3 params = solver.bulletShapeParams[i];
-					float rot = 0;
-					if (solver.bulletVelocities[i].length2() > 0.001f)
-						rot = std::atan2(solver.bulletVelocities[i].y, solver.bulletVelocities[i].x);
+					float rot = solver.bulletRotations[i];
 
 					switch (type)
 					{
@@ -601,7 +1002,15 @@ namespace Survivors
 						}
 						break;
 					case ShapeType::Arc:
-						g.drawArcLine(pos, params.x, rot - params.y * 0.5f, params.y);
+						{
+							g.drawArcLine(pos, params.x, rot - params.y * 0.5f, params.y);
+							float startAngle = rot - params.y * 0.5f;
+							float endAngle = rot + params.y * 0.5f;
+							Vector2 p1(Math::Cos(startAngle), Math::Sin(startAngle));
+							Vector2 p2(Math::Cos(endAngle), Math::Sin(endAngle));
+							g.drawLine(pos, pos + p1 * params.x);
+							g.drawLine(pos, pos + p2 * params.x);
+						}
 						break;
 					}
 				}
@@ -703,10 +1112,54 @@ namespace Survivors
 
 			g.setTextColor(Color3ub(255, 255, 255));
 			InlineString<512> info;
-			info.format("Hero HP: %d | Monsters: %d | Bullets: %d\nCollision: %.3f ms | Iters: %d\n[WASD] Move | [Q] Orbs | [R-Click] Slash | [M-Click] Shockwave\n[R] Reset Simulation", 
-				mHero ? mHero->mHP : 0, (int)mMonsters.size(), (int)mBullets.size() + (mHero ? (int)mHero->mOrbBullets.size() : 0), 
+			info.format("Hero HP: %d | Monsters: %d | Bullets: %d %s\nCollision: %.3f ms | Iters: %d\n[WASD] Move | [G] GodMode | [Q] Orbs | [P] Pause | [R-Click] Slash | [M-Click] Shockwave\n[R] Reset Simulation", 
+				mHero ? mHero->mHP : 0, (int)mMonsters.size(), (int)mBullets.size() + (mHero ? (int)mHero->mOrbBullets.size() : 0),
+				(mHero && mHero->mbInvincible) ? "[GOD MODE ON]" : "",
 				mParallelManager.getLastSolveTime(), mParallelManager.getSolver().settings.iterations);
 			g.drawText(20, 20, info);
+
+			if (mHero && mHero->mHP <= 0)
+			{
+				g.identityXForm();
+				g.setTextColor(Color3ub(255, 50, 50));
+				g.drawText(Vector2(mScreenSize.x * 0.5f - 60, mScreenSize.y * 0.5f - 30), "GAME OVER");
+				g.setTextColor(Color3ub(255, 255, 255));
+				g.drawText(Vector2(mScreenSize.x * 0.5f - 80, mScreenSize.y * 0.5f + 10), "Press 'R' to Restart");
+			}
+			else if (mbPaused)
+			{
+				g.identityXForm();
+				g.setTextColor(Color3ub(255, 100, 100));
+				g.drawText(Vector2(mScreenSize.x * 0.5f - 50, mScreenSize.y * 0.5f - 20), "GAME PAUSED");
+			}
+
+			// Draw Level & XP Bar
+			if (mHero)
+			{
+				g.identityXForm();
+				g.setTextColor(Color3ub(50, 200, 255));
+				InlineString<64> lvStr; lvStr.format("LV. %d", mHero->mLevel);
+				g.drawText(20, mScreenSize.y - 55, lvStr);
+
+				float xpW = (float)mHero->mXP / mHero->mNextLevelXP * (mScreenSize.x - 40);
+				
+				// 1. Background
+				g.enablePen(false);
+				g.enableBrush(true);
+				g.setBrush(Color3f(0.05f, 0.05f, 0.05f));
+				g.drawRect(Vector2(20, mScreenSize.y - 30), Vector2(mScreenSize.x - 40, 12));
+				
+				// 2. XP Fill
+				g.setBrush(Color3f(0.2f, 0.7f, 1.0f));
+				g.drawRect(Vector2(20, mScreenSize.y - 30), Vector2(xpW, 12));
+
+				// 3. Border
+				g.enablePen(true);
+				g.enableBrush(false);
+				g.setPen(Color4f(1, 1, 1, 0.8f), 1);
+				g.drawRect(Vector2(20, mScreenSize.y - 30), Vector2(mScreenSize.x - 40, 12));
+				g.enableBrush(true);
+			}
 
 			g.popXForm();
 
@@ -756,11 +1209,19 @@ namespace Survivors
 					mCameraZoomTarget = std::max(mCameraZoomTarget, 0.2f);
 				}
 
-				if (msg.onRightDown()) mHero->performSlash(msg.getPos());
+				if (msg.onRightDown())
+				{
+					Vector2 worldPos = mWorldToScreen.transformInvPosition(Vector2(msg.getPos()));
+					mHero->performSlash(worldPos);
+				}
 				if (msg.onMiddleDown()) mHero->performShockwave();
 			}
 			return BaseClass::onMouse(msg);
 		}
+		
+		Vector2 getHeroPos() { return mHero ? mHero->mPos : Vector2::Zero(); }
+		int getHeroLevel() { return mHero ? mHero->getLevel() : 1; }
+
 
 
 		MsgReply onKey(KeyMsg const& msg) override
@@ -770,6 +1231,8 @@ namespace Survivors
 				switch (msg.getCode())
 				{
 				case EKeyCode::Q: if (mHero) mHero->mEnableOrbs = !mHero->mEnableOrbs; break;
+				case EKeyCode::G: if (mHero) mHero->mbInvincible = !mHero->mbInvincible; break;
+				case EKeyCode::P: mbPaused = !mbPaused; break;
 				case EKeyCode::Space:
 					for (int i = 0; i < 100; ++i) spawnMonster();
 					break;
@@ -808,6 +1271,7 @@ namespace Survivors
 		std::unique_ptr<Hero> mHero;
 		std::vector<std::unique_ptr<Monster>> mMonsters;
 		std::vector<std::unique_ptr<GameBullet>> mBullets;
+		std::vector<Gem> mGems;
 		std::vector<VisualEffect> mVisuals;
 
 		RenderTransform2D mWorldToScreen;
@@ -824,6 +1288,7 @@ namespace Survivors
 		bool mShowBullets = false;
 		bool mShowEvents = false;
 		bool mShowWalls = false;
+		bool mbPaused = false;
 
 		// Virtual Joystick
 		bool mVJoystickActive = false;
@@ -836,6 +1301,14 @@ namespace Survivors
 		float mCameraZoom = 1.0f;
 		float mCameraZoomTarget = 1.0f;
 		float mCameraFollowSpeed = 4.0f;
+
+		float mMonsterDrawScales[(int)MonsterType::Count] = { 1.5f , 2.2f };
+
+		Render::RHITexture2DRef mMapTexture;
+		Render::RHITexture2DRef mHeroBulletTexture;
+		Render::RHITexture2DRef mMonsterBulletTexture;
+		Render::RHITexture2DRef mOrbBulletTexture;
+		Render::RHITexture2DRef mMonsterTextures[(int)MonsterType::Count];
 	};
 
 	// Implement Monster methods after SurvivorsStage definition
@@ -873,7 +1346,10 @@ namespace Survivors
 	{ 
 		if (category == Category_Bullet || category == Category_HeroAbility)
 		{
-			int dmg = (category == Category_HeroAbility) ? 10 : 2;
+			// Damage scaling with level (roughly)
+			int baseDmg = (category == Category_HeroAbility) ? 10 : 2;
+			int levelBonus = mStage->getHeroLevel() / 2; 
+			int dmg = baseDmg + levelBonus;
 			mHP -= dmg;
 			if (mHP <= 0) mIsDead = true;
 			
@@ -944,7 +1420,7 @@ namespace Survivors
 
 		if (mOrbBullets.empty())
 		{
-			for (int i = 0; i < 4; ++i)
+			for (int i = 0; i < mOrbCount; ++i)
 			{
 				auto bullet = std::make_unique<GameBullet>(mPos, Vector2::Zero(), Category_HeroAbility);
 				bullet->mRadius = 25.0f; // Visual radius matches physics
@@ -961,14 +1437,15 @@ namespace Survivors
 		}
 
 		mOrbRotation += 220.0f * dt;
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < mOrbBullets.size(); ++i)
 		{
-			float angle = mOrbRotation + i * 90.0f;
+			float angle = mOrbRotation + i * (360.0f / mOrbBullets.size());
 			float rad = angle * Math::PI / 180.0f;
 			Vector2 offset(Math::Cos(rad), Math::Sin(rad));
 			mOrbBullets[i]->mPos = mPos + offset * 100.0f;
 			auto& data = mStage->getParallelManager().getBulletData(mOrbBullets[i]->mBulletId);
 			data.position = mOrbBullets[i]->mPos;
+			data.rotation = rad + Math::PI / 2; // Face tangent
 		}
 	}
 
@@ -990,14 +1467,16 @@ namespace Survivors
 			Vector2 dir = nearest->mPos - mPos;
 			dir.normalize();
 			auto bullet = std::make_unique<GameBullet>(mPos, dir * 600.0f, Category_Bullet);
+			bullet->mRadius = 18.0f; // Larger visual and collision size
 			CollisionBulletData bdata;
 			bdata.position = bullet->mPos;
 			bdata.velocity = bullet->mVel;
+			bdata.rotation = std::atan2(dir.y, dir.x);
 			bdata.categoryId = Category_Bullet;
 			bdata.targetMask = Category_Monster | Category_MonsterBullet;
 			bdata.bQueryBulletCollision = true;
-			bdata.shapeType = ShapeType::Circle;
-			bdata.shapeParams = Vector3(bullet->mRadius, 0, 0);
+			bdata.shapeType = ShapeType::Rect;
+			bdata.shapeParams = Vector3(20, 5, 0); // Half-extent X, Y
 			mStage->getParallelManager().registerBullet(bullet.get(), bdata);
 			mStage->addBullet(std::move(bullet));
 		}
@@ -1013,6 +1492,8 @@ namespace Survivors
 		}
 		else
 		{
+			dir.normalize();
+			mFacing = dir; // Face the slash direction
 			angle = std::atan2(dir.y, dir.x);
 		}
 

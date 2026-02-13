@@ -118,7 +118,7 @@ namespace ParallelCollision
 	{
 		static bool IntersectRectCircle(Vector2 const& rectPos, Vector2 const& rectHalfSize, float rectRot, Vector2 const& circlePos, float circleRadius);
 		static bool IntersectArcCircle(Vector2 const& arcPos, float arcRadius, float arcRot, float halfSweep, Vector2 const& circlePos, float circleRadius);
-		static bool Intersect(Vector2 const& posA, float rA, ShapeType shapeTypeA, Vector3 const& shapeParamA, Vector2 const& posB, float rB);
+		static bool Intersect(Vector2 const& posA, float rA, ShapeType shapeTypeA, Vector3 const& shapeParamA, Vector2 const& posB, float rB, float rotationA = 0);
 	};
 
 	struct SpatialHashGrid
@@ -172,6 +172,7 @@ namespace ParallelCollision
 		TArray<bool>      bulletQueryFlags;
 		TArray<ShapeType> bulletShapeTypes;
 		TArray<Vector3>   bulletShapeParams;
+		TArray<float>     bulletRotations;
 
 		int               fixedCapacity = 512;
 		TArray<int>       cellNeighborCounts;

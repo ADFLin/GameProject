@@ -65,6 +65,9 @@ void GameViewportPanel::render()
 	mViewport->renderViewport(context);
 
 	FImGui::DisableBlend();
+	ImGui::InvisibleButton("Viewport", ImVec2(context.texture->getSizeX(), context.texture->getSizeY()));
+	ImGui::SetItemAllowOverlap();
+	ImGui::SetCursorPos(ImGui::GetItemRectMin() - ImGui::GetWindowPos() - ImVec2(0, ImGui::GetScrollY())); 
 	ImGui::Image(FImGui::GetTextureID(*context.texture), ImVec2(context.texture->getSizeX(), context.texture->getSizeY()));
 	//ImGui::ImageButton(FImGui::GetTextureID(*context.texture), ImVec2(context.texture->getSizeX(), context.texture->getSizeY()));
 	FImGui::RestoreBlend();
@@ -126,6 +129,27 @@ void GameViewportPanel::render()
 		}
 
 		mLastMousePos = mousePositionRelative;
+	}
+
+	if (ImGui::IsWindowFocused())
+	{
+		for (int i = 0; i < 512; i++)
+		{
+			if (ImGui::IsKeyPressed((ImGuiKey)i, false))
+			{
+				mViewport->onViewportKeyEvent(i, true);
+			}
+			else if (ImGui::IsKeyReleased((ImGuiKey)i))
+			{
+				mViewport->onViewportKeyEvent(i, false);
+			}
+		}
+
+		ImGuiIO& io = ImGui::GetIO();
+		for (int i = 0; i < io.InputQueueCharacters.Size; i++)
+		{
+			mViewport->onViewportCharEvent(io.InputQueueCharacters[i]);
+		}
 	}
 }
 

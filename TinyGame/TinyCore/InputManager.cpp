@@ -4,6 +4,7 @@
 #include "WindowsHeader.h"
 
 #include <algorithm>
+#include "Core/Memory.h"
 
 void InputManager::listenMouseEvent( MouseCallback const& callback )
 {
@@ -34,10 +35,8 @@ void InputManager::stopKeyEvent( KeyCallback const& callback )
 
 bool InputManager::isKeyDown( unsigned key )
 {
-	if (bActive)
-	{
-		return(::GetAsyncKeyState(key) & 0x8000) != 0;
-	}
+	if ( key < 256 )
+		return mKeys[ key ];
 	return false;
 }
 
@@ -45,6 +44,11 @@ InputManager& InputManager::Get()
 {
 	static InputManager sInstance;
 	return sInstance;
+}
+
+InputManager::InputManager()
+{
+	FMemory::Set(mKeys, 0, sizeof(mKeys));
 }
 
 void InputManager::procMouseEvent( MouseMsg const& msg )
@@ -58,9 +62,12 @@ void InputManager::procMouseEvent( MouseMsg const& msg )
 
 void InputManager::procKeyEvent( unsigned key , bool isDown )
 {
+	if ( key < 256 )
+		mKeys[ key ] = isDown;
+
 	for( KeyCallbackList::iterator iter = mKeyCBList.begin();
 		iter != mKeyCBList.end() ; ++iter )
 	{
-		(*iter)( key , isDown );
+		(*iter)( (char)key , isDown );
 	}
 }

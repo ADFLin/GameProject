@@ -106,4 +106,14 @@ void TinyGameApp::onViewportMouseEvent(MouseMsg const& msg)
 	handleMouseEvent(msg);
 }
 
+void TinyGameApp::onViewportKeyEvent(unsigned key, bool isDown)
+{
+	handleKeyEvent(KeyMsg(EKeyCode::Type(key), isDown));
+}
+
+void TinyGameApp::onViewportCharEvent(unsigned code)
+{
+	handleCharEvent(code);
+}
+
 #endif

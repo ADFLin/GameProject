@@ -31,6 +31,8 @@ public:
 	virtual void resizeViewport(int w, int h) = 0;
 	virtual void renderViewport(IEditorRenderContext& context) = 0;
 	virtual void onViewportMouseEvent(MouseMsg const& msg) = 0;
+	virtual void onViewportKeyEvent(unsigned key, bool isDown) = 0;
+	virtual void onViewportCharEvent(unsigned code) = 0;
 };
 
 

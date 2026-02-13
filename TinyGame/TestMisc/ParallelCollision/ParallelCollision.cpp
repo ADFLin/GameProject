@@ -44,11 +44,13 @@ namespace ParallelCollision
 		while (diff > Math::PI) diff -= 2.0f * Math::PI;
 		while (diff < -Math::PI) diff += 2.0f * Math::PI;
 
-		if (Math::Abs(diff) <= halfSweep) return true;
+		float dist = Math::Sqrt(distSq);
+		float angleSub = std::asin(Math::Min(1.0f, circleRadius / dist));
+		if (Math::Abs(diff) <= halfSweep + angleSub) return true;
 		return false;
 	}
 
-	bool IntersectionTests::Intersect(Vector2 const& posA, float rA, ShapeType shapeTypeA, Vector3 const& shapeParamA, Vector2 const& posB, float rB)
+	bool IntersectionTests::Intersect(Vector2 const& posA, float rA, ShapeType shapeTypeA, Vector3 const& shapeParamA, Vector2 const& posB, float rB, float rotationA)
 	{
 		switch (shapeTypeA)
 		{
@@ -58,9 +60,9 @@ namespace ParallelCollision
 			return (posA - posB).length2() < rSum * rSum;
 		}
 		case ShapeType::Rect:
-			return IntersectRectCircle(posA, Vector2(shapeParamA.x, shapeParamA.y), shapeParamA.z, posB, rB);
+			return IntersectRectCircle(posA, Vector2(shapeParamA.x, shapeParamA.y), rotationA, posB, rB);
 		case ShapeType::Arc:
-			return IntersectArcCircle(posA, shapeParamA.x, shapeParamA.y, shapeParamA.z, posB, rB);
+			return IntersectArcCircle(posA, shapeParamA.x, rotationA, shapeParamA.y * 0.5f, posB, rB);
 		}
 		return false;
 	}
@@ -210,6 +212,7 @@ namespace ParallelCollision
 		bulletQueryFlags.clear();
 		bulletShapeTypes.clear();
 		bulletShapeParams.clear();
+		bulletRotations.clear();
 	}
 
 	void ParallelCollisionSolver::schedule(float dt, int entityCount, int bulletCount, QueueThreadPool& threadPool)
@@ -229,7 +232,6 @@ namespace ParallelCollision
 
 		auto pipelineTask = [this, dt, &threadPool]()
 		{
-			// 並行執行 deferred queries（在後台線程）
 			solveDeferredQueries(threadPool);
 
 			int neededSteps = (int)Math::Ceil(dt / settings.frameTargetSubStep);
@@ -691,7 +693,7 @@ namespace ParallelCollision
 				{
 					if ((mask & categoryIds[idx]) != 0)
 					{
-						bool hit = (type == ShapeType::Circle) ? (pos - positions[idx]).length2() < (params.x + radii[idx]) * (params.x + radii[idx]) : IntersectionTests::Intersect(pos, 0, type, params, positions[idx], radii[idx]);
+						bool hit = IntersectionTests::Intersect(pos, 0, type, params, positions[idx], radii[idx], rot);
 						if (hit) results.push_back(idx);
 					}
 					idx = grid.nextIndices[idx];
@@ -700,7 +702,7 @@ namespace ParallelCollision
 		}
 		for (int idx : largeEntityIndices)
 		{
-			if ((mask & categoryIds[idx]) != 0 && IntersectionTests::Intersect(pos, 0, type, params, positions[idx], radii[idx]))
+			if ((mask & categoryIds[idx]) != 0 && IntersectionTests::Intersect(pos, 0, type, params, positions[idx], radii[idx], rot))
 			{
 				results.push_back(idx);
 			}
@@ -763,18 +765,38 @@ namespace ParallelCollision
 					Vector2 bP = bulletPositions[i];
 					float bR = bulletRadii[i];
 					int bM = bulletTargetMasks[i], bC = bulletCategoryIds[i];
-					int cx = Math::Clamp((int)((bP.x - grid.minBound.x) * grid.invCellSize), 0, grid.gridWidth - 1), cy = Math::Clamp((int)((bP.y - grid.minBound.y) * grid.invCellSize), 0, grid.gridHeight - 1);
-					for (int ny = Math::Max(cy - 1, 0); ny <= Math::Min(cy + 1, grid.gridHeight - 1); ++ny)
+					int cxMin = Math::Clamp((int)((bP.x - bR - grid.minBound.x) * grid.invCellSize), 0, grid.gridWidth - 1);
+					int cxMax = Math::Clamp((int)((bP.x + bR - grid.minBound.x) * grid.invCellSize), 0, grid.gridWidth - 1);
+					int cyMin = Math::Clamp((int)((bP.y - bR - grid.minBound.y) * grid.invCellSize), 0, grid.gridHeight - 1);
+					int cyMax = Math::Clamp((int)((bP.y + bR - grid.minBound.y) * grid.invCellSize), 0, grid.gridHeight - 1);
+
+					for (int ny = cyMin; ny <= cyMax; ++ny)
 					{
 						int row = ny * grid.gridWidth;
-						for (int nx = Math::Max(cx - 1, 0); nx <= Math::Min(cx + 1, grid.gridWidth - 1); ++nx)
+						for (int nx = cxMin; nx <= cxMax; ++nx)
 						{
 							int eIdx = grid.cellHeads[nx + row];
 							while (eIdx != -1)
 							{
-								if ((bM & categoryIds[eIdx]) != 0 && (bP - positions[eIdx]).length2() < (bR + radii[eIdx]) * (bR + radii[eIdx]))
+								if ((bM & categoryIds[eIdx]) != 0)
 								{
-									bhits.emplace_back(i, eIdx);
+									// Broadphase (using max possible radius from param.x)
+									float rSum = bR + radii[eIdx];
+									if ((bP - positions[eIdx]).length2() < rSum * rSum)
+									{
+										bool hit = true;
+										// Narrowphase for non-circle shapes
+										if (bulletShapeTypes[i] == ShapeType::Arc)
+										{
+											hit = IntersectionTests::IntersectArcCircle(bP, bulletShapeParams[i].x, bulletRotations[i], bulletShapeParams[i].y * 0.5f, positions[eIdx], radii[eIdx]);
+										}
+										else if (bulletShapeTypes[i] == ShapeType::Rect)
+										{
+											hit = IntersectionTests::IntersectRectCircle(bP, Vector2(bulletShapeParams[i].x, bulletShapeParams[i].y), bulletRotations[i], positions[eIdx], radii[eIdx]);
+										}
+										
+										if (hit) bhits.emplace_back(i, eIdx);
+									}
 								}
 								eIdx = grid.nextIndices[eIdx];
 							}
@@ -783,9 +805,23 @@ namespace ParallelCollision
 					for (int k = 0; k < lCount; ++k)
 					{
 						int lIdx = pLIdx[k];
-						if ((bM & categoryIds[lIdx]) != 0 && (bP - positions[lIdx]).length2() < (bR + radii[lIdx]) * (bR + radii[lIdx]))
+						if ((bM & categoryIds[lIdx]) != 0)
 						{
-							bhits.emplace_back(i, lIdx);
+							float rSum = bR + radii[lIdx];
+							if ((bP - positions[lIdx]).length2() < rSum * rSum)
+							{
+								bool hit = true;
+								if (bulletShapeTypes[i] == ShapeType::Arc)
+								{
+									hit = IntersectionTests::IntersectArcCircle(bP, bulletShapeParams[i].x, bulletRotations[i], bulletShapeParams[i].y * 0.5f, positions[lIdx], radii[lIdx]);
+								}
+								else if (bulletShapeTypes[i] == ShapeType::Rect)
+								{
+									hit = IntersectionTests::IntersectRectCircle(bP, Vector2(bulletShapeParams[i].x, bulletShapeParams[i].y), bulletRotations[i], positions[lIdx], radii[lIdx]);
+								}
+
+								if (hit) bhits.emplace_back(i, lIdx);
+							}
 						}
 					}
 
@@ -1082,6 +1118,7 @@ namespace ParallelCollision
 			mSolver.targetMasks.resize(mEntityCount);
 			mSolver.queryFlags.resize(mEntityCount);
 		}
+		mSolver.mEntityCount = mEntityCount;
 		for (int i = 0; i < mEntityCount; ++i)
 		{
 			auto const& d = mEntityDataBuffer[i];
@@ -1104,12 +1141,15 @@ namespace ParallelCollision
 			mSolver.bulletQueryFlags.resize(mBulletCount);
 			mSolver.bulletShapeTypes.resize(mBulletCount);
 			mSolver.bulletShapeParams.resize(mBulletCount);
+			mSolver.bulletRotations.resize(mBulletCount);
 		}
+		mSolver.mBulletCount = mBulletCount;
 		for (int i = 0; i < mBulletCount; ++i)
 		{
 			auto const& d = mBulletDataBuffer[i];
 			mSolver.bulletPositions[i] = d.position;
 			mSolver.bulletVelocities[i] = d.velocity;
+			mSolver.bulletRotations[i] = d.rotation;
 			
 			float radius = 0;
 			switch (d.shapeType)
@@ -1278,6 +1318,9 @@ namespace ParallelCollision
 	void ParallelCollisionManager::processCollisionEvents()
 	{
 		PROFILE_FUNCTION();
+		int numEntities = mEntityCount;
+		int numBullets = mBulletCount;
+
 		mActiveList.clear();
 		for (int i = 0; i < (int)mActiveBitset.size(); ++i)
 		{
@@ -1285,7 +1328,7 @@ namespace ParallelCollision
 		}
 		auto Activate = [&](int id, bool isBullet)
 		{
-			int fullId = isBullet ? (id + mEntityCount) : id;
+			int fullId = isBullet ? (id + numEntities) : id;
 			if (fullId >= (int)mActiveBitset.size()) mActiveBitset.resize(fullId + 1, false);
 			if (!mActiveBitset[fullId])
 			{
@@ -1296,7 +1339,7 @@ namespace ParallelCollision
 
 		for (auto const& p : mSolver.entityHitPairs)
 		{
-			if (p.x < mEntityCount && p.y < mEntityCount)
+			if (p.x < numEntities && p.y < numEntities)
 			{
 				if (mReceivers[p.x].eventData) mReceivers[p.x].eventData->currEntities.insert(mReceivers[p.y].eventHandle);
 				Activate(p.x, false);
@@ -1304,7 +1347,7 @@ namespace ParallelCollision
 		}
 		for (auto const& p : mSolver.bulletHitPairs)
 		{
-			if (p.x < mBulletCount && p.y < mEntityCount)
+			if (p.x < numBullets && p.y < numEntities)
 			{
 				if (mReceivers[p.y].eventData) mReceivers[p.y].eventData->currBullets.insert(mBulletReceivers[p.x].eventHandle);
 				Activate(p.y, false);
@@ -1314,7 +1357,7 @@ namespace ParallelCollision
 		}
 		for (auto const& pair : mSolver.bulletBulletHitPairs)
 		{
-			if (pair.x < mBulletCount && pair.y < mBulletCount)
+			if (pair.x < numBullets && pair.y < numBullets)
 			{
 				if (mBulletReceivers[pair.x].eventData) mBulletReceivers[pair.x].eventData->currBullets.insert(mBulletReceivers[pair.y].eventHandle);
 				Activate(pair.x, true);
@@ -1329,93 +1372,97 @@ namespace ParallelCollision
 
 		for (int id : mActiveList)
 		{
-			bool isB = (id >= mEntityCount);
-			int actualId = isB ? (id - mEntityCount) : id;
+			bool isB = (id >= numEntities);
+			int actualId = isB ? (id - numEntities) : id;
 			if (isB)
 			{
-				auto& d = mBulletReceivers[actualId];
-				if (!d.bullet || !d.eventData) 
+				IPhysicsBullet* myBullet = mBulletReceivers[actualId].bullet;
+				CollisionEventData* myEventData = mBulletReceivers[actualId].eventData;
+
+				if (!myBullet || !myEventData) 
                     continue;
 				
-                auto& ev = *d.eventData;
+                auto& ev = *myEventData;
 				for (int otherHandle : ev.currEntities)
 				{
 					IPhysicsEntity* other = getEntityFromHandle(otherHandle);
 					if (!other) continue;
-					if (other->mPhysicsId < 0 || other->mPhysicsId >= mEntityCount) continue;
+					if (other->mPhysicsId < 0 || other->mPhysicsId >= numEntities) continue;
 
-					if (ev.prevEntities.count(otherHandle)) d.bullet->handleCollisionStay(other, mSolver.categoryIds[other->mPhysicsId]);
-					else d.bullet->handleCollisionEnter(other, mSolver.categoryIds[other->mPhysicsId]);
+					if (ev.prevEntities.count(otherHandle)) myBullet->handleCollisionStay(other, mSolver.categoryIds[other->mPhysicsId]);
+					else myBullet->handleCollisionEnter(other, mSolver.categoryIds[other->mPhysicsId]);
 				}
 				for (int prevHandle : ev.prevEntities)
 				{
 					IPhysicsEntity* prev = getEntityFromHandle(prevHandle);
 					if (ev.currEntities.count(prevHandle) == 0) 
 					{
-						if (prev && prev->mPhysicsId >= 0 && prev->mPhysicsId < mEntityCount)
-							d.bullet->handleCollisionExit(prev, mSolver.categoryIds[prev->mPhysicsId]);
+						if (prev && prev->mPhysicsId >= 0 && prev->mPhysicsId < numEntities)
+							myBullet->handleCollisionExit(prev, mSolver.categoryIds[prev->mPhysicsId]);
 					}
 				}
 				for (int bulletHandle : ev.currBullets)
 				{
 					IPhysicsBullet* bullet = getBulletFromHandle(bulletHandle);
 					if (!bullet) continue;
-					if (bullet->mBulletId < 0 || bullet->mBulletId >= mBulletCount) continue;
+					if (bullet->mBulletId < 0 || bullet->mBulletId >= numBullets) continue;
 
-					if (ev.prevBullets.count(bulletHandle)) d.bullet->handleCollisionStay(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
-					else d.bullet->handleCollisionEnter(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
+					if (ev.prevBullets.count(bulletHandle)) myBullet->handleCollisionStay(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
+					else myBullet->handleCollisionEnter(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
 				}
 				for (int prevHandle : ev.prevBullets)
 				{
 					IPhysicsBullet* prev = getBulletFromHandle(prevHandle);
 					if (ev.currBullets.count(prevHandle) == 0) 
 					{
-						if (prev && prev->mBulletId >= 0 && prev->mBulletId < mBulletCount)
-							d.bullet->handleCollisionExit(prev, mSolver.bulletCategoryIds[prev->mBulletId]);
+						if (prev && prev->mBulletId >= 0 && prev->mBulletId < numBullets)
+							myBullet->handleCollisionExit(prev, mSolver.bulletCategoryIds[prev->mBulletId]);
 					}
 				}
 			}
 			else
 			{
-				auto& d = mReceivers[actualId];
-				if (!d.entity || d.isPendingRemove || !d.eventData) 
+				IPhysicsEntity* myEntity = mReceivers[actualId].entity;
+				CollisionEventData* myEventData = mReceivers[actualId].eventData;
+
+				if (!myEntity || mReceivers[actualId].isPendingRemove || !myEventData) 
 					continue;
 				
-				auto& ev = *d.eventData;
+				auto& ev = *myEventData;
 				for (int otherHandle : ev.currEntities)
 				{
 					IPhysicsEntity* other = getEntityFromHandle(otherHandle);
 					if (!other) continue;
-					if (other->mPhysicsId < 0 || other->mPhysicsId >= mEntityCount) continue;
+					if (other->mPhysicsId < 0 || other->mPhysicsId >= numEntities) continue;
 
-					if (ev.prevEntities.count(otherHandle)) d.entity->handleCollisionStay(other, mSolver.categoryIds[other->mPhysicsId]);
-					else d.entity->handleCollisionEnter(other, mSolver.categoryIds[other->mPhysicsId]);
+					if (ev.prevEntities.count(otherHandle)) myEntity->handleCollisionStay(other, mSolver.categoryIds[other->mPhysicsId]);
+					else myEntity->handleCollisionEnter(other, mSolver.categoryIds[other->mPhysicsId]);
 				}
 				for (int prevHandle : ev.prevEntities)
 				{
 					IPhysicsEntity* prev = getEntityFromHandle(prevHandle);
 					if (ev.currEntities.count(prevHandle) == 0) 
 					{
-						if (prev && prev->mPhysicsId >= 0 && prev->mPhysicsId < mEntityCount)
-							d.entity->handleCollisionExit(prev, mSolver.categoryIds[prev->mPhysicsId]);
+						if (prev && prev->mPhysicsId >= 0 && prev->mPhysicsId < numEntities)
+							myEntity->handleCollisionExit(prev, mSolver.categoryIds[prev->mPhysicsId]);
 					}
 				}
 				for (int bulletHandle : ev.currBullets)
 				{
 					IPhysicsBullet* bullet = getBulletFromHandle(bulletHandle);
 					if (!bullet) continue;
-					if (bullet->mBulletId < 0 || bullet->mBulletId >= mBulletCount) continue;
+					if (bullet->mBulletId < 0 || bullet->mBulletId >= numBullets) continue;
 
-					if (ev.prevBullets.count(bulletHandle)) d.entity->handleCollisionStay(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
-					else d.entity->handleCollisionEnter(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
+					if (ev.prevBullets.count(bulletHandle)) myEntity->handleCollisionStay(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
+					else myEntity->handleCollisionEnter(bullet, mSolver.bulletCategoryIds[bullet->mBulletId]);
 				}
 				for (int prevHandle : ev.prevBullets)
 				{
 					IPhysicsBullet* prev = getBulletFromHandle(prevHandle);
 					if (ev.currBullets.count(prevHandle) == 0) 
 					{
-						if (prev && prev->mBulletId >= 0 && prev->mBulletId < mBulletCount)
-							d.entity->handleCollisionExit(prev, mSolver.bulletCategoryIds[prev->mBulletId]);
+						if (prev && prev->mBulletId >= 0 && prev->mBulletId < numBullets)
+							myEntity->handleCollisionExit(prev, mSolver.bulletCategoryIds[prev->mBulletId]);
 					}
 				}
 			}
@@ -1453,7 +1500,6 @@ namespace ParallelCollision
 		mbDataLocked = true;
 		syncToSolver();
 		
-		// 啟動物理模擬（異步）
 		mSolver.schedule(dt, mEntityCount, mBulletCount, mThreadPool);
 	}
 
@@ -1472,7 +1518,7 @@ namespace ParallelCollision
 				{
 					if ((mask & mSolver.categoryIds[idx]) != 0)
 					{
-						bool hit = (type == ShapeType::Circle) ? (pos - mSolver.positions[idx]).length2() < (params.x + mSolver.radii[idx]) * (params.x + mSolver.radii[idx]) : IntersectionTests::Intersect(pos, 0, type, params, mSolver.positions[idx], mSolver.radii[idx]);
+						bool hit = IntersectionTests::Intersect(pos, 0, type, params, mSolver.positions[idx], mSolver.radii[idx], rot);
 						if (hit) results.push_back(mReceivers[idx].entity);
 					}
 					idx = mSolver.grid.nextIndices[idx];
@@ -1481,7 +1527,7 @@ namespace ParallelCollision
 		}
 		for (int idx : mSolver.largeEntityIndices)
 		{
-			if ((mask & mSolver.categoryIds[idx]) != 0 && IntersectionTests::Intersect(pos, 0, type, params, mSolver.positions[idx], mSolver.radii[idx]))
+			if ((mask & mSolver.categoryIds[idx]) != 0 && IntersectionTests::Intersect(pos, 0, type, params, mSolver.positions[idx], mSolver.radii[idx], rot))
 			{
 				results.push_back(mReceivers[idx].entity);
 			}

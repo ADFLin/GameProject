@@ -1,5 +1,6 @@
-#ifndef InputManager_h__
-#define InputManager_h__
+#pragma once
+#ifndef InputManager_H_1BEEF6DA_9232_4295_9ED6_7420750EE34A
+#define InputManager_H_1BEEF6DA_9232_4295_9ED6_7420750EE34A
 
 #include "GameConfig.h"
 #include "FastDelegate/FastDelegate.h"
@@ -39,14 +40,17 @@ public:
 	TINY_API void procMouseEvent( MouseMsg const& msg );
 	TINY_API void procKeyEvent  ( unsigned key , bool isDown );
 
-	bool bActive;
+	bool mKeys[256];
 
 private:
 	typedef std::list< MouseCallback > MouseCallbackList;
 	MouseCallbackList mMouseCBList;
 
+	InputManager();
+
 	typedef std::list< KeyCallback > KeyCallbackList;
 	KeyCallbackList mKeyCBList;
 };
 
-#endif // InputManager_h__
+
+#endif // InputManager_H_1BEEF6DA_9232_4295_9ED6_7420750EE34A

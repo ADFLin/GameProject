@@ -1,0 +1,126 @@
+#include "Common.sgc"
+
+#if VERTEX_SHADER || GEOMETRY_SHADER
+struct VSOutputParams
+{
+	float2 pos    MEMBER_OUT(TEXCOORD0);
+	float2 size   MEMBER_OUT(TEXCOORD1);
+	float2 uvPos  MEMBER_OUT(TEXCOORD2);
+	float2 uvSize MEMBER_OUT(TEXCOORD3);
+	float4 color  MEMBER_OUT(TEXCOORD4);
+	float  scale  MEMBER_OUT(TEXCOORD5);
+};
+#endif
+
+#if GEOMETRY_SHADER || PIXEL_SHADER
+struct GSOutputParams
+{
+	float2 uv    MEMBER_OUT(TEXCOORD0);
+	float4 color MEMBER_OUT(TEXCOORD1);
+#if GEOMETRY_SHADER
+	GS_SV_POSTITION_OUT
+#endif
+};
+#endif
+
+#if VERTEX_SHADER
+
+DECLARE_VERTEX_INPUT_START(VS_INPUT_STRUCT)
+	DECLARE_VERTEX_INPUT(float2, InPos, ATTRIBUTE0)
+	DECLARE_VERTEX_INPUT(float2, InSize, ATTRIBUTE1)
+	DECLARE_VERTEX_INPUT(float2, InUVPos, ATTRIBUTE2)
+	DECLARE_VERTEX_INPUT(float2, InUVSize, ATTRIBUTE3)
+	DECLARE_VERTEX_INPUT(float,  InScale,  ATTRIBUTE4)
+	DECLARE_VERTEX_INPUT(float4, InColor,  ATTRIBUTE5)
+DECLARE_VERTEX_INPUT_END(VS_INPUT_STRUCT)
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT_PARAMETERS(VS_INPUT_STRUCT VertexInput)
+	VS_OUTPUT(VSOutputParams OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+	OutputVS.pos = VERTEX_INPUT(InPos);
+	OutputVS.size = VERTEX_INPUT(InSize);
+	OutputVS.uvPos = VERTEX_INPUT(InUVPos);
+	OutputVS.uvSize = VERTEX_INPUT(InUVSize);
+	OutputVS.color = VERTEX_INPUT(InColor);
+	OutputVS.scale = VERTEX_INPUT(InScale);
+	SvPosition = float4(VERTEX_INPUT(InPos), 0.0, 1.0);
+}
+#endif
+
+#if GEOMETRY_SHADER
+
+uniform float4x4 WorldToClip;
+
+#if COMPILER_GLSL
+in VSOutputParams OutputVS[];
+out GSOutputParams GSOutput;
+#define OutputGS GSOutput
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+void MainGS()
+{
+	VSOutputParams inputData = OutputVS[0];
+#else
+[maxvertexcount(4)]
+void MainGS(point VSOutputParams input[1], inout TriangleStream<GSOutputParams> OutputStream)
+{
+	VSOutputParams inputData = input[0];
+#endif
+	float2 pos = inputData.pos;
+	float2 halfSize = 0.5 * inputData.size * inputData.scale;
+	float2 uvPos = inputData.uvPos;
+	float2 uvSize = inputData.uvSize;
+	float4 color = inputData.color;
+
+	// Calculate depth based on Y coordinate for sorting
+	// In Standard-Z (0=Near, 1=Far), we want larger Y (bottom) to have smaller Z value
+	float depth = saturate(0.5 - pos.y * 0.0001);
+
+	GSOutputParams v;
+	v.color = color;
+
+	// TL
+	v.uv = uvPos;
+	float4 clipPos = mul(WorldToClip, float4(pos + float2(-halfSize.x, -halfSize.y), 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	// TR
+	v.uv = uvPos + float2(uvSize.x, 0);
+	clipPos = mul(WorldToClip, float4(pos + float2(halfSize.x, -halfSize.y), 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	// BL
+	v.uv = uvPos + float2(0, uvSize.y);
+	clipPos = mul(WorldToClip, float4(pos + float2(-halfSize.x, halfSize.y), 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	// BR
+	v.uv = uvPos + uvSize;
+	clipPos = mul(WorldToClip, float4(pos + float2(halfSize.x, halfSize.y), 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	GS_END_PRIMITIVE;
+}
+#endif
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(sampler2D, MonsterTexture);
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(GSOutputParams OutputGS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float4 texColor = TEXTURE_SAMPLE(MonsterTexture, OutputGS.uv);
+	float4 finalColor = texColor * OutputGS.color;
+	if (finalColor.a < 0.01) discard;
+	OutColor = finalColor;
+}
+#endif

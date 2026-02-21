@@ -46,7 +46,7 @@ public:
 	}
 
 	void  waitAllThreadIdle();
-	void  waitAllWorkComplete();
+	void  waitAllWorkComplete(bool bHelpUpdate = false);
 	void  waitAllWorkCompleteInWorker();
 	void  cencelAllWorks();
 

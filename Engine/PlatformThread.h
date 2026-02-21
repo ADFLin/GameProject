@@ -3,6 +3,7 @@
 
 #include "PlatformConfig.h"
 #include "CompilerConfig.h"
+#include "SystemPlatform.h"
 
 #include "Core/IntegerType.h"
 #include "TemplateMisc.h"

@@ -37,7 +37,7 @@ namespace AppleSnake
 		template< bool bIncluded >
 		void setupState()
 		{
-			g.setCustomRenderState([this](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, GraphicsDefinition::RenderState const& state)
+			g.setCustomRenderState([this](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, RenderTransform2D const& transform, GraphicsDefinition::RenderState const& state)
 			{
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<

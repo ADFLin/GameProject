@@ -125,6 +125,11 @@ RHIGraphics2D& Global::GetRHIGraphics2D()
 	return GetDrawEngine().getRHIGraphics();
 }
 
+RHIGraphics2D& Global::GetRHIGraphics2D_RenderThread()
+{
+	return GetDrawEngine().getRHIGraphics_RenderThread();
+}
+
 IGraphics2D& Global::GetIGraphics2D()
 {
 	return GetDrawEngine().getIGraphics();

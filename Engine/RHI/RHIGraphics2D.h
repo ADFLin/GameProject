@@ -2,10 +2,10 @@
 #ifndef RHIGraphics2D_H_B76821A9_0E45_4D52_8371_17DAF128C490
 #define RHIGraphics2D_H_B76821A9_0E45_4D52_8371_17DAF128C490
 
+
 #include "Graphics2DBase.h"
 #include "Core/IntegerType.h"
 
-#include "RHI/Font.h"
 #include "RHI/SimpleRenderState.h"
 #include "Renderer/RenderTransform2D.h"
 #include "Renderer/BatchedRender2D.h"
@@ -15,20 +15,36 @@
 #include "Math/Matrix4.h"
 #include "DataStructure/Array.h"
 
-#include <algorithm>
+namespace Render
+{
+	class FontDrawer;
+	class RenderBatchedElementList;
+}
 
+class RenderCommandList;
 
 using Render::ESimpleBlendMode;
+
+struct RHI2DContext;
 
 
 class RHIGraphics2D : public Render::GraphicsDefinition
 {
 public:
 	RHIGraphics2D();
+	~RHIGraphics2D();
 
 	using Vector2 = Math::Vector2;
 	using RHITexture2D = Render::RHITexture2D;
 	using RHISamplerState = Render::RHISamplerState;
+
+	enum class ERenderMode
+	{
+		Immediate,
+		Buffered,
+	};
+
+	void setRenderMode(ERenderMode mode) { mRenderMode = mode; }
 
 	using Color4Type = Render::ShapePaintArgs::Color4Type;
 	using Color3Type = Render::ShapePaintArgs::Color3Type;
@@ -79,7 +95,7 @@ public:
 	void  setBlendState(ESimpleBlendMode mode);
 	void  setBlendAlpha(float value);
 
-	void  drawPixel(Vector2 const& p, Color3Type const& color);
+	void  drawPixel(Vector2 const& p, Color4ub const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);
 	void  drawLineStrip(Vector2 const pos[], int num);
 	void  drawArcLine(Vector2 const& pos, float r, float startAngle, float sweepAngle);
@@ -106,10 +122,11 @@ public:
 	TCustomRenderer*  drawCustom(bool bChangeState, TArgs&& ...args)
 	{
 		commitRenderState();
+		syncTransform();
 
-		void* ptr = mAllocator.alloc(sizeof(TCustomRenderer));
+		void* ptr = allocRaw(sizeof(TCustomRenderer));
 		new (ptr) TCustomRenderer(std::forward<TArgs>(args)...);
-		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly, bChangeState);
+		auto& element = getElementList().addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly, bChangeState);
 
 		setupElement(element);
 		return (TCustomRenderer*)ptr;
@@ -123,11 +140,15 @@ public:
 			:mFunc(std::forward<TFunc>(func))
 		{
 		}
-		void render(Render::RHICommandList& commandList, Math::Matrix4 const& baseTransform, Render::RenderBatchedElement& element, RenderState const& state) override
+		void render(Render::RHICommandList& commandList, Math::Matrix4 const& baseTransform, Render::RenderBatchedElement& element, Render::RenderTransform2D const& transform, RenderState const& state) override
 		{
-			if constexpr (TCheckConcept< CFunctionCallable, TFunc, Render::RHICommandList&, Math::Matrix4 const&, Render::RenderBatchedElement&, RenderState const&>::Value)
+			if constexpr (TCheckConcept< CFunctionCallable, TFunc, Render::RHICommandList&, Math::Matrix4 const&, Render::RenderBatchedElement&, Render::RenderTransform2D const&, RenderState const&>::Value)
 			{
-				mFunc(commandList, baseTransform, element, state);
+				mFunc(commandList, baseTransform, element, transform, state);
+			}
+			else if constexpr (TCheckConcept< CFunctionCallable, TFunc, Render::RHICommandList&, Math::Matrix4 const&, Render::RenderBatchedElement&, Render::RenderTransform2D const&>::Value)
+			{
+				mFunc(commandList, baseTransform, element, transform);
 			}
 			else
 			{
@@ -140,11 +161,12 @@ public:
 	void  drawCustomFunc(TFunc&& func, bool bChangeState = true)
 	{
 		commitRenderState();
+		syncTransform();
 
 		using MyCustomRenderer = TCustomFuncRenderer<TFunc>;
-		void* ptr = mAllocator.alloc(sizeof(MyCustomRenderer));
+		void* ptr = allocRaw(sizeof(MyCustomRenderer));
 		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
-		auto& element = mElementList.addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly, bChangeState);
+		auto& element = getElementList().addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly, bChangeState);
 
 		setupElement(element);
 	}
@@ -153,12 +175,13 @@ public:
 	void setCustomRenderState(TFunc&& func)
 	{
 		commitRenderState();
+		syncTransform();
 
 		using MyCustomRenderer = TCustomFuncRenderer<TFunc>;
-		void* ptr = mAllocator.alloc(sizeof(MyCustomRenderer));
+		void* ptr = allocRaw(sizeof(MyCustomRenderer));
 		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
 
-		auto& element = mElementList.addCustomState(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly);
+		auto& element = getElementList().addCustomState(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly);
 		
 		setupElement(element);
 	}
@@ -167,7 +190,7 @@ public:
 	{
 		commitRenderState();
 
-		auto& element = mElementList.addCustomState(nullptr, Render::EObjectManageMode::None);
+		auto& element = getElementList().addCustomState(nullptr, Render::EObjectManageMode::None);
 
 		setupElement(element);
 	}
@@ -209,15 +232,7 @@ public:
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
 	void drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignment, bool bClip = false);
 	void drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
-	Vec2i calcTextExtentSize(char const* str, int len)
-	{
-		if (mFont && mFont->isValid())
-		{
-			Vector2 extent = mFont->calcTextExtent(TStringView<char>(str, len));
-			return Vec2i(Math::RoundToInt(extent.x), Math::RoundToInt(extent.y));
-		}
-		return Vec2i(0, 0);
-	}
+	Vec2i calcTextExtentSize(char const* str, int len);
 
 	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices);
 	void drawTextQuad(TArray<Render::GlyphVertex> const& vertices, TArray<Color4Type> const& colors);
@@ -254,7 +269,7 @@ public:
 
 	Math::Matrix4 const& getBaseTransform() const
 	{
-		return mBatchedRender.mBaseTransform;
+		return mBaseTransform;
 	}
 
 	Render::RenderTransform2D const& getCurrentTransform() const
@@ -277,8 +292,22 @@ public:
 
 	void setTextRemoveScale(bool bRemoved) { bTextRemoveScale = bRemoved; }
 	void setTextRemoveRotation(bool bRemoved) { bTextRemoveRotation = bRemoved; }
-private:
+	void setRecordingList(::RenderCommandList* list);
+	void releaseContext(RHI2DContext* context);
 
+	class LayerPolicy
+	{
+	public:
+		virtual ~LayerPolicy() {}
+		virtual int32 getLayer(Render::RenderBatchedElement const& element, RenderState const& state) = 0;
+	};
+
+	void setLayerPolicy(LayerPolicy* policy) { mLayerPolicy = policy; }
+	LayerPolicy* getLayerPolicy() const { return mLayerPolicy; }
+
+	void* allocRaw(size_t size);
+
+private:
 	template< typename CharT >
 	void drawTextImpl(float ox, float oy, CharT const* str, int charCount = INDEX_NONE);
 	template< typename CharT >
@@ -289,16 +318,37 @@ private:
 	void flushBatchedElements();
 	void preModifyRenderState();
 
+	ERenderMode mRenderMode = ERenderMode::Immediate;
+	RHI2DContext* mWriteContext = nullptr;
+
+	RHI2DContext* acquireContext();
+
 	bool bTextRemoveScale = false;
 	bool bTextRemoveRotation = false;
 
 
 	void setupElement(Render::RenderBatchedElement& element)
 	{
-		element.transform = mXFormStack.get();
-		element.layer = mNextLayer;
-		++mNextLayer;
+		commitRenderState();
+		syncTransform();
+		syncState();
+		element.transformIndex = mCurrentTransformIndex;
+		element.stateIndex = mCurrentStateIndex;
+		if (mLayerPolicy)
+		{
+			element.layer = mLayerPolicy->getLayer(element, mRenderStatePending);
+		}
+		else
+		{
+			element.layer = mNextLayer;
+			++mNextLayer;
+		}
 	}
+
+	void syncTransform();
+	void syncState();
+
+	Render::RenderBatchedElementList& getElementList();
 
 	Render::ShapePaintArgs const& getPaintArgs()
 	{
@@ -315,14 +365,25 @@ private:
 
 
 	Color4Type   mColorFont;
+	int32        mFlushCount = 0;
 
 	Render::FontDrawer*   mFont;
 
 
-	FrameAllocator mAllocator;
+	RHI2DContext* mImmediateContext = nullptr;
 	Render::TransformStack2D mXFormStack;
-	Render::RenderBatchedElementList mElementList;
-	Render::BatchedRender mBatchedRender;
+	TArray<uint32> mTransformIndexStack;
+	uint32 mCurrentTransformIndex = 0;
+	bool bTransformDirty = true;
+	uint32 mCurrentStateIndex = 0;
+	bool bStateDirty = true;
+	class ::RenderCommandList* mRecordingList = nullptr;
+
+	Math::Matrix4 mBaseTransform;
+	int mViewportWidth = 0;
+	int mViewportHeight = 0;
+
+	LayerPolicy* mLayerPolicy = nullptr;
 };
 
 

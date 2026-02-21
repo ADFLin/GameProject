@@ -500,6 +500,7 @@ namespace Render
 			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, data, level);
 		}
 		OpenGLCast::To(&texture)->unbind();
+		return result;
 	}
 
 	void OpenGLSystem::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)

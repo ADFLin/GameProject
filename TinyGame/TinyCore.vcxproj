@@ -291,6 +291,7 @@
     <ClInclude Include="TinyCore\GameMode.h" />
     <ClInclude Include="TinyCore\GameRenderSetup.h" />
     <ClInclude Include="TinyCore\NetStageController.h" />
+    <ClInclude Include="TinyCore\ParallelCollision\ParallelCollision.h" />
     <ClInclude Include="TinyCore\RenderLayer.h" />
     <ClInclude Include="Widget\GameDetailPanel.h" />
     <ClInclude Include="Widget\WidgetLayout.h" />
@@ -703,6 +704,7 @@
     <ClCompile Include="TinyCore\GameStage.cpp" />
     <ClCompile Include="TinyCore\GameMode.cpp" />
     <ClCompile Include="TinyCore\NetStageController.cpp" />
+    <ClCompile Include="TinyCore\ParallelCollision\ParallelCollision.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -249,14 +249,9 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="TestRender\ShadertoyCore.cpp" />
-    <ClCompile Include="TestRender\SplitScreen\Geometry\ConvexPolygon.cpp" />
-    <ClCompile Include="TestRender\SplitScreen\Geometry\MaxInscribedCircle.cpp" />
-    <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.cpp" />
-    <ClCompile Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.cpp" />
-    <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiBuilder.cpp" />
-    <ClCompile Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D11TestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\FireworksStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D12RayTracingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp" />
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
@@ -314,17 +309,9 @@
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />
     <ClInclude Include="TestRender\ShadertoyCore.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\Circle.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\ConvexPolygon.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\DelaunayDual.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\Line.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\MaxInscribedCircle.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\PointWithCenterClockwiseSort.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\Range.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\StandardLine.h" />
-    <ClInclude Include="TestRender\SplitScreen\Geometry\Triangle.h" />
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\FluidSimStage.h" />
+    <ClInclude Include="TestRender\Stage\FireworksStage.h" />
     <ClInclude Include="TestRender\Stage\Lighting2DStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
@@ -338,14 +325,6 @@
   <ItemGroup>
     <None Include="out\Script\RTScene\TestA.chai" />
     <None Include="out\Script\SceneA.chai" />
-    <None Include="TestRender\SplitScreen\Voronoi\Balancing\FloydRelaxation.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\Balancing\UniformTransformRelaxation.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiBounds.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiBuilder.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiDiagram.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiEdge.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiNormalizationScope.h" />
-    <None Include="TestRender\SplitScreen\Voronoi\VoronoiRegion.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

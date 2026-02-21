@@ -6,6 +6,7 @@
 #include "RHI/SceneRenderer.h"
 
 #include "Renderer/IBLResource.h"
+#include "Renderer/Tonemap.h"
 
 namespace Render
 {
@@ -69,42 +70,6 @@ namespace Render
 		IBLShaderParameters mParamIBL;
 	};
 
-	struct PostProcessContext
-	{
-	public:
-		RHITexture2D* getTexture(int slot = 0) const { return mInputTexture[slot]; }
-		RHITexture2DRef mInputTexture[4];
-	};
-
-
-	struct PostProcessParameters
-	{
-		void bindParameters(ShaderParameterMap const& parameterMap)
-		{
-			for( int i = 0; i < MaxInputNum; ++i )
-			{
-				InlineString<128> name;
-				name.format("TextureInput%d", i);
-				mParamTextureInput[i].bind(parameterMap, name);
-			}
-		}
-
-		void setParameters(RHICommandList& commandList, ShaderProgram& shader, PostProcessContext const& context)
-		{
-			for( int i = 0; i < MaxInputNum; ++i )
-			{
-				if( !mParamTextureInput[i].isBound() )
-					break;
-				if( context.getTexture(i) )
-					shader.setTexture(commandList, mParamTextureInput[i], *context.getTexture(i));
-			}
-		}
-
-		static int const MaxInputNum = 4;
-
-		ShaderParameter mParamTextureInput[MaxInputNum];
-	};
-
 	class BloomDownsample : public GlobalShaderProgram
 	{
 	public:
@@ -139,38 +104,6 @@ namespace Render
 		ShaderParameter mParamTargetTexture;
 	};
 
-	class TonemapProgram : public GlobalShaderProgram
-	{
-	public:
-		using BaseClass = GlobalShaderProgram;
-		DECLARE_SHADER_PROGRAM(TonemapProgram, Global);
-
-
-		static char const* GetShaderFileName()
-		{
-			return "Shader/Tonemap";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
-			};
-			return entries;
-		}
-
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			mParamPostProcess.bindParameters(parameterMap);
-		}
-		void setParameters(RHICommandList& commandList, PostProcessContext const& context)
-		{
-			mParamPostProcess.setParameters(commandList, *this, context);
-		}
-		PostProcessParameters mParamPostProcess;
-
-	};
 
 	class BRDFTestStage : public TestRenderStageBase
 	{

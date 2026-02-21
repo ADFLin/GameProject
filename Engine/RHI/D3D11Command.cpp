@@ -346,7 +346,9 @@ namespace Render
 		D3D11_FEATURE_DATA_THREADING featureData;
 		mDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &featureData, sizeof(featureData));
 
-		if (initParam.bMultithreadingSupported)
+
+		//TODO
+		if (initParam.bMultithreadingSupported && false)
 		{
 			mDevice->CreateDeferredContext(0, &mDeviceContext);
 		}
@@ -513,7 +515,7 @@ namespace Render
 		{
 			swapChainDesc.BufferUsage |= DXGI_USAGE_SHADER_INPUT;
 		}
-		swapChainDesc.SwapEffect = info.numSamples > 1 ? DXGI_SWAP_EFFECT_DISCARD : DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD; //info.numSamples > 1 ? DXGI_SWAP_EFFECT_DISCARD : DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		swapChainDesc.Flags = 0;
 		if (info.textureCreationFlags & TCF_PlatformGraphicsCompatible)
 		{

@@ -62,6 +62,15 @@ double SystemPlatform::GetHighResolutionTime()
 #endif
 }
 
+void SystemPlatform::DebugBreak()
+{
+#if SYS_PLATFORM_WIN
+	::DebugBreak();
+#else
+
+#endif
+}
+
 std::string SystemPlatform::GetUserLocaleName()
 {
 #if SYS_PLATFORM_WIN

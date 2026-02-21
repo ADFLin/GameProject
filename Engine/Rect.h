@@ -26,6 +26,19 @@ struct TRect
 		return { min , max - min };
 	}
 
+	bool contains(TRect const& other) const
+	{
+		return other.pos.x >= pos.x && other.pos.y >= pos.y &&
+			(other.pos.x + other.size.x) <= (pos.x + size.x) &&
+			(other.pos.y + other.size.y) <= (pos.y + size.y);
+	}
+
+	bool contains(CoordType const& p) const
+	{
+		return p.x >= pos.x && p.y >= pos.y &&
+			p.x < (pos.x + size.x) && p.y < (pos.y + size.y);
+	}
+
 	bool operator != (TRect const& rhs) const
 	{
 		return pos != rhs.pos || size != rhs.size;

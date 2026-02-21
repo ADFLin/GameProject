@@ -494,10 +494,10 @@ namespace SIMD
 			// SSE doesn't have native gather, implement an optimized emulation
 			int const* pIdx = (int const*)&indices;
 			return _mm_setr_ps(
-				*(float const*)((uint8 const*)base + pIdx[0] * Scale),
-				*(float const*)((uint8 const*)base + pIdx[1] * Scale),
-				*(float const*)((uint8 const*)base + pIdx[2] * Scale),
-				*(float const*)((uint8 const*)base + pIdx[3] * Scale)
+				*(float const*)((uint8 const*)base + (intptr_t)pIdx[0] * Scale),
+				*(float const*)((uint8 const*)base + (intptr_t)pIdx[1] * Scale),
+				*(float const*)((uint8 const*)base + (intptr_t)pIdx[2] * Scale),
+				*(float const*)((uint8 const*)base + (intptr_t)pIdx[3] * Scale)
 			);
 		}
 

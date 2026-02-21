@@ -74,7 +74,7 @@ namespace
 	TConsoleVariable<bool> CVarProfileCPU{ true , "ProfileCPU", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarDrawGPUUsage{ true, "r.GPUUsage", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
-	TConsoleVariable<bool> CVarLockFPS{ true, "LockFPS" , CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarLockFPS{ false, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
 	TConsoleVariable<std::string> CVarProifleShowCategory{ "", "Profile.ShowCategory", CVF_CONFIG | CVF_SECTION_GROUP };
 	TConsoleVariable<bool> CVarShowGPUProifle{ true, "ShowGPUProfile" , CVF_TOGGLEABLE };
@@ -647,7 +647,7 @@ bool TinyGameApp::initializeGame()
 		GRedirectedStdOut = CreateFileA(outputFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
-	CreateConsole();
+	//CreateConsole();
 	GLogPrinter.addDefaultChannels();
 	{
 		EDayOfWeek dayOfWeek = appStartTime.getDayOfWeek();
@@ -863,6 +863,37 @@ bool TinyGameApp::initializeGame()
 				havePlayGame = true;
 			}
 		}
+		char const* execEntry;
+		if (!havePlayGame && ::Global::GameConfig().tryGetStringValue("DefaultExecuteEntry", nullptr, execEntry))
+		{
+			class Context : public IGameExecutionContext
+			{
+			public:
+				virtual void changeStage(StageBase* stage) 
+				{
+					manager.setNextStage(stage);
+
+				}
+				virtual void playSingleGame(char const* gameName) 
+				{
+					IGameModule* game = ::Global::ModuleManager().changeGame(gameName);
+					if (game)
+					{
+						game->beginPlay(manager, EGameMode::Single);
+					}
+				}
+				Context(StageManager& manager) :manager(manager) {}
+
+				StageManager& manager;
+			};
+			auto execInfo = ExecutionRegisterCollection::Get().findExecutionByTitle(execEntry);
+			if (execInfo)
+			{
+				Context context(*this);
+				execInfo->execFunc(context);
+				havePlayGame = true;
+			}
+		}
 
 		if (havePlayGame == false)
 		{
@@ -871,7 +902,6 @@ bool TinyGameApp::initializeGame()
 
 		mFPSCalc.init(mClock.getTimeMilliseconds());
 
-		//RenderThread::Initialize();
 	}
 
 	::ProfileSystem::Get().resetSample();
@@ -880,7 +910,6 @@ bool TinyGameApp::initializeGame()
 
 void TinyGameApp::finalizeGame()
 {
-	RenderThread::Finalize();
 
 #if TINY_WITH_EDITOR
 	finalizeEditor();
@@ -920,9 +949,17 @@ void TinyGameApp::finalizeGame()
 	Global::ModuleManager().cleanupModuleMemory();
 }
 
+void TinyGameApp::handleGameFrameStart()
+{
+	{
+		PROFILE_ENTRY("DrawEngine.SyncFrame");
+		::Global::GetDrawEngine().syncFrame();
+	}
+}
 
 long TinyGameApp::handleGameUpdate( long shouldTime )
 {	
+
 	ProfileSystem::Get().incrementFrameCount();
 
 	PROFILE_FUNCTION();
@@ -1395,14 +1432,19 @@ void TinyGameApp::render( float dframe )
 
 	DrawEngine& drawEngine = Global::GetDrawEngine();
 
-	if (!drawEngine.beginFrame())
-		return;
 
+	{
+		PROFILE_ENTRY("DrawEngine.BeginFrame")
+		if (!drawEngine.beginFrame())
+			return;
+	}
 	++GRenderFrame;
 
-	if (CVarProfileGPU)
-		GpuProfiler::Get().beginFrame();
-
+	{
+		PROFILE_ENTRY("GpuProfiler.BeginFrame")
+		if (CVarProfileGPU)
+			GpuProfiler::Get().beginFrame();
+	}
 	if ( getNextStage() || mbInitializingStage )
 		return;
 
@@ -1416,7 +1458,12 @@ void TinyGameApp::render( float dframe )
 				PROFILE_ENTRY("StageRender");
 				if (getCurStage())
 				{
+					GameRenderContext* context = drawEngine.prepareRender();
 					getCurStage()->render(dframe);
+					if (context)
+					{
+						drawEngine.postRender();
+					}
 				}
 			}
 
@@ -1616,6 +1663,7 @@ void TinyGameApp::render( float dframe )
 		mEditor->render();
 	}
 #endif
+	
 }
 
 void TinyGameApp::importUserProfile()
@@ -1869,6 +1917,8 @@ void TinyGameApp::prevStageChange()
 		g.drawRect( Vec2i(0,0) , ::Global::GetScreenSize() );
 		de.endFrame();
 	}
+
+	de.flushRenderThread();
 
 	IGameModule* game = ::Global::ModuleManager().getRunningGame();
 	if (game)

@@ -1,5 +1,5 @@
-#include "TestMiscPCH.h"
 #include "ParallelCollision.h"
+
 #include "Math/Math2D.h"
 #include <mutex>
 #include <algorithm>
@@ -11,7 +11,7 @@
 #include "Math/SIMD.h"
 
 #define USE_COLLISION_COLORING 0
-#define USE_SIMD_LEGACY 1
+#define USE_SIMD_LEGACY 0
 
 namespace ParallelCollision
 {
@@ -219,8 +219,8 @@ namespace ParallelCollision
 	{
 		mTaskAllocator.clearFrame();
 		mSolveEvent.reset();
-		assert(!mIsSolving);
-		mIsSolving = true;
+		CHECK(mThreadPool == nullptr);
+		mThreadPool = &threadPool;
 		mEntityCount = entityCount;
 		mBulletCount = bulletCount;
 
@@ -279,7 +279,6 @@ namespace ParallelCollision
 			auto end = std::chrono::high_resolution_clock::now();
 			mLastSolveTime = std::chrono::duration<float, std::milli>(end - start).count();
 			mSolveEvent.fire();
-			mIsSolving = false;
 		};
 
 		TFrameWork< decltype(pipelineTask) >* work;
@@ -293,10 +292,11 @@ namespace ParallelCollision
 
 	void ParallelCollisionSolver::ensureComplete()
 	{
-		if (mIsSolving)
+		if (mThreadPool)
 		{
 			mSolveEvent.wait();
-			mIsSolving = false;
+			mThreadPool->waitAllWorkComplete();
+			mThreadPool = nullptr;
 		}
 	}
 
@@ -315,7 +315,7 @@ namespace ParallelCollision
 	{
 		int cellCount = grid.gridWidth * grid.gridHeight;
 		cellNeighborCounts.resize(cellCount);
-		globalNeighborCache.resize(cellCount * fixedCapacity);
+		globalNeighborCache.resize((size_t)cellCount * fixedCapacity);
 		int const* __restrict pCellHeads = grid.cellHeads.data();
 		int const* __restrict pNextIndices = grid.nextIndices.data();
 		int* __restrict pNeighborCounts = cellNeighborCounts.data();
@@ -333,7 +333,9 @@ namespace ParallelCollision
 		ParallelFor(threadPool, mTaskAllocator, "FillNeighborCache", activeCount, [=](int idx)
 		{
 			int i = pActiveIndices[idx];
-			int cx = i % gridWidth, cy = i / gridWidth, baseIdx = i * fixedCap, currentCount = 0;
+			int cx = i % gridWidth, cy = i / gridWidth;
+			size_t baseIdx = (size_t)i * fixedCap;
+			int currentCount = 0;
 			int xMin = Math::Max(cx - 1, 0), xMax = Math::Min(cx + 1, gridWidth - 1), yMin = Math::Max(cy - 1, 0), yMax = Math::Min(cy + 1, gridHeight - 1);
 			for (int ny = yMin; ny <= yMax; ++ny)
 			{
@@ -581,11 +583,13 @@ namespace ParallelCollision
 			{
 #if !USE_SIMD_LEGACY
 				int cellIdx = pCellIdx[i];
-				if (cellIdx < 0 || cellIdx >= nCSize) return;
+				if (cellIdx < 0 || cellIdx >= nCSize) 
+					return;
 
 				Vector2 posA = pPos[i];
 				float rA = pRadii[i], mA = pMasses[i], totalPushX = 0, totalPushY = 0;
-				int startIdx = cellIdx * fixedCap, count = pNCounts[cellIdx];
+				int startIdx = cellIdx * fixedCap;
+				int count = pNCounts[cellIdx];
 				for (int n = 0; n < count; ++n)
 				{
 					int bIdx = pGCache[startIdx + n];
@@ -623,11 +627,14 @@ namespace ParallelCollision
 				FloatVector vPosX_A( (float)pPos[i].x ), vPosY_A( (float)pPos[i].y ), vRadii_A( (float)pRadii[i] ), vMass_A( (float)pMasses[i] );
 				FloatVector vTPX(0.0f), vTPY(0.0f), vRelax(relax), vMaxP(maxPush), vMinS(minSep), vEps(1e-8f), vRamp;
 				for (int k = 0; k < (int)FloatVector::Size; ++k) vRamp[k] = (float)k;
-				int startIdx = cellIdx * fixedCap, count = pNCounts[cellIdx];
+				size_t startIdx = (size_t)cellIdx * fixedCap;
+				int count = pNCounts[cellIdx];
 				for (int n = 0; n < count; n += (int)FloatVector::Size)
 				{
 					IntVector vIdx = IntVector::load(pGCache + startIdx + n);
-					FloatVector vPosX_B = FloatVector::gather<8>((float*)pPos, vIdx), vPosY_B = FloatVector::gather<8>((float*)pPos + 1, vIdx), vRadii_B = FloatVector::gather<4>(pRadii, vIdx);
+					FloatVector vPosX_B = FloatVector::gather<8>((float*)pPos, vIdx);
+					FloatVector vPosY_B = FloatVector::gather<8>((float*)pPos + 1, vIdx);
+					FloatVector vRadii_B = FloatVector::gather<4>(pRadii, vIdx);
 					auto vValid = (vRamp + FloatVector((float)n)) < FloatVector((float)count);
 					FloatVector vDX = vPosX_A - vPosX_B, vDY = vPosY_A - vPosY_B, vD2 = vDX * vDX + vDY * vDY, vMD = vRadii_A + vRadii_B - vMinS;
 					auto vColl = (vD2 < vMD * vMD) & (vD2 > vEps) & vValid;
@@ -1109,14 +1116,15 @@ namespace ParallelCollision
 		PROFILE_FUNCTION();
 		if (mEntityCount > (int)mSolver.positions.size())
 		{
-			mSolver.positions.resize(mEntityCount);
-			mSolver.velocities.resize(mEntityCount);
-			mSolver.radii.resize(mEntityCount);
-			mSolver.masses.resize(mEntityCount);
-			mSolver.isStatic.resize(mEntityCount);
-			mSolver.categoryIds.resize(mEntityCount);
-			mSolver.targetMasks.resize(mEntityCount);
-			mSolver.queryFlags.resize(mEntityCount);
+			int newSize = mEntityCount + mEntityCount / 2 + 64;
+			mSolver.positions.resize(newSize);
+			mSolver.velocities.resize(newSize);
+			mSolver.radii.resize(newSize);
+			mSolver.masses.resize(newSize);
+			mSolver.isStatic.resize(newSize);
+			mSolver.categoryIds.resize(newSize);
+			mSolver.targetMasks.resize(newSize);
+			mSolver.queryFlags.resize(newSize);
 		}
 		mSolver.mEntityCount = mEntityCount;
 		for (int i = 0; i < mEntityCount; ++i)
@@ -1133,15 +1141,16 @@ namespace ParallelCollision
 		}
 		if (mBulletCount > (int)mSolver.bulletPositions.size())
 		{
-			mSolver.bulletPositions.resize(mBulletCount);
-			mSolver.bulletVelocities.resize(mBulletCount);
-			mSolver.bulletRadii.resize(mBulletCount);
-			mSolver.bulletTargetMasks.resize(mBulletCount);
-			mSolver.bulletCategoryIds.resize(mBulletCount);
-			mSolver.bulletQueryFlags.resize(mBulletCount);
-			mSolver.bulletShapeTypes.resize(mBulletCount);
-			mSolver.bulletShapeParams.resize(mBulletCount);
-			mSolver.bulletRotations.resize(mBulletCount);
+			int newSize = mBulletCount + mBulletCount / 2 + 64;
+			mSolver.bulletPositions.resize(newSize);
+			mSolver.bulletVelocities.resize(newSize);
+			mSolver.bulletRadii.resize(newSize);
+			mSolver.bulletTargetMasks.resize(newSize);
+			mSolver.bulletCategoryIds.resize(newSize);
+			mSolver.bulletQueryFlags.resize(newSize);
+			mSolver.bulletShapeTypes.resize(newSize);
+			mSolver.bulletShapeParams.resize(newSize);
+			mSolver.bulletRotations.resize(newSize);
 		}
 		mSolver.mBulletCount = mBulletCount;
 		for (int i = 0; i < mBulletCount; ++i)
@@ -1307,6 +1316,7 @@ namespace ParallelCollision
 		if (mbDataLocked)
 		{
 			mSolver.ensureComplete();
+
 			syncFromSimulator();
 			processCollisionEvents();
 			processDeferredQueries();

@@ -23,6 +23,8 @@ public:
 
 	static double  GetHighResolutionTime();
 
+	static void DebugBreak();
+
 	static std::string GetUserLocaleName();
 
 	static char const* GetEnvironmentVariable( char const* key );

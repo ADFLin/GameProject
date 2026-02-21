@@ -10,6 +10,7 @@
 
 #include "Module/ModuleManager.h"
 #include "RenderDebug.h"
+#include "Renderer/RenderThread.h"
 
 using namespace Render;
 
@@ -47,16 +48,28 @@ bool TinyGameApp::initializeEditorRender()
 
 	RenderSystemConfigs configs;
 	configs.bDebugMode = true;
-	configs.bVSyncEnable = true;
+	configs.bVSyncEnable = false;
 	configs.numSamples = 1;
 	if (!::Global::GetDrawEngine().lockSystem(renderSystem, configs))
 	{
 		return false;
 	}
 
-	mEditor->initializeRender();
-	mEditor->addGameViewport(this);
-	mEditor->setTextureShowManager(&GTextureShowManager);
+	if (RenderThread::IsRunning())
+	{
+		RenderThread::AddCommand("Editor::initializeRender", [this]()
+		{
+			mEditor->initializeRender();
+		});
+		RenderThread::FlushCommands();
+	}
+	else
+	{
+		mEditor->initializeRender();
+	}
+
+	//mEditor->addGameViewport(this);
+	//mEditor->setTextureShowManager(&GTextureShowManager);
 	return true;
 }
 
@@ -64,7 +77,18 @@ void TinyGameApp::finalizeEditor()
 {
 	if (mEditor)
 	{
-		mEditor->release();
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::release", [editor = mEditor]()
+			{
+				editor->release();
+			});
+			RenderThread::FlushCommands();
+		}
+		else
+		{
+			mEditor->release();
+		}
 		mEditor = nullptr;
 		::Global::GetDrawEngine().unlockSystem();
 	}
@@ -82,6 +106,8 @@ void TinyGameApp::resizeViewport(int w, int h)
 
 void TinyGameApp::renderViewport(IEditorRenderContext& context)
 {
+	return;
+
 	if (::Global::GetDrawEngine().isRHIEnabled())
 	{
 		if (GRHISystem->getName() == RHISystemName::D3D11)

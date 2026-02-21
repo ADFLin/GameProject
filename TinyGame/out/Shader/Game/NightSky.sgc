@@ -1,0 +1,107 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+uniform float3 MoonDir;
+uniform float SkyIntensity;
+
+static const float3 kRayleigh = float3(5.5e-6, 13.0e-6, 22.4e-6);
+static const float3 kMie = float3(21e-6, 21e-6, 21e-6);
+static const float kMieG = 0.76;
+
+float RayleighPhase(float cosTheta)
+{
+    return 3.0 / (16.0 * PI) * (1.0 + cosTheta * cosTheta);
+}
+
+float MiePhase(float cosTheta)
+{
+    float g2 = kMieG * kMieG;
+    return 1.0 / (4.0 * PI) * (1.0 - g2) / pow(max(1e-6 , 1.0 + g2 - 2.0 * kMieG * cosTheta), 1.5);
+}
+
+float Hash(float3 p)
+{
+    p  = frac(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return frac(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float3 GetSkyColor(float3 dir)
+{
+    float cosTheta = dot(dir, MoonDir);
+    float Rayleigh = RayleighPhase(cosTheta);
+    float Mie = MiePhase(cosTheta);
+    
+    // Base Gradient (Night)
+    float h = max(dir.z, 0.0);
+    float3 zenith = float3(0.001, 0.002, 0.005) * SkyIntensity;
+    float3 horizon = float3(0.005, 0.008, 0.015) * SkyIntensity;
+    float3 color = lerp(horizon, zenith, pow(h, 0.4));
+    
+    // Lunar Glow (Atmospheric scattering from moon)
+    color += (Rayleigh * 0.005 + Mie * 0.015) * float3(0.7, 0.85, 1.0) * SkyIntensity * 15.0;
+    
+    // Moon Disk
+    float moonCos = cos(0.008); // Approx moon size
+    if (cosTheta > moonCos)
+    {
+        // Simple moon disk with some glow
+        float alpha = saturate((cosTheta - moonCos) / (1.0 - moonCos));
+        color += float3(0.9, 0.95, 1.0) * 20.0 * SkyIntensity;
+    }
+    else
+    {
+        // Moon halo
+        float halo = pow(max(0.0, cosTheta), 100.0);
+        color += float3(0.5, 0.7, 1.0) * halo * 2.0 * SkyIntensity;
+    }
+    
+    // Stars
+    if (dir.z > 0.0)
+    {
+        float3 starPos = dir * 1800.0;
+        float h = Hash(floor(starPos));
+        if (h > 0.9997)
+        {
+            float bright = pow(frac(h * 43758.5453), 20.0) * 2.0;
+            color += float3(1, 1, 1) * bright;
+        }
+    }
+    
+    return color;
+}
+
+struct VSOutputParameters
+{
+    float3 viewDir MEMBER_OUT(TEXCOORD0);
+};
+
+#if VERTEX_SHADER
+
+
+VS_ENTRY_START(MainVS)
+    VS_INPUT(float4 InPosition , ATTRIBUTE_POSITION)
+    VS_INPUT(float2 InUV , ATTRIBUTE_TEXCOORD)
+    VS_OUTPUT_STRUCT(VSOutputParameters VSOutput , 0)
+VS_ENTRY_END(MainVS)
+{
+    SvPosition = InPosition;
+    float4 worldPos = mul(View.clipToWorld, InPosition);
+    VSOutput.viewDir = worldPos.xyz / worldPos.w - View.worldPos;
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+    PS_INPUT_STRUCT(VSOutputParameters VSOutput , 0)
+    PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+    float3 dir = normalize(VSOutput.viewDir);
+    float3 color = GetSkyColor(dir);
+    OutColor = float4(color, 1.0);
+}
+
+#endif //PIXEL_SHADER

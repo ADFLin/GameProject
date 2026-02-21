@@ -9,7 +9,7 @@
 #define MAX_PLAYER_NAME_LENGTH 32
 
 #ifndef TINY_WITH_EDITOR
-#define TINY_WITH_EDITOR 1
+#define TINY_WITH_EDITOR 0
 #endif
 
 #ifdef TG_DLL

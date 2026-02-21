@@ -12,39 +12,175 @@
 
 #include "ConsoleSystem.h"
 #include "ProfileSystem.h"
+#include "Renderer/RenderThread.h"
+#include "RHI/Font.h"
+#include "PlatformThread.h"
 
 using namespace Render;
 
+#include "Singleton.h"
+#include "CoreShare.h"
+
+struct RHI2DContext
+{
+	FrameAllocator allocator;
+	Render::RenderBatchedElementList elementList;
+	Math::Matrix4 baseTransform;
+	int viewportWidth;
+	int viewportHeight;
+
+	RHI2DContext(uint32 pageSize)
+		:allocator(pageSize)
+		,elementList(allocator)
+	{
+		baseTransform = Math::Matrix4::Identity();
+		viewportWidth = 0;
+		viewportHeight = 0;
+	}
+
+	void reset()
+	{
+		elementList.reset();
+		allocator.clearFrame();
+	}
+};
+
+class RHIGraphicsBatchManager
+{
+public:
+	CORE_API static RHIGraphicsBatchManager& Get();
+
+	BatchedRender mBatchedRender;
+	TArray<RHI2DContext*> mFreeContexts;
+	TArray<RHI2DContext*> mUsedContexts;
+	Mutex mContextMutex;
+
+	RHI2DContext* acquire()
+	{
+		Mutex::Locker lock(mContextMutex);
+		if (!mFreeContexts.empty())
+		{
+			auto* context = mFreeContexts.back();
+			mFreeContexts.pop_back();
+			mUsedContexts.push_back(context);
+			return context;
+		}
+		auto* context = new RHI2DContext(2048);
+		mUsedContexts.push_back(context);
+		return context;
+	}
+
+	void release(RHI2DContext* context)
+	{
+		context->reset();
+		Mutex::Locker lock(mContextMutex);
+		auto iter = std::find(mUsedContexts.begin(), mUsedContexts.end(), context);
+		if (iter != mUsedContexts.end())
+		{
+			mUsedContexts.erase(iter);
+			mFreeContexts.push_back(context);
+		}
+	}
+
+	int initializeCount = 0;
+
+	void initializeRHI()
+	{
+		if (initializeCount == 0)
+		{
+			mBatchedRender.initializeRHI();
+		}
+		++initializeCount;
+	}
+
+	void releaseRHI()
+	{
+		--initializeCount;
+		if (initializeCount == 0)
+		{
+			mBatchedRender.releaseRHI();
+		}
+	}
+};
+
+#if CORE_SHARE_CODE
+RHIGraphicsBatchManager& RHIGraphicsBatchManager::Get()
+{
+	static RHIGraphicsBatchManager StaticInstance;
+	return StaticInstance;
+}
+#endif
+
 
 RHIGraphics2D::RHIGraphics2D()
-	:mAllocator(2048)
-	,mElementList(mAllocator)
 { 
+	mImmediateContext = new RHI2DContext(2048);
+	mWriteContext = mImmediateContext;
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
 
 	mRenderStateCommitted.setInit();
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
+
+	mBaseTransform = Math::Matrix4::Identity();
 }
+
+RHIGraphics2D::~RHIGraphics2D()
+{
+	delete mImmediateContext;
+}
+
 
 void RHIGraphics2D::initializeRHI()
 {
-	mBatchedRender.initializeRHI();
+	RHIGraphicsBatchManager::Get().initializeRHI();
 }
 
 void RHIGraphics2D::releaseRHI()
 {
-	mBatchedRender.releaseRHI();
+	RHIGraphicsBatchManager::Get().releaseRHI();
 	mRenderStateCommitted.setInit();
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 }
 
+
 void RHIGraphics2D::setViewportSize(int w, int h)
 {
-	mBatchedRender.setViewportSize(w, h);
+	//LogMsg("RHIGraphics2D::setViewportSize [w: %d, h: %d]", w, h);
+	mViewportWidth = w;
+	mViewportHeight = h;
+	mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, (float)w, (float)h, 0, -1, 1));
+
+	if (mRenderMode == ERenderMode::Immediate)
+	{
+		RHIGraphicsBatchManager::Get().mBatchedRender.setViewportSize(w, h);
+	}
+
+
+	if (mWriteContext)
+	{
+		mWriteContext->viewportWidth = w;
+		mWriteContext->viewportHeight = h;
+		mWriteContext->baseTransform = mBaseTransform;
+	}
 }
+
+void RHIGraphics2D::syncTransform()
+{
+	if (bTransformDirty)
+	{
+		mCurrentTransformIndex = getElementList().setTransform(mXFormStack.get());
+		bTransformDirty = false;
+	}
+}
+
+Render::RenderBatchedElementList& RHIGraphics2D::getElementList()
+{
+	return mWriteContext->elementList;
+}
+
 
 void RHIGraphics2D::beginXForm()
 {
@@ -63,31 +199,39 @@ void RHIGraphics2D::finishXForm()
 void RHIGraphics2D::pushXForm()
 {
 	mXFormStack.push();
+	mTransformIndexStack.push_back(mCurrentTransformIndex);
 }
 
 void RHIGraphics2D::popXForm()
 {
 	mXFormStack.pop();
+	mCurrentTransformIndex = mTransformIndexStack.back();
+	mTransformIndexStack.pop_back();
+	bTransformDirty = false;
 }
 
 void RHIGraphics2D::identityXForm()
 {
 	mXFormStack.set(RenderTransform2D::Identity());
+	bTransformDirty = true;
 }
 
 void RHIGraphics2D::translateXForm(float ox, float oy)
 {
 	mXFormStack.translate(Vector2(ox, oy));
+	bTransformDirty = true;
 }
 
 void RHIGraphics2D::rotateXForm(float angle)
 {
 	mXFormStack.rotate(angle);
+	bTransformDirty = true;
 }
 
 void RHIGraphics2D::scaleXForm(float sx, float sy)
 {
 	mXFormStack.scale(Vector2(sx, sy));
+	bTransformDirty = true;
 }
 
 void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool bReset)
@@ -100,28 +244,43 @@ void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool 
 	{
 		mXFormStack.transform(xform);
 	}
+	bTransformDirty = true;
 }
 
 void RHIGraphics2D::beginFrame()
 {
-
+	//LogMsg("RHIGraphics2D::beginFrame");
+	mFlushCount = 0;
 }
 
 void RHIGraphics2D::endFrame()
 {
-
+	//LogMsg("RHIGraphics2D::endFrame");
 }
 
 void RHIGraphics2D::beginRender()
 {
-	RHICommandList& commandList = getCommandList();
-
+	//LogMsg("RHIGraphics2D::beginRender");
 	mRenderStateCommitted.setInit();
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 	mCurTextureSize = Vector2(0, 0);
 	mXFormStack.clear();
-	mBatchedRender.beginRender(commandList);
+	mTransformIndexStack.clear();
+	mCurrentTransformIndex = 0;
+	bTransformDirty = false;
+	mNextLayer = 0;
+
+	mWriteContext->baseTransform = mBaseTransform;
+	mWriteContext->viewportWidth = mViewportWidth;
+	mWriteContext->viewportHeight = mViewportHeight;
+
+	if (mRenderMode == ERenderMode::Immediate)
+	{
+		RHICommandList& commandList = getCommandList();
+		RHIGraphicsBatchManager::Get().mBatchedRender.beginRender(commandList);
+	}
+
 
 	mPaintArgs.penWidth = 1;
 	mPaintArgs.bUseBrush = true;
@@ -134,15 +293,17 @@ void RHIGraphics2D::beginRender()
 
 void RHIGraphics2D::endRender()
 {
+	//LogMsg("RHIGraphics2D::endRender");
 	PROFILE_ENTRY("RHIGraphics2D.endRender");
 	flush();
 }
 
 void RHIGraphics2D::setupCommittedRenderState()
 {
-	//mBatchedRender.setViewportSize(mBatchedRender.mWidth, mBatchedRender.mHeight);
-	mElementList.modifyState(mRenderStateCommitted, true);
+	mCurrentStateIndex = getElementList().setState(mRenderStateCommitted);
+	bStateDirty = false;
 }
+
 
 void RHIGraphics2D::commitRenderState()
 {
@@ -174,55 +335,53 @@ void RHIGraphics2D::commitRenderState()
 		}
 
 		mDirtyState.value = 0;
-		mElementList.modifyState(mRenderStateCommitted, false);
+		bStateDirty = true;
 	}
 }
 
-void RHIGraphics2D::drawPixel(Vector2 const& p, Color3Type const& color)
+void RHIGraphics2D::syncState()
 {
-	flushBatchedElements();
+	if (bStateDirty)
+	{
+		mCurrentStateIndex = getElementList().setState(mRenderStateCommitted);
+		bStateDirty = false;
+	}
+}
 
+void RHIGraphics2D::drawPixel(Vector2 const& p, Color4ub const& color)
+{
 	setTextureState();
-	commitRenderState();
-	auto& element = mElementList.addPoint(p, Color4Type(color, mPaintArgs.brushColor.a), 0.0);
+	auto& element = getElementList().addPoint(p, color, 0.0);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawRect(int left, int top, int right, int bottom)
 {
 	setTextureState();
-	commitRenderState();
-
 	Vector2 p1(left, top);
 	Vector2 p2(right, bottom);
-	auto& element = mElementList.addRect(getPaintArgs(), p1, p2);
+	auto& element = getElementList().addRect(getPaintArgs(), p1, p2);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawRect(Vector2 const& pos, Vector2 const& size)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addRect(getPaintArgs(), pos, pos + size);
+	auto& element = getElementList().addRect(getPaintArgs(), pos, pos + size);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawCircle(Vector2 const& center, float r)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addCircle(getPaintArgs(), center, r);
+	auto& element = getElementList().addCircle(getPaintArgs(), center, r);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawEllipse(Vector2 const& center, Vector2 const& size)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addEllipse(getPaintArgs(), center, size );
+	auto& element = getElementList().addEllipse(getPaintArgs(), center, size );
 	setupElement(element);
 }
 
@@ -232,9 +391,7 @@ void RHIGraphics2D::drawPolygon(Vector2 const pos[], int num)
 		return;
 
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
+	auto& element = getElementList().addPolygon(getPaintArgs(), pos, num);
 	setupElement(element);
 }
 
@@ -244,9 +401,7 @@ void RHIGraphics2D::drawPolygon(Vec2i const pos[], int num)
 		return;
 
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
+	auto& element = getElementList().addPolygon(getPaintArgs(), pos, num);
 	setupElement(element);
 }
 
@@ -256,9 +411,7 @@ void RHIGraphics2D::drawTriangleList(Vector2 const pos[], int num)
 		return;
 
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addTriangleList(mXFormStack.get(), getPaintArgs(), pos, num);
+	auto& element = getElementList().addTriangleList(getPaintArgs(), pos, num);
 	setupElement(element);
 }
 
@@ -268,9 +421,7 @@ void RHIGraphics2D::drawTriangleList(Vec2i const pos[], int num)
 		return;
 
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addTriangleList(mXFormStack.get(), getPaintArgs(), pos, num);
+	auto& element = getElementList().addTriangleList(getPaintArgs(), pos, num);
 	setupElement(element);
 }
 
@@ -280,9 +431,7 @@ void RHIGraphics2D::drawTriangleStrip(Vector2 const pos[], int num)
 		return;
 
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addTriangleStrip(mXFormStack.get(), getPaintArgs(), pos, num);
+	auto& element = getElementList().addTriangleStrip(getPaintArgs(), pos, num);
 	setupElement(element);
 }
 
@@ -292,18 +441,14 @@ void RHIGraphics2D::drawTriangleStrip(Vec2i const pos[], int num)
 		return;
 
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addTriangleStrip(mXFormStack.get(), getPaintArgs(), pos, num);
+	auto& element = getElementList().addTriangleStrip(getPaintArgs(), pos, num);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addLine(mPaintArgs.penColor, p1, p2, mPaintArgs.penWidth);
+	auto& element = getElementList().addLine(mPaintArgs.penColor, p1, p2, mPaintArgs.penWidth);
 	setupElement(element);
 }
 
@@ -311,36 +456,28 @@ void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 void RHIGraphics2D::drawLineStrip(Vector2 const pos[], int num)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addLineStrip(mXFormStack.get(), mPaintArgs.penColor, pos, num, mPaintArgs.penWidth);
+	auto& element = getElementList().addLineStrip(mPaintArgs.penColor, pos, num, mPaintArgs.penWidth);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawArcLine(Vector2 const& pos, float r, float startAngle, float sweepAngle)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addArcLine( mPaintArgs.penColor, pos, r, startAngle, sweepAngle, mPaintArgs.penWidth);
+	auto& element = getElementList().addArcLine(mPaintArgs.penColor, pos, r, startAngle, sweepAngle, mPaintArgs.penWidth);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addRoundRect( getPaintArgs(),  pos, rectSize, circleSize / 2);
+	auto& element = getElementList().addRoundRect(getPaintArgs(),  pos, rectSize, circleSize / 2);
 	setupElement(element);
 }
 
 void RHIGraphics2D::drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
 {
 	setTextureState();
-	commitRenderState();
-
-	auto& element = mElementList.addGradientRect(posLT, colorLT, posRB, colorRB, bHGrad);
+	auto& element = getElementList().addGradientRect(posLT, colorLT, posRB, colorRB, bHGrad);
 	setupElement(element);
 }
 
@@ -382,32 +519,51 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 		return;
 	}
 
+	Vector2 renderPos = pos;
+	switch (alignH)
+	{
+	case EHorizontalAlign::Right: 
+		renderPos.x += size.x - extent.x;
+		break;
+	case EHorizontalAlign::Center:
+	case EHorizontalAlign::Fill:
+		renderPos.x += 0.5f * ( size.x - extent.x );
+		break;
+	}
+	switch (alignV)
+	{
+	case EVerticalAlign::Bottom:
+		renderPos.y += size.y - extent.y;
+		break;
+	case EVerticalAlign::Center:
+	case EVerticalAlign::Fill:
+		renderPos.y += 0.5f * (size.y - extent.y);
+		break;
+	}
+
 	auto DoDrawText = [&]()
 	{
-		Vector2 renderPos = pos;
-		switch (alignH)
-		{
-		case EHorizontalAlign::Right: 
-			renderPos.x += size.x - extent.x;
-			break;
-		case EHorizontalAlign::Center:
-		case EHorizontalAlign::Fill:
-			renderPos.x += 0.5 * ( size.x - extent.x );
-			break;
-		}
-		switch (alignV)
-		{
-		case EVerticalAlign::Bottom:
-			renderPos.y += size.y - extent.y;
-			break;
-		case EVerticalAlign::Center:
-		case EVerticalAlign::Fill:
-			renderPos.y += 0.5 * (size.y - extent.y);
-			break;
-		}
 		drawTextImpl(renderPos.x, renderPos.y, str, charCount);
 	};
 
+	if (bClip)
+	{
+		Rect textRect = { renderPos, extent };
+		Rect clipRect = { pos, size };
+		if (clipRect.contains(textRect))
+		{
+			if (mRenderStatePending.bEnableScissor)
+			{
+				if (mRenderStatePending.scissorRect.contains(textRect))
+					bClip = false;
+			}
+			else
+			{
+				bClip = false;
+			}
+		}
+	}
+	
 	if (bClip)
 	{
 		if (mRenderStatePending.bEnableScissor)
@@ -452,11 +608,29 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 		return;
 	}
 
+	Vector2 renderPos = pos + (size - extent) / 2;
 	auto DoDrawText = [&]()
 	{
-		Vector2 renderPos = pos + (size - extent) / 2;
 		drawTextImpl(renderPos.x, renderPos.y, str, charCount);
 	};
+
+	if (bClip)
+	{
+		Rect textRect = { renderPos, extent };
+		Rect clipRect = { pos, size };
+		if (clipRect.contains(textRect))
+		{
+			if (mRenderStatePending.bEnableScissor)
+			{
+				if (mRenderStatePending.scissorRect.contains(textRect))
+					bClip = false;
+			}
+			else
+			{
+				bClip = false;
+			}
+		}
+	}
 
 	if (bClip)
 	{
@@ -497,11 +671,29 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, float scal
 		return;
 	}
 
+	Vector2 renderPos = pos + (size - extent) / 2;
 	auto DoDrawText = [&]()
 	{
-		Vector2 renderPos = pos + (size - extent) / 2;
 		drawTextImpl(renderPos.x, renderPos.y, scale, str, charCount);
 	};
+
+	if (bClip)
+	{
+		Rect textRect = { renderPos, extent };
+		Rect clipRect = { pos, size };
+		if (clipRect.contains(textRect))
+		{
+			if (mRenderStatePending.bEnableScissor)
+			{
+				if (mRenderStatePending.scissorRect.contains(textRect))
+					bClip = false;
+			}
+			else
+			{
+				bClip = false;
+			}
+		}
+	}
 
 	if (bClip)
 	{
@@ -548,7 +740,6 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
 	setBlendState(ESimpleBlendMode::Translucent);
 	setTextureState(&mFont->getTexture());
-	commitRenderState();
 	Vector2 pos = Vector2(ox, oy);
 
 	bool bRemoveScale = false;
@@ -571,7 +762,7 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 		}
 	}
 
-	auto& element = mElementList.addText(mColorFont, pos, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
+	auto& element = getElementList().addText(mColorFont, pos, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
 	setupElement(element);
 	setBlendState(prevMode);
 }
@@ -582,13 +773,12 @@ void RHIGraphics2D::drawTextQuad(TArray<Render::GlyphVertex> const& vertices)
 	if (vertices.empty())
 		return;
 
-	commitRenderState();
 	bool bRemoveScale = false;
 	if (mXFormStack.get().hadSacled())
 	{
 		bRemoveScale = bTextRemoveScale;
 	}
-	auto& element = mElementList.addText(mColorFont, vertices, bRemoveScale, bTextRemoveRotation);
+	auto& element = getElementList().addText(mColorFont, vertices, bRemoveScale, bTextRemoveRotation);
 	setupElement(element);
 }
 
@@ -597,13 +787,12 @@ void RHIGraphics2D::drawTextQuad(TArray<Render::GlyphVertex> const& vertices, TA
 	if (vertices.empty())
 		return;
 
-	commitRenderState();
 	bool bRemoveScale = false;
 	if (mXFormStack.get().hadSacled())
 	{
 		bRemoveScale = bTextRemoveScale;
 	}
-	auto& element = mElementList.addText(colors, vertices, bRemoveScale, bTextRemoveRotation);
+	auto& element = getElementList().addText(colors, vertices, bRemoveScale, bTextRemoveRotation);
 	setupElement(element);
 }
 
@@ -616,7 +805,6 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, float scale, CharT const* s
 	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
 	setBlendState(ESimpleBlendMode::Translucent);
 	setTextureState(&mFont->getTexture());
-	commitRenderState();
 	Vector2 pos = Vector2(ox, oy);
 
 	bool bRemoveScale = false;
@@ -639,9 +827,19 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, float scale, CharT const* s
 		}
 	}
 
-	auto& element = mElementList.addText(mColorFont, pos, scale, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
+	auto& element = getElementList().addText(mColorFont, pos, scale, *mFont, str, charCount, bRemoveScale, bTextRemoveRotation);
 	setupElement(element);
 	setBlendState(prevMode);
+}
+
+RHIGraphics2D::Vec2i RHIGraphics2D::calcTextExtentSize(char const* str, int len)
+{
+	if (mFont)
+	{
+		Vector2 extent = mFont->calcTextExtent(str, nullptr);
+		return Vec2i((int)extent.x, (int)extent.y);
+	}
+	return Vec2i(0, 0);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos)
@@ -671,8 +869,7 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Color4f const& color)
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f const& color)
 {
-	commitRenderState();
-	auto& element = mElementList.addTextureRect(color, pos, pos + size, Vector2(0, 0), Vector2(1, 1));
+	auto& element = getElementList().addTextureRect(color, pos, pos + size, Vector2(0, 0), Vector2(1, 1));
 	setupElement(element);
 }
 
@@ -683,22 +880,23 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& texPos, Vecto
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color)
 {
-	commitRenderState();
-	auto& element = mElementList.addTextureRect(color, pos, pos + size, texPos, texPos + texSize);
+	auto& element = getElementList().addTextureRect(color, pos, pos + size, texPos, texPos + texSize);
 	setupElement(element);
 }
 
 void RHIGraphics2D::flushBatchedElements()
 {
-	if ( !mElementList.isEmpty() )
-	{
-		mBatchedRender.render(mElementList);
-		mNextLayer = 0;
-	}
+	flush();
 }
 
 RHICommandList& RHIGraphics2D::getCommandList()
 {
+	if (mRenderMode == ERenderMode::Buffered && !IsInRenderThread())
+	{
+		// This should not be used on Game Thread in buffered mode!
+		// Return a dummy or handle error. 
+		// For now, return immediate list but flushBatchedElements should prevent its use.
+	}
 	return RHICommandList::GetImmediateList();
 }
 
@@ -751,6 +949,111 @@ void RHIGraphics2D::restoreRenderState()
 	setupCommittedRenderState();
 }
 
+class RenderCommand_RHIGraphicsBatch : public RenderCommand
+{
+public:
+	RenderCommand_RHIGraphicsBatch(RHIGraphics2D& graphics, RHI2DContext* context)
+		:mGraphics(graphics), mContext(context) {}
+
+	void execute(RenderExecuteContext& context) override
+	{
+		auto& batchRender = RHIGraphicsBatchManager::Get().mBatchedRender;
+		batchRender.mWidth = mContext->viewportWidth;
+		batchRender.mHeight = mContext->viewportHeight;
+		batchRender.mBaseTransform = mContext->baseTransform;
+
+		batchRender.beginRender(mGraphics.getCommandList());
+		batchRender.render(mGraphics.getCommandList(), mContext->elementList);
+		batchRender.flush();
+		mGraphics.releaseContext(mContext);
+	}
+
+
+	RHIGraphics2D& mGraphics;
+	RHI2DContext* mContext;
+	int mBatchId;
+};
+
+void RHIGraphics2D::flush()
+{
+	if (getElementList().mElements.empty())
+		return;
+
+	commitRenderState();
+	if (mRenderMode == ERenderMode::Immediate)
+	{
+		if (!getElementList().mElements.empty())
+		{
+			auto& batchRender = RHIGraphicsBatchManager::Get().mBatchedRender;
+			batchRender.render(getCommandList(), getElementList());
+			batchRender.flush();
+			getElementList().reset();
+			mWriteContext->allocator.clearFrame();
+		}
+	}
+
+
+	else
+	{
+		RHI2DContext* pendingContext = mWriteContext;
+		mWriteContext = acquireContext();
+		mRenderStateCommitted.setInit();
+		mWriteContext->baseTransform = pendingContext->baseTransform;
+		mWriteContext->viewportWidth = pendingContext->viewportWidth;
+		mWriteContext->viewportHeight = pendingContext->viewportHeight;
+		
+		if (mRecordingList)
+		{
+			auto* command = mRecordingList->allocCommand<RenderCommand_RHIGraphicsBatch>(*this, pendingContext);
+			command->mBatchId = mFlushCount++;
+			command->debugName = "RHIGraphicsBatch";
+		}
+		else
+		{
+			auto* command = RenderThread::AllocCommand<RenderCommand_RHIGraphicsBatch>(*this, pendingContext);
+			command->mBatchId = mFlushCount++;
+			command->debugName = "RHIGraphicsBatch";
+		}
+	}
+}
+
+RHI2DContext* RHIGraphics2D::acquireContext()
+{
+	return RHIGraphicsBatchManager::Get().acquire();
+}
+
+
+void RHIGraphics2D::setRecordingList(::RenderCommandList* list)
+{
+	mRecordingList = list;
+	if (mRecordingList)
+	{
+		mRenderMode = ERenderMode::Buffered;
+		if (mWriteContext == mImmediateContext)
+		{
+			mWriteContext = acquireContext();
+		}
+	}
+	else
+	{
+		mRenderMode = ERenderMode::Immediate;
+	}
+}
+
+
+void RHIGraphics2D::releaseContext(RHI2DContext* context)
+{
+	if (context == mImmediateContext)
+	{
+		context->reset();
+		return;
+	}
+
+	RHIGraphicsBatchManager::Get().release(context);
+}
+
+
+
 void RHIGraphics2D::setPen(Color3Type const& color, int width)
 {
 	mPaintArgs.bUsePen = true;
@@ -771,7 +1074,7 @@ void RHIGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 
 void RHIGraphics2D::setClipRect(Vec2i const& pos, Vec2i const& size)
 {
-	mRenderStatePending.scissorRect.pos  = pos;
+	mRenderStatePending.scissorRect.pos = pos;
 	mRenderStatePending.scissorRect.size = size;
 }
 
@@ -798,10 +1101,7 @@ void RHIGraphics2D::endBlend()
 	setBlendAlpha(1.0f);
 }
 
-void RHIGraphics2D::flush()
+void* RHIGraphics2D::allocRaw(size_t size)
 {
-	commitRenderState();
-	flushBatchedElements();
-	mBatchedRender.flush();
-	mAllocator.clearFrame();
+	return mWriteContext->allocator.alloc(size);
 }

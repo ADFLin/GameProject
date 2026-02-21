@@ -175,11 +175,11 @@ namespace Phy2D
 		bound.expand(Vector2(1, 1));
 
 		MinkowskiSunProgram* program = ShaderManager::Get().getGlobalShaderT< MinkowskiSunProgram >();
-		g.drawCustomFunc([program, &g, bound, this](Render::RHICommandList& commandList, Matrix4 const& baseTransform, Render::RenderBatchedElement& element)
+		g.drawCustomFunc([program, &g, bound, this](Render::RHICommandList& commandList, Matrix4 const& baseTransform, Render::RenderBatchedElement& element, Render::RenderTransform2D const& transform)
 		{
 			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 			RHISetShaderProgram(commandList, program->getRHI());
-			program->setParam(commandList, SHADER_PARAM(XForm), element.transform.toMatrix4() * baseTransform);
+			program->setParam(commandList, SHADER_PARAM(XForm), transform.toMatrix4() * baseTransform);
 			SetStructuredUniformBuffer(commandList, *program, mObjectParams);
 			SetStructuredStorageBuffer<VertexData>(commandList, *program, mVertexBuffer);
 

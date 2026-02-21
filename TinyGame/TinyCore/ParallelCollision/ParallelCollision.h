@@ -7,6 +7,7 @@
 #include "Memory/FrameAllocator.h"
 #include "PlatformThread.h"
 #include <mutex>
+#include <unordered_set>
 
 namespace ParallelCollision
 {
@@ -211,9 +212,9 @@ namespace ParallelCollision
 		int  queryEntities(Vector2 const& pos, float rot, ShapeType type, Vector3 const& params, int mask, TArray<int>& results);
 
 		ThreadEvent mSolveEvent;
-		bool        mIsSolving = false;
 		float       mLastSolveTime = 0.0f;
 		FrameAllocator mTaskAllocator;
+		QueueThreadPool* mThreadPool = nullptr;
 	};
 
 	class ParallelCollisionManager
@@ -246,22 +247,10 @@ namespace ParallelCollision
 
 		CollisionEntityData& getEntityData(int id)
 		{
-			if (id < 0 || id >= mEntityCount)
-			{
-				static CollisionEntityData dummyData;
-				LogWarning(0, "getEntityData error : id = %d", id);
-				return dummyData;
-			}
 			return mEntityDataBuffer[id]; 
 		}
 		CollisionBulletData& getBulletData(int id)
 		{
-			if (id < 0 || id >= mBulletCount)
-			{
-				static CollisionBulletData dummyData;
-				LogWarning(0, "getBulletData error : id = %d", id);
-				return dummyData;
-			}
 			return mBulletDataBuffer[id]; 
 		}
 
@@ -326,8 +315,6 @@ namespace ParallelCollision
 		int allocBulletEventHandle(IPhysicsBullet* bullet);
 		void freeBulletEventHandle(int id);
 		IPhysicsBullet* getBulletFromHandle(int id);
-
-		void flushPendingFreeEventHandles();
 
 		void syncToSolver();
 		void syncFromSimulator();

@@ -174,6 +174,7 @@ public:
 	//GameLoop
 	bool  initializeGame() CRTP_OVERRIDE;
 	void  finalizeGame() CRTP_OVERRIDE;
+	void  handleGameFrameStart() CRTP_OVERRIDE;
 	long  handleGameUpdate(long shouldTime) CRTP_OVERRIDE;
 	void  handleGameRender() CRTP_OVERRIDE;
 	void  handleGameIdle( long time ) CRTP_OVERRIDE;

@@ -19,6 +19,7 @@
 
 #include "Renderer/RenderTargetPool.h"
 #include "Renderer/Bloom.h"
+#include "Renderer/Tonemap.h"
 
 #include "Stage/TestRenderStageBase.h"
 

@@ -7,6 +7,7 @@
 #include "EditorPanel.h"
 #include "EditorRender.h"
 #include "EditorUtils.h"
+#include "Renderer/RenderThread.h"
 
 #include "Widget/GameViewportPanel.h"
 #include "Widget/DetailViewPanel.h"
@@ -205,10 +206,34 @@ public:
 
 		// End of frame: render Dear ImGui
 		ImGui::Render();
-		mRenderer->renderWindow(mMainWindow);
+
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::beginRender", [this]()
+			{
+				mRenderer->beginRender(mMainWindow);
+			});
+
+			auto* snapshot = ImDrawDataSnapshot::Copy(ImGui::GetDrawData());
+			if (snapshot)
+			{
+				RenderThread::AddCommand("Editor::renderWindow", [this, snapshot]()
+				{
+					mRenderer->renderWindow(mMainWindow, &snapshot->data);
+					delete snapshot;
+				});
+			}
+		}
+		else
+		{
+			mRenderer->beginRender(mMainWindow);
+			mRenderer->renderWindow(mMainWindow, ImGui::GetDrawData());
+		}
 
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
+
+		bAdvanceFrame = false;
 	}
 
 	void addGameViewport(IEditorGameViewport* viewport) override

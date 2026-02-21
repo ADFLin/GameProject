@@ -4,9 +4,10 @@
 
 #include "MacroCommon.h"
 #include "Math/Math2D.h"
-#include "Math/Matrix4.h"
 #include "TransformPushScope.h"
 
+#include "Math/Matrix4.h"
+#include "Core/TypeHash.h"
 #include "DataStructure/Array.h"
 
 namespace Render
@@ -274,6 +275,20 @@ namespace Render
 				M[2], M[3], 0, 0,
 				   0,    0, 1, 0,
 				 P.x,  P.y, 0, 1);
+		}
+
+		bool operator == (RenderTransform2D const& rhs) const
+		{
+			return M == rhs.M && P == rhs.P;
+		}
+		bool operator != (RenderTransform2D const& rhs) const
+		{
+			return !(*this == rhs);
+		}
+
+		uint32 getTypeHash() const
+		{
+			return HashValues(M[0], M[1], M[2], M[3], P.x, P.y);
 		}
 
 		static Vector2 MulOffset(Vector2 const& v, Matrix2 const& m, Vector2 const& offset);

@@ -9,7 +9,7 @@
 #include "ProfileSystem.h"
 #include "imgui_internal.h"
 
-REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
+//REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
 
 
 

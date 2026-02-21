@@ -2,6 +2,7 @@
 
 #include <cstdarg>
 #include "SystemPlatform.h"
+#include "Renderer/RenderThread.h"
 
 namespace Render
 {
@@ -13,7 +14,7 @@ namespace Render
 		mIndexReadBuffer = 0;
 		for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
 		{
-			mBufferStatus[i] = false;
+			mBufferStatus[i] = EBufferStatus::Free;
 		}
 	}
 
@@ -41,8 +42,32 @@ namespace Render
 
 	void GpuProfiler::beginFrame()
 	{
+		if (RenderThread::IsRunning() && !IsInRenderThread())
+		{
+			RenderThread::AddCommand("GpuProfiler::beginFrame", []()
+			{
+				GpuProfiler::Get().beginFrame();
+			});
+			return;
+		}
+
 		auto& frameData = getWriteData();
 		frameData.numSampleUsed = 0;
+		mSampleStack.clear();
+
+		// Update completed results
+		for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
+		{
+			if (mBufferStatus[i] == EBufferStatus::Recorded)
+			{
+				readSamples(mFrameBuffers[i]);
+				if (mFrameBuffers[i].numSampleUsed > 0 && mFrameBuffers[i].samples[0]->time != -1)
+				{
+					RWLock::WriteLocker locker(mIndexLock);
+					mBufferStatus[i] = EBufferStatus::ResultReady;
+				}
+			}
+		}
 	
 		mCurLevel = 0;
 		if( mCore )
@@ -57,8 +82,6 @@ namespace Render
 
 	void GpuProfiler::readSamples(FrameData& frameData)
 	{
-		PROFILE_FUNCTION();
-
 		mCycleToSecond = mCore->getCycleToMillisecond();
 		mCore->beginReadback();
 		uint64 frameStart = 0;
@@ -71,8 +94,8 @@ namespace Render
 				if (mCore->getTimingDuration(sample->timingHandle, time, start))
 				{
 					if (i == 0) frameStart = start;
-					sample->time = double(time) * mCycleToSecond;
-					sample->startTime = double(start - frameStart) * mCycleToSecond;
+					sample->time = (double)time * mCycleToSecond;
+					sample->startTime = (double)(start - frameStart) * mCycleToSecond;
 				}
 				else
 				{
@@ -91,6 +114,15 @@ namespace Render
 
 	void GpuProfiler::endFrame()
 	{
+		if (RenderThread::IsRunning() && !IsInRenderThread())
+		{
+			RenderThread::AddCommand("GpuProfiler::endFrame", []()
+			{
+				GpuProfiler::Get().endFrame();
+			});
+			return;
+		}
+
 		if( mCore )
 		{
 			if( mbStartSampling )
@@ -101,7 +133,7 @@ namespace Render
 
 				{
 					RWLock::WriteLocker locker(mIndexLock);
-					mBufferStatus[mIndexWriteBuffer] = true;
+					mBufferStatus[mIndexWriteBuffer] = EBufferStatus::Recorded;
 					mIndexWriteBuffer = (mIndexWriteBuffer + 1) % NUM_FRAME_BUFFER;
 				}
 			}
@@ -110,6 +142,17 @@ namespace Render
 
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
 	{
+		if (RenderThread::IsRunning() && !IsInRenderThread())
+		{
+			std::string nameStr = name;
+			RenderThread::AddCommand("GpuProfiler::startSample", [nameStr]()
+			{
+				GpuProfiler::Get().startSample(nameStr.c_str());
+			});
+			static GpuProfileSample GDummySample;
+			return &GDummySample;
+		}
+
 		if( !mbStartSampling  || mCore == nullptr)
 			return nullptr;
 
@@ -131,6 +174,9 @@ namespace Render
 		sample->level = mCurLevel;
 		++mCurLevel;
 		++frameData.numSampleUsed;
+
+		mSampleStack.push_back(sample);
+
 		if ( sample->timingHandle != RHI_ERROR_PROFILE_HANDLE )
 			mCore->startTiming(sample->timingHandle);
 		return sample;
@@ -138,9 +184,31 @@ namespace Render
 
 	void GpuProfiler::endSample(GpuProfileSample& sample)
 	{
+		if (RenderThread::IsRunning() && !IsInRenderThread())
+		{
+			RenderThread::AddCommand("GpuProfiler::endSample", []()
+			{
+				GpuProfiler::Get().endSampleInternal();
+			});
+			return;
+		}
+
 		if( sample.timingHandle != RHI_ERROR_PROFILE_HANDLE )
 			mCore->endTiming(sample.timingHandle);
 		--mCurLevel;
+
+		if (!mSampleStack.empty())
+		{
+			mSampleStack.pop_back();
+		}
+	}
+
+	void GpuProfiler::endSampleInternal()
+	{
+		if (mSampleStack.empty())
+			return;
+		
+		endSample(*mSampleStack.back());
 	}
 
 	void GpuProfiler::setCore(RHIProfileCore* core)
@@ -163,19 +231,42 @@ namespace Render
 	bool GpuProfiler::beginRead()
 	{
 		mIndexLock.readLock();
-		// Find the most recent buffer that is ready, but at least 2 frames old to avoid stalling
-		int readIndex = (mIndexWriteBuffer + NUM_FRAME_BUFFER - 2) % NUM_FRAME_BUFFER;
-		if (mBufferStatus[readIndex])
+
+		int checkIndex = (mIndexWriteBuffer + NUM_FRAME_BUFFER - 1) % NUM_FRAME_BUFFER;
+		int readIndex = INDEX_NONE;
+		for (int i = 0; i < NUM_FRAME_BUFFER - 1; ++i)
+		{
+			if (mBufferStatus[checkIndex] == EBufferStatus::ResultReady)
+			{
+				readIndex = checkIndex;
+				break;
+			}
+			checkIndex = (checkIndex + NUM_FRAME_BUFFER - 1) % NUM_FRAME_BUFFER;
+		}
+
+		if (readIndex != INDEX_NONE)
 		{
 			mIndexReadBuffer = readIndex;
-			readSamples(mFrameBuffers[readIndex]);
+			return true;
 		}
-		return true;
+
+		mIndexLock.readUnlock();
+		return false;
 	}
 
 	void GpuProfiler::endRead()
 	{
 		mIndexLock.readUnlock();
+	}
+
+	GpuProfileSample* GpuProfiler::getSample(int idx)
+	{
+		return getReadData().samples[idx].get();
+	}
+
+	int GpuProfiler::getSampleNum() const
+	{
+		return getReadData().numSampleUsed;
 	}
 
 #endif

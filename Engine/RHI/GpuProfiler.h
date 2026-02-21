@@ -59,6 +59,7 @@ namespace Render
 
 		CORE_API GpuProfileSample* startSample(char const* name);
 		CORE_API void endSample(GpuProfileSample& sample);
+		CORE_API void endSampleInternal();
 
 
 		CORE_API void releaseRHIResource();
@@ -67,10 +68,14 @@ namespace Render
 		CORE_API bool beginRead();
 		CORE_API void endRead();
 
-		GpuProfileSample* getSample(int idx) { return getReadData().samples[idx].get(); }
-		int  getSampleNum() const { return getReadData().numSampleUsed; }
+		CORE_API GpuProfileSample* getSample(int idx);
+		CORE_API int  getSampleNum() const;
 
 	private:
+		RWLock    mIndexLock;
+		int       mIndexWriteBuffer;
+		int       mIndexReadBuffer;
+
 		struct FrameData
 		{
 			TArray< std::unique_ptr< GpuProfileSample > > samples;
@@ -87,11 +92,14 @@ namespace Render
 		FrameData& getWriteData(){ return mFrameBuffers[mIndexWriteBuffer]; }
 		void readSamples(FrameData& frameData);
 
+		enum class EBufferStatus : uint8
+		{
+			Free,
+			Recorded,
+			ResultReady,
+		};
 		FrameData mFrameBuffers[NUM_FRAME_BUFFER];
-		int       mIndexWriteBuffer;
-		int       mIndexReadBuffer;
-		bool      mBufferStatus[NUM_FRAME_BUFFER];
-		RWLock    mIndexLock;
+		EBufferStatus mBufferStatus[NUM_FRAME_BUFFER];
 
 		struct SampleGroup
 		{
@@ -106,6 +114,7 @@ namespace Render
 		bool   mbCanRead = false;
 		int    mCurLevel;
 		int    mNumSampleUsed;
+		TArray< GpuProfileSample* > mSampleStack;
 		double mCycleToSecond;
 	};
 
@@ -113,13 +122,17 @@ namespace Render
 	{
 		GpuProfileReadScope()
 		{
-			GpuProfiler::Get().beginRead();
+			mIsLocked = GpuProfiler::Get().beginRead();
 		}
 
 		~GpuProfileReadScope()
 		{
-			GpuProfiler::Get().endRead();
+			if (mIsLocked)
+				GpuProfiler::Get().endRead();
 		}
+
+		bool isLocked() const { return mIsLocked; }
+		bool mIsLocked;
 	};
 
 	struct GpuProfileScope

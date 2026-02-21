@@ -1,4 +1,4 @@
-﻿#include "TinyGamePCH.h"
+#include "TinyGamePCH.h"
 #include "DrawEngine.h"
 
 #include "ProfileSystem.h"
@@ -67,7 +67,20 @@ namespace
 		"g.DefaultRHI",
 		0
 	};
-	TConsoleVariable< bool > CVarEnableRenderThread{ false , "g.EnableRenderThread", CVF_TOGGLEABLE };
+
+	void SetAllowUseRenderThread(bool bAllow)
+	{
+		Global::GetDrawEngine().setAllowUseRenderThread(bAllow);
+	}
+	bool GetAllowUseRenderThread()
+	{
+		return Global::GetDrawEngine().isAllowUseRenderThread();
+	}
+	TConsoleVariableDelegate< bool > CVarAllowUseRenderThread
+	{
+		&GetAllowUseRenderThread, &SetAllowUseRenderThread,
+		"g.AllowUseRenderThread", CVF_TOGGLEABLE
+	};
 
 	ERenderSystem ConvTo(RHISystemName name)
 	{
@@ -175,18 +188,29 @@ IGraphics2D& DrawEngine::getIGraphics()
 	return *mPlatformProxy;
 }
 
+RHIGraphics2D& DrawEngine::getRHIGraphics_RenderThread()
+{
+	if (canUseRenderThread())
+	{
+		return *mRHIGraphics_RenderThread;
+	}
+	return *mRHIGraphics;
+}
+
 DrawEngine::DrawEngine()
 {
 	mbInitialized = false;
 	bRHIShutdownDeferred = false;
-	bEnableRenderThread = CVarEnableRenderThread;
+	bEnableRenderThread = false;
+	mAllowUseRenderThread = false;
 }
 
 DrawEngine::~DrawEngine()
 {
 	mBufferDC.release();
 	mPlatformGraphics.release();
-	mRHIGraphics.release();
+	mRHIGraphics.reset();
+	mRHIGraphics_RenderThread.reset();
 }
 
 void DrawEngine::initialize(IGameWindowProvider& provider)
@@ -313,6 +337,14 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI, b
 	RenderSystemConfigs configs;
 	mRenderSetup->configRenderSystem(systemName, configs);
 
+	if (!configs.bUseRenderThread && RenderThread::IsRunning())
+	{
+		RenderThread::Finalize();
+	}
+
+	mbUseRenderThreadFromConfigs = configs.bUseRenderThread;
+	bEnableRenderThread = mAllowUseRenderThread && mbUseRenderThreadFromConfigs;
+
 	if (!bForceRHI && configs.bWasUsedPlatformGraphics)
 	{
 		if (GbDefaultUsePlatformGraphic)
@@ -357,6 +389,10 @@ void DrawEngine::createRHIGraphics()
 		bRHIGraphicsInitialized = true;
 		RenderUtility::InitializeRHI();
 		mRHIGraphics->initializeRHI();
+
+		mRHIGraphics_RenderThread.reset(new RHIGraphics2D);
+		mRHIGraphics_RenderThread->setViewportSize(mGameWindow->getWidth(), mGameWindow->getHeight());
+		mRHIGraphics_RenderThread->initializeRHI();
 	}
 }
 
@@ -385,7 +421,7 @@ bool DrawEngine::lockSystem(ERenderSystem systemLocked, RenderSystemConfigs cons
 	initParam.bDebugMode = configs.bDebugMode;
 	initParam.hWnd = getWindow().getHWnd();
 	initParam.hDC = getWindow().getHDC();
-	initParam.bMultithreadingSupported = configs.bMultithreadingSupported;
+	initParam.bMultithreadingSupported = false;
 	VERIFY_RETURN_FALSE(RHISystemInitialize(ConvTo(systemLocked), initParam));
 	
 	mSystemLocked = systemLocked;
@@ -402,11 +438,20 @@ void DrawEngine::unlockSystem()
 
 bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs const& configs)
 {
-	if( isRHIEnabled() )
+	if (isRHIEnabled())
+	{
+		if (mSystemLocked != ERenderSystem::None && mSystemLocked != systemName)
+			return false;
+		if (configs.screenWidth > 0 && configs.screenHeight > 0)
+		{
+			if (configs.screenWidth != getScreenWidth() ||
+				configs.screenHeight != getScreenHeight())
+			{
+				changeScreenSize(configs.screenWidth, configs.screenHeight, true);
+			}
+		}
 		return true;
-
-	if (mSystemLocked != ERenderSystem::None && mSystemLocked!= systemName)
-		return false;
+	}
 
 	if (configs.screenWidth > 0 && configs.screenHeight > 0)
 	{
@@ -419,7 +464,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	RHISystemInitParams initParam;
 	initParam.numSamples = configs.numSamples;
-	initParam.bMultithreadingSupported = configs.bMultithreadingSupported;
+	initParam.bMultithreadingSupported = configs.bUseRenderThread;
 	if (CVarUseMultisample)
 	{
 		if (initParam.numSamples == 1)
@@ -485,14 +530,21 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	bHadUseRHI = true;
 	bUsePlatformBuffer = false;
 	bWasUsedPlatformGraphics = configs.bWasUsedPlatformGraphics;
+
+	if (canUseRenderThread() && !RenderThread::IsRunning())
+	{
+		RenderThread::Initialize();
+	}
+
 	return true;
 }
 
 void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 {
+	RenderThread::Finalize();
+
 	if( !isRHIEnabled())
 		return;
-
 	RHIClearResourceReference();
 
 	if (mRenderSetup)
@@ -517,6 +569,10 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 		}
 		RenderUtility::ReleaseRHI();
 		mRHIGraphics->releaseRHI();
+		if (mRHIGraphics_RenderThread)
+		{
+			mRHIGraphics_RenderThread->releaseRHI();
+		}
 		bRHIGraphicsInitialized = false;
 
 		if (bReInit || bDeferred == false)
@@ -573,6 +629,20 @@ void DrawEngine::toggleGraphics()
 	}
 }
 
+void DrawEngine::syncFrame()
+{
+	if (isRHIEnabled())
+	{
+		if (canUseRenderThread())
+		{
+			if (mFrameSyncIndex >= 3)
+			{
+				mFrameEvents[(mFrameSyncIndex - 3) % 3].wait();
+			}
+		}
+	}
+}
+
 bool DrawEngine::beginFrame()
 {
 	if (bBlockRender)
@@ -581,38 +651,58 @@ bool DrawEngine::beginFrame()
 		return false;
 	}
 
-	if ( isRHIEnabled() )
+	if (isRHIEnabled())
 	{
-		if (canUseRenderThread())
-		{
-			RenderThread::FlushCommands();
-		}
-
 		if (mGLContext)
 		{
 			mGLContext->makeCurrent();
 		}
 
-		if( !RHIBeginRender() )
-			return false;
-
-		if (bWasUsedPlatformGraphics)
+		if (canUseRenderThread())
 		{
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
+			mActiveCommandList = RenderThread::Get().allocCommandList();
+			RenderThread::SetThreadCommandList(&mActiveCommandList);
+			mActiveRenderContext = std::make_unique<GameRenderContext>(mActiveCommandList);
+			mRHIGraphics->setRecordingList(&mActiveCommandList);
+
+			mActiveCommandList.addCommand("RHIBeginRender", [this]()
+			{
+				if (RHIBeginRender())
+				{
+					if (bWasUsedPlatformGraphics)
+					{
+						RHICommandList& commandList = RHICommandList::GetImmediateList();
+						RHISetFrameBuffer(commandList, nullptr);
+						RHISetViewport(commandList, 0, 0, getScreenWidth(), getScreenHeight());
+						RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
+					}
+				}
+			});
+		}
+		else
+		{
+			mRHIGraphics->setRecordingList(nullptr);
+			if (!RHIBeginRender())
+				return false;
+
+			if (bWasUsedPlatformGraphics)
+			{
+				RHICommandList& commandList = RHICommandList::GetImmediateList();
+				RHISetFrameBuffer(commandList, nullptr);
+				RHISetViewport(commandList, 0, 0, getScreenWidth(), getScreenHeight());
+				RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
+			}
 		}
 
-		//mRHIGraphics->enableMultisample(CVarUseMultisample);
 		mRHIGraphics->beginFrame();
 	}
 	else
 	{
-		mPlatformGraphics->beginFrame();	
+		mPlatformGraphics->beginFrame();
 	}
 
-	if( bUsePlatformBuffer )
-	{	
+	if (bUsePlatformBuffer)
+	{
 		mBufferDC.clear();
 	}
 	return true;
@@ -620,16 +710,33 @@ bool DrawEngine::beginFrame()
 
 void DrawEngine::endFrame()
 {
-	if ( isRHIEnabled() )
+	if (isRHIEnabled())
 	{
+		mRHIGraphics->flush();
+		mRHIGraphics->setRecordingList(nullptr);
 		mRHIGraphics->endFrame();
+
 		bool bSwapBuffer = !bUsePlatformBuffer;
 		if (canUseRenderThread())
 		{
-			RenderThread::AddCommand("SwapBuffer", [bSwapBuffer]()
+			mActiveCommandList.addCommand("RHIEndRender", [bSwapBuffer]()
 			{
 				RHIEndRender(bSwapBuffer);
 			});
+
+			RenderThread::SetThreadCommandList(nullptr);
+
+			RenderThread::Get().commitCommandList(mActiveCommandList);
+
+			uint32 signalIndex = mFrameSyncIndex % 3;
+			mFrameEvents[signalIndex].reset();
+			RenderThread::AddCommand("FrameSync", [pEvent = &mFrameEvents[signalIndex]]()
+			{
+				pEvent->fire();
+			});
+
+			++mFrameSyncIndex;
+			mActiveRenderContext.reset();
 		}
 		else
 		{
@@ -641,7 +748,7 @@ void DrawEngine::endFrame()
 		mPlatformGraphics->endFrame();
 	}
 
-	if( bUsePlatformBuffer )
+	if (bUsePlatformBuffer)
 	{
 		mBufferDC.bitBltTo(getWindow().getHDC());
 	}
@@ -723,6 +830,65 @@ public:
 	Vector2      mBasePos;
 	IGraphics2D& mGraphics2D;
 };
+
+
+GameRenderContext* DrawEngine::prepareRender()
+{
+	if (canUseRenderThread())
+	{
+		if (mRHIGraphics)
+		{
+			mRHIGraphics->flush();
+		}
+
+		return mActiveRenderContext.get();
+	}
+	else
+	{
+		if (mRHIGraphics)
+		{
+			mRHIGraphics->flush();
+		}
+		return nullptr;
+	}
+}
+
+void DrawEngine::postRender()
+{
+}
+
+void DrawEngine::flushRenderThread()
+{
+	RenderThread::FlushCommands();
+}
+
+void DrawEngine::setAllowUseRenderThread(bool bAllow)
+{
+	if (mAllowUseRenderThread == bAllow)
+		return;
+
+	if (isRHIEnabled())
+	{
+		flushRenderThread();
+	}
+	mAllowUseRenderThread = bAllow;
+	bEnableRenderThread = mAllowUseRenderThread && mbUseRenderThreadFromConfigs;
+
+	if (bEnableRenderThread)
+	{
+		if (!RenderThread::IsRunning())
+		{
+			RenderThread::Initialize();
+		}
+	}
+	else
+	{
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::Finalize();
+		}
+	}
+}
 
 
 struct NodeContentData 
@@ -864,10 +1030,7 @@ bool DrawEngine::canUseRenderThread() const
 	if (!isRHIEnabled())
 		return false;
 
-	if (mSystemName == ERenderSystem::OpenGL)
-		return false;
-
-	return CVarEnableRenderThread;
+	return bEnableRenderThread;
 }
 
 void DrawEngine::changeScreenSize(int w, int h, bool bUpdateViewport /*= true*/)

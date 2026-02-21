@@ -66,6 +66,7 @@ namespace Render
 
 #endif
 	
+	
 	void RHIResource::DumpResource()
 	{
 #if RHI_USE_RESOURCE_TRACE
@@ -86,6 +87,8 @@ namespace Render
 		LogDevMsg(0, "RHI Resource Trace is disabled!!");
 #endif
 	}
+
+	std::function<bool(RHIResource*)> RHIResource::DeferDeleteDelegate;
 
 	namespace ETableID
 	{

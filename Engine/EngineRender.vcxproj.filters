@@ -129,6 +129,9 @@
     <ClCompile Include="Renderer\ShadowDepthRendering.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\Tonemap.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
       <Filter>OtherLib</Filter>
     </ClCompile>
@@ -299,6 +302,12 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\ShadowDepthRendering.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\PostProcess.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\Tonemap.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\SimpleCamera.h">

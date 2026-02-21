@@ -755,6 +755,30 @@ public:
 		return result;
 	}
 
+	template< typename TFunc >
+	int removeAllSwapPred(TFunc&& func)
+	{
+		int oldNum = int(mNum);
+		int i = 0;
+		while (i < mNum)
+		{
+			if (func(*getElement(i)))
+			{
+				--mNum;
+				FTypeMemoryOp::Destruct(getElement(i));
+				if (i != mNum)
+				{
+					FTypeMemoryOp::Move(getElement(i), getElement(mNum));
+				}
+			}
+			else
+			{
+				++i;
+			}
+		}
+		return oldNum - int(mNum);
+	}
+
 	void removeChecked(T const& value)
 	{
 		int index = findIndex(value);

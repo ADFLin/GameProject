@@ -1,0 +1,60 @@
+#include "ViewParam.sgc"
+
+uniform float3 ParticleOffset;
+uniform float ParticleRadius;
+uniform float3 ParticleColor;
+
+struct VSOutputParameters
+{
+	float2 TexCoord MEMBER_OUT(TEXCOORD0);
+	float4 Color    MEMBER_OUT(COLOR0);
+};
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPosition, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InstancePos, ATTRIBUTE1)
+	VS_INPUT(float InstanceRadius, ATTRIBUTE2)
+	VS_INPUT(float3 InstanceColor, ATTRIBUTE3)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	float3 localPos = InPosition;
+
+	// Billboard in View Space
+	// Transform center to view space using column-vector multiplication convention
+	float4 viewPos = mul(View.worldToView, float4(InstancePos, 1.0));
+
+	// Add offset in view space (billboard facing camera)
+	viewPos.xyz += float3(localPos.xy * InstanceRadius, 0);
+
+	// Project to clip space
+	SvPosition = mul(View.viewToClip, viewPos);
+
+	// Map [-1,1] to [0,1]
+	VSOutput.TexCoord = localPos.xy * 0.5 + 0.5;
+	VSOutput.Color = float4(InstanceColor, 1.0);
+}
+
+#endif // VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSInput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float dist = length(VSInput.TexCoord - 0.5);
+	if (dist > 0.5) discard;
+
+	// Soft circle with glow
+	float alpha = 1.0 - smoothstep(0.2, 0.5, dist);
+	// Boost alpha for core
+	alpha = pow(alpha, 0.5);
+
+	OutColor = float4(VSInput.Color.rgb, alpha * VSInput.Color.a);
+}
+
+#endif // PIXEL_SHADER

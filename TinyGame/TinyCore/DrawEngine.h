@@ -12,6 +12,7 @@
 #include "WindowsPlatform.h"
 
 #include "RHI/RHICommon.h"
+#include "Renderer/RenderThread.h"
 
 #define OPENGL_RENDER_DIB 0
 
@@ -19,6 +20,19 @@ namespace Render
 {
 	struct ViewportInfo;
 }
+
+class GameRenderContext
+{
+public:
+	GameRenderContext(RenderCommandList& commandList)
+		:mCommandList(commandList)
+	{
+
+	}
+	RenderCommandList& getCommandList() { return mCommandList; }
+private:
+	RenderCommandList& mCommandList;
+};
 
 class IGameWindow
 {
@@ -105,6 +119,7 @@ public:
 	int            getScreenHeight(){ return mGameWindow->getHeight(); }
 	Graphics2D&    getPlatformGraphics(){ return *mPlatformGraphics; }
 	RHIGraphics2D& getRHIGraphics(){ return *mRHIGraphics; }
+	TINY_API RHIGraphics2D& getRHIGraphics_RenderThread();
 
 	TINY_API IGraphics2D&  getIGraphics();
 
@@ -115,6 +130,15 @@ public:
 
 	TINY_API void  drawProfile(Vec2i const& pos, char const* category = nullptr);
 	TINY_API void  toggleGraphics();
+
+	TINY_API void  setAllowUseRenderThread(bool bAllow);
+	bool           isAllowUseRenderThread() const { return mAllowUseRenderThread; }
+
+	TINY_API GameRenderContext* prepareRender();
+	TINY_API void postRender();
+	TINY_API void flushRenderThread();
+
+	GameRenderContext* getRenderContext() { return mActiveRenderContext.get(); }
 
 	bool          isRHIEnabled() const { return mSystemName != ERenderSystem::None; }
 	ERenderSystem getSystemName() const { return mSystemName; }
@@ -129,6 +153,7 @@ public:
 	TINY_API bool  setupRenderResource();
 	TINY_API void  shutdownSystem(bool bDeferred = true, bool bReInit = false);
 
+	TINY_API void  syncFrame();
 	TINY_API bool  beginFrame();
 	TINY_API void  endFrame();
 
@@ -148,6 +173,8 @@ private:
 	bool        mbInitialized;
 	bool        bRHIShutdownDeferred;
 	bool        bHadUseRHI = false;
+	bool        mAllowUseRenderThread = true;
+	bool        mbUseRenderThreadFromConfigs = true;
 	
 	IGameRenderSetup* mRenderSetup = nullptr;
 	IGameWindowProvider* mWindowProvider = nullptr;
@@ -168,7 +195,13 @@ private:
 
 	bool bRHIGraphicsInitialized = false;
 	std::unique_ptr< RHIGraphics2D > mRHIGraphics;
+	std::unique_ptr< RHIGraphics2D > mRHIGraphics_RenderThread;
 
+	RenderCommandList mActiveCommandList;
+	std::unique_ptr<GameRenderContext> mActiveRenderContext;
+
+	ThreadEvent mFrameEvents[3];
+	uint32 mFrameSyncIndex = 0;
 };
 
 

@@ -39,6 +39,7 @@ protected:
 
 	CRTP_FUNC bool initializeGame(){ return true; }
 	CRTP_FUNC void finalizeGame(){}
+	CRTP_FUNC void handleGameFrameStart(){}
 	CRTP_FUNC long handleGameUpdate( long shouldTime ){ return shouldTime; }
 	CRTP_FUNC void handleGameIdle(long time){}
 	CRTP_FUNC void handleGameRender(){}
@@ -66,6 +67,17 @@ void GameLoopT< T , PP >::run()
 	unsigned numLoops=0;
 	while( !mIsOver )
 	{
+		_this()->handleGameFrameStart();
+
+		{
+			PROFILE_ENTRY("Platform::updateSystem");
+			if (!Platform::updateSystem())
+			{
+				mIsOver = true;
+				break;
+			}
+		}
+
 		uint64  presentTime = mClock.getTimeMicroseconds();
 		uint64  intervalTime = presentTime - beforeTime;
 
@@ -81,17 +93,6 @@ void GameLoopT< T , PP >::run()
 				beforeTime = presentTime - mUpdateTime;
 				intervalTime = mUpdateTime;
 			}
-
-			{
-				PROFILE_ENTRY("Platform::updateSystem");
-				if (!Platform::updateSystem())
-				{
-					mIsOver = true;
-				}
-			}
-
-			if( mIsOver )
-				break;
 
 			uint64 updateTime = 1000 * _this()->handleGameUpdate(intervalTime / 1000);
 			_this()->handleGameRender();

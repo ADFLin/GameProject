@@ -357,6 +357,7 @@
     <ClInclude Include="BitUtility.h" />
     <ClInclude Include="DataCacheInterface.h" />
     <ClInclude Include="DataStructure\Array.h" />
+    <ClInclude Include="DataStructure\LinearAllocator.h" />
     <ClInclude Include="DataStructure\AVLTree.h" />
     <ClInclude Include="DataStructure\ClassTree.h" />
     <ClInclude Include="DataStructure\CycleQueue.h" />

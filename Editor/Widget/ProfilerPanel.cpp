@@ -9,6 +9,7 @@
 
 #include "RHI/GpuProfiler.h"
 #include <algorithm>
+#include <atomic>
 
 
 struct ProfilerSharedState
@@ -136,7 +137,12 @@ public:
 	}
 };
 
-static FrameSnapshot GFrameSnapshot;
+static FrameSnapshot GFrameSnapshot[2];
+static std::atomic<int> GReadSnapshotIndex{0};
+static SpinLock GSnapshotLock;
+
+FrameSnapshot& GetReadSnapshot() { return GFrameSnapshot[GReadSnapshotIndex.load(std::memory_order_acquire)]; }
+FrameSnapshot& GetWriteSnapshot() { return GFrameSnapshot[1 - GReadSnapshotIndex.load(std::memory_order_relaxed)]; }
 
 struct NodePersistentStat
 {
@@ -161,17 +167,32 @@ public:
 	void collect()
 	{
 		mCurrentFrame = ProfileSystem::Get().getFrameCountSinceReset();
-		if (GFrameSnapshot.frameCount == mCurrentFrame)
+		
+		FrameSnapshot& writeSnapshot = GetWriteSnapshot();
+		if (writeSnapshot.frameCount == mCurrentFrame)
 			return;
 
 		if (GProfilerState.bPause)
 		{
-			GFrameSnapshot.frameCount = mCurrentFrame;
+			writeSnapshot.frameCount = mCurrentFrame;
 			return;
 		}
 
-		GFrameSnapshot.clear();
-		GFrameSnapshot.frameCount = mCurrentFrame;
+		writeSnapshot.clear();
+		writeSnapshot.frameCount = mCurrentFrame;
+		
+		collectCpu(writeSnapshot);
+		collectGpu(writeSnapshot);
+
+		// Swap buffers
+		{
+			SpinLock::Locker locker(GSnapshotLock);
+			GReadSnapshotIndex.store(1 - GReadSnapshotIndex.load(std::memory_order_relaxed), std::memory_order_release);
+		}
+	}
+
+	void collectCpu(FrameSnapshot& snapshot)
+	{
 		mTickRate = Profile_GetTickRate();
 
 		TArray<uint32> threadIds;
@@ -188,8 +209,8 @@ public:
 			if (root->getLastFrame() + 2 < systemFrame)
 				continue;
 
-			GFrameSnapshot.threads.emplace_back();
-			mCurrentThread = &GFrameSnapshot.threads.back();
+			snapshot.threads.emplace_back();
+			mCurrentThread = &snapshot.threads.back();
 			mCurrentThread->threadId = threadId;
 
 			mCurrentThread->name = root->getName();
@@ -202,16 +223,62 @@ public:
 			mTickRate = Profile_GetTickRate();
 			visitNodes(threadId);
 		}
+	}
 
-		// Sort threads: GameThread first, RenderThread second, then alphabetical
-		std::sort(GFrameSnapshot.threads.begin(), GFrameSnapshot.threads.end(), 
+	void collectGpu(FrameSnapshot& snapshot)
+	{
+		using namespace Render;
+		GpuProfileReadScope scope;
+		if (scope.isLocked())
+		{
+			int numSamples = GpuProfiler::Get().getSampleNum();
+			if (numSamples > 0)
+			{
+				snapshot.threads.emplace_back();
+				mCurrentThread = &snapshot.threads.back();
+				mCurrentThread->threadId = 0xFFFFFFFF; // Virtual ID for GPU
+				mCurrentThread->name = "GPU";
+				mCurrentThread->time = GpuProfiler::Get().getSample(0)->time;
+
+				mTickRate = 1.0; // GPU times are already in ms relative to start
+				mTickStart = 0;
+
+				for (int i = 0; i < numSamples; ++i)
+				{
+					GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
+					if (sample->time < 0) continue;
+
+					SampleView view;
+					view.name = sample->name.c_str();
+					view.level = sample->level;
+					view.callCount = 1;
+					view.time = sample->time;
+					view.timeAvg = sample->time; // TODO: persistent stats for GPU
+					view.timeSelf = sample->time; // Simple for now
+					view.timeSelfAvg = sample->time;
+					view.offsetGrouped = sample->startTime;
+					view.durationGrouped = sample->time;
+					view.persistentId = GNextNodeId++; // Temporary ID
+
+					view.bIsLeaf = true; // Simplified
+					view.parentIndex = -1; // Flattened for now or logic needed
+
+					view.timestamps.push_back({ sample->startTime, sample->time });
+
+					if (view.level > mCurrentThread->maxLevel) mCurrentThread->maxLevel = view.level;
+					mCurrentThread->samples.push_back(std::move(view));
+				}
+			}
+		}
+		std::sort(snapshot.threads.begin(), snapshot.threads.end(), 
 			[](const ThreadView& a, const ThreadView& b) 
 			{
 				auto getPriority = [](const std::string& name) 
 				{
 					if (name == "GameThread") return 0;
 					if (name == "RenderThread") return 1;
-					return 2;
+					if (name == "GPU") return 2;
+					return 3;
 				};
 				int pA = getPriority(a.name);
 				int pB = getPriority(b.name);
@@ -408,6 +475,10 @@ void ProfilerPanel::render()
 {
 	GProfileCollector.collect();
 
+	SpinLock::Locker snapshotLocker(GSnapshotLock);
+	FrameSnapshot& snapshot = GetReadSnapshot();
+	int snapshotIndex = GReadSnapshotIndex.load(std::memory_order_acquire);
+
 	ImGui::Checkbox("Pause", &GProfilerState.bPause);
 	ImGui::SameLine();
 	ImGui::Checkbox("Grouped", &GProfilerState.bGrouped);
@@ -523,17 +594,17 @@ void ProfilerPanel::render()
 	}
 
 
-	double time = displayTimeLimit;
-	for (auto& thread : GFrameSnapshot.threads)
+	double time = (double)displayTimeLimit;
+	for (auto& threadView : snapshot.threads)
 	{
-		if (thread.name == "GameThread")
+		if (threadView.name == "GameThread")
 		{
-			time = Math::Max(thread.time, time);
+			time = Math::Max<double>(threadView.time, time);
 			break;
 		}
 	}
 
-	ImGui::SetCursorPosX(GProfilerState.scale * 1000 * time / displayTimeLimit);
+	ImGui::SetCursorPosX((float)(GProfilerState.scale * 1000.0 * time / (double)displayTimeLimit));
 
 	TimelineContext timelineCtx;
 	timelineCtx.clientPos = data.clientPos;
@@ -545,7 +616,7 @@ void ProfilerPanel::render()
 	timelineCtx.selectEndTime = GProfilerState.selectEndTime;
 
 	Vector2 displaySize = FImGuiConv::To(ImGui::GetIO().DisplaySize);
-	EditorRenderGloabal::Get().addCustomFunc([timelineCtx, displaySize](const ImDrawList* parentlist, const ImDrawCmd* cmd)
+	EditorRenderGloabal::Get().addCustomFunc([timelineCtx, displaySize, snapshotIndex](const ImDrawList* parentlist, const ImDrawCmd* cmd)
 	{
 		using namespace Render;
 		PROFILE_ENTRY("Profiler.RenderNodes");
@@ -556,7 +627,7 @@ void ProfilerPanel::render()
 		g.setViewportSize((int)displaySize.x, (int)displaySize.y);
 		g.beginRender();
 
-		DrawProfileTimeline(g, GFrameSnapshot, timelineCtx);
+		DrawProfileTimeline(g, GFrameSnapshot[snapshotIndex], timelineCtx);
 
 		g.endRender();
 		RHIEndRender(false);
@@ -566,7 +637,7 @@ void ProfilerPanel::render()
 	{
 		Vector2 mousePosInViewport = FImGuiConv::To(ImGui::GetMousePos() - ImGui::GetWindowViewport()->Pos);
 		int tsIndex = -1;
-		auto hoveredSample = GFrameSnapshot.getHoveredSample(mousePosInViewport, timelineCtx.clientPos, timelineCtx.scale, tsIndex);
+		auto hoveredSample = snapshot.getHoveredSample(mousePosInViewport, timelineCtx.clientPos, timelineCtx.scale, tsIndex);
 		if (hoveredSample)
 		{
 			double startTime, duration;
@@ -641,12 +712,55 @@ void ProfilerPanel::render()
 	ImGui::EndChild();
 }
 
+// Profiler timeline layer policy: groups shapes and text globally.
+// Without this, each drawRect/drawText gets a unique sequential layer,
+// preventing same-state elements from batching.
+// With ~100+ profile nodes, each with 3 rects + text, this reduces
+// draw calls from O(N * state_changes) to O(distinct_states) ≈ 3-5.
+class ProfilerLayerPolicy : public RHIGraphics2D::LayerPolicy
+{
+public:
+	static constexpr int32 PHASE_SHAPE = 0;
+	static constexpr int32 PHASE_TEXT  = 1;
+	static constexpr int32 NUM_PHASES  = 2;
+	static constexpr int32 PHASE_RANGE = 100000;
+
+	int32 mPhaseCounters[NUM_PHASES] = {};
+
+	void reset()
+	{
+		for (int i = 0; i < NUM_PHASES; ++i)
+			mPhaseCounters[i] = 0;
+	}
+
+	int32 getLayer(Render::RenderBatchedElement const& element, RHIGraphics2D::RenderState const& state) override
+	{
+		int32 phase;
+		switch (element.type)
+		{
+		case Render::RenderBatchedElement::Text:
+		case Render::RenderBatchedElement::ColoredText:
+			phase = PHASE_TEXT;
+			break;
+		default:
+			phase = PHASE_SHAPE;
+			break;
+		}
+		return phase * PHASE_RANGE + mPhaseCounters[phase]++;
+	}
+};
+static ProfilerLayerPolicy g_ProfilerLayerPolicy;
+
 void DrawProfileTimeline(RHIGraphics2D& g, FrameSnapshot& snapshot, TimelineContext const& timelineCtx)
 {
 	Vector2 const& clientPos = timelineCtx.clientPos;
 	Vector2 const& windowPos = timelineCtx.windowPos;
 	Vector2 const& windowSize = timelineCtx.windowSize;
 	float scaleFactor = timelineCtx.scale;
+
+	// Set aggressive layer policy to batch profile node rects and text
+	g_ProfilerLayerPolicy.reset();
+	g.setLayerPolicy(&g_ProfilerLayerPolicy);
 
 	g.beginClip(windowPos - Vector2(1, 0), windowSize);
 
@@ -731,7 +845,12 @@ void DrawProfileTimeline(RHIGraphics2D& g, FrameSnapshot& snapshot, TimelineCont
 				sample.timelinePos = pos;
 				sample.timelineSize = size;
 
+				// Horizontal culling
 				if (pos.x + size.x < windowPos.x || pos.x > windowPos.x + windowSize.x)
+					return;
+
+				// Vertical culling
+				if (pos.y + size.y < windowPos.y || pos.y > windowPos.y + windowSize.y)
 					return;
 
 				if (trueWidth < 0.05)
@@ -799,7 +918,7 @@ void DrawProfileTimeline(RHIGraphics2D& g, FrameSnapshot& snapshot, TimelineCont
 		nextBaseY += (float)((thread.maxLevel + 1) * offsetY + 10);
 	}
 
-	// Draw Texts with Clamping (from user's logic)
+	// Draw Texts with Clamping
 	g.setTextColor(Color3ub(0, 0, 0));
 
 	Vector2 clipPos = windowPos;
@@ -807,9 +926,16 @@ void DrawProfileTimeline(RHIGraphics2D& g, FrameSnapshot& snapshot, TimelineCont
 	{
 		Vector2 pos = textData.pos;
 		Vector2 size = textData.size;
-		pos.x = Math::Clamp(pos.x, clipPos.x, pos.x + size.x) + 3;
-		size.x -= pos.x - textData.pos.x + 3;
-		g.drawText(pos, size, textData.str.c_str(), EHorizontalAlign::Left, EVerticalAlign::Center, true);
+		float originalX = pos.x;
+		pos.x = Math::Clamp(pos.x, clipPos.x, pos.x + size.x);
+		size.x -= pos.x - originalX;
+
+		// Prune text that is too small or clipped away
+		if (size.x > 8.0f)
+		{
+			// bClip must be true to prevent text bleeding out of nodes
+			g.drawText(pos + Vector2(3,0), size - Vector2(3,0), textData.str.c_str(), EHorizontalAlign::Left, EVerticalAlign::Center, true);
+		}
 	}
 
 	// Draw Selection ON TOP
@@ -875,6 +1001,9 @@ void DrawProfileTimeline(RHIGraphics2D& g, FrameSnapshot& snapshot, TimelineCont
 	}
 
 	g.endClip();
+
+	// Reset layer policy
+	g.setLayerPolicy(nullptr);
 }
 
 void DrawProfileTable(FrameSnapshot const& snapshot)
@@ -1001,7 +1130,9 @@ void ProfilerListPanel::render()
 	ImGui::Checkbox("Pause", &GProfilerState.bPause);
 	ImGui::SameLine();
 	ImGui::Checkbox("Flat List", &GProfilerState.bFlatList);
-	DrawProfileTable(GFrameSnapshot);
+
+	SpinLock::Locker snapshotLocker(GSnapshotLock);
+	DrawProfileTable(GetReadSnapshot());
 }
 
 void ProfilerPanel::getRenderParams(WindowRenderParams& params) const {}

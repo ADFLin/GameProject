@@ -6,8 +6,42 @@
 #include "WindowsPlatform.h"
 
 #include "ImGui/backends/imgui_impl_win32.h"
+#include "ImGui/imgui.h"
 
 #include <memory>
+
+
+struct ImDrawDataSnapshot
+{
+	ImDrawData data;
+	ImVector<ImDrawList*> cmdLists;
+
+	ImDrawDataSnapshot(ImDrawData* src)
+	{
+		data = *src;
+		cmdLists.resize(src->CmdListsCount);
+		for (int i = 0; i < src->CmdListsCount; ++i)
+		{
+			cmdLists[i] = src->CmdLists[i]->CloneOutput();
+		}
+		data.CmdLists = cmdLists.Data;
+	}
+
+	~ImDrawDataSnapshot()
+	{
+		for (int i = 0; i < cmdLists.Size; i++)
+		{
+			IM_DELETE(cmdLists[i]);
+		}
+	}
+
+	static ImDrawDataSnapshot* Copy(ImDrawData* src)
+	{
+		if (src == nullptr || !src->Valid)
+			return nullptr;
+		return new ImDrawDataSnapshot(src);
+	}
+};
 
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -23,11 +57,11 @@ public:
 	virtual bool initialize(EditorWindow& mainWindow) { return true; }
 	virtual void shutdown() {}
 	virtual void beginFrame() {}
+	virtual void beginRender(EditorWindow& window) {}
 	virtual void endFrame() {}
 
 	virtual bool initializeWindowRenderData(EditorWindow& window) { return true; }
-	virtual void renderWindow(EditorWindow& window) {}
-
+	virtual void renderWindow(EditorWindow& window, ImDrawData* drawData) {}
 	virtual void notifyWindowResize(EditorWindow& window, int width, int height) {}
 
 };

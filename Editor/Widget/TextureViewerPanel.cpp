@@ -8,7 +8,7 @@
 #include "RHI/DrawUtility.h"
 
 
-REGISTER_EDITOR_PANEL(TextureViewerPanel, TextureViewerPanel::ClassName, true, true);
+//REGISTER_EDITOR_PANEL(TextureViewerPanel, TextureViewerPanel::ClassName, true, true);
 
 void TextureViewerPanel::render()
 {

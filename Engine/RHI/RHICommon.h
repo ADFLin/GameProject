@@ -323,9 +323,15 @@ namespace Render
 		virtual bool decRef() = 0;
 		virtual void releaseResource() = 0;
 
+
+		static CORE_API std::function<bool(RHIResource*)> DeferDeleteDelegate;
 		void destroyThis()
 		{
 			//LogMsg("RHI Resource destroy : %s", mTypeName.c_str());
+			if (DeferDeleteDelegate && DeferDeleteDelegate(this))
+			{
+				return;
+			}
 			releaseResource();
 			delete this;
 		}

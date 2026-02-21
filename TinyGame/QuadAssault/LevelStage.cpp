@@ -370,7 +370,7 @@ void RenderBar(RHIGraphics2D& g, float len , float h , float frac , float alpha 
 	}
 
 	g.beginBlend(alpha, ESimpleBlendMode::Add);
-	g.drawCustomFunc([=](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
+	g.drawCustomFunc([=](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, Render::RenderTransform2D const& transform)
 	{
 		Vertex v[] =
 		{
@@ -381,7 +381,7 @@ void RenderBar(RHIGraphics2D& g, float len , float h , float frac , float alpha 
 		};
 		for (int i = 0; i < ARRAY_SIZE(v); ++i)
 		{
-			v[i].pos = element.transform.transformPosition(v[i].pos);
+			v[i].pos = transform.transformPosition(v[i].pos);
 		}
 		TRenderRT< RTVF_XY_CA >::Draw(commandList, EPrimitive::LineLoop, v, ARRAY_SIZE(v));
 

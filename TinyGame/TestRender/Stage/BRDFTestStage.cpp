@@ -19,7 +19,7 @@ namespace Render
 	REGISTER_STAGE_ENTRY("BRDF Test", BRDFTestStage, EExecGroup::FeatureDev, 1, "Render|Test" );
 
 	IMPLEMENT_SHADER_PROGRAM(LightProbeVisualizeProgram);
-	IMPLEMENT_SHADER_PROGRAM(TonemapProgram);
+
 
 	bool BRDFTestStage::onInit()
 	{

@@ -7,7 +7,6 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(BloomSetupProgram);
 	IMPLEMENT_SHADER_PROGRAM(FliterProgram);
 	IMPLEMENT_SHADER_PROGRAM(FliterAddProgram);
-	IMPLEMENT_SHADER_PROGRAM(TonemapProgram);
 
 
 	int generateGaussianlDisburtionWeightAndOffset(float kernelRadius, Vector2 outWeightAndOffset[128])

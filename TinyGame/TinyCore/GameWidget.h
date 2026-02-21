@@ -195,6 +195,7 @@ public:
 		return cur->layer;
 	}
 
+	void doRenderAll();
 protected:
 	virtual bool preSendEvent(int event) { return true; }
 
@@ -225,6 +226,7 @@ protected:
 	std::vector<void*> mTweens;
 
 	bool      mClipEnable;
+	int32     mRenderLayer;
 };
 
 class WidgetPos

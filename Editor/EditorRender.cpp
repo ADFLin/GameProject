@@ -20,6 +20,7 @@
 #include "RHI/D3D11Command.h"
 #include "RHI/D3D12Command.h"
 #include "RHI/OpenGLCommand.h"
+#include "Renderer/RenderThread.h"
 
 using namespace Render;
 
@@ -32,6 +33,135 @@ using namespace Render;
 
 #define VERIFY_D3D_RESULT( CODE , ERRORCODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
 #define VERIFY_D3D_RESULT_RETURN_FALSE( CODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
+
+
+static void(*GDefaultImGuiRenderer_RenderWindow)(ImGuiViewport* viewport, void* render_arg) = nullptr;
+static void ImGui_Renderer_RenderWindow_Hook(ImGuiViewport* viewport, void* render_arg)
+{
+	if (RenderThread::IsRunning())
+	{
+		auto* snapshot = ImDrawDataSnapshot::Copy(viewport->DrawData);
+		if (snapshot)
+		{
+			RenderThread::AddCommand("ImGui::Renderer_RenderWindow", [viewport, snapshot]()
+			{
+				ImDrawData* originalData = viewport->DrawData;
+				viewport->DrawData = &snapshot->data;
+				if (GDefaultImGuiRenderer_RenderWindow)
+				{
+					GDefaultImGuiRenderer_RenderWindow(viewport, nullptr);
+				}
+				viewport->DrawData = originalData;
+				delete snapshot;
+			});
+		}
+	}
+	else if (GDefaultImGuiRenderer_RenderWindow)
+	{
+		GDefaultImGuiRenderer_RenderWindow(viewport, render_arg);
+	}
+}
+
+static void(*GDefaultImGuiRenderer_CreateWindow)(ImGuiViewport* viewport) = nullptr;
+static void ImGui_Renderer_CreateWindow_Hook(ImGuiViewport* viewport)
+{
+	if (RenderThread::IsRunning())
+	{
+		RenderThread::AddCommand("ImGui::Renderer_CreateWindow", [viewport]()
+		{
+			if (GDefaultImGuiRenderer_CreateWindow)
+				GDefaultImGuiRenderer_CreateWindow(viewport);
+		});
+		//RenderThread::FlushCommands();
+	}
+	else if (GDefaultImGuiRenderer_CreateWindow)
+	{
+		GDefaultImGuiRenderer_CreateWindow(viewport);
+	}
+}
+
+static void(*GDefaultImGuiRenderer_DestroyWindow)(ImGuiViewport* viewport) = nullptr;
+static void ImGui_Renderer_DestroyWindow_Hook(ImGuiViewport* viewport)
+{
+	if (RenderThread::IsRunning())
+	{
+		RenderThread::AddCommand("ImGui::Renderer_DestroyWindow", [viewport]()
+		{
+			if (GDefaultImGuiRenderer_DestroyWindow)
+				GDefaultImGuiRenderer_DestroyWindow(viewport);
+		});
+		//RenderThread::FlushCommands();
+	}
+	else if (GDefaultImGuiRenderer_DestroyWindow)
+	{
+		GDefaultImGuiRenderer_DestroyWindow(viewport);
+	}
+}
+
+static void(*GDefaultImGuiRenderer_SetWindowSize)(ImGuiViewport* viewport, ImVec2 size) = nullptr;
+static void ImGui_Renderer_SetWindowSize_Hook(ImGuiViewport* viewport, ImVec2 size)
+{
+	if (RenderThread::IsRunning())
+	{
+		RenderThread::AddCommand("ImGui::Renderer_SetWindowSize", [viewport, size]()
+		{
+			if (GDefaultImGuiRenderer_SetWindowSize)
+				GDefaultImGuiRenderer_SetWindowSize(viewport, size);
+		});
+		//RenderThread::FlushCommands();
+	}
+	else if (GDefaultImGuiRenderer_SetWindowSize)
+	{
+		GDefaultImGuiRenderer_SetWindowSize(viewport, size);
+	}
+}
+
+static void(*GDefaultImGuiRenderer_SwapBuffers)(ImGuiViewport* viewport, void* render_arg) = nullptr;
+static void ImGui_Renderer_SwapBuffers_Hook(ImGuiViewport* viewport, void* render_arg)
+{
+	if (RenderThread::IsRunning())
+	{
+		RenderThread::AddCommand("ImGui::Renderer_SwapBuffers", [viewport, render_arg]()
+		{
+			if (GDefaultImGuiRenderer_SwapBuffers)
+				GDefaultImGuiRenderer_SwapBuffers(viewport, render_arg);
+		});
+	}
+	else if (GDefaultImGuiRenderer_SwapBuffers)
+	{
+		GDefaultImGuiRenderer_SwapBuffers(viewport, render_arg);
+	}
+}
+
+void SetupImGuiRendererHook()
+{
+	ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+	if (platform_io.Renderer_RenderWindow != ImGui_Renderer_RenderWindow_Hook)
+	{
+		GDefaultImGuiRenderer_RenderWindow = platform_io.Renderer_RenderWindow;
+		platform_io.Renderer_RenderWindow = ImGui_Renderer_RenderWindow_Hook;
+	}
+	if (platform_io.Renderer_CreateWindow != ImGui_Renderer_CreateWindow_Hook)
+	{
+		GDefaultImGuiRenderer_CreateWindow = platform_io.Renderer_CreateWindow;
+		platform_io.Renderer_CreateWindow = ImGui_Renderer_CreateWindow_Hook;
+	}
+	if (platform_io.Renderer_DestroyWindow != ImGui_Renderer_DestroyWindow_Hook)
+	{
+		GDefaultImGuiRenderer_DestroyWindow = platform_io.Renderer_DestroyWindow;
+		platform_io.Renderer_DestroyWindow = ImGui_Renderer_DestroyWindow_Hook;
+	}
+	if (platform_io.Renderer_SetWindowSize != ImGui_Renderer_SetWindowSize_Hook)
+	{
+		GDefaultImGuiRenderer_SetWindowSize = platform_io.Renderer_SetWindowSize;
+		platform_io.Renderer_SetWindowSize = ImGui_Renderer_SetWindowSize_Hook;
+	}
+	if (platform_io.Renderer_SwapBuffers != ImGui_Renderer_SwapBuffers_Hook)
+	{
+		GDefaultImGuiRenderer_SwapBuffers = platform_io.Renderer_SwapBuffers;
+		platform_io.Renderer_SwapBuffers = ImGui_Renderer_SwapBuffers_Hook;
+	}
+}
 
 
 
@@ -104,7 +234,25 @@ public:
 
 		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
 		VERIFY_RETURN_FALSE(ImGui_ImplDX11_Init(mDevice, mDeviceContext));
-		VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
+
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::initializeWindowRenderData", [this, &mainWindow]()
+			{
+				initializeWindowRenderData(mainWindow);
+			});
+			RenderThread::FlushCommands();
+		}
+		else
+		{
+			VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
+		}
+
+		SetupImGuiRendererHook();
+
+		unsigned char* pixels;
+		int width, height;
+		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		return true;
 	}
@@ -116,8 +264,12 @@ public:
 
 	void beginFrame()
 	{
-		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
+	}
+
+	void beginRender(EditorWindow& window) override
+	{
+		ImGui_ImplDX11_NewFrame();
 	}
 	TComPtr< ID3D11Device > mDevice;
 	TComPtr< ID3D11DeviceContext > mDeviceContext;
@@ -134,18 +286,34 @@ public:
 		return true;
 	}
 
-	void renderWindow(EditorWindow& window)
+	void renderWindow(EditorWindow& window, ImDrawData* drawData) override
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 
 		const float clear_color_with_alpha[4] = { 0,0,0,1 };
 		mDeviceContext->OMSetRenderTargets(1, &renderData->mRenderTargetView, NULL);
 		mDeviceContext->ClearRenderTargetView(renderData->mRenderTargetView, clear_color_with_alpha);
-		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-		renderData->mSwapChain->Present(1, 0);
+		ImGui_ImplDX11_RenderDrawData(drawData);
+		renderData->mSwapChain->Present(0, 0);
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
+	{
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::notifyWindowResize", [this, &window, width, height]()
+			{
+				notifyWindowResizeInternal(window, width, height);
+			});
+			//RenderThread::FlushCommands();
+		}
+		else
+		{
+			notifyWindowResizeInternal(window, width, height);
+		}
+	}
+
+	void notifyWindowResizeInternal(EditorWindow& window, int width, int height)
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 		if (renderData->mSwapChain.isValid())
@@ -236,7 +404,24 @@ public:
 
 		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
 		//VERIFY_RETURN_FALSE(ImGui_ImplDX11_Init(mDevice, mDeviceContext));
-		VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::initializeWindowRenderData", [this, &mainWindow]()
+			{
+				initializeWindowRenderData(mainWindow);
+			});
+			//RenderThread::FlushCommands();
+		}
+		else
+		{
+			VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
+		}
+
+		SetupImGuiRendererHook();
+
+		unsigned char* pixels;
+		int width, height;
+		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		return true;
 	}
@@ -248,8 +433,12 @@ public:
 
 	void beginFrame()
 	{
-		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
+	}
+
+	void beginRender(EditorWindow& window) override
+	{
+		ImGui_ImplDX12_NewFrame();
 	}
 	TComPtr< ID3D12DeviceRHI > mDevice;
 
@@ -262,14 +451,12 @@ public:
 		return true;
 	}
 
-	void renderWindow(EditorWindow& window)
+	void renderWindow(EditorWindow& window, ImDrawData* drawData) override
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 
 		const float clear_color_with_alpha[4] = { 0,0,0,1 };
-
-
-		//ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData());
+		//ImGui_ImplDX12_RenderDrawData(drawData);
 		renderData->mSwapChain->Present(1, 0);
 	}
 
@@ -312,7 +499,24 @@ public:
 	{
 		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
 		VERIFY_RETURN_FALSE(ImGui_ImplOpenGL3_Init());
-		VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::initializeWindowRenderData", [this, &mainWindow]()
+			{
+				initializeWindowRenderData(mainWindow);
+			});
+			//RenderThread::FlushCommands();
+		}
+		else
+		{
+			VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
+		}
+
+		SetupImGuiRendererHook();
+
+		unsigned char* pixels;
+		int width, height;
+		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		return true;
 	}
@@ -324,8 +528,12 @@ public:
 
 	void beginFrame()
 	{
-		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplWin32_NewFrame();
+	}
+
+	void beginRender(EditorWindow& window) override
+	{
+		ImGui_ImplOpenGL3_NewFrame();
 	}
 
 	bool initializeWindowRenderData(EditorWindow& window) override
@@ -336,7 +544,7 @@ public:
 		return true;
 	}
 
-	void renderWindow(EditorWindow& window)
+	void renderWindow(EditorWindow& window, ImDrawData* drawData) override
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 
@@ -344,11 +552,27 @@ public:
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClearColor(0,0,0,1);
 		glClear(GL_COLOR_BUFFER_BIT);
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplOpenGL3_RenderDrawData(drawData);
 		renderData->mContext.swapBuffer();
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
+	{
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::notifyWindowResize", [this, &window, width, height]()
+			{
+				notifyWindowResizeInternal(window, width, height);
+			});
+			//RenderThread::FlushCommands();
+		}
+		else
+		{
+			notifyWindowResizeInternal(window, width, height);
+		}
+	}
+
+	void notifyWindowResizeInternal(EditorWindow& window, int width, int height)
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 	}

@@ -4,6 +4,8 @@
 #include "GameConfig.h"
 #include "GameWidget.h"
 
+class IGraphics2D;
+
 class IGUIDelegate
 {
 public:

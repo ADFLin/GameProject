@@ -785,6 +785,7 @@ GWidget::GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent )
 	mFontType  = FONT_S8;
 	useHotKey  = false;
 	mClipEnable = false;
+	mRenderLayer = 0;
 }
 
 GWidget::~GWidget()
@@ -918,6 +919,8 @@ bool GWidget::doClipTest()
 
 void GWidget::onPrevRender()
 {
+	auto& g = Global::GetIGraphics2D();
+
 	if (mClipEnable)
 	{
 		gClipStack.push(getWorldPos(), getSize());

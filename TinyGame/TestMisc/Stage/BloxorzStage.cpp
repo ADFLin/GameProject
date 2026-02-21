@@ -996,11 +996,13 @@ namespace Bloxorz
 					RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 					RHISetShaderProgram(commandList, mProgTonemap->getRHI());
+					PostProcessContext context;
+					context.mInputTexture[0] = &mSceneRenderTargets.getPrevFrameTexture();
+					mProgTonemap->setParameters(commandList, context);
+					mProgTonemap->setBloomTexture(commandList, *bloomTexture);
 
-					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
-					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, BloomTexture, *bloomTexture, sampler);
-					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, TextureInput0, mSceneRenderTargets.getPrevFrameTexture(), sampler);
 					DrawUtility::ScreenRect(commandList);
+
 
 				}
 

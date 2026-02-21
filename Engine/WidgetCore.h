@@ -152,7 +152,7 @@ public:
 	virtual MsgReply onCharMsg(unsigned code) { (void)code; return MsgReply::Unhandled(); }
 	virtual MsgReply onMouseMsg(MouseMsg const& msg) { (void)msg; return MsgReply::Handled(); }
 
-private:
+protected:
 	void    destroyChildren_R();
 
 	void          setTopChild(WidgetCoreT* ui, bool beAlways);
@@ -200,8 +200,6 @@ protected:
 	virtual void  render(){  _this()->onRender();  }
 	virtual void  focus( bool beF ){ _this()->onFocus( beF ); }
 	void    update()    {  _this()->onUpdateUI();   }
-
-private:
 
 
 	void    prevRender()        {  _this()->onPrevRender();  }

@@ -350,6 +350,7 @@ copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="TinyCore\ReplayGameMode.cpp" />
     <ClCompile Include="TinyCore\ServerStatusPanel.cpp" />
     <ClCompile Include="TinyCore\SingleGameMode.cpp" />
+    <ClCompile Include="Basketball\BasketballStage.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGameEditor.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
@@ -427,6 +428,7 @@ copy $(TargetDir)UnitTest.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="TinyCore\ReplayGameMode.h" />
     <ClInclude Include="TinyCore\ServerStatusPanel.h" />
     <ClInclude Include="TinyCore\SingleGameMode.h" />
+    <ClInclude Include="Basketball\BasketballStage.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
   </ItemGroup>

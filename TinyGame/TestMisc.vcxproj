@@ -299,7 +299,6 @@
     <ClInclude Include="TripleTown\TTResource.h" />
     <ClInclude Include="TripleTown\TTLevel.h" />
     <ClInclude Include="TripleTown\TTScene.h" />
-    <ClInclude Include="TestMisc\ParallelCollision\ParallelCollision.h" />
     <ClInclude Include="TripleTown\TTStage.h" />
   </ItemGroup>
   <ItemGroup>
@@ -470,7 +469,6 @@
     <ClCompile Include="TestMisc\Stage\SobelTrainStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StackStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
-    <ClCompile Include="TestMisc\Stage\SurvivorsStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TMachineStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp" />
     <ClCompile Include="TestMisc\Stage\VectorGraphicRenderStage.cpp" />
@@ -504,7 +502,6 @@
     <ClCompile Include="TripleTown\TTLevel.cpp" />
     <ClCompile Include="TripleTown\TTScene.cpp" />
     <ClCompile Include="TripleTown\TTStage.cpp" />
-    <ClCompile Include="TestMisc\ParallelCollision\ParallelCollision.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -69,6 +69,15 @@ namespace Render
 		}
 	}
 
+	template< class TVector2 >
+	FORCEINLINE void CopyList(TVector2 const* inList, Vector2* outList, int num)
+	{
+		for (int i = 0; i < num; ++i)
+		{
+			outList[i] = Vector2(inList[i]);
+		}
+	}
+
 	struct ShapeCachedData
 	{
 		int id;
@@ -186,6 +195,17 @@ namespace Render
 				blendMode = ESimpleBlendMode::None;
 				bEnableScissor = false;
 			}
+
+			bool operator == (RenderState const& rhs) const
+			{
+				return texture == rhs.texture &&
+					sampler == rhs.sampler &&
+					blendMode == rhs.blendMode &&
+					bEnableScissor == rhs.bEnableScissor &&
+					(!bEnableScissor || (scissorRect.pos == rhs.scissorRect.pos && scissorRect.size == rhs.scissorRect.size));
+			}
+
+			bool operator != (RenderState const& rhs) const { return !(*this == rhs); }
 		};
 
 
@@ -197,7 +217,7 @@ namespace Render
 	};
 
 
-	struct RenderBatchedElementBase
+	struct RenderBatchedElement
 	{
 		enum EType
 		{
@@ -217,19 +237,15 @@ namespace Render
 			ColoredText,
 			GradientRect,
 
-			ModifyState,
 			CustomState,
 			CustomRender,
 			CustomRenderAndState,
 		};
 
 		EType type;
-	};
-
-	struct RenderBatchedElement : RenderBatchedElementBase
-	{
-		RenderTransform2D transform;
-		int32 layer;
+		uint32           transformIndex;
+		uint32           stateIndex;
+		int32            layer;
 	};
 
 	enum class EObjectManageMode
@@ -264,7 +280,7 @@ namespace Render
 		using RenderState = GraphicsDefinition::RenderState;
 
 		virtual ~ICustomElementRenderer() = default;
-		virtual void render(RHICommandList& commandList, Math::Matrix4 const& baseTransform, RenderBatchedElement& element, RenderState const& state) = 0;
+		virtual void render(RHICommandList& commandList, Math::Matrix4 const& baseTransform, RenderBatchedElement& element, Render::RenderTransform2D const& transform, RenderState const& state) = 0;
 	};
 
 	template< class TPayload >
@@ -273,20 +289,6 @@ namespace Render
 		TPayload payload;
 	};
 
-	struct ModifyStateBatchedElement : RenderBatchedElementBase
-	{
-		using RenderState = GraphicsDefinition::RenderState;
-
-		ModifyStateBatchedElement(RenderState const state, bool bResetAll)
-			:state(state)
-			,bResetAll(bResetAll)
-		{
-			type = RenderBatchedElementBase::ModifyState;
-		}
-
-		RenderState state;
-		bool bResetAll;
-	};
 
 	struct ShapePaintArgs
 	{
@@ -311,8 +313,39 @@ namespace Render
 		RenderBatchedElementList(FrameAllocator& allocator)
 			:mAllocator(allocator)
 		{
-
+			mTransforms.push_back(RenderTransform2D::Identity());
+			GraphicsDefinition::RenderState defaultState;
+			defaultState.setInit();
+			mStates.push_back(defaultState);
 		}
+
+		uint32 setTransform(RenderTransform2D const& xform)
+		{
+			if (mTransforms.back() == xform)
+				return (uint32)mTransforms.size() - 1;
+
+			uint32 index = (uint32)mTransforms.size();
+			mTransforms.push_back(xform);
+			return index;
+		}
+
+		uint32 setState(GraphicsDefinition::RenderState const& state)
+		{
+			for (uint32 i = 0; i < (uint32)mStates.size(); ++i)
+			{
+				if (mStates[i] == state)
+					return i;
+			}
+
+			uint32 index = (uint32)mStates.size();
+			mStates.push_back(state);
+			return index;
+		}
+
+
+		bool isEmpty() const { return mElements.empty(); }
+
+
 
 		using Color4Type = ShapePaintArgs::Color4Type;
 		using Color3Type = ShapePaintArgs::Color3Type;
@@ -439,28 +472,30 @@ namespace Render
 		}
 		RenderBatchedElement& addPoint(Vector2 const& pos, Color4Type const& color, float size = 0);
 		RenderBatchedElement& addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max);
+		RenderBatchedElement& addCircle(ShapePaintArgs const& paintArgs, Vector2 const& center, float r);
+		RenderBatchedElement& addEllipse(ShapePaintArgs const& paintArgs, Vector2 const& center, Vector2 const& size);
 		RenderBatchedElement& addRoundRect(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius);
 
 		template< class TVector2 >
-		RenderBatchedElement& addPolygon(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		RenderBatchedElement& addPolygon(ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
 		{
-			return addTriangles(RenderBatchedElement::Polygon, transform, paintArgs, v, numV);
+			return addTriangles(RenderBatchedElement::Polygon, paintArgs, v, numV);
 		}
 
 		template< class TVector2 >
-		RenderBatchedElement& addTriangleList(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		RenderBatchedElement& addTriangleList(ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
 		{
-			return addTriangles(RenderBatchedElement::TriangleList, transform, paintArgs, v, numV);
+			return addTriangles(RenderBatchedElement::TriangleList, paintArgs, v, numV);
 		}
 
 		template< class TVector2 >
-		RenderBatchedElement& addTriangleStrip(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		RenderBatchedElement& addTriangleStrip(ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
 		{
-			return addTriangles(RenderBatchedElement::TriangleStrip, transform, paintArgs, v, numV);
+			return addTriangles(RenderBatchedElement::TriangleStrip, paintArgs, v, numV);
 		}
 
 		template< class TVector2 >
-		RenderBatchedElement& addTriangles(RenderBatchedElement::EType type, RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		RenderBatchedElement& addTriangles(RenderBatchedElement::EType type, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
 		{
 			CHECK(numV > 2);
 			TRenderBatchedElement<TrianglePayload>* element = addElement< TrianglePayload >();
@@ -469,12 +504,12 @@ namespace Render
 			element->payload.posList = (Vector2*)mAllocator.alloc(sizeof(Vector2) * numV);
 			element->payload.posCount = numV;
 
-			Transform(v, &element->payload.posList[0], numV, transform);
+			CopyList(v, &element->payload.posList[0], numV);
 			return *element;
 		}
 
 		template< class TVector2 >
-		RenderBatchedElement& addLineStrip(RenderTransform2D const& transform, Color4Type const& color, TVector2 const v[], int numV, int width)
+		RenderBatchedElement& addLineStrip(Color4Type const& color, TVector2 const v[], int numV, int width)
 		{
 			CHECK(numV >= 2);
 			TRenderBatchedElement<LineStripPayload>* element = addElement< LineStripPayload >();
@@ -484,16 +519,12 @@ namespace Render
 			element->payload.posList = (Vector2*)mAllocator.alloc(sizeof(Vector2) * numV);
 			element->payload.posCount = numV;
 
-			Transform(v, &element->payload.posList[0], numV, transform);
+			CopyList(v, &element->payload.posList[0], numV);
 			return *element;
 		}
 
 
 		RenderBatchedElement& addArcLine(Color4Type const& color, Vector2 const& center, float radius, float startAngle, float sweepAngle, int width);
-
-
-		RenderBatchedElement& addCircle( ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius);
-		RenderBatchedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
 		RenderBatchedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
 		RenderBatchedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
 		RenderBatchedElement& addText(Color4Type const& color, TArray< GlyphVertex > const& vertices, bool bRemoveScale, bool bRemoveRotation);
@@ -509,14 +540,6 @@ namespace Render
 		RenderBatchedElement& addCustomState(ICustomElementRenderer* renderer, EObjectManageMode mode);
 		RenderBatchedElement& addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode, bool bChangeState);
 
-		RenderBatchedElementBase& modifyState(GraphicsDefinition::RenderState const& state, bool bResetAll)
-		{
-			ModifyStateBatchedElement* ptr = (ModifyStateBatchedElement*)mAllocator.alloc(sizeof(ModifyStateBatchedElement));
-			FTypeMemoryOp::Construct(ptr, state, bResetAll);
-			mElements.push_back((RenderBatchedElement*)(ptr));
-			static_assert(std::is_trivially_destructible_v< ModifyStateBatchedElement >);
-			return *ptr;
-		}
 
 		template< class TPayload >
 		auto addElement()
@@ -524,6 +547,8 @@ namespace Render
 			using ElementType = TRenderBatchedElement<TPayload>;
 			ElementType* ptr = (ElementType*)mAllocator.alloc(sizeof(ElementType));
 			FTypeMemoryOp::Construct(ptr);
+			ptr->transformIndex = (uint32)mTransforms.size() - 1;
+			ptr->stateIndex = (uint32)mStates.size() - 1;
 			mElements.push_back(ptr);
 
 			static_assert(std::is_trivially_destructible_v< RenderBatchedElement >);
@@ -532,10 +557,20 @@ namespace Render
 			return ptr;
 		}
 
-		void releaseElements();
-		bool isEmpty() const { return mElements.empty(); }
+		void reset()
+		{
+			mElements.clear();
+			mTransforms.clear();
+			mTransforms.push_back(RenderTransform2D::Identity());
+			mStates.clear();
+			GraphicsDefinition::RenderState state;
+			state.setInit();
+			mStates.push_back(state);
+		}
 
 		FrameAllocator& mAllocator;
+		TArray< RenderTransform2D >     mTransforms;
+		TArray< GraphicsDefinition::RenderState > mStates;
 		TArray< RenderBatchedElement* > mElements;
 	};
 
@@ -665,7 +700,7 @@ namespace Render
 		void initializeRHI();
 		void releaseRHI();
 		void beginRender(RHICommandList& commandList);
-		void render(RenderBatchedElementList& elementList);
+		void render(RHICommandList& commandList, RenderBatchedElementList& elementList);
 
 		void setViewportSize(int width, int height);
 
@@ -685,7 +720,7 @@ namespace Render
 
 		void emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs);
 		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
-		void emitElements(TArray<RenderBatchedElement* > const& elements, RenderState& inoutRenderState);
+		void emitElements(TArray<RenderBatchedElement* > const& elements, TArray< RenderTransform2D > const& transforms, TArray< GraphicsDefinition::RenderState > const& states, GraphicsDefinition::RenderState& inoutRenderState);
 		void emitLineStrip(TArrayView< Vector2 const > posList, Color4Type const& color, int width);
 
 

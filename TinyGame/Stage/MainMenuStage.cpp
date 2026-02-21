@@ -842,4 +842,5 @@ void MainMenuStage::processGameThreadCommands()
 void MainMenuStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 {
 	systemConfigs.bWasUsedPlatformGraphics = true;
+	systemConfigs.bUseRenderThread = true;
 }

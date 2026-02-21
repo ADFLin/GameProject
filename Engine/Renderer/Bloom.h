@@ -100,9 +100,15 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_TEXTURE_PARAM(parameterMap, FliterTexture);
+			BIND_SHADER_PARAM(parameterMap, Weights);
+			BIND_SHADER_PARAM(parameterMap, UVOffsets);
+			BIND_SHADER_PARAM(parameterMap, WeightNum);
 		}
 
 		DEFINE_TEXTURE_PARAM(FliterTexture);
+		DEFINE_SHADER_PARAM(Weights);
+		DEFINE_SHADER_PARAM(UVOffsets);
+		DEFINE_SHADER_PARAM(WeightNum);
 	};
 
 	class FliterAddProgram : public FliterProgram
@@ -126,46 +132,11 @@ namespace Render
 		DEFINE_TEXTURE_PARAM(AddTexture);
 	};
 
-	class TonemapProgram : public GlobalShaderProgram
-	{
-	public:
-		using BaseClass = GlobalShaderProgram;
-		DECLARE_SHADER_PROGRAM(TonemapProgram, Global);
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			option.addDefine(SHADER_PARAM(USE_BLOOM), true);
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/Tonemap";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
-			};
-			return entries;
-		}
-
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			BIND_TEXTURE_PARAM(parameterMap, TextureInput0);
-			BIND_TEXTURE_PARAM(parameterMap, BloomTexture);
-		}
-
-		DEFINE_TEXTURE_PARAM(TextureInput0);
-		DEFINE_TEXTURE_PARAM(BloomTexture);
-	};
-
 
 	constexpr int MaxWeightNum = 64;
-
 	int generateGaussianlDisburtionWeightAndOffset(float kernelRadius, Vector2 outWeightAndOffset[128]);
-
-
-}//namespace Render
+}
 
 
 #endif // Bloom_H_6668CE28_79ED_42A6_8C31_233D67B019C2
+

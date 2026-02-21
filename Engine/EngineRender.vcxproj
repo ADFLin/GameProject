@@ -52,6 +52,7 @@
     <ClCompile Include="Renderer\VolumetricLighting.cpp" />
     <ClCompile Include="Renderer\SceneView.cpp" />
     <ClCompile Include="Renderer\ShadowDepthRendering.cpp" />
+    <ClCompile Include="Renderer\Tonemap.cpp" />
     <ClCompile Include="RHI\D3DSharedCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
@@ -103,12 +104,15 @@
     <ClInclude Include="Renderer\MeshUtility.h" />
     <ClInclude Include="Renderer\RenderTargetPool.h" />
     <ClInclude Include="Renderer\RenderThread.h" />
+    <ClInclude Include="Renderer\DeferredReleaseQueue.h" />
     <ClInclude Include="Renderer\RenderTransform2D.h" />
     <ClInclude Include="Renderer\SceneDebug.h" />
     <ClInclude Include="Renderer\SceneLighting.h" />
     <ClInclude Include="Renderer\VolumetricLighting.h" />
     <ClInclude Include="Renderer\SceneView.h" />
     <ClInclude Include="Renderer\ShadowDepthRendering.h" />
+    <ClInclude Include="Renderer\PostProcess.h" />
+    <ClInclude Include="Renderer\Tonemap.h" />
     <ClInclude Include="Renderer\SimpleCamera.h" />
     <ClInclude Include="Renderer\TransformPushScope.h" />
     <ClInclude Include="RHI\D3DSharedCommon.h" />

@@ -116,12 +116,35 @@ void QueueThreadPool::waitAllThreadIdle()
 	}
 }
 
-void QueueThreadPool::waitAllWorkComplete()
+void QueueThreadPool::waitAllWorkComplete(bool bHelpUpdate)
 {
+	if (bHelpUpdate)
+	{
+		while (true)
+		{
+			IQueuedWork* work = nullptr;
+			{
+				SpinLock::Locker locker(mQueueLock);
+				if (mQueuedWorks.empty())
+					break;
+				work = mQueuedWorks.front();
+				mQueuedWorks.pop_front();
+			}
+
+			if (work)
+			{
+				ExecuteWork(work);
+			}
+		}
+	}
+
 	Mutex::Locker locker(mQueueMutex);
 	mWaitCompleteCV.wait(locker, [this]()
 	{
 		SpinLock::Locker spinLock(mQueueLock);
+		// If bHelpUpdate was called by a thread NOT in the pool (like Main Thread), 
+		// we should wait until ALL pool threads are idle.
+		// If called by a POOL thread, it would use waitAllWorkCompleteInWorker.
 		return mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty();
 	});
 }

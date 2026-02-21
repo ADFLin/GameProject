@@ -2,6 +2,7 @@
 
 #include "Image/ImageData.h"
 #include "RHICommand.h"
+#include "Renderer/RenderThread.h"
 
 namespace Render
 {
@@ -101,16 +102,28 @@ namespace Render
 			return false;
 
 		auto rect = mHelper.getNode(id)->rect;
-
-		if( dataImageWidth )
+		if (data)
 		{
-			RHIUpdateTexture(*mTexture, rect.x + mBorder, rect.y + mBorder, w, h, data, 0, dataImageWidth);
-		}
-		else
-		{
-			RHIUpdateTexture(*mTexture, rect.x + mBorder, rect.y + mBorder, w, h, data, 0);
-		}
+			int ox = rect.x + mBorder;
+			int oy = rect.y + mBorder;
+			if (RenderThread::IsRunning())
+			{
+				int dataSize = ETexture::GetFormatSize(mTexture->getFormat()) * (dataImageWidth ? dataImageWidth : w) * h;
+				TArray<uint8> dataBuffer;
+				dataBuffer.addUninitialized(dataSize);
+				FMemory::Copy(dataBuffer.data(), data, dataSize);
 
+				RenderThread::AddCommand("UpdateTextureAtlas", [texture = mTexture, ox, oy, w, h, dataWidth = dataImageWidth, data = std::move(dataBuffer)]() mutable
+				{
+					RHIUpdateTexture(*texture, ox, oy, w, h, data.data(), 0, dataWidth);
+				});
+			}
+			else
+			{
+				if (!RHIUpdateTexture(*mTexture, ox, oy, w, h, data, 0, dataImageWidth))
+					return false;
+			}
+		}
 		return true;
 	}
 

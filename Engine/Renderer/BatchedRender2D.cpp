@@ -4,6 +4,7 @@
 #include "CoreShare.h"
 #include "ProfileSystem.h"
 #include "Core/ScopeGuard.h"
+#include <algorithm>
 
 //#TODO : Heap Corrupted when show console frame draw Round Rect
 
@@ -13,8 +14,8 @@
 namespace Render
 {
 
-	constexpr int MaxTexVerticesCount = 4 * 2048;
-	constexpr int MaxIndicesCount = 4 * 2048 * 3;
+	constexpr int MaxTexVerticesCount = 4 * 8192;
+	constexpr int MaxIndicesCount = 4 * 8192 * 3;
 	constexpr uint32 TexVertexFormat = (Meta::IsSameType< ShapePaintArgs::Color4Type, Color4f >::Value) ? RTVF_XY_CA_T2 : RTVF_XY_CA8_T2;
 
 
@@ -389,7 +390,7 @@ namespace Render
 		element->payload.color = color;
 		element->payload.vertices = (GlyphVertex*)mAllocator.alloc(vertices.size() * sizeof(GlyphVertex));
 		FMemory::Copy(element->payload.vertices, vertices.data(), vertices.size() * sizeof(GlyphVertex));
-		element->payload.verticesCount = vertices.size();
+		element->payload.verticesCount = (int)vertices.size();
 		element->payload.bRemoveScale = bRemoveScale;
 		element->payload.bRemoveRotation = bRemoveRotation;
 		return *element;
@@ -410,7 +411,6 @@ namespace Render
 		element->payload.bRemoveScale = bRemoveScale;
 		element->payload.bRemoveRotation = bRemoveRotation;
 		front.generateVertices(pos, str, element->payload.vertices);
-
 		return *element;
 	}
 
@@ -428,13 +428,12 @@ namespace Render
 		element->payload.bRemoveScale = bRemoveScale;
 		element->payload.bRemoveRotation = bRemoveRotation;
 		front.generateVertices(pos, str, scale, element->payload.vertices);
-
 		return *element;
 	}
 
 
 
-	RenderBatchedElement& RenderBatchedElementList::addText(TArray< Color4Type > const& colors, TArray< GlyphVertex > const& vertices,  bool bRemoveScale, bool bRemoveRotation)
+	RenderBatchedElement& RenderBatchedElementList::addText(TArray< Color4Type > const& colors, TArray< GlyphVertex > const& vertices, bool bRemoveScale, bool bRemoveRotation)
 	{
 		TRenderBatchedElement<ColoredTextPayload>* element = addElement< ColoredTextPayload >();
 		element->type = RenderBatchedElement::ColoredText;
@@ -442,7 +441,7 @@ namespace Render
 		FMemory::Copy(element->payload.vertices, vertices.data(), vertices.size() * sizeof(GlyphVertex));
 		element->payload.colors = (Color4Type*)mAllocator.alloc(colors.size() * sizeof(Color4Type));
 		FMemory::Copy(element->payload.colors, colors.data(), colors.size() * sizeof(Color4Type));
-		element->payload.verticesCount = vertices.size();
+		element->payload.verticesCount = (int)vertices.size();
 		element->payload.bRemoveScale = bRemoveScale;
 		element->payload.bRemoveRotation = bRemoveRotation;
 
@@ -461,8 +460,8 @@ namespace Render
 		element->type = RenderBatchedElement::GradientRect;
 		element->payload.posLT = posLT;
 		element->payload.posRB = posRB;
-		element->payload.colorLT = colorLT;
-		element->payload.colorRB = colorRB;
+		element->payload.colorLT = Color4Type(colorLT, 255);
+		element->payload.colorRB = Color4Type(colorRB, 255);
 		element->payload.bHGrad = bHGrad;
 		return *element;
 	}
@@ -485,10 +484,7 @@ namespace Render
 		return *element;
 	}
 
-	void RenderBatchedElementList::releaseElements()
-	{
-		mElements.clear();
-	}
+
 
 	BatchedRender::BatchedRender()
 		: mWidth(1)
@@ -832,15 +828,31 @@ namespace Render
 		setupInputState(commandList);
 	}
 
-	void BatchedRender::render(RenderBatchedElementList& elementList)
+	void BatchedRender::render(RHICommandList& commandList, RenderBatchedElementList& elementList)
 	{
+		mCommandList = &commandList;
 		if (!tryLockBuffer())
+		{
+			//LogMsg("BatchedRender::render Failed to lock buffer");
 			return;
+		}
 		RenderState currentState;
 		currentState.setInit();
-		//updateRenderState(*mCommandList, currentState);
-		emitElements(elementList.mElements, currentState);
-		elementList.releaseElements();
+		commitRenderState(*mCommandList, currentState);
+
+#if 1
+		if (!elementList.mElements.empty())
+		{
+			std::stable_sort(elementList.mElements.begin(), elementList.mElements.end(), [](RenderBatchedElement* a, RenderBatchedElement* b)
+			{
+				if (a->layer != b->layer)
+					return a->layer < b->layer;
+				return a->stateIndex < b->stateIndex;
+			});
+		}
+#endif
+		emitElements(elementList.mElements, elementList.mTransforms, elementList.mStates, currentState);
+		elementList.reset();
 		flushDrawCommand();
 		elementList.mAllocator.clearFrame();
 	}
@@ -864,403 +876,636 @@ namespace Render
 		}
 	}
 
-	void BatchedRender::emitElements(TArray<RenderBatchedElement*> const& elements, RenderState& inoutRenderState)
+	void BatchedRender::emitElements(TArray<RenderBatchedElement*> const& elements, TArray< RenderTransform2D > const& transforms, TArray< GraphicsDefinition::RenderState > const& states, GraphicsDefinition::RenderState& inoutRenderState)
 	{
-		for (RenderBatchedElement* element : elements)
+		PROFILE_ENTRY("EmitElements");
+		uint32 currentStateIndex = 0;
+		for (int i = 0; i < elements.size(); ++i)
 		{
+			PROFILE_ENTRY("Element");
+			RenderBatchedElement* element = elements[i];
+
+			if (element->stateIndex != currentStateIndex)
+			{
+				PROFILE_ENTRY("StateChangeFlush");
+				flushDrawCommand();
+				if (!tryLockBuffer())
+				{
+
+				}
+				currentStateIndex = element->stateIndex;
+				inoutRenderState = states[currentStateIndex];
+				updateRenderState(*mCommandList, inoutRenderState);
+			}
+
+			auto CountBatch = [&](RenderBatchedElement::EType targetType) -> int {
+				int count = 0;
+				int maxLookAhead = (int)elements.size() - i;
+				for (int k = 0; k < maxLookAhead; ++k) {
+					if (elements[i + k]->type == targetType && elements[i + k]->stateIndex == currentStateIndex)
+						count++;
+					else
+						break;
+				}
+				return count;
+			};
+
+			int batchCount = CountBatch(element->type);
+			//int batchCount = 1;
 			switch (element->type)
 			{
 			case RenderBatchedElement::Point:
 				{
-					RenderBatchedElementList::PointPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::PointPayload >(element);
-					FetchedData data = fetchBuffer(4, 6);
-					uint32 baseIndex = data.base;
+					PROFILE_ENTRY("Emit Point");
+					FetchedData data = fetchBuffer(4 * batchCount, 6 * batchCount);
 					TexVertex* pVertices = data.vertices;
-					uint32* pIndices = data.indices;
-
-					float size = payload.size;
-					if (size == 0)
+					for (int k = 0; k < batchCount; ++k)
 					{
-						size = 1;
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::PointPayload>(curElem);
+
+						float size = (payload.size == 0) ? 1.0f : payload.size;
+						Vector2 pos = payload.pos;
+
+						pVertices[0] = { pos, payload.color, Vector2::Zero() };
+						pVertices[1] = { pos + Vector2(size,0), payload.color, Vector2::Zero() };
+						pVertices[2] = { pos + Vector2(size,size), payload.color, Vector2::Zero() };
+						pVertices[3] = { pos + Vector2(0,size), payload.color, Vector2::Zero() };
+						pVertices += 4;
 					}
-
-					pVertices[0] = { payload.pos, payload.color , Vector2::Zero() };
-					pVertices[1] = { payload.pos + Vector2(size,0), payload.color , Vector2::Zero() };
-					pVertices[2] = { payload.pos + Vector2(size,size), payload.color , Vector2::Zero() };
-					pVertices[3] = { payload.pos + Vector2(0,size), payload.color , Vector2::Zero() };
-
-					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
-				}
-				break;
-			case RenderBatchedElement::Rect:
-				{
-					RenderBatchedElementList::RectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::RectPayload >(element);
-					Vector2 vertices[4];
-					vertices[0] = element->transform.transformPosition(payload.min);
-					vertices[1] = element->transform.transformPosition(Vector2(payload.min.x, payload.max.y));
-					vertices[2] = element->transform.transformPosition(payload.max);
-					vertices[3] = element->transform.transformPosition(Vector2(payload.max.x, payload.min.y));
-					emitRect(vertices, payload.paintArgs);
-				}
-				break;
-			case RenderBatchedElement::Polygon:
-				{
-					RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(element);
-					emitPolygon(payload.posList, payload.posCount, payload.paintArgs);
-				}
-				break;
-			case RenderBatchedElement::TriangleList:
-				{
-					RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(element);
-					emitTriangleList(payload.posList, payload.posCount, payload.paintArgs);
-				}
-				break;
-			case RenderBatchedElement::TriangleStrip:
-				{
-					RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(element);
-					emitTriangleStrip(payload.posList, payload.posCount, payload.paintArgs);
-				}
-				break;
-			case RenderBatchedElement::Circle:
-				{
-					RenderBatchedElementList::CirclePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CirclePayload >(element);
-#if USE_SHAPE_CACHE
-					ShapeCachedData* cachedData = GetShapeCache().getCircle(GetCircleSemgmentNum(payload.radius));
-					RenderTransform2D xForm = RenderTransform2D(Vector2(payload.radius, payload.radius), payload.pos) * element->transform;
-					emitPolygon(*cachedData, xForm, payload.paintArgs);
-#else
-					ShapeVertexBuilder builder(mCachedPositionList);
-					builder.mTransform = element->transform;
-					builder.buildCircle(payload.pos, payload.radius, GetCircleSemgmentNum(payload.radius));
-					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
-#endif
-				}
-				break;
-			case RenderBatchedElement::Ellipse:
-				{
-					RenderBatchedElementList::EllipsePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::EllipsePayload >(element);
-#if USE_SHAPE_CACHE
-					float yFactor = float(payload.size.y) / payload.size.x;
-					ShapeCachedData* cachedData = GetShapeCache().getEllipse(yFactor, GetCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
-					RenderTransform2D xForm = RenderTransform2D(Vector2(payload.size.x, payload.size.x), payload.pos) * element->transform;
-					emitPolygon(*cachedData, xForm, payload.paintArgs);
-#else
-					ShapeVertexBuilder builder(mCachedPositionList);
-					builder.mTransform = element->transform;
-					float yFactor = float(payload.size.y) / payload.size.x;
-					builder.buildEllipse(payload.pos, payload.size.x, yFactor, GetCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
-					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
-#endif
-				}
-				break;
-			case RenderBatchedElement::RoundRect:
-				{
-					RenderBatchedElementList::RoundRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::RoundRectPayload >(element);
-#if USE_SHAPE_CACHE
-					ShapeCachedData* cachedData = GetShapeCache().getRoundRect(payload.rectSize, payload.circleRadius);
-					RenderTransform2D xForm = RenderTransform2D::Translate(payload.pos) * element->transform;
-					emitPolygon(*cachedData, xForm, payload.paintArgs);
-#else
-					ShapeVertexBuilder builder(mCachedPositionList);
-					builder.mTransform = element->transform;
-					builder.buildRoundRect(payload.pos, payload.rectSize, payload.circleRadius);
-					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
-#endif
+					FillQuadSequence(data.indices, data.base, batchCount);
 				}
 				break;
 			case RenderBatchedElement::TextureRect:
 				{
-					RenderBatchedElementList::TextureRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextureRectPayload >(element);
-
-					FetchedData data = fetchBuffer(4, 6);
-					uint32 baseIndex = data.base;
+					PROFILE_ENTRY("Emit TextureRect");
+					FetchedData data = fetchBuffer(4 * batchCount, 6 * batchCount);
 					TexVertex* pVertices = data.vertices;
-					uint32* pIndices = data.indices;
 
-					pVertices[0] = { element->transform.transformPosition(payload.min) , payload.color , payload.uvMin };
-					pVertices[1] = { element->transform.transformPosition(Vector2(payload.min.x, payload.max.y)), payload.color , Vector2(payload.uvMin.x , payload.uvMax.y) };
-					pVertices[2] = { element->transform.transformPosition(payload.max), payload.color , payload.uvMax };
-					pVertices[3] = { element->transform.transformPosition(Vector2(payload.max.x, payload.min.y)), payload.color , Vector2(payload.uvMax.x , payload.uvMin.y) };
-
-					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
-				}
-				break;
-			case RenderBatchedElement::Line:
-				{
-					RenderBatchedElementList::LinePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::LinePayload >(element);
-
-					Vector2 positions[2];
-					positions[0] = element->transform.transformPosition(payload.p1);
-					positions[1] = element->transform.transformPosition(payload.p2);
-
-					float halfWidth = 0.5 * float(payload.width);
-					Vector2 offset[4] =
+					for (int k = 0; k < batchCount; ++k)
 					{
-						Vector2(-halfWidth,-halfWidth) ,
-						Vector2(-halfWidth,halfWidth)  ,
-						Vector2(halfWidth,halfWidth),
-						Vector2(halfWidth,-halfWidth)
-					};
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::TextureRectPayload>(curElem);
+						auto& transform = transforms[curElem->transformIndex];
 
-#if USE_NEW_LINE_IDNEX
-					Vector2 dir = positions[1] - positions[0];
-					int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
-					int index1 = (index0 + 1) % 4;
-					int index2 = (index0 + 2) % 4;
-					int index3 = (index0 + 3) % 4;
-
-					FetchedData data = fetchBuffer(3 * 2, 4 * 3);
-					uint32 baseIndex = data.base;
-					TexVertex* pVertices = data.vertices;
-					uint32* pIndices = data.indices;
-
-					pVertices[0] = { positions[0] + offset[index2] , payload.color };
-					pVertices[1] = { positions[0] + offset[index3] , payload.color };
-					pVertices[2] = { positions[0] + offset[index1] , payload.color };
-					pVertices[3] = { positions[1] + offset[index0] , payload.color };
-					pVertices[4] = { positions[1] + offset[index1] , payload.color };
-					pVertices[5] = { positions[1] + offset[index3] , payload.color };
-
-					pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
-					pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
-					pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
-#else
-					FetchedData data = fetchBuffer(4 * 2, 4 * 6);
-					uint32 baseIndex = data.base;
-					TexVertex* pVertices = data.vertices;
-					uint32* pIndices = data.indices;
-
-					for (int i = 0; i < 2; ++i)
-					{
-						pVertices[0] = { positions[i] + offset[0] , payload.color };
-						pVertices[1] = { positions[i] + offset[1] , payload.color };
-						pVertices[2] = { positions[i] + offset[2] , payload.color };
-						pVertices[3] = { positions[i] + offset[3] , payload.color };
+						if (transform.hadScaledOrRotation())
+						{
+							pVertices[0] = { transform.transformPosition(payload.min), payload.color, payload.uvMin };
+							pVertices[1] = { transform.transformPosition(Vector2(payload.min.x, payload.max.y)), payload.color, Vector2(payload.uvMin.x, payload.uvMax.y) };
+							pVertices[2] = { transform.transformPosition(payload.max), payload.color, payload.uvMax };
+							pVertices[3] = { transform.transformPosition(Vector2(payload.max.x, payload.min.y)), payload.color, Vector2(payload.uvMax.x, payload.uvMin.y) };
+						}
+						else
+						{
+							Vector2 p0 = payload.min + transform.P;
+							Vector2 p2 = payload.max + transform.P;
+							pVertices[0] = { p0, payload.color, payload.uvMin };
+							pVertices[1] = { Vector2(p0.x, p2.y), payload.color, Vector2(payload.uvMin.x, payload.uvMax.y) };
+							pVertices[2] = { p2, payload.color, payload.uvMax };
+							pVertices[3] = { Vector2(p2.x, p0.y), payload.color, Vector2(payload.uvMax.x, payload.uvMin.y) };
+						}
 						pVertices += 4;
 					}
-					FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
-#endif
-				}
-				break;
-			case RenderBatchedElement::LineStrip:
-				{
-					RenderBatchedElementList::LineStripPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::LineStripPayload >(element);
-					emitLineStrip( TArrayView< Vector2 const >( payload.posList , payload.posCount ) , payload.color , payload.width );
-				}
-				break;
-			case RenderBatchedElement::ArcLine:
-				{
-					RenderBatchedElementList::ArcLinePlayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ArcLinePlayload >(element);
-
-					ShapeVertexBuilder builder(mCachedPositionList);
-
-					int numSegment = Math::CeilToInt(float(GetCircleSemgmentNum(payload.radius)) * payload.sweepAngle / (2 * Math::PI));
-
-#if 1
-					builder.mTransform = RenderTransform2D::Scale(payload.radius) * RenderTransform2D(payload.startAngle, payload.center) * element->transform;
-					builder.buildArcLinePos(Vector2::Zero(), 1.0f, 0 , payload.sweepAngle, numSegment);
-#else
-					builder.mTransform = element->transform;
-					builder.buildArcLinePos(payload.center, payload.radius, payload.startAngle, payload.sweepAngle, numSegment);
-#endif
-					emitLineStrip(mCachedPositionList, payload.color, payload.width);
-				}
-				break;
-			case RenderBatchedElement::Text:
-				{
-					RenderBatchedElementList::TextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextPayload >(element);
-
-					int numChar = payload.verticesCount / 4;
-					CHECK(numChar);
-
-					GlyphVertex* pSrcVertices = payload.vertices;
-					
-					FetchedData data = fetchBuffer(4 * numChar, 6 * numChar);
-					uint32 baseIndex = data.base;
-					TexVertex* pVertices = data.vertices;
-					uint32* pIndices = data.indices;
-
-					if (payload.bRemoveScale || payload.bRemoveRotation)
-					{
-						RenderTransform2D transform = element->transform;
-						if (payload.bRemoveRotation)
-						{
-							if (payload.bRemoveScale)
-								transform.removeScaleAndRotation();
-							else
-								transform.removeRotation();
-						}
-						else if (payload.bRemoveScale)
-						{
-							transform.removeScale();
-						}
-
-						Vector2 pos = element->transform.transformPosition(pSrcVertices[0].pos);
-						Vector2 v0 = pSrcVertices[0].pos;
-						for (int i = 0; i < numChar; ++i)
-						{
-							pVertices[0] = { pos + transform.transformVector(pSrcVertices[0].pos - v0), payload.color, pSrcVertices[0].uv };
-							pVertices[1] = { pos + transform.transformVector(pSrcVertices[1].pos - v0), payload.color, pSrcVertices[1].uv };
-							pVertices[2] = { pos + transform.transformVector(pSrcVertices[2].pos - v0), payload.color, pSrcVertices[2].uv };
-							pVertices[3] = { pos + transform.transformVector(pSrcVertices[3].pos - v0), payload.color, pSrcVertices[3].uv };
-
-							pVertices += 4;
-							pSrcVertices += 4;
-						}
-					}
-					else
-					{
-						for (int i = 0; i < numChar; ++i)
-						{
-							pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos), payload.color, pSrcVertices[0].uv };
-							pVertices[1] = { element->transform.transformPosition(pSrcVertices[1].pos), payload.color, pSrcVertices[1].uv };
-							pVertices[2] = { element->transform.transformPosition(pSrcVertices[2].pos), payload.color, pSrcVertices[2].uv };
-							pVertices[3] = { element->transform.transformPosition(pSrcVertices[3].pos), payload.color, pSrcVertices[3].uv };
-
-							pVertices += 4;
-							pSrcVertices += 4;
-						}
-					}
-					pIndices = FillQuadSequence(pIndices, baseIndex, numChar);
-				}
-				break;
-			case RenderBatchedElement::ColoredText:
-				{
-					RenderBatchedElementList::ColoredTextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ColoredTextPayload >(element);
-
-					int numChar = payload.verticesCount / 4;
-					CHECK(numChar);
-
-					GlyphVertex* pSrcVertices = payload.vertices;
-					Color4Type* pColors = payload.colors;
-
-					FetchedData data = fetchBuffer(4 * numChar, 6 * numChar);
-					uint32 baseIndex = data.base;
-					TexVertex* pVertices = data.vertices;
-
-					uint32* pIndices = data.indices;
-
-					if (payload.bRemoveScale || payload.bRemoveRotation)
-					{
-						RenderTransform2D transform = element->transform;
-						if (payload.bRemoveRotation)
-						{
-							if (payload.bRemoveScale)
-								transform.removeScaleAndRotation();
-							else
-								transform.removeRotation();
-						}
-						else if (payload.bRemoveScale)
-						{
-							transform.removeScale();
-						}
-
-						Vector2 pos = element->transform.transformPosition(pSrcVertices[0].pos);
-						Vector2 v0 = pSrcVertices[0].pos;
-						for (int i = 0; i < numChar; ++i)
-						{
-							pVertices[0] = { pos + transform.transformVector(pSrcVertices[0].pos - v0), pColors[i], pSrcVertices[0].uv };
-							pVertices[1] = { pos + transform.transformVector(pSrcVertices[1].pos - v0), pColors[i], pSrcVertices[1].uv };
-							pVertices[2] = { pos + transform.transformVector(pSrcVertices[2].pos - v0), pColors[i], pSrcVertices[2].uv };
-							pVertices[3] = { pos + transform.transformVector(pSrcVertices[3].pos - v0), pColors[i], pSrcVertices[3].uv };
-
-							pVertices += 4;
-							pSrcVertices += 4;
-						}
-					}
-					else
-					{
-						for (int i = 0; i < numChar; ++i)
-						{
-							pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos), pColors[i], pSrcVertices[0].uv };
-							pVertices[1] = { element->transform.transformPosition(pSrcVertices[1].pos), pColors[i], pSrcVertices[1].uv };
-							pVertices[2] = { element->transform.transformPosition(pSrcVertices[2].pos), pColors[i], pSrcVertices[2].uv };
-							pVertices[3] = { element->transform.transformPosition(pSrcVertices[3].pos), pColors[i], pSrcVertices[3].uv };
-
-							pVertices += 4;
-							pSrcVertices += 4;
-						}
-					}
-					pIndices = FillQuadSequence(pIndices, baseIndex, numChar);
+					FillQuadSequence(data.indices, data.base, batchCount);
 				}
 				break;
 			case RenderBatchedElement::GradientRect:
 				{
-					RenderBatchedElementList::GradientRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::GradientRectPayload >(element);
+					PROFILE_ENTRY("Emit GradientRect");
+					FetchedData data = fetchBuffer(4 * batchCount, 6 * batchCount);
+					TexVertex* pVertices = data.vertices;
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::GradientRectPayload>(curElem);
+						auto& transform = transforms[curElem->transformIndex];
 
-					FetchedData data = fetchBuffer(4 , 6);
-					uint32 baseIndex = data.base;
+						pVertices[0] = { transform.transformPosition(payload.posLT) , payload.colorLT };
+						pVertices[1] = { transform.transformPosition(Vector2(payload.posLT.x, payload.posRB.y)), payload.bHGrad ? payload.colorLT : payload.colorRB };
+						pVertices[2] = { transform.transformPosition(payload.posRB), payload.colorRB };
+						pVertices[3] = { transform.transformPosition(Vector2(payload.posRB.x, payload.posLT.y)),  payload.bHGrad ? payload.colorRB : payload.colorLT };
+						pVertices += 4;
+					}
+					FillQuadSequence(data.indices, data.base, batchCount);
+				}
+				break;
+			case RenderBatchedElement::Line:
+				{
+					PROFILE_ENTRY("Emit Line");
+#if USE_NEW_LINE_IDNEX
+					const int vPerElem = 6;
+					const int iPerElem = 12;
+#else
+					const int vPerElem = 8;
+					const int iPerElem = 24; // 4 quads * 6 indices
+#endif
+					FetchedData data = fetchBuffer(vPerElem * batchCount, iPerElem * batchCount);
 					TexVertex* pVertices = data.vertices;
 					uint32* pIndices = data.indices;
+					uint32 baseIndex = data.base;
 
-					pVertices[0] = { element->transform.transformPosition(payload.posLT) , payload.colorLT };
-					pVertices[1] = { element->transform.transformPosition(Vector2(payload.posLT.x, payload.posRB.y)), payload.bHGrad ? payload.colorLT : payload.colorRB };
-					pVertices[2] = { element->transform.transformPosition(payload.posRB), payload.colorRB };
-					pVertices[3] = { element->transform.transformPosition(Vector2(payload.posRB.x, payload.posLT.y)),  payload.bHGrad ? payload.colorRB : payload.colorLT };
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::LinePayload>(curElem);
+						auto& transform = transforms[curElem->transformIndex];
 
-					pIndices = FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
+						Vector2 positions[2];
+						positions[0] = transform.transformPosition(payload.p1);
+						positions[1] = transform.transformPosition(payload.p2);
+
+						float halfWidth = 0.5 * float(payload.width);
+						Vector2 offset[4] =
+						{
+							Vector2(-halfWidth,-halfWidth) ,
+							Vector2(-halfWidth,halfWidth)  ,
+							Vector2(halfWidth,halfWidth),
+							Vector2(halfWidth,-halfWidth)
+						};
+
+#if USE_NEW_LINE_IDNEX
+						Vector2 dir = positions[1] - positions[0];
+						int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
+						int index1 = (index0 + 1) % 4;
+						int index2 = (index0 + 2) % 4;
+						int index3 = (index0 + 3) % 4;
+
+						pVertices[0] = { positions[0] + offset[index2] , payload.color };
+						pVertices[1] = { positions[0] + offset[index3] , payload.color };
+						pVertices[2] = { positions[0] + offset[index1] , payload.color };
+						pVertices[3] = { positions[1] + offset[index0] , payload.color };
+						pVertices[4] = { positions[1] + offset[index1] , payload.color };
+						pVertices[5] = { positions[1] + offset[index3] , payload.color };
+
+						pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
+						pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
+						pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
+
+						pVertices += 6;
+						baseIndex += 6;
+#else
+						for (int j = 0; j < 2; ++j)
+						{
+							pVertices[0] = { positions[j] + offset[0] , payload.color };
+							pVertices[1] = { positions[j] + offset[1] , payload.color };
+							pVertices[2] = { positions[j] + offset[2] , payload.color };
+							pVertices[3] = { positions[j] + offset[3] , payload.color };
+							pVertices += 4;
+						}
+						pIndices = FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
+						pVertices += 8;
+						baseIndex += 8;
+#endif
+					}
+				}
+				break;
+			case RenderBatchedElement::Rect:
+				{
+					PROFILE_ENTRY("Emit Rect");
+					auto& firstPayload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::RectPayload>(element);
+					bool bProcessed = false;
+					if (firstPayload.paintArgs.bUseBrush && !firstPayload.paintArgs.bUsePen)
+					{
+						int strictCount = 0;
+						for (int k = 0; k < batchCount; ++k) {
+							auto* curElem = elements[i + k];
+							auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::RectPayload>(curElem);
+							if (payload.paintArgs.bUseBrush && !payload.paintArgs.bUsePen) strictCount++;
+							else break;
+						}
+
+						if (strictCount > 0)
+						{
+							batchCount = strictCount;
+							FetchedData data = fetchBuffer(4 * batchCount, 6 * batchCount);
+							TexVertex* pVertices = data.vertices;
+							for (int k = 0; k < batchCount; ++k)
+							{
+								auto* curElem = elements[i + k];
+								auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::RectPayload>(curElem);
+								auto& transform = transforms[curElem->transformIndex];
+
+								auto color = payload.paintArgs.brushColor;
+								if (transform.hadScaledOrRotation())
+								{
+									pVertices[0] = { transform.transformPosition(payload.min), color };
+									pVertices[1] = { transform.transformPosition(Vector2(payload.min.x, payload.max.y)), color };
+									pVertices[2] = { transform.transformPosition(payload.max), color };
+									pVertices[3] = { transform.transformPosition(Vector2(payload.max.x, payload.min.y)), color };
+								}
+								else
+								{
+									Vector2 p0 = payload.min + transform.P;
+									Vector2 p2 = payload.max + transform.P;
+									pVertices[0] = { p0, color };
+									pVertices[1] = { Vector2(p0.x, p2.y), color };
+									pVertices[2] = { p2, color };
+									pVertices[3] = { Vector2(p2.x, p0.y), color };
+								}
+								pVertices += 4;
+							}
+							FillQuadSequence(data.indices, data.base, batchCount);
+							bProcessed = true;
+						}
+					}
+
+					if (!bProcessed)
+					{
+						for (int k = 0; k < batchCount; ++k)
+						{
+							auto* curElem = elements[i + k];
+							RenderBatchedElementList::RectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::RectPayload >(curElem);
+							RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+							Vector2 vertices[4];
+							vertices[0] = transform.transformPosition(payload.min);
+							vertices[1] = transform.transformPosition(Vector2(payload.min.x, payload.max.y));
+							vertices[2] = transform.transformPosition(payload.max);
+							vertices[3] = transform.transformPosition(Vector2(payload.max.x, payload.min.y));
+							emitRect(vertices, payload.paintArgs);
+						}
+					}
+				}
+				break;
+			case RenderBatchedElement::Polygon:
+				{
+					PROFILE_ENTRY("Emit Polygon");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+						mCachedPositionList.resize(payload.posCount);
+						Render::Transform(payload.posList, mCachedPositionList.data(), payload.posCount, transform);
+						emitPolygon(mCachedPositionList.data(), payload.posCount, payload.paintArgs);
+					}
+				}
+				break;
+			case RenderBatchedElement::TriangleList:
+				{
+					PROFILE_ENTRY("Emit TriangleList");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+						mCachedPositionList.resize(payload.posCount);
+						Render::Transform(payload.posList, mCachedPositionList.data(), payload.posCount, transform);
+						emitTriangleList(mCachedPositionList.data(), payload.posCount, payload.paintArgs);
+					}
+				}
+				break;
+			case RenderBatchedElement::TriangleStrip:
+				{
+					PROFILE_ENTRY("Emit TriangleStrip");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::TrianglePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TrianglePayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+						mCachedPositionList.resize(payload.posCount);
+						Render::Transform(payload.posList, mCachedPositionList.data(), payload.posCount, transform);
+						emitTriangleStrip(mCachedPositionList.data(), payload.posCount, payload.paintArgs);
+					}
+				}
+				break;
+			case RenderBatchedElement::Circle:
+				{
+					PROFILE_ENTRY("Emit Circle");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::CirclePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CirclePayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+#if USE_SHAPE_CACHE
+						ShapeCachedData* cachedData = GetShapeCache().getCircle(GetCircleSemgmentNum(payload.radius));
+						RenderTransform2D xForm = RenderTransform2D(Vector2(payload.radius, payload.radius), payload.pos) * transform;
+						emitPolygon(*cachedData, xForm, payload.paintArgs);
+#else
+						ShapeVertexBuilder builder(mCachedPositionList);
+						builder.mTransform = transform;
+						builder.buildCircle(payload.pos, payload.radius, GetCircleSemgmentNum(payload.radius));
+						emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
+#endif
+					}
+				}
+				break;
+			case RenderBatchedElement::Ellipse:
+				{
+					PROFILE_ENTRY("Emit Ellipse");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::EllipsePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::EllipsePayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+#if USE_SHAPE_CACHE
+						float yFactor = float(payload.size.y) / payload.size.x;
+						ShapeCachedData* cachedData = GetShapeCache().getEllipse(yFactor, GetCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
+						RenderTransform2D xForm = RenderTransform2D(Vector2(payload.size.x, payload.size.x), payload.pos) * transform;
+						emitPolygon(*cachedData, xForm, payload.paintArgs);
+#else
+						ShapeVertexBuilder builder(mCachedPositionList);
+						builder.mTransform = transform;
+						float yFactor = float(payload.size.y) / payload.size.x;
+						builder.buildEllipse(payload.pos, payload.size.x, yFactor, GetCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
+						emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
+#endif
+					}
+				}
+				break;
+			case RenderBatchedElement::RoundRect:
+				{
+					PROFILE_ENTRY("Emit RoundRect");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::RoundRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::RoundRectPayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+#if USE_SHAPE_CACHE
+						ShapeCachedData* cachedData = GetShapeCache().getRoundRect(payload.rectSize, payload.circleRadius);
+						RenderTransform2D xForm = RenderTransform2D::Translate(payload.pos) * transform;
+						emitPolygon(*cachedData, xForm, payload.paintArgs);
+#else
+						ShapeVertexBuilder builder(mCachedPositionList);
+						builder.mTransform = transform;
+						builder.buildRoundRect(payload.pos, payload.rectSize, payload.circleRadius);
+						emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
+#endif
+					}
+				}
+				break;
+			case RenderBatchedElement::LineStrip:
+				{
+					PROFILE_ENTRY("Emit LineStrip");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::LineStripPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::LineStripPayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+						mCachedPositionList.resize(payload.posCount);
+						Render::Transform(payload.posList, mCachedPositionList.data(), payload.posCount, transform);
+						emitLineStrip(mCachedPositionList, payload.color, payload.width);
+					}
+				}
+				break;
+			case RenderBatchedElement::ArcLine:
+				{
+					PROFILE_ENTRY("Emit ArcLine");
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::ArcLinePlayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ArcLinePlayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+						ShapeVertexBuilder builder(mCachedPositionList);
+
+						int numSegment = Math::CeilToInt(float(GetCircleSemgmentNum(payload.radius)) * payload.sweepAngle / (2 * Math::PI));
+
+#if 1
+						builder.mTransform = RenderTransform2D::Scale(payload.radius) * RenderTransform2D(payload.startAngle, payload.center) * transform;
+						builder.buildArcLinePos(Vector2::Zero(), 1.0f, 0 , payload.sweepAngle, numSegment);
+#else
+						builder.mTransform = transform;
+						builder.buildArcLinePos(payload.center, payload.radius, payload.startAngle, payload.sweepAngle, numSegment);
+#endif
+						emitLineStrip(mCachedPositionList, payload.color, payload.width);
+					}
+				}
+				break;
+			case RenderBatchedElement::Text:
+				{
+					PROFILE_ENTRY("Emit Text");
+					int totalCharCount = 0;
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::TextPayload>(curElem);
+						totalCharCount += payload.verticesCount / 4;
+					}
+
+					FetchedData data = fetchBuffer(4 * totalCharCount, 6 * totalCharCount);
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
+					uint32 baseIndex = data.base;
+
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::TextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextPayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+						int numChar = payload.verticesCount / 4;
+						GlyphVertex* pSrcVertices = payload.vertices;
+
+						if (payload.bRemoveScale || payload.bRemoveRotation)
+						{
+							RenderTransform2D xForm = transform;
+							if (payload.bRemoveRotation)
+							{
+								if (payload.bRemoveScale)
+									xForm.removeScaleAndRotation();
+								else
+									xForm.removeRotation();
+							}
+							else if (payload.bRemoveScale)
+							{
+								xForm.removeScale();
+							}
+
+							Vector2 pos = transform.transformPosition(pSrcVertices[0].pos);
+							Vector2 v0 = pSrcVertices[0].pos;
+							for (int charIdx = 0; charIdx < numChar; ++charIdx)
+							{
+								pVertices[0] = { pos + xForm.transformVector(pSrcVertices[0].pos - v0), payload.color, pSrcVertices[0].uv };
+								pVertices[1] = { pos + xForm.transformVector(pSrcVertices[1].pos - v0), payload.color, pSrcVertices[1].uv };
+								pVertices[2] = { pos + xForm.transformVector(pSrcVertices[2].pos - v0), payload.color, pSrcVertices[2].uv };
+								pVertices[3] = { pos + xForm.transformVector(pSrcVertices[3].pos - v0), payload.color, pSrcVertices[3].uv };
+
+								pVertices += 4;
+								pSrcVertices += 4;
+							}
+						}
+						else if (transform.hadScaledOrRotation())
+						{
+							for (int charIdx = 0; charIdx < numChar; ++charIdx)
+							{
+								pVertices[0] = { transform.transformPosition(pSrcVertices[0].pos), payload.color, pSrcVertices[0].uv };
+								pVertices[1] = { transform.transformPosition(pSrcVertices[1].pos), payload.color, pSrcVertices[1].uv };
+								pVertices[2] = { transform.transformPosition(pSrcVertices[2].pos), payload.color, pSrcVertices[2].uv };
+								pVertices[3] = { transform.transformPosition(pSrcVertices[3].pos), payload.color, pSrcVertices[3].uv };
+
+								pVertices += 4;
+								pSrcVertices += 4;
+							}
+						}
+						else // Fast-path: Translation only
+						{
+							Vector2 offset = transform.P;
+							for (int charIdx = 0; charIdx < numChar; ++charIdx)
+							{
+								pVertices[0] = { pSrcVertices[0].pos + offset, payload.color, pSrcVertices[0].uv };
+								pVertices[1] = { pSrcVertices[1].pos + offset, payload.color, pSrcVertices[1].uv };
+								pVertices[2] = { pSrcVertices[2].pos + offset, payload.color, pSrcVertices[2].uv };
+								pVertices[3] = { pSrcVertices[3].pos + offset, payload.color, pSrcVertices[3].uv };
+
+								pVertices += 4;
+								pSrcVertices += 4;
+							}
+						}
+					}
+					FillQuadSequence(pIndices, baseIndex, totalCharCount);
+				}
+				break;
+			case RenderBatchedElement::ColoredText:
+				{
+					PROFILE_ENTRY("Emit ColoredText");
+					int totalCharCount = 0;
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::ColoredTextPayload>(curElem);
+						totalCharCount += payload.verticesCount / 4;
+					}
+
+					FetchedData data = fetchBuffer(4 * totalCharCount, 6 * totalCharCount);
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
+					uint32 baseIndex = data.base;
+
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::ColoredTextPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::ColoredTextPayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
+
+						int numChar = payload.verticesCount / 4;
+						GlyphVertex* pSrcVertices = payload.vertices;
+						Color4Type* pColors = payload.colors;
+						
+						if (payload.bRemoveScale || payload.bRemoveRotation)
+						{
+							RenderTransform2D xForm = transform;
+							if (payload.bRemoveRotation)
+							{
+								if (payload.bRemoveScale)
+									xForm.removeScaleAndRotation();
+								else
+									xForm.removeRotation();
+							}
+							else if (payload.bRemoveScale)
+							{
+								xForm.removeScale();
+							}
+
+							Vector2 pos = transform.transformPosition(pSrcVertices[0].pos);
+							Vector2 v0 = pSrcVertices[0].pos;
+							for (int charIdx = 0; charIdx < numChar; ++charIdx)
+							{
+								pVertices[0] = { pos + xForm.transformVector(pSrcVertices[0].pos - v0), pColors[charIdx], pSrcVertices[0].uv };
+								pVertices[1] = { pos + xForm.transformVector(pSrcVertices[1].pos - v0), pColors[charIdx], pSrcVertices[1].uv };
+								pVertices[2] = { pos + xForm.transformVector(pSrcVertices[2].pos - v0), pColors[charIdx], pSrcVertices[2].uv };
+								pVertices[3] = { pos + xForm.transformVector(pSrcVertices[3].pos - v0), pColors[charIdx], pSrcVertices[3].uv };
+
+								pVertices += 4;
+								pSrcVertices += 4;
+							}
+						}
+						else if (transform.hadScaledOrRotation())
+						{
+							for (int charIdx = 0; charIdx < numChar; ++charIdx)
+							{
+								pVertices[0] = { transform.transformPosition(pSrcVertices[0].pos), pColors[charIdx], pSrcVertices[0].uv };
+								pVertices[1] = { transform.transformPosition(pSrcVertices[1].pos), pColors[charIdx], pSrcVertices[1].uv };
+								pVertices[2] = { transform.transformPosition(pSrcVertices[2].pos), pColors[charIdx], pSrcVertices[2].uv };
+								pVertices[3] = { transform.transformPosition(pSrcVertices[3].pos), pColors[charIdx], pSrcVertices[3].uv };
+
+								pVertices += 4;
+								pSrcVertices += 4;
+							}
+						}
+						else // Fast-path: Translation only
+						{
+							Vector2 offset = transform.P;
+							for (int charIdx = 0; charIdx < numChar; ++charIdx)
+							{
+								pVertices[0] = { pSrcVertices[0].pos + offset, pColors[charIdx], pSrcVertices[0].uv };
+								pVertices[1] = { pSrcVertices[1].pos + offset, pColors[charIdx], pSrcVertices[1].uv };
+								pVertices[2] = { pSrcVertices[2].pos + offset, pColors[charIdx], pSrcVertices[2].uv };
+								pVertices[3] = { pSrcVertices[3].pos + offset, pColors[charIdx], pSrcVertices[3].uv };
+
+								pVertices += 4;
+								pSrcVertices += 4;
+							}
+						}
+					}
+					FillQuadSequence(pIndices, baseIndex, totalCharCount);
 				}
 				break;
 			case RenderBatchedElement::CustomState:
 				{
-					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
-
-					flushDrawCommand();
-					if (!tryLockBuffer())
+					PROFILE_ENTRY("Emit CustomState");
+					for (int k = 0; k < batchCount; ++k)
 					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
 
-					}
+						{
+							PROFILE_ENTRY("CustomStateFlush");
+							flushDrawCommand();
+						}
+						if (!tryLockBuffer())
+						{
 
-					if (payload.renderer)
-					{
-						mbCustomState = true;
-						payload.renderer->render(*mCommandList, mBaseTransform, *element, inoutRenderState);
-						FObjectManage::Release(payload.renderer, payload.manageMode);
-					}
-					else
-					{
-						mbCustomState = false;
-						commitRenderState(*mCommandList, inoutRenderState);
+						}
+
+						if (payload.renderer)
+						{
+							mbCustomState = true;
+							payload.renderer->render(*mCommandList, mBaseTransform, *curElem, transform, inoutRenderState);
+							FObjectManage::Release(payload.renderer, payload.manageMode);
+						}
+						else
+						{
+							mbCustomState = false;
+							commitRenderState(*mCommandList, inoutRenderState);
+						}
 					}
 				}
 				break;
 			case RenderBatchedElement::CustomRender:
 			case RenderBatchedElement::CustomRenderAndState:
 				{
-					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
-
-					flushDrawCommand(true);
-					if (!tryLockBuffer())
+					PROFILE_ENTRY("Emit CustomRender");
+					for (int k = 0; k < batchCount; ++k)
 					{
+						auto* curElem = elements[i + k];
+						RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(curElem);
+						RenderTransform2D const& transform = transforms[curElem->transformIndex];
 
+						{
+							PROFILE_ENTRY("CustomRenderFlush");
+							flushDrawCommand(true);
+						}
+						if (!tryLockBuffer())
+						{
+
+						}
+
+						payload.renderer->render(*mCommandList, mBaseTransform, *curElem, transform, inoutRenderState);
+						if (curElem->type == RenderBatchedElement::CustomRenderAndState)
+						{
+							commitRenderState(*mCommandList, inoutRenderState);
+						}
+						FObjectManage::Release(payload.renderer, payload.manageMode);
 					}
-
-					payload.renderer->render(*mCommandList, mBaseTransform, *element, inoutRenderState);
-					if (element->type == RenderBatchedElement::CustomRenderAndState)
-					{
-						commitRenderState(*mCommandList, inoutRenderState);
-					}
-					FObjectManage::Release(payload.renderer, payload.manageMode);
-				}
-				break;
-			case RenderBatchedElement::ModifyState:
-				{
-					ModifyStateBatchedElement* modifyState = static_cast<ModifyStateBatchedElement*>((RenderBatchedElementBase*)element);
-					
-					flushDrawCommand(false);
-					if (!tryLockBuffer())
-					{
-
-					}
-
-					inoutRenderState = modifyState->state;
-					if (modifyState->bResetAll)
-						commitRenderState(*mCommandList, inoutRenderState);
-					else
-						updateRenderState(*mCommandList, inoutRenderState);
 				}
 				break;
 			}
+			i += batchCount - 1;
 		}
 	}
 

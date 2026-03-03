@@ -1461,4 +1461,23 @@ namespace Render
 	}
 
 
+	bool FMeshBuild::SpritePlane(Mesh& mesh)
+	{
+		mesh.mInputLayoutDesc.clear();
+		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+
+		Vector3 v[] =
+		{
+			Vector3(1,1,0),
+			Vector3(-1,1,0) ,
+			Vector3(-1,-1,0),
+			Vector3(1,-1,0),
+		};
+		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+		if (!mesh.createRHIResource(&v[0], 4, &idx[0], 6))
+			return false;
+
+		return true;
+	}
+
 }//namespace Render

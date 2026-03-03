@@ -825,7 +825,10 @@ void MainMenuStage::changeStage(StageBase* stage) { getManager()->setNextStage(s
 void MainMenuStage::playSingleGame(char const* name)
 {
 	IGameModule* game = Global::ModuleManager().changeGame(name);
-	if (game) game->beginPlay(*getManager(), EGameMode::Single);
+	if (game)
+	{
+		game->beginPlay(*getManager(), EGameMode::Single);
+	}
 }
 
 
@@ -837,6 +840,11 @@ void MainMenuStage::processGameThreadCommands()
 		command();
 	}
 	mGameThreadCommands.clear();
+}
+
+ERenderSystem MainMenuStage::getDefaultRenderSystem()
+{
+	return ERenderSystem::Vulkan;
 }
 
 void MainMenuStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)

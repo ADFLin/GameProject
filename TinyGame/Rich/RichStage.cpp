@@ -107,7 +107,7 @@ namespace Rich
 		frame->mTurn = &turn;
 		frame->setMaxPower(mLevel->getActivePlayer()->getMovePower());
 		::Global::GUI().addWidget(frame);
-		CO_YEILD(this);
+		CO_YIELD(this);
 	}
 
 
@@ -123,21 +123,21 @@ namespace Rich
 		case REQ_BUY_LAND:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_LAND , "Buy Land?" );
-				auto reply = CO_YEILD< ActionReplyData >(this);
+				auto reply = CO_YIELD< ActionReplyData >(this);
 				turn.replyAction(reply);
 			}
 			break;
 		case REQ_BUY_STATION:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_STATION, "Buy Land?");
-				auto reply = CO_YEILD< ActionReplyData >(this);
+				auto reply = CO_YIELD< ActionReplyData >(this);
 				turn.replyAction(reply);
 			}
 			break;
 		case REQ_UPGRADE_LAND:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_UPGRADE_LAND, "Upgrade Land?" );
-				auto reply = CO_YEILD< ActionReplyData >(this);
+				auto reply = CO_YIELD< ActionReplyData >(this);
 				turn.replyAction(reply);
 			}
 			break;

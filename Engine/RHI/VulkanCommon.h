@@ -14,6 +14,8 @@
 #endif
 
 #include "VulkanDevice.h"
+#include "Memory/BuddyAllocator.h"
+#include "PlatformThread.h"
 
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
@@ -22,7 +24,7 @@
 #define VERIFY_VK_RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
 	{ VkResult vkResult = CODE; if( vkResult != VK_SUCCESS ){ ERROR_MSG_GENERATE( vkResult , CODE, FILE, LINE ); ERRORCODE } }
 
-#define VK_VERIFY_FAILCDOE( CODE , ERRORCODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
+#define VK_VERIFY_FAILCODE( CODE , ERRORCODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
 #define VK_VERIFY_RETURN_FALSE( CODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
 #define VK_CHECK_RESULT( CODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , assert( #CODE && 0 ); )
 #define VK_SAFE_DESTROY( VKHANDLE , CODE )\
@@ -38,7 +40,7 @@
 namespace Render
 {
 	class VulkanDevice;
-	extern CORE_API VkAllocationCallbacks* gAllocCB;
+	extern VkAllocationCallbacks* gAllocCB;
 
 	template< class ...FuncArgs, class ...Args >
 	FORCEINLINE static auto GetEnumValues(VkResult(VKAPI_CALL &Func)(FuncArgs...), Args... args)
@@ -49,7 +51,7 @@ namespace Render
 		uint32 count = 0;
 		VK_CHECK_RESULT(Func(std::forward<Args>(args)..., &count, nullptr));
 		TArray< PropertyType > result{ count };
-		VK_VERIFY_FAILCDOE(Func(std::forward<Args>(args)..., &count, result.data()), );
+		VK_VERIFY_FAILCODE(Func(std::forward<Args>(args)..., &count, result.data()), );
 		return result;
 	}
 
@@ -781,6 +783,7 @@ namespace Render
 		static VkBlendOp To(EBlend::Operation op);
 		static VkCullModeFlagBits To(ECullMode mode);
 		static VkPolygonMode To(EFillMode mode);
+		static VkSampleCountFlagBits ToSampleCount(int numSamples);
 		static VkFilter To(ESampler::Filter filter);
 		static VkSamplerMipmapMode ToMipmapMode(ESampler::Filter filter);
 		static VkSamplerAddressMode To(ESampler::AddressMode mode);
@@ -951,6 +954,7 @@ namespace Render
 				VkVertexInputAttributeDescription attrDesc;
 				attrDesc.binding = elemenet.streamIndex;
 				attrDesc.location = elemenet.attribute;
+				mAttriableMask |= BIT(elemenet.attribute);
 				attrDesc.offset = elemenet.offset;
 				attrDesc.format = VulkanTranslate::To( EVertex::Format( elemenet.format ) , elemenet.bNormalized );
 				vertexInputAttrDescs.push_back(attrDesc);
@@ -995,6 +999,7 @@ namespace Render
 
 		}
 
+		uint32 mAttriableMask = 0;
 		TArray< VkVertexInputAttributeDescription > vertexInputAttrDescs;
 		TArray< VkVertexInputBindingDescription> vertexInputBindingDescs;
 		VkPipelineVertexInputStateCreateInfo createInfo = {};
@@ -1077,6 +1082,8 @@ namespace Render
 			subresourceRange.layerCount = 1;
 			SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 		}
+
+		static void GenerateMipmaps(VkCommandBuffer cmdBuffer, VkImage image, VkExtent3D extent, uint32 mipLevels, uint32 arrayLayers, VkImageLayout oldLayout, VkImageLayout finalLayout);
 	};
 
 	class VulkanTexture
@@ -1084,31 +1091,44 @@ namespace Render
 	public:
 		VkImage getHandle() { return image; }
 
-		VkImageView getView(int level, int indexLayer = 0)
+		VkImageView getView(int level, int indexLayer = 0, int levelCount = 1)
 		{
+			if (level == 0 && indexLayer == 0 && (levelCount == -1 || levelCount == (int)mMipLevels))
+				return view;
+
 			for (auto& cachedView : mCachedViews)
 			{
 				if (cachedView.level == level &&
-					cachedView.indexLayer == indexLayer)
+					cachedView.indexLayer == indexLayer &&
+					cachedView.levelCount == levelCount)
 					return cachedView.view;
 			}
 
 			CachedView newView;
+			newView.level = level;
+			newView.indexLayer = indexLayer;
+			newView.levelCount = levelCount;
 			VkImageViewCreateInfo creatInfo = FVulkanInit::imageViewCreateInfo();
-			creatInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			creatInfo.viewType = mViewType;
 			creatInfo.format = mFormatVK;
-			creatInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+			if (mFormatVK == VK_FORMAT_R8_UNORM || mFormatVK == VK_FORMAT_R16_UNORM)
+			{
+				creatInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R };
+			}
+			else
+			{
+				creatInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+			}
 			creatInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			creatInfo.subresourceRange.baseMipLevel = level;
-			creatInfo.subresourceRange.levelCount = 1;
+			creatInfo.subresourceRange.levelCount = (levelCount == -1) ? (mMipLevels - level) : levelCount;
 			creatInfo.subresourceRange.baseArrayLayer = indexLayer;
-			creatInfo.subresourceRange.layerCount = 1;
+			creatInfo.subresourceRange.layerCount = (mViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1;
 			creatInfo.image = image;
 			newView.view.initialize(mDevice, creatInfo);
 			mCachedViews.push_back(std::move(newView));
 
 			return mCachedViews.back().view;
-
 		}
 		void releaseResource()
 		{
@@ -1128,39 +1148,105 @@ namespace Render
 		VkDevice       mDevice;
 		VkImageLayout  mImageLayout;
 		VkFormat       mFormatVK;
+		VkImageViewType mViewType = VK_IMAGE_VIEW_TYPE_2D;
+		uint32         mMipLevels = 1;
+		uint32         mArrayLayers = 1;
+		int            mNumSamples = 1;
 
 		struct CachedView
 		{
 			int level;
 			int indexLayer;
+			int levelCount;
 			VK_RESOURCE_TYPE(VkImageView) view;
 		};
 		TArray< CachedView > mCachedViews;
+	};
+
+	class VulkanTexture1D : public TRefcountResource< RHITexture1D >
+		                  , public VulkanTexture
+	{
+	public:
+		VulkanTexture1D(TextureDesc const& desc)
+		{
+			mDesc = desc;
+			mViewType = VK_IMAGE_VIEW_TYPE_1D;
+		}
+
+		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0)
+		{
+			assert(0);
+			return false;
+		}
+
+		void releaseResource()
+		{
+			VulkanTexture::releaseResource();
+		}
 	};
 
 	class VulkanTexture2D : public TRefcountResource< RHITexture2D >
 		                  , public VulkanTexture
 	{
 	public:
-
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0)
+		VulkanTexture2D(TextureDesc const& desc)
 		{
-			assert(0);
-			return false;
+			mDesc = desc;
+			mViewType = VK_IMAGE_VIEW_TYPE_2D;
 		}
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0)
-		{
-			assert(0);
-			return false;
-		}
-
 
 		void releaseResource()
 		{
 			VulkanTexture::releaseResource();
 		}
+	};
 
+	class VulkanTexture3D : public TRefcountResource< RHITexture3D >
+		                  , public VulkanTexture
+	{
+	public:
+		VulkanTexture3D(TextureDesc const& desc)
+		{
+			mDesc = desc;
+			mViewType = VK_IMAGE_VIEW_TYPE_3D;
+		}
 
+		void releaseResource()
+		{
+			VulkanTexture::releaseResource();
+		}
+	};
+
+	class VulkanTextureCube : public TRefcountResource< RHITextureCube >
+		                    , public VulkanTexture
+	{
+	public:
+		VulkanTextureCube(TextureDesc const& desc)
+		{
+			mDesc = desc;
+			mViewType = VK_IMAGE_VIEW_TYPE_CUBE;
+		}
+
+		void releaseResource()
+		{
+			VulkanTexture::releaseResource();
+		}
+	};
+
+	class VulkanTexture2DArray : public TRefcountResource< RHITexture2DArray >
+		                       , public VulkanTexture
+	{
+	public:
+		VulkanTexture2DArray(TextureDesc const& desc)
+		{
+			mDesc = desc;
+			mViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+		}
+
+		void releaseResource()
+		{
+			VulkanTexture::releaseResource();
+		}
 	};
 
 
@@ -1198,10 +1284,21 @@ namespace Render
 		static VkBufferUsageFlags TranslateUsage(uint32 createionFlags )
 		{
 			VkBufferUsageFlags result = 0;
+			if (createionFlags & (BCF_CpuAccessWrite | BCF_CpuAccessRead))
+				result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			if (createionFlags & BCF_UsageVertex)
 				result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 			if (createionFlags & BCF_UsageIndex)
 				result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			if (createionFlags & BCF_UsageConst)
+				result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			if (createionFlags & (BCF_Structured | BCF_CreateUAV | BCF_CreateSRV))
+				result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			if (createionFlags & BCF_DrawIndirectArgs)
+				result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+			if (createionFlags & BCF_UsageStage)
+				result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
 			return result;
 		}
 	};
@@ -1346,12 +1443,38 @@ namespace Render
 
 	};
 
+	class VulkanUploadHeapPage;
+	struct VulkanBuddyAllocationInfo
+	{
+		uint32 offset;
+		uint32 order;
+		VulkanUploadHeapPage* page = nullptr;
+	};
+
+	struct VulkanBufferAllocation
+	{
+		VkBuffer buffer = VK_NULL_HANDLE;
+		uint32   offset = 0;
+		uint32   size = 0;
+		uint8*   cpuAddress = nullptr;
+
+		VulkanBuddyAllocationInfo buddyInfo;
+	};
+
 	class VulkanBuffer : public TRefcountResource< RHIBuffer >
 		                , protected VulkanBufferData
 	{
 	public:
 
-		VkBuffer getHandle() { return buffer; }
+		VkBuffer getHandle() { return mbIsDynamic ? mAllocation.buffer : buffer; }
+		VkDeviceSize getBindOffset() const { return mbIsDynamic ? mAllocation.offset : 0; }
+		VkDeviceSize getSize() const { return mbIsDynamic ? (VkDeviceSize)mAllocation.size : size; }
+		void updateAllocation(VulkanBufferAllocation const& allocation)
+		{
+			mAllocation = allocation;
+			mbIsDynamic = true;
+		}
+
 		void releaseResource()
 		{
 			VulkanBufferData::destroy();
@@ -1359,8 +1482,215 @@ namespace Render
 
 		VulkanBufferData& getBufferData() { return *this; }
 		friend class VulkanSystem;
+
+		VulkanBufferAllocation mAllocation;
+		bool mbIsDynamic = false;
 	};
 
+	class VulkanFenceResourceManager
+	{
+	public:
+		static VulkanFenceResourceManager& Get()
+		{
+			static VulkanFenceResourceManager StaticInstance;
+			return StaticInstance;
+		}
+
+
+		void cleanup(bool bDoRelease)
+		{
+			for (auto fr : mReleaseList)
+			{
+				if (bDoRelease)
+				{
+					fr->release();
+				}
+
+				delete fr;
+
+			}
+			mReleaseList.clear();
+		}
+
+		class IFenceRelease
+		{
+		public:
+			uint64 fenceValue;
+			virtual ~IFenceRelease() = default;
+			virtual void release() = 0;
+		};
+
+		template < typename TFunc >
+		void addFuncRelease(TFunc&& func)
+		{
+			class FuncRelease : public IFenceRelease
+			{
+			public:
+				FuncRelease(TFunc&& func)
+					:mFunc(std::forward<TFunc>(func))
+				{
+
+				}
+				virtual void release()
+				{
+					mFunc();
+				}
+				TFunc mFunc;
+			};
+
+			IFenceRelease* fr = new FuncRelease(std::forward<TFunc>(func));
+			fr->fenceValue = mFenceValue + 1;
+			mReleaseList.push_back(fr);
+		}
+
+
+		void releaseFence(uint64 lastCompletedFenceValue)
+		{
+			int index = 0;
+			for (; index < mReleaseList.size(); ++index)
+			{
+				auto fr = mReleaseList[index];
+				if (fr->fenceValue > lastCompletedFenceValue)
+					break;
+
+				fr->release();
+				delete fr;
+			}
+
+			if (index != 0)
+			{
+				mReleaseList.erase(mReleaseList.begin(), mReleaseList.begin() + index);
+			}
+		}
+
+		uint64 mFenceValue = 0;
+		TArray< IFenceRelease* > mReleaseList;
+	};
+
+
+	class VulkanFrameHeapAllocator
+	{
+	public:
+		~VulkanFrameHeapAllocator();
+
+		void initialize(VulkanDevice* device, int resourceSize)
+		{
+			mDevice = device;
+			mResourceSize = resourceSize;
+			mSizeUsage = 0;
+			mCurrentPage.buffer = VK_NULL_HANDLE;
+			mCurrentPage.mappedAddr = nullptr;
+		}
+
+		bool alloc(uint32 size, uint32 alignment, VulkanBufferAllocation& outAllocation);
+
+		void markFence();
+
+		struct Page
+		{
+			VkBuffer buffer;
+			VkDeviceMemory memory;
+			uint8* mappedAddr;
+		};
+		bool createNewPage(Page& outPage);
+
+		VulkanDevice* mDevice = nullptr;
+		uint32 mResourceSize = 0;
+		uint32 mSizeUsage = 0;
+
+		Page mCurrentPage;
+		TArray< Page > mFreePages;
+		TArray< Page > mUsedPages;
+		RWLock mLock;
+	};
+
+	class VulkanUploadHeapPage
+	{
+	public:
+		VkBuffer mBuffer;
+		VkDeviceMemory mMemory;
+		uint8* mCpuAddress;
+
+		BuddyAllocatorBase mAllocator;
+		VkDevice mDevice;
+
+		static constexpr uint32 BlockSize = 256;
+		void initialize(VkDevice device, uint32 inSize, VkBuffer inBuffer, VkDeviceMemory inMemory)
+		{
+			mDevice = device;
+			mBuffer = inBuffer;
+			mMemory = inMemory;
+			mAllocator.initialize(inSize, BlockSize);
+
+			vkMapMemory(mDevice, mMemory, 0, VK_WHOLE_SIZE, 0, (void**)&mCpuAddress);
+		}
+
+
+		void cleanup()
+		{
+			CHECK(mCpuAddress);
+			vkUnmapMemory(mDevice, mMemory);
+			vkDestroyBuffer(mDevice, mBuffer, gAllocCB);
+			vkFreeMemory(mDevice, mMemory, gAllocCB);
+		}
+
+		bool alloc(uint32 size, uint32 alignment, VulkanBufferAllocation& outAllocation)
+		{
+			BuddyAllocatorBase::Allocation allocation;
+			if (!mAllocator.alloc(size, alignment, allocation))
+			{
+				return false;
+			}
+
+			outAllocation.buffer = mBuffer;
+			outAllocation.cpuAddress = mCpuAddress + allocation.pos;
+			outAllocation.offset = allocation.pos;
+			outAllocation.size = size;
+
+			outAllocation.buddyInfo.page = this;
+			outAllocation.buddyInfo.offset = allocation.offset;
+			outAllocation.buddyInfo.order = allocation.order;
+			return true;
+		}
+
+		void dealloc(VulkanBuddyAllocationInfo const& info)
+		{
+			BuddyAllocatorBase::AllocationBlock block;
+			block.offset = info.offset;
+			block.order = info.order;
+
+			mAllocator.deallocate(block);
+		}
+	};
+
+
+	class VulkanDynamicBufferManager
+	{
+	public:
+		static VulkanDynamicBufferManager& Get()
+		{
+			static VulkanDynamicBufferManager instance;
+			return instance;
+		}
+
+		bool initialize(class VulkanDevice* device)
+		{
+			mDevice = device;
+			addFrameAllocator(64 * 1024);
+			return true;
+		}
+		void cleanup();
+		void markFence();
+		bool addFrameAllocator(uint32 size);
+		bool alloc(uint32 size, uint32 alignment, VulkanBufferAllocation& outAllocation);
+		bool allocFrame(uint32 size, uint32 alignment, VulkanBufferAllocation& outAllocation);
+		void dealloc(VulkanBuddyAllocationInfo const& info);
+
+		class VulkanDevice* mDevice = nullptr;
+
+		TArray< VulkanUploadHeapPage* > mHeapPages;
+		TArray< VulkanFrameHeapAllocator* > mFrameAllocators;
+	};
 
 	template<>
 	struct TVulkanResourceTraits<EVulkanResourceType::VkRenderPass>
@@ -1386,32 +1716,72 @@ namespace Render
 	};
 
 
-	class VulkanFrameBuffer : public RHIFrameBuffer
+	class VulkanFrameBuffer : public TRefcountResource< RHIFrameBuffer >
 	{
 	public:
 
 		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0)
 		{
-
-
+			return INDEX_NONE;
 		}
-		virtual int  addTexture(RHITexture2D& target, int level = 0)
+
+		virtual int  addTexture(RHITexture2D& target, int level = 0);
+
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0)
+		{
+			return INDEX_NONE;
+		}
+
+		virtual int  addTextureArray(RHITextureCube& target, int level = 0)
+		{
+			return INDEX_NONE;
+		}
+
+		virtual void setTexture(int idx, RHITexture2D& target, int level = 0);
+
+		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0)
 		{
 
 		}
-		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
-		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
-		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
-		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
-
-		virtual void setDepth(RHITexture2D& target)
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0)
 		{
 
+		}
+
+		virtual void setTextureArray(int idx, RHITextureCube& target, int level = 0)
+		{
 
 		}
+
+		virtual void setDepth(RHITexture2D& target);
+
 		virtual void removeDepth()
 		{
+			mDepthBuffer.texture = nullptr;
+			mDepthBuffer.view = VK_NULL_HANDLE;
+			bPipelineLayoutDirty = true;
+			bBufferDirty = true;
+		}
 
+		int getSampleCount() const { return mNumSamples; }
+
+		virtual void releaseResource()
+		{
+			if (mDevice)
+			{
+				if (mFramebuffer != VK_NULL_HANDLE)
+				{
+					vkDestroyFramebuffer(mDevice->logicalDevice, mFramebuffer, gAllocCB);
+					mFramebuffer = VK_NULL_HANDLE;
+				}
+				if (mRenderPass != VK_NULL_HANDLE)
+				{
+					vkDestroyRenderPass(mDevice->logicalDevice, mRenderPass, gAllocCB);
+					mRenderPass = VK_NULL_HANDLE;
+				}
+			}
+			mColorBuffers.clear();
+			mDepthBuffer.texture = nullptr;
 		}
 
 		struct BufferInfo
@@ -1425,14 +1795,6 @@ namespace Render
 			VkSampleCountFlagBits samples;
 			VkAttachmentLoadOp  loadOp;
 			VkAttachmentStoreOp storeOp;
-			uint32 hash;
-
-			bool operator == (BufferInfo const& rhs)
-			{
-#define CMP(MEMBER) if (MEMBER != rhs.MEMBER ) return false;
-
-				return true;
-			}
 		};
 
 		struct DepthBufferInfo : BufferInfo
@@ -1446,8 +1808,14 @@ namespace Render
 
 		bool createRenderPass()
 		{
-			TArray< VkAttachmentDescription > attachmentDescriptionList;
+			// Destroy old render pass
+			if (mRenderPass != VK_NULL_HANDLE)
+			{
+				vkDestroyRenderPass(mDevice->logicalDevice, mRenderPass, gAllocCB);
+				mRenderPass = VK_NULL_HANDLE;
+			}
 
+			TArray< VkAttachmentDescription > attachmentDescriptionList;
 			TArray< VkAttachmentReference > attachmentRefList;
 
 			VkSubpassDescription subpass = {};
@@ -1457,13 +1825,13 @@ namespace Render
 			{
 				VkAttachmentDescription attachmentDesc = {};
 				attachmentDesc.format = bufferInfo.format;
-				attachmentDesc.samples = bufferInfo.samples; //VK_SAMPLE_COUNT_1_BIT;
-				attachmentDesc.loadOp = bufferInfo.loadOp; //VK_ATTACHMENT_LOAD_OP_CLEAR;
-				attachmentDesc.storeOp = bufferInfo.storeOp; // VK_ATTACHMENT_STORE_OP_STORE;
+				attachmentDesc.samples = bufferInfo.samples;
+				attachmentDesc.loadOp = bufferInfo.loadOp;
+				attachmentDesc.storeOp = bufferInfo.storeOp;
 				attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 				attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+				attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 				attachmentDescriptionList.push_back(attachmentDesc);
 
@@ -1474,21 +1842,21 @@ namespace Render
 				attachmentRefList.push_back(attachmentRef);
 			}
 
-
 			VkAttachmentReference depthAttachmentRef = {};
 
 			if (mDepthBuffer.texture)
 			{
 				VkAttachmentDescription attachmentDesc = {};
 				attachmentDesc.format = mDepthBuffer.format;
-				attachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-				attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				attachmentDesc.samples = mDepthBuffer.samples;
+				attachmentDesc.loadOp = mDepthBuffer.loadOp;
+				attachmentDesc.storeOp = mDepthBuffer.storeOp;
+				attachmentDesc.stencilLoadOp = mDepthBuffer.stencilLoadOp;
+				attachmentDesc.stencilStoreOp = mDepthBuffer.stencilStoreOp;
 				attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+				attachmentDescriptionList.push_back(attachmentDesc);
 
 				depthAttachmentRef.attachment = indexAttachement;
 				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1496,32 +1864,30 @@ namespace Render
 				subpass.pDepthStencilAttachment = &depthAttachmentRef;
 			}
 
-
 			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 			subpass.pColorAttachments = attachmentRefList.data();
 			subpass.colorAttachmentCount = attachmentRefList.size();
 			subpass.pInputAttachments = nullptr;
 			subpass.inputAttachmentCount = 0;
 			subpass.pResolveAttachments = nullptr;
-			
 			subpass.preserveAttachmentCount = 0;
 			subpass.pPreserveAttachments = nullptr;
 
 			VkSubpassDependency dependencies[2] = {};
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 			dependencies[0].srcAccessMask = 0;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-			dependencies[1].srcSubpass = 0;                                               // Producer of the dependency is our single subpass
-			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;                             // Consumer are all commands outside of the renderpass
-			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // is a storeOp stage for color attachments
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;          // Do not block any subsequent work
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;         // is a storeOp `STORE` access mask for color attachments
-			dependencies[1].dstAccessMask = 0;
+			dependencies[1].srcSubpass = 0;
+			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			VkRenderPassCreateInfo renderPassInfo = {};
@@ -1536,11 +1902,52 @@ namespace Render
 			VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice->logicalDevice, &renderPassInfo, gAllocCB, &mRenderPass));
 
 			return true;
-
 		}
 
-		VkRenderPass  mRenderPass;
-		VulkanDevice* mDevice;
+		bool createFramebuffer(uint32 width, uint32 height)
+		{
+			if (mFramebuffer != VK_NULL_HANDLE)
+			{
+				vkDestroyFramebuffer(mDevice->logicalDevice, mFramebuffer, gAllocCB);
+				mFramebuffer = VK_NULL_HANDLE;
+			}
+
+			if (mRenderPass == VK_NULL_HANDLE)
+				return false;
+
+			TArray<VkImageView> attachments;
+			for (auto const& bufferInfo : mColorBuffers)
+			{
+				attachments.push_back(bufferInfo.view);
+			}
+			if (mDepthBuffer.texture)
+			{
+				attachments.push_back(mDepthBuffer.view);
+			}
+
+			VkFramebufferCreateInfo framebufferInfo = {};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = mRenderPass;
+			framebufferInfo.pAttachments = attachments.data();
+			framebufferInfo.attachmentCount = attachments.size();
+			framebufferInfo.width = width;
+			framebufferInfo.height = height;
+			framebufferInfo.layers = 1;
+
+			VK_VERIFY_RETURN_FALSE(vkCreateFramebuffer(mDevice->logicalDevice, &framebufferInfo, gAllocCB, &mFramebuffer));
+
+			mWidth = width;
+			mHeight = height;
+			bBufferDirty = false;
+			return true;
+		}
+
+		VkRenderPass   mRenderPass = VK_NULL_HANDLE;
+		VkFramebuffer  mFramebuffer = VK_NULL_HANDLE;
+		VulkanDevice*  mDevice = nullptr;
+		uint32         mWidth = 0;
+		uint32         mHeight = 0;
+		int            mNumSamples = 1;
 		bool bPipelineLayoutDirty = true;
 		bool bBufferDirty = true;
 	};
@@ -1551,12 +1958,11 @@ namespace Render
 	class VulkanShader;
 	class VulkanShaderProgram;
 
-	//template<> struct TVulkanCastTraits< RHITexture1D > { typedef VulkanTexture1D CastType; };
+	template<> struct TVulkanCastTraits< RHITexture1D > { typedef VulkanTexture1D CastType; };
 	template<> struct TVulkanCastTraits< RHITexture2D > { typedef VulkanTexture2D CastType; };
-	//template<> struct TVulkanCastTraits< RHITexture3D > { typedef VulkanTexture3D CastType; };
-	//template<> struct TVulkanCastTraits< RHITextureCube > { typedef VulkanTextureCube CastType; };
-	//template<> struct TVulkanCastTraits< RHITexture2DArray > { typedef VulkanTexture2DArray CastType; };
-	//template<> struct TVulkanCastTraits< RHITextureDepth > { typedef VulkanTextureDepth CastType; };
+	template<> struct TVulkanCastTraits< RHITexture3D > { typedef VulkanTexture3D CastType; };
+	template<> struct TVulkanCastTraits< RHITextureCube > { typedef VulkanTextureCube CastType; };
+	template<> struct TVulkanCastTraits< RHITexture2DArray > { typedef VulkanTexture2DArray CastType; };
 	template<> struct TVulkanCastTraits< RHIBuffer > { typedef VulkanBuffer CastType; };
 	template<> struct TVulkanCastTraits< RHIInputLayout > { typedef VulkanInputLayout CastType; };
 	template<> struct TVulkanCastTraits< RHISamplerState > { typedef VulkanSamplerState CastType; };
@@ -1588,6 +1994,20 @@ namespace Render
 		static auto& To(TRHIResource const& resource)
 		{
 			return static_cast<TVulkanCastTraits< TRHIResource >::CastType const&>(resource);
+		}
+
+		static VulkanTexture* To(RHITextureBase* resource)
+		{
+			if (!resource) return nullptr;
+			switch (resource->getType())
+			{
+			case ETexture::Type1D:      return static_cast<VulkanTexture1D*>(resource->getTexture1D());
+			case ETexture::Type2D:      return static_cast<VulkanTexture2D*>(resource->getTexture2D());
+			case ETexture::Type3D:      return static_cast<VulkanTexture3D*>(resource->getTexture3D());
+			case ETexture::TypeCube:    return static_cast<VulkanTextureCube*>(resource->getTextureCube());
+			case ETexture::Type2DArray: return static_cast<VulkanTexture2DArray*>(resource->getTexture2DArray());
+			}
+			return nullptr;
 		}
 
 		template < class TRHIResource >

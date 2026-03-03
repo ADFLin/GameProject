@@ -141,7 +141,7 @@ namespace Render
 
 		D3D12ShaderData* mShaderData = nullptr;
 		D3D12BufferAllocation   mGlobalConstAllocation;
-		bool   mbGlobalConstCommited = false;
+		bool   mbGlobalConstCommitted = false;
 
 	};
 
@@ -168,6 +168,15 @@ namespace Render
 		bool initialize( D3D12System* system );
 
 		void release();
+
+
+		void RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+		void RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
+		void RHIGenerateMips(RHITextureBase& texture)
+		{
+
+		}
 
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
@@ -572,6 +581,7 @@ namespace Render
 		void clearResourceReference();
 
 		virtual ShaderFormat* createShaderFormat();
+		virtual RHIProfileCore* createProfileCore();
 
 		bool RHIBeginRender();
 
@@ -631,13 +641,7 @@ namespace Render
 		{
 
 		}
-		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 
-		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
-		void RHIGenerateMips(RHITextureBase& texture)
-		{
-
-		}
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);

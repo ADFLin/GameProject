@@ -15,7 +15,7 @@
 int GDebugIndex = 0;
 #define DEUBG_STOP_INDEX 97
 #define DEBUG_RUNNING() Coroutines::IsRunning()
-#define DEBUG_YEILD() if (DEBUG_RUNNING()){ CO_YEILD(nullptr); }
+#define DEBUG_YEILD() if (DEBUG_RUNNING()){ CO_YIELD(nullptr); }
 #define DEBUG_CHECK_STOP() (DEBUG_RUNNING() && GDebugIndex >= DEUBG_STOP_INDEX)
 #define DEBUG_INC_INDEX() if (DEBUG_RUNNING()){  ++GDebugIndex; }
 #define DEBUG_INDEX_BREAK() if (DEBUG_RUNNING() && GDebugIndex == DEUBG_STOP_INDEX){ ::DebugBreak(); }

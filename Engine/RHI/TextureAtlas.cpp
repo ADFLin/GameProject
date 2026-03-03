@@ -120,8 +120,7 @@ namespace Render
 			}
 			else
 			{
-				if (!RHIUpdateTexture(*mTexture, ox, oy, w, h, data, 0, dataImageWidth))
-					return false;
+				RHIUpdateTexture(*mTexture, ox, oy, w, h, data, 0, dataImageWidth);
 			}
 		}
 		return true;

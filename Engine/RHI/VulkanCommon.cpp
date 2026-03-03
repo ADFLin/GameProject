@@ -99,6 +99,17 @@ namespace Render
 		return VK_POLYGON_MODE_FILL;
 	}
 
+	VkSampleCountFlagBits VulkanTranslate::ToSampleCount(int numSamples)
+	{
+		if (numSamples <= 1) return VK_SAMPLE_COUNT_1_BIT;
+		if (numSamples <= 2) return VK_SAMPLE_COUNT_2_BIT;
+		if (numSamples <= 4) return VK_SAMPLE_COUNT_4_BIT;
+		if (numSamples <= 8) return VK_SAMPLE_COUNT_8_BIT;
+		if (numSamples <= 16) return VK_SAMPLE_COUNT_16_BIT;
+		if (numSamples <= 32) return VK_SAMPLE_COUNT_32_BIT;
+		return VK_SAMPLE_COUNT_64_BIT;
+	}
+
 
 	VkFilter VulkanTranslate::To(ESampler::Filter filter)
 	{
@@ -253,11 +264,11 @@ namespace Render
 		switch (filter)
 		{
 		case ESampler::Point:
+		case ESampler::Bilinear:
+		case ESampler::AnisotroicPoint:
 			return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
 		case ESampler::Trilinear:
-		case ESampler::Bilinear:
-		case ESampler::AnisotroicPoint:
 		case ESampler::AnisotroicLinear:
 			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		}
@@ -314,7 +325,7 @@ namespace Render
 
 	VkImageUsageFlags FVulkanTexture::TranslateUsage(uint32 createFlags)
 	{
-		VkImageUsageFlags result = VK_IMAGE_USAGE_SAMPLED_BIT;
+		VkImageUsageFlags result = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		if (createFlags & TCF_RenderTarget)
 			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (createFlags & TCF_CreateUAV)
@@ -380,6 +391,10 @@ namespace Render
 			// Make sure any shader reads from the image have been finished
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			break;
+		case VK_IMAGE_LAYOUT_GENERAL:
+			// Image is used for general access (e.g. compute storage image)
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			break;
 		default:
 			// Other source layouts aren't handled (yet)
 			break;
@@ -422,20 +437,141 @@ namespace Render
 			}
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			break;
+		case VK_IMAGE_LAYOUT_GENERAL:
+			// Image will be used for general access (storage image)
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			break;
 		default:
 			// Other source layouts aren't handled (yet)
 			break;
 		}
 
 		// Put barrier inside setup command buffer
+		VkPipelineStageFlags finalSrcStageMask = srcStageMask;
+		if (imageMemoryBarrier.srcAccessMask & VK_ACCESS_HOST_WRITE_BIT)
+		{
+			finalSrcStageMask |= VK_PIPELINE_STAGE_HOST_BIT;
+		}
+
 		vkCmdPipelineBarrier(
 			cmdbuffer,
-			srcStageMask,
+			finalSrcStageMask,
 			dstStageMask,
 			0,
 			0, nullptr,
 			0, nullptr,
 			1, &imageMemoryBarrier);
+	}
+	void FVulkanTexture::GenerateMipmaps(VkCommandBuffer cmdBuffer, VkImage image, VkExtent3D extent, uint32 mipLevels, uint32 arrayLayers, VkImageLayout oldLayout, VkImageLayout finalLayout)
+	{
+		int32 mipWidth = extent.width;
+		int32 mipHeight = extent.height;
+
+		for (uint32 i = 1; i < mipLevels; i++)
+		{
+			VkImageSubresourceRange srcRange = {};
+			srcRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			srcRange.baseMipLevel = i - 1;
+			srcRange.levelCount = 1;
+			srcRange.baseArrayLayer = 0;
+			srcRange.layerCount = arrayLayers;
+
+			FVulkanTexture::SetImageLayout(cmdBuffer, image, (i == 1) ? oldLayout : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, srcRange);
+
+			VkImageBlit blit = {};
+			blit.srcOffsets[0] = { 0, 0, 0 };
+			blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.srcSubresource.mipLevel = i - 1;
+			blit.srcSubresource.baseArrayLayer = 0;
+			blit.srcSubresource.layerCount = arrayLayers;
+
+			mipWidth = Math::Max(1, mipWidth / 2);
+			mipHeight = Math::Max(1, mipHeight / 2);
+
+			blit.dstOffsets[0] = { 0, 0, 0 };
+			blit.dstOffsets[1] = { mipWidth, mipHeight, 1 };
+			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.dstSubresource.mipLevel = i;
+			blit.dstSubresource.baseArrayLayer = 0;
+			blit.dstSubresource.layerCount = arrayLayers;
+
+			VkImageSubresourceRange dstRange = {};
+			dstRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			dstRange.baseMipLevel = i;
+			dstRange.levelCount = 1;
+			dstRange.baseArrayLayer = 0;
+			dstRange.layerCount = arrayLayers;
+
+			FVulkanTexture::SetImageLayout(cmdBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, dstRange);
+
+			vkCmdBlitImage(cmdBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+
+			FVulkanTexture::SetImageLayout(cmdBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, finalLayout, srcRange);
+		}
+
+		VkImageSubresourceRange lastMipRange = {};
+		lastMipRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		lastMipRange.baseMipLevel = mipLevels - 1;
+		lastMipRange.levelCount = 1;
+		lastMipRange.baseArrayLayer = 0;
+		lastMipRange.layerCount = arrayLayers;
+		FVulkanTexture::SetImageLayout(cmdBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, finalLayout, lastMipRange);
+	}
+
+	int VulkanFrameBuffer::addTexture(RHITexture2D& target, int level /*= 0*/)
+	{
+		VulkanTexture2D& vkTexture = static_cast<VulkanTexture2D&>(target);
+
+		BufferInfo info;
+		info.texture = &target;
+		info.level = level;
+		info.indexLayer = 0;
+		info.view = vkTexture.view;
+		info.format = VulkanTranslate::To(target.getFormat());
+		info.samples = VulkanTranslate::ToSampleCount(vkTexture.mNumSamples);
+		info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+		int index = mColorBuffers.size();
+		mColorBuffers.push_back(info);
+		mNumSamples = vkTexture.mNumSamples;
+		bPipelineLayoutDirty = true;
+		bBufferDirty = true;
+		return index;
+	}
+
+	void VulkanFrameBuffer::setTexture(int idx, RHITexture2D& target, int level /*= 0*/)
+	{
+		if (idx < 0 || idx >= mColorBuffers.size())
+			return;
+
+		VulkanTexture2D& vkTexture = static_cast<VulkanTexture2D&>(target);
+		auto& info = mColorBuffers[idx];
+		info.texture = &target;
+		info.level = level;
+		info.view = vkTexture.view;
+		info.format = VulkanTranslate::To(target.getFormat());
+		bPipelineLayoutDirty = true;
+		bBufferDirty = true;
+	}
+
+	void VulkanFrameBuffer::setDepth(RHITexture2D& target)
+	{
+		VulkanTexture2D& vkTexture = static_cast<VulkanTexture2D&>(target);
+		mDepthBuffer.texture = &target;
+		mDepthBuffer.level = 0;
+		mDepthBuffer.indexLayer = 0;
+		mDepthBuffer.view = vkTexture.view;
+		mDepthBuffer.format = VulkanTranslate::To(target.getFormat());
+		mDepthBuffer.samples = VulkanTranslate::ToSampleCount(vkTexture.mNumSamples);
+		mDepthBuffer.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		mDepthBuffer.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		mDepthBuffer.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		mDepthBuffer.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		mNumSamples = vkTexture.mNumSamples;
+		bPipelineLayoutDirty = true;
+		bBufferDirty = true;
 	}
 
 }//namespace Render

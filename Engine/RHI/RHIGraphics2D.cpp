@@ -16,12 +16,13 @@
 #include "RHI/Font.h"
 #include "PlatformThread.h"
 
+
+
 using namespace Render;
 
-#include "Singleton.h"
 #include "CoreShare.h"
 
-struct RHI2DContext
+struct RHIRender2DContext
 {
 	FrameAllocator allocator;
 	Render::RenderBatchedElementList elementList;
@@ -29,7 +30,7 @@ struct RHI2DContext
 	int viewportWidth;
 	int viewportHeight;
 
-	RHI2DContext(uint32 pageSize)
+	RHIRender2DContext(uint32 pageSize)
 		:allocator(pageSize)
 		,elementList(allocator)
 	{
@@ -51,11 +52,11 @@ public:
 	CORE_API static RHIGraphicsBatchManager& Get();
 
 	BatchedRender mBatchedRender;
-	TArray<RHI2DContext*> mFreeContexts;
-	TArray<RHI2DContext*> mUsedContexts;
+	TArray<RHIRender2DContext*> mFreeContexts;
+	TArray<RHIRender2DContext*> mUsedContexts;
 	Mutex mContextMutex;
 
-	RHI2DContext* acquire()
+	RHIRender2DContext* acquire()
 	{
 		Mutex::Locker lock(mContextMutex);
 		if (!mFreeContexts.empty())
@@ -65,12 +66,12 @@ public:
 			mUsedContexts.push_back(context);
 			return context;
 		}
-		auto* context = new RHI2DContext(2048);
+		auto* context = new RHIRender2DContext(2048);
 		mUsedContexts.push_back(context);
 		return context;
 	}
 
-	void release(RHI2DContext* context)
+	void release(RHIRender2DContext* context)
 	{
 		context->reset();
 		Mutex::Locker lock(mContextMutex);
@@ -114,7 +115,7 @@ RHIGraphicsBatchManager& RHIGraphicsBatchManager::Get()
 
 RHIGraphics2D::RHIGraphics2D()
 { 
-	mImmediateContext = new RHI2DContext(2048);
+	mImmediateContext = new RHIRender2DContext(2048);
 	mWriteContext = mImmediateContext;
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
@@ -481,6 +482,16 @@ void RHIGraphics2D::drawGradientRect(Vector2 const& posLT, Color3Type const& col
 	setupElement(element);
 }
 
+void SnapValue(float& inoutValue)
+{
+	inoutValue = int(inoutValue);
+}
+void SnapValue(Math::Vector2& inoutPos)
+{
+	SnapValue(inoutPos.x);
+	SnapValue(inoutPos.y);
+}
+
 void RHIGraphics2D::setTextColor(Color3Type const& color)
 {
 	mColorFont = Color4Type( Color3Type( color ) , mColorFont.a );
@@ -566,23 +577,21 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	
 	if (bClip)
 	{
-		if (mRenderStatePending.bEnableScissor)
-		{
-			Rect rect = Rect::Intersect(mRenderStatePending.scissorRect, { pos , size });
-			if (!rect.isValid())
-				return;
+		ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
 
-			Rect prevRect = mRenderStatePending.scissorRect;
-			setClipRect(rect.pos, rect.size);
-			DoDrawText();
-			setClipRect(prevRect.pos, prevRect.size);
-		}
-		else
+		setBlendState(ESimpleBlendMode::Translucent);
+		setTextureState(&mFont->getTexture());
+		if (!mXFormStack.get().hadScaledOrRotation())
 		{
-			beginClip(pos, size);
-			DoDrawText();
-			endClip();
+			SnapValue(renderPos);
 		}
+
+		TArray<GlyphVertex> vertices;
+		Render::FontDrawer::Rect fontClipRect = { pos, size };
+		mFont->generateClippedVertices(renderPos, str, fontClipRect, vertices);
+		drawTextQuad(vertices);
+
+		setBlendState(prevMode);
 	}
 	else
 	{
@@ -634,23 +643,20 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 
 	if (bClip)
 	{
-		if (mRenderStatePending.bEnableScissor)
+		ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+		setBlendState(ESimpleBlendMode::Translucent);
+		setTextureState(&mFont->getTexture());
+		if (!mXFormStack.get().hadScaledOrRotation())
 		{
-			Rect rect = Rect::Intersect(mRenderStatePending.scissorRect, { pos , size });
-			if (!rect.isValid())
-				return;
+			SnapValue(renderPos);
+		}
 
-			Rect prevRect = mRenderStatePending.scissorRect;
-			setClipRect(rect.pos, rect.size);
-			DoDrawText();
-			setClipRect(prevRect.pos, prevRect.size);
-		}
-		else
-		{
-			beginClip(pos, size);
-			DoDrawText();
-			endClip();
-		}
+		TArray<GlyphVertex> vertices;
+		Render::FontDrawer::Rect fontClipRect = { pos, size };
+		mFont->generateClippedVertices(renderPos, str, fontClipRect, vertices);
+		drawTextQuad(vertices);
+
+		setBlendState(prevMode);
 	}
 	else
 	{
@@ -697,38 +703,25 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, float scal
 
 	if (bClip)
 	{
-		if (mRenderStatePending.bEnableScissor)
+		ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+		setBlendState(ESimpleBlendMode::Translucent);
+		setTextureState(&mFont->getTexture());
+		if (!mXFormStack.get().hadScaledOrRotation())
 		{
-			Rect rect = Rect::Intersect(mRenderStatePending.scissorRect, { pos , size });
-			if (!rect.isValid())
-				return;
+			SnapValue(renderPos);
+		}
 
-			Rect prevRect = mRenderStatePending.scissorRect;
-			setClipRect(rect.pos, rect.size);
-			DoDrawText();
-			setClipRect(prevRect.pos, prevRect.size);
-		}
-		else
-		{
-			beginClip(pos, size);
-			DoDrawText();
-			endClip();
-		}
+		TArray<GlyphVertex> vertices;
+		Render::FontDrawer::Rect fontClipRect = { pos, size };
+		mFont->generateClippedVertices(renderPos, str, scale, fontClipRect, vertices);
+		drawTextQuad(vertices);
+
+		setBlendState(prevMode);
 	}
 	else
 	{
 		DoDrawText();
 	}
-}
-
-void SnapValue(float& inoutValue)
-{
-	inoutValue = int(inoutValue);
-}
-void SnapValue(Vector2& inoutPos)
-{
-	SnapValue(inoutPos.x);
-	SnapValue(inoutPos.y);
 }
 
 template< typename CharT >
@@ -952,7 +945,7 @@ void RHIGraphics2D::restoreRenderState()
 class RenderCommand_RHIGraphicsBatch : public RenderCommand
 {
 public:
-	RenderCommand_RHIGraphicsBatch(RHIGraphics2D& graphics, RHI2DContext* context)
+	RenderCommand_RHIGraphicsBatch(RHIGraphics2D& graphics, RHIRender2DContext* context)
 		:mGraphics(graphics), mContext(context) {}
 
 	void execute(RenderExecuteContext& context) override
@@ -970,7 +963,7 @@ public:
 
 
 	RHIGraphics2D& mGraphics;
-	RHI2DContext* mContext;
+	RHIRender2DContext* mContext;
 	int mBatchId;
 };
 
@@ -995,7 +988,7 @@ void RHIGraphics2D::flush()
 
 	else
 	{
-		RHI2DContext* pendingContext = mWriteContext;
+		RHIRender2DContext* pendingContext = mWriteContext;
 		mWriteContext = acquireContext();
 		mRenderStateCommitted.setInit();
 		mWriteContext->baseTransform = pendingContext->baseTransform;
@@ -1017,7 +1010,7 @@ void RHIGraphics2D::flush()
 	}
 }
 
-RHI2DContext* RHIGraphics2D::acquireContext()
+RHIRender2DContext* RHIGraphics2D::acquireContext()
 {
 	return RHIGraphicsBatchManager::Get().acquire();
 }
@@ -1041,7 +1034,7 @@ void RHIGraphics2D::setRecordingList(::RenderCommandList* list)
 }
 
 
-void RHIGraphics2D::releaseContext(RHI2DContext* context)
+void RHIGraphics2D::releaseContext(RHIRender2DContext* context)
 {
 	if (context == mImmediateContext)
 	{

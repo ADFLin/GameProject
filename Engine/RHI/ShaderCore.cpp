@@ -1,4 +1,4 @@
-﻿#include "ShaderCore.h"
+#include "ShaderCore.h"
 
 #include "RHICommand.h"
 #include "FileSystem.h"

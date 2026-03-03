@@ -1147,7 +1147,7 @@ namespace NR
 			{
 				train(15, []()
 				{
-					CO_YEILD(nullptr);
+					CO_YIELD(nullptr);
 				});
 			});
 		}

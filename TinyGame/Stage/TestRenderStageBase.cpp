@@ -81,17 +81,7 @@ namespace Render
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", FMeshBuild::SimpleSkin, 5, 2.5, 20, 20));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", FMeshBuild::Tile, 1024, 1.0, false));
 
-		Vector3 v[] =
-		{
-			Vector3(1,1,0),
-			Vector3(-1,1,0) ,
-			Vector3(-1,-1,0),
-			Vector3(1,-1,0),
-		};
-		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		if( !mSimpleMeshs[SimpleMeshId::SpherePlane].createRHIResource(&v[0], 4, &idx[0], 6) )
-			return false;
+		VERIFY_RETURN_FALSE(FMeshBuild::SpritePlane(mSimpleMeshs[SimpleMeshId::SpherePlane]));
 
 		return true;
 	}

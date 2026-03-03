@@ -42,7 +42,7 @@ namespace TwentyFortyEight
 
 	GameTimeControl GGameTime;
 
-	class WaitForSeconds : public IYieldInstruction
+	class WaitForSeconds : public IAwaitInstruction
 	{
 	public:
 		WaitForSeconds(float duration)
@@ -59,7 +59,7 @@ namespace TwentyFortyEight
 		}
 
 	};
-	class WaitVariable : public IYieldInstruction
+	class WaitVariable : public IAwaitInstruction
 	{
 	public:
 		WaitVariable(bool& var, bool value)
@@ -2104,7 +2104,7 @@ namespace TwentyFortyEight
 #if 0
 					if (bAutoPlay)
 					{
-						CO_YEILD(WaitForSeconds(1.0));
+						CO_YIELD(WaitForSeconds(1.0));
 					}
 					else
 					{
@@ -2116,7 +2116,7 @@ namespace TwentyFortyEight
 							Coroutines::Resume(mGameHandle, bool(event == EVT_BOX_YES));
 							return false;
 						};
-						bool bPlayAgain = CO_YEILD<bool>(nullptr);
+						bool bPlayAgain = CO_YIELD<bool>(nullptr);
 
 						if (!bPlayAgain)
 							break;
@@ -2210,7 +2210,7 @@ namespace TwentyFortyEight
 
 			if (bPauseTrain)
 			{
-				CO_YEILD(WaitVariable(bPauseTrain, false));
+				CO_YIELD(WaitVariable(bPauseTrain, false));
 			}
 
 			uint8 inputDir = action.playDir;
@@ -2228,7 +2228,7 @@ namespace TwentyFortyEight
 					//CHECK(mStep == EStep::ProcPlay);
 					Coroutines::Resume(mGameHandle);
 				});
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 			}
 
 		}
@@ -2262,7 +2262,7 @@ namespace TwentyFortyEight
 
 			if (stepResult.bDone)
 			{
-				CO_YEILD(WaitForSeconds(0.4));
+				CO_YIELD(WaitForSeconds(0.4));
 			}
 		}
 
@@ -2279,7 +2279,7 @@ namespace TwentyFortyEight
 				uint8 inputDir;
 				do 
 				{
-					inputDir = CO_YEILD<int>(nullptr);
+					inputDir = CO_YIELD<int>(nullptr);
 				}
 				while (!game.canPlay(inputDir));
 
@@ -2292,7 +2292,7 @@ namespace TwentyFortyEight
 					Coroutines::Resume(mGameHandle);
 				});
 
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 
 
 				game.exportState(mPrevState);

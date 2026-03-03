@@ -25,7 +25,7 @@ class RenderCommandList;
 
 using Render::ESimpleBlendMode;
 
-struct RHI2DContext;
+struct RHIRender2DContext;
 
 
 class RHIGraphics2D : public Render::GraphicsDefinition
@@ -293,7 +293,7 @@ public:
 	void setTextRemoveScale(bool bRemoved) { bTextRemoveScale = bRemoved; }
 	void setTextRemoveRotation(bool bRemoved) { bTextRemoveRotation = bRemoved; }
 	void setRecordingList(::RenderCommandList* list);
-	void releaseContext(RHI2DContext* context);
+	void releaseContext(RHIRender2DContext* context);
 
 	class LayerPolicy
 	{
@@ -319,9 +319,9 @@ private:
 	void preModifyRenderState();
 
 	ERenderMode mRenderMode = ERenderMode::Immediate;
-	RHI2DContext* mWriteContext = nullptr;
+	RHIRender2DContext* mWriteContext = nullptr;
 
-	RHI2DContext* acquireContext();
+	RHIRender2DContext* acquireContext();
 
 	bool bTextRemoveScale = false;
 	bool bTextRemoveRotation = false;
@@ -370,7 +370,7 @@ private:
 	Render::FontDrawer*   mFont;
 
 
-	RHI2DContext* mImmediateContext = nullptr;
+	RHIRender2DContext* mImmediateContext = nullptr;
 	Render::TransformStack2D mXFormStack;
 	TArray<uint32> mTransformIndexStack;
 	uint32 mCurrentTransformIndex = 0;

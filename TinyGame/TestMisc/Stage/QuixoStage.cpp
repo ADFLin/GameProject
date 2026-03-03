@@ -32,7 +32,7 @@ namespace Quixo
 
 	GameTimeControl GGameTime;
 
-	class WaitForSeconds : public IYieldInstruction
+	class WaitForSeconds : public IAwaitInstruction
 	{
 	public:
 		WaitForSeconds(float duration)
@@ -522,7 +522,7 @@ namespace Quixo
 
 					if (bAutoPlay)
 					{
-						CO_YEILD(WaitForSeconds(1.0));
+						CO_YIELD(WaitForSeconds(1.0));
 					}
 					else
 					{
@@ -534,7 +534,7 @@ namespace Quixo
 							Coroutines::Resume(mGameHandle, bool(event == EVT_BOX_YES));
 							return false;
 						};
-						bool bPlayAgain = CO_YEILD<bool>(nullptr);
+						bool bPlayAgain = CO_YIELD<bool>(nullptr);
 
 						if (!bPlayAgain)
 							break;
@@ -613,7 +613,7 @@ namespace Quixo
 						}
 						else
 						{
-							clickPos = CO_YEILD<Vec2i>(nullptr);
+							clickPos = CO_YIELD<Vec2i>(nullptr);
 						}
 					} while (!mGame.canPlay(player, clickPos));
 
@@ -646,13 +646,13 @@ namespace Quixo
 					if (bAutoPlay)
 					{
 						moveDir = moveDirList[::Global::Random() % numMove];
-						CO_YEILD(WaitForSeconds(0.2));
+						CO_YIELD(WaitForSeconds(0.2));
 					}
 					else
 					{
 						for (;;)
 						{
-							clickPos = CO_YEILD<Vec2i>(nullptr);
+							clickPos = CO_YIELD<Vec2i>(nullptr);
 							if (clickPos.x == -1)
 								break;
 
@@ -679,7 +679,7 @@ namespace Quixo
 						Coroutines::Resume(mGameHandle);
 					});
 
-					CO_YEILD(nullptr);
+					CO_YIELD(nullptr);
 
 					mGame.play(player, mSelectedBlockPos, moveDir);
 

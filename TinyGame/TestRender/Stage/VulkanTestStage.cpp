@@ -18,6 +18,7 @@
 
 #include "DrawEngine.h"
 #include "GameRenderSetup.h"
+#include "RHI/RHIGraphics2D.h"
 
 
 //#TODO REMOVEME
@@ -27,78 +28,23 @@ namespace RenderVulkan
 {
 	using namespace Meta;
 	using namespace Render;
-
-
-	struct GpuTiming
+	
+	class ComputeTestShader : public GlobalShader
 	{
-		void start(VkCommandBuffer commandBuffer, VkQueryPool queryPool)
+		DECLARE_SHADER(ComputeTestShader, Global);
+	public:
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, startIndex);
+			BIND_SHADER_PARAM(parameterMap, DestTexture);
+			BIND_SHADER_PARAM(parameterMap, FillColor);
 		}
-		void end(VkCommandBuffer commandBuffer, VkQueryPool queryPool)
-		{
-			vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, endIndex);
-		}
-		uint32 startIndex;
-		uint32 endIndex;
+		static char const* GetShaderFileName() { return "Shader/Test/ComputeTest"; }
+
+		DEFINE_SHADER_PARAM(DestTexture);
+		DEFINE_SHADER_PARAM(FillColor);
 	};
+	IMPLEMENT_SHADER(ComputeTestShader, EShader::Compute, SHADER_ENTRY(MainCS));
 
-	class VulkanProfileCore : public RHIProfileCore
-	{
-		bool initiailize(VkDevice device)
-		{
-			mDevice = device;
-
-			VkQueryPoolCreateInfo queryPoolInfo;
-			queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-			queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
-			queryPoolInfo.queryCount = mQueryCount;
-			queryPoolInfo.pipelineStatistics = 0;
-			VK_VERIFY_RETURN_FALSE(vkCreateQueryPool(mDevice, &queryPoolInfo, gAllocCB, &mTimestampQueryPool));
-		}
-
-
-		virtual void beginFrame()
-		{
-			mIndexNextQuery = 0;
-		}
-
-		virtual bool endFrame()
-		{
-			vkGetQueryPoolResults(mDevice, mTimestampQueryPool, 0, mIndexNextQuery, mIndexNextQuery * sizeof(uint64), mTimesampResult.data(), sizeof(uint64), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
-			return true;
-		}
-
-		virtual uint32 fetchTiming()
-		{
-
-		}
-
-		virtual void startTiming(uint32 timingHandle)
-		{
-
-		}
-		virtual void endTiming(uint32 timingHandle)
-		{
-
-		}
-		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration)
-		{
-
-			return false;
-		}
-		virtual double getCycleToSecond()
-		{
-			return mCycleToSecond;
-		}
-
-		std::vector<uint64> mTimesampResult;
-		VkDevice mDevice;
-		VkQueryPool   mTimestampQueryPool;
-		uint32 mQueryCount = 128;
-		uint32 mIndexNextQuery;
-		double mCycleToSecond;
-	};
 
 
 	class SampleData
@@ -121,33 +67,7 @@ namespace RenderVulkan
 
 			return true;
 		}
-		std::vector< VkFramebuffer > mSwapChainFramebuffers;
 
-		bool createSwapchainFrameBuffers()
-		{
-			mSwapChainFramebuffers.resize(mSystem->mSwapChain->mImageViews.size());
-
-			for( int i = 0; i < mSystem->mSwapChain->mImageViews.size(); ++i )
-			{
-				VkImageView attachments[] = { mSystem->mSwapChain->mImageViews[i] };
-				VkFramebufferCreateInfo frameBufferInfo = FVulkanInit::framebufferCreateInfo();
-				frameBufferInfo.renderPass = mSimpleRenderPass;
-				frameBufferInfo.pAttachments = attachments;
-				frameBufferInfo.attachmentCount = ARRAY_SIZE(attachments);
-				frameBufferInfo.width = mSwapChainExtent.width;
-				frameBufferInfo.height = mSwapChainExtent.height;
-				frameBufferInfo.layers = 1;
-
-				VK_VERIFY_RETURN_FALSE(vkCreateFramebuffer(mDevice, &frameBufferInfo, gAllocCB, &mSwapChainFramebuffers[i]));
-			}
-
-			return true;
-		}
-
-
-		VkPipeline mSimplePipeline = VK_NULL_HANDLE;
-		VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
-		VkRenderPass mSimpleRenderPass = VK_NULL_HANDLE;
 
 		RHIBufferRef mVertexBuffer;
 		RHIBufferRef  mIndexBuffer;
@@ -155,84 +75,17 @@ namespace RenderVulkan
 		ShaderProgram mShaderProgram;
 		RHIInputLayoutRef mInputLayout;
 
+		RHIFrameBufferRef mTestFrameBuffer;
+		RHITexture2DRef   mTestColorTexture;
+
+		RHITexture2DRef   mComputeTexture;
+		ComputeTestShader* mComputeShader = nullptr;
+
 		bool createSimplePipepline()
 		{
 			{
-				VkPipelineLayoutCreateInfo pipelineLayoutInfo = FVulkanInit::pipelineLayoutCreateInfo();
-				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-				pipelineLayoutInfo.pSetLayouts = nullptr;
-				pipelineLayoutInfo.setLayoutCount = 0;
-				pipelineLayoutInfo.pPushConstantRanges = nullptr;
-				pipelineLayoutInfo.pushConstantRangeCount = 0;
-				VK_VERIFY_RETURN_FALSE(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, gAllocCB, &mEmptyPipelineLayout));
-			}
-
-			{
-				VkAttachmentDescription colorAttachmentDesc = {};
-				colorAttachmentDesc.format = mSwapChainImageFormat;
-				colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-				colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-#if 0
-
-				attachments[1].format = depthFormat;
-				attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-				attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-				attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-#endif
-
-
-				VkAttachmentReference colorAttachmentRef = {};
-				colorAttachmentRef.attachment = 0;
-				colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-				VkSubpassDescription subpass = {};
-				subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-				subpass.pColorAttachments = &colorAttachmentRef;
-				subpass.colorAttachmentCount = 1;
-				subpass.pInputAttachments = nullptr;
-				subpass.inputAttachmentCount = 0;
-				subpass.pResolveAttachments = nullptr;
-				subpass.pDepthStencilAttachment = nullptr;
-				subpass.preserveAttachmentCount = 0;
-				subpass.pPreserveAttachments = nullptr;
-
-				VkSubpassDependency dependencies[2] = {};
-				dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-				dependencies[0].dstSubpass = 0;
-				dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				dependencies[0].srcAccessMask = 0;
-				dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-				dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-				dependencies[1].srcSubpass = 0;                                               // Producer of the dependency is our single subpass
-				dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;                             // Consumer are all commands outside of the renderpass
-				dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // is a storeOp stage for color attachments
-				dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;          // Do not block any subsequent work
-				dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;         // is a storeOp `STORE` access mask for color attachments
-				dependencies[1].dstAccessMask = 0;
-				dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-				VkRenderPassCreateInfo renderPassInfo = {};
-				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-				renderPassInfo.pAttachments = &colorAttachmentDesc;
-				renderPassInfo.attachmentCount = 1;
-				renderPassInfo.pSubpasses = &subpass;
-				renderPassInfo.subpassCount = 1;
-				renderPassInfo.pDependencies = dependencies;
-				renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
-
-				VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice, &renderPassInfo, gAllocCB, &mSimpleRenderPass));
-
+				// Use the swap chain render pass from VulkanSystem
+				// mSimpleRenderPass is now managed by VulkanSystem::mSwapChainRenderPass
 			}
 
 			struct VertexData
@@ -267,13 +120,8 @@ namespace RenderVulkan
 			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mShaderProgram, "Shader/Test/VulkanTest", "MainVS", "MainPS"));
 
 			RHIShaderProgram* boundShaderProgram = mShaderProgram.getRHI();
-
-			setupDescriptorPool();
-
-			pipelineLayout = VulkanCast::To(boundShaderProgram)->mPipelineLayout;
-			descriptorSetLayout = VulkanCast::To(boundShaderProgram)->mDescriptorSetLayout;
-
-			setupDescriptorSet();
+			
+			texture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg");
 
 			InputLayoutDesc desc;
 			desc.addElement(0, 0, EVertex::Float2);
@@ -282,237 +130,102 @@ namespace RenderVulkan
 			VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
 			graphicsState.inputLayout = mInputLayout;
 
-
-
-			{
-				VkGraphicsPipelineCreateInfo pipelineInfo = FVulkanInit::pipelineCreateInfo();
-	
-				pipelineInfo.renderPass = mSimpleRenderPass;
-
-				VkViewport viewport;
-				viewport.x = 0;
-				viewport.y = 0;
-				viewport.width = mSwapChainExtent.width;
-				viewport.height = mSwapChainExtent.height;
-				viewport.minDepth = 0;
-				viewport.maxDepth = 1;
-
-				VkRect2D scissorRect;
-				scissorRect.offset = { 0 , 0 };
-				scissorRect.extent = mSwapChainExtent;
-
-				VkPipelineViewportStateCreateInfo viewportState = {};
-				viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-				viewportState.pViewports = &viewport;
-				viewportState.viewportCount = 1;
-				viewportState.pScissors = &scissorRect;
-				viewportState.scissorCount = 1;
-				pipelineInfo.pViewportState = &viewportState;
-
-				pipelineInfo.pRasterizationState = &VulkanCast::To(graphicsState.rasterizerState)->createInfo;
-				pipelineInfo.pDepthStencilState = &VulkanCast::To(graphicsState.depthStencilState)->createInfo;
-				pipelineInfo.pColorBlendState = &VulkanCast::To(graphicsState.blendState)->createInfo;
-
-				VkPipelineMultisampleStateCreateInfo multisampleState = {};
-				multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-				multisampleState.sampleShadingEnable = VK_FALSE;
-				multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-				multisampleState.minSampleShading = 1.0f;
-				multisampleState.pSampleMask = nullptr;
-				multisampleState.alphaToCoverageEnable = VK_FALSE;
-				multisampleState.alphaToOneEnable = VK_FALSE;
-				VulkanCast::To(graphicsState.rasterizerState)->getMultiSampleState(multisampleState);
-				VulkanCast::To(graphicsState.blendState)->getMultiSampleState(multisampleState);
-
-
-				pipelineInfo.pMultisampleState = &multisampleState;
-
-				if (boundShaderProgram)
-				{
-					TArray< VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(boundShaderProgram)->mStages;
-					pipelineInfo.pStages = shaderStages.data();
-					pipelineInfo.stageCount = shaderStages.size();
-					pipelineInfo.layout = VulkanCast::To(boundShaderProgram)->mPipelineLayout;
-				}
-				else
-				{
-
-
-				}
-
-				VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
-				inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-				inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-				int patchPointCount = 0;
-				inputAssemblyState.topology = VulkanTranslate::To(graphicsState.primitiveType, patchPointCount);
-				pipelineInfo.pInputAssemblyState = &inputAssemblyState;
-
-				VkPipelineTessellationStateCreateInfo tesselationState = {};
-				tesselationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-				tesselationState.patchControlPoints = patchPointCount;
-				pipelineInfo.pTessellationState = &tesselationState;
-
-				VkPipelineVertexInputStateCreateInfo const& vertexInputState = VulkanCast::To(mInputLayout)->createInfo;
-				if (graphicsState.inputLayout)
-				{
-					pipelineInfo.pVertexInputState = &VulkanCast::To(graphicsState.inputLayout)->createInfo;
-				}
-
-
-				VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_LINE_WIDTH };
-				VkPipelineDynamicStateCreateInfo dynamicState = {};
-				dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-				dynamicState.pDynamicStates = dynamicStates;
-				dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
-				pipelineInfo.pDynamicState = &dynamicState;
-
-				pipelineInfo.subpass = 0;
-				pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-				pipelineInfo.basePipelineIndex = 0;
-
-				VK_VERIFY_RETURN_FALSE(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, gAllocCB, &mSimplePipeline));
-			}
-
 			return true;
 		}
 
 		void cleanupSimplePipeline()
 		{
-			VK_SAFE_DESTROY(mSimpleRenderPass, vkDestroyRenderPass(mDevice, mSimpleRenderPass, gAllocCB));
-			VK_SAFE_DESTROY(mEmptyPipelineLayout, vkDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, gAllocCB));
-			VK_SAFE_DESTROY(mSimplePipeline, vkDestroyPipeline(mDevice, mSimplePipeline, gAllocCB));
-		}
-
-		std::vector< VkCommandBuffer > mCommandBuffers;
-		bool createRenderCommand()
-		{
-			{
-				mCommandBuffers.resize(mSwapChainFramebuffers.size());
-				VkCommandBufferAllocateInfo allocInfo = {};
-				allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-				allocInfo.commandPool = mSystem->mGraphicsCommandPool;
-				allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-				allocInfo.commandBufferCount = mCommandBuffers.size();
-				VK_VERIFY_RETURN_FALSE(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()));
-			}
-			{
-				for( size_t i = 0; i < mCommandBuffers.size(); ++i )
-				{
-					auto& commandBuffer = mCommandBuffers[i];
-					generateRenderCommand(mCommandBuffers[i], mSwapChainFramebuffers[i]);
-				}
-			}
-			return true;
-		}
-
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		VkPipelineLayout pipelineLayout;
-		VkDescriptorSet descriptorSet;
-		VkDescriptorSetLayout descriptorSetLayout;
-
-		void setupDescriptorPool()
-		{
-			// Example uses one image sampler
-			std::vector<VkDescriptorPoolSize> poolSizes =
-			{
-				FVulkanInit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
-				FVulkanInit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)
-			};
-
-			VkDescriptorPoolCreateInfo descriptorPoolInfo =
-				FVulkanInit::descriptorPoolCreateInfo(
-					static_cast<uint32>(poolSizes.size()),
-					poolSizes.data(),
-					2);
-
-			VK_CHECK_RESULT(vkCreateDescriptorPool(mDevice, &descriptorPoolInfo, gAllocCB, &descriptorPool));
 		}
 
 		RHITexture2DRef texture;
-		void setupDescriptorSet()
+
+		bool generateRenderCommand(VkCommandBuffer commandBuffer)
 		{
+			auto& drawContext = mSystem->mDrawContext;
 
-			VkDescriptorSetAllocateInfo allocInfo =
-				FVulkanInit::descriptorSetAllocateInfo(
-					descriptorPool,
-					&descriptorSetLayout,
-					1);
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(mDevice, &allocInfo, &descriptorSet));
-
-			texture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg");
-
-			// Setup a descriptor image info for the current texture to be used as a combined image sampler
-			VkDescriptorImageInfo textureDescriptor;
-			textureDescriptor.imageView = VulkanCast::To(texture)->view; // The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
-			textureDescriptor.sampler = VulkanCast::GetHandle(TStaticSamplerState<>::GetRHI()); // The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
-			textureDescriptor.imageLayout = VulkanCast::To(texture)->mImageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
-
-			VkDescriptorBufferInfo bufferDescriptor = {};
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+			// Dispatch Compute Shader first, before any render pass is started
+			if (mComputeShader && mComputeTexture)
 			{
-				FVulkanInit::writeDescriptorSet(
-					descriptorSet,
-					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-					0,
-					&textureDescriptor),
-#if 0
-				FVulkanInit::writeDescriptorSet(
-					descriptorSet,
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,       
-					1,				
-					&bufferDescriptor)
-#endif
-			};
-
-			vkUpdateDescriptorSets(mDevice, static_cast<uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
-		}
-
-		bool generateRenderCommand(VkCommandBuffer commandBuffer , VkFramebuffer frameBuffer )
-		{
-
-			VkCommandBufferBeginInfo bufferBeginInfo = {};
-			bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-			bufferBeginInfo.pInheritanceInfo = nullptr;
-			VK_VERIFY_RETURN_FALSE(vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo));
-
-			{
-				VkRenderPassBeginInfo passBeginInfo = {};
-				passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-				passBeginInfo.renderPass = mSimpleRenderPass;
-				passBeginInfo.framebuffer = frameBuffer;
-				passBeginInfo.renderArea.offset = { 0,0 };
-				passBeginInfo.renderArea.extent = mSwapChainExtent;
-				VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-				passBeginInfo.pClearValues = &clearColor;
-				passBeginInfo.clearValueCount = 1;
-
-
-				vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport viewport;
-				viewport.x = 0;
-				viewport.y = 0;
-				viewport.width = mSwapChainExtent.width;
-				viewport.height = mSwapChainExtent.height;
-				viewport.minDepth = 0;
-				viewport.maxDepth = 1;
-				vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mSimplePipeline);
-
-				VkBuffer vertexBuffers[] = { VulkanCast::GetHandle( mVertexBuffer ) };
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, ARRAY_SIZE(vertexBuffers), vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(commandBuffer, VulkanCast::GetHandle(mIndexBuffer), 0, VK_INDEX_TYPE_UINT32);
-				//vkCmdDraw(commandBuffer, 4, 1, 0, 0);
-				vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
-				vkCmdEndRenderPass(commandBuffer);
+				RHISetComputeShader(commandList, mComputeShader->getRHI());
+				mComputeShader->setRWTexture(commandList, mComputeShader->mParamDestTexture, *mComputeTexture, 0, EAccessOp::WriteOnly);
+				Vector4 fillColor(0.2f, 0.8f, 0.4f, 1.0f); // Nice green
+				mComputeShader->setParam(commandList, mComputeShader->mParamFillColor, fillColor);
+				RHIDispatchCompute(commandList, (mComputeTexture->getSizeX() + 15) / 16, (mComputeTexture->getSizeY() + 15) / 16, 1);
+				
+				// Transition texture for graphics sampling
+				RHIResource* transitionResources[] = { mComputeTexture.get() };
+				RHIResourceTransition(commandList, transitionResources, EResourceTransition::SRV);
 			}
 
-			VK_VERIFY_RETURN_FALSE(vkEndCommandBuffer(commandBuffer));
+			// [Test] Draw to a custom render target first, BEFORE opening the swap chain pass
+			{
+				RHISetFrameBuffer(commandList, mTestFrameBuffer);
+				LinearColor clearColor = { 1.0f, 0.5f, 0.0f, 1.0f };
+				RHIClearRenderTargets(commandList, EClearBits::Color, &clearColor, 1, 1.0f, 0);
+			}
+
+			// Switch to swap chain (back buffer). This ends the test framebuffer pass
+			// and starts the swap chain pass. We leave this pass OPEN on return so
+			// RHIGraphics2D (called after this function) can draw into the same pass.
+			drawContext.RHISetFrameBuffer(nullptr);
+			LinearColor clearColor = { 1.0f, 0.5f, 0.0f, 1.0f };
+			RHIClearRenderTargets(commandList, EClearBits::Color, &clearColor, 1, 1.0f, 0);
+
+			ViewportInfo vp;
+			vp.x = 0; vp.y = 0;
+			vp.w = mSwapChainExtent.width;
+			vp.h = mSwapChainExtent.height;
+			vp.zNear = 0; vp.zFar = 1;
+			RHISetViewport(commandList, vp);
+			RHISetScissorRect(commandList, 0, 0, vp.w, vp.h);
+
+			RHISetShaderProgram(commandList, mShaderProgram.getRHI());
+			ShaderParameter paramTexture;
+			ShaderParameter paramTextureSampler;
+			if (mShaderProgram.getRHI()->getParameter("SamplerColor", paramTexture) && 
+				mShaderProgram.getRHI()->getParameter("SamplerColorSampler", paramTextureSampler))
+			{
+				drawContext.setShaderTexture(*mShaderProgram.getRHI(), paramTexture, *texture.get());
+				drawContext.setShaderSampler(*mShaderProgram.getRHI(), paramTextureSampler, TStaticSamplerState<>::GetRHI());
+			}
+
+			ShaderParameter paramOffset;
+			mShaderProgram.getRHI()->getParameter("Offset", paramOffset);
+
+			ShaderParameter paramColor;
+			mShaderProgram.getRHI()->getParameter("GlobalColor", paramColor);
+
+			InputStreamInfo inputStream;
+			inputStream.buffer = mVertexBuffer;
+			inputStream.offset = 0;
+			RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
+			RHISetIndexBuffer(commandList, mIndexBuffer);
+
+			if (paramOffset.isBound())
+			{
+				Vector2 offset(0, 0);
+				drawContext.setShaderValue(*mShaderProgram.getRHI(), paramOffset, &offset, 1);
+			}
+			if (paramColor.isBound())
+			{
+				Vector4 color(1, 0, 0, 1);
+				drawContext.setShaderValue(*mShaderProgram.getRHI(), paramColor, &color, 1);
+			}
+			drawContext.RHIDrawIndexedPrimitive(EPrimitive::TriangleList, 0, 6, 0);
+
+			if (paramOffset.isBound())
+			{
+				Vector2 offset(0.5, 0.5);
+				drawContext.setShaderValue(*mShaderProgram.getRHI(), paramOffset, &offset, 1);
+			}
+			if (paramColor.isBound())
+			{
+				Vector4 color(0, 1, 0, 1);
+				drawContext.setShaderValue(*mShaderProgram.getRHI(), paramColor, &color, 1);
+			}
+			RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 6, 0);
 
 			return true;
 		}
@@ -536,6 +249,9 @@ namespace RenderVulkan
 
 			::Global::GUI().cleanupWidget();
 
+			auto frame = WidgetUtility::CreateDevFrame();
+			frame->addText("aaa");
+
 			restart();
 			return true;
 		}
@@ -554,30 +270,35 @@ namespace RenderVulkan
 			BaseClass::onUpdate(deltaTime);
 		}
 
-		bool bDynamicGenerate = true;
 
 		void onRender(float dFrame)
 		{
-			if( bDynamicGenerate )
+			generateRenderCommand(mSystem->mDrawContext.mActiveCmdBuffer);
+
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+#if 1
+			g.beginRender();
+
+			//g.beginBlend(0.5);
+			RenderUtility::SetPen(g, EColor::Null);
+			RenderUtility::SetBrush(g, EColor::White);
+			g.drawRect(Vector2(100, 100), Vector2(200, 100));
+
+
+			RenderUtility::SetFont(g, FONT_S24);
+			g.setTextColor(Color3f(1, 0, 0));
+			g.drawTexture(FontCharCache::Get().getTexture(), Vector2(0,0), Vector2(500,500));
+
+
+			g.drawText(Vector2(10, 10), "AAAAAAAAAA");
+
+			if (mComputeTexture)
 			{
-				generateRenderCommand(mCommandBuffers[mSystem->mRenderImageIndex], mSwapChainFramebuffers[mSystem->mRenderImageIndex]);
+				g.drawTexture(*mComputeTexture, Vector2(mSwapChainExtent.width - 260, 10), Vector2(250, 250));
 			}
-			VkSubmitInfo submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.pCommandBuffers = &mCommandBuffers[mSystem->mRenderImageIndex];
-			submitInfo.commandBufferCount = 1;
 
-			VkSemaphore waitSemaphores[] = { mSystem->mImageAvailableSemaphores[mSystem->mCurrentFrame] };
-			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-			submitInfo.pWaitDstStageMask = waitStages;
-			submitInfo.pWaitSemaphores = waitSemaphores;
-			submitInfo.waitSemaphoreCount = ARRAY_SIZE(waitSemaphores);
-			
-			VkSemaphore signalSemaphores[] = { mSystem->mRenderFinishedSemaphores[mSystem->mCurrentFrame] };
-			submitInfo.pSignalSemaphores = signalSemaphores;
-			submitInfo.signalSemaphoreCount = ARRAY_SIZE(signalSemaphores);
-
-			VK_VERIFY_FAILCDOE(vkQueueSubmit(mSystem->mGraphicsQueue, 1, &submitInfo, mSystem->mInFlightFences[mSystem->mCurrentFrame]), );
+			g.endRender();
+#endif
 		}
 
 		MsgReply onMouse(MouseMsg const& msg) override
@@ -621,8 +342,13 @@ namespace RenderVulkan
 			//VERIFY_RETURN_FALSE( createWindowSwapchain() );
 			InitBirdge();
 			VERIFY_RETURN_FALSE(createSimplePipepline());
-			VERIFY_RETURN_FALSE(createSwapchainFrameBuffers());
-			VERIFY_RETURN_FALSE(createRenderCommand());
+
+			mTestColorTexture = RHICreateTexture2D(ETexture::RGBA8, mSwapChainExtent.width, mSwapChainExtent.height, 0, 1, TCF_RenderTarget | TCF_CreateSRV);
+			mTestFrameBuffer = RHICreateFrameBuffer();
+			mTestFrameBuffer->addTexture(*mTestColorTexture);
+
+			mComputeShader = ShaderManager::Get().getGlobalShaderT<ComputeTestShader>();
+			mComputeTexture = RHICreateTexture2D(ETexture::RGBA8, 512, 512, 0, 1, TCF_CreateSRV | TCF_CreateUAV);
 
 			return true;
 		}

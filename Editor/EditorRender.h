@@ -10,6 +10,7 @@
 
 #include <memory>
 
+#include "RHI/RHICommon.h"
 
 struct ImDrawDataSnapshot
 {
@@ -45,7 +46,8 @@ struct ImDrawDataSnapshot
 
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-static class Editor* GEditor = nullptr;
+extern class Editor* GEditor;
+extern class IEditorRenderer* GEditorRenderer;
 
 
 class EditorWindow;
@@ -63,6 +65,8 @@ public:
 	virtual bool initializeWindowRenderData(EditorWindow& window) { return true; }
 	virtual void renderWindow(EditorWindow& window, ImDrawData* drawData) {}
 	virtual void notifyWindowResize(EditorWindow& window, int width, int height) {}
+
+	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) { return 0; }
 
 };
 

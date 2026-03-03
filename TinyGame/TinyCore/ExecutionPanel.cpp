@@ -110,25 +110,13 @@ void ExecutionPanel::onRender()
 	title.format("%s [ID: %u]", mName.c_str(), thread->getID());
 	g.drawText(pos + Vec2i(15, 12), title);
 
-	if (mIsMinimized)
-	{
-		BaseClass::onRender();
-		return;
-	}
-
-	if (SystemPlatform::AtomicRead(&renderFlag) <= 0)
-	{
-		BaseClass::onRender();
-		return;
-	}
-
-	if (mMutex && !mMutex->tryLock())
-	{
-		BaseClass::onRender();
-		return;
-	}
-
 	BaseClass::onRender();
+
+	if (mIsMinimized || SystemPlatform::AtomicRead(&renderFlag) <= 0 || (mMutex && !mMutex->tryLock()) )
+	{
+		return;
+	}
+
 	g.pushXForm();
 	g.translateXForm((float)pos.x, (float)pos.y + 40);
 	renderFunc(g);

@@ -1,10 +1,15 @@
 #include "EditorUtils.h"
+#include "EditorRender.h"
 
+#include "RHI/RHICommon.h"
+#include "RHI/TextureAtlas.h"
+#include "RHI/Font.h"
 #include "RHI/D3D11Common.h"
 #include "RHI/D3D11Command.h"
+#include "RHI/OpenGLCommand.h"
+
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui_internal.h"
-#include "RHI/Font.h"
 
 using namespace Render;
 
@@ -17,7 +22,7 @@ TArray<FImGui::Rect> FImGui::mCachedIconUVs;
 void FImGui::InitializeRHI()
 {
 	mIconAtlas.initialize(ETexture::RGBA8, 2048, 2048, 2);
-	TCHAR const* FontName = "µØ±d¤¤¶êÅé";
+	TCHAR const* FontName = TEXT("Arial");
 	mFont.initialize(FontFaceInfo(FontName, 8, true));
 	mCachedIconUVs.resize((int)EIconId::Count);
 
@@ -87,6 +92,11 @@ ImTextureID FImGui::IconTextureID()
 
 ImTextureID FImGui::GetTextureID(Render::RHITexture2D& texture)
 {
+	if (GEditorRenderer)
+	{
+		return GEditorRenderer->getTextureID(texture);
+	}
+
 	if (GRHISystem->getName() == RHISystemName::D3D11)
 	{
 		return (ImTextureID)static_cast<D3D11Texture2D&>(texture).mSRV.getResource();
@@ -153,9 +163,7 @@ void FImGui::DisableBlend()
 	ImGui::GetWindowDrawList()->AddCallback(DisableBlendCallback, nullptr);
 }
 
-
 void FImGui::RestoreBlend()
 {
 	ImGui::GetWindowDrawList()->AddCallback(RestoreBlendCallback, nullptr);
 }
-

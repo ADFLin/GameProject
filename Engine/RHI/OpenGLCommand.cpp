@@ -292,12 +292,6 @@ namespace Render
 #undef GET_GLFUNC
 		}
 
-		if( 1 )
-		{
-			mProfileCore = new OpenGLProfileCore;
-			GpuProfiler::Get().setCore(mProfileCore);
-		}
-
 		mDrawContext.initialize();
 		mDrawContext.mSystem = this;
 		mImmediateCommandList = new RHICommandListImpl(mDrawContext);
@@ -318,6 +312,11 @@ namespace Render
 	class ShaderFormat* OpenGLSystem::createShaderFormat()
 	{
 		return new ShaderFormatGLSL;
+	}
+
+	class RHIProfileCore* OpenGLSystem::createProfileCore()
+	{
+		return new OpenGLProfileCore;
 	}
 
 	bool OpenGLSystem::RHIBeginRender()
@@ -455,59 +454,6 @@ namespace Render
 		OpenGLCast::To(&texture)->unbind();
 	}
 
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
-	{
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
-		bool result = VerifyOpenGLStatus();
-		return result;
-	}
-
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
-	{
-#if 1
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
-		bool result = VerifyOpenGLStatus();
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#else
-		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
-		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
-		uint8* pData = (uint8*)data;
-		int dataStride = dataImageWidth * ETexture::GetFormatSize(format);
-		for (int dy = 0; dy < h; ++dy)
-		{
-			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
-			pData += dataStride;
-		}
-		bool result = VerifyOpenGLStatus();
-#endif
-		return result;
-	}
-
-	bool OpenGLSystem::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
-	{
-		if (texture.getDesc().numSamples > 1)
-			return false;
-
-		OpenGLCast::To(&texture)->bind();
-		bool result;
-		if (dataWidth)
-		{
-			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, dataWidth, data, level);
-		}
-		else
-		{
-			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, data, level);
-		}
-		OpenGLCast::To(&texture)->unbind();
-		return result;
-	}
-
-	void OpenGLSystem::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
-	{
-		OpenGLCast::To(buffer).updateData(start, numElements, data);
-	}
-
 	//void* OpenGLSystem::RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size)
 	//{
 	//	switch (texture->getType())
@@ -637,6 +583,74 @@ namespace Render
 		{
 			mResolveFrameBuffers[i].destroyHandle();
 		}
+	}
+
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
+	{
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
+		return result;
+	}
+
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
+	{
+#if 1
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#else
+		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
+		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
+		uint8* pData = (uint8*)data;
+		int dataStride = dataImageWidth * ETexture::GetFormatSize(format);
+		for (int dy = 0; dy < h; ++dy)
+		{
+			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
+			pData += dataStride;
+		}
+		bool result = VerifyOpenGLStatus();
+#endif
+		return result;
+	}
+
+	void OpenGLContext::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		if (texture.getDesc().numSamples > 1)
+			return;
+
+		OpenGLCast::To(&texture)->bind();
+		bool result;
+		if (dataWidth)
+		{
+			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, dataWidth, data, level);
+		}
+		else
+		{
+			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, data, level);
+		}
+		OpenGLCast::To(&texture)->unbind();
+	}
+
+	void OpenGLContext::RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		OpenGLCast::To(&texture)->bind();
+		bool result;
+		if (dataWidth)
+		{
+			result = UpdateTexture2D(OpenGLTranslate::TexureType(face), ox, oy, w, h, texture.getDesc().format, dataWidth, data, level);
+		}
+		else
+		{
+			result = UpdateTexture2D(OpenGLTranslate::TexureType(face), ox, oy, w, h, texture.getDesc().format, data, level);
+		}
+
+		OpenGLCast::To(&texture)->unbind();
+	}
+
+	void OpenGLContext::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		OpenGLCast::To(buffer).updateData(start, numElements, data);
 	}
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -2075,12 +2089,12 @@ namespace Render
 	{
 		if (transition == EResourceTransition::UAV || transition == EResourceTransition::UAVBarrier)
 		{
-			// 確保所有的 UAV 寫入在下一次存取前完成
+			// 確�??�?��? UAV 寫入?��?一次�??��?完�?
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 		else if (transition == EResourceTransition::SRV)
 		{
-			// 確保寫入完成，以便接下來作為 Texture 或 Buffer 讀取
+			// 確�?寫入完�?，以便接下�?作為 Texture ??Buffer 讀??
 			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 		}
 	}

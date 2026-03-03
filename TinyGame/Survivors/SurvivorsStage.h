@@ -46,7 +46,7 @@ namespace Survivors
 		MsgReply onKey(KeyMsg const& msg) override;
 
 		// --- IGameRenderSetup ---
-		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::None; }
+		ERenderSystem getDefaultRenderSystem() override;
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 
 	private:

@@ -4,6 +4,10 @@
 #define Bloom_H_6668CE28_79ED_42A6_8C31_233D67B019C2
 
 #include "RHI/GlobalShader.h"
+#include "RHI/DrawUtility.h"
+
+#include "Renderer/BasePassRendering.h"
+#include "Renderer/Tonemap.h"
 
 namespace Render
 {
@@ -135,6 +139,20 @@ namespace Render
 
 	constexpr int MaxWeightNum = 64;
 	int generateGaussianlDisburtionWeightAndOffset(float kernelRadius, Vector2 outWeightAndOffset[128]);
+
+	struct BloomConfig
+	{
+		float threshold = 0.5f;
+		float intensity = 1.0f;
+		float blurRadiusScale = 1.0f;
+	};
+
+	struct FBloom
+	{
+		static bool InitailizeRHI();
+		static void ReleaseRHI();
+		static RHITexture2DRef Render(RHICommandList& commandList, RHITexture2D& sceneTexture, RHIFrameBuffer& bloomFrameBuffer, BloomConfig const& config);
+	};
 }
 
 

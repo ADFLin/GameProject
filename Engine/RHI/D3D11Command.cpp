@@ -1,4 +1,4 @@
-﻿#include "D3D11Command.h"
+#include "D3D11Command.h"
 
 #include "D3D11ShaderCommon.h"
 
@@ -391,17 +391,7 @@ namespace Render
 
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
-#if 1
-		D3D11ProfileCore* profileCore = new D3D11ProfileCore;
-		if( profileCore->init(mDevice, mDeviceContextImmdiate, mDeviceContext) )
-		{
-			GpuProfiler::Get().setCore(profileCore);
-		}
-		else
-		{
-			delete profileCore;
-		}
-#endif
+		
 
 		return true;
 	}
@@ -440,6 +430,18 @@ namespace Render
 	ShaderFormat* D3D11System::createShaderFormat()
 	{
 		return new ShaderFormatHLSL(mDevice);
+	}
+
+	RHIProfileCore* D3D11System::createProfileCore()
+	{
+		D3D11ProfileCore* profileCore = new D3D11ProfileCore;
+		if (!profileCore->init(mDevice, mDeviceContextImmdiate, mDeviceContext))
+		{
+			delete profileCore;
+			return nullptr;
+		}
+
+		return profileCore;
 	}
 
 	bool D3D11System::RHIBeginRender()
@@ -795,57 +797,6 @@ namespace Render
 				ReadMappedData(mDeviceContextImmdiate, stagingTexture, 0, dataRowSize, textureSize, pData);
 			}
 			pData += faceDataSize;
-		}
-	}
-
-	bool D3D11System::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
-	{
-		Mutex::Locker locker(mMutexContext);
-
-		auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
-
-		D3D11_BOX box;
-		box.front = 0;
-		box.back = 1;
-		box.left = ox;
-		box.right = ox + w;
-		box.top = oy;
-		box.bottom = oy + h;
-		if ( dataWidth == 0)
-		{
-			dataWidth = w;
-		}
-		
-		mDeviceContextImmdiate->UpdateSubresource(textureImpl.mResource, level, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), dataWidth * h * ETexture::GetFormatSize(texture.getFormat()));
-		return true;
-	}
-
-	void D3D11System::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
-	{
-		auto& bufferImpl = static_cast<D3D11Buffer&>(buffer);
-		if ( bufferImpl.isDynamic() )
-		{
-			void* dstData = RHILockBuffer(&buffer, ELockAccess::WriteDiscard, start * buffer.getElementSize(), numElements * buffer.getElementSize());
-			if (dstData )
-			{
-				FMemory::Copy(dstData, data , numElements * buffer.getElementSize());
-				RHIUnlockBuffer(&buffer);
-			}
-			return;
-		}
-		bufferImpl.updateData(*mDeviceContextImmdiate, start, numElements, data);
-	}
-
-	void D3D11System::RHIGenerateMips(RHITextureBase& texture)
-	{
-		if (texture.getType() == ETexture::Type2D)
-		{
-			auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
-
-			if (textureImpl.mSRV.mResource)
-			{
-				mDeviceContextImmdiate->GenerateMips(textureImpl.mSRV.mResource);
-			}
 		}
 	}
 
@@ -1817,6 +1768,79 @@ namespace Render
 		mDynamicIBuffer.release();
 		mDeviceContext.reset();
 		mDevice.reset();
+	}
+
+	void D3D11Context::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		//Mutex::Locker locker(mMutexContext);
+
+		auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
+
+		D3D11_BOX box;
+		box.front = 0;
+		box.back = 1;
+		box.left = ox;
+		box.right = ox + w;
+		box.top = oy;
+		box.bottom = oy + h;
+		if (dataWidth == 0)
+		{
+			dataWidth = w;
+		}
+
+		mDeviceContext->UpdateSubresource(textureImpl.mResource, level, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), dataWidth * h * ETexture::GetFormatSize(texture.getFormat()));
+	}
+
+	void D3D11Context::RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		auto& textureImpl = D3D11Cast::To(texture);
+		D3D11_BOX box;
+		box.front = 0;
+		box.back = 1;
+		box.left = ox;
+		box.right = ox + w;
+		box.top = oy;
+		box.bottom = oy + h;
+
+		UINT subresource = D3D11CalcSubresource(level, face, texture.getNumMipLevel());
+
+		if (dataWidth)
+		{
+			mDeviceContext->UpdateSubresource(textureImpl.mResource, subresource, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), 0);
+		}
+		else
+		{
+			mDeviceContext->UpdateSubresource(textureImpl.mResource, subresource, &box, data, w * ETexture::GetFormatSize(texture.getFormat()), 0);
+		}
+	}
+
+	void D3D11Context::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		auto& bufferImpl = static_cast<D3D11Buffer&>(buffer);
+		if (bufferImpl.isDynamic())
+		{
+			void* dstData = RHILockBuffer(&buffer, ELockAccess::WriteDiscard, start * buffer.getElementSize(), numElements * buffer.getElementSize());
+			if (dstData)
+			{
+				FMemory::Copy(dstData, data, numElements * buffer.getElementSize());
+				RHIUnlockBuffer(&buffer);
+			}
+			return;
+		}
+		bufferImpl.updateData(*mDeviceContext, start, numElements, data);
+	}
+
+	void D3D11Context::RHIGenerateMips(RHITextureBase& texture)
+	{
+		if (texture.getType() == ETexture::Type2D)
+		{
+			auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
+
+			if (textureImpl.mSRV.mResource)
+			{
+				mDeviceContext->GenerateMips(textureImpl.mSRV.mResource);
+			}
+		}
 	}
 
 	void D3D11Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)

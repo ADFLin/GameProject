@@ -14,19 +14,44 @@ namespace Coroutines
 	}
 #endif
 
-	static void ExecuteEntry(YeildType& yeild)
-	{
-		ExecutionContext& context = yeild.get();
+	static uint32 GCoroutineVersionCounter = 0;
 
-		context.mYeild = &yeild;
-		context.mEntryFunc();
-		context.mYeild = nullptr;
+	bool ExecutionHandle::isValid() const
+	{
+		if (mPtr <= 0) return false;
+		ExecutionContext* ctx = (ExecutionContext*)(intptr_t)mPtr;
+		// Step 1: Check if the pointer is still registered in the current thread's context
+		if (ThreadContext::Get().getExecutionOrderIndex(ctx) == INDEX_NONE)
+			return false;
+		// Step 2: Check if the version matches (avoids ABA problem)
+		return ctx->mVersion == mVersion;
 	}
 
-	ExecutionContext::ExecutionContext(std::function< void() >&& entryFunc)
-		:mEntryFunc(std::move(entryFunc))
+	static void ExecuteEntry(YieldType& yield)
 	{
-		boost::coroutines2::fixedsize_stack custom_stack(2 * 1024 * 1024);
+		ExecutionContext& context = yield.get();
+
+		context.mYield = &yield;
+		try
+		{
+			context.mEntryFunc();
+		}
+		catch (boost::context::detail::forced_unwind const&)
+		{
+			throw;
+		}
+		catch (...)
+		{
+			LogWarning(0, "Coroutine caught an unhandled exception.");
+		}
+		context.mYield = nullptr;
+	}
+
+	ExecutionContext::ExecutionContext(std::function< void() >&& entryFunc, size_t stackSize, uint32 version)
+		:mEntryFunc(std::move(entryFunc))
+		,mVersion(version)
+	{
+		boost::coroutines2::fixedsize_stack custom_stack(stackSize);
 		mExecution.construct(custom_stack, ExecuteEntry);
 	}
 
@@ -36,12 +61,22 @@ namespace Coroutines
 
 	void ExecutionContext::execute()
 	{
-		CHECK(mYeild);
-		if (mInstruction.isVaild())
+		ThreadContext::Get().removeFromActive(*this);
+		CHECK(mYield);
+		if (mInstruction.isValid())
 		{
 			mInstruction.release();
 		}
 		(*mExecution)(*this);
+	}
+
+	void ExecutionContext::addPendingActive()
+	{
+		if (mActiveIndex == INDEX_NONE)
+		{
+			mActiveIndex = ThreadContext::Get().mActiveExecutions.size();
+			ThreadContext::Get().mActiveExecutions.push_back(this);
+		}
 	}
 
 
@@ -72,13 +107,13 @@ namespace Coroutines
 
 	struct DependencyScope
 	{
-		DependencyScope(ThreadContext& context, ThreadContext::DependencyFlow::Mode mode)
+		DependencyScope(ThreadContext& context, ThreadContext::DependencyFlow::Mode inMode)
 			:context(context)
 		{
 			CHECK(context.mExecutingContext->mDependenceIndex == INDEX_NONE);
 			flow = context.fetchDependencyFlow();
 			CHECK(flow->executions.empty());
-			flow->mode = mode;
+			flow->mode = inMode;
 			context.mExecutingContext->mDependenceIndex = flow - context.mDependencyFlows.data();
 		}
 
@@ -120,7 +155,7 @@ namespace Coroutines
 
 		DependencyScope scopedDependency{ *this, DependencyFlow::eSync };
 		scopedDependency.flow->executions = std::move(activeExecutions);
-		mExecutingContext->doYeild();
+		mExecutingContext->doYield();
 		return;
 	}
 
@@ -175,7 +210,7 @@ namespace Coroutines
 		}
 #endif
 		scopedDependency.flow->append(executions);
-		mExecutingContext->doYeild();
+		mExecutingContext->doYield();
 
 		int result = FindIndex(executions, scopedDependency.flow->executionLastCompleted);
 		return result;
@@ -205,33 +240,34 @@ namespace Coroutines
 		}
 #endif
 		scopedDependency.flow->append(executions);
-		mExecutingContext->doYeild();
+		mExecutingContext->doYield();
 		int result = FindIndex(executions, scopedDependency.flow->executionLastCompleted);
 		return result;
 	}
 
-	ExecutionContext* ThreadContext::newExecution(std::function< void() >&& entryFunc)
+	ExecutionContext* ThreadContext::newExecution(std::function< void() >&& entryFunc, size_t stackSize)
 	{
-		ExecutionContext* context = new ExecutionContext(std::move(entryFunc));
+		ExecutionContext* context = new ExecutionContext(std::move(entryFunc), stackSize, ++GCoroutineVersionCounter);
 		mExecutions.push_back(context);
 		return context;
 	}
 
-	void ThreadContext::checkExecution(ExecutionContext& context)
+	bool ThreadContext::checkExecution(ExecutionContext& context)
 	{
 		if (context.mDependenceIndex != INDEX_NONE )
-			return;
+			return false;
 
-		if (context.mInstruction == nullptr || context.mInstruction->isKeepWaiting() == true)
-			return;
+		if (context.mInstruction.isValid() && context.mInstruction->isKeepWaiting())
+			return false;
 
-		context.setYeildReturn();
+		context.setYieldReturn();
 		executeContextInternal(context);
+		return true;
 	}
 
-	ExecutionHandle ThreadContext::startInternal(std::function< void() > entryFunc)
+	ExecutionHandle ThreadContext::startInternal(std::function< void() > entryFunc, size_t stackSize)
 	{
-		ExecutionContext* context = newExecution(std::move(entryFunc));
+		ExecutionContext* context = newExecution(std::move(entryFunc), stackSize);
 		ExecutionContext* parentContext = mExecutingContext;
 		mExecutingContext = context;
 		(*context->mExecution)(*context);
@@ -241,7 +277,7 @@ namespace Coroutines
 		if (bKeep)
 		{
 			context->mParent = parentContext;
-			return ExecutionHandle(context);
+			return ExecutionHandle(context, context->mVersion);
 		}
 		return ExecutionHandle::Completed(context);
 	}
@@ -257,7 +293,7 @@ namespace Coroutines
 
 	bool ThreadContext::postExecuteContext(ExecutionContext& context)
 	{
-		bool bKeep = bool(*context.mExecution) && context.mYeild;
+		bool bKeep = bool(*context.mExecution) && context.mYield;
 		if (bKeep)
 		{
 			return true;
@@ -323,7 +359,7 @@ namespace Coroutines
 			}
 
 			CHECK(parent->mInstruction == nullptr);
-			parent->setYeildReturn();
+			parent->setYieldReturn();
 			executeContextInternal(*parent);
 
 		}
@@ -341,15 +377,25 @@ namespace Coroutines
 			delete execution;
 		}
 		mExecutions.clear();
+		mActiveExecutions.clear();
+		mIndexCompleted.clear();
 	}
 
 	void ThreadContext::checkAllExecutions()
 	{
+		if (mActiveExecutions.empty())
+			return;
+
 		{
 			TGuardValue<bool> scopedValue(bUseExecutions, true);
-			for (auto execution : mExecutions)
+			for (int i = 0; i < mActiveExecutions.size(); )
 			{
-				checkExecution(*execution);
+				ExecutionContext& context = *mActiveExecutions[i];
+
+				if (checkExecution(context))
+					continue;
+
+				++i;
 			}
 		}
 		cleanupCompletedExecutions();
@@ -364,7 +410,7 @@ namespace Coroutines
 
 			if (handle.getPointer() == mExecutingContext)
 			{
-				mExecutingContext->doYeild();
+				mExecutingContext->doYield();
 			}
 			else if (mExecutingContext == nullptr)
 			{
@@ -394,7 +440,7 @@ namespace Coroutines
 
 		if (indexStop != INDEX_NONE)
 		{
-			mExecutingContext->doYeild();
+			mExecutingContext->doYield();
 			destroyExecution(indexStop);
 		}
 		else if (mExecutingContext == nullptr)
@@ -412,7 +458,7 @@ namespace Coroutines
 			{
 				if (exec == mExecutingContext)
 				{
-					mExecutingContext->doYeild();
+					mExecutingContext->doYield();
 					destroyExecution(index);
 				}
 				else if (mExecutingContext == nullptr)
@@ -425,7 +471,7 @@ namespace Coroutines
 		}
 	}
 
-	bool ThreadContext::resumeExecution(YieldContextHandle handle)
+	bool ThreadContext::resumeExecution(CoroutineContextHandle handle)
 	{
 		ExecutionContext* context = (ExecutionContext*)handle;
 		if (!canResumeExecutionInternal(context))
@@ -443,7 +489,7 @@ namespace Coroutines
 		if (!canResumeExecutionInternal(context))
 			return false;
 
-		context->setYeildReturn();
+		context->setYieldReturn();
 		bool bKeep = resumeExecutionInternal(context);
 		if (!bKeep)
 		{
@@ -470,9 +516,24 @@ namespace Coroutines
 	bool ThreadContext::resumeExecutionInternal(ExecutionContext* context)
 	{
 		CHECK(context->mDependenceIndex == INDEX_NONE);
+		removeFromActive(*context);
 		bool bKeep = executeContextInternal(*context);
 		cleanupCompletedExecutions();
 		return bKeep;
+	}
+
+	void ThreadContext::removeFromActive(ExecutionContext& context)
+	{
+		if (context.mActiveIndex != INDEX_NONE)
+		{
+			int index = context.mActiveIndex;
+			mActiveExecutions.removeIndexSwap(index);
+			if (index < mActiveExecutions.size())
+			{
+				mActiveExecutions[index]->mActiveIndex = index;
+			}
+			context.mActiveIndex = INDEX_NONE;
+		}
 	}
 
 	void ThreadContext::destoryCompletedExecutions()
@@ -553,6 +614,7 @@ namespace Coroutines
 
 		for (auto index : mIndexCompleted)
 		{
+			removeFromActive(*mExecutions[index]);
 			delete mExecutions[index];
 			mExecutions.removeIndexSwap(index);
 		}

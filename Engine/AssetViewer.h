@@ -7,6 +7,7 @@
 
 enum class EFileAction
 {
+	Unknown,
 	RenameOld,
 	Rename,
 	Modify,

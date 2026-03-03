@@ -317,6 +317,7 @@
     <ClInclude Include="TinyCore\CommonWidgets.h" />
     <ClInclude Include="TinyCore\ExecutionManager.h" />
     <ClInclude Include="TinyCore\ExecutionPanel.h" />
+    <ClInclude Include="TinyCore\TimerManager.h" />
     <ClInclude Include="Widget\OptionNoteBook.h" />
     <ClInclude Include="Widget\ServerListPanel.h" />
   </ItemGroup>
@@ -715,6 +716,7 @@
     <ClCompile Include="TinyCore\CommonWidgets.cpp" />
     <ClCompile Include="TinyCore\ExecutionManager.cpp" />
     <ClCompile Include="TinyCore\ExecutionPanel.cpp" />
+    <ClCompile Include="TinyCore\TimerManager.cpp" />
     <ClCompile Include="Widget\OptionNoteBook.cpp" />
     <ClCompile Include="Widget\ServeListPanel.cpp" />
     <ClCompile Include="Widget\WidgetUtility.cpp" />

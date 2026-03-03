@@ -612,6 +612,11 @@ namespace Survivors
 		return BaseClass::onKey(msg);
 	}
 
+	ERenderSystem SurvivorsStage::getDefaultRenderSystem()
+	{
+		return ERenderSystem::Vulkan;
+	}
+
 	void SurvivorsStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 	{
 		systemConfigs.screenWidth = 1280;

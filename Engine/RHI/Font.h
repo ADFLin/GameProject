@@ -13,9 +13,7 @@
 #include "DataStructure/Array.h"
 
 #include <unordered_map>
-
-
-
+#include "Rect.h"
 
 namespace Render
 {
@@ -179,6 +177,7 @@ namespace Render
 	class FontDrawer
 	{
 	public:
+		using Rect = TRect<float>;
 		FontDrawer();
 		~FontDrawer();
 
@@ -198,6 +197,11 @@ namespace Render
 
 		void  generateVertices(Vector2 const& pos, char const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize = nullptr);
 		void  generateVertices(Vector2 const& pos, wchar_t const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize = nullptr);
+
+		void  generateClippedVertices(Vector2 const& pos, char const* str, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateClippedVertices(Vector2 const& pos, wchar_t const* str, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateClippedVertices(Vector2 const& pos, char const* str, float scale, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateClippedVertices(Vector2 const& pos, wchar_t const* str, float scale, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize = nullptr);
 
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
@@ -239,6 +243,11 @@ namespace Render
 		template< typename CharT >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, float scale, GlyphVertex* outVertices, Vector2* outBoundSize);
 
+		template< typename CharT >
+		void generateClippedVerticesT(Vector2 const& pos, CharT const* str, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize);
+		template< typename CharT >
+		void generateClippedVerticesT(Vector2 const& pos, CharT const* str, float scale, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize);
+
 		template< typename CharT, typename TAddQuad >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, TAddQuad& addQuad, Vector2* outBoundSize);
 		template< typename CharT, typename TAddQuad > 
@@ -246,11 +255,7 @@ namespace Render
 	public:
 		CharDataSet* mCharDataSet;
 	};
-
 }
-
-
-
 
 
 #endif // Font_H_9A126205_99D2_45E0_8375_78A1FA3950E3

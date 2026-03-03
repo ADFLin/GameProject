@@ -202,7 +202,7 @@ DrawEngine::DrawEngine()
 	mbInitialized = false;
 	bRHIShutdownDeferred = false;
 	bEnableRenderThread = false;
-	mAllowUseRenderThread = false;
+	mAllowUseRenderThread = true;
 }
 
 DrawEngine::~DrawEngine()
@@ -229,7 +229,7 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 	bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 	bmpInfo.bmiHeader.biSizeImage = 0;
 	if (!mBufferDC.initialize(getWindow().getHDC(), &bmpInfo))
-	{
+	{ 
 
 	}
 	//mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
@@ -245,8 +245,21 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 
 void DrawEngine::release()
 {
+	if (RenderThread::IsRunning())
+	{
+		RenderThread::Finalize();
+	}
+
 	mSwapChain.release();
 	mPlatformGraphics->releaseReources();
+	if (mRHIGraphics)
+	{
+		mRHIGraphics->releaseRHI();
+	}
+	if (mRHIGraphics_RenderThread)
+	{
+		mRHIGraphics_RenderThread->releaseRHI();
+	}
 
 	RenderUtility::Finalize();
 
@@ -400,7 +413,8 @@ bool IsSupportRHIGraphic2D(ERenderSystem systemName)
 {
 	if (systemName == ERenderSystem::OpenGL || 
 		systemName == ERenderSystem::D3D11 || 
-		systemName == ERenderSystem::D3D12 )
+		systemName == ERenderSystem::D3D12 ||
+		systemName == ERenderSystem::Vulkan)
 		return true;
 
 	return false;

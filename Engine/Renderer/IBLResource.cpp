@@ -240,7 +240,7 @@ namespace Render
 				for (int face = 0; face < ETexture::FaceCount; ++face)
 				{
 					int size = Math::Max(1, IBLData.perFilteredSize >> level);
-					perfilteredTexture->update(ETexture::Face(face), 0, 0, size, size, ETexture::FloatRGBA, data[face], level);
+					RHIUpdateTexture(*perfilteredTexture, ETexture::Face(face), 0, 0, size, size, data[face], level);
 				}
 			}
 		}

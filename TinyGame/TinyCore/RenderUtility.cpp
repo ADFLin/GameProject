@@ -269,10 +269,11 @@ static bool IsRHISupport()
 	if (GRHISystem == nullptr)
 		return false;
 		
-	RHISystemName SystemName = GRHISystem->getName();
-	return  SystemName == RHISystemName::OpenGL ||
-			SystemName == RHISystemName::D3D11  ||
-			SystemName == RHISystemName::D3D12;
+	RHISystemName systemName = GRHISystem->getName();
+	return  systemName == RHISystemName::OpenGL ||
+			systemName == RHISystemName::D3D11  ||
+			systemName == RHISystemName::D3D12  ||
+		    systemName == RHISystemName::Vulkan;
 }
 
 void RenderUtility::InitializeRHI()

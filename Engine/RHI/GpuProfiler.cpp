@@ -42,6 +42,9 @@ namespace Render
 
 	void GpuProfiler::beginFrame()
 	{
+		if (mCore == nullptr)
+			return;
+
 		if (RenderThread::IsRunning() && !IsInRenderThread())
 		{
 			RenderThread::AddCommand("GpuProfiler::beginFrame", []()
@@ -70,14 +73,11 @@ namespace Render
 		}
 	
 		mCurLevel = 0;
-		if( mCore )
-		{
-			mCore->beginFrame();
-			mbStartSampling = true;
-			InlineString< 512 > str;
-			str.format("Frame : %s", Literal::ToString(GRHISystem->getName()));
-			mRootSample = startSample(str);
-		}
+		mCore->beginFrame();
+		mbStartSampling = true;
+		InlineString< 512 > str;
+		str.format("Frame : %s", Literal::ToString(GRHISystem->getName()));
+		mRootSample = startSample(str);
 	}
 
 	void GpuProfiler::readSamples(FrameData& frameData)
@@ -114,6 +114,9 @@ namespace Render
 
 	void GpuProfiler::endFrame()
 	{
+		if (mCore == nullptr)
+			return;
+
 		if (RenderThread::IsRunning() && !IsInRenderThread())
 		{
 			RenderThread::AddCommand("GpuProfiler::endFrame", []()
@@ -123,19 +126,16 @@ namespace Render
 			return;
 		}
 
-		if( mCore )
+		if (mbStartSampling)
 		{
-			if( mbStartSampling )
-			{
-				mbStartSampling = false;
-				endSample(*mRootSample);
-				mCore->endFrame();
+			mbStartSampling = false;
+			endSample(*mRootSample);
+			mCore->endFrame();
 
-				{
-					RWLock::WriteLocker locker(mIndexLock);
-					mBufferStatus[mIndexWriteBuffer] = EBufferStatus::Recorded;
-					mIndexWriteBuffer = (mIndexWriteBuffer + 1) % NUM_FRAME_BUFFER;
-				}
+			{
+				RWLock::WriteLocker locker(mIndexLock);
+				mBufferStatus[mIndexWriteBuffer] = EBufferStatus::Recorded;
+				mIndexWriteBuffer = (mIndexWriteBuffer + 1) % NUM_FRAME_BUFFER;
 			}
 		}
 	}
@@ -168,6 +168,8 @@ namespace Render
 		else
 		{
 			sample = frameData.samples[frameData.numSampleUsed].get();
+			// Always refresh timing handle to ensure frame index in handle is correct
+			sample->timingHandle = mCore->fetchTiming();
 		}
 
 		sample->name = name;

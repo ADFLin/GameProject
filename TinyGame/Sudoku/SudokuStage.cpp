@@ -29,7 +29,7 @@ public:
 		lastGroup = group;
 		lastMethod = method;
 		lastNumBit = numBit;
-		CO_YEILD(nullptr);
+		CO_YIELD(nullptr);
 		return true; 
 	}
 	void onPostEvalMethod(EMethod method, Group group, int idx, unsigned numBit) 
@@ -38,7 +38,7 @@ public:
 		{
 			LogMsg("error method");
 		}
-		//CO_YEILD(nullptr);
+		//CO_YIELD(nullptr);
 	}
 	void doEnumRelatedCellInfo(RelatedCellInfo const& info)
 	{

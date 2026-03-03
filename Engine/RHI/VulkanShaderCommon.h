@@ -64,24 +64,24 @@ namespace Render
 	{
 	public:
 
-		bool initialize(VkDevice device, EShader::Type type, SpirvShaderCode const& code);
-		void releaseResource()
+		bool initialize(VkDevice device, EShader::Type type, char const* entryName, SpirvShaderCode const& code);
+		void releaseResource() override
 		{
 			mModule.destroy(mDevice);
 			mDescriptorSetLayout.destroy(mDevice);
+			mPipelineLayout.destroy(mDevice);
 		}
 
-		virtual bool getParameter(char const* name, ShaderParameter& outParam) { return false; }
-		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam){ return false; }
-		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam)
-		{
-			return false;
-		}
+		virtual bool getParameter(char const* name, ShaderParameter& outParam) override;
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) override;
 
 		ShaderParameterMap mParameterMap;
 		VK_RESOURCE_TYPE(VkShaderModule)        mModule;
 		VK_RESOURCE_TYPE(VkDescriptorSetLayout) mDescriptorSetLayout;
-		VkDevice       mDevice;
+		VK_RESOURCE_TYPE(VkPipelineLayout)      mPipelineLayout;
+		TArray<VkDescriptorSetLayoutBinding>    mDescriptorBindings;
+		std::string     mEntryPoint;
+		VkDevice        mDevice;
 	};
 
 	class VulkanShaderProgram : public TRefcountResource< RHIShaderProgram >
@@ -91,33 +91,57 @@ namespace Render
 		bool setupShaders(VkDevice device, TArrayView< ShaderCompileDesc const >& descList, SpirvShaderCode shaderCodes[]);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) override
 		{
+			ShaderParameter* param = mParameterMap.findParameter(name);
+			if (param)
+			{
+				outParam = *param;
+				return true;
+			}
 			return false;
 		}
 
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) override
 		{
-			return false;
-		}
-		virtual bool getResourceParameter(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo, ShaderParameter& outParam)
-		{
-			return false;
+			return getParameter(name, outParam);
 		}
 
-		void releaseResource()
+		void releaseResource() override
 		{
 			for (int i = 0; i < mNumShaders; ++i)
 			{
 				mShaderModules[i].destroy(mDevice);
 			}
+			mDescriptorSetLayout.destroy(mDevice);
+			mPipelineLayout.destroy(mDevice);
 		}
 
+		ShaderPorgramParameterMap mParameterMap;
 		VK_RESOURCE_TYPE(VkShaderModule) mShaderModules[EShader::MaxStorageSize];
 		int mNumShaders = 0;
+
 		VK_RESOURCE_TYPE(VkDescriptorSetLayout) mDescriptorSetLayout;
 		VK_RESOURCE_TYPE(VkPipelineLayout)      mPipelineLayout;
+		TArray<VkDescriptorSetLayoutBinding>    mDescriptorBindings;
 
 		TArray< VkPipelineShaderStageCreateInfo > mStages;
 		VkDevice mDevice;
+	};
+
+	class VulkanShaderBoundState
+	{
+	public:
+		VulkanShaderBoundState() = default;
+
+		void release(VkDevice device)
+		{
+			mDescriptorSetLayout.destroy(device);
+			mPipelineLayout.destroy(device);
+		}
+
+		VK_RESOURCE_TYPE(VkDescriptorSetLayout) mDescriptorSetLayout;
+		VK_RESOURCE_TYPE(VkPipelineLayout)      mPipelineLayout;
+		TArray<VkDescriptorSetLayoutBinding>    mDescriptorBindings;
+		TArray<VkPipelineShaderStageCreateInfo> mStages;
 	};
 
 	class ShaderFormatSpirv : public ShaderFormat
@@ -133,14 +157,24 @@ namespace Render
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
 
 		virtual EShaderCompileResult compileCode(ShaderCompileContext const& context) final;
-		virtual void precompileCode(ShaderProgramSetupData& setupData);
-		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
+		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
+		virtual void precompileCode(ShaderSetupData& setupData) override;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
 		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderSetupData& setupData) override;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
 
 		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram) final;
 
 		virtual bool doesSuppurtBinaryCode() const final;
 		virtual bool getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
+
+		virtual ShaderPreprocessSettings getPreprocessSettings() override
+		{
+			ShaderPreprocessSettings settings;
+			settings.bSupportLineFilePath = false; // shaderc / glslangValidator does not support string file paths in #line directives
+			return settings;
+		}
 
 
 

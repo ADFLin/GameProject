@@ -642,43 +642,6 @@ namespace Render
 			BaseClass::releaseResource();
 		}
 
-		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
-		{
-
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.front = 0;
-			box.back = 1;
-			box.left = ox;
-			box.right = ox + w;
-			box.top = oy;
-			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * ETexture::GetFormatSize(format), 0);
-			return true;
-		}
-
-		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
-		{
-
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.front = 0;
-			box.back = 1;
-			box.left = ox;
-			box.right = ox + w;
-			box.top = oy;
-			box.bottom = oy + h;
-			//@FIXME : error
-			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * ETexture::GetFormatSize(format), 0);
-			return true;
-		}
-
 		void bitbltFromDevice(HDC hSourceDC, int x = 0, int y = 0)
 		{
 			HDC hDC;
@@ -756,50 +719,6 @@ namespace Render
 		{
 			SAFE_RELEASE(mDSV);
 			BaseClass::releaseResource();
-		}
-
-		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level )
-		{
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.front = 0;
-			box.back = 1;
-			box.left = ox;
-			box.right = ox + w;
-			box.top = oy;
-			box.bottom = oy + h;
-
-			UINT subresource = D3D11CalcSubresource(level, face, getNumMipLevel());
-			deviceContext->UpdateSubresource(mResource, subresource, &box, data, w * ETexture::GetFormatSize(format), 0);
-			return true;
-		}
-		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
-		{
-			if (format != getFormat())
-			{
-				if (ETexture::GetComponentCount(format) != ETexture::GetComponentCount(getFormat()))
-				{
-					return false;
-				}
-			}
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.front = 0;
-			box.back = 1;
-			box.left = ox;
-			box.right = ox + w;
-			box.top = oy;
-			box.bottom = oy + h;
-
-			UINT subresource = D3D11CalcSubresource(level, face, getNumMipLevel());
-			deviceContext->UpdateSubresource(mResource, subresource, &box, data, dataImageWidth * ETexture::GetFormatSize(format), 0);
-			return true;
 		}
 
 		ID3D11RenderTargetView* getRenderTargetView(ETexture::Face face, int level)

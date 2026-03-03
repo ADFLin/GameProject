@@ -103,7 +103,7 @@ namespace Render
 		preprocessor.bReplaceMacroText = true;
 		preprocessor.bAllowRedefineMacro = true;
 		preprocessor.bAddLineMacro = settings.bAddLineMacro;
-		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
+		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_None;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);
 

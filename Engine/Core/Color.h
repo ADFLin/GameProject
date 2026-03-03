@@ -195,6 +195,7 @@ public:
 		return *this;
 	}
 
+	TColor4 operator * (T f) const { return TColor4(r * f, g * f, b * f, a * f); }
 	TColor4 bgra() const { return TColor4(b, g, r, a); }
 	TColor3<T> rgb() const { return TColor3<T>(r, g, b); }
 	operator T const*() const { return &r; }

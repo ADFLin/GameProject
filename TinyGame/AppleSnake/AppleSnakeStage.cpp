@@ -964,7 +964,7 @@ namespace AppleSnake
 					Coroutines::Resume(mGameHandle);
 				}
 			);
-			CO_YEILD(nullptr);
+			CO_YIELD(nullptr);
 
 			if (mCPIndex != INDEX_NONE && mCPSnakeBodyIndex == mSnake.getLength() - 1)
 			{
@@ -993,7 +993,7 @@ namespace AppleSnake
 						Coroutines::Resume(mGameHandle);
 					}
 				);
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 				mTweener.tweenValue<Easing::Linear>(mFallOffset, jumpOffset, 0.0f, 0.1f).finishCallback(
 					[this]()
 					{
@@ -1001,7 +1001,7 @@ namespace AppleSnake
 						Coroutines::Resume(mGameHandle);
 					}
 				);
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 			}
 			return;
 		}
@@ -1029,7 +1029,7 @@ namespace AppleSnake
 					);
 
 					mIndexDraw = i;
-					CO_YEILD(nullptr);
+					CO_YIELD(nullptr);
 
 					if (mCPIndex != INDEX_NONE && mCPSnakeBodyIndex == mSnake.getLength() - 1)
 					{
@@ -1093,7 +1093,7 @@ namespace AppleSnake
 
 			if (!fallEntityIndices.empty())
 			{
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 				for (auto index : fallEntityIndices)
 				{
 					Entity& entity = mEntities[index];
@@ -1110,7 +1110,7 @@ namespace AppleSnake
 
 			if (bSnakeFall)
 			{
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 				mSnake.applyOffset(GetDirOffset(GravityDir));
 
 				int yMinBody = MaxInt32;

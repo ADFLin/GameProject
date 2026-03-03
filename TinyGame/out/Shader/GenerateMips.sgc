@@ -1,0 +1,23 @@
+#include "Common.sgc"
+
+#if COMPUTE_SHADER
+
+DEFINE_TEXTURE(Texture2D, SourceTexture)
+uniform image2D DestTexture;
+
+uniform uint2  DestTextureSize;
+uniform float2 TexelSize;
+uniform float  SrcMipLevel;
+
+CS_NUM_THREADS(8, 8, 1)
+CS_ENTRY(GenerateMipsCS)
+{
+	if (SvDispatchThreadID.x >= DestTextureSize.x || SvDispatchThreadID.y >= DestTextureSize.y)
+		return;
+
+	float2 UV = (float2(SvDispatchThreadID.xy) + 0.5) * TexelSize;
+	float4 Color = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), UV, SrcMipLevel);
+	imageStore(DestTexture, SvDispatchThreadID.xy, Color);
+}
+
+#endif

@@ -123,7 +123,7 @@ namespace Rich
 	};
 
 	class GameInputController : public IPlayerController
-							  , public IYieldInstruction
+							  , public IAwaitInstruction
 	{
 	public:
 		void startTurn(PlayerTurn& turn) override;

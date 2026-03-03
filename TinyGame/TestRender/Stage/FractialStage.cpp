@@ -442,6 +442,21 @@ struct GPU_ALIGN MandelbrotPerturbParamData
 };
 
 
+class ComputeTestShader : public GlobalShader
+{
+	DECLARE_SHADER(ComputeTestShader, Global);
+public:
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, DestTexture);
+		BIND_SHADER_PARAM(parameterMap, FillColor);
+	}
+	static char const* GetShaderFileName() { return "Shader/Test/ComputeTest"; }
+
+	DEFINE_SHADER_PARAM(DestTexture);
+	DEFINE_SHADER_PARAM(FillColor);
+};
+IMPLEMENT_SHADER(ComputeTestShader, EShader::Compute, SHADER_ENTRY(MainCS));
 
 class MandelbrotShader : public GlobalShader
 {
@@ -1350,7 +1365,7 @@ public:
 			values.push_back(line);
 		}
 		config.setStringValues("Bookmark", section, values);
-		config.saveFile("Game.ini");
+		config.saveFile(GAME_SETTING_PATH);
 	}
 
 	void loadBookmarks()
@@ -1581,8 +1596,7 @@ int CalcIteration(BigFloat const& cr, BigFloat const& ci, MandelbrotParam const&
 
 
 class FractialTestStage : public StageBase
-
-	, public IGameRenderSetup
+	                    , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
@@ -1874,7 +1888,7 @@ public:
 
 	virtual ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::D3D12;
+		return ERenderSystem::Vulkan;
 	}
 	virtual bool setupRenderResource(ERenderSystem systemName) override
 	{
@@ -2483,7 +2497,7 @@ public:
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-#if 1
+#if 0
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
@@ -2493,6 +2507,10 @@ public:
 
 #if 1
 		g.beginRender();
+
+
+		g.setBrush(Color3f::White());
+		g.drawTexture(*mTexture, Vector2(0, 0));
 
 		mSelectRect.draw(g);
 		InlineString<512> str;

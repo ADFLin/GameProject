@@ -131,6 +131,9 @@
     <Filter Include="Game">
       <UniqueIdentifier>{7e227995-d696-4e51-bcf7-efce5b3f7fe6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FX">
+      <UniqueIdentifier>{7A20191B-3D93-4AEC-9473-313665742DA4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConsoleSystem.cpp">
@@ -381,6 +384,12 @@
     </ClCompile>
     <ClCompile Include="Misc\DebugDraw.cpp">
       <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="FX\ParticleSystem.cpp">
+      <Filter>FX</Filter>
+    </ClCompile>
+    <ClCompile Include="Module\HotReload.cpp">
+      <Filter>Module</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -798,6 +807,12 @@
     <ClInclude Include="Serialize\DataStream.h">
       <Filter>Serialize</Filter>
     </ClInclude>
+    <ClInclude Include="FX\ParticleSystem.h">
+      <Filter>FX</Filter>
+    </ClInclude>
+    <ClInclude Include="FX\ParticleModuleCommon.h">
+      <Filter>FX</Filter>
+    </ClInclude>
     <ClInclude Include="Serialize\DataBitSerialize.h">
       <Filter>Serialize</Filter>
     </ClInclude>
@@ -939,6 +954,9 @@
     <ClInclude Include="Module\ModuleInterface.h">
       <Filter>Module</Filter>
     </ClInclude>
+    <ClInclude Include="Module\HotReload.h">
+      <Filter>Module</Filter>
+    </ClInclude>
     <ClInclude Include="Module\ModularFeature.h">
       <Filter>Module</Filter>
     </ClInclude>
@@ -1052,6 +1070,9 @@
     </ClInclude>
     <ClInclude Include="MacroCommon.h">
       <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\LinearAllocator.h">
+      <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -232,6 +232,7 @@
     <None Include="..\TinyGame\out\Shader\ParallaxOcclusionCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\ParticleCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\ParticleSimulation.sgc" />
+    <None Include="..\TinyGame\out\Shader\ParticleSprite.sgc" />
     <None Include="..\TinyGame\out\Shader\PostProcessCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\PrimitiveParam.sgc" />
     <None Include="..\TinyGame\out\Shader\Reflection.sgc" />

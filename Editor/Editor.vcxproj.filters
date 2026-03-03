@@ -98,6 +98,9 @@
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_opengl3.h">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_vulkan.h">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
@@ -165,6 +168,9 @@
     </ClCompile>
     <ClCompile Include="EditorRender.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_opengl3.cpp">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_vulkan.cpp">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClCompile>
   </ItemGroup>

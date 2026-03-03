@@ -105,7 +105,11 @@ void GroupMemoryBarrierWithGroupSync();
 
 #define MEMBER_OUT( NAME ) :NAME
 
+#if SYSTEM_VULKAN
+#define SHADER_INPUT(TYPE_DECL, LOC)       [[vk::location(VK_GET_LOC(LOC))]] in TYPE_DECL : LOC,
+#else
 #define SHADER_INPUT(TYPE_DECL, LOC)       in TYPE_DECL : LOC,
+#endif
 #define SHADER_OUTPUT(TYPE_DECL, LOC)      out TYPE_DECL,
 #define SHADER_OUTPUT_LAST(TYPE_DECL, LOC) out TYPE_DECL
 
@@ -125,7 +129,11 @@ void GroupMemoryBarrierWithGroupSync();
 #define VS_ENTRY_END(NAME)               out float4 SvPosition : SV_POSITION)
 
 #define DECLARE_VERTEX_INPUT_START( NAME ) struct NAME {
+#if SYSTEM_VULKAN
+#define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) [[vk::location(VK_GET_LOC(ATTRIBUTE))]] TYPE NAME : ATTRIBUTE;
+#else
 #define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) TYPE NAME : ATTRIBUTE;
+#endif
 #define DECLARE_VERTEX_INPUT_END( NAME )  };
 
 #define VERTEX_INPUT( NAME ) VertexInput.##NAME

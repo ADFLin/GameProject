@@ -397,6 +397,22 @@ namespace Render
 		return new ShaderFormatHLSL_D3D12( mDevice );
 	}
 
+	RHIProfileCore* D3D12System::createProfileCore()
+	{
+		if (mProfileCore == nullptr)
+		{
+			UINT64 frequency;
+			if (mRenderContext.mCommandQueue->GetTimestampFrequency(&frequency) == S_OK)
+			{
+				double cycleToMillisecond = 1000.0 / frequency;
+				mProfileCore = new D3D12ProfileCore;
+				mProfileCore->init(mDevice, cycleToMillisecond);
+			}
+		}
+
+		return mProfileCore;
+	}
+
 	bool D3D12System::RHIBeginRender()
 	{
 		if (!mRenderContext.beginFrame())
@@ -978,30 +994,6 @@ namespace Render
 				D3D12_RANGE range = {};
 				static_cast<D3D12Buffer*>(buffer)->mResource->Unmap(0, nullptr);
 			}
-		}
-	}
-
-	bool D3D12System::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
-	{
-		D3D12Texture2D& textureImpl = static_cast<D3D12Texture2D&>(texture);
-		if (dataWidth == 0)
-		{
-			dataWidth = w;
-		}
-		return updateTexture2DSubresources(
-				textureImpl.mResource, textureImpl.mCurrentStates, texture.getFormat(), data, ox, oy, w, h, dataWidth * ETexture::GetFormatSize(texture.getFormat()), level
-		);
-	}
-
-	void D3D12System::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
-	{
-		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
-
-		void* pData = RHILockBuffer(&buffer, ELockAccess::WriteOnly, buffer.getElementSize() * start, buffer.getElementSize() * numElements);
-		if (pData)
-		{
-			FMemory::Copy(pData , data , buffer.getElementSize() * numElements);
-			RHIUnlockBuffer(&buffer);
 		}
 	}
 
@@ -2140,6 +2132,35 @@ namespace Render
 		CloseHandle(mFenceEvent);
 
 		mDevice.reset();
+	}
+
+	void D3D12Context::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		D3D12Texture2D& textureImpl = static_cast<D3D12Texture2D&>(texture);
+		if (dataWidth == 0)
+		{
+			dataWidth = w;
+		}
+		static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
+			textureImpl.mResource, textureImpl.mCurrentStates, texture.getFormat(), data, ox, oy, w, h, dataWidth * ETexture::GetFormatSize(texture.getFormat()), level
+		);
+	}
+
+	void D3D12Context::RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+
+	}
+
+	void D3D12Context::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
+
+		void* pData = RHILockBuffer(&buffer, ELockAccess::WriteOnly, buffer.getElementSize() * start, buffer.getElementSize() * numElements);
+		if (pData)
+		{
+			FMemory::Copy(pData, data, buffer.getElementSize() * numElements);
+			RHIUnlockBuffer(&buffer);
+		}
 	}
 
 	void D3D12Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -3765,22 +3786,22 @@ namespace Render
 	{
 		mGlobalConstAllocation.ptr = nullptr;
 		mShaderData = nullptr;
-		mbGlobalConstCommited = false;
+		mbGlobalConstCommitted = false;
 	}
 
 	void D3D12ResourceBoundState::postDrawOrDispatchCall()
 	{
 		if (mGlobalConstAllocation.ptr)
 		{
-			mbGlobalConstCommited = true;
+			mbGlobalConstCommitted = true;
 		}
 	}
 
 	bool D3D12ResourceBoundState::updateConstBuffer(D3D12ShaderData& shaderData)
 	{
-		if (mbGlobalConstCommited || mShaderData != &shaderData)
+		if (mbGlobalConstCommitted || mShaderData != &shaderData)
 		{
-			mbGlobalConstCommited = false;
+			mbGlobalConstCommitted = false;
 
 			uint32 bufferSize = shaderData.rootSignature.globalCBSize;
 			bufferSize = ConstBufferMultipleSize * ((bufferSize + ConstBufferMultipleSize - 1) / ConstBufferMultipleSize);

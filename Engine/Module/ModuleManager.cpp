@@ -9,6 +9,8 @@
 #include "StdUtility.h"
 #include "LogSystem.h"
 #include "InlineString.h"
+#include "CString.h"
+#include <string>
 
 
 ModuleManager::ModuleManager()
@@ -40,9 +42,25 @@ ModuleManager& ModuleManager::Get()
 	static ModuleManager StaticInstance;
 	return StaticInstance;
 }
+
+
 #endif
 
-bool ModuleManager::registerModule(IModuleInterface* module, char const* moduleName, ModuleHandle hModule)
+
+#if USE_HOTRELOAD
+void ModuleManager::enableHotReload(class IAssetViewerRegister& assetViewerRegister)
+{
+	bHotReloadEnabled = true;
+	mAssetViewerRegister = &assetViewerRegister;
+	for (auto* info : mModuleDataList)
+	{
+		mAssetViewerRegister->registerViewer(info);
+	}
+}
+#endif
+
+
+bool ModuleManager::registerModule(IModuleInterface* module, char const* moduleName, ModuleHandle hModule, char const* path, char const* loadedPath)
 {
 	CHECK(module);
 
@@ -52,9 +70,17 @@ bool ModuleManager::registerModule(IModuleInterface* module, char const* moduleN
 		return false;
 	}
 
-	bool bInserted = mNameToModuleMap.insert(std::make_pair(moduleName, module)).second;
+	bool bInserted = mNameToModuleMap.insert(std::make_pair(HashString(moduleName), module)).second;
 	CHECK(bInserted);
-	mModuleDataList.push_back({ module ,hModule });
+	ModuleData* data = new ModuleData(path ? path : "", loadedPath ? loadedPath : "", moduleName, module, hModule);
+	mModuleDataList.push_back(data);
+
+#if USE_HOTRELOAD
+	if (bHotReloadEnabled && mAssetViewerRegister)
+	{
+		mAssetViewerRegister->registerViewer(mModuleDataList.back());
+	}
+#endif
 
 	module->startupModule();
 
@@ -75,12 +101,53 @@ void ModuleManager::cleanupModuleInstances()
 
 void ModuleManager::cleanupModuleMemory()
 {
-	visitInternal([](ModuleData& info) ->bool
+	for (auto* info : mModuleDataList)
 	{
-		CHECK(info.instance == nullptr);
-		FPlatformModule::Release(info.hModule);
-		return true;
-	});
+#if USE_HOTRELOAD
+		if (bHotReloadEnabled && mAssetViewerRegister)
+		{
+			mAssetViewerRegister->unregisterViewer(info);
+		}
+#endif
+
+		CHECK(info->instance == nullptr);
+		if (info->hModule)
+		{
+			FPlatformModule::Release(info->hModule);
+		}
+#if USE_HOTRELOAD
+		for (auto oldMod : info->oldModules)
+		{
+			if (oldMod)
+				FPlatformModule::Release(oldMod);
+		}
+		if (info->loadedPath.find("_HotReload.") != std::string::npos)
+		{
+			FFileSystem::DeleteFile(info->loadedPath.c_str());
+		}
+
+		for (int i = 1; i <= info->hotReloadCount; ++i)
+		{
+			std::string versionPath = info->path;
+			auto pos = versionPath.find_last_of('.');
+			if (pos != std::string::npos)
+			{
+				std::string insertStr = "_HotReload_";
+				insertStr += std::to_string(i);
+				versionPath.insert(pos, insertStr);
+			}
+			else
+			{
+				versionPath += "_HotReload_";
+				versionPath += std::to_string(i);
+			}
+
+			FFileSystem::DeleteFile(versionPath.c_str());
+		}
+#endif
+
+		delete info;
+	}
 	mModuleDataList.clear();
 }
 
@@ -92,6 +159,69 @@ IModuleInterface* ModuleManager::findModule(char const* name)
 	return nullptr;
 }
 
+#if USE_HOTRELOAD
+void ModuleManager::ModuleData::getDependentFilePaths(TArray<std::wstring>& paths)
+{
+	if (!path.empty())
+	{
+		paths.push_back(FCString::CharToWChar(path.c_str()));
+	}
+}
+
+void ModuleManager::ModuleData::postFileModify(EFileAction action)
+{
+	if (action == EFileAction::Modify)
+	{
+		if (hModule)
+		{
+			if (instance)
+			{
+				instance->shutdownModule();
+				instance->release();
+				instance = nullptr;
+			}
+			
+			oldModules.push_back(hModule);
+			hModule = nullptr;
+		}
+
+		hotReloadCount++;
+
+		std::string newLoadedPath = path;
+		auto pos = newLoadedPath.find_last_of('.');
+		if (pos != std::string::npos)
+		{
+			std::string insertStr = "_HotReload_";
+			insertStr += std::to_string(hotReloadCount);
+			newLoadedPath.insert(pos, insertStr);
+		}
+		else
+		{
+			newLoadedPath += "_HotReload_";
+			newLoadedPath += std::to_string(hotReloadCount);
+		}
+
+		if (FFileSystem::CopyFile(path.c_str(), newLoadedPath.c_str(), false))
+		{
+			hModule = FPlatformModule::Load(newLoadedPath.c_str());
+			if (hModule)
+			{
+				auto createFunc = (CreateModuleFunc)FPlatformModule::GetFunctionAddress(hModule, CREATE_MODULE_STR);
+				if (createFunc)
+				{
+					instance = (*createFunc)();
+					if (instance)
+					{
+						instance->startupModule();
+						ModuleManager::Get().mNameToModuleMap[HashString(moduleName.c_str())] = instance;
+					}
+				}
+				HotReloadRegistry::Get().applyPatches();
+			}
+		}
+	}
+}
+#endif
 
 std::string& operator += (std::string& str, StringView view)
 {
@@ -107,6 +237,8 @@ bool ModuleManager::loadModule(char const* path)
 		return true;
 
 	FPlatformModule::Handle hModule;
+	std::string loadedPath = path;
+#if USE_HOTRELOAD
 	if (bHotReloadEnabled)
 	{
 		auto fileName = FFileUtility::GetBaseFileName(path);
@@ -119,9 +251,11 @@ bool ModuleManager::loadModule(char const* path)
 		hotReloadPath += FFileUtility::GetExtension(path);
 		FFileSystem::CopyFile(path, hotReloadPath.c_str(), false);
 
+		loadedPath = hotReloadPath;
 		hModule = FPlatformModule::Load(hotReloadPath.c_str());
 	}
 	else
+#endif
 	{
 		hModule = FPlatformModule::Load(path);
 	}
@@ -144,7 +278,7 @@ bool ModuleManager::loadModule(char const* path)
 	if (!module)
 		return false;
 
-	if (registerModule(module, loadName, hModule))
+	if (registerModule(module, loadName, hModule, path, loadedPath.c_str()))
 	{
 		hModule = NULL;
 	}

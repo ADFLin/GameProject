@@ -45,6 +45,7 @@ namespace Render
 		bool enableDebugMarkers = false;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
+		VkSampler     mDefaultSampler = VK_NULL_HANDLE;
 
 		/**  @brief Typecast to VkDevice */
 		operator VkDevice() { return logicalDevice; };

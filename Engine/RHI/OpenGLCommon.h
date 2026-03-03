@@ -273,8 +273,6 @@ namespace Render
 		using TOpengGLTexture< RHITextureCube >::TOpengGLTexture;
 
 		bool create(void* data[]);
-		bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level );
-		bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level );
 	};
 
 	class OpenGLTexture2DArray : public TOpengGLTexture< RHITexture2DArray >

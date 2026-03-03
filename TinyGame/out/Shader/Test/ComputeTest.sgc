@@ -1,0 +1,15 @@
+#include "Common.sgc"
+
+RWTexture2D<float4> DestTexture;
+float4 FillColor;
+
+[numthreads(16, 16, 1)]
+void MainCS(uint3 threadId : SV_DispatchThreadID)
+{
+	uint2 size;
+	DestTexture.GetDimensions(size.x, size.y);
+	if (threadId.x >= size.x || threadId.y >= size.y)
+		return;
+
+	DestTexture[threadId.xy] = FillColor;
+}

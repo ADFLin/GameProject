@@ -299,23 +299,6 @@ namespace Render
 		return true;
 	}
 
-
-	bool OpenGLTextureCube::update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
-	{
-		bind();
-		bool result = UpdateTexture2D(OpenGLTranslate::TexureType(face), ox, oy, w, h, format, data, level);
-		unbind();
-		return result;
-	}
-
-	bool OpenGLTextureCube::update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
-	{
-		bind();
-		bool result = UpdateTexture2D(OpenGLTranslate::TexureType(face), ox, oy, w, h, format, dataImageWidth, data, level);
-		unbind();
-		return result;
-	}
-
 	bool OpenGLTexture2DArray::create(void* data)
 	{
 		if( !mGLObject.fetchHandle() )

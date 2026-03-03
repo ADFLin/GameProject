@@ -187,10 +187,6 @@ namespace Render
 	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
-	RHI_API void RHIGenerateMips(RHITextureBase& texture);
-	RHI_API bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0);
-	RHI_API void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
-
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
 
@@ -218,9 +214,33 @@ namespace Render
 	};
 
 
+	RHI_API void RHIGenerateMips(RHICommandList& commandList, RHITextureBase& texture);
+	RHI_API void RHIUpdateTexture(RHICommandList& commandList, RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0);
+	RHI_API void RHIUpdateTexture(RHICommandList& commandList, RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0);
+	RHI_API void RHIUpdateBuffer(RHICommandList& commandList, RHIBuffer& buffer, int start, int numElements, void* data);
+
+
+
+	FORCEINLINE void RHIGenerateMips(RHITextureBase& texture)
+	{
+		RHIGenerateMips(RHICommandList::GetImmediateList(), texture);
+	}
+	FORCEINLINE void RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0)
+	{
+		RHIUpdateTexture(RHICommandList::GetImmediateList(), texture, ox, oy, w, h, data, level, dataWidth);
+	}
+	FORCEINLINE void RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0)
+	{
+		RHIUpdateTexture(RHICommandList::GetImmediateList(), texture, face, ox, oy, w, h, data, level, dataWidth);
+	}
+	FORCEINLINE void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		RHIUpdateBuffer(RHICommandList::GetImmediateList(), buffer, start, numElements, data);
+	}
+
 	//
-	RHI_API void RHISetRasterizerState(RHICommandList& commandList , RHIRasterizerState& rasterizerState);
-	RHI_API void RHISetBlendState(RHICommandList& commandList , RHIBlendState& blendState);
+	RHI_API void RHISetRasterizerState(RHICommandList& commandList, RHIRasterizerState& rasterizerState);
+	RHI_API void RHISetBlendState(RHICommandList& commandList, RHIBlendState& blendState);
 	RHI_API void RHISetDepthStencilState(RHICommandList& commandList, RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
 
 	struct ViewportInfo
@@ -383,6 +403,7 @@ namespace Render
 		virtual void clearResourceReference(){}
 		virtual void shutdown(){}
 		virtual class ShaderFormat* createShaderFormat() { return nullptr; }
+		virtual class RHIProfileCore* createProfileCore() { return nullptr; }
 		
 		RHI_FUNC(RHICommandList& getImmediateCommandList());
 		RHI_FUNC(RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info));
@@ -402,10 +423,6 @@ namespace Render
 
 		RHI_FUNC(void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
 		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
-
-		RHI_FUNC(bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth));
-		RHI_FUNC(void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data));
-		RHI_FUNC(void RHIGenerateMips(RHITextureBase& texture));
 
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));

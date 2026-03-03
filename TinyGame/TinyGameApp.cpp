@@ -56,7 +56,7 @@
 #include "Core/FNV1a.h"
 #include "UnitTest/TestClass.h"
 
-#define GAME_SETTING_PATH "Game.ini"
+
 #define CONFIG_SECTION "SystemSetting"
  
 #ifndef NDEBUG
@@ -647,7 +647,8 @@ bool TinyGameApp::initializeGame()
 		GRedirectedStdOut = CreateFileA(outputFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
-	//CreateConsole();
+	CreateConsole();
+	
 	GLogPrinter.addDefaultChannels();
 	{
 		EDayOfWeek dayOfWeek = appStartTime.getDayOfWeek();
@@ -760,7 +761,9 @@ bool TinyGameApp::initializeGame()
 		::Global::GetAssetManager().registerViewer(&GGameConfigAsset);
 
 		Render::ShaderManager::Get().setAssetViewerRegister(&Global::GetAssetManager());
-
+#if USE_HOTRELOAD
+		ModuleManager::Get().enableHotReload(::Global::GetAssetManager());
+#endif
 	}
 	{
 		TIME_SCOPE("Draw Initialize");
@@ -969,6 +972,8 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 	Tickable::Update(deltaTime);
 
+
+
 #if TINY_WITH_EDITOR
 	if (mEditor)
 	{
@@ -995,6 +1000,9 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 		mNetWorker->update(updateTime);
 	}
 
+	{
+		::Global::GameTimerManager().update(deltaTime);
+	}
 	{
 		PROFILE_ENTRY("Task Update");
 		runTask(updateTime);
@@ -1467,26 +1475,32 @@ void TinyGameApp::render( float dframe )
 				}
 			}
 
-			g.beginRender();
-
+#if 1
+			//if (GRHISystem && GRHISystem->getName() != RHISystemName::Vulkan)
 			{
-				long dt = long(dframe * getUpdateTime());
-				if (mRenderEffect)
+				g.beginRender();
+
 				{
-					mRenderEffect->onRender(dt);
+					long dt = long(dframe * getUpdateTime());
+					if (mRenderEffect)
+					{
+						mRenderEffect->onRender(dt);
+					}
 				}
-			}
 
-			{
-				PROFILE_ENTRY("GUIRender");
-				GPU_PROFILE("GUI");
-				::Global::GUI().render(g);
-			}
+				{
+					PROFILE_ENTRY("GUIRender");
+					GPU_PROFILE("GUI");
+					::Global::GUI().render(g);
+				}
 
-			g.endRender();
+				g.endRender();
+			}
+#endif
 		}
 	}
 
+#if 1
 	g.beginRender();
 
 	//RenderUtility::SetBrush(g, EColor::Red);
@@ -1580,7 +1594,7 @@ void TinyGameApp::render( float dframe )
 				g.drawRect(renderPos - renderSize, renderSize);
 
 				g.setTextColor(Color3ub(0, 0, 255));
-
+				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
 			}
 		}
 
@@ -1642,6 +1656,7 @@ void TinyGameApp::render( float dframe )
 	}
 
 	g.endRender();	
+#endif
 
 	{
 		PROFILE_ENTRY("ProfileGPU.endFrame");

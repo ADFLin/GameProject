@@ -221,33 +221,9 @@ namespace Bloxorz
 		RHIRasterizerStateRef mLineOffsetRSState;
 
 
-		TArray< Vector4 > mWeightData;
-		TArray< Vector2 > mUVOffsetData;
+
 		float mBloomThreshold = -1.0;
 		float mBloomIntensity = 0.2;
-
-		int generateFliterData(int imageSize , Vector2 const& offsetDir , LinearColor const& bloomTint, float bloomRadius)
-		{
-			Vector2 weightAndOffset[MaxWeightNum];
-			int numSamples = generateGaussianlDisburtionWeightAndOffset(bloomRadius, weightAndOffset);
-
-			mWeightData.resize(MaxWeightNum);
-			mUVOffsetData.resize(MaxWeightNum);
-
-			for (int i = 0; i < numSamples; ++i)
-			{
-				mWeightData[i] = weightAndOffset[i].x * Vector4( bloomTint );
-				mUVOffsetData[i] = ( weightAndOffset[i].y / imageSize ) * offsetDir;
-			}
-
-			return numSamples;
-		}
-
-		FliterProgram* mProgFliter;
-		FliterAddProgram* mProgFliterAdd;
-		DownsampleProgram* mProgDownsample;
-		BloomSetupProgram* mProgBloomSetup;
-		TonemapProgram*    mProgTonemap;
 		ViewInfo mView;
 		Mesh     mCube;
 		Mesh     mCubeLine;

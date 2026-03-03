@@ -158,6 +158,7 @@ void ExecutionEntryInfo::RecordHistory(ExecutionEntryInfo const& info)
 	}
 
 	config.setStringValues(EntryName, SectionName, execHistroy, true);
+	config.saveFile(GAME_SETTING_PATH);
 }
 
 TINY_API IExecutionServices* GExecutionServices = nullptr;

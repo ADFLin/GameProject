@@ -173,6 +173,12 @@ namespace Render
 
 		if (GRHISystem)
 		{
+			RHIProfileCore* profileCore = GRHISystem->createProfileCore();
+			if (profileCore)
+			{
+				GpuProfiler::Get().setCore(profileCore);
+			}
+
 			ShaderFormat* shaderFormat = GRHISystem->createShaderFormat();
 			if (shaderFormat == nullptr)
 			{
@@ -185,7 +191,6 @@ namespace Render
 				LogError("ShaderManager can't initialize");
 				return false;
 			}
-
 
 			IGlobalRenderResource::RestoreAllResources();
 
@@ -364,20 +369,6 @@ namespace Render
 		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
 	}
 
-	void RHIGenerateMips(RHITextureBase& texture)
-	{
-		EXECUTE_RHI_FUNC(RHIGenerateMips(texture));
-	}
-
-	bool  RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
-	{
-		return EXECUTE_RHI_FUNC(RHIUpdateTexture(texture, ox, oy, w, h, data, level, dataWidth));
-	}
-
-	void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
-	{
-		return EXECUTE_RHI_FUNC(RHIUpdateBuffer(buffer, start, numElements, data));
-	}
 
 	//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
 	//{

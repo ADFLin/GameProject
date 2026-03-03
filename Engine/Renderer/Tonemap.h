@@ -4,6 +4,8 @@
 #define Tonemap_H_D4A95FB3_7E3D_4113_8393_AD185D2EDB89
 
 #include "PostProcess.h"
+#include "Renderer/BasePassRendering.h"
+#include "RHI/DrawUtility.h"
 
 namespace Render
 {
@@ -49,6 +51,11 @@ namespace Render
 
 		PostProcessParameters mParamPostProcess;
 		ShaderParameter       mParamBloomTexture;
+	};
+
+	struct FTonemap
+	{
+		static void Render(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D* bloomTexture = nullptr);
 	};
 
 }

@@ -76,7 +76,7 @@ namespace Rich
 		Animation* mNext;
 	};
 
-	class WaitAnimation : public IYieldInstruction
+	class WaitAnimation : public IAwaitInstruction
 		                , public AnimEventHandler
 	{
 	public:
@@ -87,16 +87,16 @@ namespace Rich
 
 		virtual void handleAnimFinish() 
 		{
-			Coroutines::Resume(mYieldHandle);
+			Coroutines::Resume(mContextHandle);
 		}
 
-		void startYield(YieldContextHandle handle) override
+		void onSuspend(CoroutineContextHandle handle) override
 		{
 			mAnim->mHandler = this;
-			mYieldHandle = handle;
+			mContextHandle = handle;
 		}
 		Animation* mAnim;
-		YieldContextHandle mYieldHandle;
+		CoroutineContextHandle mContextHandle;
 	};
 
 	typedef Tween::GroupTweener< long > Tweener;

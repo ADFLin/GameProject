@@ -11,6 +11,7 @@
 #include "Core/ScopeGuard.h"
 
 #include "Misc/CStringWrapper.h"
+#include <string>
 #include <unordered_map>
 #include <map>
 
@@ -84,6 +85,7 @@ public:
 	using WatchDirMap = std::unordered_map< TCStringWrapper< wchar_t , true >, DirMonitorInfo* >;
 
 	WatchDirMap mDirMap;
+	std::unordered_map<std::wstring, DWORD> mLastNotifyTimeMap;
 	DWORD       mLastError;
 	HANDLE      mhIOCP;
 
@@ -282,7 +284,7 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 				filePath = wbuf;
 		}
 
-		EFileAction action = EFileAction::Modify;
+		EFileAction action = EFileAction::Unknown;
 		switch( pIter->Action )
 		{
 		case FILE_ACTION_ADDED: action = EFileAction::Created; break;
@@ -292,9 +294,31 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		case FILE_ACTION_RENAMED_NEW_NAME: action = EFileAction::Rename; break;
 		}
 
-		onNotify(filePath.c_str(), action);
+		bool bShouldNotify = true;
+		if (action == EFileAction::Modify)
+		{
+			DWORD currentTime = ::GetTickCount();
+			auto it = mLastNotifyTimeMap.find(filePath);
+			if (it != mLastNotifyTimeMap.end())
+			{
+				if (currentTime - it->second < 1000)
+				{
+					bShouldNotify = false;
+				}
+			}
+			if (bShouldNotify)
+			{
+				mLastNotifyTimeMap[filePath] = currentTime;
+			}
+		}
+
+		if (bShouldNotify && onNotify)
+		{
+			onNotify(filePath.c_str(), action);
+		}
 
 		if( pIter->NextEntryOffset == 0 )
+
 			break;
 
 		if( (DWORD)((BYTE*)pIter - (BYTE*)pDirFind->buf) > sizeof(pDirFind->buf) )
@@ -444,9 +468,9 @@ void AssetManager::handleDirectoryModify(wchar_t const* path, EFileAction action
 	{
 		MonitorEntry* entry = iter->second;
 
-		if (action == EFileAction::Modify)
+		//if (action == EFileAction::Modify)
 		{
-			LogMsg("Asset File Changed : %s", entry->path.c_str());
+			LogMsg("Asset File Changed : (%d) %s", (int)action , FCString::WCharToChar(entry->path.c_str()).c_str());
 		}
 
 		for( IAssetViewer* asset : entry->viewers )

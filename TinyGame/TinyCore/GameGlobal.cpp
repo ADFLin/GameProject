@@ -59,6 +59,8 @@ void Global::Finalize()
 	GGameDataCache = nullptr;
 }
 
+
+
 #include <cstdio>
 
 int Global::RandomNet()
@@ -188,4 +190,10 @@ UserProfile& Global::GetUserProfile()
 DataCacheInterface& Global::DataCache()
 {
 	return *GGameDataCache;
+}
+
+TimerManager& Global::GameTimerManager()
+{
+	static TimerManager StaticInstance;
+	return StaticInstance;
 }

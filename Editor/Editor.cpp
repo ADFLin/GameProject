@@ -20,6 +20,8 @@
 
 #define EDITOR_INI "Editor.ini"
 
+Editor* GEditor = nullptr;
+
 
 class Editor : public IEditor
 {
@@ -104,6 +106,11 @@ public:
 	{
 		cleanupPanels();
 		FImGui::ReleaseRHI();
+		if (mGraphics)
+		{
+			mGraphics->releaseRHI();
+			delete mGraphics;
+		}
 		delete this;
 	}
 

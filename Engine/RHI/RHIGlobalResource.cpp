@@ -57,10 +57,19 @@ namespace Render
 	CORE_API MaterialMaster* GDefalutMaterial = nullptr;
 	CORE_API MaterialShaderProgram GSimpleBasePass;
 
+
 	bool InitGlobalRenderResource()
 	{
 		if (GRHISystem->getName() == RHISystemName::Vulkan)
+		{
 			return true;
+			for (uint32 i = 0; i < SimplePipelineProgram::PermutationDomain::GetPermutationCount(); ++i)
+			{
+				TIME_SCOPE("SimplePipelineProgram");
+				ShaderManager::Get().getGlobalShaderT< SimplePipelineProgram >(i);
+			}
+			return true;
+		}
 
 		TRACE_RESOURCE_TAG_SCOPE("GlobalRHIResource");
 

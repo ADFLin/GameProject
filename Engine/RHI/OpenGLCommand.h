@@ -96,6 +96,14 @@ namespace Render
 
 		void shutdown();
 
+		void RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+		void RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
+		void RHIGenerateMips(RHITextureBase& texture)
+		{
+
+		}
+
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
@@ -422,6 +430,7 @@ namespace Render
 		bool initialize(RHISystemInitParams const& initParam);
 		void shutdown();
 		class ShaderFormat* createShaderFormat();
+		class RHIProfileCore* createProfileCore();
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
 
@@ -444,15 +453,7 @@ namespace Render
 		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
-		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
-		//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size);
-		//void  RHIUnlockTexture(RHITextureBase* texture);
 
-		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
-		void RHIGenerateMips(RHITextureBase& texture)
-		{
-
-		}
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
@@ -471,7 +472,6 @@ namespace Render
 		RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState) { return nullptr; }
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
-		class OpenGLProfileCore* mProfileCore = nullptr;
 
 		std::unordered_map< ShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
 

@@ -274,6 +274,7 @@
     <ClCompile Include="Misc\DebugDraw.cpp" />
     <ClCompile Include="Misc\Guid.cpp" />
     <ClCompile Include="Misc\ImageMergeHelper.cpp" />
+    <ClCompile Include="Module\HotReload.cpp" />
     <ClCompile Include="Module\ModularFeature.cpp" />
     <ClCompile Include="Module\ModuleManager.cpp" />
     <ClCompile Include="Phy2D\Collision.cpp" />
@@ -299,6 +300,7 @@
     <ClCompile Include="WGLContext.cpp" />
     <ClCompile Include="WindowsProfileViewer.cpp" />
     <ClCompile Include="WinGDIRenderSystem.cpp" />
+    <ClCompile Include="FX\ParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h" />
@@ -416,6 +418,7 @@
     <ClInclude Include="Misc\CStringWrapper.h" />
     <ClInclude Include="Misc\ReferenceWarpper.h" />
     <ClInclude Include="ModuleInterface.h" />
+    <ClInclude Include="Module\HotReload.h" />
     <ClInclude Include="Module\ModularFeature.h" />
     <ClInclude Include="Module\ModuleInterface.h" />
     <ClInclude Include="Module\ModuleManager.h" />
@@ -525,6 +528,8 @@
     <ClInclude Include="WindowsProfileViewer.h" />
     <ClInclude Include="WinGDIRenderSystem.h" />
     <ClInclude Include="WinGLPlatform.h" />
+    <ClInclude Include="FX\ParticleSystem.h" />
+    <ClInclude Include="FX\ParticleModuleCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp" />

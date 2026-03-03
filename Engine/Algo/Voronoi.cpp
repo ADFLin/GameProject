@@ -241,7 +241,7 @@ namespace Voronoi
 		if (bDebugBreak)
 		{
 			DebugDraw();
-			CO_YEILD(nullptr);
+			CO_YIELD(nullptr);
 		}
 
 #endif
@@ -532,7 +532,7 @@ namespace Voronoi
 			if (bDebugBreak)
 			{
 				DebugDraw();
-				CO_YEILD(nullptr);
+				CO_YIELD(nullptr);
 			}
 #endif
 		}

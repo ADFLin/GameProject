@@ -11,6 +11,8 @@
 #include "FileSystem.h"
 #include "Core/ScopeGuard.h"
 #include <cwchar>
+#include <unordered_map>
+#include "Rect.h"
 
 template< class FormCharT, class ToCharT >
 struct FCharConv
@@ -147,7 +149,8 @@ namespace Render
 		CopyImage(&outData.imageData[0], outData.imageWidth, outData.imageHeight, outData.pixelSize, pDataTexture, textureDC.getWidth());
 
 		if (GRHISystem->getName() == RHISystemName::D3D11 || 
-			GRHISystem->getName() == RHISystemName::D3D12)
+			GRHISystem->getName() == RHISystemName::D3D12 ||
+			GRHISystem->getName() == RHISystemName::Vulkan)
 		{
 			uint8* pData = outData.imageData.data();
 			int count = outData.imageData.size() / 4;
@@ -905,6 +908,143 @@ namespace Render
 		generateVerticesT(pos, str, scale, outVertices, outBoundSize);
 	}
 
+
+	void FontDrawer::generateClippedVertices(Vector2 const& pos, char const* str, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
+	{
+		generateClippedVerticesT(pos, str, clipRect, outVertices, outBoundSize);
+	}
+
+	void FontDrawer::generateClippedVertices(Vector2 const& pos, wchar_t const* str, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
+	{
+		generateClippedVerticesT(pos, str, clipRect, outVertices, outBoundSize);
+	}
+
+	void FontDrawer::generateClippedVertices(Vector2 const& pos, char const* str, float scale, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
+	{
+		generateClippedVerticesT(pos, str, scale, clipRect, outVertices, outBoundSize);
+	}
+
+	void FontDrawer::generateClippedVertices(Vector2 const& pos, wchar_t const* str, float scale, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
+	{
+		generateClippedVerticesT(pos, str, scale, clipRect, outVertices, outBoundSize);
+	}
+
+	template< typename CharT >
+	void FontDrawer::generateClippedVerticesT(Vector2 const& pos, CharT const* str, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
+	{
+		generateClippedVerticesT(pos, str, 1.0f, clipRect, outVertices, outBoundSize);
+	}
+
+	template< typename CharT >
+	void FontDrawer::generateClippedVerticesT(Vector2 const& pos, CharT const* str, float scale, Rect const& clipRect, TArray< GlyphVertex >& outVertices, Vector2* outBoundSize)
+	{
+		if (outBoundSize)
+		{
+			*outBoundSize = scale * calcTextExtentT(str, nullptr);
+		}
+
+		Vector2 curPos = pos;
+		wchar_t prevChar = 0;
+		bool bApplyKerning = false;
+		float lineDist = scale * (mCharDataSet->getFontHeight() + 2);
+
+		Vector2 c0 = clipRect.pos;
+		Vector2 c1 = clipRect.pos + clipRect.size;
+
+		while (*str != 0)
+		{
+			wchar_t c;
+			int consumed = FCharConv< CharT, wchar_t >::Do(str, &c);
+			CharT const* nextStr = str + consumed;
+
+			if (c == L'\n')
+			{
+				curPos.x = pos.x;
+				curPos.y += lineDist;
+				bApplyKerning = false;
+				str = nextStr;
+
+				if (curPos.y >= c1.y)
+					break;
+				continue;
+			}
+
+			if (curPos.y + lineDist <= c0.y)
+			{
+				str = nextStr;
+				while (*str != 0)
+				{
+					wchar_t tempC;
+					int tempConsumed = FCharConv< CharT, wchar_t >::Do(str, &tempC);
+					if (tempC == L'\n')
+						break;
+					str += tempConsumed;
+				}
+				continue;
+			}
+
+			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
+
+			if (FCString::IsSpace(c))
+			{
+				curPos.x += scale * data.advance;
+				bApplyKerning = false;
+			}
+			else
+			{
+				if (bApplyKerning)
+				{
+					curPos.x += scale * data.kerning;
+					float kerning;
+					if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+					{
+						curPos.x += scale * kerning;
+					}
+				}
+
+				Vector2 size = scale * Vector2(data.width, data.height);
+				Vector2 p0 = curPos;
+				Vector2 p1 = curPos + size;
+
+				if (p0.x >= c1.x)
+				{
+					str = nextStr;
+					while (*str != 0)
+					{
+						wchar_t tempC;
+						int tempConsumed = FCharConv< CharT, wchar_t >::Do(str, &tempC);
+						if (tempC == L'\n')
+							break;
+						str += tempConsumed;
+					}
+					continue;
+				}
+
+				if (p1.x > c0.x && p1.y > c0.y && p0.y < c1.y)
+				{
+					Vector2 np0 = p0.max(c0);
+					Vector2 np1 = p1.min(c1);
+
+					if (size.x > 0 && size.y > 0)
+					{
+						Vector2 invSize = Vector2(1.0f / size.x, 1.0f / size.y);
+						Vector2 nuv0 = data.uvMin + (data.uvMax - data.uvMin) * (np0 - p0) * invSize;
+						Vector2 nuv1 = data.uvMin + (data.uvMax - data.uvMin) * (np1 - p0) * invSize;
+
+						outVertices.push_back({ np0 , nuv0 });
+						outVertices.push_back({ Vector2(np1.x , np0.y) , Vector2(nuv1.x , nuv0.y) });
+						outVertices.push_back({ np1 , nuv1 });
+						outVertices.push_back({ Vector2(np0.x , np1.y) , Vector2(nuv0.x , nuv1.y) });
+					}
+				}
+
+				curPos.x += scale * data.advance;
+				bApplyKerning = true;
+				prevChar = c;
+			}
+			str = nextStr;
+		}
+	}
 
 }//namespace Render
 

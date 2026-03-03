@@ -87,7 +87,7 @@ namespace Render
 				numSampleUsed = 0;
 			}
 		};
-		static constexpr int NUM_FRAME_BUFFER = 4;
+		static constexpr int NUM_FRAME_BUFFER = 8;
 		FrameData const& getReadData() const { return mFrameBuffers[mIndexReadBuffer]; }
 		FrameData& getWriteData(){ return mFrameBuffers[mIndexWriteBuffer]; }
 		void readSamples(FrameData& frameData);

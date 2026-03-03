@@ -78,6 +78,7 @@
     <ClCompile Include="RHI\ShaderProgram.cpp" />
     <ClCompile Include="RHI\TextureAtlas.cpp" />
     <ClCompile Include="RHI\VertexFactory.cpp" />
+    <ClCompile Include="FX\ParticleRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h" />
@@ -149,6 +150,7 @@
     <ClInclude Include="RHI\SimpleRenderState.h" />
     <ClInclude Include="RHI\TextureAtlas.h" />
     <ClInclude Include="RHI\VertexFactory.h" />
+    <ClInclude Include="FX\ParticleRenderer.h" />
     <Text Include="..\OtherLib\NvTriStrip\README.txt" />
   </ItemGroup>
   <ItemGroup>

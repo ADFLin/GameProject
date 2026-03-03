@@ -107,6 +107,7 @@ public:
 
 	//IGameRenderSetup
 	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+	ERenderSystem getDefaultRenderSystem() override;
 
 
 	void terminateThread(Thread* thread) { mExecutionManager.terminateThread(thread); }
@@ -124,6 +125,7 @@ public:
 	ExecutionManager mExecutionManager;
 	Mutex mMutexGameThreadCommands;
 	TArray< std::function< void() > > mGameThreadCommands;
+
 };
 
 #endif // MainMenuStage_h__

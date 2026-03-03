@@ -526,6 +526,7 @@ namespace CPP
 		{
 			LF_LineNumber,
 			LF_LineNumberAndFilePath,
+			LF_None,
 		};
 		LineFormat lineFormat;
 	private:

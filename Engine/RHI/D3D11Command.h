@@ -258,6 +258,11 @@ namespace Render
 
 		void release();
 
+		void RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+		void RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
+
+		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
+		void RHIGenerateMips(RHITextureBase& texture);
 
 
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
@@ -461,6 +466,7 @@ namespace Render
 		void clearResourceReference();
 		void shutdown();
 		virtual ShaderFormat* createShaderFormat();
+		RHIProfileCore* createProfileCore();
 
 		bool RHIBeginRender();
 
@@ -487,10 +493,6 @@ namespace Render
 
 		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
-
-		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
-		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
-		void RHIGenerateMips(RHITextureBase& texture);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 

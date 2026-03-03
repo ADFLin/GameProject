@@ -83,6 +83,8 @@ namespace Render
 		static bool LightSphere(Mesh& mesh);
 		static bool LightCone(Mesh& mesh);
 
+		static bool SpritePlane(Mesh& mesh);
+
 		struct MeshData
 		{
 			float* position;

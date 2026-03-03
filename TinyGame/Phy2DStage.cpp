@@ -50,7 +50,7 @@ namespace Phy2D
 	void jumpDebug()
 	{
 		if (gDebugStep)
-			CO_YEILD(nullptr);
+			CO_YIELD(nullptr);
 	}
 
 

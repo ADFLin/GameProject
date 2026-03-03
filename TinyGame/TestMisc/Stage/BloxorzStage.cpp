@@ -517,11 +517,6 @@ namespace Bloxorz
 			Color4ub colors[] = { Color4ub::Black() , Color4ub::White() , Color4ub::White() , Color4ub::Black() };
 			VERIFY_RETURN_FALSE(mGirdTexture = RHICreateTexture2D(ETexture::RGBA8, 2, 2, 0, 1, TCF_DefalutValue, colors));
 
-			VERIFY_RETURN_FALSE(mProgFliter = ShaderManager::Get().getGlobalShaderT< FliterProgram >());
-			VERIFY_RETURN_FALSE(mProgFliterAdd = ShaderManager::Get().getGlobalShaderT< FliterAddProgram >());
-			VERIFY_RETURN_FALSE(mProgDownsample = ShaderManager::Get().getGlobalShaderT< DownsampleProgram >());
-			VERIFY_RETURN_FALSE(mProgBloomSetup = ShaderManager::Get().getGlobalShaderT< BloomSetupProgram >());
-			VERIFY_RETURN_FALSE(mProgTonemap = ShaderManager::Get().getGlobalShaderT< TonemapProgram >());
 
 			mBloomFrameBuffer = RHICreateFrameBuffer();
 		}
@@ -824,194 +819,17 @@ namespace Bloxorz
 		RHITexture2DRef postProcessRT;
 		if (bUseBloom)
 		{
-			GPU_PROFILE("Bloom");
-
-			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None >::GetRHI());
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-
-			RHITexture2DRef downsampleTextures[6];
-
-			{
-				GPU_PROFILE("Downsample");
-
-				auto DownsamplePass = [this](RHICommandList& commandList, int index, RHITexture2D& sourceTexture) -> RHITexture2DRef
-				{
-					RenderTargetDesc desc;
-					InlineString<128> str;
-					str.format("Downsample(%d)", index);
-
-					Vec2i size;
-					size.x = (sourceTexture.getSizeX() + 1) / 2;
-					size.y = (sourceTexture.getSizeY() + 1) / 2;
-					desc.debugName = str;
-					desc.size = size;
-					desc.format = ETexture::FloatRGBA;
-					desc.creationFlags = TCF_CreateSRV;
-					RHITexture2DRef downsampleTexture = static_cast<RHITexture2D*>(GRenderTargetPool.fetchElement(desc)->texture.get());
-					mBloomFrameBuffer->setTexture(0, *downsampleTexture);
-					RHISetViewport(commandList, 0, 0, size.x, size.y);
-					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
-					RHISetShaderProgram(commandList, mProgDownsample->getRHI());
-					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
-					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgDownsample, Texture, sourceTexture, sampler);
-					SET_SHADER_PARAM(commandList, *mProgDownsample, ExtentInverse, Vector2(1 / float(size.x), 1 / float(size.y)));
-
-					DrawUtility::ScreenRect(commandList);
-					return downsampleTexture;
-				};
-
-				RHITexture2DRef halfSceneTexture;
-				{
-					GPU_PROFILE("Downsample(0)");
-					halfSceneTexture = DownsamplePass(commandList, 0, mSceneRenderTargets.getFrameTexture());
-				}
-
-				{
-					GPU_PROFILE("BloomSetup");
-
-					RenderTargetDesc desc;
-					Vec2i size = Vec2i(halfSceneTexture->getSizeX(), halfSceneTexture->getSizeY());
-					desc.debugName = "BloomSetup";
-					desc.size = size;
-					desc.format = ETexture::FloatRGBA;
-					desc.creationFlags = TCF_CreateSRV;
-
-					PooledRenderTargetRef bloomSetupRT = GRenderTargetPool.fetchElement(desc);
-
-					mBloomFrameBuffer->setTexture(0, *bloomSetupRT->texture);
-					RHISetViewport(commandList, 0, 0, size.x, size.y);
-					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
-					RHISetShaderProgram(commandList, mProgBloomSetup->getRHI());
-
-					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
-					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBloomSetup, Texture, *halfSceneTexture, sampler);
-					SET_SHADER_PARAM(commandList, *mProgBloomSetup, BloomThreshold, mBloomThreshold);
-
-					DrawUtility::ScreenRect(commandList);
-
-					downsampleTextures[0] = static_cast<RHITexture2D*>(bloomSetupRT->texture.get());
-				}
-
-				{
-
-					for (int i = 1; i < ARRAY_SIZE(downsampleTextures); ++i)
-					{
-						GPU_PROFILE("Downsample(%d)", i);
-						downsampleTextures[i] = DownsamplePass(commandList, i, *downsampleTextures[i - 1]);
-					}
-				}
-			}
-
-			{
-				auto BlurPass = [this](RHICommandList& commandList, int index, RHITexture2D& fliterTexture, RHITexture2D& bloomTexture, LinearColor const& tint, float blurSize)
-				{
-					int numSamples = 0;
-					float bloomRadius = blurSize * 0.01 * 0.5 * fliterTexture.getSizeX() * blurRadiusScale;
-
-					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
-
-					IntVector2 sizeH = IntVector2(fliterTexture.getSizeX(), fliterTexture.getSizeY()); ;
-
-					InlineString<128> str;
-					RenderTargetDesc desc;
-					str.format("BlurH(%d)", index);
-					desc.debugName = str;
-					desc.size = sizeH;
-					desc.format = ETexture::FloatRGBA;
-					desc.creationFlags = TCF_CreateSRV;
-					PooledRenderTargetRef blurXRT = GRenderTargetPool.fetchElement(desc);
-					mBloomFrameBuffer->setTexture(0, *blurXRT->texture);
-					{
-						GPU_PROFILE(str);
-						RHISetFrameBuffer(commandList, mBloomFrameBuffer);
-						RHISetViewport(commandList, 0, 0, sizeH.x , sizeH.y);
-						RHISetShaderProgram(commandList, mProgFliter->getRHI());
-						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliter, FliterTexture, fliterTexture, sampler);
-						numSamples = generateFliterData(fliterTexture.getSizeX(), Vector2(1, 0), LinearColor(1,1,1,1), bloomRadius);
-						mProgFliter->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), MaxWeightNum);
-						mProgFliter->setParam(commandList, SHADER_PARAM(UVOffsets), (Vector4*)mUVOffsetData.data(), MaxWeightNum / 2);
-						mProgFliter->setParam(commandList, SHADER_PARAM(WeightNum), numSamples);
-						DrawUtility::ScreenRect(commandList);
-
-					}
-
-					IntVector2 sizeV = IntVector2(fliterTexture.getSizeX(), fliterTexture.getSizeY()); ;
-
-					str.format("BlurV(%d)", index);
-					desc.debugName = str;
-					PooledRenderTargetRef blurYRT = GRenderTargetPool.fetchElement(desc);
-					mBloomFrameBuffer->setTexture(0, *blurYRT->texture);
-					{
-						GPU_PROFILE(str);
-						RHISetFrameBuffer(commandList, mBloomFrameBuffer);
-						RHISetViewport(commandList, 0, 0, sizeV.x, sizeV.y);
-						RHISetShaderProgram(commandList, mProgFliterAdd->getRHI());
-
-						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, FliterTexture, *blurXRT->texture, sampler);
-						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, AddTexture, bloomTexture, sampler);
-						numSamples = generateFliterData(fliterTexture.getSizeY(), Vector2(0, 1), tint, bloomRadius);
-						mProgFliterAdd->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), MaxWeightNum);
-						mProgFliterAdd->setParam(commandList, SHADER_PARAM(UVOffsets), (Vector4*)mUVOffsetData.data(), MaxWeightNum / 2);
-						mProgFliterAdd->setParam(commandList, SHADER_PARAM(WeightNum), numSamples);
-						DrawUtility::ScreenRect(commandList);
-					}
-
-					return static_cast<RHITexture2D*>(blurYRT->texture.get());
-				};
-
-				struct BlurInfo
-				{
-					LinearColor tint;
-					float size;
-				};
-
-				BlurInfo blurInfos[] =
-				{
-					{ LinearColor(0.3465f, 0.3465f, 0.3465f), 0.3f },
-					{ LinearColor(0.138f, 0.138f, 0.138f), 1.0f },
-					{ LinearColor(0.1176f, 0.1176f, 0.1176f), 2.0f },
-					{ LinearColor(0.066f, 0.066f, 0.066f), 10.0f },
-					{ LinearColor(0.066f, 0.066f, 0.066f), 30.0f },
-					{ LinearColor(0.061f, 0.061f, 0.061f), 64.0f },
-				};
-				RHITexture2DRef bloomTexture = GBlackTexture2D;
-				{
-					GPU_PROFILE("Blur");
-					float tintScale = mBloomIntensity / float(ARRAY_SIZE(downsampleTextures));
-
-					
-					for (int i = 0; i < ARRAY_SIZE(downsampleTextures); ++i)
-					{
-						int index = ARRAY_SIZE(downsampleTextures) - 1 - i;
-						RHITexture2DRef fliterTexture = downsampleTextures[index];
-						bloomTexture = BlurPass(commandList, i, *fliterTexture, *bloomTexture, Vector4(blurInfos[index].tint) * tintScale, blurInfos[index].size);
-					}
-				}
-
-				{
-					GPU_PROFILE("Tonemap");
-					mSceneRenderTargets.swapFrameTexture();
-
-					RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
-					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-					RHISetShaderProgram(commandList, mProgTonemap->getRHI());
-					PostProcessContext context;
-					context.mInputTexture[0] = &mSceneRenderTargets.getPrevFrameTexture();
-					mProgTonemap->setParameters(commandList, context);
-					mProgTonemap->setBloomTexture(commandList, *bloomTexture);
-
-					DrawUtility::ScreenRect(commandList);
-
-
-				}
-
-				postProcessRT = &mSceneRenderTargets.getFrameTexture();
-			}
-
+			BloomConfig config;
+			config.threshold = mBloomThreshold;
+			config.intensity = mBloomIntensity;
+			config.blurRadiusScale = blurRadiusScale;
+			RHITexture2DRef bloomTexture = FBloom::Render(commandList, mSceneRenderTargets.getFrameTexture(), *mBloomFrameBuffer, config);
+			FTonemap::Render(commandList, mSceneRenderTargets, bloomTexture);
+			postProcessRT = &mSceneRenderTargets.getFrameTexture();
 		}
 		else
 		{
+			FTonemap::Render(commandList, mSceneRenderTargets, nullptr);
 			postProcessRT = &mSceneRenderTargets.getFrameTexture();
 		}
 

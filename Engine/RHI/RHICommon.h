@@ -505,11 +505,6 @@ namespace Render
 		{
 		}
 
-#if 0
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
-#endif
-
 		int  getSizeX() const { return mDesc.dimension.x; }
 		int  getSizeY() const { return mDesc.dimension.y; }
 
@@ -537,8 +532,6 @@ namespace Render
 		{
 		}
 
-		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
-		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 		
 		int  getSize() const { return mDesc.dimension.x; }
 

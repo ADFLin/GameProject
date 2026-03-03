@@ -1,49 +1,44 @@
 #include "Common.sgc"
 
-struct VSOutputParameters
+struct OutputVS
 {
-	float3 color;
-	float2 UVs;
+	float4 pos : SV_POSITION;
+	float3 color : TEXCOORD0;
+	float2 uv : TEXCOORD1;
 };
 
-layout(location = 0) vs_out VSOutputParameters VSOutput;
 
 #if VERTEX_SHADER
 
-layout(location = 0) in float2 position;
-layout(location = 1) in float2 uv;
-layout(location = 2) in float3 color;
-
-void MainVS()
+struct InputVS
 {
-	gl_Position = float4(position, 0.0, 1.0);
+	float2 position : ATTRIBUTE0;
+	float2 uv       : ATTRIBUTE1;
+	float3 color    : ATTRIBUTE2;
+};
 
-	VSOutput.color = color;
-	VSOutput.UVs = uv;
+
+float2 Offset;
+
+void MainVS(in InputVS v, out OutputVS outData)
+{
+	outData.pos = float4(v.position + Offset, 0.0, 1.0);
+	outData.color = v.color;
+	outData.uv = v.uv;
 }
-
 #endif
 
 #if PIXEL_SHADER
 
-layout(location = 0) out float4 outColor;
-layout(binding = 0) uniform sampler2D SamplerColor;
+Texture2D SamplerColor;
+SamplerState SamplerColorSampler;
 
-#if 0
-layout(binding = 1) uniform UBO
+
+float4 GlobalColor;
+
+void MainPS(in OutputVS v, out float4 outColor : SV_Target0)
 {
-	vec4 BaseColor;
-
-} Global;
-#endif
-
-void MainPS() 
-{
-
-	float4 color = texture(SamplerColor, VSOutput.UVs, 0);
-
-	outColor = vec4(VSOutput.UVs, 0, 1.0);
-	//outColor = color;
+	float4 color = SamplerColor.Sample(SamplerColorSampler, v.uv);
+	outColor = color * GlobalColor;
 }
-
 #endif

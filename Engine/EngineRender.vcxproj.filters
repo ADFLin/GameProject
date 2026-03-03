@@ -31,6 +31,9 @@
     <Filter Include="RHI\OpenGL">
       <UniqueIdentifier>{429b8098-d0d8-438b-9d46-76fc982d682b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FX">
+      <UniqueIdentifier>{B44B3266-BE5A-4383-A51A-CD347A8D5610}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RHI\DrawUtility.cpp">
@@ -182,6 +185,9 @@
     </ClCompile>
     <ClCompile Include="Renderer\RenderThread.cpp" />
     <ClCompile Include="Renderer\VolumetricLighting.cpp" />
+    <ClCompile Include="FX\ParticleRenderer.cpp">
+      <Filter>FX</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RHI\RHITraceScope.h">
@@ -384,6 +390,9 @@
     </ClInclude>
     <ClInclude Include="Renderer\RenderThread.h" />
     <ClInclude Include="Renderer\VolumetricLighting.h" />
+    <ClInclude Include="FX\ParticleRenderer.h">
+      <Filter>FX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

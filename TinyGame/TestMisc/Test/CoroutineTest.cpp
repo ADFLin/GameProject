@@ -37,7 +37,7 @@ struct Object
 	char const* str;
 };
 
-class WaitForSeconds : public IYieldInstruction
+class WaitForSeconds : public IAwaitInstruction
 {
 public:
 	WaitForSeconds(float duration)
@@ -81,8 +81,8 @@ public:
 		auto c = Coroutines::Start([this] { testC(); });
 #if 0
 		CO_SYNC(a, b);
-		//CO_YEILD(a);
-		//CO_YEILD(b);
+		//CO_YIELD(a);
+		//CO_YIELD(b);
 #else
 		int index = CO_RACE(a, b, c);
 #endif
@@ -97,7 +97,7 @@ public:
 		for (int i = 0; i < 10; ++i)
 		{
 			LogMsg("TestA %d", i);
-			CO_YEILD(WaitForSeconds(1));
+			CO_YIELD(WaitForSeconds(1));
 		}
 		LogMsg("TestA End");
 	}
@@ -109,7 +109,7 @@ public:
 		for (int i = 0; i < 10; ++i)
 		{
 			LogMsg("TestB %d", i);
-			CO_YEILD(nullptr);
+			CO_YIELD(nullptr);
 		}
 #endif
 		LogMsg("TestB End");
@@ -121,7 +121,7 @@ public:
 		for (int i = 0; i < 10; ++i)
 		{
 			LogMsg("TestC %d", i);
-			CO_YEILD(WaitForSeconds(0.5));
+			CO_YIELD(WaitForSeconds(0.5));
 		}
 		LogMsg("TestC End");
 	}
@@ -179,7 +179,7 @@ void foo2()
 	GButton* button = new GButton(CoroutineTestStage::UI_TEST_BUTTON2, Vec2i(200, 100), Vec2i(100, 20), nullptr);
 	button->setTitle("foo2");
 	::Global::GUI().addWidget(button);
-	CO_YEILD(nullptr);
+	CO_YIELD(nullptr);
 
 	while (1)
 	{
@@ -187,13 +187,13 @@ void foo2()
 		for (int i = 0; i < 3; ++i)
 		{
 			button->setSize(2 * button->getSize());
-			CO_YEILD(nullptr);
+			CO_YIELD(nullptr);
 		}
 
 		for (int i = 0; i < 3; ++i)
 		{
 			button->setSize(button->getSize() / 2);
-			CO_YEILD(nullptr);
+			CO_YIELD(nullptr);
 		}
 	}
 }

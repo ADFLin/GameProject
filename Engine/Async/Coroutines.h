@@ -15,64 +15,75 @@
 #include "boost/bind.hpp"
 #include "boost/function.hpp"
 #include <typeindex>
+#include <initializer_list>
+#include <type_traits>
 
 
 
-using YieldContextHandle = void*;
-class IYieldInstruction
+using CoroutineContextHandle = void*;
+class IAwaitInstruction
 {
 public:
-	virtual ~IYieldInstruction() = default;
-	virtual void startYield(YieldContextHandle handle) {}
+	virtual ~IAwaitInstruction() = default;
+	virtual void onSuspend(CoroutineContextHandle handle) {}
 	virtual bool isKeepWaiting() const
 	{
 		return true;
 	}
 };
 
-
 namespace Coroutines
 {
-	class ExecutionContext;
-	using ExecutionType = boost::coroutines2::asymmetric_coroutine< ExecutionContext& >::push_type;
-	using YeildType = boost::coroutines2::asymmetric_coroutine< ExecutionContext&  >::pull_type;
-	struct ExecutionContext;
-
-	struct ExecutionHandle 
+	template< typename T >
+	struct THasIsKeepWaitingOverride
 	{
-		static ExecutionHandle Completed(void* ptr)
+		static constexpr bool value = !std::is_same_v<
+			decltype(&T::isKeepWaiting),
+			bool (IAwaitInstruction::*)() const
+		>;
+	};
+	class ExecutionContext;
+	struct ExecutionHandle;
+
+	using ExecutionType = boost::coroutines2::asymmetric_coroutine< ExecutionContext& >::push_type;
+	using YieldType = boost::coroutines2::asymmetric_coroutine< ExecutionContext&  >::pull_type;
+
+	struct ExecutionHandle
+	{
+		static ExecutionHandle Completed(ExecutionContext* ptr)
 		{
-			ExecutionHandle result(ptr);
+			ExecutionHandle result(ptr, 0);
 			result.mPtr = -result.mPtr;
 			return result;
 		}
 
-		ExecutionHandle() { mPtr == 0; }
+		typedef ExecutionContext* ContextPtr;
+		ExecutionHandle() { mPtr = 0; mVersion = 0; }
 
-		explicit ExecutionHandle(void* ptr)
+		explicit ExecutionHandle(ExecutionContext* ptr, uint32 version)
 		{
-			CHECK(intptr_t(ptr) >= 0);
 			mPtr = intptr_t(ptr);
+			mVersion = version;
 		}
 
-		bool isValid() const { return mPtr > 0; }
+		bool isValid() const;
 		bool isCompleted() const { return mPtr < 0; }
 		bool isNone() const { return mPtr == 0; }
 
-		ExecutionContext* getPointer() const { CHECK(isValid()); return (ExecutionContext*)(intptr_t)(mPtr); }
+		ExecutionContext* getPointer() const { CHECK(mPtr > 0); return (ExecutionContext*)(intptr_t)(mPtr); }
 
-
-		int64 mPtr;
+		int64  mPtr;
+		uint32 mVersion;
 	};
 
-	struct YieldInstructionProxy : public IYieldInstruction
+	struct AwaitInstructionProxy : public IAwaitInstruction
 	{
 	public:
-		YieldInstructionProxy(IYieldInstruction* ptr) :mPtr(ptr) { CHECK(mPtr); }
+		AwaitInstructionProxy(IAwaitInstruction* ptr) :mPtr(ptr) { CHECK(mPtr); }
 
-		virtual void startYield(YieldContextHandle handle) { mPtr->startYield(handle); }
+		virtual void onSuspend(CoroutineContextHandle handle) { mPtr->onSuspend(handle); }
 		virtual bool isKeepWaiting() const { return mPtr->isKeepWaiting(); }
-		IYieldInstruction* mPtr;
+		IAwaitInstruction* mPtr;
 	};
 
 
@@ -81,13 +92,13 @@ namespace Coroutines
 	{
 		~TInlineDynamicObject()
 		{
-			if (isVaild())
+			if (isValid())
 			{
 				release();
 			}
 		}
 
-		bool isVaild() const { return !!mPtr; }
+		bool isValid() const { return !!mPtr; }
 		template< typename Q, typename ...TArgs >
 		void construct(TArgs&& ...args)
 		{
@@ -105,7 +116,7 @@ namespace Coroutines
 
 		void release()
 		{
-			CHECK(isVaild());
+			CHECK(isValid());
 			if (mPtr != (void*)mStorage)
 			{
 				delete mPtr;
@@ -127,32 +138,34 @@ namespace Coroutines
 #define SIMPLE_SYNC_INDEX     MaxInt32
 #define CO_USE_DEPENDENT_REFCOUNT 0
 
+#define CO_DEFAULT_STACK_SIZE (128 * 1024)
+
 	struct ExecutionContext
 	{
-		ExecutionContext(std::function< void() >&& entryFunc);
+		ExecutionContext(std::function< void() >&& entryFunc, size_t stackSize, uint32 version);
 		~ExecutionContext();
 
 
-		FORCEINLINE void doYeild()
+		FORCEINLINE void doYield()
 		{
-			CHECK(mYeild);
-			(*mYeild)();
+			CHECK(mYield);
+			(*mYield)();
 		}
 
-		void yeildReturn()
+		void yieldReturn()
 		{
 			CHECK(mInstruction == nullptr);
 			CHECK(mDependenceIndex == INDEX_NONE);
-			doYeild();
+			doYield();
 		}
 
-		void yeildReturn(ExecutionHandle childContext)
+		void yieldReturn(ExecutionHandle childContext)
 		{
 			CHECK(mInstruction == nullptr);
 			if ( childContext.isValid() )
 			{
 				mDependenceIndex = SIMPLE_SYNC_INDEX;
-				doYeild();
+				doYield();
 				mDependenceIndex = INDEX_NONE;
 			}
 		}
@@ -160,37 +173,42 @@ namespace Coroutines
 		void destroy()
 		{
 			mExecution.release();
-			mYeild = nullptr;
+			mYield = nullptr;
 		}
 
-		template< typename T, TEnableIf_Type< std::is_base_of_v< IYieldInstruction, std::remove_reference_t<T> >, bool > = true >
-		void yeildReturn(T&& value)
+		template< typename T, TEnableIf_Type< std::is_base_of_v< IAwaitInstruction, std::remove_reference_t<T> >, bool > = true >
+		void yieldReturn(T&& value)
 		{
 			using Type = std::remove_reference_t<T>;
 			CHECK(mInstruction == nullptr);
 			mInstruction.construct<Type>(value);
-			mInstruction->startYield(this);
-			doYeild();
+			if constexpr (THasIsKeepWaitingOverride<Type>::value)
+			{
+				addPendingActive();
+			}
+			mInstruction->onSuspend(this);
+			doYield();
 		}
 
-		void yeildReturn(IYieldInstruction* instruction)
+		void yieldReturn(IAwaitInstruction* instruction)
 		{
 			CHECK(mInstruction == nullptr);
-			mInstruction.construct< YieldInstructionProxy>(instruction);
-			mInstruction->startYield(this);
-			doYeild();
+			mInstruction.construct<AwaitInstructionProxy>(instruction);
+			addPendingActive();
+			mInstruction->onSuspend(this);
+			doYield();
 		}
 
 		void breakReturn()
 		{
-			YeildType* yeild = mYeild;
-			mYeild = nullptr;
-			doYeild();
+			YieldType* yield = mYield;
+			mYield = nullptr;
+			doYield();
 		}
 
-		struct YeildReturnData
+		struct YieldReturnData
 		{
-			YeildReturnData()
+			YieldReturnData()
 				:type(typeid(void))
 				,ptr(nullptr)
 			{}
@@ -222,30 +240,33 @@ namespace Coroutines
 			}
 		};
 		template< typename T >
-		void setYeildReturn(T const& value)
+		void setYieldReturn(T const& value)
 		{
 			mReturnData.setValue(value);
 		}
 
-		void setYeildReturn()
+		void setYieldReturn()
 		{
 			mReturnData.setVoid();
 		}
 
 		void execute();
+		void addPendingActive();
 
 		HashString tag;
-		YeildReturnData    mReturnData;
+		YieldReturnData    mReturnData;
 		ExecutionContext*  mParent = nullptr;
-		YeildType*         mYeild = nullptr;
+		YieldType*         mYield = nullptr;
 		std::function< void() > mEntryFunc;
 		std::function< void() > mAbandonFunc;
 		TOptional<ExecutionType> mExecution;
+		uint32 mVersion = 0;
 		int mDependenceIndex = INDEX_NONE;
+		int mActiveIndex = INDEX_NONE;
 #if CO_USE_DEPENDENT_REFCOUNT
 		int mDependentRefCount = 0;
 #endif
-		TInlineDynamicObject<IYieldInstruction, 32> mInstruction;
+		TInlineDynamicObject<IAwaitInstruction, 64> mInstruction;
 	};
 
 	struct ThreadContext
@@ -268,7 +289,7 @@ namespace Coroutines
 
 		void stopFirstExecution(HashString tag);
 
-		bool resumeExecution(YieldContextHandle handle);
+		bool resumeExecution(CoroutineContextHandle handle);
 		bool resumeExecution(ExecutionHandle& handle);
 
 		void destroyExecution(int index)
@@ -288,7 +309,7 @@ namespace Coroutines
 			if (!canResumeExecutionInternal(context))
 				return false;
 
-			context->setYeildReturn(value);
+			context->setYieldReturn(value);
 			bool bKeep = resumeExecutionInternal(context);
 			if (!bKeep)
 			{
@@ -347,17 +368,17 @@ namespace Coroutines
 		int raceExecutions(std::initializer_list<ExecutionHandle> executions);
 		int rushExecutions(std::initializer_list<ExecutionHandle> executions);
 
-		ExecutionContext* newExecution(std::function< void() >&& entryFunc);
+		ExecutionContext* newExecution(std::function< void() >&& entryFunc, size_t stackSize);
 
-		void checkExecution(ExecutionContext& context);
+		bool checkExecution(ExecutionContext& context);
 
 		template< typename TFunc >
-		ExecutionHandle start(TFunc&& func)
+		ExecutionHandle start(TFunc&& func, size_t stackSize = CO_DEFAULT_STACK_SIZE)
 		{
-			return startInternal(std::forward<TFunc>(func));
+			return startInternal(std::forward<TFunc>(func), stackSize);
 		}
 
-		ExecutionHandle startInternal(std::function< void() > entryFunc);
+		ExecutionHandle startInternal(std::function< void() > entryFunc, size_t stackSize);
 		bool executeContextInternal(ExecutionContext& context);
 		bool postExecuteContext(ExecutionContext& context);
 		void cleanupCompletedExecutions();
@@ -373,6 +394,8 @@ namespace Coroutines
 		DependencyFlow* fetchDependencyFlow();
 		void removeDependencyFlow(int index);
 
+		void removeFromActive(ExecutionContext& context);
+		TArray<ExecutionContext*> mActiveExecutions;
 	};
 
 	FORCEINLINE bool IsRunning()
@@ -381,58 +404,58 @@ namespace Coroutines
 	}
 
 	template<typename TFunc>
-	FORCEINLINE ExecutionHandle Start(TFunc&& func)
+	FORCEINLINE ExecutionHandle Start(TFunc&& func, size_t stackSize = CO_DEFAULT_STACK_SIZE)
 	{
-		return ThreadContext::Get().start(std::forward<TFunc>(func));
+		return ThreadContext::Get().start(std::forward<TFunc>(func), stackSize);
 	}
 
 	template< typename T >
-	FORCEINLINE void YeildReturn(T&& value)
+	FORCEINLINE void YieldReturn(T&& value)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn(value);
+		context.yieldReturn(value);
 	}
 
 	template< typename R, typename T >
-	FORCEINLINE R YeildReturn(T&& value)
+	FORCEINLINE R YieldReturn(T&& value)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn(value);
+		context.yieldReturn(value);
 		return context.mReturnData.getReturn<R>();
 	}
 
-	FORCEINLINE void YeildReturn(IYieldInstruction* instruction)
+	FORCEINLINE void YieldReturn(IAwaitInstruction* instruction)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn(instruction);
+		context.yieldReturn(instruction);
 	}
 
 	template< typename R >
-	FORCEINLINE R YeildReturn(IYieldInstruction* instruction)
+	FORCEINLINE R YieldReturn(IAwaitInstruction* instruction)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn(instruction);
+		context.yieldReturn(instruction);
 		return context.mReturnData.getReturn<R>();
 	}
 
-	FORCEINLINE void YeildReturn(std::nullptr_t)
+	FORCEINLINE void YieldReturn(std::nullptr_t)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn();
+		context.yieldReturn();
 	}
 
 	template< typename R >
-	FORCEINLINE R YeildReturn(std::nullptr_t)
+	FORCEINLINE R YieldReturn(std::nullptr_t)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn();
+		context.yieldReturn();
 		return context.mReturnData.getReturn<R>();
 	}
 
-	FORCEINLINE void YeildReturn(ExecutionHandle childContext)
+	FORCEINLINE void YieldReturn(ExecutionHandle childContext)
 	{
 		ExecutionContext& context = ThreadContext::Get().getExecutingContext();
-		context.yeildReturn(childContext);
+		context.yieldReturn(childContext);
 	}
 
 	FORCEINLINE void BreakReturn()
@@ -456,7 +479,7 @@ namespace Coroutines
 		return ThreadContext::Get().rushExecutions(contexts);
 	}
 
-	FORCEINLINE bool Resume(YieldContextHandle handle)
+	FORCEINLINE bool Resume(CoroutineContextHandle handle)
 	{
 		return ThreadContext::Get().resumeExecution(handle);
 	}
@@ -476,9 +499,79 @@ namespace Coroutines
 	{
 		ThreadContext::Get().stopExecution(handle);
 	}
+
+	// --- Feature 1: Conditional Waiting ---
+	class WaitUntil : public IAwaitInstruction
+	{
+	public:
+		WaitUntil(std::function<bool()> cond) : mCond(std::move(cond)) {}
+		virtual bool isKeepWaiting() const override { return !mCond(); }
+	private:
+		std::function<bool()> mCond;
+	};
+
+	class WaitWhile : public IAwaitInstruction
+	{
+	public:
+		WaitWhile(std::function<bool()> cond) : mCond(std::move(cond)) {}
+		virtual bool isKeepWaiting() const override { return mCond(); }
+	private:
+		std::function<bool()> mCond;
+	};
+
+	// --- Feature 2: Event System (Reactive) ---
+	class Event
+	{
+	public:
+		struct WaitInstruction : public IAwaitInstruction
+		{
+			WaitInstruction(Event& e) : mOwner(e) {}
+			~WaitInstruction() { if (mHandle.isValid()) mOwner.removeWaiter(mHandle); }
+			virtual void onSuspend(CoroutineContextHandle handle) override 
+			{ 
+				ExecutionContext* ctx = (ExecutionContext*)handle;
+				mHandle = ExecutionHandle(ctx, ctx->mVersion);
+				mOwner.addWaiter(mHandle); 
+			}
+
+			Event&            mOwner;
+			ExecutionHandle   mHandle;
+		};
+
+		WaitInstruction wait() { return WaitInstruction(*this); }
+
+		void trigger()
+		{
+			TArray<ExecutionHandle> waiters = std::move(mWaiters);
+			for (auto& handle : waiters)
+			{
+				ThreadContext::Get().resumeExecution(handle);
+			}
+		}
+
+		template< typename T >
+		void trigger(T const& value)
+		{
+			TArray<ExecutionHandle> waiters = std::move(mWaiters);
+			for (auto& handle : waiters)
+			{
+				ThreadContext::Get().resumeExecution(handle, value);
+			}
+		}
+
+	private:
+		void addWaiter(ExecutionHandle handle) { mWaiters.push_back(handle); }
+		void removeWaiter(ExecutionHandle handle) 
+		{ 
+			int index = mWaiters.findIndexPred([&handle](auto const& h) { return h.mPtr == handle.mPtr; });
+			if (index != INDEX_NONE) mWaiters.removeIndexSwap(index);
+		}
+		TArray<ExecutionHandle> mWaiters;
+	};
 }
 
-#define CO_YEILD ::Coroutines::YeildReturn
+#define CO_YIELD ::Coroutines::YieldReturn
+#define CO_AWAIT ::Coroutines::YieldReturn
 #define CO_BREAK() ::Coroutines::BreakReturn();
 
 #define CO_SYNC( ... ) ::Coroutines::SyncReturn({ ##__VA_ARGS__ } )

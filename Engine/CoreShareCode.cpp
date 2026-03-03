@@ -14,6 +14,7 @@
 
 #include "Module/ModularFeature.cpp"
 #include "Module/ModuleManager.cpp"
+#include "Module/HotReload.cpp"
 
 #include "RHI/ShaderCore.cpp"
 #include "RHI/RHICommon.cpp"

@@ -16,7 +16,7 @@ VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 InPosition, ATTRIBUTE_POSITION)
 	VS_INPUT(float3 InstancePos, ATTRIBUTE1)
 	VS_INPUT(float InstanceRadius, ATTRIBUTE2)
-	VS_INPUT(float3 InstanceColor, ATTRIBUTE3)
+	VS_INPUT(float4 InstanceColor, ATTRIBUTE3)
 	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
 VS_ENTRY_END(MainVS)
 {
@@ -34,7 +34,7 @@ VS_ENTRY_END(MainVS)
 
 	// Map [-1,1] to [0,1]
 	VSOutput.TexCoord = localPos.xy * 0.5 + 0.5;
-	VSOutput.Color = float4(InstanceColor, 1.0);
+	VSOutput.Color = InstanceColor;
 }
 
 #endif // VERTEX_SHADER

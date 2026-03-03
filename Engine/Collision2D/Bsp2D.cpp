@@ -9,7 +9,7 @@
 #include "Async/Coroutines.h"
 #include "Misc/DebugDraw.h"
 #define DEBUG_RUNNING() Coroutines::IsRunning()
-#define DEBUG_YEILD() if (DEBUG_RUNNING()){ CO_YEILD(nullptr); }
+#define DEBUG_YEILD() if (DEBUG_RUNNING()){ CO_YIELD(nullptr); }
 #define DEBUG_POINT(V, C) DrawDebugPoint(V, C, 5);
 #define DEBUG_LINE(V1, V2, C) DrawDebugLine(V1, V2, C, 2);
 #define DEBUG_TEXT(V, TEXT, C) DrawDebugText(V, TEXT, C);

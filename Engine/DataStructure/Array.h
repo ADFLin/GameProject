@@ -797,6 +797,17 @@ public:
 		return false;
 	}
 
+	template< typename TFunc >
+	bool removeSwapPred(TFunc&& func)
+	{
+		int index = findIndexPred(std::forward<TFunc>(func));
+		if (index == INDEX_NONE)
+			return false;
+
+		removeIndexSwap(index);
+		return true;
+	}
+
 	bool isUnique() const
 	{
 		for (int i = 0; i < mNum; ++i)

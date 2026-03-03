@@ -12,6 +12,7 @@
 
 #define USE_TRANSLATE
 #include "Localization.h"
+#include "TimerManager.h"
 
 typedef TVector2< int >  Vec2i;
 
@@ -69,6 +70,8 @@ class Global
 public:
 	static TINY_API void Initialize();
 	static TINY_API void Finalize();
+
+	static TINY_API TimerManager& GameTimerManager();
 
 	static TINY_API int  RandomNet();
 	static TINY_API void RandSeedNet( uint64 seed );

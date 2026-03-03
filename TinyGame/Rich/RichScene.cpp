@@ -840,7 +840,7 @@ namespace Rich
 				{
 					auto anim = new ActorMoveAnimation(*msg.getParam<Player*>(), 500);
 					addAnim(anim);
-					CO_YEILD(WaitAnimation(anim));
+					CO_YIELD(WaitAnimation(anim));
 				}
 			}
 			break;
@@ -853,7 +853,7 @@ namespace Rich
 					anim->value[i] = msg.getParam<int*>(1)[i];
 
 				addAnim( anim );
-				CO_YEILD(WaitAnimation(anim));
+				CO_YIELD(WaitAnimation(anim));
 			}
 			break;
 		case MSG_PLAYER_MONEY_MODIFIED:

@@ -4,6 +4,7 @@
 #include "TaskBase.h"
 #include "GamePlayer.h"
 #include "GameWidget.h"
+#include "Module/ModuleManager.h"
 
 class StageManager;
 class IGameModule;
@@ -49,6 +50,7 @@ public:
 	};
 	StageBase();
 	virtual ~StageBase();
+	DECLARE_HOTRELOAD_CLASS(StageBase)
 
 	void  update(GameTimeSpan time);
 	void  render(float dFrame);

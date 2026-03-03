@@ -1,16 +1,17 @@
 #include "TinyGamePCH.h"
 #include "StageBase.h"
 
-
 StageBase::StageBase() : mManager( nullptr )
 {
-	
+
 }
 
 StageBase::~StageBase()
 {
 
 }
+
+DEFINE_HOTRELOAD_CLASS_ROOT(StageBase, TaskHandler)
 
 void StageBase::update(GameTimeSpan time)
 {

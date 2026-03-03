@@ -63,7 +63,14 @@ public:
 
 	virtual void execute(RenderExecuteContext& context) override
 	{
-		mFunc();
+		if constexpr (TCheckConcept < CFunctionCallable, TFunc, RenderExecuteContext&>::Value)
+		{
+			mFunc(context);
+		}
+		else
+		{
+			mFunc();
+		}
 	}
 
 	TFunc mFunc;

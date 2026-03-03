@@ -5,6 +5,8 @@
 #include "GameConfig.h"
 #include "LogSystem.h"
 
+#define GAME_SETTING_PATH "Game.ini"
+
 TINY_API bool IsInGameThead();
 TINY_API extern class PacketFactory GGamePacketFactory;
 

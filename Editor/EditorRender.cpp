@@ -8,6 +8,7 @@
 #include "ImGui/backends/imgui_impl_dx11.h"
 #include "ImGui/backends/imgui_impl_dx12.h"
 #include "ImGui/backends/imgui_impl_opengl3.h"
+#include "ImGui/backends/imgui_impl_vulkan.h"
 
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
@@ -17,12 +18,20 @@
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "D3D12.lib")
 
+#define USE_VULKAN 1
+
 #include "RHI/D3D11Command.h"
 #include "RHI/D3D12Command.h"
 #include "RHI/OpenGLCommand.h"
+#if USE_VULKAN
+#include "RHI/VulkanCommand.h"
+#pragma comment(lib , "vulkan-1.lib")
+#endif
 #include "Renderer/RenderThread.h"
 
 using namespace Render;
+
+IEditorRenderer* GEditorRenderer = nullptr;
 
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
@@ -241,7 +250,7 @@ public:
 			{
 				initializeWindowRenderData(mainWindow);
 			});
-			RenderThread::FlushCommands();
+			//RenderThread::FlushCommands();
 		}
 		else
 		{
@@ -295,6 +304,11 @@ public:
 		mDeviceContext->ClearRenderTargetView(renderData->mRenderTargetView, clear_color_with_alpha);
 		ImGui_ImplDX11_RenderDrawData(drawData);
 		renderData->mSwapChain->Present(0, 0);
+	}
+
+	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) override
+	{
+		return (ImTextureID)static_cast<D3D11Texture2D&>(texture).mSRV.getResource();
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
@@ -473,6 +487,664 @@ public:
 #endif
 };
 
+#if USE_VULKAN
+
+struct FVulkan
+{
+	static VkSampleCountFlagBits ToSampleCount(int numSamples)
+	{
+		if (numSamples <= 1) return VK_SAMPLE_COUNT_1_BIT;
+		if (numSamples <= 2) return VK_SAMPLE_COUNT_2_BIT;
+		if (numSamples <= 4) return VK_SAMPLE_COUNT_4_BIT;
+		if (numSamples <= 8) return VK_SAMPLE_COUNT_8_BIT;
+		if (numSamples <= 16) return VK_SAMPLE_COUNT_16_BIT;
+		if (numSamples <= 32) return VK_SAMPLE_COUNT_32_BIT;
+		return VK_SAMPLE_COUNT_64_BIT;
+	}
+
+	static uint32_t GetMemoryTypeIndex(VulkanDevice& device, uint32_t typeBits, VkMemoryPropertyFlags properties)
+	{
+		for (uint32_t i = 0; i < device.memoryProperties.memoryTypeCount; ++i)
+		{
+			if ((typeBits & (1 << i)) && (device.memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				return i;
+		}
+		return 0xFFFFFFFF;
+	}
+
+	static VkSurfaceKHR CreateWindowSurface(VulkanSystem* system, HWND hWnd)
+	{
+		VkWin32SurfaceCreateInfoKHR createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		createInfo.hwnd = hWnd;
+		createInfo.hinstance = GetModuleHandle(nullptr);
+
+		VkSurfaceKHR surface;
+		if (vkCreateWin32SurfaceKHR(system->mInstance, &createInfo, nullptr, &surface) != VK_SUCCESS)
+		{
+			return VK_NULL_HANDLE;
+		}
+		return surface;
+	}
+
+	static VkCommandBuffer CreateCommandBuffer(VulkanDevice* device, VkCommandPool pool, VkCommandBufferLevel level, bool begin = false)
+	{
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = pool;
+		allocInfo.level = level;
+		allocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer cmdBuffer;
+		if (vkAllocateCommandBuffers(device->logicalDevice, &allocInfo, &cmdBuffer) != VK_SUCCESS)
+			return VK_NULL_HANDLE;
+
+		if (begin)
+		{
+			VkCommandBufferBeginInfo beginInfo = {};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+		}
+		return cmdBuffer;
+	}
+
+	static void FlushCommandBuffer(VulkanDevice* device, VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free = true, VkSemaphore waitSemaphore = VK_NULL_HANDLE)
+	{
+		if (commandBuffer == VK_NULL_HANDLE)
+			return;
+
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		if (waitSemaphore != VK_NULL_HANDLE)
+		{
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &waitSemaphore;
+			submitInfo.pWaitDstStageMask = &waitStage;
+		}
+
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		VkFence fence;
+		vkCreateFence(device->logicalDevice, &fenceInfo, nullptr, &fence);
+
+		vkQueueSubmit(queue, 1, &submitInfo, fence);
+		vkWaitForFences(device->logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX);
+		vkDestroyFence(device->logicalDevice, fence, nullptr);
+
+		if (free)
+		{
+			vkFreeCommandBuffers(device->logicalDevice, pool, 1, &commandBuffer);
+		}
+	}
+
+	static bool InitializeSwapChain(VulkanSwapChain* swapChain, VulkanDevice& device, VkSurfaceKHR surface, uint32 const usageQueueFamilyIndices[], VkFormat depthFormat, int numSamples, bool bVSync)
+	{
+		swapChain->mDevice = &device;
+		swapChain->mNumSamples = numSamples;
+
+		VkSurfaceCapabilitiesKHR capabilities;
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physicalDevice, surface, &capabilities);
+
+		uint32 formatCount;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device.physicalDevice, surface, &formatCount, nullptr);
+		TArray<VkSurfaceFormatKHR> formats; formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device.physicalDevice, surface, &formatCount, formats.data());
+
+		uint32 presentModeCount;
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device.physicalDevice, surface, &presentModeCount, nullptr);
+		TArray<VkPresentModeKHR> presentModes; presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device.physicalDevice, surface, &presentModeCount, presentModes.data());
+
+		VkSurfaceFormatKHR usageFormat = formats[0];
+		for (const auto& availableFormat : formats)
+		{
+			if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+				availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			{
+				usageFormat = availableFormat;
+				break;
+			}
+		}
+
+		VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+		if (!bVSync)
+		{
+			for (const auto& availablePresentMode : presentModes)
+			{
+				if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+				{
+					presentMode = availablePresentMode;
+					break;
+				}
+				else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+				{
+					presentMode = availablePresentMode;
+				}
+			}
+		}
+
+		swapChain->mImageFormat = usageFormat.format;
+		swapChain->mImageSize = capabilities.currentExtent;
+
+		uint32 imageCount = capabilities.minImageCount + 1;
+		if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount)
+		{
+			imageCount = capabilities.maxImageCount;
+		}
+
+		VkSwapchainCreateInfoKHR swapChainInfo = {};
+		swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapChainInfo.surface = surface;
+		swapChainInfo.minImageCount = imageCount;
+		swapChainInfo.imageFormat = usageFormat.format;
+		swapChainInfo.imageColorSpace = usageFormat.colorSpace;
+		swapChainInfo.imageExtent = swapChain->mImageSize;
+		swapChainInfo.imageArrayLayers = 1;
+		swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapChainInfo.preTransform = capabilities.currentTransform;
+		swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapChainInfo.presentMode = presentMode;
+		swapChainInfo.clipped = VK_TRUE;
+
+		if (usageQueueFamilyIndices[EQueueFamily::Graphics] != usageQueueFamilyIndices[EQueueFamily::Present])
+		{
+			swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			swapChainInfo.pQueueFamilyIndices = usageQueueFamilyIndices;
+			swapChainInfo.queueFamilyIndexCount = 2;
+		}
+		else
+		{
+			swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		}
+
+		if (vkCreateSwapchainKHR(device.logicalDevice, &swapChainInfo, nullptr, &swapChain->mSwapChain) != VK_SUCCESS)
+			return false;
+
+		vkGetSwapchainImagesKHR(device.logicalDevice, swapChain->mSwapChain, &imageCount, nullptr);
+		swapChain->mImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(device.logicalDevice, swapChain->mSwapChain, &imageCount, swapChain->mImages.data());
+
+		for (auto image : swapChain->mImages)
+		{
+			VkImageViewCreateInfo imageViewInfo = {};
+			imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewInfo.image = image;
+			imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageViewInfo.format = swapChain->mImageFormat;
+			imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageViewInfo.subresourceRange.levelCount = 1;
+			imageViewInfo.subresourceRange.layerCount = 1;
+
+			VkImageView imageView;
+			if (vkCreateImageView(device.logicalDevice, &imageViewInfo, nullptr, &imageView) != VK_SUCCESS)
+				return false;
+			swapChain->mImageViews.push_back(imageView);
+		}
+
+		swapChain->mDepthFormat = depthFormat;
+		if (swapChain->mDepthFormat != VK_FORMAT_UNDEFINED)
+		{
+			VkImageCreateInfo imageInfo = {};
+			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageInfo.extent.width = swapChain->mImageSize.width;
+			imageInfo.extent.height = swapChain->mImageSize.height;
+			imageInfo.extent.depth = 1;
+			imageInfo.mipLevels = 1;
+			imageInfo.arrayLayers = 1;
+			imageInfo.format = swapChain->mDepthFormat;
+			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			imageInfo.samples = FVulkan::ToSampleCount(swapChain->mNumSamples);
+			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			vkCreateImage(device.logicalDevice, &imageInfo, nullptr, &swapChain->mDepthImage);
+
+			VkMemoryRequirements memReqs;
+			vkGetImageMemoryRequirements(device.logicalDevice, swapChain->mDepthImage, &memReqs);
+
+			VkMemoryAllocateInfo memAlloc = {};
+			memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			memAlloc.allocationSize = memReqs.size;
+			memAlloc.memoryTypeIndex = FVulkan::GetMemoryTypeIndex(device, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			vkAllocateMemory(device.logicalDevice, &memAlloc, nullptr, &swapChain->mDepthMemory);
+			vkBindImageMemory(device.logicalDevice, swapChain->mDepthImage, swapChain->mDepthMemory, 0);
+
+			VkImageViewCreateInfo viewInfo = {};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = swapChain->mDepthImage;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = swapChain->mDepthFormat;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (swapChain->mDepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || swapChain->mDepthFormat == VK_FORMAT_D24_UNORM_S8_UINT)
+				viewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+			vkCreateImageView(device.logicalDevice, &viewInfo, nullptr, &swapChain->mDepthView);
+		}
+
+		if (swapChain->mNumSamples > 1)
+		{
+			VkImageCreateInfo imageInfo = {};
+			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageInfo.extent.width = swapChain->mImageSize.width;
+			imageInfo.extent.height = swapChain->mImageSize.height;
+			imageInfo.extent.depth = 1;
+			imageInfo.mipLevels = 1;
+			imageInfo.arrayLayers = 1;
+			imageInfo.format = swapChain->mImageFormat;
+			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+			imageInfo.samples = FVulkan::ToSampleCount(swapChain->mNumSamples);
+			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			vkCreateImage(device.logicalDevice, &imageInfo, nullptr, &swapChain->mMSAAColorImage);
+
+			VkMemoryRequirements memReqs;
+			vkGetImageMemoryRequirements(device.logicalDevice, swapChain->mMSAAColorImage, &memReqs);
+
+			VkMemoryAllocateInfo memAlloc = {};
+			memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			memAlloc.allocationSize = memReqs.size;
+			memAlloc.memoryTypeIndex = FVulkan::GetMemoryTypeIndex(device, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			vkAllocateMemory(device.logicalDevice, &memAlloc, nullptr, &swapChain->mMSAAColorMemory);
+			vkBindImageMemory(device.logicalDevice, swapChain->mMSAAColorImage, swapChain->mMSAAColorMemory, 0);
+
+			VkImageViewCreateInfo viewInfo = {};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = swapChain->mMSAAColorImage;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = swapChain->mImageFormat;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+			vkCreateImageView(device.logicalDevice, &viewInfo, nullptr, &swapChain->mMSAAColorView);
+		}
+
+		return true;
+	}
+
+	static void CleanupSwapChain(VulkanSwapChain* swapChain)
+	{
+		if (swapChain->mDevice == nullptr)
+			return;
+
+		VkDevice device = swapChain->mDevice->logicalDevice;
+		for (auto view : swapChain->mImageViews)
+		{
+			vkDestroyImageView(device, view, nullptr);
+		}
+		swapChain->mImageViews.clear();
+		swapChain->mImages.clear();
+
+		if (swapChain->mDepthView) vkDestroyImageView(device, swapChain->mDepthView, nullptr);
+		if (swapChain->mDepthImage) vkDestroyImage(device, swapChain->mDepthImage, nullptr);
+		if (swapChain->mDepthMemory) vkFreeMemory(device, swapChain->mDepthMemory, nullptr);
+		swapChain->mDepthView = VK_NULL_HANDLE;
+		swapChain->mDepthImage = VK_NULL_HANDLE;
+		swapChain->mDepthMemory = VK_NULL_HANDLE;
+
+		if (swapChain->mMSAAColorView) vkDestroyImageView(device, swapChain->mMSAAColorView, nullptr);
+		if (swapChain->mMSAAColorImage) vkDestroyImage(device, swapChain->mMSAAColorImage, nullptr);
+		if (swapChain->mMSAAColorMemory) vkFreeMemory(device, swapChain->mMSAAColorMemory, nullptr);
+		swapChain->mMSAAColorView = VK_NULL_HANDLE;
+		swapChain->mMSAAColorImage = VK_NULL_HANDLE;
+		swapChain->mMSAAColorMemory = VK_NULL_HANDLE;
+
+		if (swapChain->mSwapChain != VK_NULL_HANDLE)
+		{
+			vkDestroySwapchainKHR(device, swapChain->mSwapChain, nullptr);
+			swapChain->mSwapChain = VK_NULL_HANDLE;
+		}
+	}
+
+	static VkImageView CreateTextureView(VulkanTexture& texture, int level, int indexLayer = 0)
+	{
+		VkImageViewCreateInfo creatInfo = FVulkanInit::imageViewCreateInfo();
+		creatInfo.viewType = texture.mViewType;
+		creatInfo.format = texture.mFormatVK;
+		if (texture.mFormatVK == VK_FORMAT_R8_UNORM || texture.mFormatVK == VK_FORMAT_R16_UNORM)
+		{
+			creatInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R };
+		}
+		else
+		{
+			creatInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+		}
+		creatInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		creatInfo.subresourceRange.baseMipLevel = level;
+		creatInfo.subresourceRange.levelCount = 1;
+		creatInfo.subresourceRange.baseArrayLayer = indexLayer;
+		creatInfo.subresourceRange.layerCount = (texture.mViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1;
+		creatInfo.image = texture.image;
+
+		VkImageView result = VK_NULL_HANDLE;
+		vkCreateImageView(texture.mDevice, &creatInfo, nullptr, &result);
+		return result;
+
+	}
+
+	static int ImGuiCreateVkSurface(ImGuiViewport* viewport, ImU64 instance, const void* allocator, ImU64* out_surface)
+	{
+		VkWin32SurfaceCreateInfoKHR createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		createInfo.hwnd = (HWND)viewport->PlatformHandle;
+		createInfo.hinstance = GetModuleHandle(nullptr);
+
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+		VkResult err = vkCreateWin32SurfaceKHR((VkInstance)instance, &createInfo, (const VkAllocationCallbacks*)allocator, &surface);
+		if (err == VK_SUCCESS)
+		{
+			*out_surface = (ImU64)surface;
+		}
+		return (int)err;
+	}
+};
+
+class EditorRendererVulkan : public IEditorRenderer
+{
+public:
+
+	class WindowRenderData : public IEditorWindowRenderData
+	{
+	public:
+		bool initRenderResource(EditorWindow& window, VulkanSystem* system)
+		{
+			mSurface = FVulkan::CreateWindowSurface(system, window.getHWnd());
+			if (mSurface == VK_NULL_HANDLE)
+				return false;
+
+			mSwapChain = std::make_unique<VulkanSwapChain>();
+			if (!FVulkan::InitializeSwapChain(mSwapChain.get(), *system->mDevice, mSurface, system->mUsageQueueFamilyIndices, 
+				system->mSwapChain->mDepthFormat, system->mNumSamples, false))
+				return false;
+
+			VkSemaphoreCreateInfo semaphoreInfo = {};
+			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			vkCreateSemaphore(system->mDevice->logicalDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore);
+
+			// Use the system's swap chain render pass for compatibility
+			mRenderPass = system->mSwapChainRenderPass;
+			createFramebuffers(system->mDevice->logicalDevice);
+
+			return true;
+		}
+
+
+		void createFramebuffers(VkDevice device)
+		{
+			mFramebuffers.resize(mSwapChain->mImageViews.size());
+			for (size_t i = 0; i < mSwapChain->mImageViews.size(); i++)
+			{
+				VkImageView attachments[3];
+				uint32 attachmentCount = 0;
+				if (mSwapChain->mNumSamples > 1)
+				{
+					attachments[attachmentCount++] = mSwapChain->mMSAAColorView;
+					attachments[attachmentCount++] = mSwapChain->mImageViews[i];
+				}
+				else
+				{
+					attachments[attachmentCount++] = mSwapChain->mImageViews[i];
+				}
+
+				if (mSwapChain->mDepthView != VK_NULL_HANDLE)
+				{
+					attachments[attachmentCount++] = mSwapChain->mDepthView;
+				}
+
+				VkFramebufferCreateInfo framebufferInfo = {};
+				framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+				framebufferInfo.renderPass = mRenderPass;
+				framebufferInfo.attachmentCount = attachmentCount;
+				framebufferInfo.pAttachments = attachments;
+				framebufferInfo.width = mSwapChain->mImageSize.width;
+				framebufferInfo.height = mSwapChain->mImageSize.height;
+				framebufferInfo.layers = 1;
+				vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFramebuffers[i]);
+			}
+		}
+
+		void cleanup(VkDevice device, VkInstance instance)
+		{
+			for (auto fb : mFramebuffers) vkDestroyFramebuffer(device, fb, nullptr);
+			mFramebuffers.clear();
+			// Note: mRenderPass is shared from system, don't destroy it here
+			if (mImageAvailableSemaphore) vkDestroySemaphore(device, mImageAvailableSemaphore, nullptr);
+			if (mSwapChain) FVulkan::CleanupSwapChain(mSwapChain.get());
+			if (mSurface) vkDestroySurfaceKHR(instance, mSurface, nullptr);
+		}
+
+		VkSurfaceKHR mSurface = VK_NULL_HANDLE;
+		std::unique_ptr<VulkanSwapChain> mSwapChain;
+		VkRenderPass mRenderPass = VK_NULL_HANDLE;
+		VkSemaphore mImageAvailableSemaphore = VK_NULL_HANDLE;
+		TArray<VkFramebuffer> mFramebuffers;
+	};
+
+	virtual bool initialize(EditorWindow& mainWindow) override
+	{
+		mSystem = static_cast<VulkanSystem*>(GRHISystem);
+		mDevice = mSystem->mDevice;
+
+		VkDescriptorPoolSize pool_sizes[] =
+		{
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+		};
+		VkDescriptorPoolCreateInfo pool_info = {};
+		pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		pool_info.maxSets = 1000 * ARRAY_SIZE(pool_sizes);
+		pool_info.poolSizeCount = (uint32_t)ARRAY_SIZE(pool_sizes);
+		pool_info.pPoolSizes = pool_sizes;
+		vkCreateDescriptorPool(mDevice->logicalDevice, &pool_info, nullptr, &mDescriptorPool);
+
+		ImGui_ImplWin32_Init(mainWindow.getHWnd());
+
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+			platform_io.Platform_CreateVkSurface = FVulkan::ImGuiCreateVkSurface;
+		}
+
+		ImGui_ImplVulkan_InitInfo init_info = {};
+		init_info.Instance = mSystem->mInstance;
+		init_info.PhysicalDevice = mDevice->physicalDevice;
+		init_info.Device = mDevice->logicalDevice;
+		init_info.QueueFamily = mSystem->mUsageQueueFamilyIndices[EQueueFamily::Graphics];
+		init_info.Queue = mSystem->mGraphicsQueue;
+		init_info.DescriptorPool = mDescriptorPool;
+		init_info.Subpass = 0;
+		init_info.MinImageCount = mSystem->mSwapChain->getImageCount();
+		init_info.ImageCount = mSystem->mSwapChain->getImageCount();
+		init_info.MSAASamples = FVulkan::ToSampleCount(mSystem->mSwapChain->mNumSamples);
+		init_info.Allocator = nullptr;
+
+		ImGui_ImplVulkan_Init(&init_info, mSystem->mSwapChainRenderPass);
+
+		{
+			VkCommandBuffer command_buffer = FVulkan::CreateCommandBuffer(mDevice, mSystem->mGraphicsCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+			FVulkan::FlushCommandBuffer(mDevice, command_buffer, mSystem->mGraphicsQueue, mSystem->mGraphicsCommandPool);
+			ImGui_ImplVulkan_DestroyFontUploadObjects();
+		}
+
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::initializeWindowRenderData", [this, &mainWindow]()
+			{
+				initializeWindowRenderData(mainWindow);
+			});
+		}
+		else
+		{
+			initializeWindowRenderData(mainWindow);
+		}
+
+		SetupImGuiRendererHook();
+		return true;
+	}
+
+	virtual void shutdown() override
+	{
+		vkDeviceWaitIdle(mDevice->logicalDevice);
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		vkDestroyDescriptorPool(mDevice->logicalDevice, mDescriptorPool, nullptr);
+	}
+
+	virtual void beginFrame() override
+	{
+		ImGui_ImplWin32_NewFrame();
+	}
+
+	virtual void beginRender(EditorWindow& window) override
+	{
+		ImGui_ImplVulkan_NewFrame();
+	}
+
+	virtual bool initializeWindowRenderData(EditorWindow& window) override
+	{
+		auto renderData = std::make_unique<WindowRenderData>();
+		if (!renderData->initRenderResource(window, mSystem))
+			return false;
+		window.mRenderData = std::move(renderData);
+		return true;
+	}
+
+	virtual void renderWindow(EditorWindow& window, ImDrawData* drawData) override
+	{
+		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
+		if (!renderData) return;
+
+		uint32_t imageIndex;
+		VkResult result = vkAcquireNextImageKHR(mDevice->logicalDevice, renderData->mSwapChain->mSwapChain, UINT64_MAX, renderData->mImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) return;
+
+		VkCommandBuffer cmdBuffer = FVulkan::CreateCommandBuffer(mDevice, mSystem->mGraphicsCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = renderData->mRenderPass;
+		renderPassInfo.framebuffer = renderData->mFramebuffers[imageIndex];
+		renderPassInfo.renderArea.offset = { 0, 0 };
+		renderPassInfo.renderArea.extent = renderData->mSwapChain->mImageSize;
+
+		TArray<VkClearValue> clearValues;
+		VkClearValue clearColor = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+		clearValues.push_back(clearColor);
+
+		if (mSystem->mNumSamples > 1)
+		{
+			VkClearValue padding = {};
+			clearValues.push_back(padding);
+		}
+
+		if (renderData->mSwapChain->mDepthView != VK_NULL_HANDLE)
+		{
+			VkClearValue clearDepth = {};
+			clearDepth.depthStencil = { 1.0f, 0 };
+			clearValues.push_back(clearDepth);
+		}
+
+		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.pClearValues = clearValues.data();
+
+		mSystem->mDrawContext.mActiveCmdBuffer = cmdBuffer;
+		mSystem->mProfileCore->mCmdList = cmdBuffer;
+		mSystem->mDrawContext.mInsideRenderPass = true;
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+		
+		if (mSystem->mDrawContext.mInsideRenderPass)
+		{
+			vkCmdEndRenderPass(cmdBuffer);
+			mSystem->mDrawContext.mInsideRenderPass = false;
+		}
+
+		mSystem->mDrawContext.mActiveCmdBuffer = VK_NULL_HANDLE;
+		mSystem->mProfileCore->mCmdList = VK_NULL_HANDLE;
+
+		FVulkan::FlushCommandBuffer(mDevice, cmdBuffer, mSystem->mGraphicsQueue, mSystem->mGraphicsCommandPool, true, renderData->mImageAvailableSemaphore);
+
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &renderData->mSwapChain->mSwapChain;
+		presentInfo.pImageIndices = &imageIndex;
+		vkQueuePresentKHR(mSystem->mPresentQueue, &presentInfo);
+	}
+
+	virtual void notifyWindowResize(EditorWindow& window, int width, int height) override
+	{
+		if (RenderThread::IsRunning())
+		{
+			RenderThread::AddCommand("Editor::notifyWindowResize", [this, &window, width, height]()
+			{
+				notifyWindowResizeInternal(window, width, height);
+			});
+		}
+		else
+		{
+			notifyWindowResizeInternal(window, width, height);
+		}
+	}
+
+	void notifyWindowResizeInternal(EditorWindow& window, int width, int height)
+	{
+		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
+		if (renderData && renderData->mSwapChain)
+		{
+			renderData->cleanup(mDevice->logicalDevice, mSystem->mInstance);
+			renderData->initRenderResource(window, mSystem);
+		}
+	}
+
+	VulkanSystem* mSystem = nullptr;
+	VulkanDevice* mDevice = nullptr;
+	VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
+
+	std::unordered_map<Render::RHITexture2D*, ImTextureID> mTextureIDMap;
+	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) override
+	{
+		auto iter = mTextureIDMap.find(&texture);
+		if (iter != mTextureIDMap.end())
+			return iter->second;
+
+		VulkanTexture2D& textureVK = static_cast<VulkanTexture2D&>(texture);
+		VkDescriptorSet descriptorSet = ImGui_ImplVulkan_AddTexture(mDevice->mDefaultSampler, FVulkan::CreateTextureView(textureVK, 0), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		mTextureIDMap[&texture] = (ImTextureID)descriptorSet;
+		return (ImTextureID)descriptorSet;
+	}
+};
+#endif
+
 
 class EditorRendererOpenGL : public IEditorRenderer
 {
@@ -536,6 +1208,11 @@ public:
 		ImGui_ImplOpenGL3_NewFrame();
 	}
 
+	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) override
+	{
+		return (ImTextureID)static_cast<OpenGLTexture2D&>(texture).getHandle();
+	}
+
 	bool initializeWindowRenderData(EditorWindow& window) override
 	{
 		auto renderData = std::make_unique<WindowRenderData>();
@@ -580,16 +1257,28 @@ public:
 
 IEditorRenderer* IEditorRenderer::Create()
 {
+	IEditorRenderer* result = nullptr;
 	switch (GRHISystem->getName())
 	{
 	case RHISystemName::D3D11:
-		return new EditorRendererD3D11;
+		result = new EditorRendererD3D11;
+		break;
 	case RHISystemName::D3D12:
-		return new EditorRendererD3D12;
+		result = new EditorRendererD3D12;
+		break;
 	case RHISystemName::OpenGL:
-		return new EditorRendererOpenGL;
+		result = new EditorRendererOpenGL;
+		break;
+#if USE_VULKAN
+	case RHISystemName::Vulkan:
+		result = new EditorRendererVulkan;
+		break;
+#endif
 	default:
 		LogWarning(0, "Editor can't supported %s", Literal::ToString(GRHISystem->getName()));
-		return false;
+		break;
 	}
+
+	GEditorRenderer = result;
+	return result;
 }

@@ -5,6 +5,26 @@ namespace Render
 #define RHI_COMMAND_FUNC( COMMANDLIST , CODE ) static_cast< RHICommandListImpl& >( COMMANDLIST ).getExecutionContext().CODE
 
 #if CORE_SHARE_CODE
+
+	void RHIGenerateMips(RHICommandList& commandList, RHITextureBase& texture)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIGenerateMips(texture));
+	}
+	void RHIUpdateTexture(RHICommandList& commandList, RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth )
+	{
+		RHI_COMMAND_FUNC(commandList, RHIUpdateTexture(texture, ox, oy, w, h, data, level, dataWidth));
+	}
+
+	void RHIUpdateTexture(RHICommandList& commandList, RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIUpdateTexture(texture, face, ox, oy, w, h, data, level));
+	}
+
+	void RHIUpdateBuffer(RHICommandList& commandList, RHIBuffer& buffer, int start, int numElements, void* data)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIUpdateBuffer(buffer, start, numElements, data));
+	}
+
 	void RHISetRasterizerState(RHICommandList& commandList, RHIRasterizerState& rasterizerState)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetRasterizerState(rasterizerState));

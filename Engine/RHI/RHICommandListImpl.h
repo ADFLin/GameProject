@@ -14,6 +14,12 @@ namespace Render
 	class RHIContext
 	{
 	public:
+
+		RHI_FUNC(void RHIGenerateMips(RHITextureBase& texture));
+		RHI_FUNC(void RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0));
+		RHI_FUNC(void RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0));
+		RHI_FUNC(void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data));
+
 		RHI_FUNC(void RHISetRasterizerState(RHIRasterizerState& rasterizerState));
 		RHI_FUNC(void RHISetBlendState(RHIBlendState& blendState));
 		RHI_FUNC(void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1));

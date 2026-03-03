@@ -15,7 +15,11 @@
 #endif
 
 // USE_DOUBLE_DOUBLE: Only enable double-double when both flags are set
-#define USE_DOUBLE_DOUBLE (USE_NATIVE_DOUBLE && USE_DOUBLE_SIM)
+#if USE_NATIVE_DOUBLE && USE_DOUBLE_SIM
+#define USE_DOUBLE_DOUBLE 1
+#else
+#define USE_DOUBLE_DOUBLE 0
+#endif
 
 // Prevents the engine preprocessor from stripping the 'precise' keyword.
 #undef precise

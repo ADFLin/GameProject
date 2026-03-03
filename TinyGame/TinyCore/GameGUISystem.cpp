@@ -7,33 +7,7 @@
 #include "StageBase.h"
 #include "TaskBase.h"
 
-// Conservative Policy (original behavior): Elements sorted per-widget then by type.
-// Draw calls = O(NumWidgets * NumTypes) because cross-widget batching is blocked.
-class GUILayerPolicy : public RHIGraphics2D::LayerPolicy
-{
-public:
-	int32 getLayer(Render::RenderBatchedElement const& element, RHIGraphics2D::RenderState const& state) override
-	{
-		int32 typePhase = 0;
-		switch (element.type)
-		{
-		case Render::RenderBatchedElement::Text:
-		case Render::RenderBatchedElement::ColoredText:
-			typePhase = 2; // 文字最上層
-			break;
-		case Render::RenderBatchedElement::TextureRect:
-			typePhase = 1; // 圖片次之
-			break;
-		default:
-			typePhase = 0; // 其他基礎圖形最下層
-			break;
-		}
-		return mLayer * 1000 + mPhaseOffset + typePhase;
-	}
-	int32 mLayer = 0;
-	int32 mPhaseOffset = 0;
-};
-GUILayerPolicy g_GUILayerPolicy;
+// The old Conservative Policy (GUILayerPolicy) has been removed as the Aggressive Policy now handles overlaps dynamically.
 
 // Aggressive Policy: Elements sorted ONLY by type-phase globally.
 // All shapes across all widgets → layer 0..N
@@ -60,11 +34,13 @@ public:
 	// Each type-phase gets a sub-counter to preserve submission order within the phase.
 	// This ensures overlapping shapes still render in correct order relative to each other.
 	int32 mPhaseCounters[NUM_PHASES] = {};
+	int32 mBaseLayer = 0;
 
 	void reset()
 	{
 		for (int i = 0; i < NUM_PHASES; ++i)
 			mPhaseCounters[i] = 0;
+		mBaseLayer = 0;
 	}
 
 	int32 getLayer(Render::RenderBatchedElement const& element, RHIGraphics2D::RenderState const& state) override
@@ -83,7 +59,7 @@ public:
 			phase = PHASE_SHAPE;
 			break;
 		}
-		return phase * PHASE_RANGE + mPhaseCounters[phase]++;
+		return mBaseLayer * (NUM_PHASES * PHASE_RANGE) + phase * PHASE_RANGE + mPhaseCounters[phase]++;
 	}
 };
 GUIAggressiveLayerPolicy g_GUIAggressiveLayerPolicy;
@@ -257,21 +233,61 @@ void GUISystem::render(IGraphics2D& g)
 		gRHI = &g.getImpl<RHIGraphics2D>();
 	}
 
-	GWidget* modalWidget = mUIManager.getModalWidget();
-
-	if (gRHI && !modalWidget)
+	if (gRHI)
 	{
-		// AGGRESSIVE MODE: No modal widget, all widgets are non-overlapping.
-		// Use global type-phase batching to maximize draw call merging.
 		g_GUIAggressiveLayerPolicy.reset();
 		gRHI->setLayerPolicy(&g_GUIAggressiveLayerPolicy);
+	}
 
-		for (auto ui = mUIManager.createTopWidgetIterator(); ui; ++ui)
+	struct RenderedWidgetInfo
+	{
+		Vec2i pos;
+		Vec2i size;
+		bool  bIsLayered;
+		int32 baseLayer;
+		
+		bool isIntersect(RenderedWidgetInfo const& other) const
 		{
-			if (!ui->isShow())
-				continue;
+			if (bIsLayered || other.bIsLayered)
+				return true; // Conservative fallback for transformed widgets
 
-			if (ui->layer)
+			return !(pos.x + size.x <= other.pos.x || pos.x >= other.pos.x + other.size.x ||
+					 pos.y + size.y <= other.pos.y || pos.y >= other.pos.y + other.size.y);
+		}
+	};
+	TArray<RenderedWidgetInfo> renderedWidgets;
+
+	for (auto ui = mUIManager.createTopWidgetIterator(); ui; ++ui)
+	{
+		if (!ui->isShow())
+			continue;
+
+		int32 baseLayer = 0;
+		if (gRHI)
+		{
+			Vec2i pos = ui->getWorldPos();
+			Vec2i size = ui->getSize();
+			bool bIsLayered = (ui->layer != nullptr);
+
+			RenderedWidgetInfo currentWidget = { pos, size, bIsLayered, 0 };
+
+			for (auto const& w : renderedWidgets)
+			{
+				if (currentWidget.isIntersect(w))
+				{
+					if (w.baseLayer >= baseLayer)
+						baseLayer = w.baseLayer + 1;
+				}
+			}
+			currentWidget.baseLayer = baseLayer;
+			renderedWidgets.push_back(currentWidget);
+
+			g_GUIAggressiveLayerPolicy.mBaseLayer = baseLayer;
+		}
+
+		if (ui->layer)
+		{
+			if (gRHI)
 			{
 				gRHI->pushXForm();
 				gRHI->transformXForm(ui->layer->worldToScreen, true);
@@ -283,53 +299,15 @@ void GUISystem::render(IGraphics2D& g)
 				ui->renderAll();
 			}
 		}
-
-		gRHI->setLayerPolicy(nullptr);
+		else
+		{
+			ui->renderAll();
+		}
 	}
-	else
+
+	if (gRHI)
 	{
-		// CONSERVATIVE MODE: Modal dialog present (overlapping), or non-RHI.
-		// Use per-widget layer to maintain correct z-order.
-		if (gRHI)
-		{
-			gRHI->setLayerPolicy(&g_GUILayerPolicy);
-		}
-
-		int32 nextLayerID = 0;
-		for (auto ui = mUIManager.createTopWidgetIterator(); ui; ++ui)
-		{
-			if (!ui->isShow())
-				continue;
-
-			if (gRHI)
-			{
-				g_GUILayerPolicy.mLayer = nextLayerID++;
-			}
-
-			if (ui->layer)
-			{
-				if (gRHI)
-				{
-					gRHI->pushXForm();
-					gRHI->transformXForm(ui->layer->worldToScreen, true);
-					ui->renderAll();
-					gRHI->popXForm();
-				}
-				else
-				{
-					ui->renderAll();
-				}
-			}
-			else
-			{
-				ui->renderAll();
-			}
-		}
-
-		if (gRHI)
-		{
-			gRHI->setLayerPolicy(nullptr);
-		}
+		gRHI->setLayerPolicy(nullptr);
 	}
 }
 

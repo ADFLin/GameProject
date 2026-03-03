@@ -46,27 +46,33 @@ private:
 
 struct VTableHelper {};
 
-CORE_API int ScanVTableOffsets_Impl(void* specimen, size_t size, size_t* outOffsets, int maxOffsets);
+struct VTablePatchInfo
+{
+	size_t offset;
+	void*  ptr;
+};
+
+CORE_API int ScanVTablePatch(void* specimen, size_t size, VTablePatchInfo* outInfos, int maxInfos);
 
 template< typename T >
-void PatchVTable_Dynamic(void* target)
+void PatchVTable(void* target)
 {
 	struct StaticLocal
 	{
 		StaticLocal()
 		{
-			numOffsets = ScanVTableOffsets_Impl(&specimen, sizeof(T), cachedOffsets, 32);
+			T specimen{ VTableHelper() };
+			numInfos = ScanVTablePatch(&specimen, sizeof(T), cachedInfos, ARRAY_SIZE(cachedInfos));
 		}
-		T specimen{ VTableHelper() };
-		size_t cachedOffsets[32];
-		int numOffsets;
+		VTablePatchInfo cachedInfos[32];
+		int numInfos;
 	};
 	static StaticLocal StaticInstance;
-	void* specimen = &StaticInstance.specimen;
-	for (int i = 0; i < StaticInstance.numOffsets; ++i)
+	
+	for (int i = 0; i < StaticInstance.numInfos; ++i)
 	{
-		size_t offset = StaticInstance.cachedOffsets[i];
-		*(void**)((char*)target + offset) = *(void**)((char*)specimen + offset);
+		size_t offset = StaticInstance.cachedInfos[i].offset;
+		*(void**)((char*)target + offset) = StaticInstance.cachedInfos[i].ptr;
 	}
 }
 
@@ -100,7 +106,7 @@ struct THotReloadObjectRegisterHelper
 	CLASS::CLASS(VTableHelper const& helper) : BASE(helper), __ReighsterHelper(nullptr, nullptr){}\
 	static struct CLASS##_HotReloadReg {\
 		CLASS##_HotReloadReg() {\
-			HotReloadRegistry::Get().updateClassInfo(#CLASS, &PatchVTable_Dynamic<CLASS>);\
+			HotReloadRegistry::Get().updateClassInfo(#CLASS, &PatchVTable<CLASS>);\
 		}\
 	} CLASS##_HotReloadRegInstance;
 
@@ -108,7 +114,7 @@ struct THotReloadObjectRegisterHelper
 	CLASS::CLASS(VTableHelper const& helper) : BASE(), __ReighsterHelper(nullptr, nullptr){}\
 	static struct CLASS##_HotReloadReg {\
 		CLASS##_HotReloadReg() {\
-			HotReloadRegistry::Get().updateClassInfo(#CLASS, &PatchVTable_Dynamic<CLASS>);\
+			HotReloadRegistry::Get().updateClassInfo(#CLASS, &PatchVTable<CLASS>);\
 		}\
 	} CLASS##_HotReloadRegInstance;
 

@@ -56,7 +56,7 @@ void HotReloadRegistry::applyPatches()
 }
 
 
-int ScanVTableOffsets_Impl(void* specimen, size_t size, size_t* outOffsets, int maxOffsets)
+int ScanVTablePatch(void* specimen, size_t size, VTablePatchInfo* outInfos, int maxInfos)
 {
 	int count = 0;
 #if SYS_PLATFORM_WIN
@@ -67,11 +67,31 @@ int ScanVTableOffsets_Impl(void* specimen, size_t size, size_t* outOffsets, int 
 		if (ptrSpecimen)
 		{
 			MEMORY_BASIC_INFORMATION mbi;
+			// 1. First heuristic: vtable must be in MEM_IMAGE and readable
 			if (::VirtualQuery(ptrSpecimen, &mbi, sizeof(mbi)) && mbi.Type == MEM_IMAGE)
 			{
-				if (count < maxOffsets)
+				DWORD const ReadFlags = PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE;
+				if (mbi.Protect & ReadFlags)
 				{
-					outOffsets[count++] = i;
+					// 2. Second heuristic: the first entry of vtable must be an executable function pointer
+					void* firstVirtualFunc = *(void**)ptrSpecimen;
+					if (firstVirtualFunc)
+					{
+						MEMORY_BASIC_INFORMATION funcMbi;
+						if (::VirtualQuery(firstVirtualFunc, &funcMbi, sizeof(funcMbi)) && funcMbi.Type == MEM_IMAGE)
+						{
+							DWORD const ExecFlags = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+							if (funcMbi.Protect & ExecFlags)
+							{
+								if (count < maxInfos)
+								{
+									outInfos[count].offset = i;
+									outInfos[count].ptr = ptrSpecimen;
+									count++;
+								}
+							}
+						}
+					}
 				}
 			}
 		}

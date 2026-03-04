@@ -180,7 +180,7 @@ void ModuleManager::cleanupModuleMemory()
 			if (oldMod)
 				FPlatformModule::Release(oldMod);
 		}
-		if (info->loadedPath.find("_HotReload.") != std::string::npos)
+		if (info->loadedPath.find("_HotReload") != std::string::npos)
 		{
 			FFileSystem::DeleteFile(info->loadedPath.c_str());
 		}
@@ -232,11 +232,6 @@ std::string& operator += (std::string& str, StringView view)
 bool ModuleManager::loadModule(char const* path)
 {
 	auto loadName = FFileUtility::GetBaseFileName(path).toCString();
-#if USE_HOTRELOAD
-	if (std::string(path).find("_HotReload") != std::string::npos)
-		return false;
-#endif
-
 	if (mNameToModuleMap.find((char const*)loadName) != mNameToModuleMap.end())
 		return true;
 
@@ -246,6 +241,9 @@ bool ModuleManager::loadModule(char const* path)
 	if (bHotReloadEnabled)
 	{
 		auto fileName = FFileUtility::GetBaseFileName(path);
+		if (fileName.find("_HotReload") != INDEX_NONE)
+			return false;
+
 		auto dir = FFileUtility::GetDirectory(path);
 
 		std::string hotReloadPath;

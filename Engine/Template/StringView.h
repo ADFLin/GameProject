@@ -7,6 +7,7 @@
 #include "EnumCommon.h"
 #include "Meta/EnableIf.h"
 #include "Meta/MetaBase.h"
+#include <string>
 
 
 template< typename CharT, size_t BufferSize = 256 >
@@ -136,6 +137,43 @@ public:
 	using iterator = CharT const*;
 	iterator begin() { return mData; }
 	iterator end() { return mData + mNum; }
+
+	int find(CharT ch, size_t pos = 0) const
+	{
+		if (pos >= size())
+			return INDEX_NONE;
+		CharT const* result = std::char_traits<CharT>::find(mData + pos, size() - pos, ch);
+		return result ? (int)(result - mData) : INDEX_NONE;
+	}
+
+	int find(TStringView const& str, size_t pos = 0) const
+	{
+		if (pos > size() || str.size() > size() - pos)
+			return INDEX_NONE;
+		if (str.size() == 0)
+			return (int)pos;
+
+		CharT firstCh = str.mData[0];
+		size_t checkSize = size() - str.size() + 1;
+		
+		for (size_t i = pos; i < checkSize; )
+		{
+			CharT const* match = std::char_traits<CharT>::find(mData + i, checkSize - i, firstCh);
+			if (!match)
+				return INDEX_NONE;
+				
+			if (std::char_traits<CharT>::compare(match, str.mData, str.size()) == 0)
+				return (int)(match - mData);
+				
+			i = (match - mData) + 1;
+		}
+		return INDEX_NONE;
+	}
+
+	int find(CharT const* subStr, size_t pos = 0) const
+	{
+		return find(TStringView(subStr), pos);
+	}
 
 	using const_iterator = CharT const*;
 	const_iterator begin() const { return mData; }

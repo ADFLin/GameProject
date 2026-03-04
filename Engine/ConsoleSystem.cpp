@@ -11,6 +11,8 @@
 #include "Misc/CStringWrapper.h"
 #include "Core/StringConv.h"
 
+#include "Module/ModuleManager.h"
+
 #include <cstdlib>
 #include <malloc.h>
 
@@ -266,8 +268,21 @@ bool ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 		mNameMap.insert(std::make_pair(com->mName.c_str(), com));
 	if (!result.second)
 	{
-		LogWarning(0, "Cmd %s is defined", com->mName.c_str());
-		delete com;
+#if USE_HOTRELOAD
+		if (ModuleManager::Get().bHotReloading)
+		{
+			ConsoleCommandBase* comOld = result.first->second;
+			mNameMap.erase(result.first);
+			delete comOld;
+			mNameMap[com->mName.c_str()] = com;
+		}
+		else
+#endif
+		{
+			LogWarning(0, "Cmd %s is defined", com->mName.c_str());
+			delete com;
+		}
+
 		return false;
 	}
 

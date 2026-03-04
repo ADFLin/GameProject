@@ -64,42 +64,40 @@ int ScanVTablePatch(void* specimen, size_t size, VTablePatchInfo* outInfos, int 
 	{
 		void* ptrSpecimen = *(void**)((char*)specimen + i);
 
-		if (ptrSpecimen)
+		if (ptrSpecimen == nullptr)
+			continue;
+		MEMORY_BASIC_INFORMATION mbi;
+		// 1. First heuristic: vtable must be in MEM_IMAGE and readable
+		if (!::VirtualQuery(ptrSpecimen, &mbi, sizeof(mbi)))
+			continue;
+
+		DWORD const ReadFlags = PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE;
+		if (mbi.Type != MEM_IMAGE || !(mbi.Protect & ReadFlags))
+			continue;
+		
+		// 2. Second heuristic: the first entry of vtable must be an executable function pointer
+		void* firstVirtualFunc = *(void**)ptrSpecimen;
+		if (firstVirtualFunc == nullptr)
+			continue;
+
+		MEMORY_BASIC_INFORMATION funcMbi;
+		if (!::VirtualQuery(firstVirtualFunc, &funcMbi, sizeof(funcMbi)))
+			continue;
+
+		DWORD const ExecFlags = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+		if (funcMbi.Type != MEM_IMAGE || !(funcMbi.Protect & ExecFlags) )
+			continue;
+
+		if (count < maxInfos)
 		{
-			MEMORY_BASIC_INFORMATION mbi;
-			// 1. First heuristic: vtable must be in MEM_IMAGE and readable
-			if (::VirtualQuery(ptrSpecimen, &mbi, sizeof(mbi)) && mbi.Type == MEM_IMAGE)
-			{
-				DWORD const ReadFlags = PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE;
-				if (mbi.Protect & ReadFlags)
-				{
-					// 2. Second heuristic: the first entry of vtable must be an executable function pointer
-					void* firstVirtualFunc = *(void**)ptrSpecimen;
-					if (firstVirtualFunc)
-					{
-						MEMORY_BASIC_INFORMATION funcMbi;
-						if (::VirtualQuery(firstVirtualFunc, &funcMbi, sizeof(funcMbi)) && funcMbi.Type == MEM_IMAGE)
-						{
-							DWORD const ExecFlags = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
-							if (funcMbi.Protect & ExecFlags)
-							{
-								if (count < maxInfos)
-								{
-									outInfos[count].offset = i;
-									outInfos[count].ptr = ptrSpecimen;
-									count++;
-								}
-							}
-						}
-					}
-				}
-			}
+			outInfos[count].offset = i;
+			outInfos[count].ptr = ptrSpecimen;
+			count++;
 		}
 	}
 #endif
 	return count;
 }
-
 
 #endif
 

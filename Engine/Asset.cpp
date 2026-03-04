@@ -14,8 +14,14 @@
 #include <string>
 #include <unordered_map>
 #include <map>
+#include <inttypes.h>
 
 #pragma comment(lib,"Shlwapi.lib")
+
+const DWORD FileNotifyFilters =
+	FILE_NOTIFY_CHANGE_FILE_NAME |
+	FILE_NOTIFY_CHANGE_LAST_WRITE |
+	FILE_NOTIFY_CHANGE_CREATION;
 
 class WinodwsFileMonitor : public IPlatformFileMonitor
 {
@@ -34,13 +40,12 @@ public:
 	struct DirMonitorInfo
 	{
 		static int const ReserveStringLength = 32;
-		static int const BufSize = (sizeof(FILE_NOTIFY_INFORMATION) + ReserveStringLength * sizeof(WCHAR))* MAX_WATCH_BUF_SIZE;
+		static int const BufSize = (sizeof(FILE_NOTIFY_EXTENDED_INFORMATION) + ReserveStringLength * sizeof(WCHAR))* MAX_WATCH_BUF_SIZE;
 
 		uint8        buf[BufSize];
 		std::wstring dirPath;
 		HANDLE       handle;
 		bool         bIncludeChildDir;
-		DWORD        notifyFilters;
 		OVERLAPPED   overlap;
 		int          refcount;
 
@@ -85,7 +90,7 @@ public:
 	using WatchDirMap = std::unordered_map< TCStringWrapper< wchar_t , true >, DirMonitorInfo* >;
 
 	WatchDirMap mDirMap;
-	std::unordered_map<std::wstring, DWORD> mLastNotifyTimeMap;
+	std::unordered_map<std::wstring, int64> mLastNotifyTimeMap;
 	DWORD       mLastError;
 	HANDLE      mhIOCP;
 
@@ -154,12 +159,8 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 		return EFileMonitorStatus::IOError;
 
 	std::unique_ptr< DirMonitorInfo > info = std::make_unique<DirMonitorInfo>();
-	const DWORD notifyFilters =
-		FILE_NOTIFY_CHANGE_FILE_NAME |
-		FILE_NOTIFY_CHANGE_LAST_WRITE |
-		FILE_NOTIFY_CHANGE_CREATION;
+
 	info->refcount = 1;
-	info->notifyFilters = notifyFilters;
 	info->bIncludeChildDir = bIncludeChildDir;
 
 	// Open handle to the directory to be monitored, note the FILE_FLAG_OVERLAPPED
@@ -197,15 +198,16 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 	DWORD dwBytesReturned = 0;
 	info->dirPath = pPath;
 
-	if (!ReadDirectoryChangesW(
+	if (!ReadDirectoryChangesExW(
 		info->handle,
 		info->buf,
 		sizeof(info->buf),
 		bIncludeChildDir, //Sub Tree
-		notifyFilters,
+		FileNotifyFilters,
 		&dwBytesReturned,
 		&info->overlap,
-		NULL))
+		NULL,
+		ReadDirectoryNotifyExtendedInformation))
 	{
 		return EFileMonitorStatus::ReadDirError;
 	}
@@ -262,7 +264,7 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		return EFileMonitorStatus::UnknownError;
 	}
 
-	FILE_NOTIFY_INFORMATION* pIter = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(pDirFind->buf);
+	FILE_NOTIFY_EXTENDED_INFORMATION* pIter = reinterpret_cast<FILE_NOTIFY_EXTENDED_INFORMATION*>(pDirFind->buf);
 
 	while( pIter )
 	{
@@ -297,18 +299,19 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		bool bShouldNotify = true;
 		if (action == EFileAction::Modify)
 		{
-			DWORD currentTime = ::GetTickCount();
+			int64 fileModTime = pIter->LastModificationTime.QuadPart;
+
 			auto it = mLastNotifyTimeMap.find(filePath);
 			if (it != mLastNotifyTimeMap.end())
 			{
-				if (currentTime - it->second < 1000)
+				if (it->second > fileModTime || fileModTime - it->second < 1000000LLU)
 				{
 					bShouldNotify = false;
 				}
 			}
 			if (bShouldNotify)
 			{
-				mLastNotifyTimeMap[filePath] = currentTime;
+				mLastNotifyTimeMap.insert_or_assign(it, filePath, fileModTime);
 			}
 		}
 
@@ -318,27 +321,27 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		}
 
 		if( pIter->NextEntryOffset == 0 )
-
 			break;
 
 		if( (DWORD)((BYTE*)pIter - (BYTE*)pDirFind->buf) > sizeof(pDirFind->buf) )
-			pIter = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(pDirFind->buf);
+			pIter = reinterpret_cast<FILE_NOTIFY_EXTENDED_INFORMATION*>(pDirFind->buf);
 
-		pIter = (PFILE_NOTIFY_INFORMATION)((LPBYTE)pIter + pIter->NextEntryOffset);
+		pIter = (FILE_NOTIFY_EXTENDED_INFORMATION*)((LPBYTE)pIter + pIter->NextEntryOffset);
 	}
 
 	// Continue reading for changes
 	DWORD dwBytesReturned = 0;
 
-	if( !ReadDirectoryChangesW(
+	if( !ReadDirectoryChangesExW(
 		pDirFind->handle,
 		pDirFind->buf,
 		sizeof(pDirFind->buf),
 		pDirFind->bIncludeChildDir,
-		pDirFind->notifyFilters,
+		FileNotifyFilters,
 		&dwBytesReturned,
 		&pDirFind->overlap,
-		NULL) )
+		NULL,
+		ReadDirectoryNotifyExtendedInformation) )
 	{
 		removeDirectoryPath(pDirFind->dirPath.c_str(), false);
 		return EFileMonitorStatus::ReadDirError;

@@ -64,7 +64,7 @@ void PatchVTable(void* target)
 			T specimen{ VTableHelper() };
 			numInfos = ScanVTablePatch(&specimen, sizeof(T), cachedInfos, ARRAY_SIZE(cachedInfos));
 		}
-		VTablePatchInfo cachedInfos[32];
+		VTablePatchInfo cachedInfos[16];
 		int numInfos;
 	};
 	static StaticLocal StaticInstance;

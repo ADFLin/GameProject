@@ -6,17 +6,15 @@
 
 #include "HashString.h"
 #include "Platform/PlatformModule.h"
-#include "AssetViewer.h"
-
 #include "DataStructure/Array.h"
 #include "HotReload.h"
+#if USE_HOTRELOAD
+#include "AssetViewer.h"
+#endif
 
 #include <unordered_map>
 
 #define USE_DYNAMIC_MODULE 1
-
-
-#include "HotReload.h"
 
 
 class IModuleInterface;
@@ -31,9 +29,6 @@ public:
 	static CORE_API void Finalize();
 	static CORE_API ModuleManager& Get();
 
-#if USE_HOTRELOAD
-	void  enableHotReload(class IAssetViewerRegister& assetViewerRegister);
-#endif
 	bool  loadModule(char const* path);
 	bool  unloadModule(char const* name);
 	bool  loadModulesFromFile(char const* path);	
@@ -47,10 +42,7 @@ public:
 		ModuleHandle hModule,
 		char const* path = nullptr,
 		char const* loadedPath = nullptr);
-#if USE_HOTRELOAD
-	bool bHotReloadEnabled = false;
-#endif
-	IAssetViewerRegister* mAssetViewerRegister = nullptr;
+
 private:
 
 	ModuleManager();
@@ -93,6 +85,17 @@ private:
 	typedef std::unordered_map< HashString, IModuleInterface* > ModuleMap;
 	TArray< ModuleData* >   mModuleDataList;
 	ModuleMap              mNameToModuleMap;
+
+public:
+
+#if USE_HOTRELOAD
+	bool bHotReloadEnabled = false;
+	bool bHotReloading = false;
+	void enableHotReload(class IAssetViewerRegister& assetViewerRegister);
+private:
+	void reloadModule(ModuleData& module);
+	IAssetViewerRegister* mAssetViewerRegister = nullptr;
+#endif
 };
 
 #endif // ModuleManager_H_D9659336_CB8E_4DBF_8C95_D6CA336D74E3

@@ -48,6 +48,25 @@ ModuleManager& ModuleManager::Get()
 
 
 #if USE_HOTRELOAD
+
+std::string GetHotReloadPath(std::string const& path, int version)
+{
+	std::string result = path;
+	auto pos = result.find_last_of('.');
+	if (pos != std::string::npos)
+	{
+		std::string insertStr = "_HotReload_";
+		insertStr += std::to_string(version);
+		result.insert(pos, insertStr);
+	}
+	else
+	{
+		result += "_HotReload_";
+		result += std::to_string(version);
+	}
+	return result;
+}
+
 void ModuleManager::enableHotReload(class IAssetViewerRegister& assetViewerRegister)
 {
 	bHotReloadEnabled = true;
@@ -57,6 +76,46 @@ void ModuleManager::enableHotReload(class IAssetViewerRegister& assetViewerRegis
 		mAssetViewerRegister->registerViewer(info);
 	}
 }
+
+void ModuleManager::reloadModule(ModuleData& module)
+{
+	TGuardValue scopedValue(ModuleManager::Get().bHotReloading, true);
+	if (module.hModule)
+	{
+		if (module.instance)
+		{
+			module.instance->shutdownModule();
+			module.instance->release();
+			module.instance = nullptr;
+		}
+
+		module.oldModules.push_back(module.hModule);
+		module.hModule = nullptr;
+	}
+
+	module.hotReloadCount++;
+	std::string newLoadedPath = GetHotReloadPath(module.path, module.hotReloadCount);
+
+	if (FFileSystem::CopyFile(module.path.c_str(), newLoadedPath.c_str(), false))
+	{
+		module.hModule = FPlatformModule::Load(newLoadedPath.c_str());
+		if (module.hModule)
+		{
+			auto createFunc = (CreateModuleFunc)FPlatformModule::GetFunctionAddress(module.hModule, CREATE_MODULE_STR);
+			if (createFunc)
+			{
+				module.instance = (*createFunc)();
+				if (module.instance)
+				{
+					module.instance->startupModule();
+					mNameToModuleMap[HashString(module.moduleName.c_str())] = module.instance;
+				}
+			}
+			HotReloadRegistry::Get().applyPatches();
+		}
+	}
+}
+
 #endif
 
 
@@ -126,22 +185,9 @@ void ModuleManager::cleanupModuleMemory()
 			FFileSystem::DeleteFile(info->loadedPath.c_str());
 		}
 
-		for (int i = 1; i <= info->hotReloadCount; ++i)
+		for (int version = 1; version <= info->hotReloadCount; ++version)
 		{
-			std::string versionPath = info->path;
-			auto pos = versionPath.find_last_of('.');
-			if (pos != std::string::npos)
-			{
-				std::string insertStr = "_HotReload_";
-				insertStr += std::to_string(i);
-				versionPath.insert(pos, insertStr);
-			}
-			else
-			{
-				versionPath += "_HotReload_";
-				versionPath += std::to_string(i);
-			}
-
+			std::string versionPath = GetHotReloadPath(info->path, version);
 			FFileSystem::DeleteFile(versionPath.c_str());
 		}
 #endif
@@ -172,53 +218,7 @@ void ModuleManager::ModuleData::postFileModify(EFileAction action)
 {
 	if (action == EFileAction::Modify)
 	{
-		if (hModule)
-		{
-			if (instance)
-			{
-				instance->shutdownModule();
-				instance->release();
-				instance = nullptr;
-			}
-			
-			oldModules.push_back(hModule);
-			hModule = nullptr;
-		}
-
-		hotReloadCount++;
-
-		std::string newLoadedPath = path;
-		auto pos = newLoadedPath.find_last_of('.');
-		if (pos != std::string::npos)
-		{
-			std::string insertStr = "_HotReload_";
-			insertStr += std::to_string(hotReloadCount);
-			newLoadedPath.insert(pos, insertStr);
-		}
-		else
-		{
-			newLoadedPath += "_HotReload_";
-			newLoadedPath += std::to_string(hotReloadCount);
-		}
-
-		if (FFileSystem::CopyFile(path.c_str(), newLoadedPath.c_str(), false))
-		{
-			hModule = FPlatformModule::Load(newLoadedPath.c_str());
-			if (hModule)
-			{
-				auto createFunc = (CreateModuleFunc)FPlatformModule::GetFunctionAddress(hModule, CREATE_MODULE_STR);
-				if (createFunc)
-				{
-					instance = (*createFunc)();
-					if (instance)
-					{
-						instance->startupModule();
-						ModuleManager::Get().mNameToModuleMap[HashString(moduleName.c_str())] = instance;
-					}
-				}
-				HotReloadRegistry::Get().applyPatches();
-			}
-		}
+		ModuleManager::Get().reloadModule(*this);
 	}
 }
 #endif
@@ -232,6 +232,10 @@ std::string& operator += (std::string& str, StringView view)
 bool ModuleManager::loadModule(char const* path)
 {
 	auto loadName = FFileUtility::GetBaseFileName(path).toCString();
+#if USE_HOTRELOAD
+	if (std::string(path).find("_HotReload") != std::string::npos)
+		return false;
+#endif
 
 	if (mNameToModuleMap.find((char const*)loadName) != mNameToModuleMap.end())
 		return true;

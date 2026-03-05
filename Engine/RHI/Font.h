@@ -14,6 +14,7 @@
 
 #include <unordered_map>
 #include "Rect.h"
+#include "PlatformThread.h"
 
 namespace Render
 {
@@ -121,12 +122,11 @@ namespace Render
 		}
 		CharData const& findOrAddChar(uint32 charWord);
 		CharDesc const& getCharDesc(uint32 charWord);
+
 		int getFontHeight() const
 		{
 			return mFontHeight;
 		}
-
-
 
 		bool getKerningPair(uint32 charA, uint32 charB, float& outKerning)
 		{
@@ -138,11 +138,13 @@ namespace Render
 			outKerning = iter->second;
 			return true;
 		}
+
 		int mFontHeight;
 		std::unordered_map< uint32, float > mKerningPairMap;
 		ICharDataProvider* mProvider;
 		TextureAtlas* mUsedTextAtlas;
 		std::unordered_map< uint32, CharData > mCharMap;
+		RWLock mLock;
 
 	};
 

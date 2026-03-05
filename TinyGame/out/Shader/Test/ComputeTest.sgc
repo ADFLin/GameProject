@@ -1,5 +1,6 @@
 #include "Common.sgc"
 
+[[vk::image_format("rgba8")]]
 RWTexture2D<float4> DestTexture;
 float4 FillColor;
 

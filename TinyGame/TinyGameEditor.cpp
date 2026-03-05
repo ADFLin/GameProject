@@ -12,6 +12,9 @@
 #include "RenderDebug.h"
 #include "Renderer/RenderThread.h"
 
+
+#define CONFIG_SECTION "SystemSetting"
+
 using namespace Render;
 
 bool TinyGameApp::initializeEditor()
@@ -24,7 +27,7 @@ bool TinyGameApp::initializeEditor()
 
 bool TinyGameApp::initializeEditorRender()
 {
-	ERenderSystem renderSystem = ERenderSystem::Vulkan;
+	ERenderSystem renderSystem = ERenderSystem::D3D11;
 	char const* moduleName = "D3D11RHI.dll";
 	switch (renderSystem)
 	{

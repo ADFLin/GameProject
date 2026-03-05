@@ -431,7 +431,7 @@ namespace Render
 		void shutdown();
 		class ShaderFormat* createShaderFormat();
 		class RHIProfileCore* createProfileCore();
-		bool RHIBeginRender();
+		bool RHIBeginRender(bool bAdvanceFrame);
 		void RHIEndRender(bool bPresent);
 
 		RHICommandList&  getImmediateCommandList()

@@ -24,6 +24,7 @@
 
 #include <cmath>
 #include "FileSystem.h"
+#include "Json.h"
 
 
 
@@ -586,6 +587,101 @@ void TestHeap()
 }
 
 REGISTER_MISC_TEST_ENTRY("Heap Test", TestHeap);
+
+struct STestReflect
+{
+	int a;
+	float b;
+	std::string c;
+
+	REFLECT_STRUCT_BEGIN(STestReflect)
+		REF_PROPERTY(a)
+		REF_PROPERTY(b)
+		REF_PROPERTY(c)
+	REFLECT_STRUCT_END()
+};
+
+struct STestReflectParent
+{
+	int data;
+	STestReflect child;
+	
+	TArray<int> numbers;
+	std::vector<STestReflect> childs;
+	std::unordered_map<std::string, float> scores;
+	std::map<std::string, STestReflect> dictObj;
+	std::map<int, std::string> idNames;
+
+	REFLECT_STRUCT_BEGIN(STestReflectParent)
+		REF_PROPERTY(data)
+		REF_PROPERTY(child)
+		REF_PROPERTY(numbers)
+		REF_PROPERTY(childs)
+		REF_PROPERTY(scores)
+		REF_PROPERTY(dictObj)
+		REF_PROPERTY(idNames)
+	REFLECT_STRUCT_END()
+};
+
+void TestJsonSerializer()
+{
+	STestReflectParent obj1;
+	obj1.data = 100;
+	obj1.child.a = 50;
+	obj1.child.b = 3.14f;
+	obj1.child.c = "Hello Json String";
+	obj1.numbers = { 1, 2, 3, 4, 5 };
+	
+	STestReflect c1; c1.a = 1; c1.b = 1.1f; c1.c = "C1";
+	STestReflect c2; c2.a = 2; c2.b = 2.2f; c2.c = "C2";
+	obj1.childs.push_back(c1);
+	obj1.childs.push_back(c2);
+
+	obj1.scores["Math"] = 99.5f;
+	obj1.scores["English"] = 80.0f;
+	obj1.dictObj["Hero1"] = c1;
+	obj1.dictObj["Hero2"] = c2;
+	obj1.idNames[100] = "UserA";
+	obj1.idNames[101] = "UserB";
+
+	JsonFile* file = JsonFile::Create();
+	JsonSerializer writer(file->getObject(), false);
+	writer.serialize("root", obj1);
+	
+	std::string jsonStr = file->toString();
+	LogMsg("Serialized Json:");
+	LogMsg("%s", jsonStr.c_str());
+	file->release();
+
+	// Test Read
+	STestReflectParent obj2;
+	obj2.data = 0;
+	obj2.child.a = 0;
+	obj2.child.b = 0;
+	obj2.child.c = "";
+
+	JsonFile* readFile = JsonFile::Create();
+	JsonSerializer loadWriter(readFile->getObject(), false);
+	loadWriter.serialize("root", obj1); // write again to the readfile object for testing since we didn't parse from json string directly
+
+	JsonSerializer reader(readFile->getObject(), true);
+	reader.serialize("root", obj2);
+
+	LogMsg("Deserialized:");
+	LogMsg("data = %d", obj2.data);
+	LogMsg("child.a = %d", obj2.child.a);
+	LogMsg("child.b = %f", obj2.child.b);
+	LogMsg("child.c = %s", obj2.child.c.c_str());
+	for (int i = 0; i < obj2.numbers.size(); ++i) { LogMsg("numbers[%d] = %d", i, obj2.numbers[i]); }
+	for (int i = 0; i < obj2.childs.size(); ++i) { LogMsg("childs[%d].c = %s", i, obj2.childs[i].c.c_str()); }
+	for (auto const& pair : obj2.scores) { LogMsg("scores[%s] = %f", pair.first.c_str(), pair.second); }
+	for (auto const& pair : obj2.dictObj) { LogMsg("dictObj[%s].c = %s", pair.first.c_str(), pair.second.c.c_str()); }
+	for (auto const& pair : obj2.idNames) { LogMsg("idNames[%d] = %s", pair.first, pair.second.c_str()); }
+
+	readFile->release();
+}
+
+REGISTER_MISC_TEST_ENTRY("Json Serialize Test", TestJsonSerializer);
 
 #include "Math/BigInteger.h"
 #include "Math/BigFloat.h"

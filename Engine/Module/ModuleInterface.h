@@ -2,13 +2,18 @@
 #ifndef ModuleInterface_H_1DBA3278_2821_437A_A721_E2AFF00CA0BF
 #define ModuleInterface_H_1DBA3278_2821_437A_A721_E2AFF00CA0BF
 
+#include "HotReload.h"
+
 class IModuleInterface
 {
 public:
 	virtual ~IModuleInterface(){}
 	virtual void startupModule(){}
 	virtual void shutdownModule(){}
-
+#if USE_HOTRELOAD
+	virtual void prevHotReload(){}
+	virtual void postHotReload(){}
+#endif
 	void release() { doRelease(); }
 	virtual void  doRelease() = 0;
 };

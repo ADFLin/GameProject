@@ -63,8 +63,6 @@ public:
 
 	void  transformXForm(Render::RenderTransform2D const& xform, bool bReset);
 
-	void  beginFrame();
-	void  endFrame();
 	void  beginRender();
 	void  endRender();
 

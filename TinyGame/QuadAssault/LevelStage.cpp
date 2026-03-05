@@ -807,7 +807,7 @@ void LevelStage::renderLoading()
 {
 	Texture* texBG2 = getRenderSystem()->getTextureMgr()->getTexture("MenuLoading1.tga");		
 
-	RHIBeginRender();
+	RHIBeginRender(true);
 	getRenderSystem()->prevRender();
 
 	RHIGraphics2D& g = IGame::Get().getGraphics2D();

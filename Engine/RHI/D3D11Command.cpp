@@ -444,7 +444,7 @@ namespace Render
 		return profileCore;
 	}
 
-	bool D3D11System::RHIBeginRender()
+	bool D3D11System::RHIBeginRender(bool bAdvanceFrame)
 	{
 		mRenderContext.markRenderStateDirty();
 		return true;

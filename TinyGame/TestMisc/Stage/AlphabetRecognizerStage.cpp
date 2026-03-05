@@ -713,10 +713,11 @@ namespace AR
 
 		void clearInput()
 		{
-			RHIBeginRender();
+			RHIBeginRender(false);
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			std::fill_n(mInputData.data(), mInputData.size(), 0);
 			updateFromInput();
+			RHIEndRender(false);
 		}
 
 		void updateFromInput()

@@ -8,6 +8,7 @@
 #include "RenderUtility.h"
 #include "EasingFunction.h"
 #include <algorithm>
+#include "ProfileSystem.h"
 
 //--- Internal Helper Class ---
 class GLauncherItem : public GWidget
@@ -32,6 +33,8 @@ public:
 
 	void onRender() override
 	{
+		PROFILE_ENTRY("GLauncherItem Render");
+
 		IGraphics2D& g = Global::GetIGraphics2D();
 		Vec2i p = getWorldPos();
 		Vec2i s = getSize();

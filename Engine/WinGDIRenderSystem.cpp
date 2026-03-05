@@ -326,16 +326,6 @@ Vec2i WinGdiGraphics2D::calcTextExtentSize( char const* str , int num )
 	return Vec2i( rSize.cx , rSize.cy );
 }
 
-void WinGdiGraphics2D::beginFrame()
-{
-
-}
-
-void WinGdiGraphics2D::endFrame()
-{
-	releaseUsedResources();
-}
-
 void WinGdiGraphics2D::beginRender()
 {
 
@@ -346,6 +336,7 @@ void WinGdiGraphics2D::endRender()
 	assert(mBlendCount == 0);
 	mhDCRender = mhDCTarget;
 
+	releaseUsedResources();
 }
 
 void WinGdiGraphics2D::setTargetDC( HDC hDC )

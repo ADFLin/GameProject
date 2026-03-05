@@ -310,10 +310,14 @@ namespace Render
 
 	CharDataSet::CharData const& CharDataSet::findOrAddChar(uint32 charWord)
 	{
-		auto iter = mCharMap.find(charWord);
-		if( iter != mCharMap.end() && iter->second.atlasId != INDEX_NONE)
-			return iter->second;
+		{
+			RWLock::ReadLocker locker(mLock);
+			auto iter = mCharMap.find(charWord);
+			if (iter != mCharMap.end() && iter->second.atlasId != INDEX_NONE)
+				return iter->second;
+		}
 
+		RWLock::ReadLocker locker(mLock);
 		CharImageData imageData;
 		mProvider->getCharData(charWord, imageData);
 
@@ -341,10 +345,15 @@ namespace Render
 
 	CharDataSet::CharDesc const& CharDataSet::getCharDesc(uint32 charWord)
 	{
-		auto iter = mCharMap.find(charWord);
-		if (iter != mCharMap.end())
-			return iter->second;
+		{
+			RWLock::ReadLocker locker(mLock);
+			auto iter = mCharMap.find(charWord);
+			if (iter != mCharMap.end())
+				return iter->second;
+		}
 
+
+		RWLock::WriteLocker locker(mLock);
 		CharData& charData = mCharMap[charWord];
 		CharImageDesc imageDesc;
 		mProvider->getCharDesc(charWord, imageDesc);

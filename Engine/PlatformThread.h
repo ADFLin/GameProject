@@ -217,11 +217,13 @@ public:
 		::SetEvent(mHandle);
 	}
 
-	void wait(double time)
+	bool wait(double time)
 	{
-		long millisecond = int(time * 1000);
+		DWORD millisecond = DWORD(time * 1000);
 		DWORD result = ::WaitForSingleObject(mHandle, millisecond);
+		return result != WAIT_TIMEOUT;
 	}
+
 	void wait()
 	{
 		DWORD result = ::WaitForSingleObject(mHandle, INFINITE);

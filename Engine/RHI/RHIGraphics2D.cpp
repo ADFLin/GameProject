@@ -16,8 +16,6 @@
 #include "RHI/Font.h"
 #include "PlatformThread.h"
 
-
-
 using namespace Render;
 
 #include "CoreShare.h"
@@ -246,17 +244,6 @@ void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool 
 		mXFormStack.transform(xform);
 	}
 	bTransformDirty = true;
-}
-
-void RHIGraphics2D::beginFrame()
-{
-	//LogMsg("RHIGraphics2D::beginFrame");
-	mFlushCount = 0;
-}
-
-void RHIGraphics2D::endFrame()
-{
-	//LogMsg("RHIGraphics2D::endFrame");
 }
 
 void RHIGraphics2D::beginRender()
@@ -1019,6 +1006,7 @@ RHIRender2DContext* RHIGraphics2D::acquireContext()
 void RHIGraphics2D::setRecordingList(::RenderCommandList* list)
 {
 	mRecordingList = list;
+	mFlushCount = 0;
 	if (mRecordingList)
 	{
 		mRenderMode = ERenderMode::Buffered;

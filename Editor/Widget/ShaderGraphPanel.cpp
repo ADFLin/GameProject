@@ -9,10 +9,9 @@
 #include "ProfileSystem.h"
 #include "imgui_internal.h"
 
-//REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
+#include "Renderer/RenderThread.h"
 
-
-
+REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
 
 void ShaderGraphPanel::runTest()
 {
@@ -33,7 +32,7 @@ void ShaderGraphPanel::runTest()
 
 	if (compileShader())
 	{
-		renderShaderPreview(TVector2<int>(200,200));
+		//renderShaderPreview(TVector2<int>(200,200));
 	}
 
 }
@@ -56,37 +55,51 @@ void ShaderGraphPanel::renderShaderPreview(TVector2<int> const& size)
 {
 	using namespace Render;
 
-	if (mShaderProgram.getRHI() == nullptr)
-		return;
-
-	if (mFrameBuffer.isValid() == false)
+	RenderThread::AddCommand("ShaderGraphPreview", [size, this]() mutable
 	{
-		mFrameBuffer = RHICreateFrameBuffer();
+		if (mShaderProgram.getRHI() == nullptr)
+			return;
+
+		if (mFrameBuffer.isValid() == false)
+		{
+			mFrameBuffer = RHICreateFrameBuffer();
+		}
+
+		if ( mTexture.isValid() == false || ( mTexture->getSizeX() != size.x || mTexture->getSizeY() != size.y ) )
+		{
+			mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::BGRA8, size.x, size.y).Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_DefalutValue));
+			mFrameBuffer->setTexture(0 ,*mTexture);
+		}
+
+		mView.updateRHIResource();
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHIBeginRender(false);
+
+		RHIResourceTransition(commandList, { mTexture.get() }, EResourceTransition::RenderTarget);
+
+		RHISetFrameBuffer(commandList, mFrameBuffer);
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(1, 0, 0, 1), 1);
+
+		RHISetViewport(commandList, 0, 0, size.x, size.y);
+#if 1
+
+		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+
+		RHISetShaderProgram(commandList, mShaderProgram.getRHI());
+		mView.setupShader(commandList, mShaderProgram);
+		DrawUtility::ScreenRect(commandList);
+
+		//RHISetFrameBuffer(commandList, nullptr);
+		//RHIResourceTransition(commandList, { mTexture.get() }, EResourceTransition::SRV);
+#endif
+
+		RHIFlushCommand(commandList);
+		RHIEndRender(false);
 	}
-	if ( mTexture.isValid() == false || ( mTexture->getSizeX() != size.x || mTexture->getSizeY() != size.y ) )
-	{
-		mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::BGRA8, size.x, size.y).Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_DefalutValue));
-		mFrameBuffer->setTexture(0 ,*mTexture);
-	}
-	RHICommandList& commandList = RHICommandList::GetImmediateList();
-	RHIBeginRender();
-
-	RHISetFrameBuffer(commandList, mFrameBuffer);
-	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
-
-	RHISetViewport(commandList, 0, 0, size.x, size.y);
-
-	RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
-	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-
-	RHISetShaderProgram(commandList, mShaderProgram.getRHI());
-	mView.setupShader(commandList, mShaderProgram);
-	DrawUtility::ScreenRect(commandList);
-
-	RHIFlushCommand(commandList);
-	RHIEndRender(false);
-
+	);
 }
 
 void ShaderGraphPanel::onOpen()
@@ -366,7 +379,6 @@ void ShaderGraphPanel::render()
 
 	if (bRealTimePreview || bRenderPreviewRequest)
 	{
-		mView.updateRHIResource();
 		renderShaderPreview(TVector2<int>(leftPaneWidth, leftPaneWidth));
 	}
 

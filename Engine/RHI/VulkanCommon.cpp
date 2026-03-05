@@ -543,7 +543,12 @@ namespace Render
 
 	void VulkanFrameBuffer::setTexture(int idx, RHITexture2D& target, int level /*= 0*/)
 	{
-		if (idx < 0 || idx >= mColorBuffers.size())
+		if (idx == mColorBuffers.size())
+		{
+			addTexture(target, level);
+		}
+
+		if (idx < 0 || idx > mColorBuffers.size())
 			return;
 
 		VulkanTexture2D& vkTexture = static_cast<VulkanTexture2D&>(target);

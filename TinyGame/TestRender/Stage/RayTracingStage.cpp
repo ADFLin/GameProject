@@ -32,6 +32,8 @@ bool RayTracingTestStage::onInit()
 
 	auto frame = WidgetUtility::CreateDevFrame();
 	frame->addCheckBox("Draw Debug", mbDrawDebug);
+	frame->addCheckBox("Use MIS", bUseMIS);
+
 	auto choice = frame->addChoice("DebugDisplay Mode", UI_StatsMode);
 
 	char const* ModeTextList[] = 
@@ -123,7 +125,7 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
 	{
-		RayTracingPS* rayTracingPS = mRayTracingPSMap[mDebugDisplayMode == EDebugDsiplayMode::None ? (bSplitAccumulate ? 2 : 0 ) : 1];
+		RayTracingPS* rayTracingPS = mRayTracingPSMap[mDebugDisplayMode == EDebugDsiplayMode::None ? ( bSplitAccumulate ? ( bUseMIS ? 4 : 2) : (bUseMIS ? 3 : 0)) : 1];
 
 		GPU_PROFILE("RayTracing");
 		GraphicsShaderStateDesc state;
@@ -146,8 +148,13 @@ void RayTracingTestStage::onRender(float dFrame)
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVHNodeBuffer);
 		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *rayTracingPS, mSceneBVHNodeBuffer);
 		SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
+		if (mEmittingObjectIdBuffer.isValid())
+		{
+			SetStructuredStorageBuffer< EmittingObjectIdData >(commandList, *rayTracingPS, mEmittingObjectIdBuffer);
+		}
 
 		rayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
+		rayTracingPS->setParam(commandList, SHADER_PARAM(NumEmittingObjects), mNumEmittingObjects);
 		rayTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), 1.0f / float(mView.frameCount + 1));
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 
@@ -454,13 +461,14 @@ namespace RT
 
 			{
 				float L = 55;
+				float planeRoughness = 0.5f;
 				const MaterialData mats[] =
 				{
-					{ Color3f(0,0,0), 1.0, 0.0,L * Color3f(1,1,1) ,0 },
-					{ Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(0,1,0), 1.0, 0.8, Color3f(0,0,0) ,0},
-					{ Color3f(1,0,0), 1.0, 0.8, Color3f(0,0,0) ,0},
-					{ Color3f(0,0,1), 1.0, 0.8, Color3f(0,0,0) ,0},
+					{ Color3f(0,0,0), 0.0, 1.0,L * Color3f(1,1,1) ,0 },
+					{ Color3f(1,1,1), planeRoughness, 1.0, Color3f(0,0,0) ,0},
+					{ Color3f(0,1,0), planeRoughness, 1.0, Color3f(0,0,0) ,0},
+					{ Color3f(1,0,0), planeRoughness, 1.0, Color3f(0,0,0) ,0},
+					{ Color3f(0,0,1), planeRoughness, 1.0, Color3f(0,0,0) ,0},
 					{ 0.5 * Color3f(1,1,1), 0.5, 0.2, Color3f(0,0,0) ,0},
 					{ Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0) ,1.51, 0.8},
 				};
@@ -627,6 +635,27 @@ namespace RT
 
 				VERIFY_RETURN_FALSE(mScene.mMaterialBuffer.initializeResource(materials.size(), EStructuredBufferType::Buffer));
 				mScene.mMaterialBuffer.updateBuffer(materials);
+
+				TArray<int32> emittingObjectIds;
+				for(int i = 0; i < objects.size(); ++i)
+				{
+					int matId = objects[i].materialId;
+					if(matId >= 0 && matId < materials.size())
+					{
+						auto const& emissive = materials[matId].emissiveColor;
+						if(emissive.r > 0 || emissive.g > 0 || emissive.b > 0)
+						{
+							emittingObjectIds.push_back(i);
+						}
+					}
+				}
+				
+				mScene.mNumEmittingObjects = emittingObjectIds.size();
+				if (emittingObjectIds.empty()) {
+					emittingObjectIds.push_back(0); // Dummy fallback
+				}
+				VERIFY_RETURN_FALSE(mScene.mEmittingObjectIdBuffer.initializeResource(emittingObjectIds.size(), EStructuredBufferType::Buffer));
+				mScene.mEmittingObjectIdBuffer.updateBuffer(emittingObjectIds);
 			}
 
 			return true;
@@ -839,8 +868,27 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 		RayTracingPS::PermutationDomain permutationVector;
 		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
 		permutationVector.set<RayTracingPS::UseSplitAccumulate>(true);
+		permutationVector.set<RayTracingPS::UseMIS>(false);
 		VERIFY_RETURN_FALSE(mRayTracingPSMap[2] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
 	}
+
+
+	{
+		RayTracingPS::PermutationDomain permutationVector;
+		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
+		permutationVector.set<RayTracingPS::UseSplitAccumulate>(false);
+		permutationVector.set<RayTracingPS::UseMIS>(true);
+		VERIFY_RETURN_FALSE(mRayTracingPSMap[3] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
+	}
+
+	{
+		RayTracingPS::PermutationDomain permutationVector;
+		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
+		permutationVector.set<RayTracingPS::UseSplitAccumulate>(true);
+		permutationVector.set<RayTracingPS::UseMIS>(true);
+		VERIFY_RETURN_FALSE(mRayTracingPSMap[4] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
+	}
+
 	VERIFY_RETURN_FALSE(mAccumulatePS = ::ShaderManager::Get().getGlobalShaderT<AccumulatePS>());
 
 	VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());

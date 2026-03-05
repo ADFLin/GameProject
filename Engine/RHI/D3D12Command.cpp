@@ -413,7 +413,7 @@ namespace Render
 		return mProfileCore;
 	}
 
-	bool D3D12System::RHIBeginRender()
+	bool D3D12System::RHIBeginRender(bool bAdvanceFrame)
 	{
 		if (!mRenderContext.beginFrame())
 		{

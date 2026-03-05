@@ -78,14 +78,14 @@ namespace Render
 
 		VkDevice mDevice = VK_NULL_HANDLE;
 		
-		static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-		int mCurrentFrameIndex = 0;
+		static constexpr int NUM_INFLIGHT_SUBMISSIONS = 4;
+		int mSubmissionIndex = 0;
 		struct FrameData {
 			TArray<VkDescriptorPool> activePools;
 			TArray<VkDescriptorPool> freePools;
 			VkDescriptorPool currentPool = VK_NULL_HANDLE;
 		};
-		FrameData mFrames[MAX_FRAMES_IN_FLIGHT];
+		FrameData mFrames[NUM_INFLIGHT_SUBMISSIONS];
 	};
 
 	// ==================== VulkanContext ====================
@@ -337,7 +337,7 @@ namespace Render
 
 
 
-	class VulkanSwapChain
+	class VulkanSwapChainData
 	{
 	public:
 
@@ -373,6 +373,10 @@ namespace Render
 
 	};
 
+
+
+
+
 	class VulkanProfileCore;
 	class VulkanSystem : public RHISystem
 	{
@@ -389,33 +393,33 @@ namespace Render
 		{
 			return *mImmediateCommandList;
 		}
-		RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info) { return nullptr; }
+		RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info) override;
 
 
 		TArray< VkSemaphore > mImageAvailableSemaphores;
 		TArray< VkSemaphore > mRenderFinishedSemaphores;
 		TArray< VkFence >     mInFlightFences;
 		TArray< VkCommandBuffer > mCommandBuffers;
-		const int   MAX_FRAMES_IN_FLIGHT = 2;
-		int mCurrentFrame = 0;
+		const int   NUM_INFLIGHT_SUBMISSIONS = 4;
+		int mSubmissionIndex = 0;
 
 	
 		bool initRenderResource()
 		{
-			mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-			mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-			mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+			mImageAvailableSemaphores.resize(NUM_INFLIGHT_SUBMISSIONS);
+			mRenderFinishedSemaphores.resize(NUM_INFLIGHT_SUBMISSIONS);
+			mInFlightFences.resize(NUM_INFLIGHT_SUBMISSIONS);
 			VkFenceCreateInfo fenceInfo = {};
 			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-			for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+			for (int i = 0; i < NUM_INFLIGHT_SUBMISSIONS; ++i)
 			{
 				mImageAvailableSemaphores[i] = createSemphore();
 				vkCreateFence(mDevice->logicalDevice, &fenceInfo, gAllocCB, &mInFlightFences[i]);
 			}
 
-			mCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+			mCommandBuffers.resize(NUM_INFLIGHT_SUBMISSIONS);
 			VkCommandBufferAllocateInfo allocInfo = {};
 			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			allocInfo.commandPool = mGraphicsCommandPool;
@@ -428,7 +432,7 @@ namespace Render
 
 		void cleanupRenderResource()
 		{
-			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+			for (size_t i = 0; i < NUM_INFLIGHT_SUBMISSIONS; i++)
 			{
 				vkDestroySemaphore(mDevice->logicalDevice, mRenderFinishedSemaphores[i], gAllocCB);
 				vkDestroySemaphore(mDevice->logicalDevice, mImageAvailableSemaphores[i], gAllocCB);
@@ -450,8 +454,9 @@ namespace Render
 		}
 
 		uint32 mRenderImageIndex;
-		uint64 mFrameCount = 0;
-		bool RHIBeginRender();
+		uint64 mSubmissionCount = 0;
+		bool mbAdvanceFrame = false;
+		bool RHIBeginRender(bool bAdvanceFrame);
 		void RHIEndRender(bool bPresent);
 
 		// Swap chain framebuffer management
@@ -530,7 +535,7 @@ namespace Render
 		TArray<const char*> enabledInstanceExtensions;
 
 		VulkanDevice*    mDevice;
-		VulkanSwapChain* mSwapChain;
+		VulkanSwapChainData* mSwapChain;
 
 		//Handle to the device graphics queue that command buffers are submitted to
 		VkQueue       mGraphicsQueue;
@@ -765,6 +770,67 @@ namespace Render
 		VulkanDevice* mDevice = nullptr;
 	};
 
+
+
+
+	class VulkanSwapChain : public TRefcountResource< RHISwapChain >
+		, public VulkanSwapChainData
+	{
+	public:
+		VulkanSwapChain(VulkanSystem* system)
+			: mSystem(system)
+		{
+		}
+
+		~VulkanSwapChain()
+		{
+			releaseResource();
+		}
+
+		bool initialize(SwapChainCreationInfo const& info)
+		{
+#if SYS_PLATFORM_WIN
+			mSurface = mSystem->createWindowSurface(info.windowHandle);
+#endif
+			if (!VulkanSwapChainData::initialize(*mSystem->mDevice, mSurface, mSystem->mUsageQueueFamilyIndices, mSystem->mSwapChain->mDepthFormat, info.numSamples, false))
+				return false;
+
+			return true;
+		}
+
+		virtual void resizeBuffer(int w, int h) override
+		{
+			// Not fully implemented for additional swapchains yet
+		}
+
+		virtual RHITexture2D* getBackBufferTexture() override
+		{
+			return nullptr;
+		}
+
+		virtual RHITexture2D* getDepthTexture() override
+		{
+			return nullptr;
+		}
+
+		virtual void present(bool bVSync) override
+		{
+			// Need custom submit and present logic if used outside main swapchain
+		}
+
+		virtual void releaseResource() override
+		{
+			VulkanSwapChainData::cleanupResource();
+			if (mSurface)
+			{
+				vkDestroySurfaceKHR(mSystem->mInstance, mSurface, nullptr);
+				mSurface = VK_NULL_HANDLE;
+			}
+		}
+
+		VulkanSystem* mSystem;
+		VkSurfaceKHR  mSurface = VK_NULL_HANDLE;
+	};
 
 
 }//namespace Render

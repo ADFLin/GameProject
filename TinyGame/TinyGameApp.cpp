@@ -74,7 +74,7 @@ namespace
 	TConsoleVariable<bool> CVarProfileCPU{ true , "ProfileCPU", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarDrawGPUUsage{ true, "r.GPUUsage", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
-	TConsoleVariable<bool> CVarLockFPS{ false, "LockFPS" , CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarLockFPS{ true, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
 	TConsoleVariable<std::string> CVarProifleShowCategory{ "", "Profile.ShowCategory", CVF_CONFIG | CVF_SECTION_GROUP };
 	TConsoleVariable<bool> CVarShowGPUProifle{ true, "ShowGPUProfile" , CVF_TOGGLEABLE };

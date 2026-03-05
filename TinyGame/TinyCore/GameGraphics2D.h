@@ -36,8 +36,6 @@ class RHIGraphics2D;
 class IGraphics2D
 {
 public:
-	virtual void  beginFrame() = 0;
-	virtual void  endFrame() = 0;
 	virtual void  beginRender() = 0;
 	virtual void  endRender() = 0;
 	virtual void  beginClip(Vec2i const& pos, Vec2i const& size) = 0;

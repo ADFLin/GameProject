@@ -139,8 +139,7 @@ public:
 		operator int()   { return Math::RoundToInt(v); }
 		float const& v;
 	};
-	void beginFrame() override { mImpl->beginFrame(); }
-	void endFrame() override { mImpl->endFrame(); }
+
 	void beginRender() override { mImpl->beginRender(); }
 	void endRender() override { mImpl->endRender(); }
 
@@ -681,7 +680,7 @@ bool DrawEngine::beginFrame()
 
 			mActiveCommandList.addCommand("RHIBeginRender", [this]()
 			{
-				if (RHIBeginRender())
+				if (RHIBeginRender(true))
 				{
 					if (bWasUsedPlatformGraphics)
 					{
@@ -696,7 +695,7 @@ bool DrawEngine::beginFrame()
 		else
 		{
 			mRHIGraphics->setRecordingList(nullptr);
-			if (!RHIBeginRender())
+			if (!RHIBeginRender(true))
 				return false;
 
 			if (bWasUsedPlatformGraphics)
@@ -707,12 +706,6 @@ bool DrawEngine::beginFrame()
 				RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
 			}
 		}
-
-		mRHIGraphics->beginFrame();
-	}
-	else
-	{
-		mPlatformGraphics->beginFrame();
 	}
 
 	if (bUsePlatformBuffer)
@@ -728,7 +721,6 @@ void DrawEngine::endFrame()
 	{
 		mRHIGraphics->flush();
 		mRHIGraphics->setRecordingList(nullptr);
-		mRHIGraphics->endFrame();
 
 		bool bSwapBuffer = !bUsePlatformBuffer;
 		if (canUseRenderThread())
@@ -756,10 +748,6 @@ void DrawEngine::endFrame()
 		{
 			RHIEndRender(bSwapBuffer);
 		}
-	}
-	else
-	{
-		mPlatformGraphics->endFrame();
 	}
 
 	if (bUsePlatformBuffer)

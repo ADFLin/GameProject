@@ -150,7 +150,17 @@ struct FReflectionCollector
 	}
 };
 
+struct CReflectCollectable
+{
+	template< typename T, typename Collector >
+	static auto Requires(T& t, Collector& c) -> decltype
+	(
+		T::CollectReflection(c)
+		);
+};
 
+template<typename T>
+constexpr bool IsRefectableObject = TCheckConcept< CReflectCollectable, T, ReflectionCollector>::Value;
 
 
 template<typename T>
@@ -210,6 +220,9 @@ public:\
 
 #define REF_GET_ENUM_VALUES( TYPE )\
 	::TReflectEnumValueTraits< TYPE >::GetValues()
+
+
+
 
 #endif // ReflectionCollect_H_990CAAB9_A6AF_48D5_B6A2_79DDB78AE3DD
 

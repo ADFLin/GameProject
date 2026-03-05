@@ -36,8 +36,7 @@ public:
 	}
 	bool wait(double time)
 	{
-		mEvent.wait(time);
-		return true;
+		return mEvent.wait(time);
 	}
 	void wait()
 	{

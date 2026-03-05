@@ -583,7 +583,7 @@ struct FVulkan
 		}
 	}
 
-	static bool InitializeSwapChain(VulkanSwapChain* swapChain, VulkanDevice& device, VkSurfaceKHR surface, uint32 const usageQueueFamilyIndices[], VkFormat depthFormat, int numSamples, bool bVSync)
+	static bool InitializeSwapChain(VulkanSwapChainData* swapChain, VulkanDevice& device, VkSurfaceKHR surface, uint32 const usageQueueFamilyIndices[], VkFormat depthFormat, int numSamples, bool bVSync)
 	{
 		swapChain->mDevice = &device;
 		swapChain->mNumSamples = numSamples;
@@ -779,7 +779,7 @@ struct FVulkan
 		return true;
 	}
 
-	static void CleanupSwapChain(VulkanSwapChain* swapChain)
+	static void CleanupSwapChain(VulkanSwapChainData* swapChain)
 	{
 		if (swapChain->mDevice == nullptr)
 			return;
@@ -869,7 +869,7 @@ public:
 			if (mSurface == VK_NULL_HANDLE)
 				return false;
 
-			mSwapChain = std::make_unique<VulkanSwapChain>();
+			mSwapChain = std::make_unique<VulkanSwapChainData>();
 			if (!FVulkan::InitializeSwapChain(mSwapChain.get(), *system->mDevice, mSurface, system->mUsageQueueFamilyIndices, 
 				system->mSwapChain->mDepthFormat, system->mNumSamples, false))
 				return false;
@@ -931,7 +931,7 @@ public:
 		}
 
 		VkSurfaceKHR mSurface = VK_NULL_HANDLE;
-		std::unique_ptr<VulkanSwapChain> mSwapChain;
+		std::unique_ptr<VulkanSwapChainData> mSwapChain;
 		VkRenderPass mRenderPass = VK_NULL_HANDLE;
 		VkSemaphore mImageAvailableSemaphore = VK_NULL_HANDLE;
 		TArray<VkFramebuffer> mFramebuffers;

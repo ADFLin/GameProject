@@ -1686,7 +1686,7 @@ namespace SRPG
 				g.drawRect(tPos, Vector2(barW * (actor.attributes.health / 100.0f), 8));
 
 
-				tPos.y += 15;
+				tPos.y += 40;
 				g.drawTextF(tPos, "ATK: %d / MAG: %d", actor.attributes.attack, actor.attributes.magicPower);
 				tPos.y += 18;
 				g.drawTextF(tPos, "DEF: %d / MDEF: %d", actor.attributes.defense, actor.attributes.magicDefense);

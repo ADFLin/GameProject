@@ -8,7 +8,7 @@
 #include "RHI/DrawUtility.h"
 
 
-//REGISTER_EDITOR_PANEL(TextureViewerPanel, TextureViewerPanel::ClassName, true, true);
+REGISTER_EDITOR_PANEL(TextureViewerPanel, TextureViewerPanel::ClassName, true, true);
 
 void TextureViewerPanel::render()
 {
@@ -187,7 +187,7 @@ void TextureViewerPanel::render()
 				ImDrawData* drawData = data.viewport->DrawData;
 
 				RHICommandList& commandList = RHICommandList::GetImmediateList();
-				RHIBeginRender();
+				RHIBeginRender(false);
 				RHISetViewport(commandList, 0, 0, drawData->DisplaySize.x, drawData->DisplaySize.y);
 
 				Vector2 clipPos = Vector2(cmd->ClipRect.x, cmd->ClipRect.y);

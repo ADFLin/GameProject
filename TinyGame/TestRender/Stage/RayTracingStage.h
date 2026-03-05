@@ -33,7 +33,9 @@ class RayTracingPS : public GlobalShader
 public:
 	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
 	SHADER_PERMUTATION_TYPE_BOOL(UseSplitAccumulate, SHADER_PARAM(USE_SPLIT_ACCUMULATE));
-	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate>;
+	SHADER_PERMUTATION_TYPE_BOOL(UseMIS, SHADER_PARAM(USE_MIS));
+
+	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate, UseMIS>;
 
 	static char const* GetShaderFileName()
 	{
@@ -228,6 +230,11 @@ struct PrimitiveIdData
 struct ObjectIdData
 {
 	DECLARE_BUFFER_STRUCT(ObjectIds);
+};
+
+struct EmittingObjectIdData
+{
+	DECLARE_BUFFER_STRUCT(EmittingObjectIds);
 };
 
 
@@ -658,7 +665,9 @@ namespace RT
 		TStructuredBuffer< BVHNodeData > mBVHNodeBuffer;
 		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
 		TStructuredBuffer< int32 > mObjectIdBuffer;
+		TStructuredBuffer< int32 > mEmittingObjectIdBuffer;
 		int mNumObjects;
+		int mNumEmittingObjects;
 		PrimitivesCollection mDebugPrimitives;
 
 
@@ -969,7 +978,8 @@ public:
 	int mTriangleWarningCount = 50;
 
 	bool bSplitAccumulate = false;
-	RayTracingPS* mRayTracingPSMap[3];
+	bool bUseMIS = false;
+
+	RayTracingPS* mRayTracingPSMap[5];
 	AccumulatePS* mAccumulatePS;
 };
-

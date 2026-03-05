@@ -99,7 +99,7 @@ namespace Render
 	RHI_API bool RHISystemInitialize(RHISystemName name , RHISystemInitParams const& initParam );
 	RHI_API void RHISystemShutdown();
 	RHI_API bool RHISystemIsSupported(RHISystemName name);
-	RHI_API bool RHIBeginRender();
+	RHI_API bool RHIBeginRender(bool bAdvanceFrame);
 	RHI_API void RHIEndRender(bool bPresent);
 	RHI_API void RHIClearResourceReference();
 
@@ -407,7 +407,7 @@ namespace Render
 		
 		RHI_FUNC(RHICommandList& getImmediateCommandList());
 		RHI_FUNC(RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info));
-		RHI_FUNC(bool RHIBeginRender());
+		RHI_FUNC(bool RHIBeginRender(bool bAdvanceFrame));
 		RHI_FUNC(void RHIEndRender(bool bPresent));
 
 		RHI_FUNC(RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data));

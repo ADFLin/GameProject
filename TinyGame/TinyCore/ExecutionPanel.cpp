@@ -91,10 +91,12 @@ void ExecutionPanel::onRender()
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
 
+	BaseClass::onRender();
+
 	// Draw Panel Background
-	g.setPen(Color3ub(45, 140, 180));
-	g.setBrush(Color3ub(30, 33, 36));
-	g.drawRoundRect(pos, size, Vec2i(8, 8));
+	//g.setPen(Color3ub(45, 140, 180));
+	//g.setBrush(Color3ub(30, 33, 36));
+	//g.drawRoundRect(pos, size, Vec2i(8, 8));
 
 	// Header Line
 	if (!mIsMinimized)
@@ -110,7 +112,7 @@ void ExecutionPanel::onRender()
 	title.format("%s [ID: %u]", mName.c_str(), thread->getID());
 	g.drawText(pos + Vec2i(15, 12), title);
 
-	BaseClass::onRender();
+
 
 	if (mIsMinimized || SystemPlatform::AtomicRead(&renderFlag) <= 0 || (mMutex && !mMutex->tryLock()) )
 	{

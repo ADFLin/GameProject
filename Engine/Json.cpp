@@ -78,11 +78,16 @@ public:
 		}
 		return result;
 	}
+	virtual std::string toString() override { return mImpl.dump(4); }
 	virtual void release() override { delete this; }
 
 	nlohmann::json mImpl;
 };
 
+JsonFile* JsonFile::Create()
+{
+	return new JsonFileImpl(nlohmann::json::object());
+}
 
 JsonFile* JsonFile::Load(char const* path)
 {
@@ -187,6 +192,226 @@ TArray<JsonValue> JsonObject::getArray(char const* key)
 		{
 			result.push_back(ToValue(element));
 		}
+	}
+	return result;
+}
+
+JsonObject JsonObject::getOrAddObject(char const* key)
+{
+	JsonObject result;
+	if (!mPtr) return result;
+
+	auto* obj = FJsonObjectImpl::GetImpl(mPtr);
+	auto iter = obj->find(key);
+	if (iter != obj->end())
+	{
+		if (iter->second.is_object())
+		{
+			result.mPtr = iter->second.get_ptr<ObjectImpl*>();
+		}
+	}
+	else
+	{
+		(*obj)[key] = nlohmann::json::object();
+		result.mPtr = (*obj)[key].get_ptr<ObjectImpl*>();
+	}
+	return result;
+}
+
+std::vector<std::string> JsonObject::getKeys() const
+{
+	std::vector<std::string> keys;
+	if (!mPtr) return keys;
+
+	auto* obj = FJsonObjectImpl::GetImpl(mPtr);
+	for (auto& pair : *obj)
+	{
+		keys.push_back(pair.first);
+	}
+	return keys;
+}
+
+void JsonObject::set(char const* key, std::string const& value)
+{
+	if (!mPtr) return;
+	(*FJsonObjectImpl::GetImpl(mPtr))[key] = value;
+}
+
+void JsonObject::set(char const* key, int value)
+{
+	if (!mPtr) return;
+	(*FJsonObjectImpl::GetImpl(mPtr))[key] = value;
+}
+
+void JsonObject::set(char const* key, float value)
+{
+	if (!mPtr) return;
+	(*FJsonObjectImpl::GetImpl(mPtr))[key] = value;
+}
+
+void JsonObject::set(char const* key, bool value)
+{
+	if (!mPtr) return;
+	(*FJsonObjectImpl::GetImpl(mPtr))[key] = value;
+}
+
+JsonArray JsonObject::getJsonArray(char const* key) const
+{
+	JsonArray result;
+	ObjectImpl::iterator iter;
+	if (FJsonObjectImpl::Find(mPtr, key, iter) &&
+		iter->second.is_array())
+	{
+		result.mPtr = iter->second.get_ptr<nlohmann::json::array_t*>();
+	}
+	return result;
+}
+
+JsonArray JsonObject::getOrAddArray(char const* key)
+{
+	JsonArray result;
+	if (!mPtr) return result;
+
+	auto* obj = FJsonObjectImpl::GetImpl(mPtr);
+	auto iter = obj->find(key);
+	if (iter != obj->end())
+	{
+		if (iter->second.is_array())
+		{
+			result.mPtr = iter->second.get_ptr<nlohmann::json::array_t*>();
+		}
+	}
+	else
+	{
+		(*obj)[key] = nlohmann::json::array();
+		result.mPtr = (*obj)[key].get_ptr<nlohmann::json::array_t*>();
+	}
+	return result;
+}
+
+// ============= JsonArray =============
+
+size_t JsonArray::size() const
+{
+	if (!mPtr) return 0;
+	return static_cast<nlohmann::json::array_t*>(mPtr)->size();
+}
+
+void JsonArray::resize(size_t sz)
+{
+	if (!mPtr) 
+		return;
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	arr->resize(sz);
+}
+
+bool JsonArray::tryGet(size_t index, std::string& outValue) const
+{
+	if (!mPtr) 
+		return false;
+
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index >= arr->size() || !(*arr)[index].is_string()) 
+		return false;
+	
+	outValue = (*arr)[index].get<std::string>();
+	return true;
+}
+
+bool JsonArray::tryGet(size_t index, int& outValue) const
+{
+	if (!mPtr) 
+		return false;
+
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index >= arr->size() || !(*arr)[index].is_number()) 
+		return false;
+	outValue = (*arr)[index].get<int>();
+	return true;
+}
+
+bool JsonArray::tryGet(size_t index, float& outValue) const
+{
+	if (!mPtr) 
+		return false;
+
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index >= arr->size() || !(*arr)[index].is_number()) 
+		return false;
+	outValue = (*arr)[index].get<float>();
+	return true;
+}
+
+bool JsonArray::tryGet(size_t index, bool& outValue) const
+{
+	if (!mPtr) 
+		return false;
+
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index >= arr->size() || !(*arr)[index].is_boolean()) 
+		return false;
+	outValue = (*arr)[index].get<bool>();
+	return true;
+}
+
+void JsonArray::set(size_t index, std::string const& value)
+{
+	if (!mPtr) 
+		return;
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index < arr->size()) (*arr)[index] = value;
+}
+
+void JsonArray::set(size_t index, int value)
+{
+	if (!mPtr) 
+		return;
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index < arr->size()) (*arr)[index] = value;
+}
+
+void JsonArray::set(size_t index, float value)
+{
+	if (!mPtr) 
+		return;
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index < arr->size()) (*arr)[index] = value;
+}
+
+void JsonArray::set(size_t index, bool value)
+{
+	if (!mPtr) 
+		return;
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index < arr->size()) (*arr)[index] = value;
+}
+
+JsonObject JsonArray::getObject(size_t index)
+{
+	JsonObject result;
+	if (!mPtr) 
+		return result;
+
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index < arr->size() && (*arr)[index].is_object())
+	{
+		result.mPtr = (*arr)[index].get_ptr<ObjectImpl*>();
+	}
+	return result;
+}
+
+JsonObject JsonArray::getOrAddObject(size_t index)
+{
+	JsonObject result;
+	if (!mPtr) 
+		return result;
+
+	auto* arr = static_cast<nlohmann::json::array_t*>(mPtr);
+	if (index < arr->size())
+	{
+		if (!(*arr)[index].is_object())
+			(*arr)[index] = nlohmann::json::object();
+		result.mPtr = (*arr)[index].get_ptr<ObjectImpl*>();
 	}
 	return result;
 }

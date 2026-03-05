@@ -106,9 +106,9 @@ namespace Render
 		{
 			int ox = rect.x + mBorder;
 			int oy = rect.y + mBorder;
-			if (RenderThread::IsRunning())
+			if (RenderThread::IsRunning() && !IsInRenderThread())
 			{
-				int dataSize = ETexture::GetFormatSize(mTexture->getFormat()) * (dataImageWidth ? dataImageWidth : w) * h;
+				int dataSize = ETexture::GetFormatSize(format) * (dataImageWidth ? dataImageWidth : w) * h;
 				TArray<uint8> dataBuffer;
 				dataBuffer.addUninitialized(dataSize);
 				FMemory::Copy(dataBuffer.data(), data, dataSize);

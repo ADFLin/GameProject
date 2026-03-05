@@ -19,7 +19,9 @@
 #include "DrawEngine.h"
 #include "GameRenderSetup.h"
 #include "RHI/RHIGraphics2D.h"
+#include "Misc/Format.h"
 
+#include "RHI/DrawUtility.h"
 
 //#TODO REMOVEME
 #pragma comment(lib , "vulkan-1.lib")
@@ -73,6 +75,7 @@ namespace RenderVulkan
 		RHIBufferRef  mIndexBuffer;
 
 		ShaderProgram mShaderProgram;
+		ShaderProgram mTestSGCProgram;
 		RHIInputLayoutRef mInputLayout;
 
 		RHIFrameBufferRef mTestFrameBuffer;
@@ -119,6 +122,18 @@ namespace RenderVulkan
 
 			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mShaderProgram, "Shader/Test/VulkanTest", "MainVS", "MainPS"));
 
+			std::string outCode;
+			std::vector<uint8> codeTemplate;
+			if (FFileUtility::LoadToBuffer("Shader/Template/Test.sgc", codeTemplate, true))
+			{
+				std::vector<std::string> segments = { "", "return float4(Parameters.texCoords[0], 0, 1);" };
+				Text::Format((char const*)codeTemplate.data(), MakeConstView(segments), outCode);
+			}
+
+			ShaderCompileOption option;
+			option.addCode(outCode.c_str());
+			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mTestSGCProgram, nullptr, { { EShader::Vertex , "ScreenVS" },{ EShader::Pixel , "MainPS" } }, option));
+
 			RHIShaderProgram* boundShaderProgram = mShaderProgram.getRHI();
 			
 			texture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg");
@@ -161,9 +176,27 @@ namespace RenderVulkan
 
 			// [Test] Draw to a custom render target first, BEFORE opening the swap chain pass
 			{
+
+				RHIResourceTransition(commandList, { mTestColorTexture.get() }, EResourceTransition::RenderTarget);
+
+
 				RHISetFrameBuffer(commandList, mTestFrameBuffer);
-				LinearColor clearColor = { 1.0f, 0.5f, 0.0f, 1.0f };
+				LinearColor clearColor = { 0.0f, 0.0f, 1.0f, 1.0f };
 				RHIClearRenderTargets(commandList, EClearBits::Color, &clearColor, 1, 1.0f, 0);
+
+				ViewportInfo vpTest;
+				vpTest.x = 0; vpTest.y = 0;
+				vpTest.w = mSwapChainExtent.width;
+				vpTest.h = mSwapChainExtent.height;
+				vpTest.zNear = 0; vpTest.zFar = 1;
+				RHISetViewport(commandList, vpTest);
+				RHISetScissorRect(commandList, 0, 0, vpTest.w, vpTest.h);
+
+				RHISetShaderProgram(commandList, mTestSGCProgram.getRHI());
+				
+				DrawUtility::ScreenRect(commandList);
+
+				//RHIResourceTransition(commandList, { mTestColorTexture.get() }, EResourceTransition::SRV);
 			}
 
 			// Switch to swap chain (back buffer). This ends the test framebuffer pass
@@ -287,7 +320,7 @@ namespace RenderVulkan
 
 			RenderUtility::SetFont(g, FONT_S24);
 			g.setTextColor(Color3f(1, 0, 0));
-			g.drawTexture(FontCharCache::Get().getTexture(), Vector2(0,0), Vector2(500,500));
+			g.drawTexture(*mTestColorTexture, Vector2(0,0), Vector2(500,500));
 
 
 			g.drawText(Vector2(10, 10), "AAAAAAAAAA");

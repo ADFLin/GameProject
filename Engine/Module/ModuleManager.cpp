@@ -84,6 +84,7 @@ void ModuleManager::reloadModule(ModuleData& module)
 	{
 		if (module.instance)
 		{
+			module.instance->prevHotReload();
 			module.instance->shutdownModule();
 			module.instance->release();
 			module.instance = nullptr;
@@ -112,6 +113,10 @@ void ModuleManager::reloadModule(ModuleData& module)
 				}
 			}
 			HotReloadRegistry::Get().applyPatches();
+			if (module.instance)
+			{
+				module.instance->postHotReload();
+			}
 		}
 	}
 }

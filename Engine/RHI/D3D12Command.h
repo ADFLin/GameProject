@@ -583,7 +583,7 @@ namespace Render
 		virtual ShaderFormat* createShaderFormat();
 		virtual RHIProfileCore* createProfileCore();
 
-		bool RHIBeginRender();
+		bool RHIBeginRender(bool bAdvanceFrame);
 
 		void RHIEndRender(bool bPresent);
 

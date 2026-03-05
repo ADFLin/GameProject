@@ -30,18 +30,6 @@ namespace TFWR
 
 	template<typename T>
 	constexpr bool IsOutputValue = ((std::is_pointer_v<T> || std::is_reference_v<T>) && !std::is_const_v<T>) && (::Meta::IsPrimary< RemoveCVR<T> >::Value || std::is_same_v< RemoveCVR<T>, BoxingValue >);
-
-	struct CReflectCollectable
-	{
-		template< typename T, typename Collector >
-		static auto Requires(T& t, Collector& c) -> decltype
-		(
-			T::CollectReflection(c)
-		);
-	};
-
-	template<typename T>
-	constexpr bool IsRefectableObject = TCheckConcept< CReflectCollectable, T, ReflectionCollector>::Value;
 	
 	struct BoxingValue
 	{

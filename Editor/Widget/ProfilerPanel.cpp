@@ -621,7 +621,7 @@ void ProfilerPanel::render()
 		using namespace Render;
 		PROFILE_ENTRY("Profiler.RenderNodes");
 
-		RHIBeginRender();
+		RHIBeginRender(false);
 
 		RHIGraphics2D& g = EditorRenderGloabal::Get().getGraphics();
 		g.setViewportSize((int)displaySize.x, (int)displaySize.y);

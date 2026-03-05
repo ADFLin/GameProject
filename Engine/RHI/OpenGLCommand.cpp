@@ -319,7 +319,7 @@ namespace Render
 		return new OpenGLProfileCore;
 	}
 
-	bool OpenGLSystem::RHIBeginRender()
+	bool OpenGLSystem::RHIBeginRender(bool bAdvanceFrame)
 	{
 #if 0
 		if( !mGLContext.makeCurrent() )

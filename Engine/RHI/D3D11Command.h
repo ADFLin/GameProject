@@ -468,7 +468,7 @@ namespace Render
 		virtual ShaderFormat* createShaderFormat();
 		RHIProfileCore* createProfileCore();
 
-		bool RHIBeginRender();
+		bool RHIBeginRender(bool bAdvanceFrame);
 
 		Mutex mMutexContext;
 

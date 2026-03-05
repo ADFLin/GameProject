@@ -238,9 +238,9 @@ namespace Render
 		RHIResource::DumpResource();
 	}
 
-	bool RHIBeginRender()
+	bool RHIBeginRender(bool bAdvanceFrame)
 	{
-		return EXECUTE_RHI_FUNC( RHIBeginRender() );
+		return EXECUTE_RHI_FUNC( RHIBeginRender(bAdvanceFrame) );
 	}
 
 	void RHIEndRender(bool bPresent)

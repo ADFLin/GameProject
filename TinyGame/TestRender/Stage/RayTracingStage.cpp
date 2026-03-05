@@ -125,7 +125,22 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
 	{
-		RayTracingPS* rayTracingPS = mRayTracingPSMap[mDebugDisplayMode == EDebugDsiplayMode::None ? ( bSplitAccumulate ? ( bUseMIS ? 4 : 2) : (bUseMIS ? 3 : 0)) : 1];
+		RayTracingPS::PermutationDomain permutationVector;
+
+
+		if (mDebugDisplayMode != EDebugDsiplayMode::None)
+		{
+			permutationVector.set<RayTracingPS::UseDebugDisplay>(true);
+			permutationVector.set<RayTracingPS::UseSplitAccumulate>(false);
+			permutationVector.set<RayTracingPS::UseMIS>(false);
+		}
+		else
+		{
+			permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
+			permutationVector.set<RayTracingPS::UseSplitAccumulate>(bSplitAccumulate);
+			permutationVector.set<RayTracingPS::UseMIS>(bUseMIS);
+		}
+		RayTracingPS* rayTracingPS = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector);
 
 		GPU_PROFILE("RayTracing");
 		GraphicsShaderStateDesc state;
@@ -272,6 +287,7 @@ namespace RT
 		TArray< MaterialData > materials;
 		BVHTree meshBVH;
 		TArray< BVHNodeData > meshBVHNodes;
+		TArray< BVH4NodeData > meshBVH4Nodes;
 
 		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData)
 		{
@@ -416,6 +432,7 @@ namespace RT
 				mesh.startIndex = triangleIndex;
 				mesh.numTriangles = vertices.size() / 3;
 				mesh.nodeIndex = nodeIndex;
+
 			}
 			else
 			{
@@ -440,7 +457,6 @@ namespace RT
 				mesh.nodeIndex = buildResult.nodeIndex;
 			}
 
-			BuildMeshResult buildResult;
 			meshes.push_back(mesh);
 			return meshes.size() - 1;
 		}
@@ -517,6 +533,7 @@ namespace RT
 				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(MakeConstView(meshVertices), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(MakeConstView(meshes), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(MakeConstView(meshBVHNodes), EStructuredBufferType::Buffer));
+				//VERIFY_RETURN_FALSE(mScene.mBVH4NodeBuffer.initializeResource(MakeConstView(meshBVH4Nodes), EStructuredBufferType::Buffer));
 			}
 
 			{
@@ -857,38 +874,6 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 		VERIFY_RETURN_FALSE(mScreenVS = ::ShaderManager::Get().getGlobalShaderT<ScreenVS>(permutationVector));
 	}
 
-	for (int i = 0; i < 2; ++i)
-	{
-		RayTracingPS::PermutationDomain permutationVector;
-		permutationVector.set<RayTracingPS::UseDebugDisplay>(i);
-		VERIFY_RETURN_FALSE(mRayTracingPSMap[i] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
-	}
-
-	{
-		RayTracingPS::PermutationDomain permutationVector;
-		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
-		permutationVector.set<RayTracingPS::UseSplitAccumulate>(true);
-		permutationVector.set<RayTracingPS::UseMIS>(false);
-		VERIFY_RETURN_FALSE(mRayTracingPSMap[2] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
-	}
-
-
-	{
-		RayTracingPS::PermutationDomain permutationVector;
-		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
-		permutationVector.set<RayTracingPS::UseSplitAccumulate>(false);
-		permutationVector.set<RayTracingPS::UseMIS>(true);
-		VERIFY_RETURN_FALSE(mRayTracingPSMap[3] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
-	}
-
-	{
-		RayTracingPS::PermutationDomain permutationVector;
-		permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
-		permutationVector.set<RayTracingPS::UseSplitAccumulate>(true);
-		permutationVector.set<RayTracingPS::UseMIS>(true);
-		VERIFY_RETURN_FALSE(mRayTracingPSMap[4] = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector));
-	}
-
 	VERIFY_RETURN_FALSE(mAccumulatePS = ::ShaderManager::Get().getGlobalShaderT<AccumulatePS>());
 
 	VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());
@@ -919,7 +904,6 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 void RayTracingTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 {
 	mScreenVS = nullptr;
-	std::fill_n( mRayTracingPSMap, ARRAY_SIZE(mRayTracingPSMap), nullptr);
 	mView.releaseRHIResource();
 	mMaterialBuffer.releaseResource();
 	mObjectBuffer.releaseResource();

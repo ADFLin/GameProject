@@ -16,9 +16,13 @@
 #define USE_MIS 0
 #endif
 
+#ifndef USE_BVH4
+#define USE_BVH4 0
+#endif
+
 #define MAX_TRACE_DIST 1.#INF
 
-#define MaxBounceCount 5
+#define MaxBounceCount 4
 #define NumRaysPerPixel 1
 
 #if USE_DEBUG_DISPLAY
@@ -68,11 +72,20 @@ float RandomValueNormalDistribution(inout uint state)
 // Calculate a random direction
 float3 RandomDirection(inout uint state)
 {
+#if 0
 	// Thanks to https://math.stackexchange.com/a/1585996
 	float x = RandomValueNormalDistribution(state);
 	float y = RandomValueNormalDistribution(state);
 	float z = RandomValueNormalDistribution(state);
 	return normalize(float3(x, y, z));
+#else
+	float z = Random(state) * 2.0 - 1.0;
+	float a = Random(state) * 2.0 * PI;
+	float r = sqrt(max(0.0, 1.0 - z * z));
+	float x = r * cos(a);
+	float y = r * sin(a);
+	return float3(x, y, z);
+#endif
 }
 
 #if PIXEL_SHADER
@@ -159,12 +172,24 @@ struct BVHNodeData
 	int right; // < 0 leaf
 };
 
+struct BVH4NodeData
+{
+	float4 boundMinX;
+	float4 boundMinY;
+	float4 boundMinZ;
+	float4 boundMaxX;
+	float4 boundMaxY;
+	float4 boundMaxZ;
+	int4 children;
+	int4 primitiveCounts;
+};
 
 DEFINE_STRUCTURED_BUFFER(MaterialData, Materials);
 DEFINE_STRUCTURED_BUFFER(ObjectData, Objects);
 DEFINE_STRUCTURED_BUFFER(MeshVertexData, MeshVertices);
 DEFINE_STRUCTURED_BUFFER(MeshData, Meshes);
 DEFINE_STRUCTURED_BUFFER(BVHNodeData, BVHNodes);
+DEFINE_STRUCTURED_BUFFER(BVH4NodeData, BVH4Nodes);
 DEFINE_STRUCTURED_BUFFER(BVHNodeData, SceneBVHNodes);
 DEFINE_STRUCTURED_BUFFER(int, ObjectIds);
 DEFINE_STRUCTURED_BUFFER(int, EmittingObjectIds);
@@ -189,7 +214,7 @@ struct RayCastResult
 };
 
 #ifndef USE_RAY_INV_DIR
-#define USE_RAY_INV_DIR 0
+#define USE_RAY_INV_DIR 1
 #endif
 struct Ray
 {
@@ -202,7 +227,7 @@ struct Ray
 
 
 
-RayCastResult RayTriangle(Ray ray, MeshVertexData a, MeshVertexData b, MeshVertexData c)
+bool RayTriangleTest(Ray ray, MeshVertexData a, MeshVertexData b, MeshVertexData c, out float dst, out float u, out float v, out float w)
 {
 	float3 edgeAB = b.pos - a.pos;
 	float3 edgeAC = c.pos - a.pos;
@@ -214,18 +239,12 @@ RayCastResult RayTriangle(Ray ray, MeshVertexData a, MeshVertexData b, MeshVerte
 	float invDet = 1 / determinant;
 
 	// Calculate dst to triangle & barycentric coordinates of intersection point
-	float dst = dot(ao, normalVector) * invDet;
-	float u = dot(edgeAC, dao) * invDet;
-	float v = -dot(edgeAB, dao) * invDet;
-	float w = 1 - u - v;
+	dst = dot(ao, normalVector) * invDet;
+	u = dot(edgeAC, dao) * invDet;
+	v = -dot(edgeAB, dao) * invDet;
+	w = 1.0f - u - v;
 
-	// Initialize hit info
-	RayCastResult result;
-	result.bHit = determinant >= 1E-6 && dst >= 0 && u >= 0 && v >= 0 && w >= 0;
-	result.hitPos = ray.pos + ray.dir * dst;
-	result.hitNormal = normalize(a.normal * w + b.normal* u + c.normal * v);
-	result.dist = dst;
-	return result;
+	return determinant >= 1E-6 && dst >= 0 && u >= 0 && v >= 0 && w >= 0;
 }
 
 RayCastResult RayBox(Ray ray, float3 size)
@@ -297,14 +316,13 @@ float RayBoundingBoxDist(Ray ray, float3 boxMin, float3 boxMax)
 #else
 	float3 invDir = 1 / ray.dir;
 #endif
-	float3 tMin = (boxMin - ray.pos) * invDir;
-	float3 tMax = (boxMax - ray.pos) * invDir;
-	float3 t1 = min(tMin, tMax);
-	float3 t2 = max(tMin, tMax);
-	float tNear = max(max(t1.x, t1.y), t1.z);
-	float tFar = min(min(t2.x, t2.y), t2.z);
-	bool bHit = tNear <= tFar && tFar > 0;
-	return bHit ? tNear : MAX_TRACE_DIST;
+	float3 t0 = (boxMin - ray.pos) * invDir;
+	float3 t1 = (boxMax - ray.pos) * invDir;
+	float3 tmin = min(t0, t1);
+	float3 tmax = max(t0, t1);
+	float tNear = max(max(tmin.x, tmin.y), tmin.z);
+	float tFar = min(min(tmax.x, tmax.y), tmax.z);
+	return (tNear <= tFar && tFar > 0.0f) ? max(0.0f, tNear) : MAX_TRACE_DIST;
 };
 
 
@@ -319,7 +337,10 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 	result.bHit = 0;
 	result.dist = MAX_TRACE_DIST;
 
-	int nodeStack[32];
+	int bestIndex = -1;
+	float bestU, bestV, bestW;
+
+	int nodeStack[24];
 	int stackSize = 0;
 	
 	nodeStack[0] = rootNodeIndex;
@@ -328,13 +349,74 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 	while (stackSize > 0)
 	{
 		int nodeIndex = nodeStack[--stackSize];
+#if USE_BVH4
+		BVH4NodeData node = BVH4Nodes[nodeIndex];
+		
+		float4 t0X = (node.boundMinX - ray.pos.x) * ray.invDir.x;
+		float4 t1X = (node.boundMaxX - ray.pos.x) * ray.invDir.x;
+		float4 tminX = min(t0X, t1X);
+		float4 tmaxX = max(t0X, t1X);
+
+		float4 t0Y = (node.boundMinY - ray.pos.y) * ray.invDir.y;
+		float4 t1Y = (node.boundMaxY - ray.pos.y) * ray.invDir.y;
+		float4 tminY = min(t0Y, t1Y);
+		float4 tmaxY = max(t0Y, t1Y);
+
+		float4 t0Z = (node.boundMinZ - ray.pos.z) * ray.invDir.z;
+		float4 t1Z = (node.boundMaxZ - ray.pos.z) * ray.invDir.z;
+		float4 tminZ = min(t0Z, t1Z);
+		float4 tmaxZ = max(t0Z, t1Z);
+
+		float4 tNear = max(max(tminX, tminY), tminZ);
+		float4 tFar = min(min(tmaxX, tmaxY), tmaxZ);
+
+		for(int i = 0; i < 4; ++i)
+		{
+			if (tNear[i] <= tFar[i] && tFar[i] > 0.0f && tNear[i] < result.dist)
+			{
+				int childCount = node.primitiveCounts[i];
+				int childIndex = node.children[i];
+				
+				if (childCount > 0)
+				{
+					for (int p = 0; p < childCount; ++p)
+					{
+						int index = childIndex + 3 * p;
+#if USE_DEBUG_DISPLAY
+						stats.triangleCount += 1;
+#endif
+						float dst, u, v, w;
+						bool bHit = RayTriangleTest(ray,
+							MeshVertices[index + 0],
+							MeshVertices[index + 1],
+							MeshVertices[index + 2], dst, u, v, w);
+
+						if (bHit && dst < result.dist)
+						{
+							result.bHit = 1;
+							result.dist = dst;
+							bestIndex = index;
+							bestU = u;
+							bestV = v;
+							bestW = w;
+						}
+					}
+				}
+				else if (childIndex >= 0)
+				{
+					nodeStack[stackSize++] = childIndex;
+				}
+			}
+		}
+
+#else
 		BVHNodeData node = BVHNodes[nodeIndex];
 
 #if USE_DIST_CHILD_ORDERING == 0
 #if USE_DEBUG_DISPLAY
 		stats.boundingBoxCount += 1;
 #endif
-		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
+		if (RayBoundingBoxDist(ray, node.boundMin, node.boundMax) < result.dist)
 #endif
 		{
 			if (node.right < 0)
@@ -349,30 +431,22 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 #if USE_DEBUG_DISPLAY
 					stats.triangleCount += 1;
 #endif
-					RayCastResult castResult = RayTriangle(ray,
+					float dst, u, v, w;
+					bool bHit = RayTriangleTest(ray,
 						MeshVertices[index + 0],
 						MeshVertices[index + 1],
-						MeshVertices[index + 2]);
+						MeshVertices[index + 2], dst, u, v, w);
 
-					if (castResult.bHit && castResult.dist < result.dist)
+					if (bHit && dst < result.dist)
 					{
-#if 1
-						result.bHit = castResult.bHit;
-						result.dist = castResult.dist;
-						result.hitPos = castResult.hitPos;
-						result.hitNormal = castResult.hitNormal;
-#else
-						result = castResult;
-#endif
+						result.bHit = 1;
+						result.dist = dst;
+						bestIndex = index;
+						bestU = u;
+						bestV = v;
+						bestW = w;
 					}
 				}
-
-#if 0
-				if (result.bHit)
-				{
-					break;
-				}
-#endif
 			}
 			else
 			{
@@ -411,7 +485,16 @@ RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 #endif
 			}
 		}
+#endif
+	}
 
+	if (result.bHit)
+	{
+		result.hitPos = ray.pos + ray.dir * result.dist;
+		result.hitNormal = normalize(
+			MeshVertices[bestIndex].normal * bestW + 
+			MeshVertices[bestIndex+1].normal * bestU + 
+			MeshVertices[bestIndex+2].normal * bestV);
 	}
 
 	return result;
@@ -491,29 +574,6 @@ void RayObject(int objId, Ray ray , ObjectData object, inout  RayCastResult resu
 #if USE_RAY_INV_DIR
 			rayLocal.invDir = 1 / rayLocal.dir;
 #endif
-#if 0
-			if (RayBoundingBox(rayLocal, mesh.boundMin, mesh.boundMax))
-			{
-				for (int i = 0; i < mesh.numTriangles; ++i)
-				{
-					int index = mesh.startIndex + 3 * i;
-					RayCastResult castResult = RayTriangle(rayLocal.pos, rayLocal.dir,
-						MeshVertices[index + 0],
-						MeshVertices[index + 1],
-						MeshVertices[index + 2]);
-
-					if (castResult.bHit && castResult.dist < result.dist)
-					{
-						result = castResult;
-
-						result.hitPos = QuatRotate(object.rotation, result.hitPos + object.pos);
-						result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
-
-						result.id = object.materialId;
-					}
-				}
-			}
-#else
 			RayCastResult castResult = TraverseMeshBVH(mesh.nodeIndex, rayLocal
 #if USE_DEBUG_DISPLAY
 			,stats
@@ -530,7 +590,6 @@ void RayObject(int objId, Ray ray , ObjectData object, inout  RayCastResult resu
 				result.matId = object.materialId;
 				result.objId = objId;
 			}
-#endif
 			break;
 		}
 		break;
@@ -591,7 +650,7 @@ RayCastResult RayCast(float3 start, float3 dir
 #else
 
 	int nodeIndex = 0;
-	int nodeStack[32];
+	int nodeStack[24];
 	int stackSize = 0;
 
 	nodeStack[0] = 0;
@@ -605,7 +664,7 @@ RayCastResult RayCast(float3 start, float3 dir
 #if USE_DEBUG_DISPLAY
 		stats.boundingBoxCount += 1;
 #endif
-		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
+		if (RayBoundingBoxDist(ray, node.boundMin, node.boundMax) < result.dist)
 #endif
 		{
 			if (node.right < 0)
@@ -667,10 +726,236 @@ RayCastResult RayCast(float3 start, float3 dir
 	return result;
 }
 
+bool TraverseMeshBVHShadow(int rootNodeIndex, Ray ray, float maxDist)
+{
+	int nodeStack[24];
+	int stackSize = 0;
+	nodeStack[0] = rootNodeIndex;
+	++stackSize;
+
+	while (stackSize > 0)
+	{
+		int nodeIndex = nodeStack[--stackSize];
+#if USE_BVH4
+		BVH4NodeData node = BVH4Nodes[nodeIndex];
+		
+		float4 t0X = (node.boundMinX - ray.pos.x) * ray.invDir.x;
+		float4 t1X = (node.boundMaxX - ray.pos.x) * ray.invDir.x;
+		float4 tminX = min(t0X, t1X);
+		float4 tmaxX = max(t0X, t1X);
+
+		float4 t0Y = (node.boundMinY - ray.pos.y) * ray.invDir.y;
+		float4 t1Y = (node.boundMaxY - ray.pos.y) * ray.invDir.y;
+		float4 tminY = min(t0Y, t1Y);
+		float4 tmaxY = max(t0Y, t1Y);
+
+		float4 t0Z = (node.boundMinZ - ray.pos.z) * ray.invDir.z;
+		float4 t1Z = (node.boundMaxZ - ray.pos.z) * ray.invDir.z;
+		float4 tminZ = min(t0Z, t1Z);
+		float4 tmaxZ = max(t0Z, t1Z);
+
+		float4 tNear = max(max(tminX, tminY), tminZ);
+		float4 tFar = min(min(tmaxX, tmaxY), tmaxZ);
+
+		for(int i = 0; i < 4; ++i)
+		{
+			if (tNear[i] <= tFar[i] && tFar[i] > 0.0f && tNear[i] < maxDist)
+			{
+				int childCount = node.primitiveCounts[i];
+				int childIndex = node.children[i];
+				
+				if (childCount > 0)
+				{
+					for (int p = 0; p < childCount; ++p)
+					{
+						int index = childIndex + 3 * p;
+						float dst, u, v, w;
+						bool bHit = RayTriangleTest(ray,
+							MeshVertices[index + 0],
+							MeshVertices[index + 1],
+							MeshVertices[index + 2], dst, u, v, w);
+						if (bHit && dst < maxDist)
+						{
+							return true;
+						}
+					}
+				}
+				else if (childIndex >= 0)
+				{
+					nodeStack[stackSize++] = childIndex;
+				}
+			}
+		}
+
+#else
+		BVHNodeData node = BVHNodes[nodeIndex];
+
+#if USE_DIST_CHILD_ORDERING == 0
+		if (RayBoundingBoxDist(ray, node.boundMin, node.boundMax) < maxDist)
+#endif
+		{
+			if (node.right < 0)
+			{
+				int numPrimitives = -node.right;
+				int indexStart = node.left;
+
+				for (int i = 0; i < numPrimitives; ++i)
+				{
+					int index = indexStart + 3 * i;
+					float dst, u, v, w;
+					bool bHit = RayTriangleTest(ray,
+						MeshVertices[index + 0],
+						MeshVertices[index + 1],
+						MeshVertices[index + 2], dst, u, v, w);
+					if (bHit && dst < maxDist)
+					{
+						return true;
+					}
+				}
+			}
+			else
+			{
+				int indexChildLeft = nodeIndex + 1;
+				int indexChildRight = node.right;
+
+#if USE_DIST_CHILD_ORDERING
+				BVHNodeData childLeft = BVHNodes[indexChildLeft];
+				BVHNodeData childRight = BVHNodes[indexChildRight];
+
+				float distLeft = RayBoundingBoxDist(ray, childLeft.boundMin, childLeft.boundMax);
+				float distRight = RayBoundingBoxDist(ray, childRight.boundMin, childRight.boundMax);
+
+				bool bNearestLeft = distLeft < distRight;
+				int indexChildNear = bNearestLeft ? indexChildLeft : indexChildRight;
+				int indexChildFar = bNearestLeft ? indexChildRight : indexChildLeft;
+				float distNear = bNearestLeft ? distLeft : distRight;
+				float distFar = bNearestLeft ? distRight : distLeft;
+
+				if (distFar < maxDist) nodeStack[stackSize++] = indexChildFar;
+				if (distNear < maxDist) nodeStack[stackSize++] = indexChildNear;
+#else
+				nodeStack[stackSize++] = indexChildLeft;
+				nodeStack[stackSize++] = indexChildRight;
+#endif
+			}
+		}
+#endif
+	}
+	return false;
+}
+
+bool RayObjectShadow(int objId, Ray ray, ObjectData object, float maxDist)
+{
+	switch (object.type)
+	{
+	case OBJ_SPHERE:
+		{
+			float dist;
+			int type = RaySphereTest(ray.pos, ray.dir, object.pos, object.meta.x, dist);
+			if (type > 0 && dist < maxDist) return true;
+		}
+		break;
+	case OBJ_CUBE:
+		{
+			float3 size = object.meta;
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+#if USE_RAY_INV_DIR
+			rayLocal.invDir = 1 / rayLocal.dir;
+#endif
+			RayCastResult castResult = RayBox(rayLocal, size);
+			if (castResult.bHit && castResult.dist < maxDist) return true;
+		}
+		break;
+	case OBJ_TRIANGLE_MESH:
+		{
+			int meshId = asint(object.meta.x);
+			MeshData mesh = Meshes[meshId];
+			float scale = object.meta.y;
+
+			float3 objectPos = object.pos;
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - objectPos) / scale);
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+#if USE_RAY_INV_DIR
+			rayLocal.invDir = 1 / rayLocal.dir;
+#endif
+			if (TraverseMeshBVHShadow(mesh.nodeIndex, rayLocal, maxDist / scale)) return true;
+		}
+		break;
+	}
+	return false;
+}
+
+bool RayCastShadow(float3 start, float3 dir, float maxDist)
+{
+	Ray ray;
+	ray.pos = start;
+	ray.dir = dir;
+#if USE_RAY_INV_DIR
+	ray.invDir = 1 / ray.dir;
+#endif
+
+	int nodeStack[24];
+	int stackSize = 0;
+	nodeStack[0] = 0;
+	++stackSize;
+
+	while (stackSize > 0)
+	{
+		int nodeIndex = nodeStack[--stackSize];
+		BVHNodeData node = SceneBVHNodes[nodeIndex];
+
+#if USE_DIST_CHILD_ORDERING == 0
+		if (RayBoundingBoxDist(ray, node.boundMin, node.boundMax) < maxDist)
+#endif
+		{
+			if (node.right < 0)
+			{
+				int numPrimitives = -node.right;
+				int indexStart = node.left;
+
+				for (int i = 0; i < numPrimitives; ++i)
+				{
+					int objectId = ObjectIds[indexStart + i];
+					if (RayObjectShadow(objectId, ray, Objects[objectId], maxDist)) return true;
+				}
+			}
+			else
+			{
+				int indexChildLeft = nodeIndex + 1;
+				int indexChildRight = node.right;
+
+#if USE_DIST_CHILD_ORDERING
+				BVHNodeData childLeft = SceneBVHNodes[indexChildLeft];
+				BVHNodeData childRight = SceneBVHNodes[indexChildRight];
+
+				float distLeft = RayBoundingBoxDist(ray, childLeft.boundMin, childLeft.boundMax);
+				float distRight = RayBoundingBoxDist(ray, childRight.boundMin, childRight.boundMax);
+
+				bool bNearestLeft = distLeft < distRight;
+				int indexChildNear = bNearestLeft ? indexChildLeft : indexChildRight;
+				int indexChildFar = bNearestLeft ? indexChildRight : indexChildLeft;
+				float distNear = bNearestLeft ? distLeft : distRight;
+				float distFar = bNearestLeft ? distRight : distLeft;
+
+				if (distFar < maxDist) nodeStack[stackSize++] = indexChildFar;
+				if (distNear < maxDist) nodeStack[stackSize++] = indexChildNear;
+#else
+				nodeStack[stackSize++] = indexChildLeft;
+				nodeStack[stackSize++] = indexChildRight;
+#endif
+			}
+		}
+	}
+	return false;
+}
+
 
 float3x3 TangentToWorldTransform(float3 tangentZ)
 {
-#if 1
+#if 0
 	float3 up = abs(tangentZ.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
 	float3 tangentX = normalize(cross(up, tangentZ));
 	float3 tangentY = cross(tangentZ, tangentX);
@@ -729,13 +1014,14 @@ float pdfLight(int objId)
 	return 1.0 / (float(NumEmittingObjects) * max(area, 0.001f));
 }
 
-void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf, inout uint rngState) 
+void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf, out int outObjectId, inout uint rngState) 
 {
 	if (NumEmittingObjects <= 0) 
 	{
 		sampledPoint = float3(0.0, 50.0, 0.0);
 		normal = float3(0.0, -1.0, 0.0);
 		pdf = 1.0 / 10.0;
+		outObjectId = -1;
 		return;
 	}
 
@@ -743,6 +1029,7 @@ void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf
 	if (randomEmittingObjectIndex >= NumEmittingObjects) randomEmittingObjectIndex = NumEmittingObjects - 1;
 
 	int objectId = EmittingObjectIds[randomEmittingObjectIndex];
+	outObjectId = objectId;
 	ObjectData object = Objects[objectId];
 
 	float area = 1.0;
@@ -818,34 +1105,7 @@ float G_Smith(float a, float nDotV, float nDotL)
 	return gv * gl;
 }
 
-float3 EvaluateMaterialGGX(in float3 w_i, in float3 normal, in float3 w_o, MaterialData material, inout uint rngState) {
-	float3 V = -w_o;
-	float3 L = w_i;
-	float3 H_vec = V + L;
-	float3 H = dot(H_vec, H_vec) < 0.00001f ? normal : normalize(H_vec);
-	float k_s = material.specular;
-	float k_d = 1.0f - k_s;
-	float a = max(0.001f, material.roughness * material.roughness);
-	float a2 = a * a;
-	float nDotV = max(0.0f, dot(normal, V));
-	float nDotL = max(0.0f, dot(normal, L));
-	float nDotH = max(0.0f, dot(normal, H));
-	float vDotH = max(0.0f, dot(V, H));
-	float d = (nDotH * a2 - nDotH) * nDotH + 1.0f;
-	float D = a2 / (PI * d * d);
-	float G = G_Smith(a, nDotV, nDotL);
-	
-	// Physically-based Fresnel formulation
-	float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), material.baseColor, k_s);
-	float3 F = F0 + (1.0f - F0) * pow(max(0.0f, 1.0f - vDotH), 5.0f);
-	float3 brdf_s = (D * G * F) / max(4.0f * nDotV * nDotL, 0.001f);
-	
-	// Physically constrained diffuse BRDF
-	float3 brdf_d = material.baseColor / PI;
-	return brdf_d * k_d + brdf_s;
-}
-
-float pdfGGX(in float3 w_i, in float3 normal, in float3 w_o, MaterialData material) 
+void EvaluateMaterialAndPdfGGX(in float3 w_i, in float3 normal, in float3 w_o, MaterialData material, out float3 brdf, out float pdf) 
 {
 	float3 V = -w_o;
 	float3 L = w_i;
@@ -861,9 +1121,18 @@ float pdfGGX(in float3 w_i, in float3 normal, in float3 w_o, MaterialData materi
 	float vDotH = max(0.0f, dot(V, H));
 	float d = (nDotH * a2 - nDotH) * nDotH + 1.0f;
 	float D = a2 / (PI * d * d);
+	
 	float pdf_diffuse = nDotL / PI;
 	float pdf_specular = (D * nDotH) / max(4.0f * vDotH, 0.001f);
-	return k_d * pdf_diffuse + k_s * pdf_specular;
+	pdf = k_d * pdf_diffuse + k_s * pdf_specular;
+
+	float G = G_Smith(a, nDotV, nDotL);
+	float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), material.baseColor, k_s);
+	float3 F = F0 + (1.0f - F0) * pow(max(0.0f, 1.0f - vDotH), 5.0f);
+	float3 brdf_s = (D * G * F) / max(4.0f * nDotV * nDotL, 0.001f);
+	
+	float3 brdf_d = material.baseColor / PI;
+	brdf = brdf_d * k_d + brdf_s;
 }
 
 float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
@@ -981,9 +1250,11 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 				float3 directLight = float3(0.0f, 0.0f, 0.0f);
 				float3 w_i_dl;
 				float pdf_dl;
+				float3 w_i_dl_brdf = float3(0.0f, 0.0f, 0.0f);
 				{
 					float3 lightPos, lightNormal;
-					SampleDirectLight(lightPos, lightNormal, pdf_dl, randState);
+					int lightObjId;
+					SampleDirectLight(lightPos, lightNormal, pdf_dl, lightObjId, randState);
 
 					w_i_dl = normalize(lightPos - rayResult.hitPos);
 					Ray dL_ray;
@@ -993,36 +1264,37 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 					dL_ray.invDir = 1.0 / dL_ray.dir;
 #endif
 
-					RayCastResult dL_hitInfo = RayCast(dL_ray.pos, dL_ray.dir
-#if USE_DEBUG_DISPLAY
-						, stats
-#endif
-					);
-
 					float V = 1.0f;
 					if (dot(rayResult.hitNormal, dL_ray.dir) < 0.0001f) V = 0.0f;
 
-					if (V > 0.5f && dL_hitInfo.bHit) {
-						MaterialData dL_mat = GetMaterial(dL_hitInfo.matId);
-						if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
-						{
-							float dotA = max(0.0001f, dot(lightNormal, -dL_ray.dir));
-							float distSq = max(0.001f, dL_hitInfo.dist * dL_hitInfo.dist);
-							
-							float pdf_brdf_mis = pdfGGX(w_i_dl, rayResult.hitNormal, rayDir, mat);
-							// Convert area measure pdf_dl to solid angle measure for balance heuristic
-							float pdf_dl_w = pdf_dl * distSq / dotA;
-							float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
+					if (V > 0.5f && lightObjId != -1) {
+						float lightDist = length(lightPos - rayResult.hitPos);
+						bool bOccluded = RayCastShadow(dL_ray.pos, dL_ray.dir, lightDist - 0.002f);
+						
+						if (!bOccluded) {
+							ObjectData dL_obj = Objects[lightObjId];
+							MaterialData dL_mat = GetMaterial(dL_obj.materialId);
+							if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+							{
+								float dotA = max(0.0001f, dot(lightNormal, -dL_ray.dir));
+								float distSq = max(0.001f, lightDist * lightDist);
+								
+								float pdf_brdf_mis;
+								EvaluateMaterialAndPdfGGX(w_i_dl, rayResult.hitNormal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
+								// Convert area measure pdf_dl to solid angle measure for balance heuristic
+								float pdf_dl_w = pdf_dl * distSq / dotA;
+								float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
 
-							// Include dotA / distSq geometric terms for incident light directly:
-							directLight = dL_mat.emissiveColor * misWeight / pdf_dl_w;
+								// Include dotA / distSq geometric terms for incident light directly:
+								directLight = dL_mat.emissiveColor * misWeight / pdf_dl_w;
+							}
 						}
 					}
 				}
 
 				if (i + 1 <= MaxBounceCount && length(directLight) > 0.001f) {
 					float cos_theta = max(0.0001f, dot(rayResult.hitNormal, w_i_dl));
-					incomingLight += directLight * rayColor * EvaluateMaterialGGX(w_i_dl, rayResult.hitNormal, rayDir, mat, randState) * cos_theta;
+					incomingLight += directLight * rayColor * w_i_dl_brdf * cos_theta;
 				}
 
 				bool isSpecularBounce = mat.specular >= Random(randState);
@@ -1037,8 +1309,10 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 
 				float3 newRayDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
 
-				float pdf_brdf = max(0.00001f, pdfGGX(newRayDir, rayResult.hitNormal, rayDir, mat));
-				float3 brdf = EvaluateMaterialGGX(newRayDir, rayResult.hitNormal, rayDir, mat, randState);
+				float pdf_brdf_raw;
+				float3 brdf;
+				EvaluateMaterialAndPdfGGX(newRayDir, rayResult.hitNormal, rayDir, mat, brdf, pdf_brdf_raw);
+				float pdf_brdf = max(0.00001f, pdf_brdf_raw);
 				float cosTheta = max(0.001f, dot(rayResult.hitNormal, newRayDir));
 
 				rayColor *= brdf * cosTheta / pdf_brdf;
@@ -1060,8 +1334,10 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState
 
 				float3 newRayDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
 				
-				float pdf_brdf = max(0.00001f, pdfGGX(newRayDir, rayResult.hitNormal, rayDir, mat));
-				float3 brdf = EvaluateMaterialGGX(newRayDir, rayResult.hitNormal, rayDir, mat, randState);
+				float pdf_brdf_raw;
+				float3 brdf;
+				EvaluateMaterialAndPdfGGX(newRayDir, rayResult.hitNormal, rayDir, mat, brdf, pdf_brdf_raw);
+				float pdf_brdf = max(0.00001f, pdf_brdf_raw);
 				float cosTheta = max(0.0001f, dot(rayResult.hitNormal, newRayDir));
 
 				incomingLight += mat.emissiveColor * rayColor;

@@ -34,6 +34,7 @@ public:
 	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
 	SHADER_PERMUTATION_TYPE_BOOL(UseSplitAccumulate, SHADER_PARAM(USE_SPLIT_ACCUMULATE));
 	SHADER_PERMUTATION_TYPE_BOOL(UseMIS, SHADER_PARAM(USE_MIS));
+	SHADER_PERMUTATION_TYPE_BOOL(UseBVH4, SHADER_PARAM(USE_BVH4));
 
 	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate, UseMIS>;
 
@@ -59,10 +60,10 @@ public:
 class AccumulatePS : public GlobalShader
 {
 	using BaseClass = GlobalShader;
-	DECLARE_SHADER(RayTracingPS, Global);
+	DECLARE_SHADER(AccumulatePS, Global);
 public:
-	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY))
-		using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay>;
+	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
+	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay>;
 
 	static char const* GetShaderFileName()
 	{
@@ -645,6 +646,157 @@ struct GPU_ALIGN BVHNodeData
 
 };
 
+struct GPU_ALIGN BVH4NodeData
+{
+	DECLARE_BUFFER_STRUCT(BVH4Nodes);
+
+	Math::Vector4 boundMinX;
+	Math::Vector4 boundMinY;
+	Math::Vector4 boundMinZ;
+	Math::Vector4 boundMaxX;
+	Math::Vector4 boundMaxY;
+	Math::Vector4 boundMaxZ;
+	int32 children[4];
+	int32 primitiveCounts[4];
+
+	static void Generate(BVHTree const& BVH, TArray< BVH4NodeData >& nodes, TArray< int >& primitiveIds)
+	{
+		nodes.clear();
+		if (BVH.nodes.empty()) return;
+		Collapse_R(BVH, 0, nodes, primitiveIds);
+	}
+
+	static void Generate(BVHTree const& BVH, TArray< BVH4NodeData >& nodes, int indexTriangleStart)
+	{
+		int indexCur = indexTriangleStart;
+		if (BVH.nodes.empty()) return;
+		Collapse_R(BVH, 0, nodes, indexCur);
+	}
+
+private:
+	static void GetQuadChildren(BVHTree const& BVH, int bNodeId, int outNodes[4], int& outCount)
+	{
+		outCount = 0;
+		int pass1[2];
+		int pass1Count = 0;
+		auto const& root = BVH.nodes[bNodeId];
+		if (root.isLeaf()) {
+			pass1[pass1Count++] = bNodeId;
+		} else {
+			pass1[pass1Count++] = root.indexLeft;
+			pass1[pass1Count++] = root.indexRight;
+		}
+
+		for(int i = 0; i < pass1Count; ++i) {
+			auto const& n = BVH.nodes[pass1[i]];
+			if (n.isLeaf()) {
+				outNodes[outCount++] = pass1[i];
+			} else {
+				outNodes[outCount++] = n.indexLeft;
+				outNodes[outCount++] = n.indexRight;
+			}
+		}
+	}
+
+	static int Collapse_R(BVHTree const& BVH, int binaryNodeIndex, TArray< BVH4NodeData >& outNodes, TArray< int >& primitiveIds)
+	{
+		int outNodeIndex = outNodes.size();
+		outNodes.push_back(BVH4NodeData());
+
+		int childrenNodes[4];
+		int childCount = 0;
+		GetQuadChildren(BVH, binaryNodeIndex, childrenNodes, childCount);
+
+		Math::Vector4 bMinX(1e30f, 1e30f, 1e30f, 1e30f), bMinY(1e30f, 1e30f, 1e30f, 1e30f), bMinZ(1e30f, 1e30f, 1e30f, 1e30f);
+		Math::Vector4 bMaxX(-1e30f, -1e30f, -1e30f, -1e30f), bMaxY(-1e30f, -1e30f, -1e30f, -1e30f), bMaxZ(-1e30f, -1e30f, -1e30f, -1e30f);
+		int32 childIndices[4] = {-1, -1, -1, -1};
+		int32 childCounts[4] = {0, 0, 0, 0};
+
+		for(int i = 0; i < childCount; ++i)
+		{
+			auto const& bNode = BVH.nodes[childrenNodes[i]];
+			bMinX[i] = bNode.bound.min.x;
+			bMinY[i] = bNode.bound.min.y;
+			bMinZ[i] = bNode.bound.min.z;
+			bMaxX[i] = bNode.bound.max.x;
+			bMaxY[i] = bNode.bound.max.y;
+			bMaxZ[i] = bNode.bound.max.z;
+
+			if (bNode.isLeaf())
+			{
+				auto const& leafCopy = BVH.leaves[bNode.indexLeft];
+				childIndices[i] = primitiveIds.size();
+				childCounts[i] = leafCopy.ids.size();
+				primitiveIds.append(leafCopy.ids);
+			}
+			else
+			{
+				childIndices[i] = Collapse_R(BVH, childrenNodes[i], outNodes, primitiveIds);
+				childCounts[i] = 0;
+			}
+		}
+
+		auto& outNode = outNodes[outNodeIndex]; 
+		outNode.boundMinX = bMinX; outNode.boundMinY = bMinY; outNode.boundMinZ = bMinZ;
+		outNode.boundMaxX = bMaxX; outNode.boundMaxY = bMaxY; outNode.boundMaxZ = bMaxZ;
+		for(int i=0; i<4; ++i) {
+			outNode.children[i] = childIndices[i];
+			outNode.primitiveCounts[i] = childCounts[i];
+		}
+
+		return outNodeIndex;
+	}
+
+	static int Collapse_R(BVHTree const& BVH, int binaryNodeIndex, TArray< BVH4NodeData >& outNodes, int& indexTriangleCur)
+	{
+		int outNodeIndex = outNodes.size();
+		outNodes.push_back(BVH4NodeData());
+
+		int childrenNodes[4];
+		int childCount = 0;
+		GetQuadChildren(BVH, binaryNodeIndex, childrenNodes, childCount);
+
+		Math::Vector4 bMinX(1e30f, 1e30f, 1e30f, 1e30f), bMinY(1e30f, 1e30f, 1e30f, 1e30f), bMinZ(1e30f, 1e30f, 1e30f, 1e30f);
+		Math::Vector4 bMaxX(-1e30f, -1e30f, -1e30f, -1e30f), bMaxY(-1e30f, -1e30f, -1e30f, -1e30f), bMaxZ(-1e30f, -1e30f, -1e30f, -1e30f);
+		int32 childIndices[4] = {-1, -1, -1, -1};
+		int32 childCounts[4] = {0, 0, 0, 0};
+
+		for(int i = 0; i < childCount; ++i)
+		{
+			auto const& bNode = BVH.nodes[childrenNodes[i]];
+			bMinX[i] = bNode.bound.min.x;
+			bMinY[i] = bNode.bound.min.y;
+			bMinZ[i] = bNode.bound.min.z;
+			bMaxX[i] = bNode.bound.max.x;
+			bMaxY[i] = bNode.bound.max.y;
+			bMaxZ[i] = bNode.bound.max.z;
+
+			if (bNode.isLeaf())
+			{
+				auto const& leafCopy = BVH.leaves[bNode.indexLeft];
+				childIndices[i] = indexTriangleCur;
+				childCounts[i] = leafCopy.ids.size();
+				indexTriangleCur += 3 * leafCopy.ids.size();
+			}
+			else
+			{
+				childIndices[i] = Collapse_R(BVH, childrenNodes[i], outNodes, indexTriangleCur);
+				childCounts[i] = 0;
+			}
+		}
+
+		auto& outNode = outNodes[outNodeIndex];
+		outNode.boundMinX = bMinX; outNode.boundMinY = bMinY; outNode.boundMinZ = bMinZ;
+		outNode.boundMaxX = bMaxX; outNode.boundMaxY = bMaxY; outNode.boundMaxZ = bMaxZ;
+		for(int i=0; i<4; ++i) {
+			outNode.children[i] = childIndices[i];
+			outNode.primitiveCounts[i] = childCounts[i];
+		}
+
+		return outNodeIndex;
+	}
+};
+
 namespace RT
 {
 	class ISceneBuilder
@@ -663,6 +815,8 @@ namespace RT
 		TStructuredBuffer< MeshVertexData > mVertexBuffer;
 		TStructuredBuffer< MeshData > mMeshBuffer;
 		TStructuredBuffer< BVHNodeData > mBVHNodeBuffer;
+		TStructuredBuffer< BVH4NodeData > mBVH4NodeBuffer;
+
 		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
 		TStructuredBuffer< int32 > mObjectIdBuffer;
 		TStructuredBuffer< int32 > mEmittingObjectIdBuffer;
@@ -979,7 +1133,7 @@ public:
 
 	bool bSplitAccumulate = false;
 	bool bUseMIS = false;
+	bool bUseBVH4 = false;
 
-	RayTracingPS* mRayTracingPSMap[5];
 	AccumulatePS* mAccumulatePS;
 };

@@ -36,7 +36,7 @@ public:
 	SHADER_PERMUTATION_TYPE_BOOL(UseMIS, SHADER_PARAM(USE_MIS));
 	SHADER_PERMUTATION_TYPE_BOOL(UseBVH4, SHADER_PARAM(USE_BVH4));
 
-	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate, UseMIS>;
+	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate, UseMIS, UseBVH4>;
 
 	static char const* GetShaderFileName()
 	{
@@ -54,6 +54,34 @@ public:
 	}
 
 	DEFINE_TEXTURE_PARAM(HistoryTexture);
+};
+
+
+class DenoisePS : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(DenoisePS, Global);
+public:
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/RayTracing";
+	}
+
+	static void SetupShaderCompileOption(ShaderCompileOption& option)
+	{
+
+	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_TEXTURE_PARAM(parameterMap, FrameTexture);
+		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureA);
+		BIND_SHADER_PARAM(parameterMap, ScreenSizeInv);
+	}
+
+	DEFINE_TEXTURE_PARAM(FrameTexture);
+	DEFINE_TEXTURE_PARAM(GBufferTextureA);
+	DEFINE_SHADER_PARAM(ScreenSizeInv);
 };
 
 
@@ -78,9 +106,11 @@ public:
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
 		BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
+		BIND_TEXTURE_PARAM(parameterMap, FrameTexture);
 	}
 
 	DEFINE_TEXTURE_PARAM(HistoryTexture);
+	DEFINE_TEXTURE_PARAM(FrameTexture);
 };
 
 
@@ -213,7 +243,7 @@ struct GPU_ALIGN MeshData
 	int32 startIndex;
 	int32 numTriangles;
 	int32 nodeIndex;
-	int32 dummy;
+	int32 nodeIndexV4;
 };
 
 
@@ -221,6 +251,11 @@ struct GPU_ALIGN MeshData
 struct SceneBVHNodeData
 {
 	DECLARE_BUFFER_STRUCT(SceneBVHNodes);
+};
+
+struct SceneBVH4NodeData
+{
+	DECLARE_BUFFER_STRUCT(SceneBVH4Nodes);
 };
 
 struct PrimitiveIdData
@@ -659,18 +694,25 @@ struct GPU_ALIGN BVH4NodeData
 	int32 children[4];
 	int32 primitiveCounts[4];
 
-	static void Generate(BVHTree const& BVH, TArray< BVH4NodeData >& nodes, TArray< int >& primitiveIds)
+	static int Generate(BVHTree const& BVH, TArray< BVH4NodeData >& nodes, TArray< int >& primitiveIds)
 	{
 		nodes.clear();
-		if (BVH.nodes.empty()) return;
+		if (BVH.nodes.empty()) 
+			return 0;
+		
 		Collapse_R(BVH, 0, nodes, primitiveIds);
+		return nodes.size();
 	}
 
-	static void Generate(BVHTree const& BVH, TArray< BVH4NodeData >& nodes, int indexTriangleStart)
+	static int Generate(BVHTree const& BVH, TArray< BVH4NodeData >& nodes, int indexTriangleStart)
 	{
 		int indexCur = indexTriangleStart;
-		if (BVH.nodes.empty()) return;
+		if (BVH.nodes.empty()) 
+			return 0;
+		
+		int index = nodes.size();
 		Collapse_R(BVH, 0, nodes, indexCur);
+		return nodes.size() - index;
 	}
 
 private:
@@ -680,18 +722,25 @@ private:
 		int pass1[2];
 		int pass1Count = 0;
 		auto const& root = BVH.nodes[bNodeId];
-		if (root.isLeaf()) {
+		if (root.isLeaf()) 
+		{
 			pass1[pass1Count++] = bNodeId;
-		} else {
+		} 
+		else
+		{
 			pass1[pass1Count++] = root.indexLeft;
 			pass1[pass1Count++] = root.indexRight;
 		}
 
-		for(int i = 0; i < pass1Count; ++i) {
+		for(int i = 0; i < pass1Count; ++i) 
+		{
 			auto const& n = BVH.nodes[pass1[i]];
-			if (n.isLeaf()) {
+			if (n.isLeaf())
+			{
 				outNodes[outCount++] = pass1[i];
-			} else {
+			} 
+			else 
+			{
 				outNodes[outCount++] = n.indexLeft;
 				outNodes[outCount++] = n.indexRight;
 			}
@@ -739,7 +788,8 @@ private:
 		auto& outNode = outNodes[outNodeIndex]; 
 		outNode.boundMinX = bMinX; outNode.boundMinY = bMinY; outNode.boundMinZ = bMinZ;
 		outNode.boundMaxX = bMaxX; outNode.boundMaxY = bMaxY; outNode.boundMaxZ = bMaxZ;
-		for(int i=0; i<4; ++i) {
+		for(int i=0; i<4; ++i) 
+		{
 			outNode.children[i] = childIndices[i];
 			outNode.primitiveCounts[i] = childCounts[i];
 		}
@@ -792,7 +842,6 @@ private:
 			outNode.children[i] = childIndices[i];
 			outNode.primitiveCounts[i] = childCounts[i];
 		}
-
 		return outNodeIndex;
 	}
 };
@@ -818,7 +867,9 @@ namespace RT
 		TStructuredBuffer< BVH4NodeData > mBVH4NodeBuffer;
 
 		TStructuredBuffer< BVHNodeData > mSceneBVHNodeBuffer;
+		TStructuredBuffer< BVH4NodeData > mSceneBVH4NodeBuffer;
 		TStructuredBuffer< int32 > mObjectIdBuffer;
+		TStructuredBuffer< int32 > mObjectIdBufferV4;
 		TStructuredBuffer< int32 > mEmittingObjectIdBuffer;
 		int mNumObjects;
 		int mNumEmittingObjects;
@@ -1126,14 +1177,20 @@ public:
 
 	ScreenVS* mScreenVS = nullptr;
 	RHIFrameBufferRef mFrameBuffer;
+	RHITexture2DRef mDenoiseTexture;
+	RHIFrameBufferRef mDenoiseFrameBuffer;
 
 	EDebugDsiplayMode mDebugDisplayMode = EDebugDsiplayMode::None;
+	EDebugDsiplayMode mLastDebugDisplayModeRender = EDebugDsiplayMode::None;
+
 	int mBoundBoxWarningCount = 500;
 	int mTriangleWarningCount = 50;
 
 	bool bSplitAccumulate = false;
 	bool bUseMIS = false;
 	bool bUseBVH4 = false;
+	bool bUseDenoise = true;
 
 	AccumulatePS* mAccumulatePS;
+	DenoisePS* mDenoisePS;
 };

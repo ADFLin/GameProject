@@ -54,6 +54,7 @@ namespace Render
 		FrameRenderTargets()
 		{
 			mDepthFormat = ETexture::D24S8;
+			mFrameBufferFormat = ETexture::FloatRGBA;
 		}
 
 		bool prepare(IntVector2 const& size, int numSamples = 1);
@@ -94,6 +95,7 @@ namespace Render
 		RHITexture2DRef mDepthTexture;
 		RHITexture2DRef mResolvedDepthTexture;
 
+		ETexture::Format  mFrameBufferFormat;
 		ETexture::Format  mDepthFormat;
 	};
 

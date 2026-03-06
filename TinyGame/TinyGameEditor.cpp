@@ -72,7 +72,7 @@ bool TinyGameApp::initializeEditorRender()
 	}
 
 	//mEditor->addGameViewport(this);
-	//mEditor->setTextureShowManager(&GTextureShowManager);
+	mEditor->setTextureShowManager(&GTextureShowManager);
 	return true;
 }
 

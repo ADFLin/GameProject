@@ -1,6 +1,11 @@
 #include "RayTracingStage.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/ShaderManager.h"
 #include "InputManager.h"
+#include "GameGUISystem.h"
+#include "Widget/WidgetUtility.h"
+
+using namespace Render;
 
 #define CHAISCRIPT_NO_THREADS
 #include "chaiscript/chaiscript.hpp"
@@ -10,6 +15,7 @@ REGISTER_STAGE_ENTRY("Raytracing Test", RayTracingTestStage, EExecGroup::Feature
 
 IMPLEMENT_SHADER(RayTracingPS, EShader::Pixel, SHADER_ENTRY(MainPS));
 IMPLEMENT_SHADER(AccumulatePS, EShader::Pixel, SHADER_ENTRY(AccumulatePS));
+IMPLEMENT_SHADER(DenoisePS, EShader::Pixel, SHADER_ENTRY(DenoisePS));
 
 bool RayTracingTestStage::onInit()
 {
@@ -33,6 +39,8 @@ bool RayTracingTestStage::onInit()
 	auto frame = WidgetUtility::CreateDevFrame();
 	frame->addCheckBox("Draw Debug", mbDrawDebug);
 	frame->addCheckBox("Use MIS", bUseMIS);
+	frame->addCheckBox("Use BVH4", bUseBVH4);
+	frame->addCheckBox("Use Denoise", bUseDenoise);
 
 	auto choice = frame->addChoice("DebugDisplay Mode", UI_StatsMode);
 
@@ -90,6 +98,7 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1, FRHIZBuffer::FarPlane);
 
 	bool bResetFrameCount = mCamera.getPos() != mLastPos || mCamera.getRotation().getEulerZYX() != mLastRoation;
+	bResetFrameCount |= (mDebugDisplayMode == EDebugDsiplayMode::None) && (mLastDebugDisplayModeRender != mDebugDisplayMode);
 	if (bResetFrameCount)
 	{
 		mLastPos = mCamera.getPos();
@@ -101,6 +110,8 @@ void RayTracingTestStage::onRender(float dFrame)
 		mView.frameCount += 1;
 	}
 
+	mLastDebugDisplayModeRender = mDebugDisplayMode;
+
 	Vec2i screenSize = ::Global::GetScreenSize();
 	mSceneRenderTargets.prepare(screenSize);
 
@@ -109,9 +120,12 @@ void RayTracingTestStage::onRender(float dFrame)
 	mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
 	mViewFrustum.mYFov = Math::DegToRad(90 / mViewFrustum.mAspect);
 
-	RHIResourceTransition(commandList, { &mSceneRenderTargets.getFrameTexture() }, EResourceTransition::RenderTarget);
-	RHIResourceTransition(commandList, { &mSceneRenderTargets.getPrevFrameTexture() }, EResourceTransition::SRV);
+	RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture(), 
+		                                 (RHIResource*)&mSceneRenderTargets.getGBuffer().getRenderTexture(EGBuffer::A) }, EResourceTransition::RenderTarget);
+	RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getPrevFrameTexture() }, EResourceTransition::SRV);
 	RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+	mSceneRenderTargets.getFrameBuffer()->setTexture(1, mSceneRenderTargets.getGBuffer().getRenderTexture(EGBuffer::A));
+	mSceneRenderTargets.getFrameBuffer()->removeDepth();
 	RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 
 	mView.rectOffset = IntVector2(0, 0);
@@ -140,6 +154,8 @@ void RayTracingTestStage::onRender(float dFrame)
 			permutationVector.set<RayTracingPS::UseSplitAccumulate>(bSplitAccumulate);
 			permutationVector.set<RayTracingPS::UseMIS>(bUseMIS);
 		}
+
+		permutationVector.set<RayTracingPS::UseBVH4>(bUseBVH4);
 		RayTracingPS* rayTracingPS = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector);
 
 		GPU_PROFILE("RayTracing");
@@ -160,9 +176,26 @@ void RayTracingTestStage::onRender(float dFrame)
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mObjectBuffer);
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mVertexBuffer);
 		SetStructuredStorageBuffer(commandList, *rayTracingPS, mMeshBuffer);
-		SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVHNodeBuffer);
+		if (bUseBVH4)
+		{
+			SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVH4NodeBuffer);
+		}
+		else
+		{
+			SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVHNodeBuffer);
+		}
+
 		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *rayTracingPS, mSceneBVHNodeBuffer);
-		SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
+		if (bUseBVH4 && 0)
+		{
+			SetStructuredStorageBuffer< SceneBVH4NodeData > (commandList, *rayTracingPS, mSceneBVH4NodeBuffer);
+			SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBufferV4);
+		}
+		else
+		{
+			SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
+		}
+
 		if (mEmittingObjectIdBuffer.isValid())
 		{
 			SetStructuredStorageBuffer< EmittingObjectIdData >(commandList, *rayTracingPS, mEmittingObjectIdBuffer);
@@ -170,14 +203,14 @@ void RayTracingTestStage::onRender(float dFrame)
 
 		rayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
 		rayTracingPS->setParam(commandList, SHADER_PARAM(NumEmittingObjects), mNumEmittingObjects);
-		rayTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), 1.0f / float(mView.frameCount + 1));
+
+		float blendFactor = 1.0f / float(Math::Min(mView.frameCount, 4096) + 1);
+		rayTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
-
 		DrawUtility::ScreenRect(commandList);
-
-
 	}
 
+	RHITexture2D* pOutputTexture = &mSceneRenderTargets.getFrameTexture();
 	if (mDebugDisplayMode == EDebugDsiplayMode::None && bSplitAccumulate)
 	{
 		GPU_PROFILE("Accumulate");
@@ -188,21 +221,47 @@ void RayTracingTestStage::onRender(float dFrame)
 		RHISetGraphicsShaderBoundState(commandList, state);
 
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mAccumulatePS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mAccumulatePS, FrameTexture, *pOutputTexture, TStaticSamplerState<>::GetRHI());
 		DrawUtility::ScreenRect(commandList);
 
 	}
 
-	RHIResourceTransition(commandList, { &mSceneRenderTargets.getFrameTexture() }, EResourceTransition::SRV);
+	if (bUseDenoise && mDebugDisplayMode == EDebugDsiplayMode::None)
+	{
+		GPU_PROFILE("Denoise");
+		RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture() , 
+			                                 (RHIResource*)&mSceneRenderTargets.getGBuffer().getRenderTexture(EGBuffer::A) }, EResourceTransition::SRV);
+		RHIResourceTransition(commandList, { (RHIResource*)mDenoiseTexture.get() }, EResourceTransition::RenderTarget);
+		RHISetFrameBuffer(commandList, mDenoiseFrameBuffer);
+
+		GraphicsShaderStateDesc state;
+		state.vertex = mScreenVS->getRHI();
+		state.pixel = mDenoisePS->getRHI();
+		RHISetGraphicsShaderBoundState(commandList, state);
+
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mDenoisePS, FrameTexture, mSceneRenderTargets.getFrameTexture(), TStaticSamplerState<>::GetRHI());
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mDenoisePS, GBufferTextureA, mSceneRenderTargets.getGBuffer().getRenderTexture(EGBuffer::A), TStaticSamplerState<>::GetRHI());
+		mDenoisePS->setParam(commandList, SHADER_PARAM(ScreenSizeInv), Vector2(1.0f / screenSize.x, 1.0f / screenSize.y));
+		mView.setupShader(commandList, *mDenoisePS);
+
+		DrawUtility::ScreenRect(commandList);
+		pOutputTexture = mDenoiseTexture;
+	}
+
+	RHIResourceTransition(commandList, { (RHIResource*)pOutputTexture }, EResourceTransition::SRV);
 
 	{
 		GPU_PROFILE("CopyToBackBuffer");
 		RHISetFrameBuffer(commandList, nullptr);
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-		ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
+		ShaderHelper::Get().copyTextureToBuffer(commandList, *pOutputTexture);
 
 		mSceneRenderTargets.swapFrameTexture();
 	}
 
+	RHIFlushCommand(commandList);
+	GTextureShowManager.registerRenderTarget(GRenderTargetPool);
+	
 	if ( mbDrawDebug )
 	{
 		GPU_PROFILE("DrawDebug");
@@ -315,8 +374,11 @@ namespace RT
 		struct BuildMeshResult
 		{
 			TArrayView< MeshVertexData const > vertices;
-			TArrayView< BVHNodeData const > nodes;
+			TArrayView< BVHNodeData const >  nodes;
+			TArrayView< BVH4NodeData const > nodesV4;
 			int nodeIndex;
+			int nodeIndexV4;
+
 			int triangleIndex;
 			int numTriangles;
 		};
@@ -329,8 +391,6 @@ namespace RT
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
 			int numTriangles = meshData.indices.size() / 3;
-
-			int triangleIndex = meshVertices.size();
 
 			TArray< BVHTree::Primitive > primitives;
 			primitives.resize(numTriangles);
@@ -367,15 +427,21 @@ namespace RT
 				mScene.mDebugBVH = meshBVH;
 			}
 
+			int triangleIndex = meshVertices.size();
 			meshVertices.resize(triangleIndex + 3 * numTriangles);
 
 			int numV = GenerateTriangleVertices(meshBVH, meshData, meshVertices.data() + triangleIndex);
 			CHECK(numV == numTriangles * 3);
 			int nodeIndex = meshBVHNodes.size();
 			BVHNodeData::Generate(meshBVH, meshBVHNodes, triangleIndex);
+			int nodeIndexV4 = meshBVH4Nodes.size();
+			int numNodeV4 = BVH4NodeData::Generate(meshBVH, meshBVH4Nodes, triangleIndex);
+
 			buildResult.vertices = TArrayView<MeshVertexData const>(meshVertices.data() + triangleIndex , numV);
 			buildResult.nodes    = TArrayView<BVHNodeData const>(meshBVHNodes.data() + nodeIndex, meshBVH.nodes.size());
 			buildResult.nodeIndex = nodeIndex;
+			buildResult.nodesV4 = TArrayView<BVH4NodeData const>(meshBVH4Nodes.data() + nodeIndexV4, numNodeV4);
+			buildResult.nodeIndexV4 = nodeIndexV4;
 			buildResult.numTriangles = numTriangles;
 			buildResult.triangleIndex = triangleIndex;
 		}
@@ -397,6 +463,27 @@ namespace RT
 			}
 		}
 
+		static void FixOffset(TArray< BVH4NodeData >& nodes, int nodeOffset, int triangleOffset)
+		{
+			for (BVH4NodeData& node : nodes)
+			{
+				for (int i = 0; i < 4; ++i)
+				{
+					if (node.children[i] == -1)
+						continue;
+
+					if (node.primitiveCounts[i] > 0)
+					{
+						node.children[i] += triangleOffset;
+					}
+					else
+					{
+						node.children[i] += nodeOffset;
+					}
+				}
+			}
+		}
+
 		int loadMesh(char const* path)
 		{
 			TIME_SCOPE("LoadMesh");
@@ -405,12 +492,14 @@ namespace RT
 			auto& dataCache = ::Global::DataCache();
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "MESH_BVH";
-			cacheKey.version = "1e987655-09dc-431a-bf73-116bc953dfe6";
+			cacheKey.version = "1e987635-09dc-521a-af73-116bc953dfe6";
 			cacheKey.keySuffix.add(path);
 
 			TArray< MeshVertexData > vertices;
 			TArray< BVHNodeData > nodes;
+			TArray< BVH4NodeData > nodesV4;
 			int nodeIndex;
+			int nodeIndexV4;
 			int triangleIndex;
 			auto LoadCache = [&](IStreamSerializer& serializer)-> bool
 			{
@@ -418,20 +507,26 @@ namespace RT
 				serializer >> nodes;
 				serializer >> nodeIndex;
 				serializer >> triangleIndex;
+				serializer >> nodesV4;
+				serializer >> nodeIndexV4;
 				return true;
 			};
 			if (dataCache.loadDelegate(cacheKey, LoadCache))
 			{
 				FixOffset(nodes, (int)meshBVHNodes.size() - nodeIndex, (int)meshVertices.size() - triangleIndex);
+				FixOffset(nodesV4, (int)meshBVH4Nodes.size() - nodeIndexV4, (int)meshVertices.size() - triangleIndex);
 
 				nodeIndex = meshBVHNodes.size();
+				nodeIndexV4 = meshBVH4Nodes.size();
 				triangleIndex = meshVertices.size();
 				meshBVHNodes.append(nodes);
 				meshVertices.append(vertices);
+				meshBVH4Nodes.append(nodesV4);
 
 				mesh.startIndex = triangleIndex;
 				mesh.numTriangles = vertices.size() / 3;
 				mesh.nodeIndex = nodeIndex;
+				mesh.nodeIndexV4 = nodeIndexV4;
 
 			}
 			else
@@ -449,12 +544,15 @@ namespace RT
 					serializer << buildResult.nodes;
 					serializer << buildResult.nodeIndex;
 					serializer << buildResult.triangleIndex;
+					serializer << buildResult.nodesV4;
+					serializer << buildResult.nodeIndexV4;
 					return true;
 				});
 
 				mesh.startIndex = buildResult.triangleIndex;
 				mesh.numTriangles = buildResult.numTriangles;
 				mesh.nodeIndex = buildResult.nodeIndex;
+				mesh.nodeIndexV4 = buildResult.nodeIndexV4;
 			}
 
 			meshes.push_back(mesh);
@@ -533,7 +631,7 @@ namespace RT
 				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(MakeConstView(meshVertices), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(MakeConstView(meshes), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(MakeConstView(meshBVHNodes), EStructuredBufferType::Buffer));
-				//VERIFY_RETURN_FALSE(mScene.mBVH4NodeBuffer.initializeResource(MakeConstView(meshBVH4Nodes), EStructuredBufferType::Buffer));
+				VERIFY_RETURN_FALSE(mScene.mBVH4NodeBuffer.initializeResource(MakeConstView(meshBVH4Nodes), EStructuredBufferType::Buffer));
 			}
 
 			{
@@ -639,12 +737,20 @@ namespace RT
 				TArray< BVHNodeData > nodes;
 				TArray< int > objectIds;
 				BVHNodeData::Generate(objectBVH, nodes, objectIds);
-
 				VERIFY_RETURN_FALSE(mScene.mSceneBVHNodeBuffer.initializeResource(nodes.size(), EStructuredBufferType::Buffer));
 				mScene.mSceneBVHNodeBuffer.updateBuffer(nodes);
 
 				VERIFY_RETURN_FALSE(mScene.mObjectIdBuffer.initializeResource(objectIds.size(), EStructuredBufferType::Buffer));
 				mScene.mObjectIdBuffer.updateBuffer(objectIds);
+
+				TArray< BVH4NodeData > nodesV4;
+				TArray< int > objectIdsV4;
+				BVH4NodeData::Generate(objectBVH, nodesV4, objectIdsV4);
+				VERIFY_RETURN_FALSE(mScene.mSceneBVH4NodeBuffer.initializeResource(nodesV4.size(), EStructuredBufferType::Buffer));
+				mScene.mSceneBVH4NodeBuffer.updateBuffer(nodesV4);
+
+				VERIFY_RETURN_FALSE(mScene.mObjectIdBufferV4.initializeResource(objectIdsV4.size(), EStructuredBufferType::Buffer));
+				mScene.mObjectIdBufferV4.updateBuffer(objectIdsV4);
 
 				mScene.mNumObjects = objects.size();
 				VERIFY_RETURN_FALSE(mScene.mObjectBuffer.initializeResource(objects.size(), EStructuredBufferType::Buffer));
@@ -875,8 +981,19 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 	}
 
 	VERIFY_RETURN_FALSE(mAccumulatePS = ::ShaderManager::Get().getGlobalShaderT<AccumulatePS>());
+	VERIFY_RETURN_FALSE(mDenoisePS = ::ShaderManager::Get().getGlobalShaderT<DenoisePS>());
+
+	mSceneRenderTargets.mFrameBufferFormat = ETexture::RGBA32F;
+	mSceneRenderTargets.mGBuffer.mTargetFomats[EGBuffer::A] = ETexture::RGBA32F;
 
 	VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());
+	
+	{
+		Vec2i screenSize = ::Global::GetScreenSize();
+		mDenoiseTexture = RHICreateTexture2D(mSceneRenderTargets.mFrameBufferFormat, screenSize.x, screenSize.y, 1, 1, TCF_RenderTarget | TCF_CreateSRV);
+		mDenoiseFrameBuffer = RHICreateFrameBuffer();
+		mDenoiseFrameBuffer->setTexture(0, *mDenoiseTexture);
+	}
 	mDebugPrimitives.initializeRHI();
 
 	VERIFY_RETURN_FALSE(loadSceneRHIResource());
@@ -910,8 +1027,14 @@ void RayTracingTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	mVertexBuffer.releaseResource();
 	mMeshBuffer.releaseResource();
 	mBVHNodeBuffer.releaseResource();
+	mBVH4NodeBuffer.releaseResource();
 	mSceneBVHNodeBuffer.releaseResource();
+	mSceneBVH4NodeBuffer.releaseResource();
+
 	mObjectBuffer.releaseResource();
+
+	mObjectIdBuffer.releaseResource();
+	mObjectIdBufferV4.releaseResource();
 
 	mSceneRenderTargets.releaseRHI();
 	mDebugPrimitives.releaseRHI();

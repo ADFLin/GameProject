@@ -88,6 +88,7 @@ namespace Render
 
 		void bindShader(class D3D11ShaderData& shader);
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
+		void setShaderResourceView(ShaderParameter const& parameter, RHIShaderResourceView const& resourceView);
 		bool clearTexture(ShaderParameter const& parameter);
 		bool clearTextureByLoc(int loc);
 		bool clearUAV(ShaderParameter const& parameter);
@@ -370,7 +371,7 @@ namespace Render
 		void setShaderMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
 		void setShaderMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
 
-		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
+		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
@@ -409,7 +410,7 @@ namespace Render
 		void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim); }
 		void setShaderMatrix34(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim); }
 
-		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
+		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
@@ -495,6 +496,7 @@ namespace Render
 		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
+		RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format) override;
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
 		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);

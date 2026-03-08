@@ -12,6 +12,7 @@
 #include "Widget/GameViewportPanel.h"
 #include "Widget/DetailViewPanel.h"
 #include "Widget/TextureViewerPanel.h"
+#include "Widget/ToolBar.h"
 
 #include "LogSystem.h"
 #include "InlineString.h"
@@ -250,6 +251,21 @@ public:
 		{
 			static_cast<GameViewportPanel*>(newPanel->widget)->mViewport = viewport;
 			mViewportPanels.push_back(newPanel->widget);
+		}
+	}
+
+	void removeGameViewport(IEditorGameViewport* viewport) override
+	{
+		int index = mViewportPanels.findIndexPred([viewport](IEditorPanel* panel)
+		{
+			return static_cast<GameViewportPanel*>(panel)->mViewport == viewport;
+		});
+
+		if (index != INDEX_NONE)
+		{
+			IEditorPanel* widget = mViewportPanels[index];
+			mViewportPanels.removeIndex(index);
+			destroyPanel(widget);
 		}
 	}
 
@@ -558,33 +574,50 @@ public:
 				delete this;
 			}
 
-			PropertyViewHandle addView(Reflection::EPropertyType type, void* ptr, char const* name)
+			PropertyViewHandle addView(Reflection::EPropertyType type, void* ptr, char const* name, char const* category = nullptr) override
 			{
-				return panel->addView(type, ptr, name);
+				return panel->addView(type, ptr, name, category);
 			}
-			PropertyViewHandle addView(Reflection::StructType* structData, void* ptr, char const* name)
+			PropertyViewHandle addView(Reflection::StructType* structData, void* ptr, char const* name, char const* category = nullptr) override
 			{
-				return panel->addView(structData, ptr, name);
+				return panel->addView(structData, ptr, name, category);
 			}
-			PropertyViewHandle addView(Reflection::EnumType* enumData, void* ptr, char const* name)
+			PropertyViewHandle addView(Reflection::EnumType* enumData, void* ptr, char const* name, char const* category = nullptr) override
 			{
-				return panel->addView(enumData, ptr, name);
+				return panel->addView(enumData, ptr, name, category);
 			}
-			PropertyViewHandle addView(Reflection::PropertyBase* property, void* ptr, char const* name)
+			PropertyViewHandle addView(Reflection::PropertyBase* property, void* ptr, char const* name, char const* category = nullptr) override
 			{
-				return panel->addView(property, ptr, name);
+				return panel->addView(property, ptr, name, category);
 			}
-			void addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback)
+			void addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback) override
 			{
 				panel->addCallback(handle, callback);
 			}
-			void removeView(PropertyViewHandle handle)
+			void addCategoryCallback(char const* category, std::function<void(char const*)> const& callback) override
+			{
+				panel->addCategoryCallback(category, callback);
+			}
+			void removeView(PropertyViewHandle handle) override
 			{
 				panel->removeView(handle);
 			}
-			void clearAllViews()
+			void clearAllViews() override
 			{
+				mCurrentCategory = nullptr;
 				panel->clearAllViews();
+			}
+			void setCategory(char const* name, bool bDefaultOpen = true) override
+			{
+				mCurrentCategory = name;
+				if (name)
+					panel->addCategory(name, bDefaultOpen);
+			}
+			void clearCategoryViews(char const* name) override
+			{
+				panel->clearCategoryViews(name);
+				if (mCurrentCategory && name && std::string_view(mCurrentCategory) == name)
+					mCurrentCategory = nullptr;
 			}
 		};
 
@@ -597,6 +630,51 @@ public:
 			detailView->bDestroyPanel = panel->name != DetailViewPanel::ClassName;
 
 			return detailView;
+		}
+
+		return nullptr;
+	}
+
+	IEditorToolBar* createToolBar(ToolBarConfig const& config) override
+	{
+		class EditorToolBar : public IEditorToolBar
+		{
+		public:
+			ToolBar* panel;
+			bool bDestroyPanel = false;
+			void release() override
+			{
+				if (bDestroyPanel)
+				{
+					GEditor->destroyPanel(panel);
+				}
+				else
+				{
+					panel->clear();
+				}
+				delete this;
+			}
+
+			void addButton(char const* label, std::function<void()> const& onClick) override
+			{
+				panel->addButton(label, onClick);
+			}
+
+			void addSeparator() override
+			{
+				panel->addSeparator();
+			}
+		};
+
+		ActivePanel* panel = findOrCreateNamedPanel(ToolBar::ClassName, config.name);
+		if (panel)
+		{
+			EditorToolBar* toolBar = new EditorToolBar;
+			toolBar->panel = (ToolBar*)panel->widget;
+			toolBar->panel->clear();
+			toolBar->bDestroyPanel = (config.name != nullptr);
+
+			return toolBar;
 		}
 
 		return nullptr;

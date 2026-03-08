@@ -80,6 +80,8 @@ namespace Render
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", FMeshBuild::Doughnut, 2, 1, 60 * 2, 60 * 2));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", FMeshBuild::SimpleSkin, 5, 2.5, 20, 20));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", FMeshBuild::Tile, 1024, 1.0, false));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Cone], "Cone", FMeshBuild::Cone, 1.0f, 0.5f, 20));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut2], "Doughnut2", FMeshBuild::Doughnut, 0.5f, 0.1f, 30, 20));
 
 		VERIFY_RETURN_FALSE(FMeshBuild::SpritePlane(mSimpleMeshs[SimpleMeshId::SpherePlane]));
 

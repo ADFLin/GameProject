@@ -1,8 +1,11 @@
 #include "Common.sgc"
 #include "ViewParam.sgc"
 #include "LightingCommon.sgc"
+#include "IBLCommon.sgc"
 #include "ScreenVertexShader.sgc"
 #include "GeometryTestCommon.sgc"
+
+DEFINE_TEXTURE(TextureCube, SkyTexture);
 
 #ifndef USE_DEBUG_DISPLAY
 #define USE_DEBUG_DISPLAY 0
@@ -20,7 +23,7 @@
 #define USE_BVH4 0
 #endif
 
-#define USE_BVH4_SCENE (USE_BVH4 && 0)
+#define USE_BVH4_SCENE 0
 
 #define MAX_TRACE_DIST 1.#INF
 
@@ -266,13 +269,22 @@ RayCastResult RayBox(Ray ray, float3 size)
 
 	RayCastResult result;
 	result.bHit = tNear <= tFar && tFar >= 0;
-	result.hitPos = ray.pos + ray.dir * tNear;
-	result.hitNormal = (tNear > 0.0) ? step(tNear.xxx, t1) : step(t2, tFar.xxx);
+	if (tNear > 0)
+	{
+		result.dist = tNear;
+		result.hitNormal = step(tNear.xxx, t1);
+	}
+	else
+	{
+		result.dist = tFar;
+		result.hitNormal = step(t2, tFar.xxx);
+	}
+
+	result.hitPos = ray.pos + ray.dir * result.dist;
 	if (dot(result.hitNormal, result.hitPos) < 0)
 	{
 		result.hitNormal = -result.hitNormal;
 	}
-	result.dist = tNear;
 
 	return result;
 };
@@ -582,7 +594,7 @@ void RayObject(int objId, Ray ray , ObjectData object, inout  RayCastResult resu
 			if (castResult.bHit && castResult.dist < result.dist)
 			{
 				result = castResult;
-				result.hitPos = QuatRotate(object.rotation, result.hitPos + object.pos);
+				result.hitPos = QuatRotate(object.rotation, result.hitPos) + object.pos;
 				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
 				result.matId = object.materialId;
 				result.objId = objId;
@@ -619,7 +631,7 @@ void RayObject(int objId, Ray ray , ObjectData object, inout  RayCastResult resu
 			{
 				result = castResult;
 
-				result.hitPos = QuatRotate(object.rotation, scale * result.hitPos + objectPos);
+				result.hitPos = QuatRotate(object.rotation, scale * result.hitPos) + objectPos;
 				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
 
 				result.matId = object.materialId;
@@ -642,7 +654,7 @@ void RayObject(int objId, Ray ray , ObjectData object, inout  RayCastResult resu
 			if (castResult.bHit && castResult.dist < result.dist)
 			{
 				result = castResult;
-				result.hitPos = QuatRotate(object.rotation, result.hitPos + object.pos);
+				result.hitPos = QuatRotate(object.rotation, result.hitPos) + object.pos;
 				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
 				result.id = object.materialId;
 			}
@@ -1371,43 +1383,34 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 
 			if (mat.refractiveIndex > 0 && Random(randState) < mat.refractive)
 			{
-				float cosI = dot(N, V);
-				float sinI = sqrt(1 - Square(cosI));
-				float sinO;
-				if (objectInside == rayResult.matId)
+				float3 I = rayDir;
+				float3 hitN = N;
+				float cosI = dot(I, hitN);
+
+				float eta = 1.0 / mat.refractiveIndex;
+				if (cosI > 0)
 				{
-					sinO = refractiveIndex * sinI;
+					hitN = -hitN;
+					eta = mat.refractiveIndex;
 				}
 				else
 				{
-					sinO = refractiveIndex * sinI / mat.refractiveIndex;
+					cosI = -cosI;
 				}
 
-				float cosO = sqrt(1 - Square(sinO));
-				if (sinO <= 1)
+				float k = 1.0 - eta * eta * (1.0 - cosI * cosI);
+				if (k >= 0.0)
 				{
-					rayDir = -normalize(N * cosO + normalize(V - cosI * N) * sinO);
-					if (objectInside == rayResult.matId)
-					{
-						objectInside = -1;
-						refractiveIndex = 1.0;
-					}
-					else
-					{
-						refractiveIndex = mat.refractiveIndex;
-						objectInside = rayResult.matId;
-					}
+					rayDir = normalize(eta * I + (eta * cosI - sqrt(k)) * hitN);
 				}
 				else
 				{
-					rayDir = R;
+					rayDir = reflect(I, hitN);
 				}
 
 				incomingLight += mat.emissiveColor * rayColor;
 				rayColor *= mat.baseColor;
-
-				rayStart = rayResult.hitPos - 0.00001 * N;
-
+				rayStart = rayResult.hitPos + rayDir * 0.001;
 			}
 			else
 			{
@@ -1540,13 +1543,13 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 				}
 				rayColor *= 1.0f / p;
 
-				rayStart = rayResult.hitPos + 0.0001 * N;
+				rayStart = rayResult.hitPos + 0.001 * N;
 			}
 		}
 		else
 		{
-			float3 envLight = float3(1, 0, 0);
-			//incomingLight += envLight * rayColor;
+			float3 envLight = TEXTURE_SAMPLE_LEVEL(SkyTexture, VFLIP(rayDir), 0).rgb;
+			incomingLight += envLight * rayColor;
 			break;
 		}
 

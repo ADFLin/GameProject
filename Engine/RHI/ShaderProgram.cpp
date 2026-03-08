@@ -55,6 +55,20 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
+	void TShaderFuncHelper< RHIResourceType>::setSRV(RHICommandList& commandList, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		CHECK_PARAMETER(param);
+		GetContext(commandList).setShaderResourceView(*mRHIResource, param, resourceView);
+	}
+
+	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setSampler(RHICommandList& commandList, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		CHECK_PARAMETER(param);
+		GetContext(commandList).setShaderSampler(*mRHIResource, param, sampler);
+	}
+
+	template< class RHIResourceType >
 	void TShaderFuncHelper<RHIResourceType>::clearTexture(RHICommandList& commandList, ShaderParameter const& param)
 	{
 		CHECK_PARAMETER(param);

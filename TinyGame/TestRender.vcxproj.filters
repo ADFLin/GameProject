@@ -55,6 +55,9 @@
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="TestRender\ShadertoyCore.h" />
+    <ClInclude Include="TestRender\MeshImporterGLB.h" />
+    <ClInclude Include="TestRender\Stage\FireworksStage.h" />
+    <ClInclude Include="..\OtherLib\tinygltf\tiny_gltf.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestRender\SceneScript.cpp" />
@@ -151,5 +154,8 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\D3D12RayTracingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\VolumetricLightingStage.cpp" />
+    <ClCompile Include="TestRender\MeshImporterGLB.cpp" />
+    <ClCompile Include="TestRender\Stage\FireworksStage.cpp" />
+    <ClCompile Include="..\OtherLib\tinygltf\tiny_gltf.cc" />
   </ItemGroup>
 </Project>

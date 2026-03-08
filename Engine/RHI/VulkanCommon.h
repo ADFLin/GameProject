@@ -1201,6 +1201,21 @@ namespace Render
 		}
 	};
 
+	class VulkanShaderResourceView : public TRefcountResource< RHIShaderResourceView >
+	{
+	public:
+		VulkanShaderResourceView(VulkanDevice* device, VkImageView view) :mDevice(device), mView(view) {}
+		~VulkanShaderResourceView()
+		{
+			if (mView != VK_NULL_HANDLE)
+			{
+				vkDestroyImageView(mDevice->logicalDevice, mView, gAllocCB);
+			}
+		}
+		VulkanDevice* mDevice;
+		VkImageView mView;
+	};
+
 	class VulkanTexture3D : public TRefcountResource< RHITexture3D >
 		                  , public VulkanTexture
 	{

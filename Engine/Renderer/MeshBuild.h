@@ -73,7 +73,7 @@ namespace Render
 		static bool CubeLineOffset(Mesh& mesh, float halfLen, Vector3 const& offset);
 		static bool Cube(Mesh& mesh, float halfLen = 1.0f);
 
-		static bool Cone(Mesh& mesh, float height, int numSide);
+		static bool Cone(Mesh& mesh, float height, float radius, int numSide);
 		static bool Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors);
 		static bool PlaneZ(Mesh& mesh, float len, float texFactor);
 		static bool Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor);

@@ -91,6 +91,9 @@
     <ClInclude Include="Widget\TextureViewerPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
+    <ClInclude Include="Widget\ToolBar.h">
+      <Filter>Widget</Filter>
+    </ClInclude>
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.h">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClInclude>
@@ -161,6 +164,9 @@
       <Filter>Widget</Filter>
     </ClCompile>
     <ClCompile Include="Widget\TextureViewerPanel.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ToolBar.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.cpp">

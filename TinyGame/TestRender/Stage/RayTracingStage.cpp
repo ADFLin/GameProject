@@ -4,6 +4,9 @@
 #include "InputManager.h"
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
+#include "Json.h"
+#include "FileSystem.h"
+
 
 using namespace Render;
 
@@ -11,11 +14,16 @@ using namespace Render;
 #include "chaiscript/chaiscript.hpp"
 namespace Chai = chaiscript;
 
+#include "Editor.h"
+
 REGISTER_STAGE_ENTRY("Raytracing Test", RayTracingTestStage, EExecGroup::FeatureDev, "Render");
 
 IMPLEMENT_SHADER(RayTracingPS, EShader::Pixel, SHADER_ENTRY(MainPS));
 IMPLEMENT_SHADER(AccumulatePS, EShader::Pixel, SHADER_ENTRY(AccumulatePS));
 IMPLEMENT_SHADER(DenoisePS, EShader::Pixel, SHADER_ENTRY(DenoisePS));
+IMPLEMENT_SHADER(EditorPreviewVS, EShader::Vertex, SHADER_ENTRY(MainVS));
+IMPLEMENT_SHADER(EditorPreviewPS, EShader::Pixel, SHADER_ENTRY(MainPS));
+IMPLEMENT_SHADER(ScreenOutlinePS, EShader::Pixel, SHADER_ENTRY(MainPS));
 
 bool RayTracingTestStage::onInit()
 {
@@ -86,19 +94,155 @@ bool RayTracingTestStage::onInit()
 	//generatePath();
 
 	restart();
+
+#if TINY_WITH_EDITOR
+	if (::Global::Editor())
+	{
+		::Global::Editor()->addGameViewport(this);
+
+		DetailViewConfig config;
+		config.name = "Ray Tracing Settings";
+		mDetailView = ::Global::Editor()->createDetailView(config);
+
+
+		// --- Rendering category ---
+		mDetailView->setCategory("Rendering");
+		//mDetailView->addValue(bUseMIS, "Use MIS");
+		mDetailView->addValue(bUseBVH4, "Use BVH4");
+		mDetailView->addValue(bUseDenoise, "Use Denoise");
+		mDetailView->addValue(bSplitAccumulate, "Split Accumulate");
+		mDetailView->addValue((int&)mDebugDisplayMode, "Debug Mode");
+		mDetailView->addValue(bUseMIS, "Use MIS");
+
+		mDetailView->clearCategory();
+
+		config.name = "Objects";
+		mObjectsDetailView = ::Global::Editor()->createDetailView(config);
+
+		config.name = "Materials";
+		mMaterialsDetailView = ::Global::Editor()->createDetailView(config);
+
+		mDetailView->addCategoryCallback("Rendering", [frame](char const*)
+		{
+			frame->refresh();
+		});
+
+		ToolBarConfig toolBarConfig;
+		toolBarConfig.name = "Ray Tracing Tools";
+		mToolBar = ::Global::Editor()->createToolBar(toolBarConfig);
+		mToolBar->addButton("Restart", [this]() { restart(); });
+		mToolBar->addSeparator();
+		mToolBar->addButton("Save Camera", [this]() { saveCameraTransform(); });
+		mToolBar->addButton("Load Camera", [this]() { loadCameaTransform(); });
+		mToolBar->addButton("Save Scene", [this]()
+		{
+			char filePath[512] = "RayTracingScene.json";
+			OpenFileFilterInfo filters[] = { {"Json File", "*.json"} };
+			if (SystemPlatform::SaveFileName(filePath, ARRAY_SIZE(filePath), filters, nullptr, "Save Scene"))
+			{
+				saveScene(filePath);
+			}
+		});
+		mToolBar->addButton("Load Scene", [this]()
+		{
+			char filePath[512] = "";
+			OpenFileFilterInfo filters[] = { {"Json File", "*.json"} };
+			if (SystemPlatform::OpenFileName(filePath, ARRAY_SIZE(filePath), filters, "RayTracingScene.json"))
+			{
+				loadScene(filePath);
+			}
+		});
+
+		toolBarConfig.name = "Ray Tracing Tools2";
+		mToolBar = ::Global::Editor()->createToolBar(toolBarConfig);
+		mToolBar->addButton("Translate", [this]() { mGizmoType = EGizmoType::Translate; });
+		mToolBar->addButton("Rotate", [this]() { mGizmoType = EGizmoType::Rotate; });
+		mToolBar->addButton("Scale", [this]() { mGizmoType = EGizmoType::Scale; });
+		mToolBar->addSeparator();
+		mToolBar->addButton("Local/World", [this]() 
+		{ 
+			mGizmoMode = (mGizmoMode == EGizmoMode::Local) ? EGizmoMode::World : EGizmoMode::Local; 
+		});
+		mToolBar->addSeparator();
+		mToolBar->addButton("AA", [this]() { restart(); });
+		mToolBar->addSeparator();
+		mToolBar->addButton("BB", [this]() { saveCameraTransform(); });
+		mToolBar->addButton("CC", [this]() { loadCameaTransform(); });
+	}
+#endif
+
 	return true;
+}
+
+void RayTracingTestStage::onUpdate(GameTimeSpan deltaTime)
+{
+	BaseClass::onUpdate(deltaTime);
+
+	if (!mbGamePased)
+	{
+		mView.gameTime += deltaTime;
+	}
+
+	mCamera.updatePosition(deltaTime);
+
+#if TINY_WITH_EDITOR
+	mEditorCamera.updatePosition(deltaTime);
+	if (bDataChanged)
+	{
+		rebuildSceneBVH();
+		bDataChanged = false;
+	}
+#endif
+}
+
+RayTracingTestStage::RayTracingTestStage()
+{
+	mbGamePased = false;
+}
+
+void RayTracingTestStage::loadScene(char const* path)
+{
+	JsonFile* file = JsonFile::Load(path);
+	if (file)
+	{
+		JsonSerializer serializer(file->getObject(), true);
+		serializer.serialize("Materials", materials);
+		serializer.serialize("Objects", objects);
+		file->release();
+		bDataChanged = true;
+		mView.frameCount = 0;
+	}
+}
+
+void RayTracingTestStage::saveScene(char const* path)
+{
+	JsonFile* file = JsonFile::Create();
+	if (file)
+	{
+		JsonSerializer serializer(file->getObject(), false);
+		serializer.serialize("Materials", materials);
+		serializer.serialize("Objects", objects);
+		std::string jsonStr = file->toString();
+		FFileUtility::SaveFromBuffer(path, (uint8 const*)jsonStr.c_str(), (uint32)jsonStr.length());
+		file->release();
+	}
 }
 
 void RayTracingTestStage::onRender(float dFrame)
 {
-	GRenderTargetPool.freeAllUsedElements();
-
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	RHISetFrameBuffer(commandList, nullptr);
 	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1, FRHIZBuffer::FarPlane);
 
 	bool bResetFrameCount = mCamera.getPos() != mLastPos || mCamera.getRotation().getEulerZYX() != mLastRoation;
 	bResetFrameCount |= (mDebugDisplayMode == EDebugDsiplayMode::None) && (mLastDebugDisplayModeRender != mDebugDisplayMode);
+#if TINY_WITH_EDITOR
+	if (bDataChanged)
+	{
+		bResetFrameCount = true;
+	}
+#endif
+
 	if (bResetFrameCount)
 	{
 		mLastPos = mCamera.getPos();
@@ -207,6 +351,11 @@ void RayTracingTestStage::onRender(float dFrame)
 		float blendFactor = 1.0f / float(Math::Min(mView.frameCount, 4096) + 1);
 		rayTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
+		if (mIBLResource.texture.isValid())
+		{
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, SkyTexture, *mIBLResource.texture, TStaticSamplerState<>::GetRHI());
+			rayTracingPS->mIBLParams.setParameters(commandList, *rayTracingPS, mIBLResource);
+		}
 		DrawUtility::ScreenRect(commandList);
 	}
 
@@ -221,7 +370,7 @@ void RayTracingTestStage::onRender(float dFrame)
 		RHISetGraphicsShaderBoundState(commandList, state);
 
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mAccumulatePS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mAccumulatePS, FrameTexture, *pOutputTexture, TStaticSamplerState<>::GetRHI());
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mAccumulatePS, FrameTexture, mSceneRenderTargets.getFrameTexture(), TStaticSamplerState<>::GetRHI());
 		DrawUtility::ScreenRect(commandList);
 
 	}
@@ -341,9 +490,6 @@ namespace RT
 
 		IMeshImporterPtr meshImporter;
 		TArray< MeshVertexData > meshVertices;
-		TArray< MeshData > meshes;
-		TArray< ObjectData> objects;
-		TArray< MaterialData > materials;
 		BVHTree meshBVH;
 		TArray< BVHNodeData > meshBVHNodes;
 		TArray< BVH4NodeData > meshBVH4Nodes;
@@ -422,7 +568,7 @@ namespace RT
 			LogMsg("Leaf Depth : %d - %d (%.2f)", stats.minDepth, stats.maxDepth, stats.meanDepth);
 			LogMsg("Leaf Tris : %d - %d (%.2f)", stats.minCount, stats.maxCount, stats.meanCount);
 
-			if (meshes.size() == 0)
+			if (mScene.meshes.size() == 0)
 			{
 				mScene.mDebugBVH = meshBVH;
 			}
@@ -532,7 +678,13 @@ namespace RT
 			else
 			{
 				MeshImportData meshData;
-				if ( !meshImporter->importFromFile(path, meshData) )
+				IMeshImporterPtr useImporter = meshImporter;
+				if ( FCString::Compare(FFileUtility::GetExtension(path), "glb") == 0 )
+				{
+					useImporter = MeshImporterRegistry::Get().getMeshImproter("GLB");
+				}
+
+				if (!useImporter || !useImporter->importFromFile(path, meshData))
 				{
 					return INDEX_NONE;
 				}
@@ -555,16 +707,33 @@ namespace RT
 				mesh.nodeIndexV4 = buildResult.nodeIndexV4;
 			}
 
-			meshes.push_back(mesh);
-			return meshes.size() - 1;
+			mScene.meshes.push_back(mesh);
+			std::shared_ptr<Render::Mesh> renderMesh = std::make_shared<Render::Mesh>();
+			IMeshImporterPtr useImporter = meshImporter;
+			if (FCString::Compare(FFileUtility::GetExtension(path), "glb") == 0)
+			{
+				useImporter = MeshImporterRegistry::Get().getMeshImproter("GLB");
+			}
+			if (useImporter && useImporter->importFromFile(path, *renderMesh, nullptr))
+			{
+				mScene.mSceneMeshes.push_back(renderMesh);
+			}
+			else
+			{
+				mScene.mSceneMeshes.push_back(nullptr);
+			}
+			return mScene.meshes.size() - 1;
 		}
 
 		bool addDefaultObjects()
 		{
 			{
 				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
+				VERIFY_RETURN_FALSE(loadMesh("Mesh/robot.glb") != INDEX_NONE);
+#if 0
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
-#if 1
+
+
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
 
@@ -587,7 +756,7 @@ namespace RT
 					{ Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0) ,1.51, 0.8},
 				};
 
-				materials.append(mats, mats + ARRAY_SIZE(mats));
+				mScene.materials.append(mats, mats + ARRAY_SIZE(mats));
 
 			}
 
@@ -616,7 +785,7 @@ namespace RT
 					FObject::Mesh(0, 1, 1, Vector3(0,0,0)),
 #endif
 				};
-				objects.append(objs, objs + ARRAY_SIZE(objs));
+				mScene.objects.append(objs, objs + ARRAY_SIZE(objs));
 
 			}
 			return true;
@@ -626,161 +795,18 @@ namespace RT
 		{
 			TIME_SCOPE("BuildRHIResource");
 
-			if (meshes.size() > 0)
+			if (mScene.meshes.size() > 0)
 			{
 				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(MakeConstView(meshVertices), EStructuredBufferType::Buffer));
-				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(MakeConstView(meshes), EStructuredBufferType::Buffer));
+				VERIFY_RETURN_FALSE(mScene.mMeshBuffer.initializeResource(MakeConstView(mScene.meshes), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mBVHNodeBuffer.initializeResource(MakeConstView(meshBVHNodes), EStructuredBufferType::Buffer));
 				VERIFY_RETURN_FALSE(mScene.mBVH4NodeBuffer.initializeResource(MakeConstView(meshBVH4Nodes), EStructuredBufferType::Buffer));
 			}
 
-			{
+			mScene.mMeshVertices = meshVertices;
+			mScene.mMeshBVHNodes = meshBVHNodes;
 
-				auto GetAABB = [](Quaternion const& rotation, Vector3 const halfSize) -> Math::TAABBox<Vector3>
-				{
-					Math::TAABBox<Vector3> result;
-
-					result.invalidate();
-					for (uint32 i = 0; i < 8; ++i)
-					{
-						Vector3 offset;
-						offset.x = (i & 0x1) ? halfSize.x : -halfSize.x;
-						offset.y = (i & 0x2) ? halfSize.y : -halfSize.y;
-						offset.z = (i & 0x4) ? halfSize.z : -halfSize.z;
-						result.addPoint(rotation.rotate(offset));
-					}
-					return result;
-				};
-
-				auto GetAABB2 = [](Vector3 const& center, Quaternion const& rotation, Vector3 const halfSize) -> Math::TAABBox<Vector3>
-				{
-					Math::TAABBox<Vector3> result;
-
-					result.invalidate();
-					for (uint32 i = 0; i < 8; ++i)
-					{
-						Vector3 offset;
-						offset.x = (i & 0x1) ? halfSize.x : -halfSize.x;
-						offset.y = (i & 0x2) ? halfSize.y : -halfSize.y;
-						offset.z = (i & 0x4) ? halfSize.z : -halfSize.z;
-						result.addPoint(rotation.rotate(offset + center));
-					}
-					return result;
-				};
-
-				BVHTree objectBVH;
-				TArray< BVHTree::Primitive > primitives;
-				primitives.resize(objects.size());
-				for (int i = 0; i < objects.size(); ++i)
-				{
-					auto const& object = objects[i];
-					BVHTree::Primitive& primitive = primitives[i];
-					primitive.id = i;
-
-					primitive.bound.invalidate();
-					switch (object.type)
-					{
-
-					case OBJ_SPHERE:
-						{
-							float r = object.meta.x;
-							primitive.center = object.pos;
-							primitive.bound.min = -Vector3(r, r, r);
-							primitive.bound.max = Vector3(r, r, r);
-							primitive.bound.translate(primitive.center);
-						}
-						break;
-					case OBJ_CUBE:
-						{
-							Vector3 halfSize = object.meta;
-							primitive.center = object.pos;
-							primitive.bound = GetAABB(object.rotation, halfSize);
-							primitive.bound.translate(primitive.center);
-						}
-						break;
-					case OBJ_TRIANGLE_MESH:
-						if (meshes.isValidIndex(AsValue<int32>(object.meta.x)))
-						{
-							MeshData& mesh = meshes[AsValue<int32>(object.meta.x)];
-							float scale = object.meta.y;
-
-							Vector3 boundMin = meshBVHNodes[mesh.nodeIndex].boundMin;
-							Vector3 boundMax = meshBVHNodes[mesh.nodeIndex].boundMax;
-
-
-							Vector3 offset = (scale * 0.5) * (boundMax + boundMin);
-							Vector3 halfSize = (scale * 0.5) * (boundMax - boundMin);
-
-							primitive.center = object.pos + object.rotation.rotate(offset);
-							primitive.bound = GetAABB2(offset, object.rotation, halfSize);
-							primitive.bound.translate(object.pos);
-						}
-						break;
-					case OBJ_QUAD:
-						{
-							Vector3 halfSize = object.meta;
-							primitive.center = object.pos;
-							primitive.bound = GetAABB(object.rotation, halfSize);
-							primitive.bound.translate(primitive.center);
-						}
-						break;
-					}
-
-				}
-
-				BVHTree::Builder builder(objectBVH);
-				builder.minSplitPrimitiveCount = 2;
-
-				int indexRoot = builder.build(MakeConstView(primitives));
-
-
-				TArray< BVHNodeData > nodes;
-				TArray< int > objectIds;
-				BVHNodeData::Generate(objectBVH, nodes, objectIds);
-				VERIFY_RETURN_FALSE(mScene.mSceneBVHNodeBuffer.initializeResource(nodes.size(), EStructuredBufferType::Buffer));
-				mScene.mSceneBVHNodeBuffer.updateBuffer(nodes);
-
-				VERIFY_RETURN_FALSE(mScene.mObjectIdBuffer.initializeResource(objectIds.size(), EStructuredBufferType::Buffer));
-				mScene.mObjectIdBuffer.updateBuffer(objectIds);
-
-				TArray< BVH4NodeData > nodesV4;
-				TArray< int > objectIdsV4;
-				BVH4NodeData::Generate(objectBVH, nodesV4, objectIdsV4);
-				VERIFY_RETURN_FALSE(mScene.mSceneBVH4NodeBuffer.initializeResource(nodesV4.size(), EStructuredBufferType::Buffer));
-				mScene.mSceneBVH4NodeBuffer.updateBuffer(nodesV4);
-
-				VERIFY_RETURN_FALSE(mScene.mObjectIdBufferV4.initializeResource(objectIdsV4.size(), EStructuredBufferType::Buffer));
-				mScene.mObjectIdBufferV4.updateBuffer(objectIdsV4);
-
-				mScene.mNumObjects = objects.size();
-				VERIFY_RETURN_FALSE(mScene.mObjectBuffer.initializeResource(objects.size(), EStructuredBufferType::Buffer));
-				mScene.mObjectBuffer.updateBuffer(objects);
-
-				VERIFY_RETURN_FALSE(mScene.mMaterialBuffer.initializeResource(materials.size(), EStructuredBufferType::Buffer));
-				mScene.mMaterialBuffer.updateBuffer(materials);
-
-				TArray<int32> emittingObjectIds;
-				for(int i = 0; i < objects.size(); ++i)
-				{
-					int matId = objects[i].materialId;
-					if(matId >= 0 && matId < materials.size())
-					{
-						auto const& emissive = materials[matId].emissiveColor;
-						if(emissive.r > 0 || emissive.g > 0 || emissive.b > 0)
-						{
-							emittingObjectIds.push_back(i);
-						}
-					}
-				}
-				
-				mScene.mNumEmittingObjects = emittingObjectIds.size();
-				if (emittingObjectIds.empty()) {
-					emittingObjectIds.push_back(0); // Dummy fallback
-				}
-				VERIFY_RETURN_FALSE(mScene.mEmittingObjectIdBuffer.initializeResource(emittingObjectIds.size(), EStructuredBufferType::Buffer));
-				mScene.mEmittingObjectIdBuffer.updateBuffer(emittingObjectIds);
-			}
-
+			mScene.rebuildSceneBVH();
 			return true;
 		}
 
@@ -840,7 +866,6 @@ namespace RT
 			catch (const std::exception& e)
 			{
 				LogMsg("Load Scene Fail!! : %s", e.what());
-				return false;
 			}
 #else
 			mBuilder->addDefaultObjects();
@@ -865,25 +890,27 @@ namespace RT
 		}
 		void registerSceneFunc(Chai::ChaiScript& script)
 		{
-			script.add(Chai::fun(&SceneScriptImpl::Sphere, this), SCRIPT_NAME(Sphere));
-			script.add(Chai::fun(&SceneScriptImpl::Mesh, this), SCRIPT_NAME(Mesh));
-			script.add(Chai::fun(&SceneScriptImpl::Material, this), SCRIPT_NAME(Material));
-			script.add(Chai::fun(&SceneScriptImpl::LoadMesh, this), SCRIPT_NAME(LoadMesh));
-			script.add(Chai::fun(&SceneScriptImpl::AddDefaultObjects, this), SCRIPT_NAME(AddDefaultObjects));
+			script.add(Chai::fun([this](int matId, Vector3 const& pos, float radius) { Sphere(matId, pos, radius); }), SCRIPT_NAME(Sphere));
+			script.add(Chai::fun([this](int meshId, int matId, Vector3 const& pos, float scale) { Mesh(meshId, matId, pos, scale); }), SCRIPT_NAME(Mesh));
+			script.add(Chai::fun([this](int matId, Vector3 pos, Vector3 size) { Box(matId, pos, size); }), SCRIPT_NAME(Box));
+			script.add(Chai::fun([this](Color3f baseColor, float roughness, float specular, Color3f emissiveColor, float refractiveIndex, float refractive)
+				{ return Material(baseColor, roughness, specular, emissiveColor, refractiveIndex, refractive); }), SCRIPT_NAME(Material));
+			script.add(Chai::fun([this](std::string const& path) { return LoadMesh(path); }), SCRIPT_NAME(LoadMesh));
+			script.add(Chai::fun([this]() { AddDefaultObjects(); }), SCRIPT_NAME(AddDefaultObjects));
 		}
 
-		void Sphere(int matId, Vector3 const& pos , float radius)
+		void Sphere(int matId, Vector3 const& pos, float radius)
 		{
-			mBuilder->objects.push_back(FObject::Sphere(radius, matId, pos));
+			mBuilder->mScene.objects.push_back(FObject::Sphere(radius, matId, pos));
 		}
 		void Mesh(int meshId, int matId, Vector3 const& pos, float scale)
 		{
-			mBuilder->objects.push_back(FObject::Mesh(meshId, scale, matId, pos));
+			mBuilder->mScene.objects.push_back(FObject::Mesh(meshId, scale, matId, pos));
 		}
 
 		void Box(int matId, Vector3 pos, Vector3 size)
 		{
-			mBuilder->objects.push_back(FObject::Box(size, matId, pos));
+			mBuilder->mScene.objects.push_back(FObject::Box(size, matId, pos));
 		}
 
 		int LoadMesh(std::string const& path)
@@ -899,8 +926,8 @@ namespace RT
 			float   refractiveIndex,
 			float   refractive)
 		{
-			int result = mBuilder->materials.size();
-			mBuilder->materials.push_back({ baseColor, roughness, specular, emissiveColor, refractiveIndex, refractive } );
+			int result = mBuilder->mScene.materials.size();
+			mBuilder->mScene.materials.push_back(MaterialData(baseColor, roughness, specular, emissiveColor, refractive, refractiveIndex));
 			return result;
 		}
 
@@ -911,16 +938,16 @@ namespace RT
 				return;
 
 			bDefaultObjectAdded = true;
-			int meshId = mBuilder->meshes.size();
-			int matId = mBuilder->materials.size();
+			int meshId = mBuilder->mScene.meshes.size();
+			int matId = mBuilder->mScene.materials.size();
 			mBuilder->addDefaultObjects();
 
 			std::map<std::string, Chai::Boxed_Value> locals;
-			for (int id = meshId; id < mBuilder->meshes.size(); ++id)
+			for (int id = meshId; id < mBuilder->mScene.meshes.size(); ++id)
 			{
 				locals.emplace(InlineString<>::Make("DefMeshId_%d", id - meshId), id);
 			}
-			for (int id = matId; id < mBuilder->materials.size(); ++id)
+			for (int id = matId; id < mBuilder->mScene.materials.size(); ++id)
 			{
 				locals.emplace(InlineString<>::Make("DefMatId_%d", id - matId), id);
 			}
@@ -940,8 +967,127 @@ namespace RT
 		return new SceneScriptImpl;
 	}
 
-}
+	void SceneData::rebuildSceneBVH()
+	{
+		TIME_SCOPE("RebuildSceneBVH");
 
+		mDebugPrimitives.clear();
+
+		BVHTree objectBVH;
+		TArray< BVHTree::Primitive > primitives;
+		primitives.resize(objects.size());
+		for (int i = 0; i < objects.size(); ++i)
+		{
+			auto const& object = objects[i];
+			BVHTree::Primitive& primitive = primitives[i];
+			primitive.id = i;
+
+			primitive.bound.invalidate();
+			switch (object.type)
+			{
+			case OBJ_SPHERE:
+				{
+					float r = object.meta.x;
+					primitive.center = object.pos;
+					primitive.bound.min = -Vector3(r, r, r);
+					primitive.bound.max = Vector3(r, r, r);
+					primitive.bound.translate(primitive.center);
+				}
+				break;
+			case OBJ_CUBE:
+				{
+					Vector3 halfSize = object.meta;
+					primitive.center = object.pos;
+					primitive.bound = GetAABB(object.rotation, halfSize);
+					primitive.bound.translate(primitive.center);
+				}
+				break;
+			case OBJ_TRIANGLE_MESH:
+				if (meshes.isValidIndex(AsValue<int32>(object.meta.x)))
+				{
+					MeshData& mesh = meshes[AsValue<int32>(object.meta.x)];
+					float scale = object.meta.y;
+
+					Vector3 boundMin = mMeshBVHNodes[mesh.nodeIndex].boundMin;
+					Vector3 boundMax = mMeshBVHNodes[mesh.nodeIndex].boundMax;
+
+					Vector3 offset = (scale * 0.5f) * (boundMax + boundMin);
+					Vector3 halfSize = (scale * 0.5f) * (boundMax - boundMin);
+
+					primitive.center = object.pos + object.rotation.rotate(offset);
+					primitive.bound = GetAABB2(offset, object.rotation, halfSize);
+					primitive.bound.translate(object.pos);
+				}
+				break;
+			case OBJ_QUAD:
+				{
+					Vector3 halfSize = object.meta;
+					primitive.center = object.pos;
+					primitive.bound = GetAABB(object.rotation, halfSize);
+					primitive.bound.translate(primitive.center);
+				}
+				break;
+			}
+
+			addDebugAABB(primitive.bound);
+		}
+
+		BVHTree::Builder builder(objectBVH);
+		builder.minSplitPrimitiveCount = 2;
+		builder.build(MakeConstView(primitives));
+
+		TArray< BVHNodeData > nodes;
+		TArray< int > objectIds;
+		BVHNodeData::Generate(objectBVH, nodes, objectIds);
+		mSceneBVHNodeBuffer.initializeResource(nodes.size(), EStructuredBufferType::Buffer);
+		mSceneBVHNodeBuffer.updateBuffer(nodes);
+
+		mObjectIdBuffer.initializeResource(objectIds.size(), EStructuredBufferType::Buffer);
+		mObjectIdBuffer.updateBuffer(objectIds);
+
+		TArray< BVH4NodeData > nodesV4;
+		TArray< int > objectIdsV4;
+		BVH4NodeData::Generate(objectBVH, nodesV4, objectIdsV4);
+		mSceneBVH4NodeBuffer.initializeResource(nodesV4.size(), EStructuredBufferType::Buffer);
+		mSceneBVH4NodeBuffer.updateBuffer(nodesV4);
+
+		mObjectIdBufferV4.initializeResource(objectIdsV4.size(), EStructuredBufferType::Buffer);
+		mObjectIdBufferV4.updateBuffer(objectIdsV4);
+
+		mNumObjects = objects.size();
+		mObjectBuffer.initializeResource(objects.size(), EStructuredBufferType::Buffer);
+		mObjectBuffer.updateBuffer(objects);
+
+		mMaterialBuffer.initializeResource(materials.size(), EStructuredBufferType::Buffer);
+		mMaterialBuffer.updateBuffer(materials);
+
+		TArray<int32> emittingObjectIds;
+		for (int i = 0; i < objects.size(); ++i)
+		{
+			int matId = objects[i].materialId;
+			if (matId >= 0 && matId < materials.size())
+			{
+				auto const& emissive = materials[matId].emissiveColor;
+				if (emissive.r > 0 || emissive.g > 0 || emissive.b > 0)
+				{
+					emittingObjectIds.push_back(i);
+				}
+			}
+		}
+
+		mNumEmittingObjects = emittingObjectIds.size();
+		if (emittingObjectIds.empty()) 
+		{
+			emittingObjectIds.push_back(0); // Dummy fallback
+		}
+		mEmittingObjectIdBuffer.initializeResource(emittingObjectIds.size(), EStructuredBufferType::Buffer);
+		mEmittingObjectIdBuffer.updateBuffer(emittingObjectIds);
+
+		mSceneBVHNodes = nodes;
+		mSceneObjectIds = objectIds;
+	}
+
+}
 
 bool RayTracingTestStage::loadSceneRHIResource()
 {
@@ -974,6 +1120,11 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 {
 	VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
 
+	if (!loadCommonShader())
+		return false;
+	if (!createSimpleMesh())
+		return false;
+
 	{
 		ScreenVS::PermutationDomain permutationVector;
 		permutationVector.set<ScreenVS::UseTexCoord>(true);
@@ -983,11 +1134,15 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 	VERIFY_RETURN_FALSE(mAccumulatePS = ::ShaderManager::Get().getGlobalShaderT<AccumulatePS>());
 	VERIFY_RETURN_FALSE(mDenoisePS = ::ShaderManager::Get().getGlobalShaderT<DenoisePS>());
 
+	VERIFY_RETURN_FALSE(mPreviewVS = ::ShaderManager::Get().getGlobalShaderT<EditorPreviewVS>());
+	VERIFY_RETURN_FALSE(mPreviewPS = ::ShaderManager::Get().getGlobalShaderT<EditorPreviewPS>());
+
+	VERIFY_RETURN_FALSE(mScreenOutlinePS = ::ShaderManager::Get().getGlobalShaderT<ScreenOutlinePS>());
+
 	mSceneRenderTargets.mFrameBufferFormat = ETexture::RGBA32F;
 	mSceneRenderTargets.mGBuffer.mTargetFomats[EGBuffer::A] = ETexture::RGBA32F;
-
 	VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());
-	
+
 	{
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mDenoiseTexture = RHICreateTexture2D(mSceneRenderTargets.mFrameBufferFormat, screenSize.x, screenSize.y, 1, 1, TCF_RenderTarget | TCF_CreateSRV);
@@ -996,7 +1151,42 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 	}
 	mDebugPrimitives.initializeRHI();
 
+	{
+		char const* HDRImagePath = "Texture/HDR/A.hdr";
+		mHDRImage = RHIUtility::LoadTexture2DFromFile(HDRImagePath, TextureLoadOption().HDR());
+		if (mHDRImage)
+		{
+			mIBLResourceBuilder.initializeShader();
+			VERIFY_RETURN_FALSE(mIBLResourceBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
+		}
+	}
+
 	VERIFY_RETURN_FALSE(loadSceneRHIResource());
+
+#if TINY_WITH_EDITOR
+	if (mObjectsDetailView)
+	{
+		auto OnPropertyChange = [this](char const*)
+		{
+			bDataChanged = true;
+			mView.frameCount = 0;
+		};
+
+		PropertyViewHandle handle = mObjectsDetailView->addValue(objects, "Objects");
+		mObjectsDetailView->addCallback(handle, OnPropertyChange);
+	}
+	if (mMaterialsDetailView)
+	{
+		auto OnPropertyChange = [this](char const*)
+		{
+			bDataChanged = true;
+			mView.frameCount = 0;
+		};
+
+		PropertyViewHandle handle = mMaterialsDetailView->addValue(materials, "Materials");
+		mMaterialsDetailView->addCallback(handle, OnPropertyChange);
+	}
+#endif
 
 	if (0)
 	{
@@ -1036,6 +1226,656 @@ void RayTracingTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	mObjectIdBuffer.releaseResource();
 	mObjectIdBufferV4.releaseResource();
 
-	mSceneRenderTargets.releaseRHI();
+	mObjectIdBuffer.releaseResource();
+	mObjectIdBufferV4.releaseResource();
+
 	mDebugPrimitives.releaseRHI();
+	mSceneRenderTargets.releaseRHI();
+	mFrameBuffer.release();
+	mIBLResource.releaseRHI();
+	mIBLResourceBuilder.releaseRHI();
+	mHDRImage.release();
 }
+
+#if TINY_WITH_EDITOR
+TVector2<int> RayTracingTestStage::getInitialSize()
+{
+	return TVector2<int>(1280, 720);
+}
+
+void RayTracingTestStage::resizeViewport(int w, int h)
+{
+	mEditorViewportSize = Vec2i(w, h);
+	mSceneRenderTargets.prepare(mEditorViewportSize);
+}
+
+void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
+{
+	PROFILE_ENTRY("RenderViewport");
+
+	GRenderTargetPool.freeAllUsedElements();
+
+	if (bEditorCameraValid == false)
+	{
+		mEditorCamera.lookAt(mCamera.getPos(), mCamera.getPos() + mCamera.getViewDir(), mCamera.getUpDir());
+
+		bEditorCameraValid = true;
+	}
+
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+	using namespace Render;
+	RenderTargetDesc desc;
+	desc.size = mEditorViewportSize;
+	desc.format = ETexture::RGBA32F;
+	desc.debugName = "RayTracingStageColor";
+	PooledRenderTargetRef colorRT = GRenderTargetPool.fetchElement(desc);
+	desc.format = ETexture::D24S8;
+	desc.debugName = "RayTracingStageDepth";
+	PooledRenderTargetRef depthRT = GRenderTargetPool.fetchElement(desc);
+
+	if (mFrameBuffer == nullptr)
+	{
+		mFrameBuffer = RHICreateFrameBuffer();
+	}
+	mFrameBuffer->setTexture(0, static_cast<RHITexture2D&>(*colorRT->texture));
+	mFrameBuffer->setDepth(static_cast<RHITexture2D&>(*depthRT->texture));
+
+	RHISetFrameBuffer(commandList, mFrameBuffer);
+	
+	if (mEditorViewportSize.x <= 0 || mEditorViewportSize.y <= 0)
+		return;
+
+	RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
+	RHISetScissorRect(commandList, 0, 0, mEditorViewportSize.x, mEditorViewportSize.y);
+
+	RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.1f, 0.2f, 0.3f, 1.0f), 1, FRHIZBuffer::FarPlane);
+
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+	RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+
+	float aspect = (float)mEditorViewportSize.x / (float)Math::Max(1, mEditorViewportSize.y);
+	Matrix4 proj = PerspectiveMatrix(Math::DegToRad(60.0f), aspect, 0.01f, 1000.0f);
+
+	ViewInfo view;
+	view.setupTransform(mEditorCamera.getPos(), mEditorCamera.getRotation(), proj);
+	view.rectOffset = IntVector2(0, 0);
+	view.rectSize = mEditorViewportSize;
+
+	GraphicsShaderStateDesc state;
+	state.vertex = mPreviewVS->getRHI();
+	state.pixel = mPreviewPS->getRHI();
+	RHISetGraphicsShaderBoundState(commandList, state);
+
+	auto DrawObject = [&](ObjectData const& obj, MaterialData const& mat, bool bSelected)
+	{
+		Matrix4 modelScale = Matrix4::Identity();
+		Mesh* mesh = nullptr;
+		switch (obj.type)
+		{
+		case OBJ_CUBE: modelScale = Matrix4::Scale(obj.meta); mesh = &getMesh(SimpleMeshId::Box); break;
+		case OBJ_SPHERE: modelScale = Matrix4::Scale(obj.meta.x / 2.5f); mesh = &getMesh(SimpleMeshId::Sphere); break;
+		case OBJ_TRIANGLE_MESH:
+			modelScale = Matrix4::Scale(obj.meta.y);
+			if (mSceneMeshes.isValidIndex(AsValue<int32>(obj.meta.x))) { mesh = mSceneMeshes[AsValue<int32>(obj.meta.x)].get(); }
+			break;
+		case OBJ_QUAD: modelScale = Matrix4::Scale(obj.meta); mesh = &getMesh(SimpleMeshId::Plane); break;
+		}
+
+		if (mesh)
+		{
+			Matrix4 world = modelScale * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+			if (bSelected)
+			{
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual, true, ECompareFunc::Always, EStencil::Replace, EStencil::Replace, EStencil::Replace, 0xff, 0xff>::GetRHI(), 1);
+			}
+			else
+			{
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
+			}
+
+			view.setupShader(commandList, *mPreviewVS);
+			SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, BaseColor, LinearColor(mat.baseColor, 1.0f - mat.refractive));
+			SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, LinearColor(mat.emissiveColor, 1.0f));
+			SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, mat.roughness);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, mat.specular);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
+
+			mesh->draw(commandList);
+		}
+	};
+
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+	for (int i = 0; i < objects.size(); ++i)
+	{
+		auto const& obj = objects[i];
+		auto const& mat = materials[obj.materialId];
+
+		if (mat.refractive == 0.0f)
+		{
+			DrawObject(obj, mat, i == mSelectedObjectId);
+		}
+	}
+
+	RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+	for (int i = 0; i < objects.size(); ++i)
+	{
+		auto const& obj = objects[i];
+		auto const& mat = materials[obj.materialId];
+
+		if (mat.refractive > 0.0f)
+		{
+			DrawObject(obj, mat, i == mSelectedObjectId);
+		}
+	}
+
+	RHISetFrameBuffer(commandList, context.frameBuffer);
+	RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
+	RHISetScissorRect(commandList, 0, 0, mEditorViewportSize.x, mEditorViewportSize.y);
+
+	{
+		GraphicsShaderStateDesc state;
+		state.vertex = mScreenVS->getRHI();
+		state.pixel = mScreenOutlinePS->getRHI();
+		RHISetGraphicsShaderBoundState(commandList, state);
+
+		RHIShaderResourceViewRef stencilSRV = RHICreateSRV(static_cast<RHITexture2D&>(*depthRT->texture), ETexture::StencilView);
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mScreenOutlinePS, SceneDepthTexture, *stencilSRV, TStaticSamplerState<ESampler::Point>::GetRHI());
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mScreenOutlinePS, SceneColorTexture, *colorRT->texture, TStaticSamplerState<>::GetRHI());
+		SET_SHADER_PARAM(commandList, *mScreenOutlinePS, OutlineColor, (mSelectedObjectId != INDEX_NONE) ? LinearColor(1, 0.6, 0, 1) : LinearColor(0,0,0,0));
+		SET_SHADER_PARAM(commandList, *mScreenOutlinePS, ScreenSize, Vector2(mEditorViewportSize));
+
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		DrawUtility::ScreenRect(commandList);
+	}
+
+	RHIClearRenderTargets(commandList, EClearBits::Depth, nullptr, 0, FRHIZBuffer::FarPlane);
+
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+	RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+
+	drawGizmo(commandList, view);
+
+	RHISetFixedShaderPipelineState(commandList, view.worldToClip, LinearColor(1, 1, 1, 1));
+	DrawUtility::AixsLine(commandList, 2.0f);
+}
+
+#if TINY_WITH_EDITOR
+void RayTracingTestStage::refreshDetailView()
+{
+	if (mDetailView)
+	{
+		mDetailView->clearCategory();
+
+		if (mSelectedObjectId != INDEX_NONE)
+		{
+			auto OnPropertyChange = [this](char const*)
+			{
+				bDataChanged = true;
+				mView.frameCount = 0;
+			};
+
+			mDetailView->clearCategoryViews("Object");
+			mDetailView->setCategory("Object");
+			PropertyViewHandle hObj = mDetailView->addStruct(objects[mSelectedObjectId]);
+			mDetailView->addCallback(hObj, OnPropertyChange);
+
+			mDetailView->clearCategoryViews("Material");
+			mDetailView->setCategory("Material");
+			PropertyViewHandle hMat = mDetailView->addStruct(materials[objects[mSelectedObjectId].materialId]);
+			mDetailView->addCallback(hMat, OnPropertyChange);
+
+			mDetailView->clearCategory();
+		}
+	}
+}
+#endif
+
+void RayTracingTestStage::onViewportMouseEvent(MouseMsg const& msg)
+{
+	static Vec2i oldPos = msg.getPos();
+	if (msg.isRightDown())
+	{
+		float rotateSpeed = 0.01f;
+		Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
+		mEditorCamera.rotateByMouse(off.x, off.y);
+	}
+
+	float fovY = Math::DegToRad(60.0f);
+	float aspect = (float)mEditorViewportSize.x / mEditorViewportSize.y;
+	float tanHalfFov = Math::Tan(fovY * 0.5f);
+	float clipX = (2.0f * (msg.getPos().x / (float)mEditorViewportSize.x) - 1.0f) * aspect * tanHalfFov;
+	float clipY = (1.0f - 2.0f * (msg.getPos().y / (float)mEditorViewportSize.y)) * tanHalfFov;
+	Vector3 rayPos = mEditorCamera.getPos();
+	Vector3 rayDir = mEditorCamera.getRotation().rotate(Vector3(clipX, clipY, 1.0f)).getNormal();
+
+	auto UpdateGizmoAxis = [&]()
+	{
+		mGizmoAxis = -1;
+		if (mSelectedObjectId == INDEX_NONE || mGizmoType == EGizmoType::None)
+			return;
+
+		auto const& obj = objects[mSelectedObjectId];
+		float distToCam = (obj.pos - rayPos).length();
+		float scaleFactor = distToCam * 0.15f;
+		float length = 1.0f * scaleFactor;
+		float thickness = 0.15f * scaleFactor;
+		float minDistance = 1e10;
+
+		auto GetAxisDir = [&](ObjectData const& obj, int idx)
+		{
+			Vector3 axis(0, 0, 0);
+			axis[idx] = 1.0f;
+			if (mGizmoMode == EGizmoMode::Local || mGizmoType == EGizmoType::Scale)
+			{
+				return obj.rotation.rotate(axis);
+			}
+			return axis;
+		};
+
+		for (int i = 0; i < 3; ++i)
+		{
+			Vector3 axisDir = GetAxisDir(obj, i);
+
+			Vector3 scale;
+			Vector3 localOffset(0, 0, 0);
+			if (i == 0) { scale = Vector3(length, thickness, thickness); localOffset.x = 0.5f; }
+			else if (i == 1) { scale = Vector3(thickness, length, thickness); localOffset.y = 0.5f; }
+			else { scale = Vector3(thickness, thickness, length); localOffset.z = 0.5f; }
+
+			Matrix4 worldRotate = Matrix4::Identity();
+			if (mGizmoMode == EGizmoMode::Local || mGizmoType == EGizmoType::Scale)
+			{
+				worldRotate = Matrix4::Rotate(obj.rotation);
+			}
+
+			Matrix4 localToWorld = Matrix4::Scale(scale) * worldRotate * Matrix4::Translate(obj.pos + axisDir * (0.5f * length));
+
+			Matrix4 worldToLocal;
+			float det;
+			if (localToWorld.inverseAffine(worldToLocal, det))
+			{
+				Vector3 localRayPos = TransformPosition(rayPos, worldToLocal);
+				Vector3 localRayDir = TransformVector(rayDir, worldToLocal).getNormal();
+				float t[2];
+				if (Math::LineAABBTest(localRayPos, localRayDir, Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f), t))
+				{
+					if (t[0] > 0 && t[0] < minDistance)
+					{
+						minDistance = t[0];
+						mGizmoAxis = i;
+					}
+				}
+			}
+		}
+	};
+
+	if (msg.onMoving() && !mIsGizmoDragging)
+	{
+		UpdateGizmoAxis();
+	}
+	else if (msg.onLeftDown())
+	{
+		UpdateGizmoAxis();
+		if (mGizmoAxis != -1)
+		{
+			mIsGizmoDragging = true;
+			mGizmoLastRayPos = rayPos;
+			mGizmoLastRayDir = rayDir;
+		}
+		else
+		{
+			mIsGizmoDragging = false;
+			float minDistance = 1e10;
+			int hitId = INDEX_NONE;
+
+			for (int i = 0; i < objects.size(); ++i)
+			{
+				auto const& obj = objects[i];
+				float distance = 1e10;
+				bool bHit = false;
+
+				Matrix4 localToWorld;
+				float modelScaleValue = 1.0f;
+				switch (obj.type)
+				{
+				case OBJ_SPHERE:
+					bHit = Math::RaySphereTest(rayPos, rayDir, obj.pos, obj.meta.x, distance);
+					break;
+				case OBJ_TRIANGLE_MESH:
+					{
+						int32 meshId = AsValue<int32>(obj.meta.x);
+						if (meshes.isValidIndex(meshId))
+						{
+							auto const& mesh = meshes[meshId];
+							float scale = obj.meta.y;
+							Vector3 boundMin = mMeshBVHNodes[mesh.nodeIndex].boundMin;
+							Vector3 boundMax = mMeshBVHNodes[mesh.nodeIndex].boundMax;
+							Vector3 offset = (scale * 0.5f) * (boundMax + boundMin);
+							Vector3 halfSize = (scale * 0.5f) * (boundMax - boundMin);
+
+							localToWorld = Matrix4::Translate(offset) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+							Matrix4 worldToLocal;
+							float det;
+							if (localToWorld.inverseAffine(worldToLocal, det))
+							{
+								Vector3 localRayPos = TransformPosition(rayPos, worldToLocal);
+								Vector3 localRayDir = TransformVector(rayDir, worldToLocal).getNormal();
+								float t[2];
+								if (Math::LineAABBTest(localRayPos, localRayDir, -halfSize, halfSize, t))
+								{
+									if (t[0] > 0)
+									{
+										bHit = true;
+										distance = t[0];
+									}
+								}
+							}
+						}
+					}
+					break;
+				case OBJ_CUBE:
+				case OBJ_QUAD:
+					{
+						localToWorld = Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+						Matrix4 worldToLocal;
+						float det;
+						if (localToWorld.inverseAffine(worldToLocal, det))
+						{
+							Vector3 localRayPos = TransformPosition(rayPos, worldToLocal);
+							Vector3 localRayDir = TransformVector(rayDir, worldToLocal).getNormal();
+							float t[2];
+							if (Math::LineAABBTest(localRayPos, localRayDir, -obj.meta, obj.meta, t))
+							{
+								if (t[0] > 0)
+								{
+									bHit = true;
+									distance = t[0];
+								}
+							}
+						}
+					}
+					break;
+				}
+
+				if (bHit && distance < minDistance)
+				{
+					minDistance = distance;
+					hitId = i;
+				}
+			}
+
+			if (hitId != mSelectedObjectId)
+			{
+				mSelectedObjectId = hitId;
+				refreshDetailView();
+			}
+		}
+	}
+	else if (msg.onLeftUp())
+	{
+		mIsGizmoDragging = false;
+	}
+	else if (mIsGizmoDragging && msg.isLeftDown())
+	{
+		auto& obj = objects[mSelectedObjectId];
+		
+		auto GetAxisDir = [&](ObjectData const& obj, int idx)
+		{
+			Vector3 axis(0, 0, 0);
+				axis[idx] = 1.0f;
+			if (mGizmoMode == EGizmoMode::Local || mGizmoType == EGizmoType::Scale)
+			{
+				return obj.rotation.rotate(axis);
+			}
+			return axis;
+		};
+
+		Vector3 axisDir = GetAxisDir(obj, mGizmoAxis);
+
+		auto GetClosestPointOnAxis = [](Vector3 const& rayPos, Vector3 const& rayDir, Vector3 const& axisPos, Vector3 const& axisDir)
+		{
+			Vector3 w = rayPos - axisPos;
+			float k = axisDir.dot(rayDir);
+			float det = 1.0f - k * k;
+			if (Math::Abs(det) < 1e-6f)
+				return axisPos; 
+			float s = (w.dot(axisDir) - w.dot(rayDir) * k) / det;
+			return axisPos + s * axisDir;
+		};
+
+		if (mGizmoType == EGizmoType::Translate)
+		{
+			Vector3 p2 = GetClosestPointOnAxis(mGizmoLastRayPos, mGizmoLastRayDir, obj.pos, axisDir);
+			Vector3 curP2 = GetClosestPointOnAxis(rayPos, rayDir, obj.pos, axisDir);
+			obj.pos += (curP2 - p2);
+		}
+		else if (mGizmoType == EGizmoType::Scale)
+		{
+			Vector3 p2 = GetClosestPointOnAxis(mGizmoLastRayPos, mGizmoLastRayDir, obj.pos, axisDir);
+			Vector3 curP2 = GetClosestPointOnAxis(rayPos, rayDir, obj.pos, axisDir);
+			float dist = (p2 - obj.pos).length();
+			float curDist = (curP2 - obj.pos).length();
+			if (dist > 0.001f)
+			{
+				float s = curDist / dist;
+				obj.meta[mGizmoAxis] *= s;
+			}
+		}
+		else if (mGizmoType == EGizmoType::Rotate)
+		{
+			Vector3 N = axisDir;
+			float dotDir = N.dot(rayDir);
+			float dotLastDir = N.dot(mGizmoLastRayDir);
+
+			if (Math::Abs(dotDir) > 1e-6f && Math::Abs(dotLastDir) > 1e-6f)
+			{
+				float d = -N.dot(obj.pos);
+				float t = -(N.dot(rayPos) + d) / dotDir;
+				Vector3 curHit = rayPos + t * rayDir;
+
+				float tLast = -(N.dot(mGizmoLastRayPos) + d) / dotLastDir;
+				Vector3 lastHit = mGizmoLastRayPos + tLast * mGizmoLastRayDir;
+
+				Vector3 v1 = lastHit - obj.pos;
+				Vector3 v2 = curHit - obj.pos;
+				if (v1.length() > 0.001f && v2.length() > 0.001f)
+				{
+					float angle = Math::ACos(Math::Clamp(v1.getNormal().dot(v2.getNormal()), -1.0f, 1.0f));
+					Vector3 cross = v1.cross(v2);
+					if (cross.dot(N) < 0) angle = -angle;
+					obj.rotation = Quaternion::Rotate(N, angle) * obj.rotation;
+				}
+			}
+		}
+		
+		mGizmoLastRayPos = rayPos;
+		mGizmoLastRayDir = rayDir;
+		bDataChanged = true;
+		mView.frameCount = 0;
+	}
+
+	oldPos = msg.getPos();
+}
+
+void RayTracingTestStage::onViewportKeyEvent(unsigned key, bool isDown)
+{
+	float baseImpulse = 500;
+	switch (key)
+	{
+	case EKeyCode::W: mEditorCamera.moveForwardImpulse = isDown ? baseImpulse : 0; break;
+	case EKeyCode::S: mEditorCamera.moveForwardImpulse = isDown ? -baseImpulse : 0; break;
+	case EKeyCode::D: mEditorCamera.moveRightImpulse = isDown ? baseImpulse : 0; break;
+	case EKeyCode::A: mEditorCamera.moveRightImpulse = isDown ? -baseImpulse : 0; break;
+	case EKeyCode::RControl:
+	case EKeyCode::LControl: mbControlDown = isDown; break;
+	}
+
+	if (isDown)
+	{
+		if (key == EKeyCode::Delete)
+		{
+			if (mSelectedObjectId != INDEX_NONE)
+			{
+				objects.erase(objects.begin() + mSelectedObjectId);
+				mSelectedObjectId = INDEX_NONE;
+				bDataChanged = true;
+				mView.frameCount = 0;
+				refreshDetailView();
+			}
+		}
+		else if (key == EKeyCode::V && mbControlDown)
+		{
+			if (mSelectedObjectId != INDEX_NONE)
+			{
+				ObjectData copy = objects[mSelectedObjectId];
+				objects.push_back(copy);
+				mSelectedObjectId = objects.size() - 1;
+				bDataChanged = true;
+				mView.frameCount = 0;
+				refreshDetailView();
+			}
+		}
+		else if (key == EKeyCode::Q)
+		{
+			mGizmoType = EGizmoType::Translate;
+		}
+		else if (key == EKeyCode::E)
+		{
+			mGizmoType = EGizmoType::Scale;
+		}
+		else if (key == EKeyCode::R)
+		{
+			mGizmoType = EGizmoType::Rotate;
+		}
+	}
+}
+
+void RayTracingTestStage::onViewportCharEvent(unsigned code)
+{
+
+}
+
+void RayTracingTestStage::drawGizmo(RHICommandList& commandList, ViewInfo& view)
+{
+	if (mSelectedObjectId == INDEX_NONE || mGizmoType == EGizmoType::None)
+		return;
+
+	auto const& obj = objects[mSelectedObjectId];
+	Vector3 pos = obj.pos;
+
+	GraphicsShaderStateDesc state;
+	state.vertex = mPreviewVS->getRHI();
+	state.pixel = mPreviewPS->getRHI();
+	RHISetGraphicsShaderBoundState(commandList, state);
+	float distToCam = (pos - view.worldPos).length();
+	float scaleFactor = distToCam * 0.15f;
+	float length = 1.0f * scaleFactor;
+	float thickness = 0.03f * scaleFactor;
+
+	if (mIsGizmoDragging)
+	{
+		thickness *= 1.5f;
+	}
+
+	auto GetAxisDir = [&](ObjectData const& obj, int idx)
+	{
+		Vector3 axis(0, 0, 0);
+		axis[idx] = 1.0f;
+		if (mGizmoMode == EGizmoMode::Local || mGizmoType == EGizmoType::Scale)
+		{
+			return obj.rotation.rotate(axis);
+		}
+		return axis;
+	};
+
+	auto drawAxis = [&](Vector3 axisDir, LinearColor color, int axisIdx)
+	{
+		// --- Shaft (thin box) ---
+		Matrix4 world;
+		Vector3 scale;
+
+		if (axisIdx == 0) { scale = Vector3(length, thickness, thickness); }
+		else if (axisIdx == 1) { scale = Vector3(thickness, length, thickness); }
+		else { scale = Vector3(thickness, thickness, length); }
+
+		scale *= 0.5f;
+
+		Matrix4 worldRotate = Matrix4::Identity();
+		if (mGizmoMode == EGizmoMode::Local || mGizmoType == EGizmoType::Scale)
+		{
+			worldRotate = Matrix4::Rotate(obj.rotation);
+		}
+
+		world = Matrix4::Scale(scale) * worldRotate * Matrix4::Translate(pos + axisDir * 0.5 * length);
+
+		LinearColor drawColor = (mGizmoAxis == axisIdx) ? LinearColor::White() : color;
+
+		auto SetShaderParams = [&](Matrix4 const& w)
+		{
+			view.setupShader(commandList, *mPreviewVS);
+			SET_SHADER_PARAM(commandList, *mPreviewVS, World, w);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, BaseColor, drawColor);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, drawColor * 0.5f);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, 1.0f);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, 0.0f);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
+		};
+
+		SetShaderParams(world);
+		getMesh(SimpleMeshId::Box).draw(commandList);
+
+		// --- Tip shape at the end of the axis ---
+		Vector3 tipPos = pos + axisDir * length;
+		float tipSize = scaleFactor * 0.18f;   // uniform tip scale matching shaft
+
+		// Rotate 'from' direction to axisDir
+		auto MakeAlignRotation = [](Vector3 const& from, Vector3 const& to) -> Quaternion
+		{
+			float d = from.dot(to);
+			if (d > 0.9999f)
+				return Quaternion::Identity();
+			if (d < -0.9999f)
+			{
+				// pick any perpendicular axis
+				Vector3 perp = (Math::Abs(from.x) < 0.9f) ? Vector3(1, 0, 0) : Vector3(0, 1, 0);
+				return Quaternion::Rotate(from.cross(perp).getNormal(), Math::PI);
+			}
+			Vector3 cross = from.cross(to);
+			float angle = Math::ACos(Math::Clamp(d, -1.0f, 1.0f));
+			return Quaternion::Rotate(cross.getNormal(), angle);
+		};
+
+		if (mGizmoType == EGizmoType::Translate)
+		{
+			Quaternion rot = MakeAlignRotation(Vector3(0, 0, 1), axisDir);
+			Matrix4 tipWorld = Matrix4::Scale(tipSize) * Matrix4::Rotate(rot) * Matrix4::Translate(tipPos);
+			SetShaderParams(tipWorld);
+			getMesh(SimpleMeshId::Cone).draw(commandList);
+		}
+		else if (mGizmoType == EGizmoType::Rotate)
+		{
+			Quaternion rot = MakeAlignRotation(Vector3(0, 0, 1), axisDir);
+			Matrix4 tipWorld = Matrix4::Scale(tipSize) * Matrix4::Rotate(rot) * Matrix4::Translate(tipPos);
+			SetShaderParams(tipWorld);
+			getMesh(SimpleMeshId::Doughnut2).draw(commandList);
+		}
+
+		else if (mGizmoType == EGizmoType::Scale)
+		{
+			Matrix4 tipWorld = Matrix4::Scale(tipSize * 0.5) * worldRotate * Matrix4::Translate(tipPos);
+			SetShaderParams(tipWorld);
+			getMesh(SimpleMeshId::Box).draw(commandList);
+		}
+	};
+	
+	drawAxis(GetAxisDir(obj, 0), LinearColor(1, 0, 0), 0);
+	drawAxis(GetAxisDir(obj, 1), LinearColor(0, 1, 0), 1);
+	drawAxis(GetAxisDir(obj, 2), LinearColor(0, 0, 1), 2);
+}
+#endif
+

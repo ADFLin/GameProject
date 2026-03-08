@@ -349,6 +349,8 @@ namespace Render
 			SkyBox,
 			SimpleSkin,
 			Terrain,
+			Cone,
+			Doughnut2,
 			NumSimpleMesh,
 		};
 	};

@@ -349,6 +349,11 @@ namespace Render
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data)) );
 	}
 
+	RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format)
+	{
+		return EXECUTE_RHI_FUNC(RHICreateSRV(texture, format));
+	}
+
 	void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		return EXECUTE_RHI_FUNC(RHILockBuffer(buffer, access, offset, size));

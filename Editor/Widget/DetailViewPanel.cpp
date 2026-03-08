@@ -1,6 +1,6 @@
-
 #include "DetailViewPanel.h"
 #include "InlineString.h"
+#include "Math/Quaternion.h"
 
 REGISTER_EDITOR_PANEL(DetailViewPanel, DetailViewPanel::ClassName, false, true);
 
@@ -23,6 +23,7 @@ enum class EDisplayType
 
 	Struct,
 	Array ,
+	Quaternion,
 
 };
 
@@ -72,9 +73,13 @@ static EDisplayType GetDisplayType(PropertyBase* property)
 			{
 				return EDisplayType::Vector2;
 			}
+			if (property->typeIndex == typeid(Math::Quaternion))
+			{
+				return EDisplayType::Quaternion;
+			}
 			else
 			{
-				return EDisplayType::Struct;
+				return (property->getType() == EPropertyType::Struct) ? EDisplayType::Struct : EDisplayType::None;
 			}
 		}
 		break;
@@ -110,14 +115,14 @@ ReflectionMeta::TSlider<T>* GetSliderMeta(Reflection::MetaData* metaData)
 
 struct DetailViewPanel::RenderContext
 {
-	RenderContext(PropertyViewInfo& propertyView)
+	RenderContext(PropertyViewInfo& propertyView, DetailViewPanel& panel)
 		:propertyView(propertyView)
+		,panel(panel)
 	{
-
-
 	}
 
 	PropertyViewInfo& propertyView;
+	DetailViewPanel& panel;
 	char const* propertyName = nullptr;
 
 
@@ -128,6 +133,15 @@ struct DetailViewPanel::RenderContext
 			if (propertyView.callback)
 			{
 				propertyView.callback(propertyName);
+			}
+			// Also fire the category-level callback if one is registered
+			if (propertyView.categoryIndex != INDEX_NONE)
+			{
+				auto& cat = panel.mCategories[propertyView.categoryIndex];
+				if (cat.callback)
+				{
+					cat.callback(propertyName);
+				}
 			}
 		}
 	}
@@ -310,15 +324,36 @@ struct DetailViewPanel::RenderContext
 				}
 			}
 			break;
+		case EDisplayType::Quaternion:
+			{
+				Math::Quaternion& q = *(Math::Quaternion*)pData;
+				Math::Vector3 eulerVal = q.getEulerZYX();
+				float angles[3] = { Math::RadToDeg(eulerVal.x), Math::RadToDeg(eulerVal.y), Math::RadToDeg(eulerVal.z) };
+				if (ImGui::DragFloat3("##Property", angles, 0.1f))
+				{
+					q.setEulerZYX(Math::DegToRad(angles[2]), Math::DegToRad(angles[1]), Math::DegToRad(angles[0]));
+					verify(true);
+				}
+			}
+			break;
 		}
 	}
 
-	void renderStructRow(char const* name, StructType* structData, void* pData, int level)
+	void renderStructRow(char const* name, StructType* structData, void* pData, int level, std::function<void()> const& removeCallback = nullptr)
 	{
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth;
 		bool bOpened = ImGui::TreeNodeEx(name, flags);
 		ImGui::TableSetColumnIndex(1);
-		ImGui::SetNextItemWidth(-FLT_MIN);
+		ImGui::AlignTextToFramePadding();
+		if (removeCallback)
+		{
+			if (ImGui::SmallButton("-"))
+			{
+				removeCallback();
+			}
+			ImGui::SameLine();
+		}
+
 		ImGui::Text("%u members", structData->properties.size());
 		if (bOpened)
 		{
@@ -327,7 +362,7 @@ struct DetailViewPanel::RenderContext
 		}
 	}
 
-	void renderPropertyRow(char const* name, Reflection::PropertyBase* property, void* pData, int level)
+	void renderPropertyRow(char const* name, Reflection::PropertyBase* property, void* pData, int level, std::function<void()> const& removeCallback = nullptr)
 	{
 		EDisplayType displayType = GetDisplayType(property);
 
@@ -337,7 +372,7 @@ struct DetailViewPanel::RenderContext
 			{
 				void* structPtr = property->getDataInStruct(pData);
 				StructProperty* structProperty = static_cast<StructProperty*>(property);
-				renderStructRow(name, structProperty->structData, structPtr, level);
+				renderStructRow(name, structProperty->structData, structPtr, level, removeCallback);
 			}
 			break;
 		case EDisplayType::Array:
@@ -346,12 +381,42 @@ struct DetailViewPanel::RenderContext
 				void* arrayPtr = arrayProperty->getDataInStruct(pData);
 				int count = arrayProperty->getElementCount(arrayPtr);
 
-				ImGuiTreeNodeFlags flags = 0;
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth;
 				bool bOpened = ImGui::TreeNodeEx(name, flags);
 
 				ImGui::TableSetColumnIndex(1);
-				ImGui::SetNextItemWidth(-FLT_MIN);
-				ImGui::Text("%d Array elements", count);
+				ImGui::AlignTextToFramePadding();
+				if (removeCallback)
+				{
+					if (ImGui::SmallButton("-"))
+					{
+						removeCallback();
+					}
+					ImGui::SameLine();
+				}
+
+				ImGui::Text("%d elements", count);
+				ImGui::SameLine();
+				if (ImGui::SmallButton("+"))
+				{
+					arrayProperty->resize(arrayPtr, count + 1);
+					verify(true);
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("-"))
+				{
+					if (count > 0)
+					{
+						arrayProperty->resize(arrayPtr, count - 1);
+						verify(true);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Clear"))
+				{
+					arrayProperty->resize(arrayPtr, 0);
+					verify(true);
+				}
 
 				if (bOpened)
 				{
@@ -363,9 +428,13 @@ struct DetailViewPanel::RenderContext
 						ImGui::PushID(elementPtr);
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						InlineString<256> str;
-						str.format("index[%d]", index);
-						renderPropertyRow(str, arrayProperty->elementProperty, elementPtr, level + 1);
+						InlineString<32> str;
+						str.format("[%d]", index);
+						renderPropertyRow(str.c_str(), arrayProperty->elementProperty, elementPtr, level + 1, [arrayProperty, arrayPtr, index, this]()
+						{
+							arrayProperty->removeElement(arrayPtr, index);
+							verify(true);
+						});
 						ImGui::PopID();
 					}
 
@@ -377,6 +446,15 @@ struct DetailViewPanel::RenderContext
 			{
 				ImGui::TextUnformatted(name);
 				ImGui::TableSetColumnIndex(1);
+				ImGui::AlignTextToFramePadding();
+				if (removeCallback)
+				{
+					if (ImGui::SmallButton("-"))
+					{
+						removeCallback();
+					}
+					ImGui::SameLine();
+				}
 				ImGui::SetNextItemWidth(-FLT_MIN);
 				RenderPropertyValue(displayType, property->getDataInStruct(pData), property);
 			}
@@ -455,15 +533,63 @@ struct DetailViewPanel::RenderContext
 void DetailViewPanel::render()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-	if (ImGui::BeginTable("split", 2, ImGuiTableFlags_Resizable))
+
+	// Determine if we have any categorized views
+	bool bHasCategories = !mCategories.empty();
+
+	if (bHasCategories)
 	{
-		for (auto& propertyView : mPropertyViews)
+		// Render uncategorized items first (no table wrapping needed between categories)
+		// Render each category as a CollapsingHeader, then its items in a table inside
+		auto renderCategoryItems = [&](int categoryIndex, int id)
 		{
-			RenderContext context(propertyView);
-			context.render();
+			ImGui::PushID(id);
+			if (ImGui::BeginTable("split", 2, ImGuiTableFlags_Resizable))
+			{
+				for (auto& propertyView : mPropertyViews)
+				{
+					if (propertyView.categoryIndex != categoryIndex)
+						continue;
+
+					ImGui::PushID((int)propertyView.handle);
+					RenderContext context(propertyView, *this);
+					context.render();
+					ImGui::PopID();
+				}
+				ImGui::EndTable();
+			}
+			ImGui::PopID();
+		};
+
+		renderCategoryItems(INDEX_NONE, 0);
+
+		// Each named category under a CollapsingHeader
+		for (int catIndex = 0; catIndex < mCategories.size(); ++catIndex)
+		{
+			auto& catInfo = mCategories[catIndex];
+			ImGuiTreeNodeFlags flags = catInfo.bDefaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+			if (ImGui::CollapsingHeader(catInfo.name.c_str(), flags))
+			{
+				renderCategoryItems(catIndex, catIndex + 1);
+			}
 		}
-		ImGui::EndTable();
 	}
+	else
+	{
+		// No categories: original flat table rendering
+		if (ImGui::BeginTable("split", 2, ImGuiTableFlags_Resizable))
+		{
+			for (auto& propertyView : mPropertyViews)
+			{
+				ImGui::PushID((int)propertyView.handle);
+				RenderContext context(propertyView, *this);
+				context.render();
+				ImGui::PopID();
+			}
+			ImGui::EndTable();
+		}
+	}
+
 	ImGui::PopStyleVar();
 }
 
@@ -479,61 +605,75 @@ DetailViewPanel::PropertyViewInfo* DetailViewPanel::getViewInfo(PropertyViewHand
 	return &mPropertyViews[index];
 }
 
-PropertyViewHandle DetailViewPanel::addView(Reflection::EPropertyType type, void* ptr, char const* name)
+PropertyViewHandle DetailViewPanel::addView(Reflection::EPropertyType type, void* ptr, char const* name, char const* category)
 {
 	PropertyViewInfo info;
 	if (name)
 		info.name = name;
-
+	
+	info.categoryIndex = getOrAddCategoryIndex(category);
+	info.handle = ++mNextHandle;
 	info.type = EViewType::Primitive;
 	info.ptr = ptr;
 	info.primitiveType = type;
 	mPropertyViews.push_back(std::move(info));
-	return info.handle;
+	return mPropertyViews.back().handle;
 }
 
-PropertyViewHandle DetailViewPanel::addView(Reflection::StructType* structData, void* ptr, char const* name)
+PropertyViewHandle DetailViewPanel::addView(Reflection::StructType* structData, void* ptr, char const* name, char const* category)
 {
 	PropertyViewInfo info;
 	if (name)
 		info.name = name;
 
+	info.categoryIndex = getOrAddCategoryIndex(category);
 	info.handle = ++mNextHandle;
 	info.type = EViewType::Struct;
 	info.ptr = ptr;
 	info.structData = structData;
 	mPropertyViews.push_back(std::move(info));
-	return info.handle;
+	return mPropertyViews.back().handle;
 }
 
-PropertyViewHandle DetailViewPanel::addView(Reflection::EnumType* enumData, void* ptr, char const* name)
+PropertyViewHandle DetailViewPanel::addView(Reflection::EnumType* enumData, void* ptr, char const* name, char const* category)
 {
 	PropertyViewInfo info;
 	if (name)
 		info.name = name;
 
+	info.categoryIndex = getOrAddCategoryIndex(category);
 	info.handle = ++mNextHandle;
 	info.type = EViewType::Enum;
 	info.ptr = ptr;
 	info.enumData = enumData;
 	mPropertyViews.push_back(std::move(info));
-	return info.handle;
+	return mPropertyViews.back().handle;
 }
 
-PropertyViewHandle DetailViewPanel::addView(Reflection::PropertyBase* property, void* ptr, char const* name)
+PropertyViewHandle DetailViewPanel::addView(Reflection::PropertyBase* property, void* ptr, char const* name, char const* category)
 {
 	CHECK(property);
 
 	PropertyViewInfo info;
 	if (name)
 		info.name = name;
-
+	
+	info.categoryIndex = getOrAddCategoryIndex(category);
 	info.handle = ++mNextHandle;
 	info.type = EViewType::Property;
 	info.ptr = ptr;
 	info.property = property;
 	mPropertyViews.push_back(std::move(info));
-	return info.handle;
+	return mPropertyViews.back().handle;
+}
+
+void DetailViewPanel::addCategory(char const* name, bool bDefaultOpen)
+{
+	int index = getOrAddCategoryIndex(name);
+	if (index != INDEX_NONE)
+	{
+		mCategories[index].bDefaultOpen = bDefaultOpen;
+	}
 }
 
 void DetailViewPanel::addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback)
@@ -542,6 +682,15 @@ void DetailViewPanel::addCallback(PropertyViewHandle handle, std::function<void(
 	if (view)
 	{
 		view->callback = callback;
+	}
+}
+
+void DetailViewPanel::addCategoryCallback(char const* category, std::function<void(char const*)> const& callback)
+{
+	int index = getCategoryIndex(category);
+	if (index != INDEX_NONE)
+	{
+		mCategories[index].callback = callback;
 	}
 }
 
@@ -556,4 +705,57 @@ void DetailViewPanel::removeView(PropertyViewHandle handle)
 void DetailViewPanel::clearAllViews()
 {
 	mPropertyViews.clear();
+	mCategories.clear();
 }
+
+void DetailViewPanel::clearCategoryViews(char const* name)
+{
+	if (!name)
+		return;
+
+	int catIndex = getCategoryIndex(name);
+	if (catIndex == INDEX_NONE)
+		return;
+
+	mPropertyViews.removePred([catIndex](PropertyViewInfo const& info)
+	{
+		return info.categoryIndex == catIndex;
+	});
+
+	mCategories.removeIndex(catIndex);
+
+	for (auto& view : mPropertyViews)
+	{
+		if (view.categoryIndex != INDEX_NONE && view.categoryIndex > catIndex)
+		{
+			view.categoryIndex--;
+		}
+	}
+}
+
+int DetailViewPanel::getOrAddCategoryIndex(char const* name)
+{
+	if (!name)
+		return INDEX_NONE;
+
+	int index = getCategoryIndex(name);
+	if (index != INDEX_NONE)
+		return index;
+
+	CategoryInfo cat;
+	cat.name = name;
+	mCategories.push_back(std::move(cat));
+	return mCategories.size() - 1;
+}
+
+int DetailViewPanel::getCategoryIndex(char const* name) const
+{
+	if (!name)
+		return INDEX_NONE;
+
+	return mCategories.findIndexPred([name](CategoryInfo const& cat)
+	{
+		return cat.name == name;
+	});
+}
+

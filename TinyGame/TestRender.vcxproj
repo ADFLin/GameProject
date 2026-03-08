@@ -241,6 +241,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\tinygltf\tiny_gltf.cc" />
     <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
     <ClCompile Include="TestRender\SceneScript.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -280,6 +281,12 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="TestRender\MeshImporterGLB.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
     <ClCompile Include="TestRender\Stage\ShaderConductorTest.cpp" />
@@ -305,6 +312,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\OtherLib\tinygltf\tiny_gltf.h" />
     <ClInclude Include="TestRender\MeshImporterFBX.h" />
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />
@@ -317,6 +325,7 @@
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
     <ClInclude Include="TestRender\Stage\PlantRenderingStage.h" />
     <ClInclude Include="TestRender\Stage\RayTracingStage.h" />
+    <ClInclude Include="TestRender\MeshImporterGLB.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
     <ClInclude Include="TestRender\Stage\SoftwareRenderingStage.h" />
     <ClInclude Include="TestRender\Stage\TestRHIStage.h" />

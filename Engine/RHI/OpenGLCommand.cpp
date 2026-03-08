@@ -377,6 +377,31 @@ namespace Render
 		return CreateOpenGLResource1T< OpenGLTexture2D >(desc, data, dataAlign);
 	}
 
+	RHIShaderResourceView* OpenGLSystem::RHICreateSRV(RHITexture2D& texture, ETexture::Format format)
+	{
+		OpenGLTexture2D& textureImpl = static_cast<OpenGLTexture2D&>(texture);
+		auto* result = new OpenGLShaderResourceView;
+		result->handle = textureImpl.getHandle();
+		result->typeEnum = textureImpl.getGLTypeEnum();
+
+		if (format == ETexture::StencilView)
+		{
+			if (glTextureView)
+			{
+				glGenTextures(1, &result->handle);
+				glTextureView(result->handle, GL_TEXTURE_2D, textureImpl.getHandle(), GL_DEPTH24_STENCIL8, 0, 1, 0, 1);
+				glTextureParameteri(result->handle, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX);
+				result->bOwnHandle = true;
+			}
+			else
+			{
+				LogWarning(0, "Stencil view not supported (glTextureView missing)");
+			}
+		}
+
+		return result;
+	}
+
 	RHITexture3D* OpenGLSystem::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
 		return CreateOpenGLResource1T< OpenGLTexture3D >(desc, data);
@@ -2089,12 +2114,10 @@ namespace Render
 	{
 		if (transition == EResourceTransition::UAV || transition == EResourceTransition::UAVBarrier)
 		{
-			// ç¢ºä??€?‰ç? UAV å¯«å…¥?¨ä?ä¸€æ¬¡å??–å?å®Œæ?
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 		else if (transition == EResourceTransition::SRV)
 		{
-			// ç¢ºä?å¯«å…¥å®Œæ?ï¼Œä»¥ä¾¿æŽ¥ä¸‹ä?ä½œç‚º Texture ??Buffer è®€??
 			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 		}
 	}

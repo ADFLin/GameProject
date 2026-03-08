@@ -1,4 +1,4 @@
-#include "D3D11Command.h"
+﻿#include "D3D11Command.h"
 
 #include "D3D11ShaderCommon.h"
 
@@ -805,6 +805,35 @@ namespace Render
 		return new D3D11FrameBuffer;
 	}
 
+	RHIShaderResourceView* D3D11System::RHICreateSRV(RHITexture2D& texture, ETexture::Format format)
+	{
+		D3D11Texture2D& textureImpl = static_cast<D3D11Texture2D&>(texture);
+		D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+		desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipLevels = 1;
+		desc.Texture2D.MostDetailedMip = 0;
+		if (format == ETexture::Format::StencilView)
+		{
+			if (texture.getFormat() == ETexture::Format::D32FS8)
+			{
+				desc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+			}
+			else
+			{
+				// Default to D24S8 mapping
+				desc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+			}
+		}
+		else
+		{
+			desc.Format = D3D11Translate::ToSRV(D3D11Translate::To(format));
+		}
+
+		ID3D11ShaderResourceView* d3dSRV = nullptr;
+		VERIFY_D3D_RESULT(mDevice->CreateShaderResourceView(textureImpl.getResource(), &desc, &d3dSRV), return nullptr;);
+		return new D3D11ShaderResourceView(d3dSRV);
+	}
+
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		InputLayoutKey key(desc);
@@ -1431,6 +1460,30 @@ namespace Render
 				clearTexture(parameter);
 			}
 			LogWarning(0, "Texture don't have SRV");
+		}
+	}
+
+	void D3D11ResourceBoundState::setShaderResourceView(ShaderParameter const& parameter, RHIShaderResourceView const& resourceView)
+	{
+		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedSRVNum);
+		auto const& viewImpl = static_cast<D3D11ShaderResourceView const&>(resourceView);
+		ID3D11ShaderResourceView* d3dView = viewImpl.mResource;
+
+		if (mBoundedSRVs[parameter.mLoc] != d3dView)
+		{
+			if (mBoundedSRVs[parameter.mLoc] != nullptr)
+			{
+				if (mBoundedSRVResources[parameter.mLoc] && mBoundedSRVResources[parameter.mLoc]->getResourceType() == EResourceType::Texture)
+				{
+					D3D11Cast::ToTextureBase(static_cast<RHITextureBase&>(*mBoundedSRVResources[parameter.mLoc])).removeBind(mShaderType, parameter.mLoc, false);
+				}
+			}
+
+			mBoundedSRVs[parameter.mLoc] = d3dView;
+			mBoundedSRVResources[parameter.mLoc] = nullptr; 
+			mSRVDirtyMask |= BIT(parameter.mLoc);
+			if (mMaxSRVBoundIndex < parameter.mLoc)
+				mMaxSRVBoundIndex = parameter.mLoc;
 		}
 	}
 
@@ -2630,6 +2683,15 @@ namespace Render
 		setShaderValueT(shaderProgram, param, val, 3 * 4 * dim);
 	}
 
+	void D3D11Context::setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, &resourceView](EShader::Type type, ShaderParameter const& shaderParam)
+		{
+			mResourceBoundStates[type].setShaderResourceView(shaderParam, resourceView);
+		});
+	}
+
 	void D3D11Context::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
@@ -2644,6 +2706,13 @@ namespace Render
 		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
 		auto type = shaderImpl.mResource.type;
 		mResourceBoundStates[type].setTexture(param, texture);
+	}
+
+	void D3D11Context::setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mResourceBoundStates[type].setShaderResourceView(param, resourceView);
 	}
 
 	void D3D11Context::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)

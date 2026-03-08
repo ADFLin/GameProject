@@ -3,6 +3,7 @@
 
 #include "Math/Base.h"
 #include "Math/Vector3.h"
+#include "ReflectionCollect.h"
 
 namespace Math
 {
@@ -57,12 +58,16 @@ namespace Math
 
 		operator       float* ()       { return &x; }
 		operator const float* () const { return &x; }
-
 	private:
 		struct NoInit{ };
 		Quaternion( NoInit const& ){}
 
-
+		REFLECT_STRUCT_BEGIN(Quaternion)
+			REF_PROPERTY(x)
+			REF_PROPERTY(y)
+			REF_PROPERTY(z)
+			REF_PROPERTY(w)
+		REFLECT_STRUCT_END()
 	};
 
 	Quaternion Slerp( Quaternion const& from , Quaternion const& to , float t );
@@ -135,6 +140,7 @@ namespace Math
 		w*=s; x*=s; y*=s; z*=s;
 		return len;
 	}
+
 
 }//namespace Math
 

@@ -437,6 +437,9 @@
     <ClInclude Include="TinyCore\ParallelCollision\ParallelCollision.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\TimerManager.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -712,6 +715,7 @@
     <ClCompile Include="TinyCore\ParallelCollision\ParallelCollision.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="TinyCore\TimerManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="TinyCore\ColorName.h">

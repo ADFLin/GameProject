@@ -1,0 +1,41 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+struct VSOutputParameters
+{
+    float3 normal MEMBER_OUT(TEXCOORD0);
+};
+
+#if VERTEX_SHADER
+uniform float4x4 World;
+uniform float OutlineThick;
+
+VS_ENTRY_START(MainVS)
+    VS_INPUT(float3 InPosition , ATTRIBUTE_POSITION)
+    VS_INPUT(float3 InNormal , ATTRIBUTE_NORMAL)
+    VS_OUTPUT_STRUCT(VSOutputParameters OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+    float3 worldNormal = normalize(mul((float3x3)World, InNormal));
+    float4 worldPos = mul(World, float4(InPosition, 1.0));
+    
+    // Expand along normal in world space or clip space?
+    // World space is easier for constant thickness relative to object
+    worldPos.xyz += worldNormal * OutlineThick;
+    
+    OutputVS.normal = worldNormal;
+    SvPosition = mul(View.worldToClip, worldPos);
+}
+#endif
+
+#if PIXEL_SHADER
+uniform float4 OutlineColor;
+
+PS_ENTRY_START(MainPS)
+    PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
+    PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+    OutColor = OutlineColor;
+}
+#endif

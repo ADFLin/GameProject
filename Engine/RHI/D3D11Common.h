@@ -658,7 +658,8 @@ namespace Render
 			return mViewStorage.getRendnerTarget_Texture2D(mResource, mDesc.format, level, mDesc.numSamples);
 		}
 
-		ID3D11DepthStencilView*  mDSV = nullptr;
+		ID3D11DepthStencilView*   mDSV = nullptr;
+		ID3D11ShaderResourceView* mSRVStencil = nullptr;
 	};
 
 

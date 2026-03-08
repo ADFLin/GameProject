@@ -149,7 +149,7 @@ public:
 	void finalizeEditor();
 	TVector2<int> getInitialSize() override;
 	void resizeViewport(int w, int h) override;
-	void renderViewport(IEditorRenderContext& context) override;
+	void updateViewport(IEditorViewportUpdateContext& context) override;
 	void onViewportMouseEvent(MouseMsg const& msg) override;
 	void onViewportKeyEvent(unsigned key, bool isDown) override;
 	void onViewportCharEvent(unsigned code) override;

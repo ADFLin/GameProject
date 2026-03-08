@@ -194,6 +194,7 @@ namespace Render
 			DEPTH_STENCIL_FORMAT_END = STENCIL_FORMAT_END,
 
 			FloatRGBA = RGBA16F,
+			StencilView,
 		};
 
 		enum Face

@@ -171,6 +171,16 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetComputeShader(shader));
 	}
 
+	void RHISetShaderResourceView(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		RHI_COMMAND_FUNC(commandList, setShaderResourceView(shader, param, resourceView));
+	}
+
+	void RHISetShaderSampler(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		RHI_COMMAND_FUNC(commandList, setShaderSampler(shader, param, sampler));
+	}
+
 
 	void RHIResolveTexture(RHICommandList& commandList, RHITextureBase& destTexture, int destSubIndex, RHITextureBase& srcTexture, int srcSubIndex)
 	{

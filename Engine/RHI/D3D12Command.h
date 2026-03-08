@@ -288,7 +288,7 @@ namespace Render
 			});
 		}
 
-		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
+		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
@@ -368,7 +368,7 @@ namespace Render
 		void setShaderValueInternal(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size, uint32 elementSize, uint32 stride = 4 * sizeof(float));
 		void setShaderValueInternal(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size);
 
-		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
+		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler) 
@@ -614,7 +614,8 @@ namespace Render
 
 		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data);
 		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
-		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) { return nullptr; }
+		virtual RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) override;
+		virtual RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format) override;
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
 

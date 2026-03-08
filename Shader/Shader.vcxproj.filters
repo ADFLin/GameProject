@@ -259,6 +259,9 @@
     <None Include="..\TinyGame\out\Shader\Test\RayTracingTest.sgc">
       <Filter>Test</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\EditorPreview.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

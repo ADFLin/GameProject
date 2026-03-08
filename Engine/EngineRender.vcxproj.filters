@@ -393,6 +393,7 @@
     <ClInclude Include="FX\ParticleRenderer.h">
       <Filter>FX</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\DeferredReleaseQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

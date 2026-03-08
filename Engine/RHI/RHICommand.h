@@ -171,9 +171,12 @@ namespace Render
 	RHI_API RHITextureCube*    RHI_TRACE_FUNC(RHICreateTextureCube,TextureDesc const& desc,void* data[] = nullptr);
 	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, TextureDesc const& desc, void* data = nullptr);
 
+
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer,
 		uint32 elementSize, uint32 numElements, BufferCreationFlags creationFlags = BCF_DefalutValue, void* data = nullptr);
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, BufferDesc const& desc, void* data = nullptr);
+
+	RHI_API RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, BufferCreationFlags creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -269,6 +272,8 @@ namespace Render
 	};
 
 	RHI_API void RHISetViewport(RHICommandList& commandList, ViewportInfo const& viewport);
+	RHI_API void RHISetShaderResourceView(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+	RHI_API void RHISetShaderSampler(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 
 	FORCEINLINE void RHISetViewport(RHICommandList& commandList, float x, float y, float w, float h, float zNear = GRHIClipZMin, float zFar = 1)
 	{
@@ -363,6 +368,8 @@ namespace Render
 	};
 
 	RHI_API void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader);
+	RHI_API void RHISetShaderResourceView(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+	RHI_API void RHISetShaderSampler(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 
 	RHI_API RHIRayTracingPipelineState* RHI_TRACE_FUNC(RHICreateRayTracingPipelineState, RayTracingPipelineStateInitializer const& initializer);
 	RHI_API RHIBottomLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateBottomLevelAccelerationStructure, RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags);
@@ -426,6 +433,8 @@ namespace Render
 
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));
+
+		RHI_FUNC(RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format));
 
 		RHI_FUNC(RHIFrameBuffer*  RHICreateFrameBuffer());
 

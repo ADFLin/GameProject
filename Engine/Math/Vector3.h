@@ -4,6 +4,7 @@
 #include "Math/Base.h"
 #include "TVector3.h"
 #include "Vector2.h"
+#include "ReflectionCollect.h"
 
 namespace Math
 {
@@ -125,11 +126,19 @@ namespace Math
 	public:
 		float x,y,z;
 
+		REFLECT_STRUCT_BEGIN(Vector3)
+			REF_PROPERTY(x)
+			REF_PROPERTY(y)
+			REF_PROPERTY(z)
+		REFLECT_STRUCT_END()
+
 	private:
 		void operator + ( int ) const;
 		void operator - ( int ) const;
 		void operator +=( int ) const;
 		void operator -=( int ) const;
+
+
 	};
 
 	FORCEINLINE Vector3 operator + (Vector3 const& a, Vector3 const& b)

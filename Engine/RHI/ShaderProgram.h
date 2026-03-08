@@ -134,6 +134,7 @@ namespace Render
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture);
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
 
+
 		template< class RHITextureType >
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, TRefCountPtr<RHITextureType>& texturePtr)
 		{
@@ -145,6 +146,9 @@ namespace Render
 		{
 			setTexture(commandList, param, *texturePtr, paramSampler, sampler);
 		}
+
+		void setSRV(RHICommandList& commandList, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+		void setSampler(RHICommandList& commandList, ShaderParameter const& param, RHISamplerState& sampler);
 
 		void clearTexture(RHICommandList& commandList, char const* name)
 		{
@@ -239,7 +243,6 @@ namespace Render
 	};
 
 
-
 	extern template class TShaderFuncHelper< RHIShaderProgram >;
 	extern template class TShaderFuncHelper< RHIShader >;
 
@@ -278,10 +281,23 @@ namespace Render
 		shader.setTexture(commandList, param, value);
 	}
 
+	template< class TShader>
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, RHIShaderResourceView& srv)
+	{
+		shader.setSRV(commandList, param, srv);
+	}
+
 	template< class TShader >
 	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, RHITextureBase& value, ShaderParameter const& paramSampler, RHISamplerState& sampler)
 	{
 		shader.setTexture(commandList, param, value, paramSampler, sampler);
+	}
+
+	template< class TShader >
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, RHIShaderResourceView& srv, ShaderParameter const& paramSampler, RHISamplerState& sampler)
+	{
+		shader.setSRV(commandList, param, srv);
+		shader.setSampler(commandList, paramSampler, sampler);
 	}
 
 	template< class TShader >

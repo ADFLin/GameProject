@@ -1214,6 +1214,35 @@ namespace Render
 		return texture;
 	}
 
+	RHIShaderResourceView* VulkanSystem::RHICreateSRV(RHITexture2D& texture, ETexture::Format format)
+	{
+		VulkanTexture2D& textureVK = static_cast<VulkanTexture2D&>(texture);
+		VkImageViewCreateInfo createInfo = FVulkanInit::imageViewCreateInfo();
+		createInfo.image = textureVK.image;
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = textureVK.mFormatVK;
+
+		if (format == ETexture::StencilView)
+		{
+			createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+		else
+		{
+			createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = textureVK.mMipLevels;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		VkImageView view;
+		if (vkCreateImageView(mDevice->logicalDevice, &createInfo, gAllocCB, &view) != VK_SUCCESS)
+			return nullptr;
+
+		return new VulkanShaderResourceView(mDevice, view);
+	}
+
 	RHITexture3D* VulkanSystem::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
 		VulkanTexture3D* texture = new VulkanTexture3D(desc);
@@ -2221,6 +2250,22 @@ namespace Render
 		});
 	}
 
+	void VulkanContext::setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		auto& shaderProgramImpl = static_cast<VulkanShaderProgram&>(shaderProgram);
+		shaderProgramImpl.mParameterMap.setupShader(param, [this, &resourceView](int shaderIndex, ShaderParameter const& shaderParam)
+		{
+			if (shaderParam.bindIndex >= 0 && shaderParam.bindIndex < MaxDescriptorBindings)
+			{
+				auto& viewImpl = static_cast<VulkanShaderResourceView const&>(resourceView);
+				mPendingDescriptors[shaderParam.bindIndex].view = viewImpl.mView;
+				mPendingDescriptors[shaderParam.bindIndex].texture = nullptr;
+				mPendingDescriptors[shaderParam.bindIndex].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+				mDescriptorDirty = true;
+			}
+		});
+	}
+
 	void VulkanContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		auto& shaderProgramImpl = static_cast<VulkanShaderProgram&>(shaderProgram);
@@ -2267,6 +2312,18 @@ namespace Render
 				mDescriptorDirty = true;
 			}
 		});
+	}
+
+	void VulkanContext::setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		auto& viewImpl = static_cast<VulkanShaderResourceView const&>(resourceView);
+		if (param.bindIndex >= 0 && param.bindIndex < MaxDescriptorBindings)
+		{
+			mPendingDescriptors[param.bindIndex].view = viewImpl.mView;
+			mPendingDescriptors[param.bindIndex].texture = nullptr;
+			mPendingDescriptors[param.bindIndex].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			mDescriptorDirty = true;
+		}
 	}
 
 	void VulkanContext::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture)
@@ -2553,9 +2610,9 @@ namespace Render
 
 			if (binding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 			{
-				if (!descInfo.texture) continue;
+				if (!descInfo.texture && descInfo.view == VK_NULL_HANDLE) continue;
 				VkDescriptorImageInfo& imageInfo = imageInfos[imageInfoIndex++];
-				imageInfo.imageView = descInfo.texture->getView(descInfo.level, descInfo.indexLayer, -1);
+				imageInfo.imageView = (descInfo.view != VK_NULL_HANDLE) ? descInfo.view : descInfo.texture->getView(descInfo.level, descInfo.indexLayer, -1);
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				imageInfo.sampler = descInfo.sampler ? descInfo.sampler->getHandle() : mDevice->mDefaultSampler;
 				
@@ -2564,9 +2621,9 @@ namespace Render
 			}
 			else if (binding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
 			{
-				if (!descInfo.texture) continue;
+				if (!descInfo.texture && descInfo.view == VK_NULL_HANDLE) continue;
 				VkDescriptorImageInfo& imageInfo = imageInfos[imageInfoIndex++];
-				imageInfo.imageView = descInfo.texture->getView(descInfo.level, descInfo.indexLayer);
+				imageInfo.imageView = (descInfo.view != VK_NULL_HANDLE) ? descInfo.view : descInfo.texture->getView(descInfo.level, descInfo.indexLayer);
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				imageInfo.sampler = VK_NULL_HANDLE;
 
@@ -2575,9 +2632,9 @@ namespace Render
 			}
 			else if (binding.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
 			{
-				if (!descInfo.texture) continue;
+				if (!descInfo.texture && descInfo.view == VK_NULL_HANDLE) continue;
 				VkDescriptorImageInfo& imageInfo = imageInfos[imageInfoIndex++];
-				imageInfo.imageView = descInfo.texture->getView(descInfo.level, descInfo.indexLayer, -1);
+				imageInfo.imageView = (descInfo.view != VK_NULL_HANDLE) ? descInfo.view : descInfo.texture->getView(descInfo.level, descInfo.indexLayer, -1);
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				imageInfo.sampler = VK_NULL_HANDLE;
 

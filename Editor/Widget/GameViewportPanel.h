@@ -14,13 +14,15 @@ public:
 
 	IEditorGameViewport* mViewport = nullptr;
 	Render::RHITexture2DRef mTexture;
+	Render::RHITexture2DRef mDepthTexture;
+	Render::RHIFrameBufferRef mFrameBuffer;
 
 	void onOpen() override;
 	void onClose() override;
 
 	void render() override;
 
-	uint16  mMouseState;
+	uint16  mMouseState = 0;
 	Vector2 mLastMousePos;
 	ImVec2  mSize;
 

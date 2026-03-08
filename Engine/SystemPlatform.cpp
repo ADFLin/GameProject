@@ -320,6 +320,53 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< Op
 #endif
 }
 
+bool SystemPlatform::SaveFileName(char inoutPath[], int pathSize, TArrayView< OpenFileFilterInfo const > filters, char const* initDir, char const* title, void* windowOwner)
+{
+#if SYS_PLATFORM_WIN
+	OPENFILENAMEA ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = (HWND)windowOwner;
+	ofn.lpstrFile = inoutPath;
+	ofn.nMaxFile = pathSize;
+
+	std::string strFilter;
+	if (filters.size() > 0)
+	{
+		for (auto const& info : filters)
+		{
+			strFilter += info.desc;
+			strFilter += '\0';
+			strFilter += info.pattern;
+			strFilter += '\0';
+
+		}
+		strFilter += '\0';
+		ofn.lpstrFilter = strFilter.c_str();
+	}
+	else
+	{
+		ofn.lpstrFilter = "All\0*.*\0\0";
+	}
+
+	ofn.nFilterIndex = 1;
+	ofn.lpstrTitle = title;
+	ofn.lpstrInitialDir = initDir;
+	if (inoutPath && *inoutPath)
+		ofn.nFileOffset = FFileUtility::GetFileName(inoutPath) - inoutPath;
+	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+
+	if (!GetSaveFileNameA(&ofn))
+	{
+		return false;
+	}
+
+	return true;
+#else
+	return false;
+#endif
+}
+
 #if SYS_PLATFORM_WIN
 
 int CALLBACK BrowseForFolderCallback(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)

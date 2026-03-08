@@ -173,11 +173,20 @@ namespace Render
 		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
 	};
 
-	class OpenGLShaderResourceView : public TPersistentResource< RHIShaderResourceView >
+	class OpenGLShaderResourceView : public TRefcountResource< RHIShaderResourceView >
 	{
 	public:
+		OpenGLShaderResourceView() :bOwnHandle(false) {}
+		~OpenGLShaderResourceView()
+		{
+			if (bOwnHandle)
+			{
+				glDeleteTextures(1, &handle);
+			}
+		}
 		GLuint handle;
 		GLenum typeEnum;
+		bool   bOwnHandle;
 	};
 
 	class OpenGLTextureBase

@@ -441,6 +441,7 @@ namespace Render
 		RHISwapChain*      RHICreateSwapChain(SwapChainCreationInfo const& info);
 		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data);
 		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
+		virtual RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format) override;
 		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data);
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]);
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data);

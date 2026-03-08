@@ -250,7 +250,6 @@ public:
 			{
 				initializeWindowRenderData(mainWindow);
 			});
-			//RenderThread::FlushCommands();
 		}
 		else
 		{
@@ -282,10 +281,6 @@ public:
 	}
 	TComPtr< ID3D11Device > mDevice;
 	TComPtr< ID3D11DeviceContext > mDeviceContext;
-
-
-	ID3D11RenderTargetView* mSavedRenderTarget[8];
-	ID3D11DepthStencilView* mSavedDepth;
 
 	bool initializeWindowRenderData(EditorWindow& window) override
 	{
@@ -319,7 +314,6 @@ public:
 			{
 				notifyWindowResizeInternal(window, width, height);
 			});
-			//RenderThread::FlushCommands();
 		}
 		else
 		{

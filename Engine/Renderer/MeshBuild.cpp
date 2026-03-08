@@ -518,106 +518,74 @@ namespace Render
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
-		//mesh.mInputLayoutDesc.addElement( 0, EVertex::ATTRIBUTE_TEXCOORD , EVertex::Float2 );
+		
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 		int nV = rings * sectors;
 		TArray< float > vertex(nV * size);
-		float* pos = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(0) / sizeof(float);
-		float* tangentZ = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(1) / sizeof(float);
-		float* tangentX = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(2) / sizeof(float);
-		//float* uv = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(3) / sizeof( float );
+		
+		float* pVertexData = &vertex[0];
+		auto GetVertexPtr = [&](int s, int r) { return pVertexData + (s * rings + r) * size; };
 
-		int r, s;
 		float sf = 2 * Math::PI / sectors;
 		float rf = 2 * Math::PI / rings;
-		for (s = 0; s < sectors; ++s)
+		for (int s = 0; s < sectors; ++s)
 		{
 			float sx, sy;
 			Math::SinCos(s * sf, sx, sy);
-			float factor = ringRadius / radius;
-			for (r = 0; r < rings; ++r)
+			for (int r = 0; r < rings; ++r)
 			{
 				float rs, rc;
 				Math::SinCos(r * rf, rs, rc);
-				pos[0] = radius * sx * (1 + factor * rc);
-				pos[1] = radius * sy * (1 + factor * rc);
-				pos[2] = ringRadius * rs;
 
-				tangentZ[0] = rc * sx;
-				tangentZ[1] = rc * sy;
-				tangentZ[2] = rs;
+				float* v = GetVertexPtr(s, r);
+				// Position
+				v[0] = (radius + ringRadius * rc) * sx;
+				v[1] = (radius + ringRadius * rc) * sy;
+				v[2] = ringRadius * rs;
 
+				// Normal (along vector from ring segment center to vertex)
+				v[3] = rc * sx;
+				v[4] = rc * sy;
+				v[5] = rs;
 
-				tangentX[0] = -sy;
-				tangentX[1] = sx;
-				tangentX[2] = 0;
-				tangentX[3] = 1.0f;
-				//uv[0] = s*sf;
-				//uv[1] = r*rf;
-
-				pos += size;
-				tangentZ += size;
-				tangentX += size;
-				//uv += size;
+				// Tangent (along major circle)
+				v[6] = -sy;
+				v[7] = sx;
+				v[8] = 0;
+				v[9] = 1.0f;
 			}
 		}
 
-		TArray< int > indices(rings * (sectors) * 6);
-		int* i = &indices[0];
-		for (s = 0; s < sectors - 1; ++s)
+		TArray< uint32 > indices;
+		indices.reserve(sectors * rings * 6);
+		for (int s = 0; s < sectors; ++s)
 		{
-			for (r = 0; r < rings - 1; ++r)
+			int s_next = (s + 1) % sectors;
+			for (int r = 0; r < rings; ++r)
 			{
-				i[0] = r * sectors + s;
-				i[1] = r * sectors + (s + 1);
-				i[2] = (r + 1) * sectors + (s + 1);
+				int r_next = (r + 1) % rings;
 
+				uint32 i00 = s * rings + r;
+				uint32 idx10 = s_next * rings + r;
+				uint32 idx01 = s * rings + r_next;
+				uint32 idx11 = s_next * rings + r_next;
 
-				i[3] = i[0];
-				i[4] = i[2];
-				i[5] = (r + 1) * sectors + s;
+				indices.push_back(i00);
+				indices.push_back(idx10);
+				indices.push_back(idx11);
 
-				i += 6;
+				indices.push_back(i00);
+				indices.push_back(idx11);
+				indices.push_back(idx01);
 			}
-
-			i[0] = r * sectors + s;
-			i[1] = r * sectors + (s + 1);
-			i[2] = (s + 1);
-
-			i[3] = i[0];
-			i[4] = i[2];
-			i[5] = s;
-			i += 6;
 		}
 
-		for (r = 0; r < rings - 1; ++r)
-		{
-			i[0] = r * sectors + s;
-			i[1] = r * sectors;
-			i[2] = (r + 1) * sectors;
-
-
-			i[3] = i[0];
-			i[4] = i[2];
-			i[5] = (r + 1) * sectors + s;
-
-			i += 6;
-		}
-
-		i[0] = r * sectors + s;
-		i[1] = r * sectors;
-		i[2] = 0;
-
-		i[3] = i[0];
-		i[4] = i[2];
-		i[5] = s;
-
-		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size()))
+		if (!mesh.createRHIResource(&vertex[0], nV, indices.data(), (int)indices.size()))
 			return false;
 
-		LogMsg("Doughnut = %u", indices.size() / 3);
 		return true;
 	}
+
 
 	bool FMeshBuild::Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
 	{
@@ -1087,6 +1055,77 @@ namespace Render
 
 		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 4, &indices[0], 6);
 		if (!mesh.createRHIResource(&v[0], 4, &indices[0], 6, true))
+			return false;
+
+		return true;
+	}
+
+	bool FMeshBuild::Cone(Mesh& mesh, float height, float radius, int numSide)
+	{
+		// Tip at (0, 0, height), base at Z=0 with given radius
+
+		mesh.mInputLayoutDesc.clear();
+		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+
+		struct MyVertex { Vector3 pos; Vector3 normal; };
+
+		// Side base ring + tip + bottom cap ring + bottom center
+		int numVerts = numSide * 2 + 2;
+		TArray<MyVertex> verts(numVerts);
+
+		float rf = 2.0f * Math::PI / numSide;
+
+		// Side vertices (base ring in XY plane, outward+forward normals)
+		for (int i = 0; i < numSide; ++i)
+		{
+			float s, c;
+			Math::SinCos(i * rf, s, c);
+			verts[i].pos    = Vector3(radius * c, radius * s, 0.0f);
+			Vector3 outward(c, s, 0.5f);
+			verts[i].normal = outward.getNormal();
+		}
+		// Tip vertex
+		verts[numSide].pos    = Vector3(0, 0, height);
+		verts[numSide].normal = Vector3(0, 0, 1);
+
+		// Bottom cap: duplicate base ring with -Z normal
+		for (int i = 0; i < numSide; ++i)
+		{
+			float s, c;
+			Math::SinCos(i * rf, s, c);
+			verts[numSide + 1 + i].pos    = Vector3(radius * c, radius * s, 0.0f);
+			verts[numSide + 1 + i].normal = Vector3(0, 0, -1);
+		}
+		// Bottom center
+		verts[numSide * 2 + 1].pos    = Vector3(0, 0, 0);
+		verts[numSide * 2 + 1].normal = Vector3(0, 0, -1);
+
+		TArray<uint32> indices;
+		indices.reserve(numSide * 6);
+
+		int tipIdx = numSide;
+		// Side triangles
+		for (int i = 0; i < numSide; ++i)
+		{
+			int next = (i + 1) % numSide;
+			indices.push_back(i);
+			indices.push_back(next);
+			indices.push_back(tipIdx);
+		}
+		// Bottom cap triangles
+		int centerIdx  = numSide * 2 + 1;
+		int baseOffset = numSide + 1;
+		for (int i = 0; i < numSide; ++i)
+		{
+			int next = (i + 1) % numSide;
+			indices.push_back(baseOffset + next);
+			indices.push_back(baseOffset + i);
+			indices.push_back(centerIdx);
+		}
+
+		mesh.mType = EPrimitive::TriangleList;
+		if (!mesh.createRHIResource(&verts[0], numVerts, &indices[0], (int)indices.size()))
 			return false;
 
 		return true;

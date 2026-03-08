@@ -239,6 +239,11 @@ public:
 	constexpr Color3ub(uint8 cr, uint8 cg, uint8 cb)
 		:TColor3< uint8 >(cr, cg, cb) {}
 
+	REFLECT_STRUCT_BEGIN(Color3ub)
+		REF_PROPERTY(r)
+		REF_PROPERTY(g)
+		REF_PROPERTY(b)
+	REFLECT_STRUCT_END()
 };
 
 
@@ -260,6 +265,12 @@ public:
 	friend Color3f operator + (Color3f const& lhs, Color3f const& rhs) { return Color3f(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b); }
 	friend Color3f operator - (Color3f const& lhs, Color3f const& rhs) { return Color3f(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b); }
 	
+	REFLECT_STRUCT_BEGIN(Color3f)
+		REF_PROPERTY(r)
+		REF_PROPERTY(g)
+		REF_PROPERTY(b)
+	REFLECT_STRUCT_END()
+
 };
 
 
@@ -278,6 +289,13 @@ public:
 		FColor::FromRGBA(rgba, result.r, result.g, result.b, result.a);
 		return result;
 	}
+
+	REFLECT_STRUCT_BEGIN(Color4ub)
+		REF_PROPERTY(r)
+		REF_PROPERTY(g)
+		REF_PROPERTY(b)
+		REF_PROPERTY(a)
+	REFLECT_STRUCT_END()
 };
 
 class Color4f : public TColor4< float >
@@ -303,6 +321,13 @@ public:
 	friend Color4f operator * (float f, Color4f const& c) { return Color4f(f * c.r, f * c.g, f * c.b, f * c.a); }
 	friend Color4f operator + (Color4f const& lhs, Color4f const& rhs) { return Color4f(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b, lhs.a + rhs.a); }
 	friend Color4f operator - (Color4f const& lhs, Color4f const& rhs) { return Color4f(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
+
+	REFLECT_STRUCT_BEGIN(Color4f)
+		REF_PROPERTY(r)
+		REF_PROPERTY(g)
+		REF_PROPERTY(b)
+		REF_PROPERTY(a)
+	REFLECT_STRUCT_END()
 };
 
 

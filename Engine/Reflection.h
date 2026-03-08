@@ -413,6 +413,8 @@ namespace Reflection
 		
 		virtual int   getElementCount(void* ptr) = 0;
 		virtual void* getElement(void* ptr, int index) = 0;
+		virtual void  resize(void* ptr, int newSize) = 0;
+		virtual void  removeElement(void* ptr, int index) = 0;
 		EPropertyType getType() override
 		{
 			return EPropertyType::Array;
@@ -440,6 +442,16 @@ namespace Reflection
 				return reinterpret_cast<T*>(ptr)->data() + index;
 			}
 			return nullptr;
+		}
+
+		virtual void  resize(void* ptr, int newSize)
+		{
+			reinterpret_cast<T*>(ptr)->resize(newSize);
+		}
+
+		virtual void  removeElement(void* ptr, int index)
+		{
+			reinterpret_cast<T*>(ptr)->removeIndex(index);
 		}
 
 		int getTypeSize() override

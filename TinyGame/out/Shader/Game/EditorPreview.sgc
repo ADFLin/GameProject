@@ -1,0 +1,60 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+struct VSOutputParameters
+{
+    float3 normal MEMBER_OUT(TEXCOORD0);
+    float3 worldPos MEMBER_OUT(TEXCOORD1);
+};
+
+#if VERTEX_SHADER
+uniform float4x4 World;
+
+VS_ENTRY_START(MainVS)
+    VS_INPUT(float3 InPosition , ATTRIBUTE_POSITION)
+    VS_INPUT(float3 InNormal , ATTRIBUTE_NORMAL)
+    VS_OUTPUT_STRUCT(VSOutputParameters OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+    float4 worldPos = mul(World, float4(InPosition, 1.0));
+    OutputVS.worldPos = worldPos.xyz;
+    SvPosition = mul(View.worldToClip, worldPos);
+    OutputVS.normal = mul((float3x3)World, InNormal);
+}
+#endif
+
+#if PIXEL_SHADER
+uniform float4 BaseColor;
+uniform float3 EmissiveColor;
+uniform float Roughness;
+uniform float Specular;
+uniform float SelectionAlpha;
+
+PS_ENTRY_START(MainPS)
+    PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
+    PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+    float3 N = normalize(InputPS.normal);
+    float3 V = normalize(View.worldPos - InputPS.worldPos);
+    float3 L = normalize(float3(0.5, 1.0, 0.5));
+    float3 H = normalize(L + V);
+
+    // Diffuse
+    float NoL = max(dot(N, L), 0.0);
+    float3 diffuse = BaseColor.rgb * (NoL * 0.8 + 0.2);
+
+    // Specular (Simple Blinn-Phong)
+    float NoH = max(dot(N, H), 0.0);
+    float gloss = 1.0 - Roughness;
+    float specPower = pow(2.0, 1.0 + gloss * 8.0);
+    float3 specular = Specular * pow(NoH, specPower) * gloss;
+
+    float3 color = diffuse + specular + EmissiveColor;
+    
+    // Selection Highlight
+    color = lerp(color, float3(1, 1, 1), SelectionAlpha * 0.4);
+    
+    OutColor = float4(color, BaseColor.a);
+}
+#endif

@@ -101,7 +101,9 @@ void GroupMemoryBarrierWithGroupSync();
 
 #define flat nointerpolation
 
-#define VFLIP(UV) float2( (UV).x , 1 - (UV).y )
+float2 VFlip(float2 uv) { return float2(uv.x, 1 - uv.y); }
+float3 VFlip(float3 uv) { return float3(uv.x, uv.y, -uv.z); }
+#define VFLIP(UV) VFlip(UV)
 
 #define MEMBER_OUT( NAME ) :NAME
 

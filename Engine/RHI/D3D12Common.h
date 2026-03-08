@@ -93,6 +93,13 @@ namespace Render
 		typedef RHIPipelineState ImplType;
 	};
 
+	template<>
+	struct TD3D12TypeTraits< RHIShaderResourceView >
+	{
+		typedef void ResourceType;
+		typedef class D3D12ShaderResourceView ImplType;
+	};
+
 	struct D3D12Translate : D3DTranslate
 	{
 		using D3DTranslate::To;
@@ -817,6 +824,17 @@ namespace Render
 		D3D12SamplerState(SamplerStateInitializer const& initializer);
 
 		D3D12_SAMPLER_DESC    mDesc;
+		D3D12PooledHeapHandle mHandle;
+	};
+
+	class D3D12ShaderResourceView : public TRefcountResource< RHIShaderResourceView >
+	{
+	public:
+		D3D12ShaderResourceView(D3D12PooledHeapHandle const& handle) :mHandle(handle) {}
+		~D3D12ShaderResourceView()
+		{
+			D3D12DescriptorHeapPool::FreeHandle(mHandle);
+		}
 		D3D12PooledHeapHandle mHandle;
 	};
 

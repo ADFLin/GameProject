@@ -94,7 +94,8 @@ namespace Render
 			BIND_TEXTURE_PARAM(parameterMap, PreIntegratedBRDFTexture);
 		}
 
-		void setParameters(RHICommandList& commandList, ShaderProgram& shader, IBLResource& resource)
+		template< class TShader >
+		void setParameters(RHICommandList& commandList, TShader& shader, IBLResource& resource)
 		{
 			if (mParamIrradianceTexture.isBound())
 			{

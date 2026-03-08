@@ -107,10 +107,8 @@ void TinyGameApp::resizeViewport(int w, int h)
 	::Global::GetDrawEngine().changeScreenSize(w, h, true);
 }
 
-void TinyGameApp::renderViewport(IEditorRenderContext& context)
+void TinyGameApp::updateViewport(IEditorViewportUpdateContext& context)
 {
-	return;
-
 	if (::Global::GetDrawEngine().isRHIEnabled())
 	{
 		if (GRHISystem->getName() == RHISystemName::D3D11)

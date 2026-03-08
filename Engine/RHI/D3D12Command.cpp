@@ -719,14 +719,59 @@ namespace Render
 				texture->mRTVorDSV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &rtvDesc);
 			}
 		}
-
+		
 		return texture;
 	}
 
-	RHITexture3D* RHISystem::RHICreateTexture3D(TextureDesc const& desc, void* data)
+	RHITexture3D* D3D12System::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
 		return nullptr;
 	}
+
+	RHIShaderResourceView* D3D12System::RHICreateSRV(RHITexture2D& texture, ETexture::Format format)
+	{
+		D3D12Texture2D& textureImpl = D3D12Cast::To(texture);
+		DXGI_FORMAT formatD3D = D3D12Translate::To(format);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.ViewDimension = (textureImpl.getDesc().numSamples > 1) ? D3D12_SRV_DIMENSION_TEXTURE2DMS : D3D12_SRV_DIMENSION_TEXTURE2D;
+
+		if (format == ETexture::StencilView)
+		{
+			DXGI_FORMAT depthFormat = D3D12Translate::To(textureImpl.getDesc().format);
+			switch (depthFormat)
+			{
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+			case DXGI_FORMAT_R24G8_TYPELESS:
+				formatD3D = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+				break;
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+			case DXGI_FORMAT_R32G8X24_TYPELESS:
+				formatD3D = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+				break;
+			default:
+				LogWarning(0, "Stencil view not supported for this format");
+				return nullptr;
+			}
+		}
+
+		srvDesc.Format = formatD3D;
+		if (textureImpl.getDesc().numSamples > 1)
+		{
+		}
+		else
+		{
+			srvDesc.Texture2D.MipLevels = textureImpl.getDesc().numMipLevel;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			srvDesc.Texture2D.PlaneSlice = (format == ETexture::StencilView) ? 1 : 0;
+			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+		}
+
+		auto handle = D3D12DescriptorHeapPool::Alloc(textureImpl.mResource, &srvDesc);
+		return new D3D12ShaderResourceView(handle);
+	}
+
 
 	RHITextureCube* RHISystem::RHICreateTextureCube(TextureDesc const& desc, void* data[])
 	{
@@ -3010,6 +3055,68 @@ namespace Render
 		{
 			resourceBoundState.updateConstantData(pData, offset, size);
 		}
+	}
+
+	void D3D12Context::setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		auto const& viewImpl = static_cast<D3D12ShaderResourceView const&>(resourceView);
+		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+
+		auto const& slotInfo = shaderImpl.rootSignature.slots[param.bindIndex];
+		if (slotInfo.bLocal)
+		{
+			if (mCurrentRayTracingShaderTable)
+			{
+				D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = viewImpl.mHandle.getGPUHandle();
+				mCurrentRayTracingShaderTable->updateShaderRecord(shaderImpl.getType(), shaderImpl, 0, &gpuHandle, sizeof(gpuHandle), slotInfo.dataOffset);
+			}
+			return;
+		}
+
+		auto rootSlot = getRootSlot(shaderImpl.getType(), shaderImpl, param);
+		if (rootSlot == INDEX_NONE) return;
+
+		updateCSUHeapUsage(viewImpl.mHandle);
+		if (shaderImpl.getType() == EShader::Compute || EShader::IsRayTracing(shaderImpl.getType()))
+		{
+			mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, viewImpl.mHandle.getGPUHandle());
+		}
+		else
+		{
+			mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, viewImpl.mHandle.getGPUHandle());
+		}
+	}
+
+	void D3D12Context::setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, &resourceView](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
+		{
+			auto const& viewImpl = static_cast<D3D12ShaderResourceView const&>(resourceView);
+			auto const& slotInfo = shaderData.rootSignature.slots[shaderParam.bindIndex];
+			if (slotInfo.bLocal)
+			{
+				if (mCurrentRayTracingShaderTable)
+				{
+					D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = viewImpl.mHandle.getGPUHandle();
+					mCurrentRayTracingShaderTable->updateShaderRecord(shaderType, shaderData, 0, &gpuHandle, sizeof(gpuHandle), slotInfo.dataOffset);
+				}
+				return;
+			}
+
+			auto rootSlot = getRootSlot(shaderType, shaderData, shaderParam);
+			if (rootSlot == INDEX_NONE) return;
+
+			updateCSUHeapUsage(viewImpl.mHandle);
+			if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
+			{
+				mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, viewImpl.mHandle.getGPUHandle());
+			}
+			else
+			{
+				mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, viewImpl.mHandle.getGPUHandle());
+			}
+		});
 	}
 
 	void D3D12Context::setShaderTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture)

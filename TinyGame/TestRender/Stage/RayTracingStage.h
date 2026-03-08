@@ -3,10 +3,14 @@
 
 #include "RHI/RHICommand.h"
 #include "Renderer/MeshImportor.h"
+#include "Renderer/IBLResource.h"
 #include "Math/GeometryPrimitive.h"
 #include "PropertySet.h"
 #include "ProfileSystem.h"
 #include "ReflectionCollect.h"
+
+#include "Editor.h"
+#include <memory>
 
 using namespace Render;
 
@@ -50,10 +54,26 @@ public:
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
+		BIND_SHADER_PARAM(parameterMap, DisplayMode);
+		BIND_SHADER_PARAM(parameterMap, BoundBoxWarningCount);
+		BIND_SHADER_PARAM(parameterMap, TriangleWarningCount);
+		BIND_SHADER_PARAM(parameterMap, NumObjects);
+		BIND_SHADER_PARAM(parameterMap, NumEmittingObjects);
+		BIND_SHADER_PARAM(parameterMap, BlendFactor);
 		BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
+		BIND_TEXTURE_PARAM(parameterMap, SkyTexture);
+		mIBLParams.bindParameters(parameterMap);
 	}
 
+	DEFINE_SHADER_PARAM(DisplayMode);
+	DEFINE_SHADER_PARAM(BoundBoxWarningCount);
+	DEFINE_SHADER_PARAM(TriangleWarningCount);
+	DEFINE_SHADER_PARAM(NumObjects);
+	DEFINE_SHADER_PARAM(NumEmittingObjects);
+	DEFINE_SHADER_PARAM(BlendFactor);
 	DEFINE_TEXTURE_PARAM(HistoryTexture);
+	DEFINE_TEXTURE_PARAM(SkyTexture);
+	IBLShaderParameters mIBLParams;
 };
 
 
@@ -114,6 +134,83 @@ public:
 };
 
 
+class EditorPreviewVS : public GlobalShader
+{
+	DECLARE_SHADER(EditorPreviewVS, Global);
+public:
+	static char const* GetShaderFileName() { return "Shader/Game/EditorPreview"; }
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, World);
+	}
+	DEFINE_SHADER_PARAM(World);
+};
+
+class EditorPreviewPS : public GlobalShader
+{
+	DECLARE_SHADER(EditorPreviewPS, Global);
+public:
+	static char const* GetShaderFileName() { return "Shader/Game/EditorPreview"; }
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, BaseColor);
+		BIND_SHADER_PARAM(parameterMap, EmissiveColor);
+		BIND_SHADER_PARAM(parameterMap, Roughness);
+		BIND_SHADER_PARAM(parameterMap, Specular);
+		BIND_SHADER_PARAM(parameterMap, SelectionAlpha);
+	}
+	DEFINE_SHADER_PARAM(BaseColor);
+	DEFINE_SHADER_PARAM(EmissiveColor);
+	DEFINE_SHADER_PARAM(Roughness);
+	DEFINE_SHADER_PARAM(Specular);
+	DEFINE_SHADER_PARAM(SelectionAlpha);
+};
+
+class ScreenOutlinePS : public GlobalShader
+{
+	DECLARE_SHADER(ScreenOutlinePS, Global);
+public:
+	static char const* GetShaderFileName() { return "Shader/Game/ScreenOutline"; }
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_TEXTURE_PARAM(parameterMap, SceneDepthTexture);
+		BIND_TEXTURE_PARAM(parameterMap, SceneColorTexture);
+		BIND_SHADER_PARAM(parameterMap, OutlineColor);
+		BIND_SHADER_PARAM(parameterMap, ScreenSize);
+	}
+	DEFINE_TEXTURE_PARAM(SceneDepthTexture);
+	DEFINE_TEXTURE_PARAM(SceneColorTexture);
+	DEFINE_SHADER_PARAM(OutlineColor);
+	DEFINE_SHADER_PARAM(ScreenSize);
+};
+
+class EditorOutlineVS : public GlobalShader
+{
+	DECLARE_SHADER(EditorOutlineVS, Global);
+public:
+	static char const* GetShaderFileName() { return "Shader/Game/EditorOutline"; }
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, World);
+		BIND_SHADER_PARAM(parameterMap, OutlineThick);
+	}
+	DEFINE_SHADER_PARAM(World);
+	DEFINE_SHADER_PARAM(OutlineThick);
+};
+
+class EditorOutlinePS : public GlobalShader
+{
+	DECLARE_SHADER(EditorOutlinePS, Global);
+public:
+	static char const* GetShaderFileName() { return "Shader/Game/EditorOutline"; }
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, OutlineColor);
+	}
+	DEFINE_SHADER_PARAM(OutlineColor);
+};
+
+
 
 
 struct GPU_ALIGN MaterialData
@@ -129,7 +226,15 @@ struct GPU_ALIGN MaterialData
 
 	Vector2 dummy;
 
-	MaterialData() = default;
+	MaterialData()
+	{
+		baseColor = { 1, 1, 1 };
+		roughness = 0.5f;
+		emissiveColor = { 0, 0, 0 };
+		specular = 0.0f;
+		refractive = 0.0f;
+		refractiveIndex = 1.0f;
+	}
 
 	MaterialData(Color3f const& inBaseColor, float inRoughness, float inSpecular = 0, Color3f const& inEmissiveColor = Color3f::Black(), float inRefractive = 0, float inRefractiveIndex = 0)
 		:baseColor(inBaseColor)
@@ -177,6 +282,23 @@ struct GPU_ALIGN ObjectData
 	Quaternion rotation;
 	Vector3 meta;
 	int32   materialId;
+
+	ObjectData()
+	{
+		pos = { 0, 0, 0 };
+		type = OBJ_SPHERE;
+		rotation = Quaternion::Identity();
+		meta = { 1, 0, 0 };
+		materialId = 0;
+	}
+
+	REFLECT_STRUCT_BEGIN(ObjectData)
+		REF_PROPERTY(type)
+		REF_PROPERTY(pos)
+		REF_PROPERTY(rotation)
+		REF_PROPERTY(meta)
+		REF_PROPERTY(materialId)
+	REFLECT_STRUCT_END()
 };
 
 struct FObject
@@ -858,6 +980,15 @@ namespace RT
 	{
 	public:
 
+		TArray< MaterialData > materials;
+		TArray< ObjectData > objects;
+		TArray< MeshData > meshes;
+		TArray< std::shared_ptr<Render::Mesh> > mSceneMeshes;
+		
+		TArray< MeshVertexData > mMeshVertices;
+		TArray< BVHNodeData > mMeshBVHNodes;
+		TArray< BVHNodeData > mSceneBVHNodes;
+		TArray< int32 > mSceneObjectIds;
 
 		TStructuredBuffer< MaterialData > mMaterialBuffer;
 		TStructuredBuffer< ObjectData > mObjectBuffer;
@@ -874,6 +1005,38 @@ namespace RT
 		int mNumObjects;
 		int mNumEmittingObjects;
 		PrimitivesCollection mDebugPrimitives;
+
+		void rebuildSceneBVH();
+
+		static Math::TAABBox<Vector3> GetAABB(Quaternion const& rotation, Vector3 const halfSize)
+		{
+			Math::TAABBox<Vector3> result;
+			result.invalidate();
+			for (uint32 i = 0; i < 8; ++i)
+			{
+				Vector3 offset;
+				offset.x = (i & 0x1) ? halfSize.x : -halfSize.x;
+				offset.y = (i & 0x2) ? halfSize.y : -halfSize.y;
+				offset.z = (i & 0x4) ? halfSize.z : -halfSize.z;
+				result.addPoint(rotation.rotate(offset));
+			}
+			return result;
+		}
+
+		static Math::TAABBox<Vector3> GetAABB2(Vector3 const& center, Quaternion const& rotation, Vector3 const halfSize)
+		{
+			Math::TAABBox<Vector3> result;
+			result.invalidate();
+			for (uint32 i = 0; i < 8; ++i)
+			{
+				Vector3 offset;
+				offset.x = (i & 0x1) ? halfSize.x : -halfSize.x;
+				offset.y = (i & 0x2) ? halfSize.y : -halfSize.y;
+				offset.z = (i & 0x4) ? halfSize.z : -halfSize.z;
+				result.addPoint(rotation.rotate(offset + center));
+			}
+			return result;
+		}
 
 
 		BVHTree mDebugBVH;
@@ -931,11 +1094,13 @@ namespace RT
 
 
 
-class RayTracingTestStage : public StageBase
-	                      , public IGameRenderSetup
+class RayTracingTestStage : public TestRenderStageBase
 	                      , public RT::SceneData
+#if TINY_WITH_EDITOR
+						  , public IEditorGameViewport
+#endif
 {
-	using BaseClass = StageBase;
+	using BaseClass = TestRenderStageBase;
 public:
 
 	enum
@@ -946,15 +1111,29 @@ public:
 		NEXT_UI_ID,
 	};
 
-	ViewInfo      mView;
-	ViewFrustum   mViewFrustum;
-	SimpleCamera  mCamera;
-	bool          mbGamePased;
 	RT::ISceneScript* mScript = nullptr;
-	RayTracingTestStage()
-	{
+	RayTracingTestStage();
 
-	}
+#if TINY_WITH_EDITOR
+	TVector2<int> getInitialSize() override;
+	void resizeViewport(int w, int h) override;
+	void renderViewport(IEditorViewportRenderContext& context) override;
+	void onViewportMouseEvent(MouseMsg const& msg) override;
+	void onViewportKeyEvent(unsigned key, bool isDown) override;
+	void onViewportCharEvent(unsigned code) override;
+
+	IEditorDetailView* mDetailView = nullptr;
+	IEditorDetailView* mObjectsDetailView = nullptr;
+	IEditorDetailView* mMaterialsDetailView = nullptr;
+	IEditorToolBar* mToolBar = nullptr;
+	SimpleCamera mEditorCamera;
+	int mSelectedObjectId = INDEX_NONE;
+	bool bEditorCameraValid = false;
+	Vec2i mEditorViewportSize = Vec2i(0, 0);
+	bool bDataChanged = false;
+	bool mbControlDown = false;
+	void refreshDetailView();
+#endif
 
 
 
@@ -984,29 +1163,32 @@ public:
 		::Global::GameConfig().setKeyValue("LastRoation", "RayTracing", text.c_str());
 	}
 
+	void loadScene(char const* path);
+	void saveScene(char const* path);
+
 	void onEnd() override
 	{
 		if (mScript)
 		{
 			mScript->release();
 		}
+#if TINY_WITH_EDITOR
+		if (mDetailView) mDetailView->release();
+		if (mObjectsDetailView) mObjectsDetailView->release();
+		if (mMaterialsDetailView) mMaterialsDetailView->release();
+		if (mToolBar) mToolBar->release();
+
+		if (::Global::Editor())
+		{
+			::Global::Editor()->removeGameViewport(this);
+		}
+#endif
 		BaseClass::onEnd();
 	}
 
 	void restart() {}
 
-	void onUpdate(GameTimeSpan deltaTime) override
-	{
-		BaseClass::onUpdate(deltaTime);
-
-		mView.gameTime += deltaTime;
-		if (!mbGamePased)
-		{
-			mView.gameTime += deltaTime;
-		}
-
-		mCamera.updatePosition(deltaTime);
-	}
+	void onUpdate(GameTimeSpan deltaTime) override;
 
 
 	Vector3 mLastPos;
@@ -1083,6 +1265,27 @@ public:
 		line.color = color;
 		mPaths.push_back(line);
 	}
+
+	enum class EGizmoType
+	{
+		None,
+		Translate,
+		Rotate,
+		Scale,
+	};
+	enum class EGizmoMode
+	{
+		Local,
+		World,
+	};
+	EGizmoType mGizmoType = EGizmoType::Translate;
+	EGizmoMode mGizmoMode = EGizmoMode::World;
+	int mGizmoAxis = -1;
+	Vector3 mGizmoLastRayPos;
+	Vector3 mGizmoLastRayDir;
+	bool mIsGizmoDragging = false;
+
+	void drawGizmo(RHICommandList& commandList, ViewInfo& view);
 
 	struct Line
 	{
@@ -1193,4 +1396,12 @@ public:
 
 	AccumulatePS* mAccumulatePS;
 	DenoisePS* mDenoisePS;
+
+	EditorPreviewVS* mPreviewVS;
+	EditorPreviewPS* mPreviewPS;
+	ScreenOutlinePS* mScreenOutlinePS;
+
+	RHITexture2DRef mHDRImage;
+	IBLResource mIBLResource;
+	IBLResourceBuilder mIBLResourceBuilder;
 };

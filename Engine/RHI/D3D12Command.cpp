@@ -359,20 +359,6 @@ namespace Render
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 
 		D3D12DynamicBufferManager::Get().initialize(mDevice);
-
-		UINT64 frequency;
-		if (mRenderContext.mCommandQueue->GetTimestampFrequency(&frequency) == S_OK)
-		{
-			double cycleToMillisecond = 1000.0 / frequency;
-
-#if 1
-			mProfileCore = new D3D12ProfileCore;
-			mProfileCore->init(mDevice, cycleToMillisecond);
-			GpuProfiler::Get().setCore(mProfileCore);
-#endif
-
-		}
-
 		return true;
 	}
 
@@ -399,6 +385,7 @@ namespace Render
 
 	RHIProfileCore* D3D12System::createProfileCore()
 	{
+	#if 1
 		if (mProfileCore == nullptr)
 		{
 			UINT64 frequency;
@@ -411,19 +398,35 @@ namespace Render
 		}
 
 		return mProfileCore;
+
+	#else
+		return nullptr;
+	#endif
 	}
 
 	bool D3D12System::RHIBeginRender(bool bAdvanceFrame)
 	{
-		if (!mRenderContext.beginFrame())
+		if (mRenderFrameNestingCount > 0 && mRenderContext.mbIsRecording)
+		{
+			++mRenderFrameNestingCount;
+			return true;
+		}
+
+		mRenderFrameNestingCount = 1;
+
+		mbAdvanceFrame = bAdvanceFrame;
+
+		if (!mRenderContext.beginFrame(mbAdvanceFrame))
 		{
 			return false;
 		}
 
+#if 1
 		if (mProfileCore)
 		{
 			mProfileCore->mCmdList = mRenderContext.mGraphicsCmdList;
 		}
+#endif
 
 		mbInRendering = true;
 		return true;
@@ -431,16 +434,36 @@ namespace Render
 
 	void D3D12System::RHIEndRender(bool bPresent)
 	{
+		if (mRenderFrameNestingCount > 0)
+		{
+			--mRenderFrameNestingCount;
+			if (mRenderFrameNestingCount > 0)
+			{
+				return;
+			}
+		}
+
+		if (!mRenderContext.mbIsRecording)
+		{
+			return;
+		}
+
+		if (mRenderContext.mGraphicsCmdList != mRenderContext.mFrameDataList[mRenderContext.mFrameIndex].graphicsCmdList)
+		{
+			return;
+		}
+
 		mbInRendering = false;
 
-		mRenderContext.endFrame();
+		mRenderContext.endFrame(mbAdvanceFrame);
 
 		mRenderContext.flushCommand();
-		if (bPresent)
+		if (bPresent && mbAdvanceFrame)
 		{
 			mSwapChain->present(bPresent);
 		}
-		mRenderContext.moveToNextFrame(mSwapChain->mResource);
+		
+		mRenderContext.moveToNextFrame();
 	}
 
 	RHISwapChain* D3D12System::RHICreateSwapChain(SwapChainCreationInfo const& info)
@@ -684,40 +707,11 @@ namespace Render
 
 		if (bDepthStencilFormat)
 		{
-			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-			dsvDesc.Format = formatD3D;
-			dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-			if (desc.numSamples > 1)
-			{
-				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
-			}
-			else
-			{
-				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-				dsvDesc.Texture2D.MipSlice = 0;
-			}
-			texture->mRTVorDSV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &dsvDesc);
+			texture->getDSV(0, 0, 1, formatD3D);
 		}
 		if (desc.creationFlags & TCF_RenderTarget)
 		{
-
-			{
-				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
-				if (desc.numSamples > 1)
-				{
-					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-					rtvDesc.Format = formatD3D;
-				}
-				else
-				{
-					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-					rtvDesc.Format = formatD3D;
-					rtvDesc.Texture2D.MipSlice = 0;
-					rtvDesc.Texture2D.PlaneSlice = 0;
-				}
-
-				texture->mRTVorDSV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &rtvDesc);
-			}
+			texture->getRTV(0, 0, 1, formatD3D);
 		}
 		
 		return texture;
@@ -726,6 +720,175 @@ namespace Render
 	RHITexture3D* D3D12System::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
 		return nullptr;
+	}
+
+	RHITextureCube* D3D12System::RHICreateTextureCube(TextureDesc const& desc, void* data[])
+	{
+		TComPtr<ID3D12Resource> textureResource;
+		DXGI_FORMAT formatD3D = D3D12Translate::To(desc.format);
+		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+
+		D3D12_RESOURCE_DESC textureDesc = {};
+		textureDesc.MipLevels = desc.numMipLevel;
+		textureDesc.Format = formatD3D;
+		textureDesc.Width = desc.dimension.x;
+		textureDesc.Height = desc.dimension.y;
+		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		D3D12_CLEAR_VALUE clearValue;
+		if (desc.creationFlags & TCF_CreateUAV)
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+		if (desc.creationFlags & TCF_RenderTarget)
+		{
+			clearValue.Format = formatD3D;
+			clearValue.Color[0] = desc.clearColor.r;
+			clearValue.Color[1] = desc.clearColor.g;
+			clearValue.Color[2] = desc.clearColor.b;
+			clearValue.Color[3] = desc.clearColor.a;
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+			resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		}
+
+		textureDesc.DepthOrArraySize = 6;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&textureDesc,
+			resourceState,
+			(desc.creationFlags & TCF_RenderTarget) ? &clearValue : nullptr,
+			IID_PPV_ARGS(&textureResource)), return nullptr; );
+
+		if (data)
+		{
+			for (int i = 0; i < 6; ++i)
+			{
+				if (data[i])
+				{
+					uint32 subresourceIndex = D3D12CalcSubresource(0, i, 0, desc.numMipLevel, 6);
+					if (!updateTexture2DSubresources(textureResource, desc.format, data[i], 0, 0, desc.dimension.x, desc.dimension.y,
+						desc.dimension.x * ETexture::GetFormatSize(desc.format), subresourceIndex))
+						return nullptr;
+				}
+			}
+		}
+
+		D3D12TextureCube* texture = new D3D12TextureCube(desc, textureResource);
+		texture->mCurrentStates = resourceState;
+
+		if (desc.creationFlags & TCF_CreateSRV)
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = D3D12Translate::ToSRV(formatD3D);
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			srvDesc.TextureCube.MipLevels = desc.numMipLevel;
+			srvDesc.TextureCube.MostDetailedMip = 0;
+			srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
+		}
+
+		if (desc.creationFlags & TCF_CreateUAV)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+			uavDesc.Format = formatD3D;
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			uavDesc.Texture2DArray.MipSlice = 0;
+			uavDesc.Texture2DArray.FirstArraySlice = 0;
+			uavDesc.Texture2DArray.ArraySize = 6;
+			texture->mUAV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &uavDesc);
+		}
+
+		return texture;
+	}
+
+	RHITexture2DArray* D3D12System::RHICreateTexture2DArray(TextureDesc const& desc, void* data)
+	{
+		TComPtr<ID3D12Resource> textureResource;
+		DXGI_FORMAT formatD3D = D3D12Translate::To(desc.format);
+		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+
+		D3D12_RESOURCE_DESC textureDesc = {};
+		textureDesc.MipLevels = desc.numMipLevel;
+		textureDesc.Format = formatD3D;
+		textureDesc.Width = desc.dimension.x;
+		textureDesc.Height = desc.dimension.y;
+		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		D3D12_CLEAR_VALUE clearValue;
+		if (desc.creationFlags & TCF_CreateUAV)
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+		if (desc.creationFlags & TCF_RenderTarget)
+		{
+			clearValue.Format = formatD3D;
+			clearValue.Color[0] = desc.clearColor.r;
+			clearValue.Color[1] = desc.clearColor.g;
+			clearValue.Color[2] = desc.clearColor.b;
+			clearValue.Color[3] = desc.clearColor.a;
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+			resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		}
+
+		textureDesc.DepthOrArraySize = desc.dimension.z;
+		textureDesc.SampleDesc.Count = desc.numSamples;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&textureDesc,
+			resourceState,
+			(desc.creationFlags & TCF_RenderTarget) ? &clearValue : nullptr,
+			IID_PPV_ARGS(&textureResource)), return nullptr; );
+
+		if (data)
+		{
+			int layerSize = desc.dimension.z;
+			size_t sliceSize = (size_t)desc.dimension.x * desc.dimension.y * ETexture::GetFormatSize(desc.format);
+			for (int i = 0; i < layerSize; ++i)
+			{
+				uint32 subresourceIndex = D3D12CalcSubresource(0, i, 0, desc.numMipLevel, layerSize);
+				void* pData = (uint8*)data + i * sliceSize;
+				if (!updateTexture2DSubresources(textureResource, desc.format, pData, 0, 0, desc.dimension.x, desc.dimension.y,
+					desc.dimension.x * ETexture::GetFormatSize(desc.format), subresourceIndex))
+					return nullptr;
+			}
+		}
+
+		D3D12Texture2DArray* texture = new D3D12Texture2DArray(desc, textureResource);
+		texture->mCurrentStates = resourceState;
+
+		if (desc.creationFlags & TCF_CreateSRV)
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = D3D12Translate::ToSRV(formatD3D);
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			srvDesc.Texture2DArray.MipLevels = desc.numMipLevel;
+			srvDesc.Texture2DArray.MostDetailedMip = 0;
+			srvDesc.Texture2DArray.FirstArraySlice = 0;
+			srvDesc.Texture2DArray.ArraySize = desc.dimension.z;
+			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
+		}
+
+		if (desc.creationFlags & TCF_CreateUAV)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+			uavDesc.Format = formatD3D;
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			uavDesc.Texture2DArray.MipSlice = 0;
+			uavDesc.Texture2DArray.FirstArraySlice = 0;
+			uavDesc.Texture2DArray.ArraySize = desc.dimension.z;
+			texture->mUAV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &uavDesc);
+		}
+
+		return texture;
 	}
 
 	RHIShaderResourceView* D3D12System::RHICreateSRV(RHITexture2D& texture, ETexture::Format format)
@@ -1290,6 +1453,80 @@ namespace Render
 
 		waitCopyCommand();
 		return true;
+	}
+
+	void D3D12System::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray<uint8>& outData)
+	{
+		D3D12Texture2D& textureImpl = D3D12Cast::To(texture);
+		ID3D12Resource* d3dResource = textureImpl.getResource();
+		auto desc = d3dResource->GetDesc();
+
+		uint32 subresourceIndex = D3D12CalcSubresource(level, 0, 0, (uint32)desc.MipLevels, 1);
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+		uint32 numRows;
+		uint64 rowSizeInBytes;
+		uint64 totalBytes;
+		mDevice->GetCopyableFootprints(&desc, subresourceIndex, 1, 0, &layout, &numRows, &rowSizeInBytes, &totalBytes);
+
+		TComPtr<ID3D12Resource> readbackBuffer;
+		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_READBACK),
+			D3D12_HEAP_FLAG_NONE,
+			&FD3D12Init::BufferDesc(totalBytes),
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&readbackBuffer)), return;);
+
+		mCopyCmdAllocator->Reset();
+		mCopyCmdList->Reset(mCopyCmdAllocator, nullptr);
+
+		D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(d3dResource, textureImpl.mCurrentStates, D3D12_RESOURCE_STATE_COPY_SOURCE, subresourceIndex);
+		mCopyCmdList->ResourceBarrier(1, &transition);
+
+		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+		srcLocation.pResource = d3dResource;
+		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		srcLocation.SubresourceIndex = subresourceIndex;
+
+		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+		dstLocation.pResource = readbackBuffer;
+		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		dstLocation.PlacedFootprint = layout;
+
+		mCopyCmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+
+		transition = FD3D12Init::TransitionBarrier(d3dResource, D3D12_RESOURCE_STATE_COPY_SOURCE, textureImpl.mCurrentStates, subresourceIndex);
+		mCopyCmdList->ResourceBarrier(1, &transition);
+
+		mCopyCmdList->Close();
+		ID3D12CommandList* ppCommandLists[] = { mCopyCmdList };
+		mCopyCmdQueue->ExecuteCommandLists(ARRAY_SIZE(ppCommandLists), ppCommandLists);
+
+		mRenderContext.waitForGpu(mCopyCmdQueue);
+
+		void* pData;
+		D3D12_RANGE readRange = { 0, totalBytes };
+		readbackBuffer->Map(0, &readRange, &pData);
+
+		uint32 formatSize = ETexture::GetFormatSize(format);
+		uint32 width = Math::Max<uint32>(1, (uint32)desc.Width >> level);
+		uint32 height = Math::Max<uint32>(1, desc.Height >> level);
+		outData.resize(width * height * formatSize);
+
+		BYTE* pSrc = (BYTE*)pData + layout.Offset;
+		BYTE* pDest = outData.data();
+		for (uint32 y = 0; y < height; ++y)
+		{
+			memcpy(pDest + y * width * formatSize, pSrc + y * layout.Footprint.RowPitch, width * formatSize);
+		}
+
+		readbackBuffer->Unmap(0, nullptr);
+	}
+
+	void D3D12System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray<uint8>& outData)
+	{
+		// TODO: Implement Cube readback handling faces properly if needed
 	}
 
 	bool D3D12System::updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level /*= 0*/)
@@ -2181,19 +2418,104 @@ namespace Render
 
 	void D3D12Context::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
 	{
-		D3D12Texture2D& textureImpl = static_cast<D3D12Texture2D&>(texture);
-		if (dataWidth == 0)
+		D3D12Texture2D& textureImpl = D3D12Cast::To(texture);
+		ID3D12Resource* d3dResource = textureImpl.getResource();
+		auto desc = d3dResource->GetDesc();
+
+		uint32 subresourceIndex = D3D12CalcSubresource(level, 0, 0, (uint32)desc.MipLevels, 1);
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+		uint32 numRows;
+		uint64 rowSizeInBytes;
+		uint64 totalBytes;
+		mDevice->GetCopyableFootprints(&desc, subresourceIndex, 1, 0, &layout, &numRows, &rowSizeInBytes, &totalBytes);
+
+		D3D12BufferAllocation allocation;
+		if (!D3D12DynamicBufferManager::Get().allocFrame((uint32)totalBytes, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, allocation))
 		{
-			dataWidth = w;
+			return;
 		}
-		static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
-			textureImpl.mResource, textureImpl.mCurrentStates, texture.getFormat(), data, ox, oy, w, h, dataWidth * ETexture::GetFormatSize(texture.getFormat()), level
-		);
+
+		uint32 formatSize = ETexture::GetFormatSize(texture.getDesc().format);
+		uint32 srcRowPitch = (dataWidth > 0) ? dataWidth * formatSize : w * formatSize;
+
+		BYTE* pDest = allocation.cpuAddress;
+		BYTE* pSrc = (BYTE*)data;
+		for (uint32 y = 0; y < (uint32)h; ++y)
+		{
+			memcpy(pDest + y * layout.Footprint.RowPitch, pSrc + y * srcRowPitch, w * formatSize);
+		}
+
+		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(d3dResource, textureImpl.mCurrentStates, D3D12_RESOURCE_STATE_COPY_DEST, subresourceIndex);
+		mGraphicsCmdList->ResourceBarrier(1, &barrier);
+
+		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+		dstLocation.pResource = d3dResource;
+		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dstLocation.SubresourceIndex = subresourceIndex;
+
+		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+		srcLocation.pResource = allocation.ptr;
+		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		srcLocation.PlacedFootprint = layout;
+		srcLocation.PlacedFootprint.Offset = allocation.buddyInfo.offset; // Assuming buddyInfo.offset or allocation.offset
+
+		D3D12_BOX srcBox = { 0, 0, 0, (uint32)w, (uint32)h, 1 };
+		mGraphicsCmdList->CopyTextureRegion(&dstLocation, ox, oy, 0, &srcLocation, &srcBox);
+
+		barrier = FD3D12Init::TransitionBarrier(d3dResource, D3D12_RESOURCE_STATE_COPY_DEST, textureImpl.mCurrentStates, subresourceIndex);
+		mGraphicsCmdList->ResourceBarrier(1, &barrier);
 	}
 
 	void D3D12Context::RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
 	{
+		D3D12TextureCube& textureImpl = D3D12Cast::To(texture);
+		ID3D12Resource* d3dResource = textureImpl.getResource();
+		auto desc = d3dResource->GetDesc();
 
+		uint32 subresourceIndex = D3D12CalcSubresource(level, (uint32)face, 0, (uint32)desc.MipLevels, 6);
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+		uint32 numRows;
+		uint64 rowSizeInBytes;
+		uint64 totalBytes;
+		mDevice->GetCopyableFootprints(&desc, subresourceIndex, 1, 0, &layout, &numRows, &rowSizeInBytes, &totalBytes);
+
+		D3D12BufferAllocation allocation;
+		if (!D3D12DynamicBufferManager::Get().allocFrame((uint32)totalBytes, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, allocation))
+		{
+			return;
+		}
+
+		uint32 formatSize = ETexture::GetFormatSize(texture.getDesc().format);
+		uint32 srcRowPitch = (dataWidth > 0) ? dataWidth * formatSize : w * formatSize;
+
+		BYTE* pDest = allocation.cpuAddress;
+		BYTE* pSrc = (BYTE*)data;
+		for (uint32 y = 0; y < (uint32)h; ++y)
+		{
+			memcpy(pDest + y * layout.Footprint.RowPitch, pSrc + y * srcRowPitch, w * formatSize);
+		}
+
+		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(d3dResource, textureImpl.mCurrentStates, D3D12_RESOURCE_STATE_COPY_DEST, subresourceIndex);
+		mGraphicsCmdList->ResourceBarrier(1, &barrier);
+
+		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+		dstLocation.pResource = d3dResource;
+		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dstLocation.SubresourceIndex = subresourceIndex;
+
+		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+		srcLocation.pResource = allocation.ptr;
+		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		srcLocation.PlacedFootprint = layout;
+		srcLocation.PlacedFootprint.Offset = allocation.buddyInfo.offset;
+
+		D3D12_BOX srcBox = { 0, 0, 0, (uint32)w, (uint32)h, 1 };
+		mGraphicsCmdList->CopyTextureRegion(&dstLocation, ox, oy, 0, &srcLocation, &srcBox);
+
+		barrier = FD3D12Init::TransitionBarrier(d3dResource, D3D12_RESOURCE_STATE_COPY_DEST, textureImpl.mCurrentStates, subresourceIndex);
+		mGraphicsCmdList->ResourceBarrier(1, &barrier);
 	}
 
 	void D3D12Context::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
@@ -2499,14 +2821,15 @@ namespace Render
 		if (frameBuffer == nullptr)
 		{
 			D3D12SwapChain* swapChain = static_cast<D3D12System*>(GRHISystem)->mSwapChain.get();
-			if (swapChain == nullptr)
+			if (swapChain == nullptr || swapChain->mResource == nullptr)
 			{
 				mGraphicsCmdList->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
 				mRenderTargetsState = nullptr;
 				return;
 			}
 
-			newState = &swapChain->mRenderTargetsStates[mFrameIndex];
+			int backBufferIdx = swapChain->mResource->GetCurrentBackBufferIndex();
+			newState = &swapChain->mRenderTargetsStates[backBufferIdx];
 		}
 		else
 		{
@@ -3803,7 +4126,7 @@ namespace Render
 		}
 	}
 
-	bool D3D12Context::beginFrame()
+	bool D3D12Context::beginFrame(bool bAdvanceFrame)
 	{
 		if (mbIsRecording)
 		{
@@ -3815,10 +4138,20 @@ namespace Render
 		mGraphicsCmdList = frameData.graphicsCmdList;
 		mbIsRecording = true;
 
-		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(
-			static_cast<D3D12System*>(GRHISystem)->mSwapChain->mRenderTargetsStates[mFrameIndex].colorBuffers[0].resource,
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		mGraphicsCmdList->ResourceBarrier(1, &barrier);
+		if (bAdvanceFrame)
+		{
+			auto system = static_cast<D3D12System*>(GRHISystem);
+			int backBufferIdx = 0;
+			if (system->mSwapChain && system->mSwapChain->mResource)
+			{
+				backBufferIdx = system->mSwapChain->mResource->GetCurrentBackBufferIndex();
+			}
+
+			D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(
+				system->mSwapChain->mRenderTargetsStates[backBufferIdx].colorBuffers[0].resource,
+				D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			mGraphicsCmdList->ResourceBarrier(1, &barrier);
+		}
 
 		for (int i = 0; i < EShader::Count; ++i)
 		{
@@ -3829,12 +4162,23 @@ namespace Render
 		return true;
 	}
 
-	void D3D12Context::endFrame()
+	void D3D12Context::endFrame(bool bAdvanceFrame)
 	{
-		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(
-			static_cast<D3D12System*>(GRHISystem)->mSwapChain->mRenderTargetsStates[mFrameIndex].colorBuffers[0].resource,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		mGraphicsCmdList->ResourceBarrier(1, &barrier);
+		if (bAdvanceFrame)
+		{
+			auto system = static_cast<D3D12System*>(GRHISystem);
+			int backBufferIdx = 0;
+			if (system->mSwapChain && system->mSwapChain->mResource)
+			{
+				backBufferIdx = system->mSwapChain->mResource->GetCurrentBackBufferIndex();
+
+
+				D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(
+					system->mSwapChain->mRenderTargetsStates[backBufferIdx].colorBuffers[0].resource,
+					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+				mGraphicsCmdList->ResourceBarrier(1, &barrier);
+			}
+		}
 	}
 
 	void D3D12Context::waitForGpu()
@@ -3857,14 +4201,14 @@ namespace Render
 
 	}
 
-	void D3D12Context::moveToNextFrame(IDXGISwapChainRHI* swapChain)
+	void D3D12Context::moveToNextFrame()
 	{
 		// Schedule a Signal command in the queue.
 		const UINT64 currentFenceValue = mFrameDataList[mFrameIndex].fenceValue;
 		mCommandQueue->Signal(mFence, currentFenceValue);
 
 		// Update the frame index.
-		mFrameIndex = swapChain->GetCurrentBackBufferIndex();
+		mFrameIndex = (mFrameIndex + 1) % mFrameDataList.size();
 
 		// If the next frame is not ready to be rendered yet, wait until it is ready.
 		if (mFence->GetCompletedValue() < mFrameDataList[mFrameIndex].fenceValue)

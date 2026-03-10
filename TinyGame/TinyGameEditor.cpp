@@ -27,7 +27,7 @@ bool TinyGameApp::initializeEditor()
 
 bool TinyGameApp::initializeEditorRender()
 {
-	ERenderSystem renderSystem = ERenderSystem::D3D11;
+	ERenderSystem renderSystem = ERenderSystem::D3D12;
 	char const* moduleName = "D3D11RHI.dll";
 	switch (renderSystem)
 	{

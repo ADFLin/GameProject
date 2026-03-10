@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <atomic>
 
+REGISTER_EDITOR_PANEL(ProfilerPanel, "Profiler", true, true);
+REGISTER_EDITOR_PANEL(ProfilerListPanel, "ProfilerList", true, true);
 
 struct ProfilerSharedState
 {
@@ -435,9 +437,6 @@ struct TimelineContext
 void DrawProfileTimeline(RHIGraphics2D& g, FrameSnapshot& snapshot, TimelineContext const& timelineCtx);
 void DrawProfileTable(FrameSnapshot const& snapshot);
 
-REGISTER_EDITOR_PANEL(ProfilerPanel, "Profiler", true, true);
-REGISTER_EDITOR_PANEL(ProfilerListPanel, "ProfilerList", true, true);
-
 Color3ub GetNodeColor(const char* name)
 {
 	uint32 hash = FNV1a::MakeStringHash<uint32>(name);
@@ -471,7 +470,7 @@ Color3ub GetNodeColor(const char* name)
 }
 
 
-void ProfilerPanel::render()
+void ProfilerPanel::update()
 {
 	GProfileCollector.collect();
 
@@ -1125,7 +1124,7 @@ void DrawProfileTable(FrameSnapshot const& snapshot)
 	}
 }
 
-void ProfilerListPanel::render()
+void ProfilerListPanel::update()
 {
 	ImGui::Checkbox("Pause", &GProfilerState.bPause);
 	ImGui::SameLine();
@@ -1135,4 +1134,4 @@ void ProfilerListPanel::render()
 	DrawProfileTable(GetReadSnapshot());
 }
 
-void ProfilerPanel::getRenderParams(WindowRenderParams& params) const {}
+void ProfilerPanel::getUpdateParams(WindowUpdateParams& params) const {}

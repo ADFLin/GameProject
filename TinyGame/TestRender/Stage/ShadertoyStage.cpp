@@ -1274,7 +1274,6 @@ namespace Shadertoy
 				}
 			}
 
-			GRenderTargetPool.freeAllUsedElements();
 			auto screenSize = ::Global::GetScreenSize();
 
 			InputParam inputParam;

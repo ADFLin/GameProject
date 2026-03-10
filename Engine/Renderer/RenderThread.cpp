@@ -103,7 +103,7 @@ unsigned RenderThread::run()
 	return 0;
 }
 
-bool RenderThread::IsRunning() { return GRenderThreadId != 0; }
+bool RenderThread::IsRunning() { return StaticInstance != nullptr; }
 
 void RenderThread::Initialize()
 {

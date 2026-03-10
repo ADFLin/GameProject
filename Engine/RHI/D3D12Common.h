@@ -29,6 +29,7 @@ namespace Render
 	class D3D12Texture2D;
 	class D3D12Texture3D;
 	class D3D12TextureCube;
+	class D3D12Texture2DArray;
 	class D3D12Buffer;
 	class D3D12RasterizerState;
 	class D3D12BlendState;
@@ -84,6 +85,13 @@ namespace Render
 	{
 		typedef ID3D12Resource ResourceType;
 		typedef D3D12TextureCube ImplType;
+	};
+
+	template<>
+	struct TD3D12TypeTraits< RHITexture2DArray >
+	{
+		typedef ID3D12Resource ResourceType;
+		typedef D3D12Texture2DArray ImplType;
 	};
 
 	template<>
@@ -619,30 +627,31 @@ namespace Render
 	{
 	public:
 
-		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) 
-		{ 
-			return INDEX_NONE;
-		}
+		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) override;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) override;
-		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) { return INDEX_NONE; }
-		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) { setTextureInternal(idx, target, level); }
-		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) {  }
-		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) {  }
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) override;
+		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) override { setTextureInternal(idx, target, level); }
+		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) override;
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) override;
 
-		virtual int  addTextureArray(RHITextureCube& target, int level)
-		{
-			return INDEX_NONE;
-		}
-		virtual void setTextureArray(int idx, RHITextureCube& target, int level)
-		{
-
-		}
+		virtual int  addTextureArray(RHITextureCube& target, int level) override;
+		virtual void setTextureArray(int idx, RHITextureCube& target, int level) override;
 
 		void setDepth(RHITexture2D& target) override;
-		virtual void removeDepth();
+		virtual void removeDepth() override;
 
 		void setTextureInternal(int index, RHITexture2D& target, int level);
+		void setTextureInternal(int index, RHITextureCube& target, ETexture::Face face, int level);
+		void setTextureInternal(int index, RHITexture2DArray& target, int indexLayer, int level);
+
+		void setTextureArrayInternal(int index, RHITextureCube& target, int level);
+
 		int getFreeSlot();
+
+		virtual void releaseResource() override
+		{
+			mRenderTargetsState.releasePoolHandle();
+		}
 
 		bool bStateDirty = false;
 		D3D12RenderTargetsState mRenderTargetsState;
@@ -711,8 +720,30 @@ namespace Render
 		virtual ID3D12Resource* getD3D12Resource() = 0;
 		D3D12_RESOURCE_STATES mCurrentStates;
 		D3D12PooledHeapHandle mSRV;
-		D3D12PooledHeapHandle mRTVorDSV;
 		D3D12PooledHeapHandle mUAV;
+
+		struct ViewKey
+		{
+			uint16 mip;
+			uint16 layer;
+			uint16 arraySize;
+			DXGI_FORMAT format;
+			bool operator == (ViewKey const& rhs) const
+			{
+				return mip == rhs.mip && layer == rhs.layer && arraySize == rhs.arraySize && format == rhs.format;
+			}
+		};
+		struct ViewEntry
+		{
+			ViewKey key;
+			D3D12PooledHeapHandle handle;
+		};
+		TArray< ViewEntry > mViewCache;
+
+		D3D12PooledHeapHandle getRTV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format);
+		D3D12PooledHeapHandle getDSV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format);
+
+		void releaseViews();
 	};
 
 	template< class TRHIResource >
@@ -732,8 +763,8 @@ namespace Render
 		{
 			TD3D12Resource< TRHIResource >::releaseResource();
 			D3D12DescriptorHeapPool::FreeHandle(mSRV);
-			D3D12DescriptorHeapPool::FreeHandle(mRTVorDSV);
 			D3D12DescriptorHeapPool::FreeHandle(mUAV);
+			releaseViews();
 		}
 	};
 
@@ -760,6 +791,12 @@ namespace Render
 	{
 	public:
 		D3D12TextureCube(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
+	};
+
+	class D3D12Texture2DArray : public TD3D12Texture< RHITexture2DArray >
+	{
+	public:
+		D3D12Texture2DArray(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
 	};
 
 	class D3D12Buffer : public TD3D12Resource< RHIBuffer >

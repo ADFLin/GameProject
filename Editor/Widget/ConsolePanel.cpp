@@ -37,7 +37,7 @@ ConsolePanel::~ConsolePanel()
 	ClearLog();
 }
 
-void ConsolePanel::render()
+void ConsolePanel::update()
 {
 
 	// As a specific feature guaranteed by the library, after calling Begin() the last Item represent the title bar.

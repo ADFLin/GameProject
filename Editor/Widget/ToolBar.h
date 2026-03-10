@@ -12,20 +12,20 @@ class ToolBar : public IEditorPanel
 public:
 	static constexpr char const* ClassName = "ToolBar";
 
-	void render() override;
-	void getRenderParams(WindowRenderParams& params) const override
+	void update() override;
+	void getUpdateParams(WindowUpdateParams& params) const override
 	{
 		params.flags |= ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar;
 	}
 
-	bool preRender() override
+	bool preUpdate() override
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 2));
 		return true;
 	}
 
-	void postRender() override;
+	void postUpdate() override;
 
 	struct ToolInfo
 	{

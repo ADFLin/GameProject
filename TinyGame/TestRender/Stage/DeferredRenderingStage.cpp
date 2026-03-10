@@ -547,8 +547,6 @@ namespace Render
 		{
 			initializeRenderState();
 
-			GRenderTargetPool.freeAllUsedElements();
-
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			Vec2i screenSize = ::Global::GetScreenSize();
 

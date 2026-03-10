@@ -30,8 +30,8 @@ public:
 	
 	int selection = 0;
 	
-	void render() override;
-	void getRenderParams(WindowRenderParams& params) const override;
+	void update() override;
+	void getUpdateParams(WindowUpdateParams& params) const override;
 
 };
 

@@ -4,7 +4,7 @@
 
 REGISTER_EDITOR_PANEL(ToolBar, ToolBar::ClassName, false, false);
 
-void ToolBar::render()
+void ToolBar::update()
 {
 	if (ImGui::IsWindowDocked())
 	{
@@ -37,7 +37,7 @@ void ToolBar::render()
 	}
 }
 
-void ToolBar::postRender()
+void ToolBar::postUpdate()
 {
 	if (ImGui::IsWindowDocked())
 	{

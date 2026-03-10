@@ -10,7 +10,7 @@
 
 REGISTER_EDITOR_PANEL(TextureViewerPanel, TextureViewerPanel::ClassName, true, true);
 
-void TextureViewerPanel::render()
+void TextureViewerPanel::update()
 {
 	int width = FImGui::mIconAtlas.getTexture().getSizeX();
 	int height = FImGui::mIconAtlas.getTexture().getSizeY();
@@ -230,7 +230,7 @@ void TextureViewerPanel::render()
 	ImGui::EndChild();
 }
 
-void TextureViewerPanel::getRenderParams(WindowRenderParams& params) const
+void TextureViewerPanel::getUpdateParams(WindowUpdateParams& params) const
 {
 	int width = FImGui::mIconAtlas.getTexture().getSizeX();
 	int height = FImGui::mIconAtlas.getTexture().getSizeY();

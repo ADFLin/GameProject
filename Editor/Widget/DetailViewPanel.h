@@ -12,7 +12,7 @@ class DetailViewPanel : public IEditorPanel
 public:
 	static constexpr char const* ClassName = "DetailView";
 
-	void render();
+	void update();
 
 	enum class EViewType
 	{

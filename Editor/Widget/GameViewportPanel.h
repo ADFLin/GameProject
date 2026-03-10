@@ -20,13 +20,14 @@ public:
 	void onOpen() override;
 	void onClose() override;
 
+	void update() override;
 	void render() override;
-
 	uint16  mMouseState = 0;
 	Vector2 mLastMousePos;
 	ImVec2  mSize;
+	bool    bRenderRequested = false;
 
-	bool preRender();
+	bool preUpdate();
 
 };
 

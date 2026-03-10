@@ -11,7 +11,7 @@
 
 #include "Renderer/RenderThread.h"
 
-REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
+//REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
 
 void ShaderGraphPanel::runTest()
 {
@@ -340,7 +340,7 @@ public:
 
 };
 
-void ShaderGraphPanel::render()
+void ShaderGraphPanel::update()
 {
 	PROFILE_ENTRY("ShaderGraphPanel");
 

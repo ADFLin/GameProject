@@ -1242,7 +1242,7 @@ public:
 
 	ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::D3D11;
+		return ERenderSystem::None;
 	}
 
 	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;

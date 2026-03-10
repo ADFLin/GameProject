@@ -580,8 +580,6 @@ namespace Bloxorz
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-		GRenderTargetPool.freeAllUsedElements();
-
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 1), 1);
 		Vec2i screenSize = ::Global::GetScreenSize();

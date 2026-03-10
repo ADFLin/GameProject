@@ -47,7 +47,7 @@ public:
 	void onOpen() override;
 
 
-	void render() override;
+	void update() override;
 
 
 	template< typename TNode, typename ...TArgs>

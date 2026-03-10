@@ -172,9 +172,27 @@ void SetupImGuiRendererHook()
 	}
 }
 
+class EditorRendererBase : public IEditorRenderer
+{
+public:
+	virtual bool initialize(EditorWindow& mainWindow)
+	{
+		if ( !doInitialize(mainWindow) )
+			return false;
+
+		unsigned char* pixels;
+		int width, height;
+		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+		SetupImGuiRendererHook();
+		return true;
+	}
+
+	virtual bool doInitialize(EditorWindow& mainWindow) = 0;
+};
 
 
-class EditorRendererD3D11 : public IEditorRenderer
+class EditorRendererD3D11 : public EditorRendererBase
 {
 public:
 
@@ -236,7 +254,8 @@ public:
 		TComPtr< ID3D11RenderTargetView > mRenderTargetView;
 
 	};
-	virtual bool initialize(EditorWindow& mainWindow)
+
+	virtual bool doInitialize(EditorWindow& mainWindow)
 	{
 		mDevice = static_cast<D3D11System*>(GRHISystem)->mDevice;
 		mDeviceContext = static_cast<D3D11System*>(GRHISystem)->mDeviceContext;
@@ -255,15 +274,9 @@ public:
 		{
 			VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
 		}
-
-		SetupImGuiRendererHook();
-
-		unsigned char* pixels;
-		int width, height;
-		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
 		return true;
 	}
+
 	virtual void shutdown()
 	{
 		ImGui_ImplDX11_Shutdown();
@@ -333,113 +346,156 @@ public:
 	}
 };
 
-class EditorRendererD3D12 : public IEditorRenderer
+class EditorRendererD3D12 : public EditorRendererBase
 {
 public:
-
-#if 0
 	class WindowRenderData : public IEditorWindowRenderData
 	{
 	public:
-		bool initRenderResource(EditorWindow& window, ID3D12DeviceRHI* device)
+		bool initRenderResource(EditorWindow& window, D3D12System* system)
 		{
-			HRESULT hr;
-			TComPtr<IDXGIFactory> factory;
-			hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
+			auto device = system->mDevice;
 
-			UINT quality = 0;
+			HRESULT hr;
+			TComPtr<IDXGIFactory4> factory;
+			hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory));
+
 			DXGI_SWAP_CHAIN_DESC1 swapChainDesc; 
 			ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-			swapChainDesc.OutputWindow = window.getHWnd();
-			swapChainDesc.Windowed = true;
-			swapChainDesc.SampleDesc.Count = 1;
-			swapChainDesc.SampleDesc.Quality = quality;
-			swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			swapChainDesc.Width = window.getWidth();
 			swapChainDesc.Height = window.getHeight();
-			swapChainDesc.BufferCount = NUM_BACK_BUFFERS;
+			swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			swapChainDesc.SampleDesc.Count = 1;
 			swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-			swapChainDesc.Flags = 0;
-			VERIFY_D3D_RESULT_RETURN_FALSE(factory->CreateSwapChain(device, &swapChainDesc, &mSwapChain));
+			swapChainDesc.BufferCount = NUM_BACK_BUFFERS;
+			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+			TComPtr<IDXGISwapChain1> swapChain1;
+			VERIFY_D3D_RESULT_RETURN_FALSE(factory->CreateSwapChainForHwnd(
+				system->mRenderContext.mCommandQueue,
+				window.getHWnd(),
+				&swapChainDesc,
+				nullptr,
+				nullptr,
+				&swapChain1));
+
+			swapChain1.castTo(mSwapChain);
 
 			createRenderTarget(device);
+
+			for (int i = 0; i < NUM_BACK_BUFFERS; i++)
+			{
+				device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mFrameContext[i].CommandAllocator));
+			}
+			device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mFrameContext[0].CommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList));
+			mCommandList->Close();
+
+			device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
+			mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 			return true;
 		}
 
 		bool createRenderTarget(ID3D12DeviceRHI* device)
 		{
+			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+			rtvHeapDesc.NumDescriptors = NUM_BACK_BUFFERS;
+			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&mRtvDescHeap));
 
+			SIZE_T rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRtvDescHeap->GetCPUDescriptorHandleForHeapStart();
+
+			for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
+			{
+				mSwapChain->GetBuffer(i, IID_PPV_ARGS(&mRenderTargets[i]));
+				device->CreateRenderTargetView(mRenderTargets[i], nullptr, rtvHandle);
+				mRtvDescHandles[i] = rtvHandle;
+				rtvHandle.ptr += rtvDescriptorSize;
+			}
 			return true;
 		}
 
 		void cleanupRenderTarget()
 		{
-
+			for (UINT i = 0; i < NUM_BACK_BUFFERS; i++) mRenderTargets[i].reset();
+			mRtvDescHeap.reset();
 		}
+
 		struct FrameContext
 		{
-			ID3D12CommandAllocator* CommandAllocator;
-			UINT64                  FenceValue;
+			TComPtr<ID3D12CommandAllocator> CommandAllocator;
+			UINT64 FenceValue = 0;
 		};
 
-		static int const             NUM_BACK_BUFFERS = 3;
-		// Data
-		int const                    NUM_FRAMES_IN_FLIGHT = 3;
-		FrameContext                 g_frameContext[NUM_BACK_BUFFERS] = {};
-		UINT                         g_frameIndex = 0;
-		ID3D12Device*                g_pd3dDevice = nullptr;
-		ID3D12DescriptorHeap*        g_pd3dRtvDescHeap = nullptr;
-		ID3D12DescriptorHeap*        g_pd3dSrvDescHeap = nullptr;
-		ID3D12CommandQueue*          g_pd3dCommandQueue = nullptr;
-		ID3D12GraphicsCommandList*   g_pd3dCommandList = nullptr;
-		ID3D12Fence*                 g_fence = nullptr;
-		HANDLE                       g_fenceEvent = nullptr;
-		UINT64                       g_fenceLastSignaledValue = 0;
-		IDXGISwapChain3*             g_pSwapChain = nullptr;
-		HANDLE                       g_hSwapChainWaitableObject = nullptr;
-		ID3D12Resource*              g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
-		D3D12_CPU_DESCRIPTOR_HANDLE  g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
+		static int const NUM_BACK_BUFFERS = 3;
+		FrameContext mFrameContext[NUM_BACK_BUFFERS];
+		TComPtr<IDXGISwapChain3> mSwapChain;
+		TComPtr<ID3D12DescriptorHeap> mRtvDescHeap;
+		TComPtr<ID3D12Resource> mRenderTargets[NUM_BACK_BUFFERS];
+		D3D12_CPU_DESCRIPTOR_HANDLE mRtvDescHandles[NUM_BACK_BUFFERS];
+		TComPtr<ID3D12GraphicsCommandList> mCommandList;
 
-		TComPtr< IDXGISwapChain3 > mSwapChain;
+		TComPtr<ID3D12Fence> mFence;
+		HANDLE mFenceEvent = nullptr;
+		UINT64 mFenceValue = 0;
 
-
+		~WindowRenderData()
+		{
+			if (mFenceEvent)
+			{
+				CloseHandle(mFenceEvent);
+				mFenceEvent = nullptr;
+			}
+		}
 	};
-	virtual bool initialize(EditorWindow& mainWindow)
+
+	D3D12System* mSystem = nullptr;
+	TComPtr<ID3D12DeviceRHI> mDevice;
+	TComPtr<ID3D12DescriptorHeap> mSrvDescHeap;
+	
+	virtual bool doInitialize(EditorWindow& mainWindow) override
 	{
-		mDevice = static_cast<D3D12System*>(GRHISystem)->mDevice;
+		mSystem = static_cast<D3D12System*>(GRHISystem);
+		mDevice = mSystem->mDevice;
 
 		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
-		//VERIFY_RETURN_FALSE(ImGui_ImplDX11_Init(mDevice, mDeviceContext));
+
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		desc.NumDescriptors = 1000;
+		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		mDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mSrvDescHeap));
+
+		ImGui_ImplDX12_Init(mDevice.get(), WindowRenderData::NUM_BACK_BUFFERS,
+			DXGI_FORMAT_R8G8B8A8_UNORM, mSrvDescHeap.get(),
+			mSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+			mSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+
 		if (RenderThread::IsRunning())
 		{
 			RenderThread::AddCommand("Editor::initializeWindowRenderData", [this, &mainWindow]()
 			{
 				initializeWindowRenderData(mainWindow);
 			});
-			//RenderThread::FlushCommands();
 		}
 		else
 		{
 			VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
 		}
 
-		SetupImGuiRendererHook();
-
-		unsigned char* pixels;
-		int width, height;
-		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
 		return true;
 	}
-	virtual void shutdown()
+
+	virtual void shutdown() override
 	{
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplWin32_Shutdown();
+		mSrvDescHeap.reset();
 	}
 
-	void beginFrame()
+	void beginFrame() override
 	{
 		ImGui_ImplWin32_NewFrame();
 	}
@@ -448,13 +504,11 @@ public:
 	{
 		ImGui_ImplDX12_NewFrame();
 	}
-	TComPtr< ID3D12DeviceRHI > mDevice;
-
 
 	bool initializeWindowRenderData(EditorWindow& window) override
 	{
 		auto renderData = std::make_unique<WindowRenderData>();
-		VERIFY_RETURN_FALSE(renderData->initRenderResource(window, mDevice));
+		VERIFY_RETURN_FALSE(renderData->initRenderResource(window, mSystem));
 		window.mRenderData = std::move(renderData);
 		return true;
 	}
@@ -463,22 +517,103 @@ public:
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 
-		const float clear_color_with_alpha[4] = { 0,0,0,1 };
-		//ImGui_ImplDX12_RenderDrawData(drawData);
+		UINT backBufferIdx = renderData->mSwapChain->GetCurrentBackBufferIndex();
+		auto cmdAlloc = renderData->mFrameContext[backBufferIdx].CommandAllocator;
+		auto cmdList = renderData->mCommandList;
+
+		if (renderData->mFence->GetCompletedValue() < renderData->mFrameContext[backBufferIdx].FenceValue)
+		{
+			renderData->mFence->SetEventOnCompletion(renderData->mFrameContext[backBufferIdx].FenceValue, renderData->mFenceEvent);
+			WaitForSingleObject(renderData->mFenceEvent, INFINITE);
+		}
+
+		cmdAlloc->Reset();
+		cmdList->Reset(cmdAlloc, nullptr);
+
+#if 0
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Transition.pResource = renderData->mRenderTargets[backBufferIdx];
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		cmdList->ResourceBarrier(1, &barrier);
+#else
+		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(renderData->mRenderTargets[backBufferIdx], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		cmdList->ResourceBarrier(1, &barrier);
+#endif
+
+		const float clear_color_with_alpha[4] = { 0, 0, 0, 1 };
+		cmdList->ClearRenderTargetView(renderData->mRtvDescHandles[backBufferIdx], clear_color_with_alpha, 0, nullptr);
+		cmdList->OMSetRenderTargets(1, &renderData->mRtvDescHandles[backBufferIdx], FALSE, nullptr);
+
+		ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescHeap.get() };
+		cmdList->SetDescriptorHeaps(1, descriptorHeaps);
+
+		auto prevCmdList = mSystem->mRenderContext.mGraphicsCmdList;
+		bool bPrevRecording = mSystem->mRenderContext.mbIsRecording;
+
+		mSystem->mRenderContext.mGraphicsCmdList = (ID3D12GraphicsCommandListRHI*)cmdList.get();
+		mSystem->mRenderContext.mbIsRecording = true;
+
+		ImGui_ImplDX12_RenderDrawData(drawData, cmdList.get());
+
+		mSystem->mRenderContext.mGraphicsCmdList = prevCmdList;
+		mSystem->mRenderContext.mbIsRecording = bPrevRecording;
+
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		cmdList->ResourceBarrier(1, &barrier);
+		cmdList->Close();
+
+		ID3D12CommandList* ppCommandLists[] = { cmdList.get() };
+		mSystem->mRenderContext.mCommandQueue->ExecuteCommandLists(1, ppCommandLists);
+
 		renderData->mSwapChain->Present(1, 0);
+
+		renderData->mFenceValue++;
+		renderData->mFrameContext[backBufferIdx].FenceValue = renderData->mFenceValue;
+		mSystem->mRenderContext.mCommandQueue->Signal(renderData->mFence.get(), renderData->mFenceValue);
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
-		if (renderData->mSwapChain.isValid())
+		if (renderData && renderData->mSwapChain.isValid())
 		{
+			// Need to flush queue before resizing
+			//mSystem->mRenderContext.waitForGpu();
 			renderData->cleanupRenderTarget();
 			renderData->mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 			renderData->createRenderTarget(mDevice);
 		}
 	}
-#endif
+
+	int mSrvAllocCount = 1; // 0 is used for font
+	std::unordered_map<Render::RHITexture2D*, ImTextureID> mTextureIDMap;
+
+	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) override
+	{
+		auto iter = mTextureIDMap.find(&texture);
+		if (iter != mTextureIDMap.end())
+			return iter->second;
+
+		Render::D3D12Texture2D& textureD3D = static_cast<Render::D3D12Texture2D&>(texture);
+		
+		int slot = mSrvAllocCount++;
+		
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = mSrvDescHeap->GetCPUDescriptorHandleForHeapStart();
+		cpuHandle.ptr += slot * mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = mSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
+		gpuHandle.ptr += slot * mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		mDevice->CopyDescriptorsSimple(1, cpuHandle, textureD3D.mSRV.getCPUHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		mTextureIDMap[&texture] = (ImTextureID)gpuHandle.ptr;
+
+		return (ImTextureID)gpuHandle.ptr;
+	}
 };
 
 #if USE_VULKAN
@@ -850,7 +985,7 @@ struct FVulkan
 	}
 };
 
-class EditorRendererVulkan : public IEditorRenderer
+class EditorRendererVulkan : public EditorRendererBase
 {
 public:
 
@@ -931,7 +1066,7 @@ public:
 		TArray<VkFramebuffer> mFramebuffers;
 	};
 
-	virtual bool initialize(EditorWindow& mainWindow) override
+	virtual bool doInitialize(EditorWindow& mainWindow) override
 	{
 		mSystem = static_cast<VulkanSystem*>(GRHISystem);
 		mDevice = mSystem->mDevice;
@@ -1000,7 +1135,6 @@ public:
 			initializeWindowRenderData(mainWindow);
 		}
 
-		SetupImGuiRendererHook();
 		return true;
 	}
 
@@ -1140,7 +1274,7 @@ public:
 #endif
 
 
-class EditorRendererOpenGL : public IEditorRenderer
+class EditorRendererOpenGL : public EditorRendererBase
 {
 public:
 
@@ -1161,7 +1295,7 @@ public:
 		WindowsGLContext mContext;
 	};
 
-	virtual bool initialize(EditorWindow& mainWindow)
+	virtual bool doInitialize(EditorWindow& mainWindow)
 	{
 		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
 		VERIFY_RETURN_FALSE(ImGui_ImplOpenGL3_Init());
@@ -1177,12 +1311,6 @@ public:
 		{
 			VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
 		}
-
-		SetupImGuiRendererHook();
-
-		unsigned char* pixels;
-		int width, height;
-		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		return true;
 	}

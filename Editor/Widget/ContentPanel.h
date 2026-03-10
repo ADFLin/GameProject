@@ -12,7 +12,7 @@ class ContentPanel : public IEditorPanel
 public:
 
 	void onOpen() override;
-	void render() override;
+	void update() override;
 
 	void renderFolderTree(char const* name, char const* path, int level, bool bInCurFolderSeq);
 	struct FileData
@@ -47,7 +47,7 @@ public:
 	};
 
 	std::unordered_map< std::string , FolderInfo > mCachedFolderMap;
-	void getRenderParams(WindowRenderParams& params) const
+	void getUpdateParams(WindowUpdateParams& params) const
 	{
 #if 1
 		params.flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;

@@ -407,6 +407,12 @@ namespace Render
 		mResource = resource.detach();
 	}
 
+	D3D12Texture2DArray::D3D12Texture2DArray(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource)
+		:TD3D12Texture< RHITexture2DArray >(desc)
+	{
+		mResource = resource.detach();
+	}
+
 	D3D12SamplerState::D3D12SamplerState(SamplerStateInitializer const& initializer)
 	{
 		D3D12_SAMPLER_DESC desc;
@@ -437,6 +443,16 @@ namespace Render
 		TD3D12Resource< RHIBuffer >::releaseResource();
 	}
 
+	int D3D12FrameBuffer::addTexture(RHITextureCube& target, ETexture::Face face, int level)
+	{
+		int index = getFreeSlot();
+		if (index != INDEX_NONE)
+		{
+			setTextureInternal(index, target, face, level);
+		}
+		return index;
+	}
+
 	int D3D12FrameBuffer::addTexture(RHITexture2D& target, int level /*= 0*/)
 	{
 		int index = getFreeSlot();
@@ -444,29 +460,107 @@ namespace Render
 		{
 			setTextureInternal(index, target, level);
 		}
-		return INDEX_NONE;
+		return index;
+	}
+
+	int D3D12FrameBuffer::addTexture(RHITexture2DArray& target, int indexLayer, int level)
+	{
+		int index = getFreeSlot();
+		if (index != INDEX_NONE)
+		{
+			setTextureInternal(index, target, indexLayer, level);
+		}
+		return index;
+	}
+
+	void D3D12FrameBuffer::setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level)
+	{
+		setTextureInternal(idx, target, face, level);
+	}
+
+	void D3D12FrameBuffer::setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
+	{
+		setTextureInternal(idx, target, indexLayer, level);
+	}
+
+	int D3D12FrameBuffer::addTextureArray(RHITextureCube& target, int level)
+	{
+		int index = getFreeSlot();
+		if (index != INDEX_NONE)
+		{
+			setTextureArrayInternal(index, target, level);
+		}
+		return index;
+	}
+
+	void D3D12FrameBuffer::setTextureArray(int idx, RHITextureCube& target, int level)
+	{
+		setTextureArrayInternal(idx, target, level);
 	}
 
 	void D3D12FrameBuffer::setTextureInternal(int index, RHITexture2D& target, int level)
 	{
-		CHECK(level == 0);
 		auto& targetImpl = static_cast<D3D12Texture2D&>(target);
 		auto& bufferState = mRenderTargetsState.colorBuffers[index];
+		
 		bufferState.resource.assign(targetImpl.getResource());
-		D3D12_RESOURCE_DESC desc = bufferState.resource->GetDesc();
-		bufferState.format = desc.Format;
-		bufferState.RTVHandle = targetImpl.mRTVorDSV;
+		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
+		bufferState.format = format;
+
+		bufferState.RTVHandle = targetImpl.getRTV(level, 0, 1, format);
 		bStateDirty = true;
 	}
+
+	void D3D12FrameBuffer::setTextureInternal(int index, RHITextureCube& target, ETexture::Face face, int level)
+	{
+		auto& targetImpl = static_cast<D3D12TextureCube&>(target);
+		auto& bufferState = mRenderTargetsState.colorBuffers[index];
+
+		bufferState.resource.assign(targetImpl.getResource());
+		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
+		bufferState.format = format;
+
+		bufferState.RTVHandle = targetImpl.getRTV(level, (uint32)face, 1, format);
+		bStateDirty = true;
+	}
+
+	void D3D12FrameBuffer::setTextureInternal(int index, RHITexture2DArray& target, int indexLayer, int level)
+	{
+		auto& targetImpl = static_cast<D3D12Texture2DArray&>(target);
+		auto& bufferState = mRenderTargetsState.colorBuffers[index];
+
+		bufferState.resource.assign(targetImpl.getResource());
+		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
+		bufferState.format = format;
+
+		bufferState.RTVHandle = targetImpl.getRTV(level, indexLayer, 1, format);
+		bStateDirty = true;
+	}
+
+	void D3D12FrameBuffer::setTextureArrayInternal(int index, RHITextureCube& target, int level)
+	{
+		auto& targetImpl = static_cast<D3D12TextureCube&>(target);
+		auto& bufferState = mRenderTargetsState.colorBuffers[index];
+
+		bufferState.resource.assign(targetImpl.getResource());
+		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
+		bufferState.format = format;
+
+		bufferState.RTVHandle = targetImpl.getRTV(level, 0, 6, format);
+		bStateDirty = true;
+	}
+
 
 	void D3D12FrameBuffer::setDepth(RHITexture2D& target)
 	{
 		auto& targetImpl = static_cast<D3D12Texture2D&>(target);
 		auto& bufferState = mRenderTargetsState.depthBuffer;
+		
 		bufferState.resource.assign(targetImpl.getResource());
-		D3D12_RESOURCE_DESC desc = bufferState.resource->GetDesc();
-		bufferState.format = desc.Format;
-		bufferState.DSVHandle = targetImpl.mRTVorDSV;
+		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
+		bufferState.format = format;
+
+		bufferState.DSVHandle = targetImpl.getDSV(0, 0, 1, format);
 		bStateDirty = true;
 	}
 
@@ -478,6 +572,7 @@ namespace Render
 			bufferState.resource.reset();
 			bufferState.format = DXGI_FORMAT_UNKNOWN;
 			bufferState.DSVHandle.reset();
+			bStateDirty = true;
 		}
 	}
 
@@ -492,5 +587,79 @@ namespace Render
 	}
 
 
+
+	D3D12PooledHeapHandle D3D12TextureBase::getRTV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format)
+	{
+		ViewKey key = { mip, layer, arraySize, format };
+		for (auto const& entry : mViewCache)
+		{
+			if (entry.key == key)
+				return entry.handle;
+		}
+
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.Format = format;
+		if (arraySize > 1 || layer > 0)
+		{
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			rtvDesc.Texture2DArray.MipSlice = mip;
+			rtvDesc.Texture2DArray.FirstArraySlice = layer;
+			rtvDesc.Texture2DArray.ArraySize = arraySize;
+		}
+		else
+		{
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			rtvDesc.Texture2D.MipSlice = mip;
+			rtvDesc.Texture2D.PlaneSlice = 0;
+		}
+
+		D3D12PooledHeapHandle handle = D3D12DescriptorHeapPool::Alloc(getD3D12Resource(), &rtvDesc);
+		if (handle.isValid())
+		{
+			mViewCache.push_back({ key, handle });
+		}
+		return handle;
+	}
+
+	D3D12PooledHeapHandle D3D12TextureBase::getDSV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format)
+	{
+		ViewKey key = { mip, layer, arraySize, format };
+		for (auto const& entry : mViewCache)
+		{
+			if (entry.key == key)
+				return entry.handle;
+		}
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = format;
+		if (arraySize > 1 || layer > 0)
+		{
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			dsvDesc.Texture2DArray.MipSlice = mip;
+			dsvDesc.Texture2DArray.FirstArraySlice = layer;
+			dsvDesc.Texture2DArray.ArraySize = arraySize;
+		}
+		else
+		{
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			dsvDesc.Texture2D.MipSlice = mip;
+		}
+
+		D3D12PooledHeapHandle handle = D3D12DescriptorHeapPool::Alloc(getD3D12Resource(), &dsvDesc);
+		if (handle.isValid())
+		{
+			mViewCache.push_back({ key, handle });
+		}
+		return handle;
+	}
+
+	void D3D12TextureBase::releaseViews()
+	{
+		for (auto& entry : mViewCache)
+		{
+			D3D12DescriptorHeapPool::FreeHandle(entry.handle);
+		}
+		mViewCache.clear();
+	}
 
 }//namespace Render

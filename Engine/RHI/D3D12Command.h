@@ -426,6 +426,11 @@ namespace Render
 
 		void resetCommandList()
 		{
+			if (mbIsRecording)
+			{
+				mGraphicsCmdList->Close();
+				mbIsRecording = false;
+			}
 			mFrameDataList[mFrameIndex].resetCommandList(mPiplineStateCommitted);
 			mbIsRecording = true;
 			mNumUsedHeaps = 0;
@@ -558,11 +563,11 @@ namespace Render
 		int32 mFrameIndex;
 
 		bool configFromSwapChain(D3D12SwapChain* swapChain);
-		bool beginFrame();
-		void endFrame();
+		bool beginFrame(bool bAdvanceFrame = true);
+		void endFrame(bool bAdvanceFrame = true);
 		void waitForGpu();
 		void waitForGpu(ID3D12CommandQueue* cmdQueue);
-		void moveToNextFrame(IDXGISwapChainRHI* swapChain);
+		void moveToNextFrame();
 
 		TArray< FrameData > mFrameDataList;
 
@@ -592,6 +597,9 @@ namespace Render
 			//TODO:
 		}
 
+		bool mbAdvanceFrame = true;
+		int mRenderFrameNestingCount = 0;
+
 		RHICommandList&  getImmediateCommandList()
 		{
 			return *mImmediateCommandList;
@@ -616,8 +624,8 @@ namespace Render
 		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
 		virtual RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) override;
 		virtual RHIShaderResourceView* RHICreateSRV(RHITexture2D& texture, ETexture::Format format) override;
-		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
-		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
+		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]);
+		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data);
 
 		virtual RHIBuffer* RHICreateBuffer(BufferDesc const& desc, void* data) override;
 
@@ -634,14 +642,8 @@ namespace Render
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
-		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
-		{
-
-		}
-		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
-		{
-
-		}
+		virtual void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData) override;
+		virtual void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData) override;
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 

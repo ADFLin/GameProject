@@ -160,8 +160,8 @@ public:
 			if (panel.bOpened == false && panel.bOpenRequest == false)
 				continue;
 
-			WindowRenderParams params;
-			panel.widget->getRenderParams(params);
+			WindowUpdateParams params;
+			panel.widget->getUpdateParams(params);
 			ImGui::SetNextWindowSize(params.InitSize, ImGuiCond_FirstUseEver);
 
 			bool bStillOpened = true;
@@ -180,10 +180,10 @@ public:
 					panel.bShown = true;
 				}
 
-				if (panel.widget->preRender())
+				if (panel.widget->preUpdate())
 				{
-					panel.widget->render();
-					panel.widget->postRender();
+					panel.widget->update();
+					panel.widget->postUpdate();
 				}
 
 				if (bStillOpened == false)
@@ -211,6 +211,14 @@ public:
 	{
 		if (!bAdvanceFrame)
 			return;
+
+		for (auto& panel : mPanels)
+		{
+			if (panel.bOpened == false || panel.bShown == false)
+				continue;
+			
+			panel.widget->render();
+		}
 
 		// End of frame: render Dear ImGui
 		ImGui::Render();

@@ -300,6 +300,7 @@ namespace Render
 
 	bool Mesh::save(IStreamSerializer& serializer)
 	{
+
 		serializer << (uint8)mType;
 		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer, ELockAccess::ReadOnly);
 		uint32 vertexDataSize = mVertexBuffer->getSize();

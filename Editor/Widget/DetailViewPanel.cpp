@@ -530,7 +530,7 @@ struct DetailViewPanel::RenderContext
 	}
 };
 
-void DetailViewPanel::render()
+void DetailViewPanel::update()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 

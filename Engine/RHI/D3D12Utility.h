@@ -20,6 +20,11 @@ namespace Render
 	using ID3D12DeviceRHI = ID3D12Device8;
 	using ID3D12GraphicsCommandListRHI = ID3D12GraphicsCommandList6;
 
+	inline UINT D3D12CalcSubresource(UINT MipSlice, UINT ArraySlice, UINT PlaneSlice, UINT MipLevels, UINT ArraySize) noexcept
+	{
+		return MipSlice + (ArraySlice * MipLevels) + (PlaneSlice * MipLevels * ArraySize);
+	}
+
 	struct FD3D12Init
 	{
 		static D3D12_VIEWPORT Viewport(
@@ -149,7 +154,7 @@ namespace Render
 		{
 			D3D12_UNORDERED_ACCESS_VIEW_DESC result = {};
 
-			// πÔ©Û Structured Buffer°AFormat •≤∂∑≥]¨∞ DXGI_FORMAT_UNKNOWN
+			// Â∞çÊñº Structured BufferÔºåFormat ÂøÖÈ†àË®≠ÁÇ∫ DXGI_FORMAT_UNKNOWN
 			result.Format = DXGI_FORMAT_UNKNOWN;
 			result.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 
@@ -157,7 +162,7 @@ namespace Render
 			result.Buffer.NumElements = numElements;
 			result.Buffer.StructureByteStride = structureByteStride;
 
-			// CounterOffsetInBytes ≥q±`•Œ©Û Append/Consume Buffer°A§@ØÎ≥]¨∞ 0
+			// CounterOffsetInBytes ÈÄöÂ∏∏Áî®Êñº Append/Consume BufferÔºå‰∏ÄËà¨Ë®≠ÁÇ∫ 0
 			result.Buffer.CounterOffsetInBytes = 0;
 			result.Buffer.Flags = flags;
 

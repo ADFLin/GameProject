@@ -110,8 +110,6 @@ namespace Render
 
 		void onRender(float dFrame) override
 		{
-			GRenderTargetPool.freeAllUsedElements();
-
 			Vec2i screenSize = ::Global::GetScreenSize();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();

@@ -777,7 +777,7 @@ namespace RT
 					FObject::Box(Vector3(thickness,length, length), 5, Vector3(-0.5 * (length - thickness), 0 ,hl)),
 
 					//FObject::Mesh(0, 1.2, 1, Vector3(0,0,-0.5 *length + 2), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					FObject::Mesh(0, 0.04, 5, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
+					FObject::Mesh(0, 1.2, 5, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
 					//FObject::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
 					//FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
 					//FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
@@ -1252,8 +1252,6 @@ void RayTracingTestStage::resizeViewport(int w, int h)
 void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
 {
 	PROFILE_ENTRY("RenderViewport");
-
-	GRenderTargetPool.freeAllUsedElements();
 
 	if (bEditorCameraValid == false)
 	{

@@ -81,7 +81,7 @@ private:
 	}
 };
 
-struct WindowRenderParams 
+struct WindowUpdateParams 
 {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_None;
 	ImVec2 InitSize = ImVec2(200,200);
@@ -96,11 +96,13 @@ public:
 	virtual void onShow(){}
 	virtual void onHide(){}
 
-	virtual bool preRender() { return true; }
-	virtual void render(){}
-	virtual void postRender(){}
+	virtual void getUpdateParams(WindowUpdateParams& params) const {}
+	virtual bool preUpdate() { return true; }
+	virtual void update(){}
+	virtual void postUpdate(){}
 
-	virtual void getRenderParams(WindowRenderParams& params) const {}
+	virtual void render(){}
+
 };
 
 

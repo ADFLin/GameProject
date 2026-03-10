@@ -47,7 +47,7 @@ namespace Render
 
 		if (RenderThread::IsRunning() && !IsInRenderThread())
 		{
-			RenderThread::AddCommand("GpuProfiler::beginFrame", []()
+			RenderThread::AddCommand("GpuProfiler.beginFrame", []()
 			{
 				GpuProfiler::Get().beginFrame();
 			});
@@ -119,7 +119,7 @@ namespace Render
 
 		if (RenderThread::IsRunning() && !IsInRenderThread())
 		{
-			RenderThread::AddCommand("GpuProfiler::endFrame", []()
+			RenderThread::AddCommand("GpuProfiler.endFrame", []()
 			{
 				GpuProfiler::Get().endFrame();
 			});
@@ -144,8 +144,7 @@ namespace Render
 	{
 		if (RenderThread::IsRunning() && !IsInRenderThread())
 		{
-			std::string nameStr = name;
-			RenderThread::AddCommand("GpuProfiler::startSample", [nameStr]()
+			RenderThread::AddCommand("GpuProfiler::startSample", [nameStr = InlineString<64>(name)]()
 			{
 				GpuProfiler::Get().startSample(nameStr.c_str());
 			});

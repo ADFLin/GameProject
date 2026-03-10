@@ -69,7 +69,7 @@ public:
 		Items.emplace_back(buf,color);
 	}
 
-	void  render();
+	void  update();
 
 	void    ExecCommand(const char* command_line);
 

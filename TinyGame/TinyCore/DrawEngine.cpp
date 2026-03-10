@@ -10,8 +10,10 @@
 
 #include "RHI/OpenGLCommand.h"
 #include "Renderer/RenderThread.h"
+#include "Renderer/RenderTargetPool.h"
 
 #include "RHI/RHIGraphics2D.h"
+
 #include "GameGlobal.h"
 #include "RenderUtility.h"
 #include <algorithm>
@@ -22,9 +24,10 @@
 #include "ColorName.h"
 #include "Core/FNV1a.h"
 
+
 using namespace Render;
 
-ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
+ERenderSystem GDefaultRHIName = ERenderSystem::D3D12;
 bool GbDefaultUsePlatformGraphic = false;
 
 namespace
@@ -201,7 +204,7 @@ DrawEngine::DrawEngine()
 	mbInitialized = false;
 	bRHIShutdownDeferred = false;
 	bEnableRenderThread = false;
-	mAllowUseRenderThread = true;
+	mAllowUseRenderThread = false;
 }
 
 DrawEngine::~DrawEngine()
@@ -671,6 +674,21 @@ bool DrawEngine::beginFrame()
 			mGLContext->makeCurrent();
 		}
 
+		auto DoAdvanceFrame = [this]
+		{
+			if (RHIBeginRender(true))
+			{
+				GRenderTargetPool.freeAllUsedElements();
+
+				if (bWasUsedPlatformGraphics)
+				{
+					RHICommandList& commandList = RHICommandList::GetImmediateList();
+					RHISetFrameBuffer(commandList, nullptr);
+					RHISetViewport(commandList, 0, 0, getScreenWidth(), getScreenHeight());
+					RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
+				}
+			}
+		};
 		if (canUseRenderThread())
 		{
 			mActiveCommandList = RenderThread::Get().allocCommandList();
@@ -678,33 +696,13 @@ bool DrawEngine::beginFrame()
 			mActiveRenderContext = std::make_unique<GameRenderContext>(mActiveCommandList);
 			mRHIGraphics->setRecordingList(&mActiveCommandList);
 
-			mActiveCommandList.addCommand("RHIBeginRender", [this]()
-			{
-				if (RHIBeginRender(true))
-				{
-					if (bWasUsedPlatformGraphics)
-					{
-						RHICommandList& commandList = RHICommandList::GetImmediateList();
-						RHISetFrameBuffer(commandList, nullptr);
-						RHISetViewport(commandList, 0, 0, getScreenWidth(), getScreenHeight());
-						RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
-					}
-				}
-			});
+			mActiveCommandList.addCommand("RHIBeginRender", DoAdvanceFrame);
 		}
 		else
 		{
 			mRHIGraphics->setRecordingList(nullptr);
-			if (!RHIBeginRender(true))
-				return false;
 
-			if (bWasUsedPlatformGraphics)
-			{
-				RHICommandList& commandList = RHICommandList::GetImmediateList();
-				RHISetFrameBuffer(commandList, nullptr);
-				RHISetViewport(commandList, 0, 0, getScreenWidth(), getScreenHeight());
-				RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
-			}
+			DoAdvanceFrame();
 		}
 	}
 

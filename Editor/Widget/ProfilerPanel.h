@@ -8,14 +8,14 @@
 class ProfilerPanel : public IEditorPanel
 {
 public:
-	void render();
-	void getRenderParams(WindowRenderParams& params) const override;
+	void update();
+	void getUpdateParams(WindowUpdateParams& params) const override;
 };
 
 class ProfilerListPanel : public IEditorPanel
 {
 public:
-	void render();
+	void update();
 };
 
 

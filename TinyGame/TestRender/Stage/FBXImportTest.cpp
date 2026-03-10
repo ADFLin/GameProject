@@ -155,7 +155,6 @@ namespace Render
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			initializeRenderState();
 
-			GRenderTargetPool.freeAllUsedElements();
 			mSceneRenderTargets.prepare(screenSize);
 
 

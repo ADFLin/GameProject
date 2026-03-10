@@ -472,7 +472,7 @@ namespace Render
 			PROFILE_ENTRY("Fireworks.RenderCommand");
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			const ParticleSpriteRenderer::InstanceData* pInstances = mInstanceDataStorage[frameIdx].data();
-			GRenderTargetPool.freeAllUsedElements();
+
 			initializeRenderState();
 			mSceneRenderTargets.prepare(screenSize);
 			mSceneRenderTargets.attachDepthTexture();
@@ -550,7 +550,6 @@ namespace Render
 		BaseClass::preShutdownRenderSystem(bReInit);
 		mSceneRenderTargets.releaseRHI();
 		mBloomFrameBuffer.release();
-		GRenderTargetPool.releaseRHI();
 		mParticleRenderer.release();
 		mProgNightSky = nullptr;
 	}

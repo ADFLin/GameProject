@@ -210,7 +210,7 @@ namespace Render
 			if (!grow(newSize, device))
 				return false;
 
-			LogMsg("DescHeap Grow to %u", newSize);
+			LogMsg("DescHeap Grow to %u, type = %d", newSize, type);
 			if (!fetchFreeSlot(outHandle.chunkSlot))
 				return false;
 		}

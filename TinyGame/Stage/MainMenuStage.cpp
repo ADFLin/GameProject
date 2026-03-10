@@ -844,7 +844,7 @@ void MainMenuStage::processGameThreadCommands()
 
 ERenderSystem MainMenuStage::getDefaultRenderSystem()
 {
-	return ERenderSystem::Vulkan;
+	return ERenderSystem::None;
 }
 
 void MainMenuStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)

@@ -218,8 +218,6 @@ namespace Render
 			DrawUtility::DrawTexture(commandList, *IBLResource::SharedBRDFTexture , IntVector2(10, 10), IntVector2(512, 512));
 		}
 #endif
-
-		GRenderTargetPool.freeAllUsedElements();
 	}
 
 }

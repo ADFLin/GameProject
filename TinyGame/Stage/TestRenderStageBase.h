@@ -62,7 +62,8 @@ namespace Render
 				return false;
 			}
 
-			if (GRHISystem->getName() == RHISystemName::D3D11)
+			if (GRHISystem->getName() == RHISystemName::D3D11 ||
+			    GRHISystem->getName() == RHISystemName::D3D12 )
 				return true;
 
 

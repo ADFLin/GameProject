@@ -40,7 +40,7 @@ void SplitString(char const* str, char const* drop, TArray<StringView>& outList)
 	}
 }
 
-void ContentPanel::render()
+void ContentPanel::update()
 {
 	PROFILE_ENTRY("ContentPanel");
 

@@ -14,7 +14,7 @@
 
 using namespace Render;
 
-REGISTER_EDITOR_PANEL(GameViewportPanel, GameViewportPanel::ClassName, false, false);
+//REGISTER_EDITOR_PANEL(GameViewportPanel, GameViewportPanel::ClassName, false, false);
 
 
 
@@ -153,7 +153,7 @@ static unsigned ImGuiKeyToVK(ImGuiKey key)
 	}
 }
 
-void GameViewportPanel::render()
+void GameViewportPanel::update()
 {
 	PROFILE_ENTRY("GameViewportPanel");
 
@@ -170,14 +170,11 @@ void GameViewportPanel::render()
 	
 	if (context.texture == mTexture)
 	{
-		RenderThread::AddCommand("ViewportRender", [this]()
-		{
-			EditorViewportRenderContext context;
-			context.texture = mTexture;
-			context.frameBuffer = mFrameBuffer;
-			context.graphics = &EditorRenderGloabal::Get().getGraphics();
-			mViewport->renderViewport(context);
-		});
+		bRenderRequested = true;
+	}
+	else
+	{
+		bRenderRequested = false;
 	}
 
 	FImGui::RestoreBlend();
@@ -268,7 +265,22 @@ void GameViewportPanel::render()
 	}
 }
 
-bool GameViewportPanel::preRender()
+void GameViewportPanel::render()
+{
+	if (!bRenderRequested)
+		return;
+
+	RenderThread::AddCommand("ViewportRender", [this]()
+	{
+		EditorViewportRenderContext context;
+		context.texture = mTexture;
+		context.frameBuffer = mFrameBuffer;
+		context.graphics = &EditorRenderGloabal::Get().getGraphics();
+		mViewport->renderViewport(context);
+	});
+}
+
+bool GameViewportPanel::preUpdate()
 {
 	ImVec2 view = ImGui::GetContentRegionAvail();
 

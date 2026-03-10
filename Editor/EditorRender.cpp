@@ -454,11 +454,16 @@ public:
 	D3D12System* mSystem = nullptr;
 	TComPtr<ID3D12DeviceRHI> mDevice;
 	TComPtr<ID3D12DescriptorHeap> mSrvDescHeap;
+	Render::D3D12RenderTargetsState mEditorRenderTargetsState;
 	
 	virtual bool doInitialize(EditorWindow& mainWindow) override
 	{
 		mSystem = static_cast<D3D12System*>(GRHISystem);
 		mDevice = mSystem->mDevice;
+
+		mEditorRenderTargetsState.colorBuffers[0].format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		mEditorRenderTargetsState.numColorBuffers = 1;
+		mEditorRenderTargetsState.updateFormatGUID();
 
 		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
 
@@ -530,36 +535,42 @@ public:
 		cmdAlloc->Reset();
 		cmdList->Reset(cmdAlloc, nullptr);
 
-#if 0
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = renderData->mRenderTargets[backBufferIdx];
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		cmdList->ResourceBarrier(1, &barrier);
-#else
 		D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(renderData->mRenderTargets[backBufferIdx], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		cmdList->ResourceBarrier(1, &barrier);
-#endif
 
 		const float clear_color_with_alpha[4] = { 0, 0, 0, 1 };
 		cmdList->ClearRenderTargetView(renderData->mRtvDescHandles[backBufferIdx], clear_color_with_alpha, 0, nullptr);
 		cmdList->OMSetRenderTargets(1, &renderData->mRtvDescHandles[backBufferIdx], FALSE, nullptr);
 
+#if 1
+		for (auto const& pair : mTextureIDMap)
+		{
+			Render::D3D12Texture2D& textureD3D = static_cast<Render::D3D12Texture2D&>(*pair.first);
+			if (textureD3D.mCurrentStates != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+			{
+				D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(textureD3D.getResource(), textureD3D.mCurrentStates, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				cmdList->ResourceBarrier(1, &barrier);
+				textureD3D.mCurrentStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+			}
+		}
+#endif
+
 		ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescHeap.get() };
 		cmdList->SetDescriptorHeaps(1, descriptorHeaps);
+		mCmdListUsing = cmdList.get();
 
 		auto prevCmdList = mSystem->mRenderContext.mGraphicsCmdList;
 		bool bPrevRecording = mSystem->mRenderContext.mbIsRecording;
+		auto prevRenderTargetsState = mSystem->mRenderContext.mRenderTargetsState;
 
-		mSystem->mRenderContext.mGraphicsCmdList = (ID3D12GraphicsCommandListRHI*)cmdList.get();
-		mSystem->mRenderContext.mbIsRecording = true;
+		mSystem->mRenderContext.mRenderTargetsState = nullptr;
+		mSystem->mRenderContext.setGraphicsCommandList((Render::ID3D12GraphicsCommandListRHI*)cmdList.get(), true);
+		mSystem->mRenderContext.mRenderTargetsState = &mEditorRenderTargetsState;
 
 		ImGui_ImplDX12_RenderDrawData(drawData, cmdList.get());
 
-		mSystem->mRenderContext.mGraphicsCmdList = prevCmdList;
-		mSystem->mRenderContext.mbIsRecording = bPrevRecording;
+		mSystem->mRenderContext.setGraphicsCommandList(prevCmdList, bPrevRecording);
+		mSystem->mRenderContext.mRenderTargetsState = prevRenderTargetsState;
 
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
@@ -574,6 +585,14 @@ public:
 		renderData->mFenceValue++;
 		renderData->mFrameContext[backBufferIdx].FenceValue = renderData->mFenceValue;
 		mSystem->mRenderContext.mCommandQueue->Signal(renderData->mFence.get(), renderData->mFenceValue);
+	}
+
+	ID3D12GraphicsCommandList* mCmdListUsing;
+
+	void restoreRenderState() 
+	{
+		ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescHeap.get() };
+		mCmdListUsing->SetDescriptorHeaps(1, descriptorHeaps);
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
@@ -608,11 +627,12 @@ public:
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = mSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
 		gpuHandle.ptr += slot * mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		mDevice->CopyDescriptorsSimple(1, cpuHandle, textureD3D.mSRV.getCPUHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		mDevice->CopyDescriptorsSimple(1, cpuHandle, textureD3D.mSRV.getCPUHandleCopy(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		mTextureIDMap[&texture] = (ImTextureID)gpuHandle.ptr;
 
 		return (ImTextureID)gpuHandle.ptr;
+
 	}
 };
 

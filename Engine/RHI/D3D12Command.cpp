@@ -406,27 +406,17 @@ namespace Render
 
 	bool D3D12System::RHIBeginRender(bool bAdvanceFrame)
 	{
-		if (mRenderFrameNestingCount > 0 && mRenderContext.mbIsRecording)
-		{
-			++mRenderFrameNestingCount;
-			return true;
-		}
-
-		mRenderFrameNestingCount = 1;
-
 		mbAdvanceFrame = bAdvanceFrame;
 
-		if (!mRenderContext.beginFrame(mbAdvanceFrame))
+		if (!mRenderContext.beginRender(mbAdvanceFrame))
 		{
 			return false;
 		}
 
-#if 1
 		if (mProfileCore)
 		{
 			mProfileCore->mCmdList = mRenderContext.mGraphicsCmdList;
 		}
-#endif
 
 		mbInRendering = true;
 		return true;
@@ -434,15 +424,6 @@ namespace Render
 
 	void D3D12System::RHIEndRender(bool bPresent)
 	{
-		if (mRenderFrameNestingCount > 0)
-		{
-			--mRenderFrameNestingCount;
-			if (mRenderFrameNestingCount > 0)
-			{
-				return;
-			}
-		}
-
 		if (!mRenderContext.mbIsRecording)
 		{
 			return;
@@ -455,15 +436,15 @@ namespace Render
 
 		mbInRendering = false;
 
-		mRenderContext.endFrame(mbAdvanceFrame);
+		mRenderContext.endRender(mbAdvanceFrame);
 
 		mRenderContext.flushCommand();
 		if (bPresent && mbAdvanceFrame)
 		{
 			mSwapChain->present(bPresent);
+			mRenderContext.moveToNextFrame();
 		}
-		
-		mRenderContext.moveToNextFrame();
+
 	}
 
 	RHISwapChain* D3D12System::RHICreateSwapChain(SwapChainCreationInfo const& info)
@@ -2458,7 +2439,7 @@ namespace Render
 		srcLocation.pResource = allocation.ptr;
 		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		srcLocation.PlacedFootprint = layout;
-		srcLocation.PlacedFootprint.Offset = allocation.buddyInfo.offset; // Assuming buddyInfo.offset or allocation.offset
+		srcLocation.PlacedFootprint.Offset += (allocation.gpuAddress - allocation.ptr->GetGPUVirtualAddress());
 
 		D3D12_BOX srcBox = { 0, 0, 0, (uint32)w, (uint32)h, 1 };
 		mGraphicsCmdList->CopyTextureRegion(&dstLocation, ox, oy, 0, &srcLocation, &srcBox);
@@ -2509,7 +2490,7 @@ namespace Render
 		srcLocation.pResource = allocation.ptr;
 		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		srcLocation.PlacedFootprint = layout;
-		srcLocation.PlacedFootprint.Offset = allocation.buddyInfo.offset;
+		srcLocation.PlacedFootprint.Offset += (allocation.gpuAddress - allocation.ptr->GetGPUVirtualAddress());
 
 		D3D12_BOX srcBox = { 0, 0, 0, (uint32)w, (uint32)h, 1 };
 		mGraphicsCmdList->CopyTextureRegion(&dstLocation, ox, oy, 0, &srcLocation, &srcBox);
@@ -3965,28 +3946,6 @@ namespace Render
 		});
 	}
 
-	void D3D12Context::commitRenderTargetState()
-	{
-		if (mRenderTargetsState == nullptr)
-			return;
-
-		D3D12_CPU_DESCRIPTOR_HANDLE handles[D3D12RenderTargetsState::MaxSimulationBufferCount];
-		for (int i = 0; i < mRenderTargetsState->numColorBuffers; ++i)
-		{
-			handles[i] = mRenderTargetsState->colorBuffers[i].RTVHandle.getCPUHandle();
-		}
-
-		auto const& DSVHandle = mRenderTargetsState->depthBuffer.DSVHandle;
-		if (DSVHandle.isValid())
-		{
-			mGraphicsCmdList->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, handles, FALSE, &DSVHandle.getCPUHandle());
-		}
-		else
-		{
-			mGraphicsCmdList->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, handles, FALSE, nullptr);
-		}
-	}
-
 	void D3D12Context::commitGraphicsPipelineState(EPrimitive type)
 	{
 		if (mGfxBoundState == nullptr)
@@ -4126,20 +4085,20 @@ namespace Render
 		}
 	}
 
-	bool D3D12Context::beginFrame(bool bAdvanceFrame)
+	bool D3D12Context::beginRender(bool bAdvanceFrame)
 	{
-		if (mbIsRecording)
-		{
-			mGraphicsCmdList->Close();
-			mbIsRecording = false;
-		}
-		FrameData& frameData = mFrameDataList[mFrameIndex];
-		VERIFY_RETURN_FALSE(frameData.beginFrame());
-		mGraphicsCmdList = frameData.graphicsCmdList;
-		mbIsRecording = true;
-
 		if (bAdvanceFrame)
 		{
+			if (mbIsRecording)
+			{
+				flushCommand();
+			}
+
+			FrameData& frameData = mFrameDataList[mFrameIndex];
+			VERIFY_RETURN_FALSE(frameData.beginFrame());
+			mGraphicsCmdList = frameData.graphicsCmdList;
+			mbIsRecording = true;
+
 			auto system = static_cast<D3D12System*>(GRHISystem);
 			int backBufferIdx = 0;
 			if (system->mSwapChain && system->mSwapChain->mResource)
@@ -4152,17 +4111,20 @@ namespace Render
 				D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			mGraphicsCmdList->ResourceBarrier(1, &barrier);
 		}
+		else
+		{
+			resetDescHeap();
+		}
 
 		for (int i = 0; i < EShader::Count; ++i)
 		{
 			mResourceBoundStates[i].restState();
 		}
 
-
 		return true;
 	}
 
-	void D3D12Context::endFrame(bool bAdvanceFrame)
+	void D3D12Context::endRender(bool bAdvanceFrame)
 	{
 		if (bAdvanceFrame)
 		{

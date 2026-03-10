@@ -61,6 +61,7 @@ public:
 	virtual void beginFrame() {}
 	virtual void beginRender(EditorWindow& window) {}
 	virtual void endFrame() {}
+	virtual void restoreRenderState(){}
 
 	virtual bool initializeWindowRenderData(EditorWindow& window) { return true; }
 	virtual void renderWindow(EditorWindow& window, ImDrawData* drawData) {}

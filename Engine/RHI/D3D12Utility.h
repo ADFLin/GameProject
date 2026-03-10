@@ -206,6 +206,13 @@ namespace Render
 			return result;
 		}
 
+		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandleCopy(uint chunkSlot)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE result = mCachedCPUHandleCopy;
+			result.ptr += chunkSlot * elementSize;
+			return result;
+		}
+
 		D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(uint chunkSlot)
 		{
 			D3D12_GPU_DESCRIPTOR_HANDLE result = mCachedGPUHandle;
@@ -217,10 +224,12 @@ namespace Render
 		{
 			mCachedCPUHandle = resource->GetCPUDescriptorHandleForHeapStart();
 			mCachedGPUHandle = resource->GetGPUDescriptorHandleForHeapStart();
+			mCachedCPUHandleCopy = mCachedCPUHandle;
 		}
 
 		D3D12_GPU_DESCRIPTOR_HANDLE mCachedGPUHandle;
 		D3D12_CPU_DESCRIPTOR_HANDLE mCachedCPUHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE mCachedCPUHandleCopy;
 	};
 
 
@@ -235,6 +244,11 @@ namespace Render
 		{
 			CHECK(chunk);
 			return chunk->getCPUHandle(chunkSlot);
+		}
+		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandleCopy() const
+		{
+			CHECK(chunk);
+			return chunk->getCPUHandleCopy(chunkSlot);
 		}
 		D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const
 		{
@@ -296,7 +310,6 @@ namespace Render
 		void release();
 
 		TComPtr< ID3D12DescriptorHeap > mResourceCopy;
-		D3D12_CPU_DESCRIPTOR_HANDLE     mCachedCPUHandleCopy;
 	};
 
 	class D3D12DescriptorHeapPool

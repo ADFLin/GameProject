@@ -408,7 +408,28 @@ namespace Render
 
 		}
 
-		void commitRenderTargetState();
+		void commitRenderTargetState()
+		{
+			if (mRenderTargetsState == nullptr)
+				return;
+
+			D3D12_CPU_DESCRIPTOR_HANDLE handles[D3D12RenderTargetsState::MaxSimulationBufferCount];
+			for (int i = 0; i < mRenderTargetsState->numColorBuffers; ++i)
+			{
+				handles[i] = mRenderTargetsState->colorBuffers[i].RTVHandle.getCPUHandle();
+			}
+
+			auto const& DSVHandle = mRenderTargetsState->depthBuffer.DSVHandle;
+			if (DSVHandle.isValid())
+			{
+				mGraphicsCmdList->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, handles, FALSE, &DSVHandle.getCPUHandle());
+			}
+			else
+			{
+				mGraphicsCmdList->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, handles, FALSE, nullptr);
+			}
+		}
+
 		void commitGraphicsPipelineState(EPrimitive type);
 		void commitMeshPipelineState();
 		void commitComputePipelineState();
@@ -433,9 +454,35 @@ namespace Render
 			}
 			mFrameDataList[mFrameIndex].resetCommandList(mPiplineStateCommitted);
 			mbIsRecording = true;
+			resetDescHeap();
+			commitRenderTargetState();
+		}
+
+		void setGraphicsCommandList(ID3D12GraphicsCommandListRHI* newList, bool bIsRecording)
+		{
+			if (newList != mGraphicsCmdList)
+			{
+				if (mbIsRecording)
+				{
+					flushCommand();
+				}
+				mGraphicsCmdList = newList;
+				mbIsRecording = bIsRecording;
+				if (mbIsRecording)
+				{
+					commitRenderTargetState();
+				}
+			}
+			else
+			{
+				mbIsRecording = bIsRecording;
+			}
+		}
+
+		void resetDescHeap()
+		{
 			mNumUsedHeaps = 0;
 			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
-			commitRenderTargetState();
 		}
 
 		ID3D12PipelineState*     mPiplineStateCommitted = nullptr;
@@ -563,8 +610,8 @@ namespace Render
 		int32 mFrameIndex;
 
 		bool configFromSwapChain(D3D12SwapChain* swapChain);
-		bool beginFrame(bool bAdvanceFrame = true);
-		void endFrame(bool bAdvanceFrame = true);
+		bool beginRender(bool bAdvanceFrame = true);
+		void endRender(bool bAdvanceFrame = true);
 		void waitForGpu();
 		void waitForGpu(ID3D12CommandQueue* cmdQueue);
 		void moveToNextFrame();

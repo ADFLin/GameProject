@@ -15,6 +15,7 @@
 #include "CString.h"
 #include "RHI/RHIGraphics2D.h"
 #include "Math/Vector2.h"
+#include "EditorRender.h"
 
 using ::Math::Vector2;
 
@@ -38,7 +39,10 @@ public:
 		TImGuiCustomRenderer* renderer = (TImGuiCustomRenderer*)cmd->UserCallbackData;
 		renderer->render(parentlist, cmd);
 		renderer->~TImGuiCustomRenderer();
+		EditorRenderGloabal::RestoreState();
 	}
+
+
 	TFunc mFunc;
 };
 
@@ -49,6 +53,7 @@ public:
 	void   saveRenderTarget();
 	void   resetRenderTarget();
 
+	static void RestoreState();
 	template< typename TFunc >
 	void addCustomFunc(TFunc&& func)
 	{

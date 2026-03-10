@@ -1,4 +1,5 @@
 #include "EditorPanel.h"
+#include "EditorRender.h"
 
 #if EDITOR_EXPORT
 
@@ -9,3 +10,8 @@ TArray< EditorPanelInfo >& EditorPanelInfo::GetList()
 }
 
 #endif
+
+void EditorRenderGloabal::RestoreState()
+{
+	GEditorRenderer->restoreRenderState();
+}

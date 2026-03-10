@@ -246,16 +246,17 @@ namespace Render
 
 		resource.reset();
 		resource.initialize(newResource.detach());
-		cacheHandle();
+		cacheHandle(); // This will now also set mCachedCPUHandleCopy based on the main resource
 
 		mResourceCopy.reset();
 		mResourceCopy.initialize(newResourceCopy.detach());
-		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart();
+		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart(); // This line ensures mCachedCPUHandleCopy is updated for the copy resource
 
 		numElements = numElementsNew;
 		mUsageMask.resize((numElementsNew + GroupSize - 1) / GroupSize, 0);
 		return true;
 	}
+
 
 	void D3D12DescHeapGrowable::release()
 	{

@@ -519,6 +519,7 @@ namespace Render
 		{
 			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 			TComPtr< ID3D12Resource > resource;
+			RHITextureRef texture;
 			D3D12PooledHeapHandle RTVHandle;
 		};
 
@@ -526,6 +527,7 @@ namespace Render
 		{
 			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 			TComPtr< ID3D12Resource > resource;
+			RHITextureRef texture;
 			D3D12PooledHeapHandle DSVHandle;
 		};
 

@@ -11,6 +11,7 @@
 #include "Module/ModuleManager.h"
 #include "RenderDebug.h"
 #include "Renderer/RenderThread.h"
+#include "ConsoleSystem.h"
 
 
 #define CONFIG_SECTION "SystemSetting"
@@ -27,8 +28,15 @@ bool TinyGameApp::initializeEditor()
 
 bool TinyGameApp::initializeEditorRender()
 {
-	ERenderSystem renderSystem = ERenderSystem::D3D12;
-	char const* moduleName = "D3D11RHI.dll";
+	auto defaultRHIName = IConsoleSystem::Get().findCommand("g.DefaultRHI")->asVariable()->toString();
+
+	ERenderSystem renderSystem = StringToRenderSystem(defaultRHIName.c_str());
+	if (renderSystem == ERenderSystem::None)
+	{
+		renderSystem = ERenderSystem::D3D11;
+	}
+
+	char const* moduleName;
 	switch (renderSystem)
 	{
 	case ERenderSystem::OpenGL:

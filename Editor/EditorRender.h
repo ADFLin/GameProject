@@ -65,6 +65,7 @@ public:
 
 	virtual bool initializeWindowRenderData(EditorWindow& window) { return true; }
 	virtual void renderWindow(EditorWindow& window, ImDrawData* drawData) {}
+	virtual void renderViewport(ImGuiViewport* viewport, void* renderArg) {}
 	virtual void notifyWindowResize(EditorWindow& window, int width, int height) {}
 
 	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) { return 0; }

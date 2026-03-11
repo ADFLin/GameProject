@@ -98,7 +98,10 @@ public:
 
 		if( !inDelegate(fs) || !fs.isValid() )
 		{
-			FFileSystem::DeleteFile(filePath);
+			if (!FFileSystem::DeleteFile(filePath))
+			{
+				int a = 1;
+			}
 			return false;
 		}
 		fs.close();

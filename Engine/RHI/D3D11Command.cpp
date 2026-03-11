@@ -343,6 +343,17 @@ namespace Render
 		VERIFY_D3D_RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContextImmdiate));
 
 
+		if (initParam.bDebugMode)
+		{
+			TComPtr<ID3D11InfoQueue> pInfoQueue;
+			if (SUCCEEDED(mDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue))))
+			{
+				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, TRUE);
+				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, TRUE);
+			}
+		}
+
 		D3D11_FEATURE_DATA_THREADING featureData;
 		mDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &featureData, sizeof(featureData));
 
@@ -875,7 +886,13 @@ namespace Render
 			for (auto e : sortedElements)
 			{
 				InlineString< 128 > str;
-				str.format("float%d v%d : ATTRIBUTE%d;", EVertex::GetComponentNum(e->format), e->attribute, e->attribute);
+				char const* typeName = "float";
+				auto componentType = EVertex::GetComponentType(e->format);
+				if (EVertex::IsIntType(componentType) && !e->bNormalized)
+				{
+					typeName = EVertex::IsUnsignedIntType(componentType) ? "uint" : "int";
+				}
+				str.format("%s%d v%d : ATTRIBUTE%d;", typeName, EVertex::GetComponentNum(e->format), e->attribute, e->attribute);
 				vertexCode += str.c_str();
 			}
 

@@ -1,6 +1,9 @@
 #pragma once
+
 #ifndef GameRenderSetup_H_5ED8A370_2B22_4CA0_A906_B67D32EE1FB9
 #define GameRenderSetup_H_5ED8A370_2B22_4CA0_A906_B67D32EE1FB9
+
+#include "CString.h"
 
 enum class ERenderSystem
 {
@@ -10,6 +13,39 @@ enum class ERenderSystem
 	D3D12,
 	Vulkan,
 };
+
+FORCEINLINE char const* ToString(ERenderSystem system)
+{
+	switch (system)
+	{
+	case ERenderSystem::OpenGL: return "OpenGL";
+	case ERenderSystem::D3D11:  return "D3D11";
+	case ERenderSystem::D3D12: return "D3D12";
+	case ERenderSystem::Vulkan: return "Vulkan";
+	}
+	return "None";
+}
+
+FORCEINLINE ERenderSystem StringToRenderSystem(char const* str)
+{
+	if (FCString::CompareIgnoreCase(str, "OpenGL") == 0)
+	{
+		return ERenderSystem::OpenGL;
+	}
+	else if (FCString::CompareIgnoreCase(str, "D3D11") == 0)
+	{
+		return ERenderSystem::D3D11;
+	}
+	else if (FCString::CompareIgnoreCase(str, "D3D12") == 0)
+	{
+		return ERenderSystem::D3D12;
+	}
+	else if (FCString::CompareIgnoreCase(str, "Vulkan") == 0)
+	{
+		return ERenderSystem::Vulkan;
+	}
+	return ERenderSystem::None;
+}
 
 struct RenderSystemConfigs
 {

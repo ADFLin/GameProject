@@ -44,30 +44,27 @@ IEditorRenderer* GEditorRenderer = nullptr;
 #define VERIFY_D3D_RESULT_RETURN_FALSE( CODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
 
 
-static void(*GDefaultImGuiRenderer_RenderWindow)(ImGuiViewport* viewport, void* render_arg) = nullptr;
-static void ImGui_Renderer_RenderWindow_Hook(ImGuiViewport* viewport, void* render_arg)
+static void(*GDefaultImGuiRenderer_RenderWindow)(ImGuiViewport* viewport, void* renderArg) = nullptr;
+static void ImGui_Renderer_RenderWindow_Hook(ImGuiViewport* viewport, void* renderArg)
 {
 	if (RenderThread::IsRunning())
 	{
 		auto* snapshot = ImDrawDataSnapshot::Copy(viewport->DrawData);
 		if (snapshot)
 		{
-			RenderThread::AddCommand("ImGui::Renderer_RenderWindow", [viewport, snapshot]()
+			RenderThread::AddCommand("ImGui::Renderer_RenderWindow", [viewport, renderArg, snapshot]()
 			{
 				ImDrawData* originalData = viewport->DrawData;
 				viewport->DrawData = &snapshot->data;
-				if (GDefaultImGuiRenderer_RenderWindow)
-				{
-					GDefaultImGuiRenderer_RenderWindow(viewport, nullptr);
-				}
+				GEditorRenderer->renderViewport(viewport, renderArg);
 				viewport->DrawData = originalData;
 				delete snapshot;
 			});
 		}
 	}
-	else if (GDefaultImGuiRenderer_RenderWindow)
+	else
 	{
-		GDefaultImGuiRenderer_RenderWindow(viewport, render_arg);
+		GEditorRenderer->renderViewport(viewport, renderArg);
 	}
 }
 
@@ -125,20 +122,20 @@ static void ImGui_Renderer_SetWindowSize_Hook(ImGuiViewport* viewport, ImVec2 si
 	}
 }
 
-static void(*GDefaultImGuiRenderer_SwapBuffers)(ImGuiViewport* viewport, void* render_arg) = nullptr;
-static void ImGui_Renderer_SwapBuffers_Hook(ImGuiViewport* viewport, void* render_arg)
+static void(*GDefaultImGuiRenderer_SwapBuffers)(ImGuiViewport* viewport, void* renderArg) = nullptr;
+static void ImGui_Renderer_SwapBuffers_Hook(ImGuiViewport* viewport, void* renderArg)
 {
 	if (RenderThread::IsRunning())
 	{
-		RenderThread::AddCommand("ImGui::Renderer_SwapBuffers", [viewport, render_arg]()
+		RenderThread::AddCommand("ImGui::Renderer_SwapBuffers", [viewport, renderArg]()
 		{
 			if (GDefaultImGuiRenderer_SwapBuffers)
-				GDefaultImGuiRenderer_SwapBuffers(viewport, render_arg);
+				GDefaultImGuiRenderer_SwapBuffers(viewport, renderArg);
 		});
 	}
 	else if (GDefaultImGuiRenderer_SwapBuffers)
 	{
-		GDefaultImGuiRenderer_SwapBuffers(viewport, render_arg);
+		GDefaultImGuiRenderer_SwapBuffers(viewport, renderArg);
 	}
 }
 
@@ -186,6 +183,11 @@ public:
 
 		SetupImGuiRendererHook();
 		return true;
+	}
+
+	virtual void renderViewport(ImGuiViewport* viewport, void* renderArg)
+	{
+		GDefaultImGuiRenderer_RenderWindow(viewport, renderArg);
 	}
 
 	virtual bool doInitialize(EditorWindow& mainWindow) = 0;
@@ -386,9 +388,10 @@ public:
 			for (int i = 0; i < NUM_BACK_BUFFERS; i++)
 			{
 				device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mFrameContext[i].CommandAllocator));
+				device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mFrameContext[i].CommandAllocator, nullptr, IID_PPV_ARGS(&mFrameContext[i].CommandList));
+				mFrameContext[i].CommandList->SetName(L"EditorCmdList");
+				mFrameContext[i].CommandList->Close();
 			}
-			device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mFrameContext[0].CommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList));
-			mCommandList->Close();
 
 			device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
 			mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -426,6 +429,7 @@ public:
 		struct FrameContext
 		{
 			TComPtr<ID3D12CommandAllocator> CommandAllocator;
+			TComPtr<ID3D12GraphicsCommandList> CommandList;
 			UINT64 FenceValue = 0;
 		};
 
@@ -435,7 +439,6 @@ public:
 		TComPtr<ID3D12DescriptorHeap> mRtvDescHeap;
 		TComPtr<ID3D12Resource> mRenderTargets[NUM_BACK_BUFFERS];
 		D3D12_CPU_DESCRIPTOR_HANDLE mRtvDescHandles[NUM_BACK_BUFFERS];
-		TComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 		TComPtr<ID3D12Fence> mFence;
 		HANDLE mFenceEvent = nullptr;
@@ -524,7 +527,7 @@ public:
 
 		UINT backBufferIdx = renderData->mSwapChain->GetCurrentBackBufferIndex();
 		auto cmdAlloc = renderData->mFrameContext[backBufferIdx].CommandAllocator;
-		auto cmdList = renderData->mCommandList;
+		auto cmdList = renderData->mFrameContext[backBufferIdx].CommandList;
 
 		if (renderData->mFence->GetCompletedValue() < renderData->mFrameContext[backBufferIdx].FenceValue)
 		{
@@ -542,7 +545,7 @@ public:
 		cmdList->ClearRenderTargetView(renderData->mRtvDescHandles[backBufferIdx], clear_color_with_alpha, 0, nullptr);
 		cmdList->OMSetRenderTargets(1, &renderData->mRtvDescHandles[backBufferIdx], FALSE, nullptr);
 
-#if 1
+#if 0
 		for (auto const& pair : mTextureIDMap)
 		{
 			Render::D3D12Texture2D& textureD3D = static_cast<Render::D3D12Texture2D&>(*pair.first);
@@ -559,17 +562,19 @@ public:
 		cmdList->SetDescriptorHeaps(1, descriptorHeaps);
 		mCmdListUsing = cmdList.get();
 
-		auto prevCmdList = mSystem->mRenderContext.mGraphicsCmdList;
-		bool bPrevRecording = mSystem->mRenderContext.mbIsRecording;
+		// Ensure native commands are executed before Editor drawing starts
+		//mSystem->mRenderContext.flushCommand();
 		auto prevRenderTargetsState = mSystem->mRenderContext.mRenderTargetsState;
-
-		mSystem->mRenderContext.mRenderTargetsState = nullptr;
-		mSystem->mRenderContext.setGraphicsCommandList((Render::ID3D12GraphicsCommandListRHI*)cmdList.get(), true);
+		auto nativeCmdList = mSystem->mRenderContext.mGraphicsCmdList; // Save the fresh native cmdList
 		mSystem->mRenderContext.mRenderTargetsState = &mEditorRenderTargetsState;
+
+		// Temporarily point the global GraphicsCmdList to the editor's localized one for ImGui UI functions if they need it
+		mSystem->mRenderContext.mGraphicsCmdList = (Render::ID3D12GraphicsCommandListRHI*)cmdList.get();
 
 		ImGui_ImplDX12_RenderDrawData(drawData, cmdList.get());
 
-		mSystem->mRenderContext.setGraphicsCommandList(prevCmdList, bPrevRecording);
+		// Restore to native
+		mSystem->mRenderContext.mGraphicsCmdList = nativeCmdList;
 		mSystem->mRenderContext.mRenderTargetsState = prevRenderTargetsState;
 
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -586,6 +591,41 @@ public:
 		renderData->mFrameContext[backBufferIdx].FenceValue = renderData->mFenceValue;
 		mSystem->mRenderContext.mCommandQueue->Signal(renderData->mFence.get(), renderData->mFenceValue);
 	}
+
+
+	virtual void renderViewport(ImGuiViewport* viewport, void* renderArg) 
+	{
+		//#Ref imgui_impl_dx12.cpp
+		struct ImGui_ImplDX12_ViewportData
+		{
+			// Window
+			ID3D12CommandQueue*             CommandQueue;
+			ID3D12GraphicsCommandList*      CommandList;
+			ID3D12DescriptorHeap*           RtvDescHeap;
+			IDXGISwapChain3*                SwapChain;
+			ID3D12Fence*                    Fence;
+			UINT64                          FenceSignaledValue;
+			HANDLE                          FenceEvent;
+			UINT                            NumFramesInFlight;
+			class ImGui_ImplDX12_FrameContext*    FrameCtx;
+
+			// Render buffers
+			UINT                            FrameIndex;
+			class ImGui_ImplDX12_RenderBuffers*   FrameRenderBuffers;
+		};
+		auto cmdList = static_cast<ImGui_ImplDX12_ViewportData*>(viewport->RendererUserData)->CommandList;
+		auto prevRenderTargetsState = mSystem->mRenderContext.mRenderTargetsState;
+		auto nativeCmdList = mSystem->mRenderContext.mGraphicsCmdList; // Save the fresh native cmdList
+		mSystem->mRenderContext.mRenderTargetsState = &mEditorRenderTargetsState;
+		// Temporarily point the global GraphicsCmdList to the editor's localized one for ImGui UI functions if they need it
+		mSystem->mRenderContext.mGraphicsCmdList = (Render::ID3D12GraphicsCommandListRHI*)cmdList;
+
+
+		GDefaultImGuiRenderer_RenderWindow(viewport, renderArg);
+		mSystem->mRenderContext.mGraphicsCmdList = nativeCmdList;
+		mSystem->mRenderContext.mRenderTargetsState = prevRenderTargetsState;
+	}
+
 
 	ID3D12GraphicsCommandList* mCmdListUsing;
 

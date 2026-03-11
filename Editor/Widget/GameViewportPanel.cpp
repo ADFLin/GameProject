@@ -14,8 +14,7 @@
 
 using namespace Render;
 
-//REGISTER_EDITOR_PANEL(GameViewportPanel, GameViewportPanel::ClassName, false, false);
-
+REGISTER_EDITOR_PANEL(GameViewportPanel, GameViewportPanel::ClassName, false, false);
 
 
 class EditorViewportUpdateContext final : public IEditorViewportUpdateContext
@@ -293,10 +292,14 @@ bool GameViewportPanel::preUpdate()
 		}
 		mSize = view;
 		mViewport->resizeViewport(mSize.x, mSize.y);
-		mTexture = RHICreateTexture2D(ETexture::BGRA8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_RenderTarget | TCF_PlatformGraphicsCompatible);
-		mDepthTexture = RHICreateTexture2D(ETexture::D32FS8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_RenderTarget);
-		mFrameBuffer->setTexture(0, *mTexture);
-		mFrameBuffer->setDepth(*mDepthTexture);
+
+		RenderThread::AddCommand("ResizeViewport", [this]()
+		{
+			mTexture = RHICreateTexture2D(ETexture::BGRA8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_RenderTarget | TCF_PlatformGraphicsCompatible);
+			mDepthTexture = RHICreateTexture2D(ETexture::D32FS8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_RenderTarget);
+			mFrameBuffer->setTexture(0, *mTexture);
+			mFrameBuffer->setDepth(*mDepthTexture);
+		});
 		// The window state has been successfully changed.
 		return true;
 	}

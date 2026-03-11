@@ -519,6 +519,7 @@ namespace Render
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
+		bufferState.texture = &target;
 
 		bufferState.RTVHandle = targetImpl.getRTV(level, (uint32)face, 1, format);
 		bStateDirty = true;
@@ -532,6 +533,7 @@ namespace Render
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
+		bufferState.texture = &target;
 
 		bufferState.RTVHandle = targetImpl.getRTV(level, indexLayer, 1, format);
 		bStateDirty = true;
@@ -545,6 +547,7 @@ namespace Render
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
+		bufferState.texture = &target;
 
 		bufferState.RTVHandle = targetImpl.getRTV(level, 0, 6, format);
 		bStateDirty = true;
@@ -559,6 +562,7 @@ namespace Render
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
+		bufferState.texture = &target;
 
 		bufferState.DSVHandle = targetImpl.getDSV(0, 0, 1, format);
 		bStateDirty = true;
@@ -572,6 +576,7 @@ namespace Render
 			bufferState.resource.reset();
 			bufferState.format = DXGI_FORMAT_UNKNOWN;
 			bufferState.DSVHandle.reset();
+			bufferState.texture.release();
 			bStateDirty = true;
 		}
 	}

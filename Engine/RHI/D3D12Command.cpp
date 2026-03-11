@@ -429,11 +429,6 @@ namespace Render
 			return;
 		}
 
-		if (mRenderContext.mGraphicsCmdList != mRenderContext.mFrameDataList[mRenderContext.mFrameIndex].graphicsCmdList)
-		{
-			return;
-		}
-
 		mbInRendering = false;
 
 		mRenderContext.endRender(mbAdvanceFrame);
@@ -2240,13 +2235,6 @@ namespace Render
 		return result;
 	}
 
-	void D3D12System::notifyFlushCommand()
-	{
-		if (mbInRendering)
-		{
-			mRenderContext.resetCommandList();
-		}
-	}
 
 	void D3D12System::handleErrorResult(HRESULT errorResult)
 	{
@@ -2347,7 +2335,6 @@ namespace Render
 
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateFence(frameData.fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
 		VERIFY_RETURN_FALSE(frameData.init(mDevice));
-		frameData.graphicsCmdList->Close();
 
 		mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		if (mFenceEvent == nullptr)
@@ -2355,10 +2342,11 @@ namespace Render
 			VERIFY_D3D_RESULT_RETURN_FALSE(HRESULT_FROM_WIN32(GetLastError()));
 		}
 
-		mGraphicsCmdList = frameData.graphicsCmdList;
+		mGraphicsCmdList = nullptr;
+		mbIsRecording = false;
 		frameData.fenceValue += 1;
 
-		resetCommandList();
+		obtainCommandList();
 		return true;
 	}
 
@@ -2372,9 +2360,6 @@ namespace Render
 		for (int i = 1; i < numFrames; ++i)
 		{
 			VERIFY_RETURN_FALSE(mFrameDataList[i].init(mDevice));
-			{
-				mFrameDataList[i].graphicsCmdList->Close();
-			}
 		}
 		mFrameDataList[mFrameIndex].fenceValue = mFrameDataList[0].fenceValue + 1;
 		return true;
@@ -2971,10 +2956,30 @@ namespace Render
 
 	void D3D12Context::RHIFlushCommand()
 	{
-		flushCommand();
-		static_cast<D3D12System*>(GRHISystem)->notifyFlushCommand();
+		if ( !flushCommand() )
+			return;
+
 		waitForGpu();
-		resetCommandList();
+		auto system = static_cast<D3D12System*>(GRHISystem);
+		if (system->mProfileCore)
+		{
+			system->mProfileCore->mCmdList = mGraphicsCmdList;
+		}
+
+		commitRenderTargetState();
+
+		//if (mNumViewports > 0)
+		//{
+		//	D3D12_VIEWPORT viewportsD3D[MaxViewportCount];
+		//	for (uint32 i = 0; i < mNumViewports; ++i)
+		//	{
+		//		auto const& rect = mViewportRects[i];
+		//		viewportsD3D[i] = { (float)rect.left, (float)rect.top, (float)(rect.right - rect.left), (float)(rect.bottom - rect.top), 0.0f, 1.0f };
+		//	}
+		//	mGraphicsCmdList->RSSetViewports(mNumViewports, viewportsD3D);
+		//	mGraphicsCmdList->RSSetScissorRects(mNumViewports, mScissorRects);
+		//}
+		//commitRenderTargetState();
 	}
 
 	void D3D12Context::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
@@ -4089,16 +4094,6 @@ namespace Render
 	{
 		if (bAdvanceFrame)
 		{
-			if (mbIsRecording)
-			{
-				flushCommand();
-			}
-
-			FrameData& frameData = mFrameDataList[mFrameIndex];
-			VERIFY_RETURN_FALSE(frameData.beginFrame());
-			mGraphicsCmdList = frameData.graphicsCmdList;
-			mbIsRecording = true;
-
 			auto system = static_cast<D3D12System*>(GRHISystem);
 			int backBufferIdx = 0;
 			if (system->mSwapChain && system->mSwapChain->mResource)

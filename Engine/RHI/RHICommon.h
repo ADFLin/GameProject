@@ -627,6 +627,10 @@ namespace Render
 		{
 			return type == CVT_Int || type == CVT_UInt || type == CVT_Short || type == CVT_UShort || type == CVT_Byte || type == CVT_UByte;
 		}
+		static bool IsUnsignedIntType(EComponentType type)
+		{
+			return type == CVT_UInt || type == CVT_UShort || type == CVT_UByte;
+		}
 
 		enum Format
 		{

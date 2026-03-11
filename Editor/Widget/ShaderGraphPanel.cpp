@@ -96,10 +96,9 @@ void ShaderGraphPanel::renderShaderPreview(TVector2<int> const& size)
 		//RHIResourceTransition(commandList, { mTexture.get() }, EResourceTransition::SRV);
 #endif
 
-		RHIFlushCommand(commandList);
+		//RHIFlushCommand(commandList);
 		RHIEndRender(false);
-	}
-	);
+	});
 }
 
 void ShaderGraphPanel::onOpen()

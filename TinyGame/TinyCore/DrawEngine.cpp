@@ -1,4 +1,4 @@
-#include "TinyGamePCH.h"
+﻿#include "TinyGamePCH.h"
 #include "DrawEngine.h"
 
 #include "ProfileSystem.h"
@@ -27,41 +27,20 @@
 
 using namespace Render;
 
-ERenderSystem GDefaultRHIName = ERenderSystem::D3D12;
+ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
 bool GbDefaultUsePlatformGraphic = false;
 
 namespace
 {
 	static char const* GetDefaultRHI()
 	{
-		switch (GDefaultRHIName)
-		{
-		case ERenderSystem::OpenGL: return "OpenGL";
-		case ERenderSystem::D3D11:  return "D3D11";
-		case ERenderSystem::D3D12: return "D3D12";
-		case ERenderSystem::Vulkan: return "Vulkan";
-		}
-		return "Unknown";
+		return ToString(GDefaultRHIName);
 	}
 	static void SetDefaultRHI(char const* str)
 	{
-		if (FCString::CompareIgnoreCase(str, "OpenGL") == 0)
-		{
-			GDefaultRHIName = ERenderSystem::OpenGL;
-		}
-		else if (FCString::CompareIgnoreCase(str, "D3D11") == 0)
-		{
-			GDefaultRHIName = ERenderSystem::D3D11;
-		}
-		else if (FCString::CompareIgnoreCase(str, "D3D12") == 0)
-		{
-			GDefaultRHIName = ERenderSystem::D3D12;
-		}
-		else if (FCString::CompareIgnoreCase(str, "Vulkan") == 0)
-		{
-			GDefaultRHIName = ERenderSystem::Vulkan;
-		}
+		GDefaultRHIName = StringToRenderSystem(str);
 	}
+
 	TConsoleVariable< bool > CVarUseMultisample{ false , "g.UseMultisample", CVF_TOGGLEABLE };
 
 	TConsoleVariableDelegate< char const* > CVarDefalultRHISystem

@@ -7,7 +7,6 @@
 #include "Math/Vector4.h"
 #include "RHI/DrawUtility.h"
 
-
 REGISTER_EDITOR_PANEL(TextureViewerPanel, TextureViewerPanel::ClassName, true, true);
 
 void TextureViewerPanel::update()

@@ -434,48 +434,89 @@ namespace Render
 		void commitMeshPipelineState();
 		void commitComputePipelineState();
 
-		void flushCommand()
+		bool flushCommand()
 		{
-			if (mbIsRecording)
+			if (!mbIsRecording)
+				return false;
+
+			// If mGraphicsCmdList does not match the native allocator's cmdList, it means 
+			// it has been temporarily replaced (e.g. by EditorRender).
+			// We MUST NOT close or execute this foreign command list, 
+			// nor put it into the native pool tracking!
+			if (mCurrentCmdListAlloc.cmdList && mGraphicsCmdList != mCurrentCmdListAlloc.cmdList.get())
 			{
-				mGraphicsCmdList->Close();
-				mbIsRecording = false;
+				return false;
 			}
+
+			mGraphicsCmdList->Close();
+
 			ID3D12CommandList* ppCommandLists[] = { mGraphicsCmdList };
-			mCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+			mCommandQueue->ExecuteCommandLists(1, ppCommandLists);
+
+			uint64 newFenceValue = mFrameDataList[mFrameIndex].fenceValue++;
+			mCommandQueue->Signal(mFence, newFenceValue);
+
+			mCurrentCmdListAlloc.fenceValue = newFenceValue;
+			mInFlightCmdLists.push_back(mCurrentCmdListAlloc);
+			mGraphicsCmdList = nullptr;
+			mCurrentCmdListAlloc = {};
+			mbIsRecording = false;
+
+			obtainCommandList();
+			return true;
 		}
 
-		void resetCommandList()
+		void obtainCommandList()
 		{
-			if (mbIsRecording)
 			{
-				mGraphicsCmdList->Close();
-				mbIsRecording = false;
-			}
-			mFrameDataList[mFrameIndex].resetCommandList(mPiplineStateCommitted);
-			mbIsRecording = true;
-			resetDescHeap();
-			commitRenderTargetState();
-		}
+				if (mbIsRecording)
+					return;
 
-		void setGraphicsCommandList(ID3D12GraphicsCommandListRHI* newList, bool bIsRecording)
-		{
-			if (newList != mGraphicsCmdList)
-			{
-				if (mbIsRecording)
+				uint64 completedFence = mFence->GetCompletedValue();
+
+				for (int i = 0; i < mInFlightCmdLists.size(); )
 				{
-					flushCommand();
+					if (mInFlightCmdLists[i].fenceValue <= completedFence)
+					{
+						mCmdListPool.push_back(mInFlightCmdLists[i]);
+						mInFlightCmdLists.erase(mInFlightCmdLists.begin() + i);
+					}
+					else
+					{
+						++i;
+					}
 				}
-				mGraphicsCmdList = newList;
-				mbIsRecording = bIsRecording;
-				if (mbIsRecording)
+
+				CommandContextAlloc alloc;
+				bool bFound = false;
+				if (!mCmdListPool.empty())
 				{
-					commitRenderTargetState();
+					alloc = mCmdListPool.back();
+					mCmdListPool.pop_back();
+
+					VERIFY_D3D_RESULT(alloc.allocator->Reset(), return;);
+					VERIFY_D3D_RESULT(alloc.cmdList->Reset(alloc.allocator, nullptr), return;);
+
+					bFound = true;
 				}
-			}
-			else
-			{
-				mbIsRecording = bIsRecording;
+				else
+				{
+					VERIFY_D3D_RESULT(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&alloc.allocator)), return;);
+					VERIFY_D3D_RESULT(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, alloc.allocator, nullptr, IID_PPV_ARGS(&alloc.cmdList)), return;);
+					bFound = true;
+				}
+
+				if (bFound)
+				{
+					mCurrentCmdListAlloc = alloc;
+					mGraphicsCmdList = alloc.cmdList;
+					mbIsRecording = true;
+
+					resetDescHeap();
+					mPiplineStateCommitted = nullptr;
+					mGfxBoundState = nullptr;
+					mComputeBoundState = nullptr;
+				}
 			}
 		}
 
@@ -577,30 +618,23 @@ namespace Render
 
 		TComPtr< ID3D12Fence1 > mFence;
 		HANDLE mFenceEvent;
+		struct CommandContextAlloc
+		{
+			TComPtr< ID3D12CommandAllocator >       allocator;
+			TComPtr< ID3D12GraphicsCommandListRHI > cmdList;
+			uint64 fenceValue = 0;
+		};
+
+		TArray< CommandContextAlloc > mCmdListPool;
+		TArray< CommandContextAlloc > mInFlightCmdLists;
+		CommandContextAlloc mCurrentCmdListAlloc;
+
+
 		struct FrameData
 		{
-			TComPtr< ID3D12CommandAllocator >       cmdAllocator;
-			TComPtr< ID3D12GraphicsCommandListRHI > graphicsCmdList;
-
 			bool init(ID3D12DeviceRHI* device)
 			{
-				VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAllocator)));
-				VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator, nullptr, IID_PPV_ARGS(&graphicsCmdList)));
 				fenceValue = 0;
-				return true;
-			}
-
-			bool beginFrame()
-			{
-				VERIFY_D3D_RESULT_RETURN_FALSE(cmdAllocator->Reset());
-				VERIFY_D3D_RESULT_RETURN_FALSE(graphicsCmdList->Reset(cmdAllocator, nullptr));
-
-				return true;
-			}
-
-			bool resetCommandList(ID3D12PipelineState* pInitialState)
-			{
-				VERIFY_D3D_RESULT_RETURN_FALSE(graphicsCmdList->Reset(cmdAllocator, pInitialState));
 				return true;
 			}
 
@@ -855,7 +889,6 @@ namespace Render
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 
-		void notifyFlushCommand();
 		//ID3DErrorHandler
 		void handleErrorResult(HRESULT errorResult) override;
 

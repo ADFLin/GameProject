@@ -130,8 +130,6 @@ bool RayTracingTestStage::onInit()
 		ToolBarConfig toolBarConfig;
 		toolBarConfig.name = "Ray Tracing Tools";
 		mToolBar = ::Global::Editor()->createToolBar(toolBarConfig);
-		mToolBar->addButton("Restart", [this]() { restart(); });
-		mToolBar->addSeparator();
 		mToolBar->addButton("Save Camera", [this]() { saveCameraTransform(); });
 		mToolBar->addButton("Load Camera", [this]() { loadCameaTransform(); });
 		mToolBar->addButton("Save Scene", [this]()
@@ -152,9 +150,7 @@ bool RayTracingTestStage::onInit()
 				loadScene(filePath);
 			}
 		});
-
-		toolBarConfig.name = "Ray Tracing Tools2";
-		mToolBar = ::Global::Editor()->createToolBar(toolBarConfig);
+		mToolBar->addSeparator();
 		mToolBar->addButton("Translate", [this]() { mGizmoType = EGizmoType::Translate; });
 		mToolBar->addButton("Rotate", [this]() { mGizmoType = EGizmoType::Rotate; });
 		mToolBar->addButton("Scale", [this]() { mGizmoType = EGizmoType::Scale; });
@@ -163,11 +159,6 @@ bool RayTracingTestStage::onInit()
 		{ 
 			mGizmoMode = (mGizmoMode == EGizmoMode::Local) ? EGizmoMode::World : EGizmoMode::Local; 
 		});
-		mToolBar->addSeparator();
-		mToolBar->addButton("AA", [this]() { restart(); });
-		mToolBar->addSeparator();
-		mToolBar->addButton("BB", [this]() { saveCameraTransform(); });
-		mToolBar->addButton("CC", [this]() { loadCameaTransform(); });
 	}
 #endif
 
@@ -408,16 +399,22 @@ void RayTracingTestStage::onRender(float dFrame)
 		mSceneRenderTargets.swapFrameTexture();
 	}
 
-	RHIFlushCommand(commandList);
+#if 0
 	GTextureShowManager.registerRenderTarget(GRenderTargetPool);
-	
-	if ( mbDrawDebug )
+	GTextureShowManager.registerTexture("FrameA", &mSceneRenderTargets.getFrameTexture());
+	GTextureShowManager.registerTexture("FrameB", &mSceneRenderTargets.getPrevFrameTexture());
+#endif
+	if ( mbDrawDebug)
 	{
 		GPU_PROFILE("DrawDebug");
 		mDebugPrimitives.drawDynamic(commandList, mView);
 
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		g.beginRender();
+
+		RenderUtility::SetPen(g, EColor::Null);
+		RenderUtility::SetBrush(g, EColor::White);
+		g.drawRect(Vector2(10,10), Vector2(100,100));
 
 		if(0)
 		{
@@ -1246,7 +1243,6 @@ TVector2<int> RayTracingTestStage::getInitialSize()
 void RayTracingTestStage::resizeViewport(int w, int h)
 {
 	mEditorViewportSize = Vec2i(w, h);
-	mSceneRenderTargets.prepare(mEditorViewportSize);
 }
 
 void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
@@ -1262,6 +1258,9 @@ void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
 
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 
+
+	RHIBeginRender(false);
+
 	using namespace Render;
 	RenderTargetDesc desc;
 	desc.size = mEditorViewportSize;
@@ -1271,6 +1270,8 @@ void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
 	desc.format = ETexture::D24S8;
 	desc.debugName = "RayTracingStageDepth";
 	PooledRenderTargetRef depthRT = GRenderTargetPool.fetchElement(desc);
+
+	RHIResourceTransition(commandList, { colorRT->texture, depthRT->texture }, EResourceTransition::RenderTarget);
 
 	if (mFrameBuffer == nullptr)
 	{
@@ -1369,6 +1370,9 @@ void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
 		}
 	}
 
+
+	RHIResourceTransition(commandList, { colorRT->texture, depthRT->texture }, EResourceTransition::SRV);
+
 	RHISetFrameBuffer(commandList, context.frameBuffer);
 	RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
 	RHISetScissorRect(commandList, 0, 0, mEditorViewportSize.x, mEditorViewportSize.y);
@@ -1400,9 +1404,11 @@ void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
 
 	RHISetFixedShaderPipelineState(commandList, view.worldToClip, LinearColor(1, 1, 1, 1));
 	DrawUtility::AixsLine(commandList, 2.0f);
+
+
+	RHIEndRender(false);
 }
 
-#if TINY_WITH_EDITOR
 void RayTracingTestStage::refreshDetailView()
 {
 	if (mDetailView)
@@ -1431,7 +1437,6 @@ void RayTracingTestStage::refreshDetailView()
 		}
 	}
 }
-#endif
 
 void RayTracingTestStage::onViewportMouseEvent(MouseMsg const& msg)
 {

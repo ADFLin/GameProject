@@ -19,7 +19,7 @@ float GetMask(float2 uv)
 }
 
 PS_ENTRY_START(MainPS)
-    PS_INPUT(float2 InPos, TEXCOORD0)
+    PS_INPUT(float2 InPos, 0)
     PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {

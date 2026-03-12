@@ -320,6 +320,12 @@ namespace Render
 			uint32 stringIndex;
 		};
 
+		struct SubobjectPatchInfo
+		{
+			size_t offsetInBuffer;
+			uint32 subobjectIndex;
+		};
+
 		void addString(WStringView const& str, size_t offsetInMember)
 		{
 			size_t stringOffset = mBuffer.size();
@@ -362,6 +368,19 @@ namespace Render
 			}
 		}
 
+		void addSubobjectRef(const D3D12_STATE_SUBOBJECT** pRef, unsigned int subobjectIndex)
+		{
+			if (pRef == nullptr) return;
+
+			uint8* pBufStart = mBuffer.data();
+			uint8* pBufEnd = pBufStart + mBuffer.size();
+			if ((uint8*)pRef >= pBufStart && (uint8*)pRef < pBufEnd)
+			{
+				size_t offset = (uint8*)pRef - pBufStart;
+				mSubobjectRefs.push_back({ offset, subobjectIndex });
+			}
+		}
+
 		void finalize()
 		{
 			for (auto& subobject : mSubobjects)
@@ -372,15 +391,20 @@ namespace Render
 			{
 				ptr = LPCWSTR(mBuffer.data() + uint32(ptr));
 			}
-
 			for (auto& patch : mStringRef)
 			{
 				LPCWSTR* pTarget = (LPCWSTR*)(mBuffer.data() + patch.offsetInBuffer);
 				*pTarget = mStrings[patch.stringIndex];
 			}
+			for (auto& patch : mSubobjectRefs)
+			{
+				const D3D12_STATE_SUBOBJECT** pTarget = (const D3D12_STATE_SUBOBJECT**)(mBuffer.data() + patch.offsetInBuffer);
+				*pTarget = &mSubobjects[patch.subobjectIndex];
+			}
 		}
 
 		TArray< StringPatchInfo > mStringRef;
+		TArray< SubobjectPatchInfo > mSubobjectRefs;
 		TArray< LPCWSTR >  mStrings;
 		TArray< D3D12_STATE_SUBOBJECT> mSubobjects;
 		TArray< uint8 > mBuffer;

@@ -44,8 +44,9 @@ public:
 		setRWTexture(commandList, mParamgOutput, outputTexture, 0, EAccessOp::WriteOnly);
 		setRWTexture(commandList, mParamgDepthOutput, depthOutput, 0, EAccessOp::WriteOnly);
 		RHISetShaderAccelerationStructure(commandList, getRHI(), "gScene", &tlas);
-		setTexture(commandList, mParamgTexture, testTexture, mParamgTextureSampler, TStaticSamplerState<ESampler::Trilinear>::GetRHI());
-		
+
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, gTexture, testTexture, TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+
 		SET_SHADER_PARAM(commandList, *this, gClipToWorld, view.clipToWorld);
 		SET_SHADER_PARAM(commandList, *this, gCameraPos, view.worldPos);
 		SET_SHADER_PARAM(commandList, *this, gFrameIndex, (int32)frameIndex);
@@ -83,10 +84,31 @@ public:
 class TriangleHitShader : public RayTracingHitShader
 {
 	DECLARE_SHADER(TriangleHitShader, Global);
+
+public:
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_TEXTURE_PARAM(parameterMap, gTexture);
+	}
+	void setParameters(RHICommandList& commandList, RHITexture2D& testTexture)
+	{
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, gTexture, testTexture, TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+	}
+	DEFINE_TEXTURE_PARAM(gTexture);
+
 };
 
 class FloorHitShader : public RayTracingHitShader
 {
+public:
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_TEXTURE_PARAM(parameterMap, gTexture);
+	}
+	void setParameters(RHICommandList& commandList, RHITexture2D& testTexture)
+	{
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, gTexture, testTexture, TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+	}
 	DECLARE_SHADER(FloorHitShader, Global);
 };
 
@@ -583,6 +605,10 @@ void D3D12RayTracingTestStage::onRender(float dFrame)
 			shader->setParameters(commandList, *mOutputTexture, *mDepthTexture, *mTLAS, *mTestTexture, mView, mFrameCount, mLightParams.pos, mLightParams.radius, (uint32)mLightParams.numSamples);
 			++mFrameCount;
 		}
+		TriangleHitShader* triangleShader = ShaderManager::Get().getGlobalShaderT<TriangleHitShader>();
+		FloorHitShader* floorShader = ShaderManager::Get().getGlobalShaderT<FloorHitShader>();
+		triangleShader->setParameters(commandList, *mTestTexture);
+		floorShader->setParameters(commandList, *mTestTexture);
 
 		RHIDispatchRays(commandList, mOutputTexture->getSizeX(), mOutputTexture->getSizeY() * 0.9f, 1);
 		

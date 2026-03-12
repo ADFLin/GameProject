@@ -156,9 +156,9 @@ public:
 		BIND_SHADER_PARAM(parameterMap, NumEmittingObjects);
 		BIND_SHADER_PARAM(parameterMap, BlendFactor);
 		BIND_TEXTURE_PARAM(parameterMap, SkyTexture);
-		BIND_SHADER_PARAM(parameterMap, gObjects);
-		BIND_SHADER_PARAM(parameterMap, gMaterials);
-		BIND_SHADER_PARAM(parameterMap, gMeshVertices);
+		BIND_SHADER_PARAM(parameterMap, Objects);
+		BIND_SHADER_PARAM(parameterMap, Materials);
+		BIND_SHADER_PARAM(parameterMap, MeshVertices);
 		BIND_SHADER_PARAM(parameterMap, EmittingObjectIds);
 		mIBLParams.bindParameters(parameterMap);
 	}
@@ -168,9 +168,9 @@ public:
 	DEFINE_SHADER_PARAM(NumEmittingObjects);
 	DEFINE_SHADER_PARAM(BlendFactor);
 	DEFINE_TEXTURE_PARAM(SkyTexture);
-	DEFINE_SHADER_PARAM(gObjects);
-	DEFINE_SHADER_PARAM(gMaterials);
-	DEFINE_SHADER_PARAM(gMeshVertices);
+	DEFINE_SHADER_PARAM(Objects);
+	DEFINE_SHADER_PARAM(Materials);
+	DEFINE_SHADER_PARAM(MeshVertices);
 	DEFINE_SHADER_PARAM(EmittingObjectIds);
 	IBLShaderParameters mIBLParams;
 };
@@ -187,13 +187,13 @@ public:
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
-		BIND_SHADER_PARAM(parameterMap, gObjects);
-		BIND_SHADER_PARAM(parameterMap, gMeshVertices);
+		BIND_SHADER_PARAM(parameterMap, Objects);
+		BIND_SHADER_PARAM(parameterMap, MeshVertices);
 		BIND_SHADER_PARAM(parameterMap, Meshes);
 	}
 
-	DEFINE_SHADER_PARAM(gObjects);
-	DEFINE_SHADER_PARAM(gMeshVertices);
+	DEFINE_SHADER_PARAM(Objects);
+	DEFINE_SHADER_PARAM(MeshVertices);
 	DEFINE_SHADER_PARAM(Meshes);
 };
 
@@ -220,10 +220,10 @@ public:
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
-		BIND_SHADER_PARAM(parameterMap, gObjects);
+		BIND_SHADER_PARAM(parameterMap, Objects);
 	}
 
-	DEFINE_SHADER_PARAM(gObjects);
+	DEFINE_SHADER_PARAM(Objects);
 };
 
 class PathTracingHardwareCubeIntersection : public GlobalShader
@@ -235,6 +235,13 @@ public:
 	{
 		return "Shader/Game/PathTracingHardware";
 	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, Objects);
+	}
+
+	DEFINE_SHADER_PARAM(Objects);
 };
 
 

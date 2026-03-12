@@ -323,6 +323,7 @@ void RayTracingTestStage::onRender(float dFrame)
 
 		if (mRayTracingPSO.isValid())
 		{
+			RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture() }, EResourceTransition::UAV);
 			RHISetRayTracingPipelineState(commandList, mRayTracingPSO, mSBT);
 
 			PathTracingHardwareRayGen* rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>();
@@ -345,6 +346,11 @@ void RayTracingTestStage::onRender(float dFrame)
 			closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(Materials), *mMaterialBuffer.getRHI(), EAccessOp::ReadOnly);
 			closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
 
+			PathTracingHardwareSphereIntersection* sphereIntersection = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareSphereIntersection>();
+			PathTracingHardwareCubeIntersection* cubeIntersection = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareCubeIntersection>();
+			sphereIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
+			cubeIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
+
 			if (mVertexBuffer.isValid())
 			{
 				closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(MeshVertices), *mVertexBuffer.getRHI(), EAccessOp::ReadOnly);
@@ -358,7 +364,9 @@ void RayTracingTestStage::onRender(float dFrame)
 			mView.setupShader(commandList, *rayGenShader);
 			RHISetShaderAccelerationStructure(commandList, rayGenShader->getRHI(), "gScene", mTLAS);
 			
+	
 			RHIDispatchRays(commandList, screenSize.x, screenSize.y, 1);
+			RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture() }, EResourceTransition::SRV);
 		}
 	}
 	else
@@ -455,7 +463,7 @@ void RayTracingTestStage::onRender(float dFrame)
 
 	}
 
-	if (bUseDenoise && mDebugDisplayMode == EDebugDsiplayMode::None)
+	if (bUseDenoise && mDebugDisplayMode == EDebugDsiplayMode::None && !(bUseHardwareRayTracing && GRHISupportRayTracing))
 	{
 		GPU_PROFILE("Denoise");
 		RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture() , 
@@ -1293,10 +1301,10 @@ namespace RT
 				}
 				RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList::GetImmediateList(), mTLAS, instances.data(), (uint32)instances.size());
 				RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mTLAS, nullptr, nullptr);
+				RHIResourceTransition(RHICommandList::GetImmediateList(), { (RHIResource*)mTLAS.get() }, EResourceTransition::UAVBarrier);
 			}
 		}
 	}
-
 }
 
 bool RayTracingTestStage::loadSceneRHIResource()

@@ -63,6 +63,9 @@ namespace Render
 			return EShaderCompileResult::ResourceError; );
 
 		wchar_t const* profileName;
+
+		int space = 0;
+		bool bAutoSpace = false;
 		switch (context.getType())
 		{
 		case EShader::Vertex: profileName = L"vs_6_1"; break;
@@ -75,11 +78,19 @@ namespace Render
 		case EShader::Mesh: profileName = L"ms_6_1"; break;
 		// Ray Tracing
 		case EShader::RayGen:
+			bAutoSpace = true;
+			space = 0;
+			profileName = L"lib_6_3"; break;
 		case EShader::RayMiss:
+			bAutoSpace = true;
+			space = 2;
+			profileName = L"lib_6_3"; break;
 		case EShader::RayClosestHit:
 		case EShader::RayAnyHit:
 		case EShader::RayIntersection: 
 		case EShader::Callable:
+			bAutoSpace = true;
+			space = 3;
 			profileName = L"lib_6_3"; break;
 		default:
 			break;
@@ -92,6 +103,14 @@ namespace Render
 			args[numArgs++] = L"-Zi";
 		}
 
+		wchar_t spaceStr[16];
+		//space = 0;
+		if (bAutoSpace)
+		{
+			args[numArgs++] = L"-auto-binding-space";
+			swprintf(spaceStr, 16, L"%d", space);
+			args[numArgs++] = spaceStr;
+		}
 
 		char const* fileName = FFileUtility::GetFileName(context.getPath());
 		TComPtr<IDxcOperationResult> compileResult;
@@ -218,7 +237,7 @@ namespace Render
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(shader);
-
+		shaderImpl.entryPoint = setupData.desc->entryName;
 		D3D12Shader::GenerateParameterMap(shaderImpl.mType, shaderImpl.entryPoint.c_str(), shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
 		return &shaderImpl.mParameterMap;
 #else
@@ -236,6 +255,7 @@ namespace Render
 		if (!shaderImpl.initialize(std::move(temp)))
 			return nullptr;
 
+		shaderImpl.entryPoint = desc.entryName;
 		D3D12Shader::GenerateParameterMap(shaderImpl.mType, shaderImpl.entryPoint.c_str(), shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
 		return &shaderImpl.mParameterMap;;
 #else
@@ -277,6 +297,7 @@ namespace Render
 
 			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
 			shaderData.type = EShader::Type(shaderType);
+			shaderData.entryPoint = descList[i].entryName;
 			shaderData.initialize(std::move(byteCode));
 		}
 
@@ -363,9 +384,21 @@ namespace Render
 		{
 			uint8 slotIndex = (uint8)inOutSignature.slots.size();
 			inOutSignature.slots.push_back(slot);
+			auto const& descRange = slot.bLocal ? inOutSignature.localDescRanges.back() : inOutSignature.descRanges.back();
+
 			auto& param = parameterMap.addParameter(name, slotIndex, 0, 0);
-			LogMsg("  [%s] Type: %d, Slot: %d, DataOffset: %u, Size: %u, Local: %d", 
-				name, (int)slot.type, (int)slot.slotOffset, slot.dataOffset, slot.dataSize, (int)slot.bLocal);
+			if ( slot.type == ShaderParameterSlotInfo::eGlobalValue )
+			{
+
+				LogMsg("  [%s] Type: %d, Slot: %d, DataOffset: %u, Size: %u, Local: %d",
+					name, (int)slot.type, (int)slot.slotOffset, slot.dataOffset, slot.dataSize, (int)slot.bLocal);
+			}
+			else
+			{
+				LogMsg("  [%s] Type: %d, Slot: %d, DataOffset: %u, Size: %u, Local: %d (R = %d, S = %d)",
+					name, (int)slot.type, (int)slot.slotOffset, slot.dataOffset, slot.dataSize, (int)slot.bLocal, descRange.BaseShaderRegister, descRange.RegisterSpace);
+			}
+
 			return param;
 		};
 

@@ -30,10 +30,10 @@ enum class EDebugDsiplayMode
 };
 
 
-class RayTracingPS : public GlobalShader
+class PathTracingSoftwarePS : public GlobalShader
 {
 	using BaseClass = GlobalShader;
-	DECLARE_SHADER(RayTracingPS, Global);
+	DECLARE_SHADER(PathTracingSoftwarePS, Global);
 public:
 	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
 	SHADER_PERMUTATION_TYPE_BOOL(UseSplitAccumulate, SHADER_PARAM(USE_SPLIT_ACCUMULATE));
@@ -44,7 +44,7 @@ public:
 
 	static char const* GetShaderFileName()
 	{
-		return "Shader/Game/RayTracing";
+		return "Shader/Game/PathTracingSoftware";
 	}
 
 	static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
@@ -131,6 +131,110 @@ public:
 
 	DEFINE_TEXTURE_PARAM(HistoryTexture);
 	DEFINE_TEXTURE_PARAM(FrameTexture);
+};
+
+
+class PathTracingHardwareRayGen : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(PathTracingHardwareRayGen, Global);
+public:
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/PathTracingHardware";
+	}
+
+	static void SetupShaderCompileOption(ShaderCompileOption& option)
+	{
+
+	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, Outputradiance);
+		BIND_SHADER_PARAM(parameterMap, NumObjects);
+		BIND_SHADER_PARAM(parameterMap, NumEmittingObjects);
+		BIND_SHADER_PARAM(parameterMap, BlendFactor);
+		BIND_TEXTURE_PARAM(parameterMap, SkyTexture);
+		BIND_SHADER_PARAM(parameterMap, gObjects);
+		BIND_SHADER_PARAM(parameterMap, gMaterials);
+		BIND_SHADER_PARAM(parameterMap, gMeshVertices);
+		BIND_SHADER_PARAM(parameterMap, EmittingObjectIds);
+		mIBLParams.bindParameters(parameterMap);
+	}
+
+	DEFINE_SHADER_PARAM(Outputradiance);
+	DEFINE_SHADER_PARAM(NumObjects);
+	DEFINE_SHADER_PARAM(NumEmittingObjects);
+	DEFINE_SHADER_PARAM(BlendFactor);
+	DEFINE_TEXTURE_PARAM(SkyTexture);
+	DEFINE_SHADER_PARAM(gObjects);
+	DEFINE_SHADER_PARAM(gMaterials);
+	DEFINE_SHADER_PARAM(gMeshVertices);
+	DEFINE_SHADER_PARAM(EmittingObjectIds);
+	IBLShaderParameters mIBLParams;
+};
+
+class PathTracingHardwareClosestHit : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(PathTracingHardwareClosestHit, Global);
+public:
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/PathTracingHardware";
+	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, gObjects);
+		BIND_SHADER_PARAM(parameterMap, gMeshVertices);
+		BIND_SHADER_PARAM(parameterMap, Meshes);
+	}
+
+	DEFINE_SHADER_PARAM(gObjects);
+	DEFINE_SHADER_PARAM(gMeshVertices);
+	DEFINE_SHADER_PARAM(Meshes);
+};
+
+class PathTracingHardwareMiss : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(PathTracingHardwareMiss, Global);
+public:
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/PathTracingHardware";
+	}
+};
+
+class PathTracingHardwareSphereIntersection : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(PathTracingHardwareSphereIntersection, Global);
+public:
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/PathTracingHardware";
+	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, gObjects);
+	}
+
+	DEFINE_SHADER_PARAM(gObjects);
+};
+
+class PathTracingHardwareCubeIntersection : public GlobalShader
+{
+	using BaseClass = GlobalShader;
+	DECLARE_SHADER(PathTracingHardwareCubeIntersection, Global);
+public:
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/PathTracingHardware";
+	}
 };
 
 
@@ -347,7 +451,6 @@ struct FObject
 	}
 };
 
-
 struct MeshVertexData
 {
 	DECLARE_BUFFER_STRUCT(MeshVertices);
@@ -396,342 +499,7 @@ struct EmittingObjectIdData
 };
 
 
-class BVHTree
-{
-public:
-
-	typedef Math::TAABBox< Vector3 > BoundType;
-	struct Node
-	{
-		BoundType bound;
-		int indexLeft;
-		int indexRight;
-		int depth;
-
-		bool isLeaf() const { return indexRight < 0; }
-	};
-
-
-	struct Stats
-	{
-		int minDepth;
-		int maxDepth;
-		float meanDepth;
-		int minCount;
-		int maxCount;
-		float meanCount;
-	};
-
-	struct Leaf
-	{
-		int depth;
-		TArray<int> ids;
-	};
-
-	Stats calcStats() const
-	{
-		Stats result{ MaxInt32,0,0,MaxInt32,0,0 };
-
-		int depthAcc = 0;
-		int countAcc = 0;
-		for (auto const& leaf : leaves)
-		{
-			if (leaf.depth > result.maxDepth)
-			  result.maxDepth = leaf.depth;
-			else if ( leaf.depth < result.minDepth )
-			  result.minDepth = leaf.depth;
-
-			depthAcc += leaf.depth;
-
-			int count = leaf.ids.size();
-			if (count > result.maxCount)
-				result.maxCount = count;
-			else if (count < result.minCount)
-				result.minCount = count;
-
-			countAcc += count;
-		}
-
-		result.meanDepth = float(depthAcc) / leaves.size();
-		result.meanCount = float(countAcc) / leaves.size();
-		return result;
-	}
-
-	bool checkLeafIndexOrder()
-	{
-		int curIndex = 0;
-		TArray< int > nodeStack;
-		nodeStack.push_back(0);
-		while (!nodeStack.empty())
-		{
-			BVHTree::Node& node = nodes[nodeStack.back()];
-			nodeStack.pop_back();
-
-			if (node.isLeaf())
-			{
-				if (node.indexLeft != curIndex)
-					return false;
-
-				++curIndex;
-			}
-			else
-			{
-				nodeStack.push_back(node.indexRight);
-				nodeStack.push_back(node.indexLeft);
-			}
-		}
-
-		return true;
-	}
-
-	void clear()
-	{
-		nodes.clear();
-		leaves.clear();
-	}
-
-	TArray<Node> nodes;
-	TArray<Leaf> leaves;
-
-	struct Primitive
-	{
-		int id;
-		Vector3   center;
-		BoundType bound;
-	};
-
-	struct Builder
-	{
-		Builder(BVHTree& BVH)
-			:mBVH(BVH)
-		{
-		}
-
-		enum class SplitMethod
-		{
-			NodeBlance,
-			SAH,
-		};
-
-		SplitMethod splitMethod = SplitMethod::SAH;
-		int maxDepth = 32;
-		int minSplitPrimitiveCount = 2;
-
-		struct BuildData
-		{
-			float value;
-			int   index;
-		};
-
-		int choiceAxis(Math::Vector3 const& size)
-		{
-			if (size.x > size.y)
-				return (size.x >= size.z) ? 0 : 2;
-			return (size.y >= size.z) ? 1 : 2;
-		}
-
-		int  makeLeaf(TArrayView< BuildData >& dataList, int depth)
-		{
-			Leaf leaf;
-			leaf.ids.resize(dataList.size());
-			leaf.depth = depth;
-			for (int i = 0; i < dataList.size(); ++i)
-			{
-				leaf.ids[i] = mPrimitives[dataList[i].index].id;
-			}
-			int indexLeaf = mBVH.leaves.size();
-			mBVH.leaves.push_back(std::move(leaf));
-			return indexLeaf;
-		}
-
-		int build(TArrayView< Primitive const > primitives)
-		{
-			mPrimitives = primitives;
-
-			TArray< BuildData > dataList;
-			dataList.resize(mPrimitives.size());
-			for (int i = 0; i < dataList.size(); ++i)
-			{
-				dataList[i].index = i;
-			}
-			int rootId = buildNode_R(MakeView(dataList), 0);
-			return rootId;
-		}
-
-		int  buildNode_R(TArrayView< BuildData >& dataList, int depth)
-		{
-			BoundType bound;
-			bound = mPrimitives[dataList[0].index].bound;
-			for (int i = 1; i < dataList.size(); ++i)
-			{
-				int index = dataList[i].index;
-				bound += mPrimitives[index].bound;
-			}
-			return buildNode_R(dataList, bound, depth);
-		}
-
-		int  buildNode_R(TArrayView< BuildData >& dataList, BoundType const& bound, int depth)
-		{
-			int   minCount = -1;
-			int   minAxis;
-			BoundType minBounds[2];
-
-			if (dataList.size() > minSplitPrimitiveCount)
-			{
-				Vector3 size = bound.getSize();
-
-				if (splitMethod == SplitMethod::NodeBlance)
-				{
-					minAxis = choiceAxis(size);
-					minCount = dataList.size() / 2;
-				}
-				else
-				{
-					constexpr int BucketCount = 16;
-					struct Bucket
-					{
-						BoundType bound;
-						int count;
-
-						Bucket()
-						{
-							count = 0;
-							bound.invalidate();
-						}
-					};
-
-					auto GetSurfaceArea = [](BoundType const& bound)
-					{
-						Vector3 size = bound.getSize();
-						return size.x * size.y + size.y * size.z + size.z * size.x;
-					};
-
-					float nodeScore = GetSurfaceArea(bound) * dataList.size();
-					float minScore = std::numeric_limits<float>::max();
-					for (int axis = 0; axis < 3; ++axis)
-					{
-						float axisSize = size[axis];
-						if (axisSize < 1e-6)
-							continue;
-
-						Bucket buckets[BucketCount];
-						for (int i = 0; i < dataList.size(); ++i)
-						{
-							auto& data = dataList[i];
-							int index = data.index;
-							Primitive const& primitive = mPrimitives[index];
-
-							int indecBucket = Math::FloorToInt(float(BucketCount) * (primitive.center[axis] - bound.min[axis]) / axisSize);
-							if (indecBucket >= BucketCount)
-								indecBucket = BucketCount - 1;
-
-							buckets[indecBucket].count += 1;
-							buckets[indecBucket].bound += primitive.bound;
-						}
-
-						int leftCount = 0;
-						BoundType leftBound;
-						leftBound.invalidate();
-
-						for (int i = 0; i < BucketCount - 1; ++i)
-						{
-							if (buckets[i].count == 0)
-								continue;
-
-							leftCount += buckets[i].count;
-							leftBound += buckets[i].bound;
-
-							int rightCount = 0;
-							BoundType rightBound;
-							rightBound.invalidate();
-							for (int j = i + 1; j < BucketCount; ++j)
-							{
-								if (buckets[j].count == 0)
-									continue;
-
-								rightCount += buckets[j].count;
-								rightBound += buckets[j].bound;
-							}
-
-							if (rightCount == 0)
-								continue;
-
-							float score = GetSurfaceArea(leftBound) * leftCount + GetSurfaceArea(rightBound) * rightCount;
-							if (score < minScore)
-							{
-								minScore = score;
-								minCount = leftCount;
-								minAxis = axis;
-								minBounds[0] = leftBound;
-								minBounds[1] = rightBound;
-							}
-						}
-					}
-
-					if (minScore >= nodeScore)
-					{
-						minCount = -1;
-					}
-				}
-			}
-
-			int indexNode = mBVH.nodes.size();
-			mBVH.nodes.push_back(Node());
-
-			if (minCount == -1)
-			{
-				Node& node = mBVH.nodes[indexNode];
-				node.indexLeft = makeLeaf(dataList, depth);
-				node.indexRight = -1;
-				node.bound = bound;
-				node.depth = depth;
-			}
-			else
-			{
-				for (int i = 0; i < dataList.size(); ++i)
-				{
-					auto& data = dataList[i];
-					int index = data.index;
-					Primitive const& primitive = mPrimitives[index];
-					data.value = primitive.center[minAxis];
-				}
-
-				std::partial_sort(dataList.begin(), dataList.begin() + minCount, dataList.end(),
-					[](BuildData const& lhs, BuildData const& rhs)->bool
-					{
-						return lhs.value < rhs.value;
-					}
-				);
-
-				int indexLeft;
-				int indexRight;
-				if (splitMethod == SplitMethod::NodeBlance)
-				{
-					indexLeft = buildNode_R(TArrayView<BuildData>(dataList.data(), minCount), depth + 1);
-					indexRight = buildNode_R(TArrayView<BuildData>(dataList.data() + minCount, dataList.size() - minCount), depth + 1);
-				}
-				else
-				{
-					indexLeft = buildNode_R(TArrayView<BuildData>(dataList.data(), minCount), minBounds[0], depth + 1);
-					indexRight = buildNode_R(TArrayView<BuildData>(dataList.data() + minCount, dataList.size() - minCount), minBounds[1], depth + 1);
-				}
-
-				CHECK(indexLeft == indexNode + 1);
-				Node& node = mBVH.nodes[indexNode];
-				node.indexLeft = indexLeft;
-				node.indexRight = indexRight;
-				node.bound = bound;
-				node.depth = depth;
-			}
-			return indexNode;
-		}
-
-		BVHTree& mBVH;
-		TArrayView<Primitive const> mPrimitives;
-	};
-
-
-};
+#include "DataStructure/BVHTree.h"
 
 struct GPU_ALIGN BVHNodeData
 {
@@ -960,7 +728,8 @@ private:
 		auto& outNode = outNodes[outNodeIndex];
 		outNode.boundMinX = bMinX; outNode.boundMinY = bMinY; outNode.boundMinZ = bMinZ;
 		outNode.boundMaxX = bMaxX; outNode.boundMaxY = bMaxY; outNode.boundMaxZ = bMaxZ;
-		for(int i=0; i<4; ++i) {
+		for(int i=0; i<4; ++i) 
+		{
 			outNode.children[i] = childIndices[i];
 			outNode.primitiveCounts[i] = childCounts[i];
 		}
@@ -970,10 +739,23 @@ private:
 
 namespace RT
 {
+	struct MeshImportInfo
+	{
+		std::string path;
+		Math::Transform transform = Math::Transform::Identity();
+
+		REFLECT_STRUCT_BEGIN(MeshImportInfo)
+			REF_PROPERTY(path)
+			REF_PROPERTY(transform)
+		REFLECT_STRUCT_END()
+	};
+
+
+
 	class ISceneBuilder
 	{
 	public:
-		//virtual void addSphere(Vector3 const& pos, float radius) = 0;
+		virtual int loadMesh(char const* path, Math::Transform const& transform = Math::Transform::Identity()) = 0;
 	};
 
 	class SceneData
@@ -983,7 +765,15 @@ namespace RT
 		TArray< MaterialData > materials;
 		TArray< ObjectData > objects;
 		TArray< MeshData > meshes;
+		TArray< MeshImportInfo > meshInfos;
+
 		TArray< std::shared_ptr<Render::Mesh> > mSceneMeshes;
+		TArray< RHIBottomLevelAccelerationStructureRef > mSceneMeshesBLAS;
+
+		RHIBottomLevelAccelerationStructureRef mSphereBLAS;
+		RHIBottomLevelAccelerationStructureRef mCubeBLAS;
+		RHIBottomLevelAccelerationStructureRef mQuadBLAS;
+		RHIBufferRef mPrimitiveAABBBuffer;
 		
 		TArray< MeshVertexData > mMeshVertices;
 		TArray< BVHNodeData > mMeshBVHNodes;
@@ -1002,11 +792,17 @@ namespace RT
 		TStructuredBuffer< int32 > mObjectIdBuffer;
 		TStructuredBuffer< int32 > mObjectIdBufferV4;
 		TStructuredBuffer< int32 > mEmittingObjectIdBuffer;
-		int mNumObjects;
+
+		RHITopLevelAccelerationStructureRef mTLAS;
+		uint32 mNumTLASInstances = 0;
+		RHIRayTracingPipelineStateRef mRayTracingPSO;
+		RHIRayTracingShaderTableRef mSBT;
+
+		void rebuildSceneBVH();
 		int mNumEmittingObjects;
 		PrimitivesCollection mDebugPrimitives;
 
-		void rebuildSceneBVH();
+		int mNumObjects;
 
 		static Math::TAABBox<Vector3> GetAABB(Quaternion const& rotation, Vector3 const halfSize)
 		{
@@ -1125,6 +921,7 @@ public:
 	IEditorDetailView* mDetailView = nullptr;
 	IEditorDetailView* mObjectsDetailView = nullptr;
 	IEditorDetailView* mMaterialsDetailView = nullptr;
+	IEditorDetailView* mMeshInfosDetailView = nullptr;
 	IEditorToolBar* mToolBar = nullptr;
 	SimpleCamera mEditorCamera;
 	int mSelectedObjectId = INDEX_NONE;
@@ -1135,7 +932,7 @@ public:
 	void refreshDetailView();
 #endif
 
-
+	Mesh mQuadMesh;
 
 	bool onInit() override;
 
@@ -1165,6 +962,7 @@ public:
 
 	void loadScene(char const* path);
 	void saveScene(char const* path);
+	void addMeshFromFile(char const* filePath);
 
 	void onEnd() override
 	{
@@ -1265,6 +1063,7 @@ public:
 		line.color = color;
 		mPaths.push_back(line);
 	}
+
 
 	enum class EGizmoType
 	{
@@ -1392,6 +1191,8 @@ public:
 	bool bSplitAccumulate = false;
 	bool bUseMIS = false;
 	bool bUseBVH4 = false;
+	bool bUseHardwareRayTracing = false;
+
 	bool bUseDenoise = true;
 
 	AccumulatePS* mAccumulatePS;

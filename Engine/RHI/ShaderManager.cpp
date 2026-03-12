@@ -1051,7 +1051,7 @@ namespace Render
 		TIME_SCOPE("Build Shader");
 
 		Shader& shader = *managedData.shader;
-
+		bForceReload = true;
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
 			LogDevMsg(0, "Use Cache Data : %s", GetCompileInfo(managedData).c_str());

@@ -187,6 +187,9 @@
     <None Include="..\TinyGame\out\Shader\Game\MVRender.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\NoiseTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Parallax.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\PathTracingCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\PathTracingHardware.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\PathTracingSoftware.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PlanetSurface.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Plant.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Plot2DTemplate.sgc" />

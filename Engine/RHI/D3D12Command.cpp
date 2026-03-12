@@ -245,7 +245,7 @@ namespace Render
 
 		bool bDebugModeEnabled = initParam.bDebugMode && !GRHIPrefEnabled;
 		//bDebugModeEnabled = false;
-		bool bWarningBreakEnabled = false;
+		bool bWarningBreakEnabled = true;
 
 		// Enable the debug layer (requires the Graphics Tools "optional feature").
 		// NOTE: Enabling the debug layer after device creation will invalidate the active device.
@@ -1693,26 +1693,56 @@ namespace Render
 			{
 				for (int j = 0; j < numRootParameters; ++j)
 				{
-					if (FCString::Compare(newName, globalParamNames[j].c_str()) == 0 &&
-						rootParameters[j].ParameterType == newParam.ParameterType)
+					if (rootParameters[j].ParameterType == newParam.ParameterType)
 					{
 						bool bMatch = false;
-						switch (newParam.ParameterType)
+						if (FCString::Compare(newName, globalParamNames[j].c_str()) == 0)
 						{
-						case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
-							bMatch = (rootParameters[j].Constants.ShaderRegister == newParam.Constants.ShaderRegister &&
-								      rootParameters[j].Constants.RegisterSpace == newParam.Constants.RegisterSpace);
-							break;
-						case D3D12_ROOT_PARAMETER_TYPE_CBV:
-						case D3D12_ROOT_PARAMETER_TYPE_SRV:
-						case D3D12_ROOT_PARAMETER_TYPE_UAV:
-							bMatch = (rootParameters[j].Descriptor.ShaderRegister == newParam.Descriptor.ShaderRegister &&
-								      rootParameters[j].Descriptor.RegisterSpace == newParam.Descriptor.RegisterSpace);
-							break;
-						case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-							// For tables, require name match
-							bMatch = (FCString::Compare(newName, globalParamNames[j].c_str()) == 0);
-							break;
+							bMatch = true;
+							if (bIsRayTracing)
+							{
+								switch (newParam.ParameterType)
+								{
+								case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+									bMatch = (rootParameters[j].Constants.RegisterSpace == newParam.Constants.RegisterSpace);
+									break;
+								case D3D12_ROOT_PARAMETER_TYPE_CBV:
+								case D3D12_ROOT_PARAMETER_TYPE_SRV:
+								case D3D12_ROOT_PARAMETER_TYPE_UAV:
+									bMatch = (rootParameters[j].Descriptor.RegisterSpace == newParam.Descriptor.RegisterSpace);
+									break;
+								case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+									bMatch = (globalDescRanges[j].RegisterSpace == srcSig.descRanges[i].RegisterSpace);
+									break;
+								}
+							}
+						}
+
+						if (!bMatch && bIsRayTracing)
+						{
+							switch (newParam.ParameterType)
+							{
+							case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+								bMatch = (rootParameters[j].Constants.ShaderRegister == newParam.Constants.ShaderRegister &&
+									      rootParameters[j].Constants.RegisterSpace == newParam.Constants.RegisterSpace);
+								break;
+							case D3D12_ROOT_PARAMETER_TYPE_CBV:
+							case D3D12_ROOT_PARAMETER_TYPE_SRV:
+							case D3D12_ROOT_PARAMETER_TYPE_UAV:
+								bMatch = (rootParameters[j].Descriptor.ShaderRegister == newParam.Descriptor.ShaderRegister &&
+									      rootParameters[j].Descriptor.RegisterSpace == newParam.Descriptor.RegisterSpace);
+								break;
+							case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+								{
+									auto const& rangeA = globalDescRanges[j];
+									auto const& rangeB = srcSig.descRanges[i];
+									bMatch = (rangeA.RangeType == rangeB.RangeType &&
+										      rangeA.BaseShaderRegister == rangeB.BaseShaderRegister &&
+											  rangeA.RegisterSpace == rangeB.RegisterSpace &&
+											  rangeA.NumDescriptors == rangeB.NumDescriptors);
+								}
+								break;
+							}
 						}
 
 						if (bMatch)

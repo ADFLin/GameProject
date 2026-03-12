@@ -24,6 +24,7 @@ enum class EDisplayType
 	Struct,
 	Array ,
 	Quaternion,
+	String,
 
 };
 
@@ -47,6 +48,8 @@ static EDisplayType GetDisplayType(PropertyBase* property)
 
 	case EPropertyType::Enum:
 		return EDisplayType::Enum;
+	case EPropertyType::StdString:
+		return EDisplayType::String;
 	case EPropertyType::Array:
 		return EDisplayType::Array;
 	case EPropertyType::Struct:
@@ -159,7 +162,8 @@ struct DetailViewPanel::RenderContext
 		else
 		{
 			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			verify(ImGui::InputScalar("##Property", ScalarType, pData, NULL, NULL, "%d", flags));
+			ImGui::InputScalar("##Property", ScalarType, pData, NULL, NULL, "%d", flags);
+			verify(ImGui::IsItemDeactivatedAfterEdit());
 		}
 	}
 
@@ -224,14 +228,16 @@ struct DetailViewPanel::RenderContext
 				else
 				{
 					ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-					verify(ImGui::InputFloat("##Property", (float*)pData, 0.0f, 0.0f, "%.3f", flags));
+					ImGui::InputFloat("##Property", (float*)pData, 0.0f, 0.0f, "%.3f", flags);
+					verify(ImGui::IsItemDeactivatedAfterEdit());
 				}
 			}
 			break;
 		case EPropertyType::Double:
 			{
 				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-				verify(ImGui::InputDouble("##Property", (double*)pData, 0.0f, 0.0f, "%.3f", flags));
+				ImGui::InputDouble("##Property", (double*)pData, 0.0f, 0.0f, "%.3f", flags);
+				verify(ImGui::IsItemDeactivatedAfterEdit());
 			}
 			break;
 		}
@@ -282,13 +288,15 @@ struct DetailViewPanel::RenderContext
 		case EDisplayType::Vector2:
 			{
 				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-				verify(ImGui::InputFloat2("##Property", (float*)pData, "%.3f", flags));
+				ImGui::InputFloat2("##Property", (float*)pData, "%.3f", flags);
+				verify(ImGui::IsItemDeactivatedAfterEdit());
 			}
 			break;
 		case EDisplayType::Vector3:
 			{
 				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-				verify(ImGui::InputFloat3("##Property", (float*)pData, "%.3f", flags));
+				ImGui::InputFloat3("##Property", (float*)pData, "%.3f", flags);
+				verify(ImGui::IsItemDeactivatedAfterEdit());
 			}
 			break;
 		case EDisplayType::Color3f:
@@ -332,6 +340,18 @@ struct DetailViewPanel::RenderContext
 				if (ImGui::DragFloat3("##Property", angles, 0.1f))
 				{
 					q.setEulerZYX(Math::DegToRad(angles[2]), Math::DegToRad(angles[1]), Math::DegToRad(angles[0]));
+				}
+				verify(ImGui::IsItemDeactivatedAfterEdit());
+			}
+			break;
+		case EDisplayType::String:
+			{
+				std::string& str = *(std::string*)pData;
+				char buffer[1024];
+				FCString::Copy(buffer, str.c_str());
+				if (ImGui::InputText("##Property", buffer, ARRAY_SIZE(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+				{
+					str = buffer;
 					verify(true);
 				}
 			}

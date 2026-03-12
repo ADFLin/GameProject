@@ -343,7 +343,7 @@ namespace Render
 		VERIFY_D3D_RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContextImmdiate));
 
 
-		if (initParam.bDebugMode)
+		if (initParam.bDebugMode && false)
 		{
 			TComPtr<ID3D11InfoQueue> pInfoQueue;
 			if (SUCCEEDED(mDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue))))

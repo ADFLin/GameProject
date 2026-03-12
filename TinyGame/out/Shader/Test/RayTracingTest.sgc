@@ -1,9 +1,10 @@
-RWTexture2D<float4> gOutput : register(u0);
-RWTexture2D<float2> gDepthOutput : register(u1); // R: Camera Depth, G: Blocker Distance
+#include "Common.sgc"
+
+RWTexture2D<float4> gOutput;
+RWTexture2D<float2> gDepthOutput; // R: Camera Depth, G: Blocker Distance
 RaytracingAccelerationStructure gScene : register(t0);
 
-Texture2D gTexture : register(t1);
-SamplerState gTextureSampler : register(s0);
+DEFINE_TEXTURE(Texture2D, gTexture);
 
 struct Vertex
 {

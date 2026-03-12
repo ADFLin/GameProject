@@ -159,6 +159,20 @@ namespace Render
 		return true;
 	}
 
+	D3D12RayTracingPipelineState::D3D12RayTracingPipelineState()
+		:mBoundState(nullptr)
+	{
+		mResourceType = EResourceType::RayTracingPipelineState;
+	}
+
+	D3D12RayTracingPipelineState::~D3D12RayTracingPipelineState()
+	{
+		if (mBoundState)
+		{
+			delete mBoundState;
+		}
+	}
+
 	bool D3D12RayTracingPipelineState::initialize(D3D12System* system, RayTracingPipelineStateInitializer const& initializer)
 	{
 		mSystem = system;

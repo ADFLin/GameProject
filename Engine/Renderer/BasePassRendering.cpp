@@ -157,7 +157,7 @@ namespace Render
 		int index = 0;
 		for (auto& frameTexture : mFrameTextures)
 		{
-			frameTexture = RHICreateTexture2D(mFrameBufferFormat, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
+			frameTexture = RHICreateTexture2D(mFrameBufferFormat, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget | TCF_CreateUAV);
 			if (!frameTexture.isValid())
 				return false;
 

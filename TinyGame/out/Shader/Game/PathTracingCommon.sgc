@@ -1,0 +1,300 @@
+#ifndef PATH_TRACING_COMMON_SGC
+#define PATH_TRACING_COMMON_SGC
+
+#include "Common.sgc"
+#include "GeometryTestCommon.sgc"
+
+// Shared Settings
+#ifndef USE_DEBUG_DISPLAY
+#define USE_DEBUG_DISPLAY 0
+#endif
+
+#ifndef USE_SPLIT_ACCUMULATE
+#define USE_SPLIT_ACCUMULATE 0
+#endif
+
+#ifndef USE_MIS
+#define USE_MIS 0
+#endif
+
+#ifndef USE_BVH4
+#define USE_BVH4 0
+#endif
+
+#define MAX_TRACE_DIST 1.#INF
+#define MaxBounceCount 4
+#define NumRaysPerPixel 1
+
+#if USE_DEBUG_DISPLAY
+struct Stats
+{
+	int boundingBoxCount;
+	int triangleCount;
+};
+#endif
+
+// Math & RNG Utils
+uint Hash(inout uint s)
+{
+	s = s * 747796405 + 2891336453;
+	uint result = ((s >> ((s >> 28) + 4)) ^ s) * 277803737;
+	result = (result >> 22) ^ result;
+	return result;
+}
+
+float Random(inout uint seed)
+{
+	return Hash(seed) / 4294967295.0; // 2^32-1
+}
+
+float RandomValueNormalDistribution(inout uint state)
+{
+	float theta = 2 * 3.1415926 * Random(state);
+	float rho = sqrt(-2 * log(Random(state)));
+	return rho * cos(theta);
+}
+
+float3 RandomDirection(inout uint state)
+{
+	float z = Random(state) * 2.0 - 1.0;
+	float a = Random(state) * 2.0 * PI;
+	float r = sqrt(max(0.0, 1.0 - z * z));
+	float x = r * cos(a);
+	float y = r * sin(a);
+	return float3(x, y, z);
+}
+
+float4 QuatInverse(float4 q)
+{
+	float4 result;
+	result.xyz = -q.xyz;
+	result.w = q.w;
+	return result;
+}
+
+float3 QuatRotate(float4 q, float3 v)
+{
+	float3 qv = q.xyz;
+	float3 uv = cross(qv, v);
+	float3 uuv = cross(qv , uv);
+	uv *= (2.0f * q.w);
+	uuv *= 2.0f;
+	return v + uv + uuv;
+}
+
+float3 QuatRotateInverse(float4 q, float3 v)
+{
+	return QuatRotate(QuatInverse(q), v);
+}
+
+// Data Structures
+struct MaterialData
+{
+	float3 baseColor;
+	float  roughness;
+	float3 emissiveColor;
+	float  specular;
+	float  refractive;
+	float  refractiveIndex;
+	float  dummy[2];
+};
+
+struct ObjectData
+{
+	float3 pos;
+	int    type;
+	float4 rotation;
+	float3 meta;
+	int    materialId;
+};
+
+struct MeshVertexData
+{
+	float3 pos;
+	float3 normal;
+};
+
+#define OBJ_SPHERE        0
+#define OBJ_CUBE          1
+#define OBJ_TRIANGLE_MESH 2
+#define OBJ_QUAD          3
+
+struct RayCastResult
+{
+	float3 hitPos;
+	float  dist;
+	float3 hitNormal;
+	int    matId;
+	bool   bHit;
+	int    objId;
+};
+
+#ifndef USE_RAY_INV_DIR
+#define USE_RAY_INV_DIR 1
+#endif
+struct Ray
+{
+	float3 pos;
+	float3 dir;
+#if USE_RAY_INV_DIR
+	float3 invDir;
+#endif	
+};
+
+// Structured Buffers
+DEFINE_STRUCTURED_BUFFER(MaterialData, Materials);
+DEFINE_STRUCTURED_BUFFER(ObjectData, Objects);
+DEFINE_STRUCTURED_BUFFER(MeshVertexData, MeshVertices);
+DEFINE_STRUCTURED_BUFFER(int, EmittingObjectIds);
+
+struct MeshData
+{
+	int startIndex;
+	int numTriangles;
+	int nodeIndex;
+	int nodeIndexV4;
+};
+DEFINE_STRUCTURED_BUFFER(MeshData, Meshes);
+
+uniform int NumObjects;
+uniform int NumEmittingObjects;
+uniform float BlendFactor;
+
+DEFINE_TEXTURE(TextureCube, SkyTexture);
+
+
+MaterialData GetMaterial(int id)
+{
+	return Materials[id];
+}
+
+float3x3 TangentToWorldTransform(float3 tangentZ)
+{
+	const float Sign = tangentZ.z >= 0 ? 1 : -1;
+	const float a = -rcp(Sign + tangentZ.z);
+	const float b = tangentZ.x * tangentZ.y * a;
+	float3 tangentX = { 1 + Sign * a * Square(tangentZ.x), Sign * b, -Sign * tangentZ.x };
+	float3 tangentY = { b,  Sign + a * Square(tangentZ.y), -tangentZ.y };
+#if COMPILER_HLSL
+	return transpose(float3x3(tangentX, tangentY, tangentZ));
+#else
+	return float3x3(tangentX, tangentY, tangentZ);
+#endif
+}
+
+float4 ImportanceSampleGGX(float2 E, float a2)
+{
+	float phi = 2.0 * PI * E.x;
+	float cosTheta = sqrt((1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y));
+	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	float3 H;
+	H.x = cos(phi) * sinTheta;
+	H.y = sin(phi) * sinTheta;
+	H.z = cosTheta;
+	float d = (cosTheta * a2 - cosTheta) * cosTheta + 1;
+	float D = a2 / (PI*d*d);
+	float PDF = D * cosTheta;
+	return float4(H, PDF);
+}
+
+float G_Smith(float a, float nDotV, float nDotL) 
+{
+	float k = a * a * 0.5f;
+	float gv = nDotV / (nDotV * (1.0f - k) + k);
+	float gl = nDotL / (nDotL * (1.0f - k) + k);
+	return gv * gl;
+}
+
+void EvaluateMaterialAndPdfGGX(in float3 w_i, in float3 normal, in float3 w_o, MaterialData material, out float3 brdf, out float pdf) 
+{
+	float3 V = -w_o;
+	float3 L = w_i;
+	float3 H_vec = V + L;
+	float3 H = dot(H_vec, H_vec) < 0.00001f ? normal : normalize(H_vec);
+	float k_s = material.specular;
+	float k_d = 1.0f - k_s;
+	float a = max(0.001f, material.roughness * material.roughness);
+	float a2 = a * a;
+	float nDotV = max(0.0f, dot(normal, V));
+	float nDotL = max(0.0f, dot(normal, L));
+	float nDotH = max(0.0f, dot(normal, H));
+	float vDotH = max(0.0f, dot(V, H));
+	float d = (nDotH * a2 - nDotH) * nDotH + 1.0f;
+	float D = a2 / (PI * d * d);
+	pdf = k_d * (nDotL / PI) + k_s * ((D * nDotH) / max(4.0f * vDotH, 0.001f));
+	float G = G_Smith(a, nDotV, nDotL);
+	float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), material.baseColor, k_s);
+	float3 F = F0 + (1.0f - F0) * pow(max(0.0f, 1.0f - vDotH), 5.0f);
+	brdf = (material.baseColor / PI) * k_d + ((D * G * F) / max(4.0f * nDotV * nDotL, 0.001f));
+}
+
+#if USE_MIS
+float balanceHeuristic(float pdf, float pdf_other) 
+{
+	return pdf / (pdf + pdf_other);
+}
+
+float pdfLight(int objId, int numEmittingObjects) 
+{
+	if (numEmittingObjects == 0) return 0.0;
+	ObjectData object = Objects[objId];
+	float area = 1.0;
+	if (object.type == OBJ_CUBE) {
+		float3 size = object.meta;
+		area = 8.0 * (size.x * size.y + size.y * size.z + size.z * size.x);
+	} else if (object.type == OBJ_SPHERE) {
+		float radius = object.meta.x;
+		area = 4.0 * PI * radius * radius;
+	}
+	return 1.0 / (float(numEmittingObjects) * max(area, 0.001f));
+}
+
+void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf, out int outObjectId, int numEmittingObjects, inout uint rngState) 
+{
+	if (numEmittingObjects <= 0) 
+	{
+		sampledPoint = float3(0.0, 50.0, 0.0);
+		normal = float3(0.0, -1.0, 0.0);
+		pdf = 0.1;
+		outObjectId = -1;
+		return;
+	}
+	int randomEmittingObjectIndex = int(Random(rngState) * numEmittingObjects);
+	if (randomEmittingObjectIndex >= numEmittingObjects) randomEmittingObjectIndex = numEmittingObjects - 1;
+	int objectId = EmittingObjectIds[randomEmittingObjectIndex];
+	outObjectId = objectId;
+	ObjectData object = Objects[objectId];
+	float area = 1.0;
+	if (object.type == OBJ_CUBE) 
+	{
+		float3 size = object.meta;
+		area = 8.0 * (size.x * size.y + size.y * size.z + size.z * size.x);
+		float r = Random(rngState) * area;
+		float xy = 4.0 * size.x * size.y;
+		float yz = 4.0 * size.y * size.z;
+		float zx = 4.0 * size.z * size.x;
+		float3 localPos;
+		float3 lNormal;
+		if (r < xy) { localPos = float3((Random(rngState)*2.0-1.0)*size.x, (Random(rngState)*2.0-1.0)*size.y, size.z); lNormal = float3(0,0,1); } 
+		else if (r < 2.0*xy) { localPos = float3((Random(rngState)*2.0-1.0)*size.x, (Random(rngState)*2.0-1.0)*size.y, -size.z); lNormal = float3(0,0,-1); } 
+		else if (r < 2.0*xy + yz) { localPos = float3(size.x, (Random(rngState)*2.0-1.0)*size.y, (Random(rngState)*2.0-1.0)*size.z); lNormal = float3(1,0,0); } 
+		else if (r < 2.0*xy + 2.0*yz) { localPos = float3(-size.x, (Random(rngState)*2.0-1.0)*size.y, (Random(rngState)*2.0-1.0)*size.z); lNormal = float3(-1,0,0); } 
+		else if (r < 2.0*xy + 2.0*yz + zx) { localPos = float3((Random(rngState)*2.0-1.0)*size.x, size.y, (Random(rngState)*2.0-1.0)*size.z); lNormal = float3(0,1,0); } 
+		else { localPos = float3((Random(rngState)*2.0-1.0)*size.x, -size.y, (Random(rngState)*2.0-1.0)*size.z); lNormal = float3(0,-1,0); }
+		sampledPoint = QuatRotate(object.rotation, localPos) + object.pos;
+		normal = normalize(QuatRotate(object.rotation, lNormal));
+	} 
+	else if (object.type == OBJ_SPHERE) 
+	{
+		float radius = object.meta.x;
+		area = 4.0 * PI * radius * radius;
+		float3 localDir = RandomDirection(rngState);
+		sampledPoint = object.pos + localDir * radius;
+		normal = localDir;
+	} 
+	else { sampledPoint = object.pos; normal = float3(0, 1, 0); }
+	pdf = 1.0 / (float(numEmittingObjects) * max(area, 0.001f));
+}
+#endif
+
+#endif

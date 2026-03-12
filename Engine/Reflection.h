@@ -7,6 +7,9 @@
 #include "ReflectionCollect.h"
 
 #include <typeindex>
+#include <string>
+#include <memory>
+#include <iterator>
 
 namespace Reflection
 {
@@ -41,6 +44,7 @@ namespace Reflection
 		StdVector,
 		StdMap,
 		StdUnorderedMap,
+		StdString,
 		Struct,
 
 	};
@@ -220,6 +224,7 @@ namespace Reflection
 	DEF_PRIMARY_TYPE(uint64, Uint64);
 	DEF_PRIMARY_TYPE(float, Float);
 	DEF_PRIMARY_TYPE(double, Double);
+	DEF_PRIMARY_TYPE(std::string, StdString);
 
 #undef DEF_PRIMARY_TYPE
 	struct ContainerTraitsBase
@@ -244,10 +249,10 @@ namespace Reflection
 
 
 	template< typename T >
-	class TPrimaryTypePorperty : public PropertyBase
+	class TPrimaryTypeProperty : public PropertyBase
 	{
 	public:
-		TPrimaryTypePorperty()
+		TPrimaryTypeProperty()
 			:PropertyBase(typeid(T))
 		{
 
@@ -259,6 +264,22 @@ namespace Reflection
 		}
 		int  getTypeSize() override { return sizeof(T); }
 		void constructDefault(void* ptr) override {  *reinterpret_cast<T*>(ptr) = 0; }
+	};
+
+	class StdStringProperty : public PropertyBase
+	{
+	public:
+		StdStringProperty()
+			:PropertyBase(typeid(std::string))
+		{
+		}
+
+		EPropertyType getType() override { return EPropertyType::StdString; }
+		int getTypeSize() override { return sizeof(std::string); }
+		void constructDefault(void* ptr) override
+		{
+			new (ptr) std::string();
+		}
 	};
 
 	class StructType
@@ -559,9 +580,13 @@ namespace Reflection
 		{
 			PropertyBase* property = nullptr;
 
-			if constexpr (Meta::IsPrimary<P>::Value)
+			if constexpr (Meta::IsSameType<P, std::string>::Value)
 			{
-				TPrimaryTypePorperty<P>* myProperty = new TPrimaryTypePorperty<P>;
+				property = new StdStringProperty();
+			}
+			else if constexpr (Meta::IsPrimary<P>::Value)
+			{
+				TPrimaryTypeProperty<P>* myProperty = new TPrimaryTypeProperty<P>;
 				property = myProperty;
 			}
 			else if constexpr (std::is_enum_v<P>)

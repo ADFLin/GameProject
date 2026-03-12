@@ -25,6 +25,13 @@ namespace Math
 		//NOTE: scale always effect in local first
 		Vector3    scale;
 
+		REFLECT_STRUCT_BEGIN(Transform)
+			REF_PROPERTY(location)
+			REF_PROPERTY(rotation)
+			REF_PROPERTY(scale)
+		REFLECT_STRUCT_END()
+
+		static Transform Identity(){ return Transform(Vector3::Zero()); }
 		static Transform Scale(float s) { return Transform(Vector3(0, 0, 0), Quaternion::Identity(), Vector3(s,s,s)); }
 
 		Transform operator * (Transform const& rhs) const

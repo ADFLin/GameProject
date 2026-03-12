@@ -246,6 +246,7 @@
     <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="CString.cpp" />
     <ClCompile Include="DataCacheInterface.cpp" />
+    <ClCompile Include="DataStructure\BVHTree.cpp" />
     <ClCompile Include="DataStructure\ClassTree.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
@@ -367,6 +368,7 @@
     <ClInclude Include="DataStructure\HashMap.h" />
     <ClInclude Include="DataStructure\Heap.h" />
     <ClInclude Include="DataStructure\IntrList.h" />
+    <ClInclude Include="DataStructure\BVHTree.h" />
     <ClInclude Include="DataStructure\KDTree.h" />
     <ClInclude Include="DataStructure\RedBlackTree.h" />
     <ClInclude Include="DataStructure\SkipList.h" />

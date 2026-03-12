@@ -67,6 +67,7 @@ namespace Render
 		Texture,
 		BottomLevelAccelerationStructure,
 		TopLevelAccelerationStructure,
+		RayTracingPipelineState,
 		RayTracingShaderTable,
 	};
 

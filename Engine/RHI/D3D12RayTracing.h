@@ -64,6 +64,10 @@ namespace Render
 	{
 	public:
 
+
+		D3D12RayTracingPipelineState();
+		virtual ~D3D12RayTracingPipelineState();
+
 		bool initialize(D3D12System* system, RayTracingPipelineStateInitializer const& initializer);
 
 

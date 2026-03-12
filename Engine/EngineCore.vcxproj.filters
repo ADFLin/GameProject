@@ -298,6 +298,9 @@
     <ClCompile Include="Core\StringConv.cpp">
       <Filter>Core\String</Filter>
     </ClCompile>
+    <ClCompile Include="DataStructure\BVHTree.cpp">
+      <Filter>DataStructure</Filter>
+    </ClCompile>
     <ClCompile Include="DataStructure\ClassTree.cpp">
       <Filter>DataStructure</Filter>
     </ClCompile>
@@ -770,6 +773,9 @@
     </ClInclude>
     <ClInclude Include="Platform\Windows\ComUtility.h">
       <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\BVHTree.h">
+      <Filter>DataStructure</Filter>
     </ClInclude>
     <ClInclude Include="DataStructure\KDTree.h">
       <Filter>DataStructure</Filter>

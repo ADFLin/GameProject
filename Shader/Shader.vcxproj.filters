@@ -262,6 +262,15 @@
     <None Include="..\TinyGame\out\Shader\Game\EditorPreview.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\PathTracingCommon.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\PathTracingHardware.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\PathTracingSoftware.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

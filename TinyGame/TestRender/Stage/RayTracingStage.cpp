@@ -4,6 +4,7 @@
 #include "InputManager.h"
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
+#include "Renderer/MeshBuild.h"
 #include "Json.h"
 #include "FileSystem.h"
 
@@ -18,17 +19,25 @@ namespace Chai = chaiscript;
 
 REGISTER_STAGE_ENTRY("Raytracing Test", RayTracingTestStage, EExecGroup::FeatureDev, "Render");
 
-IMPLEMENT_SHADER(RayTracingPS, EShader::Pixel, SHADER_ENTRY(MainPS));
+IMPLEMENT_SHADER(PathTracingSoftwarePS, EShader::Pixel, SHADER_ENTRY(MainPS));
 IMPLEMENT_SHADER(AccumulatePS, EShader::Pixel, SHADER_ENTRY(AccumulatePS));
 IMPLEMENT_SHADER(DenoisePS, EShader::Pixel, SHADER_ENTRY(DenoisePS));
 IMPLEMENT_SHADER(EditorPreviewVS, EShader::Vertex, SHADER_ENTRY(MainVS));
 IMPLEMENT_SHADER(EditorPreviewPS, EShader::Pixel, SHADER_ENTRY(MainPS));
 IMPLEMENT_SHADER(ScreenOutlinePS, EShader::Pixel, SHADER_ENTRY(MainPS));
 
+IMPLEMENT_SHADER(PathTracingHardwareRayGen, EShader::RayGen, SHADER_ENTRY(PathTraceRayGen));
+IMPLEMENT_SHADER(PathTracingHardwareClosestHit, EShader::RayClosestHit, SHADER_ENTRY(PathTraceClosestHit));
+IMPLEMENT_SHADER(PathTracingHardwareMiss, EShader::RayMiss, SHADER_ENTRY(PathTraceMiss));
+IMPLEMENT_SHADER(PathTracingHardwareSphereIntersection, EShader::RayIntersection, SHADER_ENTRY(SphereIntersection));
+IMPLEMENT_SHADER(PathTracingHardwareCubeIntersection, EShader::RayIntersection, SHADER_ENTRY(CubeIntersection));
+
 bool RayTracingTestStage::onInit()
 {
 	if (!BaseClass::onInit())
 		return false;
+
+	bUseHardwareRayTracing = true;
 
 
 	mView.gameTime = 0;
@@ -49,7 +58,7 @@ bool RayTracingTestStage::onInit()
 	frame->addCheckBox("Use MIS", bUseMIS);
 	frame->addCheckBox("Use BVH4", bUseBVH4);
 	frame->addCheckBox("Use Denoise", bUseDenoise);
-
+	frame->addCheckBox("Use Hardware Ray Tracing", bUseHardwareRayTracing);
 	auto choice = frame->addChoice("DebugDisplay Mode", UI_StatsMode);
 
 	char const* ModeTextList[] = 
@@ -113,6 +122,7 @@ bool RayTracingTestStage::onInit()
 		mDetailView->addValue(bSplitAccumulate, "Split Accumulate");
 		mDetailView->addValue((int&)mDebugDisplayMode, "Debug Mode");
 		mDetailView->addValue(bUseMIS, "Use MIS");
+		mDetailView->addValue(bUseHardwareRayTracing, "Use Hardware Ray Tracing");
 
 		mDetailView->clearCategory();
 
@@ -121,6 +131,9 @@ bool RayTracingTestStage::onInit()
 
 		config.name = "Materials";
 		mMaterialsDetailView = ::Global::Editor()->createDetailView(config);
+
+		config.name = "MeshInfos";
+		mMeshInfosDetailView = ::Global::Editor()->createDetailView(config);
 
 		mDetailView->addCategoryCallback("Rendering", [frame](char const*)
 		{
@@ -132,6 +145,16 @@ bool RayTracingTestStage::onInit()
 		mToolBar = ::Global::Editor()->createToolBar(toolBarConfig);
 		mToolBar->addButton("Save Camera", [this]() { saveCameraTransform(); });
 		mToolBar->addButton("Load Camera", [this]() { loadCameaTransform(); });
+		mToolBar->addButton("Reload Meshes", [this]() { loadSceneRHIResource(); });
+		mToolBar->addButton("Add Mesh", [this]()
+		{
+			char filePath[512] = "";
+			OpenFileFilterInfo filters[] = { {"Mesh File", "*.fbx;*.glb;*.obj"} };
+			if (SystemPlatform::OpenFileName(filePath, ARRAY_SIZE(filePath), filters, ""))
+			{
+				addMeshFromFile(filePath);
+			}
+		});
 		mToolBar->addButton("Save Scene", [this]()
 		{
 			char filePath[512] = "RayTracingScene.json";
@@ -273,79 +296,145 @@ void RayTracingTestStage::onRender(float dFrame)
 	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 
+	if (bUseHardwareRayTracing && GRHISupportRayTracing)
 	{
-		RayTracingPS::PermutationDomain permutationVector;
+		GPU_PROFILE("PathTracingHardware");
+		// Check if resources are ready
+		if (!mRayTracingPSO.isValid())
+		{
+			RayTracingPipelineStateInitializer initializer;
+			initializer.rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>()->getRHI();
+			initializer.missShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareMiss>()->getRHI();
+			initializer.hitGroups.resize(3);
+			initializer.hitGroups[0].closestHitShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareClosestHit>()->getRHI();
+
+			initializer.hitGroups[1].closestHitShader = initializer.hitGroups[0].closestHitShader;
+			initializer.hitGroups[1].intersectionShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareSphereIntersection>()->getRHI();
+
+			initializer.hitGroups[2].closestHitShader = initializer.hitGroups[0].closestHitShader;
+			initializer.hitGroups[2].intersectionShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareCubeIntersection>()->getRHI();
+
+			// PathPayload: float3 radiance (12), float3 throughput (12), float3 nextOrigin (12), float3 nextDir (12), uint seed (4), bool done (4), float3 normal (12), float dist (4), int matId (4), int objId (4), bool hit (4)
+			// Actually maxPayloadSize should be large enough.
+			initializer.maxPayloadSize = 128; // Standard large enough value
+			mRayTracingPSO = GRHISystem->RHICreateRayTracingPipelineState(initializer);
+			mSBT = GRHISystem->RHICreateRayTracingShaderTable(mRayTracingPSO);
+		}
+
+		if (mRayTracingPSO.isValid())
+		{
+			RHISetRayTracingPipelineState(commandList, mRayTracingPSO, mSBT);
+
+			PathTracingHardwareRayGen* rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>();
+			PathTracingHardwareClosestHit* closestHitShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareClosestHit>();
+
+			rayGenShader->setRWTexture(commandList, SHADER_PARAM(Outputradiance), mSceneRenderTargets.getFrameTexture(), 0, EAccessOp::WriteOnly);
+			rayGenShader->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
+			rayGenShader->setParam(commandList, SHADER_PARAM(NumEmittingObjects), mNumEmittingObjects);
+			float blendFactor = 1.0f / float(Math::Min(mView.frameCount, 4096) + 1);
+			rayGenShader->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
+			if (mIBLResource.texture.isValid())
+			{
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayGenShader, SkyTexture, *mIBLResource.texture, TStaticSamplerState<>::GetRHI());
+				rayGenShader->mIBLParams.setParameters(commandList, *rayGenShader, mIBLResource);
+			}
+
+			rayGenShader->setStorageBuffer(commandList, SHADER_PARAM(Materials), *mMaterialBuffer.getRHI(), EAccessOp::ReadOnly);
+			rayGenShader->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
+			rayGenShader->setStorageBuffer(commandList, SHADER_PARAM(EmittingObjectIds), *mEmittingObjectIdBuffer.getRHI(), EAccessOp::ReadOnly);
+			closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(Materials), *mMaterialBuffer.getRHI(), EAccessOp::ReadOnly);
+			closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
+
+			if (mVertexBuffer.isValid())
+			{
+				closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(MeshVertices), *mVertexBuffer.getRHI(), EAccessOp::ReadOnly);
+			}
+			if ( mMeshBuffer.isValid() )
+			{
+				closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(Meshes), *mMeshBuffer.getRHI(), EAccessOp::ReadOnly);
+			}
+
+
+			mView.setupShader(commandList, *rayGenShader);
+			RHISetShaderAccelerationStructure(commandList, rayGenShader->getRHI(), "gScene", mTLAS);
+			
+			RHIDispatchRays(commandList, screenSize.x, screenSize.y, 1);
+		}
+	}
+	else
+	{
+		PathTracingSoftwarePS::PermutationDomain permutationVector;
 
 
 		if (mDebugDisplayMode != EDebugDsiplayMode::None)
 		{
-			permutationVector.set<RayTracingPS::UseDebugDisplay>(true);
-			permutationVector.set<RayTracingPS::UseSplitAccumulate>(false);
-			permutationVector.set<RayTracingPS::UseMIS>(false);
+			permutationVector.set<PathTracingSoftwarePS::UseDebugDisplay>(true);
+			permutationVector.set<PathTracingSoftwarePS::UseSplitAccumulate>(false);
+			permutationVector.set<PathTracingSoftwarePS::UseMIS>(false);
 		}
 		else
 		{
-			permutationVector.set<RayTracingPS::UseDebugDisplay>(false);
-			permutationVector.set<RayTracingPS::UseSplitAccumulate>(bSplitAccumulate);
-			permutationVector.set<RayTracingPS::UseMIS>(bUseMIS);
+			permutationVector.set<PathTracingSoftwarePS::UseDebugDisplay>(false);
+			permutationVector.set<PathTracingSoftwarePS::UseSplitAccumulate>(bSplitAccumulate);
+			permutationVector.set<PathTracingSoftwarePS::UseMIS>(bUseMIS);
 		}
 
-		permutationVector.set<RayTracingPS::UseBVH4>(bUseBVH4);
-		RayTracingPS* rayTracingPS = ::ShaderManager::Get().getGlobalShaderT<RayTracingPS>(permutationVector);
+		permutationVector.set<PathTracingSoftwarePS::UseBVH4>(bUseBVH4);
+		PathTracingSoftwarePS* pathTracingPS = ::ShaderManager::Get().getGlobalShaderT<PathTracingSoftwarePS>(permutationVector);
 
-		GPU_PROFILE("RayTracing");
+		GPU_PROFILE("PathTracing");
 		GraphicsShaderStateDesc state;
 		state.vertex = mScreenVS->getRHI();
-		state.pixel = rayTracingPS->getRHI();
+		state.pixel = pathTracingPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 
 		if (mDebugDisplayMode != EDebugDsiplayMode::None)
 		{
-			rayTracingPS->setParam(commandList, SHADER_PARAM(DisplayMode), int(mDebugDisplayMode));
-			rayTracingPS->setParam(commandList, SHADER_PARAM(BoundBoxWarningCount), int(mBoundBoxWarningCount));
-			rayTracingPS->setParam(commandList, SHADER_PARAM(TriangleWarningCount), int(mTriangleWarningCount));
+			pathTracingPS->setParam(commandList, SHADER_PARAM(DisplayMode), int(mDebugDisplayMode));
+			pathTracingPS->setParam(commandList, SHADER_PARAM(BoundBoxWarningCount), int(mBoundBoxWarningCount));
+			pathTracingPS->setParam(commandList, SHADER_PARAM(TriangleWarningCount), int(mTriangleWarningCount));
 		}
 
-		mView.setupShader(commandList, *rayTracingPS);
-		SetStructuredStorageBuffer(commandList, *rayTracingPS, mMaterialBuffer);
-		SetStructuredStorageBuffer(commandList, *rayTracingPS, mObjectBuffer);
-		SetStructuredStorageBuffer(commandList, *rayTracingPS, mVertexBuffer);
-		SetStructuredStorageBuffer(commandList, *rayTracingPS, mMeshBuffer);
+		mView.setupShader(commandList, *pathTracingPS);
+		SetStructuredStorageBuffer(commandList, *pathTracingPS, mMaterialBuffer);
+		SetStructuredStorageBuffer(commandList, *pathTracingPS, mObjectBuffer);
+		SetStructuredStorageBuffer(commandList, *pathTracingPS, mVertexBuffer);
+		SetStructuredStorageBuffer(commandList, *pathTracingPS, mMeshBuffer);
 		if (bUseBVH4)
 		{
-			SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVH4NodeBuffer);
+			SetStructuredStorageBuffer(commandList, *pathTracingPS, mBVH4NodeBuffer);
 		}
 		else
 		{
-			SetStructuredStorageBuffer(commandList, *rayTracingPS, mBVHNodeBuffer);
+			SetStructuredStorageBuffer(commandList, *pathTracingPS, mBVHNodeBuffer);
 		}
 
-		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *rayTracingPS, mSceneBVHNodeBuffer);
+		SetStructuredStorageBuffer< SceneBVHNodeData >(commandList, *pathTracingPS, mSceneBVHNodeBuffer);
 		if (bUseBVH4 && 0)
 		{
-			SetStructuredStorageBuffer< SceneBVH4NodeData > (commandList, *rayTracingPS, mSceneBVH4NodeBuffer);
-			SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBufferV4);
+			SetStructuredStorageBuffer< SceneBVH4NodeData > (commandList, *pathTracingPS, mSceneBVH4NodeBuffer);
+			SetStructuredStorageBuffer< ObjectIdData >(commandList, *pathTracingPS, mObjectIdBufferV4);
 		}
 		else
 		{
-			SetStructuredStorageBuffer< ObjectIdData >(commandList, *rayTracingPS, mObjectIdBuffer);
+			SetStructuredStorageBuffer< ObjectIdData >(commandList, *pathTracingPS, mObjectIdBuffer);
 		}
 
 		if (mEmittingObjectIdBuffer.isValid())
 		{
-			SetStructuredStorageBuffer< EmittingObjectIdData >(commandList, *rayTracingPS, mEmittingObjectIdBuffer);
+			SetStructuredStorageBuffer< EmittingObjectIdData >(commandList, *pathTracingPS, mEmittingObjectIdBuffer);
 		}
 
-		rayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
-		rayTracingPS->setParam(commandList, SHADER_PARAM(NumEmittingObjects), mNumEmittingObjects);
+		pathTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
+		pathTracingPS->setParam(commandList, SHADER_PARAM(NumEmittingObjects), mNumEmittingObjects);
 
 		float blendFactor = 1.0f / float(Math::Min(mView.frameCount, 4096) + 1);
-		rayTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
+		pathTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *pathTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 		if (mIBLResource.texture.isValid())
 		{
-			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayTracingPS, SkyTexture, *mIBLResource.texture, TStaticSamplerState<>::GetRHI());
-			rayTracingPS->mIBLParams.setParameters(commandList, *rayTracingPS, mIBLResource);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *pathTracingPS, SkyTexture, *mIBLResource.texture, TStaticSamplerState<>::GetRHI());
+			pathTracingPS->mIBLParams.setParameters(commandList, *pathTracingPS, mIBLResource);
 		}
 		DrawUtility::ScreenRect(commandList);
 	}
@@ -491,10 +580,12 @@ namespace RT
 		TArray< BVHNodeData > meshBVHNodes;
 		TArray< BVH4NodeData > meshBVH4Nodes;
 
-		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData)
+		static int GenerateTriangleVertices(BVHTree& meshBVH, MeshImportData& meshData, MeshVertexData* pOutData, Math::Transform const& transform)
 		{
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
+
+			Vector3 invScale = transform.getSafeInvScale();
 
 			MeshVertexData* pData = pOutData;
 			for(auto const& leaf : meshBVH.leaves)
@@ -504,9 +595,10 @@ namespace RT
 					for (int n = 0; n < 3; ++n)
 					{
 						MeshVertexData& vertex = *(pData++);
-						int index = id + n;
-						vertex.pos = posReader[index];
-						vertex.normal = normalReader[index];
+						int vertexIndex = meshData.indices[id + n];
+						vertex.pos = transform.transformPosition(posReader[vertexIndex]);
+						vertex.normal = transform.rotation.rotate(normalReader[vertexIndex] * invScale);
+						vertex.normal.normalize();
 					}
 				}
 			}
@@ -526,7 +618,7 @@ namespace RT
 			int numTriangles;
 		};
 
-		void buildMeshData(MeshImportData& meshData, BuildMeshResult& buildResult)
+		void buildMeshData(MeshImportData& meshData, BuildMeshResult& buildResult, Math::Transform const& transform)
 		{
 			TIME_SCOPE("BuildMeshData");
 
@@ -546,10 +638,10 @@ namespace RT
 				primitive.center = Vector3::Zero();
 				for (int n = 0; n < 3; ++n)
 				{
-					Vector3 const& pos = posReader[index + n];
+					Vector3 pos = transform.transformPosition(posReader[meshData.indices[index + n]]);
 					primitive.bound.addPoint(pos);
 					primitive.center += pos;
-				}			
+				}
 				primitive.id = index;
 				primitive.center /= 3.0f;
 			}
@@ -557,7 +649,7 @@ namespace RT
 			meshBVH.clear();
 			int indexLeafStart = meshBVH.leaves.size();
 			TIME_SCOPE("BuildBVH");
-			BVHTree::Builder builder(meshBVH);
+			BVHTreeBuilder builder(meshBVH);
 			int indexRoot = builder.build(MakeConstView(primitives));
 
 			auto stats = meshBVH.calcStats();
@@ -573,7 +665,7 @@ namespace RT
 			int triangleIndex = meshVertices.size();
 			meshVertices.resize(triangleIndex + 3 * numTriangles);
 
-			int numV = GenerateTriangleVertices(meshBVH, meshData, meshVertices.data() + triangleIndex);
+			int numV = GenerateTriangleVertices(meshBVH, meshData, meshVertices.data() + triangleIndex, transform);
 			CHECK(numV == numTriangles * 3);
 			int nodeIndex = meshBVHNodes.size();
 			BVHNodeData::Generate(meshBVH, meshBVHNodes, triangleIndex);
@@ -627,7 +719,33 @@ namespace RT
 			}
 		}
 
-		int loadMesh(char const* path)
+		static MeshImportData const* GetRawMeshData(char const* path)
+		{
+			static std::unordered_map< std::string, MeshImportData > gRawDataCache;
+			auto iter = gRawDataCache.find(path);
+			if (iter != gRawDataCache.end())
+				return &iter->second;
+
+			MeshImportData& meshData = gRawDataCache[path];
+			IMeshImporterPtr useImporter = MeshImporterRegistry::Get().getMeshImproter("FBX");
+			if (FCString::Compare(FFileUtility::GetExtension(path), "glb") == 0)
+			{
+				useImporter = MeshImporterRegistry::Get().getMeshImproter("GLB");
+			}
+
+			if (!useImporter || !useImporter->importFromFile(path, meshData))
+			{
+				gRawDataCache.erase(path);
+				return nullptr;
+			}
+
+			if (meshData.sections.empty())
+				meshData.initSections();
+
+			return &meshData;
+		}
+
+		int loadMesh(char const* path, Math::Transform const& transform = Math::Transform::Identity())
 		{
 			TIME_SCOPE("LoadMesh");
 			MeshData mesh;
@@ -637,6 +755,10 @@ namespace RT
 			cacheKey.typeName = "MESH_BVH";
 			cacheKey.version = "1e987635-09dc-521a-af73-116bc953dfe6";
 			cacheKey.keySuffix.add(path);
+			cacheKey.keySuffix.addFormat("_%g_%g_%g_%g_%g_%g_%g_%g_%g_%g",
+				transform.location.x, transform.location.y, transform.location.z,
+				transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w,
+				transform.scale.x, transform.scale.y, transform.scale.z);
 
 			TArray< MeshVertexData > vertices;
 			TArray< BVHNodeData > nodes;
@@ -659,34 +781,28 @@ namespace RT
 				FixOffset(nodes, (int)meshBVHNodes.size() - nodeIndex, (int)meshVertices.size() - triangleIndex);
 				FixOffset(nodesV4, (int)meshBVH4Nodes.size() - nodeIndexV4, (int)meshVertices.size() - triangleIndex);
 
-				nodeIndex = meshBVHNodes.size();
-				nodeIndexV4 = meshBVH4Nodes.size();
-				triangleIndex = meshVertices.size();
+				triangleIndex = (int)meshVertices.size();
+				nodeIndex = (int)meshBVHNodes.size();
+				nodeIndexV4 = (int)meshBVH4Nodes.size();
 				meshBVHNodes.append(nodes);
 				meshVertices.append(vertices);
 				meshBVH4Nodes.append(nodesV4);
 
 				mesh.startIndex = triangleIndex;
-				mesh.numTriangles = vertices.size() / 3;
+				mesh.numTriangles = (int)vertices.size() / 3;
 				mesh.nodeIndex = nodeIndex;
 				mesh.nodeIndexV4 = nodeIndexV4;
 
 			}
 			else
 			{
-				MeshImportData meshData;
-				IMeshImporterPtr useImporter = meshImporter;
-				if ( FCString::Compare(FFileUtility::GetExtension(path), "glb") == 0 )
-				{
-					useImporter = MeshImporterRegistry::Get().getMeshImproter("GLB");
-				}
-
-				if (!useImporter || !useImporter->importFromFile(path, meshData))
+				MeshImportData const* pMeshData = GetRawMeshData(path);
+				if (!pMeshData)
 				{
 					return INDEX_NONE;
 				}
 				BuildMeshResult buildResult;
-				buildMeshData(meshData, buildResult);
+				buildMeshData(*const_cast<MeshImportData*>(pMeshData), buildResult, transform);
 				dataCache.saveDelegate(cacheKey, [&buildResult](IStreamSerializer& serializer)-> bool
 				{
 					serializer << buildResult.vertices;
@@ -705,28 +821,64 @@ namespace RT
 			}
 
 			mScene.meshes.push_back(mesh);
-			std::shared_ptr<Render::Mesh> renderMesh = std::make_shared<Render::Mesh>();
-			IMeshImporterPtr useImporter = meshImporter;
-			if (FCString::Compare(FFileUtility::GetExtension(path), "glb") == 0)
+
+			MeshImportInfo info;
+			info.path = path;
+			info.transform = transform;
+			mScene.meshInfos.push_back(info);
+
+			CHECK(mScene.meshes.size() == mScene.meshInfos.size());
+
+			MeshImportData const* pMeshData = GetRawMeshData(path);
+			if (pMeshData)
 			{
-				useImporter = MeshImporterRegistry::Get().getMeshImproter("GLB");
-			}
-			if (useImporter && useImporter->importFromFile(path, *renderMesh, nullptr))
-			{
-				mScene.mSceneMeshes.push_back(renderMesh);
+				auto renderMesh = std::make_shared<Render::Mesh>();
+				renderMesh->mInputLayoutDesc.clear();
+				renderMesh->mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+				renderMesh->mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+				renderMesh->mSections.clear();
+				if (renderMesh->createRHIResource(meshVertices.data() + mesh.startIndex, mesh.numTriangles * 3))
+				{
+					mScene.mSceneMeshes.push_back(renderMesh);
+					if (GRHISupportRayTracing)
+					{
+						RayTracingGeometryDesc geoDesc;
+						geoDesc.vertexBuffer = renderMesh->mVertexBuffer;
+						geoDesc.vertexCount = renderMesh->getVertexCount();
+						geoDesc.vertexStride = sizeof(MeshVertexData);
+						if (renderMesh->mIndexBuffer.isValid())
+						{
+							geoDesc.indexBuffer = renderMesh->mIndexBuffer;
+							geoDesc.indexCount = renderMesh->mIndexBuffer->getNumElements();
+							geoDesc.indexType = IsIntType(renderMesh->mIndexBuffer) ? EIndexBufferType::U32 : EIndexBufferType::U16;
+						}
+						RHIBottomLevelAccelerationStructureRef blas = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+						RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), blas, nullptr, nullptr);
+						mScene.mSceneMeshesBLAS.push_back(blas);
+					}
+					else
+					{
+						mScene.mSceneMeshesBLAS.push_back(nullptr);
+					}
+				}
+				else
+				{
+					mScene.mSceneMeshes.push_back(nullptr);
+				}
 			}
 			else
 			{
 				mScene.mSceneMeshes.push_back(nullptr);
 			}
-			return mScene.meshes.size() - 1;
+
+			return (int)mScene.meshes.size() - 1;
 		}
 
 		bool addDefaultObjects()
 		{
 			{
 				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/robot.glb") != INDEX_NONE);
+				//VERIFY_RETURN_FALSE(loadMesh("Mesh/robot.glb") != INDEX_NONE);
 #if 0
 				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
 
@@ -774,7 +926,7 @@ namespace RT
 					FObject::Box(Vector3(thickness,length, length), 5, Vector3(-0.5 * (length - thickness), 0 ,hl)),
 
 					//FObject::Mesh(0, 1.2, 1, Vector3(0,0,-0.5 *length + 2), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					FObject::Mesh(0, 1.2, 5, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
+					//FObject::Mesh(0, 1.2, 5, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
 					//FObject::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
 					//FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
 					//FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
@@ -856,7 +1008,7 @@ namespace RT
 #if 1
 			try
 			{
-				std::string path = GetFilePath(fileName);
+				std::string path = ISceneScript::GetFilePath(fileName);
 				TIME_SCOPE("Script Eval");
 				script.eval_file(path.c_str());
 			}
@@ -1029,7 +1181,7 @@ namespace RT
 			addDebugAABB(primitive.bound);
 		}
 
-		BVHTree::Builder builder(objectBVH);
+		BVHTreeBuilder builder(objectBVH);
 		builder.minSplitPrimitiveCount = 2;
 		builder.build(MakeConstView(primitives));
 
@@ -1082,6 +1234,67 @@ namespace RT
 
 		mSceneBVHNodes = nodes;
 		mSceneObjectIds = objectIds;
+
+		if (GRHISupportRayTracing)
+		{
+			TArray<RayTracingInstanceDesc> instances;
+			for (int i = 0; i < objects.size(); ++i)
+			{
+				auto const& obj = objects[i];
+				RHIBottomLevelAccelerationStructure* blas = nullptr;
+				Matrix4 transform = Matrix4::Identity();
+
+				if (obj.type == OBJ_TRIANGLE_MESH)
+				{
+					int meshId = AsValue<int32>(obj.meta.x);
+					if (mSceneMeshesBLAS.isValidIndex(meshId) && mSceneMeshesBLAS[meshId].isValid())
+					{
+						blas = mSceneMeshesBLAS[meshId];
+						transform = Matrix4::Scale(obj.meta.y) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+					}
+				}
+				else if (obj.type == OBJ_SPHERE)
+				{
+					blas = mSphereBLAS;
+					transform = Matrix4::Scale(obj.meta.x) * Matrix4::Translate(obj.pos);
+				}
+				else if (obj.type == OBJ_CUBE)
+				{
+					blas = mCubeBLAS;
+					transform = Matrix4::Scale(obj.meta) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				}
+				else if (obj.type == OBJ_QUAD)
+				{
+					blas = mQuadBLAS;
+					transform = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				}
+
+				if (blas)
+				{
+					RayTracingInstanceDesc desc;
+					desc.instanceID = i;
+					desc.recordIndex = (obj.type == OBJ_SPHERE) ? 1 : ((obj.type == OBJ_CUBE) ? 2 : 0);
+					desc.flags = (obj.type == OBJ_SPHERE || obj.type == OBJ_CUBE) ? 0 : (uint32)ERayTracingInstanceFlags::ForceOpaque;
+					desc.transform = transform;
+					desc.blas = blas;
+					instances.push_back(desc);
+				}
+			}
+
+			if (!instances.empty())
+			{
+				if (!mTLAS.isValid() || mNumTLASInstances < (uint32)instances.size())
+				{
+					if (mNumTLASInstances < (uint32)instances.size())
+					{
+						mNumTLASInstances = instances.size();
+					}
+					mTLAS = GRHISystem->RHICreateTopLevelAccelerationStructure(mNumTLASInstances, EAccelerationStructureBuildFlags::PreferFastTrace);
+				}
+				RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList::GetImmediateList(), mTLAS, instances.data(), (uint32)instances.size());
+				RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mTLAS, nullptr, nullptr);
+			}
+		}
 	}
 
 }
@@ -1090,6 +1303,15 @@ bool RayTracingTestStage::loadSceneRHIResource()
 {
 	TIME_SCOPE("LoadScene");
 	RT::SceneBuilderImpl builder(*this);
+
+	TArray< RT::MeshImportInfo > loadMeshInfos = std::move(meshInfos);
+	meshes.clear();
+	mSceneMeshes.clear();
+	for (auto const& info : loadMeshInfos)
+	{
+		builder.loadMesh(info.path.c_str(), info.transform);
+	}
+
 	if (mScript == nullptr)
 	{
 		mScript = RT::ISceneScript::Create();
@@ -1097,8 +1319,61 @@ bool RayTracingTestStage::loadSceneRHIResource()
 
 	VERIFY_RETURN_FALSE(mScript->setup(builder, "TestA"));
 	VERIFY_RETURN_FALSE(builder.buildRHIResource());
+
+	if (GRHISupportRayTracing)
+	{
+		float aabbData[] = { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+		mPrimitiveAABBBuffer = RHICreateBuffer(sizeof(float) * 6, 1, BCF_None, aabbData);
+
+		RayTracingGeometryDesc procGeoDesc;
+		procGeoDesc.type = ERayTracingGeometryType::Procedural;
+		procGeoDesc.vertexBuffer = mPrimitiveAABBBuffer;
+		procGeoDesc.vertexCount = 1;
+		procGeoDesc.vertexStride = sizeof(float) * 6;
+		procGeoDesc.bOpaque = true;
+		mSphereBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&procGeoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+		RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mSphereBLAS.get(), nullptr, nullptr);
+		
+
+
+		mCubeBLAS = mSphereBLAS; // Can use the same unit AABB BLAS, selected by hit group in TLAS
+
+		auto BuildTriangleBLAS = [&](Mesh& mesh, RHIBottomLevelAccelerationStructureRef& outBLAS) {
+			RayTracingGeometryDesc geoDesc;
+			geoDesc.vertexBuffer = mesh.mVertexBuffer;
+			geoDesc.vertexCount = mesh.getVertexCount();
+			geoDesc.vertexStride = mesh.mInputLayoutDesc.getVertexSize();
+			if (mesh.mIndexBuffer.isValid())
+			{
+				geoDesc.indexBuffer = mesh.mIndexBuffer;
+				geoDesc.indexCount = mesh.mIndexBuffer->getNumElements();
+				geoDesc.indexType = IsIntType(mesh.mIndexBuffer) ? EIndexBufferType::U32 : EIndexBufferType::U16;
+			}
+			outBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+			RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), outBLAS.get(), nullptr, nullptr);
+		};
+
+		{
+
+			FMeshBuild::Plane(mQuadMesh, Vector3::Zero(), Vector3(0, 0, 1), Vector3(0, 1, 0), Vector2(1, 1), 1.0f);
+			BuildTriangleBLAS(mQuadMesh, mQuadBLAS);
+		}
+	}
 	
 	return true;
+}
+
+void RayTracingTestStage::addMeshFromFile(char const* filePath)
+{
+	RT::SceneBuilderImpl builder(*this);
+	int meshId = builder.loadMesh(filePath);
+	if (meshId != INDEX_NONE)
+	{
+		objects.push_back(FObject::Mesh(meshId, 1.0f, 0, Vector3::Zero()));
+		bDataChanged = true;
+		mView.frameCount = 0;
+		refreshDetailView();
+	}
 }
 
 void RayTracingTestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
@@ -1121,6 +1396,18 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 		return false;
 	if (!createSimpleMesh())
 		return false;
+
+
+
+	{
+		char const* HDRImagePath = "Texture/HDR/A.hdr";
+		mHDRImage = RHIUtility::LoadTexture2DFromFile(HDRImagePath, TextureLoadOption().HDR());
+		if (mHDRImage)
+		{
+			mIBLResourceBuilder.initializeShader();
+			VERIFY_RETURN_FALSE(mIBLResourceBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
+		}
+	}
 
 	{
 		ScreenVS::PermutationDomain permutationVector;
@@ -1148,16 +1435,6 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 	}
 	mDebugPrimitives.initializeRHI();
 
-	{
-		char const* HDRImagePath = "Texture/HDR/A.hdr";
-		mHDRImage = RHIUtility::LoadTexture2DFromFile(HDRImagePath, TextureLoadOption().HDR());
-		if (mHDRImage)
-		{
-			mIBLResourceBuilder.initializeShader();
-			VERIFY_RETURN_FALSE(mIBLResourceBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
-		}
-	}
-
 	VERIFY_RETURN_FALSE(loadSceneRHIResource());
 
 #if TINY_WITH_EDITOR
@@ -1182,6 +1459,18 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 
 		PropertyViewHandle handle = mMaterialsDetailView->addValue(materials, "Materials");
 		mMaterialsDetailView->addCallback(handle, OnPropertyChange);
+	}
+
+	if (mMeshInfosDetailView)
+	{
+		auto OnPropertyChange = [this](char const*)
+		{
+			loadSceneRHIResource();
+			bDataChanged = true;
+			mView.frameCount = 0;
+		};
+		PropertyViewHandle handle = mMeshInfosDetailView->addValue(meshInfos, "MeshInfos");
+		mMeshInfosDetailView->addCallback(handle, OnPropertyChange);
 	}
 #endif
 
@@ -1433,6 +1722,18 @@ void RayTracingTestStage::refreshDetailView()
 			PropertyViewHandle hMat = mDetailView->addStruct(materials[objects[mSelectedObjectId].materialId]);
 			mDetailView->addCallback(hMat, OnPropertyChange);
 
+			if (objects[mSelectedObjectId].type == OBJ_TRIANGLE_MESH)
+			{
+				int meshId = AsValue<int32>(objects[mSelectedObjectId].meta.x);
+				if (meshInfos.isValidIndex(meshId))
+				{
+					mDetailView->clearCategoryViews("MeshInfo");
+					mDetailView->setCategory("MeshInfo");
+					PropertyViewHandle hMesh = mDetailView->addStruct(meshInfos[meshId]);
+					mDetailView->addCallback(hMesh, OnPropertyChange);
+				}
+			}
+
 			mDetailView->clearCategory();
 		}
 	}
@@ -1666,7 +1967,18 @@ void RayTracingTestStage::onViewportMouseEvent(MouseMsg const& msg)
 			if (dist > 0.001f)
 			{
 				float s = curDist / dist;
-				obj.meta[mGizmoAxis] *= s;
+				int metaIndex = INDEX_NONE;
+				switch (obj.type)
+				{
+				case OBJ_SPHERE: metaIndex = 0; break;
+				case OBJ_CUBE: metaIndex = mGizmoAxis; break;
+				case OBJ_QUAD: metaIndex = mGizmoAxis; break;
+				case OBJ_TRIANGLE_MESH: metaIndex = 1; break;
+				}
+				if (metaIndex != INDEX_NONE)
+				{
+					obj.meta[metaIndex] *= s;
+				}
 			}
 		}
 		else if (mGizmoType == EGizmoType::Rotate)

@@ -32,6 +32,7 @@ namespace Render
 			mVertexBuffer = RHICreateVertexBuffer(mInputLayoutDesc.getVertexSize(), nV, BCF_DefalutValue, pVertex);
 			if (!mVertexBuffer.isValid())
 				return false;
+			mVertexBuffer->setDebugName("MeshVertexBuffer");
 		}
 		else
 		{
@@ -49,6 +50,8 @@ namespace Render
 			mIndexBuffer = RHICreateIndexBuffer(nIndices, bIntIndex, BCF_DefalutValue, pIdx);
 			if (!mIndexBuffer.isValid())
 				return false;
+
+			mIndexBuffer->setDebugName("MeshIndexBuffer");
 		}
 		else
 		{

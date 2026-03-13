@@ -32,6 +32,11 @@ namespace Render
 
 		VertexElementReader makeAttributeReader( EVertex::Attribute attribute);
 
+		template< class Op >
+		void serialize(Op& op)
+		{
+			op & vertices & indices & numVertices & desc & sections;
+		}
 	};
 
 	class MeshImportSettings

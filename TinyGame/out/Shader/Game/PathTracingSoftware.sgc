@@ -8,6 +8,7 @@
 #include "PathTracingCommon.sgc"
 
 #define USE_BVH4_SCENE 0
+#define NumRaysPerPixel 1
 
 struct BVHNodeData
 {
@@ -419,7 +420,6 @@ void RayObject(int objId, Ray ray, ObjectData object, inout RayCastResult result
 				result.bHit = 1;
 				result.hitPos = ray.pos + dist * ray.dir;
 				result.hitNormal = normalize(result.hitPos - object.pos);
-				if (type == 1) result.hitNormal *= -1;
 				result.matId = object.materialId;
 				result.dist = dist;
 				result.objId = objId;
@@ -969,8 +969,12 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 		}
 		else
 		{
+#if USE_DEBUG_DISPLAY
+			incomingLight = float4(0,0,0,1);
+#else
 			float3 envLight = TEXTURE_SAMPLE_LEVEL(SkyTexture, VFLIP(rayDir), 0).rgb;
 			incomingLight += envLight * rayColor;
+#endif
 			break;
 		}
 

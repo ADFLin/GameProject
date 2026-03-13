@@ -34,6 +34,10 @@ namespace Render
 			desc.size = size;
 			desc.numSamples = numSamples;
 			desc.creationFlags = TCF_CreateSRV;
+			if (i == EGBuffer::A)
+			{
+				desc.creationFlags |= TCF_CreateUAV;
+			}
 			VERIFY_RETURN_FALSE( mTargets[i] = GRenderTargetPool.fetchElement(desc) );
 		}
 

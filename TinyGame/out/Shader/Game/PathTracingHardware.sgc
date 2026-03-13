@@ -5,8 +5,13 @@
 #include "ViewParam.sgc"
 #include "PathTracingCommon.sgc"
 
-RaytracingAccelerationStructure gScene : register(t0);
-RWTexture2D<float4> Outputradiance : register(u0);
+#define NumRaysPerPixel 8
+
+RaytracingAccelerationStructure gScene;
+RWTexture2D<float4> Outputradiance;
+RWTexture2D<float4> OutputNormal;
+
+uniform int DisplayMode;
 
 struct PathPayload
 {
@@ -31,186 +36,276 @@ struct PathPayload
 
 #if SHADER_ENTRY(PathTraceRayGen)
 
+DEFINE_TEXTURE(Texture2D, HistoryTexture);
+
 [shader("raygeneration")]
 void PathTraceRayGen()
 {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 	uint2 launchDim = DispatchRaysDimensions().xy;
-	float2 uv = (float2(launchIndex) + 0.5) / float2(launchDim);
-
 	uint seed = launchIndex.x + launchIndex.y * launchDim.x + View.frameCount * 793719393;
+	float3 totalRadiance = float3(0, 0, 0);
+	float3 firstNormal = float3(0, 0, 0);
+	float3 firstHitPos = float3(0, 0, 0);
+	float  firstDist = 10000.0f;
+	bool bFirstHitCaptured = false;
+	bool bFirstHitIsGeometry = false;
+	MaterialData firstMat = (MaterialData)0;
 
-	float4 rayOffset = mul(View.clipToTranslatedWorld, float4(2 * VFLIP(uv) - 1, 1, 1));
-	float3 rayDir = normalize(rayOffset.xyz);
-	float3 rayPos = View.worldPos;
-
-	float3 radiance = float3(0, 0, 0);
-	float3 throughput = float3(1, 1, 1);
-
-	PathPayload payload;
-	payload.radiance = float3(0, 0, 0);
-	payload.throughput = float3(1, 1, 1);
-	payload.seed = seed;
-	payload.done = false;
-#if USE_MIS
-	payload.pdf_brdf_prev = 0.0f;
-#endif
-
-	LOOP
-	for (int i = 0; i < MaxBounceCount; ++i)
+	for (int sampleIndex = 0; sampleIndex < NumRaysPerPixel; ++sampleIndex)
 	{
-		RayDesc ray;
-		ray.Origin = rayPos;
-		ray.Direction = rayDir;
-		ray.TMin = 0.001;
-		ray.TMax = 10000.0;
+		float2 jitter = float2(Random(seed), Random(seed)) - 0.5;
+		float2 sampleUV = (float2(launchIndex) + 0.5 + jitter) / float2(launchDim);
 
-		payload.hit = false;
-		TraceRay(gScene, RAY_FLAG_NONE, 0xFF, 0, 1, 0, ray, payload);
+		float4 rayOffset = mul(View.clipToTranslatedWorld, float4(2 * VFLIP(sampleUV) - 1, 1, 1));
+		float3 rayDir = normalize(rayOffset.xyz);
+		float3 rayPos = View.worldPos;
 
-		if (!payload.hit)
+		float3 radiance = float3(0, 0, 0);
+		float3 throughput = float3(1, 1, 1);
+
+		PathPayload payload;
+		payload.radiance = float3(0, 0, 0);
+		payload.throughput = float3(1, 1, 1);
+		payload.seed = seed;
+		payload.done = false;
+	#if USE_MIS
+		payload.pdf_brdf_prev = 0.0f;
+	#endif
+
+		LOOP
+		for (int i = 0; i < MaxBounceCount; ++i)
 		{
-			float3 envLight = TEXTURE_SAMPLE_LEVEL(SkyTexture, VFLIP(rayDir), 0).rgb;
-			radiance += envLight * throughput;
-			break;
-		}
+			RayDesc ray;
+			ray.Origin = rayPos;
+			ray.Direction = rayDir;
+			ray.TMin = 0.001;
+			ray.TMax = 10000.0;
 
-		MaterialData mat = GetMaterial(payload.matId);
+			payload.hit = false;
+			TraceRay(gScene, RAY_FLAG_NONE, 0xFF, 0, 1, 0, ray, payload);
 
-		if (mat.refractiveIndex > 0 && Random(payload.seed) < mat.refractive)
-		{
-			// Refraction logic (similar to software version)
-			float3 I = rayDir;
-			float3 N = payload.normal;
-			float cosI = dot(I, N);
-			float eta = 1.0 / mat.refractiveIndex;
-			if (cosI > 0) { N = -N; eta = mat.refractiveIndex; }
-			else { cosI = -cosI; }
-
-			float k = 1.0 - eta * eta * (1.0 - cosI * cosI);
-			if (k >= 0.0) rayDir = normalize(eta * I + (eta * cosI - sqrt(k)) * N);
-			else rayDir = reflect(I, N);
-
-			radiance += mat.emissiveColor * throughput;
-			throughput *= mat.baseColor;
-			rayPos = rayPos + rayDir * payload.dist + rayDir * 0.001;
-		}
-		else
-		{
-#if USE_MIS
-			if (mat.emissiveColor.x > 0 || mat.emissiveColor.y > 0 || mat.emissiveColor.z > 0)
+			if (!payload.hit)
 			{
-				float3 emittedLight = mat.emissiveColor;
-				float dotA = max(0.0001f, dot(payload.normal, -rayDir));
-				float distSq = max(0.001f, payload.dist * payload.dist);
-				
-				float pdf_dl_mis = pdfLight(payload.objId, NumEmittingObjects);
-				float pdf_dl_mis_w = pdf_dl_mis * distSq / dotA;
-				float misWeight = balanceHeuristic(payload.pdf_brdf_prev, pdf_dl_mis_w);
-
-				if (i == 0) misWeight = 1.0f;
-				radiance += emittedLight * throughput * misWeight;
+				if (i == 0 && sampleIndex == 0)
+				{
+					firstNormal = -rayDir;
+					firstDist = 10000.0f;
+					firstHitPos = rayPos + rayDir * firstDist;
+					bFirstHitCaptured = true;
+					bFirstHitIsGeometry = false;
+				}
+				float3 envLight = TEXTURE_SAMPLE_LEVEL(SkyTexture, VFLIP(rayDir), 0).rgb;
+				radiance += envLight * throughput;
 				break;
 			}
 
-			// Direct Light Sampling
-			float3 directLight = float3(0.0f, 0.0f, 0.0f);
-			float3 w_i_dl;
-			float pdf_dl;
-			float3 w_i_dl_brdf = float3(0.0f, 0.0f, 0.0f);
+			if (i == 0 && sampleIndex == 0)
 			{
-				float3 lightPos, lightNormal;
-				int lightObjId;
-				SampleDirectLight(lightPos, lightNormal, pdf_dl, lightObjId, NumEmittingObjects, payload.seed);
+				firstNormal = payload.normal;
+				firstDist = payload.dist;
+				firstHitPos = rayPos + rayDir * firstDist;
+				bFirstHitCaptured = true;
+				firstMat = GetMaterial(payload.matId);
+				bFirstHitIsGeometry = true;
+			}
 
-				w_i_dl = normalize(lightPos - (rayPos + rayDir * payload.dist));
-				
-				RayDesc shadowRay;
-				shadowRay.Origin = (rayPos + rayDir * payload.dist) + 0.001f * payload.normal;
-				shadowRay.Direction = w_i_dl;
-				shadowRay.TMin = 0.001;
-				shadowRay.TMax = distance(lightPos, shadowRay.Origin) - 0.002;
+			MaterialData mat = GetMaterial(payload.matId);
 
-				PathPayload shadowPayload;
-				shadowPayload.hit = false;
-				TraceRay(gScene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0, shadowRay, shadowPayload);
+			if (mat.refractiveIndex > 0 && Random(payload.seed) < mat.refractive)
+			{
+				// Refraction logic (similar to software version)
+				float3 I = rayDir;
+				float3 N = payload.normal;
+				float cosI = dot(I, N);
+				float eta = 1.0 / mat.refractiveIndex;
+				if (cosI > 0) { N = -N; eta = mat.refractiveIndex; }
+				else { cosI = -cosI; }
 
-				if (!shadowPayload.hit && lightObjId != -1)
+				float k = 1.0 - eta * eta * (1.0 - cosI * cosI);
+				float3 nextDir;
+				if (k >= 0.0) nextDir = normalize(eta * I + (eta * cosI - sqrt(k)) * N);
+				else nextDir = reflect(I, N);
+
+				radiance += mat.emissiveColor * throughput;
+				throughput *= mat.baseColor;
+				rayPos = rayPos + rayDir * payload.dist + nextDir * 0.001;
+				rayDir = nextDir;
+	#if USE_MIS
+				payload.pdf_brdf_prev = 0.0f;
+	#endif
+			}
+			else
+			{
+	#if USE_MIS
+				if (mat.emissiveColor.x > 0 || mat.emissiveColor.y > 0 || mat.emissiveColor.z > 0)
 				{
-					ObjectData dL_obj = Objects[lightObjId];
-					MaterialData dL_mat = GetMaterial(dL_obj.materialId);
-					if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+					float3 emittedLight = mat.emissiveColor;
+					float dotA = max(0.0001f, dot(payload.normal, -rayDir));
+					float distSq = max(0.001f, payload.dist * payload.dist);
+				
+					float pdf_dl_mis = pdfLight(payload.objId, NumEmittingObjects);
+					float pdf_dl_mis_w = pdf_dl_mis * distSq / max(0.0001f, dotA);
+					float misWeight = balanceHeuristic(payload.pdf_brdf_prev, pdf_dl_mis_w);
+
+					if (i == 0) misWeight = 1.0f;
+					radiance += emittedLight * throughput * max(0.0f, misWeight);
+					break;
+				}
+
+				// Direct Light Sampling
+				float3 directLight = float3(0.0f, 0.0f, 0.0f);
+				float3 w_i_dl;
+				float pdf_dl;
+				float3 w_i_dl_brdf = float3(0.0f, 0.0f, 0.0f);
+				{
+					float3 lightPos, lightNormal;
+					int lightObjId;
+					SampleDirectLight(lightPos, lightNormal, pdf_dl, lightObjId, NumEmittingObjects, payload.seed);
+
+					w_i_dl = normalize(lightPos - (rayPos + rayDir * payload.dist));
+				
+					RayDesc shadowRay;
+					shadowRay.Origin = (rayPos + rayDir * payload.dist) + 0.001f * payload.normal;
+					shadowRay.Direction = w_i_dl;
+					shadowRay.TMin = 0.001;
+					shadowRay.TMax = distance(lightPos, shadowRay.Origin) - 0.002;
+
+					PathPayload shadowPayload;
+					shadowPayload.hit = true;
+					TraceRay(gScene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0, shadowRay, shadowPayload);
+
+					if (!shadowPayload.hit && lightObjId != -1)
 					{
-						float dotA = max(0.0001f, dot(lightNormal, -w_i_dl));
-						float distSq = max(0.001f, pow(shadowRay.TMax, 2));
-						float pdf_brdf_mis;
-						EvaluateMaterialAndPdfGGX(w_i_dl, payload.normal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
-						float pdf_dl_w = pdf_dl * distSq / dotA;
-						float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
-						directLight = dL_mat.emissiveColor * misWeight / pdf_dl_w;
+						ObjectData dL_obj = Objects[lightObjId];
+						MaterialData dL_mat = GetMaterial(dL_obj.materialId);
+						if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+						{
+							float dotA = max(0.0001f, dot(lightNormal, -w_i_dl));
+							float lightDist = distance(lightPos, (rayPos + rayDir * payload.dist));
+							float distSq = max(0.001f, lightDist * lightDist);
+							float pdf_brdf_mis;
+							EvaluateMaterialAndPdfGGX(w_i_dl, payload.normal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
+							float pdf_dl_w = pdf_dl * distSq / dotA;
+							float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
+							directLight = dL_mat.emissiveColor * max(0.0f, misWeight) / pdf_dl_w;
+						}
 					}
 				}
+
+				if (length(directLight) > 0.001f)
+				{
+					float cos_theta = max(0.0001f, dot(payload.normal, w_i_dl));
+					radiance += directLight * throughput * w_i_dl_brdf * cos_theta;
+				}
+
+				// BSDF Sampling
+				bool isSpecularBounce = mat.specular >= Random(payload.seed);
+				float3 diffuseDir = normalize(payload.normal + RandomDirection(payload.seed));
+				float a = max(0.001f, mat.roughness * mat.roughness);
+				float a2 = a * a;
+				float4 ggxH = ImportanceSampleGGX(float2(Random(payload.seed), Random(payload.seed)), a2);
+				float3x3 tangentToWorld = TangentToWorldTransform(payload.normal);
+				float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
+				float3 specularDir = reflect(rayDir, H);
+
+				float3 nextDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
+				float pdf_brdf_raw;
+				float3 brdf;
+				EvaluateMaterialAndPdfGGX(nextDir, payload.normal, rayDir, mat, brdf, pdf_brdf_raw);
+				float pdf_brdf = max(0.00001f, pdf_brdf_raw);
+				float cosTheta = max(0.001f, dot(payload.normal, nextDir));
+
+				throughput *= brdf * cosTheta / pdf_brdf;
+				rayPos = rayPos + rayDir * payload.dist + nextDir * 0.001;
+				rayDir = nextDir;
+				payload.pdf_brdf_prev = pdf_brdf;
+
+	#else
+				// Non-MIS version
+				bool isSpecularBounce = mat.specular >= Random(payload.seed);
+				float3 diffuseDir = normalize(payload.normal + RandomDirection(payload.seed));
+				float a = max(0.001f, mat.roughness * mat.roughness);
+				float a2 = a * a;
+				float4 ggxH = ImportanceSampleGGX(float2(Random(payload.seed), Random(payload.seed)), a2);
+				float3x3 tangentToWorld = TangentToWorldTransform(payload.normal);
+				float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
+				float3 specularDir = reflect(rayDir, H);
+
+				float3 nextDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
+				float pdf_brdf_raw;
+				float3 brdf;
+				EvaluateMaterialAndPdfGGX(nextDir, payload.normal, rayDir, mat, brdf, pdf_brdf_raw);
+				float pdf_brdf = max(0.00001f, pdf_brdf_raw);
+				float cosTheta = max(0.001f, dot(payload.normal, nextDir));
+
+				radiance += mat.emissiveColor * throughput;
+				throughput *= brdf * cosTheta / pdf_brdf;
+				rayPos = rayPos + rayDir * payload.dist + nextDir * 0.001;
+				rayDir = nextDir;
+	#endif
+
+				// Russian Roulette
+				float p = max(throughput.r, max(throughput.g, throughput.b));
+				if (Random(payload.seed) >= p) break;
+				throughput *= 1.0f / p;
 			}
-
-			if (length(directLight) > 0.001f)
-			{
-				float cos_theta = max(0.0001f, dot(payload.normal, w_i_dl));
-				radiance += directLight * throughput * w_i_dl_brdf * cos_theta;
-			}
-
-			// BSDF Sampling
-			bool isSpecularBounce = mat.specular >= Random(payload.seed);
-			float3 diffuseDir = normalize(payload.normal + RandomDirection(payload.seed));
-			float a = max(0.001f, mat.roughness * mat.roughness);
-			float a2 = a * a;
-			float4 ggxH = ImportanceSampleGGX(float2(Random(payload.seed), Random(payload.seed)), a2);
-			float3x3 tangentToWorld = TangentToWorldTransform(payload.normal);
-			float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
-			float3 specularDir = reflect(rayDir, H);
-
-			float3 nextDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
-			float pdf_brdf_raw;
-			float3 brdf;
-			EvaluateMaterialAndPdfGGX(nextDir, payload.normal, rayDir, mat, brdf, pdf_brdf_raw);
-			float pdf_brdf = max(0.00001f, pdf_brdf_raw);
-			float cosTheta = max(0.001f, dot(payload.normal, nextDir));
-
-			throughput *= brdf * cosTheta / pdf_brdf;
-			rayPos = rayPos + rayDir * payload.dist + nextDir * 0.001;
-			rayDir = nextDir;
-			payload.pdf_brdf_prev = pdf_brdf;
-
-#else
-			// Non-MIS version
-			bool isSpecularBounce = mat.specular >= Random(payload.seed);
-			float3 diffuseDir = normalize(payload.normal + RandomDirection(payload.seed));
-			float a = max(0.001f, mat.roughness * mat.roughness);
-			float a2 = a * a;
-			float4 ggxH = ImportanceSampleGGX(float2(Random(payload.seed), Random(payload.seed)), a2);
-			float3x3 tangentToWorld = TangentToWorldTransform(payload.normal);
-			float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
-			float3 specularDir = reflect(rayDir, H);
-
-			float3 nextDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
-			float pdf_brdf_raw;
-			float3 brdf;
-			EvaluateMaterialAndPdfGGX(nextDir, payload.normal, rayDir, mat, brdf, pdf_brdf_raw);
-			float pdf_brdf = max(0.00001f, pdf_brdf_raw);
-			float cosTheta = max(0.001f, dot(payload.normal, nextDir));
-
-			radiance += mat.emissiveColor * throughput;
-			throughput *= brdf * cosTheta / pdf_brdf;
-			rayDir = nextDir;
-#endif
-
-			// Russian Roulette
-			float p = max(throughput.r, max(throughput.g, throughput.b));
-			if (Random(payload.seed) >= p) break;
-			throughput *= 1.0f / p;
 		}
+
+		totalRadiance += radiance;
+		seed = payload.seed;
 	}
 
-	Outputradiance[launchIndex] = float4(radiance, 1.0f);
+	float3 color = totalRadiance / NumRaysPerPixel;
+	float2 uv = (float2(launchIndex) + 0.5) / float2(launchDim);
+	float3 oldColor = TEXTURE_SAMPLE_LEVEL(HistoryTexture, uv, 0).rgb;
+	float3 accColor = oldColor + (color - oldColor) * BlendFactor;
+
+#if USE_DEBUG_DISPLAY
+	float3 debugColor = color;
+	if (bFirstHitIsGeometry)
+	{
+		switch (DisplayMode)
+		{
+		case 4: // HitNormal
+			debugColor = 0.5 * firstNormal + 0.5;
+			break;
+		case 5: // HitPos
+			debugColor = firstHitPos;
+			break;
+		case 6: // BaseColor
+			debugColor = firstMat.baseColor;
+			break;
+		case 7: // EmissiveColor
+			debugColor = firstMat.emissiveColor;
+			break;
+		case 8: // Roughness
+			debugColor = firstMat.roughness.xxx;
+			break;
+		case 9: // Specular
+			debugColor = firstMat.specular.xxx;
+			break;
+		}
+	}
+	}
+	else
+	{
+		debugColor = float3(0,0,0);
+	}
+
+	if (bFirstHitIsGeometry)
+	{
+		Outputradiance[launchIndex] = float4(debugColor, 1.0f);
+	}
+	else
+	{
+		// Miss: do not update or write current background
+		// Matching software path behavior
+	}
+#else
+	Outputradiance[launchIndex] = float4(accColor, 1.0f);
+#endif
+	OutputNormal[launchIndex] = float4(0.5 * firstNormal + 0.5, firstDist);
 }
 #endif // SHADER_ENTRY(PathTraceRayGen)
 

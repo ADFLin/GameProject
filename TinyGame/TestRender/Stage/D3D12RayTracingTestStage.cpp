@@ -314,7 +314,7 @@ void D3D12RayTracingTestStage::setupRayTracing()
 		geomDesc.vertexFormat = EVertex::Float3;
 		geomDesc.bOpaque = true;
 
-		mBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geomDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+		mBLAS = RHICreateBottomLevelAccelerationStructure(&geomDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
 		RHIBuildAccelerationStructure(commandList, mBLAS, nullptr, nullptr);
 	}
 
@@ -345,7 +345,7 @@ void D3D12RayTracingTestStage::setupRayTracing()
 		geomDesc.vertexFormat = EVertex::Float3;
 		geomDesc.bOpaque = true;
 
-		mPlaneBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geomDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+		mPlaneBLAS = RHICreateBottomLevelAccelerationStructure(&geomDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
 		RHIBuildAccelerationStructure(commandList, mPlaneBLAS, nullptr, nullptr);
 	}
 
@@ -387,13 +387,13 @@ void D3D12RayTracingTestStage::setupRayTracing()
 		geomDesc.vertexFormat = EVertex::Float3;
 		geomDesc.bOpaque = true;
 
-		mBoxBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geomDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+		mBoxBLAS = RHICreateBottomLevelAccelerationStructure(&geomDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
 		RHIBuildAccelerationStructure(commandList, mBoxBLAS, nullptr, nullptr);
 	}
 
 	// 5. Create TLAS with many instances
 	const int numBoxes = 1000;
-	mTLAS = GRHISystem->RHICreateTopLevelAccelerationStructure(2 + numBoxes, EAccelerationStructureBuildFlags::PreferFastTrace);
+	mTLAS = RHICreateTopLevelAccelerationStructure(2 + numBoxes, EAccelerationStructureBuildFlags::PreferFastTrace);
 
 	TArray<RayTracingInstanceDesc> instances;
 	// Triangle Instance -> Hit Group 0
@@ -476,11 +476,14 @@ void D3D12RayTracingTestStage::setupRayTracing()
 	psoInit.maxPayloadSize = sizeof(float) * 6; // float4 color + float depth + uint isShadow
 	psoInit.maxRecursionDepth = 2;
 
-	mRTPSO = GRHISystem->RHICreateRayTracingPipelineState(psoInit);
-	if (!mRTPSO.isValid()) LogMsg("Failed to create RTPSO");
+	mRTPSO = RHICreateRayTracingPipelineState(psoInit);
+	if (!mRTPSO.isValid())
+	{
+		LogMsg("Failed to create RTPSO");
+	}
 	else
 	{
-		mShaderTable = GRHISystem->RHICreateRayTracingShaderTable(mRTPSO);
+		mShaderTable = RHICreateRayTracingShaderTable(mRTPSO);
 	}
 	
 	// Create Output Texture

@@ -5,6 +5,10 @@
 #include "D3D12Command.h"
 #include "RHIRayTracingTypes.h"
 
+#if RHI_USE_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
+
 namespace Render
 {
 	class D3D12BottomLevelAccelerationStructure : public TRefcountResource< RHIBottomLevelAccelerationStructure >
@@ -166,5 +170,10 @@ namespace Render
 	};
 
 }
+
+
+#if RHI_USE_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 #endif // D3D12RayTracing_H_9B5E3C1A_8D4F_4A1B_9E2D_5C3F6A7B8E9D

@@ -139,19 +139,27 @@ class PathTracingHardwareRayGen : public GlobalShader
 	using BaseClass = GlobalShader;
 	DECLARE_SHADER(PathTracingHardwareRayGen, Global);
 public:
+
+	SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
+	SHADER_PERMUTATION_TYPE_BOOL(UseMIS, SHADER_PARAM(USE_MIS));
+
+
+	using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseMIS>;
+
+	static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
+	{
+
+	}
+
 	static char const* GetShaderFileName()
 	{
 		return "Shader/Game/PathTracingHardware";
 	}
 
-	static void SetupShaderCompileOption(ShaderCompileOption& option)
-	{
-
-	}
-
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
 		BIND_SHADER_PARAM(parameterMap, Outputradiance);
+		BIND_SHADER_PARAM(parameterMap, OutputNormal);
 		BIND_SHADER_PARAM(parameterMap, NumObjects);
 		BIND_SHADER_PARAM(parameterMap, NumEmittingObjects);
 		BIND_SHADER_PARAM(parameterMap, BlendFactor);
@@ -160,10 +168,14 @@ public:
 		BIND_SHADER_PARAM(parameterMap, Materials);
 		BIND_SHADER_PARAM(parameterMap, MeshVertices);
 		BIND_SHADER_PARAM(parameterMap, EmittingObjectIds);
+		BIND_SHADER_PARAM(parameterMap, gScene);
+		BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
+		BIND_SHADER_PARAM(parameterMap, DisplayMode);
 		mIBLParams.bindParameters(parameterMap);
 	}
 
 	DEFINE_SHADER_PARAM(Outputradiance);
+	DEFINE_SHADER_PARAM(OutputNormal);
 	DEFINE_SHADER_PARAM(NumObjects);
 	DEFINE_SHADER_PARAM(NumEmittingObjects);
 	DEFINE_SHADER_PARAM(BlendFactor);
@@ -172,6 +184,10 @@ public:
 	DEFINE_SHADER_PARAM(Materials);
 	DEFINE_SHADER_PARAM(MeshVertices);
 	DEFINE_SHADER_PARAM(EmittingObjectIds);
+	DEFINE_SHADER_PARAM(gScene);
+	DEFINE_SHADER_PARAM(DisplayMode);
+	DEFINE_SHADER_PARAM(TriangleWarningCount);
+	DEFINE_TEXTURE_PARAM(HistoryTexture);
 	IBLShaderParameters mIBLParams;
 };
 
@@ -455,6 +471,23 @@ struct FObject
 		result.materialId = materialId;
 		result.meta = Vector3(AsValue<float>(meshId), scale, 0);
 		return result;
+	}
+
+	static ObjectData Sphere(float radius, int materialId, Math::Transform const& transform)
+	{
+		return Sphere(radius, materialId, transform.location, transform.rotation);
+	}
+	static ObjectData Box(Vector3 size, int materialId, Math::Transform const& transform)
+	{
+		return Box(size, materialId, transform.location, transform.rotation);
+	}
+	static ObjectData Quad(Vector2 size, int materialId, Math::Transform const& transform)
+	{
+		return Quad(size, materialId, transform.location, transform.rotation);
+	}
+	static ObjectData Mesh(int32 meshId, int materialId, Math::Transform const& transform)
+	{
+		return Mesh(meshId, transform.scale.x, materialId, transform.location, transform.rotation);
 	}
 };
 
@@ -774,12 +807,8 @@ namespace RT
 		TArray< MeshData > meshes;
 		TArray< MeshImportInfo > meshInfos;
 
-		TArray< std::shared_ptr<Render::Mesh> > mSceneMeshes;
-		TArray< RHIBottomLevelAccelerationStructureRef > mSceneMeshesBLAS;
+		std::vector< std::shared_ptr<Render::Mesh> > mSceneMeshes;
 
-		RHIBottomLevelAccelerationStructureRef mSphereBLAS;
-		RHIBottomLevelAccelerationStructureRef mCubeBLAS;
-		RHIBottomLevelAccelerationStructureRef mQuadBLAS;
 		RHIBufferRef mPrimitiveAABBBuffer;
 		
 		TArray< MeshVertexData > mMeshVertices;
@@ -804,8 +833,22 @@ namespace RT
 		uint32 mNumTLASInstances = 0;
 		RHIRayTracingPipelineStateRef mRayTracingPSO;
 		RHIRayTracingShaderTableRef mSBT;
+		TArray< RHIBottomLevelAccelerationStructureRef > mSceneMeshesBLAS;
 
-		void rebuildSceneBVH();
+		RHIBottomLevelAccelerationStructureRef mSphereBLAS;
+		RHIBottomLevelAccelerationStructureRef mCubeBLAS;
+		RHIBottomLevelAccelerationStructureRef mQuadBLAS;
+
+
+		void notifyReload()
+		{
+			meshInfos.clear();
+			meshes.clear();
+			materials.clear();
+			objects.clear();
+		}
+
+		void buildRenderResource();
 		int mNumEmittingObjects;
 		PrimitivesCollection mDebugPrimitives;
 
@@ -934,6 +977,8 @@ public:
 	int mSelectedObjectId = INDEX_NONE;
 	bool bEditorCameraValid = false;
 	Vec2i mEditorViewportSize = Vec2i(0, 0);
+	bool mbGamePased;
+	bool bNeedReload = false;
 	bool bDataChanged = false;
 	bool mbControlDown = false;
 	void refreshDetailView();
@@ -991,7 +1036,7 @@ public:
 		BaseClass::onEnd();
 	}
 
-	void restart() {}
+	void restart() { bDataChanged = true; mView.frameCount = 0; }
 
 	void onUpdate(GameTimeSpan deltaTime) override;
 
@@ -1204,6 +1249,8 @@ public:
 
 	AccumulatePS* mAccumulatePS;
 	DenoisePS* mDenoisePS;
+
+	PathTracingHardwareRayGen* mLastRayGenShader = nullptr;
 
 	EditorPreviewVS* mPreviewVS;
 	EditorPreviewPS* mPreviewPS;

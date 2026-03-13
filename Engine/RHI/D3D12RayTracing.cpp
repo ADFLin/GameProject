@@ -7,6 +7,9 @@
 #include <vector>
 #include <memory>
 
+#if RHI_USE_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 namespace Render
 {
@@ -42,7 +45,7 @@ namespace Render
 				dst.Triangles.VertexCount = src.vertexCount;
 				dst.Triangles.VertexFormat = D3D12Translate::To(src.vertexFormat, false);
 				dst.Triangles.IndexBuffer = src.indexBuffer ? D3D12Cast::To(src.indexBuffer)->getResource()->GetGPUVirtualAddress() + src.indexOffset : 0;
-				dst.Triangles.IndexFormat = src.indexBuffer ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_UNKNOWN; //TODO: 16bit support
+				dst.Triangles.IndexFormat = src.indexBuffer ? (src.indexType == EIndexBufferType::U32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT) : DXGI_FORMAT_UNKNOWN;
 				dst.Triangles.IndexCount = src.indexCount;
 				dst.Triangles.Transform3x4 = 0;
 			}
@@ -71,6 +74,8 @@ namespace Render
 			D3D12_HEAP_PROPERTIES heapProps = FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT);
 			if (FAILED(mSystem->mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nullptr, IID_PPV_ARGS(&mResultAllocation.ptr))))
 				return false;
+
+			mResultAllocation.ptr->SetName(L"BLASResultResource");
 			mResultAllocation.gpuAddress = mResultAllocation.ptr->GetGPUVirtualAddress();
 			mResultAllocation.size = (uint32)info.ResultDataMaxSizeInBytes;
 		}
@@ -80,6 +85,8 @@ namespace Render
 			D3D12_HEAP_PROPERTIES heapProps = FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT);
 			if (FAILED(mSystem->mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&mScartchAllocation.ptr))))
 				return false;
+
+			mScartchAllocation.ptr->SetName(L"BLASScartchResource");
 			mScartchAllocation.gpuAddress = mScartchAllocation.ptr->GetGPUVirtualAddress();
 			mScartchAllocation.size = (uint32)info.ScratchDataSizeInBytes;
 		}
@@ -124,6 +131,8 @@ namespace Render
 			D3D12_HEAP_PROPERTIES heapProps = FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT);
 			if (FAILED(mSystem->mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nullptr, IID_PPV_ARGS(&mResultAllocation.ptr))))
 				return false;
+
+			mResultAllocation.ptr->SetName(L"TLASResultResource");
 			mResultAllocation.gpuAddress = mResultAllocation.ptr->GetGPUVirtualAddress();
 			mResultAllocation.size = (uint32)info.ResultDataMaxSizeInBytes;
 		}
@@ -133,6 +142,8 @@ namespace Render
 			D3D12_HEAP_PROPERTIES heapProps = FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT);
 			if (FAILED(mSystem->mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&mScartchAllocation.ptr))))
 				return false;
+
+			mScartchAllocation.ptr->SetName(L"TLASScartchResource");
 			mScartchAllocation.gpuAddress = mScartchAllocation.ptr->GetGPUVirtualAddress();
 			mScartchAllocation.size = (uint32)info.ScratchDataSizeInBytes;
 		}
@@ -142,6 +153,8 @@ namespace Render
 			D3D12_HEAP_PROPERTIES heapProps = FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD);
 			if (FAILED(mSystem->mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&mInstanceAllocaton.ptr))))
 				return false;
+
+			mScartchAllocation.ptr->SetName(L"TLASInstanceResource");
 			mInstanceAllocaton.gpuAddress = mInstanceAllocaton.ptr->GetGPUVirtualAddress();
 			mInstanceAllocaton.size = numInstances * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
 		}
@@ -184,20 +197,22 @@ namespace Render
 			if (!shader) return;
 			D3D12Shader* d3d12Shader = static_cast<D3D12Shader*>(shader);
 			
-			auto& libDesc = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY>();
-			libDesc.DXILLibrary = d3d12Shader->getByteCode();
-			libDesc.NumExports = 1;
+			size_t libOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY>();
+			auto* pLibDesc = builder.getPtr<D3D12_DXIL_LIBRARY_DESC>(libOffset);
+			pLibDesc->DXILLibrary = d3d12Shader->getByteCode();
+			pLibDesc->NumExports = 1;
 
 			size_t exportOffset = builder.allocRaw(sizeof(D3D12_EXPORT_DESC));
-			D3D12_EXPORT_DESC* pExport = builder.getPtr<D3D12_EXPORT_DESC>(exportOffset);
-			libDesc.pExports = pExport;
+			pLibDesc = builder.getPtr<D3D12_DXIL_LIBRARY_DESC>(libOffset);
+			auto* pExport = builder.getPtr<D3D12_EXPORT_DESC>(exportOffset);
+			FMemory::Set(pExport, 0, sizeof(D3D12_EXPORT_DESC));
+			pLibDesc->pExports = pExport;
 
 			std::wstring entryName = FCString::CharToWChar(d3d12Shader->entryPoint.c_str());
-			builder.addString(entryName.c_str(), &pExport->ExportToRename);
-			builder.addString(exportName, &pExport->Name);
+			builder.addString(entryName.c_str(), (LPCWSTR*)&pExport->ExportToRename);
+			builder.addString(exportName, (LPCWSTR*)&pExport->Name);
 			
-			// We can still use pExport safely here as long as we don't call anything 
-			// that reallocates the buffer. The smart addString handles the safety.
+			pExport = builder.getPtr<D3D12_EXPORT_DESC>(exportOffset);
 			pExport->Flags = D3D12_EXPORT_FLAG_NONE;
 		};
 
@@ -209,7 +224,7 @@ namespace Render
 		{
 			AddLibrary(initializer.missShader, L"RayMiss");
 		}
-		for (int i = 0; i < initializer.missShaders.size(); ++i)
+		for (int i = 0; i < (int)initializer.missShaders.size(); ++i)
 		{
 			std::wstring name = L"Miss_" + std::to_wstring(i);
 			AddLibrary(initializer.missShaders[i].generalShader, name.c_str());
@@ -219,13 +234,15 @@ namespace Render
 		if (initializer.hitGroupShader)
 		{
 			AddLibrary(initializer.hitGroupShader, L"CH_Default");
-			auto& hgDesc = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
-			builder.addString(L"HitGroup", &hgDesc.HitGroupExport);
-			builder.addString(L"CH_Default", &hgDesc.ClosestHitShaderImport);
-			hgDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
+			size_t hgOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
+			auto* pHgDesc = builder.getPtr<D3D12_HIT_GROUP_DESC>(hgOffset);
+			FMemory::Set(pHgDesc, 0, sizeof(D3D12_HIT_GROUP_DESC));
+			builder.addString(L"HitGroup", &pHgDesc->HitGroupExport);
+			builder.addString(L"CH_Default", &pHgDesc->ClosestHitShaderImport);
+			pHgDesc->Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
 		}
 
-		for (int i = 0; i < initializer.hitGroups.size(); ++i)
+		for (int i = 0; i < (int)initializer.hitGroups.size(); ++i)
 		{
 			auto const& group = initializer.hitGroups[i];
 			std::wstring hgName = L"HitGroup_" + std::to_wstring(i);
@@ -233,50 +250,59 @@ namespace Render
 
 			AddLibrary(group.closestHitShader, chName.c_str());
 
-			auto& hgDesc = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
-			builder.addString(hgName.c_str(), &hgDesc.HitGroupExport);
-			builder.addString(chName.c_str(), &hgDesc.ClosestHitShaderImport);
+			unsigned int currentHitGroupIndex = builder.getSubobjectCount();
+			size_t hgOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
+			auto* pHgDesc = builder.getPtr<D3D12_HIT_GROUP_DESC>(hgOffset);
+			FMemory::Set(pHgDesc, 0, sizeof(D3D12_HIT_GROUP_DESC));
+			builder.addString(hgName.c_str(), &pHgDesc->HitGroupExport);
+			builder.addString(chName.c_str(), &pHgDesc->ClosestHitShaderImport);
 			
 			if (group.intersectionShader)
 			{
 				std::wstring anyName = L"ANY_" + std::to_wstring(i);
 				AddLibrary(group.intersectionShader, anyName.c_str());
-				builder.addString(anyName.c_str(), &hgDesc.IntersectionShaderImport);
-				hgDesc.Type = D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE;
+				pHgDesc = builder.getPtr<D3D12_HIT_GROUP_DESC>(hgOffset);
+				builder.addString(anyName.c_str(), &pHgDesc->IntersectionShaderImport);
+				pHgDesc->Type = D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE;
 			}
 			else
 			{
-				hgDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
+				pHgDesc->Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
 			}
 
-			auto shaderImpl = static_cast<D3D12Shader*>(group.closestHitShader);
-			if (!shaderImpl->rootSignature.localParameters.empty())
+			auto* shaderImpl = static_cast<D3D12Shader*>(group.closestHitShader);
+			if (shaderImpl && !shaderImpl->rootSignature.localParameters.empty())
 			{
-				D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
-				desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-				desc.Desc_1_1.NumParameters = (UINT)shaderImpl->rootSignature.localParameters.size();
-				desc.Desc_1_1.pParameters = shaderImpl->rootSignature.localParameters.data();
-				desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+				size_t numLocalParams = shaderImpl->rootSignature.localParameters.size();
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC rsDesc = {};
+				rsDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				rsDesc.Desc_1_1.NumParameters = (UINT)numLocalParams;
+				rsDesc.Desc_1_1.pParameters = shaderImpl->rootSignature.localParameters.data();
+				rsDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
 
 				TComPtr<ID3DBlob> signature;
 				TComPtr<ID3DBlob> error;
-				if (SUCCEEDED(D3D12SerializeVersionedRootSignature(&desc, &signature, &error)))
+				if (SUCCEEDED(D3D12SerializeVersionedRootSignature(&rsDesc, &signature, &error)))
 				{
 					ID3D12RootSignature* pLocalRootSig = nullptr;
-					system->mDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&pLocalRootSig));
-					if (pLocalRootSig)
+					if (SUCCEEDED(system->mDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&pLocalRootSig))))
 					{
 						mLocalRootSignatures.push_back(TComPtr<ID3D12RootSignature>(pLocalRootSig));
-						auto& localRootSubobject = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE>();
-						localRootSubobject.pLocalRootSignature = pLocalRootSig;
+						size_t rootOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE>();
+						unsigned int rootSubIndex = builder.getSubobjectCount() - 1;
+						auto* pLocalRootSubobject = builder.getPtr<D3D12_LOCAL_ROOT_SIGNATURE>(rootOffset);
+						pLocalRootSubobject->pLocalRootSignature = pLocalRootSig;
 
-						auto& association = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION>();
-						association.pSubobjectToAssociate = &builder.mSubobjects[builder.mSubobjects.size() - 2];
-						association.NumExports = 1;
-
-						size_t exportOffset = builder.allocRaw(sizeof(LPCWSTR));
-						association.pExports = builder.getPtr<LPCWSTR>(exportOffset);
-						builder.addString(hgName.c_str(), &association.pExports[0]);
+						size_t assocOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION>();
+						auto* pAssociation = builder.getPtr<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION>(assocOffset);
+						memset(pAssociation, 0, sizeof(D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION));
+						builder.addSubobjectRef(&pAssociation->pSubobjectToAssociate, rootSubIndex);
+						
+						size_t exOffset = builder.allocRaw(sizeof(LPCWSTR));
+						pAssociation = builder.getPtr<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION>(assocOffset);
+						pAssociation->pExports = builder.getPtr<LPCWSTR>(exOffset);
+						builder.addString(hgName.c_str(), (LPCWSTR*)&pAssociation->pExports[0]);
+						pAssociation->NumExports = 1;
 					}
 				}
 			}
@@ -284,13 +310,15 @@ namespace Render
 
 		// 4. Configs
 		{
-			auto& shaderConfig = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG>();
-			shaderConfig.MaxPayloadSizeInBytes = initializer.maxPayloadSize;
-			shaderConfig.MaxAttributeSizeInBytes = initializer.maxAttributeSize;
+			size_t scOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG>();
+			auto* pShaderConfig = builder.getPtr<D3D12_RAYTRACING_SHADER_CONFIG>(scOffset);
+			pShaderConfig->MaxPayloadSizeInBytes = initializer.maxPayloadSize;
+			pShaderConfig->MaxAttributeSizeInBytes = initializer.maxAttributeSize;
 		}
 		{
-			auto& pipelineConfig = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG>();
-			pipelineConfig.MaxTraceRecursionDepth = initializer.maxRecursionDepth;
+			size_t pcOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG>();
+			auto* pPipelineConfig = builder.getPtr<D3D12_RAYTRACING_PIPELINE_CONFIG>(pcOffset);
+			pPipelineConfig->MaxTraceRecursionDepth = initializer.maxRecursionDepth;
 		}
 
 		// 5. Global Root Signature
@@ -298,8 +326,9 @@ namespace Render
 
 		if (mBoundState && mBoundState->mRootSignature)
 		{
-			auto& globalRootSig = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE>();
-			globalRootSig.pGlobalRootSignature = mBoundState->mRootSignature;
+			size_t rootOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE>();
+			auto* pGlobalRootSig = builder.getPtr<D3D12_GLOBAL_ROOT_SIGNATURE>(rootOffset);
+			pGlobalRootSig->pGlobalRootSignature = mBoundState->mRootSignature;
 		}
 
 		// Calculate Global Parameter Count for SBT Offset
@@ -310,8 +339,11 @@ namespace Render
 			{
 				if (shaderInfo.data)
 				{
-					uint32 numParams = (uint32)shaderInfo.data->rootSignature.parameters.size();
-					mGlobalParameterCount = std::max(mGlobalParameterCount, shaderInfo.rootSlotStart + numParams);
+					size_t numParamsCount = shaderInfo.data->rootSignature.parameters.size();
+					if (mGlobalParameterCount < (unsigned int)(shaderInfo.rootSlotStart + numParamsCount))
+					{
+						mGlobalParameterCount = (unsigned int)(shaderInfo.rootSlotStart + numParamsCount);
+					}
 				}
 			}
 		}
@@ -321,8 +353,9 @@ namespace Render
 		if (FAILED(hr)) return false;
 
 		// 6. Query Shader Identifiers
-		TComPtr<ID3D12StateObjectProperties> stateObjectProps;
+		ID3D12StateObjectProperties* stateObjectProps = nullptr;
 		mStateObject->QueryInterface(IID_PPV_ARGS(&stateObjectProps));
+		if (!stateObjectProps) return false;
 
 		if (initializer.rayGenShader)
 		{
@@ -331,7 +364,7 @@ namespace Render
 			mRayGen.localDataSize = mRayGen.shaderData->rootSignature.localDataSize;
 			void* id = stateObjectProps->GetShaderIdentifier(L"RayGen");
 			if (id) FMemory::Copy(mRayGen.identifier, id, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-			else FMemory::Zero(mRayGen.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			else FMemory::Set(mRayGen.identifier, 0, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 		}
 
 		if (initializer.missShader) 
@@ -342,19 +375,19 @@ namespace Render
 			group.localDataSize = group.shaderData->rootSignature.localDataSize;
 			void* id = stateObjectProps->GetShaderIdentifier(L"RayMiss");
 			if (id) FMemory::Copy(group.identifier, id, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-			else FMemory::Zero(group.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			else FMemory::Set(group.identifier, 0, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 			mMissGroups.push_back(group);
 		}
-		for (int i = 0; i < initializer.missShaders.size(); ++i)
+		for (int i = 0; i < (int)initializer.missShaders.size(); ++i)
 		{
 			ShaderGroup group;
 			group.shader = initializer.missShaders[i].generalShader;
-			group.shaderData = static_cast<D3D12Shader*>(group.shader);
+			group.shaderData = (D3D12Shader*)group.shader;
 			group.localDataSize = group.shaderData ? group.shaderData->rootSignature.localDataSize : 0;
 			std::wstring name = L"Miss_" + std::to_wstring(i);
 			void* id = stateObjectProps->GetShaderIdentifier(name.c_str());
 			if (id) FMemory::Copy(group.identifier, id, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-			else FMemory::Zero(group.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			else FMemory::Set(group.identifier, 0, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 			mMissGroups.push_back(group);
 		}
 
@@ -366,7 +399,7 @@ namespace Render
 			group.localDataSize = group.shaderData->rootSignature.localDataSize;
 			void* id = stateObjectProps->GetShaderIdentifier(L"HitGroup");
 			if (id) FMemory::Copy(group.identifier, id, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-			else FMemory::Zero(group.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			else FMemory::Set(group.identifier, 0, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 			mHitGroups.push_back(group);
 		}
 
@@ -382,26 +415,27 @@ namespace Render
 			std::wstring name = L"HitGroup_" + std::to_wstring(i);
 			void* id = stateObjectProps->GetShaderIdentifier(name.c_str());
 			if (id) FMemory::Copy(group.identifier, id, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-			else FMemory::Zero(group.identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			else FMemory::Set(group.identifier, 0, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 			mHitGroups.push_back(group);
 		}
 
+		stateObjectProps->Release();
 		return true;
 	}
 	RHIRayTracingPipelineState* D3D12System::RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer)
 	{
-		auto* state = new D3D12RayTracingPipelineState();
-		if (!state->initialize(this, initializer))
+		D3D12RayTracingPipelineState* pipelineState = new D3D12RayTracingPipelineState();
+		if (!pipelineState->initialize(this, initializer))
 		{
-			delete state;
+			delete pipelineState;
 			return nullptr;
 		}
-		return state;
+		return pipelineState;
 	}
 
 	RHIBottomLevelAccelerationStructure* D3D12System::RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags)
 	{
-		auto* blas = new D3D12BottomLevelAccelerationStructure(this);
+		D3D12BottomLevelAccelerationStructure* blas = new D3D12BottomLevelAccelerationStructure(this);
 		if (!blas->create(geometries, numGeometries, flags))
 		{
 			delete blas;
@@ -958,3 +992,7 @@ namespace Render
 		return true;
 	}
 }
+
+#if RHI_USE_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif

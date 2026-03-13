@@ -435,12 +435,10 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTopLevelAccelerationStructure(numInstances, flags)));
 	}
 
-	RHI_API RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState)
+	RHIRayTracingShaderTable* RHI_TRACE_FUNC(RHICreateRayTracingShaderTable, RHIRayTracingPipelineState* pipelineState)
 	{
-		return EXECUTE_RHI_FUNC(RHICreateRayTracingShaderTable(pipelineState));
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateRayTracingShaderTable(pipelineState)));
 	}
-
-
 
 	RHIShaderProgram* RHI_TRACE_FUNC(RHICreateShaderProgram)
 	{

@@ -15,7 +15,7 @@
     <None Include="out\Script\SceneA.chai">
       <Filter>Script</Filter>
     </None>
-    <None Include="out\Script\RTScene\TestA.chai">
+    <None Include="out\Script\RTScene\DefaultScene.chai">
       <Filter>Script\RTScene</Filter>
     </None>
   </ItemGroup>

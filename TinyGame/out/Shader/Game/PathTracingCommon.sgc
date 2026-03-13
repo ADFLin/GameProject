@@ -23,7 +23,7 @@
 
 #define MAX_TRACE_DIST 1.#INF
 #define MaxBounceCount 4
-#define NumRaysPerPixel 1
+
 
 #if USE_DEBUG_DISPLAY
 struct Stats
@@ -245,8 +245,12 @@ float pdfLight(int objId, int numEmittingObjects)
 	} else if (object.type == OBJ_SPHERE) {
 		float radius = object.meta.x;
 		area = 4.0 * PI * radius * radius;
+	} else if (object.type == OBJ_TRIANGLE_MESH) {
+		// Heuristic area for meshes if not pre-calculated
+		float3 size = object.meta.yyy * 2.0; 
+		area = size.x * size.y * 2.0; 
 	}
-	return 1.0 / (float(numEmittingObjects) * max(area, 0.001f));
+	return 1.0 / (float(numEmittingObjects) * max(area, 0.0001f));
 }
 
 void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf, out int outObjectId, int numEmittingObjects, inout uint rngState) 

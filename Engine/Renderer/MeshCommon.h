@@ -78,6 +78,12 @@ namespace Render
 	{
 		int indexStart;
 		int count;
+
+		template< class Op >
+		void serialize(Op& op)
+		{
+			op & indexStart & count;
+		}
 	};
 
 

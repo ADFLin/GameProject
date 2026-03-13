@@ -7,6 +7,7 @@
 #include "Renderer/MeshBuild.h"
 #include "Json.h"
 #include "FileSystem.h"
+#include "DataCacheInterface.h"
 
 
 using namespace Render;
@@ -31,6 +32,11 @@ IMPLEMENT_SHADER(PathTracingHardwareClosestHit, EShader::RayClosestHit, SHADER_E
 IMPLEMENT_SHADER(PathTracingHardwareMiss, EShader::RayMiss, SHADER_ENTRY(PathTraceMiss));
 IMPLEMENT_SHADER(PathTracingHardwareSphereIntersection, EShader::RayIntersection, SHADER_ENTRY(SphereIntersection));
 IMPLEMENT_SHADER(PathTracingHardwareCubeIntersection, EShader::RayIntersection, SHADER_ENTRY(CubeIntersection));
+
+RayTracingTestStage::RayTracingTestStage()
+{
+	mbGamePased = false;
+}
 
 bool RayTracingTestStage::onInit()
 {
@@ -58,7 +64,7 @@ bool RayTracingTestStage::onInit()
 	frame->addCheckBox("Use MIS", bUseMIS);
 	frame->addCheckBox("Use BVH4", bUseBVH4);
 	frame->addCheckBox("Use Denoise", bUseDenoise);
-	frame->addCheckBox("Use Hardware Ray Tracing", bUseHardwareRayTracing);
+	frame->addCheckBox("Use Hardware RT", bUseHardwareRayTracing);
 	auto choice = frame->addChoice("DebugDisplay Mode", UI_StatsMode);
 
 	char const* ModeTextList[] = 
@@ -122,7 +128,7 @@ bool RayTracingTestStage::onInit()
 		mDetailView->addValue(bSplitAccumulate, "Split Accumulate");
 		mDetailView->addValue((int&)mDebugDisplayMode, "Debug Mode");
 		mDetailView->addValue(bUseMIS, "Use MIS");
-		mDetailView->addValue(bUseHardwareRayTracing, "Use Hardware Ray Tracing");
+		mDetailView->addValue(bUseHardwareRayTracing, "Use Hardware RT");
 
 		mDetailView->clearCategory();
 
@@ -201,17 +207,18 @@ void RayTracingTestStage::onUpdate(GameTimeSpan deltaTime)
 
 #if TINY_WITH_EDITOR
 	mEditorCamera.updatePosition(deltaTime);
-	if (bDataChanged)
+	if (bNeedReload)
 	{
-		rebuildSceneBVH();
+		loadSceneRHIResource();
+		bNeedReload = false;
+		bDataChanged = false;
+	}
+	else if (bDataChanged)
+	{
+		SceneData::buildRenderResource();
 		bDataChanged = false;
 	}
 #endif
-}
-
-RayTracingTestStage::RayTracingTestStage()
-{
-	mbGamePased = false;
 }
 
 void RayTracingTestStage::loadScene(char const* path)
@@ -300,10 +307,18 @@ void RayTracingTestStage::onRender(float dFrame)
 	{
 		GPU_PROFILE("PathTracingHardware");
 		// Check if resources are ready
-		if (!mRayTracingPSO.isValid())
+		PathTracingHardwareRayGen::PermutationDomain domain;
+		domain.set<PathTracingHardwareRayGen::UseDebugDisplay>(mDebugDisplayMode != EDebugDsiplayMode::None);
+		domain.set<PathTracingHardwareRayGen::UseMIS>(bUseMIS);
+		PathTracingHardwareRayGen* rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>(domain);
+
+		if (!mRayTracingPSO.isValid() || rayGenShader != mLastRayGenShader)
 		{
+			RHIFlushCommand(commandList);
+
+			mLastRayGenShader = rayGenShader;
 			RayTracingPipelineStateInitializer initializer;
-			initializer.rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>()->getRHI();
+			initializer.rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>(domain)->getRHI();
 			initializer.missShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareMiss>()->getRHI();
 			initializer.hitGroups.resize(3);
 			initializer.hitGroups[0].closestHitShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareClosestHit>()->getRHI();
@@ -316,22 +331,26 @@ void RayTracingTestStage::onRender(float dFrame)
 
 			// PathPayload: float3 radiance (12), float3 throughput (12), float3 nextOrigin (12), float3 nextDir (12), uint seed (4), bool done (4), float3 normal (12), float dist (4), int matId (4), int objId (4), bool hit (4)
 			// Actually maxPayloadSize should be large enough.
-			initializer.maxPayloadSize = 128; // Standard large enough value
-			mRayTracingPSO = GRHISystem->RHICreateRayTracingPipelineState(initializer);
-			mSBT = GRHISystem->RHICreateRayTracingShaderTable(mRayTracingPSO);
+			initializer.maxPayloadSize = 88;
+			initializer.maxAttributeSize = 2 * sizeof(float);
+			initializer.maxRecursionDepth = 2;
+			mRayTracingPSO = RHICreateRayTracingPipelineState(initializer);
+			mSBT = RHICreateRayTracingShaderTable(mRayTracingPSO);
 		}
 
 		if (mRayTracingPSO.isValid())
 		{
-			RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture() }, EResourceTransition::UAV);
+			RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture(), (RHIResource*)&mSceneRenderTargets.getGBuffer().getRenderTexture(EGBuffer::A) }, EResourceTransition::UAV);
 			RHISetRayTracingPipelineState(commandList, mRayTracingPSO, mSBT);
 
-			PathTracingHardwareRayGen* rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>();
-			PathTracingHardwareClosestHit* closestHitShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareClosestHit>();
 
+			PathTracingHardwareClosestHit* closestHitShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareClosestHit>();
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayGenShader, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 			rayGenShader->setRWTexture(commandList, SHADER_PARAM(Outputradiance), mSceneRenderTargets.getFrameTexture(), 0, EAccessOp::WriteOnly);
+			rayGenShader->setRWTexture(commandList, SHADER_PARAM(OutputNormal), mSceneRenderTargets.getGBuffer().getRenderTexture(EGBuffer::A), 0, EAccessOp::WriteOnly);
 			rayGenShader->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
 			rayGenShader->setParam(commandList, SHADER_PARAM(NumEmittingObjects), mNumEmittingObjects);
+			rayGenShader->setParam(commandList, SHADER_PARAM(DisplayMode), (int32)mDebugDisplayMode);
 			float blendFactor = 1.0f / float(Math::Min(mView.frameCount, 4096) + 1);
 			rayGenShader->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
 			if (mIBLResource.texture.isValid())
@@ -351,14 +370,8 @@ void RayTracingTestStage::onRender(float dFrame)
 			sphereIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
 			cubeIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
 
-			if (mVertexBuffer.isValid())
-			{
-				closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(MeshVertices), *mVertexBuffer.getRHI(), EAccessOp::ReadOnly);
-			}
-			if ( mMeshBuffer.isValid() )
-			{
-				closestHitShader->setStorageBuffer(commandList, SHADER_PARAM(Meshes), *mMeshBuffer.getRHI(), EAccessOp::ReadOnly);
-			}
+			SetStructuredStorageBuffer(commandList, *closestHitShader, mVertexBuffer);
+			SetStructuredStorageBuffer(commandList, *closestHitShader, mMeshBuffer);
 
 
 			mView.setupShader(commandList, *rayGenShader);
@@ -463,7 +476,7 @@ void RayTracingTestStage::onRender(float dFrame)
 
 	}
 
-	if (bUseDenoise && mDebugDisplayMode == EDebugDsiplayMode::None && !(bUseHardwareRayTracing && GRHISupportRayTracing))
+	if (bUseDenoise && mDebugDisplayMode == EDebugDsiplayMode::None)
 	{
 		GPU_PROFILE("Denoise");
 		RHIResourceTransition(commandList, { (RHIResource*)&mSceneRenderTargets.getFrameTexture() , 
@@ -558,7 +571,7 @@ MsgReply RayTracingTestStage::onKey(KeyMsg const& msg)
 			loadCameaTransform();
 			break;
 		case EKeyCode::V:
-			loadSceneRHIResource();
+			bNeedReload = true;
 			break;
 		}
 	}
@@ -838,115 +851,49 @@ namespace RT
 			CHECK(mScene.meshes.size() == mScene.meshInfos.size());
 
 			MeshImportData const* pMeshData = GetRawMeshData(path);
+			RHIBottomLevelAccelerationStructureRef blas;
+			std::shared_ptr<Render::Mesh> renderMesh;
 			if (pMeshData)
 			{
-				auto renderMesh = std::make_shared<Render::Mesh>();
+				renderMesh = std::make_shared<Render::Mesh>();
 				renderMesh->mInputLayoutDesc.clear();
 				renderMesh->mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 				renderMesh->mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 				renderMesh->mSections.clear();
 				if (renderMesh->createRHIResource(meshVertices.data() + mesh.startIndex, mesh.numTriangles * 3))
 				{
-					mScene.mSceneMeshes.push_back(renderMesh);
 					if (GRHISupportRayTracing)
 					{
 						RayTracingGeometryDesc geoDesc;
 						geoDesc.vertexBuffer = renderMesh->mVertexBuffer;
 						geoDesc.vertexCount = renderMesh->getVertexCount();
 						geoDesc.vertexStride = sizeof(MeshVertexData);
-						if (renderMesh->mIndexBuffer.isValid())
+						if (geoDesc.vertexCount > 0)
 						{
-							geoDesc.indexBuffer = renderMesh->mIndexBuffer;
-							geoDesc.indexCount = renderMesh->mIndexBuffer->getNumElements();
-							geoDesc.indexType = IsIntType(renderMesh->mIndexBuffer) ? EIndexBufferType::U32 : EIndexBufferType::U16;
+							if (renderMesh->mIndexBuffer.isValid())
+							{
+								geoDesc.indexBuffer = renderMesh->mIndexBuffer;
+								geoDesc.indexCount = renderMesh->mIndexBuffer->getNumElements();
+								geoDesc.indexType = IsIntType(renderMesh->mIndexBuffer) ? EIndexBufferType::U32 : EIndexBufferType::U16;
+							}
+							blas = RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+							blas->setDebugName("MeshBlas");
+							RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), blas, nullptr, nullptr);
+
 						}
-						RHIBottomLevelAccelerationStructureRef blas = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
-						RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), blas, nullptr, nullptr);
-						mScene.mSceneMeshesBLAS.push_back(blas);
-					}
-					else
-					{
-						mScene.mSceneMeshesBLAS.push_back(nullptr);
 					}
 				}
 				else
 				{
-					mScene.mSceneMeshes.push_back(nullptr);
+					renderMesh = nullptr;
 				}
 			}
-			else
-			{
-				mScene.mSceneMeshes.push_back(nullptr);
-			}
 
+			mScene.mSceneMeshes.push_back(renderMesh);
+			mScene.mSceneMeshesBLAS.push_back(blas);
 			return (int)mScene.meshes.size() - 1;
 		}
 
-		bool addDefaultObjects()
-		{
-			{
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/dragonMid.fbx") != INDEX_NONE);
-				//VERIFY_RETURN_FALSE(loadMesh("Mesh/robot.glb") != INDEX_NONE);
-#if 0
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/dragon.fbx") != INDEX_NONE);
-
-
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/Knight.fbx") != INDEX_NONE);
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/King.fbx") != INDEX_NONE);
-
-
-				VERIFY_RETURN_FALSE(loadMesh("Mesh/Suzanne.fbx") != INDEX_NONE);
-#endif
-			}
-
-			{
-				float L = 55;
-				float planeRoughness = 0.5f;
-				const MaterialData mats[] =
-				{
-					{ Color3f(0,0,0), 0.0, 1.0,L * Color3f(1,1,1) ,0 },
-					{ Color3f(1,1,1), planeRoughness, 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(0,1,0), planeRoughness, 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(1,0,0), planeRoughness, 1.0, Color3f(0,0,0) ,0},
-					{ Color3f(0,0,1), planeRoughness, 1.0, Color3f(0,0,0) ,0},
-					{ 0.5 * Color3f(1,1,1), 0.5, 0.2, Color3f(0,0,0) ,0},
-					{ Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0) ,1.51, 0.8},
-				};
-
-				mScene.materials.append(mats, mats + ARRAY_SIZE(mats));
-
-			}
-
-			{
-				float lightLength = 1.5;
-				float length = 5;
-				float hl = 0.5 * length;
-				float thickness = 0.1;
-				ObjectData objs[] =
-				{
-#if 1
-					FObject::Box(Vector3(lightLength,lightLength,thickness) ,0 ,Vector3(0, 0, 0.5 * (length - 2 * thickness) + hl)),
-
-					FObject::Box(Vector3(length,length,thickness), 1, Vector3(0, 0, 0.5 * (length - thickness) + hl)),
-					FObject::Box(Vector3(length,length,thickness), 2, Vector3(0, 0, -0.5 * (length - thickness) + hl)),
-					FObject::Box(Vector3(length,thickness, length), 3, Vector3(0, 0.5 * (length - thickness) ,hl)),
-					FObject::Box(Vector3(length,thickness, length), 4, Vector3(0, -0.5 * (length - thickness) ,hl)),
-					FObject::Box(Vector3(thickness,length, length), 5, Vector3(-0.5 * (length - thickness), 0 ,hl)),
-
-					//FObject::Mesh(0, 1.2, 1, Vector3(0,0,-0.5 *length + 2), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					//FObject::Mesh(0, 1.2, 5, Vector3(0,0,1), Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(60))),
-					//FObject::Mesh(2, 1.5, 1, Vector3(0,0,-0.5 *length + 2) , Quaternion::Rotate(Vector3(0,0,1) , Math::DegToRad(70))),
-					//FObject::Sphere(0.4, 6, Vector3(0, 1.5, 4.0)),
-					//FObject::Sphere(0.4, 6, Vector3(8, 0, 2.5)),
-#else
-					FObject::Mesh(0, 1, 1, Vector3(0,0,0)),
-#endif
-				};
-				mScene.objects.append(objs, objs + ARRAY_SIZE(objs));
-
-			}
-			return true;
-		}
 
 		bool buildRHIResource()
 		{
@@ -963,7 +910,7 @@ namespace RT
 			mScene.mMeshVertices = meshVertices;
 			mScene.mMeshBVHNodes = meshBVHNodes;
 
-			mScene.rebuildSceneBVH();
+			mScene.buildRenderResource();
 			return true;
 		}
 
@@ -971,12 +918,17 @@ namespace RT
 
 #define SCRIPT_NAME( NAME ) #NAME
 
+	struct FTransform_Script {};
+	struct FQuaternion_Script {};
+
 	class FScriptCommon
 	{
 	public:
 		template< typename TModuleType >
 		static void RegisterMath(TModuleType& module)
 		{
+			module.add(chaiscript::type_conversion<double, float>([](double d) { return static_cast<float>(d); }));
+
 			//Vector3
 			module.add(Chai::constructor< Vector3(float) >(), SCRIPT_NAME(Vector3));
 			module.add(Chai::constructor< Vector3(float, float, float) >(), SCRIPT_NAME(Vector3));
@@ -987,6 +939,26 @@ namespace RT
 			//Color3f
 			module.add(Chai::constructor< Color3f(float, float, float) >(), SCRIPT_NAME(Color3f));
 			module.add(Chai::fun(static_cast<Color3f& (Color3f::*)(Color3f const&)>(&Color3f::operator=)), SCRIPT_NAME(= ));
+
+			//Quaternion
+			module.add(Chai::constructor< Quaternion() >(), SCRIPT_NAME(Quaternion));
+			module.add(Chai::fun([](FQuaternion_Script, Vector3 const& axis, float angle) { return Quaternion::Rotate(axis, Math::DegToRad(angle)); }), "Rotate");
+			module.add(Chai::fun([](FQuaternion_Script, Vector3 const& v) { return Quaternion::EulerZYX(Vector3(Math::DegToRad(v.x), Math::DegToRad(v.y), Math::DegToRad(v.z))); }), "EulerZYX");
+			module.add(Chai::fun(static_cast<Quaternion(*)(Quaternion const&, Quaternion const&)>(&Math::operator*)), SCRIPT_NAME(*));
+
+			using Math::Transform;
+
+			//Transform
+			module.add(Chai::constructor< Transform() >(), SCRIPT_NAME(Transform));
+			module.add(Chai::constructor< Transform(Vector3 const&, Quaternion const&, Vector3 const&) >(), SCRIPT_NAME(Transform));
+			module.add(Chai::fun([](FTransform_Script) { return Transform::Identity(); }), "Identity");
+			module.add(Chai::fun([](FTransform_Script, Vector3 const& axis, float angle) { return Transform::Rotate(Quaternion::Rotate(axis, Math::DegToRad(angle))); }), "Rotate");
+			module.add(Chai::fun([](FTransform_Script, float scale) { return Transform::Scale(scale); }), "Scale");
+			module.add(Chai::fun([](FTransform_Script, Vector3 const& v) { return Transform::EulerZYX(Vector3(Math::DegToRad(v.x), Math::DegToRad(v.y), Math::DegToRad(v.z))); }), "EulerZYX");
+			module.add(Chai::fun(static_cast<Transform(Transform::*)(Transform const&) const>(&Transform::operator*)), SCRIPT_NAME(*));
+			module.add(Chai::fun(&Transform::location), "location");
+			module.add(Chai::fun(&Transform::rotation), "rotation");
+			module.add(Chai::fun(&Transform::scale), "scale");
 		}
 	};
 
@@ -1007,6 +979,8 @@ namespace RT
 			registerAssetId(*CommonModule);
 			registerSceneObject(*CommonModule);
 			script.add(CommonModule);
+			script.add_global_const(Chai::const_var(FTransform_Script()), "FTransform");
+			script.add_global_const(Chai::const_var(FQuaternion_Script()), "FQuaternion");
 			registerSceneFunc(script);
 		}
 
@@ -1049,11 +1023,12 @@ namespace RT
 		{
 			script.add(Chai::fun([this](int matId, Vector3 const& pos, float radius) { Sphere(matId, pos, radius); }), SCRIPT_NAME(Sphere));
 			script.add(Chai::fun([this](int meshId, int matId, Vector3 const& pos, float scale) { Mesh(meshId, matId, pos, scale); }), SCRIPT_NAME(Mesh));
+			script.add(Chai::fun([this](int meshId, int matId, Vector3 const& pos, float scale, Quaternion const& rotation) { Mesh(meshId, matId, pos, scale, rotation); }), SCRIPT_NAME(Mesh));
 			script.add(Chai::fun([this](int matId, Vector3 pos, Vector3 size) { Box(matId, pos, size); }), SCRIPT_NAME(Box));
 			script.add(Chai::fun([this](Color3f baseColor, float roughness, float specular, Color3f emissiveColor, float refractiveIndex, float refractive)
 				{ return Material(baseColor, roughness, specular, emissiveColor, refractiveIndex, refractive); }), SCRIPT_NAME(Material));
 			script.add(Chai::fun([this](std::string const& path) { return LoadMesh(path); }), SCRIPT_NAME(LoadMesh));
-			script.add(Chai::fun([this]() { AddDefaultObjects(); }), SCRIPT_NAME(AddDefaultObjects));
+			script.add(Chai::fun([this](std::string const& path, Math::Transform const& trans) { return LoadMesh(path, trans); }), SCRIPT_NAME(LoadMesh));
 		}
 
 		void Sphere(int matId, Vector3 const& pos, float radius)
@@ -1064,6 +1039,10 @@ namespace RT
 		{
 			mBuilder->mScene.objects.push_back(FObject::Mesh(meshId, scale, matId, pos));
 		}
+		void Mesh(int meshId, int matId, Vector3 const& pos, float scale, Quaternion const& rotation)
+		{
+			mBuilder->mScene.objects.push_back(FObject::Mesh(meshId, scale, matId, pos, rotation));
+		}
 
 		void Box(int matId, Vector3 pos, Vector3 size)
 		{
@@ -1073,6 +1052,11 @@ namespace RT
 		int LoadMesh(std::string const& path)
 		{
 			return mBuilder->loadMesh(path.c_str());
+		}
+
+		int LoadMesh(std::string const& path, Math::Transform const& trans)
+		{
+			return mBuilder->loadMesh(path.c_str(), trans);
 		}
 
 		int Material(
@@ -1086,29 +1070,6 @@ namespace RT
 			int result = mBuilder->mScene.materials.size();
 			mBuilder->mScene.materials.push_back(MaterialData(baseColor, roughness, specular, emissiveColor, refractive, refractiveIndex));
 			return result;
-		}
-
-		bool bDefaultObjectAdded = false;
-		void AddDefaultObjects()
-		{
-			if (bDefaultObjectAdded)
-				return;
-
-			bDefaultObjectAdded = true;
-			int meshId = mBuilder->mScene.meshes.size();
-			int matId = mBuilder->mScene.materials.size();
-			mBuilder->addDefaultObjects();
-
-			std::map<std::string, Chai::Boxed_Value> locals;
-			for (int id = meshId; id < mBuilder->mScene.meshes.size(); ++id)
-			{
-				locals.emplace(InlineString<>::Make("DefMeshId_%d", id - meshId), id);
-			}
-			for (int id = matId; id < mBuilder->mScene.materials.size(); ++id)
-			{
-				locals.emplace(InlineString<>::Make("DefMatId_%d", id - matId), id);
-			}
-			script.set_locals(locals);
 		}
 	};
 
@@ -1124,7 +1085,7 @@ namespace RT
 		return new SceneScriptImpl;
 	}
 
-	void SceneData::rebuildSceneBVH()
+	void SceneData::buildRenderResource()
 	{
 		TIME_SCOPE("RebuildSceneBVH");
 
@@ -1291,17 +1252,20 @@ namespace RT
 
 			if (!instances.empty())
 			{
+				RHICommandList& commnadList = RHICommandList::GetImmediateList();
 				if (!mTLAS.isValid() || mNumTLASInstances < (uint32)instances.size())
 				{
+					RHIFlushCommand(RHICommandList::GetImmediateList());
 					if (mNumTLASInstances < (uint32)instances.size())
 					{
 						mNumTLASInstances = instances.size();
 					}
-					mTLAS = GRHISystem->RHICreateTopLevelAccelerationStructure(mNumTLASInstances, EAccelerationStructureBuildFlags::PreferFastTrace);
+					mTLAS = RHICreateTopLevelAccelerationStructure(mNumTLASInstances, EAccelerationStructureBuildFlags::PreferFastTrace);
+					mTLAS->setDebugName("SceneTLAS");
 				}
-				RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList::GetImmediateList(), mTLAS, instances.data(), (uint32)instances.size());
-				RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mTLAS, nullptr, nullptr);
-				RHIResourceTransition(RHICommandList::GetImmediateList(), { (RHIResource*)mTLAS.get() }, EResourceTransition::UAVBarrier);
+				RHIUpdateTopLevelAccelerationStructureInstances(commnadList, mTLAS, instances.data(), (uint32)instances.size());
+				RHIBuildAccelerationStructure(commnadList, mTLAS, nullptr, nullptr);
+				RHIResourceTransition(commnadList, { (RHIResource*)mTLAS.get() }, EResourceTransition::UAVBarrier);
 			}
 		}
 	}
@@ -1310,64 +1274,19 @@ namespace RT
 bool RayTracingTestStage::loadSceneRHIResource()
 {
 	TIME_SCOPE("LoadScene");
+	
 	RT::SceneBuilderImpl builder(*this);
 
-	TArray< RT::MeshImportInfo > loadMeshInfos = std::move(meshInfos);
-	meshes.clear();
-	mSceneMeshes.clear();
-	for (auto const& info : loadMeshInfos)
-	{
-		builder.loadMesh(info.path.c_str(), info.transform);
-	}
+	SceneData::notifyReload();
 
 	if (mScript == nullptr)
 	{
 		mScript = RT::ISceneScript::Create();
 	}
 
-	VERIFY_RETURN_FALSE(mScript->setup(builder, "TestA"));
+	VERIFY_RETURN_FALSE(mScript->setup(builder, "DefaultScene"));
 	VERIFY_RETURN_FALSE(builder.buildRHIResource());
 
-	if (GRHISupportRayTracing)
-	{
-		float aabbData[] = { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
-		mPrimitiveAABBBuffer = RHICreateBuffer(sizeof(float) * 6, 1, BCF_None, aabbData);
-
-		RayTracingGeometryDesc procGeoDesc;
-		procGeoDesc.type = ERayTracingGeometryType::Procedural;
-		procGeoDesc.vertexBuffer = mPrimitiveAABBBuffer;
-		procGeoDesc.vertexCount = 1;
-		procGeoDesc.vertexStride = sizeof(float) * 6;
-		procGeoDesc.bOpaque = true;
-		mSphereBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&procGeoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
-		RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mSphereBLAS.get(), nullptr, nullptr);
-		
-
-
-		mCubeBLAS = mSphereBLAS; // Can use the same unit AABB BLAS, selected by hit group in TLAS
-
-		auto BuildTriangleBLAS = [&](Mesh& mesh, RHIBottomLevelAccelerationStructureRef& outBLAS) {
-			RayTracingGeometryDesc geoDesc;
-			geoDesc.vertexBuffer = mesh.mVertexBuffer;
-			geoDesc.vertexCount = mesh.getVertexCount();
-			geoDesc.vertexStride = mesh.mInputLayoutDesc.getVertexSize();
-			if (mesh.mIndexBuffer.isValid())
-			{
-				geoDesc.indexBuffer = mesh.mIndexBuffer;
-				geoDesc.indexCount = mesh.mIndexBuffer->getNumElements();
-				geoDesc.indexType = IsIntType(mesh.mIndexBuffer) ? EIndexBufferType::U32 : EIndexBufferType::U16;
-			}
-			outBLAS = GRHISystem->RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
-			RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), outBLAS.get(), nullptr, nullptr);
-		};
-
-		{
-
-			FMeshBuild::Plane(mQuadMesh, Vector3::Zero(), Vector3(0, 0, 1), Vector3(0, 1, 0), Vector2(1, 1), 1.0f);
-			BuildTriangleBLAS(mQuadMesh, mQuadBLAS);
-		}
-	}
-	
 	return true;
 }
 
@@ -1443,6 +1362,46 @@ bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 	}
 	mDebugPrimitives.initializeRHI();
 
+	if (GRHISupportRayTracing)
+	{
+		float aabbData[] = { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+		mPrimitiveAABBBuffer = RHICreateBuffer(sizeof(float) * 6, 1, BCF_None, aabbData);
+
+		RayTracingGeometryDesc procGeoDesc;
+		procGeoDesc.type = ERayTracingGeometryType::Procedural;
+		procGeoDesc.vertexBuffer = mPrimitiveAABBBuffer;
+		procGeoDesc.vertexCount = 1;
+		procGeoDesc.vertexStride = sizeof(float) * 6;
+		procGeoDesc.bOpaque = true;
+		mSphereBLAS = RHICreateBottomLevelAccelerationStructure(&procGeoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+		RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mSphereBLAS.get(), nullptr, nullptr);
+
+		mCubeBLAS = mSphereBLAS; // Can use the same unit AABB BLAS, selected by hit group in TLAS
+
+		auto BuildTriangleBLAS = [&](Mesh& mesh, RHIBottomLevelAccelerationStructureRef& outBLAS)
+		{
+			RayTracingGeometryDesc geoDesc;
+			geoDesc.vertexBuffer = mesh.mVertexBuffer;
+			geoDesc.vertexCount = mesh.getVertexCount();
+			geoDesc.vertexStride = mesh.mInputLayoutDesc.getVertexSize();
+			if (mesh.mIndexBuffer.isValid())
+			{
+				geoDesc.indexBuffer = mesh.mIndexBuffer;
+				geoDesc.indexCount = mesh.mIndexBuffer->getNumElements();
+				geoDesc.indexType = IsIntType(mesh.mIndexBuffer) ? EIndexBufferType::U32 : EIndexBufferType::U16;
+			}
+			outBLAS = RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+			RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), outBLAS.get(), nullptr, nullptr);
+		};
+
+		{
+			FMeshBuild::Plane(mQuadMesh, Vector3::Zero(), Vector3(0, 0, 1), Vector3(0, 1, 0), Vector2(1, 1), 1.0f);
+			BuildTriangleBLAS(mQuadMesh, mQuadBLAS);
+		}
+	}
+
+	// Ensure all base BLAS are built before scene load
+	RHIFlushCommand(RHICommandList::GetImmediateList());
 	VERIFY_RETURN_FALSE(loadSceneRHIResource());
 
 #if TINY_WITH_EDITOR
@@ -1614,7 +1573,8 @@ void RayTracingTestStage::renderViewport(IEditorViewportRenderContext& context)
 		case OBJ_SPHERE: modelScale = Matrix4::Scale(obj.meta.x / 2.5f); mesh = &getMesh(SimpleMeshId::Sphere); break;
 		case OBJ_TRIANGLE_MESH:
 			modelScale = Matrix4::Scale(obj.meta.y);
-			if (mSceneMeshes.isValidIndex(AsValue<int32>(obj.meta.x))) { mesh = mSceneMeshes[AsValue<int32>(obj.meta.x)].get(); }
+			mesh = mSceneMeshes[AsValue<int32>(obj.meta.x)].get();
+			//if (mSceneMeshes.isValidIndex(AsValue<int32>(obj.meta.x))) { mesh = mSceneMeshes[AsValue<int32>(obj.meta.x)].get(); }
 			break;
 		case OBJ_QUAD: modelScale = Matrix4::Scale(obj.meta); mesh = &getMesh(SimpleMeshId::Plane); break;
 		}

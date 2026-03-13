@@ -193,7 +193,6 @@ namespace Render
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
 
-
 	RHI_API RHIFrameBuffer*  RHICreateFrameBuffer();
 
 	RHI_API RHIInputLayout*       RHI_TRACE_FUNC(RHICreateInputLayout, InputLayoutDesc const& desc);
@@ -202,6 +201,10 @@ namespace Render
 	RHI_API RHIBlendState*        RHI_TRACE_FUNC(RHICreateBlendState, BlendStateInitializer const& initializer);
 	RHI_API RHIDepthStencilState* RHI_TRACE_FUNC(RHICreateDepthStencilState, DepthStencilStateInitializer const& initializer);
 
+	RHI_API RHIRayTracingPipelineState*          RHI_TRACE_FUNC(RHICreateRayTracingPipelineState, RayTracingPipelineStateInitializer const& initializer);
+	RHI_API RHIBottomLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateBottomLevelAccelerationStructure, RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags);
+	RHI_API RHITopLevelAccelerationStructure*    RHI_TRACE_FUNC(RHICreateTopLevelAccelerationStructure, uint32 numInstances, EAccelerationStructureBuildFlags flags);
+	RHI_API RHIRayTracingShaderTable*            RHI_TRACE_FUNC(RHICreateRayTracingShaderTable, RHIRayTracingPipelineState* pipelineState);
 
 	RHI_API RHIShader*        RHICreateShader(EShader::Type type);
 
@@ -371,12 +374,6 @@ namespace Render
 	RHI_API void RHISetShaderResourceView(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 	RHI_API void RHISetShaderSampler(RHICommandList& commandList, RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 
-	RHI_API RHIRayTracingPipelineState* RHI_TRACE_FUNC(RHICreateRayTracingPipelineState, RayTracingPipelineStateInitializer const& initializer);
-	RHI_API RHIBottomLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateBottomLevelAccelerationStructure, RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags);
-	RHI_API RHITopLevelAccelerationStructure* RHI_TRACE_FUNC(RHICreateTopLevelAccelerationStructure, uint32 numInstances, EAccelerationStructureBuildFlags flags);
-
-
-
 	enum class EResourceTransition
 	{
 		UAV,
@@ -450,7 +447,6 @@ namespace Render
 		RHI_FUNC(RHIShaderProgram* RHICreateShaderProgram());
 
 		RHI_FUNC(RHIRayTracingPipelineState* RHICreateRayTracingPipelineState(RayTracingPipelineStateInitializer const& initializer));
-
 		RHI_FUNC(RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags));
 		RHI_FUNC(RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags));
 		RHI_FUNC(RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState));

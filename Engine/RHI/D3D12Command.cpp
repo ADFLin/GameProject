@@ -4211,6 +4211,8 @@ namespace Render
 		// Set the fence value for the next frame.
 		mFrameDataList[mFrameIndex].fenceValue = currentFenceValue + 1;
 		D3D12FenceResourceManager::Get().mFenceValue = mFrameDataList[mFrameIndex].fenceValue;
+
+		mRenderTargetsState = nullptr;
 	}
 
 

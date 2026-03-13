@@ -275,7 +275,7 @@ namespace Render
 			D3D12_STATE_OBJECT_DESC result;
 			result.Type = type;
 			result.pSubobjects = mSubobjects.data();
-			result.NumSubobjects = mSubobjects.size();
+			result.NumSubobjects = (uint32)mSubobjects.size();
 			return result;
 		}
 
@@ -298,10 +298,10 @@ namespace Render
 		T* getPtr(size_t offset) { return reinterpret_cast<T*>(mBuffer.data() + offset); }
 
 		template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
-		typename TSOSubobjectStreamTraits< SubobjectID >::DataType& addDataT()
+		size_t addDataT()
 		{
 			using DataType = typename TSOSubobjectStreamTraits< SubobjectID >::DataType;
-			static_assert(std::is_trivially_destructible_v<DataType>);
+			static_assert(std::is_trivially_destructible_v<DataType>, "DataType must be trivially destructible");
 			
 			size_t offset = allocRaw(sizeof(DataType), alignof(DataType));
 			void* ptr = mBuffer.data() + offset;
@@ -311,7 +311,7 @@ namespace Render
 			subobject.Type = SubobjectID;
 			subobject.pDesc = (void*)offset;
 			mSubobjects.push_back(subobject);
-			return *reinterpret_cast<DataType*>(ptr);
+			return offset;
 		}
 
 		struct StringPatchInfo
@@ -324,6 +324,12 @@ namespace Render
 		{
 			size_t offsetInBuffer;
 			uint32 subobjectIndex;
+		};
+
+		struct ExternalPtrPatchInfo
+		{
+			size_t offsetInBuffer;
+			void* ptr;
 		};
 
 		void addString(WStringView const& str, size_t offsetInMember)
@@ -360,11 +366,7 @@ namespace Render
 			}
 			else
 			{
-				// For external pointers, we add the string but can only assign the pointer 
-				// after finalizing (or just assume it's settled). 
-				// In DXR PSO use-case, it's always in-buffer.
 				addString(str, size_t(-1));
-				// Optional: track external refs if needed.
 			}
 		}
 
@@ -377,34 +379,54 @@ namespace Render
 			if ((uint8*)pRef >= pBufStart && (uint8*)pRef < pBufEnd)
 			{
 				size_t offset = (uint8*)pRef - pBufStart;
-				mSubobjectRefs.push_back({ offset, subobjectIndex });
+				mSubobjectPatchRefs.push_back({ offset, subobjectIndex });
 			}
 		}
+
+		void addExternalPtr(void** pRef, void* ptr)
+		{
+			if (pRef == nullptr) return;
+			uint8* pBufStart = mBuffer.data();
+			uint8* pBufEnd = pBufStart + mBuffer.size();
+			if ((uint8*)pRef >= pBufStart && (uint8*)pRef < pBufEnd)
+			{
+				size_t offset = (uint8*)pRef - pBufStart;
+				mExternalPtrPatchRefs.push_back({ offset, ptr });
+			}
+		}
+
+		uint32 getSubobjectCount() const { return (uint32)mSubobjects.size(); }
 
 		void finalize()
 		{
 			for (auto& subobject : mSubobjects)
 			{
-				subobject.pDesc = mBuffer.data() + uint32(subobject.pDesc);
+				subobject.pDesc = mBuffer.data() + (size_t)subobject.pDesc;
 			}
 			for (auto& ptr : mStrings)
 			{
-				ptr = LPCWSTR(mBuffer.data() + uint32(ptr));
+				ptr = LPCWSTR(mBuffer.data() + (size_t)ptr);
 			}
 			for (auto& patch : mStringRef)
 			{
 				LPCWSTR* pTarget = (LPCWSTR*)(mBuffer.data() + patch.offsetInBuffer);
 				*pTarget = mStrings[patch.stringIndex];
 			}
-			for (auto& patch : mSubobjectRefs)
+			for (auto& patch : mSubobjectPatchRefs)
 			{
 				const D3D12_STATE_SUBOBJECT** pTarget = (const D3D12_STATE_SUBOBJECT**)(mBuffer.data() + patch.offsetInBuffer);
 				*pTarget = &mSubobjects[patch.subobjectIndex];
 			}
+			for (auto& patch : mExternalPtrPatchRefs)
+			{
+				void** pTarget = (void**)(mBuffer.data() + patch.offsetInBuffer);
+				*pTarget = patch.ptr;
+			}
 		}
 
 		TArray< StringPatchInfo > mStringRef;
-		TArray< SubobjectPatchInfo > mSubobjectRefs;
+		TArray< SubobjectPatchInfo > mSubobjectPatchRefs;
+		TArray< ExternalPtrPatchInfo > mExternalPtrPatchRefs;
 		TArray< LPCWSTR >  mStrings;
 		TArray< D3D12_STATE_SUBOBJECT> mSubobjects;
 		TArray< uint8 > mBuffer;

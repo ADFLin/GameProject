@@ -332,7 +332,7 @@
     <ClInclude Include="TestRender\TestRenderPCH.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\Script\RTScene\TestA.chai" />
+    <None Include="out\Script\RTScene\DefaultScene.chai" />
     <None Include="out\Script\SceneA.chai" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

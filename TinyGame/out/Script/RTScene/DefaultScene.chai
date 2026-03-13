@@ -1,0 +1,62 @@
+{
+	// Materials
+	var L = 55.0;
+	var planeRoughness = 0.5;
+
+	// mat 0: Light
+	Material(Color3f(0,0,0), 0.0, 1.0, Color3f(L, L, L), 0.0, 0.0);
+	// mat 1: White
+	Material(Color3f(1,1,1), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
+	// mat 2: Green
+	Material(Color3f(0,1,0), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
+	// mat 3: Red
+	Material(Color3f(1,0,0), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
+	// mat 4: Blue
+	Material(Color3f(0,0,1), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
+	// mat 5: Gray
+	Material(Color3f(0.5, 0.5, 0.5), 0.5, 0.2, Color3f(0,0,0), 0.0, 0.0);
+	// mat 6: Glass
+	Material(Color3f(1,1,1), 1.0, 1.0, Color3f(0,0,0), 1.51, 0.8);
+
+	// Meshes
+	// robot pre-rotation 90 degrees X
+	var robotMeshId = LoadMesh("Mesh/robot.glb", FTransform.EulerZYX(Vector3(90.0, 0.0, 0.0)));
+
+	// Other meshes (migrated from C++ commented-out section)
+	var dragonMeshId = LoadMesh("Mesh/dragonMid.fbx");
+	//LoadMesh("Mesh/robot.glb");
+	//LoadMesh("Mesh/dragon.fbx");
+	//LoadMesh("Mesh/Knight.fbx");
+	//LoadMesh("Mesh/King.fbx");
+	//LoadMesh("Mesh/Suzanne.fbx");
+
+	// Variables for layout
+	var lightLength = 1.5;
+	var length = 5.0;
+	var hl = 0.5 * length;
+	var thickness = 0.1;
+
+	// Ceiling Light (mat 0)
+	Box(0, Vector3(0.0, 0.0, 0.5 * (length - 2.0 * thickness) + hl), Vector3(lightLength, lightLength, thickness));
+
+	// Cornell Box (mats 1-5)
+	Box(1, Vector3(0.0, 0.0, 0.5 * (length - thickness) + hl), Vector3(length, length, thickness)); // Ceiling
+	Box(2, Vector3(0.0, 0.0, -0.5 * (length - thickness) + hl), Vector3(length, length, thickness)); // Floor
+	Box(3, Vector3(0.0, 0.5 * (length - thickness), hl), Vector3(length, thickness, length)); // Back Wall
+	Box(4, Vector3(0.0, -0.5 * (length - thickness), hl), Vector3(length, thickness, length)); // Front Wall
+	Box(5, Vector3(-0.5 * (length - thickness), 0.0, hl), Vector3(thickness, length, length)); // Side Wall
+
+	// Objects (Active)
+	Mesh(robotMeshId, 5, Vector3(0.0, 0.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+	Sphere(1, Vector3(0.0, 1.2, hl - 0.5), 0.8);
+
+	// Commented-out objects (Restored)
+	Sphere(6, Vector3(2.5, 0.5, hl - 1.0), 0.8);
+	//Sphere(6, Vector3(0, 0, hl), 1.0);
+	//Sphere(1, Vector3(0, 0, hl), 1.0);
+
+	Mesh(dragonMeshId, 5, Vector3(3.0, -1.0, 1.0), 0.02, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+	//Mesh(robotMeshId, 5, Vector3(1.0, 1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+	//Mesh(robotMeshId, 5, Vector3(-1.0, 1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+	//Mesh(robotMeshId, 5, Vector3(1.0, -1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+}

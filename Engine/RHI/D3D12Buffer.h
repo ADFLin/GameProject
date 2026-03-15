@@ -3,10 +3,13 @@
 #define D3D12Buffer_H_8966BFD8_EAA1_4726_9BED_E775A93A754C
 
 #include "D3D12Definations.h"
+#include "LogSystem.h"
 
 #include "DataStructure/Array.h"
 #include "Memory/BuddyAllocator.h"
 #include "PlatformThread.h"
+#include "Core/IntegerType.h"
+#include "DataStructure/LinearAllocator.h"
 
 namespace Render
 {
@@ -19,6 +22,11 @@ namespace Render
 			return StaticInstance;
 		}
 
+		D3D12FenceResourceManager()
+			:mAllocator(64 * 1024)
+		{
+			mFenceValue = 0;
+		}
 
 		void cleanup(bool bDoRelease)
 		{
@@ -29,10 +37,21 @@ namespace Render
 					fr->release();
 				}
 
-				delete fr;
-
+				fr->~IFenceRelease();
 			}
 			mReleaseList.clear();
+			mAllocator.cleanup();
+		}
+
+		void addResource(ID3D12Resource* resource)
+		{
+			if (resource)
+			{
+				addFuncRelease([resource]() 
+				{
+					resource->Release(); 
+				});
+			}
 		}
 
 		template < typename TFunc >
@@ -53,7 +72,7 @@ namespace Render
 				TFunc mFunc;
 			};
 
-			IFenceRelease* fr = new FuncRelease(std::forward<TFunc>(func));
+			IFenceRelease* fr = new (mAllocator.alloc(sizeof(FuncRelease))) FuncRelease(std::forward<TFunc>(func));
 			fr->fenceValue = mFenceValue + 1;
 			mReleaseList.push_back(fr);
 		}
@@ -77,17 +96,32 @@ namespace Render
 					break;
 
 				fr->release();
-				delete fr;
+				fr->~IFenceRelease();
 			}
 
 			if (index != 0)
 			{
 				mReleaseList.erase(mReleaseList.begin(), mReleaseList.begin() + index);
 			}
+
+			if (mReleaseList.empty())
+			{
+				mAllocator.clear();
+			}
 		}
 
 		uint64 mFenceValue;
+		LinearAllocator mAllocator;
 		TArray< IFenceRelease* > mReleaseList;
+	};
+
+	struct D3D12FenceDeleter
+	{
+		template< class T >
+		static void Destroy(T* ptr)
+		{
+			D3D12FenceResourceManager::Get().addResource(ptr);
+		}
 	};
 
 
@@ -242,6 +276,7 @@ namespace Render
 		bool alloc(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation);
 		bool allocFrame(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation);
 		void dealloc(BuddyAllocationInfo const& info);
+		void deallocDeferred(BuddyAllocationInfo const& info);
 		ID3D12DeviceRHI* mDevice = nullptr;
 
 		TArray< D3D12UploadHeapPage* > mHeapPages;

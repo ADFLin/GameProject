@@ -851,4 +851,8 @@ void MainMenuStage::configRenderSystem(ERenderSystem systenName, RenderSystemCon
 {
 	systemConfigs.bWasUsedPlatformGraphics = true;
 	systemConfigs.bUseRenderThread = true;
+#if 0
+	systemConfigs.screenWidth = 1024;
+	systemConfigs.screenHeight = 768;
+#endif
 }

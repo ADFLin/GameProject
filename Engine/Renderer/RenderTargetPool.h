@@ -21,6 +21,7 @@ namespace Render
 		int numSamples = 1;
 		ETexture::Format format;
 		TextureCreationFlags creationFlags = TCF_DefalutValue | TCF_RenderTarget;
+		LinearColor clearColor = LinearColor(0, 0, 0, 1);
 
 		bool isMatch(RenderTargetDesc const& rhs) const
 		{
@@ -28,7 +29,8 @@ namespace Render
 				   size == rhs.size &&
 				   numSamples == rhs.numSamples &&
 				   format == rhs.format &&
-				   (creationFlags | TCF_RenderTarget) == (rhs.creationFlags | TCF_RenderTarget);
+				   (creationFlags | TCF_RenderTarget) == (rhs.creationFlags | TCF_RenderTarget) &&
+				   clearColor == rhs.clearColor;
 		}
 	};
 
@@ -39,6 +41,7 @@ namespace Render
 		RHITextureRef  resolvedTexture;
 
 		bool bResvered = false;
+		uint32 lastUsedFrame = 0;
 
 		void resolve(RHICommandList& commandList)
 		{
@@ -55,6 +58,7 @@ namespace Render
 	class RenderTargetPool
 	{
 	public:
+		RenderTargetPool() : mCurrentFrame(0) {}
 
 		PooledRenderTargetRef fetchElement(RenderTargetDesc const& desc);
 
@@ -62,6 +66,8 @@ namespace Render
 		void freeUsedElement(PooledRenderTargetRef const& freeRT);
 
 		void freeAllUsedElements();
+
+		void cleanupFreeElements();
 
 
 		void releaseRHI()
@@ -72,6 +78,7 @@ namespace Render
 
 		TArray< PooledRenderTargetRef > mFreeRTs;
 		TArray< PooledRenderTargetRef > mUsedRTs;
+		uint32 mCurrentFrame = 0;
 	};
 
 

@@ -64,16 +64,16 @@ namespace Render
 				}
 			}
 
-			VERIFY_RETURN_FALSE(mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::StaticBuffer));
 			mVertexIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)uniqueVertexIndices.data(), uniqueVertexIndices.size() / sizeof(uint32)));
 
-			VERIFY_RETURN_FALSE(mMeshletBuffer.initializeResource(meshlets.size(), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mMeshletBuffer.initializeResource(meshlets.size(), EStructuredBufferType::StaticBuffer));
 			mMeshletBuffer.updateBuffer(MakeConstView(meshlets));
 
-			VERIFY_RETURN_FALSE(mPrimitiveIndexBuffer.initializeResource(primitiveIndices.size(), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mPrimitiveIndexBuffer.initializeResource(primitiveIndices.size(), EStructuredBufferType::StaticBuffer));
 			mPrimitiveIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)primitiveIndices.data(), primitiveIndices.size()));
 
-			VERIFY_RETURN_FALSE(mCullDataBuffer.initializeResource(cullDataList.size(), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mCullDataBuffer.initializeResource(cullDataList.size(), EStructuredBufferType::StaticBuffer));
 			mCullDataBuffer.updateBuffer(MakeConstView(cullDataList));
 
 			return true;
@@ -89,16 +89,16 @@ namespace Render
 			TArray< MeshletCullData > cullDataList;
 			VERIFY_RETURN_FALSE( mesh.buildMeshlet(maxVertices, maxPrimitives, meshlets, uniqueVertexIndices, primitiveIndices, &cullDataList) );
 
-			VERIFY_RETURN_FALSE( mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::Buffer) );
+			VERIFY_RETURN_FALSE( mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::StaticBuffer) );
 			mVertexIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)uniqueVertexIndices.data(), uniqueVertexIndices.size() / sizeof(uint32)));
 
-			VERIFY_RETURN_FALSE(mMeshletBuffer.initializeResource(meshlets.size(), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mMeshletBuffer.initializeResource(meshlets.size(), EStructuredBufferType::StaticBuffer));
 			mMeshletBuffer.updateBuffer(MakeConstView(meshlets));
 
-			VERIFY_RETURN_FALSE(mPrimitiveIndexBuffer.initializeResource(primitiveIndices.size(), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mPrimitiveIndexBuffer.initializeResource(primitiveIndices.size(), EStructuredBufferType::StaticBuffer));
 			mPrimitiveIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)primitiveIndices.data(), primitiveIndices.size()));
 
-			VERIFY_RETURN_FALSE(mCullDataBuffer.initializeResource(cullDataList.size(), EStructuredBufferType::Buffer));
+			VERIFY_RETURN_FALSE(mCullDataBuffer.initializeResource(cullDataList.size(), EStructuredBufferType::StaticBuffer));
 			mCullDataBuffer.updateBuffer(MakeConstView(cullDataList));
 
 			return true;

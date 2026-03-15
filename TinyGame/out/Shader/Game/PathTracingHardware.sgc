@@ -287,21 +287,11 @@ void PathTraceRayGen()
 			break;
 		}
 	}
-	}
 	else
 	{
 		debugColor = float3(0,0,0);
 	}
-
-	if (bFirstHitIsGeometry)
-	{
-		Outputradiance[launchIndex] = float4(debugColor, 1.0f);
-	}
-	else
-	{
-		// Miss: do not update or write current background
-		// Matching software path behavior
-	}
+	Outputradiance[launchIndex] = float4(debugColor, 1.0f);
 #else
 	Outputradiance[launchIndex] = float4(accColor, 1.0f);
 #endif

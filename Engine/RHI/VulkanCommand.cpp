@@ -1590,13 +1590,40 @@ namespace Render
 
 		VkDeviceSize bufferSize = desc.elementSize * desc.numElements;
 
-		VERIFY_RETURN_FALSE(mDevice->createBuffer(
-			FVulkanBuffer::TranslateUsage(desc.creationFlags),
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			buffer->getBufferData(), bufferSize, data));
+		VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		if (!(desc.creationFlags & BCF_CpuAccessWrite))
+		{
+			memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		}
+
+		if (data != nullptr && (memoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+		{
+			// Need staging buffer
+			VulkanBufferData stagingBuffer;
+			VERIFY_RETURN_FALSE(mDevice->createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				stagingBuffer, bufferSize, data));
+
+			VERIFY_RETURN_FALSE(mDevice->createBuffer(
+				FVulkanBuffer::TranslateUsage(desc.creationFlags) | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				buffer->getBufferData(), bufferSize, nullptr));
+
+			mDevice->copyBuffer(mGraphicsCommandPool, &stagingBuffer, &buffer->getBufferData(), mGraphicsQueue);
+			stagingBuffer.destroy();
+		}
+		else
+		{
+			VERIFY_RETURN_FALSE(mDevice->createBuffer(
+				FVulkanBuffer::TranslateUsage(desc.creationFlags),
+				memoryPropertyFlags,
+				buffer->getBufferData(), bufferSize, data));
+		}
 
 		return true;
 	}
+
 
 	void* VulkanSystem::RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
@@ -2002,13 +2029,34 @@ namespace Render
 		uint32 offset = start * buffer.getDesc().elementSize;
 		uint32 size = numElements * buffer.getDesc().elementSize;
 
-		VkResult result = bufferImpl.getBufferData().map(size, offset);
-		if (result == VK_SUCCESS)
+		if (bufferImpl.getBufferData().memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 		{
-			bufferImpl.getBufferData().copyTo(data, size);
-			bufferImpl.getBufferData().unmap();
+			VkResult result = bufferImpl.getBufferData().map(size, offset);
+			if (result == VK_SUCCESS)
+			{
+				bufferImpl.getBufferData().copyTo(data, size);
+				bufferImpl.getBufferData().unmap();
+			}
+		}
+		else
+		{
+			// Staging upload for DEVICE_LOCAL buffer
+			VulkanBufferData stagingBuffer;
+			if (mDevice->createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				stagingBuffer, size, data))
+			{
+				VkBufferCopy copyRegion;
+				copyRegion.srcOffset = 0;
+				copyRegion.dstOffset = offset;
+				copyRegion.size = size;
+				mDevice->copyBuffer(mSystem->mGraphicsCommandPool, &stagingBuffer, &bufferImpl.getBufferData(), mSystem->mGraphicsQueue, &copyRegion);
+				stagingBuffer.destroy();
+			}
 		}
 	}
+
 	void VulkanContext::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
 	{
 		static_cast<VulkanSystem*>(GRHISystem)->RHIUpdateTexture(texture, ox, oy, w, h, data, level, dataWidth);
@@ -3430,7 +3478,10 @@ namespace Render
 					targetLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 					break;
 				case EResourceTransition::RenderTarget:
-					targetLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+					if (ETexture::IsDepthStencil(static_cast<RHITextureBase*>(resource)->getFormat()))
+						targetLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+					else
+						targetLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 					break;
 				}
 

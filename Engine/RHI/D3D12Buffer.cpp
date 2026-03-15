@@ -208,4 +208,14 @@ namespace Render
 		}
 	}
 
+	void D3D12DynamicBufferManager::deallocDeferred(BuddyAllocationInfo const& info)
+	{
+		D3D12FenceResourceManager::Get().addFuncRelease(
+			[info]()
+			{
+				D3D12DynamicBufferManager::Get().dealloc(info);
+			}
+		);
+	}
+
 }

@@ -145,8 +145,27 @@ public:
 		}
 		else
 		{
-			new (ptr) T(std::move(*from));
-			Destruct(from);
+			if (ptr != from)
+			{
+				new (ptr) T(std::move(*from));
+				Destruct(from);
+			}
+		}
+	}
+
+	template< class T >
+	static void MoveAssign(T* ptr, T* from)
+	{
+		if constexpr (Meta::IsPod< T >::Value)
+		{
+			*ptr = *from;
+		}
+		else
+		{
+			if (ptr != from)
+			{
+				*ptr = std::move(*from);
+			}
 		}
 	}
 

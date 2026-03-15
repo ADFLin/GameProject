@@ -69,7 +69,7 @@ public:
 	virtual void notifyWindowResize(EditorWindow& window, int width, int height) {}
 
 	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) { return 0; }
-
+	virtual void releaseTextureID(Render::RHITexture2D& texture) {}
 };
 
 class IEditorWindowRenderData

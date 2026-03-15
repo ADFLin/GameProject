@@ -651,7 +651,7 @@ namespace Render
 					desc.dimension.x * ETexture::GetFormatSize(desc.format), 0))
 					return nullptr;
 			}
-
+			LogMsg("D3D12System: RHICreateTexture2D %p (%d x %d), State = %d", (ID3D12Resource*)textureResource, desc.dimension.x, desc.dimension.y, resourceState);
 		}
 
 		D3D12Texture2D* texture = new D3D12Texture2D(desc, textureResource);
@@ -1052,22 +1052,49 @@ namespace Render
 			}
 
 			TComPtr< ID3D12Resource > resource;
-			VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
-				&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
-				D3D12_HEAP_FLAG_NONE,
-				&FD3D12Init::BufferDesc(bufferSize),
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&resource)), return nullptr; );
-
-			// Copy the triangle data to the vertex buffer.
-			if (data)
+			if (desc.creationFlags & BCF_CpuAccessRead)
 			{
-				UINT8* pDataBegin;
-				D3D12_RANGE readRange = {};        // We do not intend to read from this resource on the CPU.
-				VERIFY_D3D_RESULT(resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)), return nullptr; );
-				memcpy(pDataBegin, data, bufferSize);
-				resource->Unmap(0, nullptr);
+				VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+					&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_READBACK),
+					D3D12_HEAP_FLAG_NONE,
+					&FD3D12Init::BufferDesc(bufferSize),
+					D3D12_RESOURCE_STATE_COPY_DEST,
+					nullptr,
+					IID_PPV_ARGS(&resource)), return nullptr; );
+			}
+			else
+			{
+				VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+					&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+					D3D12_HEAP_FLAG_NONE,
+					&FD3D12Init::BufferDesc(bufferSize),
+					D3D12_RESOURCE_STATE_COMMON,
+					nullptr,
+					IID_PPV_ARGS(&resource)), return nullptr; );
+
+				if (data)
+				{
+					TComPtr< ID3D12Resource > stagingResource;
+					VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+						&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
+						D3D12_HEAP_FLAG_NONE,
+						&FD3D12Init::BufferDesc(bufferSize),
+						D3D12_RESOURCE_STATE_GENERIC_READ,
+						nullptr,
+						IID_PPV_ARGS(&stagingResource)), return nullptr; );
+
+					void* pDataBegin;
+					D3D12_RANGE readRange = { 0, 0 };
+					VERIFY_D3D_RESULT(stagingResource->Map(0, &readRange, &pDataBegin), return nullptr; );
+					FMemory::Copy(pDataBegin, data, desc.getSize());
+					stagingResource->Unmap(0, nullptr);
+
+					mRenderContext.mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+					mRenderContext.mGraphicsCmdList->CopyBufferRegion(resource, 0, stagingResource, 0, bufferSize);
+					mRenderContext.mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+					mRenderContext.RHIFlushCommand();
+				}
 			}
 
 			D3D12Buffer* result = new D3D12Buffer;
@@ -1111,13 +1138,7 @@ namespace Render
 			{
 				if (bufferImpl->mDynamicAllocation.ptr)
 				{
-					auto buddyInfo = bufferImpl->mDynamicAllocation.buddyInfo;
-					D3D12FenceResourceManager::Get().addFuncRelease(
-						[buddyInfo]()
-						{
-							D3D12DynamicBufferManager::Get().dealloc(buddyInfo);
-						}
-					);
+					D3D12DynamicBufferManager::Get().deallocDeferred(bufferImpl->mDynamicAllocation.buddyInfo);
 				}
 
 				uint32 bufferSize = bufferImpl->getDesc().getSize();
@@ -2517,14 +2538,36 @@ namespace Render
 	void D3D12Context::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)
 	{
 		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
+		uint32 elementSize = buffer.getElementSize();
+		uint32 dataSize = elementSize * numElements;
+		uint32 offset = elementSize * start;
 
-		void* pData = RHILockBuffer(&buffer, ELockAccess::WriteOnly, buffer.getElementSize() * start, buffer.getElementSize() * numElements);
+		void* pData = RHILockBuffer(&buffer, ELockAccess::WriteOnly, offset, dataSize);
 		if (pData)
 		{
-			FMemory::Copy(pData, data, buffer.getElementSize() * numElements);
+			FMemory::Copy(pData, data, dataSize);
 			RHIUnlockBuffer(&buffer);
 		}
+		else
+		{
+			// For Default Heap buffers (StaticBuffer), use a staging buffer
+			D3D12BufferAllocation allocation;
+			if (D3D12DynamicBufferManager::Get().allocFrame(dataSize, 16, allocation))
+			{
+				FMemory::Copy(allocation.cpuAddress, data, dataSize);
+
+				D3D12_RESOURCE_BARRIER barrier = FD3D12Init::TransitionBarrier(bufferImpl.mResource, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+				mGraphicsCmdList->ResourceBarrier(1, &barrier);
+
+				mGraphicsCmdList->CopyBufferRegion(bufferImpl.mResource, offset, allocation.ptr, allocation.gpuAddress - allocation.ptr->GetGPUVirtualAddress(), dataSize);
+
+				barrier = FD3D12Init::TransitionBarrier(bufferImpl.mResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+				mGraphicsCmdList->ResourceBarrier(1, &barrier);
+			}
+		}
 	}
+
+
 
 	void D3D12Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
@@ -2949,8 +2992,17 @@ namespace Render
 				break;
 			case EResourceType::Texture:
 				{
-					D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(static_cast<RHITextureBase&>(*resource));
+					RHITextureBase& textureRHI = static_cast<RHITextureBase&>(*resource);
+					D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(textureRHI);
 					auto toState = GetResourceStates(transition);
+					if (ETexture::IsDepthStencil(textureRHI.getFormat()))
+					{
+						if (toState == D3D12_RESOURCE_STATE_RENDER_TARGET)
+						{
+							toState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+						}
+					}
+
 					if (textureImpl.mCurrentStates != toState)
 					{
 						barriers.push_back(FD3D12Init::TransitionBarrier(textureImpl.getD3D12Resource(), textureImpl.mCurrentStates, toState,

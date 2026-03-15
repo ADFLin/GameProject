@@ -683,7 +683,7 @@ public:
 		--mNum;
 		if (index != mNum)
 		{
-			FTypeMemoryOp::Move(getElement(index), getElement(mNum));
+			FTypeMemoryOp::MoveAssign(getElement(index), getElement(mNum));
 		}
 		FTypeMemoryOp::Destruct(getElement(mNum));
 	}

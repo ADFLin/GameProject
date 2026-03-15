@@ -6,13 +6,13 @@
 	// mat 0: Light
 	Material(Color3f(0,0,0), 0.0, 1.0, Color3f(L, L, L), 0.0, 0.0);
 	// mat 1: White
-	Material(Color3f(1,1,1), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
+	Material(Color3f(1,1,1), 0.0, 1.0, Color3f(0,0,0), 0.0, 0.0);
 	// mat 2: Green
 	Material(Color3f(0,1,0), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
 	// mat 3: Red
 	Material(Color3f(1,0,0), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
 	// mat 4: Blue
-	Material(Color3f(0,0,1), planeRoughness, 1.0, Color3f(0,0,0), 0.0, 0.0);
+	Material(Color3f(0,0,1), 0, 1.0, Color3f(0,0,0), 0.0, 0.0);
 	// mat 5: Gray
 	Material(Color3f(0.5, 0.5, 0.5), 0.5, 0.2, Color3f(0,0,0), 0.0, 0.0);
 	// mat 6: Glass
@@ -28,7 +28,7 @@
 	//LoadMesh("Mesh/dragon.fbx");
 	//LoadMesh("Mesh/Knight.fbx");
 	//LoadMesh("Mesh/King.fbx");
-	//LoadMesh("Mesh/Suzanne.fbx");
+	var meshId = LoadMesh("Mesh/Suzanne.fbx");
 
 	// Variables for layout
 	var lightLength = 1.5;
@@ -47,7 +47,7 @@
 	Box(5, Vector3(-0.5 * (length - thickness), 0.0, hl), Vector3(thickness, length, length)); // Side Wall
 
 	// Objects (Active)
-	Mesh(robotMeshId, 5, Vector3(0.0, 0.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+	Mesh(robotMeshId, 5, Vector3(0.0, 0.0, 1.0), 2.0, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
 	Sphere(1, Vector3(0.0, 1.2, hl - 0.5), 0.8);
 
 	// Commented-out objects (Restored)
@@ -56,7 +56,7 @@
 	//Sphere(1, Vector3(0, 0, hl), 1.0);
 
 	Mesh(dragonMeshId, 5, Vector3(3.0, -1.0, 1.0), 0.02, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
-	//Mesh(robotMeshId, 5, Vector3(1.0, 1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
+	Mesh(meshId, 1, Vector3(3.0, 1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
 	//Mesh(robotMeshId, 5, Vector3(-1.0, 1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
 	//Mesh(robotMeshId, 5, Vector3(1.0, -1.0, 1.0), 1.2, FQuaternion.Rotate(Vector3(0.0, 0.0, 1.0), 60.0));
 }

@@ -346,6 +346,14 @@ namespace Render
 		D3D12PooledHeapHandle alloc(D3D12_SAMPLER_DESC const& desc);
 
 		void freeHandle(D3D12PooledHeapHandle& handle);
+		void flushPendingHandles(uint64 completedFence);
+
+		struct PendingFreeHandle
+		{
+			D3D12PooledHeapHandle handle;
+			uint64 fenceValue;
+		};
+		TArray<PendingFreeHandle> mPendingFreeHandles;
 
 
 

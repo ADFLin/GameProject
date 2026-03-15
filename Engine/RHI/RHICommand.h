@@ -461,42 +461,52 @@ namespace Render
 		Const ,
 		Buffer ,
 		RWBuffer ,
+		StaticBuffer,
 	};
 
 	template< class T >
 	class TStructuredBuffer
 	{
 	public:
-		bool initializeResource(uint32 numElement, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false )
+		bool initializeResource(uint32 numElement, EStructuredBufferType type, BufferCreationFlags inCreationFlags, void* data = nullptr)
 		{
-			BufferCreationFlags creationFlags = BCF_None;
+			BufferCreationFlags creationFlags = inCreationFlags;
 			switch (type)
 			{
 			case EStructuredBufferType::Const:
-				creationFlags = BCF_UsageConst | BCF_CpuAccessWrite;
+				creationFlags |= BCF_UsageConst | BCF_CpuAccessWrite;
 				break;
 			case EStructuredBufferType::Buffer:
-				creationFlags = BCF_CpuAccessWrite | BCF_Structured | BCF_CreateSRV;
+				creationFlags |= BCF_CpuAccessWrite | BCF_Structured | BCF_CreateSRV;
 				break;
 			case EStructuredBufferType::RWBuffer:
-				creationFlags = BCF_Structured | BCF_CreateUAV | BCF_CreateSRV;
+				creationFlags |= BCF_Structured | BCF_CreateUAV | BCF_CreateSRV;
+				break;
+			case EStructuredBufferType::StaticBuffer:
+				creationFlags |= BCF_Structured | BCF_CreateSRV;
 				break;
 			} 
-			if (bCPUAccessRead)
-				creationFlags |= BCF_CpuAccessRead;
-			mResource = RHICreateBuffer(sizeof(T), numElement, creationFlags);
+
+			mResource = RHICreateBuffer(sizeof(T), numElement, creationFlags, data);
 			if( !mResource.isValid() )
 				return false;
 			return true;
 		}
 
-		bool initializeResource(TArrayView<const T> const& data, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false)
+		bool initializeResource(uint32 numElement, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false)
 		{
-			if (!initializeResource((uint32)data.size(), type, bCPUAccessRead))
-				return false;
-			return updateBuffer(data);
+			return initializeResource(numElement, type, bCPUAccessRead ? BCF_CpuAccessRead : BCF_None);
 		}
 
+		bool initializeResource(TArrayView<const T> const& data, EStructuredBufferType type, BufferCreationFlags inCreationFlags)
+		{
+			return initializeResource((uint32)data.size(), type, inCreationFlags, (void*)data.data());
+		}
+
+		bool initializeResource(TArrayView<const T> const& data, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false)
+		{
+			return initializeResource(data, type, bCPUAccessRead ? BCF_CpuAccessRead : BCF_None);
+		}
 
 		void releaseResource()
 		{

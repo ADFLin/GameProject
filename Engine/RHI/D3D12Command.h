@@ -474,6 +474,8 @@ namespace Render
 
 				uint64 completedFence = mFence->GetCompletedValue();
 
+				D3D12DescriptorHeapPool::Get().flushPendingHandles(completedFence);
+
 				for (int i = 0; i < mInFlightCmdLists.size(); )
 				{
 					if (mInFlightCmdLists[i].fenceValue <= completedFence)

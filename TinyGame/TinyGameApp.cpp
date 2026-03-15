@@ -44,6 +44,10 @@
 #include "RHI/RHICommand.h"
 #include "Renderer/RenderThread.h"
 #include "RHI/RHIGraphics2D.h"
+#if SYS_PLATFORM_WIN
+#include <mmsystem.h>
+#endif
+
 
 #include "Hardware/GPUDeviceQuery.h"
 #include "StringParse.h"
@@ -636,6 +640,9 @@ void RunArrayTest()
 
 bool TinyGameApp::initializeGame()
 {
+#if SYS_PLATFORM_WIN
+	timeBeginPeriod(1);
+#endif
 	DateTime appStartTime = SystemPlatform::GetLocalTime();
 
 	CommandLineArgs commandLineArgs;
@@ -913,6 +920,10 @@ bool TinyGameApp::initializeGame()
 
 void TinyGameApp::finalizeGame()
 {
+#if SYS_PLATFORM_WIN
+	timeEndPeriod(1);
+#endif
+
 
 #if TINY_WITH_EDITOR
 	finalizeEditor();
@@ -1042,14 +1053,35 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 void TinyGameApp::handleGameIdle(long time)
 {
 	PROFILE_ENTRY("GameIdle");
-#if 1
 	if ( CVarLockFPS )
-		SystemPlatform::Sleep(3 * time / 4);
+	{
+		if (time > 0)
+		{
+			double waitTime = double(time) / 1000.0;
+			double startTime = SystemPlatform::GetHighResolutionTime();
+			for (;;)
+			{
+				double currentTime = SystemPlatform::GetHighResolutionTime();
+				double remainingTime = waitTime - (currentTime - startTime);
+
+				if (remainingTime <= 0)
+					break;
+
+				if (remainingTime > 0.002)
+				{
+					SystemPlatform::Sleep(1);
+				}
+				else if (remainingTime > 0.0005)
+				{
+					SystemPlatform::Sleep(0);
+				}
+			}
+		}
+	}
 	else
+	{
 		render( 0.0f );
-#else
-	SystemPlatform::Sleep(time / 2);
-#endif
+	}
 }
 
 void TinyGameApp::handleGameRender()
@@ -1442,17 +1474,19 @@ void TinyGameApp::render( float dframe )
 
 
 	{
-		PROFILE_ENTRY("DrawEngine.BeginFrame")
+		PROFILE_ENTRY("DrawEngine.BeginFrame");
 		if (!drawEngine.beginFrame())
 			return;
 	}
-	++GRenderFrame;
 
 	{
-		PROFILE_ENTRY("GpuProfiler.BeginFrame")
+		PROFILE_ENTRY("GpuProfiler.BeginFrame");
 		if (CVarProfileGPU)
 			GpuProfiler::Get().beginFrame();
 	}
+
+	++GRenderFrame;
+
 	if ( getNextStage() || mbInitializingStage )
 		return;
 
@@ -1664,11 +1698,11 @@ void TinyGameApp::render( float dframe )
 			GpuProfiler::Get().endFrame();
 	}
 
+
 	{
 		PROFILE_ENTRY("DrawEngine.endFrame");
 		drawEngine.endFrame();
 	}
-
 
 #if TINY_WITH_EDITOR
 	if (mEditor)
@@ -1678,7 +1712,7 @@ void TinyGameApp::render( float dframe )
 		mEditor->render();
 	}
 #endif
-	
+
 }
 
 void TinyGameApp::importUserProfile()

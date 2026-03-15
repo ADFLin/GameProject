@@ -86,6 +86,8 @@ public:
 	T*     data() { return mData; }
 	size_t size() const { return mNum; }
 
+	bool empty() const { return mNum == 0; }
+
 	T const* data() const { return mData; }
 protected:
 	T*     mData;

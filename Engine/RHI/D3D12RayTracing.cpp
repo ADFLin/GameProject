@@ -40,11 +40,11 @@ namespace Render
 				dst.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
 				dst.Flags = src.bOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
 
-				dst.Triangles.VertexBuffer.StartAddress = D3D12Cast::To(src.vertexBuffer)->getResource()->GetGPUVirtualAddress() + src.vertexOffset;
+				dst.Triangles.VertexBuffer.StartAddress = D3D12Cast::To(src.vertexBuffer)->getGPUVirtualAddress() + src.vertexOffset;
 				dst.Triangles.VertexBuffer.StrideInBytes = src.vertexStride;
 				dst.Triangles.VertexCount = src.vertexCount;
 				dst.Triangles.VertexFormat = D3D12Translate::To(src.vertexFormat, false);
-				dst.Triangles.IndexBuffer = src.indexBuffer ? D3D12Cast::To(src.indexBuffer)->getResource()->GetGPUVirtualAddress() + src.indexOffset : 0;
+				dst.Triangles.IndexBuffer = src.indexBuffer ? D3D12Cast::To(src.indexBuffer)->getGPUVirtualAddress() + src.indexOffset : 0;
 				dst.Triangles.IndexFormat = src.indexBuffer ? (src.indexType == EIndexBufferType::U32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT) : DXGI_FORMAT_UNKNOWN;
 				dst.Triangles.IndexCount = src.indexCount;
 				dst.Triangles.Transform3x4 = 0;
@@ -54,7 +54,7 @@ namespace Render
 				dst.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
 				dst.Flags = src.bOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
 				
-				dst.AABBs.AABBs.StartAddress = D3D12Cast::To(src.vertexBuffer)->getResource()->GetGPUVirtualAddress() + src.vertexOffset;
+				dst.AABBs.AABBs.StartAddress = D3D12Cast::To(src.vertexBuffer)->getGPUVirtualAddress() + src.vertexOffset;
 				dst.AABBs.AABBs.StrideInBytes = src.vertexStride;
 				dst.AABBs.AABBCount = src.vertexCount;
 			}
@@ -860,14 +860,7 @@ namespace Render
 		
 		D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
 
-		auto checkAllocation = [](D3D12Buffer* buf) -> D3D12_GPU_VIRTUAL_ADDRESS
-		{
-			if (buf->mDynamicAllocation.ptr != nullptr) return buf->mDynamicAllocation.gpuAddress;
-			if (buf->getResource() != nullptr) return buf->getResource()->GetGPUVirtualAddress();
-			return 0;
-		};
-
-		gpuAddr = checkAllocation(d3dBuf);
+		gpuAddr = d3dBuf->getGPUVirtualAddress();
 
 		if (gpuAddr != 0)
 		{
@@ -918,9 +911,7 @@ namespace Render
 
 		D3D12Buffer* d3dBuf = static_cast<D3D12Buffer*>(buffer);
 		
-		D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
-		if (d3dBuf->mDynamicAllocation.ptr != nullptr) gpuAddr = d3dBuf->mDynamicAllocation.gpuAddress;
-		else if (d3dBuf->getResource() != nullptr) gpuAddr = d3dBuf->getResource()->GetGPUVirtualAddress();
+		D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = d3dBuf->getGPUVirtualAddress();
 
 		if (gpuAddr != 0)
 		{

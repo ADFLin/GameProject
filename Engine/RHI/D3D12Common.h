@@ -522,7 +522,7 @@ namespace Render
 #endif
 			}
 #else
-			mResource->Release();
+			D3D12FenceResourceManager::Get().addResource(mResource);
 #endif
 			mResource = nullptr;
 		}
@@ -564,7 +564,7 @@ namespace Render
 		struct BufferState
 		{
 			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
-			TComPtr< ID3D12Resource > resource;
+			TComPtr< ID3D12Resource , D3D12FenceDeleter > resource;
 			RHITextureRef texture;
 			D3D12PooledHeapHandle RTVHandle;
 		};
@@ -572,7 +572,7 @@ namespace Render
 		struct DepthBufferState
 		{
 			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
-			TComPtr< ID3D12Resource > resource;
+			TComPtr< ID3D12Resource , D3D12FenceDeleter > resource;
 			RHITextureRef texture;
 			D3D12PooledHeapHandle DSVHandle;
 		};
@@ -712,10 +712,7 @@ namespace Render
 
 		bool initialize(TComPtr<IDXGISwapChainRHI>& resource, TComPtr<ID3D12DeviceRHI>& device , int bufferCount);
 
-		virtual void resizeBuffer(int w, int h) override
-		{
-			mResource->ResizeBuffers(mRenderTargetsStates.size(), w, h, DXGI_FORMAT_UNKNOWN, 0);
-		}
+		virtual void resizeBuffer(int w, int h) override;
 		virtual RHITexture2D* getBackBufferTexture() override
 		{
 			return nullptr;
@@ -732,11 +729,12 @@ namespace Render
 
 		virtual void releaseResource()
 		{
+			LogMsg("D3D12SwapChain: releaseResource");
 			for (auto& state : mRenderTargetsStates)
 			{
 				state.releasePoolHandle();
 			}
-			mRenderTargetsStates.empty();
+			mRenderTargetsStates.clear();
 		}
 
 		TArray< D3D12RenderTargetsState > mRenderTargetsStates;
@@ -868,6 +866,13 @@ namespace Render
 		bool isDyanmic() const
 		{
 			return !!(getDesc().creationFlags & BCF_CpuAccessWrite);
+		}
+
+		D3D12_GPU_VIRTUAL_ADDRESS getGPUVirtualAddress() const
+		{
+			if (mResource)
+				return mResource->GetGPUVirtualAddress();
+			return mDynamicAllocation.gpuAddress;
 		}
 
 		D3D12PooledHeapHandle mCBV;

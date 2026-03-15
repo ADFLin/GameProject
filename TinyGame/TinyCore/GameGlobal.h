@@ -19,7 +19,8 @@ typedef TVector2< int >  Vec2i;
 using ::Math::Vector2;
 
 int const MAX_PLAYER_NUM   = 32;
-int const gDefaultTickTime = 15;
+
+int const gDefaultTickTime = 16;
 int const gDefaultGameFPS  = 1000 / gDefaultTickTime;
 
 int const gDefaultScreenWidth  = 800;

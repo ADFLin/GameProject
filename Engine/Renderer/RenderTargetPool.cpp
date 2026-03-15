@@ -17,6 +17,7 @@ namespace Render
 			if (rt->desc.isMatch(desc))
 			{
 				rt->desc.debugName = desc.debugName;
+				rt->lastUsedFrame = mCurrentFrame;
 				mUsedRTs.push_back(rt);
 #if 0	
 				if (&rt != &mFreeRTs.back())
@@ -28,6 +29,7 @@ namespace Render
 #else
 				mFreeRTs.erase(iter);
 #endif
+
 				return mUsedRTs.back();
 			}
 		}
@@ -40,13 +42,15 @@ namespace Render
 		{
 			if (ETexture::IsDepthStencil(desc.format))
 			{
-				TextureDesc depthDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags);
+				TextureDesc depthDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags).ClearColor(desc.clearColor);
 				result->texture = RHICreateTexture2D(depthDesc);
+				result->texture->setDebugName("PooledRT.Depath");
 			}
 			else
 			{
-				TextureDesc texDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget);
+				TextureDesc texDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget).ClearColor(desc.clearColor);
 				result->texture = RHICreateTexture2D(texDesc);
+				result->texture->setDebugName("PooledRT.Texture2D");
 				if (desc.numSamples > 1)
 				{
 					texDesc.Samples(1);
@@ -60,8 +64,9 @@ namespace Render
 		}
 		else if (desc.type == ETexture::TypeCube)
 		{
-			TextureDesc texDesc = TextureDesc::TypeCube(desc.format, desc.size.x).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget);
+			TextureDesc texDesc = TextureDesc::TypeCube(desc.format, desc.size.x).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget).ClearColor(desc.clearColor);
 			result->texture = RHICreateTextureCube(texDesc);
+			result->texture->setDebugName("PooledRT.TextureCube");
 			if (desc.numSamples > 1)
 			{
 				texDesc.Samples(1);
@@ -75,6 +80,7 @@ namespace Render
 		}
 
 		mUsedRTs.push_back(result);
+		result->lastUsedFrame = mCurrentFrame;
 		return result;
 	}
 
@@ -85,11 +91,15 @@ namespace Render
 
 	void RenderTargetPool::freeAllUsedElements()
 	{
+		++mCurrentFrame;
 		for (int index = 0; index < mUsedRTs.size(); ++index)
 		{
 			auto& rt = mUsedRTs[index];
 			if (rt->bResvered)
+			{
+				rt->lastUsedFrame = mCurrentFrame;
 				continue;
+			}
 
 			mFreeRTs.push_back(rt);
 			mUsedRTs.removeIndexSwap(index);
@@ -98,7 +108,22 @@ namespace Render
 
 		for (auto& rt : mFreeRTs)
 		{
-			rt->desc.debugName == EName::None;
+			rt->desc.debugName = EName::None;
+		}
+
+		cleanupFreeElements();
+	}
+
+	void RenderTargetPool::cleanupFreeElements()
+	{
+		static constexpr uint32 MaxFrameAge = 120;
+		for (int i = 0; i < mFreeRTs.size(); ++i)
+		{
+			if (mCurrentFrame - mFreeRTs[i]->lastUsedFrame > MaxFrameAge)
+			{
+				mFreeRTs.removeIndexSwap(i);
+				--i;
+			}
 		}
 	}
 

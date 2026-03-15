@@ -651,6 +651,8 @@ public:
 	int mSrvAllocCount = 1; // 0 is used for font
 	std::unordered_map<Render::RHITexture2D*, ImTextureID> mTextureIDMap;
 
+	TArray<int> mFreeSrvSlots;
+
 	virtual ImTextureID getTextureID(Render::RHITexture2D& texture) override
 	{
 		auto iter = mTextureIDMap.find(&texture);
@@ -659,20 +661,59 @@ public:
 
 		Render::D3D12Texture2D& textureD3D = static_cast<Render::D3D12Texture2D&>(texture);
 		
-		int slot = mSrvAllocCount++;
+		int slot;
+		if (!mFreeSrvSlots.empty())
+		{
+			slot = mFreeSrvSlots.back();
+			mFreeSrvSlots.pop_back();
+		}
+		else
+		{
+			if (mSrvAllocCount >= (int)mSrvDescHeap->GetDesc().NumDescriptors)
+			{
+				static bool bLogged = false;
+				if (!bLogged)
+				{
+					LogWarning(0, "EditorRendererD3D12: SRV Descriptor Heap Overflow!");
+					bLogged = true;
+				}
+				return ImTextureID(0);
+			}
+			slot = mSrvAllocCount++;
+		}
 		
+		UINT handleSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = mSrvDescHeap->GetCPUDescriptorHandleForHeapStart();
-		cpuHandle.ptr += slot * mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		cpuHandle.ptr += slot * handleSize;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = mSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
-		gpuHandle.ptr += slot * mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		gpuHandle.ptr += slot * handleSize;
 
 		mDevice->CopyDescriptorsSimple(1, cpuHandle, textureD3D.mSRV.getCPUHandleCopy(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		mTextureIDMap[&texture] = (ImTextureID)gpuHandle.ptr;
+		LogMsg("EditorRendererD3D12: getTextureID %p -> Slot %d", &texture, slot);
 
 		return (ImTextureID)gpuHandle.ptr;
+	}
 
+	virtual void releaseTextureID(Render::RHITexture2D& texture) override
+	{
+		auto iter = mTextureIDMap.find(&texture);
+		if (iter != mTextureIDMap.end())
+		{
+			UINT64 gpuHandlePtr = (UINT64)iter->second;
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuBaseHandle = mSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
+			UINT handleSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			int slot = (int)((gpuHandlePtr - gpuBaseHandle.ptr) / handleSize);
+
+			if (slot >= 0 && slot < (int)mSrvDescHeap->GetDesc().NumDescriptors)
+			{
+				mFreeSrvSlots.push_back(slot);
+				LogMsg("EditorRendererD3D12: releaseTextureID %p -> Slot %d", &texture, slot);
+			}
+			mTextureIDMap.erase(iter);
+		}
 	}
 };
 

@@ -146,6 +146,9 @@ public:
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
 
+	bool operator == (TColor3 const& rhs) const { return r == rhs.r && g == rhs.g && b == rhs.b; }
+	bool operator != (TColor3 const& rhs) const { return !this->operator==(rhs); }
+
 	uint32 toRGB() const { return FColor::ToRGB(r, g, b); }
 };
 
@@ -200,6 +203,10 @@ public:
 	TColor3<T> rgb() const { return TColor3<T>(r, g, b); }
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
+
+	bool operator == (TColor4 const& rhs) const { return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; }
+	bool operator != (TColor4 const& rhs) const { return !this->operator==(rhs); }
+
 	uint32 toARGB() const { return FColor::ToARGB(r, g, b, a); }
 	uint32 toRGBA() const { return FColor::ToABGR(r, g, b, a); }
 };

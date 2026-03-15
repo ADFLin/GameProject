@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -274,13 +274,18 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
-    <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp" />
-    <ClCompile Include="TestRender\Stage\RayTracingStage.cpp">
+    <ClCompile Include="TestRender\Stage\PathTracingStage.cpp" />
+
+    <ClCompile Include="TestRender\Stage\PathTracing\PathTracingBVH.cpp" />
+    <ClCompile Include="TestRender\Stage\PathTracing\PathTracingEditor.cpp" />
+    <ClCompile Include="TestRender\Stage\PathTracing\PathTracingRenderer.cpp" />
+    <ClCompile Include="TestRender\Stage\PathTracing\PathTracingScene.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp" />
     <ClCompile Include="TestRender\MeshImporterGLB.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -322,9 +327,14 @@
     <ClInclude Include="TestRender\Stage\FireworksStage.h" />
     <ClInclude Include="TestRender\Stage\Lighting2DStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
+    <ClInclude Include="TestRender\Stage\PathTracingStage.h" />
+    <ClInclude Include="TestRender\Stage\PathTracing\PathTracingBVH.h" />
+    <ClInclude Include="TestRender\Stage\PathTracing\PathTracingCommon.h" />
+    <ClInclude Include="TestRender\Stage\PathTracing\PathTracingEditor.h" />
+    <ClInclude Include="TestRender\Stage\PathTracing\PathTracingRenderer.h" />
+    <ClInclude Include="TestRender\Stage\PathTracing\PathTracingScene.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
     <ClInclude Include="TestRender\Stage\PlantRenderingStage.h" />
-    <ClInclude Include="TestRender\Stage\RayTracingStage.h" />
     <ClInclude Include="TestRender\MeshImporterGLB.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
     <ClInclude Include="TestRender\Stage\SoftwareRenderingStage.h" />

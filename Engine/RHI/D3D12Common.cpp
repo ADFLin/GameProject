@@ -275,6 +275,78 @@ namespace Render
 		return true;
 	}
 
+	void D3D12SwapChain::resizeBuffer(int w, int h)
+	{
+		if (w <= 0 || h <= 0)
+			return;
+
+		D3D12System* system = static_cast<D3D12System*>(GRHISystem);
+		system->mRenderContext.waitForGpu();
+
+		DXGI_FORMAT depthFormat = DXGI_FORMAT_UNKNOWN;
+		UINT sampleCount = 1;
+		if (mRenderTargetsStates.size() > 0 && mRenderTargetsStates[0].depthBuffer.resource.isValid())
+		{
+			auto desc = mRenderTargetsStates[0].depthBuffer.resource->GetDesc();
+			depthFormat = desc.Format;
+			sampleCount = desc.SampleDesc.Count;
+		}
+
+		for (auto& state : mRenderTargetsStates)
+		{
+			state.releasePoolHandle();
+			state.colorBuffers[0].resource.reset();
+			state.depthBuffer.resource.reset();
+		}
+
+		D3D12FenceResourceManager::Get().releaseFence((uint64)-1);
+
+		if (mResource->ResizeBuffers((UINT)mRenderTargetsStates.size(), w, h, DXGI_FORMAT_UNKNOWN, 0) != S_OK)
+		{
+			::LogWarning(0, "D3D12SwapChain.resizeBuffer Failed");
+		}
+
+		TComPtr<ID3D12Resource> depthResource;
+		if (depthFormat != DXGI_FORMAT_UNKNOWN)
+		{
+
+			depthResource.initialize(system->createDepthTexture2D(depthFormat, w, h, sampleCount, TCF_RenderTarget));
+			if (depthResource.isValid())
+			{
+				depthResource->SetName(L"SwapChainDepth");
+			}
+		}
+
+		for (int i = 0; i < (int)mRenderTargetsStates.size(); ++i)
+		{
+			auto& state = mRenderTargetsStates[i];
+			state.numColorBuffers = 1;
+			mResource->GetBuffer(i, IID_PPV_ARGS(&state.colorBuffers[0].resource));
+			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Alloc<D3D12_RENDER_TARGET_VIEW_DESC>(state.colorBuffers[0].resource, nullptr);
+			D3D12_RESOURCE_DESC desc = state.colorBuffers[0].resource->GetDesc();
+			state.colorBuffers[0].format = desc.Format;
+
+			if (depthResource.isValid())
+			{
+				state.depthBuffer.format = depthFormat;
+				state.depthBuffer.resource = depthResource;
+				D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+				dsvDesc.Format = depthFormat;
+				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+				if (sampleCount > 1)
+				{
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+				}
+				else
+				{
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+					dsvDesc.Texture2D.MipSlice = 0;
+				}
+				state.depthBuffer.DSVHandle = D3D12DescriptorHeapPool::Alloc(state.depthBuffer.resource, &dsvDesc);
+			}
+		}
+	}
+
 	D3D12InputLayout::D3D12InputLayout(InputLayoutDesc const& desc)
 	{
 		mAttriableMask = 0;
@@ -503,6 +575,7 @@ namespace Render
 		auto& targetImpl = static_cast<D3D12Texture2D&>(target);
 		auto& bufferState = mRenderTargetsState.colorBuffers[index];
 		
+		bufferState.texture = &target;
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
@@ -516,10 +589,10 @@ namespace Render
 		auto& targetImpl = static_cast<D3D12TextureCube&>(target);
 		auto& bufferState = mRenderTargetsState.colorBuffers[index];
 
+		bufferState.texture = &target;
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
-		bufferState.texture = &target;
 
 		bufferState.RTVHandle = targetImpl.getRTV(level, (uint32)face, 1, format);
 		bStateDirty = true;
@@ -530,10 +603,11 @@ namespace Render
 		auto& targetImpl = static_cast<D3D12Texture2DArray&>(target);
 		auto& bufferState = mRenderTargetsState.colorBuffers[index];
 
+		bufferState.texture = &target;
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
-		bufferState.texture = &target;
+
 
 		bufferState.RTVHandle = targetImpl.getRTV(level, indexLayer, 1, format);
 		bStateDirty = true;
@@ -544,10 +618,11 @@ namespace Render
 		auto& targetImpl = static_cast<D3D12TextureCube&>(target);
 		auto& bufferState = mRenderTargetsState.colorBuffers[index];
 
+		bufferState.texture = &target;
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
-		bufferState.texture = &target;
+
 
 		bufferState.RTVHandle = targetImpl.getRTV(level, 0, 6, format);
 		bStateDirty = true;
@@ -559,10 +634,11 @@ namespace Render
 		auto& targetImpl = static_cast<D3D12Texture2D&>(target);
 		auto& bufferState = mRenderTargetsState.depthBuffer;
 		
+		bufferState.texture = &target;
 		bufferState.resource.assign(targetImpl.getResource());
 		DXGI_FORMAT format = D3D12Translate::To(target.getDesc().format);
 		bufferState.format = format;
-		bufferState.texture = &target;
+
 
 		bufferState.DSVHandle = targetImpl.getDSV(0, 0, 1, format);
 		bStateDirty = true;

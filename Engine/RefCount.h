@@ -73,6 +73,11 @@ public:
 
 	TRefCountPtr& operator = ( T* ptr ){  assign( ptr ); return *this;  }
 
+	bool operator == (TRefCountPtr const& rcPtr) const { return mPtr == rcPtr.mPtr; }
+	bool operator != (TRefCountPtr const& rcPtr) const { return mPtr != rcPtr.mPtr; }
+
+	bool operator == (T* ptr) const { return mPtr == ptr; }
+	bool operator != (T* ptr) const { return mPtr != ptr; }
 protected:
 	void init(T* ptr)
 	{

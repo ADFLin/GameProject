@@ -67,6 +67,9 @@ void GameLoopT< T , PP >::run()
 	unsigned numLoops=0;
 	while( !mIsOver )
 	{
+		uint64  presentTime = mClock.getTimeMicroseconds();
+		uint64  intervalTime = presentTime - beforeTime;
+
 		_this()->handleGameFrameStart();
 
 		{
@@ -77,9 +80,6 @@ void GameLoopT< T , PP >::run()
 				break;
 			}
 		}
-
-		uint64  presentTime = mClock.getTimeMicroseconds();
-		uint64  intervalTime = presentTime - beforeTime;
 
 		if ( intervalTime < mUpdateTime )
 		{

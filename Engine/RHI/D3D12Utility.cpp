@@ -1,6 +1,7 @@
 #include "D3D12Utility.h"
 
 #include "D3DSharedCommon.h"
+#include "D3D12Buffer.h"
 
 #include "MacroCommon.h"
 #include "BitUtility.h"
@@ -177,13 +178,28 @@ namespace Render
 			return;
 
 		CHECK(handle.isValid());
-		if (handle.chunk->owner)
+		mPendingFreeHandles.push_back({ handle, D3D12FenceResourceManager::Get().mFenceValue });
+		handle.reset();
+	}
+
+	void D3D12DescriptorHeapPool::flushPendingHandles(uint64 completedFence)
+	{
+		for (int i = 0; i < mPendingFreeHandles.size(); ++i)
 		{
-			handle.chunk->owner->freeHandle(handle);
+			auto& pending = mPendingFreeHandles[i];
+			if (pending.fenceValue <= completedFence)
+			{
+				auto& handle = pending.handle;
+				if (handle.chunk->owner)
+				{
+					handle.chunk->owner->freeHandle(handle);
+				}
+				handle.chunk->freeSlot(handle.chunkSlot);
+
+				mPendingFreeHandles.removeIndexSwap(i);
+				--i;
+			}
 		}
-		handle.chunk->freeSlot(handle.chunkSlot);
-		handle.chunk = nullptr;
-		handle.chunkSlot = INDEX_NONE;
 	}
 
 	bool D3D12DescHeapGrowable::initialize(uint size, ID3D12DeviceRHI* device)
@@ -322,6 +338,7 @@ namespace Render
 
 		availableChunk = nullptr;
 	}
+
 
 }//namespace Render
 

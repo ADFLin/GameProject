@@ -275,6 +275,8 @@ void GameViewportPanel::render()
 		context.texture = mTexture;
 		context.frameBuffer = mFrameBuffer;
 		context.graphics = &EditorRenderGloabal::Get().getGraphics();
+
+
 		mViewport->renderViewport(context);
 	});
 }
@@ -285,21 +287,40 @@ bool GameViewportPanel::preUpdate()
 
 	if (view.x != mSize.x || view.y != mSize.y)
 	{
-		if (view.x == 0 || view.y == 0)
+		if (view.x <= 0 || view.y <= 0)
 		{
 			// The window is too small or collapsed.
 			return false;
 		}
+
 		mSize = view;
 		mViewport->resizeViewport(mSize.x, mSize.y);
 
-		RenderThread::AddCommand("ResizeViewport", [this]()
+		int alignedX = mSize.x;
+		int alignedY = mSize.y;
+
+		bool bNeedReallocate = (mTexture == nullptr) || 
+			(alignedX > mTexture->getSizeX()) || 
+			(alignedY > mTexture->getSizeY());
+
+		if (bNeedReallocate)
 		{
-			mTexture = RHICreateTexture2D(ETexture::BGRA8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_RenderTarget | TCF_PlatformGraphicsCompatible);
-			mDepthTexture = RHICreateTexture2D(ETexture::D32FS8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_RenderTarget);
-			mFrameBuffer->setTexture(0, *mTexture);
-			mFrameBuffer->setDepth(*mDepthTexture);
-		});
+			RenderThread::AddCommand("ResizeViewport", [this, alignedX, alignedY]()
+			{
+				RHIFlushCommand(RHICommandList::GetImmediateList());
+
+				if (mTexture.isValid())
+				{
+					GEditorRenderer->releaseTextureID(*mTexture);
+				}
+
+				mTexture = RHICreateTexture2D(ETexture::BGRA8, alignedX, alignedY, 0, 1, TCF_DefalutValue | TCF_RenderTarget | TCF_PlatformGraphicsCompatible);
+				mDepthTexture = RHICreateTexture2D(ETexture::D32FS8, alignedX, alignedY, 0, 1, TCF_DefalutValue | TCF_RenderTarget);
+
+				mFrameBuffer->setTexture(0, *mTexture);
+				mFrameBuffer->setDepth(*mDepthTexture);
+			});
+		}
 		// The window state has been successfully changed.
 		return true;
 	}

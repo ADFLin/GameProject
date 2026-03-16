@@ -201,9 +201,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIFlushCommand());
 	}
 
-	void RHIBuildAccelerationStructure(RHICommandList& commandList, RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch)
+	void RHIBuildAccelerationStructure(RHICommandList& commandList, RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch, uint32 numInstances)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIBuildAccelerationStructure(dst, src, scratch));
+		RHI_COMMAND_FUNC(commandList, RHIBuildAccelerationStructure(dst, src, scratch, numInstances));
 	}
 
 	void RHISetRayTracingPipelineState(RHICommandList& commandList, RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt)
@@ -216,9 +216,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDispatchRays(width, height, depth));
 	}
 
-	void RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList& commandList, RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances)
+	void RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList& commandList, RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const instances[], uint32 numInstances, uint32 instanceOffset)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIUpdateTopLevelAccelerationStructureInstances(tlas, instances, numInstances));
+		RHI_COMMAND_FUNC(commandList, RHIUpdateTopLevelAccelerationStructureInstances(tlas, instances, numInstances, instanceOffset));
 	}
 
 	void RHISetShaderAccelerationStructure(RHICommandList& commandList, RHIShader* shader, char const* name, RHIAccelerationStructure* as)

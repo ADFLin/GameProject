@@ -68,14 +68,13 @@ namespace PathTracing
 		RenderResourceData& mRenderResource;
 	};
 
-	class ISceneBuilder
+	class FSceneBuilder
 	{
 	public:
-		;
-		virtual int loadMesh(char const* path, Transform const& transform = Transform::Identity()) = 0;
-
 		static bool RunScript(SceneBuildContext& context, ISceneScript& script, char const* fileName);
 		static int  LoadMesh(SceneBuildContext& context, char const* filePath, Transform const& transform);
+		static int  LoadMeshAsync(SceneBuildContext& context, char const* filePath, Transform const& transform, std::function<void()> callback);
+		static bool UpdateMeshImportTransform(SceneBuildContext& context, int meshId, Transform const& transform);
 	};
 
 }//namespace PathTracing

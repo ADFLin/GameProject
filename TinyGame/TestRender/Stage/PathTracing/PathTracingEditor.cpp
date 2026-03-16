@@ -51,6 +51,18 @@ namespace PathTracing
 		DEFINE_SHADER_PARAM(SelectionAlpha);
 	};
 
+	class EditorPickingPS : public GlobalShader
+	{
+		DECLARE_SHADER(EditorPickingPS, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/EditorPreview"; }
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, ObjectIndex);
+		}
+		DEFINE_SHADER_PARAM(ObjectIndex);
+	};
+
 	class ScreenOutlinePS : public GlobalShader
 	{
 		DECLARE_SHADER(ScreenOutlinePS, Global);
@@ -71,6 +83,7 @@ namespace PathTracing
 
 	IMPLEMENT_SHADER(EditorPreviewVS, EShader::Vertex, SHADER_ENTRY(MainVS));
 	IMPLEMENT_SHADER(EditorPreviewPS, EShader::Pixel, SHADER_ENTRY(MainPS));
+	IMPLEMENT_SHADER(EditorPickingPS, EShader::Pixel, SHADER_ENTRY(PickingPS));
 	IMPLEMENT_SHADER(ScreenOutlinePS, EShader::Pixel, SHADER_ENTRY(MainPS));
 
 
@@ -177,9 +190,17 @@ namespace PathTracing
 
 		VERIFY_RETURN_FALSE(mPreviewVS = ShaderManager::Get().getGlobalShaderT<EditorPreviewVS>());
 		VERIFY_RETURN_FALSE(mPreviewPS = ShaderManager::Get().getGlobalShaderT<EditorPreviewPS>());
+		VERIFY_RETURN_FALSE(mPickingPS = ShaderManager::Get().getGlobalShaderT<EditorPickingPS>());
 		VERIFY_RETURN_FALSE(mScreenOutlinePS = ShaderManager::Get().getGlobalShaderT<ScreenOutlinePS>());
 
-		return false;
+		{
+			InputLayoutDesc desc;
+			desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+			desc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+			mMeshInputLayout = RHICreateInputLayout(desc);
+		}
+
+		return true;
 	}
 
 	void PathTracingEditor::releaseRHI()
@@ -523,85 +544,7 @@ namespace PathTracing
 			else
 			{
 				mIsGizmoDragging = false;
-				float minDistance = 1e10;
-				int hitId = INDEX_NONE;
-
-				for (int i = 0; i < sceneData.objects.size(); ++i)
-				{
-					auto const& obj = sceneData.objects[i];
-					float distance = 1e10;
-					bool bHit = false;
-
-					Matrix4 localToWorld;
-					float modelScaleValue = 1.0f;
-					switch (obj.type)
-					{
-					case OBJ_SPHERE:
-						bHit = Math::RaySphereTest(rayPos, rayDir, obj.pos, obj.meta.x, distance);
-						break;
-					case OBJ_TRIANGLE_MESH:
-						{
-							int32 meshId = AsValue<int32>(obj.meta.x);
-							if (sceneData.meshes.isValidIndex(meshId))
-							{
-								auto const& mesh = sceneData.meshes[meshId];
-								float scale = obj.meta.y;
-								Vector3 boundMin = renderer.mMeshBVHNodes[mesh.nodeIndex].boundMin;
-								Vector3 boundMax = renderer.mMeshBVHNodes[mesh.nodeIndex].boundMax;
-								Vector3 offset = (scale * 0.5f) * (boundMax + boundMin);
-								Vector3 halfSize = (scale * 0.5f) * (boundMax - boundMin);
-
-								localToWorld = Matrix4::Translate(offset) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-								Matrix4 worldToLocal;
-								float det;
-								if (localToWorld.inverseAffine(worldToLocal, det))
-								{
-									Vector3 localRayPos = TransformPosition(rayPos, worldToLocal);
-									Vector3 localRayDir = TransformVector(rayDir, worldToLocal).getNormal();
-									float t[2];
-									if (Math::LineAABBTest(localRayPos, localRayDir, -halfSize, halfSize, t))
-									{
-										if (t[0] > 0)
-										{
-											bHit = true;
-											distance = t[0];
-										}
-									}
-								}
-							}
-						}
-						break;
-					case OBJ_CUBE:
-					case OBJ_QUAD:
-						{
-							localToWorld = Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-							Matrix4 worldToLocal;
-							float det;
-							if (localToWorld.inverseAffine(worldToLocal, det))
-							{
-								Vector3 localRayPos = TransformPosition(rayPos, worldToLocal);
-								Vector3 localRayDir = TransformVector(rayDir, worldToLocal).getNormal();
-								float t[2];
-								if (Math::LineAABBTest(localRayPos, localRayDir, -obj.meta, obj.meta, t))
-								{
-									if (t[0] > 0)
-									{
-										bHit = true;
-										distance = t[0];
-									}
-								}
-							}
-						}
-						break;
-					}
-
-					if (bHit && distance < minDistance)
-					{
-						minDistance = distance;
-						hitId = i;
-					}
-				}
-
+				int hitId = pickObject(msg.getPos().x, msg.getPos().y);
 				if (hitId != mSelectedObjectId)
 				{
 					mSelectedObjectId = hitId;
@@ -910,6 +853,124 @@ namespace PathTracing
 		drawAxis(GetAxisDir(1), LinearColor(0, 1, 0), 1);
 		drawAxis(GetAxisDir(2), LinearColor(0, 0, 1), 2);
 	}
+	int PathTracingEditor::pickObject(int x, int y)
+	{
+		if (x < 0 || y < 0 || x >= mEditorViewportSize.x || y >= mEditorViewportSize.y)
+			return INDEX_NONE;
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		auto& sceneData = mContext->getSceneData();
+
+		RHIBeginRender(false);
+
+		float aspect = (float)mEditorViewportSize.x / (float)Math::Max(1, mEditorViewportSize.y);
+		Matrix4 proj = PerspectiveMatrix(Math::DegToRad(60.0f), aspect, 0.01f, 1000.0f);
+		mEditorView.setupTransform(mEditorCamera.getPos(), mEditorCamera.getRotation(), proj);
+		mEditorView.rectOffset = IntVector2(0, 0);
+		mEditorView.rectSize = mEditorViewportSize;
+
+		RenderTargetDesc desc;
+		desc.size = mEditorViewportSize;
+		desc.format = ETexture::R32U;
+		desc.debugName = "PickingRT";
+		desc.clearColor = LinearColor(float(0xffffffff), 0, 0, 0);
+		PooledRenderTargetRef pickingRT = GRenderTargetPool.fetchElement(desc);
+
+		desc.format = ETexture::D24S8;
+		desc.debugName = "PickingDepth";
+		desc.clearColor = LinearColor(FRHIZBuffer::FarPlane, 0, 0, 0);
+		PooledRenderTargetRef depthRT = GRenderTargetPool.fetchElement(desc);
+
+		RHIResourceTransition(commandList, { pickingRT->texture, depthRT->texture }, EResourceTransition::RenderTarget);
+
+		if (mFrameBuffer == nullptr)
+		{
+			mFrameBuffer = RHICreateFrameBuffer();
+		}
+		mFrameBuffer->setTexture(0, static_cast<RHITexture2D&>(*pickingRT->texture));
+		mFrameBuffer->setDepth(static_cast<RHITexture2D&>(*depthRT->texture));
+
+		RHISetFrameBuffer(commandList, mFrameBuffer);
+		RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
+		RHISetScissorRect(commandList, 0, 0, mEditorViewportSize.x, mEditorViewportSize.y);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(float(0xffffffff), 0, 0, 0), 1, FRHIZBuffer::FarPlane);
+
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+
+		GraphicsShaderStateDesc state;
+		state.vertex = mPreviewVS->getRHI();
+		state.pixel = mPickingPS->getRHI();
+		RHISetGraphicsShaderBoundState(commandList, state);
+
+		for (int i = 0; i < (int)sceneData.objects.size(); ++i)
+		{
+			auto const& obj = sceneData.objects[i];
+			Matrix4 modelScale = Matrix4::Identity();
+			Mesh* mesh = nullptr;
+			switch (obj.type)
+			{
+			case OBJ_CUBE:
+				modelScale = Matrix4::Scale(obj.meta);
+				mesh = &mContext->getMesh(SimpleMeshId::Box);
+				break;
+			case OBJ_SPHERE:
+				modelScale = Matrix4::Scale(obj.meta.x / 2.5f);
+				mesh = &mContext->getMesh(SimpleMeshId::Sphere);
+				break;
+			case OBJ_QUAD:
+				modelScale = Matrix4::Scale(obj.meta);
+				mesh = &mContext->getMesh(SimpleMeshId::Plane);
+				break;
+			case OBJ_TRIANGLE_MESH:
+				modelScale = Matrix4::Scale(obj.meta.y);
+				int meshId = AsValue<int32>(obj.meta.x);
+				if (sceneData.meshes.isValidIndex(meshId))
+				{
+					auto const& meshData = sceneData.meshes[meshId];
+					Matrix4 world = modelScale * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+					mEditorView.setupShader(commandList, *mPreviewVS);
+					SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
+					SET_SHADER_PARAM(commandList, *mPickingPS, ObjectIndex, i);
+
+					InputStreamInfo inputStream;
+					inputStream.buffer = mContext->getRenderer().mVertexBuffer.getRHI();
+					RHISetInputStream(commandList, mMeshInputLayout, &inputStream, 1);
+					RHIDrawPrimitive(commandList, EPrimitive::TriangleList, meshData.startIndex, meshData.numTriangles * 3);
+				}
+				continue;
+			}
+
+			if (mesh)
+			{
+				Matrix4 world = modelScale * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				mEditorView.setupShader(commandList, *mPreviewVS);
+				SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
+				SET_SHADER_PARAM(commandList, *mPickingPS, ObjectIndex, i);
+				mesh->draw(commandList);
+			}
+		}
+
+		RHIResourceTransition(commandList, { pickingRT->texture }, EResourceTransition::CopySrc);
+		RHIEndRender(false);
+
+		TArray<uint8> data;
+		RHIReadTexture(static_cast<RHITexture2D&>(*pickingRT->texture), ETexture::R32U, 0, data);
+		GRenderTargetPool.freeUsedElement(pickingRT);
+		GRenderTargetPool.freeUsedElement(depthRT);
+
+		if (data.empty())
+			return INDEX_NONE;
+
+		uint32* pIndices = (uint32*)data.data();
+		uint32 index = pIndices[y * mEditorViewportSize.x + x];
+		if (index == 0xffffffff)
+			return INDEX_NONE;
+
+		return (int)index;
+	}
+
 }
 
 #endif

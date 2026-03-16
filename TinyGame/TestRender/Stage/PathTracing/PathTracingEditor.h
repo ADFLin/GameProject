@@ -121,6 +121,7 @@ namespace PathTracing
 
 		bool bNeedReload = false;
 		bool bDataChanged = false;
+		bool bMeshChanged = false;
 		bool mbControlDown = false;
 
 
@@ -152,8 +153,10 @@ namespace PathTracing
 		class ScreenVS* mScreenVS;
 		class EditorPreviewVS* mPreviewVS;
 		class EditorPreviewPS* mPreviewPS;
+		class EditorPickingPS* mPickingPS;
 		class ScreenOutlinePS* mScreenOutlinePS;
 
+		int pickObject(int x, int y);
 	};
 
 

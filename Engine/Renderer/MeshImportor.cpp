@@ -10,7 +10,7 @@ namespace Render
 		return Instance;
 	}
 
-	void MeshImporterRegistry::registerMeshImporter(HashString name, IMeshImporterFactoryPtr const& importor)
+	void MeshImporterRegistry::registerMeshImporter(HashString name, ImporterInfo&& importor)
 	{
 		mFactoryMap.insert_or_assign(name, importor);
 	}
@@ -25,10 +25,15 @@ namespace Render
 		auto iter = mFactoryMap.find(name);
 		if (iter != mFactoryMap.end())
 		{
-			if (iter->second != nullptr)
+			ImporterInfo& info = iter->second;
+			if (info.cachedInstance == nullptr)
 			{
-				return iter->second->create(name);
+				if (info.factory != nullptr)
+				{
+					info.cachedInstance = info.factory->create(name);
+				}
 			}
+			return info.cachedInstance;
 		}
 		return IMeshImporterPtr();
 	}

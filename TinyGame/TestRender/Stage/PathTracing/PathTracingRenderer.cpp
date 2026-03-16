@@ -383,69 +383,74 @@ namespace PathTracing
 
 		if (GRHISupportRayTracing)
 		{
-			TArray<RayTracingInstanceDesc> instances;
-			for (int i = 0; i < sceneData.objects.size(); ++i)
-			{
-				auto const& obj = sceneData.objects[i];
-				RHIBottomLevelAccelerationStructure* blas = nullptr;
-				Matrix4 transform = Matrix4::Identity();
-
-				if (obj.type == OBJ_TRIANGLE_MESH)
-				{
-					int meshId = AsValue<int32>(obj.meta.x);
-					if (mSceneMeshesBLAS.isValidIndex(meshId) && mSceneMeshesBLAS[meshId].isValid())
-					{
-						blas = mSceneMeshesBLAS[meshId];
-						transform = Matrix4::Scale(obj.meta.y) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-					}
-				}
-				else if (obj.type == OBJ_SPHERE)
-				{
-					blas = mSphereBLAS;
-					transform = Matrix4::Scale(obj.meta.x) * Matrix4::Translate(obj.pos);
-				}
-				else if (obj.type == OBJ_CUBE)
-				{
-					blas = mCubeBLAS;
-					transform = Matrix4::Scale(obj.meta) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-				}
-				else if (obj.type == OBJ_QUAD)
-				{
-					blas = mQuadBLAS;
-					transform = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-				}
-
-				if (blas)
-				{
-					RayTracingInstanceDesc desc;
-					desc.instanceID = i;
-					desc.recordIndex = (obj.type == OBJ_SPHERE) ? 1 : ((obj.type == OBJ_CUBE) ? 2 : 0);
-					desc.flags = (obj.type == OBJ_SPHERE || obj.type == OBJ_CUBE) ? 0 : (uint32)ERayTracingInstanceFlags::ForceOpaque;
-					desc.transform = transform;
-					desc.blas = blas;
-					instances.push_back(desc);
-				}
-			}
-
-			if (!instances.empty())
-			{
-				RHIFlushCommand(RHICommandList::GetImmediateList());
-				if (!mTLAS.isValid() || mNumTLASInstances < (uint32)instances.size())
-				{
-					if (mNumTLASInstances < (uint32)instances.size())
-					{
-						mNumTLASInstances = instances.size() * 2;
-					}
-					mTLAS = RHICreateTopLevelAccelerationStructure(mNumTLASInstances, EAccelerationStructureBuildFlags::PreferFastTrace);
-					mTLAS->setDebugName("SceneTLAS");
-				}
-				RHIUpdateTopLevelAccelerationStructureInstances(commnadList, mTLAS, instances.data(), (uint32)instances.size());
-				RHIBuildAccelerationStructure(commnadList, mTLAS, nullptr, nullptr);
-				RHIResourceTransition(commnadList, { (RHIResource*)mTLAS.get() }, EResourceTransition::UAVBarrier);
-			}
+			buildSceneResourceHW(commnadList, sceneData);
 		}
 	}
 
+
+	void RenderResourceData::buildSceneResourceHW(RHICommandList& commandList, SceneData& sceneData)
+	{
+		TArray<RayTracingInstanceDesc> instances;
+		for (int i = 0; i < (int)sceneData.objects.size(); ++i)
+		{
+			auto const& obj = sceneData.objects[i];
+			RHIBottomLevelAccelerationStructure* blas = nullptr;
+			Matrix4 transform = Matrix4::Identity();
+
+			if (obj.type == OBJ_TRIANGLE_MESH)
+			{
+				int meshId = AsValue<int32>(obj.meta.x);
+				if (mSceneMeshesBLAS.isValidIndex(meshId) && mSceneMeshesBLAS[meshId].isValid())
+				{
+					blas = mSceneMeshesBLAS[meshId];
+					transform = Matrix4::Scale(obj.meta.y) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				}
+			}
+			else if (obj.type == OBJ_SPHERE)
+			{
+				blas = mSphereBLAS;
+				transform = Matrix4::Scale(obj.meta.x) * Matrix4::Translate(obj.pos);
+			}
+			else if (obj.type == OBJ_CUBE)
+			{
+				blas = mCubeBLAS;
+				transform = Matrix4::Scale(obj.meta) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+			}
+			else if (obj.type == OBJ_QUAD)
+			{
+				blas = mQuadBLAS;
+				transform = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+			}
+
+			if (blas)
+			{
+				RayTracingInstanceDesc desc;
+				desc.instanceID = i;
+				desc.recordIndex = (obj.type == OBJ_SPHERE) ? 1 : ((obj.type == OBJ_CUBE) ? 2 : 0);
+				desc.flags = (obj.type == OBJ_SPHERE || obj.type == OBJ_CUBE) ? 0 : (uint32)ERayTracingInstanceFlags::ForceOpaque;
+				desc.transform = transform;
+				desc.blas = blas;
+				instances.push_back(desc);
+			}
+		}
+
+		if (!instances.empty())
+		{
+			if (!mTLAS.isValid() || mNumTLASInstances < (uint32)instances.size())
+			{
+				if (mNumTLASInstances < (uint32)instances.size())
+				{
+					mNumTLASInstances = (uint32)instances.size() * 2;
+				}
+				mTLAS = RHICreateTopLevelAccelerationStructure(mNumTLASInstances, EAccelerationStructureBuildFlags::PreferFastTrace | EAccelerationStructureBuildFlags::AllowUpdate);
+				mTLAS->setDebugName("SceneTLAS");
+			}
+			mCurTLASInstanceCount = (uint32)instances.size();
+			RHIUpdateTopLevelAccelerationStructureInstances(commandList, mTLAS, instances.data(), (uint32)instances.size());
+			RHIBuildAccelerationStructure(commandList, mTLAS, nullptr, nullptr, mCurTLASInstanceCount);
+			RHIResourceTransition(commandList, { (RHIResource*)mTLAS.get() }, EResourceTransition::UAVBarrier);
+		}
+	}
 
 	bool RenderResourceData::updateMeshResource(TArrayView< MeshData const > meshes, int indexUpdateStart)
 	{
@@ -473,37 +478,15 @@ namespace PathTracing
 		}
 
 
-		auto UpdateBuffer = [&](auto& buffer, auto const& data, int& currentCount, EStructuredBufferType type) -> bool
-		{
-			uint32 bufferCapacity = buffer.getElementNum();
-			if (bufferCapacity < (uint32)data.size())
-			{
-				uint32 targetCapacity = (uint32)data.size();
-				if (bufferCapacity > 0)
-				{
-					targetCapacity = targetCapacity * 3 / 2;
-				}
-				VERIFY_RETURN_FALSE(buffer.initializeResource(targetCapacity, type, BCF_None));
-				RHIUpdateBuffer(*buffer.getRHI(), 0, (uint32)data.size(), (void*)data.data());
-				currentCount = (uint32)data.size();
-				return true;
-			}
-			else if ((uint32)data.size() > (uint32)currentCount)
-			{
-				RHIUpdateBuffer(*buffer.getRHI(), currentCount, (uint32)data.size() - currentCount, (void*)&data[currentCount]);
-				currentCount = (uint32)data.size();
-			}
-			else if (data.size() < (uint32)currentCount)
-			{
-				currentCount = (uint32)data.size();
-			}
-			return false;
-		};
+		UpdateBuffer(mMeshBuffer, meshes, mNumMeshes, EStructuredBufferType::StaticBuffer, indexUpdateStart);
+		mMeshBuffer.mResource->setDebugName("MeshBuffer");
+		bVertexBufferRebuild = UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].startIndex : -1);
+		mVertexBuffer.mResource->setDebugName("VertexBuffer");
 
-		UpdateBuffer(mMeshBuffer, meshes, mNumMeshes, EStructuredBufferType::StaticBuffer);
-		bVertexBufferRebuild = UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer);
-		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer);
-		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer);
+		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].nodeIndex : -1);
+		mBVHNodeBuffer.mResource->setDebugName("BVHNodeBuffer");
+		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].nodeIndexV4 : -1);
+		mBVH4NodeBuffer.mResource->setDebugName("BVH4NodeBuffer");
 
 		if (GRHISupportRayTracing)
 		{
@@ -527,6 +510,70 @@ namespace PathTracing
 				RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), blas, nullptr, nullptr);
 				mSceneMeshesBLAS.push_back(blas);
 			}
+		}
+
+		return true;
+	}
+
+	bool RenderResourceData::updateSingleMeshResource(TArrayView< MeshData const > meshes, int meshId, SceneData& sceneData)
+	{
+		auto const& mesh = meshes[meshId];
+
+		UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer, mesh.startIndex);
+		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer, mesh.nodeIndex);
+		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer, mesh.nodeIndexV4);
+
+		if (GRHISupportRayTracing)
+		{
+			auto& commandList = RHICommandList::GetImmediateList();
+			RayTracingGeometryDesc geoDesc;
+			geoDesc.vertexBuffer = mVertexBuffer.getRHI();
+			geoDesc.vertexCount = mesh.numTriangles * 3;
+			geoDesc.vertexStride = sizeof(MeshVertexData);
+			geoDesc.vertexOffset = mesh.startIndex * sizeof(MeshVertexData);
+			geoDesc.bOpaque = true;
+
+			RHIBottomLevelAccelerationStructureRef blas = RHICreateBottomLevelAccelerationStructure(&geoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+			blas->setDebugName("MeshBlas");
+			RHIBuildAccelerationStructure(commandList, blas, nullptr, nullptr);
+			mSceneMeshesBLAS[meshId] = blas;
+
+			if (mTLAS.isValid())
+			{
+				bool bAnyUpdated = false;
+				for (int i = 0; i < (int)sceneData.objects.size(); ++i)
+				{
+					auto const& obj = sceneData.objects[i];
+					if (obj.type == OBJ_TRIANGLE_MESH && AsValue<int32>(obj.meta.x) == meshId)
+					{
+						RHIBottomLevelAccelerationStructure* objBlas = nullptr;
+						int meshIdInObj = AsValue<int32>(obj.meta.x);
+						if (mSceneMeshesBLAS.isValidIndex(meshIdInObj) && mSceneMeshesBLAS[meshIdInObj].isValid())
+						{
+							objBlas = mSceneMeshesBLAS[meshIdInObj];
+						}
+						if (objBlas)
+						{
+							RayTracingInstanceDesc desc;
+							desc.instanceID = i;
+							desc.recordIndex = 0;
+							desc.flags = (uint32)ERayTracingInstanceFlags::ForceOpaque;
+							desc.transform = Matrix4::Scale(obj.meta.y) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+							desc.blas = blas.get();
+							RHIUpdateTopLevelAccelerationStructureInstances(commandList, mTLAS, &desc, 1, i);
+							bAnyUpdated = true;
+						}
+					}
+				}
+
+				if (bAnyUpdated)
+				{
+					RHIBuildAccelerationStructure(commandList, mTLAS, nullptr, nullptr, mCurTLASInstanceCount);
+					RHIResourceTransition(commandList, { (RHIResource*)mTLAS.get() }, EResourceTransition::UAVBarrier);
+				}
+			}
+
+			RHIFlushCommand(commandList);
 		}
 
 		return true;

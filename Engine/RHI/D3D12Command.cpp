@@ -35,7 +35,7 @@ namespace Render
 	class D3D12ProfileCore : public RHIProfileCore
 	{
 	public:
-		static constexpr int NUM_FRAME_BUFFER = 4;
+		static constexpr int NUM_FRAME_BUFFER = 8;
 
 		D3D12ProfileCore()
 		{
@@ -50,7 +50,7 @@ namespace Render
 			for (int i = 0; i < NUM_FRAME_BUFFER; ++i)
 			{
 				VERIFY_RETURN_FALSE(addChunkResource(i));
-				mNextHandle[i] = 1;
+				mNextHandle[i] = 0;
 			}
 			return true;
 		}
@@ -86,12 +86,14 @@ namespace Render
 			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc,
 				D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&timeStamp.resultResource)));
 
+			timeStamp.timeStampData = nullptr;
 			mFrameChunks[frameIndex].push_back(std::move(timeStamp));
 			return true;
 		}
 
 		virtual void beginFrame() override
 		{
+			mNextHandle[mCurFrameIndex] = 1;
 			mCmdList->EndQuery(mFrameChunks[mCurFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 0);
 		}
 
@@ -108,16 +110,6 @@ namespace Render
 
 		virtual void beginReadback() override
 		{
-			// Readback happens for a previous frame buffer, but we don't know which one here.
-			// GpuProfiler::beginRead will have set mIndexReadBuffer which determines which samples are read.
-			// Those samples already have handles encoding their frame index.
-			for (int f = 0; f < NUM_FRAME_BUFFER; ++f)
-			{
-				for (auto& chunk : mFrameChunks[f])
-				{
-					chunk.resultResource->Map(0, NULL, (void**)&chunk.timeStampData);
-				}
-			}
 		}
 
 		virtual void endReadback() override
@@ -126,8 +118,11 @@ namespace Render
 			{
 				for (auto& chunk : mFrameChunks[f])
 				{
-					chunk.resultResource->Unmap(0, NULL);
-					chunk.timeStampData = nullptr;
+					if (chunk.timeStampData)
+					{
+						chunk.resultResource->Unmap(0, NULL);
+						chunk.timeStampData = nullptr;
+					}
 				}
 			}
 		}
@@ -138,7 +133,7 @@ namespace Render
 			uint32 chunkIndex = mNextHandle[frameIndex] / TimeStampChunk::Size;
 			uint32 index = 2 * (mNextHandle[frameIndex] % TimeStampChunk::Size);
 
-			if (index == 0)
+			if (chunkIndex >= mFrameChunks[frameIndex].size())
 			{
 				if (!addChunkResource(frameIndex))
 					return RHI_ERROR_PROFILE_HANDLE;
@@ -176,6 +171,11 @@ namespace Render
 
 			if (chunkIndex >= mFrameChunks[frameIndex].size())
 				return false;
+
+			if (mFrameChunks[frameIndex][chunkIndex].timeStampData == nullptr)
+			{
+				mFrameChunks[frameIndex][chunkIndex].resultResource->Map(0, NULL, (void**)&mFrameChunks[frameIndex][chunkIndex].timeStampData);
+			}
 
 			auto timeStampData = mFrameChunks[frameIndex][chunkIndex].timeStampData;
 			if (timeStampData)
@@ -3071,7 +3071,7 @@ namespace Render
 		postDispatchCompute();
 	}
 
-	void D3D12Context::RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch)
+	void D3D12Context::RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch, uint32 numInstances)
 	{
 		if (dst->getResourceType() == EResourceType::BottomLevelAccelerationStructure)
 		{
@@ -3096,6 +3096,10 @@ namespace Render
 			
 			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
 			buildDesc.Inputs = tlasDst->mInputDesc;
+			if (numInstances != 0)
+			{
+				buildDesc.Inputs.NumDescs = numInstances;
+			}
 			buildDesc.DestAccelerationStructureData = tlasDst->mResultAllocation.gpuAddress;
 			buildDesc.ScratchAccelerationStructureData = tlasDst->mScartchAllocation.gpuAddress;
 
@@ -3217,7 +3221,7 @@ namespace Render
 		mGraphicsCmdList->DispatchRays(&dispatchDesc);
 	}
 
-	void D3D12Context::RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances)
+	void D3D12Context::RHIUpdateTopLevelAccelerationStructureInstances(RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const instances[], uint32 numInstances, uint32 instanceOffset)
 	{
 		auto* d3d12Tlas = static_cast<D3D12TopLevelAccelerationStructure*>(tlas);
 		if (!d3d12Tlas->mInstanceAllocaton.ptr) return;
@@ -3230,21 +3234,21 @@ namespace Render
 			for (uint32 i = 0; i < numInstances; ++i)
 			{
 				auto const& src = instances[i];
-				auto& dst = mappedInstances[i];
+				auto& dst = mappedInstances[instanceOffset + i];
 
 				dst.Transform[0][0] = src.transform(0, 0); dst.Transform[0][1] = src.transform(1, 0); dst.Transform[0][2] = src.transform(2, 0); dst.Transform[0][3] = src.transform(3, 0);
 				dst.Transform[1][0] = src.transform(0, 1); dst.Transform[1][1] = src.transform(1, 1); dst.Transform[1][2] = src.transform(2, 1); dst.Transform[1][3] = src.transform(3, 1);
 				dst.Transform[2][0] = src.transform(0, 2); dst.Transform[2][1] = src.transform(1, 2); dst.Transform[2][2] = src.transform(2, 2); dst.Transform[2][3] = src.transform(3, 2);
-				
+
 				dst.InstanceID = src.instanceID;
 				dst.InstanceMask = src.instanceMask;
 				dst.InstanceContributionToHitGroupIndex = src.recordIndex;
 				dst.Flags = D3D12Translate::To((ERayTracingInstanceFlags)src.flags);
-				
+
 				if (src.blas)
 				{
-					auto* blas = static_cast<D3D12BottomLevelAccelerationStructure*>(src.blas);
-					dst.AccelerationStructure = blas->mResultAllocation.gpuAddress;
+					auto* d3dBlas = static_cast<D3D12BottomLevelAccelerationStructure*>(src.blas);
+					dst.AccelerationStructure = d3dBlas->mResultAllocation.gpuAddress;
 				}
 				else
 				{

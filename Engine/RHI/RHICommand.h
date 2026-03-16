@@ -387,10 +387,10 @@ namespace Render
 
 	RHI_API void RHICopyResource(RHICommandList& commandList, RHIResource& dest, RHIResource& src);
 
-	RHI_API void RHIBuildAccelerationStructure(RHICommandList& commandList, RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch);
+	RHI_API void RHIBuildAccelerationStructure(RHICommandList& commandList, RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch, uint32 numInstances = 0);
 	RHI_API void RHISetRayTracingPipelineState(RHICommandList& commandList, RHIRayTracingPipelineState* rtpso, RHIRayTracingShaderTable* sbt = nullptr);
 	RHI_API void RHIDispatchRays(RHICommandList& commandList, uint32 width, uint32 height, uint32 depth);
-	RHI_API void RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList& commandList, RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const* instances, uint32 numInstances);
+	RHI_API void RHIUpdateTopLevelAccelerationStructureInstances(RHICommandList& commandList, RHITopLevelAccelerationStructure* tlas, RayTracingInstanceDesc const instances[], uint32 numInstances, uint32 instanceOffset = 0);
 	RHI_API void RHISetShaderAccelerationStructure(RHICommandList& commandList, RHIShader* shader, char const* name, RHIAccelerationStructure* as);
 
 

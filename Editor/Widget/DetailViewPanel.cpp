@@ -384,6 +384,21 @@ struct DetailViewPanel::RenderContext
 
 	void renderPropertyRow(char const* name, Reflection::PropertyBase* property, void* pData, int level, std::function<void()> const& removeCallback = nullptr)
 	{
+		char const* oldName = propertyName;
+		InlineString<512> path;
+		if (oldName)
+		{
+			if (name[0] == '[')
+				path.format("%s%s", oldName, name);
+			else
+				path.format("%s.%s", oldName, name);
+			propertyName = path.c_str();
+		}
+		else
+		{
+			propertyName = name;
+		}
+
 		EDisplayType displayType = GetDisplayType(property);
 
 		switch (displayType)
@@ -480,6 +495,8 @@ struct DetailViewPanel::RenderContext
 			}
 			break;
 		}
+
+		propertyName = oldName;
 	}
 
 	void renderStructContentRow(Reflection::StructType* structData, void* pData, int level = 0)
@@ -513,6 +530,7 @@ struct DetailViewPanel::RenderContext
 			}
 
 			{
+				propertyName = propertyView.name.c_str();
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(-FLT_MIN);
 				renderPrimitivePropertyValue(propertyView.primitiveType, propertyView.ptr);
@@ -522,6 +540,7 @@ struct DetailViewPanel::RenderContext
 			{
 				if (propertyView.name.length())
 				{
+					propertyName = propertyView.name.c_str();
 					renderStructRow(propertyView.name.c_str(), propertyView.structData, propertyView.ptr, 0);
 				}
 				else
@@ -536,6 +555,7 @@ struct DetailViewPanel::RenderContext
 				ImGui::TextUnformatted(propertyView.name.c_str());
 			}
 			{
+				propertyName = propertyView.name.c_str();
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(-FLT_MIN);
 				renderEnumValue(propertyView.enumData, propertyView.ptr);

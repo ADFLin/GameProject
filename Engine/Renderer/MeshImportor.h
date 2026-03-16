@@ -57,6 +57,7 @@ namespace Render
 	class IMeshImporterFactory
 	{
 	public:
+		virtual ~IMeshImporterFactory() = default;
 		virtual IMeshImporterPtr create(HashString name) = 0;
 	};
 
@@ -69,7 +70,18 @@ namespace Render
 
 		CORE_API static MeshImporterRegistry& Get();
 
-		CORE_API void registerMeshImporter(HashString name, IMeshImporterFactoryPtr const& importor);
+		struct ImporterInfo
+		{
+			template< typename T >
+			ImporterInfo(T*)
+			{
+				factory = std::make_shared< TMeshImporterFactory<T> >();
+			}
+
+			IMeshImporterFactoryPtr factory;
+			IMeshImporterPtr cachedInstance;
+		};
+		CORE_API void registerMeshImporter(HashString name, ImporterInfo&& info);
 		CORE_API void unregisterMeshImporter(HashString name);
 
 		template< class T >
@@ -82,19 +94,27 @@ namespace Render
 			}
 		};
 
+
 		template< class T , TEnableIf_Type< TIsBaseOf< T, IMeshImporter >::Value  , bool > = true >
 		void registerMeshImporterT(HashString name)
 		{
-			registerMeshImporter( name , std::make_shared< TMeshImporterFactory<T> >() );
+			registerMeshImporter( name , ImporterInfo((T*)nullptr) );
 		}
 
+		void cleanupCache()
+		{
+			for (auto& pair : mFactoryMap)
+			{
+				pair.second.cachedInstance = nullptr;
+			}
+		}
 		void cleanup()
 		{
 			mFactoryMap.clear();
 		}
 		CORE_API IMeshImporterPtr getMeshImproter(HashString name);
 
-		std::unordered_map< HashString, IMeshImporterFactoryPtr > mFactoryMap;
+		std::unordered_map< HashString, ImporterInfo > mFactoryMap;
 	};
 
 	template< class T >

@@ -12,13 +12,12 @@ namespace Render
 
 	class  Material;
 	struct ViewInfo;
-	class RenderContext;
 	class VertexFactory;
 
 	struct MeshBatchElement
 	{
-		RHIBuffer*  indexBuffer;
-
+		RHIBuffer*       indexBuffer;
+		RHIBuffer*       vertexBuffer;
 		int              idxStart;
 		int              numElement;
 
@@ -28,6 +27,7 @@ namespace Render
 
 		MeshBatchElement()
 		{
+			vertexBuffer = nullptr;
 			indexBuffer = nullptr;
 			primitiveBuffer = nullptr;
 		}
@@ -38,15 +38,13 @@ namespace Render
 		EPrimitive       primitiveType;
 		RHIInputLayout*  inputLayout;
 		Material*        material;
-		RHIBuffer*       vertexBuffer;
-		TArray< MeshBatchElement > elements;
 
-		void draw( RenderContext& context);
+		TArray< MeshBatchElement > elements;
 
 		MeshBatch()
 		{
 			material = nullptr;
-			vertexBuffer = nullptr;
+
 			inputLayout = nullptr;
 		}
 	};
@@ -108,7 +106,6 @@ namespace Render
 			mLineBatchs.clear();
 		}
 
-		void drawDynamic(RenderContext& context);
 		void drawDynamic(RHICommandList& commandList, ViewInfo& view);
 		void drawDynamic(RHICommandList& commandList, IntVector2 const& screenSize, Matrix4 const& worldToClip, Vector3 const& cameraX, Vector3 const& cameraY);
 

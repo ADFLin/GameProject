@@ -9,6 +9,7 @@
 #include "PathTracingBVH.h"
 
 #include "RHI/RHIRaytracingTypes.h"
+#include "RHI/RHICommand.h"
 #include "RHI/PrimitiveBatch.h"
 
 #include "DataStructure/BVHTree.h"
@@ -91,6 +92,7 @@ namespace PathTracing
 
 		RHITopLevelAccelerationStructureRef mTLAS;
 		uint32 mNumTLASInstances = 0;
+		uint32 mCurTLASInstanceCount = 0;
 		RHIRayTracingPipelineStateRef mRayTracingPSO;
 		RHIRayTracingShaderTableRef mSBT;
 		TArray< RHIBottomLevelAccelerationStructureRef > mSceneMeshesBLAS;
@@ -161,8 +163,44 @@ namespace PathTracing
 		PrimitivesCollection mDebugPrimitives;
 		BVHTree mDebugBVH;
 
+	private:
+		template< typename T, typename TArrayType >
+		bool UpdateBuffer(TStructuredBuffer<T>& buffer, TArrayType const& data, int& currentCount, EStructuredBufferType type, int offset = -1)
+		{
+			uint32 bufferCapacity = buffer.getElementNum();
+			if (bufferCapacity < (uint32)data.size())
+			{
+				uint32 targetCapacity = (uint32)data.size();
+				if (bufferCapacity > 0)
+					targetCapacity = targetCapacity * 3 / 2;
+
+				if (!buffer.initializeResource(targetCapacity, type, BCF_None))
+					return false;
+
+				RHIUpdateBuffer(*buffer.getRHI(), 0, (uint32)data.size(), (void*)data.data());
+				currentCount = (int)data.size();
+				return true;
+			}
+
+			int updateStart = (offset == -1) ? currentCount : offset;
+			if ((uint32)data.size() > (uint32)updateStart)
+			{
+				RHIUpdateBuffer(*buffer.getRHI(), updateStart, (uint32)data.size() - updateStart, (void*)(data.data() + updateStart));
+			}
+			currentCount = (int)data.size();
+			return false;
+		}
+
+	public:
 		void buildSceneResource(RHICommandList& commandList, SceneData& sceneData);
+
+
+		void buildSceneResourceHW(RHICommandList& commandList, SceneData& sceneData);
+
+
+
 		bool updateMeshResource(TArrayView< MeshData const > meshes, int indexUpdateStart);
+		bool updateSingleMeshResource(TArrayView< MeshData const > meshes, int meshId, SceneData& sceneData);
 		bool buildMeshResource(TArrayView< MeshData const > meshes)
 		{
 			return updateMeshResource(meshes, 0);

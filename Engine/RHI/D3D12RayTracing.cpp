@@ -17,12 +17,12 @@ namespace Render
 	{
 		if (mResultAllocation.ptr)
 		{
-			mResultAllocation.ptr->Release();
+			D3D12FenceResourceManager::Get().addResource(mResultAllocation.ptr);
 			mResultAllocation.ptr = nullptr;
 		}
 		if (mScartchAllocation.ptr)
 		{
-			mScartchAllocation.ptr->Release();
+			D3D12FenceResourceManager::Get().addResource(mScartchAllocation.ptr);
 			mScartchAllocation.ptr = nullptr;
 		}
 	}
@@ -99,17 +99,17 @@ namespace Render
 	{
 		if (mResultAllocation.ptr)
 		{
-			mResultAllocation.ptr->Release();
+			D3D12FenceResourceManager::Get().addResource(mResultAllocation.ptr);
 			mResultAllocation.ptr = nullptr;
 		}
 		if (mScartchAllocation.ptr)
 		{
-			mScartchAllocation.ptr->Release();
+			D3D12FenceResourceManager::Get().addResource(mScartchAllocation.ptr);
 			mScartchAllocation.ptr = nullptr;
 		}
 		if (mInstanceAllocaton.ptr)
 		{
-			mInstanceAllocaton.ptr->Release();
+			D3D12FenceResourceManager::Get().addResource(mInstanceAllocaton.ptr);
 			mInstanceAllocaton.ptr = nullptr;
 		}
 		D3D12DescriptorHeapPool::FreeHandle(mSRV);
@@ -938,7 +938,7 @@ namespace Render
 		}
 		if (allocation.ptr)
 		{
-			allocation.ptr->Release();
+			D3D12FenceResourceManager::Get().addResource(allocation.ptr);
 			allocation.ptr = nullptr;
 		}
 		capacity = 0;

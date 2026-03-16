@@ -19,8 +19,7 @@ namespace PathTracing
 {
 	using namespace Render;
 
-	class SceneBuilderImpl : public ISceneBuilder
-		                   , public SceneBuildContext
+	class SceneBuilderImpl : public SceneBuildContext
 	{
 	public:
 
@@ -73,7 +72,32 @@ namespace PathTracing
 			int numTriangles;
 		};
 
-		void buildMeshData(MeshImportData& meshData, BuildMeshResult& buildResult, Math::Transform const& transform)
+
+		static int GeneratePrimitives(VertexElementReader const& posReader, TArray<uint32> const& indices, Transform const& transform, TArray< BVHTree::Primitive >& outPrimitives)
+		{
+			int numTriangles = indices.size() / 3;
+			outPrimitives.resize(numTriangles);
+			for (int indexTriangle = 0; indexTriangle < numTriangles; ++indexTriangle)
+			{
+				auto& primitive = outPrimitives[indexTriangle];
+				primitive.bound.invalidate();
+
+				int index = 3 * indexTriangle;
+				primitive.center = Vector3::Zero();
+				for (int n = 0; n < 3; ++n)
+				{
+					Vector3 pos = transform.transformPosition(posReader[indices[index + n]]);
+					primitive.bound.addPoint(pos);
+					primitive.center += pos;
+				}
+				primitive.id = index;
+				primitive.center /= 3.0f;
+			}
+
+			return numTriangles;
+		}
+
+		void buildMeshData(MeshImportData& meshData, BuildMeshResult& buildResult, Transform const& transform)
 		{
 			TIME_SCOPE("BuildMeshData");
 
@@ -84,26 +108,8 @@ namespace PathTracing
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
-			int numTriangles = meshData.indices.size() / 3;
-
 			TArray< BVHTree::Primitive > primitives;
-			primitives.resize(numTriangles);
-			for (int indexTriangle = 0; indexTriangle < numTriangles; ++indexTriangle)
-			{
-				auto& primitive = primitives[indexTriangle];
-				primitive.bound.invalidate();
-
-				int index = 3 * indexTriangle;
-				primitive.center = Vector3::Zero();
-				for (int n = 0; n < 3; ++n)
-				{
-					Vector3 pos = transform.transformPosition(posReader[meshData.indices[index + n]]);
-					primitive.bound.addPoint(pos);
-					primitive.center += pos;
-				}
-				primitive.id = index;
-				primitive.center /= 3.0f;
-			}
+			int numTriangles = GeneratePrimitives(posReader, meshData.indices, transform, primitives);
 
 			meshBVH.clear();
 			int indexLeafStart = meshBVH.leaves.size();
@@ -141,7 +147,7 @@ namespace PathTracing
 		}
 
 
-		static void FixOffset(TArray< BVHNodeData >& nodes, int nodeOffset, int triangleOffset)
+		static void FixOffset(TArrayView< BVHNodeData >& nodes, int nodeOffset, int triangleOffset)
 		{
 			for (BVHNodeData& node : nodes)
 			{
@@ -157,7 +163,7 @@ namespace PathTracing
 			}
 		}
 
-		static void FixOffset(TArray< BVH4NodeData >& nodes, int nodeOffset, int triangleOffset)
+		static void FixOffset(TArrayView< BVH4NodeData >& nodes, int nodeOffset, int triangleOffset)
 		{
 			for (BVH4NodeData& node : nodes)
 			{
@@ -203,6 +209,10 @@ namespace PathTracing
 			if (FCString::Compare(FFileUtility::GetExtension(path), "glb") == 0)
 			{
 				useImporter = MeshImporterRegistry::Get().getMeshImproter("GLB");
+			}
+			else if (FCString::Compare(FFileUtility::GetExtension(path), "obj") == 0)
+			{
+				useImporter = MeshImporterRegistry::Get().getMeshImproter("OBJ");
 			}
 
 			if (!useImporter || !useImporter->importFromFile(path, meshData))
@@ -255,8 +265,8 @@ namespace PathTracing
 			};
 			if (dataCache.loadDelegate(cacheKey, LoadCache))
 			{
-				FixOffset(nodes, (int)meshBVHNodes.size() - nodeIndex, (int)meshVertices.size() - triangleIndex);
-				FixOffset(nodesV4, (int)meshBVH4Nodes.size() - nodeIndexV4, (int)meshVertices.size() - triangleIndex);
+				FixOffset(MakeView(nodes), (int)meshBVHNodes.size() - nodeIndex, (int)meshVertices.size() - triangleIndex);
+				FixOffset(MakeView(nodesV4), (int)meshBVH4Nodes.size() - nodeIndexV4, (int)meshVertices.size() - triangleIndex);
 
 				triangleIndex = (int)meshVertices.size();
 				nodeIndex = (int)meshBVHNodes.size();
@@ -306,6 +316,71 @@ namespace PathTracing
 
 			CHECK(mScene.meshes.size() == mScene.meshInfos.size());
 			return (int)mScene.meshes.size() - 1;
+		}
+
+		bool updateMeshImportTransform(int meshId, Math::Transform const& transform)
+		{
+			auto& mesh = mScene.meshes[meshId];
+			auto& meshInfo = mScene.meshInfos[meshId];
+			meshInfo.transform = transform;
+
+			MeshImportData const* pMeshData = GetRawMeshData(meshInfo.path.c_str());
+			if (!pMeshData)
+				return false;
+
+			auto posReader = const_cast<MeshImportData*>(pMeshData)->makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
+
+			TArray< BVHTree::Primitive > primitives;
+			int numTriangles = GeneratePrimitives(posReader, pMeshData->indices, transform, primitives);
+
+			meshBVH.clear();
+			BVHTreeBuilder builder(meshBVH);
+			builder.build(MakeConstView(primitives));
+
+			if (meshBVH.nodes.size() > 0)
+			{
+				GenerateTriangleVertices(meshBVH, *const_cast<MeshImportData*>(pMeshData), mRenderResource.mMeshVertices.data() + mesh.startIndex, transform);
+
+				TArray< BVHNodeData > tempNodes;
+				FBVH::Generate(meshBVH, tempNodes, mesh.startIndex);
+
+				TArray< BVH4NodeData > tempNodesV4;
+				int generatedV4 = FBVH::Generate(meshBVH, tempNodesV4, mesh.startIndex);
+
+				FixOffset(MakeView(tempNodes), mesh.nodeIndex, 0);
+				FixOffset(MakeView(tempNodesV4), mesh.nodeIndexV4, 0);
+
+				auto UpdateBVH = [&](auto& nodeBuffer, auto const& newNodes, int& meshNodeIndex, auto& getMeshNodeIndex)
+				{
+					using DataType = std::remove_const_t<std::remove_reference_t<decltype(newNodes[0])>>;
+					int oldNodesCount = (meshId + 1 < (int)mScene.meshes.size()) ? (getMeshNodeIndex(mScene.meshes[meshId + 1]) - meshNodeIndex) : (int)nodeBuffer.size() - meshNodeIndex;
+					int deltaNodes = (int)newNodes.size() - oldNodesCount;
+
+					if (deltaNodes != 0)
+					{
+						int shiftStart = meshNodeIndex + oldNodesCount;
+						int oldSize = (int)nodeBuffer.size();
+						int shiftSize = oldSize - shiftStart;
+
+						nodeBuffer.resize(oldSize + deltaNodes);
+
+						FMemory::Move(nodeBuffer.data() + shiftStart + deltaNodes, nodeBuffer.data() + shiftStart, shiftSize * sizeof(DataType));
+						for (int i = meshId + 1; i < (int)mScene.meshes.size(); ++i)
+						{
+							getMeshNodeIndex(mScene.meshes[i]) += deltaNodes;
+							int nodeCount = (i + 1 < (int)mScene.meshes.size() ? getMeshNodeIndex(mScene.meshes[i + 1]) - getMeshNodeIndex(mScene.meshes[i]) : (int)nodeBuffer.size() - getMeshNodeIndex(mScene.meshes[i]));
+							TArrayView< DataType > view(nodeBuffer.data() + getMeshNodeIndex(mScene.meshes[i]), nodeCount);
+							FixOffset(view, deltaNodes, 0);
+						}
+					}
+					FMemory::Copy(nodeBuffer.data() + meshNodeIndex, newNodes.data(), sizeof(DataType) * newNodes.size());
+				};
+
+				UpdateBVH(mRenderResource.mMeshBVHNodes, tempNodes, mesh.nodeIndex, [](MeshData& m) -> int& { return m.nodeIndex; });
+				UpdateBVH(mRenderResource.mMeshBVH4Nodes, tempNodesV4, mesh.nodeIndexV4, [](MeshData& m) -> int& { return m.nodeIndexV4; });
+			}
+
+			return true;
 		}
 	};
 
@@ -477,18 +552,18 @@ namespace PathTracing
 		return new SceneScriptImpl;
 	}
 
-	bool ISceneBuilder::RunScript(SceneBuildContext& context, ISceneScript& script, char const* fileName)
+	bool FSceneBuilder::RunScript(SceneBuildContext& context, ISceneScript& script, char const* fileName)
 	{
-		PathTracing::SceneBuilderImpl builder(context);
+		SceneBuilderImpl builder(context);
 
 		VERIFY_RETURN_FALSE(static_cast<SceneScriptImpl&>(script).setup(builder, "DefaultScene"));
 		VERIFY_RETURN_FALSE(context.mRenderResource.buildMeshResource(MakeConstView(context.mScene.meshes)));
 		return true;
 	}
 
-	int ISceneBuilder::LoadMesh(SceneBuildContext& context, char const* filePath, Transform const& transform)
+	int FSceneBuilder::LoadMesh(SceneBuildContext& context, char const* filePath, Transform const& transform)
 	{
-		PathTracing::SceneBuilderImpl builder(context);
+		SceneBuilderImpl builder(context);
 		int result = builder.loadMesh(filePath, transform);
 
 		if (result != INDEX_NONE)
@@ -498,5 +573,16 @@ namespace PathTracing
 
 		return result;
 	}
-}
+
+	bool FSceneBuilder::UpdateMeshImportTransform(SceneBuildContext& context, int meshId, Transform const& transform)
+	{
+		SceneBuilderImpl builder(context);
+		if (builder.updateMeshImportTransform(meshId, transform))
+		{
+			context.mRenderResource.updateSingleMeshResource(MakeConstView(context.mScene.meshes), meshId, context.mScene);
+			return true;
+		}
+		return false;
+	}
+}//namespace PathTracing
 

@@ -6,32 +6,6 @@
 
 namespace Render
 {
-	void MeshBatch::draw(RenderContext& context)
-	{
-		RHICommandList& commandList = context.getCommnadList();
-
-		context.setMaterial(material);
-
-		InputStreamInfo inputSteam;
-		inputSteam.buffer = vertexBuffer;
-		inputSteam.offset = 0;
-		RHISetInputStream(commandList, inputLayout, &inputSteam, 1);
-
-		for( int i = 0; i < elements.size(); ++i )
-		{
-			MeshBatchElement& meshElement = elements[i];
-			context.setWorld(meshElement.world);
-			if( meshElement.indexBuffer )
-			{
-				RHISetIndexBuffer(commandList, meshElement.indexBuffer);
-				RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
-			}
-			else
-			{
-				RHIDrawPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
-			}
-		}
-	}
 
 	class SimpleElementShaderProgram : public GlobalShaderProgram
 	{
@@ -181,11 +155,6 @@ namespace Render
 			Vector3 p1 = pos + rotation.rotate(extents * (v[i + 1] - Vector3(0.5, 0.5, 0.5)));
 			addLine(p0, p1, color, thickness);
 		}
-	}
-
-	void PrimitivesCollection::drawDynamic(RenderContext& context)
-	{
-		drawDynamic(context.getCommnadList(), context.getView());
 	}
 
 	void PrimitivesCollection::drawDynamic(RHICommandList& commandList, ViewInfo& view)

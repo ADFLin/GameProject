@@ -43,7 +43,7 @@ namespace Render
 			mAllocator.cleanup();
 		}
 
-		void addResource(ID3D12Resource* resource)
+		void addResource(IUnknown* resource)
 		{
 			if (resource)
 			{

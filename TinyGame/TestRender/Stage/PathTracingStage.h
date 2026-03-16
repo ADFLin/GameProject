@@ -106,6 +106,7 @@ public:
 
 	void restart() { bDataChanged = true; mView.frameCount = 0; }
 	void onUpdate(GameTimeSpan deltaTime) override;
+	void updateMeshImportTransform(int index);
 
 
 	Vector3 mLastPos;

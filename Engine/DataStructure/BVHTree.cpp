@@ -178,12 +178,14 @@ int BVHTreeBuilder::buildNode_R(TArrayView<BuildData>& dataList, BVHTree::BoundT
 					int index = data.index;
 					BVHTree::Primitive const& primitive = mPrimitives[index];
 
-					int indecBucket = Math::FloorToInt((float)BucketCount * (primitive.center[axis] - bound.min[axis]) / axisSize);
-					if (indecBucket >= BucketCount)
-						indecBucket = BucketCount - 1;
+					int indexBucket = Math::FloorToInt((float)BucketCount * (primitive.center[axis] - bound.min[axis]) / axisSize);
+					if (indexBucket >= BucketCount)
+						indexBucket = BucketCount - 1;
+					else if (indexBucket < 0)
+						indexBucket = 0;
 
-					buckets[indecBucket].count += 1;
-					buckets[indecBucket].bound += primitive.bound;
+					buckets[indexBucket].count += 1;
+					buckets[indexBucket].bound += primitive.bound;
 				}
 
 				int leftCount = 0;

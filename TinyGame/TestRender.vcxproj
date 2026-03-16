@@ -286,6 +286,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp" />
+    <ClCompile Include="TestRender\MeshImporterOBJ.cpp" />
     <ClCompile Include="TestRender\MeshImporterGLB.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -335,6 +336,7 @@
     <ClInclude Include="TestRender\Stage\PathTracing\PathTracingScene.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
     <ClInclude Include="TestRender\Stage\PlantRenderingStage.h" />
+    <ClInclude Include="TestRender\MeshImporterOBJ.h" />
     <ClInclude Include="TestRender\MeshImporterGLB.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
     <ClInclude Include="TestRender\Stage\SoftwareRenderingStage.h" />

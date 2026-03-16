@@ -435,7 +435,6 @@ namespace Render
 
 
 
-#define USE_D3D12_RESOURCE_CUSTOM_COUNT 1
 
 	struct CNameable
 	{
@@ -469,32 +468,14 @@ namespace Render
 
 		virtual void incRef()
 		{
-#if USE_D3D12_RESOURCE_CUSTOM_COUNT
 			++mCount;
-#else
-#if _DEBUG
-			++mCount;
-#endif
-			int count = mResource->AddRef();
-			assert(mCount + 1 <= count);
-#endif
-	}
+		}
 		virtual bool decRef()
 		{
-#if USE_D3D12_RESOURCE_CUSTOM_COUNT
 			--mCount;
 			return mCount == 0;
-#else
-#if _DEBUG
-			--mCount;
-			int count = mResource->Release();
-			assert(mCount + 1 <= count);
-			return count == 1;
-#else
-			return mResource->Release() == 1;
-#endif
-#endif
 		}
+
 		virtual void releaseResource()
 		{
 			if (mResource == nullptr)
@@ -505,25 +486,7 @@ namespace Render
 				LogWarning(0, "D3D12Resource refcount error");
 			}
 #endif
-
-#if USE_D3D12_RESOURCE_CUSTOM_COUNT
-			int count = mResource->Release();
-			if (count > 0)
-			{
-#if RHI_USE_RESOURCE_TRACE
-				if (mTag)
-				{
-					LogDevMsg(0, "D3D12Resource: %p %p %d %s : %s , %s", this, mResource, count, mTypeName.c_str(), mTag, mTrace.toString().c_str());
-				}
-				else
-				{
-					LogDevMsg(0, "D3D12Resource: %p %p %d %s : %s", this, mResource, count, mTypeName.c_str(), mTrace.toString().c_str());
-				}
-#endif
-			}
-#else
 			D3D12FenceResourceManager::Get().addResource(mResource);
-#endif
 			mResource = nullptr;
 		}
 
@@ -542,7 +505,6 @@ namespace Render
 			}
 		}
 
-
 		void release()
 		{
 			if (mResource)
@@ -551,9 +513,7 @@ namespace Render
 			}
 		}
 
-#if _DEBUG || USE_D3D12_RESOURCE_CUSTOM_COUNT
 		int mCount = 0;
-#endif
 		ResourceType* mResource = nullptr;
 	};
 

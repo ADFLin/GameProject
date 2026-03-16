@@ -38,10 +38,10 @@ namespace Render
 	{
 		for( auto meshBatch : primitiveCollection.mMeshBatchs )
 		{
-			meshBatch.draw(context);
+			context.draw(meshBatch);
 		}
 
-		dynamicPrimitiveCollection.drawDynamic(context);
+		context.draw(dynamicPrimitiveCollection);
 	}
 
 	void Scene::renderTranslucent(RenderContext& context)

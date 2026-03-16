@@ -57,4 +57,13 @@ PS_ENTRY_END(MainPS)
     
     OutColor = float4(color, BaseColor.a);
 }
+
+uniform int ObjectIndex;
+PS_ENTRY_START(PickingPS)
+    PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
+    PS_OUTPUT(uint OutIndex, 0)
+PS_ENTRY_END(PickingPS)
+{
+    OutIndex = (uint)ObjectIndex;
+}
 #endif

@@ -35,6 +35,9 @@ namespace Render
 		virtual void setupWorld(RenderContext& context, Matrix4 const& mat );
 	};
 
+	struct MeshBatch;
+	class PrimitivesCollection;
+
 	class RenderContext
 	{
 	public:
@@ -48,6 +51,10 @@ namespace Render
 
 		RHICommandList& getCommnadList() { return *mCommandList; }
 		ViewInfo& getView() { return *mCurView; }
+
+
+		void draw(MeshBatch const& meshBatch);
+		void draw(PrimitivesCollection& collection);
 
 		void setupTechique(RenderTechnique& techique)
 		{

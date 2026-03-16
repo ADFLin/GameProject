@@ -35,10 +35,11 @@ namespace Render
 		MeshBatch meshBatch;
 		meshBatch.primitiveType = mesh->mType;
 		meshBatch.inputLayout = mesh->mInputLayout;
-		meshBatch.vertexBuffer = mesh->mVertexBuffer;
+
 		meshBatch.material = material.get();
 
 		MeshBatchElement meshElement;
+		meshElement.vertexBuffer = mesh->mVertexBuffer;
 		meshElement.indexBuffer = mesh->mIndexBuffer;
 		meshElement.idxStart = 0;
 		if( mesh->mIndexBuffer )
@@ -59,16 +60,16 @@ namespace Render
 
 		if( !mesh->mSections.empty() )
 		{
-
 			for( int i = 0; i < mesh->mSections.size(); ++i )
 			{
 				MeshBatch meshBatch;
 				meshBatch.primitiveType = mesh->mType;
 				meshBatch.inputLayout = mesh->mInputLayout;
-				meshBatch.vertexBuffer = mesh->mVertexBuffer;
+
 				meshBatch.material = mesh->getMaterial(i);
 
 				MeshBatchElement meshElement;
+				meshElement.vertexBuffer = mesh->mVertexBuffer;
 				meshElement.indexBuffer = mesh->mIndexBuffer;
 				meshElement.idxStart = mesh->mSections[i].indexStart;
 				meshElement.numElement = mesh->mSections[i].count;
@@ -83,10 +84,11 @@ namespace Render
 			MeshBatch meshBatch;
 			meshBatch.primitiveType = mesh->mType;
 			meshBatch.inputLayout = mesh->mInputLayout;
-			meshBatch.vertexBuffer = mesh->mVertexBuffer;
+
 			meshBatch.material = mesh->getMaterial(0);
 
 			MeshBatchElement meshElement;
+			meshElement.vertexBuffer = mesh->mVertexBuffer;
 			meshElement.indexBuffer = mesh->mIndexBuffer;
 			meshElement.idxStart = 0;
 			if( mesh->mIndexBuffer )
@@ -129,11 +131,7 @@ namespace Render
 				line.time -= deltaTime;
 				if( line.time < 0 )
 				{
-					if( idx != mLines.size() - 1 )
-					{
-						mLines[idx] = mLines.back();
-					}
-					mLines.pop_back();
+					mLines.removeIndexSwap(idx);
 					--idx;
 				}
 			}
@@ -148,11 +146,7 @@ namespace Render
 				point.time -= deltaTime;
 				if( point.time < 0 )
 				{
-					if( idx != mPoints.size() - 1 )
-					{
-						mPoints[idx] = mPoints.back();
-					}
-					mPoints.pop_back();
+					mPoints.removeIndexSwap(idx);
 					--idx;
 				}
 			}

@@ -129,14 +129,33 @@ void PathTracingStage::onUpdate(GameTimeSpan deltaTime)
 
 	if (bNeedReload)
 	{
-		loadSceneData();
 		bNeedReload = false;
-		bDataChanged = false;
+		bMeshChanged = false;
+		loadSceneData();
 	}
-	else if (bDataChanged)
+
+	if (bDataChanged)
 	{
-		mRenderer.buildSceneResource(RHICommandList::GetImmediateList(), mSceneData);
 		bDataChanged = false;
+		RHIFlushCommand(RHICommandList::GetImmediateList());
+
+		if (bMeshChanged)
+		{
+			bMeshChanged = false;
+			mRenderer.clearScene();
+
+			mSceneData.meshes.clear();
+			auto meshInfos = std::move(mSceneData.meshInfos);
+			SceneBuildContext context(mSceneData, mRenderer);
+			for(auto const& meshInfo : meshInfos)
+			{
+				FSceneBuilder::LoadMesh(context, meshInfo.path.c_str(), meshInfo.transform);
+			}
+			mRenderer.buildMeshResource(mSceneData.meshes);
+
+		}
+
+		mRenderer.buildSceneResource(RHICommandList::GetImmediateList(), mSceneData);
 	}
 #endif
 }
@@ -151,6 +170,8 @@ void PathTracingStage::loadScene(char const* path)
 		serializer.serialize("Objects", mSceneData.objects);
 		serializer.serialize("MeshInfos", mSceneData.meshInfos);
 		file->release();
+
+		bMeshChanged = true;
 		bDataChanged = true;
 		mView.frameCount = 0;
 	}
@@ -301,7 +322,7 @@ bool PathTracingStage::loadSceneData()
 	mRenderer.clearScene();
 	mSceneData.clearScene();
 	SceneBuildContext context(mSceneData, mRenderer);
-	VERIFY_RETURN_FALSE(ISceneBuilder::RunScript(context, *mScript, "DefaultScene"));
+	VERIFY_RETURN_FALSE(FSceneBuilder::RunScript(context, *mScript, "DefaultScene"));
 
 	bDataChanged = true;
 	return true;
@@ -311,7 +332,7 @@ void PathTracingStage::addMeshFromFile(char const* filePath)
 {
 	SceneBuildContext context(mSceneData, mRenderer);
 
-	int meshId = ISceneBuilder::LoadMesh(context, filePath, Transform::Identity());
+	int meshId = FSceneBuilder::LoadMesh(context, filePath, Transform::Identity());
 	if (meshId != INDEX_NONE)
 	{
 		mSceneData.objects.push_back(FObject::Mesh(meshId, 1.0f, 0, Vector3::Zero()));
@@ -389,11 +410,19 @@ bool PathTracingStage::setupRenderResource(ERenderSystem systemName)
 
 	if (mMeshInfosDetailView)
 	{
-		auto OnPropertyChange = [this](char const*)
+		auto OnPropertyChange = [this](char const* propertyName)
 		{
-			loadSceneData();
-			bDataChanged = true;
-			mView.frameCount = 0;
+			int index = INDEX_NONE;
+			if (propertyName && sscanf(propertyName, "MeshInfos[%d]", &index) == 1)
+			{
+				updateMeshImportTransform(index);
+				mView.frameCount = 0;
+			}
+			else
+			{
+				bNeedReload = true;
+				mView.frameCount = 0;
+			}
 		};
 		PropertyViewHandle handle = mMeshInfosDetailView->addValue(mSceneData.meshInfos, "MeshInfos");
 		mMeshInfosDetailView->addCallback(handle, OnPropertyChange);
@@ -430,10 +459,14 @@ void PathTracingStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 }
 
 #if TINY_WITH_EDITOR
-
-
-
-
-
+void PathTracingStage::updateMeshImportTransform(int index)
+{
+	SceneBuildContext context(mSceneData, mRenderer);
+	if (!FSceneBuilder::UpdateMeshImportTransform(context, index, mSceneData.meshInfos[index].transform))
+	{
+		bNeedReload = true;
+	}
+	mView.frameCount = 0;
+}
 #endif
 

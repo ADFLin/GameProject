@@ -91,3 +91,21 @@ bool ImageData::loadFromMemory(void* inData, int size, ImageLoadOption const& op
 
 	return data != nullptr;
 }
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
+#include "FileSystem.h"
+
+bool ImageData::SaveImage(char const* path, int w, int h, int numComponent, void const* data, bool bHDR)
+{
+	FFileSystem::CreateDirectory(FFileUtility::GetDirectory(path).toCString());
+	if (bHDR)
+	{
+		return stbi_write_hdr(path, w, h, numComponent, (float const*)data) != 0;
+	}
+	else
+	{
+		return stbi_write_png(path, w, h, numComponent, data, w * numComponent) != 0;
+	}
+}
+

@@ -87,8 +87,9 @@ namespace Render
 			auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *DownsampleProg, Texture, sourceTexture, sampler);
 			SET_SHADER_PARAM(commandList, *DownsampleProg, ExtentInverse, Vector2(1.0f / float(size.x), 1.0f / float(size.y)));
-
+			RHIResourceTransition(commandList, { downsampleTexture }, EResourceTransition::RenderTarget);
 			DrawUtility::ScreenRect(commandList);
+			RHIResourceTransition(commandList, { downsampleTexture }, EResourceTransition::SRV);
 			return downsampleTexture;
 		};
 
@@ -104,6 +105,8 @@ namespace Render
 
 			PooledRenderTargetRef bloomSetupRT = GRenderTargetPool.fetchElement(desc);
 
+			RHIResourceTransition(commandList, { bloomSetupRT->texture } , EResourceTransition::RenderTarget);
+
 			bloomFrameBuffer.setTexture(0, *bloomSetupRT->texture);
 			RHISetViewport(commandList, 0, 0, size.x, size.y);
 			RHISetFrameBuffer(commandList, &bloomFrameBuffer);
@@ -114,6 +117,8 @@ namespace Render
 			SET_SHADER_PARAM(commandList, *BloomSetupProg, BloomThreshold, config.threshold);
 
 			DrawUtility::ScreenRect(commandList);
+
+			RHIResourceTransition(commandList, { bloomSetupRT->texture }, EResourceTransition::SRV);
 			downsampleTextures[0] = static_cast<RHITexture2D*>(bloomSetupRT->texture.get());
 		}
 
@@ -170,7 +175,9 @@ namespace Render
 				FliterProg->setParam(commandList, FliterProg->mParamWeights, weightData, MaxWeightNum);
 				FliterProg->setParam(commandList, FliterProg->mParamUVOffsets, uvOffsetData, MaxWeightNum / 2);
 				FliterProg->setParam(commandList, FliterProg->mParamWeightNum, numSamples);
+				RHIResourceTransition(commandList, { blurXRT->texture }, EResourceTransition::RenderTarget);
 				DrawUtility::ScreenRect(commandList);
+				RHIResourceTransition(commandList, { blurXRT->texture }, EResourceTransition::SRV);
 			}
 
 			desc.debugName = "BlurV";
@@ -186,7 +193,9 @@ namespace Render
 				FliterAddProg->setParam(commandList, FliterAddProg->mParamWeights, weightData, MaxWeightNum);
 				FliterAddProg->setParam(commandList, FliterAddProg->mParamUVOffsets, uvOffsetData, MaxWeightNum / 2);
 				FliterAddProg->setParam(commandList, FliterAddProg->mParamWeightNum, numSamples);
+				RHIResourceTransition(commandList, { blurYRT->texture }, EResourceTransition::RenderTarget);
 				DrawUtility::ScreenRect(commandList);
+				RHIResourceTransition(commandList, { blurYRT->texture }, EResourceTransition::SRV);
 			}
 			return static_cast<RHITexture2D*>(blurYRT->texture.get());
 		};

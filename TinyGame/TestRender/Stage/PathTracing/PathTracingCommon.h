@@ -118,7 +118,7 @@ namespace PathTracing
 			REF_PROPERTY(rotation)
 			REF_PROPERTY(meta)
 			REF_PROPERTY(materialId)
-			REFLECT_STRUCT_END()
+		REFLECT_STRUCT_END()
 	};
 
 	struct FObject

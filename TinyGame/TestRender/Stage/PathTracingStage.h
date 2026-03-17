@@ -58,6 +58,14 @@ public:
 			mView.frameCount = 0;
 		}
 	}
+
+	RHITexture2D& getDisplayTexture() 
+	{ 
+		if (mLastOutputTexture)
+			return *mLastOutputTexture;
+		return mSceneRenderTargets.getFrameTexture(); 
+	}
+
 	void executeCommand(EEditorCommand commnad)
 	{
 		switch (commnad)
@@ -107,6 +115,7 @@ public:
 	void restart() { bDataChanged = true; mView.frameCount = 0; }
 	void onUpdate(GameTimeSpan deltaTime) override;
 	void updateMeshImportTransform(int index);
+	void saveImage();
 
 
 	Vector3 mLastPos;
@@ -123,6 +132,7 @@ public:
 	FrameRenderTargets mSceneRenderTargets;
 
 	EDebugDsiplayMode mLastDebugDisplayModeRender = EDebugDsiplayMode::None;
+	RHITexture2D* mLastOutputTexture = nullptr;
 
 	void onRender(float dFrame) override;
 

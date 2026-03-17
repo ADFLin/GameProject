@@ -28,6 +28,8 @@ struct ImageData
 
 	bool load(char const* path, ImageLoadOption const& option = ImageLoadOption());
 	bool loadFromMemory(void* inData, int size, ImageLoadOption const& option = ImageLoadOption());
+
+	static bool SaveImage(char const* path, int w, int h, int numComponent, void const* data, bool bHDR = false);
 };
 
 #endif // ImageData_H_DB4CAB9E_DC3B_48D7_9C93_9C673825862C

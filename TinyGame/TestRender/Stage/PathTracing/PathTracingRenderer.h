@@ -41,9 +41,19 @@ namespace PathTracing
 		bool bSplitAccumulate = false;
 		bool bUseHardwareRayTracing = true;
 		bool bUseDenoise = true;
+		bool bUseBloom = false;
+		bool bUseACES = false;
+		float bloomThreshold = 1.0f;
+		float tonemapExposure = 1.0f;
 
 		int boundBoxWarningCount = 500;
 		int triangleWarningCount = 50;
+
+		bool bUseGlobalFog = false;
+		float fogDensity = 0.01f;
+		Vector3 fogAlbedo = Vector3(1, 1, 1);
+		float fogPhaseG = 0.0f;
+		float skyDistance = 100.0f;
 	};
 
 
@@ -298,6 +308,8 @@ namespace PathTracing
 
 		RHITexture2DRef mDenoiseTexture;
 		RHIFrameBufferRef mDenoiseFrameBuffer;
+
+		RHIFrameBufferRef mBloomFrameBuffer;
 
 	};
 

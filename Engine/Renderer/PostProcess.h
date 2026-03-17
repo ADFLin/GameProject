@@ -2,6 +2,8 @@
 
 #include "RHI/RHICommand.h"
 #include "RHI/GlobalShader.h"
+#include "RHI/RHIGlobalResource.h"
+
 #include "InlineString.h"
 
 namespace Render
@@ -23,6 +25,8 @@ namespace Render
 				InlineString<128> name;
 				name.format("TextureInput%d", i);
 				mParamTextureInput[i].bind(parameterMap, name);
+				name.format("TextureInput%dSampler", i);
+				mParamTextureInputSampler[i].bind(parameterMap, name);
 			}
 		}
 
@@ -33,12 +37,14 @@ namespace Render
 				if (!mParamTextureInput[i].isBound())
 					break;
 				if (context.getTexture(i))
-					shader.setTexture(commandList, mParamTextureInput[i], *context.getTexture(i));
+					shader.setTexture(commandList, mParamTextureInput[i], *context.getTexture(i), mParamTextureInputSampler[i], TStaticSamplerState<>::GetRHI());
 			}
 		}
 
 		static int const MaxInputNum = 4;
 
 		ShaderParameter mParamTextureInput[MaxInputNum];
+		ShaderParameter mParamTextureInputSampler[MaxInputNum];
+
 	};
 }

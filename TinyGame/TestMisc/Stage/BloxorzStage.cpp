@@ -348,6 +348,7 @@ namespace Bloxorz
 		FWidgetProperty::Bind(frame->addSlider("Blur Radius Scale"), blurRadiusScale, 0, 30, 1);
 		FWidgetProperty::Bind(frame->addSlider("Bloom Intensity"), mBloomIntensity, 0, 5, 1);
 		FWidgetProperty::Bind(frame->addSlider("Bloom Threshold"), mBloomThreshold, -0.5, 2, 1);
+		FWidgetProperty::Bind(frame->addSlider("Exposure"), mExposure, 0.01, 10, 1);
 
 
 		restart();
@@ -822,12 +823,12 @@ namespace Bloxorz
 			config.intensity = mBloomIntensity;
 			config.blurRadiusScale = blurRadiusScale;
 			RHITexture2DRef bloomTexture = FBloom::Render(commandList, mSceneRenderTargets.getFrameTexture(), *mBloomFrameBuffer, config);
-			FTonemap::Render(commandList, mSceneRenderTargets, bloomTexture);
+			FTonemap::Render(commandList, mSceneRenderTargets, bloomTexture, mExposure);
 			postProcessRT = &mSceneRenderTargets.getFrameTexture();
 		}
 		else
 		{
-			FTonemap::Render(commandList, mSceneRenderTargets, nullptr);
+			FTonemap::Render(commandList, mSceneRenderTargets, nullptr, mExposure);
 			postProcessRT = &mSceneRenderTargets.getFrameTexture();
 		}
 

@@ -21,9 +21,20 @@
 #define USE_BVH4 0
 #endif
 
+#ifndef USE_GLOBAL_FOG
+#define USE_GLOBAL_FOG 0
+#endif
+
 #define MAX_TRACE_DIST 1.#INF
 #define MaxBounceCount 4
 
+
+
+#if USE_GLOBAL_FOG
+#define  USE_FOG 1
+#else
+#define  USE_FOG 0
+#endif
 
 #if USE_DEBUG_DISPLAY
 struct Stats
@@ -160,6 +171,13 @@ uniform int NumObjects;
 uniform int NumEmittingObjects;
 uniform float BlendFactor;
 
+#if USE_FOG
+uniform float FogDensity;
+uniform float3 FogAlbedo;
+uniform float FogPhaseG;
+uniform float SkyDistance;
+#endif
+
 DEFINE_TEXTURE(TextureCube, SkyTexture);
 
 
@@ -181,6 +199,44 @@ float3x3 TangentToWorldTransform(float3 tangentZ)
 	return float3x3(tangentX, tangentY, tangentZ);
 #endif
 }
+
+#if USE_FOG
+float SampleFogFreePath(float maxDist, inout uint seed)
+{
+	if (FogDensity > 0.0001)
+	{
+		float xi = Random(seed);
+		float t = -log(max(1.0 - xi, 0.0001)) / FogDensity;
+		return t;
+	}
+	return 1.#INF;
+}
+
+float3 SamplePhaseFunctionHG(float3 V, float g, inout uint seed)
+{
+	float2 xi = float2(Random(seed), Random(seed));
+	float cosTheta;
+	if (abs(g) < 0.001)
+	{
+		cosTheta = 1.0 - 2.0 * xi.x;
+	}
+	else
+	{
+		float sqr = (1.0 - g * g) / (1.0 - g + 2.0 * g * xi.x);
+		cosTheta = (1.0 + g * g - sqr * sqr) / (2.0 * g);
+	}
+
+	float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+	float phi = 2.0 * PI * xi.y;
+
+	float3 H;
+	H.x = sinTheta * cos(phi);
+	H.y = sinTheta * sin(phi);
+	H.z = cosTheta;
+
+	return mul(TangentToWorldTransform(-V), H);
+}
+#endif
 
 float4 ImportanceSampleGGX(float2 E, float a2)
 {
@@ -245,13 +301,13 @@ float pdfLight(int objId, int numEmittingObjects)
 	} else if (object.type == OBJ_SPHERE) {
 		float radius = object.meta.x;
 		area = 4.0 * PI * radius * radius;
-	} else if (object.type == OBJ_TRIANGLE_MESH) {
-		// Heuristic area for meshes if not pre-calculated
-		float3 size = object.meta.yyy * 2.0; 
-		area = size.x * size.y * 2.0; 
+	} else if (object.type == OBJ_QUAD) {
+		float3 size = object.meta;
+		area = 4.0 * size.x * size.y;
 	}
 	return 1.0 / (float(numEmittingObjects) * max(area, 0.0001f));
 }
+#endif
 
 void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf, out int outObjectId, int numEmittingObjects, inout uint rngState) 
 {
@@ -296,8 +352,128 @@ void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf
 		sampledPoint = object.pos + localDir * radius;
 		normal = localDir;
 	} 
+	else if (object.type == OBJ_QUAD)
+	{
+		float3 size = object.meta;
+		area = 4.0 * size.x * size.y;
+		float3 localPos = float3((Random(rngState) * 2.0 - 1.0) * size.x, (Random(rngState) * 2.0 - 1.0) * size.y, 0);
+		sampledPoint = QuatRotate(object.rotation, localPos) + object.pos;
+		normal = normalize(QuatRotate(object.rotation, float3(0, 0, 1)));
+	}
 	else { sampledPoint = object.pos; normal = float3(0, 1, 0); }
 	pdf = 1.0 / (float(numEmittingObjects) * max(area, 0.001f));
+}
+
+float3 GetRefractionDir(float3 I, float3 N, float cosI, float refractiveIndex)
+{
+	float3 hitN = N;
+	float eta = 1.0 / refractiveIndex;
+	if (cosI > 0)
+	{
+		hitN = -hitN;
+		eta = refractiveIndex;
+	}
+	else
+	{
+		cosI = -cosI;
+	}
+
+	float k = 1.0 - eta * eta * (1.0 - cosI * cosI);
+	if (k >= 0.0)
+	{
+		return normalize(eta * I + (eta * cosI - sqrt(k)) * hitN);
+	}
+	else
+	{
+		return reflect(I, hitN);
+	}
+}
+
+void SampleBSDF(in float3 rayDir, in float3 normal, in MaterialData mat, inout uint seed, out float3 nextDir, out float3 brdf, out float pdf)
+{
+	bool isSpecularBounce = mat.specular >= Random(seed);
+	float3 diffuseDir = normalize(normal + RandomDirection(seed));
+
+	float a = max(0.001f, mat.roughness * mat.roughness);
+	float a2 = a * a;
+	float4 ggxH = ImportanceSampleGGX(float2(Random(seed), Random(seed)), a2);
+	float3x3 tangentToWorld = TangentToWorldTransform(normal);
+	float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
+	float3 specularDir = reflect(rayDir, H);
+
+	nextDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
+
+	float pdf_raw;
+	EvaluateMaterialAndPdfGGX(nextDir, normal, rayDir, mat, brdf, pdf_raw);
+	pdf = max(0.00001f, pdf_raw);
+}
+
+float3 EvaluateDirectLight(in float3 hitPos, in float3 normal, in float3 rayDir, in MaterialData mat, 
+                             in float3 lightPos, in float3 lightNormal, in float pdf_dl, int lightObjId, 
+                             bool bOccluded, out float3 w_i_dl_brdf, out float3 w_i_dl)
+{
+	w_i_dl = normalize(lightPos - hitPos);
+	if (dot(normal, w_i_dl) < 0.0001f) return 0;
+	if (bOccluded || lightObjId == -1) return 0;
+
+	ObjectData dL_obj = Objects[lightObjId];
+	MaterialData dL_mat = GetMaterial(dL_obj.materialId);
+	if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+	{
+		float dotA = max(0.0001f, abs(dot(lightNormal, -w_i_dl)));
+		float lightDist = distance(lightPos, hitPos);
+		float distSq = max(0.001f, lightDist * lightDist);
+		float pdf_brdf_mis;
+		EvaluateMaterialAndPdfGGX(w_i_dl, normal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
+		float pdf_dl_w = pdf_dl * distSq / dotA;
+		float3 color = dL_mat.emissiveColor / pdf_dl_w;
+#if USE_FOG
+		color *= exp(-FogDensity * lightDist);
+#endif
+		return color;
+	}
+	return 0;
+}
+
+#if USE_MIS
+float GetImplicitMISWeight(int objId, float dist, float3 normal, float3 rayDir, float pdf_brdf_prev, int numEmittingObjects)
+{
+	float pdf_dl_mis = pdfLight(objId, numEmittingObjects);
+	float dotA = max(0.0001f, dot(normal, -rayDir));
+	float distSq = max(0.001f, dist * dist);
+	float pdf_dl_mis_w = pdf_dl_mis * distSq / dotA;
+#if USE_FOG
+	pdf_dl_mis_w *= exp(-FogDensity * dist);
+#endif
+	return balanceHeuristic(pdf_brdf_prev, pdf_dl_mis_w);
+}
+
+float3 EvaluateDirectLightMIS(in float3 hitPos, in float3 normal, in float3 rayDir, in MaterialData mat, 
+                             in float3 lightPos, in float3 lightNormal, in float pdf_dl, int lightObjId, 
+                             bool bOccluded, out float3 w_i_dl_brdf, out float3 w_i_dl)
+{
+	w_i_dl = normalize(lightPos - hitPos);
+	if (dot(normal, w_i_dl) < 0.0001f) return 0;
+	if (bOccluded || lightObjId == -1) return 0;
+
+	ObjectData dL_obj = Objects[lightObjId];
+	MaterialData dL_mat = GetMaterial(dL_obj.materialId);
+	if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+	{
+		float dotA = max(0.0001f, abs(dot(lightNormal, -w_i_dl)));
+		float lightDist = distance(lightPos, hitPos);
+		float distSq = max(0.001f, lightDist * lightDist);
+		float pdf_brdf_mis;
+		EvaluateMaterialAndPdfGGX(w_i_dl, normal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
+		float pdf_dl_w = pdf_dl * distSq / dotA;
+		float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
+		float3 color = dL_mat.emissiveColor * max(0.0f, misWeight) / pdf_dl_w;
+#if USE_FOG
+		color *= exp(-FogDensity * lightDist);
+#endif
+		return color;
+	}
+	return 0;
 }
 #endif
 

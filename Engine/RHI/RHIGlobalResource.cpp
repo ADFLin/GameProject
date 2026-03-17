@@ -85,7 +85,8 @@ namespace Render
 			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, TCF_DefalutValue, colorB)));
 
 			if (GRHISystem->getName() == RHISystemName::OpenGL ||
-				GRHISystem->getName() == RHISystemName::D3D11)
+				GRHISystem->getName() == RHISystemName::D3D11 ||
+				GRHISystem->getName() == RHISystemName::D3D12)
 			{
 				VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, 1, TCF_DefalutValue, colorW)));
 				VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, 1, TCF_DefalutValue, colorB)));

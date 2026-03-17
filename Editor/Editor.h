@@ -10,6 +10,8 @@
 #include "RHI/RHIGraphics2D.h"
 #include "Reflection.h"
 
+#include "DetailCustomization.h"
+
 class BitmapDC;
 namespace Render
 {
@@ -60,6 +62,7 @@ typedef uint32 PropertyViewHandle;
 class IEditorDetailView
 {
 public:
+	virtual ~IEditorDetailView() = default;
 	virtual void release() = 0;
 
 	virtual PropertyViewHandle addView(Reflection::EPropertyType type, void* ptr, char const* name = nullptr, char const* category = nullptr) = 0;
@@ -101,20 +104,10 @@ public:
 	template< typename T, TEnableIf_Type<!Meta::IsPrimary<T>::Value, bool > = true >
 	PropertyViewHandle addValue(T& value, char const* name = nullptr)
 	{
-		auto property = Reflection::PropertyCollector::CreateProperty<T>();
-		mProperties.push_back(property);
+		auto property = Reflection::PropertyCollector::GetProperty<T>();
 		return addView(property, &value, name, mCurrentCategory);
 	}
 
-	virtual ~IEditorDetailView()
-	{
-		for (auto property : mProperties)
-		{
-			delete property;
-		}
-	}
-
-	TArray< Reflection::PropertyBase* > mProperties;
 protected:
 	char const* mCurrentCategory = nullptr;
 };
@@ -148,6 +141,8 @@ public:
 	virtual void setTextureShowManager(Render::ITextureShowManager* manager) = 0;
 	virtual IEditorDetailView* createDetailView(DetailViewConfig const& config) = 0;
 	virtual IEditorToolBar* createToolBar(ToolBarConfig const& config) = 0;
+
+	virtual void registerCustomization(Reflection::StructType* type, std::shared_ptr<IDetailCustomization> customization) = 0;
 };
 
 #endif // Editor_H_54F7990F_F10C_4F74_A15A_6823A63F68F4

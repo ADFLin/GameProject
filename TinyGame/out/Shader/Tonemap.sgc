@@ -6,6 +6,10 @@
 #define USE_BLOOM 0
 #endif
 
+#ifndef USE_ACES
+#define  USE_ACES 0
+#endif
+
 #if PIXEL_SHADER
 
 float LinearToSRGB(float value)
@@ -36,23 +40,42 @@ float3 lumaBasedReinhardToneMapping(float3 color)
 	return color;
 }
 
+float3 ACESFilm(float3 x)
+{
+	float a = 2.51f;
+	float b = 0.03f;
+	float c = 2.43f;
+	float d = 0.59f;
+	float e = 0.14f;
+	return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
+}
+
 #if USE_BLOOM
 DEFINE_TEXTURE(Texture2D, BloomTexture);
 #endif
+
+uniform float Exposure;
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT( VSOutputParameters VSOutput, 0 )
 	PS_OUTPUT( float4 OutColor, 0 )
 PS_ENTRY_END(MainPS)
 {
+	//OutColor = float4(VSOutput.UVs, 0, 1);
+	//return;
+
 	float4 color = TEXTURE_SAMPLE(TextureInput0, VSOutput.UVs);
 
-	//color.rgb = lumaBasedReinhardToneMapping(color.rgb);
+	color.rgb *= Exposure;
+
 #if USE_BLOOM
 	color.rgb += TEXTURE_SAMPLE(BloomTexture, VSOutput.UVs).rgb;
 #endif
 
-	OutColor.rgb = color.rgb;
+#if USE_ACES
+	color.rgb = ACESFilm(color.rgb);
+#endif
+
 	OutColor.r = LinearToSRGB(color.r);
 	OutColor.g = LinearToSRGB(color.g);
 	OutColor.b = LinearToSRGB(color.b);

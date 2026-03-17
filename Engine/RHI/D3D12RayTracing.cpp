@@ -197,7 +197,7 @@ namespace Render
 			if (!shader) return;
 			D3D12Shader* d3d12Shader = static_cast<D3D12Shader*>(shader);
 			
-			size_t libOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY>();
+			size_t libOffset = builder.addDataOffsetT<D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY>();
 			auto* pLibDesc = builder.getPtr<D3D12_DXIL_LIBRARY_DESC>(libOffset);
 			pLibDesc->DXILLibrary = d3d12Shader->getByteCode();
 			pLibDesc->NumExports = 1;
@@ -234,7 +234,7 @@ namespace Render
 		if (initializer.hitGroupShader)
 		{
 			AddLibrary(initializer.hitGroupShader, L"CH_Default");
-			size_t hgOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
+			size_t hgOffset = builder.addDataOffsetT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
 			auto* pHgDesc = builder.getPtr<D3D12_HIT_GROUP_DESC>(hgOffset);
 			FMemory::Set(pHgDesc, 0, sizeof(D3D12_HIT_GROUP_DESC));
 			builder.addString(L"HitGroup", &pHgDesc->HitGroupExport);
@@ -251,7 +251,7 @@ namespace Render
 			AddLibrary(group.closestHitShader, chName.c_str());
 
 			unsigned int currentHitGroupIndex = builder.getSubobjectCount();
-			size_t hgOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
+			size_t hgOffset = builder.addDataOffsetT<D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP>();
 			auto* pHgDesc = builder.getPtr<D3D12_HIT_GROUP_DESC>(hgOffset);
 			FMemory::Set(pHgDesc, 0, sizeof(D3D12_HIT_GROUP_DESC));
 			builder.addString(hgName.c_str(), &pHgDesc->HitGroupExport);
@@ -288,12 +288,12 @@ namespace Render
 					if (SUCCEEDED(system->mDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&pLocalRootSig))))
 					{
 						mLocalRootSignatures.push_back(TComPtr<ID3D12RootSignature>(pLocalRootSig));
-						size_t rootOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE>();
+						size_t rootOffset = builder.addDataOffsetT<D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE>();
 						unsigned int rootSubIndex = builder.getSubobjectCount() - 1;
 						auto* pLocalRootSubobject = builder.getPtr<D3D12_LOCAL_ROOT_SIGNATURE>(rootOffset);
 						pLocalRootSubobject->pLocalRootSignature = pLocalRootSig;
 
-						size_t assocOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION>();
+						size_t assocOffset = builder.addDataOffsetT<D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION>();
 						auto* pAssociation = builder.getPtr<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION>(assocOffset);
 						memset(pAssociation, 0, sizeof(D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION));
 						builder.addSubobjectRef(&pAssociation->pSubobjectToAssociate, rootSubIndex);
@@ -310,15 +310,13 @@ namespace Render
 
 		// 4. Configs
 		{
-			size_t scOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG>();
-			auto* pShaderConfig = builder.getPtr<D3D12_RAYTRACING_SHADER_CONFIG>(scOffset);
-			pShaderConfig->MaxPayloadSizeInBytes = initializer.maxPayloadSize;
-			pShaderConfig->MaxAttributeSizeInBytes = initializer.maxAttributeSize;
+			auto& shaderConfig = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG>();
+			shaderConfig.MaxPayloadSizeInBytes = initializer.maxPayloadSize;
+			shaderConfig.MaxAttributeSizeInBytes = initializer.maxAttributeSize;
 		}
 		{
-			size_t pcOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG>();
-			auto* pPipelineConfig = builder.getPtr<D3D12_RAYTRACING_PIPELINE_CONFIG>(pcOffset);
-			pPipelineConfig->MaxTraceRecursionDepth = initializer.maxRecursionDepth;
+			auto& pipelineConfig = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG>();
+			pipelineConfig.MaxTraceRecursionDepth = initializer.maxRecursionDepth;
 		}
 
 		// 5. Global Root Signature
@@ -326,9 +324,8 @@ namespace Render
 
 		if (mBoundState && mBoundState->mRootSignature)
 		{
-			size_t rootOffset = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE>();
-			auto* pGlobalRootSig = builder.getPtr<D3D12_GLOBAL_ROOT_SIGNATURE>(rootOffset);
-			pGlobalRootSig->pGlobalRootSignature = mBoundState->mRootSignature;
+			auto& globalRootSig = builder.addDataT<D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE>();
+			globalRootSig.pGlobalRootSignature = mBoundState->mRootSignature;
 		}
 
 		// Calculate Global Parameter Count for SBT Offset

@@ -1,6 +1,12 @@
 #include "DetailViewPanel.h"
+
+#include "EditorInternal.h"
+
 #include "InlineString.h"
 #include "Math/Quaternion.h"
+#include "DetailCustomization.h"
+#include <unordered_set>
+#include <functional>
 
 REGISTER_EDITOR_PANEL(DetailViewPanel, DetailViewPanel::ClassName, false, true);
 
@@ -359,6 +365,118 @@ struct DetailViewPanel::RenderContext
 		}
 	}
 
+	class DetailLayoutBuilderImpl : public IDetailLayoutBuilder
+	{
+	public:
+		DetailLayoutBuilderImpl(RenderContext& context, StructType* structData, void* pData, int level)
+			:mContext(context), mStructData(structData), mData(pData), mLevel(level)
+		{
+		}
+
+		void* getStructPtr() override { return mData; }
+
+		void addProperty(char const* propertyName, char const* label = nullptr) override
+		{
+			if (mConsumedProperties.count(propertyName))
+				return;
+
+			for (auto property : mStructData->properties)
+			{
+				if (std::string_view(property->name) == propertyName)
+				{
+					ImGui::TableNextRow();
+					ImGui::PushID(property);
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					mContext.renderPropertyRow(label ? label : property->name, property, mData, mLevel);
+					ImGui::PopID();
+					mConsumedProperties.insert(propertyName);
+					return;
+				}
+			}
+
+			// Handle nested properties (e.g., "meta.x")
+			std::string path = propertyName;
+			size_t pos = path.find('.');
+			if (pos != std::string::npos)
+			{
+				std::string outerName = path.substr(0, pos);
+				std::string innerPath = path.substr(pos + 1);
+
+				for (auto property : mStructData->properties)
+				{
+					if (std::string_view(property->name) == outerName && property->getType() == EPropertyType::Struct)
+					{
+						StructProperty* structProp = static_cast<StructProperty*>(property);
+						void* innerData = structProp->getDataInStruct(mData);
+						
+						// Create a temporary builder/context for nested lookup
+						// For simplicity, we just recursively render the nested property row
+						ImGui::TableNextRow();
+						ImGui::PushID(property);
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+
+						// We need to resolve the inner property
+						std::function<PropertyBase* (StructType*, std::string_view, void*&)> resolveProperty;
+						resolveProperty = [&](StructType* s, std::string_view p, void*& d) -> PropertyBase*
+						{
+							size_t subPos = p.find('.');
+							std::string_view cur = (subPos == std::string_view::npos) ? p : p.substr(0, subPos);
+							for (auto prop : s->properties)
+							{
+								if (prop->name == cur)
+								{
+									if (subPos == std::string_view::npos) return prop;
+									if (prop->getType() != EPropertyType::Struct) return nullptr;
+									d = prop->getDataInStruct(d);
+									return resolveProperty(static_cast<StructProperty*>(prop)->structData, p.substr(subPos + 1), d);
+								}
+							}
+							return nullptr;
+						};
+
+						void* finalData = innerData;
+						PropertyBase* innerProp = resolveProperty(structProp->structData, innerPath, finalData);
+						if (innerProp)
+						{
+							mContext.renderPropertyRow(label ? label : innerPath.c_str(), innerProp, finalData, mLevel);
+						}
+						ImGui::PopID();
+						mConsumedProperties.insert(propertyName);
+						return;
+					}
+				}
+			}
+		}
+
+		void addProperty(Reflection::PropertyBase* property, void* ptr, char const* label) override
+		{
+			ImGui::TableNextRow();
+			ImGui::PushID(ptr);
+			ImGui::TableSetColumnIndex(0);
+			ImGui::AlignTextToFramePadding();
+			mContext.renderPropertyRow(label ? label : property->name, property, ptr, mLevel);
+			ImGui::PopID();
+		}
+
+		void hideProperty(char const* propertyName) override
+		{
+			mConsumedProperties.insert(propertyName);
+		}
+
+		bool isPropertyConsumed(char const* name) const
+		{
+			return mConsumedProperties.count(name) > 0;
+		}
+
+		RenderContext& mContext;
+		StructType* mStructData;
+		void* mData;
+		int mLevel;
+		std::unordered_set<std::string> mConsumedProperties;
+	};
+
 	void renderStructRow(char const* name, StructType* structData, void* pData, int level, std::function<void()> const& removeCallback = nullptr)
 	{
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth;
@@ -503,15 +621,38 @@ struct DetailViewPanel::RenderContext
 	{
 		ImGui::PushID(pData);
 
-		for (auto property : structData->properties)
+		auto customization = GEditor->findCustomization(structData);
+		if (customization)
 		{
-			ImGui::TableNextRow();
+			DetailLayoutBuilderImpl builder(*this, structData, pData, level);
+			customization->customizeLayout(builder);
 
-			ImGui::PushID(property);
-			ImGui::TableSetColumnIndex(0);
-			ImGui::AlignTextToFramePadding();
-			renderPropertyRow(property->name, property, pData, level);
-			ImGui::PopID();
+			// Render remaining properties that weren't consumed
+			for (auto property : structData->properties)
+			{
+				if (builder.isPropertyConsumed(property->name))
+					continue;
+
+				ImGui::TableNextRow();
+				ImGui::PushID(property);
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				renderPropertyRow(property->name, property, pData, level);
+				ImGui::PopID();
+			}
+		}
+		else
+		{
+			for (auto property : structData->properties)
+			{
+				ImGui::TableNextRow();
+
+				ImGui::PushID(property);
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				renderPropertyRow(property->name, property, pData, level);
+				ImGui::PopID();
+			}
 		}
 		ImGui::PopID();
 	}

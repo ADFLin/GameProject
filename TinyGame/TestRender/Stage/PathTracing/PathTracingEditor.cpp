@@ -6,6 +6,10 @@
 #include "PathTracingCommon.h"
 #include "PathTracingScene.h"
 #include "PathTracingRenderer.h"
+#include "DetailCustomization.h"
+#include "Image/ImageData.h"
+#include "FileSystem.h"
+#include "Math/Base.h"
 
 #include "RHI/DrawUtility.h"
 #include "Renderer/RenderTargetPool.h"
@@ -89,10 +93,52 @@ namespace PathTracing
 	IMPLEMENT_SHADER(ScreenOutlinePS, EShader::Pixel, SHADER_ENTRY(MainPS));
 
 
+	class ObjectDataCustomization : public IDetailCustomization
+	{
+	public:
+		ObjectDataCustomization()
+		{
+		}
+
+		void customizeLayout(IDetailLayoutBuilder& builder) override
+		{
+			ObjectData* data = (ObjectData*)builder.getStructPtr();
+
+			builder.addProperty("type");
+			builder.addProperty("pos");
+			builder.addProperty("rotation");
+
+			switch (data->type)
+			{
+			case OBJ_SPHERE:
+				builder.addProperty("meta.x", "Radius");
+				builder.hideProperty("meta");
+				break;
+			case OBJ_CUBE:
+				builder.addProperty("meta", "Half Size");
+				break;
+			case OBJ_QUAD:
+				builder.addProperty("meta.x", "Width");
+				builder.addProperty("meta.y", "Height");
+				builder.hideProperty("meta");
+				break;
+			case OBJ_TRIANGLE_MESH:
+				builder.addProperty(Reflection::PropertyCollector::GetProperty<int>(), &data->meta.x, "Mesh ID");
+				builder.addProperty("meta.y", "Scale");
+				builder.hideProperty("meta");
+				break;
+			}
+
+			builder.addProperty("materialId");
+		}
+	};
+
 	void PathTracingEditor::initialize()
 	{
 		auto editor = ::Global::Editor();
 		editor->addGameViewport(this);
+
+		editor->registerCustomization(Reflection::GetStructType<ObjectData>(), std::make_shared<ObjectDataCustomization>());
 
 		auto& renderConfig = mContext->getRenderConfig();
 
@@ -166,6 +212,11 @@ namespace PathTracing
 		mToolBar->addButton("Local/World", [this]()
 		{
 			mGizmoMode = (mGizmoMode == EGizmoMode::Local) ? EGizmoMode::World : EGizmoMode::Local;
+		});
+		mToolBar->addSeparator();
+		mToolBar->addButton("Save Image", [this]()
+		{
+			mContext->saveImage();
 		});
 	}
 
@@ -892,7 +943,6 @@ namespace PathTracing
 
 		return (int)index;
 	}
-
 }
 
 #endif

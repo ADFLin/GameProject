@@ -57,6 +57,7 @@ namespace Render
 
 		if(!::Global::DataCache().loadDelegate(key, MeshLoad) || true)
 		{
+			mesh.mInputLayoutDesc.clear();
 			if( !FuncMeshCreate(mesh, std::forward<Args>(args)...) )
 			{
 				return false;
@@ -422,11 +423,8 @@ namespace Render
 		//
 		virtual bool setupRenderResource(ERenderSystem systemName)
 		{
-			if ( systemName != ERenderSystem::D3D12 )
-			{
-				VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
-				VERIFY_RETURN_FALSE(mBitbltFrameBuffer = RHICreateFrameBuffer());
-			}
+			VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
+			VERIFY_RETURN_FALSE(mBitbltFrameBuffer = RHICreateFrameBuffer());
 			return true;
 		}
 

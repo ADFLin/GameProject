@@ -1,6 +1,6 @@
 {
 	// Materials
-	var L = 55.0;
+	var L = 10.0;
 	var planeRoughness = 0.5;
 
 	// mat 0: Light

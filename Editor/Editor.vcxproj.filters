@@ -104,6 +104,7 @@
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_vulkan.h">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClInclude>
+    <ClInclude Include="EditorInternal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
@@ -179,6 +180,7 @@
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_vulkan.cpp">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClCompile>
+    <ClCompile Include="EditorInternal.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\OtherLib\ImNodeEditor\imgui_bezier_math.inl">

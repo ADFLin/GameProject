@@ -10,6 +10,9 @@
 #include "Renderer/MeshBuild.h"
 #include "ProfileSystem.h"
 #include "RHI/RHIUtility.h"
+#include "Renderer/Bloom.h"
+#include "Renderer/Tonemap.h"
+#include "Renderer/PostProcess.h"
 
 
 
@@ -26,8 +29,9 @@ namespace PathTracing
 		SHADER_PERMUTATION_TYPE_BOOL(UseSplitAccumulate, SHADER_PARAM(USE_SPLIT_ACCUMULATE));
 		SHADER_PERMUTATION_TYPE_BOOL(UseMIS, SHADER_PARAM(USE_MIS));
 		SHADER_PERMUTATION_TYPE_BOOL(UseBVH4, SHADER_PARAM(USE_BVH4));
+		SHADER_PERMUTATION_TYPE_BOOL(UseGlobalFog, SHADER_PARAM(USE_GLOBAL_FOG));
 
-		using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate, UseMIS, UseBVH4>;
+		using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseSplitAccumulate, UseMIS, UseBVH4, UseGlobalFog>;
 
 		static char const* GetShaderFileName()
 		{
@@ -49,6 +53,9 @@ namespace PathTracing
 			BIND_SHADER_PARAM(parameterMap, BlendFactor);
 			BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
 			BIND_TEXTURE_PARAM(parameterMap, SkyTexture);
+			BIND_SHADER_PARAM(parameterMap, FogDensity);
+			BIND_SHADER_PARAM(parameterMap, FogAlbedo);
+			BIND_SHADER_PARAM(parameterMap, FogPhaseG);
 			mIBLParams.bindParameters(parameterMap);
 		}
 
@@ -60,6 +67,10 @@ namespace PathTracing
 		DEFINE_SHADER_PARAM(BlendFactor);
 		DEFINE_TEXTURE_PARAM(HistoryTexture);
 		DEFINE_TEXTURE_PARAM(SkyTexture);
+		DEFINE_SHADER_PARAM(FogDensity);
+		DEFINE_SHADER_PARAM(FogAlbedo);
+		DEFINE_SHADER_PARAM(FogPhaseG);
+		DEFINE_SHADER_PARAM(SkyDistance);
 		IBLShaderParameters mIBLParams;
 	};
 
@@ -129,9 +140,10 @@ namespace PathTracing
 
 		SHADER_PERMUTATION_TYPE_BOOL(UseDebugDisplay, SHADER_PARAM(USE_DEBUG_DISPLAY));
 		SHADER_PERMUTATION_TYPE_BOOL(UseMIS, SHADER_PARAM(USE_MIS));
+		SHADER_PERMUTATION_TYPE_BOOL(UseGlobalFog, SHADER_PARAM(USE_GLOBAL_FOG));
 
 
-		using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseMIS>;
+		using PermutationDomain = TShaderPermutationDomain<UseDebugDisplay, UseMIS, UseGlobalFog>;
 
 		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 		{
@@ -158,6 +170,9 @@ namespace PathTracing
 			BIND_SHADER_PARAM(parameterMap, gScene);
 			BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
 			BIND_SHADER_PARAM(parameterMap, DisplayMode);
+			BIND_SHADER_PARAM(parameterMap, FogDensity);
+			BIND_SHADER_PARAM(parameterMap, FogAlbedo);
+			BIND_SHADER_PARAM(parameterMap, FogPhaseG);
 			mIBLParams.bindParameters(parameterMap);
 		}
 
@@ -174,6 +189,10 @@ namespace PathTracing
 		DEFINE_SHADER_PARAM(gScene);
 		DEFINE_SHADER_PARAM(DisplayMode);
 		DEFINE_SHADER_PARAM(TriangleWarningCount);
+		DEFINE_SHADER_PARAM(FogDensity);
+		DEFINE_SHADER_PARAM(FogAlbedo);
+		DEFINE_SHADER_PARAM(FogPhaseG);
+		DEFINE_SHADER_PARAM(SkyDistance);
 		DEFINE_TEXTURE_PARAM(HistoryTexture);
 		IBLShaderParameters mIBLParams;
 	};
@@ -603,6 +622,7 @@ namespace PathTracing
 			PathTracingHardwareRayGen::PermutationDomain domain;
 			domain.set<PathTracingHardwareRayGen::UseDebugDisplay>(config.debugDisplayMode != EDebugDsiplayMode::None);
 			domain.set<PathTracingHardwareRayGen::UseMIS>(config.bUseMIS);
+			domain.set<PathTracingHardwareRayGen::UseGlobalFog>(config.bUseGlobalFog);
 			PathTracingHardwareRayGen* rayGenShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareRayGen>(domain);
 
 			if (!mRayTracingPSO.isValid() || rayGenShader != mLastRayGenShader)
@@ -646,6 +666,10 @@ namespace PathTracing
 				rayGenShader->setParam(commandList, SHADER_PARAM(DisplayMode), (int32)config.debugDisplayMode);
 				float blendFactor = 1.0f / float(Math::Min(view.frameCount, 4096) + 1);
 				rayGenShader->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
+				rayGenShader->setParam(commandList, SHADER_PARAM(FogDensity), config.bUseGlobalFog ? config.fogDensity : 0.0f);
+				rayGenShader->setParam(commandList, SHADER_PARAM(FogAlbedo), config.fogAlbedo);
+				rayGenShader->setParam(commandList, SHADER_PARAM(FogPhaseG), config.fogPhaseG);
+				rayGenShader->setParam(commandList, SHADER_PARAM(SkyDistance), config.skyDistance);
 				if (mIBLResource.texture.isValid())
 				{
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *rayGenShader, SkyTexture, *mIBLResource.texture, TStaticSamplerState<>::GetRHI());
@@ -689,11 +713,12 @@ namespace PathTracing
 			else
 			{
 				permutationVector.set<PathTracingSoftwarePS::UseDebugDisplay>(false);
-				permutationVector.set<PathTracingSoftwarePS::UseSplitAccumulate>(config.bSplitAccumulate);
+				permutationVector.set<PathTracingSoftwarePS::UseSplitAccumulate>(false);
 				permutationVector.set<PathTracingSoftwarePS::UseMIS>(config.bUseMIS);
 			}
 
 			permutationVector.set<PathTracingSoftwarePS::UseBVH4>(config.bUseBVH4);
+			permutationVector.set<PathTracingSoftwarePS::UseGlobalFog>(config.bUseGlobalFog);
 			PathTracingSoftwarePS* pathTracingPS = ShaderManager::Get().getGlobalShaderT<PathTracingSoftwarePS>(permutationVector);
 
 			GPU_PROFILE("PathTracing");
@@ -744,6 +769,10 @@ namespace PathTracing
 
 			float blendFactor = 1.0f / float(Math::Min(view.frameCount, 4096) + 1);
 			pathTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(FogDensity), config.bUseGlobalFog ? config.fogDensity : 0.0f);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(FogAlbedo), config.fogAlbedo);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(FogPhaseG), config.fogPhaseG);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(SkyDistance), config.skyDistance);
 			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *pathTracingPS, HistoryTexture, sceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 			if (mIBLResource.texture.isValid())
 			{
@@ -753,7 +782,9 @@ namespace PathTracing
 			DrawUtility::ScreenRect(commandList);
 		}
 
-		RHITexture2D* pOutputTexture = &sceneRenderTargets.getFrameTexture();
+		RHITexture2D* pOutputTexture = (config.bUseHardwareRayTracing && GRHISupportRayTracing) ? &sceneRenderTargets.getFrameTexture() : &sceneRenderTargets.getFrameTexture();
+		// We use a raw pointer to the CURRENT resource to avoid swap issues
+		RHITexture2D* pPassOutput = &sceneRenderTargets.getFrameTexture();
 		if (config.debugDisplayMode == EDebugDsiplayMode::None && config.bSplitAccumulate)
 		{
 			GPU_PROFILE("Accumulate");
@@ -788,10 +819,67 @@ namespace PathTracing
 			view.setupShader(commandList, *mDenoisePS);
 
 			DrawUtility::ScreenRect(commandList);
-			pOutputTexture = mDenoiseTexture;
+			pPassOutput = mDenoiseTexture;
 		}
 
-		RHIResourceTransition(commandList, { (RHIResource*)pOutputTexture }, EResourceTransition::SRV);
+		RHITexture2DRef bloomTexture = nullptr;
+		if (config.bUseBloom && config.debugDisplayMode == EDebugDsiplayMode::None)
+		{
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+
+			BloomConfig bloomConfig;
+			bloomConfig.threshold = config.bloomThreshold;
+			bloomTexture = FBloom::Render(commandList, *pPassOutput, *mBloomFrameBuffer, bloomConfig);
+		}
+
+		if (config.debugDisplayMode == EDebugDsiplayMode::None && (config.bUseACES || config.bUseBloom))
+		{
+			GPU_PROFILE("Tonemap");
+			bool const bUseBloom = config.bUseBloom && bloomTexture.isValid();
+			TonemapProgram::PermutationDomain domain;
+			domain.set<TonemapProgram::UseBloom>(bUseBloom);
+			domain.set<TonemapProgram::UseACES>(config.bUseACES);
+			auto tonemapProg = ShaderManager::Get().getGlobalShaderT<TonemapProgram>(domain);
+
+			RHITexture2D* pTonemapInput = pPassOutput;
+
+			RenderTargetDesc rtDesc;
+			rtDesc.debugName = "TonemapOutput";
+			rtDesc.size = screenSize;
+			rtDesc.format = sceneRenderTargets.mFrameBufferFormat;
+			rtDesc.creationFlags = TCF_RenderTarget | TCF_CreateSRV;
+			PooledRenderTargetRef tonemapRT = GRenderTargetPool.fetchElement(rtDesc);
+
+			RHITexture2D* pFinalRT = (RHITexture2D*)tonemapRT->texture.get();
+			RHIResourceTransition(commandList, { (RHIResource*)pFinalRT }, EResourceTransition::RenderTarget);
+			
+			mBloomFrameBuffer->setTexture(0, *pFinalRT);
+			RHISetFrameBuffer(commandList, mBloomFrameBuffer.get());
+			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+
+			RHISetShaderProgram(commandList, tonemapProg->getRHI());
+
+			PostProcessContext context;
+			context.mInputTexture[0] = pTonemapInput;
+			tonemapProg->setParameters(commandList, context);
+			tonemapProg->setExposure(commandList, config.tonemapExposure);
+
+			if (bUseBloom)
+			{
+				tonemapProg->setBloomTexture(commandList, *bloomTexture);
+			}
+
+			DrawUtility::ScreenRect(commandList);
+			pPassOutput = pFinalRT;
+		}
+
+		pOutputTexture = pPassOutput;
 		return pOutputTexture;
 	}
 
@@ -818,6 +906,7 @@ namespace PathTracing
 			mDenoiseTexture = RHICreateTexture2D(RTFormat, screenSize.x, screenSize.y, 1, 1, TCF_RenderTarget | TCF_CreateSRV);
 			mDenoiseFrameBuffer = RHICreateFrameBuffer();
 			mDenoiseFrameBuffer->setTexture(0, *mDenoiseTexture);
+			mBloomFrameBuffer = RHICreateFrameBuffer();
 		}
 		mDebugPrimitives.initializeRHI();
 

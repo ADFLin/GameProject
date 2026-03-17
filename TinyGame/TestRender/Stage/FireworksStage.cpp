@@ -309,6 +309,7 @@ namespace Render
 		FWidgetProperty::Bind(frame->addSlider("Bloom Threshold"), mBloomThreshold, 0.0f, 1.0f);
 		FWidgetProperty::Bind(frame->addSlider("Bloom Intensity"), mBloomIntensity, 0.0f, 20.0f);
 		FWidgetProperty::Bind(frame->addSlider("Blur Scale"), blurRadiusScale, 1.0f, 10.0f);
+		FWidgetProperty::Bind(frame->addSlider("Exposure"), mExposure, 0.01f, 10.0f);
 
 		mCamera.lookAt(Vector3(0, -150, 150), Vector3(0, 0, 80), Vector3(0, 0, 1));
 		mUpdateThreadPool = std::make_unique<QueueThreadPool>();
@@ -500,7 +501,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				BloomConfig config; config.threshold = mBloomThreshold; config.intensity = mBloomIntensity; config.blurRadiusScale = blurRadiusScale;
 				RHITexture2DRef bloomTexture = FBloom::Render(commandList, mSceneRenderTargets.getFrameTexture(), *mBloomFrameBuffer, config);
-				FTonemap::Render(commandList, mSceneRenderTargets, bloomTexture);
+				FTonemap::Render(commandList, mSceneRenderTargets, bloomTexture, mExposure);
 				postProcessRT = &mSceneRenderTargets.getFrameTexture();
 			}
 			{
@@ -530,10 +531,6 @@ namespace Render
 		if (!SharedAssetData::loadCommonShader()) 
 			return false;
 
-		for (auto& mesh : mSimpleMeshs) 
-		{ 
-			mesh.mInputLayoutDesc = InputLayoutDesc();
-		}
 
 		if (!SharedAssetData::createSimpleMesh()) 
 			return false;
@@ -553,4 +550,5 @@ namespace Render
 		mParticleRenderer.release();
 		mProgNightSky = nullptr;
 	}
+
 }

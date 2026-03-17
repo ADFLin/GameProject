@@ -19,22 +19,20 @@
 #include "PropertySet.h"
 #include "Renderer/SceneDebug.h"
 
+#include "EditorInternal.h"
+
 #define EDITOR_INI "Editor.ini"
 
-Editor* GEditor = nullptr;
 
 
-class Editor : public IEditor
+class Editor : public EditorInternal
 {
 public:
-
 	std::unique_ptr<IEditorRenderer> mRenderer;
-	RHIGraphics2D* mGraphics = nullptr;
-
 
 	Editor()
 	{
-		GEditor = this;
+
 	}
 
 	~Editor()
@@ -390,17 +388,6 @@ public:
 		}
 	}
 
-	struct ActivePanel
-	{
-		std::string name;
-		EditorPanelInfo const* info;
-		IEditorPanel* widget = nullptr;
-		bool bOpenRequest = false;
-		bool bOpened = false;
-		bool bShown = false;
-	};
-
-	TArray< ActivePanel > mPanels;
 	ActivePanel& findOrAddPanel(EditorPanelInfo const& info)
 	{
 		ActivePanel* panel = findPanel(info);
@@ -431,19 +418,6 @@ public:
 		return nullptr;
 	}
 
-	void destroyPanel(IEditorPanel* widget)
-	{
-		int index = mPanels.findIndexPred([widget](ActivePanel const& panel)
-		{
-			return panel.widget == widget;
-		});
-
-		if (index != INDEX_NONE)
-		{
-			mPanels.removeIndex(index);
-			delete widget;
-		}
-	}
 
 	void cleanupPanels()
 	{
@@ -543,7 +517,7 @@ public:
 
 	static LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		return GEditor->processWindowMessage(hWnd, msg, wParam, lParam);
+		return static_cast<Editor*>(GEditor)->processWindowMessage(hWnd, msg, wParam, lParam);
 	}
 
 	void importStyle();
@@ -598,6 +572,7 @@ public:
 			{
 				return panel->addView(property, ptr, name, category);
 			}
+
 			void addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback) override
 			{
 				panel->addCallback(handle, callback);
@@ -686,6 +661,11 @@ public:
 		}
 
 		return nullptr;
+	}
+
+	void registerCustomization(Reflection::StructType* type, std::shared_ptr<IDetailCustomization> customization) override
+	{
+		mCustomizations[type] = std::move(customization);
 	}
 
 };
@@ -902,13 +882,5 @@ IEditor* IEditor::Create()
 
 
 
-RHIGraphics2D& EditorRenderGloabal::getGraphics()
-{
-	return *GEditor->mGraphics;
-}
 
-EditorRenderGloabal& EditorRenderGloabal::Get()
-{
-	static EditorRenderGloabal StaticInstance;
-	return StaticInstance;
-}
+

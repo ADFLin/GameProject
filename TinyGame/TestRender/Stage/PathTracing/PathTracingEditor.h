@@ -3,6 +3,7 @@
 #define PathTracingEditor_H_FCB18782_BC73_4698_A684_99D9ABA5B0C4
 
 #include "Editor.h"
+#include "Graphics2DBase.h"
 
 #include "Renderer/SimpleCamera.h"
 #include "Renderer/SceneView.h"
@@ -12,6 +13,7 @@
 namespace Render
 {
 	class Mesh;
+	class RHITexture2D;
 }
 
 namespace PathTracing
@@ -56,6 +58,7 @@ namespace PathTracing
 		virtual void loadScene(char const* path) = 0;
 		virtual void saveScene(char const* path) = 0;
 		virtual void addMeshFromFile(char const* path) = 0;
+		virtual void saveImage() = 0;
 	};
 
 

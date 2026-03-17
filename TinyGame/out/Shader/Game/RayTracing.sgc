@@ -11,11 +11,10 @@
 
 DEFINE_TEXTURE(Texture2D, FrameTexture);
 DEFINE_TEXTURE(Texture2D, HistoryTexture);
-DEFINE_TEXTURE(int, FrameCount);
 
 PS_ENTRY_START(AccumulatePS)
-PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
-PS_OUTPUT(float4 OutColor, 0)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(AccumulatePS)
 {
 	float4 frameColor = TEXTURE_SAMPLE(FrameTexture, VSOutput.UVs);

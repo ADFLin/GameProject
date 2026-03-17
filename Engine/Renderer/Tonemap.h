@@ -15,16 +15,20 @@ namespace Render
 		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(TonemapProgram, Global);
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		SHADER_PERMUTATION_TYPE_BOOL(UseBloom, SHADER_PARAM(USE_BLOOM));
+		SHADER_PERMUTATION_TYPE_BOOL(UseACES, SHADER_PARAM(USE_ACES));
+		using PermutationDomain = TShaderPermutationDomain< UseBloom, UseACES >;
+
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 		{
-			option.addDefine(SHADER_PARAM(USE_BLOOM), true);
+			
 		}
 
 		static char const* GetShaderFileName()
 		{
 			return "Shader/Tonemap";
 		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			static ShaderEntryInfo const entries[] =
 			{
@@ -38,6 +42,7 @@ namespace Render
 		{
 			mParamPostProcess.bindParameters(parameterMap);
 			mParamBloomTexture.bind(parameterMap, SHADER_PARAM(BloomTexture));
+			mParamExposure.bind(parameterMap, SHADER_PARAM(Exposure));
 		}
 		void setParameters(RHICommandList& commandList, PostProcessContext const& context)
 		{
@@ -48,14 +53,19 @@ namespace Render
 		{
 			setTexture(commandList, mParamBloomTexture, bloomTexture);
 		}
+		void setExposure(RHICommandList& commandList, float exposure)
+		{
+			setParam(commandList, mParamExposure, exposure);
+		}
 
 		PostProcessParameters mParamPostProcess;
 		ShaderParameter       mParamBloomTexture;
+		ShaderParameter       mParamExposure;
 	};
 
 	struct FTonemap
 	{
-		static void Render(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D* bloomTexture = nullptr);
+		static void Render(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D* bloomTexture = nullptr, float exposure = 1.0f);
 	};
 
 }

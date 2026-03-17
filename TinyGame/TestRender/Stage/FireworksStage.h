@@ -72,6 +72,7 @@ namespace Render
 		float mBloomThreshold = 0.5f;
 		float mBloomIntensity = 2.6f;
 		float blurRadiusScale = 1.5f;
+		float mExposure = 1.0f;
 
 		TArray<int> mRocketProfileIds;
 	};

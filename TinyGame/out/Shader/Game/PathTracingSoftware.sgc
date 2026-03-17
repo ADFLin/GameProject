@@ -777,6 +777,22 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 			, stats
 #endif
 		);
+
+#if USE_FOG
+		float dLimit = rayResult.bHit ? rayResult.dist : SkyDistance;
+		float tFog = SampleFogFreePath(dLimit, randState);
+		if (tFog < dLimit)
+		{
+			if (i == 0) { outNormal = -rayDir; outDist = tFog; }
+			float3 fogPos = rayStart + tFog * rayDir;
+			float3 fogNormal = SamplePhaseFunctionHG(rayDir, FogPhaseG, randState);
+
+			rayStart = fogPos + fogNormal * 0.001;
+			rayDir = fogNormal;
+			rayColor *= FogAlbedo;
+			continue;
+		}
+#endif
 		 
 		if (rayResult.bHit)
 		{
@@ -805,29 +821,9 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 			if (mat.refractiveIndex > 0 && Random(randState) < mat.refractive)
 			{
 				float3 I = rayDir;
-				float3 hitN = N;
-				float cosI = dot(I, hitN);
-
-				float eta = 1.0 / mat.refractiveIndex;
-				if (cosI > 0)
-				{
-					hitN = -hitN;
-					eta = mat.refractiveIndex;
-				}
-				else
-				{
-					cosI = -cosI;
-				}
-
-				float k = 1.0 - eta * eta * (1.0 - cosI * cosI);
-				if (k >= 0.0)
-				{
-					rayDir = normalize(eta * I + (eta * cosI - sqrt(k)) * hitN);
-				}
-				else
-				{
-					rayDir = reflect(I, hitN);
-				}
+				float3 N = rayResult.hitNormal;
+				float cosI = dot(I, N);
+				rayDir = GetRefractionDir(I, N, cosI, mat.refractiveIndex);
 
 				incomingLight += mat.emissiveColor * rayColor;
 				rayColor *= mat.baseColor;
@@ -835,25 +831,23 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 			}
 			else
 			{
+				float3 V = -rayDir;
+				float3 N = rayResult.hitNormal;
+				if (dot(N, rayDir) > 0) N = -N;
 
 #if USE_MIS
 				if (mat.emissiveColor.x > 0 || mat.emissiveColor.y > 0 || mat.emissiveColor.z > 0)
 				{
-					float3 emittedLight = mat.emissiveColor;
-					float dotA = max(0.0001f, dot(rayResult.hitNormal, -rayDir));
-					float distSq = max(0.001f, rayResult.dist * rayResult.dist);
-					
-					float pdf_dl_mis = pdfLight(rayResult.objId, NumEmittingObjects);
-					// Convert area measure pdf_dl_mis to solid angle measure for balance heuristic
-					float pdf_dl_mis_w = pdf_dl_mis * distSq / dotA;
-					
-					// MIS weight for hitting emissive implicitly:
-					float misWeight = balanceHeuristic(pdf_brdf_prev, pdf_dl_mis_w);
-
+					float misWeight = GetImplicitMISWeight(rayResult.objId, rayResult.dist, N, rayDir, pdf_brdf_prev, NumEmittingObjects);
 					if (i == 0) misWeight = 1.0f;
-					incomingLight += emittedLight * rayColor * misWeight;
-					break;
+					incomingLight += mat.emissiveColor * rayColor * misWeight;
 				}
+#else
+				if (mat.emissiveColor.x > 0 || mat.emissiveColor.y > 0 || mat.emissiveColor.z > 0)
+				{
+					incomingLight += mat.emissiveColor * rayColor;
+				}
+#endif
 
 				// Direct Light Sampling:
 				float3 directLight = float3(0.0f, 0.0f, 0.0f);
@@ -865,95 +859,33 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 					int lightObjId;
 					SampleDirectLight(lightPos, lightNormal, pdf_dl, lightObjId, NumEmittingObjects, randState);
 
-					w_i_dl = normalize(lightPos - rayResult.hitPos);
-					Ray dL_ray;
-					dL_ray.pos = rayResult.hitPos + 0.001f * rayResult.hitNormal;
-					dL_ray.dir = w_i_dl;
-#if USE_RAY_INV_DIR
-					dL_ray.invDir = 1.0 / dL_ray.dir;
+					float lightDist = length(lightPos - rayResult.hitPos);
+					bool bOccluded = RayCastShadow(rayResult.hitPos + 0.001f * N, normalize(lightPos - rayResult.hitPos), lightDist - 0.002f);
+#if USE_MIS
+					directLight = EvaluateDirectLightMIS(rayResult.hitPos, N, rayDir, mat, lightPos, lightNormal, pdf_dl, lightObjId, bOccluded, w_i_dl_brdf, w_i_dl);
+#else
+					directLight = EvaluateDirectLight(rayResult.hitPos, N, rayDir, mat, lightPos, lightNormal, pdf_dl, lightObjId, bOccluded, w_i_dl_brdf, w_i_dl);
 #endif
-
-					float V = 1.0f;
-					if (dot(rayResult.hitNormal, dL_ray.dir) < 0.0001f) V = 0.0f;
-
-					if (V > 0.5f && lightObjId != -1) {
-						float lightDist = length(lightPos - rayResult.hitPos);
-						bool bOccluded = RayCastShadow(dL_ray.pos, dL_ray.dir, lightDist - 0.002f);
-						
-						if (!bOccluded) {
-							ObjectData dL_obj = Objects[lightObjId];
-							MaterialData dL_mat = GetMaterial(dL_obj.materialId);
-							if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
-							{
-								float dotA = max(0.0001f, dot(lightNormal, -dL_ray.dir));
-								float distSq = max(0.001f, lightDist * lightDist);
-								
-								float pdf_brdf_mis;
-								EvaluateMaterialAndPdfGGX(w_i_dl, rayResult.hitNormal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
-								// Convert area measure pdf_dl to solid angle measure for balance heuristic
-								float pdf_dl_w = pdf_dl * distSq / dotA;
-								float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
-
-								// Include dotA / distSq geometric terms for incident light directly:
-								directLight = dL_mat.emissiveColor * misWeight / pdf_dl_w;
-							}
-						}
-					}
 				}
 
-				if (i + 1 <= MaxBounceCount && length(directLight) > 0.001f) {
-					float cos_theta = max(0.0001f, dot(rayResult.hitNormal, w_i_dl));
+				if (i + 1 <= MaxBounceCount && length(directLight) > 0.001f) 
+				{
+					float cos_theta = max(0.0001f, dot(N, w_i_dl));
 					incomingLight += directLight * rayColor * w_i_dl_brdf * cos_theta;
 				}
 
-				bool isSpecularBounce = mat.specular >= Random(randState);
-				float3 diffuseDir = normalize(rayResult.hitNormal + RandomDirection(randState));
-				
-				float a = max(0.001f, mat.roughness * mat.roughness);
-				float a2 = a * a;
-				float4 ggxH = ImportanceSampleGGX(float2(Random(randState), Random(randState)), a2);
-				float3x3 tangentToWorld = TangentToWorldTransform(rayResult.hitNormal);
-				float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
-				float3 specularDir = reflect(rayDir, H);
-
-				float3 newRayDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
-
+				float3 nextDir, brdf;
 				float pdf_brdf_raw;
-				float3 brdf;
-				EvaluateMaterialAndPdfGGX(newRayDir, rayResult.hitNormal, rayDir, mat, brdf, pdf_brdf_raw);
+				SampleBSDF(rayDir, N, mat, randState, nextDir, brdf, pdf_brdf_raw);
 				float pdf_brdf = max(0.00001f, pdf_brdf_raw);
-				float cosTheta = max(0.001f, dot(rayResult.hitNormal, newRayDir));
+				float cosTheta = max(0.001f, dot(N, nextDir));
 
 				rayColor *= brdf * cosTheta / pdf_brdf;
-				rayDir = newRayDir;
+				rayDir = nextDir;
 
+#if USE_MIS
 				pdf_brdf_prev = pdf_brdf;
-				normal_prev = rayResult.hitNormal;
-#else
-				bool isSpecularBounce = (mat.specular >= Random(randState));
-
-				float3 diffuseDir = normalize(rayResult.hitNormal + RandomDirection(randState));
-				
-				float a = max(0.001f, mat.roughness * mat.roughness);
-				float a2 = a * a;
-				float4 ggxH = ImportanceSampleGGX(float2(Random(randState), Random(randState)), a2);
-				float3x3 tangentToWorld = TangentToWorldTransform(rayResult.hitNormal);
-				float3 H = normalize(mul(tangentToWorld, ggxH.xyz));
-				float3 specularDir = reflect(rayDir, H);
-
-				float3 newRayDir = normalize(isSpecularBounce ? specularDir : diffuseDir);
-				
-				float pdf_brdf_raw;
-				float3 brdf;
-				EvaluateMaterialAndPdfGGX(newRayDir, rayResult.hitNormal, rayDir, mat, brdf, pdf_brdf_raw);
-				float pdf_brdf = max(0.00001f, pdf_brdf_raw);
-				float cosTheta = max(0.0001f, dot(rayResult.hitNormal, newRayDir));
-
-				incomingLight += mat.emissiveColor * rayColor;
-				
-				rayColor *= brdf * cosTheta / pdf_brdf;
-				rayDir = newRayDir;
-
+				normal_prev = N;
 #endif
 
 				// Random early exit if ray colour is nearly 0 (can't contribute much to final result)

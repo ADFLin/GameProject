@@ -183,6 +183,7 @@ namespace Bloxorz
 		TGrid2D< int > mMap;
 
 		float  blurRadiusScale = 1.0;
+		float  mExposure = 1.0;
 		bool   mIsGoal;
 		bool   mbEditMode;
 

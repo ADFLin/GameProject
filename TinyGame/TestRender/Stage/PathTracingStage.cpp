@@ -11,6 +11,7 @@
 #include "DataCacheInterface.h"
 
 #include "ProfileSystem.h"
+#include "Image/ImageData.h"
 
 using namespace Render;
 
@@ -45,6 +46,8 @@ bool PathTracingStage::onInit()
 	frame->addCheckBox("Use MIS", mRenderConfig.bUseMIS);
 	frame->addCheckBox("Use BVH4", mRenderConfig.bUseBVH4);
 	frame->addCheckBox("Use Denoise", mRenderConfig.bUseDenoise);
+	frame->addCheckBox("Use Bloom", mRenderConfig.bUseBloom);
+	frame->addCheckBox("Use ACES", mRenderConfig.bUseACES);
 	frame->addCheckBox("Use Hardware RT", mRenderConfig.bUseHardwareRayTracing);
 	auto choice = frame->addChoice("DebugDisplay Mode", UI_StatsMode);
 
@@ -79,6 +82,14 @@ bool PathTracingStage::onInit()
 	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.triangleWarningCount); };
 	slider->showValue();
 	FWidgetProperty::Bind(slider, mRenderConfig.triangleWarningCount, 0, 500);
+	slider = frame->addSlider("Bloom Threshold", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.bloomThreshold); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.bloomThreshold, 0, 5.0f);
+	slider = frame->addSlider("Tonemap Exposure", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.tonemapExposure); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.tonemapExposure, 0.01f, 10.0f);
 	slider = frame->addSlider("DebugShowDepth", UI_ANY);
 	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mDebugShowDepth); };
 	slider->showValue();
@@ -87,6 +98,21 @@ bool PathTracingStage::onInit()
 		mRenderer.showNodeBound(mDebugShowDepth);
 	});
 
+	frame->addCheckBox("Use Global Fog", mRenderConfig.bUseGlobalFog);
+	slider = frame->addSlider("Fog Density", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogDensity); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogDensity, 0.0f, 0.5f);
+	slider = frame->addSlider("Fog Phase G", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogPhaseG); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogPhaseG, -0.99f, 0.99f);
+	slider = frame->addSlider("Sky Distance", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.skyDistance); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.skyDistance, 1.0f, 2000.0f);
+
+	frame->addButton("Save Image", [this](int event, GWidget*) { saveImage(); return true; });
 
 	Vector2 lookPos = Vector2(0, 0);
 	mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, 1), ::Global::GetScreenSize().x / 800.0f);
@@ -235,6 +261,9 @@ void PathTracingStage::onRender(float dFrame)
 	RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 	RHITexture2D* outputTexture = mRenderer.render(commandList, mRenderConfig, mView, mSceneRenderTargets);
+	mLastOutputTexture = outputTexture;
+
+	RHIResourceTransition(commandList, { outputTexture }, EResourceTransition::SRV);
 
 	{
 		GPU_PROFILE("CopyToBackBuffer");
@@ -469,4 +498,80 @@ void PathTracingStage::updateMeshImportTransform(int index)
 	mView.frameCount = 0;
 }
 #endif
+
+void PathTracingStage::saveImage()
+{
+	char filePath[1024] = "Screenshot.png";
+	OpenFileFilterInfo filters[] = {
+		{"HDR Image", "*.hdr"},
+		{"PNG Image", "*.png"},
+	};
+	if (SystemPlatform::SaveFileName(filePath, ARRAY_SIZE(filePath), filters, nullptr, "Save Image"))
+	{
+		RHITexture2D& texture = getDisplayTexture();
+
+		auto& commandList = RHICommandList::GetImmediateList();
+		RHIResourceTransition(commandList, { &texture }, EResourceTransition::Present);
+		RHIFlushCommand(commandList);
+
+		TArray< uint8 > data;
+		RHIReadTexture(texture, texture.getFormat(), 0, data);
+		if (!data.empty())
+		{
+			bool bHDR = false;
+			char const* ext = FFileUtility::GetExtension(filePath);
+			if (ext && FCString::CompareIgnoreCase(ext, "hdr") == 0)
+			{
+				bHDR = true;
+			}
+
+			if (bHDR)
+			{
+				if (texture.getFormat() == ETexture::RGBA32F)
+				{
+					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, data.data(), true);
+				}
+				else if (texture.getFormat() == ETexture::RGBA8)
+				{
+					TArray<float> floatData;
+					floatData.resize(data.size());
+					uint8 const* pSrc = data.data();
+					float* pDst = floatData.data();
+					for (int i = 0; i < (int)data.size(); ++i)
+					{
+						pDst[i] = pSrc[i] / 255.0f;
+					}
+					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, floatData.data(), true);
+				}
+				else
+				{
+					LogWarning(0, "Unsupported texture format for HDR saving");
+				}
+			}
+			else
+			{
+				if (texture.getFormat() == ETexture::RGBA32F)
+				{
+					TArray<uint8> ldrData;
+					ldrData.resize(data.size() / sizeof(float));
+					float const* pSrc = (float const*)data.data();
+					uint8* pDst = ldrData.data();
+					for (int i = 0; i < (int)ldrData.size(); ++i)
+					{
+						pDst[i] = (uint8)Math::Clamp<int>(int(pSrc[i] * 255.0f + 0.5f), 0, 255);
+					}
+					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, ldrData.data(), false);
+				}
+				else if (texture.getFormat() == ETexture::RGBA8)
+				{
+					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, data.data(), false);
+				}
+				else
+				{
+					LogWarning(0, "Unsupported texture format for PNG saving");
+				}
+			}
+		}
+	}
+}
 

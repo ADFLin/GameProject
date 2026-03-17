@@ -46,6 +46,7 @@
     <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="EditorConfig.h" />
+    <ClInclude Include="EditorInternal.h" />
     <ClInclude Include="EditorRender.h" />
     <ClInclude Include="EditorUtils.h" />
     <ClInclude Include="EditorPanel.h" />
@@ -75,6 +76,7 @@
     <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor.cpp" />
     <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor_api.cpp" />
     <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="EditorInternal.cpp" />
     <ClCompile Include="EditorRender.cpp" />
     <ClCompile Include="EditorUtils.cpp" />
     <ClCompile Include="EditorPanel.cpp" />

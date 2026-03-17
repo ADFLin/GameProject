@@ -298,11 +298,29 @@ namespace Render
 		T* getPtr(size_t offset) { return reinterpret_cast<T*>(mBuffer.data() + offset); }
 
 		template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
-		size_t addDataT()
+		auto& addDataT()
 		{
 			using DataType = typename TSOSubobjectStreamTraits< SubobjectID >::DataType;
 			static_assert(std::is_trivially_destructible_v<DataType>, "DataType must be trivially destructible");
 			
+			size_t offset = allocRaw(sizeof(DataType), alignof(DataType));
+			void* ptr = mBuffer.data() + offset;
+			FTypeMemoryOp::Construct<DataType>(ptr);
+
+			D3D12_STATE_SUBOBJECT subobject;
+			subobject.Type = SubobjectID;
+			subobject.pDesc = (void*)offset;
+			mSubobjects.push_back(subobject);
+			return *reinterpret_cast<DataType*>(mBuffer.data() + offset);
+		}
+
+
+		template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
+		size_t addDataOffsetT()
+		{
+			using DataType = typename TSOSubobjectStreamTraits< SubobjectID >::DataType;
+			static_assert(std::is_trivially_destructible_v<DataType>, "DataType must be trivially destructible");
+
 			size_t offset = allocRaw(sizeof(DataType), alignof(DataType));
 			void* ptr = mBuffer.data() + offset;
 			FTypeMemoryOp::Construct<DataType>(ptr);

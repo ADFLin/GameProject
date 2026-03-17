@@ -245,7 +245,7 @@ namespace Render
 
 		bool bDebugModeEnabled = initParam.bDebugMode && !GRHIPrefEnabled;
 		//bDebugModeEnabled = false;
-		bool bWarningBreakEnabled = false;
+		bool bWarningBreakEnabled = true;
 
 		// Enable the debug layer (requires the Graphics Tools "optional feature").
 		// NOTE: Enabling the debug layer after device creation will invalidate the active device.
@@ -337,7 +337,7 @@ namespace Render
 
 			infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE); 				
 			infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-			infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+			//infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
 		}
 
 		D3D12DescriptorHeapPool::Get().initialize(mDevice);
@@ -1521,7 +1521,7 @@ namespace Render
 		BYTE* pDest = outData.data();
 		for (uint32 y = 0; y < height; ++y)
 		{
-			memcpy(pDest + y * width * formatSize, pSrc + y * layout.Footprint.RowPitch, width * formatSize);
+			FMemory::Copy(pDest + y * width * formatSize, pSrc + y * layout.Footprint.RowPitch, width * formatSize);
 		}
 
 		readbackBuffer->Unmap(0, nullptr);
@@ -2391,6 +2391,7 @@ namespace Render
 		frameData.fenceValue = 0;
 
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateFence(frameData.fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateFence(frameData.fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mCommandQueueProgressFence)));
 		VERIFY_RETURN_FALSE(frameData.init(mDevice));
 
 		mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -2434,6 +2435,7 @@ namespace Render
 		mCommandAllocator.reset();
 		mCommandQueue.reset();
 		mFence.reset();
+		mCommandQueueProgressFence.reset();
 		CloseHandle(mFenceEvent);
 
 		mDevice.reset();
@@ -4242,6 +4244,10 @@ namespace Render
 		HRESULT hr;
 		// Schedule a Signal command in the queue.
 		hr = cmdQueue->Signal(mFence, mFrameDataList[mFrameIndex].fenceValue);
+		if (cmdQueue == mCommandQueue)
+		{
+			cmdQueue->Signal(mCommandQueueProgressFence, mFrameDataList[mFrameIndex].fenceValue);
+		}
 		// Wait until the fence has been processed.
 		hr = mFence->SetEventOnCompletion(mFrameDataList[mFrameIndex].fenceValue, mFenceEvent);
 		hr = WaitForSingleObjectEx(mFenceEvent, INFINITE, FALSE);
@@ -4257,6 +4263,7 @@ namespace Render
 		// Schedule a Signal command in the queue.
 		const UINT64 currentFenceValue = mFrameDataList[mFrameIndex].fenceValue;
 		mCommandQueue->Signal(mFence, currentFenceValue);
+		mCommandQueue->Signal(mCommandQueueProgressFence, currentFenceValue);
 
 		// Update the frame index.
 		mFrameIndex = (mFrameIndex + 1) % mFrameDataList.size();

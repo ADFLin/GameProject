@@ -455,6 +455,7 @@ namespace Render
 
 			uint64 newFenceValue = mFrameDataList[mFrameIndex].fenceValue++;
 			mCommandQueue->Signal(mFence, newFenceValue);
+			mCommandQueue->Signal(mCommandQueueProgressFence, newFenceValue);
 
 			mCurrentCmdListAlloc.fenceValue = newFenceValue;
 			mInFlightCmdLists.push_back(mCurrentCmdListAlloc);
@@ -472,7 +473,7 @@ namespace Render
 				if (mbIsRecording)
 					return;
 
-				uint64 completedFence = mFence->GetCompletedValue();
+				uint64 completedFence = mCommandQueueProgressFence->GetCompletedValue();
 
 				D3D12DescriptorHeapPool::Get().flushPendingHandles(completedFence);
 
@@ -619,6 +620,7 @@ namespace Render
 		ID3D12GraphicsCommandListRHI* mGraphicsCmdList;
 
 		TComPtr< ID3D12Fence1 > mFence;
+		TComPtr< ID3D12Fence > mCommandQueueProgressFence;
 		HANDLE mFenceEvent;
 		struct CommandContextAlloc
 		{

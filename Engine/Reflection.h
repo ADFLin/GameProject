@@ -576,6 +576,13 @@ namespace Reflection
 		}
 
 		template< typename P >
+		static PropertyBase* GetProperty()
+		{
+			static PropertyBase* StaticInstance = CreateProperty< P >();
+			return StaticInstance;
+		}
+
+		template< typename P >
 		static PropertyBase* CreateProperty()
 		{
 			PropertyBase* property = nullptr;

@@ -43,12 +43,14 @@ namespace PathTracing
 			BIND_SHADER_PARAM(parameterMap, Roughness);
 			BIND_SHADER_PARAM(parameterMap, Specular);
 			BIND_SHADER_PARAM(parameterMap, SelectionAlpha);
+			BIND_SHADER_PARAM(parameterMap, ObjectIndex);
 		}
 		DEFINE_SHADER_PARAM(BaseColor);
 		DEFINE_SHADER_PARAM(EmissiveColor);
 		DEFINE_SHADER_PARAM(Roughness);
 		DEFINE_SHADER_PARAM(Specular);
 		DEFINE_SHADER_PARAM(SelectionAlpha);
+		DEFINE_SHADER_PARAM(ObjectIndex);
 	};
 
 	class EditorPickingPS : public GlobalShader
@@ -236,18 +238,24 @@ namespace PathTracing
 		desc.debugName = "RayTracingStageColor";
 		desc.clearColor = LinearColor(0.1f, 0.2f, 0.3f, 1.0f);
 		PooledRenderTargetRef colorRT = GRenderTargetPool.fetchElement(desc);
+		desc.format = ETexture::R32U;
+		desc.debugName = "RayTracingStagePicking";
+		desc.clearColor = LinearColor(float(0xffffffff), 0, 0, 0);
+		mPickingRT = GRenderTargetPool.fetchElement(desc);
+
 		desc.format = ETexture::D24S8;
 		desc.debugName = "RayTracingStageDepth";
 		desc.clearColor = LinearColor(FRHIZBuffer::FarPlane, 0, 0, 0);
 		PooledRenderTargetRef depthRT = GRenderTargetPool.fetchElement(desc);
 
-		RHIResourceTransition(commandList, { colorRT->texture, depthRT->texture }, EResourceTransition::RenderTarget);
+		RHIResourceTransition(commandList, { colorRT->texture, mPickingRT->texture, depthRT->texture }, EResourceTransition::RenderTarget);
 
 		if (mFrameBuffer == nullptr)
 		{
 			mFrameBuffer = RHICreateFrameBuffer();
 		}
 		mFrameBuffer->setTexture(0, static_cast<RHITexture2D&>(*colorRT->texture));
+		mFrameBuffer->setTexture(1, static_cast<RHITexture2D&>(*mPickingRT->texture));
 		mFrameBuffer->setDepth(static_cast<RHITexture2D&>(*depthRT->texture));
 
 		RHISetFrameBuffer(commandList, mFrameBuffer);
@@ -262,7 +270,8 @@ namespace PathTracing
 		RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
 		RHISetScissorRect(commandList, 0, 0, mEditorViewportSize.x, mEditorViewportSize.y);
 
-		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.1f, 0.2f, 0.3f, 1.0f), 1, FRHIZBuffer::FarPlane);
+		LinearColor clearColors[] = { LinearColor(0.1f, 0.2f, 0.3f, 1.0f), LinearColor(float(0xffffffff), 0, 0, 0) };
+		RHIClearRenderTargets(commandList, EClearBits::All, clearColors, 2, FRHIZBuffer::FarPlane, 0);
 
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
@@ -292,7 +301,7 @@ namespace PathTracing
 		state.pixel = mPreviewPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 
-		auto DrawObject = [&](ObjectData const& obj, MaterialData const& mat, bool bSelected)
+		auto DrawObject = [&](int i, ObjectData const& obj, MaterialData const& mat, bool bSelected)
 		{
 			Matrix4 modelScale = Matrix4::Identity();
 			Mesh* mesh = nullptr;
@@ -334,6 +343,7 @@ namespace PathTracing
 						SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, mat.roughness);
 						SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, mat.specular);
 						SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
+						SET_SHADER_PARAM(commandList, *mPreviewPS, ObjectIndex, i);
 
 						InputStreamInfo inputStream;
 						inputStream.buffer = mContext->getRenderer().mVertexBuffer.getRHI();
@@ -364,6 +374,7 @@ namespace PathTracing
 				SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, mat.roughness);
 				SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, mat.specular);
 				SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
+				SET_SHADER_PARAM(commandList, *mPreviewPS, ObjectIndex, i);
 
 				mesh->draw(commandList);
 			}
@@ -377,11 +388,13 @@ namespace PathTracing
 
 			if (mat.refractive == 0.0f)
 			{
-				DrawObject(obj, mat, i == mSelectedObjectId);
+				DrawObject(i, obj, mat, i == mSelectedObjectId);
 			}
 		}
 
-		RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<
+			CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha, EBlend::Add, EBlend::One, EBlend::Zero, EBlend::Add, false, true,
+			CWM_RGBA>::GetRHI());
 		for (int i = 0; i < sceneData.objects.size(); ++i)
 		{
 			auto const& obj = sceneData.objects[i];
@@ -389,12 +402,13 @@ namespace PathTracing
 
 			if (mat.refractive > 0.0f)
 			{
-				DrawObject(obj, mat, i == mSelectedObjectId);
+				DrawObject(i, obj, mat, i == mSelectedObjectId);
 			}
 		}
 
 
 		RHIResourceTransition(commandList, { colorRT->texture, depthRT->texture }, EResourceTransition::SRV);
+		RHIResourceTransition(commandList, { mPickingRT->texture }, EResourceTransition::Present);
 
 		RHISetFrameBuffer(commandList, context.frameBuffer);
 		RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
@@ -441,6 +455,9 @@ namespace PathTracing
 
 		RHIEndRender(false);
 		GRenderTargetPool.freeAllUsedElements();
+
+		// Keep mPickingRT around by clearing its "used" status if necessary?
+		// Actually, let's keep the ref and hope it's not reused until next frame.
 	}
 
 	void PathTracingEditor::onViewportMouseEvent(MouseMsg const& msg)
@@ -853,112 +870,17 @@ namespace PathTracing
 		drawAxis(GetAxisDir(1), LinearColor(0, 1, 0), 1);
 		drawAxis(GetAxisDir(2), LinearColor(0, 0, 1), 2);
 	}
+
 	int PathTracingEditor::pickObject(int x, int y)
 	{
 		if (x < 0 || y < 0 || x >= mEditorViewportSize.x || y >= mEditorViewportSize.y)
 			return INDEX_NONE;
 
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		auto& sceneData = mContext->getSceneData();
-
-		RHIBeginRender(false);
-
-		float aspect = (float)mEditorViewportSize.x / (float)Math::Max(1, mEditorViewportSize.y);
-		Matrix4 proj = PerspectiveMatrix(Math::DegToRad(60.0f), aspect, 0.01f, 1000.0f);
-		mEditorView.setupTransform(mEditorCamera.getPos(), mEditorCamera.getRotation(), proj);
-		mEditorView.rectOffset = IntVector2(0, 0);
-		mEditorView.rectSize = mEditorViewportSize;
-
-		RenderTargetDesc desc;
-		desc.size = mEditorViewportSize;
-		desc.format = ETexture::R32U;
-		desc.debugName = "PickingRT";
-		desc.clearColor = LinearColor(float(0xffffffff), 0, 0, 0);
-		PooledRenderTargetRef pickingRT = GRenderTargetPool.fetchElement(desc);
-
-		desc.format = ETexture::D24S8;
-		desc.debugName = "PickingDepth";
-		desc.clearColor = LinearColor(FRHIZBuffer::FarPlane, 0, 0, 0);
-		PooledRenderTargetRef depthRT = GRenderTargetPool.fetchElement(desc);
-
-		RHIResourceTransition(commandList, { pickingRT->texture, depthRT->texture }, EResourceTransition::RenderTarget);
-
-		if (mFrameBuffer == nullptr)
-		{
-			mFrameBuffer = RHICreateFrameBuffer();
-		}
-		mFrameBuffer->setTexture(0, static_cast<RHITexture2D&>(*pickingRT->texture));
-		mFrameBuffer->setDepth(static_cast<RHITexture2D&>(*depthRT->texture));
-
-		RHISetFrameBuffer(commandList, mFrameBuffer);
-		RHISetViewport(commandList, 0.0f, 0.0f, (float)mEditorViewportSize.x, (float)mEditorViewportSize.y);
-		RHISetScissorRect(commandList, 0, 0, mEditorViewportSize.x, mEditorViewportSize.y);
-		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(float(0xffffffff), 0, 0, 0), 1, FRHIZBuffer::FarPlane);
-
-		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
-		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
-
-		GraphicsShaderStateDesc state;
-		state.vertex = mPreviewVS->getRHI();
-		state.pixel = mPickingPS->getRHI();
-		RHISetGraphicsShaderBoundState(commandList, state);
-
-		for (int i = 0; i < (int)sceneData.objects.size(); ++i)
-		{
-			auto const& obj = sceneData.objects[i];
-			Matrix4 modelScale = Matrix4::Identity();
-			Mesh* mesh = nullptr;
-			switch (obj.type)
-			{
-			case OBJ_CUBE:
-				modelScale = Matrix4::Scale(obj.meta);
-				mesh = &mContext->getMesh(SimpleMeshId::Box);
-				break;
-			case OBJ_SPHERE:
-				modelScale = Matrix4::Scale(obj.meta.x / 2.5f);
-				mesh = &mContext->getMesh(SimpleMeshId::Sphere);
-				break;
-			case OBJ_QUAD:
-				modelScale = Matrix4::Scale(obj.meta);
-				mesh = &mContext->getMesh(SimpleMeshId::Plane);
-				break;
-			case OBJ_TRIANGLE_MESH:
-				modelScale = Matrix4::Scale(obj.meta.y);
-				int meshId = AsValue<int32>(obj.meta.x);
-				if (sceneData.meshes.isValidIndex(meshId))
-				{
-					auto const& meshData = sceneData.meshes[meshId];
-					Matrix4 world = modelScale * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-					mEditorView.setupShader(commandList, *mPreviewVS);
-					SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
-					SET_SHADER_PARAM(commandList, *mPickingPS, ObjectIndex, i);
-
-					InputStreamInfo inputStream;
-					inputStream.buffer = mContext->getRenderer().mVertexBuffer.getRHI();
-					RHISetInputStream(commandList, mMeshInputLayout, &inputStream, 1);
-					RHIDrawPrimitive(commandList, EPrimitive::TriangleList, meshData.startIndex, meshData.numTriangles * 3);
-				}
-				continue;
-			}
-
-			if (mesh)
-			{
-				Matrix4 world = modelScale * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-				mEditorView.setupShader(commandList, *mPreviewVS);
-				SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
-				SET_SHADER_PARAM(commandList, *mPickingPS, ObjectIndex, i);
-				mesh->draw(commandList);
-			}
-		}
-
-		RHIResourceTransition(commandList, { pickingRT->texture }, EResourceTransition::CopySrc);
-		RHIEndRender(false);
+		if (!mPickingRT)
+			return INDEX_NONE;
 
 		TArray<uint8> data;
-		RHIReadTexture(static_cast<RHITexture2D&>(*pickingRT->texture), ETexture::R32U, 0, data);
-		GRenderTargetPool.freeUsedElement(pickingRT);
-		GRenderTargetPool.freeUsedElement(depthRT);
+		RHIReadTexture(static_cast<RHITexture2D&>(*mPickingRT->texture), ETexture::R32U, 0, data);
 
 		if (data.empty())
 			return INDEX_NONE;

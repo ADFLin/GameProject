@@ -809,6 +809,7 @@ namespace AR
 			auto screenSize = ::Global::GetScreenSize();
 			g.setViewportSize( screenSize.x, screenSize.y );
 
+			RHIResourceTransition(commandList, { mTexInput }, EResourceTransition::Present);
 			RHIFlushCommand(commandList);
 			RHIReadTexture(*mTexInput, ETexture::R32F, 0, mInputData);
 			update();

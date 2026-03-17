@@ -382,6 +382,7 @@ namespace Render
 		RenderTarget,
 		CopySrc,
 		CopyDest,
+		Present,
 	};
 	RHI_API void RHIResourceTransition(RHICommandList& commandList, TArrayView<RHIResource*> resources, EResourceTransition transition);
 

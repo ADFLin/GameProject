@@ -199,6 +199,11 @@ namespace Render
 		outData.envMapSize = texture->getSize();
 		outData.irradianceSize = irradianceTexture->getSize();
 		outData.perFilteredSize = perfilteredTexture->getSize();
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHIResourceTransition(commandList, { texture , irradianceTexture , perfilteredTexture }, EResourceTransition::Present);
+		RHIFlushCommand(commandList);
+
 		RHIReadTexture(*texture, ETexture::FloatRGBA, 0, outData.envMap);
 		RHIReadTexture(*irradianceTexture, ETexture::FloatRGBA, 0, outData.irradiance);
 		for (int level = 0; level < IBLResource::NumPerFilteredLevel; ++level)

@@ -6,6 +6,7 @@
 
 #include "Renderer/SimpleCamera.h"
 #include "Renderer/SceneView.h"
+#include "Renderer/RenderTargetPool.h"
 
 
 namespace Render
@@ -156,6 +157,7 @@ namespace PathTracing
 		class EditorPickingPS* mPickingPS;
 		class ScreenOutlinePS* mScreenOutlinePS;
 
+		PooledRenderTargetRef mPickingRT;
 		int pickObject(int x, int y);
 	};
 

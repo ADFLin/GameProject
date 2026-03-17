@@ -3483,6 +3483,9 @@ namespace Render
 					else
 						targetLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 					break;
+				case EResourceTransition::Present:
+					targetLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+					break;
 				}
 
 				if (targetLayout != VK_IMAGE_LAYOUT_UNDEFINED)

@@ -245,7 +245,7 @@ namespace Render
 
 		bool bDebugModeEnabled = initParam.bDebugMode && !GRHIPrefEnabled;
 		//bDebugModeEnabled = false;
-		bool bWarningBreakEnabled = true;
+		bool bWarningBreakEnabled = false;
 
 		// Enable the debug layer (requires the Graphics Tools "optional feature").
 		// NOTE: Enabling the debug layer after device creation will invalidate the active device.
@@ -1478,8 +1478,11 @@ namespace Render
 		mCopyCmdAllocator->Reset();
 		mCopyCmdList->Reset(mCopyCmdAllocator, nullptr);
 
-		D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(d3dResource, textureImpl.mCurrentStates, D3D12_RESOURCE_STATE_COPY_SOURCE, subresourceIndex);
-		mCopyCmdList->ResourceBarrier(1, &transition);
+		if (textureImpl.mCurrentStates != D3D12_RESOURCE_STATE_COPY_SOURCE)
+		{
+			D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(d3dResource, textureImpl.mCurrentStates, D3D12_RESOURCE_STATE_COPY_SOURCE, subresourceIndex);
+			mCopyCmdList->ResourceBarrier(1, &transition);
+		}
 
 		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
 		srcLocation.pResource = d3dResource;
@@ -1493,8 +1496,11 @@ namespace Render
 
 		mCopyCmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
 
-		transition = FD3D12Init::TransitionBarrier(d3dResource, D3D12_RESOURCE_STATE_COPY_SOURCE, textureImpl.mCurrentStates, subresourceIndex);
-		mCopyCmdList->ResourceBarrier(1, &transition);
+		if (textureImpl.mCurrentStates != D3D12_RESOURCE_STATE_COPY_SOURCE)
+		{
+			D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(d3dResource, D3D12_RESOURCE_STATE_COPY_SOURCE, textureImpl.mCurrentStates, subresourceIndex);
+			mCopyCmdList->ResourceBarrier(1, &transition);
+		}
 
 		mCopyCmdList->Close();
 		ID3D12CommandList* ppCommandLists[] = { mCopyCmdList };
@@ -2954,6 +2960,8 @@ namespace Render
 			return D3D12_RESOURCE_STATE_COPY_DEST;
 		case EResourceTransition::RenderTarget:
 			return D3D12_RESOURCE_STATE_RENDER_TARGET;
+		case EResourceTransition::Present:
+			return D3D12_RESOURCE_STATE_PRESENT;
 
 		}
 		NEVER_REACH("GetResourceStates");

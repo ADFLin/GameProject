@@ -30,9 +30,11 @@ uniform float Roughness;
 uniform float Specular;
 uniform float SelectionAlpha;
 
+uniform int ObjectIndex;
 PS_ENTRY_START(MainPS)
     PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
     PS_OUTPUT(float4 OutColor, 0)
+    PS_OUTPUT(uint OutIndex, 1)
 PS_ENTRY_END(MainPS)
 {
     float3 N = normalize(InputPS.normal);
@@ -56,9 +58,9 @@ PS_ENTRY_END(MainPS)
     color = lerp(color, float3(1, 1, 1), SelectionAlpha * 0.4);
     
     OutColor = float4(color, BaseColor.a);
+    OutIndex = (uint)ObjectIndex;
 }
 
-uniform int ObjectIndex;
 PS_ENTRY_START(PickingPS)
     PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
     PS_OUTPUT(uint OutIndex, 0)

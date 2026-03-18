@@ -49,6 +49,7 @@ namespace PathTracing
 			BIND_SHADER_PARAM(parameterMap, SelectionAlpha);
 			BIND_SHADER_PARAM(parameterMap, ObjectIndex);
 		}
+
 		DEFINE_SHADER_PARAM(BaseColor);
 		DEFINE_SHADER_PARAM(EmissiveColor);
 		DEFINE_SHADER_PARAM(Roughness);
@@ -673,6 +674,7 @@ namespace PathTracing
 					case OBJ_SPHERE: metaIndex = 0; break;
 					case OBJ_CUBE: metaIndex = mGizmoAxis; break;
 					case OBJ_QUAD: metaIndex = mGizmoAxis; break;
+					case OBJ_DISC: metaIndex = mGizmoAxis; break;
 					case OBJ_TRIANGLE_MESH: metaIndex = 1; break;
 					}
 					if (metaIndex != INDEX_NONE)
@@ -776,6 +778,10 @@ namespace PathTracing
 		{
 			mDetailView->clearCategory();
 
+			mDetailView->clearCategoryViews("Object");
+			mDetailView->clearCategoryViews("Material");
+			mDetailView->clearCategoryViews("MeshInfo");
+
 			if (mSelectedObjectId != INDEX_NONE)
 			{
 				auto OnPropertyChange = [this](char const*)
@@ -786,14 +792,10 @@ namespace PathTracing
 				auto& sceneData = mContext->getSceneData();
 				auto& object = sceneData.objects[mSelectedObjectId];
 
-				mDetailView->clearCategoryViews("Object");
 				mDetailView->setCategory("Object");
-
-
 				PropertyViewHandle hObj = mDetailView->addStruct(object);
 				mDetailView->addCallback(hObj, OnPropertyChange);
 
-				mDetailView->clearCategoryViews("Material");
 				mDetailView->setCategory("Material");
 				PropertyViewHandle hMat = mDetailView->addStruct(sceneData.materials[object.materialId]);
 				mDetailView->addCallback(hMat, OnPropertyChange);
@@ -803,13 +805,12 @@ namespace PathTracing
 					int meshId = AsValue<int32>(sceneData.objects[mSelectedObjectId].meta.x);
 					if (sceneData.meshInfos.isValidIndex(meshId))
 					{
-						mDetailView->clearCategoryViews("MeshInfo");
+
 						mDetailView->setCategory("MeshInfo");
 						PropertyViewHandle hMesh = mDetailView->addStruct(sceneData.meshInfos[meshId]);
 						mDetailView->addCallback(hMesh, OnPropertyChange);
 					}
 				}
-
 				mDetailView->clearCategory();
 			}
 		}
@@ -859,12 +860,12 @@ namespace PathTracing
 
 			LinearColor drawColor = (mGizmoAxis == axisIdx) ? LinearColor::White() : color;
 
-			auto SetShaderParams = [&](Matrix4 const& w)
+			auto SetShaderParams = [&](Matrix4 const& xForm)
 			{
 				view.setupShader(commandList, *mPreviewVS);
-				SET_SHADER_PARAM(commandList, *mPreviewVS, World, w);
+				SET_SHADER_PARAM(commandList, *mPreviewVS, World, xForm);
 				SET_SHADER_PARAM(commandList, *mPreviewPS, BaseColor, drawColor);
-				SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, drawColor * 0.5f);
+				SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, 0.5 * drawColor);
 				SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, 1.0f);
 				SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, 0.0f);
 				SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);

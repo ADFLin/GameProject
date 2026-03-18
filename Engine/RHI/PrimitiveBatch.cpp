@@ -68,7 +68,7 @@ namespace Render
 		RHIUnlockBuffer(mVertexBuffer);
 
 		RHISetShaderProgram(commandList, mProgram->getRHI());
-		SET_SHADER_PARAM_VALUE(commandList, *mProgram, VertexTransform, worldToClip);
+		SET_SHADER_PARAM(commandList, *mProgram, VertexTransform, worldToClip);
 
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;

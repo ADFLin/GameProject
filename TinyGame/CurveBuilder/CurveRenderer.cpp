@@ -251,8 +251,8 @@ namespace CB
 		template< typename TShaderType >
 		void setupShader(RHICommandList& commandList, TShaderType& shader) const
 		{
-			SET_SHADER_PARAM_VALUE(commandList, shader, LocalToWorld, surface.getTransform());
-			SET_SHADER_PARAM_VALUE(commandList, shader, WorldToLocal, worldToLocal);
+			SET_SHADER_PARAM(commandList, shader, LocalToWorld, surface.getTransform());
+			SET_SHADER_PARAM(commandList, shader, WorldToLocal, worldToLocal);
 		}
 		Surface3D& surface;
 		Matrix4    worldToLocal;

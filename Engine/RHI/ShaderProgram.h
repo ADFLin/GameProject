@@ -107,6 +107,9 @@ namespace Render
 			setTexture(commandList, name, *texturePtr);
 		}
 
+		void setSRV(RHICommandList& commandList, char const* name, RHIShaderResourceView const& resourceView);
+		void setSampler(RHICommandList& commandList, char const* name, RHISamplerState& sampler);
+
 
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, int32 v1);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector2 const& v);
@@ -242,7 +245,6 @@ namespace Render
 		TRefCountPtr< RHIResourceType > mRHIResource;
 	};
 
-
 	extern template class TShaderFuncHelper< RHIShaderProgram >;
 	extern template class TShaderFuncHelper< RHIShader >;
 
@@ -269,11 +271,7 @@ namespace Render
 	template < class T >
 	constexpr T GetType(T&);
 
-	template< class TShader, class T >
-	FORCEINLINE void SetShaderParamT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, T const& value)
-	{
-		shader.setParam(commandList, param, value);
-	}
+
 
 	template< class TShader>
 	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, RHITextureBase& value)
@@ -298,6 +296,21 @@ namespace Render
 	{
 		shader.setSRV(commandList, param, srv);
 		shader.setSampler(commandList, paramSampler, sampler);
+	}
+
+
+
+	template< class TShader >
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, char const* paramName, RHITextureBase& texture, char const* paramSamplerName, RHISamplerState& sampler)
+	{
+		shader.setTexture(commandList, paramName, texture, paramSamplerName, sampler);
+	}
+
+	template< class TShader >
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, char const* paramName, RHIShaderResourceView& srv, char const* paramSamplerName, RHISamplerState& sampler)
+	{
+		shader.setSRV(commandList, paramName, srv);
+		shader.setSampler(commandList, paramSamplerName, sampler);
 	}
 
 	template< class TShader >
@@ -345,15 +358,12 @@ namespace Render
 #define BIND_SHADER_PARAM( MAP , NAME ) SHADER_MEMBER_PARAM( NAME ).bind( MAP , SHADER_PARAM(NAME) )
 #define BIND_TEXTURE_PARAM( MAP , NAME ) BIND_SHADER_PARAM( MAP, NAME ); BIND_SHADER_PARAM( MAP, NAME##Sampler)
 
-#define SET_SHADER_PARAM( COMMANDLIST, SHADER , NAME , VALUE )\
-	 SetShaderParamT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), VALUE ) 
 #define SET_SHADER_TEXTURE( COMMANDLIST, SHADER , NAME , VALUE )\
 	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME),VALUE )
-#define SET_SHADER_TEXTURE_AND_SAMPLER( COMMANDLIST, SHADER , NAME , TEXTURE, SAMPLER )\
-	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), TEXTURE, (SHADER).SHADER_MEMBER_PARAM(NAME##Sampler), SAMPLER )
+//#define SET_SHADER_TEXTURE_AND_SAMPLER( COMMANDLIST, SHADER , NAME , TEXTURE, SAMPLER )\
+//	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), TEXTURE, (SHADER).SHADER_MEMBER_PARAM(NAME##Sampler), SAMPLER )
 #define CLEAR_SHADER_TEXTURE(COMMANDLIST, SHADER, NAME)\
 	 ClearShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME) )
-
 
 	template< typename TShaderParamAccessor, typename TShaderType, typename T>
 	FORCEINLINE void SetShaderParamValueInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, T const& value)
@@ -368,20 +378,52 @@ namespace Render
 		}
 	}
 
+	template< typename TShaderParamAccessor, typename TShaderType, typename T>
+	FORCEINLINE void SetShaderTextureInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, RHITextureBase& value)
+	{
+		if constexpr (TCheckConcept< TShaderParamAccessor, TShaderType >::Value)
+		{
+			SetShaderTextureT(commandList, shader, TShaderParamAccessor::Get(shader), value);
+		}
+		else
+		{
+			SetShaderTextureT(commandList, shader, paramName, value);
+		}
+	}
+
+	template< typename TShaderParamAccessor, typename TShaderType, typename TextureType >
+	FORCEINLINE void SetShaderTextureInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, char const* paramSamplerName, TextureType& value, RHISamplerState& sampler)
+	{
+		if constexpr (TCheckConcept< TShaderParamAccessor, TShaderType >::Value)
+		{
+			SetShaderTextureT(commandList, shader, TShaderParamAccessor::Get(shader), value, TShaderParamAccessor::GetSampler(shader), sampler);
+		}
+		else
+		{
+			SetShaderTextureT(commandList, shader, paramName, value, paramSamplerName, sampler);
+		}
+	}
+
+
 #define DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
 	struct ShaderParamAccessor\
 	{\
 		template< typename T > static auto Requires(T& t) -> decltype(t.SHADER_MEMBER_PARAM(PARAM_NAME));\
 		template< typename T > static auto Get(T& t){ return t.SHADER_MEMBER_PARAM(PARAM_NAME); }\
+		template< typename T > static auto GetSampler(T& t){ return t.SHADER_MEMBER_PARAM(PARAM_NAME##Sampler); }\
 	};\
 
-#define SET_SHADER_PARAM_VALUE(COMMANDLIST, SHADER , PARAM_NAME, VALUE)\
+#define SET_SHADER_PARAM(COMMANDLIST, SHADER , NAME, VALUE)\
 	([&]() {\
 		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
-		SetShaderParamValueInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #PARAM_NAME, (VALUE));\
+		SetShaderParamValueInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #NAME, (VALUE));\
 	}())
-		
-
+	
+#define SET_SHADER_TEXTURE_AND_SAMPLER( COMMANDLIST, SHADER , NAME , TEXTURE, SAMPLER )\
+	([&]() {\
+		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
+		SetShaderTextureInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #NAME, MAKE_STRING(NAME##Sampler), TEXTURE, SAMPLER); \
+	}())
 
 }//namespace Render
 

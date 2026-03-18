@@ -87,6 +87,28 @@ namespace PathTracing
 #define OBJ_CUBE          1
 #define OBJ_TRIANGLE_MESH 2
 #define OBJ_QUAD          3
+#define OBJ_DISC          4
+
+
+	namespace EObjectType 
+	{
+		enum Type : int32
+		{
+			Sphere,
+			Cube,
+			Mesh,
+			Quad,
+			Disc,
+		};
+	}
+
+	REF_ENUM_BEGIN(EObjectType::Type)
+		REF_ENUM(Sphere)
+		REF_ENUM(Cube)
+		REF_ENUM(Mesh)
+		REF_ENUM(Quad)
+		REF_ENUM(Disc)
+	REF_ENUM_END()
 
 
 	template<typename T, typename Q>
@@ -103,7 +125,7 @@ namespace PathTracing
 		DECLARE_BUFFER_STRUCT(Objects);
 
 		Vector3 pos;
-		int32   type;
+		EObjectType::Type   type;
 		Quaternion rotation;
 		Vector3 meta;
 		int32   materialId;
@@ -111,7 +133,7 @@ namespace PathTracing
 		ObjectData()
 		{
 			pos = { 0, 0, 0 };
-			type = OBJ_SPHERE;
+			type = EObjectType::Sphere;
 			rotation = Quaternion::Identity();
 			meta = { 1, 0, 0 };
 			materialId = 0;
@@ -131,7 +153,7 @@ namespace PathTracing
 		static ObjectData Sphere(float radius, int materialId, Vector3 pos, Quaternion rotation = Quaternion::Identity())
 		{
 			ObjectData result;
-			result.type = OBJ_SPHERE;
+			result.type = EObjectType::Sphere;
 			result.pos = pos;
 			result.rotation = rotation;
 			result.materialId = materialId;
@@ -141,7 +163,7 @@ namespace PathTracing
 		static ObjectData Box(Vector3 size, int materialId, Vector3 pos, Quaternion rotation = Quaternion::Identity())
 		{
 			ObjectData result;
-			result.type = OBJ_CUBE;
+			result.type = EObjectType::Cube;
 			result.pos = pos;
 			result.rotation = rotation;
 			result.materialId = materialId;
@@ -152,7 +174,7 @@ namespace PathTracing
 		static ObjectData Quad(Vector2 size, int materialId, Vector3 pos, Quaternion rotation = Quaternion::Identity())
 		{
 			ObjectData result;
-			result.type = OBJ_QUAD;
+			result.type = EObjectType::Quad;
 			result.pos = pos;
 			result.rotation = rotation;
 			result.materialId = materialId;
@@ -163,7 +185,7 @@ namespace PathTracing
 		static ObjectData Mesh(int32 meshId, float scale, int materialId, Vector3 pos, Quaternion rotation = Quaternion::Identity())
 		{
 			ObjectData result;
-			result.type = OBJ_TRIANGLE_MESH;
+			result.type = EObjectType::Mesh;
 			result.pos = pos;
 			result.rotation = rotation;
 			result.materialId = materialId;

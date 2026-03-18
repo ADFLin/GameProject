@@ -488,7 +488,7 @@ public:
 		setRWTexture(commandList, SHADER_MEMBER_PARAM(ColorRWTexture), colorTexture, 0, EAccessOp::WriteOnly);
 		auto& samplerState = TStaticSamplerState< ESampler::Bilinear, ESampler::Wrap >::GetRHI();
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, samplerState);
-		SET_SHADER_PARAM_VALUE(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
+		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
 	}
 
 	void clearParameters(RHICommandList& commandList)

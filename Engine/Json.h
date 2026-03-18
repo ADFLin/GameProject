@@ -215,6 +215,11 @@ public:
 		{
 			readWriteObject(key, value);
 		}
+		else if constexpr (std::is_enum_v<T>)
+		{
+			using IntType = std::underlying_type_t<T>;
+			readWrite(key, *reinterpret_cast<IntType*>(&value));
+		}
 		else
 		{
 			readWrite(key, value);
@@ -231,7 +236,7 @@ public:
 		else
 		{
 			mObject.set(key, value);
-		}
+		}	
 	}
 
 	// 支援遞迴序列化具備 void serialize(JsonSerializer& serializer) 方法的物件，
@@ -440,16 +445,13 @@ private:
 
 
 template< typename T >
-class TJsonSerializeCollector
+class TJsonSerializeCollector : public ReflectionCollector
 {
 public:
 	TJsonSerializeCollector(JsonSerializer& serializer, T& instance)
 		: mSerializer(serializer), mInstance(instance)
 	{
 	}
-
-	template< typename ClassType >
-	void beginClass(char const* name) {}
 
 	template< typename ClassType, typename TBase >
 	void addBaseClass()
@@ -468,29 +470,6 @@ public:
 	{
 		mSerializer.serialize(name, mInstance.*memberPtr);
 	}
-
-	template< typename ClassType, typename ...TArgs >
-	void addConstructor() {}
-
-	template< typename ClassType, typename RT, typename ...TArgs >
-	void addFunction(RT(ClassType::*funcPtr)(TArgs...), char const* name) {}
-
-	template< typename ClassType, typename RT, typename ...TArgs >
-	void addFunction(RT(ClassType::*funcPtr)(TArgs...) const, char const* name) {}
-
-	template< typename ClassType, typename RT, typename ...TArgs >
-	void addFunction(RT (*funcPtr)(TArgs...), char const* name) {}
-
-	template< typename ClassType, typename RT, typename ...TArgs, typename ...TMeta >
-	void addFunction(RT(ClassType::*funcPtr)(TArgs...), char const* name, TMeta&& ...meta) {}
-
-	template< typename ClassType, typename RT, typename ...TArgs, typename ...TMeta >
-	void addFunction(RT(ClassType::*funcPtr)(TArgs...) const, char const* name, TMeta&& ...meta) {}
-
-	template< typename ClassType, typename RT, typename ...TArgs, typename ...TMeta >
-	void addFunction(RT(*funcPtr)(TArgs...), char const* name, TMeta&& ...meta) {}
-
-	void endClass() {}
 
 private:
 	JsonSerializer& mSerializer;

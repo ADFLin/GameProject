@@ -379,8 +379,8 @@ namespace Cube
 		template< typename TShader >
 		void setupShader(RHICommandList& commandList, TShader& shader)
 		{
-			SET_SHADER_PARAM_VALUE(commandList, shader, LocalToWorld, stack.get());
-			SET_SHADER_PARAM_VALUE(commandList, shader, WorldToClip, worldToClip);
+			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
+			SET_SHADER_PARAM(commandList, shader, WorldToClip, worldToClip);
 
 		}
 

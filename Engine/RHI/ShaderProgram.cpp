@@ -55,6 +55,15 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setSRV(RHICommandList& commandList, char const* name, RHIShaderResourceView const& resourceView)
+	{
+		ShaderParameter param;
+		if (!getParameter(name, param))
+			return;
+		GetContext(commandList).setShaderResourceView(*mRHIResource, param, resourceView);
+	}
+
+	template< class RHIResourceType >
 	void TShaderFuncHelper< RHIResourceType>::setSRV(RHICommandList& commandList, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
 	{
 		CHECK_PARAMETER(param);
@@ -65,6 +74,15 @@ namespace Render
 	void TShaderFuncHelper<RHIResourceType>::setSampler(RHICommandList& commandList, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		CHECK_PARAMETER(param);
+		GetContext(commandList).setShaderSampler(*mRHIResource, param, sampler);
+	}
+
+	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setSampler(RHICommandList& commandList, char const* name, RHISamplerState& sampler)
+	{
+		ShaderParameter param;
+		if (!getParameter(name, param))
+			return;
 		GetContext(commandList).setShaderSampler(*mRHIResource, param, sampler);
 	}
 

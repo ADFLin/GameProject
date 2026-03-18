@@ -530,13 +530,82 @@ void PathTracingStage::updateMeshImportTransform(int index)
 }
 #endif
 
+bool SaveTextureToFile(RHITexture2D& texture, char const* path)
+{
+	TArray< uint8 > data;
+	RHIReadTexture(texture, texture.getFormat(), 0, data);
+	if (data.empty())
+		return false;
+
+
+	bool bHDR = false;
+	char const* ext = FFileUtility::GetExtension(path);
+	if (ext && FCString::CompareIgnoreCase(ext, "hdr") == 0)
+	{
+		bHDR = true;
+	}
+
+	bool result = false;
+
+	if (bHDR)
+	{
+		if (texture.getFormat() == ETexture::RGBA32F)
+		{
+			result = ImageData::SaveImage(path, texture.getSizeX(), texture.getSizeY(), 4, data.data(), true);
+		}
+		else if (texture.getFormat() == ETexture::RGBA8)
+		{
+			TArray<float> floatData;
+			floatData.resize(data.size());
+			uint8 const* pSrc = data.data();
+			float* pDst = floatData.data();
+			for (int i = 0; i < (int)data.size(); ++i)
+			{
+				pDst[i] = pSrc[i] / 255.0f;
+			}
+			result = ImageData::SaveImage(path, texture.getSizeX(), texture.getSizeY(), 4, floatData.data(), true);
+		}
+		else
+		{
+			LogWarning(0, "Unsupported texture format for HDR saving");
+		}
+	}
+	else
+	{
+		if (texture.getFormat() == ETexture::RGBA32F)
+		{
+			TArray<uint8> ldrData;
+			ldrData.resize(data.size() / sizeof(float));
+			float const* pSrc = (float const*)data.data();
+			uint8* pDst = ldrData.data();
+			for (int i = 0; i < (int)ldrData.size(); ++i)
+			{
+				pDst[i] = (uint8)Math::Clamp<int>(int(pSrc[i] * 255.0f + 0.5f), 0, 255);
+			}
+			result = ImageData::SaveImage(path, texture.getSizeX(), texture.getSizeY(), 4, ldrData.data(), false);
+		}
+		else if (texture.getFormat() == ETexture::RGBA8)
+		{
+			result = ImageData::SaveImage(path, texture.getSizeX(), texture.getSizeY(), 4, data.data(), false);
+		}
+		else
+		{
+			LogWarning(0, "Unsupported texture format for PNG saving");
+		}
+	}
+
+	return result;
+}
+
 void PathTracingStage::saveImage()
 {
 	char filePath[1024] = "Screenshot.png";
-	OpenFileFilterInfo filters[] = {
+	OpenFileFilterInfo filters[] = 
+	{
 		{"HDR Image", "*.hdr"},
 		{"PNG Image", "*.png"},
 	};
+
 	if (SystemPlatform::SaveFileName(filePath, ARRAY_SIZE(filePath), filters, nullptr, "Save Image"))
 	{
 		RHITexture2D& texture = getDisplayTexture();
@@ -545,64 +614,7 @@ void PathTracingStage::saveImage()
 		RHIResourceTransition(commandList, { &texture }, EResourceTransition::Present);
 		RHIFlushCommand(commandList);
 
-		TArray< uint8 > data;
-		RHIReadTexture(texture, texture.getFormat(), 0, data);
-		if (!data.empty())
-		{
-			bool bHDR = false;
-			char const* ext = FFileUtility::GetExtension(filePath);
-			if (ext && FCString::CompareIgnoreCase(ext, "hdr") == 0)
-			{
-				bHDR = true;
-			}
-
-			if (bHDR)
-			{
-				if (texture.getFormat() == ETexture::RGBA32F)
-				{
-					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, data.data(), true);
-				}
-				else if (texture.getFormat() == ETexture::RGBA8)
-				{
-					TArray<float> floatData;
-					floatData.resize(data.size());
-					uint8 const* pSrc = data.data();
-					float* pDst = floatData.data();
-					for (int i = 0; i < (int)data.size(); ++i)
-					{
-						pDst[i] = pSrc[i] / 255.0f;
-					}
-					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, floatData.data(), true);
-				}
-				else
-				{
-					LogWarning(0, "Unsupported texture format for HDR saving");
-				}
-			}
-			else
-			{
-				if (texture.getFormat() == ETexture::RGBA32F)
-				{
-					TArray<uint8> ldrData;
-					ldrData.resize(data.size() / sizeof(float));
-					float const* pSrc = (float const*)data.data();
-					uint8* pDst = ldrData.data();
-					for (int i = 0; i < (int)ldrData.size(); ++i)
-					{
-						pDst[i] = (uint8)Math::Clamp<int>(int(pSrc[i] * 255.0f + 0.5f), 0, 255);
-					}
-					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, ldrData.data(), false);
-				}
-				else if (texture.getFormat() == ETexture::RGBA8)
-				{
-					ImageData::SaveImage(filePath, texture.getSizeX(), texture.getSizeY(), 4, data.data(), false);
-				}
-				else
-				{
-					LogWarning(0, "Unsupported texture format for PNG saving");
-				}
-			}
-		}
+		SaveTextureToFile(texture, filePath);
 	}
 }
 

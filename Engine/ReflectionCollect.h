@@ -41,41 +41,41 @@ class ReflectionCollector
 {
 public:
 	template< typename T >
-	void beginClass(char const* name);
+	void beginClass(char const* name){}
 
 	template< typename T, typename TBase >
-	void addBaseClass();
+	void addBaseClass(){}
 
 	template< typename T, typename P >
-	void addProperty(P(T::*memberPtr), char const* name);
+	void addProperty(P(T::*memberPtr), char const* name){}
 
 	template< typename T, typename P, typename ...TMeta >
-	void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta);
+	void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta){}
 
 	template< typename T, typename ...TArgs >
-	void addConstructor();
+	void addConstructor(){}
 
 	template< typename T, typename RT, typename ...TArgs >
-	void addFunction(RT(T::*funcPtr)(TArgs...), char const* name);
+	void addFunction(RT(T::*funcPtr)(TArgs...), char const* name){}
 
 	template< typename T, typename RT, typename ...TArgs >
-	void addFunction(RT(T::*funcPtr)(TArgs...) const, char const* name);
+	void addFunction(RT(T::*funcPtr)(TArgs...) const, char const* name){}
 
 	template< typename T, typename RT, typename ...TArgs >
-	void addFunction(RT (*funcPtr)(TArgs...), char const* name);
+	void addFunction(RT (*funcPtr)(TArgs...), char const* name){}
 
 
 	template< typename T, typename RT, typename ...TArgs, typename ...TMeta >
-	void addFunction(RT(T::*funcPtr)(TArgs...), char const* name, TMeta&& ...meta);
+	void addFunction(RT(T::*funcPtr)(TArgs...), char const* name, TMeta&& ...meta){}
 
 	template< typename T, typename RT, typename ...TArgs, typename ...TMeta >
-	void addFunction(RT(T::*funcPtr)(TArgs...) const, char const* name, TMeta&& ...meta);
+	void addFunction(RT(T::*funcPtr)(TArgs...) const, char const* name, TMeta&& ...meta){}
 
 	template< typename T, typename RT, typename ...TArgs, typename ...TMeta >
-	void addFunction(RT(*funcPtr)(TArgs...), char const* name, TMeta&& ...meta);
+	void addFunction(RT(*funcPtr)(TArgs...), char const* name, TMeta&& ...meta){}
 
 
-	void endClass();
+	void endClass(){}
 
 };
 

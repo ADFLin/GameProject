@@ -338,8 +338,11 @@ namespace PathTracing
 				}
 				break;
 			case OBJ_QUAD:
+			case OBJ_DISC:
 				{
 					Vector3 halfSize = object.meta;
+					halfSize.z = 1.0f;
+
 					primitive.center = object.pos;
 					primitive.bound = GetAABB(object.rotation, halfSize);
 					primitive.bound.translate(primitive.center);

@@ -99,10 +99,10 @@ bool PathTracingStage::onInit()
 	});
 
 	frame->addCheckBox("Use Global Fog", mRenderConfig.bUseGlobalFog);
-	slider = frame->addSlider("Fog Density", UI_ANY);
-	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogDensity); };
+	slider = frame->addSlider("Fog Max Distance", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogMaxDistance); };
 	slider->showValue();
-	FWidgetProperty::Bind(slider, mRenderConfig.fogDensity, 0.0f, 0.5f);
+	FWidgetProperty::Bind(slider, mRenderConfig.fogMaxDistance, 0.0f, 500.0f, 2.0);
 	slider = frame->addSlider("Fog Phase G", UI_ANY);
 	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogPhaseG); };
 	slider->showValue();
@@ -110,7 +110,38 @@ bool PathTracingStage::onInit()
 	slider = frame->addSlider("Sky Distance", UI_ANY);
 	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.skyDistance); };
 	slider->showValue();
-	FWidgetProperty::Bind(slider, mRenderConfig.skyDistance, 1.0f, 2000.0f);
+	FWidgetProperty::Bind(slider, mRenderConfig.skyDistance, 1.0f, 500.0f, 2.0);
+
+	slider = frame->addSlider("Fog Albedo R", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogAlbedo.x); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogAlbedo.x, 0.0f, 1.0f);
+	slider = frame->addSlider("Fog Albedo G", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogAlbedo.y); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogAlbedo.y, 0.0f, 1.0f);
+	slider = frame->addSlider("Fog Albedo B", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogAlbedo.z); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogAlbedo.z, 0.0f, 1.0f);
+
+	slider = frame->addSlider("Fog Emissive R", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogEmissive.x); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogEmissive.x, 0.0f, 1.0f);
+	slider = frame->addSlider("Fog Emissive G", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogEmissive.y); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogEmissive.y, 0.0f, 1.0f);
+	slider = frame->addSlider("Fog Emissive B", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogEmissive.z); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogEmissive.z, 0.0f, 1.0f);
+
+	slider = frame->addSlider("Fog Inscatter", UI_ANY);
+	slider->onGetShowValue = [this]() -> std::string { return FStringConv::From(mRenderConfig.fogInScattering); };
+	slider->showValue();
+	FWidgetProperty::Bind(slider, mRenderConfig.fogInScattering, 0.0f, 50.0f);
 
 	frame->addButton("Save Image", [this](int event, GWidget*) { saveImage(); return true; });
 

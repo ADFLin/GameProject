@@ -367,7 +367,7 @@ namespace PathTracing
 				mesh = &mContext->getMesh(SimpleMeshId::Sphere); 
 				break;
 			case OBJ_QUAD:
-				modelScale = Matrix4::Scale(obj.meta);
+				modelScale = Matrix4::Scale(obj.meta / 10.0f );
 				mesh = &mContext->getMesh(SimpleMeshId::Plane);
 				break;
 			case OBJ_TRIANGLE_MESH:
@@ -930,6 +930,8 @@ namespace PathTracing
 		if (!mPickingRT)
 			return INDEX_NONE;
 
+
+		RHIFlushCommand(RHICommandList::GetImmediateList());
 		TArray<uint8> data;
 		RHIReadTexture(static_cast<RHITexture2D&>(*mPickingRT->texture), ETexture::R32U, 0, data);
 

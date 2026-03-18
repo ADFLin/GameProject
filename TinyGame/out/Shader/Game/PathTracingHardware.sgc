@@ -32,6 +32,9 @@ struct PathPayload
 #if USE_MIS
 	float pdf_brdf_prev;
 #endif
+#if USE_FOG
+	float fogBoost;
+#endif
 };
 
 #if SHADER_ENTRY(PathTraceRayGen)
@@ -69,6 +72,9 @@ void PathTraceRayGen()
 		payload.throughput = float3(1, 1, 1);
 		payload.seed = seed;
 		payload.done = false;
+#if USE_FOG
+		payload.fogBoost = 1.0f;
+#endif
 	#if USE_MIS
 		payload.pdf_brdf_prev = 0.0f;
 	#endif
@@ -83,30 +89,67 @@ void PathTraceRayGen()
 			ray.TMax = 10000.0;
 
 			payload.hit = false;
-			TraceRay(gScene, RAY_FLAG_NONE, 0xFF, 0, 1, 0, ray, payload);
+			TraceRay(gScene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, ray, payload);
 
 #if USE_FOG
 			float dLimit = payload.hit ? payload.dist : SkyDistance;
 			float tFog = SampleFogFreePath(dLimit, payload.seed);
 			if (tFog < dLimit)
 			{
+				radiance += GetFogEmission(tFog) * throughput;
+				float3 fogPos = rayPos + tFog * rayDir;
 				if (i == 0 && sampleIndex == 0)
 				{
 					firstNormal = -rayDir;
 					firstDist = tFog;
-					firstHitPos = rayPos + rayDir * firstDist;
+					firstHitPos = fogPos;
 					bFirstHitCaptured = true;
 					bFirstHitIsGeometry = false;
 				}
 
-				float3 fogPos = rayPos + tFog * rayDir;
+				// Scattering at fog point
 				float3 fogNormal = SamplePhaseFunctionHG(rayDir, FogPhaseG, payload.seed);
+				float pdf_phase = EvaluatePhaseFunctionHG(dot(rayDir, fogNormal), FogPhaseG);
 
-				rayPos = fogPos + fogNormal * 0.001;
+#if USE_MIS
+				// Direct Light Sampling at fog point (Next Event Estimation)
+				// Only needed for MIS to balance the weighted random walk
+				{
+					float3 lightPos, lightNormal;
+					float pdf_dl;
+					int lightObjId;
+					SampleDirectLight(lightPos, lightNormal, pdf_dl, lightObjId, NumEmittingObjects, payload.seed);
+
+					RayDesc shadowRay;
+					shadowRay.Origin = fogPos;
+					shadowRay.Direction = normalize(lightPos - fogPos);
+					shadowRay.TMin = 0.001;
+					shadowRay.TMax = distance(lightPos, fogPos) - 0.002;
+
+					PathPayload shadowPayload;
+					shadowPayload.hit = true;
+					TraceRay(gScene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0, shadowRay, shadowPayload);
+
+					radiance += EvaluateDirectLightFog(fogPos, rayDir, lightPos, lightNormal, pdf_dl, lightObjId, shadowPayload.hit) * throughput * FogAlbedo * FogInScattering;
+				}
+				payload.pdf_brdf_prev = pdf_phase;
+#endif
+
+				rayPos = fogPos;
 				rayDir = fogNormal;
 				throughput *= FogAlbedo;
+#if USE_FOG
+				payload.fogBoost = FogInScattering;
+#endif
+
+				// Russian Roulette
+				float p = max(throughput.r, max(throughput.g, throughput.b));
+				if (Random(payload.seed) >= p) break;
+				throughput *= 1.0f / p;
+
 				continue;
 			}
+			radiance += GetFogEmission(dLimit) * throughput;
 #endif
 
 			if (!payload.hit)
@@ -155,16 +198,22 @@ void PathTraceRayGen()
 			{
 				if (dot(N, rayDir) > 0) N = -N; // Flip normal for BSDF / Light sampling
 #if USE_MIS
-				if (mat.emissiveColor.x > 0 || mat.emissiveColor.y > 0 || mat.emissiveColor.z > 0)
+				float3 emissiveColor = GetEmissiveColor(mat, payload.normal, -rayDir, i == 0);
+				if (emissiveColor.x > 0 || emissiveColor.y > 0 || emissiveColor.z > 0)
 				{
 					float misWeight = GetImplicitMISWeight(payload.objId, payload.dist, N, rayDir, payload.pdf_brdf_prev, NumEmittingObjects);
 					if (i == 0) misWeight = 1.0f;
-					radiance += mat.emissiveColor * throughput * max(0.0f, misWeight);
+					radiance += emissiveColor * throughput * max(0.0f, misWeight);
 				}
 	#else
-				if (mat.emissiveColor.x > 0 || mat.emissiveColor.y > 0 || mat.emissiveColor.z > 0)
+				float3 emissiveColor = GetEmissiveColor(mat, payload.normal, -rayDir, i == 0);
+				if (emissiveColor.x > 0 || emissiveColor.y > 0 || emissiveColor.z > 0)
 				{
-					radiance += mat.emissiveColor * throughput;
+#if USE_FOG
+					radiance += emissiveColor * throughput * payload.fogBoost;
+#else
+					radiance += emissiveColor * throughput;
+#endif
 				}
 	#endif
 
@@ -219,6 +268,10 @@ void PathTraceRayGen()
 				float p = max(throughput.r, max(throughput.g, throughput.b));
 				if (Random(payload.seed) >= p) break;
 				throughput *= 1.0f / p;
+
+#if USE_FOG
+				payload.fogBoost = 1.0f;
+#endif
 			}
 		}
 

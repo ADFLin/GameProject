@@ -44,7 +44,8 @@ namespace PathTracing
 		float   refractive;
 		float   refractiveIndex;
 
-		Vector2 dummy;
+		float   emissiveAngle = 0.0f; // 1.0 for isotropic
+		float   emissiveFocus = 0.0f; // 0 for hard edge, >0 for smooth falloff
 
 		MaterialData()
 		{
@@ -54,6 +55,8 @@ namespace PathTracing
 			specular = 0.0f;
 			refractive = 0.0f;
 			refractiveIndex = 1.0f;
+			emissiveAngle = 0.0f;
+			emissiveFocus = 0.0f;
 		}
 
 		MaterialData(Color3f const& inBaseColor, float inRoughness, float inSpecular = 0, Color3f const& inEmissiveColor = Color3f::Black(), float inRefractive = 0, float inRefractiveIndex = 0)
@@ -75,6 +78,8 @@ namespace PathTracing
 			REF_PROPERTY(specular)
 			REF_PROPERTY(refractiveIndex)
 			REF_PROPERTY(refractive)
+			REF_PROPERTY(emissiveAngle)
+			REF_PROPERTY(emissiveFocus)
 		REFLECT_STRUCT_END()
 	};
 

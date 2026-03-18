@@ -306,6 +306,8 @@ namespace Cube
 
 	BlockId World::rayBlockTest( Vec3f const& pos , Vec3f const& dir , float maxDist , BlockPosInfo* info )
 	{
+		PROFILE_ENTRY("World::rayBlockTest");
+
 		Vec3f nDir = dir;
 		if ( nDir.normalize() < 1e-4 )
 			return BLOCK_NULL;
@@ -321,71 +323,97 @@ namespace Cube
 			if ( Math::Abs( nDir[i] ) < 1e-7 )
 			{
 				posOffset[i] = 0;
-				distStep[i] = 0.0;
-				nextDist[i] = 0;
+				distStep[i] = 1e30f;
+				nextDist[i] = 1e30f;
 			}
 			else if ( nDir[i] > 0 )
 			{ 
 				posOffset[i] = 1;
-				distStep[i] = 1.0 / nDir[i];
-				nextDist[i] = (1.0 - (pos[i] - curPos[i])) / nDir[i];
+				distStep[i] = 1.0f / nDir[i];
+				nextDist[i] = (float(curPos[i] + 1) - pos[i]) * distStep[i];
 			}
 			else
 			{ 
 				posOffset[i] = -1;
-				distStep[i] = 1.0 / -nDir[i];
-				nextDist[i] = -(pos[i] - curPos[i]) / nDir[i];
+				distStep[i] = 1.0f / -nDir[i];
+				nextDist[i] = (pos[i] - float(curPos[i])) * distStep[i];
 			}
 		}
 
-		float dist = 0.0;
+#if 0
+		// Check starting block
+		BlockId id = getBlockId(curPos[0], curPos[1], curPos[2]);
+		if (id && Block::Get(id))
+		{
+			if (info)
+			{
+				info->x = curPos[0]; info->y = curPos[1]; info->z = curPos[2];
+				info->face = FACE_X; // Default face if starting inside
+				info->dist = 0;
+			}
+			return id;
+		}
+#endif
 
-		int const MaxIterCount = 100;
+		Chunk* cachedChunk = nullptr;
+		ChunkPos cachedPos( MaxInt32, MaxInt32);
+
+		int const MaxIterCount = 1000;
 		for( int iter = 0; iter < MaxIterCount ; ++iter)
 		{
-			int idxMin = -1;
-			for ( int i = 0 ; i < 3 ; ++i )
+			int axis;
+			if (nextDist[0] < nextDist[1])
 			{
-				if ( posOffset[i] )
-				{
-					if ( idxMin == -1 || nextDist[i] < nextDist[idxMin] )
-						idxMin = i;
-				}
+				if (nextDist[0] < nextDist[2]) axis = 0;
+				else axis = 2;
+			}
+			else
+			{
+				if (nextDist[1] < nextDist[2]) axis = 1;
+				else axis = 2;
 			}
 
-			curPos[ idxMin ] += posOffset[ idxMin ];
+			float dist = nextDist[axis];
+			if (dist > maxDist)
+				break;
 
-			BlockId id = getBlockId( curPos[0] , curPos[1] , curPos[2] );
-			if ( id )
+			curPos[axis] += posOffset[axis];
+			nextDist[axis] += distStep[axis];
+
+			if (curPos[2] < 0 || curPos[2] >= ChunkBlockMaxHeight)
 			{
-				Block* block = Block::Get( id );
-				if ( block )
+				// Ray going outside world height bounds
+				if (curPos[2] < 0 && nDir[2] <= 0) 
+					break;
+				if (curPos[2] >= ChunkBlockMaxHeight && nDir[2] >= 0) 
+					break;
+				continue;
+			}
+
+			ChunkPos cPos;
+			cPos.setBlockPos(curPos[0], curPos[1]);
+			if (cachedPos != cPos)
+			{
+				cachedChunk = mChunkProvider->getChunk(cPos);
+				cachedPos = cPos;
+			}
+
+			if (cachedChunk)
+			{
+				BlockId id = cachedChunk->getBlockId(curPos[0], curPos[1], curPos[2]);
+				if (id && Block::Get(id))
 				{
-					if ( info )
+					if (info)
 					{
 						info->x = curPos[0];
 						info->y = curPos[1];
 						info->z = curPos[2];
-						info->face = getFaceSide( idxMin , posOffset[idxMin] == 1 );
+						info->face = getFaceSide(axis, posOffset[axis] == 1);
+						info->dist = dist;
 					}
 					return id;
 				}
 			}
-
-			float deltaDist = nextDist[idxMin];
-			dist += deltaDist;
-			if ( dist > maxDist )
-				break;
-
-			for (int i = 0; i < 3; ++i)
-			{
-				if (posOffset[i])
-				{
-					nextDist[i] -= deltaDist;
-				}
-			}
-
-			nextDist[idxMin] = distStep[idxMin];
 		}
 
 		return BLOCK_NULL;

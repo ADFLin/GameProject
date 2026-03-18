@@ -75,7 +75,7 @@ namespace Render
 
 		static bool Cone(Mesh& mesh, float height, float radius, int numSide);
 		static bool Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors);
-		static bool PlaneZ(Mesh& mesh, float len, float texFactor);
+		static bool PlaneZ(Mesh& mesh, float halfLen, float texFactor);
 		static bool Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor);
 
 		static bool SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny);

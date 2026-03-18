@@ -1029,7 +1029,7 @@ namespace Render
 		return true;
 	}
 
-	bool FMeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
+	bool FMeshBuild::PlaneZ(Mesh& mesh, float halfLen, float texFactor)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -1045,10 +1045,10 @@ namespace Render
 		};
 		MyVertex v[] =
 		{
-			{ len * Vector3(1,1,0) , Vector3(0,0,1) , { texFactor , texFactor } , } ,
-			{ len * Vector3(-1,1,0) , Vector3(0,0,1) , { 0 , texFactor } ,  } ,
-			{ len * Vector3(-1,-1,0) , Vector3(0,0,1) , { 0 , 0 } , } ,
-			{ len * Vector3(1,-1,0) , Vector3(0,0,1) , { texFactor , 0 } , } ,
+			{ halfLen * Vector3(1,1,0) , Vector3(0,0,1) , { texFactor , texFactor } , } ,
+			{ halfLen * Vector3(-1,1,0) , Vector3(0,0,1) , { 0 , texFactor } ,  } ,
+			{ halfLen * Vector3(-1,-1,0) , Vector3(0,0,1) , { 0 , 0 } , } ,
+			{ halfLen * Vector3(1,-1,0) , Vector3(0,0,1) , { texFactor , 0 } , } ,
 		};
 
 		uint32 indices[6] = { 0 , 1 , 2 , 0 , 2 , 3 };

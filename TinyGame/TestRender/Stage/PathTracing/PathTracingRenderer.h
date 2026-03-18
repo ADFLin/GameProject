@@ -50,8 +50,10 @@ namespace PathTracing
 		int triangleWarningCount = 50;
 
 		bool bUseGlobalFog = false;
-		float fogDensity = 0.01f;
+		float fogMaxDistance = 100.0f;
 		Vector3 fogAlbedo = Vector3(1, 1, 1);
+		Vector3 fogEmissive = Vector3(0, 0, 0);
+		float fogInScattering = 1.0f;
 		float fogPhaseG = 0.0f;
 		float skyDistance = 100.0f;
 	};

@@ -55,6 +55,8 @@ namespace PathTracing
 			BIND_TEXTURE_PARAM(parameterMap, SkyTexture);
 			BIND_SHADER_PARAM(parameterMap, FogDensity);
 			BIND_SHADER_PARAM(parameterMap, FogAlbedo);
+			BIND_SHADER_PARAM(parameterMap, FogEmissive);
+			BIND_SHADER_PARAM(parameterMap, FogInScattering);
 			BIND_SHADER_PARAM(parameterMap, FogPhaseG);
 			mIBLParams.bindParameters(parameterMap);
 		}
@@ -69,6 +71,8 @@ namespace PathTracing
 		DEFINE_TEXTURE_PARAM(SkyTexture);
 		DEFINE_SHADER_PARAM(FogDensity);
 		DEFINE_SHADER_PARAM(FogAlbedo);
+		DEFINE_SHADER_PARAM(FogEmissive);
+		DEFINE_SHADER_PARAM(FogInScattering);
 		DEFINE_SHADER_PARAM(FogPhaseG);
 		DEFINE_SHADER_PARAM(SkyDistance);
 		IBLShaderParameters mIBLParams;
@@ -172,6 +176,8 @@ namespace PathTracing
 			BIND_SHADER_PARAM(parameterMap, DisplayMode);
 			BIND_SHADER_PARAM(parameterMap, FogDensity);
 			BIND_SHADER_PARAM(parameterMap, FogAlbedo);
+			BIND_SHADER_PARAM(parameterMap, FogEmissive);
+			BIND_SHADER_PARAM(parameterMap, FogInScattering);
 			BIND_SHADER_PARAM(parameterMap, FogPhaseG);
 			mIBLParams.bindParameters(parameterMap);
 		}
@@ -191,6 +197,8 @@ namespace PathTracing
 		DEFINE_SHADER_PARAM(TriangleWarningCount);
 		DEFINE_SHADER_PARAM(FogDensity);
 		DEFINE_SHADER_PARAM(FogAlbedo);
+		DEFINE_SHADER_PARAM(FogEmissive);
+		DEFINE_SHADER_PARAM(FogInScattering);
 		DEFINE_SHADER_PARAM(FogPhaseG);
 		DEFINE_SHADER_PARAM(SkyDistance);
 		DEFINE_TEXTURE_PARAM(HistoryTexture);
@@ -446,7 +454,15 @@ namespace PathTracing
 				RayTracingInstanceDesc desc;
 				desc.instanceID = i;
 				desc.recordIndex = (obj.type == OBJ_SPHERE) ? 1 : ((obj.type == OBJ_CUBE) ? 2 : 0);
-				desc.flags = (obj.type == OBJ_SPHERE || obj.type == OBJ_CUBE) ? 0 : (uint32)ERayTracingInstanceFlags::ForceOpaque;
+				desc.flags = (uint32)ERayTracingInstanceFlags::ForceOpaque;
+				if (obj.type == OBJ_TRIANGLE_MESH)
+				{
+					desc.flags |= (uint32)ERayTracingInstanceFlags::TriangleCullDisable;
+				}
+				if (obj.type == OBJ_SPHERE || obj.type == OBJ_CUBE)
+				{
+					desc.flags = 0;
+				}
 				desc.transform = transform;
 				desc.blas = blas;
 				instances.push_back(desc);
@@ -666,8 +682,10 @@ namespace PathTracing
 				rayGenShader->setParam(commandList, SHADER_PARAM(DisplayMode), (int32)config.debugDisplayMode);
 				float blendFactor = 1.0f / float(Math::Min(view.frameCount, 4096) + 1);
 				rayGenShader->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
-				rayGenShader->setParam(commandList, SHADER_PARAM(FogDensity), config.bUseGlobalFog ? config.fogDensity : 0.0f);
+				rayGenShader->setParam(commandList, SHADER_PARAM(FogDensity), config.bUseGlobalFog ? (1.0f / Math::Max(0.0001f, config.fogMaxDistance)) : 0.0f);
 				rayGenShader->setParam(commandList, SHADER_PARAM(FogAlbedo), config.fogAlbedo);
+				rayGenShader->setParam(commandList, SHADER_PARAM(FogEmissive), config.fogEmissive);
+				rayGenShader->setParam(commandList, SHADER_PARAM(FogInScattering), config.fogInScattering);
 				rayGenShader->setParam(commandList, SHADER_PARAM(FogPhaseG), config.fogPhaseG);
 				rayGenShader->setParam(commandList, SHADER_PARAM(SkyDistance), config.skyDistance);
 				if (mIBLResource.texture.isValid())
@@ -769,8 +787,10 @@ namespace PathTracing
 
 			float blendFactor = 1.0f / float(Math::Min(view.frameCount, 4096) + 1);
 			pathTracingPS->setParam(commandList, SHADER_PARAM(BlendFactor), blendFactor);
-			pathTracingPS->setParam(commandList, SHADER_PARAM(FogDensity), config.bUseGlobalFog ? config.fogDensity : 0.0f);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(FogDensity), config.bUseGlobalFog ? (1.0f / Math::Max(0.0001f, config.fogMaxDistance)) : 0.0f);
 			pathTracingPS->setParam(commandList, SHADER_PARAM(FogAlbedo), config.fogAlbedo);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(FogEmissive), config.fogEmissive);
+			pathTracingPS->setParam(commandList, SHADER_PARAM(FogInScattering), config.fogInScattering);
 			pathTracingPS->setParam(commandList, SHADER_PARAM(FogPhaseG), config.fogPhaseG);
 			pathTracingPS->setParam(commandList, SHADER_PARAM(SkyDistance), config.skyDistance);
 			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *pathTracingPS, HistoryTexture, sceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());

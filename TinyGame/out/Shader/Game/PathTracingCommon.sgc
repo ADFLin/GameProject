@@ -107,7 +107,8 @@ struct MaterialData
 	float  specular;
 	float  refractive;
 	float  refractiveIndex;
-	float  dummy[2];
+	float  emissiveAngle;
+	float  emissiveFocus;
 };
 
 struct ObjectData
@@ -174,8 +175,15 @@ uniform float BlendFactor;
 #if USE_FOG
 uniform float FogDensity;
 uniform float3 FogAlbedo;
+uniform float3 FogEmissive;
+uniform float FogInScattering;
 uniform float FogPhaseG;
 uniform float SkyDistance;
+
+float3 GetFogEmission(float dist)
+{
+	return FogEmissive * (1.0 - exp(-FogDensity * dist));
+}
 #endif
 
 DEFINE_TEXTURE(TextureCube, SkyTexture);
@@ -203,13 +211,15 @@ float3x3 TangentToWorldTransform(float3 tangentZ)
 #if USE_FOG
 float SampleFogFreePath(float maxDist, inout uint seed)
 {
+	// FogDensity should be extinction coefficient (unit: 1/Length)
+	// So sampled distance t = -log(xi) / FogDensity has unit Length.
 	if (FogDensity > 0.0001)
 	{
-		float xi = Random(seed);
-		float t = -log(max(1.0 - xi, 0.0001)) / FogDensity;
-		return t;
+		float xi = max(Random(seed), 1e-6);
+		float t = -log(xi) / FogDensity;
+		return min(t, maxDist);
 	}
-	return 1.#INF;
+	return maxDist;
 }
 
 float3 SamplePhaseFunctionHG(float3 V, float g, inout uint seed)
@@ -226,15 +236,19 @@ float3 SamplePhaseFunctionHG(float3 V, float g, inout uint seed)
 		cosTheta = (1.0 + g * g - sqr * sqr) / (2.0 * g);
 	}
 
-	float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+	float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
 	float phi = 2.0 * PI * xi.y;
+	float3 H = { sinTheta * cos(phi), sinTheta * sin(phi), cosTheta };
 
-	float3 H;
-	H.x = sinTheta * cos(phi);
-	H.y = sinTheta * sin(phi);
-	H.z = cosTheta;
+	return mul(TangentToWorldTransform(V), H);
+}
 
-	return mul(TangentToWorldTransform(-V), H);
+float EvaluatePhaseFunctionHG(float cosTheta, float g)
+{
+	g = clamp(g, -0.999f, 0.999f);
+	float g2 = g * g;
+	float denom = 1.0 + g2 - 2.0 * g * cosTheta;
+	return (1.0 / (4.0 * PI)) * (1.0 - g2) / max(1e-7f, denom * sqrt(denom));
 }
 #endif
 
@@ -408,6 +422,27 @@ void SampleBSDF(in float3 rayDir, in float3 normal, in MaterialData mat, inout u
 	pdf = max(0.00001f, pdf_raw);
 }
 
+float3 GetEmissiveColor(MaterialData mat, float3 normal, float3 v, bool bIgnoreAngle)
+{
+	float3 color = mat.emissiveColor;
+	if (color.x <= 0 && color.y <= 0 && color.z <= 0) return 0;
+	
+	float dotA = dot(normal, v);
+	if (dotA < 0.0001f) return 0;
+	
+	if (bIgnoreAngle) return color;
+
+	if (mat.emissiveAngle > 0.0f)
+	{
+		if (dotA < mat.emissiveAngle) return 0;
+	}
+	if (mat.emissiveFocus > 0.0f)
+	{
+		color *= pow(dotA, mat.emissiveFocus);
+	}
+	return color;
+}
+
 float3 EvaluateDirectLight(in float3 hitPos, in float3 normal, in float3 rayDir, in MaterialData mat, 
                              in float3 lightPos, in float3 lightNormal, in float pdf_dl, int lightObjId, 
                              bool bOccluded, out float3 w_i_dl_brdf, out float3 w_i_dl)
@@ -418,15 +453,16 @@ float3 EvaluateDirectLight(in float3 hitPos, in float3 normal, in float3 rayDir,
 
 	ObjectData dL_obj = Objects[lightObjId];
 	MaterialData dL_mat = GetMaterial(dL_obj.materialId);
-	if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+	float3 color = GetEmissiveColor(dL_mat, lightNormal, -w_i_dl, false);
+	if (color.x > 0 || color.y > 0 || color.z > 0)
 	{
-		float dotA = max(0.0001f, abs(dot(lightNormal, -w_i_dl)));
+		float dotA = max(0.0001f, dot(lightNormal, -w_i_dl));
 		float lightDist = distance(lightPos, hitPos);
 		float distSq = max(0.001f, lightDist * lightDist);
 		float pdf_brdf_mis;
 		EvaluateMaterialAndPdfGGX(w_i_dl, normal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
 		float pdf_dl_w = pdf_dl * distSq / dotA;
-		float3 color = dL_mat.emissiveColor / pdf_dl_w;
+		color /= pdf_dl_w;
 #if USE_FOG
 		color *= exp(-FogDensity * lightDist);
 #endif
@@ -458,16 +494,18 @@ float3 EvaluateDirectLightMIS(in float3 hitPos, in float3 normal, in float3 rayD
 
 	ObjectData dL_obj = Objects[lightObjId];
 	MaterialData dL_mat = GetMaterial(dL_obj.materialId);
-	if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+	float3 light_color = GetEmissiveColor(dL_mat, lightNormal, -w_i_dl, false);
+	if (light_color.x > 0 || light_color.y > 0 || light_color.z > 0)
 	{
-		float dotA = max(0.0001f, abs(dot(lightNormal, -w_i_dl)));
+		float dotA = max(0.0001f, dot(lightNormal, -w_i_dl));
 		float lightDist = distance(lightPos, hitPos);
 		float distSq = max(0.001f, lightDist * lightDist);
+
 		float pdf_brdf_mis;
 		EvaluateMaterialAndPdfGGX(w_i_dl, normal, rayDir, mat, w_i_dl_brdf, pdf_brdf_mis);
 		float pdf_dl_w = pdf_dl * distSq / dotA;
 		float misWeight = balanceHeuristic(pdf_dl_w, pdf_brdf_mis);
-		float3 color = dL_mat.emissiveColor * max(0.0f, misWeight) / pdf_dl_w;
+		float3 color = light_color * max(0.0f, misWeight) / pdf_dl_w;
 #if USE_FOG
 		color *= exp(-FogDensity * lightDist);
 #endif
@@ -475,6 +513,57 @@ float3 EvaluateDirectLightMIS(in float3 hitPos, in float3 normal, in float3 rayD
 	}
 	return 0;
 }
+
+#if USE_FOG
+float GetImplicitMISWeightFog(int objId, float dist, float3 normal_L, float3 rayDir, float pdf_phase_prev, int numEmittingObjects)
+{
+	float pdf_dl_mis = pdfLight(objId, numEmittingObjects);
+	float dotA = max(0.0001f, abs(dot(normal_L, -rayDir)));
+	float distSq = max(0.001f, dist * dist);
+	float pdf_dl_mis_w = pdf_dl_mis * distSq / dotA;
+	pdf_dl_mis_w *= exp(-FogDensity * dist);
+	return balanceHeuristic(pdf_phase_prev, pdf_dl_mis_w);
+}
+
+float3 EvaluateDirectLightFog(in float3 hitPos, in float3 rayDir, 
+                             in float3 lightPos, in float3 lightNormal, in float pdf_dl, int lightObjId, 
+                             bool bOccluded)
+{
+	float3 w_i_dl = normalize(lightPos - hitPos);
+	if (bOccluded || lightObjId == -1) return 0;
+
+	ObjectData dL_obj = Objects[lightObjId];
+	MaterialData dL_mat = GetMaterial(dL_obj.materialId);
+	if (dL_mat.emissiveColor.x > 0 || dL_mat.emissiveColor.y > 0 || dL_mat.emissiveColor.z > 0)
+	{
+		float dotA_L = max(0.0001f, dot(lightNormal, -w_i_dl));
+		float lightDist = max(0.001f, distance(lightPos, hitPos));
+		float distSq = lightDist * lightDist;
+
+		float cosTheta = dot(rayDir, w_i_dl);
+		float phase = EvaluatePhaseFunctionHG(cosTheta, FogPhaseG);
+		float pdf_dl_w = pdf_dl * distSq / dotA_L;
+
+		float3 light_color = GetEmissiveColor(dL_mat, lightNormal, -w_i_dl, false);
+		if (light_color.x > 0 || light_color.y > 0 || light_color.z > 0)
+		{
+			float cosTheta = dot(rayDir, w_i_dl);
+			float phase = EvaluatePhaseFunctionHG(cosTheta, FogPhaseG);
+			float pdf_dl_w = pdf_dl * distSq / dotA_L;
+#if USE_MIS
+			float misWeight = balanceHeuristic(pdf_dl_w, phase);
+			float3 color = light_color * max(0.0f, misWeight) / max(1e-7f, pdf_dl_w);
+#else
+			float3 color = light_color / max(1e-7f, pdf_dl_w);
+#endif
+			color *= phase * exp(-FogDensity * lightDist);
+			return color;
+		}
+		return 0;
+	}
+	return 0;
+}
+#endif
 #endif
 
 #endif

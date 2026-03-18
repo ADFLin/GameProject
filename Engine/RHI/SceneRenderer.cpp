@@ -1292,19 +1292,19 @@ namespace Render
 	{
 		if (mParamGBufferTextureA.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureA, GBufferData.getResolvedTexture(EGBuffer::A), mParamGBufferTextureASampler, sampler);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, GBufferTextureA, GBufferData.getResolvedTexture(EGBuffer::A), sampler);
 		}
 		if (mParamGBufferTextureB.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureB, GBufferData.getResolvedTexture(EGBuffer::B), mParamGBufferTextureBSampler, sampler);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, GBufferTextureB, GBufferData.getResolvedTexture(EGBuffer::B), sampler);
 		}
 		if (mParamGBufferTextureC.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureC, GBufferData.getResolvedTexture(EGBuffer::C), mParamGBufferTextureCSampler, sampler);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, GBufferTextureC, GBufferData.getResolvedTexture(EGBuffer::C), sampler);
 		}
 		if (mParamGBufferTextureD.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureD, GBufferData.getResolvedTexture(EGBuffer::D), mParamGBufferTextureDSampler, sampler);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, GBufferTextureD, GBufferData.getResolvedTexture(EGBuffer::D), sampler);
 		}
 	}
 
@@ -1314,7 +1314,7 @@ namespace Render
 		setParameters(commandList, program, sceneRenderTargets.getGBuffer(), sampler);
 		if( mParamFrameDepthTexture.isBound() )
 		{
-			program.setTexture(commandList, mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture(), mParamFrameDepthTextureSampler , sampler);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, FrameRenderTexture, sceneRenderTargets.getDepthTexture(), sampler);
 		}
 	}
 

@@ -358,10 +358,6 @@ namespace Render
 #define BIND_SHADER_PARAM( MAP , NAME ) SHADER_MEMBER_PARAM( NAME ).bind( MAP , SHADER_PARAM(NAME) )
 #define BIND_TEXTURE_PARAM( MAP , NAME ) BIND_SHADER_PARAM( MAP, NAME ); BIND_SHADER_PARAM( MAP, NAME##Sampler)
 
-#define SET_SHADER_TEXTURE( COMMANDLIST, SHADER , NAME , VALUE )\
-	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME),VALUE )
-//#define SET_SHADER_TEXTURE_AND_SAMPLER( COMMANDLIST, SHADER , NAME , TEXTURE, SAMPLER )\
-//	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), TEXTURE, (SHADER).SHADER_MEMBER_PARAM(NAME##Sampler), SAMPLER )
 #define CLEAR_SHADER_TEXTURE(COMMANDLIST, SHADER, NAME)\
 	 ClearShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME) )
 
@@ -378,8 +374,8 @@ namespace Render
 		}
 	}
 
-	template< typename TShaderParamAccessor, typename TShaderType, typename T>
-	FORCEINLINE void SetShaderTextureInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, RHITextureBase& value)
+	template< typename TShaderParamAccessor, typename TShaderType, typename TextureType>
+	FORCEINLINE void SetShaderTextureInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, TextureType& value)
 	{
 		if constexpr (TCheckConcept< TShaderParamAccessor, TShaderType >::Value)
 		{
@@ -387,7 +383,7 @@ namespace Render
 		}
 		else
 		{
-			SetShaderTextureT(commandList, shader, paramName, value);
+			shader.setTexture(commandList, paramName, value);
 		}
 	}
 
@@ -417,6 +413,12 @@ namespace Render
 	([&]() {\
 		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
 		SetShaderParamValueInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #NAME, (VALUE));\
+	}())
+
+#define SET_SHADER_TEXTURE( COMMANDLIST, SHADER , NAME , TEXTURE)\
+	([&]() {\
+		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
+		SetShaderTextureInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #NAME, TEXTURE); \
 	}())
 	
 #define SET_SHADER_TEXTURE_AND_SAMPLER( COMMANDLIST, SHADER , NAME , TEXTURE, SAMPLER )\

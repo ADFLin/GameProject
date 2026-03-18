@@ -86,7 +86,10 @@ namespace Render
 
 	void RenderTargetPool::freeUsedElement(PooledRenderTargetRef const& freeRT)
 	{
-		mUsedRTs.removeSwap(freeRT);
+		if (mUsedRTs.removeSwap(freeRT))
+		{
+			mFreeRTs.push_back(freeRT);
+		}
 	}
 
 	void RenderTargetPool::freeAllUsedElements()

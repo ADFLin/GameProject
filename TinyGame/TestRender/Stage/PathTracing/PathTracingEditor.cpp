@@ -352,8 +352,20 @@ namespace PathTracing
 		state.vertex = mPreviewVS->getRHI();
 		state.pixel = mPreviewPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
+		view.setupShader(commandList, *mPreviewVS);
 
-		auto DrawObject = [&](int i, ObjectData const& obj, MaterialData const& mat, bool bSelected)
+		auto SetupSahderParams = [&](int index, MaterialData const& mat, Matrix4 const& xForm)
+		{
+			SET_SHADER_PARAM(commandList, *mPreviewVS, World, xForm);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, BaseColor, LinearColor(mat.baseColor, Math::Max(0.1f, 1.0f - mat.refractive)));
+			SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, LinearColor(mat.emissiveColor, 1.0f));
+			SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, mat.roughness);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, mat.specular);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
+			SET_SHADER_PARAM(commandList, *mPreviewPS, ObjectIndex, index);
+		};
+
+		auto DrawObject = [&](int index, ObjectData const& obj, MaterialData const& mat, bool bSelected)
 		{
 			Matrix4 modelScale = Matrix4::Identity();
 			Mesh* mesh = nullptr;
@@ -388,14 +400,7 @@ namespace PathTracing
 							RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
 						}
 
-						view.setupShader(commandList, *mPreviewVS);
-						SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
-						SET_SHADER_PARAM(commandList, *mPreviewPS, BaseColor, LinearColor(mat.baseColor, Math::Max(0.1f, 1.0f - mat.refractive)));
-						SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, LinearColor(mat.emissiveColor, 1.0f));
-						SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, mat.roughness);
-						SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, mat.specular);
-						SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
-						SET_SHADER_PARAM(commandList, *mPreviewPS, ObjectIndex, i);
+						SetupSahderParams(index, mat, world);
 
 						InputStreamInfo inputStream;
 						inputStream.buffer = mContext->getRenderer().mVertexBuffer.getRHI();
@@ -419,15 +424,7 @@ namespace PathTracing
 					RHISetDepthStencilState(commandList, TStaticDepthStencilState<true>::GetRHI());
 				}
 
-				view.setupShader(commandList, *mPreviewVS);
-				SET_SHADER_PARAM(commandList, *mPreviewVS, World, world);
-				SET_SHADER_PARAM(commandList, *mPreviewPS, BaseColor, LinearColor(mat.baseColor, Math::Max(0.1f, 1.0f - mat.refractive)));
-				SET_SHADER_PARAM(commandList, *mPreviewPS, EmissiveColor, LinearColor(mat.emissiveColor, 1.0f));
-				SET_SHADER_PARAM(commandList, *mPreviewPS, Roughness, mat.roughness);
-				SET_SHADER_PARAM(commandList, *mPreviewPS, Specular, mat.specular);
-				SET_SHADER_PARAM(commandList, *mPreviewPS, SelectionAlpha, 0.0f);
-				SET_SHADER_PARAM(commandList, *mPreviewPS, ObjectIndex, i);
-
+				SetupSahderParams(index, mat, world);
 				mesh->draw(commandList);
 			}
 		};
@@ -506,7 +503,9 @@ namespace PathTracing
 
 
 		RHIEndRender(false);
-		GRenderTargetPool.freeAllUsedElements();
+
+		GRenderTargetPool.freeUsedElement(colorRT);
+		GRenderTargetPool.freeUsedElement(depthRT);
 
 		// Keep mPickingRT around by clearing its "used" status if necessary?
 		// Actually, let's keep the ref and hope it's not reused until next frame.

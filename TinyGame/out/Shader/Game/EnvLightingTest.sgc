@@ -15,6 +15,9 @@ struct VSOutputParameters
 
 #if VERTEX_SHADER
 
+
+float4x4 LocalToWorld;
+
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float4 Position, ATTRIBUTE_POSITION)
 	VS_INPUT(float3 Normal, ATTRIBUTE_NORMAL)
@@ -24,8 +27,8 @@ VS_ENTRY_START(MainVS)
 	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
 VS_ENTRY_END(MainVS)
 {
-	VSOutput.worldPos = ( /*Primitive.localToWorld * */float4(Position.xyz , 1 ) ).xyz;
-	VSOutput.normal   = /*float3x3(Primitive.localToWorld) **/ Normal;
+	VSOutput.worldPos = (mul( LocalToWorld, float4(Position.xyz , 1 )) ).xyz;
+	VSOutput.normal   = mul((float3x3)(LocalToWorld), Normal);
 	VSOutput.tangent = Tangent;
 	VSOutput.UVs = TexCoord0;
 	SvPosition = mul( View.worldToClip , float4(VSOutput.worldPos, 1) );
@@ -59,21 +62,22 @@ PS_ENTRY_END(MainPS)
 #if COMPILER_HLSL
 	tangentToWorld = transpose(tangentToWorld);
 #endif
-	float3 baseColor = TEXTURE_SAMPLE(DiffuseTexture, uv).xyz;
-	
-	float  metallic = TEXTURE_SAMPLE(MetalTexture, uv).r;
+	float3 baseColor = TEXTURE_SAMPLE(DiffuseTexture, VFLIP(uv)).xyz;
 
-	float  roughnessF = TEXTURE_SAMPLE(RoughnessTexture, uv).r;
+
+	
+	float  metallic = TEXTURE_SAMPLE(MetalTexture, VFLIP(uv)).b;
+	float  roughnessF = TEXTURE_SAMPLE(RoughnessTexture, VFLIP(uv)).g;
 	//metallic = pow(metallic, float(1 / 2.2));
 	//roughnessF = 0.01;
-	float3 normal = TEXTURE_SAMPLE(NormalTexture, uv).xyz;
+	float3 normal = TEXTURE_SAMPLE(NormalTexture, VFLIP(uv)).xyz;
 
-	float3 N = mul( tangentToWorld , (2 * TEXTURE_SAMPLE(NormalTexture, uv).xyz - 1));
+	float3 N = mul( tangentToWorld , (2 * TEXTURE_SAMPLE(NormalTexture, VFLIP(uv)).xyz - 1));
 	//N = tangentZ;
 	float3 V = normalize(View.worldPos - VSOutput.worldPos);
 	float3 L = normalize(float3(1, 1, 2));
 	float3 R = reflect(-V, N);
-	float specular = 0.5;
+	float specular = 0.2;
 	float NoV = saturate(dot(N, V));
 	float NoL = saturate(dot(N, L));
 
@@ -88,14 +92,17 @@ PS_ENTRY_END(MainPS)
 	float3 radiance = 0.0 * float3(5, 2, 1);
 
 	float3 envSpecular = GetIBLSpecularColor(specularColor, R, NoV, roughnessF);
-	float3 ambient = SkyLightInstensity * ( 0 * GetIrradianceColor(N) * baseColor + envSpecular);
+	float3 ambient = SkyLightInstensity * ( GetIrradianceColor(N) * diffuseColor + envSpecular);
 
 	float3 color = radiance * NoL * shading + ambient;
 	//color = pow(color, float3(1. / 2.2));
 	
 	OutColor = float4(NoV.xxx, 1);
-	OutColor = float4(uv, 0, 1);
+	OutColor = float4(VFLIP(uv), 0, 1);
+	//OutColor = float4(0.5 * worldNormal + 0.5, 1);
+
 	OutColor = float4(color, 1);
+	//OutColor = float4(diffuseColor, 1);
 	//OutColor = float4(N*float3(1,-1,1), 1);
 	//OutColor = float4(normal, 1);
 }

@@ -516,14 +516,14 @@ namespace PathTracing
 		}
 
 
-		UpdateBuffer(mMeshBuffer, meshes, mNumMeshes, EStructuredBufferType::StaticBuffer, indexUpdateStart);
+		UpdateBuffer(mMeshBuffer, meshes, mNumMeshes, EStructuredBufferType::StaticBuffer, BCF_None, indexUpdateStart);
 		mMeshBuffer.mResource->setDebugName("MeshBuffer");
-		bVertexBufferRebuild = UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].startIndex : -1);
+		bVertexBufferRebuild = UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer, BCF_UsageVertex, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].startIndex : -1);
 		mVertexBuffer.mResource->setDebugName("VertexBuffer");
 
-		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].nodeIndex : -1);
+		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer, BCF_None, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].nodeIndex : -1);
 		mBVHNodeBuffer.mResource->setDebugName("BVHNodeBuffer");
-		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].nodeIndexV4 : -1);
+		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer, BCF_None, indexUpdateStart < meshes.size() ? meshes[indexUpdateStart].nodeIndexV4 : -1);
 		mBVH4NodeBuffer.mResource->setDebugName("BVH4NodeBuffer");
 
 		if (GRHISupportRayTracing)
@@ -557,9 +557,9 @@ namespace PathTracing
 	{
 		auto const& mesh = meshes[meshId];
 
-		UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer, mesh.startIndex);
-		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer, mesh.nodeIndex);
-		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer, mesh.nodeIndexV4);
+		UpdateBuffer(mVertexBuffer, mMeshVertices, mNumVertices, EStructuredBufferType::StaticBuffer, BCF_UsageVertex, mesh.startIndex);
+		UpdateBuffer(mBVHNodeBuffer, mMeshBVHNodes, mNumBVHNodes, EStructuredBufferType::StaticBuffer, BCF_None, mesh.nodeIndex);
+		UpdateBuffer(mBVH4NodeBuffer, mMeshBVH4Nodes, mNumBVH4Nodes, EStructuredBufferType::StaticBuffer, BCF_None, mesh.nodeIndexV4);
 
 		if (GRHISupportRayTracing)
 		{

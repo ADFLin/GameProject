@@ -35,7 +35,6 @@
     <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp" />
     <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp" />
     <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c" />
-    <ClCompile Include="..\OtherLib\stb\stb_compile.cpp" />
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc" />
     <ClCompile Include="Renderer\BasePassRendering.cpp" />
     <ClCompile Include="Renderer\BatchedRender2D.cpp" />

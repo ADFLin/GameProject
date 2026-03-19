@@ -177,7 +177,7 @@ namespace PathTracing
 
 	private:
 		template< typename T, typename TArrayType >
-		bool UpdateBuffer(TStructuredBuffer<T>& buffer, TArrayType const& data, int& currentCount, EStructuredBufferType type, int offset = -1)
+		bool UpdateBuffer(TStructuredBuffer<T>& buffer, TArrayType const& data, int& currentCount, EStructuredBufferType type, BufferCreationFlags creationFlags, int offset = -1)
 		{
 			uint32 bufferCapacity = buffer.getElementNum();
 			if (bufferCapacity < (uint32)data.size())
@@ -186,7 +186,7 @@ namespace PathTracing
 				if (bufferCapacity > 0)
 					targetCapacity = targetCapacity * 3 / 2;
 
-				if (!buffer.initializeResource(targetCapacity, type, BCF_None))
+				if (!buffer.initializeResource(targetCapacity, type, creationFlags))
 					return false;
 
 				RHIUpdateBuffer(*buffer.getRHI(), 0, (uint32)data.size(), (void*)data.data());

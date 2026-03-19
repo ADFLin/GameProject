@@ -319,11 +319,12 @@ namespace Render
 	{
 		return CubeFaceDir;
 	}
+
 	static Vector3 const CubeFaceUpDir[] =
 	{
-		Vector3(0,-1,0),Vector3(0,-1,0),
-		Vector3(0,0,1),Vector3(0,0,-1),
-		Vector3(0,-1,0),Vector3(0,-1,0),
+		Vector3(0,1,0),Vector3(0,1,0),
+		Vector3(0,0,-1),Vector3(0,0,1),
+		Vector3(0,1,0),Vector3(0,1,0),
 	};
 
 	Vector3 ETexture::GetFaceUpDir(Face face)

@@ -3,6 +3,7 @@
 #define ImageData_H_DB4CAB9E_DC3B_48D7_9C93_9C673825862C
 
 #include "Core/IntegerType.h"
+#include "CoreShare.h"
 
 struct ImageLoadOption
 {
@@ -26,10 +27,10 @@ struct ImageData
 	uint64 dataSize;
 	void*  data;
 
-	bool load(char const* path, ImageLoadOption const& option = ImageLoadOption());
-	bool loadFromMemory(void* inData, int size, ImageLoadOption const& option = ImageLoadOption());
+	CORE_API bool load(char const* path, ImageLoadOption const& option = ImageLoadOption());
+	CORE_API bool loadFromMemory(void* inData, int size, ImageLoadOption const& option = ImageLoadOption());
 
-	static bool SaveImage(char const* path, int w, int h, int numComponent, void const* data, bool bHDR = false);
+	CORE_API static bool SaveImage(char const* path, int w, int h, int numComponent, void const* data, bool bHDR = false);
 };
 
 #endif // ImageData_H_DB4CAB9E_DC3B_48D7_9C93_9C673825862C

@@ -24,7 +24,7 @@ VS_ENTRY_END(ScreenVS)
 	SvPosition = InPosition;
 #if USE_SCREEN_TEXCOORD
 	VSOutput.pos = InPosition.xy;
-	VSOutput.UVs = VFLIP(InUV);
+	VSOutput.UVs = VFLIP(float2(InUV.x, 1.0 - InUV.y));
 #endif
 }
 

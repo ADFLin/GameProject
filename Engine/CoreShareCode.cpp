@@ -9,6 +9,7 @@
 
 #include "Launch/CommandlLine.cpp"
 #include "Misc/DebugDraw.cpp"
+#include "Image/ImageData.cpp"
 
 #include "UnitTest/TestClass.cpp"
 

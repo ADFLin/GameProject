@@ -42,7 +42,7 @@ namespace Render
 	class MeshImportSettings
 	{
 	public:
-		virtual void setupMaterial(int indexSection, void* pMaterialInfo) = 0;
+		virtual void setupMaterial(int indexMesh, int indexSection, void* pMaterialInfo) = 0;
 	};
 
 	class IMeshImporter

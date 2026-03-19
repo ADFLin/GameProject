@@ -241,7 +241,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\OtherLib\tinygltf\tiny_gltf.cc" />
     <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
     <ClCompile Include="TestRender\SceneScript.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -258,7 +257,7 @@
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
-    <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
+    <ClCompile Include="TestRender\Stage\MeshImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\FractialStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
@@ -275,7 +274,6 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
     <ClCompile Include="TestRender\Stage\PathTracingStage.cpp" />
-
     <ClCompile Include="TestRender\Stage\PathTracing\PathTracingBVH.cpp" />
     <ClCompile Include="TestRender\Stage\PathTracing\PathTracingEditor.cpp" />
     <ClCompile Include="TestRender\Stage\PathTracing\PathTracingRenderer.cpp" />
@@ -318,7 +316,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\OtherLib\tinygltf\tiny_gltf.h" />
     <ClInclude Include="TestRender\MeshImporterFBX.h" />
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />

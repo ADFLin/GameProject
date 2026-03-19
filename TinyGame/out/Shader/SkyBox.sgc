@@ -39,8 +39,9 @@ uniform float CubeLevel;
 
 float3 GetEnvRadiance(float3 dir)
 {
+	dir = normalize(dir);
 #if USE_CUBE_TEXTURE
-	return TEXTURE_SAMPLE_LEVEL(CubeTexture, normalize(dir) , CubeLevel).rgb;
+	return TEXTURE_SAMPLE_LEVEL(CubeTexture, VFLIP(dir) , CubeLevel).rgb;
 #else
 	return TEXTURE_SAMPLE(Texture, EquirectangularCoord(dir)).rgb;
 #endif

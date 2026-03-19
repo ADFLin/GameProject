@@ -3,20 +3,27 @@
 
 float2 EquirectangularCoord(float3 v)
 {
-	float2 invAtan = float2(0.1591, 0.3183);
-	float2 uv = float2(atan2(v.x, v.y), asin(v.z));
-	uv *= invAtan;
-	uv += 0.5;
+	v = normalize(v);
+	const float2 invAtan = float2(0.1591549, 0.3183098); // 1/2PI, 1/PI
+
+	float longitude = atan2(v.y, v.x);
+	float latitude = asin(v.z);
+
+	float2 uv = float2(longitude, latitude) * invAtan;
+	uv.x += 0.5;
+	uv.y = 0.5 - uv.y;
 	return uv;
 }
 
 float3 EquirectangularToDir(float2 uv)
 {
-	//y axis = (0,0)
-	float2 ab = 2 * uv - 1;
-	ab *= PI;
-	ab.y *= 0.5;
-	float2 c = cos(ab);
-	float2 s = sin(ab);
-	return float3(s.x * c.y, c.x * c.y, s.y);
+	float longitude = (uv.x - 0.5) * (2.0 * PI);
+	float latitude = (0.5 - uv.y) * PI;
+	float cosLat = cos(latitude);
+
+	return float3(
+		cos(longitude) * cosLat, 
+		sin(longitude) * cosLat, 
+		sin(latitude)           
+	);
 }

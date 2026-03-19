@@ -24,7 +24,7 @@ namespace Render
 			void build(int idxSection, OBJMaterialInfo const* mat) override
 			{
 				if (settings)
-					settings->setupMaterial(idxSection, (void*)mat);
+					settings->setupMaterial(0, idxSection, (void*)mat);
 			}
 		};
 

@@ -314,7 +314,7 @@ namespace Render
 		{
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "IBL-BRDF-LUT";
-			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7738";
+			cacheKey.version = "6A38AD9D-2EFC-4547-898F-BC8552AD7738";
 			cacheKey.keySuffix.add(setting.BRDFSampleCount,formatSize);
 			return cacheKey;
 		};
@@ -322,7 +322,7 @@ namespace Render
 		{
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "IBL";
-			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7738";
+			cacheKey.version = "6A38AD9D-2EFC-4547-898F-BC8552AD7738";
 			cacheKey.keySuffix.add(path, setting.envSize, setting.irradianceSize, setting.perfilteredSize,
 				setting.irradianceSampleCount[0], setting.irradianceSampleCount[1], setting.prefilterSampleCount, formatSize);
 

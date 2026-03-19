@@ -22,7 +22,7 @@ namespace Render
 
 		DataCacheKey cacheKey;
 		cacheKey.typeName = "TEXTURE";
-		cacheKey.version = "8AE15F61-E1CF-4639-B7D8-409CF17933F0";
+		cacheKey.version = "8AE15F61-E1CF-1339-B7D8-409CD17933F0";
 		cacheKey.keySuffix.add(path, option.bHDR, option.bFlipV, option.bSRGB, option.creationFlags, option.numMipLevel, option.bAutoMipMap,
 			option.isRGBTextureSupported(), bConvToHalf);
 

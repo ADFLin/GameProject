@@ -916,7 +916,8 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 				float cosI = dot(I, N);
 				rayDir = GetRefractionDir(I, N, cosI, mat.refractiveIndex);
 
-				incomingLight += mat.emissiveColor * rayColor;
+				float3 emissiveColor = GetEmissiveColor(mat, rayResult.hitNormal, -I, i == 0);
+				incomingLight += emissiveColor * rayColor;
 				rayColor *= mat.baseColor;
 				rayStart = rayResult.hitPos + rayDir * 0.001;
 			}
@@ -942,10 +943,11 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 				}
 #else
 				{
+					float3 emissiveColor = GetEmissiveColor(mat, rayResult.hitNormal, -rayDir, i == 0);
 #if USE_FOG
-					incomingLight += mat.emissiveColor * rayColor * fogBoost;
+					incomingLight += emissiveColor * rayColor * fogBoost;
 #else
-					incomingLight += mat.emissiveColor * rayColor;
+					incomingLight += emissiveColor * rayColor;
 #endif
 				}
 #endif

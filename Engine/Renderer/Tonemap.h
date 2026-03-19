@@ -66,6 +66,7 @@ namespace Render
 	struct FTonemap
 	{
 		static void Render(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D* bloomTexture = nullptr, float exposure = 1.0f);
+		static void Render(RHICommandList& commandList, RHITexture2D& inputTexture, RHITexture2D* bloomTexture, float exposure, bool bUseACES);
 	};
 
 }

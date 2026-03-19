@@ -2,8 +2,10 @@
 
 #include "FileSystem.h"
 #include "DataStructure/Array.h"
+#include "Core/IntegerType.h"
+#include "Core/Memory.h"
+#include "CoreShare.h"
 
-#include "stb/stb_image.h"
 
 ImageData::ImageData()
 {
@@ -14,9 +16,20 @@ ImageData::~ImageData()
 {
 	if( data )
 	{
-		stbi_image_free(data);
+		FMemory::Free(data);
 	}
 }
+
+#if CORE_SHARE_CODE
+
+#define STBI_MALLOC(sz)           FMemory::Alloc(sz)
+#define STBI_REALLOC(p,newsz)     FMemory::Realloc(p,newsz)
+#define STBI_FREE(p)              FMemory::Free(p)
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+#include "webp/decode.h"
+
+#pragma comment (lib, "../OtherLib/webp/lib/libwebp.lib")
 
 struct ScopedSetFlipVertically
 {
@@ -33,34 +46,68 @@ struct ScopedSetFlipVertically
 
 bool ImageData::load(char const* path, ImageLoadOption const& option)
 {
-	if (option.bUpThreeComponentToFour)
-	{
-		TArray<uint8> buffer;
-		if (!FFileUtility::LoadToBuffer(path, buffer))
-			return false;
+	TArray<uint8> buffer;
+	if (!FFileUtility::LoadToBuffer(path, buffer))
+		return false;
 
-		return loadFromMemory(buffer.data(), buffer.size(), option);
-	}
-	else
-	{
-		ScopedSetFlipVertically scoped(option.bFlipV);
-		if (option.bHDR)
-		{
-			data = stbi_loadf(path, &width, &height, &numComponent, STBI_default);
-			dataSize = sizeof(float) * numComponent * width * height;
-		}
-		else
-		{
-			data = stbi_load(path, &width, &height, &numComponent, STBI_default);
-			dataSize = sizeof(uint8) * numComponent * width * height;
-		}
-	}
-
-	return data != nullptr;
+	return loadFromMemory(buffer.data(), (int)buffer.size(), option);
 }
 
 bool ImageData::loadFromMemory(void* inData, int size, ImageLoadOption const& option)
 {
+	uint8 const* dataPtr = (uint8 const*)inData;
+	if (size >= 12 && memcmp(dataPtr, "RIFF", 4) == 0 && memcmp(dataPtr + 8, "WEBP", 4) == 0)
+	{
+		WebPBitstreamFeatures features;
+		if (WebPGetFeatures(dataPtr, size, &features) == VP8_STATUS_OK)
+		{
+			width = features.width;
+			height = features.height;
+			if (option.bUpThreeComponentToFour || features.has_alpha)
+			{
+				numComponent = 4;
+				dataSize = (uint64)width * height * 4;
+				data = FMemory::Alloc(dataSize);
+				if (!WebPDecodeRGBAInto(dataPtr, size, (uint8*)data, dataSize, width * 4))
+				{
+					FMemory::Free(data);
+					data = nullptr;
+					return false;
+				}
+			}
+			else
+			{
+				numComponent = 3;
+				dataSize = (uint64)width * height * 3;
+				data = FMemory::Alloc(dataSize);
+				if (!WebPDecodeRGBInto(dataPtr, size, (uint8*)data, dataSize, width * 3))
+				{
+					FMemory::Free(data);
+					data = nullptr;
+					return false;
+				}
+			}
+
+			if (option.bFlipV)
+			{
+				int stride = width * numComponent;
+				TArray<uint8> temp;
+				temp.resize(stride);
+				uint8* p1 = (uint8*)data;
+				uint8* p2 = (uint8*)data + (height - 1) * stride;
+				for (int i = 0; i < height / 2; ++i)
+				{
+					FMemory::Copy(temp.data(), p1, stride);
+					FMemory::Copy(p1, p2, stride);
+					FMemory::Copy(p2, temp.data(), stride);
+					p1 += stride;
+					p2 -= stride;
+				}
+			}
+			return true;
+		}
+	}
+
 	ScopedSetFlipVertically scoped(option.bFlipV);
 
 	int comp;
@@ -75,12 +122,12 @@ bool ImageData::loadFromMemory(void* inData, int size, ImageLoadOption const& op
 	if (option.bHDR)
 	{
 		data = stbi_loadf_from_memory((stbi_uc const *)inData, size, &width, &height, &numComponent, req_comp);
-		dataSize = sizeof(float) * width * height;
+		dataSize = (uint64)sizeof(float) * width * height;
 	}
 	else
 	{
 		data = stbi_load_from_memory((stbi_uc const *)inData, size, &width, &height, &numComponent, req_comp);
-		dataSize = sizeof(uint8) * width * height;
+		dataSize = (uint64)sizeof(uint8) * width * height;
 	}
 
 	if (req_comp != STBI_default)
@@ -109,3 +156,4 @@ bool ImageData::SaveImage(char const* path, int w, int h, int numComponent, void
 	}
 }
 
+#endif

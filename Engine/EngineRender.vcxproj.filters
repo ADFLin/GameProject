@@ -135,9 +135,6 @@
     <ClCompile Include="Renderer\Tonemap.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
-      <Filter>OtherLib</Filter>
-    </ClCompile>
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
       <Filter>OtherLib</Filter>
     </ClCompile>

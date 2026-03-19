@@ -106,16 +106,16 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if ( !::Global::DataCache().loadDelegate(key, MeshLoad))
+		if (true || !::Global::DataCache().loadDelegate(key, MeshLoad))
 		{
 			if (!FuncMeshCreate(mesh, meshPath) )
 			{
 				return false;
 			}
 
-			if (GRHISystem->getName() == RHISystemName::D3D11)
+			if (GRHISystem->getName() == RHISystemName::D3D11 ||
+				GRHISystem->getName() == RHISystemName::D3D12)
 				return true;
-
 
 			if (!::Global::DataCache().saveDelegate(key, MeshSave))
 			{

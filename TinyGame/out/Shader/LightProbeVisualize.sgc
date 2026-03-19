@@ -137,7 +137,7 @@ PS_ENTRY_END(MainPS)
 {
 	float3  cameraDir = normalize(VSOutput.cameraOffset);
 	float t;
-	if( !RaySphereTest(View.worldPos, cameraDir, VSOutput.probePos, LPV.probeRadius, t) )
+	if( RaySphereTest(View.worldPos, cameraDir, VSOutput.probePos, LPV.probeRadius, t) == 0 )
 	{
 		discard;
 	}

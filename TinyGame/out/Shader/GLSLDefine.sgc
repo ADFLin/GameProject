@@ -236,7 +236,9 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define SvRenderTargetIndex gl_Layer
 #define SvIsFrontFace       gl_FrontFacing
 
-#define VFLIP(UV) UV
+float2 VFlip(float2 uv) { return float2(uv.x, 1 - uv.y); }
+float3 VFlip(float3 uv) { return float3(uv.x, uv.y, -uv.z); }
+#define VFLIP(UV) VFlip(UV)
 
 #define SHADER_ENTRY_START(NAME)
 #define SHADER_INPUT(TYPE_DECL, LOC)       layout(location = LOC) in TYPE_DECL;

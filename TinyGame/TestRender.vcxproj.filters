@@ -57,7 +57,6 @@
     </ClInclude>
     <ClInclude Include="TestRender\ShadertoyCore.h" />
     <ClInclude Include="TestRender\MeshImporterGLB.h" />
-    <ClInclude Include="..\OtherLib\tinygltf\tiny_gltf.h" />
     <ClInclude Include="TestRender\Stage\PathTracing\PathTracingCommon.h">
       <Filter>PathTracing</Filter>
     </ClInclude>
@@ -122,9 +121,6 @@
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="TestRender\Stage\FBXImportTest.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
@@ -173,7 +169,6 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\VolumetricLightingStage.cpp" />
     <ClCompile Include="TestRender\MeshImporterGLB.cpp" />
-    <ClCompile Include="..\OtherLib\tinygltf\tiny_gltf.cc" />
     <ClCompile Include="TestRender\Stage\PathTracing\PathTracingRenderer.cpp">
       <Filter>PathTracing</Filter>
     </ClCompile>
@@ -194,6 +189,9 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\PathTracing\PathTracingBVH.cpp">
       <Filter>PathTracing</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\MeshImportTest.cpp">
+      <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,4 +1,6 @@
 #include "D3D12Utility.h"
+#include "D3D12Definations.h"
+#include "PlatformThread.h"
 
 #include "D3DSharedCommon.h"
 #include "D3D12Buffer.h"
@@ -82,7 +84,7 @@ namespace Render
 
 		mCSUData.type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		mCSUData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		mCSUData.initialize(128, mDevice);
+		mCSUData.initialize(1024, mDevice);
 
 		mSamplerData.type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		mSamplerData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -108,7 +110,7 @@ namespace Render
 		bInitialized = false;
 	}
 
-	D3D12PooledHeapHandle D3D12DescriptorHeapPool::alloc(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc)
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
 		mCSUData.fetchFreeHandle(mDevice, result, [this, resource, desc](D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
@@ -118,7 +120,7 @@ namespace Render
 		return result;
 	}
 
-	D3D12PooledHeapHandle D3D12DescriptorHeapPool::alloc(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc)
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
 		mCSUData.fetchFreeHandle(mDevice, result, [this, desc](D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
@@ -128,7 +130,7 @@ namespace Render
 		return result;
 	}
 
-	D3D12PooledHeapHandle D3D12DescriptorHeapPool::alloc(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc)
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
 		mCSUData.fetchFreeHandle(mDevice, result, [this, resource, desc](D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
@@ -138,31 +140,31 @@ namespace Render
 		return result;
 	}
 
-	D3D12PooledHeapHandle D3D12DescriptorHeapPool::alloc(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc)
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
 		if (!mRTVData.fetchFreeHandle(mDevice, result))
 		{
 			return D3D12PooledHeapHandle();
 		}
-
+ 
 		mDevice->CreateRenderTargetView(resource, desc, result.getCPUHandle());
 		return result;
 	}
 
-	D3D12PooledHeapHandle D3D12DescriptorHeapPool::alloc(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc)
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
 		if (!mDSVData.fetchFreeHandle(mDevice, result))
 		{
 			return D3D12PooledHeapHandle();
 		}
-
+ 
 		mDevice->CreateDepthStencilView(resource, desc, result.getCPUHandle());
 		return result;
 	}
 
-	D3D12PooledHeapHandle D3D12DescriptorHeapPool::alloc(D3D12_SAMPLER_DESC const& desc)
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocSampler(D3D12_SAMPLER_DESC const& desc)
 	{
 		D3D12PooledHeapHandle result;
 		mSamplerData.fetchFreeHandle(mDevice, result, [this, &desc](D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
@@ -226,7 +228,6 @@ namespace Render
 			if (!grow(newSize, device))
 				return false;
 
-			LogMsg("DescHeap Grow to %u, type = %d", newSize, type);
 			if (!fetchFreeSlot(outHandle.chunkSlot))
 				return false;
 		}
@@ -260,13 +261,16 @@ namespace Render
 		device->CopyDescriptorsSimple(numElements, newResource->GetCPUDescriptorHandleForHeapStart(), mCachedCPUHandleCopy, type);
 		device->CopyDescriptorsSimple(numElements, newResourceCopy->GetCPUDescriptorHandleForHeapStart(), mCachedCPUHandleCopy, type);
 
-		resource.reset();
+		if (resource.isValid())
+		{
+			D3D12FenceResourceManager::Get().addResource(resource.detach());
+		}
 		resource.initialize(newResource.detach());
-		cacheHandle(); // This will now also set mCachedCPUHandleCopy based on the main resource
-
+		cacheHandle(); // Sets mCachedCPUHandle and mCachedGPUHandle
+		mCachedCPUHandleCopy = newResourceCopy->GetCPUDescriptorHandleForHeapStart(); 
+ 
 		mResourceCopy.reset();
 		mResourceCopy.initialize(newResourceCopy.detach());
-		mCachedCPUHandleCopy = mResourceCopy->GetCPUDescriptorHandleForHeapStart(); // This line ensures mCachedCPUHandleCopy is updated for the copy resource
 
 		numElements = numElementsNew;
 		mUsageMask.resize((numElementsNew + GroupSize - 1) / GroupSize, 0);

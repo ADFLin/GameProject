@@ -461,6 +461,10 @@ namespace Render
 		if (!initializeShader())
 			return false;
 
+		bool bNeedRenderBlock = !RHIIsInRendering();
+		if (bNeedRenderBlock)
+			RHIBeginRender(false);
+
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		RHIFrameBufferRef frameBuffer = RHICreateFrameBuffer();
 
@@ -538,7 +542,9 @@ namespace Render
 
 			DrawUtility::ScreenRect(commandList);
 		}
-
+		
+		if (bNeedRenderBlock)
+			RHIEndRender(false);
 		return true;
 	}
 

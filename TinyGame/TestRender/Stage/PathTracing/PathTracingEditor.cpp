@@ -504,8 +504,8 @@ namespace PathTracing
 
 		RHIEndRender(false);
 
-		GRenderTargetPool.freeUsedElement(colorRT);
-		GRenderTargetPool.freeUsedElement(depthRT);
+		//GRenderTargetPool.freeUsedElement(colorRT);
+		//GRenderTargetPool.freeUsedElement(depthRT);
 
 		// Keep mPickingRT around by clearing its "used" status if necessary?
 		// Actually, let's keep the ref and hope it's not reused until next frame.

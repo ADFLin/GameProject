@@ -16,6 +16,8 @@
 
 namespace Render
 {
+	template<typename...> constexpr bool AlwaysFalse = false;
+
 	using IDXGISwapChainRHI = IDXGISwapChain3;
 	using ID3D12DeviceRHI = ID3D12Device8;
 	using ID3D12GraphicsCommandListRHI = ID3D12GraphicsCommandList6;
@@ -321,12 +323,23 @@ namespace Render
 		template< typename TDesc >
 		static D3D12PooledHeapHandle Alloc(ID3D12Resource* resource, TDesc const* desc)
 		{
-			return D3D12DescriptorHeapPool::Get().alloc(resource, desc);
+			if constexpr (std::is_same_v<TDesc, D3D12_SHADER_RESOURCE_VIEW_DESC>)
+				return D3D12DescriptorHeapPool::Get().allocSRV(resource, desc);
+			else if constexpr (std::is_same_v<TDesc, D3D12_CONSTANT_BUFFER_VIEW_DESC>)
+				return D3D12DescriptorHeapPool::Get().allocCBV(resource, desc);
+			else if constexpr (std::is_same_v<TDesc, D3D12_UNORDERED_ACCESS_VIEW_DESC>)
+				return D3D12DescriptorHeapPool::Get().allocUAV(resource, desc);
+			else if constexpr (std::is_same_v<TDesc, D3D12_RENDER_TARGET_VIEW_DESC>)
+				return D3D12DescriptorHeapPool::Get().allocRTV(resource, desc);
+			else if constexpr (std::is_same_v<TDesc, D3D12_DEPTH_STENCIL_VIEW_DESC>)
+				return D3D12DescriptorHeapPool::Get().allocDSV(resource, desc);
+			else
+				static_assert(AlwaysFalse<TDesc>, "Unsupported descriptor type");
 		}
 
 		static D3D12PooledHeapHandle Alloc(D3D12_SAMPLER_DESC const& desc)
 		{
-			return D3D12DescriptorHeapPool::Get().alloc(desc);
+			return D3D12DescriptorHeapPool::Get().allocSampler(desc);
 		}
 
 		static void FreeHandle(D3D12PooledHeapHandle& handle)
@@ -338,16 +351,16 @@ namespace Render
 		}
 		void releaseRHI();
 
-		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle alloc(D3D12_SAMPLER_DESC const& desc);
+		D3D12PooledHeapHandle allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
 
 		void freeHandle(D3D12PooledHeapHandle& handle);
 		void flushPendingHandles(uint64 completedFence);
-
+ 
 		struct PendingFreeHandle
 		{
 			D3D12PooledHeapHandle handle;

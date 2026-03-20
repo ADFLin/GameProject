@@ -86,29 +86,7 @@ namespace Render
 			virtual void release() = 0;
 		};
 
-		void releaseFence(uint64 lastCompletedFenceValue)
-		{
-			int index = 0;
-			for (; index < mReleaseList.size(); ++index)
-			{
-				auto fr = mReleaseList[index];
-				if (fr->fenceValue > lastCompletedFenceValue)
-					break;
-
-				fr->release();
-				fr->~IFenceRelease();
-			}
-
-			if (index != 0)
-			{
-				mReleaseList.erase(mReleaseList.begin(), mReleaseList.begin() + index);
-			}
-
-			if (mReleaseList.empty())
-			{
-				mAllocator.clear();
-			}
-		}
+		void releaseFence(uint64 lastCompletedFenceValue);
 
 		uint64 mFenceValue;
 		LinearAllocator mAllocator;

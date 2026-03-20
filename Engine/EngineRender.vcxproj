@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Emscripten">
@@ -75,6 +75,7 @@
     <ClCompile Include="RHI\ShaderFormat.cpp" />
     <ClCompile Include="RHI\ShaderManager.cpp" />
     <ClCompile Include="RHI\ShaderProgram.cpp" />
+    <ClCompile Include="RHI\RHIShaderUtility.cpp" />
     <ClCompile Include="RHI\TextureAtlas.cpp" />
     <ClCompile Include="RHI\VertexFactory.cpp" />
     <ClCompile Include="FX\ParticleRenderer.cpp" />
@@ -138,6 +139,7 @@
     <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />
     <ClInclude Include="RHI\RHIUtility.h" />
+    <ClInclude Include="RHI\RHIShaderUtility.h" />
     <ClInclude Include="RHI\Scene.h" />
     <ClInclude Include="RHI\SceneObject.h" />
     <ClInclude Include="RHI\SceneRenderer.h" />

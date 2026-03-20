@@ -470,10 +470,13 @@ namespace Render
 		RHIProfileCore* createProfileCore();
 
 		bool RHIBeginRender(bool bAdvanceFrame);
+		bool RHIIsInRendering() const override { return mbInRendering; }
 
 		Mutex mMutexContext;
 
 		void RHIEndRender(bool bPresent);
+
+		bool mbInRendering = false;
 
 		RHICommandList&  getImmediateCommandList()
 		{

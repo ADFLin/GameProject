@@ -58,6 +58,7 @@ public:
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable some options
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		io.ConfigViewportsNoDecoration = false;
 
 		mRenderer.reset( IEditorRenderer::Create() );
 		if (mRenderer == nullptr)

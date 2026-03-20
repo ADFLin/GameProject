@@ -38,7 +38,6 @@ public:
 		VERIFY_RETURN_FALSE(FFileUtility::LoadToBuffer("Subtitle.txt", textBuffer));
 		textBuffer.push_back(0);
 		textBuffer.push_back(0);
-		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
 
 		{
 			FontFaceInfo fontFace;

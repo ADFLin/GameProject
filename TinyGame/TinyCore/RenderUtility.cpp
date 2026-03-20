@@ -282,8 +282,6 @@ void RenderUtility::InitializeRHI()
 	if (!IsRHISupport())
 		return;
 
-	FontCharCache::Get().initialize();
-
 	FontRHI[ FONT_S8  ].initialize(FontFaceInfo(FontName, 8 , true));
 	FontRHI[ FONT_S10 ].initialize(FontFaceInfo(FontName, 10, true));
 	FontRHI[ FONT_S12 ].initialize(FontFaceInfo(FontName, 12, true));
@@ -299,7 +297,6 @@ void RenderUtility::ReleaseRHI()
 	for( int i = 0 ; i < FONT_NUM ; ++i)
 		FontRHI[i].cleanup();
 
-	FontCharCache::Get().releaseRHI();
 }
 
 void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)

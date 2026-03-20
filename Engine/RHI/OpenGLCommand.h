@@ -432,7 +432,10 @@ namespace Render
 		class ShaderFormat* createShaderFormat();
 		class RHIProfileCore* createProfileCore();
 		bool RHIBeginRender(bool bAdvanceFrame);
+		bool RHIIsInRendering() const override { return mbInRendering; }
 		void RHIEndRender(bool bPresent);
+
+		bool mbInRendering = false;
 
 		RHICommandList&  getImmediateCommandList()
 		{

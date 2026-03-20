@@ -952,6 +952,7 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 				}
 #endif
 
+#if USE_MIS
 				// Direct Light Sampling:
 				float3 directLight = float3(0.0f, 0.0f, 0.0f);
 				float3 w_i_dl;
@@ -964,11 +965,7 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 
 					float lightDist = length(lightPos - rayResult.hitPos);
 					bool bOccluded = RayCastShadow(rayResult.hitPos + 0.001f * N, normalize(lightPos - rayResult.hitPos), lightDist - 0.002f);
-#if USE_MIS
 					directLight = EvaluateDirectLightMIS(rayResult.hitPos, N, rayDir, mat, lightPos, lightNormal, pdf_dl, lightObjId, bOccluded, w_i_dl_brdf, w_i_dl);
-#else
-					directLight = EvaluateDirectLight(rayResult.hitPos, N, rayDir, mat, lightPos, lightNormal, pdf_dl, lightObjId, bOccluded, w_i_dl_brdf, w_i_dl);
-#endif
 				}
 
 				if (i + 1 <= MaxBounceCount && length(directLight) > 0.001f) 
@@ -976,6 +973,7 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 					float cos_theta = max(0.0001f, dot(N, w_i_dl));
 					incomingLight += directLight * rayColor * w_i_dl_brdf * cos_theta;
 				}
+#endif
 
 				float3 nextDir, brdf;
 				float pdf_brdf_raw;
@@ -1040,7 +1038,9 @@ PS_ENTRY_END(MainPS)
 #endif
 
 #if 1
-	float4 rayOffset =  mul(View.clipToTranslatedWorld, float4(2 * VFLIP(VSOutput.UVs) - 1, 1, 1));
+	float2 NDC = 2 * VSOutput.UVs - 1;
+	NDC.y = -NDC.y;
+	float4 rayOffset =  mul(View.clipToTranslatedWorld, float4(NDC, 1, 1));
 	float3 rayDir = normalize(rayOffset.xyz);
 	float3 rayPos = View.worldPos;
 	float3 totalLighting = 0;

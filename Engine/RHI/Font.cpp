@@ -215,6 +215,10 @@ namespace Render
 	}
 
 #if CORE_SHARE_CODE
+	FontCharCache::FontCharCache()
+		:IGlobalRenderResource()
+	{
+	}
 	FontCharCache& FontCharCache::Get()
 	{
 		static FontCharCache sInstance;
@@ -224,28 +228,6 @@ namespace Render
 
 	bool FontCharCache::initialize()
 	{
-		if( !bInitialized )
-		{
-			TRACE_RESOURCE_TAG("FontCharCache");
-			if( !mTextAtlas.initialize(ETexture::RGBA8, 1024, 1024, 1) )
-				return false;
-
-			if ( GRHISystem->getName() == RHISystemName::OpenGL )
-			{
-				GL_SCOPED_BIND_OBJECT(mTextAtlas.getTexture());
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-			}
-
-			for( auto& pair : mCharDataSetMap )
-			{
-				pair.second->mUsedTextAtlas = &mTextAtlas;
-			}
-
-			bInitialized = true;
-		}
-
 		return true;
 	}
 
@@ -266,7 +248,28 @@ namespace Render
 		{
 			pair.second->clearRHIResource();
 		}
-		bInitialized = false;
+	}
+
+	void FontCharCache::restoreRHI()
+	{
+		TRACE_RESOURCE_TAG("FontCharCache");
+		if (!mTextAtlas.initialize(ETexture::RGBA8, 1024, 1024, 1))
+		{
+			return;
+		}
+
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
+		{
+			GL_SCOPED_BIND_OBJECT(mTextAtlas.getTexture());
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+		}
+
+		for (auto& pair : mCharDataSetMap)
+		{
+			pair.second->mUsedTextAtlas = &mTextAtlas;
+		}
 	}
 
 	CharDataSet* FontCharCache::getCharDataSet(FontFaceInfo const& fontFace)

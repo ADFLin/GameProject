@@ -232,6 +232,10 @@ namespace Render
 		{
 			return STENCIL_FORMAT_START <= format && format <= STENCIL_FORMAT_END;
 		}
+		static bool IsSRGB(Format format)
+		{
+			return format == SRGB || format == SRGBA;
+		}
 	};
 
 	struct ResTraceInfo
@@ -534,13 +538,9 @@ namespace Render
 		{
 		}
 
-		
 		int  getSize() const { return mDesc.dimension.x; }
 
 		virtual RHITextureCube* getTextureCube() override { return this; }
-
-	protected:
-		int mSize;
 	};
 
 	class RHITexture2DArray : public RHITextureBase

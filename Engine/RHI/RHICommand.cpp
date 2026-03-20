@@ -248,6 +248,10 @@ namespace Render
 		++GRHIRenderCount;
 		EXECUTE_RHI_FUNC( RHIEndRender(bPresent) );
 	}
+	bool RHIIsInRendering()
+	{
+		return EXECUTE_RHI_FUNC(RHIIsInRendering());
+	}
 
 	RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info)
 	{

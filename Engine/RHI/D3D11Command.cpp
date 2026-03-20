@@ -1,4 +1,4 @@
-﻿#include "D3D11Command.h"
+#include "D3D11Command.h"
 
 #include "D3D11ShaderCommon.h"
 
@@ -458,11 +458,13 @@ namespace Render
 	bool D3D11System::RHIBeginRender(bool bAdvanceFrame)
 	{
 		mRenderContext.markRenderStateDirty();
+		mbInRendering = true;
 		return true;
 	}
 
 	void D3D11System::RHIEndRender(bool bPresent)
 	{
+		mbInRendering = false;
 		if (mDeviceContextImmdiate.get() != mDeviceContext.get())
 		{
 			Mutex::Locker locker(mMutexContext);
@@ -932,7 +934,14 @@ namespace Render
 		desc.AddressU = D3D11Translate::To(initializer.addressU);
 		desc.AddressV = D3D11Translate::To(initializer.addressV);
 		desc.AddressW = D3D11Translate::To(initializer.addressW);
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
+		if (initializer.filter == ESampler::Bilinear || initializer.filter == ESampler::Point)
+		{
+			desc.MaxLOD = 0.0f;
+		}
+		else
+		{
+			desc.MaxLOD = D3D11_FLOAT32_MAX;
+		}
 		desc.MaxAnisotropy = 16;
 
 		TComPtr<ID3D11SamplerState> samplerResource;

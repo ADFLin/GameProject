@@ -9,6 +9,23 @@ uniform uint2  DestTextureSize;
 uniform float2 TexelSize;
 uniform float  SrcMipLevel;
 
+float LinearToSRGB(float value)
+{
+	if (value <= 0.00304)
+		return 12.92 * value;
+
+	return 1.055 * pow(value, 1.0 / 2.4) - 0.055;
+}
+
+float3 LinearToSRGB(float3 value)
+{
+	return float3(LinearToSRGB(value.r), LinearToSRGB(value.g), LinearToSRGB(value.b));
+}
+
+#ifndef IS_SRGB
+#define IS_SRGB 0
+#endif
+
 CS_NUM_THREADS(8, 8, 1)
 CS_ENTRY(GenerateMipsCS)
 {
@@ -17,6 +34,9 @@ CS_ENTRY(GenerateMipsCS)
 
 	float2 UV = (float2(SvDispatchThreadID.xy) + 0.5) * TexelSize;
 	float4 Color = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), UV, SrcMipLevel);
+#if IS_SRGB
+	Color.rgb = LinearToSRGB(Color.rgb);
+#endif
 	imageStore(DestTexture, SvDispatchThreadID.xy, Color);
 }
 

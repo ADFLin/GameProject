@@ -60,7 +60,10 @@ void PathTraceRayGen()
 		float2 jitter = float2(Random(seed), Random(seed)) - 0.5;
 		float2 sampleUV = (float2(launchIndex) + 0.5 + jitter) / float2(launchDim);
 
-		float4 rayOffset = mul(View.clipToTranslatedWorld, float4(2 * VFLIP(sampleUV) - 1, 1, 1));
+		float2 NDC = 2 * sampleUV - 1;
+		NDC.y = -NDC.y;
+
+		float4 rayOffset = mul(View.clipToTranslatedWorld, float4(NDC, 1, 1));
 		float3 rayDir = normalize(rayOffset.xyz);
 		float3 rayPos = View.worldPos;
 
@@ -217,6 +220,7 @@ void PathTraceRayGen()
 				}
 	#endif
 
+#if USE_MIS
 				// Direct Light Sampling
 				float3 directLight = float3(0.0f, 0.0f, 0.0f);
 				float3 w_i_dl;
@@ -237,11 +241,7 @@ void PathTraceRayGen()
 					PathPayload shadowPayload;
 					shadowPayload.hit = true;
 					TraceRay(gScene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0, shadowRay, shadowPayload);
-#if USE_MIS
 					directLight = EvaluateDirectLightMIS(hitPos, N, rayDir, mat, lightPos, lightNormal, pdf_dl, lightObjId, shadowPayload.hit, w_i_dl_brdf, w_i_dl);
-#else
-					directLight = EvaluateDirectLight(hitPos, N, rayDir, mat, lightPos, lightNormal, pdf_dl, lightObjId, shadowPayload.hit, w_i_dl_brdf, w_i_dl);
-#endif
 				}
 
 				if (length(directLight) > 0.001f)
@@ -249,6 +249,7 @@ void PathTraceRayGen()
 					float cos_theta = max(0.0001f, dot(N, w_i_dl));
 					radiance += directLight * throughput * w_i_dl_brdf * cos_theta;
 				}
+#endif
 
 				// BSDF Sampling
 				float3 nextDir, brdf;

@@ -47,6 +47,8 @@ float3 GetEnvRadiance(float3 dir)
 float3 GetFaceCameraDir(float2 faceUV)
 {
 	float2 NDC = 2 * faceUV - 1;
+	NDC.y = -NDC.y;
+	//NDC = VFLIP(float2(NDC.x, 1.0 - NDC.y));
 	float3 faceRightDir = normalize( cross(FaceUpDir, FaceDir) );
 	return normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
 }
@@ -71,7 +73,7 @@ PS_ENTRY_END(EquirectangularToCubePS)
 	}
 	return;
 #endif
-	float3 color = TEXTURE_SAMPLE(Texture, EquirectangularCoord(dir)).rgb;
+	float3 color = TEXTURE_SAMPLE(Texture, EquirectangularCoord(VFLIP(dir))).rgb;
 	OutColor = float4(color, 1);
 	//OutColor = float4(EquirectangularCoord(dir), 0, 1);
 }

@@ -173,10 +173,7 @@ namespace Render
 		void RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 		void RHIUpdateTexture(RHITextureCube& texture, ETexture::Face face, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 		void RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data);
-		void RHIGenerateMips(RHITextureBase& texture)
-		{
-
-		}
+		void RHIGenerateMips(RHITextureBase& texture);
 
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
@@ -674,8 +671,8 @@ namespace Render
 		virtual RHIProfileCore* createProfileCore();
 
 		bool RHIBeginRender(bool bAdvanceFrame);
-
 		void RHIEndRender(bool bPresent);
+		bool RHIIsInRendering() const override;
 
 		void RHIMarkRenderStateDirty()
 		{
@@ -683,7 +680,6 @@ namespace Render
 		}
 
 		bool mbAdvanceFrame = true;
-		int mRenderFrameNestingCount = 0;
 
 		RHICommandList&  getImmediateCommandList()
 		{
@@ -723,6 +719,7 @@ namespace Render
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level = 0);
+		bool updateTexture3DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 oz, uint32 width, uint32 height, uint32 depth, uint32 rowPatch, uint32 level = 0);
 
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);

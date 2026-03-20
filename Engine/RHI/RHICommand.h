@@ -101,6 +101,7 @@ namespace Render
 	RHI_API bool RHISystemIsSupported(RHISystemName name);
 	RHI_API bool RHIBeginRender(bool bAdvanceFrame);
 	RHI_API void RHIEndRender(bool bPresent);
+	RHI_API bool RHIIsInRendering();
 	RHI_API void RHIClearResourceReference();
 
 	struct SwapChainCreationInfo
@@ -414,6 +415,7 @@ namespace Render
 		RHI_FUNC(RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info));
 		RHI_FUNC(bool RHIBeginRender(bool bAdvanceFrame));
 		RHI_FUNC(void RHIEndRender(bool bPresent));
+		virtual bool RHIIsInRendering() const { return false; }
 
 		RHI_FUNC(RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data));
 		RHI_FUNC(RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign));

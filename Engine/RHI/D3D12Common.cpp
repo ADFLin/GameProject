@@ -495,9 +495,16 @@ namespace Render
 		desc.MipLODBias = 0;
 		desc.MaxAnisotropy = 0;
 		desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-		desc.MinLOD = 0.0f;
-		desc.MaxLOD = D3D12_FLOAT32_MAX;
 
+		desc.MinLOD = 0.0f;
+		if (initializer.filter == ESampler::Bilinear || initializer.filter == ESampler::Point)
+		{
+			desc.MaxLOD = 0.0f;
+		}
+		else
+		{
+			desc.MaxLOD = D3D12_FLOAT32_MAX;
+		}
 		mDesc = desc;
 		mHandle = D3D12DescriptorHeapPool::Alloc(desc);
 	}
@@ -727,6 +734,45 @@ namespace Render
 		}
 
 		D3D12PooledHeapHandle handle = D3D12DescriptorHeapPool::Alloc(getD3D12Resource(), &dsvDesc);
+		if (handle.isValid())
+		{
+			mViewCache.push_back({ key, handle });
+		}
+		return handle;
+	}
+
+	D3D12PooledHeapHandle D3D12TextureBase::getUAV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format)
+	{
+		ViewKey key = { mip, layer, arraySize, format };
+		for (auto const& entry : mViewCache)
+		{
+			if (entry.key == key)
+				return entry.handle;
+		}
+
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = format;
+		if (uavDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
+			uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		else if (uavDesc.Format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB)
+			uavDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+		if (arraySize > 1 || layer > 0)
+		{
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			uavDesc.Texture2DArray.MipSlice = mip;
+			uavDesc.Texture2DArray.FirstArraySlice = layer;
+			uavDesc.Texture2DArray.ArraySize = arraySize;
+			uavDesc.Texture2DArray.PlaneSlice = 0;
+		}
+		else
+		{
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			uavDesc.Texture2D.MipSlice = mip;
+			uavDesc.Texture2D.PlaneSlice = 0;
+		}
+
+		D3D12PooledHeapHandle handle = D3D12DescriptorHeapPool::Alloc(getD3D12Resource(), &uavDesc);
 		if (handle.isValid())
 		{
 			mViewCache.push_back({ key, handle });

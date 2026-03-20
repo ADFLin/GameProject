@@ -271,6 +271,7 @@
     <None Include="..\TinyGame\out\Shader\Game\PathTracingSoftware.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\GenerateMips.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

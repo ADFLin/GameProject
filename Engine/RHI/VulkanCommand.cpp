@@ -1070,6 +1070,8 @@ namespace Render
 				mProfileCore->onBeginRender(mDrawContext);
 			}
 		}
+
+		mbInRendering = true;
 		return true;
 	}
 
@@ -1086,6 +1088,8 @@ namespace Render
 		{
 			return;
 		}
+
+		mbInRendering = false;
 
 		// End any active render pass before finishing the command buffer
 		mDrawContext.endRenderPass();

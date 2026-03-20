@@ -148,17 +148,18 @@ namespace Render
 
 	};
 
-
-
-	class FontCharCache
+	class FontCharCache : public IGlobalRenderResource
 	{
 	public:
+		CORE_API FontCharCache();
 		static CORE_API FontCharCache& Get();
 
 		CORE_API bool initialize();
 		CORE_API void finalize();
-		CORE_API void releaseRHI();
 		CORE_API CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
+
+		void restoreRHI() override;
+		void releaseRHI() override;
 
 		RHITexture2D& getTexture()
 		{

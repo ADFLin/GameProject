@@ -608,7 +608,7 @@ namespace Render
 					range.NumDescriptors = 1;
 					range.BaseShaderRegister = bindDesc.BindPoint;
 					range.RegisterSpace = bindDesc.Space;
-					range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC;
+					range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 					range.OffsetInDescriptorsFromTableStart = 0;
 					pcurrentDescRanges->push_back(range);
  
@@ -672,7 +672,7 @@ namespace Render
 					range.NumDescriptors = 1;
 					range.BaseShaderRegister = bindDesc.BindPoint;
 					range.RegisterSpace = bindDesc.Space;
-					range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+					range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 					range.OffsetInDescriptorsFromTableStart = 0;
 					pcurrentDescRanges->push_back(range);
  
@@ -736,7 +736,7 @@ namespace Render
 						range.NumDescriptors = 1;
 						range.BaseShaderRegister = bindDesc.BindPoint;
 						range.RegisterSpace = bindDesc.Space;
-						range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+						range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 						range.OffsetInDescriptorsFromTableStart = 0;
 						pcurrentDescRanges->push_back(range);
  

@@ -336,11 +336,13 @@ namespace Render
 			mDrawContext.RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		}
 
+		mbInRendering = true;
 		return true;
 	}
 
 	void OpenGLSystem::RHIEndRender(bool bPresent)
 	{
+		mbInRendering = false;
 		mDrawContext.endRender();
 
 		::glFlush();

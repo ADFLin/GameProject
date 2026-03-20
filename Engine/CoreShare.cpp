@@ -8,20 +8,24 @@
 
 #include "Renderer/MeshImportor.h"
 #include "Module/ModuleManager.h"
+#include "RHI/Font.h"
 
 void EngineInitialize()
 {
 	ModuleManager::Initialize();
 
 	IConsoleSystem::Get().initialize();
+
+	Render::FontCharCache::Get().initialize();
+
 }
 
 void EngineFinalize()
 {
-	IConsoleSystem::Get().finalize();
-
+	Render::FontCharCache::Get().finalize();
 	Render::MeshImporterRegistry::Get().cleanup();
 
+	IConsoleSystem::Get().finalize();
 	ModuleManager::Finalize();
 }
 

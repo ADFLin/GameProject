@@ -14,9 +14,11 @@
 
 #pragma comment(lib , "DXGI.lib")
 
+#include "RHIShaderUtility.h"
 #if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+#include "ShaderManager.h"
 
 // Helper for Alignment
 template<typename T>
@@ -345,10 +347,10 @@ namespace Render
 
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCopyCmdQueue)));
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&mCopyCmdAllocator)));
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, mCopyCmdAllocator, nullptr, IID_PPV_ARGS(&mCopyCmdList)));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mCopyCmdAllocator)));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCopyCmdAllocator, nullptr, IID_PPV_ARGS(&mCopyCmdList)));
 		mCopyCmdList->Close();
 
 		if (!mRenderContext.initialize(this))
@@ -440,6 +442,11 @@ namespace Render
 			mRenderContext.moveToNextFrame();
 		}
 
+	}
+
+	bool D3D12System::RHIIsInRendering() const
+	{
+		return mbInRendering;
 	}
 
 	RHISwapChain* D3D12System::RHICreateSwapChain(SwapChainCreationInfo const& info)
@@ -574,8 +581,7 @@ namespace Render
 			srvDesc.Format = textureDesc.Format;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
 
-			//#TODO
-			srvDesc.Texture1D.MipLevels = 1;
+			srvDesc.Texture1D.MipLevels = desc.numMipLevel;
 
 			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
 		}
@@ -617,7 +623,7 @@ namespace Render
 
 			D3D12_CLEAR_VALUE clearValue;
 
-			if (desc.creationFlags & TCF_CreateUAV)
+			if (desc.creationFlags & (TCF_CreateUAV | TCF_GenerateMips))
 				textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
 			if (desc.creationFlags & TCF_RenderTarget)
@@ -665,8 +671,7 @@ namespace Render
 			srvDesc.Format = D3D12Translate::ToSRV(formatD3D);
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 
-			//#TODO
-			srvDesc.Texture2D.MipLevels = 1;
+			srvDesc.Texture2D.MipLevels = desc.numMipLevel;
 
 			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
 		}
@@ -689,13 +694,79 @@ namespace Render
 		{
 			texture->getRTV(0, 0, 1, formatD3D);
 		}
+		if (data && (desc.creationFlags & TCF_GenerateMips))
+		{
+			RHIGenerateMips(*texture);
+		}
 		
 		return texture;
 	}
 
 	RHITexture3D* D3D12System::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
-		return nullptr;
+		TComPtr<ID3D12Resource> textureResource;
+		DXGI_FORMAT formatD3D = D3D12Translate::To(desc.format);
+		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+
+		D3D12_RESOURCE_DESC textureDesc = {};
+		textureDesc.MipLevels = desc.numMipLevel;
+		textureDesc.Format = formatD3D;
+		textureDesc.Width = desc.dimension.x;
+		textureDesc.Height = desc.dimension.y;
+		textureDesc.DepthOrArraySize = (UINT16)desc.dimension.z;
+		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		if (desc.creationFlags & TCF_CreateUAV)
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+
+
+		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&textureDesc,
+			resourceState,
+			nullptr,
+			IID_PPV_ARGS(&textureResource)), return nullptr; );
+
+		if (data)
+		{
+			if (!updateTexture3DSubresources(textureResource, desc.format, data, 0, 0, 0, desc.dimension.x, desc.dimension.y, desc.dimension.z,
+				desc.dimension.x * ETexture::GetFormatSize(desc.format), 0))
+				return nullptr;
+		}
+
+
+		D3D12Texture3D* texture = new D3D12Texture3D(desc, textureResource);
+		texture->mCurrentStates = resourceState;
+
+		if (desc.creationFlags & TCF_CreateSRV)
+		{
+			// Describe and create a SRV for the texture.
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = D3D12Translate::ToSRV(formatD3D);
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+
+			srvDesc.Texture3D.MipLevels = desc.numMipLevel;
+
+			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
+		}
+		if (desc.creationFlags & TCF_CreateUAV)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+			uavDesc.Format = formatD3D;
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+			uavDesc.Texture3D.MipSlice = 0;
+			uavDesc.Texture3D.FirstWSlice = 0;
+			uavDesc.Texture3D.WSize = desc.dimension.z;
+			texture->mUAV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &uavDesc);
+		}
+
+		return texture;
 	}
 
 	RHITextureCube* D3D12System::RHICreateTextureCube(TextureDesc const& desc, void* data[])
@@ -1441,6 +1512,74 @@ namespace Render
 			Src.pResource = textureCopy;
 			Src.PlacedFootprint = layout;
 			mCopyCmdList->CopyTextureRegion(&Dst, ox, oy, 0, &Src, nullptr);
+
+			D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(textureResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON, level);
+			mCopyCmdList->ResourceBarrier(1, &transition);
+		}
+
+		mCopyResources.push_back(std::move(textureCopy));
+		mCopyCmdList->Close();
+		ID3D12CommandList* ppCommandLists[] = { mCopyCmdList };
+		mCopyCmdQueue->ExecuteCommandLists(ARRAY_SIZE(ppCommandLists), ppCommandLists);
+
+		waitCopyCommand();
+		return true;
+	}
+
+	bool D3D12System::updateTexture3DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 oz, uint32 width, uint32 height, uint32 depth, uint32 rowPatch, uint32 level)
+	{
+		auto Desc = textureResource->GetDesc();
+		Desc.Width = width;
+		Desc.Height = height;
+		Desc.DepthOrArraySize = (UINT16)depth;
+		uint64 RequiredSize = 0;
+		UINT64 rowSizesInBytes = 0;
+		UINT numRows = 0;
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+		mDevice->GetCopyableFootprints(&Desc, level, 1, 0, &layout, &numRows, &rowSizesInBytes, &RequiredSize);
+		const UINT64 uploadBufferSize = (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT * RequiredSize + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT - 1) / D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+
+
+		TComPtr<ID3D12Resource> textureCopy;
+
+		// Create the GPU upload buffer.
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&FD3D12Init::BufferDesc(uploadBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&textureCopy)));
+
+		textureCopy->SetName(L"Texture3DUpload");
+
+
+		D3D12_SUBRESOURCE_DATA textureData = {};
+		textureData.pData = data;
+		textureData.RowPitch = rowPatch;
+		textureData.SlicePitch = textureData.RowPitch * height;
+
+		mCopyCmdAllocator->Reset();
+		mCopyCmdList->Reset(mCopyCmdAllocator, nullptr);
+
+		BYTE* pData;
+		textureCopy->Map(0, nullptr, reinterpret_cast<void**>(&pData));
+
+		D3D12_MEMCPY_DEST DestData = { pData + layout.Offset, layout.Footprint.RowPitch, SIZE_T(layout.Footprint.RowPitch) * SIZE_T(numRows) };
+		MemcpySubresource(&DestData, &textureData, static_cast<SIZE_T>(rowSizesInBytes), numRows, depth);
+
+		textureCopy->Unmap(0, nullptr);
+
+		{
+			D3D12_TEXTURE_COPY_LOCATION Dst;
+			Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			Dst.pResource = textureResource;
+			Dst.SubresourceIndex = level;
+			D3D12_TEXTURE_COPY_LOCATION Src;
+			Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			Src.pResource = textureCopy;
+			Src.PlacedFootprint = layout;
+			mCopyCmdList->CopyTextureRegion(&Dst, ox, oy, oz, &Src, nullptr);
 		}
 
 		mCopyResources.push_back(std::move(textureCopy));
@@ -1529,7 +1668,79 @@ namespace Render
 
 	void D3D12System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray<uint8>& outData)
 	{
-		// TODO: Implement Cube readback handling faces properly if needed
+		D3D12TextureCube& textureImpl = D3D12Cast::To(texture);
+		ID3D12Resource* d3dResource = textureImpl.getResource();
+		auto desc = d3dResource->GetDesc();
+
+		uint32 formatSize = ETexture::GetFormatSize(format);
+		uint32 width = Math::Max<uint32>(1, (uint32)desc.Width >> level);
+		uint32 height = Math::Max<uint32>(1, desc.Height >> level);
+		uint32 faceSize = width * height * formatSize;
+		outData.resize(faceSize * 6);
+
+		for (int face = 0; face < 6; ++face)
+		{
+			uint32 subresourceIndex = D3D12CalcSubresource(level, face, 0, (uint32)desc.MipLevels, 6);
+
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+			uint32 numRows;
+			uint64 rowSizeInBytes;
+			uint64 totalBytes;
+			mDevice->GetCopyableFootprints(&desc, subresourceIndex, 1, 0, &layout, &numRows, &rowSizeInBytes, &totalBytes);
+
+			TComPtr<ID3D12Resource> readbackBuffer;
+			VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+				&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_READBACK),
+				D3D12_HEAP_FLAG_NONE,
+				&FD3D12Init::BufferDesc(totalBytes),
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				IID_PPV_ARGS(&readbackBuffer)), return;);
+
+			mCopyCmdAllocator->Reset();
+			mCopyCmdList->Reset(mCopyCmdAllocator, nullptr);
+
+			if (textureImpl.mCurrentStates != D3D12_RESOURCE_STATE_COPY_SOURCE)
+			{
+				D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(d3dResource, textureImpl.mCurrentStates, D3D12_RESOURCE_STATE_COPY_SOURCE, subresourceIndex);
+				mCopyCmdList->ResourceBarrier(1, &transition);
+			}
+
+			D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+			srcLocation.pResource = d3dResource;
+			srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			srcLocation.SubresourceIndex = subresourceIndex;
+
+			D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+			dstLocation.pResource = readbackBuffer;
+			dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			dstLocation.PlacedFootprint = layout;
+
+			mCopyCmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+
+			if (textureImpl.mCurrentStates != D3D12_RESOURCE_STATE_COPY_SOURCE)
+			{
+				D3D12_RESOURCE_BARRIER transition = FD3D12Init::TransitionBarrier(d3dResource, D3D12_RESOURCE_STATE_COPY_SOURCE, textureImpl.mCurrentStates, subresourceIndex);
+				mCopyCmdList->ResourceBarrier(1, &transition);
+			}
+
+			mCopyCmdList->Close();
+			ID3D12CommandList* ppCommandLists[] = { (ID3D12CommandList*)mCopyCmdList };
+			mCopyCmdQueue->ExecuteCommandLists(ARRAY_SIZE(ppCommandLists), ppCommandLists);
+			mRenderContext.waitForGpu(mCopyCmdQueue);
+
+			void* pData;
+			D3D12_RANGE readRange = { 0, totalBytes };
+			readbackBuffer->Map(0, &readRange, &pData);
+
+			BYTE* pSrc = (BYTE*)pData + layout.Offset;
+			BYTE* pDest = outData.data() + face * faceSize;
+			for (uint32 y = 0; y < height; ++y)
+			{
+				FMemory::Copy(pDest + y * width * formatSize, pSrc + y * layout.Footprint.RowPitch, width * formatSize);
+			}
+			readbackBuffer->Unmap(0, nullptr);
+		}
 	}
 
 	bool D3D12System::updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level /*= 0*/)
@@ -3081,6 +3292,12 @@ namespace Render
 		postDispatchCompute();
 	}
 
+	void D3D12Context::RHIGenerateMips(RHITextureBase& texture)
+	{
+		RHICommandListImpl commandList(*this);
+		RHIShaderUtility::GenerateMips(commandList, texture);
+	}
+
 	void D3D12Context::RHIBuildAccelerationStructure(RHIAccelerationStructure* dst, RHIAccelerationStructure* src, RHIBuffer* scratch, uint32 numInstances)
 	{
 		if (dst->getResourceType() == EResourceType::BottomLevelAccelerationStructure)
@@ -3656,16 +3873,24 @@ namespace Render
 
 	void D3D12Context::setShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture, int level, EAccessOp op)
 	{
-
 		D3D12TextureBase& textureImpl = D3D12Cast::ToTextureBase(texture);
-		auto const* handle = &textureImpl.mUAV;
 		ID3D12Resource* resource = textureImpl.getD3D12Resource();
+		DXGI_FORMAT format = D3D12Translate::To(texture.getDesc().format);
+		D3D12PooledHeapHandle handle;
+		if (level == 0)
+		{
+			handle = textureImpl.mUAV;
+		}
+		else
+		{
+			handle = textureImpl.getUAV(level, 0, 1, format);
+		}
 
 		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
 
 		//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
 
-		updateCSUHeapUsage(*handle);
+		updateCSUHeapUsage(handle);
 
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
 
@@ -3678,7 +3903,7 @@ namespace Render
 
 			if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_UAV)
 			{
-				gpuHandle = handle->getGPUHandle();
+				gpuHandle = handle.getGPUHandle();
 				pData = &gpuHandle;
 			}
 			else
@@ -3700,11 +3925,11 @@ namespace Render
 
 		if (shaderType == EShader::Compute || EShader::IsRayTracing(shaderType))
 		{
-			mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle->getGPUHandle());
+			mGraphicsCmdList->SetComputeRootDescriptorTable(rootSlot, handle.getGPUHandle());
 		}
 		else
 		{
-			mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle->getGPUHandle());
+			mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
 		}
 
 	}
@@ -4232,6 +4457,8 @@ namespace Render
 				mGraphicsCmdList->ResourceBarrier(1, &barrier);
 			}
 		}
+
+		mRenderTargetsState = nullptr;
 	}
 
 	void D3D12Context::waitForGpu()
@@ -4283,7 +4510,6 @@ namespace Render
 		mFrameDataList[mFrameIndex].fenceValue = currentFenceValue + 1;
 		D3D12FenceResourceManager::Get().mFenceValue = mFrameDataList[mFrameIndex].fenceValue;
 
-		mRenderTargetsState = nullptr;
 	}
 
 

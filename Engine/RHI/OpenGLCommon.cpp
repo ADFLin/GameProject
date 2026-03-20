@@ -69,11 +69,13 @@ namespace Render
 	class FOpenGL45 : public FOpenGLBase
 	{
 	public:
+#if 0
 		static void FramebufferTextureLayer(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint layer)
 		{
 			glNamedFramebufferTextureLayer(framebuffer, attachment, texture, level, layer);
 			VerifyFrameBufferStatus();
 		}
+#endif
 	};
 
 
@@ -275,9 +277,13 @@ namespace Render
 			GLenum componentType = OpenGLTranslate::TextureComponentType(mDesc.format);
 			for (int face = 0; face < ETexture::FaceCount; ++face)
 			{
-				glTexImage2D(OpenGLTranslate::TexureType(ETexture::Face(face)), 0,
-					formatGL, mDesc.dimension.x, mDesc.dimension.x, 0,
-					baseFormat, componentType, data ? data[face] : nullptr);
+				for (int level = 0; level < mDesc.numMipLevel; ++level)
+				{
+					int size = Math::Max(mDesc.dimension.x >> level, 1);
+					glTexImage2D(OpenGLTranslate::TexureType(ETexture::Face(face)), level,
+						formatGL, size, size, 0,
+						baseFormat, componentType, (level == 0 && data) ? data[face] : nullptr);
+				}
 			}
 		}
 
@@ -523,6 +529,8 @@ namespace Render
 		if( !mGLObject.fetchHandle() )
 			return false;
 
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return true;
 	}
 

@@ -1,4 +1,4 @@
-﻿#include "TinyGamePCH.h"
+#include "TinyGamePCH.h"
 #include "DrawEngine.h"
 
 #include "ProfileSystem.h"
@@ -264,7 +264,19 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 {
 	if (isRHIEnabled() && mSystemLocked == ERenderSystem::None)
 	{
-		shutdownSystem(false, false);
+		ERenderSystem nextSystem = renderSetup ? renderSetup->getDefaultRenderSystem() : ERenderSystem::None;
+		if (nextSystem == ERenderSystem::None)
+		{
+			if (mRenderSetup->isRenderSystemSupported(GDefaultRHIName))
+			{
+				nextSystem = GDefaultRHIName;
+			}
+		}
+
+		if (mSystemName != nextSystem)
+		{
+			shutdownSystem(false, false);
+		}
 	}
 
 	mRenderSetup = renderSetup;
@@ -392,13 +404,10 @@ void DrawEngine::createRHIGraphics()
 
 bool IsSupportRHIGraphic2D(ERenderSystem systemName)
 {
-	if (systemName == ERenderSystem::OpenGL || 
-		systemName == ERenderSystem::D3D11 || 
-		systemName == ERenderSystem::D3D12 ||
-		systemName == ERenderSystem::Vulkan)
-		return true;
+	if (systemName == ERenderSystem::None)
+		return false;
 
-	return false;
+	return true;
 }
 
 bool DrawEngine::isUsageRHIGraphic2D() const

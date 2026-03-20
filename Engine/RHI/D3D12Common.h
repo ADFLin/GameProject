@@ -766,6 +766,7 @@ namespace Render
 
 		D3D12PooledHeapHandle getRTV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format);
 		D3D12PooledHeapHandle getDSV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format);
+		D3D12PooledHeapHandle getUAV(uint16 mip, uint16 layer, uint16 arraySize, DXGI_FORMAT format);
 
 		void releaseViews();
 	};

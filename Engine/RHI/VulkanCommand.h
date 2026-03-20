@@ -456,8 +456,10 @@ namespace Render
 		uint32 mRenderImageIndex;
 		uint64 mSubmissionCount = 0;
 		bool mbAdvanceFrame = false;
+		bool mbInRendering = false;
 		bool RHIBeginRender(bool bAdvanceFrame);
 		void RHIEndRender(bool bPresent);
+		bool RHIIsInRendering() const override { return mbInRendering; }
 
 		// Swap chain framebuffer management
 		bool createSwapChainRenderPass();

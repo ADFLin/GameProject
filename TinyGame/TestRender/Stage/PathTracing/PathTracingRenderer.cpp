@@ -274,6 +274,24 @@ namespace PathTracing
 		DEFINE_SHADER_PARAM(Objects);
 	};
 
+	class PathTracingHardwareDiscIntersection : public GlobalShader
+	{
+		using BaseClass = GlobalShader;
+		DECLARE_SHADER(PathTracingHardwareDiscIntersection, Global);
+	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/PathTracingHardware";
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, Objects);
+		}
+
+		DEFINE_SHADER_PARAM(Objects);
+	};
+
 	IMPLEMENT_SHADER(PathTracingSoftwarePS, EShader::Pixel, SHADER_ENTRY(MainPS));
 	IMPLEMENT_SHADER(AccumulatePS, EShader::Pixel, SHADER_ENTRY(AccumulatePS));
 	IMPLEMENT_SHADER(DenoisePS, EShader::Pixel, SHADER_ENTRY(DenoisePS));
@@ -283,6 +301,7 @@ namespace PathTracing
 	IMPLEMENT_SHADER(PathTracingHardwareMiss, EShader::RayMiss, SHADER_ENTRY(PathTraceMiss));
 	IMPLEMENT_SHADER(PathTracingHardwareSphereIntersection, EShader::RayIntersection, SHADER_ENTRY(SphereIntersection));
 	IMPLEMENT_SHADER(PathTracingHardwareCubeIntersection, EShader::RayIntersection, SHADER_ENTRY(CubeIntersection));
+	IMPLEMENT_SHADER(PathTracingHardwareDiscIntersection, EShader::RayIntersection, SHADER_ENTRY(DiscIntersection));
 
 
 	void RenderResourceData::buildSceneResource(RHICommandList& commnadList, SceneData& sceneData)
@@ -303,7 +322,7 @@ namespace PathTracing
 			primitive.bound.invalidate();
 			switch (object.type)
 			{
-			case OBJ_SPHERE:
+			case EObjectType::Sphere:
 				{
 					float r = object.meta.x;
 					primitive.center = object.pos;
@@ -312,7 +331,7 @@ namespace PathTracing
 					primitive.bound.translate(primitive.center);
 				}
 				break;
-			case OBJ_CUBE:
+			case EObjectType::Cube:
 				{
 					Vector3 halfSize = object.meta;
 					primitive.center = object.pos;
@@ -320,7 +339,7 @@ namespace PathTracing
 					primitive.bound.translate(primitive.center);
 				}
 				break;
-			case OBJ_TRIANGLE_MESH:
+			case EObjectType::Mesh:
 				if (sceneData.meshes.isValidIndex(AsValue<int32>(object.meta.x)))
 				{
 					MeshData& mesh = sceneData.meshes[AsValue<int32>(object.meta.x)];
@@ -337,11 +356,11 @@ namespace PathTracing
 					primitive.bound.translate(object.pos);
 				}
 				break;
-			case OBJ_QUAD:
-			case OBJ_DISC:
+			case EObjectType::Quad:
+			case EObjectType::Disc:
 				{
 					Vector3 halfSize = object.meta;
-					halfSize.z = 1.0f;
+					halfSize.z = 0.1f;
 
 					primitive.center = object.pos;
 					primitive.bound = GetAABB(object.rotation, halfSize);
@@ -423,48 +442,64 @@ namespace PathTracing
 		TArray<RayTracingInstanceDesc> instances;
 		for (int i = 0; i < (int)sceneData.objects.size(); ++i)
 		{
-			auto const& obj = sceneData.objects[i];
+			ObjectData const& obj = sceneData.objects[i];
 			RHIBottomLevelAccelerationStructure* blas = nullptr;
 			Matrix4 transform = Matrix4::Identity();
 
-			if (obj.type == OBJ_TRIANGLE_MESH)
+			switch (obj.type)
 			{
-				int meshId = AsValue<int32>(obj.meta.x);
-				if (mSceneMeshesBLAS.isValidIndex(meshId) && mSceneMeshesBLAS[meshId].isValid())
+			case EObjectType::Mesh:
 				{
-					blas = mSceneMeshesBLAS[meshId];
-					transform = Matrix4::Scale(obj.meta.y) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+					int meshId = AsValue<int32>(obj.meta.x);
+					if (mSceneMeshesBLAS.isValidIndex(meshId) && mSceneMeshesBLAS[meshId].isValid())
+					{
+						blas = mSceneMeshesBLAS[meshId];
+						transform = Matrix4::Scale(obj.meta.y) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+					}
 				}
-			}
-			else if (obj.type == OBJ_SPHERE)
-			{
-				blas = mSphereBLAS;
-				transform = Matrix4::Scale(obj.meta.x) * Matrix4::Translate(obj.pos);
-			}
-			else if (obj.type == OBJ_CUBE)
-			{
-				blas = mCubeBLAS;
-				transform = Matrix4::Scale(obj.meta) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
-			}
-			else if (obj.type == OBJ_QUAD)
-			{
-				blas = mQuadBLAS;
-				transform = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				break;
+			case EObjectType::Sphere:
+				{
+					blas = mCubeBLAS;
+					transform = Matrix4::Scale(obj.meta.x) * Matrix4::Translate(obj.pos);
+				}
+				break;
+			case EObjectType::Cube:
+				{
+					blas = mCubeBLAS;
+					transform = Matrix4::Scale(obj.meta) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				}
+				break;
+			case EObjectType::Quad:
+				{
+					blas = mQuadBLAS;
+					transform = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				}
+				break;
+			case EObjectType::Disc:
+				{
+					blas = mCubeBLAS;
+					transform = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f) * Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+				}
+				break;
 			}
 
 			if (blas)
 			{
 				RayTracingInstanceDesc desc;
 				desc.instanceID = i;
-				desc.recordIndex = (obj.type == OBJ_SPHERE) ? 1 : ((obj.type == OBJ_CUBE) ? 2 : 0);
+				desc.recordIndex = 0;
 				desc.flags = (uint32)ERayTracingInstanceFlags::ForceOpaque;
-				if (obj.type == OBJ_TRIANGLE_MESH)
+				if (obj.type == EObjectType::Mesh)
 				{
 					desc.flags |= (uint32)ERayTracingInstanceFlags::TriangleCullDisable;
 				}
-				if (obj.type == OBJ_SPHERE || obj.type == OBJ_CUBE)
+				if (obj.type == EObjectType::Sphere || obj.type == EObjectType::Cube || obj.type == EObjectType::Disc)
 				{
 					desc.flags = 0;
+					if (obj.type == EObjectType::Sphere) desc.recordIndex = 1;
+					else if (obj.type == EObjectType::Cube) desc.recordIndex = 2;
+					else if (obj.type == EObjectType::Disc) desc.recordIndex = 3;
 				}
 				desc.transform = transform;
 				desc.blas = blas;
@@ -582,7 +617,7 @@ namespace PathTracing
 				for (int i = 0; i < (int)sceneData.objects.size(); ++i)
 				{
 					auto const& obj = sceneData.objects[i];
-					if (obj.type == OBJ_TRIANGLE_MESH && AsValue<int32>(obj.meta.x) == meshId)
+					if (obj.type == EObjectType::Mesh && AsValue<int32>(obj.meta.x) == meshId)
 					{
 						RHIBottomLevelAccelerationStructure* objBlas = nullptr;
 						int meshIdInObj = AsValue<int32>(obj.meta.x);
@@ -661,6 +696,10 @@ namespace PathTracing
 				initializer.hitGroups[2].closestHitShader = initializer.hitGroups[0].closestHitShader;
 				initializer.hitGroups[2].intersectionShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareCubeIntersection>()->getRHI();
 
+				initializer.hitGroups.resize(4);
+				initializer.hitGroups[3].closestHitShader = initializer.hitGroups[0].closestHitShader;
+				initializer.hitGroups[3].intersectionShader = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareDiscIntersection>()->getRHI();
+
 				// PathPayload: float3 radiance (12), float3 throughput (12), float3 nextOrigin (12), float3 nextDir (12), uint seed (4), bool done (4), float3 normal (12), float dist (4), int matId (4), int objId (4), bool hit (4)
 				// Actually maxPayloadSize should be large enough.
 				initializer.maxPayloadSize = 88;
@@ -705,8 +744,10 @@ namespace PathTracing
 
 				PathTracingHardwareSphereIntersection* sphereIntersection = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareSphereIntersection>();
 				PathTracingHardwareCubeIntersection* cubeIntersection = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareCubeIntersection>();
+				PathTracingHardwareDiscIntersection* discIntersection = ShaderManager::Get().getGlobalShaderT<PathTracingHardwareDiscIntersection>();
 				sphereIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
 				cubeIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
+				discIntersection->setStorageBuffer(commandList, SHADER_PARAM(Objects), *mObjectBuffer.getRHI(), EAccessOp::ReadOnly);
 
 				SetStructuredStorageBuffer(commandList, *closestHitShader, mVertexBuffer);
 				SetStructuredStorageBuffer(commandList, *closestHitShader, mMeshBuffer);
@@ -947,10 +988,8 @@ namespace PathTracing
 			procGeoDesc.vertexCount = 1;
 			procGeoDesc.vertexStride = sizeof(float) * 6;
 			procGeoDesc.bOpaque = true;
-			mSphereBLAS = RHICreateBottomLevelAccelerationStructure(&procGeoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
-			RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mSphereBLAS.get(), nullptr, nullptr);
-
-			mCubeBLAS = mSphereBLAS; // Can use the same unit AABB BLAS, selected by hit group in TLAS
+			mCubeBLAS = RHICreateBottomLevelAccelerationStructure(&procGeoDesc, 1, EAccelerationStructureBuildFlags::PreferFastTrace);
+			RHIBuildAccelerationStructure(RHICommandList::GetImmediateList(), mCubeBLAS.get(), nullptr, nullptr);
 
 			auto BuildTriangleBLAS = [&](Mesh& mesh, RHIBottomLevelAccelerationStructureRef& outBLAS)
 			{

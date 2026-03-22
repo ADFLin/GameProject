@@ -73,16 +73,7 @@ public:
 		FImGui::InitializeRHI();
 
 		importStyle();
-
-		for (auto& info : EditorPanelInfo::GetList())
-		{
-			if (info.desc.bAlwaysCreation)
-			{
-				ActivePanel& panel = findOrAddPanel(info);
-				panel.bOpenRequest = true;
-			}
-		}
-
+		loadPanelSettings();
 		return true;
 	}
 
@@ -104,6 +95,8 @@ public:
 
 	void release() override
 	{
+		savePanelSettings();
+		saveSettings();
 		cleanupPanels();
 		FImGui::ReleaseRHI();
 		if (mGraphics)
@@ -122,32 +115,6 @@ public:
 		ImGui::NewFrame();
 		EditorRenderGloabal::Get().beginFrame();
 		bAdvanceFrame = true;
-
-		if (bPanelInitialized == false)
-		{
-			bPanelInitialized = true;
-
-			for (auto& info : EditorPanelInfo::GetList())
-			{
-				if (info.desc.bAlwaysCreation)
-				{
-					//ActivePanel& panel = findOrAddPanel(info);
-					//panel.bOpenRequest = true;
-				}
-				else
-				{
-#if 0
-					ImGuiID id = ImHashStr(info.desc.name);
-					ImGuiWindowSettings* settings = ImGui::FindWindowSettings(id);
-					if (settings)
-					{
-						ActivePanel& panel = findOrAddPanel(info);
-						//panel.bOpenRequest = !settings->Closed;
-					}
-#endif
-				}
-			}
-		}
 
 		mMainWindow.beginRender();
 
@@ -202,9 +169,6 @@ public:
 			ImGui::End();
 		}
 	}
-
-	bool bPanelInitialized = false;
-
 
 	void render() override
 	{
@@ -669,6 +633,45 @@ public:
 		mCustomizations[type] = std::move(customization);
 	}
 
+	void savePanelSettings()
+	{
+		TArray<std::string> openedPanels;
+		for (auto& panel : mPanels)
+		{
+			if (panel.bOpened && panel.info->desc.bSingleton)
+			{
+				openedPanels.push_back(panel.info->desc.name);
+			}
+		}
+		mSetttings.setStringValues("OpenedPanels", "Editor", openedPanels);
+	}
+
+	void loadPanelSettings()
+	{
+		for (auto& info : EditorPanelInfo::GetList())
+		{
+			if (info.desc.bAlwaysCreation)
+			{
+				ActivePanel& panel = findOrAddPanel(info);
+				panel.bOpenRequest = true;
+			}
+		}
+
+		TArray<std::string> openedPanels;
+		mSetttings.getStringValues("OpenedPanels", "Editor", openedPanels);
+		for (auto const& name : openedPanels)
+		{
+			for (auto& info : EditorPanelInfo::GetList())
+			{
+				if (info.desc.bSingleton && info.desc.name == name)
+				{
+					ActivePanel& panel = findOrAddPanel(info);
+					panel.bOpenRequest = true;
+					break;
+				}
+			}
+		}
+	}
 };
 
 

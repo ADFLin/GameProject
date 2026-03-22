@@ -139,6 +139,33 @@ RayCastResult RayQuad(Ray ray, float2 size)
 	return result;
 }
 
+RayCastResult RayDisc(Ray ray, float2 radius)
+{
+	RayCastResult result;
+	result.bHit = false;
+	result.dist = 1e18;
+	result.hitNormal = float3(0, 0, 1);
+	result.hitPos = 0;
+	result.matId = -1;
+	result.objId = -1;
+
+	// Single sided: ray must hit from front (dir.z < 0)
+	if (ray.dir.z >= -1e-6f) return result;
+
+	float t = -ray.pos.z / ray.dir.z;
+	if (t < 0) return result;
+
+	float3 p = ray.pos + t * ray.dir;
+	float2 p_norm = p.xy / radius;
+	if (dot(p_norm, p_norm) <= 1.0)
+	{
+		result.bHit = true;
+		result.dist = t;
+		result.hitPos = p;
+	}
+	return result;
+}
+
 RayCastResult TraverseMeshBVH(int rootNodeIndex, Ray ray
 #if USE_DEBUG_DISPLAY
 	, inout Stats stats
@@ -522,6 +549,23 @@ void RayObject(int objId, Ray ray, ObjectData object, inout RayCastResult result
 			}
 		}
 		break;
+	case OBJ_DISC:
+		{
+			float2 radius = object.meta.xy;
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+			RayCastResult castResult = RayDisc(rayLocal, radius);
+			if (castResult.bHit && castResult.dist < result.dist)
+			{
+				result = castResult;
+				result.hitPos = QuatRotate(object.rotation, result.hitPos) + object.pos;
+				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
+				result.matId = object.materialId;
+				result.objId = objId;
+			}
+		}
+		break;
 	}
 }
 
@@ -576,6 +620,16 @@ bool RayObjectShadow(int objId, Ray ray, ObjectData object, float maxDist)
 			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
 			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
 			RayCastResult castResult = RayQuad(rayLocal, size);
+			if (castResult.bHit && castResult.dist < maxDist) return true;
+		}
+		break;
+	case OBJ_DISC:
+		{
+			float2 radius = object.meta.xy;
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+			RayCastResult castResult = RayDisc(rayLocal, radius);
 			if (castResult.bHit && castResult.dist < maxDist) return true;
 		}
 		break;
@@ -920,6 +974,9 @@ float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState, inout
 				incomingLight += emissiveColor * rayColor;
 				rayColor *= mat.baseColor;
 				rayStart = rayResult.hitPos + rayDir * 0.001;
+#if USE_MIS
+				pdf_brdf_prev = 1e10f;
+#endif
 			}
 			else
 			{

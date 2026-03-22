@@ -271,7 +271,7 @@ namespace Render
 
 			{
 				GPU_PROFILE("Sphere");
-				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(-10, 5, 5));
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Scale(2.5f) * Matrix4::Translate(-10, 5, 5));
 				{
 					mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList, LinearColor(1, 0, 0, 1));
 				}

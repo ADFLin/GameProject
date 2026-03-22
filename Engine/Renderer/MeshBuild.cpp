@@ -13,8 +13,25 @@
 
 namespace Render
 {
+	using ::Math::Vector2;
+	using ::Math::Vector3;
+
+	struct TileVertex
+	{
+		Vector3 pos;
+		Vector2 uv;
+	};
 
 	bool FMeshBuild::Tile(Mesh& mesh, int tileSize, float len, bool bHaveSkirt)
+	{
+		MeshBuildData buildData;
+		if (!Tile(buildData, mesh.mInputLayoutDesc, tileSize, len, bHaveSkirt))
+			return false;
+
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::Tile(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, int tileSize, float len, bool bHaveSkirt)
 	{
 		int const vLen = (tileSize + 1);
 		int const nV = (bHaveSkirt) ? (vLen * vLen + 4 * vLen) : (vLen * vLen);
@@ -22,39 +39,25 @@ namespace Render
 
 		float d = len / tileSize;
 
-		//need texcoord?
-#define TILE_NEED_TEXCOORD 1
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2, 0);
 
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-#if TILE_NEED_TEXCOORD
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2, 0);
-#endif
-		struct MyVertex
-		{
-			Vector3 pos;
-#if TILE_NEED_TEXCOORD
-			Vector2 uv;
-#endif
-		};
-
-		TArray< MyVertex > v(nV);
-		MyVertex* pV = &v[0];
+		data.vertexData.resize(nV * sizeof(TileVertex));
+		TileVertex* pV = (TileVertex*)data.vertexData.data();
 		float const dtex = 1.0 / tileSize;
 		for (int j = 0; j < vLen; ++j)
 		{
 			for (int i = 0; i < vLen; ++i)
 			{
 				pV->pos = Vector3(i * d, j * d, 0);
-#if TILE_NEED_TEXCOORD
 				pV->uv = Vector2(i * dtex, j * dtex);
-#endif
 				++pV;
 			}
 		}
 
-		TArray< uint32 > idx(nI);
-		uint32* pIdx = &idx[0];
+		data.indexData.resize(nI);
+		uint32* pIdx = data.indexData.data();
 		for (int j = 0; j < tileSize; ++j)
 		{
 			for (int i = 0; i < tileSize; ++i)
@@ -74,38 +77,29 @@ namespace Render
 		//fill skirt
 		if (bHaveSkirt)
 		{
-			MyVertex* pV0 = pV + 0 * vLen;
-			MyVertex* pV1 = pV + 1 * vLen;
-			MyVertex* pV2 = pV + 2 * vLen;
-			MyVertex* pV3 = pV + 3 * vLen;
+			TileVertex* pVStart = (TileVertex*)data.vertexData.data();
+			TileVertex* pV0 = pVStart + vLen * vLen + 0 * vLen;
+			TileVertex* pV1 = pVStart + vLen * vLen + 1 * vLen;
+			TileVertex* pV2 = pVStart + vLen * vLen + 2 * vLen;
+			TileVertex* pV3 = pVStart + vLen * vLen + 3 * vLen;
 			for (int i = 0; i < vLen; ++i)
 			{
 				pV0->pos = Vector3(i * d, 0, -1);
-#if TILE_NEED_TEXCOORD
 				pV0->uv = Vector2(i * dtex, 0);
-#endif
 				++pV0;
 
 				pV1->pos = Vector3(i * d, len, -1);
-#if TILE_NEED_TEXCOORD
 				pV1->uv = Vector2(i * dtex, 1);
-#endif
 				++pV1;
 
 				pV2->pos = Vector3(0, i * d, -1);
-#if TILE_NEED_TEXCOORD
 				pV2->uv = Vector2(0, i * dtex);
-#endif
 				++pV2;
 
 				pV3->pos = Vector3(len, i * d, -1);
-#if TILE_NEED_TEXCOORD
 				pV3->uv = Vector2(1, i * dtex);
-#endif
 				++pV3;
 			}
-
-#undef TILE_NEED_TEXCOORD
 
 			//[(vLen-1)*vLen] [(vLen-1)*vLen + i] 
 			//      y _______________________ [vLen*vLen-1]
@@ -114,7 +108,7 @@ namespace Render
 			//        |                      |
 			//        |________|_____________| x
 			//       [0]      [i]             [vLen-1]
-			uint32* p0 = pIdx + 0 * (6 * tileSize);
+			uint32* p0 = pIdx;
 			uint32* p1 = pIdx + 1 * (6 * tileSize);
 			uint32* p2 = pIdx + 2 * (6 * tileSize);
 			uint32* p3 = pIdx + 3 * (6 * tileSize);
@@ -146,34 +140,42 @@ namespace Render
 			}
 		}
 
-		if (!mesh.createRHIResource(&v[0], nV, &idx[0], nI))
-			return false;
-
 		return true;
 	}
 
 	bool FMeshBuild::UVSphere(Mesh& mesh, float radius, int rings, int sectors)
 	{
+		MeshBuildData buildData;
+		if (!UVSphere(buildData, mesh.mInputLayoutDesc, radius, rings, sectors))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::UVSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int rings, int sectors)
+	{
 		assert(rings > 1);
 		assert(sectors > 0);
 		assert(radius > 0);
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 		// #FIXME: Bug
-		//mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
-		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
+		//inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+		int vertexSize = inputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = (rings - 1) * (sectors + 1) + 2 * sectors;
-		TArray< float > vertex(nV * size);
+		data.vertexData.resize(nV * inputLayoutDesc.getVertexSize());
+		float* vertex = (float*)data.vertexData.data();
 		float const rf = 1.0 / rings;
 		float const sf = 1.0 / sectors;
 		int r, s;
 
-		float* v = &vertex[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
-		float* n = &vertex[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_NORMAL) / sizeof(float);
-		float* t = &vertex[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD) / sizeof(float);
+		float* v = vertex + inputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
+		float* n = vertex + inputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_NORMAL) / sizeof(float);
+		float* t = vertex + inputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD) / sizeof(float);
 
 		for (r = 1; r < rings; ++r)
 		{
@@ -199,22 +201,22 @@ namespace Render
 				n[1] = y;
 				n[2] = z;
 
-				v += size;
-				n += size;
+				v += vertexSize;
+				n += vertexSize;
 
 				t[0] = s * sf;
 				t[1] = r * rf;
-				t += size;
+				t += vertexSize;
 			}
 
 			v[0] = vb[0]; v[1] = vb[1]; v[2] = vb[2];
 			n[0] = nb[0]; n[1] = nb[1]; n[2] = nb[2];
 
-			v += size;
-			n += size;
+			v += vertexSize;
+			n += vertexSize;
 
 			t[0] = 1; t[1] = tb[1];
-			t += size;
+			t += vertexSize;
 		}
 
 		for (int i = 0; i < sectors; ++i)
@@ -222,50 +224,50 @@ namespace Render
 			v[0] = 0; v[1] = 0; v[2] = -radius;
 			n[0] = 0; n[1] = 0; n[2] = -1;
 
-			v += size;
-			n += size;
+			v += vertexSize;
+			n += vertexSize;
 
 			t[0] = i * sf + 0.5 * sf; t[1] = 0;
-			t += size;
+			t += vertexSize;
 		}
 
 		for (int i = 0; i < sectors; ++i)
 		{
 			v[0] = 0; v[1] = 0; v[2] = radius;
 			n[0] = 0; n[1] = 0; n[2] = 1;
-			v += size;
-			n += size;
+			v += vertexSize;
+			n += vertexSize;
 
 			t[0] = i * sf + 0.5 * sf; t[1] = 1;
-			t += size;
+			t += vertexSize;
 		}
 
-		TArray< uint32 > indices((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
-		uint32* i = &indices[0];
+		data.indexData.resize((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
+		uint32* iPtr = data.indexData.data();
 
 		int idxOffset = 0;
 		int idxDown = nV - 2 * sectors;
 		for (s = 0; s < sectors; ++s)
 		{
-			i[0] = idxDown + s;
-			i[2] = idxOffset + s + 1;
-			i[1] = idxOffset + s;
-			i += 3;
+			iPtr[0] = idxDown + s;
+			iPtr[2] = idxOffset + s + 1;
+			iPtr[1] = idxOffset + s;
+			iPtr += 3;
 		}
 		int ringOffset = sectors + 1;
 		for (s = 0; s < sectors; ++s)
 		{
 			for (r = 0; r < rings - 2; ++r)
 			{
-				i[0] = idxOffset + r * ringOffset + s;
-				i[1] = idxOffset + (r + 1) * ringOffset + (s + 1);
-				i[2] = idxOffset + r * ringOffset + (s + 1);
+				iPtr[0] = idxOffset + r * ringOffset + s;
+				iPtr[1] = idxOffset + (r + 1) * ringOffset + (s + 1);
+				iPtr[2] = idxOffset + r * ringOffset + (s + 1);
 
-				i[3] = idxOffset + i[1];
-				i[4] = idxOffset + i[0];
-				i[5] = idxOffset + (r + 1) * ringOffset + s;
+				iPtr[3] = idxOffset + iPtr[1];
+				iPtr[4] = idxOffset + iPtr[0];
+				iPtr[5] = idxOffset + (r + 1) * ringOffset + s;
 
-				i += 6;
+				iPtr += 6;
 			}
 		}
 
@@ -273,25 +275,35 @@ namespace Render
 		idxOffset = idxDown - ringOffset;
 		for (s = 0; s < sectors; ++s)
 		{
-			i[0] = idxTop + s;
-			i[1] = idxOffset + s + 1;
-			i[2] = idxOffset + s;
-			i += 3;
+			iPtr[0] = idxTop + s;
+			iPtr[1] = idxOffset + s + 1;
+			iPtr[2] = idxOffset + s;
+			iPtr += 3;
 		}
 
-		//FillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
-		mesh.mType = EPrimitive::TriangleList;
-		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size()))
-			return false;
-
+		//FillTangent_TriangleList(inputLayoutDesc, (float*)data.vertexData.data(), nV, data.indexData.data(), data.indexData.size());
 		return true;
 	}
 
 	bool FMeshBuild::SkyBox(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float3);
+		MeshBuildData buildData;
+		if (!SkyBox(buildData, mesh.mInputLayoutDesc))
+			return false;
+
+#if 0
+		mesh.mType = EPrimitive::Quad;
+#else
+		mesh.mType = EPrimitive::TriangleList;
+#endif
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::SkyBox(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float3);
 
 		Vector3 vertices[] =
 		{
@@ -315,32 +327,40 @@ namespace Render
 			4 , 5 , 7 , 6 ,
 		};
 
-		if (0)
-		{
-			if (!mesh.createRHIResource(&vertices[0], 8, &indices[0], 4 * 6))
-				return false;
+#if 0
+		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+#else
+		TArray< uint32 > tempIndices;
+		int numTriangles;
+		MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, indices, 4 * 6, tempIndices, numTriangles);
 
-			mesh.mType = EPrimitive::Quad;
-		}
-		else
-		{
-			TArray< uint32 > tempIndices;
-			int numTriangles;
-			MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, indices, 4 * 6, tempIndices, numTriangles);
-			if (!mesh.createRHIResource(&vertices[0], 8, tempIndices.data(), tempIndices.size()))
-				return false;
-
-			mesh.mType = EPrimitive::TriangleList;
-		}
+		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indexData.assign(tempIndices.begin(), tempIndices.end());
+#endif
 		return true;
 	}
 	bool FMeshBuild::CubeShare(Mesh& mesh, float halfLen)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+		MeshBuildData buildData;
+		if (!CubeShare(buildData, mesh.mInputLayoutDesc, halfLen))
+			return false;
+
+#if 1
+		mesh.mType = EPrimitive::TriangleList;
+#else
+		mesh.mType = EPrimitive::Quad;
+#endif
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::CubeShare(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -362,6 +382,7 @@ namespace Render
 			{ halfLen * Vector3(-1,-1,1),Vector3(-1,0,0),{ 0,1 } },
 		};
 
+#if 1
 		uint32 indices[] =
 		{
 			0 , 1 , 2 , 0 , 2 , 3 , //x
@@ -374,20 +395,50 @@ namespace Render
 			3 , 2 , 6 ,3 , 6 , 5 , //-z
 		};
 
-		MeshUtility::FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
-		mesh.mType = EPrimitive::TriangleList;
-		if (!mesh.createRHIResource(&v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices)))
-			return false;
+		MeshUtility::FillNormalTangent_TriangleList(inputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
+		data.vertexData.assign((uint8*)v, (uint8*)(v + ARRAY_SIZE(v)));
+		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+#else
+		uint32 indices[] =
+		{
+			0 , 1 , 2 , 3 , //x
+			4 , 7 , 6 , 5 , //-x
+
+			0 , 4 , 5 , 1, //y
+			2 , 6 , 7 , 3, //-y
+
+			0 , 3 , 7 , 4 , // z
+			1 , 5 , 6 , 2 , //-z
+		};
+
+		MeshUtility::FillNormalTangent_QuadList(inputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
+		data.vertexData.assign((uint8*)v, (uint8*)(v + ARRAY_SIZE(v)));
+		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+#endif
 		return true;
 	}
 
 	bool FMeshBuild::CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+		MeshBuildData buildData;
+		if (!CubeOffset(buildData, mesh.mInputLayoutDesc, halfLen, offset))
+			return false;
+
+#if 1
+		mesh.mType = EPrimitive::TriangleList;
+#else
+		mesh.mType = EPrimitive::Quad;
+#endif
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::CubeOffset(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, Vector3 const& offset)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -432,6 +483,7 @@ namespace Render
 		{
 			v.pos += offset;
 		}
+
 #if 1
 		uint32 indices[] =
 		{
@@ -443,10 +495,9 @@ namespace Render
 			20 , 21 , 22 , 20 , 22 , 23 ,
 		};
 
-		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6);
-		mesh.mType = EPrimitive::TriangleList;
-		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 6))
-			return false;
+		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6);
+		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
 #else
 		uint32 indices[] =
 		{
@@ -458,10 +509,9 @@ namespace Render
 			20 , 21 , 22 , 23 ,
 		};
 
-		MeshUtility::FillTangent_QuadList(mesh.mInputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4);
-		mesh.mType = EPrimitive::Quad;
-		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 4))
-			return false;
+		MeshUtility::FillTangent_QuadList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4);
+		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
 #endif
 
 		return true;
@@ -469,8 +519,18 @@ namespace Render
 
 	bool FMeshBuild::CubeLineOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		MeshBuildData buildData;
+		if (!CubeLineOffset(buildData, mesh.mInputLayoutDesc, halfLen, offset))
+			return false;
+
+		mesh.mType = EPrimitive::LineList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::CubeLineOffset(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, Vector3 const& offset)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -499,32 +559,46 @@ namespace Render
 			4,5, 5,6, 6,7, 7,4,
 			0,4, 1,5, 2,6, 3,7,
 		};
-		
-		mesh.mType = EPrimitive::LineList;
-		if (!mesh.createRHIResource(&vertices[0], ARRAY_SIZE(vertices), &indices[0], ARRAY_SIZE(indices)))
-			return false;
+
+		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
 
 		return true;
 	}
 
-	bool FMeshBuild::Cube(Mesh& mesh, float halfLen /*= 1.0f*/)
+	bool FMeshBuild::Cube(Mesh& mesh, float halfLen)
 	{
 		return CubeOffset(mesh, halfLen, Vector3::Zero());
 	}
 
+	bool FMeshBuild::Cube(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen)
+	{
+		return CubeOffset(data, inputLayoutDesc, halfLen, Vector3::Zero());
+	}
+
 	bool FMeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
-		
-		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
+		MeshBuildData buildData;
+		if (!Doughnut(buildData, mesh.mInputLayoutDesc, radius, ringRadius, rings, sectors))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::Doughnut(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, float ringRadius, int rings, int sectors)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+
+		int vertexSize = inputLayoutDesc.getVertexSize() / sizeof(float);
 		int nV = rings * sectors;
-		TArray< float > vertex(nV * size);
-		
-		float* pVertexData = &vertex[0];
-		auto GetVertexPtr = [&](int s, int r) { return pVertexData + (s * rings + r) * size; };
+		data.vertexData.resize(nV * inputLayoutDesc.getVertexSize());
+
+		float* pVertexData = (float*)data.vertexData.data();
+		auto GetVertexPtr = [&](int s, int r) { return pVertexData + (s * rings + r) * vertexSize; };
 
 		float sf = 2 * Math::PI / sectors;
 		float rf = 2 * Math::PI / rings;
@@ -556,8 +630,8 @@ namespace Render
 			}
 		}
 
-		TArray< uint32 > indices;
-		indices.reserve(sectors * rings * 6);
+		data.indexData.resize(sectors * rings * 6);
+		uint32* pIdx = data.indexData.data();
 		for (int s = 0; s < sectors; ++s)
 		{
 			int s_next = (s + 1) % sectors;
@@ -570,18 +644,16 @@ namespace Render
 				uint32 idx01 = s * rings + r_next;
 				uint32 idx11 = s_next * rings + r_next;
 
-				indices.push_back(i00);
-				indices.push_back(idx10);
-				indices.push_back(idx11);
+				pIdx[0] = i00;
+				pIdx[1] = idx10;
+				pIdx[2] = idx11;
 
-				indices.push_back(i00);
-				indices.push_back(idx11);
-				indices.push_back(idx01);
+				pIdx[3] = i00;
+				pIdx[4] = idx11;
+				pIdx[5] = idx01;
+				pIdx += 6;
 			}
 		}
-
-		if (!mesh.createRHIResource(&vertex[0], nV, indices.data(), (int)indices.size()))
-			return false;
 
 		return true;
 	}
@@ -589,11 +661,21 @@ namespace Render
 
 	bool FMeshBuild::Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+		MeshBuildData buildData;
+		if (!Plane(buildData, mesh.mInputLayoutDesc, offset, normal, dirY, size, texFactor))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::Plane(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
 
 		Vector3 axisZ = Math::GetNormal(normal);
 		Vector3 axisY = dirY - axisZ * (axisZ.dot(dirY));
@@ -619,16 +701,85 @@ namespace Render
 		};
 
 		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &idx[0], 6);
 
-		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 4, &idx[0], 6);
-		if (!mesh.createRHIResource(&v[0], 4, &idx[0], 6, true))
+		data.vertexData.assign((uint8*)v, (uint8*)(v + 4));
+		data.indexData.assign(idx, idx + 6);
+
+		return true;
+	}
+
+
+	bool FMeshBuild::Disc(Mesh& mesh, float radius, int sectors)
+	{
+		MeshBuildData buildData;
+		if (!Disc(buildData, mesh.mInputLayoutDesc, radius, sectors))
 			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::Disc(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int sectors)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+
+		int nV = sectors + 1;
+		struct MyVertex
+		{
+			Vector3 pos;
+			Vector3 normal;
+			Vector2 uv;
+			Vector4 tangent;
+		};
+		data.vertexData.resize(nV * sizeof(MyVertex));
+		MyVertex* v = (MyVertex*)data.vertexData.data();
+
+		// Center
+		v[0].pos = Vector3::Zero();
+		v[0].normal = Vector3(0, 0, 1);
+		v[0].uv = Vector2(0.5f, 0.5f);
+		v[0].tangent = Vector4(1, 0, 0, 1);
+
+		for (int i = 0; i < sectors; ++i)
+		{
+			float angle = 2 * Math::PI * i / sectors;
+			float s, c;
+			Math::SinCos(angle, s, c);
+			v[i + 1].pos = Vector3(radius * c, radius * s, 0);
+			v[i + 1].normal = Vector3(0, 0, 1);
+			v[i + 1].uv = Vector2(0.5f + 0.5f * c, 0.5f + 0.5f * s);
+			v[i + 1].tangent = Vector4(1, 0, 0, 1);
+		}
+
+		data.indexData.resize(3 * sectors);
+		uint32* idx = data.indexData.data();
+		for (int i = 0; i < sectors; ++i)
+		{
+			idx[3 * i] = 0;
+			idx[3 * i + 1] = i + 1;
+			idx[3 * i + 2] = (i + 1 == sectors) ? 1 : i + 2;
+		}
 
 		return true;
 	}
 
 
 	bool FMeshBuild::SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
+	{
+		MeshBuildData buildData;
+		if (!SimpleSkin(buildData, mesh.mInputLayoutDesc, width, height, nx, ny))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::SimpleSkin(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float width, float height, int nx, int ny)
 	{
 		struct FVertex
 		{
@@ -639,29 +790,27 @@ namespace Render
 			uint8   boneIndices[4];
 			Vector4 blendWeight;
 		};
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_BONEINDEX, EVertex::UByte4);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_BLENDWEIGHT, EVertex::Float4);
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_BONEINDEX, EVertex::UByte4);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_BLENDWEIGHT, EVertex::Float4);
 
 		float du = 1.0 / (nx - 1);
 		float dv = 1.0 / (ny - 1);
 		float dw = width / (nx - 1);
 		float dh = height / (ny - 1);
 
-		TArray< FVertex > vertices;
-		vertices.resize(nx*ny);
-
-		FVertex* pDataV = &vertices[0];
+		data.vertexData.resize(nx * ny * sizeof(FVertex));
+		FVertex* pDataV = (FVertex*)data.vertexData.data();
 		for (int i = 0; i < nx; ++i)
 		{
 			for (int j = 0; j < ny; ++j)
 			{
 				FVertex& v = *pDataV++;
-				v.pos = Vector3(i*dw - 0.5 * width, j*dh - 0.5 * height, 0);
+				v.pos = Vector3(i * dw - 0.5 * width, j * dh - 0.5 * height, 0);
 				v.normal = Vector3(0, 0, 1);
 				v.tangent = Vector4(1, 0, 0, 1);
 				v.uv[0] = i * du;
@@ -675,10 +824,8 @@ namespace Render
 			}
 		}
 
-		TArray< uint32 > indices;
-		indices.resize(6 * (nx - 1) * (ny - 1));
-
-		uint32* pIdx = &indices[0];
+		data.indexData.resize(6 * (nx - 1) * (ny - 1));
+		uint32* pIdx = data.indexData.data();
 
 		for (int i = 0; i < nx - 1; ++i)
 		{
@@ -693,9 +840,6 @@ namespace Render
 				pIdx += 6;
 			}
 		}
-
-		if (!mesh.createRHIResource(&vertices[0], vertices.size(), &indices[0], indices.size()))
-			return false;
 
 		return true;
 	}
@@ -1031,11 +1175,21 @@ namespace Render
 
 	bool FMeshBuild::PlaneZ(Mesh& mesh, float halfLen, float texFactor)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
+		MeshBuildData buildData;
+		if (!PlaneZ(buildData, mesh.mInputLayoutDesc, halfLen, texFactor))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::PlaneZ(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, float texFactor)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
 		struct MyVertex
 		{
 			Vector3 v;
@@ -1053,26 +1207,38 @@ namespace Render
 
 		uint32 indices[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 4, &indices[0], 6);
-		if (!mesh.createRHIResource(&v[0], 4, &indices[0], 6, true))
-			return false;
+		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &indices[0], 6);
+
+		data.vertexData.assign((uint8*)v, (uint8*)(v + 4));
+		data.indexData.assign(indices, indices + 6);
 
 		return true;
 	}
 
 	bool FMeshBuild::Cone(Mesh& mesh, float height, float radius, int numSide)
 	{
+		MeshBuildData buildData;
+		if (!Cone(buildData, mesh.mInputLayoutDesc, height, radius, numSide))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::Cone(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float height, float radius, int numSide)
+	{
 		// Tip at (0, 0, height), base at Z=0 with given radius
 
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 
 		struct MyVertex { Vector3 pos; Vector3 normal; };
 
 		// Side base ring + tip + bottom cap ring + bottom center
 		int numVerts = numSide * 2 + 2;
-		TArray<MyVertex> verts(numVerts);
+		data.vertexData.resize(numVerts * sizeof(MyVertex));
+		MyVertex* verts = (MyVertex*)data.vertexData.data();
 
 		float rf = 2.0f * Math::PI / numSide;
 
@@ -1081,12 +1247,12 @@ namespace Render
 		{
 			float s, c;
 			Math::SinCos(i * rf, s, c);
-			verts[i].pos    = Vector3(radius * c, radius * s, 0.0f);
+			verts[i].pos = Vector3(radius * c, radius * s, 0.0f);
 			Vector3 outward(c, s, 0.5f);
 			verts[i].normal = outward.getNormal();
 		}
 		// Tip vertex
-		verts[numSide].pos    = Vector3(0, 0, height);
+		verts[numSide].pos = Vector3(0, 0, height);
 		verts[numSide].normal = Vector3(0, 0, 1);
 
 		// Bottom cap: duplicate base ring with -Z normal
@@ -1094,39 +1260,37 @@ namespace Render
 		{
 			float s, c;
 			Math::SinCos(i * rf, s, c);
-			verts[numSide + 1 + i].pos    = Vector3(radius * c, radius * s, 0.0f);
+			verts[numSide + 1 + i].pos = Vector3(radius * c, radius * s, 0.0f);
 			verts[numSide + 1 + i].normal = Vector3(0, 0, -1);
 		}
 		// Bottom center
-		verts[numSide * 2 + 1].pos    = Vector3(0, 0, 0);
+		verts[numSide * 2 + 1].pos = Vector3(0, 0, 0);
 		verts[numSide * 2 + 1].normal = Vector3(0, 0, -1);
 
-		TArray<uint32> indices;
-		indices.reserve(numSide * 6);
+		data.indexData.resize(numSide * 6);
+		uint32* iPtr = data.indexData.data();
 
 		int tipIdx = numSide;
 		// Side triangles
 		for (int i = 0; i < numSide; ++i)
 		{
 			int next = (i + 1) % numSide;
-			indices.push_back(i);
-			indices.push_back(next);
-			indices.push_back(tipIdx);
+			iPtr[0] = i;
+			iPtr[1] = next;
+			iPtr[2] = tipIdx;
+			iPtr += 3;
 		}
 		// Bottom cap triangles
-		int centerIdx  = numSide * 2 + 1;
+		int centerIdx = numSide * 2 + 1;
 		int baseOffset = numSide + 1;
 		for (int i = 0; i < numSide; ++i)
 		{
 			int next = (i + 1) % numSide;
-			indices.push_back(baseOffset + next);
-			indices.push_back(baseOffset + i);
-			indices.push_back(centerIdx);
+			iPtr[0] = baseOffset + next;
+			iPtr[1] = baseOffset + i;
+			iPtr[2] = centerIdx;
+			iPtr += 3;
 		}
-
-		mesh.mType = EPrimitive::TriangleList;
-		if (!mesh.createRHIResource(&verts[0], numVerts, &indices[0], (int)indices.size()))
-			return false;
 
 		return true;
 	}
@@ -1190,7 +1354,7 @@ namespace Render
 			return idx;
 		}
 
-		bool build(Mesh& mesh, float radius, int numDiv)
+		bool build(MeshBuildData& data, float radius, int numDiv)
 		{
 			init(numDiv, radius);
 
@@ -1223,9 +1387,8 @@ namespace Render
 				numFace *= 4;
 			}
 
-			if (!mesh.createRHIResource(&mVertices[0], mNumV, pIdx, nIdx))
-				return false;
-
+			data.vertexData.assign((uint8*)mVertices.data(), (uint8*)(mVertices.data() + mNumV));
+			data.indexData.assign(pIdx, pIdx + nIdx);
 			return true;
 		}
 		int    mNumV;
@@ -1253,12 +1416,22 @@ namespace Render
 
 	bool FMeshBuild::IcoSphere(Mesh& mesh, float radius, int numDiv)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		MeshBuildData buildData;
+		if (!IcoSphere(buildData, mesh.mInputLayoutDesc, radius, numDiv))
+			return false;
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::IcoSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int numDiv)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 
 		TIcoSphereBuilder< VertexTraits_PN > builder;
-		return builder.build(mesh, radius, numDiv);
+		return builder.build(data, radius, numDiv);
 	}
 
 
@@ -1419,7 +1592,16 @@ namespace Render
 
 	bool FMeshBuild::LightSphere(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		MeshBuildData buildData;
+		if (!LightSphere(buildData, mesh.mInputLayoutDesc))
+			return false;
+
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::LightSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	{
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		struct VertexTraits
 		{
 			struct Type
@@ -1432,22 +1614,31 @@ namespace Render
 			}
 		};
 		TIcoSphereBuilder< VertexTraits > builder;
-		return builder.build(mesh, 1.00, 4);
+		return builder.build(data, 1.00, 4);
 	}
 
 	bool FMeshBuild::LightCone(Mesh& mesh)
 	{
-		int numSide = 96;
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		MeshBuildData buildData;
+		if (!LightCone(buildData, mesh.mInputLayoutDesc))
+			return false;
 
-		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::LightCone(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	{
+		int numSide = 96;
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+
+		int vertexSize = inputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = numSide + 2;
-		TArray< float > vertices(nV * size);
+		data.vertexData.resize(nV * inputLayoutDesc.getVertexSize());
 		float const sf = 2 * Math::PI / numSide;
 
-		float* v = &vertices[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
+		float* v = (float*)data.vertexData.data() + inputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
 
 		for (int i = 0; i < numSide; ++i)
 		{
@@ -1457,7 +1648,7 @@ namespace Render
 			v[1] = s;
 			v[2] = 1.0f;
 
-			v += size;
+			v += vertexSize;
 		}
 
 		{
@@ -1465,16 +1656,16 @@ namespace Render
 			v[1] = 0;
 			v[2] = 1.0f;
 
-			v += size;
+			v += vertexSize;
 
 			v[0] = 0;
 			v[1] = 0;
 			v[2] = 0;
 
-			v += size;
+			v += vertexSize;
 		}
-		TArray< uint32 > indices(2 * numSide * 3);
-		uint32* idx = &indices[0];
+		data.indexData.resize(2 * numSide * 3);
+		uint32* idx = data.indexData.data();
 
 		int idxPrev = numSide - 1;
 		int idxA = numSide;
@@ -1493,17 +1684,23 @@ namespace Render
 			idxPrev = i;
 		}
 
-		if (!mesh.createRHIResource(&vertices[0], nV, &indices[0], indices.size()))
-			return false;
-
 		return true;
 	}
 
 
 	bool FMeshBuild::SpritePlane(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.clear();
-		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		MeshBuildData buildData;
+		if (!SpritePlane(buildData, mesh.mInputLayoutDesc))
+			return false;
+
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::SpritePlane(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 
 		Vector3 v[] =
 		{
@@ -1513,8 +1710,9 @@ namespace Render
 			Vector3(1,-1,0),
 		};
 		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-		if (!mesh.createRHIResource(&v[0], 4, &idx[0], 6))
-			return false;
+
+		data.vertexData.assign((uint8*)v, (uint8*)(v + 4));
+		data.indexData.assign(idx, idx + 6);
 
 		return true;
 	}

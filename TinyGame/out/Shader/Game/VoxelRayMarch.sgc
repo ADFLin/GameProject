@@ -1,0 +1,131 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+struct VSOutputParameters
+{
+    float3 RayOrigin MEMBER_OUT(TEXCOORD0);
+    float3 RayDir    MEMBER_OUT(TEXCOORD1);
+};
+
+uniform float4x4 LocalToWorld;
+#if VERTEX_SHADER
+
+uniform float4x4 WorldToLocal;
+
+VS_ENTRY_START(MainVS)
+    VS_INPUT(float3 Pos, ATTRIBUTE_POSITION)
+    VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+    float4 worldPos = mul(LocalToWorld, float4(Pos, 1));
+    SvPosition = mul(View.worldToClip, worldPos);
+    
+    float3 cameraLocalPos = mul(WorldToLocal, float4(View.worldPos, 1)).xyz;
+    VSOutput.RayOrigin = cameraLocalPos;
+    VSOutput.RayDir = Pos - cameraLocalPos; 
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+uniform int3   VoxelDims;
+uniform float4 VoxelColor;
+
+StructuredBuffer<uint> VoxelData;
+
+PS_ENTRY_START(MainPS)
+    PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+    PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+    float3 ro = VSOutput.RayOrigin;
+    float3 rd = normalize(VSOutput.RayDir);
+    
+    const float3 minBBox = float3(-0.5, -0.5, -0.5);
+    const float3 maxBBox = float3(0.5, 0.5, 0.5);
+    const float3 totalDim = float3(VoxelDims);
+
+    float3 invRd = 1.0 / rd;
+    float3 t0 = (minBBox - ro) * invRd;
+    float3 t1 = (maxBBox - ro) * invRd;
+    float3 tmin = min(t0, t1);
+    float3 tmax = max(t0, t1);
+    float fmin = max(tmin.x, max(tmin.y, tmin.z));
+    float fmax = min(tmax.x, min(tmax.y, tmax.z));
+    
+    if (fmax < fmin || fmax < 0) discard;
+    
+    float tStart = max(0.0, fmin);
+    float3 pLocal = ro + rd * tStart;
+    float3 uvw = (pLocal - minBBox) / (maxBBox - minBBox);
+    float3 pGrid = clamp(uvw * totalDim, 0.0, totalDim - 0.0001);
+    
+    int3 mapPos = int3(floor(pGrid));
+    float3 rdGrid = rd * totalDim; 
+    
+    float3 deltaDist = abs(1.0 / rdGrid);
+    int3 rayStep = int3(sign(rdGrid));
+    
+    float3 sideDist;
+    sideDist.x = (rdGrid.x > 0) ? (floor(pGrid.x + 1.0) - pGrid.x) : (pGrid.x - floor(pGrid.x));
+    sideDist.y = (rdGrid.y > 0) ? (floor(pGrid.y + 1.0) - pGrid.y) : (pGrid.y - floor(pGrid.y));
+    sideDist.z = (rdGrid.z > 0) ? (floor(pGrid.z + 1.0) - pGrid.z) : (pGrid.z - floor(pGrid.z));
+    sideDist *= deltaDist;
+
+    int hitSide = 0;
+    bool bHit = false;
+
+    for(int i = 0; i < 350; ++i)
+    {
+        uint val = VoxelData[mapPos.x + VoxelDims.x * (mapPos.y + VoxelDims.y * mapPos.z)];
+        if (val > 0)
+        {
+            bHit = true;
+            break;
+        }
+
+        if (sideDist.x < sideDist.y && sideDist.x < sideDist.z)
+        {
+            sideDist.x += deltaDist.x;
+            mapPos.x += rayStep.x;
+            hitSide = 0;
+        }
+        else if (sideDist.y < sideDist.z)
+        {
+            sideDist.y += deltaDist.y;
+            mapPos.y += rayStep.y;
+            hitSide = 1;
+        }
+        else
+        {
+            sideDist.z += deltaDist.z;
+            mapPos.z += rayStep.z;
+            hitSide = 2;
+        }
+
+        if (any(mapPos < 0) || any(mapPos >= VoxelDims)) break;
+    }
+
+    if (bHit)
+    {
+        // Calculate World Space Normal
+        float3 N_local = float3(0,0,0);
+        if (hitSide == 0) N_local.x = -rayStep.x;
+        else if (hitSide == 1) N_local.y = -rayStep.y;
+        else N_local.z = -rayStep.z;
+        
+        float3 N_world = normalize(mul(LocalToWorld, float4(N_local, 0)).xyz);
+        float tHit = min(sideDist.x, min(sideDist.y, sideDist.z));
+        float3 pHitLocal = ro + rd * (max(tStart, 0.0) + (sideDist[hitSide] - deltaDist[hitSide])); 
+        float3 pHitWorld = mul(LocalToWorld, float4(pHitLocal, 1)).xyz;
+        
+        // Match Voxel.sgc debug output
+        OutColor = float4(pHitWorld, 1);
+        return;
+    }
+
+    discard;
+}
+
+#endif

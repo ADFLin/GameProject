@@ -111,19 +111,24 @@ namespace PathTracing
 
 			switch (data->type)
 			{
-			case OBJ_SPHERE:
-				builder.addProperty("meta.x", "Radius");
+			case EObjectType::Sphere:
+				builder.addProperty(Reflection::PropertyCollector::GetProperty<float>(), &data->meta.x, "Radius");
 				builder.hideProperty("meta");
 				break;
-			case OBJ_CUBE:
+			case EObjectType::Cube:
 				builder.addProperty("meta", "Half Size");
 				break;
-			case OBJ_QUAD:
-				builder.addProperty("meta.x", "Width");
-				builder.addProperty("meta.y", "Height");
+			case EObjectType::Quad:
+				builder.addProperty(Reflection::PropertyCollector::GetProperty<float>(), &data->meta.x, "Width");
+				builder.addProperty(Reflection::PropertyCollector::GetProperty<float>(), &data->meta.y, "Height");
 				builder.hideProperty("meta");
 				break;
-			case OBJ_TRIANGLE_MESH:
+			case EObjectType::Disc:
+				builder.addProperty(Reflection::PropertyCollector::GetProperty<float>(), &data->meta.x, "Width");
+				builder.addProperty(Reflection::PropertyCollector::GetProperty<float>(), &data->meta.y, "Height");
+				builder.hideProperty("meta");
+				break;
+			case EObjectType::Mesh:
 				builder.addProperty(Reflection::PropertyCollector::GetProperty<int>(), &data->meta.x, "Mesh ID");
 				builder.addProperty("meta.y", "Scale");
 				builder.hideProperty("meta");
@@ -371,19 +376,23 @@ namespace PathTracing
 			Mesh* mesh = nullptr;
 			switch (obj.type)
 			{
-			case OBJ_CUBE:
+			case EObjectType::Cube:
 				modelScale = Matrix4::Scale(obj.meta); 
 				mesh = &mContext->getMesh(SimpleMeshId::Box); 
 				break;
-			case OBJ_SPHERE: 
-				modelScale = Matrix4::Scale(obj.meta.x / 2.5f); 
+			case EObjectType::Sphere: 
+				modelScale = Matrix4::Scale(obj.meta.x); 
 				mesh = &mContext->getMesh(SimpleMeshId::Sphere); 
 				break;
-			case OBJ_QUAD:
-				modelScale = Matrix4::Scale(obj.meta / 10.0f );
+			case EObjectType::Quad:
+				modelScale = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f);
 				mesh = &mContext->getMesh(SimpleMeshId::Plane);
 				break;
-			case OBJ_TRIANGLE_MESH:
+			case EObjectType::Disc:
+				modelScale = Matrix4::Scale(obj.meta.x, obj.meta.y, 1.0f);
+				mesh = &mContext->getMesh(SimpleMeshId::Disc);
+				break;
+			case EObjectType::Mesh:
 				{
 					modelScale = Matrix4::Scale(obj.meta.y);
 					int meshId = AsValue<int32>(obj.meta.x);
@@ -489,6 +498,54 @@ namespace PathTracing
 
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+
+		if (mSelectedObjectId != INDEX_NONE)
+		{
+			auto const& obj = sceneData.objects[mSelectedObjectId];
+			auto const& mat = sceneData.materials[obj.materialId];
+
+			if ((mat.emissiveColor.r > 0.1f || mat.emissiveColor.g > 0.1f || mat.emissiveColor.b > 0.1f) && (obj.type == EObjectType::Quad || obj.type == EObjectType::Disc))
+			{
+				float visualDist = 4.0f; // Fixed distance for better visibility first
+				// Map cosAngle from UI (interpreted as Cosine) to Angle
+				float cosAngle = Math::Max(mat.emissiveAngle, 0.05f);
+				float angle = Math::ACos(cosAngle);
+
+				float radius = visualDist * Math::Tan(angle);								// Manual vertices are already shaped. World matrix only needs to move it to the object.
+				Matrix4 world = Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
+
+				RHISetFixedShaderPipelineState(commandList, world * AdjustProjectionMatrixForRHI(view.worldToClip), LinearColor(1, 1, 0, 1.0f));
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Solid>::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				
+				// Draw wireframe cone manually using RenderRT (LineList)
+				{
+					int const numSides = 48;
+					TArray<Vector3> lines;
+					lines.reserve(numSides * 4);
+					Vector3 tip(0, 0, 0);
+					for (int i = 0; i < numSides; ++i)
+					{
+						float s, c, s1, c1;
+						Math::SinCos(2 * Math::PI * i / numSides, s, c);
+						Math::SinCos(2 * Math::PI * (i + 1) / numSides, s1, c1);
+						Vector3 p0(radius * c, radius * s, visualDist);
+						Vector3 p1(radius * c1, radius * s1, visualDist);
+						
+						// Circle segment
+						lines.push_back(p0); lines.push_back(p1);
+						// Side line
+						if (i % 4 == 0) // Reduce side lines for clarity
+						{
+							lines.push_back(tip); lines.push_back(p0);
+						}
+					}
+					TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineList, lines.data(), (int)lines.size());
+				}
+
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+			}
+		}
 		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 		if (mSelectedObjectId != INDEX_NONE)
@@ -504,11 +561,9 @@ namespace PathTracing
 
 		RHIEndRender(false);
 
-		//GRenderTargetPool.freeUsedElement(colorRT);
-		//GRenderTargetPool.freeUsedElement(depthRT);
+		GRenderTargetPool.freeUsedElement(colorRT);
+		GRenderTargetPool.freeUsedElement(depthRT);
 
-		// Keep mPickingRT around by clearing its "used" status if necessary?
-		// Actually, let's keep the ref and hope it's not reused until next frame.
 	}
 
 	void PathTracingEditor::onViewportMouseEvent(MouseMsg const& msg)
@@ -670,11 +725,11 @@ namespace PathTracing
 					int metaIndex = INDEX_NONE;
 					switch (obj.type)
 					{
-					case OBJ_SPHERE: metaIndex = 0; break;
-					case OBJ_CUBE: metaIndex = mGizmoAxis; break;
-					case OBJ_QUAD: metaIndex = mGizmoAxis; break;
-					case OBJ_DISC: metaIndex = mGizmoAxis; break;
-					case OBJ_TRIANGLE_MESH: metaIndex = 1; break;
+					case EObjectType::Sphere: metaIndex = 0; break;
+					case EObjectType::Cube: metaIndex = mGizmoAxis; break;
+					case EObjectType::Quad: metaIndex = mGizmoAxis; break;
+					case EObjectType::Disc: metaIndex = mGizmoAxis; break;
+					case EObjectType::Mesh: metaIndex = 1; break;
 					}
 					if (metaIndex != INDEX_NONE)
 					{
@@ -799,7 +854,7 @@ namespace PathTracing
 				PropertyViewHandle hMat = mDetailView->addStruct(sceneData.materials[object.materialId]);
 				mDetailView->addCallback(hMat, OnPropertyChange);
 
-				if (sceneData.objects[mSelectedObjectId].type == OBJ_TRIANGLE_MESH)
+				if (sceneData.objects[mSelectedObjectId].type == EObjectType::Mesh)
 				{
 					int meshId = AsValue<int32>(sceneData.objects[mSelectedObjectId].meta.x);
 					if (sceneData.meshInfos.isValidIndex(meshId))

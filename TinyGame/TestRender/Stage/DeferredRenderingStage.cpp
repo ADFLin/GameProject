@@ -528,7 +528,7 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
-			float radius = 0.15f;
+			float radius = 0.15f * 2.5f;
 			view.setupShader(commandList, *mProgSphere);
 			mProgSphere->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), Matrix4::Identity());
 

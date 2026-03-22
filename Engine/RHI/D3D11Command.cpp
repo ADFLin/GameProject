@@ -613,7 +613,7 @@ namespace Render
 		if (creationFlags & BCF_CreateSRV)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
-			desc.Format = DXGI_FORMAT_UNKNOWN;
+			desc.Format = (creationFlags & BCF_Structured) ? DXGI_FORMAT_UNKNOWN : DXGI_FORMAT_R32_UINT;
 			desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 			desc.Buffer.FirstElement = 0;
 			desc.Buffer.NumElements = numElements;
@@ -674,6 +674,10 @@ namespace Render
 		if (desc.creationFlags & BCF_Structured)
 		{
 			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+			if (desc.creationFlags & BCF_UsageVertex)
+			{
+				bufferDesc.BindFlags &= ~D3D11_BIND_VERTEX_BUFFER;
+			}
 			bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 			bufferDesc.StructureByteStride = desc.elementSize;
 		}

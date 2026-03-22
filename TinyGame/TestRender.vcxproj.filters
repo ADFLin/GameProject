@@ -193,5 +193,8 @@
     <ClCompile Include="TestRender\Stage\MeshImportTest.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\VoxelRenderingStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

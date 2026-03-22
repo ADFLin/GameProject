@@ -5,6 +5,7 @@
 
 #include "Meta/Select.h"
 #include "Meta/MetaBase.h"
+#include "ReflectionCollect.h"
 
 #include <algorithm>
 
@@ -93,6 +94,11 @@ public:
 	}
 public:
 	T x,y;
+
+	REFLECT_STRUCT_BEGIN(TVector2)
+		REF_PROPERTY(x)
+		REF_PROPERTY(y)
+	REFLECT_STRUCT_END()
 
 private:
 	void operator + ( int ) const;

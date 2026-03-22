@@ -92,7 +92,7 @@ void PathTraceRayGen()
 			ray.TMax = 10000.0;
 
 			payload.hit = false;
-			TraceRay(gScene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, ray, payload);
+			TraceRay(gScene, 0, 0xFF, 0, 1, 0, ray, payload);
 
 #if USE_FOG
 			float dLimit = payload.hit ? payload.dist : SkyDistance;
@@ -194,7 +194,8 @@ void PathTraceRayGen()
 				rayPos = rayPos + rayDir * payload.dist + nextDir * 0.001;
 				rayDir = nextDir;
 #if USE_MIS
-				payload.pdf_brdf_prev = 0.0f;
+				// Specular/Refractive paths have delta PDF, so they should return 1.0 in MIS weight.
+				payload.pdf_brdf_prev = 1e10f; 
 #endif
 			}
 			else
@@ -390,6 +391,35 @@ void CubeIntersection()
 }
 #endif // SHADER_ENTRY(CubeIntersection)
 
+#if SHADER_ENTRY(DiscIntersection)
+[shader("intersection")]
+void DiscIntersection()
+{
+	int objId = InstanceID();
+	ObjectData object = Objects[objId];
+	float3 rayOrigin = WorldRayOrigin();
+	float3 rayDir = WorldRayDirection();
+	
+	// Transform ray to local space
+	float3 localOrigin = QuatRotateInverse(object.rotation, rayOrigin - object.pos);
+	float3 localDir = QuatRotateInverse(object.rotation, rayDir);
+	
+	if (localDir.z >= -1e-6f) return;
+
+	float t = -localOrigin.z / localDir.z;
+	if (t < RayTMin() || t > RayTCurrent()) return;
+
+	float3 p = localOrigin + t * localDir;
+	float2 radius = object.meta.xy;
+	float2 p_norm = p.xy / radius;
+	if (dot(p_norm, p_norm) > 1.0) return;
+
+	BuiltInTriangleIntersectionAttributes attr;
+	attr.barycentrics = float2(0, 0);
+	ReportHit(t, 0, attr);
+}
+#endif // SHADER_ENTRY(DiscIntersection)
+
 #if SHADER_ENTRY(PathTraceClosestHit)
 [shader("closesthit")]
 void PathTraceClosestHit(inout PathPayload payload, in BuiltInTriangleIntersectionAttributes attr)
@@ -430,6 +460,10 @@ void PathTraceClosestHit(inout PathPayload payload, in BuiltInTriangleIntersecti
 		payload.normal = normalize(QuatRotate(object.rotation, n));
 	}
 	else if (object.type == OBJ_QUAD)
+	{
+		payload.normal = normalize(QuatRotate(object.rotation, float3(0, 0, 1)));
+	}
+	else if (object.type == OBJ_DISC)
 	{
 		payload.normal = normalize(QuatRotate(object.rotation, float3(0, 0, 1)));
 	}

@@ -304,6 +304,7 @@
     <ClCompile Include="TestRender\Stage\SplitscreenStage.cpp" />
     <ClCompile Include="TestRender\Stage\TemplateRenderingTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp" />
+    <ClCompile Include="TestRender\Stage\VoxelRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\VolumetricLightingStage.cpp" />
     <ClCompile Include="TestRender\Stage\WaveRendering.cpp" />

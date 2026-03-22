@@ -36,7 +36,6 @@ namespace Render
 	class IBLResource;
 
 
-	bool LoadObjectMesh(StaticMesh& mesh , char const* path );
 	template< class TFunc, class ...Args >
 	bool BuildMesh(Mesh& mesh, char const* meshName, TFunc&& FuncMeshCreate, Args&& ...args)
 	{
@@ -72,17 +71,6 @@ namespace Render
 			{
 
 			}
-#if 0
-			else
-			{
-				Mesh temp;
-				::Global::DataCache().loadDelegate(key, [&temp](IStreamSerializer& serializer) -> bool
-				{
-					return temp.load(serializer);
-				});
-
-			}
-#endif
 		}
 
 		return true;
@@ -352,7 +340,9 @@ namespace Render
 			SimpleSkin,
 			Terrain,
 			Cone,
+			LightCone,
 			Doughnut2,
+			Disc,
 			NumSimpleMesh,
 		};
 	};

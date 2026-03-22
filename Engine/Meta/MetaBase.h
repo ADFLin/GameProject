@@ -131,4 +131,21 @@ struct TIsIterator
 	constexpr static bool Value = std::is_same<decltype(test(std::declval<T>())), long>::value;
 };
 
+template< typename T>
+struct TBitwiseReallocatable
+{
+	static constexpr int Value = 1;
+};
+
+#define BITWISE_RELLOCATABLE_FAIL(TYPE)\
+	template<>\
+	struct TBitwiseReallocatable<TYPE>\
+	{\
+		static constexpr int Value = 0;\
+	}
+
+#include <string>
+BITWISE_RELLOCATABLE_FAIL(std::string);
+BITWISE_RELLOCATABLE_FAIL(std::wstring);
+
 #endif // MetaTemplate_h__

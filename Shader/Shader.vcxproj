@@ -208,6 +208,8 @@
     <None Include="..\TinyGame\out\Shader\Game\Tessellation.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\TexcoordVisualize.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\UnderCurveArea.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Voxel.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\VoxelRayMarch.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Water.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\WaterSimulation.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\WaveRender.sgc" />

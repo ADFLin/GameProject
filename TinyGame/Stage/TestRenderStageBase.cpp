@@ -69,20 +69,20 @@ namespace Render
 
 	bool SharedAssetData::createSimpleMesh()
 	{
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Plane], "PlaneZ", FMeshBuild::PlaneZ, 10, 1));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Plane], "PlaneZ", static_cast<bool(*)(Mesh&, float, float)>(FMeshBuild::PlaneZ), 1.0f, 1.0f));
 		//VERIFY_RETURN_FALSE(MeshBuild::PlaneZ(mSimpleMeshs[SimpleMeshId::Plane], 10, 1));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Tile], "Tile", FMeshBuild::Tile, 64, 1.0f, true));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere], "UVSphere", FMeshBuild::UVSphere, 2.5, 60, 60));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Tile], "Tile", static_cast<bool(*)(Mesh&, int, float, bool)>(FMeshBuild::Tile), 64, 1.0f, true));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere], "UVSphere", static_cast<bool(*)(Mesh&, float, int, int)>(FMeshBuild::UVSphere), 1.0f, 60, 60));
 		//VERIFY_RETURN_FALSE(MeshBuild::UVSphere(mSimpleMeshs[ SimpleMeshId::Sphere ], 2.5, 4, 4) );
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere2], "IcoSphere", FMeshBuild::IcoSphere, 2.5, 4));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Box], "Cube", FMeshBuild::Cube, 1));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SkyBox], "SkyBox", FMeshBuild::SkyBox));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", FMeshBuild::Doughnut, 2, 1, 60 * 2, 60 * 2));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", FMeshBuild::SimpleSkin, 5, 2.5, 20, 20));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", FMeshBuild::Tile, 1024, 1.0, false));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Cone], "Cone", FMeshBuild::Cone, 1.0f, 0.5f, 20));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut2], "Doughnut2", FMeshBuild::Doughnut, 0.5f, 0.1f, 30, 20));
-
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere2], "IcoSphere", static_cast<bool(*)(Mesh&, float, int)>(FMeshBuild::IcoSphere), 1.0f, 4));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Box], "Cube", static_cast<bool(*)(Mesh&, float)>(FMeshBuild::Cube), 1.0f));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SkyBox], "SkyBox", static_cast<bool(*)(Mesh&)>(FMeshBuild::SkyBox)));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", static_cast<bool(*)(Mesh&, float, float, int, int)>(FMeshBuild::Doughnut), 2.0f, 1.0f, 120, 120));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", static_cast<bool(*)(Mesh&, float, float, int, int)>(FMeshBuild::SimpleSkin), 5.0f, 2.5f, 20, 20));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", static_cast<bool(*)(Mesh&, int, float, bool)>(FMeshBuild::Tile), 1024, 1.0f, false));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Cone], "Cone", static_cast<bool(*)(Mesh&, float, float, int)>(FMeshBuild::Cone), 1.0f, 0.5f, 20));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut2], "Doughnut2", static_cast<bool(*)(Mesh&, float, float, int, int)>(FMeshBuild::Doughnut), 0.5f, 0.1f, 30, 20));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Disc], "Disc", static_cast<bool(*)(Mesh&, float, int)>(FMeshBuild::Disc), 1.0f, 60));
 		VERIFY_RETURN_FALSE(FMeshBuild::SpritePlane(mSimpleMeshs[SimpleMeshId::SpherePlane]));
 
 		return true;

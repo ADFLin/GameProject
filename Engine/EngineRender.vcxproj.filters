@@ -99,6 +99,12 @@
     <ClCompile Include="Renderer\BatchedRender2D.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\SpriteRender.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\SpriteSceneManager.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="Renderer\Bloom.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -272,6 +278,12 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\BatchedRender2D.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\SpriteRender.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\SpriteSceneManager.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\Bloom.h">

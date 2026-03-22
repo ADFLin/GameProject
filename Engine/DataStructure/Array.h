@@ -7,22 +7,7 @@
 
 #include <string>
 
-template< typename T>
-struct TBitwiseReallocatable
-{
-	static constexpr int Value = 1;
-};
 
-#define BITWISE_RELLOCATABLE_FAIL(TYPE)\
-	template<>\
-	struct TBitwiseReallocatable<TYPE>\
-	{\
-		static constexpr int Value = 0;\
-	}
-
-
-BITWISE_RELLOCATABLE_FAIL(std::string);
-BITWISE_RELLOCATABLE_FAIL(std::wstring);
 
 template< class T >
 struct alignas(alignof(T)) TCompatibleByte
@@ -96,7 +81,7 @@ struct TDynamicArrayData
 	DECL_ALLOCATOR T* grow(size_t oldSize, size_t newSize)
 	{
 		size_t allocSize = sizeof(T) * newSize;
-		if constexpr (TBitwiseReallocatable<T>::Value)
+		if constexpr (std::is_trivially_copyable_v<T> || TBitwiseReallocatable<T>::Value)
 		{
 			void* newAlloc = FMemory::Realloc(mStorage, allocSize);
 			CHECK_ALLOC_PTR(newAlloc);
@@ -343,28 +328,24 @@ struct TInlineAllocator
 
 		void shrinkTofit(size_t size)
 		{
-			if (!isUsingInline())
-			{
-				if (size <= NumInlineElements)
-				{
-					// Move back to inline
-					if (size)
-					{
-						FTypeMemoryOp::MoveSequence((T*)mInlineStorage, size, (T*)this->mStorage);
-					}
-					
-					// Free heap storage which is managed by BaseDynamicData
-					// BaseDynamicData::cleanup() is not public or virtual, so we rely on BaseDynamicData's methods or logic
-					// BaseDynamicData::mStorage is accessible.
-					FMemory::Free(this->mStorage);
+			if (isUsingInline())
+				return;
 
-					this->mStorage = (void*)mInlineStorage;
-					this->mMaxSize = NumInlineElements;
-				}
-				else
+			if (size <= NumInlineElements)
+			{
+				if (size)
 				{
-					BaseDynamicData::shrinkTofit(size);
+					FTypeMemoryOp::MoveSequence((T*)mInlineStorage, size, (T*)this->mStorage);
 				}
+					
+				FMemory::Free(this->mStorage);
+
+				this->mStorage = (void*)mInlineStorage;
+				this->mMaxSize = NumInlineElements;
+			}
+			else
+			{
+				BaseDynamicData::shrinkTofit(size);
 			}
 		}
 

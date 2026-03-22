@@ -130,6 +130,7 @@ struct MeshVertexData
 #define OBJ_CUBE          1
 #define OBJ_TRIANGLE_MESH 2
 #define OBJ_QUAD          3
+#define OBJ_DISC          4
 
 struct RayCastResult
 {
@@ -318,6 +319,9 @@ float pdfLight(int objId, int numEmittingObjects)
 	} else if (object.type == OBJ_QUAD) {
 		float3 size = object.meta;
 		area = 4.0 * size.x * size.y;
+	} else if (object.type == OBJ_DISC) {
+		float2 radius = object.meta.xy;
+		area = PI * radius.x * radius.y;
 	}
 	return 1.0 / (float(numEmittingObjects) * max(area, 0.0001f));
 }
@@ -371,6 +375,16 @@ void SampleDirectLight(out float3 sampledPoint, out float3 normal, out float pdf
 		float3 size = object.meta;
 		area = 4.0 * size.x * size.y;
 		float3 localPos = float3((Random(rngState) * 2.0 - 1.0) * size.x, (Random(rngState) * 2.0 - 1.0) * size.y, 0);
+		sampledPoint = QuatRotate(object.rotation, localPos) + object.pos;
+		normal = normalize(QuatRotate(object.rotation, float3(0, 0, 1)));
+	}
+	else if (object.type == OBJ_DISC)
+	{
+		float2 radius = object.meta.xy;
+		area = PI * radius.x * radius.y;
+		float r = sqrt(Random(rngState));
+		float theta = 2.0 * PI * Random(rngState);
+		float3 localPos = float3(radius.x * r * cos(theta), radius.y * r * sin(theta), 0);
 		sampledPoint = QuatRotate(object.rotation, localPos) + object.pos;
 		normal = normalize(QuatRotate(object.rotation, float3(0, 0, 1)));
 	}

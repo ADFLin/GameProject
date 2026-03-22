@@ -109,11 +109,8 @@ namespace PathTracing
 		RHIRayTracingShaderTableRef mSBT;
 		TArray< RHIBottomLevelAccelerationStructureRef > mSceneMeshesBLAS;
 
-		RHIBottomLevelAccelerationStructureRef mSphereBLAS;
 		RHIBottomLevelAccelerationStructureRef mCubeBLAS;
 		RHIBottomLevelAccelerationStructureRef mQuadBLAS;
-
-
 
 		void clearScene()
 		{

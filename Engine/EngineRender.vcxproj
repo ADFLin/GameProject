@@ -38,6 +38,8 @@
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc" />
     <ClCompile Include="Renderer\BasePassRendering.cpp" />
     <ClCompile Include="Renderer\BatchedRender2D.cpp" />
+    <ClCompile Include="Renderer\SpriteRender.cpp" />
+    <ClCompile Include="Renderer\SpriteSceneManager.cpp" />
     <ClCompile Include="Renderer\Bloom.cpp" />
     <ClCompile Include="Renderer\IBLResource.cpp" />
     <ClCompile Include="Renderer\Mesh.cpp" />
@@ -96,6 +98,8 @@
     <ClInclude Include="OpenGLHeader.h" />
     <ClInclude Include="Renderer\BasePassRendering.h" />
     <ClInclude Include="Renderer\BatchedRender2D.h" />
+    <ClInclude Include="Renderer\SpriteRender.h" />
+    <ClInclude Include="Renderer\SpriteSceneManager.h" />
     <ClInclude Include="Renderer\Bloom.h" />
     <ClInclude Include="Renderer\IBLResource.h" />
     <ClInclude Include="Renderer\Mesh.h" />

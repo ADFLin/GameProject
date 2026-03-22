@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Emscripten">
@@ -58,6 +58,7 @@
     <ClInclude Include="Widget\ProfilerPanel.h" />
     <ClInclude Include="Widget\ShaderGraphPanel.h" />
     <ClInclude Include="Widget\TextureViewerPanel.h" />
+    <ClInclude Include="Widget\SpriteSheetPanel.h" />
     <ClInclude Include="Widget\ToolBar.h" />
   </ItemGroup>
   <ItemGroup>
@@ -88,6 +89,7 @@
     <ClCompile Include="Widget\ProfilerPanel.cpp" />
     <ClCompile Include="Widget\ShaderGraphPanel.cpp" />
     <ClCompile Include="Widget\TextureViewerPanel.cpp" />
+    <ClCompile Include="Widget\SpriteSheetPanel.cpp" />
     <ClCompile Include="Widget\ToolBar.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -279,7 +279,7 @@ namespace Render
 			meshObject->mesh = &mSimpleMeshs[SimpleMeshId::SpherePlane];
 			auto material = new MaterialInstance(getMaterial(MaterialId::Sphere));
 			material->setParameter(SHADER_PARAM(Sphere.pos), Vector3(0, 20, 10));
-			material->setParameter(SHADER_PARAM(Sphere.radius), 2.0f);
+			material->setParameter(SHADER_PARAM(Sphere.radius), 5.0f);
 			meshObject->material.reset( material );
 			meshObject->color = Vector4(1, 0, 0, 1);
 			meshObject->worldTransform = Matrix4::Identity();

@@ -83,13 +83,6 @@ namespace PathTracing
 		REFLECT_STRUCT_END()
 	};
 
-#define OBJ_SPHERE        0
-#define OBJ_CUBE          1
-#define OBJ_TRIANGLE_MESH 2
-#define OBJ_QUAD          3
-#define OBJ_DISC          4
-
-
 	namespace EObjectType 
 	{
 		enum Type : int32
@@ -182,6 +175,17 @@ namespace PathTracing
 			return result;
 		}
 
+		static ObjectData Disc(Vector2 size, int materialId, Vector3 pos, Quaternion rotation = Quaternion::Identity())
+		{
+			ObjectData result;
+			result.type = EObjectType::Disc;
+			result.pos = pos;
+			result.rotation = rotation;
+			result.materialId = materialId;
+			result.meta = 0.5 * Vector3(size.x, size.y, 0);
+			return result;
+		}
+
 		static ObjectData Mesh(int32 meshId, float scale, int materialId, Vector3 pos, Quaternion rotation = Quaternion::Identity())
 		{
 			ObjectData result;
@@ -204,6 +208,10 @@ namespace PathTracing
 		static ObjectData Quad(Vector2 size, int materialId, Math::Transform const& transform)
 		{
 			return Quad(size, materialId, transform.location, transform.rotation);
+		}
+		static ObjectData Disc(Vector2 size, int materialId, Math::Transform const& transform)
+		{
+			return Disc(size, materialId, transform.location, transform.rotation);
 		}
 		static ObjectData Mesh(int32 meshId, int materialId, Math::Transform const& transform)
 		{

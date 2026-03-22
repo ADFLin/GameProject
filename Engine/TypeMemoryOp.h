@@ -15,32 +15,19 @@ class FTypeMemoryOp
 {
 public:
 
-	template< class T, TEnableIf_Type< std::is_trivially_copy_constructible_v<T>, bool > = true >
-	static void Construct(void* ptr, T const& val) {}
-	template< class T, TEnableIf_Type< !std::is_trivially_copy_constructible_v<T>, bool > = true >
-	static void Construct(void* ptr, T const& val)
-	{
-		Construct(static_cast<T*>(ptr));
-	}
-
-	template< class T, TEnableIf_Type< std::is_trivially_default_constructible_v<T>, bool > = true >
-	static void Construct(T* ptr){}
-	template< class T, TEnableIf_Type< !std::is_trivially_default_constructible_v<T>, bool > = true >
+	template< class T >
 	static void Construct(T* ptr)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
-		{
-			*ptr = T();
-		}
-		else
+		if constexpr (!std::is_trivially_default_constructible_v<T>)
 		{
 			::new (ptr) T();
 		}
 	}
+
 	template< class T >
 	static void Construct(T* ptr, T const& val)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copy_constructible_v<T>)
 		{
 			*ptr = val;
 		}
@@ -48,6 +35,12 @@ public:
 		{
 			::new (ptr) T(val);
 		}
+	}
+
+	template< class T >
+	static void Construct(void* ptr, T const& val)
+	{
+		Construct(static_cast<T*>(ptr), val);
 	}
 
 	template< class T, class ...Args >
@@ -62,22 +55,14 @@ public:
 		::new (ptr) T(std::forward<Args>(args)...);
 	}
 
-	template< class T , TEnableIf_Type< std::is_trivially_default_constructible_v<T> , bool > = true >
-	static void ConstructSequence(T* ptr, size_t num){}
-	template< class T, TEnableIf_Type< !std::is_trivially_default_constructible_v<T>, bool > = true >
+	template< class T >
 	static void ConstructSequence(T* ptr, size_t num)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (!std::is_trivially_default_constructible_v<T>)
 		{
-			std::fill_n(ptr, num, T());
-		}
-		else
-		{
-			while (num)
+			for (size_t i = 0; i < num; ++i)
 			{
-				Construct(ptr);
-				++ptr;
-				--num;
+				Construct(ptr + i);
 			}
 		}
 	}
@@ -85,35 +70,31 @@ public:
 	template< class T >
 	static void ConstructSequence(T* ptr, size_t num, T const& val)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copy_constructible_v<T>)
 		{
 			std::fill_n(ptr, num, val);
 		}
 		else
 		{
-			while (num)
+			for (size_t i = 0; i < num; ++i)
 			{
-				Construct(ptr, val);
-				++ptr;
-				--num;
+				Construct(ptr + i, val);
 			}
 		}
 	}
+
 	template< typename T >
 	static void ConstructSequence(T* ptr, size_t num, T const* ptrValue)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copy_constructible_v<T>)
 		{
 			FMemory::Copy(ptr, ptrValue, sizeof(T) * num);
 		}
 		else
 		{
-			while (num)
+			for (size_t i = 0; i < num; ++i)
 			{
-				new (ptr) T(*ptrValue);
-				++ptr;
-				++ptrValue;
-				--num;
+				::new (ptr + i) T(ptrValue[i]);
 			}
 		}
 	}
@@ -121,8 +102,8 @@ public:
 	template< typename T, typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
 	static void ConstructSequence(T* ptr, size_t num, Iter itBegin, Iter itEnd)
 	{
-		if constexpr (std::is_same_v< Meta::RemoveCVRef<Iter>::Type, T*> ||
-			          std::is_same_v< Meta::RemoveCVRef<Iter>::Type, T const*>)
+		if constexpr (std::is_same_v< typename Meta::RemoveCVRef<Iter>::Type, T*> ||
+			          std::is_same_v< typename Meta::RemoveCVRef<Iter>::Type, T const*>)
 		{
 			ConstructSequence(ptr, num, itBegin);
 		}
@@ -139,7 +120,7 @@ public:
 	template< class T >
 	static void Move(T* ptr, T* from)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copyable_v<T> || TBitwiseReallocatable<T>::Value)
 		{
 			*ptr = *from;
 		}
@@ -147,7 +128,7 @@ public:
 		{
 			if (ptr != from)
 			{
-				new (ptr) T(std::move(*from));
+				::new (ptr) T(std::move(*from));
 				Destruct(from);
 			}
 		}
@@ -156,7 +137,7 @@ public:
 	template< class T >
 	static void MoveAssign(T* ptr, T* from)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copy_assignable_v<T>)
 		{
 			*ptr = *from;
 		}
@@ -173,19 +154,16 @@ public:
 	static void MoveSequence(T* ptr, size_t num, T* from)
 	{
 		CHECK(from + num <= ptr || ptr < from );
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copyable_v<T> || TBitwiseReallocatable<T>::Value)
 		{
-			FMemory::Move(ptr, from, sizeof(T)*num);
+			FMemory::Move(ptr, from, sizeof(T) * num);
 		}
 		else
 		{
-			while (num)
+			for (size_t i = 0; i < num; ++i)
 			{
-				Construct(ptr, std::move(*from));
-				Destruct(from);
-				++from;
-				++ptr;
-				--num;
+				Construct(ptr + i, std::move(from[i]));
+				Destruct(from + i);
 			}
 		}
 	}
@@ -193,7 +171,7 @@ public:
 	template< class T >
 	static void MoveRightOverlap(T* ptr, size_t num, T* from)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
+		if constexpr (std::is_trivially_copyable_v<T> || TBitwiseReallocatable<T>::Value)
 		{
 			FMemory::Move(ptr, from, sizeof(T)*num);
 		}
@@ -215,7 +193,7 @@ public:
 	template< class T, class Q >
 	static void Assign(T* ptr, Q&& val)
 	{
-		*ptr = val;
+		*ptr = std::forward<Q>(val);
 	}
 
 	template< class T, class ...Args >
@@ -224,53 +202,33 @@ public:
 		Assign(ptr , T(std::forward<Args>(args)...) );
 	}
 
-	template< class T, TEnableIf_Type< std::is_trivially_destructible_v<T>, bool > = true >
-	static void Destruct(T* ptr){}
-
-	template< class T, TEnableIf_Type< !std::is_trivially_destructible_v<T>, bool > = true >
+	template< class T >
 	static void Destruct(T* ptr)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
-		{
-
-		}
-		else
+		if constexpr (!std::is_trivially_destructible_v<T>)
 		{
 			ptr->~T();
 		}
 	}
 
-	template< class T, TEnableIf_Type< std::is_trivially_destructible_v<T>, bool > = true >
-	static void Destruct(void* ptr) {}
-
-	template< class T, TEnableIf_Type< !std::is_trivially_destructible_v<T>, bool > = true >
+	template< class T >
 	static void Destruct(void* ptr)
 	{
-		if constexpr (Meta::IsPod< T >::Value)
-		{
-
-		}
-		else
+		if constexpr (!std::is_trivially_destructible_v<T>)
 		{
 			static_cast<T*>(ptr)->~T();
 		}
 	}
 
-	template< class T, TEnableIf_Type< std::is_trivially_destructible_v<T>, bool > = true >
+	template< class T >
 	static void DestructSequence(T* ptr, size_t num)
 	{
-		(void)ptr;
-		(void)num;
-	}
-
-	template< class T , TEnableIf_Type< !std::is_trivially_destructible_v<T> , bool > = true >
-	static void DestructSequence(T* ptr, size_t num)
-	{
-		while (num)
+		if constexpr (!std::is_trivially_destructible_v<T>)
 		{
-			ptr->~T();
-			++ptr;
-			--num;
+			for (size_t i = num; i > 0; --i)
+			{
+				ptr[i - 1].~T();
+			}
 		}
 	}
 };

@@ -1417,7 +1417,6 @@ SamplerState sSampler : register(s0);
 			}
 
 			GPU_PROFILE(debugName.c_str());
-
 			if (bRenderCubeMapOnePass)
 			{
 				renderCubeOnePass(commandList, *pass, viewportSize, outputBuffers);
@@ -1535,6 +1534,13 @@ SamplerState sSampler : register(s0);
 			setPixelShader(commandList, passShader);
 			setInputParameters(commandList, pass);
 
+			TArray< RHIResource*, TInlineAllocator<8> > resources;
+			for (int i = 0; i < pass.info->outputs.size(); ++i)
+			{
+				resources.push_back(outputBuffers[i]->texture);
+			}
+			RHIResourceTransition(commandList, resources, EResourceTransition::RenderTarget);
+
 			for (int subPassIndex = 0; subPassIndex < subPassCount; ++subPassIndex)
 			{
 				index = 0;
@@ -1593,17 +1599,14 @@ SamplerState sSampler : register(s0);
 				++index;
 			}
 
+			TArray< RHIResource*, TInlineAllocator<8> > resources;
 			for (int i = 0; i < pass.info->outputs.size(); ++i)
 			{
-				RHIResourceTransition(commandList, { outputBuffers[i]->resolvedTexture }, EResourceTransition::UAV);
+				resources.push_back(outputBuffers[i]->resolvedTexture);
 			}
-
+			RHIResourceTransition(commandList, MakeView(resources), EResourceTransition::UAV);
 			RHIDispatchCompute(commandList, Math::AlignCount(viewportSize.x, GROUP_SIZE), Math::AlignCount(viewportSize.y, GROUP_SIZE), 6);
-			for (int i = 0; i < pass.info->outputs.size(); ++i)
-			{
-				RHIResourceTransition(commandList, { outputBuffers[i]->resolvedTexture }, EResourceTransition::SRV);
-			}
-
+			RHIResourceTransition(commandList, MakeView(resources), EResourceTransition::SRV);
 			index = 0;
 			for (auto const& output : pass.info->outputs)
 			{

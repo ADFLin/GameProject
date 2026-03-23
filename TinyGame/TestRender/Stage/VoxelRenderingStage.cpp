@@ -20,6 +20,13 @@ namespace Render
 		COUNT,
 	};
 
+
+	struct VoxelPoint
+	{
+		IntVector3 pos;
+		uint8 data;
+	};
+
 	struct VoxelRawData
 	{
 		TArray< uint8 > data;
@@ -29,13 +36,19 @@ namespace Render
 		{
 			data.resize(size_t(dims.x) * size_t(dims.y) * size_t(dims.z), 0);
 		}
+
+		void initData(TArray< VoxelPoint > const& points)
+		{
+			data.resize(size_t(dims.x) * size_t(dims.y) * size_t(dims.z), 0);
+			for (auto const& point : points)
+			{
+				auto const& pos = point.pos;
+				size_t index = pos.x + dims.x * size_t(pos.y + dims.y * pos.z);
+				data[index] = point.data;
+			}
+		}
 	};
 
-	struct VoxelPoint
-	{
-		IntVector3 pos;
-		uint8 data;
-	};
 
 
 	using AABBox = Math::TAABBox< Vector3 >;
@@ -602,6 +615,7 @@ namespace Render
 		};
 
 		ERenderMethod mRenderMethod = ERenderMethod::Instanced;
+		bool bShowModel;
 		TArray<VoxelPoint> mPoints;
 
 		Mesh mModelMesh;
@@ -635,7 +649,7 @@ namespace Render
 
 			Vector3 boundSize = mBBox.getSize();
 			float maxSideSize = Math::Max(boundSize.x, Math::Max(boundSize.y, boundSize.z));
-			float voxelSizeVal = maxSideSize / 2048.0f;
+			float voxelSizeVal = maxSideSize / 1024.0f;
 			Vector3 size = boundSize / voxelSizeVal;
 			mRawData.dims.x = Math::CeilToInt(size.x);
 			mRawData.dims.y = Math::CeilToInt(size.y);
@@ -644,6 +658,8 @@ namespace Render
 			mPoints.clear();
 			FVoxelBuild::MeshSurface(mPoints, mRawData.dims, mBBox, importData, importData.desc, mModelXForm);
 			
+			mRawData.initData(mPoints);
+
 			mOctTreeNodes.clear();
 			mRootNodeIndex = FVoxelBuild::BuildOctTree(mPoints, mRawData.dims, mOctTreeNodes);
 			
@@ -688,6 +704,7 @@ namespace Render
 				choice->addItem(MethodTextList[i]);
 			}
 			choice->setSelection((int)mRenderMethod);
+			frame->addCheckBox("Show Model", bShowModel);
 			return true;
 		}
 
@@ -699,9 +716,9 @@ namespace Render
 
 		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
-
+			systemConfigs.screenWidth = 1024;
+			systemConfigs.screenHeight = 768;
 		}
-
 
 		virtual bool setupRenderResource(ERenderSystem systemName) override
 		{
@@ -719,12 +736,10 @@ namespace Render
 				for (size_t i = 0; i < mRawData.data.size(); ++i)
 					bufferData[i] = mRawData.data[i];
 				mVoxelBuffer.initializeResource((uint32)bufferData.size(), EStructuredBufferType::StaticBuffer, BCF_None, bufferData.data());
-				mRootNodeIndex = FVoxelBuild::BuildOctTree(mRawData, mOctTreeNodes);
 			}
 
 			updateVoxelMesh();
 
-	
 			if (mOctTreeNodes.size() > 0)
 			{
 				mOctTreeBuffer.initializeResource((uint32)mOctTreeNodes.size(), EStructuredBufferType::StaticBuffer, BCF_None, mOctTreeNodes.data());
@@ -746,12 +761,13 @@ namespace Render
 
 			if (!mPoints.empty())
 			{
-				if (mPoints.size() > 100000)
-					return;
+				LogMsg("Voxel Count = %d", mPoints.size());
 
-				for(auto const& point : mPoints)
+				int maxShowSize = Math::Min<int>(mPoints.size(), 100000);
+
+				for(int i = 0; i < maxShowSize; ++i)
 				{
-					auto const& pos = point.pos;
+					auto const& pos = mPoints[i].pos;
 					Vector3 p = mBBox.min + Vector3((pos.x + 0.5f) * voxelSize.x, (pos.y + 0.5f) * voxelSize.y, (pos.z + 0.5f) * voxelSize.z);
 					mVoxelMesh.addInstance(p, voxelSize * 0.5f, Quaternion::Identity(), Vector4(0, 1, 0, 1));
 				}			
@@ -774,7 +790,7 @@ namespace Render
 					}
 				}
 			}
-			LogMsg("Voxel Count = %d", mVoxelMesh.mInstanceTransforms.size());
+
 		}
 
 		virtual void preShutdownRenderSystem(bool bReInit = false) override
@@ -812,15 +828,6 @@ namespace Render
 			if (mRenderMethod == ERenderMethod::Instanced)
 			{
 				GPU_PROFILE("Instanced");
-
-#if 1
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Wireframe>::GetRHI());
-				RHISetFixedShaderPipelineState(commandList, mModelXForm * mView.worldToClipRHI);
-				mModelMesh.draw(commandList, LinearColor(1, 0, 0));
-#endif
-
-
-
 #if 1
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
@@ -888,6 +895,14 @@ namespace Render
 					}
 				}
 				getMesh(SimpleMeshId::Box).draw(commandList);
+			}
+
+			if (bShowModel)
+			{
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Wireframe>::GetRHI());
+				RHISetFixedShaderPipelineState(commandList, mModelXForm * mView.worldToClipRHI);
+				mModelMesh.draw(commandList, LinearColor(1, 0, 0));
 			}
 		}
 

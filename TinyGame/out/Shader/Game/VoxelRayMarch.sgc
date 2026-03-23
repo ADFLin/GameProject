@@ -65,6 +65,102 @@ uint popcnt_var64(uint2 mask, uint bitIdx)
     return lowCount + countbits(mask.y & ((1u << (bitIdx - 32u)) - 1u));
 }
 
+float GetVoxelValue(int3 idx)
+{
+    if (any(idx < 0) || any(idx >= VoxelDims)) return 0.0;
+
+#if USE_64TREE
+    if (RootNodeIndex < 0) return 0.0;
+    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, max(VoxelDims.z, 1)));
+    uint treeRes = 1;
+    while (treeRes < uint(maxGridDim)) treeRes *= 4;
+
+    uint nodeIdx = uint(RootNodeIndex);
+    uint3 p = uint3(idx);
+    int currentRes = int(treeRes);
+    
+    // Simple point query for 64-tree
+    while (true)
+    {
+        SvtNode64 node = Svt64Data[nodeIdx];
+        int nextRes = currentRes >> 2; // 4x4x4 child block
+        uint3 cell = p / uint(nextRes);
+        p %= uint(nextRes);
+        uint childIdx = cell.x | (cell.z << 2) | (cell.y << 4);
+        
+        bool isSet = (childIdx < 32) ? ((node.mask.x >> childIdx) & 1) : ((node.mask.y >> (childIdx - 32)) & 1);
+        if (!isSet) return 0.0;
+        
+        bool isLeaf = (node.childPtr & (1u << 31)) != 0;
+        if (isLeaf) return 1.0;
+        
+        nodeIdx = (node.childPtr & 0x7FFFFFFF) + popcnt_var64(node.mask, childIdx);
+        currentRes = nextRes;
+        if (currentRes <= 1) break;
+    }
+    return 0.0;
+
+#elif USE_OCTREE
+    if (RootNodeIndex < 0) return 0.0;
+    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, max(VoxelDims.z, 1)));
+    uint treeRes = 1u << uint(ceil(log2(float(maxGridDim))));
+    
+    int currIdx = RootNodeIndex;
+    int cs = int(treeRes);
+    int cx = 0, cy = 0, cz = 0;
+    while (currIdx >= 0)
+    {
+        if (currIdx == -2) return 1.0;
+        int nextSize = cs >> 1;
+        if (nextSize == 0) break;
+        int i = (idx.x >= cx + nextSize ? 1 : 0) |
+                (idx.y >= cy + nextSize ? 2 : 0) |
+                (idx.z >= cz + nextSize ? 4 : 0);
+        cx += (i & 1) ? nextSize : 0;
+        cy += (i & 2) ? nextSize : 0;
+        cz += (i & 4) ? nextSize : 0;
+        currIdx = OctTreeData[currIdx].children[i];
+        cs = nextSize;
+    }
+    return currIdx == -2 ? 1.0 : 0.0;
+
+#else
+    return VoxelData[idx.x + VoxelDims.x * (idx.y + VoxelDims.y * idx.z)] > 0 ? 1.0 : 0.0;
+#endif
+}
+
+float SampleDensitySmooth(float3 pGrid)
+{
+    float3 p = pGrid - 0.5;
+    int3 i = int3(floor(p));
+    float3 f = frac(p);
+    
+    float v000 = GetVoxelValue(i + int3(0,0,0));
+    float v100 = GetVoxelValue(i + int3(1,0,0));
+    float v010 = GetVoxelValue(i + int3(0,1,0));
+    float v110 = GetVoxelValue(i + int3(1,1,0));
+    float v001 = GetVoxelValue(i + int3(0,0,1));
+    float v101 = GetVoxelValue(i + int3(1,0,1));
+    float v011 = GetVoxelValue(i + int3(0,1,1));
+    float v111 = GetVoxelValue(i + int3(1,1,1));
+    
+    return lerp(
+        lerp(lerp(v000, v100, f.x), lerp(v010, v110, f.x), f.y),
+        lerp(lerp(v001, v101, f.x), lerp(v011, v111, f.x), f.y),
+        f.z
+    );
+}
+
+float3 ReconstructNormalTrilinear(float3 pGrid)
+{
+    const float e = 0.4;
+    float3 n;
+    n.x = SampleDensitySmooth(pGrid + float3(e,0,0)) - SampleDensitySmooth(pGrid - float3(e,0,0));
+    n.y = SampleDensitySmooth(pGrid + float3(0,e,0)) - SampleDensitySmooth(pGrid - float3(0,e,0));
+    n.z = SampleDensitySmooth(pGrid + float3(0,0,e)) - SampleDensitySmooth(pGrid - float3(0,0,e));
+    return normalize(-n);
+}
+
 #if USE_64TREE
 // Reverses `pos` from range [1.0, 2.0) to (2.0, 1.0] if `dir > 0`.
 float3 GetMirroredPos(float3 pos, float3 dir, bool rangeCheck)
@@ -340,6 +436,8 @@ PS_ENTRY_END(MainPS)
     else if (hitSide == 1) N_local.y = -signRd.y;
     else N_local.z = -signRd.z;
     float3 pHitLocal = ro + rd * tHit;
+
+
 #else
 
     const float3 totalDim = float3(VoxelDims);
@@ -362,7 +460,7 @@ PS_ENTRY_END(MainPS)
     int hitSide = 0;
     bool bHit = false;
 
-    for (int i = 0; i < 350; ++i)
+    for (int i = 0; i < 1000; ++i)
     {
         uint val = VoxelData[mapPos.x + VoxelDims.x * (mapPos.y + VoxelDims.y * mapPos.z)];
         if (val > 0)
@@ -402,15 +500,17 @@ PS_ENTRY_END(MainPS)
     else if (hitSide == 1) N_local.y = -rayStep.y;
     else N_local.z = -rayStep.z;
     float3 pHitLocal = ro + rd * (max(tStart, 0.0) + (sideDist[hitSide] - deltaDist[hitSide]));
+
 #endif
+    float3 pGridHit = (pHitLocal - minBBox) / (maxBBox - minBBox) * float3(VoxelDims);
+    float3 N_local_smooth = ReconstructNormalTrilinear(pGridHit);
+	float3 N_world_smooth = normalize(mul(LocalToWorld, float4(N_local_smooth, 0)).xyz);
+	
 	float3 N_world = normalize(mul(LocalToWorld, float4(N_local, 0)).xyz);
 	float3 pHitWorld = mul(LocalToWorld, float4(pHitLocal, 1)).xyz;
 	float3 dx = ddx(pHitWorld);
 	float3 dy = ddy(pHitWorld);
 
-
-
-    OutColor = float4(frac(pHitWorld), 1);
-	//OutColor = float4(0.5 + 0.5 * normalize(cross(dx, dy)), 1);
-	//OutColor = float4(float(iterCount)/256, 0, 0, 1);
+    //OutColor = float4(0.5 + 0.5 * N_world_smooth, 1);
+	OutColor = float4(0.5 + 0.5 * normalize(cross(dx, dy)), 1);
 }

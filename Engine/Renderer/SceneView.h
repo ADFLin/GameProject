@@ -29,6 +29,7 @@ namespace Render
 		Matrix4 viewToClip;
 		Matrix4 clipToWorld;
 		Matrix4 clipToView;
+		Matrix4 translatedWorldToView;
 		Matrix4 translatedWorldToClip;
 		Matrix4 clipToTranslatedWorld;
 		Matrix4 worldToClipPrev;
@@ -45,6 +46,7 @@ namespace Render
 		IntVector2 rectSize;
 		IntVector2 rectOffset;
 
+		Matrix4 worldToClipRHI;
 
 		Plane frustumPlanes[6];
 
@@ -90,6 +92,8 @@ namespace Render
 
 		void  setupShader(RHICommandList& commandList, Shader& shader, StructuredBufferInfo const* info = nullptr);
 
+
+		void updateParams();
 
 		void updateFrustumPlanes();
 

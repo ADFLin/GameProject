@@ -150,7 +150,7 @@ public:
 		setTexture(commandList, mParamgHistory, history);
 		setTexture(commandList, mParamgDepth, depth);
 		SET_SHADER_PARAM(commandList, *this, gClipToWorld, view.clipToWorld);
-		SET_SHADER_PARAM(commandList, *this, gWorldToPrevClip, prevView.worldToClip);
+		SET_SHADER_PARAM(commandList, *this, gWorldToPrevClip, prevView.worldToClipRHI);
 		SET_SHADER_PARAM(commandList, *this, gCameraPos, view.worldPos);
 		SET_SHADER_PARAM(commandList, *this, gDenoiserAlpha, alpha);
 		SET_SHADER_PARAM(commandList, *this, gSpatialRadius, (int32)spatialRadius);

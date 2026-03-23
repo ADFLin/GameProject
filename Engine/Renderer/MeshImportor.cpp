@@ -71,7 +71,7 @@ namespace Render
 		sections.push_back(section);
 	}
 
-	VertexElementReader MeshImportData::makeAttributeReader(EVertex::Attribute attribute)
+	VertexElementReader MeshImportData::makeAttributeReader(EVertex::Attribute attribute) const
 	{
 		VertexElementReader result;
 		result.vertexDataStride = desc.getVertexSize();

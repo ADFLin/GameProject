@@ -845,7 +845,7 @@ namespace Bloxorz
 
 		updateRenderTargetShow();
 
-		RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
+		RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 		//DrawUtility::AixsLine(commandList);
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();

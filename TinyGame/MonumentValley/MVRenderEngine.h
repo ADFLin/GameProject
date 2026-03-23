@@ -62,7 +62,7 @@ namespace MV
 		{
 			using namespace Render;
 			RHICommandList& commandList = getCommandList();
-			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(stack.get() * view->worldToClip), mColor);
+			RHISetFixedShaderPipelineState(commandList, stack.get() * view->worldToClipRHI, mColor);
 		}
 
 		void setSimpleShader(float depthBias)

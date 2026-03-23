@@ -111,7 +111,7 @@ namespace Render
 		worldToClipPrev = worldToClip;
 		worldToViewPrev = worldToView;
 
-		Matrix4 translatedWorldToView = LookAtMatrix(viewRotation.rotate(FRenderView::FrontDirection()), viewRotation.rotate(FRenderView::UpDirection()));
+		translatedWorldToView = LookAtMatrix(viewRotation.rotate(FRenderView::FrontDirection()), viewRotation.rotate(FRenderView::UpDirection()));
 		viewToTranslatedWorld = translatedWorldToView.getTranspose();
 
 		worldToView = Matrix4::Translate(-viewPos) * translatedWorldToView;
@@ -119,19 +119,8 @@ namespace Render
 
 		worldPos   = viewPos;
 		viewToClip = inProjectMatrix;
-		worldToClip = worldToView * viewToClip;
 
-		translatedWorldToClip = translatedWorldToView * viewToClip;
-
-		viewToClip.inverse(clipToView, det);
-		clipToTranslatedWorld = clipToView * viewToTranslatedWorld;
-		clipToWorld = clipToView * viewToWorld;
-
-		direction = getViewForwardDir();
-
-		updateFrustumPlanes();
-
-		mbDataDirty = true;
+		updateParams();
 	}
 
 	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
@@ -142,24 +131,32 @@ namespace Render
 
 		worldToView = inViewMatrix;
 
-		Matrix4 translatedWorldToView = worldToView;
+		translatedWorldToView = worldToView;
 		translatedWorldToView.setTranslation(Vector3::Zero());
 		viewToTranslatedWorld = translatedWorldToView.getTranspose();
 
 		worldToView.inverse(viewToWorld, det);
 		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
 		viewToClip = inProjectMatrix;
+
+		updateParams();
+	}
+
+
+	void ViewInfo::updateParams()
+	{
 		worldToClip = worldToView * viewToClip;
+		worldToClipRHI = AdjustProjectionMatrixForRHI(worldToClip);
 
 		translatedWorldToClip = translatedWorldToView * viewToClip;
+		float det;
 		viewToClip.inverse(clipToView, det);
 		clipToTranslatedWorld = clipToView * viewToTranslatedWorld;
 		clipToWorld = clipToView * viewToWorld;
+	
 
 		direction = getViewForwardDir();
-
 		updateFrustumPlanes();
-
 		mbDataDirty = true;
 	}
 

@@ -379,7 +379,7 @@ namespace Render
 			mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(0, 3, 0, Offset));
 			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0, 4);
 
-			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 			DrawUtility::AixsLine(commandList, 10);
 
 

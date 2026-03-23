@@ -80,7 +80,7 @@ namespace Render
 
 
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-			RHISetFixedShaderPipelineState(commandList, view.worldToClip);
+			RHISetFixedShaderPipelineState(commandList, view.worldToClipRHI);
 			DrawUtility::AixsLine(commandList);
 
 			Matrix4 porjectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, view.rectSize.x, 0, view.rectSize.y, -1, 1));

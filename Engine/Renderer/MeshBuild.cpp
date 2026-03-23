@@ -24,14 +24,15 @@ namespace Render
 
 	bool FMeshBuild::Tile(Mesh& mesh, int tileSize, float len, bool bHaveSkirt)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!Tile(buildData, mesh.mInputLayoutDesc, tileSize, len, bHaveSkirt))
 			return false;
 
-		return buildData.initializeRHI(mesh);
+		mesh.mType = EPrimitive::TriangleList;
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::Tile(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, int tileSize, float len, bool bHaveSkirt)
+	bool FMeshBuild::Tile(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, int tileSize, float len, bool bHaveSkirt)
 	{
 		int const vLen = (tileSize + 1);
 		int const nV = (bHaveSkirt) ? (vLen * vLen + 4 * vLen) : (vLen * vLen);
@@ -43,8 +44,8 @@ namespace Render
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2, 0);
 
-		data.vertexData.resize(nV * sizeof(TileVertex));
-		TileVertex* pV = (TileVertex*)data.vertexData.data();
+		data.vertices.resize(nV * sizeof(TileVertex));
+		TileVertex* pV = (TileVertex*)data.vertices.data();
 		float const dtex = 1.0 / tileSize;
 		for (int j = 0; j < vLen; ++j)
 		{
@@ -56,8 +57,8 @@ namespace Render
 			}
 		}
 
-		data.indexData.resize(nI);
-		uint32* pIdx = data.indexData.data();
+		data.indices.resize(nI);
+		uint32* pIdx = data.indices.data();
 		for (int j = 0; j < tileSize; ++j)
 		{
 			for (int i = 0; i < tileSize; ++i)
@@ -77,7 +78,7 @@ namespace Render
 		//fill skirt
 		if (bHaveSkirt)
 		{
-			TileVertex* pVStart = (TileVertex*)data.vertexData.data();
+			TileVertex* pVStart = (TileVertex*)data.vertices.data();
 			TileVertex* pV0 = pVStart + vLen * vLen + 0 * vLen;
 			TileVertex* pV1 = pVStart + vLen * vLen + 1 * vLen;
 			TileVertex* pV2 = pVStart + vLen * vLen + 2 * vLen;
@@ -145,15 +146,15 @@ namespace Render
 
 	bool FMeshBuild::UVSphere(Mesh& mesh, float radius, int rings, int sectors)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!UVSphere(buildData, mesh.mInputLayoutDesc, radius, rings, sectors))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::UVSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int rings, int sectors)
+	bool FMeshBuild::UVSphere(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float radius, int rings, int sectors)
 	{
 		assert(rings > 1);
 		assert(sectors > 0);
@@ -167,8 +168,8 @@ namespace Render
 		int vertexSize = inputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = (rings - 1) * (sectors + 1) + 2 * sectors;
-		data.vertexData.resize(nV * inputLayoutDesc.getVertexSize());
-		float* vertex = (float*)data.vertexData.data();
+		data.vertices.resize(nV * inputLayoutDesc.getVertexSize());
+		float* vertex = (float*)data.vertices.data();
 		float const rf = 1.0 / rings;
 		float const sf = 1.0 / sectors;
 		int r, s;
@@ -242,8 +243,8 @@ namespace Render
 			t += vertexSize;
 		}
 
-		data.indexData.resize((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
-		uint32* iPtr = data.indexData.data();
+		data.indices.resize((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
+		uint32* iPtr = data.indices.data();
 
 		int idxOffset = 0;
 		int idxDown = nV - 2 * sectors;
@@ -287,7 +288,7 @@ namespace Render
 
 	bool FMeshBuild::SkyBox(Mesh& mesh)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!SkyBox(buildData, mesh.mInputLayoutDesc))
 			return false;
 
@@ -296,10 +297,10 @@ namespace Render
 #else
 		mesh.mType = EPrimitive::TriangleList;
 #endif
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::SkyBox(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	bool FMeshBuild::SkyBox(MeshRawData& data, InputLayoutDesc& inputLayoutDesc)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -335,14 +336,14 @@ namespace Render
 		int numTriangles;
 		MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, indices, 4 * 6, tempIndices, numTriangles);
 
-		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
-		data.indexData.assign(tempIndices.begin(), tempIndices.end());
+		data.vertices.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indices.assign(tempIndices.begin(), tempIndices.end());
 #endif
 		return true;
 	}
 	bool FMeshBuild::CubeShare(Mesh& mesh, float halfLen)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!CubeShare(buildData, mesh.mInputLayoutDesc, halfLen))
 			return false;
 
@@ -351,10 +352,10 @@ namespace Render
 #else
 		mesh.mType = EPrimitive::Quad;
 #endif
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::CubeShare(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen)
+	bool FMeshBuild::CubeShare(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float halfLen)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -396,8 +397,8 @@ namespace Render
 		};
 
 		MeshUtility::FillNormalTangent_TriangleList(inputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
-		data.vertexData.assign((uint8*)v, (uint8*)(v + ARRAY_SIZE(v)));
-		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+		data.vertices.assign((uint8*)v, (uint8*)(v + ARRAY_SIZE(v)));
+		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 #else
 		uint32 indices[] =
 		{
@@ -412,15 +413,15 @@ namespace Render
 		};
 
 		MeshUtility::FillNormalTangent_QuadList(inputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
-		data.vertexData.assign((uint8*)v, (uint8*)(v + ARRAY_SIZE(v)));
-		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+		data.vertices.assign((uint8*)v, (uint8*)(v + ARRAY_SIZE(v)));
+		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 #endif
 		return true;
 	}
 
 	bool FMeshBuild::CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!CubeOffset(buildData, mesh.mInputLayoutDesc, halfLen, offset))
 			return false;
 
@@ -429,10 +430,10 @@ namespace Render
 #else
 		mesh.mType = EPrimitive::Quad;
 #endif
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::CubeOffset(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, Vector3 const& offset)
+	bool FMeshBuild::CubeOffset(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, Vector3 const& offset)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -496,8 +497,8 @@ namespace Render
 		};
 
 		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6);
-		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
-		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+		data.vertices.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 #else
 		uint32 indices[] =
 		{
@@ -510,8 +511,8 @@ namespace Render
 		};
 
 		MeshUtility::FillTangent_QuadList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4);
-		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
-		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+		data.vertices.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 #endif
 
 		return true;
@@ -519,15 +520,15 @@ namespace Render
 
 	bool FMeshBuild::CubeLineOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!CubeLineOffset(buildData, mesh.mInputLayoutDesc, halfLen, offset))
 			return false;
 
 		mesh.mType = EPrimitive::LineList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::CubeLineOffset(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, Vector3 const& offset)
+	bool FMeshBuild::CubeLineOffset(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, Vector3 const& offset)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -560,8 +561,8 @@ namespace Render
 			0,4, 1,5, 2,6, 3,7,
 		};
 
-		data.vertexData.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
-		data.indexData.assign(indices, indices + ARRAY_SIZE(indices));
+		data.vertices.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
+		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 
 		return true;
 	}
@@ -571,22 +572,22 @@ namespace Render
 		return CubeOffset(mesh, halfLen, Vector3::Zero());
 	}
 
-	bool FMeshBuild::Cube(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen)
+	bool FMeshBuild::Cube(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float halfLen)
 	{
 		return CubeOffset(data, inputLayoutDesc, halfLen, Vector3::Zero());
 	}
 
 	bool FMeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!Doughnut(buildData, mesh.mInputLayoutDesc, radius, ringRadius, rings, sectors))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::Doughnut(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, float ringRadius, int rings, int sectors)
+	bool FMeshBuild::Doughnut(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float radius, float ringRadius, int rings, int sectors)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -595,9 +596,9 @@ namespace Render
 
 		int vertexSize = inputLayoutDesc.getVertexSize() / sizeof(float);
 		int nV = rings * sectors;
-		data.vertexData.resize(nV * inputLayoutDesc.getVertexSize());
+		data.vertices.resize(nV * inputLayoutDesc.getVertexSize());
 
-		float* pVertexData = (float*)data.vertexData.data();
+		float* pVertexData = (float*)data.vertices.data();
 		auto GetVertexPtr = [&](int s, int r) { return pVertexData + (s * rings + r) * vertexSize; };
 
 		float sf = 2 * Math::PI / sectors;
@@ -630,8 +631,8 @@ namespace Render
 			}
 		}
 
-		data.indexData.resize(sectors * rings * 6);
-		uint32* pIdx = data.indexData.data();
+		data.indices.resize(sectors * rings * 6);
+		uint32* pIdx = data.indices.data();
 		for (int s = 0; s < sectors; ++s)
 		{
 			int s_next = (s + 1) % sectors;
@@ -661,15 +662,15 @@ namespace Render
 
 	bool FMeshBuild::Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!Plane(buildData, mesh.mInputLayoutDesc, offset, normal, dirY, size, texFactor))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::Plane(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
+	bool FMeshBuild::Plane(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -703,8 +704,8 @@ namespace Render
 		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &idx[0], 6);
 
-		data.vertexData.assign((uint8*)v, (uint8*)(v + 4));
-		data.indexData.assign(idx, idx + 6);
+		data.vertices.assign((uint8*)v, (uint8*)(v + 4));
+		data.indices.assign(idx, idx + 6);
 
 		return true;
 	}
@@ -712,15 +713,15 @@ namespace Render
 
 	bool FMeshBuild::Disc(Mesh& mesh, float radius, int sectors)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!Disc(buildData, mesh.mInputLayoutDesc, radius, sectors))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::Disc(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int sectors)
+	bool FMeshBuild::Disc(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float radius, int sectors)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -736,8 +737,8 @@ namespace Render
 			Vector2 uv;
 			Vector4 tangent;
 		};
-		data.vertexData.resize(nV * sizeof(MyVertex));
-		MyVertex* v = (MyVertex*)data.vertexData.data();
+		data.vertices.resize(nV * sizeof(MyVertex));
+		MyVertex* v = (MyVertex*)data.vertices.data();
 
 		// Center
 		v[0].pos = Vector3::Zero();
@@ -756,8 +757,8 @@ namespace Render
 			v[i + 1].tangent = Vector4(1, 0, 0, 1);
 		}
 
-		data.indexData.resize(3 * sectors);
-		uint32* idx = data.indexData.data();
+		data.indices.resize(3 * sectors);
+		uint32* idx = data.indices.data();
 		for (int i = 0; i < sectors; ++i)
 		{
 			idx[3 * i] = 0;
@@ -771,15 +772,15 @@ namespace Render
 
 	bool FMeshBuild::SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!SimpleSkin(buildData, mesh.mInputLayoutDesc, width, height, nx, ny))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::SimpleSkin(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float width, float height, int nx, int ny)
+	bool FMeshBuild::SimpleSkin(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float width, float height, int nx, int ny)
 	{
 		struct FVertex
 		{
@@ -803,8 +804,8 @@ namespace Render
 		float dw = width / (nx - 1);
 		float dh = height / (ny - 1);
 
-		data.vertexData.resize(nx * ny * sizeof(FVertex));
-		FVertex* pDataV = (FVertex*)data.vertexData.data();
+		data.vertices.resize(nx * ny * sizeof(FVertex));
+		FVertex* pDataV = (FVertex*)data.vertices.data();
 		for (int i = 0; i < nx; ++i)
 		{
 			for (int j = 0; j < ny; ++j)
@@ -824,8 +825,8 @@ namespace Render
 			}
 		}
 
-		data.indexData.resize(6 * (nx - 1) * (ny - 1));
-		uint32* pIdx = data.indexData.data();
+		data.indices.resize(6 * (nx - 1) * (ny - 1));
+		uint32* pIdx = data.indices.data();
 
 		for (int i = 0; i < nx - 1; ++i)
 		{
@@ -1175,15 +1176,15 @@ namespace Render
 
 	bool FMeshBuild::PlaneZ(Mesh& mesh, float halfLen, float texFactor)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!PlaneZ(buildData, mesh.mInputLayoutDesc, halfLen, texFactor))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::PlaneZ(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, float texFactor)
+	bool FMeshBuild::PlaneZ(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float halfLen, float texFactor)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -1209,23 +1210,23 @@ namespace Render
 
 		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &indices[0], 6);
 
-		data.vertexData.assign((uint8*)v, (uint8*)(v + 4));
-		data.indexData.assign(indices, indices + 6);
+		data.vertices.assign((uint8*)v, (uint8*)(v + 4));
+		data.indices.assign(indices, indices + 6);
 
 		return true;
 	}
 
 	bool FMeshBuild::Cone(Mesh& mesh, float height, float radius, int numSide)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!Cone(buildData, mesh.mInputLayoutDesc, height, radius, numSide))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::Cone(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float height, float radius, int numSide)
+	bool FMeshBuild::Cone(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float height, float radius, int numSide)
 	{
 		// Tip at (0, 0, height), base at Z=0 with given radius
 
@@ -1237,8 +1238,8 @@ namespace Render
 
 		// Side base ring + tip + bottom cap ring + bottom center
 		int numVerts = numSide * 2 + 2;
-		data.vertexData.resize(numVerts * sizeof(MyVertex));
-		MyVertex* verts = (MyVertex*)data.vertexData.data();
+		data.vertices.resize(numVerts * sizeof(MyVertex));
+		MyVertex* verts = (MyVertex*)data.vertices.data();
 
 		float rf = 2.0f * Math::PI / numSide;
 
@@ -1267,8 +1268,8 @@ namespace Render
 		verts[numSide * 2 + 1].pos = Vector3(0, 0, 0);
 		verts[numSide * 2 + 1].normal = Vector3(0, 0, -1);
 
-		data.indexData.resize(numSide * 6);
-		uint32* iPtr = data.indexData.data();
+		data.indices.resize(numSide * 6);
+		uint32* iPtr = data.indices.data();
 
 		int tipIdx = numSide;
 		// Side triangles
@@ -1354,7 +1355,7 @@ namespace Render
 			return idx;
 		}
 
-		bool build(MeshBuildData& data, float radius, int numDiv)
+		bool build(MeshRawData& data, float radius, int numDiv)
 		{
 			init(numDiv, radius);
 
@@ -1387,8 +1388,8 @@ namespace Render
 				numFace *= 4;
 			}
 
-			data.vertexData.assign((uint8*)mVertices.data(), (uint8*)(mVertices.data() + mNumV));
-			data.indexData.assign(pIdx, pIdx + nIdx);
+			data.vertices.assign((uint8*)mVertices.data(), (uint8*)(mVertices.data() + mNumV));
+			data.indices.assign(pIdx, pIdx + nIdx);
 			return true;
 		}
 		int    mNumV;
@@ -1416,15 +1417,15 @@ namespace Render
 
 	bool FMeshBuild::IcoSphere(Mesh& mesh, float radius, int numDiv)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!IcoSphere(buildData, mesh.mInputLayoutDesc, radius, numDiv))
 			return false;
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::IcoSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int numDiv)
+	bool FMeshBuild::IcoSphere(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float radius, int numDiv)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -1440,7 +1441,7 @@ namespace Render
 	{
 	public:
 		using VertexType = typename VertexTraits::Type;
-		TOctSphereBuilder(MeshBuildData& buildData)
+		TOctSphereBuilder(MeshRawData& buildData)
 			:mBuidlData(buildData)
 		{
 
@@ -1452,10 +1453,10 @@ namespace Render
 			mRadius = radius;
 
 			int const FaceCount = 4;
-			mBuidlData.vertexData.resize(( 2 + FaceCount * Math::Square(level + 1)) * sizeof(VertexType) );
-			mBuidlData.indexData.resize( 3 * 2 * FaceCount * Math::Square(level + 1));
-			uint32* pIndex = mBuidlData.indexData.data();
-			VertexType* pVertex = (VertexType*)mBuidlData.vertexData.data();
+			mBuidlData.vertices.resize(( 2 + FaceCount * Math::Square(level + 1)) * sizeof(VertexType) );
+			mBuidlData.indices.resize( 3 * 2 * FaceCount * Math::Square(level + 1));
+			uint32* pIndex = mBuidlData.indices.data();
+			VertexType* pVertex = (VertexType*)mBuidlData.vertices.data();
 
 			auto AddVertex = [&](Vector3 const& v)
 			{
@@ -1564,23 +1565,23 @@ namespace Render
 		int    mVertexCount;
 		float  mRadius;
 
-		MeshBuildData& mBuidlData;
+		MeshRawData& mBuidlData;
 	};
 
 
 	bool FMeshBuild::OctSphere(Mesh& mesh, float radius, int level)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!OctSphere(buildData, mesh.mInputLayoutDesc, radius, level))
 		{
 			return false;
 		}
 
 		mesh.mType = EPrimitive::TriangleList;
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::OctSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int level)
+	bool FMeshBuild::OctSphere(MeshRawData& data, InputLayoutDesc& inputLayoutDesc, float radius, int level)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -1592,14 +1593,14 @@ namespace Render
 
 	bool FMeshBuild::LightSphere(Mesh& mesh)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!LightSphere(buildData, mesh.mInputLayoutDesc))
 			return false;
 
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::LightSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	bool FMeshBuild::LightSphere(MeshRawData& data, InputLayoutDesc& inputLayoutDesc)
 	{
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		struct VertexTraits
@@ -1619,14 +1620,14 @@ namespace Render
 
 	bool FMeshBuild::LightCone(Mesh& mesh)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!LightCone(buildData, mesh.mInputLayoutDesc))
 			return false;
 
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::LightCone(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	bool FMeshBuild::LightCone(MeshRawData& data, InputLayoutDesc& inputLayoutDesc)
 	{
 		int numSide = 96;
 		inputLayoutDesc.clear();
@@ -1635,10 +1636,10 @@ namespace Render
 		int vertexSize = inputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = numSide + 2;
-		data.vertexData.resize(nV * inputLayoutDesc.getVertexSize());
+		data.vertices.resize(nV * inputLayoutDesc.getVertexSize());
 		float const sf = 2 * Math::PI / numSide;
 
-		float* v = (float*)data.vertexData.data() + inputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
+		float* v = (float*)data.vertices.data() + inputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
 
 		for (int i = 0; i < numSide; ++i)
 		{
@@ -1664,8 +1665,8 @@ namespace Render
 
 			v += vertexSize;
 		}
-		data.indexData.resize(2 * numSide * 3);
-		uint32* idx = data.indexData.data();
+		data.indices.resize(2 * numSide * 3);
+		uint32* idx = data.indices.data();
 
 		int idxPrev = numSide - 1;
 		int idxA = numSide;
@@ -1690,14 +1691,14 @@ namespace Render
 
 	bool FMeshBuild::SpritePlane(Mesh& mesh)
 	{
-		MeshBuildData buildData;
+		MeshRawData buildData;
 		if (!SpritePlane(buildData, mesh.mInputLayoutDesc))
 			return false;
 
-		return buildData.initializeRHI(mesh);
+		return mesh.createRHIResource(buildData);
 	}
 
-	bool FMeshBuild::SpritePlane(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc)
+	bool FMeshBuild::SpritePlane(MeshRawData& data, InputLayoutDesc& inputLayoutDesc)
 	{
 		inputLayoutDesc.clear();
 		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -1711,8 +1712,8 @@ namespace Render
 		};
 		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		data.vertexData.assign((uint8*)v, (uint8*)(v + 4));
-		data.indexData.assign(idx, idx + 6);
+		data.vertices.assign((uint8*)v, (uint8*)(v + 4));
+		data.indices.assign(idx, idx + 6);
 
 		return true;
 	}

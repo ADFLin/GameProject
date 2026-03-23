@@ -273,7 +273,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 				{
-					RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+					RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 					DrawUtility::AixsLine(commandList, 100);
 				}
 				RHISetShaderProgram(commandList, mTestShader.getRHI());

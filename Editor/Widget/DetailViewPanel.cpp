@@ -110,6 +110,8 @@ ImGuiDataType ToImGuiDataType(EPropertyType type)
 	case EPropertyType::Int32: return ImGuiDataType_S32;
 	case EPropertyType::Int64: return ImGuiDataType_S64;
 	}
+	NEVER_REACH("ToImGuiDataType");
+	return ImGuiDataType_S32;
 }
 
 template< typename T >

@@ -75,7 +75,7 @@ namespace Render
 	public:
 
 		Mesh mMesh;
-		MeshBuildData mMeshData;
+		MeshRawData mMeshData;
 
 		TStructuredBuffer<float> mMeshOffsetData;
 		TStructuredBuffer< CraterInfo > mCraterData;

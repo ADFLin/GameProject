@@ -490,7 +490,7 @@ namespace Render
 					DrawUtility::ScreenRect(commandList);
 				}
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-				RHISetFixedShaderPipelineState(commandList, viewSnapshot.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, viewSnapshot.worldToClipRHI);
 				DrawUtility::AixsLine(commandList);
 				if (totalParticles > 0) mParticleRenderer.render(commandList, viewSnapshot, pInstances, totalParticles);
 			}

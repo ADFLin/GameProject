@@ -31,8 +31,67 @@ VS_ENTRY_END(MainVS)
 
 uniform int3   VoxelDims;
 uniform float4 VoxelColor;
+uniform int    RootNodeIndex;
+
+#ifndef USE_OCTREE
+#define USE_OCTREE 1
+#endif
+#ifndef USE_64TREE
+#define USE_64TREE 0
+#endif
+
+
+struct OctTreeNode
+{
+    int children[8];
+};
+
+struct SvtNode64
+{
+    uint childPtr; // bit 31: isLeaf, bits 0-30: child index
+    uint2 mask;    // 64-bit child existence mask
+    uint padding;
+};
 
 StructuredBuffer<uint> VoxelData;
+StructuredBuffer<OctTreeNode> OctTreeData;
+StructuredBuffer<SvtNode64> Svt64Data;
+
+uint popcnt_var64(uint2 mask, uint bitIdx)
+{
+    uint lowCount = countbits(mask.x);
+    if (bitIdx < 32)
+        return countbits(mask.x & ((1u << bitIdx) - 1u));
+    return lowCount + countbits(mask.y & ((1u << (bitIdx - 32u)) - 1u));
+}
+
+#if USE_64TREE
+// Reverses `pos` from range [1.0, 2.0) to (2.0, 1.0] if `dir > 0`.
+float3 GetMirroredPos(float3 pos, float3 dir, bool rangeCheck)
+{
+    float3 mirrored = asfloat(asuint(pos) ^ 0x7FFFFF);
+    if (rangeCheck && any(pos < 1.0 || pos >= 2.0))
+        mirrored = 3.0 - pos;
+        
+    return float3(
+        dir.x > 0 ? mirrored.x : pos.x,
+        dir.y > 0 ? mirrored.y : pos.y,
+        dir.z > 0 ? mirrored.z : pos.z
+    );
+}
+
+uint GetNodeCellIndex(float3 pos, int scaleExp)
+{
+    uint3 p = asuint(pos);
+    return ((p.x >> scaleExp) & 3) | (((p.z >> scaleExp) & 3) << 2) | (((p.y >> scaleExp) & 3) << 4);
+}
+
+float3 FloorScale(float3 pos, int scaleExp)
+{
+    uint mask = ~((1u << scaleExp) - 1u);
+    return asfloat(asuint(pos) & mask);
+}
+#endif
 
 PS_ENTRY_START(MainPS)
     PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -42,10 +101,9 @@ PS_ENTRY_END(MainPS)
     float3 ro = VSOutput.RayOrigin;
     float3 rd = normalize(VSOutput.RayDir);
     
-    const float3 minBBox = float3(-0.5, -0.5, -0.5);
-    const float3 maxBBox = float3(0.5, 0.5, 0.5);
-    const float3 totalDim = float3(VoxelDims);
-
+    const float3 minBBox = float3(-1, -1, -1);
+    const float3 maxBBox = float3(1, 1, 1);
+    
     float3 invRd = 1.0 / rd;
     float3 t0 = (minBBox - ro) * invRd;
     float3 t1 = (maxBBox - ro) * invRd;
@@ -54,19 +112,247 @@ PS_ENTRY_END(MainPS)
     float fmin = max(tmin.x, max(tmin.y, tmin.z));
     float fmax = min(tmax.x, min(tmax.y, tmax.z));
     
-    if (fmax < fmin || fmax < 0) discard;
+    if (fmax < fmin || fmax < 0) 
+		discard;
     
     float tStart = max(0.0, fmin);
+    const float3 worldSize = maxBBox - minBBox;
+
+#if USE_64TREE
+    if (RootNodeIndex < 0) discard;
+
+    float3 invSize = 1.0 / worldSize;
+    float3 ro_tree = (ro - minBBox) * invSize;
+    float3 rd_tree = rd * invSize;
+
+    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, max(VoxelDims.z, 1)));
+    uint treeRes = 1;
+    while (treeRes < uint(maxGridDim)) treeRes *= 4;
+
+    float3 treeSpaceScale = float3(VoxelDims) / float(treeRes);
+    float3 dir = rd_tree * treeSpaceScale;
+    float3 origin = 1.0 + (ro_tree * treeSpaceScale) + dir * tStart;
+    
+    uint stack[11];
+    int scaleExp = 21; // level 1 (size 0.25)
+    uint nodeIdx = uint(RootNodeIndex);
+    SvtNode64 node = Svt64Data[nodeIdx];
+
+    uint mirrorMask = 0;
+    if (dir.x > 0) mirrorMask |= 3 << 0;
+    if (dir.y > 0) mirrorMask |= 3 << 4;
+    if (dir.z > 0) mirrorMask |= 3 << 2;
+
+    // Component-wise mirroring
+    float3 mirroredOrigin = asfloat(asuint(origin) ^ 0x7FFFFF);
+    if (any(origin < 1.0 || origin >= 2.0)) mirroredOrigin = 3.0 - origin;
+    origin.x = dir.x > 0 ? mirroredOrigin.x : origin.x;
+    origin.y = dir.y > 0 ? mirroredOrigin.y : origin.y;
+    origin.z = dir.z > 0 ? mirroredOrigin.z : origin.z;
+
+    float3 pos = clamp(origin, 1.0, 1.9999999);
+    float3 invDir = 1.0 / -abs(dir);
+    float3 sideDist = float3(0,0,0);
+    int iterCount = 0;
+    for (; iterCount < 256; iterCount++)
+    {
+        uint childIdx = GetNodeCellIndex(pos, scaleExp) ^ mirrorMask;
+        bool isSet = (childIdx < 32) ? ((node.mask.x >> childIdx) & 1) : ((node.mask.y >> (childIdx - 32)) & 1);
+        bool isLeaf = (node.childPtr & (1u << 31)) != 0;
+
+        while (isSet && !isLeaf)
+        {
+            stack[scaleExp >> 1] = nodeIdx;
+            nodeIdx = (node.childPtr & 0x7FFFFFFF) + popcnt_var64(node.mask, childIdx);
+            node = Svt64Data[nodeIdx];
+            scaleExp -= 2;
+            childIdx = GetNodeCellIndex(pos, scaleExp) ^ mirrorMask;
+            
+            isSet = (childIdx < 32) ? ((node.mask.x >> childIdx) & 1) : ((node.mask.y >> (childIdx - 32)) & 1);
+            isLeaf = (node.childPtr & (1u << 31)) != 0;
+        }
+
+        if (isSet && isLeaf) break;
+
+        int advScaleExp = scaleExp;
+
+        float3 cellMin = FloorScale(pos, advScaleExp);
+        sideDist = (cellMin - origin) * invDir;
+        float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
+        
+        int offsetAmount = int((1u << uint(advScaleExp)) - 1u);
+        int3 neighborMax;
+        neighborMax.x = asint(cellMin.x) + ((sideDist.x == sideTMax) ? -1 : offsetAmount);
+        neighborMax.y = asint(cellMin.y) + ((sideDist.y == sideTMax) ? -1 : offsetAmount);
+        neighborMax.z = asint(cellMin.z) + ((sideDist.z == sideTMax) ? -1 : offsetAmount);
+        
+        pos = min(origin - abs(dir) * sideTMax, asfloat(neighborMax));
+
+        uint3 diffPos = asuint(pos) ^ asuint(cellMin);
+        int diffExp = firstbithigh((diffPos.x | diffPos.y | diffPos.z) & 0xFFAAAAAA);
+
+        if (diffExp > scaleExp)
+        {
+            scaleExp = diffExp;
+            if (diffExp > 21) break;
+            nodeIdx = stack[scaleExp >> 1];
+            node = Svt64Data[nodeIdx];
+        }
+    }
+
+    bool isLeaf = (node.childPtr & (1u << 31)) != 0;
+    if (!isLeaf || scaleExp > 21) discard;
+
+    float3 mirroredPos = asfloat(asuint(pos) ^ 0x7FFFFF);
+    pos.x = dir.x > 0 ? mirroredPos.x : pos.x;
+    pos.y = dir.y > 0 ? mirroredPos.y : pos.y;
+    pos.z = dir.z > 0 ? mirroredPos.z : pos.z;
+
+    float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
+    float3 N_local = float3(
+        (sideTMax >= sideDist.x) ? -sign(dir.x) : 0.0,
+        (sideTMax >= sideDist.y) ? -sign(dir.y) : 0.0,
+        (sideTMax >= sideDist.z) ? -sign(dir.z) : 0.0
+    );
+
+    float3 phitTreeSpace = (pos - 1.0) / treeSpaceScale;
+    float3 pHitLocal = minBBox + phitTreeSpace * worldSize;
+
+#elif USE_OCTREE
+
+    if (RootNodeIndex == -1)
+        discard;
+
+    if (RootNodeIndex == -2)
+    {
+        float3 pHitLocal = ro + rd * tStart;
+        float3 pHitWorld = mul(LocalToWorld, float4(pHitLocal, 1)).xyz;
+        OutColor = float4(pHitWorld, 1);
+        return;
+    }
+
+    // Tree bounds mapping: Voxel Grid (dims) -> World BBox
+    // OctTree represents a (S, S, S) cube where S is power of two >= max(dims)
+    float3 invDim = 1.0 / float3(VoxelDims);
+    
+    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, VoxelDims.z));
+    uint treeRes = 1u << uint(ceil(log2(float(maxGridDim))));
+
+    struct StackNode
+    {
+        int  nodeIdx;
+        uint2 packedData; // packedData.x: (cx | cy << 16), packedData.y: (cz | cs << 16)
+    };
+
+    StackNode stack[64]; 
+    int stackPtr = 0;
+    
+    stack[stackPtr].nodeIdx = RootNodeIndex;
+    stack[stackPtr].packedData = uint2(0, uint(treeRes) << 16); // cx=0, cy=0, cz=0, cs=treeRes
+    stackPtr++;
+
+    int hitSide = -1;
+    float tHit = 1e10;
+
+    int x_mask = rd.x > 0 ? 0 : 1;
+    int y_mask = rd.y > 0 ? 0 : 2;
+    int z_mask = rd.z > 0 ? 0 : 4;
+    int mask = x_mask | y_mask | z_mask;
+
+    int iterCount = 0;
+    while (stackPtr > 0 && iterCount < 800)
+    {
+        iterCount++;
+        StackNode curr = stack[--stackPtr];
+        
+        int cx = int(curr.packedData.x & 0xFFFF);
+        int cy = int(curr.packedData.x >> 16);
+        int cz = int(curr.packedData.y & 0xFFFF);
+        int cs = int(curr.packedData.y >> 16);
+
+        float3 cMin = minBBox + worldSize * (float3(cx, cy, cz) * invDim);
+        float3 cMax = cMin + worldSize * (float(cs) * invDim);
+        
+        float3 c_t0 = (cMin - ro) * invRd;
+        float3 c_t1 = (cMax - ro) * invRd;
+        float3 c_tmin = min(c_t0, c_t1);
+        float3 c_tmax = max(c_t0, c_t1);
+        float cfmin = max(c_tmin.x, max(c_tmin.y, c_tmin.z));
+        float cfmax = min(c_tmax.x, min(c_tmax.y, c_tmax.z));
+        
+        if (cfmax < cfmin || cfmax < tStart || cfmin > tHit)
+            continue;
+
+        if (curr.nodeIdx == -2)
+        {
+            tHit = max(cfmin, tStart);
+            if (c_tmin.x > c_tmin.y && c_tmin.x > c_tmin.z) hitSide = 0;
+            else if (c_tmin.y > c_tmin.z) hitSide = 1;
+            else hitSide = 2;
+            continue;
+        }
+
+        if (curr.nodeIdx >= 0)
+        {
+            OctTreeNode node = OctTreeData[curr.nodeIdx];
+            int nextSize = cs >> 1;
+
+            // Push children in order
+            for (int i = 0; i < 8; ++i)
+            {
+                int idx = i ^ 7 ^ mask; 
+                int childIdx = node.children[idx];
+                if (childIdx != -1)
+                {
+                    int ncx = cx + ((idx & 1) ? nextSize : 0);
+                    int ncy = cy + ((idx & 2) ? nextSize : 0);
+                    int ncz = cz + ((idx & 4) ? nextSize : 0);
+
+                    // --- PRECISE PUSHING OPTIMIZATION ---
+                    float3 cnMin = minBBox + worldSize * (float3(ncx, ncy, ncz) * invDim);
+                    float3 cnMax = cnMin + worldSize * (float(nextSize) * invDim);
+                    float3 ct0 = (cnMin - ro) * invRd;
+                    float3 ct1 = (cnMax - ro) * invRd;
+                    float cmin = max(max(min(ct0.x, ct1.x), min(ct0.y, ct1.y)), min(ct0.z, ct1.z));
+                    float cmax = min(min(max(ct0.x, ct1.x), max(ct0.y, ct1.y)), max(ct0.z, ct1.z));
+
+                    if (cmax >= cmin && cmax >= tStart && cmin < tHit)
+                    {
+                        if (stackPtr < 64)
+                        {
+                            stack[stackPtr].nodeIdx = childIdx;
+                            stack[stackPtr].packedData.x = uint(ncx) | (uint(ncy) << 16);
+                            stack[stackPtr].packedData.y = uint(ncz) | (uint(nextSize) << 16);
+                            stackPtr++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (hitSide == -1)
+        discard;
+
+    float3 N_local = float3(0,0,0);
+    float3 signRd = sign(rd);
+    if (hitSide == 0) N_local.x = -signRd.x;
+    else if (hitSide == 1) N_local.y = -signRd.y;
+    else N_local.z = -signRd.z;
+    float3 pHitLocal = ro + rd * tHit;
+#else
+
+    const float3 totalDim = float3(VoxelDims);
     float3 pLocal = ro + rd * tStart;
     float3 uvw = (pLocal - minBBox) / (maxBBox - minBBox);
     float3 pGrid = clamp(uvw * totalDim, 0.0, totalDim - 0.0001);
-    
+
     int3 mapPos = int3(floor(pGrid));
-    float3 rdGrid = rd * totalDim; 
-    
-    float3 deltaDist = abs(1.0 / rdGrid);
+    float3 rdGrid = rd * totalDim;
+
+    float3 deltaDist = abs(2.0 / rdGrid);
     int3 rayStep = int3(sign(rdGrid));
-    
+
     float3 sideDist;
     sideDist.x = (rdGrid.x > 0) ? (floor(pGrid.x + 1.0) - pGrid.x) : (pGrid.x - floor(pGrid.x));
     sideDist.y = (rdGrid.y > 0) ? (floor(pGrid.y + 1.0) - pGrid.y) : (pGrid.y - floor(pGrid.y));
@@ -76,7 +362,7 @@ PS_ENTRY_END(MainPS)
     int hitSide = 0;
     bool bHit = false;
 
-    for(int i = 0; i < 350; ++i)
+    for (int i = 0; i < 350; ++i)
     {
         uint val = VoxelData[mapPos.x + VoxelDims.x * (mapPos.y + VoxelDims.y * mapPos.z)];
         if (val > 0)
@@ -104,28 +390,27 @@ PS_ENTRY_END(MainPS)
             hitSide = 2;
         }
 
-        if (any(mapPos < 0) || any(mapPos >= VoxelDims)) break;
+        if (any(mapPos < 0) || any(mapPos >= VoxelDims))
+            break;
     }
 
-    if (bHit)
-    {
-        // Calculate World Space Normal
-        float3 N_local = float3(0,0,0);
-        if (hitSide == 0) N_local.x = -rayStep.x;
-        else if (hitSide == 1) N_local.y = -rayStep.y;
-        else N_local.z = -rayStep.z;
-        
-        float3 N_world = normalize(mul(LocalToWorld, float4(N_local, 0)).xyz);
-        float tHit = min(sideDist.x, min(sideDist.y, sideDist.z));
-        float3 pHitLocal = ro + rd * (max(tStart, 0.0) + (sideDist[hitSide] - deltaDist[hitSide])); 
-        float3 pHitWorld = mul(LocalToWorld, float4(pHitLocal, 1)).xyz;
-        
-        // Match Voxel.sgc debug output
-        OutColor = float4(pHitWorld, 1);
-        return;
-    }
+    if (!bHit)
+        discard;
 
-    discard;
-}
-
+    float3 N_local = float3(0, 0, 0);
+    if (hitSide == 0) N_local.x = -rayStep.x;
+    else if (hitSide == 1) N_local.y = -rayStep.y;
+    else N_local.z = -rayStep.z;
+    float3 pHitLocal = ro + rd * (max(tStart, 0.0) + (sideDist[hitSide] - deltaDist[hitSide]));
 #endif
+	float3 N_world = normalize(mul(LocalToWorld, float4(N_local, 0)).xyz);
+	float3 pHitWorld = mul(LocalToWorld, float4(pHitLocal, 1)).xyz;
+	float3 dx = ddx(pHitWorld);
+	float3 dy = ddy(pHitWorld);
+
+
+
+    OutColor = float4(frac(pHitWorld), 1);
+	//OutColor = float4(0.5 + 0.5 * normalize(cross(dx, dy)), 1);
+	//OutColor = float4(float(iterCount)/256, 0, 0, 1);
+}

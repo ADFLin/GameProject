@@ -36,7 +36,7 @@ namespace Render
 	bool PlantRenderingStage::createMeshBaseData()
 	{
 		VERIFY_RETURN_FALSE(FMeshBuild::OctSphere(mMeshData, mMesh.mInputLayoutDesc, 1.0, mSettings.meshLevel));
-		VERIFY_RETURN_FALSE(mMeshData.initializeRHI(mMesh));
+		VERIFY_RETURN_FALSE(mMesh.createRHIResource(mMeshData));
 		VERIFY_RETURN_FALSE(mMeshOffsetData.initializeResource(mMesh.mVertexBuffer->getNumElements(), EStructuredBufferType::RWBuffer, true));
 		return true;
 	}
@@ -45,7 +45,7 @@ namespace Render
 	{
 		int numVertices = mMesh.getVertexCount();
 		float* pHeight = mMeshOffsetData.lock();
-		TArray< uint8 > vertexData = mMeshData.vertexData;
+		TArray< uint8 > vertexData = mMeshData.vertices;
 		auto posWriter = mMesh.makePositionWriter(vertexData.data());
 		for (int i = 0; i < numVertices; ++i)
 		{
@@ -53,8 +53,8 @@ namespace Render
 			pos *= pHeight[i];
 		}
 		mMeshOffsetData.unlock();
-		MeshUtility::FillTriangleListNormal(mMesh.mInputLayoutDesc, vertexData.data(), numVertices, mMeshData.indexData.data(), mMeshData.indexData.size(), EVertex::ATTRIBUTE_NORMAL, true);
-		VERIFY_RETURN_FALSE(mMesh.createRHIResource(vertexData.data(), numVertices, mMeshData.indexData.data(), mMeshData.indexData.size()));
+		MeshUtility::FillTriangleListNormal(mMesh.mInputLayoutDesc, vertexData.data(), numVertices, mMeshData.indices.data(), mMeshData.indices.size(), EVertex::ATTRIBUTE_NORMAL, true);
+		VERIFY_RETURN_FALSE(mMesh.createRHIResource(vertexData.data(), numVertices, mMeshData.indices.data(), mMeshData.indices.size()));
 
 
 		return true;
@@ -235,7 +235,7 @@ namespace Render
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
-		RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+		RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 		DrawUtility::AixsLine(commandList);
 
 		auto& rasterizerState = (bWireframe) ? TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe>::GetRHI() : TStaticRasterizerState<>::GetRHI();
@@ -243,7 +243,7 @@ namespace Render
 
 		RHISetShaderProgram(commandList, mProgRender->getRHI());
 
-		mProgRender->setParam(commandList, SHADER_PARAM(XForm), mView.worldToClip);
+		mProgRender->setParam(commandList, SHADER_PARAM(XForm), mView.worldToClipRHI);
 		mProgRender->setStorageBuffer(commandList, SHADER_PARAM(HeightBlock), *mMeshOffsetData.getRHI(), EAccessOp::ReadOnly);
 		mView.setupShader(commandList, *mProgRender);
 

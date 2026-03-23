@@ -448,7 +448,7 @@ namespace Chess
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
-			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 			DrawUtility::AixsLine(commandList);
 
 			mRenderer.render(mGame, mView);

@@ -188,11 +188,11 @@ namespace Render
 					RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
 					
 					// Ground Plane
-					RHISetFixedShaderPipelineState(commandList, Matrix4::Scale(400, 400, 1) * AdjustProjectionMatrixForRHI(mView.worldToClip), LinearColor(0.2, 0.4, 0.2));
+					RHISetFixedShaderPipelineState(commandList, Matrix4::Scale(400, 400, 1) * mView.worldToClipRHI, LinearColor(0.2, 0.4, 0.2));
 					mSimpleMeshs[SimpleMeshId::Plane].draw(commandList);
 
 					// Red Box
-					RHISetFixedShaderPipelineState(commandList, Matrix4::Translate(0, 0, 5) * Matrix4::Scale(10, 10, 10) * AdjustProjectionMatrixForRHI(mView.worldToClip), LinearColor(0.7, 0.1, 0.1));
+					RHISetFixedShaderPipelineState(commandList, Matrix4::Translate(0, 0, 5) * Matrix4::Scale(10, 10, 10) * mView.worldToClipRHI, LinearColor(0.7, 0.1, 0.1));
 					mSimpleMeshs[SimpleMeshId::Box].draw(commandList);
 				}
 

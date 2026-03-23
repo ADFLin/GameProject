@@ -14,6 +14,7 @@
 #include "RHI/Scene.h"
 
 #include "Renderer/Mesh.h"
+#include "Renderer/MeshImportor.h"
 #include "Renderer/SimpleCamera.h"
 
 #include "Core/ScopeGuard.h"
@@ -183,6 +184,10 @@ namespace Render
 
 		return true;
 	}
+
+	struct MeshImportData;
+	TINY_API bool LoadMeshDataFromFile(MeshImportData& meshData, char const* meshPath);
+
 
 	class InstancedMesh
 	{

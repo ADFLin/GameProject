@@ -8,6 +8,7 @@
 #include "ConsoleSystem.h"
 
 #include "Asset.h"
+#include "Renderer/MeshImportor.h"
 
 
 
@@ -355,6 +356,41 @@ namespace Render
 				RHIDrawPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mVertexBuffer->getNumElements(), mInstanceParams.size());
 			}
 		}
+	}
+
+	bool LoadMeshDataFromFile(MeshImportData& meshData, char const* meshPath)
+	{
+		DataCacheKey key;
+		key.typeName = "RAW_MESH_DATA";
+		key.version = "172CABB4-4F63-426C-924C-8BB7B62F67E6";
+		key.keySuffix.addFileAttribute(meshPath);
+
+		auto MeshLoad = [&meshData](IStreamSerializer& serializer) -> bool
+		{
+			serializer >> meshData;
+			return true;
+		};
+
+		auto MeshSave = [&meshData](IStreamSerializer& serializer) -> bool
+		{
+			serializer << meshData;
+			return true;
+		};
+
+		if (!::Global::DataCache().loadDelegate(key, MeshLoad))
+		{
+			IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("OBJ");
+			if (importer->importFromFile(meshPath, meshData))
+				return false;
+
+
+			if (!::Global::DataCache().saveDelegate(key, MeshSave))
+			{
+
+			}
+		}
+
+		return true;
 	}
 
 }//namespace Render

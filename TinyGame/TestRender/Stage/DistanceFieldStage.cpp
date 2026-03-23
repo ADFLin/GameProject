@@ -164,7 +164,7 @@ namespace Render
 			initializeRenderState();
 
 
-			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 			mMesh.draw(commandList, LinearColor(0, 1, 0, 1));
 
 

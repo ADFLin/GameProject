@@ -514,7 +514,7 @@ namespace PathTracing
 				float radius = visualDist * Math::Tan(angle);								// Manual vertices are already shaped. World matrix only needs to move it to the object.
 				Matrix4 world = Matrix4::Rotate(obj.rotation) * Matrix4::Translate(obj.pos);
 
-				RHISetFixedShaderPipelineState(commandList, world * AdjustProjectionMatrixForRHI(view.worldToClip), LinearColor(1, 1, 0, 1.0f));
+				RHISetFixedShaderPipelineState(commandList, world * view.worldToClipRHI, LinearColor(1, 1, 0, 1.0f));
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Solid>::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				
@@ -555,7 +555,7 @@ namespace PathTracing
 			drawGizmo(commandList, view, obj.pos, gizmoRot);
 		}
 
-		RHISetFixedShaderPipelineState(commandList, view.worldToClip, LinearColor(1, 1, 1, 1));
+		RHISetFixedShaderPipelineState(commandList, view.worldToClipRHI, LinearColor(1, 1, 1, 1));
 		DrawUtility::AixsLine(commandList, 2.0f);
 
 

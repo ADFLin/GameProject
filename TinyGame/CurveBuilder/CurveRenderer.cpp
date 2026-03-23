@@ -201,7 +201,7 @@ namespace CB
 		mCommandList = &commandList;
 		mTranslucentDraw.clear();
 
-		RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip);
+		RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClipRHI);
 	}
 
 	void CurveRenderer::endRender()
@@ -296,7 +296,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetFixedShaderPipelineState(commandList, surface.getTransform() * mViewInfo.worldToClip, color);
+			RHISetFixedShaderPipelineState(commandList, surface.getTransform() * mViewInfo.worldToClipRHI, color);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 			//drawMeshLine(surface, color);
@@ -330,7 +330,7 @@ namespace CB
 				mViewInfo.setupShader(commandList, *mProgCurveMesh);
 				surfaceRender.setupShader(commandList, *mProgCurveMesh);
 #else
-				RHISetFixedShaderPipelineState(commandList, surface.getTransform() * mViewInfo.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, surface.getTransform() * mViewInfo.worldToClipRHI);
 #endif
 				drawMesh(surface);
 			}

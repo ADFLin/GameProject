@@ -894,7 +894,7 @@ namespace Render
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHISetFrameBuffer(commandList, nullptr);
-			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 			DrawUtility::AixsLine(commandList);
 
 			{

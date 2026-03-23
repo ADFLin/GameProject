@@ -12,16 +12,16 @@
 
 #include <memory>
 #include <unordered_map>
+#include "MeshBuild.h"
+#include "Math/GeometryPrimitive.h"
 
 
 namespace Render
 {
 	class Mesh;
 
-	struct MeshImportData
+	struct MeshImportData : MeshRawData
 	{
-		TArray<uint8>  vertices;
-		TArray<uint32> indices;
 		int numVertices = 0;
 		InputLayoutDesc desc;
 		TArray<MeshSection> sections;
@@ -30,7 +30,20 @@ namespace Render
 
 		void append(MeshImportData const& other);
 
-		VertexElementReader makeAttributeReader( EVertex::Attribute attribute);
+		VertexElementReader makeAttributeReader( EVertex::Attribute attribute) const;
+
+
+		Math::TAABBox<Vector3> getBoundBox() const
+		{
+			Math::TAABBox<Vector3> result;
+			result.invalidate();
+			auto posReader = makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
+			for (int i = 0; i < numVertices; ++i)
+			{
+				result.addPoint(posReader[i]);
+			}
+			return result;
+		}
 
 		template< class Op >
 		void serialize(Op& op)

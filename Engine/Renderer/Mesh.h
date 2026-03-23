@@ -14,6 +14,22 @@ namespace Render
 	{
 		return buffer->getElementSize() == 4;
 	}
+
+	struct MeshRawData
+	{
+		TArray< uint8 >  vertices;
+		TArray< uint32 > indices;
+
+		VertexElementReader makeAttributeReader(InputLayoutDesc const& desc, EVertex::Attribute attribute) const
+		{
+			VertexElementReader result;
+			result.vertexDataStride = desc.getVertexSize();
+			result.pVertexData = vertices.data() + desc.getAttributeOffset(attribute);
+			return result;
+		}
+	};
+
+
 	class Mesh
 	{
 	public:
@@ -31,6 +47,13 @@ namespace Render
 			static_assert(sizeof(IndexType) == sizeof(uint16) || sizeof(IndexType) == sizeof(uint32));
 			return createRHIResource(pVertex, nV, pIdx, nIndices, sizeof(IndexType) == sizeof(uint32));
 		}
+
+		bool createRHIResource(MeshRawData const& data)
+		{
+			uint32 vertexSize = mInputLayoutDesc.getVertexSize();
+			return createRHIResource(const_cast<uint8*>(data.vertices.data()), int(data.vertices.size() / vertexSize), const_cast<uint32*>(data.indices.data()), (int)data.indices.size());
+		}
+
 		void releaseRHIResource();
 		void draw(RHICommandList& commandList);
 		void draw(RHICommandList& commandList, LinearColor const& color);

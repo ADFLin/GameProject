@@ -64,7 +64,7 @@ PS_ENTRY_END(MainPS)
 	float3 N = normalize(VSOutput.Normal);
     float diff = max(0.1, dot(N, L));
     OutColor = VSOutput.color * diff;
-	OutColor = float4(VSOutput.worldPos, 1);
+	OutColor = float4(frac(VSOutput.worldPos), 1);
 }
 
 #endif

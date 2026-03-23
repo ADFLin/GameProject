@@ -590,7 +590,7 @@ namespace Render
 						RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 						RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-						RHISetFixedShaderPipelineState(commandList, mView.worldToClip, LinearColor(1, 0, 0, 0.15));
+						RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI, LinearColor(1, 0, 0, 0.15));
 						static const uint32 FaceIndices[] =
 						{
 							0,1,5, 0,5,4,
@@ -607,7 +607,7 @@ namespace Render
 						};
 						RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 						RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-						RHISetFixedShaderPipelineState(commandList, mView.worldToClip , LinearColor(1, 1, 0, 1));
+						RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI, LinearColor(1, 1, 0, 1));
 						TRenderRT< RTVF_XYZ >::DrawIndexed(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices) , LineIndices, ARRAY_SIZE(LineIndices));
 					}
 				}

@@ -491,7 +491,7 @@ namespace Render
 
 			drawSkyBox(commandList, mView, *mHDRImage, mIBLResource, ESkyboxShow::Normal);
 
-			RHISetFixedShaderPipelineState(commandList, AdjustProjectionMatrixForRHI(mView.worldToClip));
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
 			DrawUtility::AixsLine(commandList, 10);
 
 			{

@@ -60,10 +60,9 @@ namespace Render
 	
 	struct SvtNode64
 	{
-		uint32_t childPtr;  // bit 31: isLeaf, bits 0-30: child index
-		uint32_t maskLow;   // bits 0-31
-		uint32_t maskHigh;  // bits 32-63
-		uint32_t padding;
+		uint32 childPtr;  // bit 31: isLeaf, bits 0-30: child index
+		uint64 mask;      // bits 0-63
+		uint32 padding;
 	};
 
 	class FVoxelBuild
@@ -436,7 +435,7 @@ namespace Render
 
 		static SvtNode64 Build64TreeRecursive(TArray<VoxelPoint>& points, TArray<VoxelPoint>& tempPoints, int start, int end, TArray<SvtNode64>& outNodes, int sizeExp)
 		{
-			SvtNode64 node = { 0, 0, 0, 0 };
+			SvtNode64 node = { 0, 0, 0 };
 			if (start == end) return node;
 
 			if (sizeExp == 2)
@@ -449,8 +448,7 @@ namespace Render
 					int bitIdx = (p.x & 3) + ((p.z & 3) << 2) + ((p.y & 3) << 4);
 					mask |= (1ull << bitIdx);
 				}
-				node.maskLow = (uint32)(mask & 0xFFFFFFFF);
-				node.maskHigh = (uint32)(mask >> 32);
+				node.mask = mask;
 				return node;
 			}
 
@@ -495,7 +493,7 @@ namespace Render
 					int childStart = currentOffset;
 					int childEnd = currentOffset + bucketSize;
 					SvtNode64 childNode = Build64TreeRecursive(points, tempPoints, childStart, childEnd, outNodes, nextSizeExp);
-					if (childNode.maskLow != 0 || childNode.maskHigh != 0 || (childNode.childPtr & 0x7FFFFFFF) != 0 || (childNode.childPtr & (1u << 31)) != 0)
+					if (childNode.mask != 0 || (childNode.childPtr & 0x7FFFFFFF) != 0 || (childNode.childPtr & (1u << 31)) != 0)
 					{
 						mask |= (1ull << i);
 						children.push_back(childNode);
@@ -504,8 +502,7 @@ namespace Render
 				currentOffset += bucketSize;
 			}
 
-			node.maskLow = (uint32)(mask & 0xFFFFFFFF);
-			node.maskHigh = (uint32)(mask >> 32);
+			node.mask = mask;
 
 			if (!children.empty())
 			{
@@ -584,6 +581,15 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, OctTreeData);
 			BIND_SHADER_PARAM(parameterMap, Svt64Data);
 			BIND_SHADER_PARAM(parameterMap, RootNodeIndex);
+
+			// DDGI
+			BIND_SHADER_PARAM(parameterMap, DDGIVolumeMin);
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeSpacing);
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
+			BIND_SHADER_PARAM(parameterMap, DDGIIrradianceTexture);
+			BIND_SHADER_PARAM(parameterMap, DDGIDistanceTexture);
+			BIND_SHADER_PARAM(parameterMap, DDGISampler);
+			BIND_SHADER_PARAM(parameterMap, DebugDrawProbes);
 		}
 
 		DEFINE_SHADER_PARAM(LocalToWorld);
@@ -596,9 +602,181 @@ namespace Render
 		DEFINE_SHADER_PARAM(OctTreeData);
 		DEFINE_SHADER_PARAM(Svt64Data);
 		DEFINE_SHADER_PARAM(RootNodeIndex);
+
+		DEFINE_SHADER_PARAM(DDGIVolumeMin);
+		DEFINE_SHADER_PARAM(DDGIProbeSpacing);
+		DEFINE_SHADER_PARAM(DDGIProbeCount);
+		DEFINE_SHADER_PARAM(DDGIIrradianceTexture);
+		DEFINE_SHADER_PARAM(DDGIDistanceTexture);
+		DEFINE_SHADER_PARAM(DDGISampler);
+		DEFINE_SHADER_PARAM(DebugDrawProbes);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(VoxelRayMarchProgram);
+
+	class DDGIVoxelTraceShader : public GlobalShader
+	{
+		DECLARE_SHADER(DDGIVoxelTraceShader, Global);
+	public:
+		SHADER_PERMUTATION_TYPE_BOOL(UseOctTree, SHADER_PARAM(USE_OCTREE));
+		SHADER_PERMUTATION_TYPE_BOOL(Use64Tree, SHADER_PARAM(USE_64TREE));
+
+		using PermutationDomain = TShaderPermutationDomain<UseOctTree, Use64Tree>;
+
+		static char const* GetShaderFileName() { return "Shader/Game/DDGIVoxelTrace"; }
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, DDGIVolumeMin);
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeSpacing);
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
+			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
+			BIND_SHADER_PARAM(parameterMap, DDGIRandomRotation);
+			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
+			
+			// From VoxelRayTraceCommon
+			BIND_SHADER_PARAM(parameterMap, VoxelDims);
+			BIND_SHADER_PARAM(parameterMap, RootNodeIndex);
+			BIND_SHADER_PARAM(parameterMap, VoxelData);
+			BIND_SHADER_PARAM(parameterMap, OctTreeData);
+			BIND_SHADER_PARAM(parameterMap, Svt64Data);
+			BIND_SHADER_PARAM(parameterMap, WorldToLocal);
+		}
+
+		DEFINE_SHADER_PARAM(DDGIVolumeMin);
+		DEFINE_SHADER_PARAM(DDGIProbeSpacing);
+		DEFINE_SHADER_PARAM(DDGIProbeCount);
+		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
+		DEFINE_SHADER_PARAM(DDGIRandomRotation);
+		DEFINE_SHADER_PARAM(RayHitBuffer);
+		
+		DEFINE_SHADER_PARAM(VoxelDims);
+		DEFINE_SHADER_PARAM(RootNodeIndex);
+		DEFINE_SHADER_PARAM(VoxelData);
+		DEFINE_SHADER_PARAM(OctTreeData);
+		DEFINE_SHADER_PARAM(Svt64Data);
+		DEFINE_SHADER_PARAM(WorldToLocal);
+	};
+	IMPLEMENT_SHADER(DDGIVoxelTraceShader, EShader::Compute, SHADER_ENTRY(MainCS));
+
+	class DDGIUpdateIrradianceShader : public GlobalShader
+	{
+		DECLARE_SHADER(DDGIUpdateIrradianceShader, Global);
+	public:
+
+		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
+			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
+			BIND_SHADER_PARAM(parameterMap, DDGIBlinkRate);
+			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
+			BIND_SHADER_PARAM(parameterMap, OutIrradiance);
+		}
+
+		DEFINE_SHADER_PARAM(DDGIProbeCount);
+		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
+		DEFINE_SHADER_PARAM(DDGIBlinkRate);
+		DEFINE_SHADER_PARAM(RayHitBuffer);
+		DEFINE_SHADER_PARAM(OutIrradiance);
+	};
+	IMPLEMENT_SHADER(DDGIUpdateIrradianceShader, EShader::Compute, SHADER_ENTRY(UpdateIrradianceCS));
+
+	class DDGIUpdateDistanceShader : public GlobalShader
+	{
+		DECLARE_SHADER(DDGIUpdateDistanceShader, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
+			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
+			BIND_SHADER_PARAM(parameterMap, DDGIBlinkRate);
+			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
+			BIND_SHADER_PARAM(parameterMap, OutDistance);
+		}
+
+		DEFINE_SHADER_PARAM(DDGIProbeCount);
+		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
+		DEFINE_SHADER_PARAM(DDGIBlinkRate);
+		DEFINE_SHADER_PARAM(RayHitBuffer);
+		DEFINE_SHADER_PARAM(OutDistance);
+	};
+	IMPLEMENT_SHADER(DDGIUpdateDistanceShader, EShader::Compute, SHADER_ENTRY(UpdateDistanceCS));
+
+
+
+	class DDGIUpdateIrradianceBorderShader : public GlobalShader
+	{
+		DECLARE_SHADER(DDGIUpdateIrradianceBorderShader, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
+			BIND_SHADER_PARAM(parameterMap, OutIrradiance);
+		}
+		DEFINE_SHADER_PARAM(DDGIProbeCount);
+		DEFINE_SHADER_PARAM(OutIrradiance);
+	};
+
+	IMPLEMENT_SHADER(DDGIUpdateIrradianceBorderShader, EShader::Compute, SHADER_ENTRY(UpdateIrradianceBorderCS));
+
+	class DDGIUpdateDistanceBorderShader : public GlobalShader
+	{
+		DECLARE_SHADER(DDGIUpdateDistanceBorderShader, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
+			BIND_SHADER_PARAM(parameterMap, OutDistance);
+		}
+		DEFINE_SHADER_PARAM(DDGIProbeCount);
+		DEFINE_SHADER_PARAM(OutDistance);
+	};
+
+	IMPLEMENT_SHADER(DDGIUpdateDistanceBorderShader, EShader::Compute, SHADER_ENTRY(UpdateDistanceBorderCS));
+	
+	struct DDGIProbeVisualizeParams
+	{
+		DECLARE_UNIFORM_BUFFER_STRUCT(DDGIProbeVisualizeParamsBlock);
+
+		Vector3 startPos;
+		float   probeRadius;
+		Vector3 xAxis;
+		float   spacing;
+		Vector3 yAxis;
+		int     dummy1;
+		IntVector3 gridNum;
+		int     dummy2;
+	};
+
+	class DDGIProbeVisualizeProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(DDGIProbeVisualizeProgram, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/DDGIProbeVisualize"; }
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] = 
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BIND_SHADER_PARAM(parameterMap, DDGIIrradianceTexture);
+			BIND_SHADER_PARAM(parameterMap, DDGISampler);
+		}
+
+		DEFINE_SHADER_PARAM(DDGIIrradianceTexture);
+		DEFINE_SHADER_PARAM(DDGISampler);
+	};
+	IMPLEMENT_SHADER_PROGRAM(DDGIProbeVisualizeProgram);
+
 
 	class VoxelRenderingStage : public TestRenderStageBase
 	{
@@ -609,7 +787,9 @@ namespace Render
 		enum
 		{
 			UI_RenderMethod = BaseClass::NEXT_UI_ID,
-
+			UI_DDGI_Update,
+			UI_DDGI_DebugDraw,
+			UI_DDGI_RayCount,
 
 			NEXT_UI_ID,
 		};
@@ -620,6 +800,20 @@ namespace Render
 
 		Mesh mModelMesh;
 		Matrix4 mModelXForm;
+
+		// DDGI Parameters
+		IntVector3 mProbeCount = IntVector3(32, 16, 32);
+		float mProbeSpacing = 2.0f;
+		int mRayCountPerProbe = 128;
+		bool bUpdateDDGI = true;
+		bool bDebugDrawProbes = false;
+		float mTotalTime = 0.0f;
+
+		TStructuredBuffer<DDGIProbeVisualizeParams> mProbeVisBuffer;
+		RHITexture2DRef mIrradianceTexture;
+		RHITexture2DRef mDistanceTexture;
+		RHIBufferRef mRayHitBuffer; // Color + Dist per ray
+		Vector3      mProbeVolumeMin;
 
 		bool onInit() override
 		{
@@ -669,6 +863,9 @@ namespace Render
 			LogMsg("Voxel Dims: %d %d %d", mRawData.dims.x, mRawData.dims.y, mRawData.dims.z);
 			LogMsg("BBox Min: %f %f %f", mBBox.min.x, mBBox.min.y, mBBox.min.z);
 			LogMsg("BBox Max: %f %f %f", mBBox.max.x, mBBox.max.y, mBBox.max.z);
+
+			mProbeSpacing = Math::Max(boundSize.x / mProbeCount.x, Math::Max(boundSize.y / mProbeCount.y, boundSize.z / mProbeCount.z));
+			mProbeVolumeMin = mBBox.getCenter() - 0.5f * Vector3(mProbeCount) * mProbeSpacing;
 #else
 			MeshRawData doughnutData;
 			InputLayoutDesc inputLayout;
@@ -705,6 +902,11 @@ namespace Render
 			}
 			choice->setSelection((int)mRenderMethod);
 			frame->addCheckBox("Show Model", bShowModel);
+			
+			frame->addCheckBox("Update DDGI", bUpdateDDGI);
+			frame->addCheckBox("Debug Draw Probes", bDebugDrawProbes);
+			FWidgetProperty::Bind(frame->addSlider("Ray Count"), mRayCountPerProbe, 32, 512);
+
 			return true;
 		}
 
@@ -727,6 +929,8 @@ namespace Render
 			VERIFY_RETURN_FALSE(loadCommonShader());
 			VERIFY_RETURN_FALSE(mProgVoxel = ShaderManager::Get().getGlobalShaderT<VoxelProgram>(true));
 
+
+			FMeshBuild::CubeOffset(mVoxelBoundMesh, 0.5, Vector3(0.5,0.5,0.5));
 			mVoxelMesh.setupMesh(getMesh(SimpleMeshId::Box));
 			
 			if (!mRawData.data.empty())
@@ -748,6 +952,23 @@ namespace Render
 			{
 				mSvtBuffer.initializeResource((uint32_t)mSvtNodes.size(), EStructuredBufferType::StaticBuffer, BCF_None, mSvtNodes.data());
 			}
+
+			// DDGI Resource Allocation
+			{
+				int probeTotal = mProbeCount.x * mProbeCount.y * mProbeCount.z;
+				// Irradiance: 8x8 texels per probe
+				mIrradianceTexture = RHICreateTexture2D(ETexture::RGBA16F, mProbeCount.x * 8, mProbeCount.y * mProbeCount.z * 8, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
+				
+				// Distance: 16x16 texels per probe (moments: dist & dist^2)
+				mDistanceTexture = RHICreateTexture2D(ETexture::RG16F, mProbeCount.x * 16, mProbeCount.y * mProbeCount.z * 16, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
+				
+				GTextureShowManager.registerTexture("Irradiance", mIrradianceTexture);
+				GTextureShowManager.registerTexture("Distance", mDistanceTexture);
+
+				// RayHitBuffer: float4 per ray (RGB + Dist)
+				mRayHitBuffer = RHICreateBuffer(sizeof(float) * 4, probeTotal * mRayCountPerProbe, BCF_Structured | BCF_CreateUAV);
+			}
+
 			return true;
 		}
 
@@ -817,6 +1038,7 @@ namespace Render
 		void onUpdate(GameTimeSpan deltaTime) override
 		{
 			BaseClass::onUpdate(deltaTime);
+			mTotalTime += deltaTime;
 		}
 
 		void onRender(float dFrame) override
@@ -824,6 +1046,99 @@ namespace Render
 			initializeRenderState();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+			Matrix4 boxLocalToWorld = Matrix4::Scale(mBBox.getSize()) * Matrix4::Translate(mBBox.min);
+			Matrix4 boxWorldToLocal;
+			float det;
+			boxLocalToWorld.inverse(boxWorldToLocal, det);
+
+			if (bUpdateDDGI && mRenderMethod != ERenderMethod::Instanced)
+			{
+				GPU_PROFILE("UpdateDDGI");
+				// Execute DDGIVoxelTraceShader
+				{
+					DDGIVoxelTraceShader::PermutationDomain permutationVector;
+					permutationVector.set<DDGIVoxelTraceShader::UseOctTree>(mRenderMethod == ERenderMethod::OctTree);
+					permutationVector.set<DDGIVoxelTraceShader::Use64Tree>(mRenderMethod == ERenderMethod::S64Tree);
+
+					DDGIVoxelTraceShader* shaderTrace = ShaderManager::Get().getGlobalShaderT<DDGIVoxelTraceShader>(permutationVector);
+					RHISetComputeShader(commandList, shaderTrace->getRHI());
+
+					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIVolumeMin, mProbeVolumeMin);
+					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIProbeSpacing, mProbeSpacing);
+					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIProbeCount, mProbeCount);
+					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIRayCountPerProbe, mRayCountPerProbe);
+					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIRandomRotation, Matrix4::Rotate(Vector3(0, 1, 0), mTotalTime * 0.1f));
+
+					SET_SHADER_PARAM(commandList, *shaderTrace, VoxelDims, mRawData.dims);
+					SET_SHADER_PARAM(commandList, *shaderTrace, RootNodeIndex, (mRenderMethod == ERenderMethod::S64Tree) ? mSvtRootIndex : mRootNodeIndex);
+
+					SET_SHADER_PARAM(commandList, *shaderTrace, WorldToLocal, boxWorldToLocal);
+					SET_SHADER_PARAM(commandList, *shaderTrace, LocalToWorld, boxLocalToWorld);
+					shaderTrace->setStorageBuffer(commandList, shaderTrace->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::WriteOnly);
+
+					if (mRenderMethod == ERenderMethod::S64Tree)
+						shaderTrace->setStorageBuffer(commandList, shaderTrace->mParamSvt64Data, *mSvtBuffer.getRHI(), EAccessOp::ReadOnly);
+					else if (mRenderMethod == ERenderMethod::OctTree)
+						shaderTrace->setStorageBuffer(commandList, shaderTrace->mParamOctTreeData, *mOctTreeBuffer.getRHI(), EAccessOp::ReadOnly);
+					else
+						shaderTrace->setStorageBuffer(commandList, shaderTrace->mParamVoxelData, *mVoxelBuffer.getRHI(), EAccessOp::ReadOnly);
+
+					RHIDispatchCompute(commandList, (mProbeCount.x * mProbeCount.y * mProbeCount.z * mRayCountPerProbe + 31) / 32, 1, 1);
+				}
+
+				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture }, EResourceTransition::UAV);
+
+				if (bUpdateDDGI)
+				{
+					GPU_PROFILE("UpdateDDGI");
+
+					// 1. Update Internal Irradiance (6x6)
+					{
+						DDGIUpdateIrradianceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceShader>();
+						RHISetComputeShader(commandList, shader->getRHI());
+						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+						SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
+						SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.1f);
+						shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
+						shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
+						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+					}
+
+					// 2. Sync Irradiance Borders (8x8)
+					{
+						DDGIUpdateIrradianceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceBorderShader>();
+						RHISetComputeShader(commandList, shader->getRHI());
+						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+						shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
+						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+					}
+
+					// 3. Update Internal Distance (14x14)
+					{
+						DDGIUpdateDistanceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceShader>();
+						RHISetComputeShader(commandList, shader->getRHI());
+						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+						SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
+						SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.1f);
+						shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
+						shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
+						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+					}
+
+					// 4. Sync Distance Borders (16x16)
+					{
+						DDGIUpdateDistanceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceBorderShader>();
+						RHISetComputeShader(commandList, shader->getRHI());
+						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+						shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
+						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+					}
+				}
+
+				// Final Sync: Ensure all UAV writes are finished and flush to SRV
+				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture } , EResourceTransition::SRV);
+			}
 
 			if (mRenderMethod == ERenderMethod::Instanced)
 			{
@@ -842,37 +1157,31 @@ namespace Render
 			{
 				GPU_PROFILE("RayMarch");
 
-				Matrix4 boxLocalToWorld = Matrix4::Scale(0.5 * mBBox.getSize()) * Matrix4::Translate(mBBox.getCenter());
-#if 0
-
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Wireframe>::GetRHI());
-				RHISetFixedShaderPipelineState(commandList, boxLocalToWorld * mView.worldToClipRHI);
-				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(1, 0, 0));
-#endif
-
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Front>::GetRHI());
-
 
 				VoxelRayMarchProgram::PermutationDomain permutationVector;
 				permutationVector.set<VoxelRayMarchProgram::UseOctTree>(mRenderMethod == ERenderMethod::OctTree);
 				permutationVector.set<VoxelRayMarchProgram::Use64Tree>(mRenderMethod == ERenderMethod::S64Tree);
 				VoxelRayMarchProgram* progRayMarch = ShaderManager::Get().getGlobalShaderT<VoxelRayMarchProgram>(permutationVector);
 
-
 				RHISetShaderProgram(commandList, progRayMarch->getRHI());
 				mView.setupShader(commandList, *progRayMarch);
 				SET_SHADER_PARAM(commandList, *progRayMarch, LocalToWorld, boxLocalToWorld);
-
-				float det;
-				Matrix4 boxWorldToLocal;
-				boxLocalToWorld.inverse(boxWorldToLocal, det);
-
 				SET_SHADER_PARAM(commandList, *progRayMarch, WorldToLocal, boxWorldToLocal);
 				SET_SHADER_PARAM(commandList, *progRayMarch, BBoxMin, mBBox.min);
 				SET_SHADER_PARAM(commandList, *progRayMarch, BBoxMax, mBBox.max);
 				SET_SHADER_PARAM(commandList, *progRayMarch, VoxelDims, mRawData.dims);
 				SET_SHADER_PARAM(commandList, *progRayMarch, VoxelColor, LinearColor(0, 1, 0, 1));
 				SET_SHADER_PARAM(commandList, *progRayMarch, RootNodeIndex, (mRenderMethod == ERenderMethod::S64Tree) ? mSvtRootIndex : mRootNodeIndex);
+				
+				// DDGI Parameters for Pixel Shader
+				SET_SHADER_PARAM(commandList, *progRayMarch, DDGIVolumeMin, mProbeVolumeMin);
+				SET_SHADER_PARAM(commandList, *progRayMarch, DDGIProbeSpacing, mProbeSpacing);
+				SET_SHADER_PARAM(commandList, *progRayMarch, DDGIProbeCount, mProbeCount);
+				SET_SHADER_TEXTURE(commandList, *progRayMarch, DDGIIrradianceTexture, *mIrradianceTexture);
+				SET_SHADER_TEXTURE(commandList, *progRayMarch, DDGIDistanceTexture, *mDistanceTexture);
+				progRayMarch->setSampler(commandList, progRayMarch->mParamDDGISampler, TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+				SET_SHADER_PARAM(commandList, *progRayMarch, DebugDrawProbes, bDebugDrawProbes ? 1 : 0);
 				if (mRenderMethod == ERenderMethod::OctTree)
 				{
 					if (mOctTreeBuffer.isValid())
@@ -894,7 +1203,42 @@ namespace Render
 						progRayMarch->setStorageBuffer(commandList, progRayMarch->mParamVoxelData, *mVoxelBuffer.getRHI(), EAccessOp::ReadOnly);
 					}
 				}
-				getMesh(SimpleMeshId::Box).draw(commandList);
+
+				mVoxelBoundMesh.draw(commandList);
+			}
+
+			if (bDebugDrawProbes)
+			{
+				GPU_PROFILE("DDGI Probe Visualize");
+
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+				DDGIProbeVisualizeProgram* progProbeVis = ShaderManager::Get().getGlobalShaderT<DDGIProbeVisualizeProgram>();
+				RHISetShaderProgram(commandList, progProbeVis->getRHI());
+				mView.setupShader(commandList, *progProbeVis);
+
+				if (!mProbeVisBuffer.isValid())
+				{
+					mProbeVisBuffer.initializeResource(1, EStructuredBufferType::Const);
+				}
+
+				DDGIProbeVisualizeParams params;
+				params.startPos = mProbeVolumeMin;
+				params.xAxis = Vector3(1, 0, 0);
+				params.yAxis = Vector3(0, 1, 0);
+				params.spacing = mProbeSpacing;
+				params.probeRadius = 0.4f;
+				params.gridNum = mProbeCount;
+				mProbeVisBuffer.updateBuffer(params);
+
+				progProbeVis->setStructuredUniformBufferT<DDGIProbeVisualizeParams>(commandList, *mProbeVisBuffer.getRHI());
+				SET_SHADER_TEXTURE(commandList, *progProbeVis, DDGIIrradianceTexture, *mIrradianceTexture);
+				progProbeVis->setSampler(commandList, progProbeVis->mParamDDGISampler, TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+
+				RHISetInputStream(commandList, nullptr, nullptr, 0);
+				RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, mProbeCount.x * mProbeCount.y * mProbeCount.z);
 			}
 
 			if (bShowModel)
@@ -957,6 +1301,8 @@ namespace Render
 		TArray<SvtNode64> mSvtNodes;
 		int mSvtRootIndex;
 		TStructuredBuffer<SvtNode64> mSvtBuffer;
+
+		Mesh mVoxelBoundMesh;
 
 		bool bRayMarchMode = false;
 	};

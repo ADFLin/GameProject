@@ -1,0 +1,141 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "GeometryTestCommon.sgc"
+#include "DDGICommon.sgc"
+
+struct DDGIProbeVisualizeParameters
+{
+    float3 startPos;
+    float  probeRadius;
+    float3 xAxis;
+    float  spacing;
+    float3 yAxis;
+    int    dummy1;
+    int3   gridNum;
+    int    dummy2;
+};
+
+#if SHADER_COMPILING
+layout(std140) cbuffer DDGIProbeVisualizeParamsBlock
+{
+    DDGIProbeVisualizeParameters LPV;
+};
+#else
+DDGIProbeVisualizeParameters LPV;
+#endif
+
+struct VSOutputParameters
+{
+    float3 cameraOffset MEMBER_OUT(TEXCOORD1);
+    float3 probePos     MEMBER_OUT(TEXCOORD2);
+};
+
+#if VERTEX_SHADER
+
+GLOBAL_CONST float2 VertexMap[] =
+{
+    float2(1,  1),
+    float2(-1,  1),
+    float2(-1, -1),
+    float2(1,  1),
+    float2(-1, -1),
+    float2(1, -1),
+};
+
+float CalcVertexOffset(float2 p, float r, float factor)
+{
+    float rf = r * factor;
+    float d = dot(p, p) - r * r;
+    if( d > 0 )
+    {
+        if( p.x * factor < 0 || p.y > r )
+        {
+            float a = p.x * p.y + rf * sqrt(d);
+            float b = d - p.x * p.x;
+            if( b != 0 )
+                return (p.y + r) * a / b - p.x + 0.01 * rf;
+        }
+    }
+    else
+    {
+        return 4 * rf;
+    }
+    return 3 * rf;
+}
+
+VS_ENTRY_START(MainVS)
+    VS_INPUT_VERTEXID
+    VS_INPUT_INSTANCEID
+    VS_OUTPUT(flat int GridId, 0)
+    VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 1)
+VS_ENTRY_END(MainVS)
+{
+    int id = SvInstanceID;
+    GridId = id;
+
+    int3 probeCoord;
+    probeCoord.x = id % LPV.gridNum.x;
+    probeCoord.y = (id / LPV.gridNum.x) % LPV.gridNum.y;
+    probeCoord.z = id / (LPV.gridNum.x * LPV.gridNum.y);
+
+    float3 zAxis = cross(LPV.xAxis, LPV.yAxis);
+    float3 probePos = LPV.startPos + 
+                      float(probeCoord.x) * LPV.xAxis * LPV.spacing + 
+                      float(probeCoord.y) * LPV.yAxis * LPV.spacing + 
+                      float(probeCoord.z) * zAxis * LPV.spacing;
+
+    VSOutput.probePos = probePos;
+
+    float2 vertexPos = VertexMap[SvVertexID];
+    float3 spherePosInView = mul(View.worldToView, float4(probePos, 1.0)).xyz;
+    
+    float3 offsetInView = float3(
+        CalcVertexOffset(float2(spherePosInView.x, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius * 1.05, vertexPos.x),
+        CalcVertexOffset(float2(spherePosInView.y, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius * 1.05, vertexPos.y),
+        LPV.probeRadius);
+
+    VSOutput.cameraOffset = probePos + mul(View.viewToWorld, float4(offsetInView, 0.0)).xyz - View.worldPos;
+    SvPosition = mul(View.viewToClip, float4(spherePosInView + offsetInView, 1.0));
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+Texture2D<float4> DDGIIrradianceTexture;
+SamplerState      DDGISampler;
+
+PS_ENTRY_START(MainPS)
+    PS_INPUT(flat int GridId, 0)
+    PS_INPUT_STRUCT(VSOutputParameters VSOutput, 1)
+    PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+    float3 cameraDir = normalize(VSOutput.cameraOffset);
+    float t;
+    if( RaySphereTest(View.worldPos, cameraDir, VSOutput.probePos, LPV.probeRadius, t) == 0 )
+        discard;
+
+    float3 worldPos = View.worldPos + cameraDir * t;
+    float3 N = normalize(worldPos - VSOutput.probePos);
+
+    int3 probeCoord;
+    probeCoord.x = GridId % LPV.gridNum.x;
+    probeCoord.y = (GridId / LPV.gridNum.x) % LPV.gridNum.y;
+    probeCoord.z = GridId / (LPV.gridNum.x * LPV.gridNum.y);
+
+    float2 atlasSize;
+    DDGIIrradianceTexture.GetDimensions(atlasSize.x, atlasSize.y);
+    float2 atlasSizeInv = 1.0 / atlasSize;
+
+    // Smoothly sample with bilinear filtering
+
+	float2 octUV = OctEncode(-N);
+    float2 uv = GetDDGISampleUV(probeCoord, -N, LPV.gridNum, atlasSizeInv);
+    float3 irradiance = DDGIIrradianceTexture.SampleLevel(DDGISampler, uv, 0).rgb;
+
+    OutColor = float4(irradiance, 1.0);
+	//OutColor = float4(octUV, 0, 1.0);
+}
+
+#endif

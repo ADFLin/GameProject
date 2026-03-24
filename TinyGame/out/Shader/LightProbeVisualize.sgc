@@ -103,7 +103,7 @@ VS_ENTRY_END(MainVS)
 	float3 offsetInView = float3(
 		CalcVertexOffset(float2(spherePosInView.x, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.x),
 		CalcVertexOffset(float2(spherePosInView.y, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.y),
-		-LPV.probeRadius);
+		LPV.probeRadius);
 
 	GridId = gridId;
 	VSOutput.cameraOffset = probePos + mul( View.viewToWorld , float4(offsetInView, 0)).xyz - View.worldPos;

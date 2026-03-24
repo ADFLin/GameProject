@@ -404,9 +404,9 @@ namespace Render
 #define DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
 	struct ShaderParamAccessor\
 	{\
-		template< typename T > static auto Requires(T& t) -> decltype(t.SHADER_MEMBER_PARAM(PARAM_NAME));\
-		template< typename T > static auto Get(T& t){ return t.SHADER_MEMBER_PARAM(PARAM_NAME); }\
-		template< typename T > static auto GetSampler(T& t){ return t.SHADER_MEMBER_PARAM(PARAM_NAME##Sampler); }\
+		template< typename T > static auto Requires(T& t) -> decltype(t.SHADER_MEMBER_PARAM(NAME));\
+		template< typename T > static auto Get(T& t){ return t.SHADER_MEMBER_PARAM(NAME); }\
+		template< typename T > static auto GetSampler(T& t){ return t.SHADER_MEMBER_PARAM(NAME##Sampler); }\
 	};\
 
 #define SET_SHADER_PARAM(COMMANDLIST, SHADER , NAME, VALUE)\

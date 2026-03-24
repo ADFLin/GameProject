@@ -1,0 +1,80 @@
+#ifndef DDGI_COMMON_SGC
+#define DDGI_COMMON_SGC
+
+float2 OctEncode(float3 n0)
+{
+    float3 n = normalize(n0);
+    float l1norm = abs(n.x) + abs(n.y) + abs(n.z);
+    float2 res = n.xy * (1.0 / l1norm);
+    if (n.z < 0.0)
+    {
+        float2 signVal;
+        signVal.x = (res.x >= 0.0) ? 1.0 : -1.0;
+        signVal.y = (res.y >= 0.0) ? 1.0 : -1.0;
+        res = (1.0 - abs(res.yx)) * signVal;
+    }
+    return res * 0.5 + 0.5;
+}
+
+uint2 GetDDGITextureCoord(int3 probeCoord, float3 N, int3 gridNum)
+{
+    float2 octUV = OctEncode(N);
+    float2 irrTileUV = octUV * 6.0 + 1.0; 
+    return uint2(probeCoord.x * 8 + uint(irrTileUV.x), (probeCoord.y + probeCoord.z * gridNum.y) * 8 + uint(irrTileUV.y));
+}
+
+// Calculate continuous float UV for bilinear sampling from the probe atlas
+float2 GetDDGISampleUV(int3 probeCoord, float3 N, int3 gridNum, float2 atlasSizeInv)
+{
+    float2 octUV = OctEncode(N);
+    // Each probe tile is 8x8, with a 1-pixel border. Active area is [1, 7] within the tile.
+    float2 irrTileUV = octUV * 6.0 + 1.0; 
+    
+    float2 tileOffset = float2(probeCoord.x * 8, (probeCoord.y + probeCoord.z * gridNum.y) * 8);
+    // Map to [0, 1] texture coordinates
+    return (tileOffset + irrTileUV) * atlasSizeInv;
+}
+
+float3 SampleDDGI(float3 pWorld, float3 N, float3 volumeMin, float spacing, int3 gridNum, Texture2D<float4> irrTex, SamplerState irrSampler)
+{
+    float3 gridPos = (pWorld - volumeMin) / spacing;
+    int3 baseProbeIdx = int3(floor(gridPos));
+    float3 f = frac(gridPos);
+
+    float2 atlasSize;
+    float dummy;
+    irrTex.GetDimensions(atlasSize.x, atlasSize.y);
+    float2 atlasSizeInv = 1.0 / atlasSize;
+
+    float3 totalIrradiance = 0;
+    float  totalWeight = 0;
+
+    for (int i = 0; i < 8; ++i)
+    {
+        int3 probeCoord = baseProbeIdx + int3(i & 1, (i >> 1) & 1, (i >> 2) & 1);
+        if (any(probeCoord < 0) || any(probeCoord >= gridNum)) continue;
+
+        float3 probePos = volumeMin + float3(probeCoord) * spacing;
+        float3 dirToProbe = probePos - pWorld;
+        float distToProbe = length(dirToProbe);
+        float3 L = dirToProbe / distToProbe;
+
+        float3 trilinearWeight = lerp(1.0 - f, f, float3(i & 1, (i >> 1) & 1, (i >> 2) & 1));
+        float  weight = trilinearWeight.x * trilinearWeight.y * trilinearWeight.z;
+        weight *= max(0.002, dot(L, N));
+
+        if (weight > 0.0)
+        {
+            float2 uv = GetDDGISampleUV(probeCoord, N, gridNum, atlasSizeInv);
+            float3 irradiance = irrTex.SampleLevel(irrSampler, uv, 0).rgb;
+            
+            totalIrradiance += weight * irradiance;
+            totalWeight += weight;
+        }
+    }
+
+    if (totalWeight > 0.000001) return totalIrradiance / totalWeight;
+    return 0;
+}
+
+#endif

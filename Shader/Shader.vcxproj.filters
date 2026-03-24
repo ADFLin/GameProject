@@ -278,6 +278,21 @@
     <None Include="..\TinyGame\out\Shader\Game\VoxelRayMarch.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\VoxelRayTraceCommon.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\DDGIUpdate.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\DDGIVoxelTrace.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\DDGIProbeVisualize.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\DDGICommon.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

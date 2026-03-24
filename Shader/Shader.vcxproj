@@ -172,6 +172,10 @@
     <None Include="..\TinyGame\out\Shader\Game\Chess.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\ClipCoord.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\CubeBlockRender.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\DDGICommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\DDGIProbeVisualize.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\DDGIUpdate.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\DDGIVoxelTrace.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\EditorPreview.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\EnvLightingTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\FS.sgc" />
@@ -210,6 +214,7 @@
     <None Include="..\TinyGame\out\Shader\Game\UnderCurveArea.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Voxel.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\VoxelRayMarch.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\VoxelRayTraceCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Water.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\WaterSimulation.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\WaveRender.sgc" />

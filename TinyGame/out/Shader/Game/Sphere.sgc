@@ -69,9 +69,9 @@ VS_ENTRY_END(MainVS)
 {
 	float3 spherePosInView = mul( View.worldToView , float4(Sphere.worldPos, 1.0) ).xyz;
 	float3 offsetInView = float3(
-		CalcVertexOffset(float2(spherePosInView.x, -spherePosInView.z), Sphere.radius, InPosition.x),
-		CalcVertexOffset(float2(spherePosInView.y, -spherePosInView.z), Sphere.radius, InPosition.y),
-		-Sphere.radius);
+		CalcVertexOffset(float2(spherePosInView.x, spherePosInView.z), Sphere.radius, InPosition.x),
+		CalcVertexOffset(float2(spherePosInView.y, spherePosInView.z), Sphere.radius, InPosition.y),
+		Sphere.radius);
 
 	VSOutput.cameraOffset = Sphere.worldPos + mul( View.viewToWorld , float4(offsetInView, 0) ).xyz - View.worldPos;
 	SvPosition = mul( View.viewToClip , float4(spherePosInView + offsetInView, 1.0) );

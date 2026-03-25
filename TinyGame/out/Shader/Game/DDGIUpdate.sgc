@@ -1,39 +1,41 @@
 #include "Common.sgc"
-
+#include "DDGICommon.sgc"
 // DDGIUpdate.sgc
 // Update probe textures (Irradiance and Depth) using ray hit results
 
 uniform int3   DDGIProbeCount;
 uniform int    DDGIRayCountPerProbe;
 uniform float  DDGIBlinkRate; // EMA lerp factor
+uniform float4x4 DDGIRandomRotation;
 
 StructuredBuffer<float4> RayHitBuffer; // RGB + Dist
 RWTexture2D<float4> OutIrradiance; // 8x8 per probe
-RWTexture2D<float2> OutDistance;   // 16x16 per probe
+RWTexture2D<float2> OutDistance;   // 8x8 per probe
 
-float3 GetProbeRayDir(uint rayIdx, int rayCount)
-{
-    float phi = acos(1.0 - 2.0 * (float(rayIdx) + 0.5) / float(rayCount));
-    float theta = 2.0 * 3.14159265 * 1.61803398875 * float(rayIdx);
-    return float3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
-}
-
-float3 OctDecode(float2 f)
-{
-    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-    float t = saturate(-n.z);
-    n.xy += n.xy >= 0.0 ? -t : t;
-    return normalize(n);
-}
+#define DDGI_MAX_RAYS 512
+groupshared float3 SharedRayDirs[DDGI_MAX_RAYS];
+groupshared float4 SharedRayHits[DDGI_MAX_RAYS];
 
 // ------------------------------------------------------------------
 // Irradiance Update (Internal 6x6 area within 8x8 tile)
 // ------------------------------------------------------------------
-[numthreads(6, 6, 1)]
-void UpdateIrradianceCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupThreadId : SV_GroupThreadID, uint3 GroupId : SV_GroupID)
+[numthreads(8, 8, 1)]
+void UpdateIrradianceCS(uint3 GroupThreadId : SV_GroupThreadID, uint3 GroupId : SV_GroupID)
 {
     uint probeIdx = GroupId.x + GroupId.y * DDGIProbeCount.x + GroupId.z * (DDGIProbeCount.x * DDGIProbeCount.y);
     if (probeIdx >= uint(DDGIProbeCount.x * DDGIProbeCount.y * DDGIProbeCount.z)) return;
+
+    // 64 threads participate in loading memory
+    uint threadIdx = GroupThreadId.y * 8 + GroupThreadId.x;
+    for (int r = threadIdx; r < DDGIRayCountPerProbe; r += 64)
+    {
+        float3 rDir = GetProbeRayDir(r, DDGIRayCountPerProbe);
+        SharedRayDirs[r] = mul(DDGIRandomRotation, float4(rDir, 0.0)).xyz;
+        SharedRayHits[r] = RayHitBuffer[probeIdx * DDGIRayCountPerProbe + r];
+    }
+    GroupMemoryBarrierWithGroupSync();
+
+    if (GroupThreadId.x >= 6 || GroupThreadId.y >= 6) return;
 
     float2 uv = (float2(GroupThreadId.xy) + 0.5) / 6.0;
     float3 n = OctDecode(uv * 2.0 - 1.0);
@@ -43,11 +45,12 @@ void UpdateIrradianceCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 Grou
     
     for (int i = 0; i < DDGIRayCountPerProbe; ++i)
     {
-        float3 rd = GetProbeRayDir(i, DDGIRayCountPerProbe);
+        float3 rd = SharedRayDirs[i];
         float weight = max(0.0, dot(n, rd));
+
         if (weight > 0.0)
         {
-            float4 hit = RayHitBuffer[probeIdx * DDGIRayCountPerProbe + i];
+            float4 hit = SharedRayHits[i];
             irradiance += hit.rgb * weight;
             totalWeight += weight;
         }
@@ -78,25 +81,39 @@ void UpdateIrradianceBorderCS(uint3 GroupId : SV_GroupID, uint3 GroupThreadId : 
         else if (y == 0) srcCoord = uint2(7 - x, 1);
         else             srcCoord = uint2(7 - x, 6);
 
+        // For corners, correct octahedral wrap maps to the opposite inner quadrant
         if (x == 0 && y == 0) srcCoord = uint2(6, 6);
         else if (x == 7 && y == 0) srcCoord = uint2(1, 6);
         else if (x == 0 && y == 7) srcCoord = uint2(6, 1);
         else if (x == 7 && y == 7) srcCoord = uint2(1, 1);
 
         OutIrradiance[tileOrigin + uint2(x, y)] = OutIrradiance[tileOrigin + srcCoord];
+		//OutIrradiance[tileOrigin + uint2(x, y)] = float4(1,1,1,1);
     }
 }
 
 // ------------------------------------------------------------------
-// Distance Update (Internal 14x14 area within 16x16 tile)
+// Distance Update (Internal 6x6 area within 8x8 tile)
 // ------------------------------------------------------------------
-[numthreads(14, 14, 1)]
+[numthreads(8, 8, 1)]
 void UpdateDistanceCS(uint3 GroupThreadId : SV_GroupThreadID, uint3 GroupId : SV_GroupID)
 {
     uint probeIdx = GroupId.x + GroupId.y * DDGIProbeCount.x + GroupId.z * (DDGIProbeCount.x * DDGIProbeCount.y);
     if (probeIdx >= uint(DDGIProbeCount.x * DDGIProbeCount.y * DDGIProbeCount.z)) return;
 
-    float2 uv = (float2(GroupThreadId.xy) + 0.5) / 14.0;
+    // 64 threads participate in loading memory
+    uint threadIdx = GroupThreadId.y * 8 + GroupThreadId.x;
+    for (int r = threadIdx; r < DDGIRayCountPerProbe; r += 64)
+    {
+        float3 rDir = GetProbeRayDir(r, DDGIRayCountPerProbe);
+        SharedRayDirs[r] = mul(DDGIRandomRotation, float4(rDir, 0.0)).xyz;
+        SharedRayHits[r] = RayHitBuffer[probeIdx * DDGIRayCountPerProbe + r];
+    }
+    GroupMemoryBarrierWithGroupSync();
+
+    if (GroupThreadId.x >= 6 || GroupThreadId.y >= 6) return;
+
+    float2 uv = (float2(GroupThreadId.xy) + 0.5) / 6.0;
     float3 n = OctDecode(uv * 2.0 - 1.0);
 
     float2 dists = 0;
@@ -104,11 +121,18 @@ void UpdateDistanceCS(uint3 GroupThreadId : SV_GroupThreadID, uint3 GroupId : SV
     
     for (int i = 0; i < DDGIRayCountPerProbe; ++i)
     {
-        float3 rd = GetProbeRayDir(i, DDGIRayCountPerProbe);
-        float weight = pow(max(0.0, dot(n, rd)), 10.0);
+        float3 rd = SharedRayDirs[i];
+        
+        float w = max(0.0, dot(n, rd));
+        // Fast pow(w, 10.0) without using slow exp2/log2 SFU ops
+        float w2 = w * w;
+        float w4 = w2 * w2;
+        float w8 = w4 * w4;
+        float weight = w8 * w2;
+
         if (weight > 0.0)
         {
-            float4 hit = RayHitBuffer[probeIdx * DDGIRayCountPerProbe + i];
+            float4 hit = SharedRayHits[i];
             float d = hit.w;
             dists += float2(d, d * d) * weight;
             totalWeight += weight;
@@ -117,33 +141,33 @@ void UpdateDistanceCS(uint3 GroupThreadId : SV_GroupThreadID, uint3 GroupId : SV
     
     if (totalWeight > 0.0001) dists /= totalWeight;
 
-    uint2 texCoord = uint2(GroupId.x * 16 + GroupThreadId.x + 1, (GroupId.y + GroupId.z * DDGIProbeCount.y) * 16 + GroupThreadId.y + 1);
+    uint2 texCoord = uint2(GroupId.x * 8 + GroupThreadId.x + 1, (GroupId.y + GroupId.z * DDGIProbeCount.y) * 8 + GroupThreadId.y + 1);
     float2 oldVal = OutDistance[texCoord].xy;
     OutDistance[texCoord] = lerp(oldVal, dists, DDGIBlinkRate);
 }
 
 // ------------------------------------------------------------------
-// Border Copy for Distance (16x16)
+// Border Copy for Distance (8x8)
 // ------------------------------------------------------------------
-[numthreads(16, 16, 1)]
+[numthreads(8, 8, 1)]
 void UpdateDistanceBorderCS(uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 {
-    uint2 tileOrigin = uint2(GroupId.x * 16, (GroupId.y + GroupId.z * DDGIProbeCount.y) * 16);
+    uint2 tileOrigin = uint2(GroupId.x * 8, (GroupId.y + GroupId.z * DDGIProbeCount.y) * 8);
     uint x = GroupThreadId.x;
     uint y = GroupThreadId.y;
 
-    if (x == 0 || x == 15 || y == 0 || y == 15)
+    if (x == 0 || x == 7 || y == 0 || y == 7)
     {
         uint2 srcCoord;
-        if (x == 0)       srcCoord = uint2(1, 15 - y);
-        else if (x == 15) srcCoord = uint2(14, 15 - y);
-        else if (y == 0)  srcCoord = uint2(15 - x, 1);
-        else              srcCoord = uint2(15 - x, 14);
+        if (x == 0)      srcCoord = uint2(1, 7 - y);
+        else if (x == 7) srcCoord = uint2(6, 7 - y);
+        else if (y == 0) srcCoord = uint2(7 - x, 1);
+        else             srcCoord = uint2(7 - x, 6);
 
-        if (x == 0 && y == 0)   srcCoord = uint2(1, 1);
-        else if (x == 15 && y == 0) srcCoord = uint2(14, 1);
-        else if (x == 0 && y == 15) srcCoord = uint2(1, 14);
-        else if (x == 15 && y == 15) srcCoord = uint2(14, 14);
+        if (x == 0 && y == 0)   srcCoord = uint2(6, 6);
+        else if (x == 7 && y == 0) srcCoord = uint2(1, 6);
+        else if (x == 0 && y == 7) srcCoord = uint2(6, 1);
+        else if (x == 7 && y == 7) srcCoord = uint2(1, 1);
 
         OutDistance[tileOrigin + uint2(x, y)] = OutDistance[tileOrigin + srcCoord];
     }

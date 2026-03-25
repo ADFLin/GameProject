@@ -590,6 +590,9 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, DDGIDistanceTexture);
 			BIND_SHADER_PARAM(parameterMap, DDGISampler);
 			BIND_SHADER_PARAM(parameterMap, DebugDrawProbes);
+			
+			BIND_SHADER_PARAM(parameterMap, PointLightPositions);
+			BIND_SHADER_PARAM(parameterMap, PointLightColors);
 		}
 
 		DEFINE_SHADER_PARAM(LocalToWorld);
@@ -610,6 +613,9 @@ namespace Render
 		DEFINE_SHADER_PARAM(DDGIDistanceTexture);
 		DEFINE_SHADER_PARAM(DDGISampler);
 		DEFINE_SHADER_PARAM(DebugDrawProbes);
+		
+		DEFINE_SHADER_PARAM(PointLightPositions);
+		DEFINE_SHADER_PARAM(PointLightColors);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(VoxelRayMarchProgram);
@@ -640,6 +646,13 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, OctTreeData);
 			BIND_SHADER_PARAM(parameterMap, Svt64Data);
 			BIND_SHADER_PARAM(parameterMap, WorldToLocal);
+			BIND_SHADER_PARAM(parameterMap, LocalToWorld);
+			BIND_SHADER_PARAM(parameterMap, DDGIIrradianceTexture);
+			BIND_SHADER_PARAM(parameterMap, DDGIDistanceTexture);
+			BIND_SHADER_PARAM(parameterMap, DDGISampler);
+			
+			BIND_SHADER_PARAM(parameterMap, PointLightPositions);
+			BIND_SHADER_PARAM(parameterMap, PointLightColors);
 		}
 
 		DEFINE_SHADER_PARAM(DDGIVolumeMin);
@@ -654,7 +667,15 @@ namespace Render
 		DEFINE_SHADER_PARAM(VoxelData);
 		DEFINE_SHADER_PARAM(OctTreeData);
 		DEFINE_SHADER_PARAM(Svt64Data);
+		DEFINE_SHADER_PARAM(LocalToWorld);
 		DEFINE_SHADER_PARAM(WorldToLocal);
+		
+		DEFINE_SHADER_PARAM(DDGIIrradianceTexture);
+		DEFINE_SHADER_PARAM(DDGIDistanceTexture);
+		DEFINE_SHADER_PARAM(DDGISampler);
+		
+		DEFINE_SHADER_PARAM(PointLightPositions);
+		DEFINE_SHADER_PARAM(PointLightColors);
 	};
 	IMPLEMENT_SHADER(DDGIVoxelTraceShader, EShader::Compute, SHADER_ENTRY(MainCS));
 
@@ -669,12 +690,14 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
 			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
 			BIND_SHADER_PARAM(parameterMap, DDGIBlinkRate);
+			BIND_SHADER_PARAM(parameterMap, DDGIRandomRotation);
 			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
 			BIND_SHADER_PARAM(parameterMap, OutIrradiance);
 		}
 
 		DEFINE_SHADER_PARAM(DDGIProbeCount);
 		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
+		DEFINE_SHADER_PARAM(DDGIRandomRotation);
 		DEFINE_SHADER_PARAM(DDGIBlinkRate);
 		DEFINE_SHADER_PARAM(RayHitBuffer);
 		DEFINE_SHADER_PARAM(OutIrradiance);
@@ -691,6 +714,7 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
 			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
 			BIND_SHADER_PARAM(parameterMap, DDGIBlinkRate);
+			BIND_SHADER_PARAM(parameterMap, DDGIRandomRotation);
 			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
 			BIND_SHADER_PARAM(parameterMap, OutDistance);
 		}
@@ -698,6 +722,7 @@ namespace Render
 		DEFINE_SHADER_PARAM(DDGIProbeCount);
 		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
 		DEFINE_SHADER_PARAM(DDGIBlinkRate);
+		DEFINE_SHADER_PARAM(DDGIRandomRotation);
 		DEFINE_SHADER_PARAM(RayHitBuffer);
 		DEFINE_SHADER_PARAM(OutDistance);
 	};
@@ -802,9 +827,9 @@ namespace Render
 		Matrix4 mModelXForm;
 
 		// DDGI Parameters
-		IntVector3 mProbeCount = IntVector3(32, 16, 32);
+		IntVector3 mProbeCount = IntVector3(32, 32, 16);
 		float mProbeSpacing = 2.0f;
-		int mRayCountPerProbe = 128;
+		int mRayCountPerProbe = 64;
 		bool bUpdateDDGI = true;
 		bool bDebugDrawProbes = false;
 		float mTotalTime = 0.0f;
@@ -812,7 +837,8 @@ namespace Render
 		TStructuredBuffer<DDGIProbeVisualizeParams> mProbeVisBuffer;
 		RHITexture2DRef mIrradianceTexture;
 		RHITexture2DRef mDistanceTexture;
-		RHIBufferRef mRayHitBuffer; // Color + Dist per ray
+		RHIBufferRef mRayHitBuffer;
+		int          mRayHitBufferCount = 0; // Track allocated size for dynamic adjustment
 		Vector3      mProbeVolumeMin;
 
 		bool onInit() override
@@ -865,7 +891,7 @@ namespace Render
 			LogMsg("BBox Max: %f %f %f", mBBox.max.x, mBBox.max.y, mBBox.max.z);
 
 			mProbeSpacing = Math::Max(boundSize.x / mProbeCount.x, Math::Max(boundSize.y / mProbeCount.y, boundSize.z / mProbeCount.z));
-			mProbeVolumeMin = mBBox.getCenter() - 0.5f * Vector3(mProbeCount) * mProbeSpacing;
+			mProbeVolumeMin = mBBox.min;
 #else
 			MeshRawData doughnutData;
 			InputLayoutDesc inputLayout;
@@ -905,7 +931,7 @@ namespace Render
 			
 			frame->addCheckBox("Update DDGI", bUpdateDDGI);
 			frame->addCheckBox("Debug Draw Probes", bDebugDrawProbes);
-			FWidgetProperty::Bind(frame->addSlider("Ray Count"), mRayCountPerProbe, 32, 512);
+			FWidgetProperty::Bind(frame->addSlider("Ray Count"), mRayCountPerProbe, 32, 256);
 
 			return true;
 		}
@@ -959,14 +985,15 @@ namespace Render
 				// Irradiance: 8x8 texels per probe
 				mIrradianceTexture = RHICreateTexture2D(ETexture::RGBA16F, mProbeCount.x * 8, mProbeCount.y * mProbeCount.z * 8, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
 				
-				// Distance: 16x16 texels per probe (moments: dist & dist^2)
-				mDistanceTexture = RHICreateTexture2D(ETexture::RG16F, mProbeCount.x * 16, mProbeCount.y * mProbeCount.z * 16, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
+				// Distance: 8x8 texels per probe (moments: dist & dist^2)
+				mDistanceTexture = RHICreateTexture2D(ETexture::RG16F, mProbeCount.x * 8, mProbeCount.y * mProbeCount.z * 8, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
 				
 				GTextureShowManager.registerTexture("Irradiance", mIrradianceTexture);
 				GTextureShowManager.registerTexture("Distance", mDistanceTexture);
 
 				// RayHitBuffer: float4 per ray (RGB + Dist)
-				mRayHitBuffer = RHICreateBuffer(sizeof(float) * 4, probeTotal * mRayCountPerProbe, BCF_Structured | BCF_CreateUAV);
+				mRayHitBufferCount = probeTotal * mRayCountPerProbe;
+				mRayHitBuffer = RHICreateBuffer(sizeof(float) * 4, mRayHitBufferCount, BCF_Structured | BCF_CreateUAV);
 			}
 
 			return true;
@@ -1045,6 +1072,21 @@ namespace Render
 		{
 			initializeRenderState();
 
+			Vector4 lightPositions[4] = 
+			{
+				Vector4(0, 0, 5, 1),
+				Vector4(50, 20, 15, 1),
+				Vector4(20, 50, 15, 1),
+				Vector4(40, 40,  5, 1)
+			};
+			Vector4 lightColors[4] =
+			{
+				Vector4(20.0, 0.0, 0.0, 1), // red
+				Vector4(2.0, 20.0, 2.0, 1), // green
+				Vector4(2.0, 2.0, 20.0, 1), // blue
+				Vector4(10.0, 10.0, 10.0, 1)  // white
+			};
+
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			Matrix4 boxLocalToWorld = Matrix4::Scale(mBBox.getSize()) * Matrix4::Translate(mBBox.min);
@@ -1055,8 +1097,16 @@ namespace Render
 			if (bUpdateDDGI && mRenderMethod != ERenderMethod::Instanced)
 			{
 				GPU_PROFILE("UpdateDDGI");
+
+				// Better rotation: sweep all axes over time to ensure full spherical coverage
+				Matrix4 ddgiRotation = Matrix4::Rotate(Vector3(0, 0, 1), mTotalTime * 0.131f) * 
+				                       Matrix4::Rotate(Vector3(0, 1, 0), mTotalTime * 0.073f) *
+				                       Matrix4::Rotate(Vector3(1, 0, 0), mTotalTime * 0.041f);
+
 				// Execute DDGIVoxelTraceShader
 				{
+					GPU_PROFILE("Probe Trace");
+
 					DDGIVoxelTraceShader::PermutationDomain permutationVector;
 					permutationVector.set<DDGIVoxelTraceShader::UseOctTree>(mRenderMethod == ERenderMethod::OctTree);
 					permutationVector.set<DDGIVoxelTraceShader::Use64Tree>(mRenderMethod == ERenderMethod::S64Tree);
@@ -1068,13 +1118,31 @@ namespace Render
 					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIProbeSpacing, mProbeSpacing);
 					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIProbeCount, mProbeCount);
 					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIRayCountPerProbe, mRayCountPerProbe);
-					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIRandomRotation, Matrix4::Rotate(Vector3(0, 1, 0), mTotalTime * 0.1f));
+					SET_SHADER_PARAM(commandList, *shaderTrace, DDGIRandomRotation, ddgiRotation);
+
+					// Dynamic Buffer Recreation for RayHitBuffer
+					int probeTotal = mProbeCount.x * mProbeCount.y * mProbeCount.z;
+					int requiredCount = probeTotal * mRayCountPerProbe;
+					if (requiredCount > mRayHitBufferCount)
+					{
+						mRayHitBufferCount = requiredCount;
+						mRayHitBuffer = RHICreateBuffer(sizeof(float) * 4, mRayHitBufferCount, BCF_Structured | BCF_CreateUAV);
+					}
 
 					SET_SHADER_PARAM(commandList, *shaderTrace, VoxelDims, mRawData.dims);
 					SET_SHADER_PARAM(commandList, *shaderTrace, RootNodeIndex, (mRenderMethod == ERenderMethod::S64Tree) ? mSvtRootIndex : mRootNodeIndex);
 
 					SET_SHADER_PARAM(commandList, *shaderTrace, WorldToLocal, boxWorldToLocal);
 					SET_SHADER_PARAM(commandList, *shaderTrace, LocalToWorld, boxLocalToWorld);
+					
+
+					shaderTrace->setParam(commandList, shaderTrace->mParamPointLightPositions, lightPositions, ARRAY_SIZE(lightPositions));
+					shaderTrace->setParam(commandList, shaderTrace->mParamPointLightColors, lightColors, ARRAY_SIZE(lightColors));
+					
+					shaderTrace->setTexture(commandList, shaderTrace->mParamDDGIIrradianceTexture, mIrradianceTexture);
+					shaderTrace->setTexture(commandList, shaderTrace->mParamDDGIDistanceTexture, mDistanceTexture);
+					shaderTrace->setSampler(commandList, shaderTrace->mParamDDGISampler, TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+
 					shaderTrace->setStorageBuffer(commandList, shaderTrace->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::WriteOnly);
 
 					if (mRenderMethod == ERenderMethod::S64Tree)
@@ -1089,53 +1157,55 @@ namespace Render
 
 				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture }, EResourceTransition::UAV);
 
-				if (bUpdateDDGI)
+
+				// 1. Update Internal Irradiance (6x6)
 				{
-					GPU_PROFILE("UpdateDDGI");
-
-					// 1. Update Internal Irradiance (6x6)
-					{
-						DDGIUpdateIrradianceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceShader>();
-						RHISetComputeShader(commandList, shader->getRHI());
-						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-						SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
-						SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.1f);
-						shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
-						shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
-						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-					}
-
-					// 2. Sync Irradiance Borders (8x8)
-					{
-						DDGIUpdateIrradianceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceBorderShader>();
-						RHISetComputeShader(commandList, shader->getRHI());
-						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-						shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
-						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-					}
-
-					// 3. Update Internal Distance (14x14)
-					{
-						DDGIUpdateDistanceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceShader>();
-						RHISetComputeShader(commandList, shader->getRHI());
-						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-						SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
-						SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.1f);
-						shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
-						shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
-						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-					}
-
-					// 4. Sync Distance Borders (16x16)
-					{
-						DDGIUpdateDistanceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceBorderShader>();
-						RHISetComputeShader(commandList, shader->getRHI());
-						SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-						shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
-						RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-					}
+					GPU_PROFILE("Update Irradiance");
+					DDGIUpdateIrradianceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceShader>();
+					RHISetComputeShader(commandList, shader->getRHI());
+					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+					SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
+					SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.02f);
+					SET_SHADER_PARAM(commandList, *shader, DDGIRandomRotation, ddgiRotation);
+					shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
+					shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
+					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
 				}
 
+				// 2. Sync Irradiance Borders (8x8)
+				{
+					GPU_PROFILE("Copy Irradiance Borders");
+					DDGIUpdateIrradianceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceBorderShader>();
+					RHISetComputeShader(commandList, shader->getRHI());
+					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+					shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
+					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+				}
+
+				// 3. Update Internal Distance (14x14)
+				{
+					GPU_PROFILE("Update Distance");
+					DDGIUpdateDistanceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceShader>();
+					RHISetComputeShader(commandList, shader->getRHI());
+					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+					SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
+					SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.02f);
+					SET_SHADER_PARAM(commandList, *shader, DDGIRandomRotation, ddgiRotation);
+					shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
+					shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
+					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+				}
+
+				// 4. Sync Distance Borders (16x16)
+				{
+					GPU_PROFILE("Copy Distance Borders");
+					DDGIUpdateDistanceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceBorderShader>();
+					RHISetComputeShader(commandList, shader->getRHI());
+					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
+					shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
+					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
+				}
+				
 				// Final Sync: Ensure all UAV writes are finished and flush to SRV
 				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture } , EResourceTransition::SRV);
 			}
@@ -1182,6 +1252,9 @@ namespace Render
 				SET_SHADER_TEXTURE(commandList, *progRayMarch, DDGIDistanceTexture, *mDistanceTexture);
 				progRayMarch->setSampler(commandList, progRayMarch->mParamDDGISampler, TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 				SET_SHADER_PARAM(commandList, *progRayMarch, DebugDrawProbes, bDebugDrawProbes ? 1 : 0);
+				
+				progRayMarch->setParam(commandList, progRayMarch->mParamPointLightPositions, lightPositions, ARRAY_SIZE(lightPositions));
+				progRayMarch->setParam(commandList, progRayMarch->mParamPointLightColors, lightColors, ARRAY_SIZE(lightColors));
 				if (mRenderMethod == ERenderMethod::OctTree)
 				{
 					if (mOctTreeBuffer.isValid())
@@ -1248,6 +1321,29 @@ namespace Render
 				RHISetFixedShaderPipelineState(commandList, mModelXForm * mView.worldToClipRHI);
 				mModelMesh.draw(commandList, LinearColor(1, 0, 0));
 			}
+
+
+			{
+
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+				RHISetShaderProgram(commandList, mProgSphere->getRHI());
+				mView.setupShader(commandList, *mProgSphere);
+
+
+				float radius = 0.15f;
+				for (int i = 0; i < ARRAY_SIZE(lightPositions); ++i)
+				{
+					mProgSphere->setParameters(commandList, lightPositions[i].xyz(), radius, lightColors[i].xyz());
+					mSimpleMeshs[SimpleMeshId::SpherePlane].draw(commandList);
+				}
+			}
+
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClipRHI);
+			DrawUtility::AixsLine(commandList, 100);
 		}
 
 		MsgReply onMouse(MouseMsg const& msg) override

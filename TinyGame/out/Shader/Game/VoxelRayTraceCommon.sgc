@@ -166,21 +166,32 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
 
     float3 minBBox = float3(0, 0, 0);
     float3 maxBBox = float3(1, 1, 1);
-    float3 worldSize = float3(1, 1, 1);
 
 #if USE_64TREE
     if (RootNodeIndex < 0) return false;
 
-    float3 ro_tree = ro;
-    float3 rd_tree = rd;
+    // Use standard AABB clipping first to ensure origin is within [0, 1]
+    float3 invRd_aabb = 1.0 / rd;
+    float3 t0 = (minBBox - ro) * invRd_aabb;
+    float3 t1 = (maxBBox - ro) * invRd_aabb;
+    float3 tmin_v = min(t0, t1);
+    float3 tmax_v = max(t0, t1);
+    float tClipped = max(tStart, max(tmin_v.x, max(tmin_v.y, tmin_v.z)));
+    float tEndClipped = min(tEnd, min(tmax_v.x, min(tmax_v.y, tmax_v.z)));
+
+    if (tClipped > tEndClipped) return false;
+
+    float3 ro_clipped = ro + rd * tClipped;
 
     uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, max(VoxelDims.z, 1)));
     uint treeRes = 1;
     while (treeRes < uint(maxGridDim)) treeRes *= 4;
 
     float3 treeSpaceScale = float3(VoxelDims) / float(treeRes);
-    float3 dir = rd_tree * treeSpaceScale;
-    float3 origin = 1.0 + (ro_tree * treeSpaceScale) + dir * tStart;
+    float3 dir = rd * treeSpaceScale;
+    
+    // Origin is now guaranteed to be within [1, 2] tree-space
+    float3 origin = 1.0 + (ro_clipped * treeSpaceScale);
     
     uint stack[11];
     int scaleExp = 21; 
@@ -192,8 +203,8 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
     if (dir.y > 0) mirrorMask |= 3 << 4;
     if (dir.z > 0) mirrorMask |= 3 << 2;
 
-    float3 mirroredOrigin = asfloat(asuint(origin) ^ 0x7FFFFF);
-    if (any(origin < 1.0 || origin >= 2.0)) mirroredOrigin = 3.0 - origin;
+    // Robust mirroring that works outside [1, 2] if needed, though origin is now clipped
+    float3 mirroredOrigin = 3.0 - origin;
     origin.x = dir.x > 0 ? mirroredOrigin.x : origin.x;
     origin.y = dir.y > 0 ? mirroredOrigin.y : origin.y;
     origin.z = dir.z > 0 ? mirroredOrigin.z : origin.z;
@@ -231,6 +242,10 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
         float3 cellMin = FloorScale(pos, advScaleExp);
         sideDist = (cellMin - origin) * invDir;
         float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
+        // [IMPORTANT: tEnd check]
+        // If the rays' current distance from origin (tClipped + sideTMax) exceeds tEnd, 
+        // we've passed the point we're interested in (e.g. the light source). Stop!
+        if (tClipped + sideTMax > tEnd) break;
         
         int offsetAmount = int((1u << uint(advScaleExp)) - 1u);
         int3 neighborMax;
@@ -255,23 +270,21 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
     if (hit.hit)
     {
         float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
-        hit.t = tStart + sideTMax;
+        hit.t = tClipped + sideTMax; // Correct t offset based on clipped entry point
         hit.normal = float3(
             (sideTMax >= sideDist.x) ? -sign(dir.x) : 0.0,
             (sideTMax >= sideDist.y) ? -sign(dir.y) : 0.0,
             (sideTMax >= sideDist.z) ? -sign(dir.z) : 0.0
         );
 
-        float3 mirroredPos = asfloat(asuint(pos) ^ 0x7FFFFF);
-        if (any(pos < 1.0 || pos >= 2.0)) mirroredPos = 3.0 - pos;
-
+        float3 mirroredPos = 3.0 - pos;
         float3 realPos = pos;
         realPos.x = dir.x > 0 ? mirroredPos.x : pos.x;
         realPos.y = dir.y > 0 ? mirroredPos.y : pos.y;
         realPos.z = dir.z > 0 ? mirroredPos.z : pos.z;
 
         float3 phitTreeSpace = (realPos - 1.0) / treeSpaceScale;
-        hit.posLocal = minBBox + phitTreeSpace * worldSize;
+        hit.posLocal = phitTreeSpace;
     }
 
 #elif USE_OCTREE
@@ -319,7 +332,8 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
         float cfmin = max(c_tmin.x, max(c_tmin.y, c_tmin.z));
         float cfmax = min(c_tmax.x, min(c_tmax.y, c_tmax.z));
         
-        if (cfmax < cfmin || cfmax < tStart || cfmin > hit.t) continue;
+        // Early out if node is behind start or too far away (tEnd)
+        if (cfmax < cfmin || cfmax < tStart || cfmin > tEnd || cfmin > hit.t) continue;
 
         if (curr.nodeIdx == -2)
         {
@@ -385,6 +399,12 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
     for (int i = 0; i < 1024; ++i)
     {
         hit.iterCount++;
+        
+        // Calculate current ray distance at the exit of the current voxel
+        float currentT = min(sideDist.x, min(sideDist.y, sideDist.z));
+        if (currentT > tEnd) 
+			break;
+        
         uint val = VoxelData[mapPos.x + VoxelDims.x * (mapPos.y + VoxelDims.y * mapPos.z)];
         if (val > 0) { hit.hit = true; break; }
 

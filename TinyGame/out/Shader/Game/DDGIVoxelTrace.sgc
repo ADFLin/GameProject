@@ -1,4 +1,5 @@
 #include "Common.sgc"
+#include "DDGICommon.sgc"
 #include "VoxelRayTraceCommon.sgc"
 
 uniform float4x4 WorldToLocal;
@@ -10,14 +11,15 @@ uniform int3     DDGIProbeCount;
 uniform float4x4 DDGIRandomRotation;
 uniform int      DDGIRayCountPerProbe;
 
+Texture2D<float4> DDGIIrradianceTexture;
+Texture2D<float2> DDGIDistanceTexture;
+SamplerState      DDGISampler;
+
+uniform float4 PointLightPositions[4];
+uniform float4 PointLightColors[4];
+
 RWStructuredBuffer<float4> RayHitBuffer;
 
-float3 GetProbeRayDir(uint rayIdx, int rayCount)
-{
-    float phi = acos(1.0 - 2.0 * (float(rayIdx) + 0.5) / float(rayCount));
-    float theta = 2.0 * 3.14159265 * 1.61803398875 * float(rayIdx);
-    return float3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
-}
 
 [numthreads(32, 1, 1)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
@@ -35,14 +37,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
     float3 probePos = DDGIVolumeMin + float3(probeCoord) * DDGIProbeSpacing;
 
-    float phi = acos(1.0 - 2.0 * (float(rayIdx) + 0.5) / float(DDGIRayCountPerProbe));
-    float theta = 2.0 * 3.14159265 * 1.61803398875 * float(rayIdx);
-    float3 rd = float3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
-    // rd = mul(DDGIRandomRotation, float4(rd, 0.0)).xyz;
+    float3 rd = GetProbeRayDir(rayIdx, DDGIRayCountPerProbe);
+    rd = mul(DDGIRandomRotation, float4(rd, 0.0)).xyz;
 
     // Convert probePos (World) to Local Space [0, 1]
     float3 ro_mesh = mul(WorldToLocal, float4(probePos, 1.0)).xyz;
-    float3 ro = ro_mesh * 0.5 + 0.5;
     
     // Direction mapping
     float3 rd_mesh = mul(WorldToLocal, float4(rd, 0.0)).xyz;
@@ -55,21 +54,89 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
     float3 color = float3(0,0,0);
     float dist = 1e10;
 
-    if (RayCastVoxel(ro, rd_norm, tStart, fmax, hit))
+    if (RayCastVoxel(ro_mesh, rd_norm, tStart, fmax, hit))
     {
         float3 N_world = normalize(mul(LocalToWorld, float4(hit.normal, 0.0)).xyz);
-        // Assuming World Y is Up, but probe RD is mapped such that its North is bright
-        float skyVis = saturate(N_world.y * 0.5 + 0.5);
-        color = lerp(float3(0.02, 0.02, 0.04), float3(0.5, 0.7, 1.0), skyVis);
-        dist = hit.t;
+        
+        // We turn off sky light as requested, making directLight pure black!
+        float3 directLight = float3(0.0, 0.0, 0.0);
+        
+        // Multi-bounce: Sample the irradiance of the PREVIOUS frame at the hit position
+        float3 hitPos_world = mul(LocalToWorld, float4(ro_mesh + rd_norm * hit.t, 1.0)).xyz;
+        
+        // Apply normal bias to avoid hitting self-surface leaks
+        float3 indirectLight = SampleDDGI(
+            hitPos_world + N_world * (DDGIProbeSpacing * 0.1), // Adjusted bias
+            N_world, DDGIVolumeMin, DDGIProbeSpacing, DDGIProbeCount, 
+            DDGIIrradianceTexture, DDGIDistanceTexture, DDGISampler);
+
+		//indirectLight = float3(0,0,0);
+            
+        // ------------------------------------------------------------------------
+        // [LOCAL LIGHTING & SHADOWING]
+        // ------------------------------------------------------------------------
+        float3 localLightColor = float3(0.0, 0.0, 0.0);
+        
+        for (int i = 0; i < 4; ++i) 
+        {
+            float3 lightPos = PointLightPositions[i].xyz;
+            float3 lightCol = 10 * PointLightColors[i].rgb * PointLightColors[i].a;
+            
+            float3 L_world = lightPos - hitPos_world;
+            float lightDist = length(L_world);
+            L_world /= lightDist;
+            
+            float nDotL = max(0.0, dot(N_world, L_world));
+            if (nDotL > 0.0)
+            {
+                // 1. Cast Shadow Ray against Voxels
+                // Use LOCAL hit normal for bias to avoid space mismatch!
+                // Bias should be larger than 1/VoxelDims (e.g. 1/128 = 0.007)
+                float3 ro_shadow = (ro_mesh + rd_norm * hit.t) + hit.normal * 0.01; 
+                float3 rd_shadow = normalize(mul(WorldToLocal, float4(L_world, 0.0)).xyz);
+                
+                VoxelHit shadowHit;
+                // Calculate max shadow ray distance in LOCAL space to match RayCastVoxel requirements
+                float3 localLightVec = mul(WorldToLocal, float4(lightPos - hitPos_world, 0.0)).xyz;
+                float localLightDist = length(localLightVec);
+
+                if (!RayCastVoxel(ro_shadow, rd_shadow, 0.0, localLightDist, shadowHit))
+                {
+                    // Voxel ray missed -> NOT in shadow!
+                    float attenuation = 1.0 / (1.0 + lightDist * lightDist * 0.01);
+                    localLightColor += lightCol * nDotL * attenuation;
+                }
+            }
+        }
+        
+        directLight += localLightColor;
+        // ------------------------------------------------------------------------
+            
+        // Standard PBR or simple Lambert
+        // Albedo above 0.5 without energy conservation gets very explosive! Keep it low.
+        float3 voxelAlbedo = float3(0.3, 0.3, 0.3); 
+        color = voxelAlbedo * (directLight + indirectLight);
+        
+        // Convert local hit distance to world space distance
+        float3 localHitVec = rd_norm * hit.t;
+        float3 worldHitVec = mul(LocalToWorld, float4(localHitVec, 0.0)).xyz;
+        dist = length(worldHitVec);
+
     }
     else
     {
-        // Use rd.z for sky visibility since cos(phi) was assigned to Z
-        float skyVis = saturate(rd.z * 0.5 + 0.5);
-        color = lerp(float3(0.02, 0.02, 0.04), float3(0.5, 0.7, 1.0), skyVis);
-        dist = 1e8; // Very far but finite
+        // Pure black sky for testing local lighting isolated
+        color = float3(0.0, 0.0, 0.0);
+        dist = 1e6; // Large world distance for "infinity"
     }
 
+	//color = hit.normal * 0.5 + 0.5;
+
+	//color = frac(probePos);
+
+	//color = float4(0.5 * rd + 0.5,1);
+
+    // Clamp to 10.0 to hide high-frequency noise from sparse ray sampling
+    color = clamp(color, 0.0, 100.0);
     RayHitBuffer[DispatchThreadId.x] = float4(color, dist);
 }

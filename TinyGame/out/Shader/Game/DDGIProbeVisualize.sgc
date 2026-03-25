@@ -130,11 +130,12 @@ PS_ENTRY_END(MainPS)
 
     // Smoothly sample with bilinear filtering
 
-	float2 octUV = OctEncode(-N);
-    float2 uv = GetDDGISampleUV(probeCoord, -N, LPV.gridNum, atlasSizeInv);
+	float2 octUV = OctEncode(N);
+    float2 uv = GetDDGISampleUV(probeCoord, N, LPV.gridNum, atlasSizeInv);
     float3 irradiance = DDGIIrradianceTexture.SampleLevel(DDGISampler, uv, 0).rgb;
 
     OutColor = float4(irradiance, 1.0);
+
 	//OutColor = float4(octUV, 0, 1.0);
 }
 

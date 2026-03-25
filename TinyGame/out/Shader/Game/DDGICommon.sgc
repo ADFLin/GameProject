@@ -1,6 +1,13 @@
 #ifndef DDGI_COMMON_SGC
 #define DDGI_COMMON_SGC
 
+// DDGI Tuning Parameters
+#define DDGI_SHADOW_BIAS_FACTOR   0.02  // Shadow threshold multiplier (biased distance)
+#define DDGI_VARIANCE_BIAS_FACTOR 0.01   // Softness of shadow transitions (variance multiplier)
+#define DDGI_CHE_POWER            2.0   // Intensity of shadow cutoff (lower is brighter/softer)
+#define DDGI_NORMAL_BIAS_FACTOR   0.35  // Surface offset to prevent self-occlusion
+#define DDGI_BACKFACE_WEIGHT      0.00   // Background weight to allow some light from behind (0.0 to 1.0)
+
 float3 GetProbeRayDir(uint rayIdx, int rayCount)
 {
 	float phi = acos(1.0 - 2.0 * (float(rayIdx) + 0.5) / float(rayCount));
@@ -98,7 +105,8 @@ float3 SampleDDGI(float3 pWorld, float3 N, float3 volumeMin, float spacing, int3
         float  weight = trilinearWeight.x * trilinearWeight.y * trilinearWeight.z;
         
         // Geometric weight to avoid backface lighting
-        weight *= max(0.02, dot(L, N));
+        float nDotL = dot(L, N);
+        weight *= max(DDGI_BACKFACE_WEIGHT, saturate(nDotL)); // Soften backface culling to avoid pitch black gaps
 
         // --- Visibility (Chebyshev) ---
         // Use the direction FROM probe TO pixel (-L) for the distance lookup, NOT the surface normal!
@@ -107,22 +115,17 @@ float3 SampleDDGI(float3 pWorld, float3 N, float3 volumeMin, float spacing, int3
         float2 moments = distTex.SampleLevel(ddgiSampler, distUV, 0).rg;
         
         float distDiff = distToProbe - moments.x;
-        // Apply a small shadow bias (10% tolerance) to prevent self-occlusion artifacts (black patches)
-        // on surfaces that are technically visible to the probe but suffer from precision lag.
-        if (distToProbe * 0.9 > moments.x) 
+        // Applying shadow bias using the extracted macro to allow easier tuning.
+        if (distToProbe > moments.x + DDGI_SHADOW_BIAS_FACTOR * spacing) 
         {
             float variance = abs(moments.y - (moments.x * moments.x));
-            float vBias = 0.05; // Softer bias to reduce high-frequency flicker
-            // Sharpen the visibility test to drastically reduce light leaking across thin walls
-            // Power of 8.0 is a good balance between leak suppression and smooth blending.
+            float vBias = DDGI_VARIANCE_BIAS_FACTOR * spacing; 
             float chebyshevWeight = (variance + vBias) / (variance + vBias + distDiff * distDiff);
-            chebyshevWeight = max(pow(chebyshevWeight, 8.0), 0.0); 
+            // Using extracted power macro for shadow intensity.
+            chebyshevWeight = max(pow(chebyshevWeight, DDGI_CHE_POWER), 0.0); 
             weight *= chebyshevWeight;
         }
 
-        // Strict backface culling to prevent energy leaking from probes behind surfaces
-        weight *= saturate(dot(L, N));
-        
         if (weight > 0.0001)
         {
             float2 uv = GetDDGISampleUV(probeCoord, N, gridNum, atlasSizeInv);

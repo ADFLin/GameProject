@@ -81,7 +81,9 @@ PS_ENTRY_END(MainPS)
     float4 clipPos = mul(View.worldToClip, float4(pHitWorld, 1.0));
     SvDepth = clipPos.z / clipPos.w;
 
-    float3 irradiance = SampleDDGI(pHitWorld, NWorld, DDGIVolumeMin, DDGIProbeSpacing, DDGIProbeCount, 
+    // Using defined macro for sampling bias factor to allow centralized tuning.
+    float3 pSampleDDGI = pHitWorld + NWorld * (DDGIProbeSpacing * DDGI_NORMAL_BIAS_FACTOR);
+    float3 irradiance = SampleDDGI(pSampleDDGI, NWorld, DDGIVolumeMin, DDGIProbeSpacing, DDGIProbeCount, 
                                    DDGIIrradianceTexture, DDGIDistanceTexture, DDGISampler);
     
 
@@ -103,7 +105,7 @@ PS_ENTRY_END(MainPS)
         if (nDotL > 0.0)
         {
             // Cast Shadow Ray against Voxels
-            float3 ro_shadow = (hit.posLocal) + hit.normal * 0.001; 
+            float3 ro_shadow = (hit.posLocal) + hit.normal * VOXEL_SHADOW_NORMAL_BIAS_FACTOR;
             float3 rd_shadow = normalize(mul(WorldToLocal, float4(L_world, 0.0)).xyz);
             
             VoxelHit shadowHit;
@@ -118,10 +120,11 @@ PS_ENTRY_END(MainPS)
         }
     }
     // ------------------------------------------------------------------------
-	//directLight = 0;
+	directLight *= 1.0;
+	irradiance *= 5.0;
     float3 albedo = float3(0.3, 0.3, 0.3);
     float3 ambient = float3(0.01, 0.01, 0.01); 
-	directLight = 0;
+
     OutColor = float4(albedo * (directLight + irradiance + ambient), 1);
 }
 #endif

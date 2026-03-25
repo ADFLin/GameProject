@@ -589,7 +589,6 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, DDGIIrradianceTexture);
 			BIND_SHADER_PARAM(parameterMap, DDGIDistanceTexture);
 			BIND_SHADER_PARAM(parameterMap, DDGISampler);
-			BIND_SHADER_PARAM(parameterMap, DebugDrawProbes);
 			
 			BIND_SHADER_PARAM(parameterMap, PointLightPositions);
 			BIND_SHADER_PARAM(parameterMap, PointLightColors);
@@ -612,7 +611,6 @@ namespace Render
 		DEFINE_SHADER_PARAM(DDGIIrradianceTexture);
 		DEFINE_SHADER_PARAM(DDGIDistanceTexture);
 		DEFINE_SHADER_PARAM(DDGISampler);
-		DEFINE_SHADER_PARAM(DebugDrawProbes);
 		
 		DEFINE_SHADER_PARAM(PointLightPositions);
 		DEFINE_SHADER_PARAM(PointLightColors);
@@ -869,7 +867,7 @@ namespace Render
 
 			Vector3 boundSize = mBBox.getSize();
 			float maxSideSize = Math::Max(boundSize.x, Math::Max(boundSize.y, boundSize.z));
-			float voxelSizeVal = maxSideSize / 1024.0f;
+			float voxelSizeVal = maxSideSize / 2048.0f;
 			Vector3 size = boundSize / voxelSizeVal;
 			mRawData.dims.x = Math::CeilToInt(size.x);
 			mRawData.dims.y = Math::CeilToInt(size.y);
@@ -1074,10 +1072,10 @@ namespace Render
 
 			Vector4 lightPositions[4] = 
 			{
-				Vector4(0, 0, 5, 1),
-				Vector4(50, 20, 15, 1),
+				Vector4(0, 0, 20, 1),
+				Vector4(50, 20, 30, 1),
 				Vector4(20, 50, 15, 1),
-				Vector4(40, 40,  5, 1)
+				Vector4(40, 40,  60, 1)
 			};
 			Vector4 lightColors[4] =
 			{
@@ -1157,8 +1155,6 @@ namespace Render
 
 				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture }, EResourceTransition::UAV);
 
-
-				// 1. Update Internal Irradiance (6x6)
 				{
 					GPU_PROFILE("Update Irradiance");
 					DDGIUpdateIrradianceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceShader>();
@@ -1172,7 +1168,6 @@ namespace Render
 					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
 				}
 
-				// 2. Sync Irradiance Borders (8x8)
 				{
 					GPU_PROFILE("Copy Irradiance Borders");
 					DDGIUpdateIrradianceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceBorderShader>();
@@ -1182,7 +1177,6 @@ namespace Render
 					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
 				}
 
-				// 3. Update Internal Distance (14x14)
 				{
 					GPU_PROFILE("Update Distance");
 					DDGIUpdateDistanceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceShader>();
@@ -1196,7 +1190,6 @@ namespace Render
 					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
 				}
 
-				// 4. Sync Distance Borders (16x16)
 				{
 					GPU_PROFILE("Copy Distance Borders");
 					DDGIUpdateDistanceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceBorderShader>();
@@ -1332,7 +1325,7 @@ namespace Render
 				mView.setupShader(commandList, *mProgSphere);
 
 
-				float radius = 0.15f;
+				float radius = 0.85f;
 				for (int i = 0; i < ARRAY_SIZE(lightPositions); ++i)
 				{
 					mProgSphere->setParameters(commandList, lightPositions[i].xyz(), radius, lightColors[i].xyz());

@@ -47,7 +47,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
     float3 rd_mesh = mul(WorldToLocal, float4(rd, 0.0)).xyz;
     float3 rd_norm = normalize(rd_mesh); 
     
-    float tStart = 0.0;
+    // Absolute small distance to jump out of origin voxel without skipping walls
+    float tStart = 0.01; 
     float fmax = 1000.0;
 
     VoxelHit hit;
@@ -64,9 +65,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
         // Multi-bounce: Sample the irradiance of the PREVIOUS frame at the hit position
         float3 hitPos_world = mul(LocalToWorld, float4(ro_mesh + rd_norm * hit.t, 1.0)).xyz;
         
-        // Apply normal bias to avoid hitting self-surface leaks
+        // Using defined macro for sampling bias factor
         float3 indirectLight = SampleDDGI(
-            hitPos_world + N_world * (DDGIProbeSpacing * 0.1), // Adjusted bias
+            hitPos_world + N_world * (DDGIProbeSpacing * DDGI_NORMAL_BIAS_FACTOR),
             N_world, DDGIVolumeMin, DDGIProbeSpacing, DDGIProbeCount, 
             DDGIIrradianceTexture, DDGIDistanceTexture, DDGISampler);
 
@@ -80,7 +81,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
         for (int i = 0; i < 4; ++i) 
         {
             float3 lightPos = PointLightPositions[i].xyz;
-            float3 lightCol = 10 * PointLightColors[i].rgb * PointLightColors[i].a;
+            float3 lightCol = PointLightColors[i].rgb * PointLightColors[i].a;
             
             float3 L_world = lightPos - hitPos_world;
             float lightDist = length(L_world);
@@ -92,7 +93,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
                 // 1. Cast Shadow Ray against Voxels
                 // Use LOCAL hit normal for bias to avoid space mismatch!
                 // Bias should be larger than 1/VoxelDims (e.g. 1/128 = 0.007)
-                float3 ro_shadow = (ro_mesh + rd_norm * hit.t) + hit.normal * 0.01; 
+				float3 ro_shadow = (ro_mesh + rd_norm * hit.t) + hit.normal * VOXEL_SHADOW_NORMAL_BIAS_FACTOR;
                 float3 rd_shadow = normalize(mul(WorldToLocal, float4(L_world, 0.0)).xyz);
                 
                 VoxelHit shadowHit;
@@ -127,7 +128,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
     {
         // Pure black sky for testing local lighting isolated
         color = float3(0.0, 0.0, 0.0);
-        dist = 1e6; // Large world distance for "infinity"
+        dist = 200.0; // Reasonable world distance for sky hits to avoid float16 overflow (max^2 < 65504)
     }
 
 	//color = hit.normal * 0.5 + 0.5;

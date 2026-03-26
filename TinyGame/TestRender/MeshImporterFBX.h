@@ -108,8 +108,11 @@ namespace Render
 		static void GetMeshVertexFormat(FbxMesh* pMesh, FBXVertexFormat& outFormat);
 
 
-		bool parseMesh(FbxMesh* pFBXMesh, MeshImportData& outData);
+		bool parseMesh(FbxMesh* pFBXMesh, MeshImportData& outData, FbxAMatrix const& transform);
 		bool parseMesh(FbxMesh* pFBXMesh, Mesh& outMesh);
+
+		void processNodeRecursive(FbxNode* pNode, MeshImportData& outData, int& meshCount, FbxAMatrix const& parentTransform);
+		void processNodeRecursiveMulti(FbxNode* pNode, TArray<MeshImportData>& meshDataList, FbxAMatrix const& parentTransform);
 
 		bool createMesh(MeshImportData& meshData, Mesh &outMesh);
 

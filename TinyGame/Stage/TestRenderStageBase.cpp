@@ -9,6 +9,7 @@
 
 #include "Asset.h"
 #include "Renderer/MeshImportor.h"
+#include "FileSystem.h"
 
 
 
@@ -377,17 +378,23 @@ namespace Render
 			return true;
 		};
 
-		if (!::Global::DataCache().loadDelegate(key, MeshLoad))
+		if (::Global::DataCache().loadDelegate(key, MeshLoad))
+			return true;
+
+		char const* extension = FFileUtility::GetExtension(meshPath);
+		IMeshImporterPtr importer;
+		if (FCString::CompareIgnoreCase(extension, "obj") == 0)
+			importer = MeshImporterRegistry::Get().getMeshImproter("OBJ");
+		else if (FCString::CompareIgnoreCase(extension, "fbx") == 0)
+			importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
+		
+		if (!importer->importFromFile(meshPath, meshData))
+			return false;
+
+
+		if (!::Global::DataCache().saveDelegate(key, MeshSave))
 		{
-			IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("OBJ");
-			if (importer->importFromFile(meshPath, meshData))
-				return false;
 
-
-			if (!::Global::DataCache().saveDelegate(key, MeshSave))
-			{
-
-			}
 		}
 
 		return true;

@@ -23,6 +23,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TestRender\DDGIProbeManager.h" />
     <ClInclude Include="TestRender\SceneScript.h" />
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h">
@@ -80,6 +81,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="TestRender\DDGIProbeManager.cpp" />
     <ClCompile Include="TestRender\SceneScript.cpp" />
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp">
       <Filter>Stage</Filter>

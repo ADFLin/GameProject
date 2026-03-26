@@ -241,6 +241,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="TestRender\DDGIProbeManager.cpp" />
     <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
     <ClCompile Include="TestRender\SceneScript.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
@@ -317,6 +318,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TestRender\DDGIProbeManager.h" />
     <ClInclude Include="TestRender\MeshImporterFBX.h" />
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />

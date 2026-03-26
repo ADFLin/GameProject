@@ -4,8 +4,13 @@
 #include "Math/GeometryPrimitive.h"
 #include "RHI/SceneRenderer.h"
 #include "Renderer/MeshImportor.h"
-#include <algorithm>
 #include "ProfileSystem.h"
+#include "Async/AsyncWork.h"
+
+#include "DDGIProbeManager.h"
+
+#include <algorithm>
+#include <atomic>
 
 namespace Render
 {
@@ -46,6 +51,12 @@ namespace Render
 				size_t index = pos.x + dims.x * size_t(pos.y + dims.y * pos.z);
 				data[index] = point.data;
 			}
+		}
+
+		template< class Op >
+		void serialize(Op& op)
+		{
+			op & data & dims;
 		}
 	};
 
@@ -127,50 +138,84 @@ namespace Render
 			TIME_SCOPE("MeshSurface");
 			Vector3 boundSize = bbox.getSize();
 			Vector3 voxelSize = { boundSize.x / dims.x, boundSize.y / dims.y, boundSize.z / dims.z };
-
-			auto posReader = meshData.makeAttributeReader(inputLayoutDesc, EVertex::ATTRIBUTE_POSITION);
-			auto GetVertexPos = [&](uint32 index) -> Vector3
-			{
-				return TransformPosition(posReader[index], transform);
-			};
-
 			float thresholdLength = voxelSize.length() * 0.5f;
 
-			for (int i = 0; i < (int)meshData.indices.size(); i += 3)
+			int numTriangles = (int)meshData.indices.size() / 3;
+			int numThreads = SystemPlatform::GetProcessorNumber();
+			QueueThreadPool threadPool;
+			threadPool.init(numThreads);
+
+			TArray< TArray<VoxelPoint> > threadPoints;
+			threadPoints.resize(numThreads);
+
+			std::atomic<int> nextTriIdx(0);
+			const int batchSize = 128;
+
+			for (int iThread = 0; iThread < numThreads; ++iThread)
 			{
-				Vector3 v0 = GetVertexPos(meshData.indices[i]);
-				Vector3 v1 = GetVertexPos(meshData.indices[i + 1]);
-				Vector3 v2 = GetVertexPos(meshData.indices[i + 2]);
-
-				Vector3 tMin = v0.min(v1).min(v2);
-				Vector3 tMax = v0.max(v1).max(v2);
-
-				int iMin[3], iMax[3];
-				iMin[0] = Math::Max(0, Math::FloorToInt((tMin.x - bbox.min.x) / voxelSize.x));
-				iMin[1] = Math::Max(0, Math::FloorToInt((tMin.y - bbox.min.y) / voxelSize.y));
-				iMin[2] = Math::Max(0, Math::FloorToInt((tMin.z - bbox.min.z) / voxelSize.z));
-
-				iMax[0] = Math::Min(dims.x - 1, Math::FloorToInt((tMax.x - bbox.min.x) / voxelSize.x));
-				iMax[1] = Math::Min(dims.y - 1, Math::FloorToInt((tMax.y - bbox.min.y) / voxelSize.y));
-				iMax[2] = Math::Min(dims.z - 1, Math::FloorToInt((tMax.z - bbox.min.z) / voxelSize.z));
-
-				for (int z = iMin[2]; z <= iMax[2]; ++z)
+				threadPool.addFunctionWork([=, &nextTriIdx, &threadPoints, &meshData, &bbox, &dims, &voxelSize]()
 				{
-					for (int y = iMin[1]; y <= iMax[1]; ++y)
+					auto& localPoints = threadPoints[iThread];
+					auto posReader = meshData.makeAttributeReader(inputLayoutDesc, EVertex::ATTRIBUTE_POSITION);
+					auto GetVertexPos = [&](uint32 index) -> Vector3
 					{
-						for (int x = iMin[0]; x <= iMax[0]; ++x)
+						return TransformPosition(posReader[index], transform);
+					};
+
+					while (true)
+					{
+						int startTriIdx = nextTriIdx.fetch_add(batchSize);
+						if (startTriIdx >= numTriangles)
+							break;
+
+						int endTriIdx = Math::Min(startTriIdx + batchSize, numTriangles);
+
+						for (int i = startTriIdx; i < endTriIdx; ++i)
 						{
-							Vector3 p = bbox.min + Vector3((x + 0.5f) * voxelSize.x, (y + 0.5f) * voxelSize.y, (z + 0.5f) * voxelSize.z);
-							float outSide;
-							Vector3 closest = Math::PointToTriangleClosestPoint(p, v0, v1, v2, outSide);
-							if ((p - closest).length2() < thresholdLength * thresholdLength)
+							Vector3 v0 = GetVertexPos(meshData.indices[3 * i]);
+							Vector3 v1 = GetVertexPos(meshData.indices[3 * i + 1]);
+							Vector3 v2 = GetVertexPos(meshData.indices[3 * i + 2]);
+
+							Vector3 tMin = v0.min(v1).min(v2);
+							Vector3 tMax = v0.max(v1).max(v2);
+
+							int iMin[3], iMax[3];
+							iMin[0] = Math::Max(0, Math::FloorToInt((tMin.x - bbox.min.x) / voxelSize.x));
+							iMin[1] = Math::Max(0, Math::FloorToInt((tMin.y - bbox.min.y) / voxelSize.y));
+							iMin[2] = Math::Max(0, Math::FloorToInt((tMin.z - bbox.min.z) / voxelSize.z));
+
+							iMax[0] = Math::Min(dims.x - 1, Math::FloorToInt((tMax.x - bbox.min.x) / voxelSize.x));
+							iMax[1] = Math::Min(dims.y - 1, Math::FloorToInt((tMax.y - bbox.min.y) / voxelSize.y));
+							iMax[2] = Math::Min(dims.z - 1, Math::FloorToInt((tMax.z - bbox.min.z) / voxelSize.z));
+
+							for (int z = iMin[2]; z <= iMax[2]; ++z)
 							{
-								inoutPoints.push_back({ IntVector3(x, y, z) , 1 });
+								for (int y = iMin[1]; y <= iMax[1]; ++y)
+								{
+									for (int x = iMin[0]; x <= iMax[0]; ++x)
+									{
+										Vector3 p = bbox.min + Vector3((x + 0.5f) * voxelSize.x, (y + 0.5f) * voxelSize.y, (z + 0.5f) * voxelSize.z);
+										float outSide;
+										Vector3 closest = Math::PointToTriangleClosestPoint(p, v0, v1, v2, outSide);
+										if ((p - closest).length2() < thresholdLength * thresholdLength)
+										{
+											localPoints.push_back({ IntVector3(x, y, z) , 1 });
+										}
+									}
+								}
 							}
 						}
 					}
-				}
+				});
 			}
+
+			threadPool.waitAllWorkComplete();
+
+			for (auto const& points : threadPoints)
+			{
+				inoutPoints.append(points);
+			}
+
 			return true;
 		}
 
@@ -676,129 +721,89 @@ namespace Render
 		DEFINE_SHADER_PARAM(PointLightColors);
 	};
 	IMPLEMENT_SHADER(DDGIVoxelTraceShader, EShader::Compute, SHADER_ENTRY(MainCS));
-
-	class DDGIUpdateIrradianceShader : public GlobalShader
-	{
-		DECLARE_SHADER(DDGIUpdateIrradianceShader, Global);
-	public:
-
-		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
-		void bindParameters(ShaderParameterMap const& parameterMap)
-		{
-			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
-			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
-			BIND_SHADER_PARAM(parameterMap, DDGIBlinkRate);
-			BIND_SHADER_PARAM(parameterMap, DDGIRandomRotation);
-			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
-			BIND_SHADER_PARAM(parameterMap, OutIrradiance);
-		}
-
-		DEFINE_SHADER_PARAM(DDGIProbeCount);
-		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
-		DEFINE_SHADER_PARAM(DDGIRandomRotation);
-		DEFINE_SHADER_PARAM(DDGIBlinkRate);
-		DEFINE_SHADER_PARAM(RayHitBuffer);
-		DEFINE_SHADER_PARAM(OutIrradiance);
-	};
-	IMPLEMENT_SHADER(DDGIUpdateIrradianceShader, EShader::Compute, SHADER_ENTRY(UpdateIrradianceCS));
-
-	class DDGIUpdateDistanceShader : public GlobalShader
-	{
-		DECLARE_SHADER(DDGIUpdateDistanceShader, Global);
-	public:
-		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
-		void bindParameters(ShaderParameterMap const& parameterMap)
-		{
-			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
-			BIND_SHADER_PARAM(parameterMap, DDGIRayCountPerProbe);
-			BIND_SHADER_PARAM(parameterMap, DDGIBlinkRate);
-			BIND_SHADER_PARAM(parameterMap, DDGIRandomRotation);
-			BIND_SHADER_PARAM(parameterMap, RayHitBuffer);
-			BIND_SHADER_PARAM(parameterMap, OutDistance);
-		}
-
-		DEFINE_SHADER_PARAM(DDGIProbeCount);
-		DEFINE_SHADER_PARAM(DDGIRayCountPerProbe);
-		DEFINE_SHADER_PARAM(DDGIBlinkRate);
-		DEFINE_SHADER_PARAM(DDGIRandomRotation);
-		DEFINE_SHADER_PARAM(RayHitBuffer);
-		DEFINE_SHADER_PARAM(OutDistance);
-	};
-	IMPLEMENT_SHADER(DDGIUpdateDistanceShader, EShader::Compute, SHADER_ENTRY(UpdateDistanceCS));
-
-
-
-	class DDGIUpdateIrradianceBorderShader : public GlobalShader
-	{
-		DECLARE_SHADER(DDGIUpdateIrradianceBorderShader, Global);
-	public:
-		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
-			BIND_SHADER_PARAM(parameterMap, OutIrradiance);
-		}
-		DEFINE_SHADER_PARAM(DDGIProbeCount);
-		DEFINE_SHADER_PARAM(OutIrradiance);
-	};
-
-	IMPLEMENT_SHADER(DDGIUpdateIrradianceBorderShader, EShader::Compute, SHADER_ENTRY(UpdateIrradianceBorderCS));
-
-	class DDGIUpdateDistanceBorderShader : public GlobalShader
-	{
-		DECLARE_SHADER(DDGIUpdateDistanceBorderShader, Global);
-	public:
-		static char const* GetShaderFileName() { return "Shader/Game/DDGIUpdate"; }
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			BIND_SHADER_PARAM(parameterMap, DDGIProbeCount);
-			BIND_SHADER_PARAM(parameterMap, OutDistance);
-		}
-		DEFINE_SHADER_PARAM(DDGIProbeCount);
-		DEFINE_SHADER_PARAM(OutDistance);
-	};
-
-	IMPLEMENT_SHADER(DDGIUpdateDistanceBorderShader, EShader::Compute, SHADER_ENTRY(UpdateDistanceBorderCS));
 	
-	struct DDGIProbeVisualizeParams
-	{
-		DECLARE_UNIFORM_BUFFER_STRUCT(DDGIProbeVisualizeParamsBlock);
 
-		Vector3 startPos;
-		float   probeRadius;
-		Vector3 xAxis;
-		float   spacing;
-		Vector3 yAxis;
-		int     dummy1;
-		IntVector3 gridNum;
-		int     dummy2;
-	};
-
-	class DDGIProbeVisualizeProgram : public GlobalShaderProgram
+	static bool BuildMeshVoxelData(char const* meshPath, Matrix4 const& meshXForm, int maxVoxelLen,
+		Mesh& outMesh, TArray<VoxelPoint>& outPoints,
+		VoxelRawData& outRawData, Math::TAABBox<Vector3>& outBBox,
+		TArray<OctTreeNode>& outOctTreeNodes, int& outOctRooIndex,
+		TArray<SvtNode64>& outSvtNodes, int& outSvtRootIndex)
 	{
-		DECLARE_SHADER_PROGRAM(DDGIProbeVisualizeProgram, Global);
-	public:
-		static char const* GetShaderFileName() { return "Shader/Game/DDGIProbeVisualize"; }
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		DataCacheKey key;
+		key.typeName = "MESH_VOXEL_DATA";
+		key.version = "7F1B2C84-3A5D-4E90-9B21-C14D7E8F6A32";
+		key.keySuffix.addFileAttribute(meshPath);
+		key.keySuffix.add(meshXForm, maxVoxelLen);
+
+		auto VoxelLoad = [&](IStreamSerializer& serializer) -> bool
 		{
-			static ShaderEntryInfo const entries[] = 
-			{
-				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
-			};
-			return entries;
+			serializer >> outBBox.min >> outBBox.max;
+			serializer >> outPoints >> outRawData;
+			serializer >> outOctTreeNodes >> outOctRooIndex;
+			serializer >> outSvtNodes >> outSvtRootIndex;
+			return true;
+		};
+
+		auto VoxelSave = [&](IStreamSerializer& serializer) -> bool
+		{
+			serializer << outBBox.min << outBBox.max;
+			serializer << outPoints << outRawData;
+			serializer << outOctTreeNodes << outOctRooIndex;
+			serializer << outSvtNodes << outSvtRootIndex;
+			return true;
+		};
+
+		MeshImportData importData;
+		if (!LoadMeshDataFromFile(importData, meshPath))
+		{
+			return false;
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap) override
+		outMesh.mInputLayoutDesc = importData.desc;
+		outMesh.mType = EPrimitive::TriangleList;
+		outMesh.createRHIResource(importData);
+
+		if (::Global::DataCache().loadDelegate(key, VoxelLoad))
 		{
-			BIND_SHADER_PARAM(parameterMap, DDGIIrradianceTexture);
-			BIND_SHADER_PARAM(parameterMap, DDGISampler);
+			return true;
 		}
 
-		DEFINE_SHADER_PARAM(DDGIIrradianceTexture);
-		DEFINE_SHADER_PARAM(DDGISampler);
-	};
-	IMPLEMENT_SHADER_PROGRAM(DDGIProbeVisualizeProgram);
+		outBBox = importData.getBoundBox(meshXForm);
+		outBBox.expand(Vector3(0.01, 0.01, 0.01));
+
+		Vector3 boundSize = outBBox.getSize();
+		float maxSideSize = Math::Max(boundSize.x, Math::Max(boundSize.y, boundSize.z));
+		float voxelSizeVal = maxSideSize / float(maxVoxelLen);
+		Vector3 size = boundSize / voxelSizeVal;
+		outRawData.dims.x = Math::CeilToInt(size.x);
+		outRawData.dims.y = Math::CeilToInt(size.y);
+		outRawData.dims.z = Math::CeilToInt(size.z);
+
+		outPoints.clear();
+		FVoxelBuild::MeshSurface(outPoints, outRawData.dims, outBBox, importData, importData.desc, meshXForm);
+
+		if (maxVoxelLen <= 1024)
+		{
+			outRawData.initData(outPoints);
+		}
+
+		outOctTreeNodes.clear();
+		outOctRooIndex = FVoxelBuild::BuildOctTree(outPoints, outRawData.dims, outOctTreeNodes);
+
+		outSvtNodes.clear();
+		outSvtRootIndex = FVoxelBuild::Build64Tree(outPoints, outRawData.dims, outSvtNodes);
+
+		LogMsg("Voxel Dims: %d %d %d", outRawData.dims.x, outRawData.dims.y, outRawData.dims.z);
+		LogMsg("BBox Min: %f %f %f", outBBox.min.x, outBBox.min.y, outBBox.min.z);
+		LogMsg("BBox Max: %f %f %f", outBBox.max.x, outBBox.max.y, outBBox.max.z);
+
+		if (!::Global::DataCache().saveDelegate(key, VoxelSave))
+		{
+
+		}
+
+		return true;
+	}
 
 
 	class VoxelRenderingStage : public TestRenderStageBase
@@ -845,49 +850,15 @@ namespace Render
 				return false;
 
 #if 1
-			MeshImportData importData;
-			LoadMeshDataFromFile(importData, "Model/Sponza.obj");
-
-			mModelMesh.mInputLayoutDesc = importData.desc;
-			mModelMesh.mType = EPrimitive::TriangleList;
-			mModelMesh.createRHIResource(importData);
-
+#if 0
 			mModelXForm = Matrix4::Scale(0.1) * Matrix4::Rotate(Vector3(1, 0, 0), Math::DegToRad(90));
-			AABBox localBBox = importData.getBoundBox();
-			mBBox.invalidate();
-			for (int i = 1; i < 8; ++i)
-			{
-				Vector3 p;
-				p.x = (i & 1) ? localBBox.max.x : localBBox.min.x;
-				p.y = (i & 2) ? localBBox.max.y : localBBox.min.y;
-				p.z = (i & 4) ? localBBox.max.z : localBBox.min.z;
-				mBBox.addPoint(TransformPosition(p, mModelXForm));
-			}
-			mBBox.expand(Vector3(0.01, 0.01, 0.01));
+			BuildMeshVoxelData("Model/Sponza.obj", mModelXForm, 2048, mModelMesh, mPoints, mRawData, mBBox, mOctTreeNodes, mRootNodeIndex, mSvtNodes, mSvtRootIndex);
+#else
+			mModelXForm = Matrix4::Rotate(Vector3(1, 0, 0), Math::DegToRad(90));
+			BuildMeshVoxelData("Model/BistroExterior.fbx", mModelXForm, 2048 * 2, mModelMesh, mPoints, mRawData, mBBox, mOctTreeNodes, mRootNodeIndex, mSvtNodes, mSvtRootIndex);
+#endif
 
 			Vector3 boundSize = mBBox.getSize();
-			float maxSideSize = Math::Max(boundSize.x, Math::Max(boundSize.y, boundSize.z));
-			float voxelSizeVal = maxSideSize / 2048.0f;
-			Vector3 size = boundSize / voxelSizeVal;
-			mRawData.dims.x = Math::CeilToInt(size.x);
-			mRawData.dims.y = Math::CeilToInt(size.y);
-			mRawData.dims.z = Math::CeilToInt(size.z);
-
-			mPoints.clear();
-			FVoxelBuild::MeshSurface(mPoints, mRawData.dims, mBBox, importData, importData.desc, mModelXForm);
-			
-			mRawData.initData(mPoints);
-
-			mOctTreeNodes.clear();
-			mRootNodeIndex = FVoxelBuild::BuildOctTree(mPoints, mRawData.dims, mOctTreeNodes);
-			
-			mSvtNodes.clear();
-			mSvtRootIndex = FVoxelBuild::Build64Tree(mPoints, mRawData.dims, mSvtNodes);
-			
-			LogMsg("Voxel Dims: %d %d %d", mRawData.dims.x, mRawData.dims.y, mRawData.dims.z);
-			LogMsg("BBox Min: %f %f %f", mBBox.min.x, mBBox.min.y, mBBox.min.z);
-			LogMsg("BBox Max: %f %f %f", mBBox.max.x, mBBox.max.y, mBBox.max.z);
-
 			mProbeSpacing = Math::Max(boundSize.x / mProbeCount.x, Math::Max(boundSize.y / mProbeCount.y, boundSize.z / mProbeCount.z));
 			mProbeVolumeMin = mBBox.min;
 #else
@@ -946,6 +917,9 @@ namespace Render
 			systemConfigs.screenHeight = 768;
 		}
 
+
+		DDGIProbeManager mProbeManager;
+
 		virtual bool setupRenderResource(ERenderSystem systemName) override
 		{
 			VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
@@ -968,7 +942,7 @@ namespace Render
 
 			updateVoxelMesh();
 
-			if (mOctTreeNodes.size() > 0)
+			if (mOctTreeNodes.size() > 0 && mOctTreeNodes.size() < size_t(1024 * 1024 * 1024) / sizeof(OctTreeNode))
 			{
 				mOctTreeBuffer.initializeResource((uint32)mOctTreeNodes.size(), EStructuredBufferType::StaticBuffer, BCF_None, mOctTreeNodes.data());
 			}
@@ -979,19 +953,28 @@ namespace Render
 
 			// DDGI Resource Allocation
 			{
+
+				DDGIConfig config;
+				config.gridCount = mProbeCount;
+				config.probeSpacing = mProbeSpacing;
+				config.rayCountPerProbe = mRayCountPerProbe;
+
+				mProbeManager.initializeRHI(config);
+				mProbeManager.setVolumeMin(mProbeVolumeMin);
+				
 				int probeTotal = mProbeCount.x * mProbeCount.y * mProbeCount.z;
 				// Irradiance: 8x8 texels per probe
-				mIrradianceTexture = RHICreateTexture2D(ETexture::RGBA16F, mProbeCount.x * 8, mProbeCount.y * mProbeCount.z * 8, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
+				mIrradianceTexture = mProbeManager.getIrradianceAtlas();
 				
 				// Distance: 8x8 texels per probe (moments: dist & dist^2)
-				mDistanceTexture = RHICreateTexture2D(ETexture::RG16F, mProbeCount.x * 8, mProbeCount.y * mProbeCount.z * 8, 1, 1, TCF_CreateSRV | TCF_CreateUAV);
+				mDistanceTexture = mProbeManager.getDistanceAtlas();
 				
 				GTextureShowManager.registerTexture("Irradiance", mIrradianceTexture);
 				GTextureShowManager.registerTexture("Distance", mDistanceTexture);
 
 				// RayHitBuffer: float4 per ray (RGB + Dist)
 				mRayHitBufferCount = probeTotal * mRayCountPerProbe;
-				mRayHitBuffer = RHICreateBuffer(sizeof(float) * 4, mRayHitBufferCount, BCF_Structured | BCF_CreateUAV);
+				mRayHitBuffer = mProbeManager.getRayHitBuffer();
 			}
 
 			return true;
@@ -1100,9 +1083,12 @@ namespace Render
 				Matrix4 ddgiRotation = Matrix4::Rotate(Vector3(0, 0, 1), mTotalTime * 0.131f) * 
 				                       Matrix4::Rotate(Vector3(0, 1, 0), mTotalTime * 0.073f) *
 				                       Matrix4::Rotate(Vector3(1, 0, 0), mTotalTime * 0.041f);
+				mProbeManager.setRandomRotation(ddgiRotation);
 
 				// Execute DDGIVoxelTraceShader
 				{
+					mProbeManager.prepareForGpuUpdate(commandList);
+
 					GPU_PROFILE("Probe Trace");
 
 					DDGIVoxelTraceShader::PermutationDomain permutationVector;
@@ -1153,54 +1139,7 @@ namespace Render
 					RHIDispatchCompute(commandList, (mProbeCount.x * mProbeCount.y * mProbeCount.z * mRayCountPerProbe + 31) / 32, 1, 1);
 				}
 
-				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture }, EResourceTransition::UAV);
-
-				{
-					GPU_PROFILE("Update Irradiance");
-					DDGIUpdateIrradianceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceShader>();
-					RHISetComputeShader(commandList, shader->getRHI());
-					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-					SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
-					SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.02f);
-					SET_SHADER_PARAM(commandList, *shader, DDGIRandomRotation, ddgiRotation);
-					shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
-					shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
-					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-				}
-
-				{
-					GPU_PROFILE("Copy Irradiance Borders");
-					DDGIUpdateIrradianceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateIrradianceBorderShader>();
-					RHISetComputeShader(commandList, shader->getRHI());
-					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-					shader->setRWTexture(commandList, shader->mParamOutIrradiance, *mIrradianceTexture, 0, EAccessOp::ReadAndWrite);
-					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-				}
-
-				{
-					GPU_PROFILE("Update Distance");
-					DDGIUpdateDistanceShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceShader>();
-					RHISetComputeShader(commandList, shader->getRHI());
-					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-					SET_SHADER_PARAM(commandList, *shader, DDGIRayCountPerProbe, mRayCountPerProbe);
-					SET_SHADER_PARAM(commandList, *shader, DDGIBlinkRate, 0.02f);
-					SET_SHADER_PARAM(commandList, *shader, DDGIRandomRotation, ddgiRotation);
-					shader->setStorageBuffer(commandList, shader->mParamRayHitBuffer, *mRayHitBuffer, EAccessOp::ReadOnly);
-					shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
-					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-				}
-
-				{
-					GPU_PROFILE("Copy Distance Borders");
-					DDGIUpdateDistanceBorderShader* shader = ShaderManager::Get().getGlobalShaderT<DDGIUpdateDistanceBorderShader>();
-					RHISetComputeShader(commandList, shader->getRHI());
-					SET_SHADER_PARAM(commandList, *shader, DDGIProbeCount, mProbeCount);
-					shader->setRWTexture(commandList, shader->mParamOutDistance, *mDistanceTexture, 0, EAccessOp::ReadAndWrite);
-					RHIDispatchCompute(commandList, mProbeCount.x, mProbeCount.y, mProbeCount.z);
-				}
-				
-				// Final Sync: Ensure all UAV writes are finished and flush to SRV
-				RHIResourceTransition(commandList, { mIrradianceTexture, mDistanceTexture } , EResourceTransition::SRV);
+				mProbeManager.finalizeGpuUpdate(commandList);
 			}
 
 			if (mRenderMethod == ERenderMethod::Instanced)
@@ -1276,35 +1215,7 @@ namespace Render
 			if (bDebugDrawProbes)
 			{
 				GPU_PROFILE("DDGI Probe Visualize");
-
-				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-
-				DDGIProbeVisualizeProgram* progProbeVis = ShaderManager::Get().getGlobalShaderT<DDGIProbeVisualizeProgram>();
-				RHISetShaderProgram(commandList, progProbeVis->getRHI());
-				mView.setupShader(commandList, *progProbeVis);
-
-				if (!mProbeVisBuffer.isValid())
-				{
-					mProbeVisBuffer.initializeResource(1, EStructuredBufferType::Const);
-				}
-
-				DDGIProbeVisualizeParams params;
-				params.startPos = mProbeVolumeMin;
-				params.xAxis = Vector3(1, 0, 0);
-				params.yAxis = Vector3(0, 1, 0);
-				params.spacing = mProbeSpacing;
-				params.probeRadius = 0.4f;
-				params.gridNum = mProbeCount;
-				mProbeVisBuffer.updateBuffer(params);
-
-				progProbeVis->setStructuredUniformBufferT<DDGIProbeVisualizeParams>(commandList, *mProbeVisBuffer.getRHI());
-				SET_SHADER_TEXTURE(commandList, *progProbeVis, DDGIIrradianceTexture, *mIrradianceTexture);
-				progProbeVis->setSampler(commandList, progProbeVis->mParamDDGISampler, TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-
-				RHISetInputStream(commandList, nullptr, nullptr, 0);
-				RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, mProbeCount.x * mProbeCount.y * mProbeCount.z);
+				mProbeManager.renderDebug(commandList, mView, 0.3f );
 			}
 
 			if (bShowModel)

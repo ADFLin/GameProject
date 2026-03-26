@@ -40,56 +40,18 @@ namespace Render
 			mImporter->Destroy();
 		};
 
-		bool lImportStatus = mImporter->Initialize(filePath, -1, mManager->GetIOSettings());
+		if (!mImporter->Initialize(filePath, -1, mManager->GetIOSettings())) return false;
 
 		mScene->Clear();
-		bool lStatus = mImporter->Import(mScene);
-		FbxNode* pRootNode = mScene->GetRootNode();
+		if (!mImporter->Import(mScene)) return false;
 
+		FbxNode* pRootNode = mScene->GetRootNode();
 		if (pRootNode)
 		{
 			MeshImportData meshData;
 			int meshCount = 0;
-			for (int i = 0; i < pRootNode->GetChildCount(); i++)
-			{
-				FbxNode* pNode = pRootNode->GetChild(i);
-
-				if (pNode->GetNodeAttribute())
-				{
-					FbxNodeAttribute::EType attributeType = pNode->GetNodeAttribute()->GetAttributeType();
-					switch (attributeType)
-					{
-					case FbxNodeAttribute::eMesh:
-						{
-							MeshImportData subMeshData;
-							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
-							{
-								if (meshCount == 0)
-								{
-									meshData = std::move(subMeshData);
-
-								}
-								else
-								{
-									if (meshData.desc == subMeshData.desc)
-									{
-										meshData.append(subMeshData);
-									}
-									else
-									{
-										int i = 1;
-									}
-								}
-								++meshCount;
-							}
-						}
-						//return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
-						break;
-					default:
-						break;
-					}
-				}
-			}
+			FbxAMatrix I; I.SetIdentity();
+			processNodeRecursive(pRootNode, meshData, meshCount, I);
 
 			if (meshCount > 0 && meshData.numVertices > 0)
 			{
@@ -102,65 +64,25 @@ namespace Render
 	bool MeshImporterFBX::importFromFile(char const* filePath, MeshImportData& outMeshData)
 	{
 		FbxImporter* mImporter = FbxImporter::Create(mManager, "");
-		ON_SCOPE_EXIT
-		{
-			mImporter->Destroy();
+		ON_SCOPE_EXIT 
+		{ 
+			mImporter->Destroy(); 
 		};
 
-		bool lImportStatus = mImporter->Initialize(filePath, -1, mManager->GetIOSettings());
+		if (!mImporter->Initialize(filePath, -1, mManager->GetIOSettings())) 
+			return false;
 
 		mScene->Clear();
-		bool lStatus = mImporter->Import(mScene);
-		FbxNode* pRootNode = mScene->GetRootNode();
+		if (!mImporter->Import(mScene)) 
+			return false;
 
+		FbxNode* pRootNode = mScene->GetRootNode();
 		if (pRootNode)
 		{
 			int meshCount = 0;
-			for (int i = 0; i < pRootNode->GetChildCount(); i++)
-			{
-				FbxNode* pNode = pRootNode->GetChild(i);
-
-				if (pNode->GetNodeAttribute())
-				{
-					FbxNodeAttribute::EType attributeType = pNode->GetNodeAttribute()->GetAttributeType();
-					switch (attributeType)
-					{
-					case FbxNodeAttribute::eMesh:
-						{
-							MeshImportData subMeshData;
-							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
-							{
-								if (meshCount == 0)
-								{
-									outMeshData = std::move(subMeshData);
-
-								}
-								else
-								{
-									if (outMeshData.desc == subMeshData.desc)
-									{
-										outMeshData.append(subMeshData);
-									}
-									else
-									{
-										int i = 1;
-									}
-								}
-								++meshCount;
-							}
-						}
-						//return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
-						break;
-					default:
-						break;
-					}
-				}
-			}
-
-			if (meshCount > 0 && outMeshData.numVertices > 0)
-			{
-				return true;
-			}
+			FbxAMatrix I; I.SetIdentity();
+			processNodeRecursive(pRootNode, outMeshData, meshCount, I);
+			return (meshCount > 0 && outMeshData.numVertices > 0);
 		}
 		return false;
 	}
@@ -168,75 +90,99 @@ namespace Render
 	bool MeshImporterFBX::importMultiFromFile(char const* filePath, TArray<Mesh>& outMeshes, MeshImportSettings* settings)
 	{
 		FbxImporter* mImporter = FbxImporter::Create(mManager, "");
-		ON_SCOPE_EXIT
-		{
-			mImporter->Destroy();
+		ON_SCOPE_EXIT 
+		{ 
+			mImporter->Destroy(); 
 		};
 
-		bool lImportStatus = mImporter->Initialize(filePath, -1, mManager->GetIOSettings());
+		if (!mImporter->Initialize(filePath, -1, mManager->GetIOSettings())) 
+			return false;
 
 		mScene->Clear();
-		bool lStatus = mImporter->Import(mScene);
-		FbxNode* pRootNode = mScene->GetRootNode();
+		if (!mImporter->Import(mScene)) 
+			return false;
 
+		FbxNode* pRootNode = mScene->GetRootNode();
 		if (pRootNode)
 		{
-			std::vector< MeshImportData > meshDataList;
-			int meshCount = 0;
-			for (int i = 0; i < pRootNode->GetChildCount(); i++)
-			{
-				FbxNode* pNode = pRootNode->GetChild(i);
+			TArray< MeshImportData > meshDataList;
+			FbxAMatrix I; I.SetIdentity();
+			processNodeRecursiveMulti(pRootNode, meshDataList, I);
 
-				if (pNode->GetNodeAttribute())
-				{
-					FbxNodeAttribute::EType attributeType = pNode->GetNodeAttribute()->GetAttributeType();
-					switch (attributeType)
-					{
-					case FbxNodeAttribute::eMesh:
-						{
-							MeshImportData subMeshData;
-							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
-							{
-								int index = 0;
-								for(; index < meshDataList.size(); ++index)
-								{
-									if (meshDataList[index].desc == subMeshData.desc)
-									{
-										meshDataList[index].append(subMeshData);
-										break;
-									}
-								}
-								if (index == meshDataList.size())
-								{
-									meshDataList.push_back(std::move(subMeshData));
-								}
-							}
-						}
-						//return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
-						break;
-					default:
-						break;
-					}
-				}
-			}
-
-			if (meshDataList.size())
+			for (auto& meshData : meshDataList)
 			{
-				for (auto& meshData : meshDataList)
+				if (meshData.numVertices > 0)
 				{
-					if (meshData.numVertices > 0)
+					Mesh mesh;
+					if (createMesh(meshData, mesh))
 					{
-						Mesh mesh;
-						if (!createMesh(meshData, mesh))
-							return false;
-						
 						outMeshes.push_back(std::move(mesh));
 					}
 				}
-				return true;
 			}
+			return !outMeshes.empty();
 		}
 		return false;
+	}
+
+	void MeshImporterFBX::processNodeRecursive(FbxNode* pNode, MeshImportData& outData, int& meshCount, FbxAMatrix const& parentTransform)
+	{
+		FbxAMatrix localTransform = pNode->EvaluateLocalTransform();
+		FbxAMatrix globalTransform = parentTransform * localTransform;
+
+		for (int i = 0; i < pNode->GetNodeAttributeCount(); i++)
+		{
+			FbxNodeAttribute* pAttr = pNode->GetNodeAttributeByIndex(i);
+			if (pAttr->GetAttributeType() == FbxNodeAttribute::eMesh)
+			{
+				MeshImportData subMeshData;
+				if (parseMesh((FbxMesh*)pAttr, subMeshData, globalTransform))
+				{
+					if (meshCount == 0) outData = std::move(subMeshData);
+					else if (outData.desc == subMeshData.desc) outData.append(subMeshData);
+					meshCount++;
+				}
+			}
+		}
+
+		for (int i = 0; i < pNode->GetChildCount(); i++)
+		{
+			processNodeRecursive(pNode->GetChild(i), outData, meshCount, globalTransform);
+		}
+	}
+
+	void MeshImporterFBX::processNodeRecursiveMulti(FbxNode* pNode, TArray<MeshImportData>& meshDataList, FbxAMatrix const& parentTransform)
+	{
+		FbxAMatrix localTransform = pNode->EvaluateLocalTransform();
+		FbxAMatrix globalTransform = parentTransform * localTransform;
+
+		for (int i = 0; i < pNode->GetNodeAttributeCount(); i++)
+		{
+			FbxNodeAttribute* pAttr = pNode->GetNodeAttributeByIndex(i);
+			if (pAttr->GetAttributeType() == FbxNodeAttribute::eMesh)
+			{
+				MeshImportData subMeshData;
+				if (parseMesh((FbxMesh*)pAttr, subMeshData, globalTransform))
+				{
+					bool bAppended = false;
+					for (auto& existingData : meshDataList)
+					{
+						if (existingData.desc == subMeshData.desc)
+						{
+							existingData.append(subMeshData);
+							bAppended = true;
+							break;
+						}
+					}
+					if (!bAppended) meshDataList.push_back(std::move(subMeshData));
+				}
+			}
+		}
+
+		for (int i = 0; i < pNode->GetChildCount(); i++)
+		{
+			processNodeRecursiveMulti(pNode->GetChild(i), meshDataList, globalTransform);
+		}
 	}
 
 	void MeshImporterFBX::GetMeshVertexFormat(FbxMesh* pMesh, FBXVertexFormat& outFormat)
@@ -277,14 +223,14 @@ namespace Render
 	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, Mesh& outMesh)
 	{
 		MeshImportData meshData;
-		if (!parseMesh(pFBXMesh, meshData))
+		FbxAMatrix I; I.SetIdentity();
+		if (!parseMesh(pFBXMesh, meshData, I))
 			return false;
 
 		return createMesh(meshData, outMesh);
-
 	}
 
-	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, MeshImportData& outData)
+	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, MeshImportData& outData, FbxAMatrix const& transform)
 	{
 		int32 LayerSmoothingCount = pFBXMesh->GetLayerCount(FbxLayerElement::eSmoothing);
 		for (int32 i = 0; i < LayerSmoothingCount; i++)
@@ -312,38 +258,18 @@ namespace Render
 		}
 
 		int polygonCount = pFBXMesh->GetPolygonCount();
-		std::vector< FBXPolygon > polygons(polygonCount);
-
 		FBXVertexFormat vertexFormat;
 		GetMeshVertexFormat(pFBXMesh, vertexFormat);
 
-		auto const GetColorData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4
-		{
-			return elementInfo.getData< Vector4, FbxGeometryElementVertexColor >(controlId, vertexId);
-		};
-		auto const GetTexcoordData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector2
-		{
-			return elementInfo.getData< Vector2, FbxGeometryElementUV >(controlId, vertexId);
-		};
-		auto const GetNormalData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4
-		{
-			return elementInfo.getData< Vector4, FbxGeometryElementNormal >(controlId, vertexId);
-		};
-		auto const GetTangentData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4
-		{
-			return elementInfo.getData< Vector4, FbxGeometryElementTangent >(controlId, vertexId);
-		};
-		auto const GetBinormalData = [pFBXMesh](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4
-		{
-			return elementInfo.getData< Vector4, FbxGeometryElementBinormal >(controlId, vertexId);
-		};
-
+		auto const GetColorData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4 { return elementInfo.getData< Vector4, FbxGeometryElementVertexColor >(controlId, vertexId); };
+		auto const GetTexcoordData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector2 { return elementInfo.getData< Vector2, FbxGeometryElementUV >(controlId, vertexId); };
+		auto const GetNormalData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4 { return elementInfo.getData< Vector4, FbxGeometryElementNormal >(controlId, vertexId); };
+		auto const GetTangentData = [](FBXElementDataInfo const& elementInfo, int vertexId, int controlId) -> Vector4 { return elementInfo.getData< Vector4, FbxGeometryElementTangent >(controlId, vertexId); };
 
 		struct FBXImportSetting
 		{
 			float positionScale = 1.0;
 			bool  bAddTangleAndNormal = true;
-
 		};
 
 		FBXImportSetting importSetting;
@@ -355,11 +281,8 @@ namespace Render
 		auto GetBufferData = [&outData](EVertex::Attribute attribute) -> uint8*
 		{
 			int offset = outData.desc.getAttributeOffset(attribute);
-			if (offset < 0)
-				return nullptr;
-			return &outData.vertices[offset];
+			return (offset < 0) ? nullptr : &outData.vertices[offset];
 		};
-
 
 		uint8* pPosition = GetBufferData(EVertex::ATTRIBUTE_POSITION);
 		uint8* pColor = GetBufferData(EVertex::ATTRIBUTE_COLOR);
@@ -369,61 +292,23 @@ namespace Render
 
 		auto baseLayer = pFBXMesh->GetLayer(0);
 		FbxLayerElementMaterial* layerElementMaterial = baseLayer->GetMaterials();
-		FbxLayerElement::EMappingMode materialMappingMode = layerElementMaterial ?
-			layerElementMaterial->GetMappingMode() : FbxLayerElement::eByPolygon;
-
-
-		struct IndexSectionInfo
-		{
-			uint32 index;
-			int    section;
-		};
+		FbxLayerElement::EMappingMode materialMappingMode = layerElementMaterial ? layerElementMaterial->GetMappingMode() : FbxLayerElement::eByPolygon;
 
 		int numTriangles = 0;
 		int vertexId = 0;
 		for (int idxPolygon = 0; idxPolygon < polygonCount; idxPolygon++)
 		{
-			FBXPolygon& polygon = polygons[idxPolygon];
 			int lPolygonSize = pFBXMesh->GetPolygonSize(idxPolygon);
-
-			//DisplayInt("        Polygon ", idxPolygon);
-			for (int i = 0; i < pFBXMesh->GetElementPolygonGroupCount(); i++)
-			{
-				FbxGeometryElementPolygonGroup* lePolgrp = pFBXMesh->GetElementPolygonGroup(i);
-				switch (lePolgrp->GetMappingMode())
-				{
-				case FbxGeometryElement::eByPolygon:
-					if (lePolgrp->GetReferenceMode() == FbxGeometryElement::eIndex)
-					{
-						int polyGroupId = lePolgrp->GetIndexArray().GetAt(idxPolygon);
-						polygon.groups.push_back(polyGroupId);
-						break;
-					}
-				default:
-					{
-
-						int aa = 1;
-					}
-					// any other mapping modes don't make sense
-					break;
-				}
-			}
-
-
-			if (lPolygonSize >= 3)
-			{
-				numTriangles += (lPolygonSize - 2);
-			}
+			if (lPolygonSize >= 3) numTriangles += (lPolygonSize - 2);
 
 			for (int idxPolyVertex = 0; idxPolyVertex < lPolygonSize; ++idxPolyVertex)
 			{
 				int controlId = pFBXMesh->GetPolygonVertex(idxPolygon, idxPolyVertex);
 				if (pPosition)
 				{
-					FbxVector4* pVertexPos = pFBXMesh->GetControlPoints();
-
-					auto const& v = pVertexPos[controlId];
-					*((Vector3*)pPosition) = importSetting.positionScale * Vector3(v.mData[0], v.mData[1], v.mData[2]);
+					FbxVector4 vLocal = pFBXMesh->GetControlPoints()[controlId];
+					FbxVector4 vGlobal = transform.MultT(vLocal);
+					*((Vector3*)pPosition) = importSetting.positionScale * Vector3(vGlobal.mData[0], vGlobal.mData[1], vGlobal.mData[2]);
 					pPosition += vertexSize;
 				}
 
@@ -435,13 +320,19 @@ namespace Render
 
 				if (pNormal)
 				{
-					*((Vector3*)pNormal) = GetNormalData(vertexFormat.normals[0], vertexId, controlId).xyz();
+					Vector4 n = GetNormalData(vertexFormat.normals[0], vertexId, controlId);
+					FbxVector4 nLocal(n.x, n.y, n.z, n.w);
+					FbxVector4 nGlobal = transform.MultR(nLocal);
+					*((Vector3*)pNormal) = Vector3(nGlobal.mData[0], nGlobal.mData[1], nGlobal.mData[2]);
 					pNormal += vertexSize;
 				}
 
 				if (pTangent)
 				{
-					*((Vector4*)pTangent) = GetTangentData(vertexFormat.tangents[0], vertexId, controlId);
+					Vector4 t = GetTangentData(vertexFormat.tangents[0], vertexId, controlId);
+					FbxVector4 tLocal(t.x, t.y, t.z, t.w);
+					FbxVector4 tGlobal = transform.MultR(tLocal);
+					*((Vector4*)pTangent) = Vector4(tGlobal.mData[0], tGlobal.mData[1], tGlobal.mData[2], t.w);
 					pTangent += vertexSize;
 				}
 
@@ -456,7 +347,6 @@ namespace Render
 				}
 				++vertexId;
 			}
-
 		} // for polygonCount
 
 		outData.indices.resize(numTriangles * 3);

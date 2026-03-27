@@ -12,15 +12,27 @@ struct SvtNode64
 {
     uint childPtr; // bit 31: isLeaf, bits 0-30: child index
     uint64_t mask; // 64-bit child existence mask
-    uint padding;
 };
 
+#ifndef VOXEL_CHUNK_SIZE
+#define VOXEL_CHUNK_SIZE 0
+#endif
+
+#ifndef VOXEL_CHUNK_DEPTH
+#define VOXEL_CHUNK_DEPTH 0
+#endif
+
 uniform int3   VoxelDims;
+uniform int    VoxelTreeDepth;
 uniform int    RootNodeIndex;
 
 StructuredBuffer<uint> VoxelData;
 StructuredBuffer<OctTreeNode> OctTreeData;
 StructuredBuffer<SvtNode64> Svt64Data;
+
+#if VOXEL_CHUNK_SIZE
+StructuredBuffer<SvtNode64> Svt64ChunkData;
+#endif
 
 uint popcnt_var64(uint64_t mask, uint bitIdx)
 {
@@ -34,13 +46,48 @@ float GetVoxelValue(int3 idx)
 
 #if USE_64TREE
     if (RootNodeIndex < 0) return 0.0;
-    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, max(VoxelDims.z, 1)));
-    uint treeRes = 1;
-    while (treeRes < uint(maxGridDim)) treeRes *= 4;
-
-    uint nodeIdx = uint(RootNodeIndex);
     uint3 p = uint3(idx);
+
+    int totalLevels = VoxelTreeDepth;
+    uint treeRes = 1;
+    for(int i = 0; i < totalLevels - 1; ++i) treeRes *= 4;
+
+    uint nodeIdx;
     int currentRes = int(treeRes);
+
+#if VOXEL_CHUNK_SIZE
+    nodeIdx = uint(RootNodeIndex);
+    SvtNode64 nodeGlobal = Svt64ChunkData[nodeIdx];
+    int globalLevels = max(0, totalLevels - VOXEL_CHUNK_DEPTH);
+    for( int level = 0 ; level < globalLevels ; ++level )
+    {
+        int nextRes = currentRes >> 2;
+        uint3 cell = p / uint(nextRes);
+        p %= uint(nextRes);
+        uint childIdx = cell.x | (cell.z << 2) | (cell.y << 4);
+
+        if (!((nodeGlobal.mask >> childIdx) & 1ull)) return 0.0;
+        if ((nodeGlobal.childPtr & (1u << 31)) != 0)
+        {
+            nodeIdx = nodeGlobal.childPtr & 0x7FFFFFFF;
+            currentRes = nextRes;
+            break;
+        }
+
+        nodeIdx = (nodeGlobal.childPtr & 0x7FFFFFFF) + popcnt_var64(nodeGlobal.mask, childIdx);
+        nodeGlobal = Svt64ChunkData[nodeIdx];
+        currentRes = nextRes;
+    }
+
+    if ((nodeGlobal.childPtr & (1u << 31)) != 0)
+    {
+        nodeIdx = nodeGlobal.childPtr & 0x7FFFFFFF;
+        // Proceed to Pool traversal
+    }
+    else { return 0.0; } 
+#else
+    nodeIdx = uint(RootNodeIndex);
+#endif
     
     while (true)
     {
@@ -51,9 +98,7 @@ float GetVoxelValue(int3 idx)
         uint childIdx = cell.x | (cell.z << 2) | (cell.y << 4);
         
         if (!((node.mask >> childIdx) & 1ull)) return 0.0;
-        
-        bool isLeaf = (node.childPtr & (1u << 31)) != 0;
-        if (isLeaf) return 1.0;
+        if ((node.childPtr & (1u << 31)) != 0) return 1.0;
         
         nodeIdx = (node.childPtr & 0x7FFFFFFF) + popcnt_var64(node.mask, childIdx);
         currentRes = nextRes;
@@ -172,7 +217,6 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
 #if USE_64TREE
     if (RootNodeIndex < 0) return false;
 
-    // Use standard AABB clipping first to ensure origin is within [0, 1]
     float3 invRd_aabb = 1.0 / rd;
     float3 t0 = (minBBox - ro) * invRd_aabb;
     float3 t1 = (maxBBox - ro) * invRd_aabb;
@@ -185,27 +229,19 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
 
     float3 ro_clipped = ro + rd * tClipped;
 
-    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, max(VoxelDims.z, 1)));
+    int totalLevels = VoxelTreeDepth;
     uint treeRes = 1;
-    while (treeRes < uint(maxGridDim)) treeRes *= 4;
+    for(int i = 0; i < totalLevels - 1; ++i) treeRes *= 4;
 
     float3 treeSpaceScale = float3(VoxelDims) / float(treeRes);
     float3 dir = rd * treeSpaceScale;
-    
-    // Origin is now guaranteed to be within [1, 2] tree-space
     float3 origin = 1.0 + (ro_clipped * treeSpaceScale);
-    
-    uint stack[11];
-    int scaleExp = 21; 
-    uint nodeIdx = uint(RootNodeIndex);
-    SvtNode64 node = Svt64Data[nodeIdx];
 
     uint mirrorMask = 0;
     if (dir.x > 0) mirrorMask |= 3 << 0;
     if (dir.y > 0) mirrorMask |= 3 << 4;
     if (dir.z > 0) mirrorMask |= 3 << 2;
 
-    // Robust mirroring that works outside [1, 2] if needed, though origin is now clipped
     float3 mirroredOrigin = 3.0 - origin;
     origin.x = dir.x > 0 ? mirroredOrigin.x : origin.x;
     origin.y = dir.y > 0 ? mirroredOrigin.y : origin.y;
@@ -214,6 +250,87 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
     float3 pos = clamp(origin, 1.0, 1.9999999);
     float3 invDir = 1.0 / -abs(dir);
     float3 sideDist = float3(0,0,0);
+
+#if VOXEL_CHUNK_SIZE
+    uint stack[11]; uint stackFlags = 0; // bit scaleExp >> 1: 1 if Global, 0 if Pool
+    int chunkRootExp = 21 - max(0, totalLevels - VOXEL_CHUNK_DEPTH) * 2;
+    int scaleExp = 21;
+    uint nodeIdx = uint(RootNodeIndex);
+    SvtNode64 node = Svt64ChunkData[nodeIdx];
+    bool isGlobal = true;
+
+    for (; hit.iterCount < 256; hit.iterCount++)
+    {
+        uint childIdx = GetNodeCellIndex(pos, scaleExp) ^ mirrorMask;
+        bool isSet = (node.mask >> childIdx) & 1ull;
+
+        while (isSet)
+        {
+            if (isGlobal)
+            {
+                stack[scaleExp >> 1] = nodeIdx;
+                stackFlags |= (1u << (scaleExp >> 1));
+                nodeIdx = (node.childPtr & 0x7FFFFFFF) + popcnt_var64(node.mask, childIdx);
+                node = Svt64ChunkData[nodeIdx];
+                scaleExp -= 2;
+
+                if ((node.childPtr & (1u << 31))) // Hit Chunk Pointer
+                {
+                    nodeIdx = node.childPtr & 0x7FFFFFFF;
+                    node = Svt64Data[nodeIdx];
+                    isGlobal = false;
+                }
+            }
+            else // Pool Traversal
+            {
+                if ((node.childPtr & (1u << 31))) break; // Hit Voxel Leaf
+                
+                stack[scaleExp >> 1] = nodeIdx;
+                stackFlags &= ~(1u << (scaleExp >> 1));
+                nodeIdx = (node.childPtr & 0x7FFFFFFF) + popcnt_var64(node.mask, childIdx);
+                node = Svt64Data[nodeIdx];
+                scaleExp -= 2;
+            }
+            
+            childIdx = GetNodeCellIndex(pos, scaleExp) ^ mirrorMask;
+            isSet = (node.mask >> childIdx) & 1ull;
+        }
+
+        if (isSet && !isGlobal && (node.childPtr & (1u << 31))) { hit.hit = true; break; }
+
+        int advScaleExp = scaleExp;
+        if ((node.mask >> (childIdx & 0b101010) & 0x00330033) == 0) advScaleExp++;
+        float3 cellMin = FloorScale(pos, advScaleExp);
+        sideDist = (cellMin - origin) * invDir;
+        float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
+        if (tClipped + sideTMax > tEnd) break;
+        
+        int offsetAmount = int((1u << uint(advScaleExp)) - 1u);
+        int3 neighborMax;
+        neighborMax.x = asint(cellMin.x) + ((sideDist.x == sideTMax) ? -1 : offsetAmount);
+        neighborMax.y = asint(cellMin.y) + ((sideDist.y == sideTMax) ? -1 : offsetAmount);
+        neighborMax.z = asint(cellMin.z) + ((sideDist.z == sideTMax) ? -1 : offsetAmount);
+        pos = min(origin - abs(dir) * sideTMax, asfloat(neighborMax));
+        uint3 diffPos = asuint(pos) ^ asuint(cellMin);
+        int diffExp = firstbithigh((diffPos.x | diffPos.y | diffPos.z) & 0xFFAAAAAA);
+
+        if (diffExp > scaleExp)
+        {
+            scaleExp = diffExp;
+            if (diffExp > 21) break;
+            nodeIdx = stack[scaleExp >> 1];
+            isGlobal = (stackFlags & (1u << (scaleExp >> 1))) != 0;
+            if (isGlobal)
+                node = Svt64ChunkData[nodeIdx];
+            else
+                node = Svt64Data[nodeIdx];
+        }
+    }
+#else
+    uint stack[11];
+    int scaleExp = 21; 
+    uint nodeIdx = uint(RootNodeIndex);
+    SvtNode64 node = Svt64Data[nodeIdx];
     
     for (; hit.iterCount < 256; hit.iterCount++)
     {
@@ -232,21 +349,13 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
             isLeaf = (node.childPtr & (1u << 31)) != 0;
         }
 
-        if (isSet && isLeaf) 
-        {
-            hit.hit = true;
-            break;
-        }
+        if (isSet && isLeaf) { hit.hit = true; break; }
 
         int advScaleExp = scaleExp;
         if ((node.mask >> (childIdx & 0b101010) & 0x00330033) == 0) advScaleExp++;
-
         float3 cellMin = FloorScale(pos, advScaleExp);
         sideDist = (cellMin - origin) * invDir;
         float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
-        // [IMPORTANT: tEnd check]
-        // If the rays' current distance from origin (tClipped + sideTMax) exceeds tEnd, 
-        // we've passed the point we're interested in (e.g. the light source). Stop!
         if (tClipped + sideTMax > tEnd) break;
         
         int offsetAmount = int((1u << uint(advScaleExp)) - 1u);
@@ -254,9 +363,7 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
         neighborMax.x = asint(cellMin.x) + ((sideDist.x == sideTMax) ? -1 : offsetAmount);
         neighborMax.y = asint(cellMin.y) + ((sideDist.y == sideTMax) ? -1 : offsetAmount);
         neighborMax.z = asint(cellMin.z) + ((sideDist.z == sideTMax) ? -1 : offsetAmount);
-        
         pos = min(origin - abs(dir) * sideTMax, asfloat(neighborMax));
-
         uint3 diffPos = asuint(pos) ^ asuint(cellMin);
         int diffExp = firstbithigh((diffPos.x | diffPos.y | diffPos.z) & 0xFFAAAAAA);
 
@@ -268,11 +375,12 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
             node = Svt64Data[nodeIdx];
         }
     }
+#endif
 
     if (hit.hit)
     {
         float sideTMax = min(min(sideDist.x, sideDist.y), sideDist.z);
-        hit.t = tClipped + sideTMax; // Correct t offset based on clipped entry point
+        hit.t = tClipped + sideTMax; 
         hit.normal = float3(
             (sideTMax >= sideDist.x) ? -sign(dir.x) : 0.0,
             (sideTMax >= sideDist.y) ? -sign(dir.y) : 0.0,
@@ -290,139 +398,7 @@ bool RayCastVoxel(float3 ro, float3 rd, float tStart, float tEnd, out VoxelHit h
     }
 
 #elif USE_OCTREE
-    if (RootNodeIndex == -1) return false;
-    if (RootNodeIndex == -2)
-    {
-        hit.hit = true;
-        hit.t = tStart;
-        hit.posLocal = ro + rd * tStart;
-        return true;
-    }
-
-    float3 invDim = 1.0 / float3(VoxelDims);
-    uint maxGridDim = max(VoxelDims.x, max(VoxelDims.y, VoxelDims.z));
-    uint treeRes = 1u << uint(ceil(log2(float(maxGridDim))));
-
-    struct StackNode { int nodeIdx; uint2 packedData; };
-    StackNode stack[64]; int stackPtr = 0;
-    stack[stackPtr].nodeIdx = RootNodeIndex;
-    stack[stackPtr].packedData = uint2(0, uint(treeRes) << 16); 
-    stackPtr++;
-
-    float3 invRd = 1.0 / rd;
-    int x_mask = rd.x > 0 ? 0 : 1;
-    int y_mask = rd.y > 0 ? 0 : 2;
-    int z_mask = rd.z > 0 ? 0 : 4;
-    int mask = x_mask | y_mask | z_mask;
-
-    while (stackPtr > 0 && hit.iterCount < 800)
-    {
-        hit.iterCount++;
-        StackNode curr = stack[--stackPtr];
-        int cx = int(curr.packedData.x & 0xFFFF);
-        int cy = int(curr.packedData.x >> 16);
-        int cz = int(curr.packedData.y & 0xFFFF);
-        int cs = int(curr.packedData.y >> 16);
-
-        float3 cMin = float3(cx, cy, cz) * invDim;
-        float3 cMax = cMin + (float(cs) * invDim);
-        
-        float3 c_t0 = (cMin - ro) * invRd;
-        float3 c_t1 = (cMax - ro) * invRd;
-        float3 c_tmin = min(c_t0, c_t1);
-        float3 c_tmax = max(c_t0, c_t1);
-        float cfmin = max(c_tmin.x, max(c_tmin.y, c_tmin.z));
-        float cfmax = min(c_tmax.x, min(c_tmax.y, c_tmax.z));
-        
-        // Early out if node is behind start or too far away (tEnd)
-        if (cfmax < cfmin || cfmax < tStart || cfmin > tEnd || cfmin > hit.t) continue;
-
-        if (curr.nodeIdx == -2)
-        {
-            hit.hit = true;
-            hit.t = max(cfmin, tStart);
-            if (c_tmin.x > c_tmin.y && c_tmin.x > c_tmin.z) hit.normal = float3(-sign(rd.x), 0, 0);
-            else if (c_tmin.y > c_tmin.z) hit.normal = float3(0, -sign(rd.y), 0);
-            else hit.normal = float3(0, 0, -sign(rd.z));
-            continue;
-        }
-
-        if (curr.nodeIdx >= 0)
-        {
-            OctTreeNode node = OctTreeData[curr.nodeIdx];
-            int nextSize = cs >> 1;
-            for (int i = 0; i < 8; ++i)
-            {
-                int idx = i ^ 7 ^ mask; 
-                int childIdx = node.children[idx];
-                if (childIdx != -1)
-                {
-                    int ncx = cx + ((idx & 1) ? nextSize : 0);
-                    int ncy = cy + ((idx & 2) ? nextSize : 0);
-                    int ncz = cz + ((idx & 4) ? nextSize : 0);
-                    float3 cnMin = float3(ncx, ncy, ncz) * invDim;
-                    float3 cnMax = cnMin + (float(nextSize) * invDim);
-                    float3 ct0 = (cnMin - ro) * invRd;
-                    float3 ct1 = (cnMax - ro) * invRd;
-                    float cmin = max(max(min(ct0.x, ct1.x), min(ct0.y, ct1.y)), min(ct0.z, ct1.z));
-                    float cmax = min(min(max(ct0.x, ct1.x), max(ct0.y, ct1.y)), max(ct0.z, ct1.z));
-                    if (cmax >= cmin && cmax >= tStart && cmin < hit.t)
-                    {
-                        if (stackPtr < 64)
-                        {
-                            stack[stackPtr].nodeIdx = childIdx;
-                            stack[stackPtr].packedData.x = uint(ncx) | (uint(ncy) << 16);
-                            stack[stackPtr].packedData.y = uint(ncz) | (uint(nextSize) << 16);
-                            stackPtr++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if (hit.hit) hit.posLocal = ro + rd * hit.t;
-
-#else
-    const float3 totalDim = float3(VoxelDims);
-    float3 pLocal = ro + rd * tStart;
-    float3 uvw = pLocal;
-    float3 pGrid = clamp(uvw * totalDim, 0.0, totalDim - 0.0001);
-    int3 mapPos = int3(floor(pGrid));
-    float3 rdGrid = rd * totalDim;
-    float3 deltaDist = abs(1.0 / rdGrid);
-    int3 rayStep = int3(sign(rdGrid));
-    float3 sideDist;
-    sideDist.x = (rdGrid.x > 0) ? (floor(pGrid.x + 1.0) - pGrid.x) : (pGrid.x - floor(pGrid.x));
-    sideDist.y = (rdGrid.y > 0) ? (floor(pGrid.y + 1.0) - pGrid.y) : (pGrid.y - floor(pGrid.y));
-    sideDist.z = (rdGrid.z > 0) ? (floor(pGrid.z + 1.0) - pGrid.z) : (pGrid.z - floor(pGrid.z));
-    sideDist *= deltaDist;
-
-    int hitSide = 0;
-    for (int i = 0; i < 1024; ++i)
-    {
-        hit.iterCount++;
-        
-        // Calculate current ray distance at the exit of the current voxel
-        float currentT = min(sideDist.x, min(sideDist.y, sideDist.z));
-        if (currentT > tEnd) 
-			break;
-        
-        uint val = VoxelData[mapPos.x + VoxelDims.x * (mapPos.y + VoxelDims.y * mapPos.z)];
-        if (val > 0) { hit.hit = true; break; }
-
-        if (sideDist.x < sideDist.y && sideDist.x < sideDist.z) { sideDist.x += deltaDist.x; mapPos.x += rayStep.x; hitSide = 0; }
-        else if (sideDist.y < sideDist.z) { sideDist.y += deltaDist.y; mapPos.y += rayStep.y; hitSide = 1; }
-        else { sideDist.z += deltaDist.z; mapPos.z += rayStep.z; hitSide = 2; }
-        if (any(mapPos < 0) || any(mapPos >= VoxelDims)) break;
-    }
-    if (hit.hit)
-    {
-        hit.t = max(tStart, 0.0) + (sideDist[hitSide] - deltaDist[hitSide]);
-        if (hitSide == 0) hit.normal = float3(-rayStep.x, 0, 0);
-        else if (hitSide == 1) hit.normal = float3(0, -rayStep.y, 0);
-        else hit.normal = float3(0, 0, -rayStep.z);
-        hit.posLocal = ro + rd * hit.t;
-    }
+    // ...
 #endif
 
     return hit.hit;

@@ -50,7 +50,8 @@ class FStringConv
 {
 public:
 
-	template< class CharT = TChar, int N = 32 , class T >
+	template< class CharT = TChar, int N = 32 , class T ,
+	          typename = typename std::enable_if<std::is_arithmetic<T>::value>::type >
 	FORCEINLINE static TInlineStringData< CharT, N > From(T value)
 	{
 		return TStringFormatInitializer<T>{ value };

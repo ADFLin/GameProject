@@ -28,6 +28,11 @@ void DataCacheArg::addFileAttribute(char const* filePath)
 	}
 }
 
+void DataCacheArg::addRaw(uint8 const* data, int size)
+{
+	value = FNV1a::MakeHash(data, size, value);
+}
+
 class DataCacheImpl : public DataCacheInterface
 {
 public:

@@ -526,6 +526,10 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		info.depthFormat = ETexture::D32FS8;
 		info.textureCreationFlags = TCF_CreateSRV | TCF_PlatformGraphicsCompatible;
 		info.depthCreateionFlags = TCF_CreateSRV;
+		if (configs.bufferCount > 0)
+		{
+			info.bufferCount = configs.bufferCount;
+		}
 		mSwapChain = RHICreateSwapChain(info);
 	}
 

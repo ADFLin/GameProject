@@ -15,6 +15,17 @@
 
 
 using SerializeDelegate = std::function< bool (IStreamSerializer&) >;
+
+
+struct CStringConvertable
+{
+	template< typename T>
+	static auto Requires(T& t) -> decltype
+	(
+		FStringConv::From(std::forward<T>(t))
+	);
+};
+
 struct DataCacheArg
 {
 	DataCacheArg();
@@ -27,11 +38,19 @@ struct DataCacheArg
 
 	void add(char const* str) { addString(str); }
 
-	template< class T >
+	template< typename T >
 	void add(T&& t)
 	{
-		addString(FStringConv::From(std::forward<T>(t)));
+		if constexpr (TCheckConcept< CStringConvertable, T >::Value)
+		{
+			addString(FStringConv::From(std::forward<T>(t)));
+		}
+		else
+		{
+		   addRaw(&t, sizeof(t));
+		}
 	}
+
 
 	template< class T , class ...Args >
 	void add( T&& t , Args&& ...args)
@@ -40,6 +59,9 @@ struct DataCacheArg
 		addString("-");
 		add(std::forward<Args>(args)...);
 	}
+
+
+	void addRaw(uint8 const* data, int size);
 
 
 	template< class ...Args >

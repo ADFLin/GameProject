@@ -438,7 +438,7 @@ namespace Render
 		mRenderContext.flushCommand();
 		if (bPresent && mbAdvanceFrame)
 		{
-			mSwapChain->present(bPresent);
+			mSwapChain->present(false);
 			mRenderContext.moveToNextFrame();
 		}
 
@@ -485,6 +485,8 @@ namespace Render
 		if (!swapChain.castTo(swapChainRHI))
 			return nullptr;
 
+		swapChainRHI->SetMaximumFrameLatency(info.bufferCount);
+
 		D3D12SwapChain* result = new D3D12SwapChain;
 		if (!result->initialize(swapChainRHI, mDevice, info.bufferCount))
 		{
@@ -496,16 +498,18 @@ namespace Render
 		{
 			auto depthFormat = D3D12Translate::To(info.depthFormat);
 
-			TComPtr<ID3D12Resource> textureResource;
-			textureResource.initialize(createDepthTexture2D(depthFormat, info.extent.x, info.extent.y, sampleCount, info.depthCreateionFlags | TCF_RenderTarget));
-			if (!textureResource.isValid())
-			{
-				return nullptr;
-			}
-			textureResource->SetName(L"SwapChainDepth");
-
 			for (int i = 0; i < info.bufferCount; ++i)
 			{
+				TComPtr<ID3D12Resource> textureResource;
+				textureResource.initialize(createDepthTexture2D(depthFormat, info.extent.x, info.extent.y, sampleCount, info.depthCreateionFlags | TCF_RenderTarget));
+				if (!textureResource.isValid())
+				{
+					return nullptr;
+				}
+				InlineStringW< 64 > name;
+				name.format(L"SwapChainDepth_%d", i);
+				textureResource->SetName(name);
+
 				auto& RTState = result->mRenderTargetsStates[i];
 
 				RTState.depthBuffer.format = depthFormat;

@@ -120,11 +120,13 @@ PS_ENTRY_END(MainPS)
         }
     }
     // ------------------------------------------------------------------------
-	directLight *= 0.0;
-	irradiance *= 5.0;
+	directLight *= 1.0;
+	irradiance *= 1.5;
     float3 albedo = float3(0.3, 0.3, 0.3);
     float3 ambient = float3(0.01, 0.01, 0.01); 
 
     OutColor = float4(albedo * (directLight + irradiance + ambient), 1);
+	//OutColor = float4(0.5 * NWorld + 0.5, 1);
+	//OutColor = float4(frac(pGridHit), 1);
 }
 #endif

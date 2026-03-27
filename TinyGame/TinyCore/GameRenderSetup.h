@@ -52,6 +52,7 @@ struct RenderSystemConfigs
 	int32 screenWidth;
 	int32 screenHeight;
 	int32 numSamples;
+	int32 bufferCount;
 	bool  bVSyncEnable;
 	bool  bDebugMode;
 	bool  bWasUsedPlatformGraphics;
@@ -62,6 +63,7 @@ struct RenderSystemConfigs
 		screenWidth = 0;
 		screenHeight = 0;
 		numSamples = 1;
+		bufferCount = 0;
 		bVSyncEnable = false;
 		bDebugMode = true;
 		bWasUsedPlatformGraphics = false;

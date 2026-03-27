@@ -45,6 +45,18 @@ namespace Render
 			return result;
 		}
 
+		Math::TAABBox<Vector3> getBoundBox(Matrix4 const& xFrom) const
+		{
+			Math::TAABBox<Vector3> result;
+			result.invalidate();
+			auto posReader = makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
+			for (int i = 0; i < numVertices; ++i)
+			{
+				result.addPoint(TransformPosition(posReader[i], xFrom));
+			}
+			return result;
+		}
+
 		template< class Op >
 		void serialize(Op& op)
 		{

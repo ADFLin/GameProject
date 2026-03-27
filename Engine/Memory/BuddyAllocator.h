@@ -57,6 +57,7 @@ public:
 	bool canAllocate(uint32 size, uint32 alignment);
 
 	bool alloc(uint32 size, uint32 alignment, Allocation& allocation);
+	bool realloc(Allocation& allocation, uint32 newSize);
 
 	void deallcateAll()
 	{

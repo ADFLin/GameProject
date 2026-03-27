@@ -63,6 +63,51 @@ void BuddyAllocatorBase::deallocate(AllocationBlock const& block)
 	mSizeUsed -= mBlockSize * OrderToUnitSize(block.order);
 }
 
+bool BuddyAllocatorBase::realloc(Allocation& allocation, uint32 newSize)
+{
+	uint32 uSize = SizeToUnitSize(newSize);
+	uint32 targetOrder = UnitSizeToOrder(uSize);
+
+	if (targetOrder <= allocation.order)
+		return true;
+
+	uint32 currentOrder = allocation.order;
+	uint32 currentOffset = allocation.offset;
+
+	while (currentOrder < targetOrder)
+	{
+		uint32 currentSize = OrderToUnitSize(currentOrder);
+		uint32 offsetBuddy = GetBuddy(currentOffset, currentSize);
+
+		auto iter = mFreeLists[currentOrder].find(offsetBuddy);
+		if (iter != mFreeLists[currentOrder].end())
+		{
+			mFreeLists[currentOrder].erase(iter);
+			currentOffset = Math::Min(currentOffset, offsetBuddy);
+			currentOrder++;
+		}
+		else
+		{
+			Allocation newAlloc;
+			if (alloc(newSize, 0, newAlloc))
+			{
+				deallocateBlock(allocation.offset, allocation.order);
+				mSizeUsed -= mBlockSize * OrderToUnitSize(allocation.order);
+				allocation.offset = newAlloc.offset;
+				allocation.order = newAlloc.order;
+				return true;
+			}
+			return false;
+		}
+	}
+
+	mSizeUsed += mBlockSize * (OrderToUnitSize(currentOrder) - OrderToUnitSize(allocation.order));
+	allocation.offset = currentOffset;
+	allocation.order = currentOrder;
+	allocation.pos = currentOffset * mBlockSize;
+	return true;
+}
+
 uint32 BuddyAllocatorBase::allocateBlock(uint32 order)
 {
 	CHECK(order <= mMaxOrder);

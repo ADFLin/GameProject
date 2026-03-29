@@ -239,8 +239,6 @@ public:
 		}	
 	}
 
-	// 支援遞迴序列化具備 void serialize(JsonSerializer& serializer) 方法的物件，
-	// 或是具備 CollectReflection 的物件
 	template< typename T >
 	void readWriteObject(char const* key, T& value)
 	{
@@ -409,7 +407,6 @@ public:
 					std::string k_str = JsonDetail::ToString(pair.first);
 					auto& val = pair.second;
 					
-					// std::map/unordered_map 的 Key 必須轉換為 string
 					if constexpr (IsRefectableObject<ValueType>)
 					{
 						JsonObject nestedObj = childObj.getOrAddObject(k_str);

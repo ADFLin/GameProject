@@ -40,10 +40,11 @@ namespace Render
 		TComPtr< ID3D11Buffer > resource;
 		TArray< uint8 >    mDataBuffer;
 		uint32 mUpdateDataSize = 0;
+		uint32 mStateBufferSize = 0;
 
 		bool initializeResource(ID3D11Device* device);
 		void releaseResource();
-		void updateBufferSize(int newSize);
+		void updateBufferSize(uint32 newSize);
 		void updateValue(ShaderParameter const& parameter, void const* value, int valueSize);
 		void commit(ID3D11DeviceContext* context);
 	};

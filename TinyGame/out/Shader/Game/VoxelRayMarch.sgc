@@ -126,6 +126,14 @@ PS_ENTRY_END(MainPS)
     float3 ambient = float3(0.01, 0.01, 0.01); 
 
     OutColor = float4(albedo * (directLight + irradiance + ambient), 1);
+
+#if VOXEL_CHUNK_SIZE && 0
+	int3 chunkPos = hit.blockPos / VOXEL_CHUNK_SIZE;
+
+	int check = (chunkPos.x + chunkPos.y + chunkPos.z) & 1;
+	float brightness = check ? 1.0 : 0.1;
+	OutColor.rgb *= brightness;
+#endif
 	//OutColor = float4(0.5 * NWorld + 0.5, 1);
 	//OutColor = float4(frac(pGridHit), 1);
 }

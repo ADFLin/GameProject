@@ -147,6 +147,17 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::clearBuffer(RHICommandList& commandList, char const* name, EAccessOp op)
+	{
+		ShaderParameter param;
+		if (!getParameter(name, param))
+			return;
+
+		GetContext(commandList).clearShaderBuffer(*mRHIResource, param, op);
+	}
+
+
+	template< class RHIResourceType >
 	void TShaderFuncHelper< RHIResourceType>::setParam(RHICommandList& commandList, char const* name, float const v[], int num)
 	{
 		ShaderParameter param;

@@ -3,27 +3,50 @@
 
 #include "Stage/TestRenderStageBase.h"
 #include "StageBase.h"
+#include "RHI/ShaderCore.h"
 
 #include "DataStructure/Grid2D.h"
 #include "CppVersion.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 
-
-#include "RHI/ShaderProgram.h"
-
 #define SHADOW_USE_GEOMETRY_SHADER 1
 
+
+class IEditorDetailView;
 
 namespace Render
 {
 	typedef Math::Vector2 Vector2;
 	typedef Math::Vector3 Color;
 
+	Vector3 DefaultLightAttenuation = Vector3(1, 0.2, 0.1);
+	int constexpr ShadowTexureWidth = 512;
 	struct Light
 	{
+		DECLARE_BUFFER_STRUCT(Lights);
 		Vector2 pos;
-		Color color;
+		float   radius;
+		float   sourceRadius = 1.0f;
+		Color   color;
+		float   intensity = 1.0f;
+		Vector3 attenuation = DefaultLightAttenuation;
+
+		REFLECT_STRUCT_BEGIN(Light)
+			REF_PROPERTY(pos)
+			REF_PROPERTY(radius)
+			REF_PROPERTY(sourceRadius)
+			REF_PROPERTY(color)
+			REF_PROPERTY(intensity)
+			REF_PROPERTY(attenuation)
+		REFLECT_STRUCT_END()
+	};
+
+	struct Segment
+	{
+		DECLARE_BUFFER_STRUCT(BlockSegments);
+		Vector2 p0;
+		Vector2 p1;
 	};
 
 	struct Block
@@ -46,9 +69,24 @@ namespace Render
 
 	};
 
-	class LightingProgram : public ShaderProgram
+	class LightingProgram : public GlobalShaderProgram
 	{
+		DECLARE_SHADER_PROGRAM(LightingProgram, Global);
 	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/lighting2D";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) } ,
+				{ EShader::Pixel , SHADER_ENTRY(LightingPS) } ,
+			};
+			return entries;
+		}
+
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_SHADER_PARAM(parameterMap, LightLocation);
@@ -56,11 +94,11 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, LightAttenuation);
 		}
 
-		void setParameters(RHICommandList& commandList, Vector2 const& lightPos , Color const& lightColor )
+		void setParameters(RHICommandList& commandList, Light const& light)
 		{
-			SET_SHADER_PARAM(commandList, *this, LightLocation, lightPos);
-			SET_SHADER_PARAM(commandList, *this, LightColor, lightColor);
-			SET_SHADER_PARAM(commandList, *this, LightAttenuation, Vector3(0.0, 1 / 5.0, 0.0));
+			SET_SHADER_PARAM(commandList, *this, LightLocation, light.pos);
+			SET_SHADER_PARAM(commandList, *this, LightColor, light.color * light.intensity);
+			SET_SHADER_PARAM(commandList, *this, LightAttenuation, light.attenuation);
 		}
 
 		DEFINE_SHADER_PARAM(LightLocation);
@@ -69,13 +107,30 @@ namespace Render
 	};
 
 
-	class LightingShadowProgram : public ShaderProgram
+	class LightingShadowProgram : public GlobalShaderProgram
 	{
+		DECLARE_SHADER_PROGRAM(LightingShadowProgram, Global);
 	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/Lighting2DShadow";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
+			};
+			return entries;
+		}
+
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_SHADER_PARAM(parameterMap, LightLocation);
 			BIND_SHADER_PARAM(parameterMap, ScreenSize);
+			BIND_SHADER_PARAM(parameterMap, XForm);
 		}
 
 		void setParameters(RHICommandList& commandList, Vector2 const& lightPos, Vector2 const& screenSize)
@@ -86,6 +141,72 @@ namespace Render
 
 		DEFINE_SHADER_PARAM(LightLocation);
 		DEFINE_SHADER_PARAM(ScreenSize);
+		DEFINE_SHADER_PARAM(XForm);
+	};
+
+	class Shadow1DMapCS : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(Shadow1DMapCS, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/Lighting2DShadow"; }
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+			option.addDefine(SHADER_PARAM(SHADOW_TEXTURE_WIDTH), ShadowTexureWidth);
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Compute , SHADER_ENTRY(MainCS) },
+			};
+			return entries;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, LightCount);
+			BIND_SHADER_PARAM(parameterMap, SegmentCount);
+			BIND_SHADER_PARAM(parameterMap, ShadowMapAtlas);
+		}
+
+		DEFINE_SHADER_PARAM(LightCount);
+		DEFINE_SHADER_PARAM(SegmentCount);
+		DEFINE_SHADER_PARAM(ShadowMapAtlas);
+	};
+
+	class Lighting1DShadowProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(Lighting1DShadowProgram, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/lighting2D"; }
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(SHADOW_TEXTURE_WIDTH), ShadowTexureWidth);
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(LightingShadowMapPS) } ,
+			};
+			return entries;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, Lights);
+			BIND_SHADER_PARAM(parameterMap, MaxLightNum);
+			BIND_SHADER_PARAM(parameterMap, ScreenToWorld);
+			BIND_SHADER_PARAM(parameterMap, ShadowBias);
+			BIND_TEXTURE_PARAM(parameterMap, ShadowMapAtlas);
+		}
+		DEFINE_SHADER_PARAM(Lights);
+		DEFINE_SHADER_PARAM(MaxLightNum);
+		DEFINE_SHADER_PARAM(ScreenToWorld);
+		DEFINE_SHADER_PARAM(ShadowBias);
+		DEFINE_TEXTURE_PARAM(ShadowMapAtlas);
 	};
 
 
@@ -95,6 +216,7 @@ namespace Render
 
 		using LightList = TArray< Light >;
 		using BlockList = TArray< Block >;
+
 	public:
 
 		enum
@@ -106,21 +228,44 @@ namespace Render
 		LightList lights;
 		BlockList blocks;
 
-		LightingProgram mProgLighting;
-		LightingShadowProgram mProgShadow;
+		Render::RenderTransform2D mWorldToScreen;
+		Render::RenderTransform2D mScreenToWorld;
+
+		float  mZoom = 1.0f;
+		Vector2 mViewPos = 0.5 * Vector2(20, 20);
+		bool    bIsDragging = false;
+		Vec2i   mLastMousePos;
+
+		void updateView()
+		{
+			Vec2i screenSize = ::Global::GetScreenSize();
+			mWorldToScreen = RenderTransform2D::LookAt(screenSize, mViewPos, Vector2(0, 1), mZoom * screenSize.y / float(20 + 5), true);
+			mScreenToWorld = mWorldToScreen.inverse();
+		}
+
+
+		LightingProgram* mProgLighting;
+		LightingShadowProgram* mProgShadow;
 		Lighting2DTestStage(){}
 
 		TArray< Vector2 > mBuffers;
 
 		bool bShowShadowRender = false;
 		bool bUseGeometryShader = true;
+		bool bUse1DShadowMap = false;
 
+		Shadow1DMapCS* mProgShadow1D = nullptr;
+		Lighting1DShadowProgram* mProgLighting1D = nullptr;
+		RHITexture2DRef mShadowMapAtlas;
+		RHIFrameBufferRef mShadowMapFB;
+		TStructuredBuffer<Segment> mSegmentBuffer;
+		TStructuredBuffer<Light>   mLightBuffer;
 
 		bool onInit() override;
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::None;
 		}
 		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
@@ -131,6 +276,8 @@ namespace Render
 
 
 		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertices );
+		void render1DShadowMaps(RHICommandList& commandList);
+		void renderLighting1D(RHICommandList& commandList);
 
 		void restart();
 
@@ -142,6 +289,23 @@ namespace Render
 				switch (msg.getCode())
 				{
 				case EKeyCode::R: restart(); break;
+				case EKeyCode::Z:
+					if (!lights.empty())
+					{
+						lights.pop_back();
+
+						if (mSelectedLightIndex == lights.size())
+							mSelectedLightIndex = INDEX_NONE;
+
+						updateDetailView();
+					}
+					break;
+				case EKeyCode::X:
+					if (!blocks.empty())
+					{
+						blocks.pop_back();
+					}
+					break;
 				}
 			}
 
@@ -149,6 +313,9 @@ namespace Render
 		}
 
 
+		int mSelectedLightIndex = -1;
+		IEditorDetailView* mDetailView = nullptr;
+		void updateDetailView();
 
 	protected:
 

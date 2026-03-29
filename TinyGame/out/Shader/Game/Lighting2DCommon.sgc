@@ -1,0 +1,12 @@
+#pragma once
+#include "Common.sgc"
+
+struct Light
+{
+	float2 pos;
+	float  radius;
+	float  sourceRadius;
+	float3 color;
+	float  intensity;
+	float3 attenuation;
+};

@@ -56,5 +56,7 @@ public:
 
 };
 
+BITWISE_RELLOCATABLE_FAIL(ContentPanel::FileData);
+
 
 #endif // ContentPanel_H_E2316AC7_9BAC_4606_A3FE_055801C20154

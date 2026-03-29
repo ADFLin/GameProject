@@ -212,4 +212,6 @@ public:
 };
 
 
+BITWISE_RELLOCATABLE_FAIL(ConsolePanel::LogLine);
+
 #endif // ConsolePanel_H_0DD392E0_8A9A_4858_96E4_9C6538691D1F

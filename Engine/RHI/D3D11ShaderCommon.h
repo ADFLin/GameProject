@@ -37,7 +37,7 @@ namespace Render
 			globalConstBufferSize = 0;
 		}
 
-		int globalConstBufferSize;
+		uint32 globalConstBufferSize;
 
 		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TArrayView< uint8 const > code);
 		void release();
@@ -45,7 +45,7 @@ namespace Render
 
 	struct D3DShaderParamInfo
 	{
-		int globalConstBufferSize = 0;
+		uint32 globalConstBufferSize = 0;
 	};
 
 	class D3D11Shader : public TRefcountResource< RHIShader >

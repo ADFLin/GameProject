@@ -1949,7 +1949,11 @@ void TinyGameApp::finalizeStage(StageBase* stage)
 		// During finalizeGame, release() will handle the full shutdown
 		if (getNextStage() != nullptr)
 		{
-			Global::GetDrawEngine().setupSystem(nullptr);
+			IGameRenderSetup* nextRenderSetup = dynamic_cast<IGameRenderSetup*>(getNextStage());
+			if (nextRenderSetup == nullptr)
+			{
+				Global::GetDrawEngine().setupSystem(nullptr);
+			}
 		}
 	}
 }

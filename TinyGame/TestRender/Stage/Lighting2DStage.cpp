@@ -8,22 +8,58 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/RHICommand.h"
+#include "Editor.h"
+#include "ReflectionCollect.h"
 
 namespace Render
 {
 	REGISTER_STAGE_ENTRY("2D Lighting Test", Lighting2DTestStage, EExecGroup::GraphicsTest);
+
+	IMPLEMENT_SHADER_PROGRAM(LightingProgram);
+	IMPLEMENT_SHADER_PROGRAM(LightingShadowProgram);
+	IMPLEMENT_SHADER_PROGRAM(Shadow1DMapCS);
+	IMPLEMENT_SHADER_PROGRAM(Lighting1DShadowProgram);
+
+
+
+	float CalculateLightRadius(Vector3 const& attenuation, float epsilon = 0.01f, float maxRadius = 2000.0f)
+	{
+		float a = attenuation.z;
+		float b = attenuation.y;
+		float c = attenuation.x - (1.0f / epsilon);
+
+		if (c > 0) 
+			return 0.0f;
+		
+		if (Math::Abs(a) < 1e-6f)
+		{
+			if (Math::Abs(b) < 1e-6f)
+				return maxRadius; 
+			return Math::Min(maxRadius, -c / b);
+		}
+
+		float discriminant = b * b - 4.0f * a * c;
+		if (discriminant < 0)
+			return maxRadius; 
+		
+		float radius = (-b + Math::Sqrt(discriminant)) / (2.0f * a);
+		return Math::Min(maxRadius, radius);
+	}
 
 	bool Lighting2DTestStage::onInit()
 	{
 		if (!BaseClass::onInit())
 			return false;
 
+		updateView();
+
 		::Global::GUI().cleanupWidget();
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
 
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bShowShadowRender"), bShowShadowRender);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
+		frame->addCheckBox("bShowShadowRender", bShowShadowRender);
+		frame->addCheckBox("bUseGeometryShader", bUseGeometryShader);
+		frame->addCheckBox("bUse1DShadowMap", bUse1DShadowMap);
 
 		restart();
 
@@ -33,36 +69,64 @@ namespace Render
 	bool Lighting2DTestStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
-		{
-			ShaderEntryInfo entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) } ,
-				{ EShader::Pixel , SHADER_ENTRY(LightingPS) } ,
-			};
-			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(
-				mProgLighting, "Shader/Game/lighting2D", entries));
-		}
+		
+		mProgLighting = ShaderManager::Get().getGlobalShaderT<LightingProgram>();
+		mProgShadow = ShaderManager::Get().getGlobalShaderT<LightingShadowProgram>();
+		mProgShadow1D = ShaderManager::Get().getGlobalShaderT<Shadow1DMapCS>();
+		mProgLighting1D = ShaderManager::Get().getGlobalShaderT<Lighting1DShadowProgram>();
 
-		{
-			InlineString< 128 > defineStr;
-			ShaderCompileOption option;
-			ShaderEntryInfo entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
-				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
-			};
-			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(
-				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option))
-		}
+		mShadowMapAtlas = RHICreateTexture2D(ETexture::RGBA32F, ShadowTexureWidth, 128, 1, 1, TCF_RenderTarget | TCF_CreateUAV | TCF_CreateSRV);
+		mShadowMapFB = RHICreateFrameBuffer();
+		mShadowMapFB->addTexture(*mShadowMapAtlas);
 
+		GTextureShowManager.registerTexture("ShadowMap", mShadowMapAtlas);
+
+		if (::Global::Editor())
+		{
+			DetailViewConfig config;
+			config.name = "Light Details";
+			mDetailView = ::Global::Editor()->createDetailView(config);
+		}
 		return true;
+	}
+
+	void Lighting2DTestStage::updateDetailView()
+	{
+		if (mDetailView == nullptr)
+			return;
+
+		mDetailView->clearAllViews();
+		if (mSelectedLightIndex != -1)
+		{
+			Light& light = lights[mSelectedLightIndex];
+			PropertyViewHandle handle = mDetailView->addStruct(light);
+
+			mDetailView->addCallback(handle, [this](char const*)
+			{
+				if (mSelectedLightIndex != -1)
+				{
+					Light& light = lights[mSelectedLightIndex];
+					light.radius = CalculateLightRadius(light.attenuation);
+				}
+			});
+		}
 	}
 
 	void Lighting2DTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
-		mProgLighting.releaseRHI();
-		mProgShadow.releaseRHI();
+		mProgLighting = nullptr;
+		mProgShadow = nullptr;
+		mProgShadow1D = nullptr;
+		mProgLighting1D = nullptr;
+		mShadowMapAtlas.release();
+		mShadowMapFB.release();
+
+		if (mDetailView)
+		{
+			mDetailView->release();
+			mDetailView = nullptr;
+		}
+
 		BaseClass::preShutdownRenderSystem(bReInit);
 	}
 
@@ -85,7 +149,7 @@ namespace Render
 		case UI_RUN_BENCHMARK:
 			{
 				int lightNum = 100;
-				int blockNum = 5000;
+				int blockNum = 2000;
 
 				Vec2i screenSize = ::Global::GetScreenSize();
 				int w = screenSize.x;
@@ -99,6 +163,7 @@ namespace Render
 					light.color = Color(float(::Global::Random()) / RAND_MAX,
 										float(::Global::Random()) / RAND_MAX,
 										float(::Global::Random()) / RAND_MAX);
+					light.radius = CalculateLightRadius(light.attenuation);
 					lights.push_back(light);
 				}
 				for( int i = 0; i < blockNum; ++i )
@@ -107,7 +172,7 @@ namespace Render
 					Vector2 pos;
 					pos.x = ::Global::Random() % w;
 					pos.y = ::Global::Random() % h;
-					block.setBox(pos, Vector2(10, 10));
+					block.setBox(pos, Vector2(1, 1));
 					blocks.push_back(std::move(block));
 
 				}
@@ -126,6 +191,13 @@ namespace Render
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 
+		int w = screenSize.x;
+		int h = screenSize.y;
+		Matrix4 worldToClipRHI = AdjustProjectionMatrixForRHI(mWorldToScreen.toMatrix4() * OrthoMatrix(0, w, h, 0, -1, 1));
+		Matrix4 clipToWorldRHI;
+		float det;
+		worldToClipRHI.inverse(clipToWorldRHI, det);
+
 		Matrix4 projectMatrixRHI = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1));
 
 		RHISetFrameBuffer(commandList, nullptr);
@@ -136,95 +208,111 @@ namespace Render
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 
 #if 1
-		int w = screenSize.x;
-		int h = screenSize.y;
 
-		if (bUseGeometryShader)
+
+
+		if (bUse1DShadowMap)
 		{
-			mBuffers.clear();
-			for (Block& block : blocks)
+			render1DShadowMaps(commandList);
+			renderLighting1D(commandList);
+		}
+		else
+		{
+			if (bUseGeometryShader)
 			{
-				renderPolyShadow(Light(), block.pos, block.getVertices(), block.getVertexNum());
+				mBuffers.clear();
+				for (Block& block : blocks)
+				{
+					renderPolyShadow(Light(), block.pos, block.getVertices(), block.getVertexNum());
+				}
+			}
+
+			for (Light const& light : lights)
+			{
+				if (bShowShadowRender)
+				{
+					RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add >::GetRHI());
+				}
+				else
+				{
+					RHISetDepthStencilState(commandList,
+						TStaticDepthStencilState<
+						true, ECompareFunc::Always,
+						true, ECompareFunc::Always,
+						EStencil::Keep, EStencil::Keep, EStencil::Replace, 0x1 >::GetRHI(), 0x1);
+
+					RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
+				}
+
+				{
+
+					if (bUseGeometryShader)
+					{
+						RHISetShaderProgram(commandList, mProgShadow->getRHI());
+						SET_SHADER_PARAM(commandList, *mProgShadow, WorldToClip, worldToClipRHI);
+						mProgShadow->setParameters(commandList, light.pos, ::Global::GetScreenSize());
+
+						if (!mBuffers.empty())
+						{
+							TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &mBuffers[0], mBuffers.size());
+						}
+					}
+					else
+					{
+						mBuffers.clear();
+						for (Block& block : blocks)
+						{
+							renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
+						}
+
+						RHISetFixedShaderPipelineState(commandList, worldToClipRHI);
+						if (!mBuffers.empty())
+						{
+							TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, &mBuffers[0], mBuffers.size());
+						}
+					}
+				}
+
+				if (!bShowShadowRender)
+				{
+#if 1
+					RHISetDepthStencilState(commandList,
+						TStaticDepthStencilState<
+						true, ECompareFunc::Always,
+						true, ECompareFunc::Equal,
+						EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
+						>::GetRHI(), 0x0);
+#else
+
+					RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+#endif
+					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
+					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
+					{
+						RHISetShaderProgram(commandList, mProgLighting->getRHI());
+						SET_SHADER_PARAM(commandList, *mProgLighting, ScreenToWorld, mScreenToWorld.toMatrix4());
+						mProgLighting->setParameters(commandList, light);
+						DrawUtility::ScreenRect(commandList);
+					}
+
+					RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
+				}
 			}
 		}
 
-		for ( Light const& light : lights )
+		if (mSelectedLightIndex != -1)
 		{
-			if (bShowShadowRender)
-			{
-				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::One , EBlend::One , EBlend::Add >::GetRHI());
-			}
-			else
-			{
-				RHISetDepthStencilState(commandList,
-					TStaticDepthStencilState<
-					true, ECompareFunc::Always,
-					true, ECompareFunc::Always,
-					EStencil::Keep, EStencil::Keep, EStencil::Replace, 0x1 >::GetRHI(), 0x1);
-
-				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
-			}
-
-			{
-
-				if (bUseGeometryShader)
-				{
-					RHISetShaderProgram(commandList, mProgShadow.getRHI());
-					mProgShadow.setParam(commandList, SHADER_PARAM(XForm), projectMatrixRHI);
-					mProgShadow.setParameters(commandList, light.pos, ::Global::GetScreenSize());
-
-					if (!mBuffers.empty())
-					{
-						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &mBuffers[0], mBuffers.size());
-					}
-				}
-				else
-				{				
-					mBuffers.clear();
-					for (Block& block : blocks)
-					{
-						renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
-					}
-
-					RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
-					if (!mBuffers.empty())
-					{
-						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, &mBuffers[0], mBuffers.size());
-					}
-				}
-			}
-			
-			if ( !bShowShadowRender )
-			{
-#if 1
-				RHISetDepthStencilState(commandList,
-					TStaticDepthStencilState<
-					true, ECompareFunc::Always,
-					true, ECompareFunc::Equal,
-					EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
-					>::GetRHI(), 0x0);
-#else
-
-				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-#endif
-				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
-				{
-					RHISetShaderProgram(commandList, mProgLighting.getRHI());
-					mProgLighting.setParameters(commandList, light.pos, light.color);
-					DrawUtility::ScreenRect(commandList);
-				}
-
-				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
-			}
+			Light const& selectedLight = lights[mSelectedLightIndex];
+			RHISetFixedShaderPipelineState(commandList, worldToClipRHI * Matrix4::Translate(selectedLight.pos.x, selectedLight.pos.y, 0));
+			DrawUtility::AixsLine(commandList, 0.5f);
 		}
 #endif
 
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-#if 1
+#if 0
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 		Vector2 vertices[] =
 		{
@@ -297,34 +385,184 @@ namespace Render
 	MsgReply Lighting2DTestStage::onMouse( MouseMsg const& msg )
 	{
 		Vec2i screenSize = ::Global::GetScreenSize();
-		Vector2 worldPos = Vector2(msg.getPos().x, msg.getPos().y);
+		Vector2 worldPos = mScreenToWorld.transformPosition(Vector2(msg.getPos()));
+
 		if ( msg.onLeftDown() )
 		{
-			Light light;
-			light.pos = worldPos;
-			light.color = Color( float( ::Global::Random() ) / RAND_MAX  , 
-				                 float( ::Global::Random() ) / RAND_MAX  , 
-				                 float( ::Global::Random() ) / RAND_MAX  );
-			lights.push_back( light );
-		}
-		else if ( msg.onRightDown() )
-		{
-			Block block;
-			//#TODO
-			block.setBox(worldPos, Vector2( 50 , 50 ) );
-			blocks.push_back( block );
-		}
-		else if ( msg.onMoving() )
-		{
-			if ( !lights.empty() )
+			if (msg.isControlDown())
 			{
-				lights.back().pos = worldPos;
+				Light light;
+				light.pos = worldPos;
+				light.color = Color(float(::Global::Random()) / RAND_MAX,
+					float(::Global::Random()) / RAND_MAX,
+					float(::Global::Random()) / RAND_MAX);
+				light.radius = CalculateLightRadius(light.attenuation);
+				lights.push_back(light);
+				mSelectedLightIndex = (int)lights.size() - 1;
+				updateDetailView();
 			}
+			else
+			{
+				float minDist = 0.5f;
+				mSelectedLightIndex = -1;
+				for (int i = 0; i < (int)lights.size(); ++i)
+				{
+					float d = Math::Distance(lights[i].pos, worldPos);
+					if (d < minDist)
+					{
+						minDist = d;
+						mSelectedLightIndex = i;
+					}
+				}
+				updateDetailView();
+			}
+		}
+		else if (msg.onRightDown())
+		{
+			if (msg.isControlDown())
+			{
+				Block block;
+				//#TODO
+				block.setBox(worldPos, Vector2(5, 5));
+				blocks.push_back(block);
+			}
+			else
+			{
+				bIsDragging = true;
+				mLastMousePos = msg.getPos();
+				return MsgReply::Handled();
+			}
+		}
+		else if (msg.onRightUp())
+		{
+			bIsDragging = false;
+			return MsgReply::Handled();
+		}
+		else if (msg.onMoving())
+		{
+			if (mSelectedLightIndex != -1 && msg.isShiftDown())
+			{
+				lights[mSelectedLightIndex].pos = worldPos;
+				updateDetailView();
+			}
+
+			if (bIsDragging)
+			{
+				Vec2i delta = msg.getPos() - mLastMousePos;
+				mLastMousePos = msg.getPos();
+
+				Vector2 worldDelta = mScreenToWorld.transformVector(Vector2(delta));
+				mViewPos -= worldDelta;
+
+				updateView();
+			}
+		}
+		else if (msg.onWheelFront())
+		{
+			float scale = 1.1f;
+			mZoom *= scale;
+			updateView();
+			return MsgReply::Handled();
+		}
+		else if (msg.onWheelBack())
+		{
+			float scale = 1.0f / 1.1f;
+			mZoom *= scale;
+			updateView();
+			return MsgReply::Handled();
 		}
 
 		return BaseClass::onMouse(msg);
 	}
 
+	void Lighting2DTestStage::render1DShadowMaps(RHICommandList& commandList)
+	{
+		GPU_PROFILE("Render1DShadowMaps");
+
+		// Collect all segments (edges) from blocks
+		TArray< Segment > segments;
+		for (Block& block : blocks)
+		{
+			int num = block.getVertexNum();
+			for (int i = 0; i < num; ++i)
+			{
+				segments.push_back({ block.pos + block.vertices[i], block.pos + block.vertices[(i + 1) % num] });
+			}
+		}
+
+		if (segments.empty())
+			return;
+
+		// Initialize/Update StructuredBuffer for segments
+		if (!mSegmentBuffer.isValid() || mSegmentBuffer.getElementNum() < (uint32)segments.size())
+		{
+			mSegmentBuffer.initializeResource((uint32)segments.size(), EStructuredBufferType::Buffer);
+		}
+		mSegmentBuffer.updateBuffer(segments);
+
+		if (!mLightBuffer.isValid() || mLightBuffer.getElementNum() < (uint32)lights.size())
+		{
+			mLightBuffer.initializeResource((uint32)lights.size(), EStructuredBufferType::Buffer);
+		}
+		mLightBuffer.updateBuffer(lights);
+
+		RHIResourceTransition(commandList, { mShadowMapAtlas }, EResourceTransition::UAV);
+
+		RHISetShaderProgram(commandList, mProgShadow1D->getRHI());
+		
+		// Bind resources
+		SET_SHADER_PARAM(commandList, *mProgShadow1D, LightCount, (int)lights.size());
+		SET_SHADER_PARAM(commandList, *mProgShadow1D, SegmentCount, (int)segments.size());
+
+		float worldScale = mZoom * (float)::Global::GetScreenSize().y / 25.0f;
+		float shadowBias = (worldScale > 0) ? (0.5f / worldScale) : 0.01f;
+		SET_SHADER_PARAM(commandList, *mProgShadow1D, ShadowBias, shadowBias);
+
+		SET_SHADER_RWTEXTURE(commandList, *mProgShadow1D, ShadowMapAtlas, *mShadowMapAtlas);
+		SetStructuredStorageBuffer(commandList, *mProgShadow1D, mSegmentBuffer);
+		SetStructuredStorageBuffer(commandList, *mProgShadow1D, mLightBuffer);
+
+		// Dispatch 1024x1 per light threads
+		RHIDispatchCompute(commandList, 1024 / 32, (uint32)lights.size(), 1);
+
+		RHIResourceTransition(commandList, { mShadowMapAtlas }, EResourceTransition::SRV);
+
+		// Thoroughly unbind UAVs to prevent hazards in the next lighting pass
+		mProgShadow1D->clearRWTexture(commandList, SHADER_PARAM(ShadowMapAtlas));
+	}
+
+	void Lighting2DTestStage::renderLighting1D(RHICommandList& commandList)
+	{
+		GPU_PROFILE("RenderLighting1D");
+
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
+		Vec2i screenSize = ::Global::GetScreenSize();
+		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
+
+		RHISetShaderProgram(commandList, mProgLighting1D->getRHI());
+		auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Wrap, ESampler::Clamp>::GetRHI();
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgLighting1D, ShadowMapAtlas, *mShadowMapAtlas, sampler);
+		SET_SHADER_PARAM(commandList, *mProgLighting1D, MaxLightNum, (int)mShadowMapAtlas->getSizeY());
+		SET_SHADER_PARAM(commandList, *mProgLighting1D, ScreenToWorld, mScreenToWorld.toMatrix4());
+
+		int w = screenSize.x;
+		int h = screenSize.y;
+		Matrix4 worldToClipRHI = AdjustProjectionMatrixForRHI(mWorldToScreen.toMatrix4() * OrthoMatrix(0, w, h, 0, -1, 1));
+		SET_SHADER_PARAM(commandList, *mProgLighting1D, WorldToClip, worldToClipRHI);
+		
+		float worldScale = mZoom * (float)::Global::GetScreenSize().y / 25.0f;
+		float shadowBias = (worldScale > 0) ? (0.5f / worldScale) : 0.01f;
+		SET_SHADER_PARAM(commandList, *mProgLighting1D, ShadowBias, shadowBias);
+
+
+		SetStructuredStorageBuffer(commandList, *mProgLighting1D, mLightBuffer);
+
+		DrawUtility::ScreenRect(commandList, (uint32)lights.size());
+	}
+
 }//namespace Lighting
-
-

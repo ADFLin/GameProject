@@ -182,6 +182,7 @@
     <None Include="..\TinyGame\out\Shader\Game\Grass.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\GravityField.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2D.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Lighting2DCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2DShadow.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Mandelbrot.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\MarchingCubes.sgc" />

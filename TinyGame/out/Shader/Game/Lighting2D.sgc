@@ -1,21 +1,166 @@
 #include "Common.sgc"
 
 #include "ScreenVertexShader.sgc"
+#include "Lighting2DCommon.sgc"
+
+uniform float4x4 WorldToClip;
+DEFINE_STRUCTURED_BUFFER(Light, Lights);
+
+#if VERTEX_SHADER
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT_INSTANCEID
+	VS_OUTPUT(flat int LightId, 3)
+VS_ENTRY_END(MainVS)
+{
+	Light light = Lights[SvInstanceID];
+	// Construct the quad in world space constrained by the light radius
+	float2 worldPos = light.pos + InPos * light.radius;
+	SvPosition = mul(WorldToClip, float4(worldPos, 0, 1.0));
+	LightId = SvInstanceID;
+}
+#endif
+
+
+uniform float4x4 ScreenToWorld;
+
+
+#if PIXEL_SHADER
 
 uniform float2 LightLocation;
 uniform float3 LightColor;
 uniform float3 LightAttenuation;
 
-#if PIXEL_SHADER
+
+#if SHADER_ENTRY(LightingPS)
 
 PS_ENTRY_START(LightingPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput , 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(LightingPS)
 {
-	float distance = length(LightLocation - SvPosition.xy);
+	float2 worldPos = mul(ScreenToWorld, float4(SvPosition.xy, 0, 1)).xy;
+	float2 offset = worldPos - LightLocation;
+	float distance = length(offset);
 	float attenuation = 1.0 /( dot( LightAttenuation , float3( 1 , distance , distance*distance) ) );
 	OutColor = float4(attenuation * LightColor, 1);
 }
+
+#endif
+
+
+#if SHADER_ENTRY(LightingShadowMapPS)
+
+#ifndef SHADOW_TEXTURE_WIDTH
+#define SHADOW_TEXTURE_WIDTH 512
+#endif
+
+
+uniform int    MaxLightNum;
+DEFINE_TEXTURE(Texture2D, ShadowMapAtlas);
+
+uniform float ShadowBias;
+
+PS_ENTRY_START(LightingShadowMapPS)
+	PS_INPUT(flat int LightId, 3)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(LightingShadowMapPS)
+{
+	Light light = Lights[LightId];
+
+	// Transform current pixel from Screen Space to World Space
+	float4 worldPos = mul(ScreenToWorld, float4(SvPosition.xy, 0, 1));
+	float2 offset = worldPos.xy - light.pos;
+
+	float distance = length(offset);
+	float angle = atan2(offset.y, offset.x);
+
+	float x = (angle / PI + 1.0) * 0.5;
+	float y = (float(LightId) + 0.5) / float(MaxLightNum);
+
+	float texelSize = 1.0 / SHADOW_TEXTURE_WIDTH;
+
+	float3 lightColor = light.color * light.intensity;
+
+	// 1. Precise Blocker Search (16 samples)
+	float minOccluderDist = 1e8;
+	const int blockerSearchSamples = 16;
+	const float searchRange = 0.15; 
+	for (int i = 0; i < blockerSearchSamples; ++i)
+	{
+		float offset = (float(i) - 7.5) * (searchRange / 15.0);
+		float d = TEXTURE_SAMPLE(ShadowMapAtlas, float2(x + offset * (SHADOW_TEXTURE_WIDTH / (2 * PI)) * texelSize, y)).r;
+		minOccluderDist = min(minOccluderDist, d);
+	}
+
+	// 2. Consistent base lighting calculation
+	float3 baseColor = (light.color.rgb * light.intensity) / dot(light.attenuation, float3(1, distance, distance * distance));
+
+	// Radius-based Fade Out to ensure sharp cut at radius boundary
+	float distRatio = saturate(distance / light.radius);
+	float fadeOut = saturate(1.0 - distRatio * distRatio * distRatio * distRatio);
+	fadeOut *= fadeOut;
+	baseColor *= fadeOut;
+
+	// Pre-calculation for penumbra width
+	float angularWidth = 0.0;
+	if (distance > minOccluderDist + 0.01)
+	{
+		float distOccluder = minOccluderDist;
+		float dist = distance;
+		float penumbraScale = saturate((dist - distOccluder) / dist);
+		angularWidth = (light.sourceRadius * penumbraScale) / distOccluder;
+	}
+	else
+	{
+		// NO PENUMBRA: Pixel is in front of the nearest blocker. 
+		// This is the front face of the block, 100% lit.
+		OutColor = float4(baseColor, 1);
+		return;
+	}
+	
+	float filterWidthInTexels = clamp(angularWidth * (SHADOW_TEXTURE_WIDTH / (2 * PI)), 1.0, 512.0);
+
+	// 3. Jittered PCF with strict depth-based penumbra rule
+	float shadow = 0.0;
+	float weightSum = 0.0;
+	const int numSamples = 8;
+	float jitter = frac(sin(dot(SvPosition.xy, float2(12.9898, 78.233))) * 43758.5453);
+
+	for (int i = 0; i < numSamples; ++i)
+	{
+		float offsetNorm = (float(i) + jitter) / float(numSamples) - 0.5;
+		float weight = exp(-10.0 * offsetNorm * offsetNorm); 
+		
+		float3 data = TEXTURE_SAMPLE(ShadowMapAtlas, float2(x + offsetNorm * filterWidthInTexels * texelSize, y)).rgb;
+		float Da = data.r;
+		
+		// Rule: Only calculate penumbra alpha if pixel distance > shadowMap distance
+		if (distance > Da + 0.02) 
+		{
+			float betaL = data.g; 
+			float betaR = data.b;
+			float gamma = offsetNorm * angularWidth;
+			
+			// Geometric Alpha calculation
+			float vL = smoothstep(betaL, betaL + 0.002, gamma);
+			float vR = smoothstep(betaR, betaR + 0.002, -gamma);
+			shadow += saturate(vL + vR) * weight;
+		}
+		else
+		{
+			// Pixel is in front of Da -> fully visible by this ray
+			shadow += 1.0 * weight;
+		}
+		weightSum += weight;
+	}
+	
+	shadow /= weightSum;
+	OutColor = float4(baseColor * shadow, 1);
+}
+
+#endif
+
+
 
 #endif

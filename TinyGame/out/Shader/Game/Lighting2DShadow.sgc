@@ -1,4 +1,5 @@
 #include "Common.sgc"
+#include "Lighting2DCommon.sgc"
 
 #if VERTEX_SHADER
 
@@ -13,11 +14,11 @@ VS_ENTRY_END(MainVS)
 #if GEOMETRY_SHADER
 
 uniform float2 LightLocation;
-uniform float2 ScreenSize;
-uniform float4x4 XForm;
+uniform float4x4 WorldToClip;
+
 float4 TransformToNDC(float2 pos)
 {
-	return mul(XForm, float4(pos, 0, 1));
+	return mul(WorldToClip, float4(pos, 0, 1));
 }
 
 
@@ -71,3 +72,90 @@ PS_ENTRY_END(MainPS)
 }
 
 #endif //PIXEL_SHADER
+
+
+#if COMPUTE_SHADER
+
+#ifndef SHADOW_TEXTURE_WIDTH
+#define SHADOW_TEXTURE_WIDTH 512
+#endif
+
+struct Segment
+{
+	float2 p0;
+	float2 p1;
+};
+
+uniform int    LightCount;
+uniform int    SegmentCount;
+// Use register 0 for UAV and SRV
+
+uniform image2D ShadowMapAtlas;
+DEFINE_STRUCTURED_BUFFER(Segment, BlockSegments);
+DEFINE_STRUCTURED_BUFFER(Light, Lights);
+
+uniform float ShadowBias;
+
+CS_NUM_THREADS(32, 1, 1)
+CS_ENTRY(MainCS)
+{
+	uint angleIdx = SvDispatchThreadID.x;
+	uint lightIdx = SvDispatchThreadID.y;
+
+	if (angleIdx >= SHADOW_TEXTURE_WIDTH || lightIdx >= uint(LightCount))
+		return;
+
+	Light light = Lights[lightIdx];
+
+	float2 origin = Lights[lightIdx].pos;
+	float sourceRadius = Lights[lightIdx].sourceRadius;
+
+	// Map index to angle [-PI, PI]
+	float angle = ((float(angleIdx) + 0.5) / SHADOW_TEXTURE_WIDTH) * (2*PI) - PI;
+	float2 rayDir = float2(cos(angle), sin(angle));
+	float2 raySide = float2(-rayDir.y, rayDir.x); // Perpendicular to ray
+
+	// Part 1: Find the center intersection point A and its segment tangent
+	float centerDist = 1e8;
+	float2 hitSegDir = float2(0.0, 0.0);
+	for (int i = 0; i < SegmentCount; ++i)
+	{
+		float2 p0 = BlockSegments[i].p0;
+		float2 p1 = BlockSegments[i].p1;
+		float2 L_seg = p1 - p0;
+		float det = L_seg.x * rayDir.y - L_seg.y * rayDir.x;
+		if (abs(det) > 1e-6)
+		{
+			float2 diff = p0 - origin;
+			float t = (L_seg.x * diff.y - L_seg.y * diff.x) / det;
+			float u = (rayDir.x * diff.y - rayDir.y * diff.x) / det;
+			if (t > ShadowBias && u >= 0 && u <= 1.0 && t < centerDist)
+			{
+				centerDist = t;
+				hitSegDir = normalize(L_seg);
+			}
+		}
+	}
+
+	float3 result = float3(centerDist, 0.0, 0.0);
+
+	// Part 2: Calculate the positive angular offsets using vectors
+	if (centerDist < 1e7)
+	{
+		float2 A = origin + rayDir * centerDist;
+		float distFactor = 1; //saturate(centerDist / 0.1);
+		float2 sourceOffset = hitSegDir * sourceRadius * distFactor;
+
+		float2 AL = normalize((origin + sourceOffset) - A);
+		float2 AR = normalize((origin - sourceOffset) - A);
+		float2 centerToSource = normalize(origin - A);
+		
+		// Store the angular offsets (all positive values) in G and B
+		result.g = acos(clamp(dot(AL, centerToSource), -1.0, 1.0));
+		result.b = acos(clamp(dot(AR, centerToSource), -1.0, 1.0));
+	}
+
+	imageStore(ShadowMapAtlas, int2(angleIdx, lightIdx), float4(result, 1.0));
+}
+
+#endif //COMPUTE_SHADER

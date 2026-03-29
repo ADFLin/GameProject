@@ -3154,13 +3154,13 @@ namespace Render
 			D3D11_BUFFER_DESC desc;
 			resource->GetDesc(&desc);
 
-			if (mUpdateDataSize > (int)desc.ByteWidth)
+			if (mStateBufferSize > (int)desc.ByteWidth)
 			{
 				TComPtr<ID3D11Device> device;
 				context->GetDevice(&device);
 
 				D3D11_BUFFER_DESC bufferDesc = desc;
-				bufferDesc.ByteWidth = AlignArbitrary<uint32>(mUpdateDataSize, D3D11_CONSTANT_BUFFER_ALIGN);
+				bufferDesc.ByteWidth = AlignArbitrary<uint32>(mStateBufferSize, D3D11_CONSTANT_BUFFER_ALIGN);
 				bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 				bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 				if (FAILED(device->CreateBuffer(&bufferDesc, nullptr, &resource)))
@@ -3168,6 +3168,7 @@ namespace Render
 					return;
 				}
 				desc.ByteWidth = bufferDesc.ByteWidth;
+				mUpdateDataSize = mStateBufferSize;
 			}
 
 			if (mDataBuffer.size() < desc.ByteWidth)
@@ -3178,15 +3179,16 @@ namespace Render
 			D3D11_MAPPED_SUBRESOURCE mapped;
 			if (SUCCEEDED(context->Map(resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
 			{
-				FMemory::Copy(mapped.pData, &mDataBuffer[0], mUpdateDataSize);
+				FMemory::Copy(mapped.pData, &mDataBuffer[0], mStateBufferSize);
 				context->Unmap(resource, 0);
 			}
 			mUpdateDataSize = 0;
 		}
 	}
 
-	void ShaderConstDataBuffer::updateBufferSize(int newSize)
+	void ShaderConstDataBuffer::updateBufferSize(uint32 newSize)
 	{
+		mStateBufferSize = newSize;
 		if (mDataBuffer.size() < newSize)
 		{
 			mDataBuffer.resize(AlignArbitrary<uint32>(newSize, D3D11_CONSTANT_BUFFER_ALIGN));

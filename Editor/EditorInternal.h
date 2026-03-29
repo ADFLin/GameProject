@@ -51,7 +51,7 @@ public:
 	std::unordered_map< Reflection::StructType*, std::shared_ptr<IDetailCustomization> > mCustomizations;
 };
 
-
+BITWISE_RELLOCATABLE_FAIL(EditorInternal::ActivePanel);
 
 
 #endif // EditorInternal_h__

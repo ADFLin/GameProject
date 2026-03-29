@@ -180,6 +180,7 @@ namespace Render
 		}
 
 		void clearBuffer(RHICommandList& commandList, ShaderParameter const& param, EAccessOp op);
+		void clearBuffer(RHICommandList& commandList, char const* name, EAccessOp op);
 
 		struct CachedParameter : public ShaderParameter
 		{
@@ -400,6 +401,19 @@ namespace Render
 		}
 	}
 
+	template< typename TShaderParamAccessor, typename TShaderType, typename TextureType>
+	FORCEINLINE void SetShaderRWTextureInternal(RHICommandList& commandList, TShaderType& shader, char const* paramName, TextureType& value)
+	{
+		if constexpr (TCheckConcept< TShaderParamAccessor, TShaderType >::Value)
+		{
+			shader.setRWTexture(commandList, TShaderParamAccessor::Get(shader), value);
+		}
+		else
+		{
+			shader.setRWTexture(commandList, paramName, value);
+		}
+	}
+
 
 #define DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
 	struct ShaderParamAccessor\
@@ -425,6 +439,12 @@ namespace Render
 	([&]() {\
 		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
 		SetShaderTextureInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #NAME, MAKE_STRING(NAME##Sampler), TEXTURE, SAMPLER); \
+	}())
+
+#define SET_SHADER_RWTEXTURE(COMMANDLIST, SHADER , NAME , TEXTURE)\
+	([&]() {\
+		DEFINE_SHADER_PARAM_ACCESSOR(NAME)\
+		SetShaderRWTextureInternal<ShaderParamAccessor>(COMMANDLIST, SHADER, #NAME, TEXTURE); \
 	}())
 
 }//namespace Render

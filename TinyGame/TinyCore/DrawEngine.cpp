@@ -27,7 +27,7 @@
 
 using namespace Render;
 
-ERenderSystem GDefaultRHIName = ERenderSystem::D3D12;
+ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
 bool GbDefaultUsePlatformGraphic = false;
 
 namespace
@@ -267,7 +267,7 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 		ERenderSystem nextSystem = renderSetup ? renderSetup->getDefaultRenderSystem() : ERenderSystem::None;
 		if (nextSystem == ERenderSystem::None)
 		{
-			if (mRenderSetup->isRenderSystemSupported(GDefaultRHIName))
+			if (renderSetup->isRenderSystemSupported(GDefaultRHIName))
 			{
 				nextSystem = GDefaultRHIName;
 			}
@@ -859,10 +859,17 @@ void DrawEngine::setAllowUseRenderThread(bool bAllow)
 	if (mAllowUseRenderThread == bAllow)
 		return;
 
+	if (!mbInitialized)
+	{
+		mAllowUseRenderThread = bAllow;
+		return;
+	}
+
 	if (isRHIEnabled())
 	{
 		flushRenderThread();
 	}
+
 	mAllowUseRenderThread = bAllow;
 	bEnableRenderThread = mAllowUseRenderThread && mbUseRenderThreadFromConfigs;
 

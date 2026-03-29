@@ -1533,10 +1533,12 @@ namespace Render
 		LogMsg("BBox Min: %f %f %f", outBBox.min.x, outBBox.min.y, outBBox.min.z);
 		LogMsg("BBox Max: %f %f %f", outBBox.max.x, outBBox.max.y, outBBox.max.z);
 
+#if 0
 		if (!::Global::DataCache().saveDelegate(key, VoxelSave))
 		{
 
 		}
+#endif
 
 		return true;
 	}

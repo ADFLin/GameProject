@@ -13,6 +13,8 @@ struct VSOutputParameters
 
 #if VERTEX_SHADER
 
+#if SHADER_ENTRY(ScreenVS)
+
 VS_ENTRY_START(ScreenVS)
 	VS_INPUT(float4 InPosition , ATTRIBUTE_POSITION)
 #if USE_SCREEN_TEXCOORD
@@ -27,5 +29,7 @@ VS_ENTRY_END(ScreenVS)
 	VSOutput.UVs = VFLIP(float2(InUV.x, 1.0 - InUV.y));
 #endif
 }
+
+#endif
 
 #endif

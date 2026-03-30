@@ -70,10 +70,6 @@ static EDisplayType GetDisplayType(PropertyBase* property)
 			{
 				return EDisplayType::Color4f;
 			}
-			if (property->typeIndex == typeid(Color3f))
-			{
-				return EDisplayType::Color3f;
-			}
 			if (property->typeIndex == typeid(Math::Vector3))
 			{
 				return EDisplayType::Vector3;
@@ -169,9 +165,7 @@ struct DetailViewPanel::RenderContext
 		}
 		else
 		{
-			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			ImGui::InputScalar("##Property", ScalarType, pData, NULL, NULL, "%d", flags);
-			verify(ImGui::IsItemDeactivatedAfterEdit());
+			verify(ImGui::DragScalar("##Property", ScalarType, pData, 1.0f));
 		}
 	}
 
@@ -235,17 +229,13 @@ struct DetailViewPanel::RenderContext
 				}
 				else
 				{
-					ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-					ImGui::InputFloat("##Property", (float*)pData, 0.0f, 0.0f, "%.3f", flags);
-					verify(ImGui::IsItemDeactivatedAfterEdit());
+					verify(ImGui::DragFloat("##Property", (float*)pData, 0.1f, 0.0f, 0.0f, "%.3f"));
 				}
 			}
 			break;
 		case EPropertyType::Double:
 			{
-				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-				ImGui::InputDouble("##Property", (double*)pData, 0.0f, 0.0f, "%.3f", flags);
-				verify(ImGui::IsItemDeactivatedAfterEdit());
+				verify(ImGui::DragScalar("##Property", ImGuiDataType_Double, pData, 0.1f, nullptr, nullptr, "%.3f"));
 			}
 			break;
 		}
@@ -295,16 +285,12 @@ struct DetailViewPanel::RenderContext
 			break;
 		case EDisplayType::Vector2:
 			{
-				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-				ImGui::InputFloat2("##Property", (float*)pData, "%.3f", flags);
-				verify(ImGui::IsItemDeactivatedAfterEdit());
+				verify(ImGui::DragFloat2("##Property", (float*)pData, 0.1f, 0.0f, 0.0f, "%.3f"));
 			}
 			break;
 		case EDisplayType::Vector3:
 			{
-				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-				ImGui::InputFloat3("##Property", (float*)pData, "%.3f", flags);
-				verify(ImGui::IsItemDeactivatedAfterEdit());
+				verify(ImGui::DragFloat3("##Property", (float*)pData, 0.1f, 0.0f, 0.0f, "%.3f"));
 			}
 			break;
 		case EDisplayType::Color3f:

@@ -82,19 +82,24 @@ PS_ENTRY_END(LightingShadowMapPS)
 
 	float3 lightColor = light.color * light.intensity;
 
-	// 1. Precise Blocker Search (16 samples)
+	// 1. Precise Blocker Search (Pre-calculated in ShadowBlockerSearch.sgc)
+
+	#if 0
+
 	float minOccluderDist = 1e8;
 	const int blockerSearchSamples = 16;
-	const float searchRange = 0.15; 
+	const float searchRange = 0.15;
 	for (int i = 0; i < blockerSearchSamples; ++i)
 	{
 		float offset = (float(i) - 7.5) * (searchRange / 15.0);
 		float d = TEXTURE_SAMPLE(ShadowMapAtlas, float2(x + offset * (SHADOW_TEXTURE_WIDTH / (2 * PI)) * texelSize, y)).r;
 		minOccluderDist = min(minOccluderDist, d);
 	}
-
+	#else
+	float minOccluderDist = TEXTURE_SAMPLE(ShadowMapAtlas, float2(x, y)).a;
+	#endif
 	// 2. Consistent base lighting calculation
-	float3 baseColor = (light.color.rgb * light.intensity) / dot(light.attenuation, float3(1, distance, distance * distance));
+	float3 baseColor = (light.color.rgb) * (light.intensity / dot(light.attenuation, float3(1, distance, distance * distance)));
 
 	// Radius-based Fade Out to ensure sharp cut at radius boundary
 	float distRatio = saturate(distance / light.radius);
@@ -109,6 +114,7 @@ PS_ENTRY_END(LightingShadowMapPS)
 		float distOccluder = minOccluderDist;
 		float dist = distance;
 		float penumbraScale = saturate((dist - distOccluder) / dist);
+		//penumbraScale = 1.0;
 		angularWidth = (light.sourceRadius * penumbraScale) / distOccluder;
 	}
 	else
@@ -119,7 +125,7 @@ PS_ENTRY_END(LightingShadowMapPS)
 		return;
 	}
 	
-	float filterWidthInTexels = clamp(angularWidth * (SHADOW_TEXTURE_WIDTH / (2 * PI)), 1.0, 512.0);
+	float filterWidthInTexels = clamp(angularWidth * (SHADOW_TEXTURE_WIDTH / (2 * PI)), 1.0, SHADOW_TEXTURE_WIDTH);
 
 	// 3. Jittered PCF with strict depth-based penumbra rule
 	float shadow = 0.0;

@@ -18,6 +18,7 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(LightingProgram);
 	IMPLEMENT_SHADER_PROGRAM(LightingShadowProgram);
 	IMPLEMENT_SHADER_PROGRAM(Shadow1DMapCS);
+	IMPLEMENT_SHADER_PROGRAM(ShadowBlockerSearchCS);
 	IMPLEMENT_SHADER_PROGRAM(Lighting1DShadowProgram);
 
 
@@ -73,6 +74,7 @@ namespace Render
 		mProgLighting = ShaderManager::Get().getGlobalShaderT<LightingProgram>();
 		mProgShadow = ShaderManager::Get().getGlobalShaderT<LightingShadowProgram>();
 		mProgShadow1D = ShaderManager::Get().getGlobalShaderT<Shadow1DMapCS>();
+		mProgShadowBlockerSearch = ShaderManager::Get().getGlobalShaderT<ShadowBlockerSearchCS>();
 		mProgLighting1D = ShaderManager::Get().getGlobalShaderT<Lighting1DShadowProgram>();
 
 		mShadowMapAtlas = RHICreateTexture2D(ETexture::RGBA32F, ShadowTexureWidth, 128, 1, 1, TCF_RenderTarget | TCF_CreateUAV | TCF_CreateSRV);
@@ -96,14 +98,14 @@ namespace Render
 			return;
 
 		mDetailView->clearAllViews();
-		if (mSelectedLightIndex != -1)
+		if (mSelectedLightIndex != INDEX_NONE)
 		{
 			Light& light = lights[mSelectedLightIndex];
 			PropertyViewHandle handle = mDetailView->addStruct(light);
 
 			mDetailView->addCallback(handle, [this](char const*)
 			{
-				if (mSelectedLightIndex != -1)
+				if (mSelectedLightIndex != INDEX_NONE)
 				{
 					Light& light = lights[mSelectedLightIndex];
 					light.radius = CalculateLightRadius(light.attenuation);
@@ -117,6 +119,7 @@ namespace Render
 		mProgLighting = nullptr;
 		mProgShadow = nullptr;
 		mProgShadow1D = nullptr;
+		mProgShadowBlockerSearch = nullptr;
 		mProgLighting1D = nullptr;
 		mShadowMapAtlas.release();
 		mShadowMapFB.release();
@@ -160,9 +163,9 @@ namespace Render
 					Light light;
 					light.pos.x = ::Global::Random() % w;
 					light.pos.y = ::Global::Random() % h;
-					light.color = Color(float(::Global::Random()) / RAND_MAX,
-										float(::Global::Random()) / RAND_MAX,
-										float(::Global::Random()) / RAND_MAX);
+					light.color = Color3f(float(::Global::Random()) / RAND_MAX,
+										  float(::Global::Random()) / RAND_MAX,
+										  float(::Global::Random()) / RAND_MAX);
 					light.radius = CalculateLightRadius(light.attenuation);
 					lights.push_back(light);
 				}
@@ -208,13 +211,37 @@ namespace Render
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 
 #if 1
-
-
-
 		if (bUse1DShadowMap)
 		{
-			render1DShadowMaps(commandList);
-			renderLighting1D(commandList);
+			// Light Culling
+			Vector2 p0 = mScreenToWorld.transformPosition(Vector2(0, 0));
+			Vector2 p1 = mScreenToWorld.transformPosition(Vector2(screenSize.x, screenSize.y));
+			Vector2 min = p0.min(p1);
+			Vector2 max = p0.max(p1);
+
+			mVisibleLights.clear();
+			for (auto const& light : lights)
+			{
+				if (light.pos.x + light.radius > min.x && light.pos.x - light.radius < max.x &&
+					light.pos.y + light.radius > min.y && light.pos.y - light.radius < max.y)
+				{
+					mVisibleLights.push_back(light);
+					if (mVisibleLights.size() >= (uint32)mShadowMapAtlas->getSizeY())
+						break;
+				}
+			}
+
+			if (!mVisibleLights.empty())
+			{
+				if (!mLightBuffer.isValid() || mLightBuffer.getElementNum() < (uint32)mVisibleLights.size())
+				{
+					mLightBuffer.initializeResource((uint32)mVisibleLights.size(), EStructuredBufferType::Buffer);
+				}
+				mLightBuffer.updateBuffer(mVisibleLights);
+
+				render1DShadowMaps(commandList);
+				renderLighting1D(commandList);
+			}
 		}
 		else
 		{
@@ -301,12 +328,7 @@ namespace Render
 			}
 		}
 
-		if (mSelectedLightIndex != -1)
-		{
-			Light const& selectedLight = lights[mSelectedLightIndex];
-			RHISetFixedShaderPipelineState(commandList, worldToClipRHI * Matrix4::Translate(selectedLight.pos.x, selectedLight.pos.y, 0));
-			DrawUtility::AixsLine(commandList, 0.5f);
-		}
+
 #endif
 
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
@@ -331,6 +353,25 @@ namespace Render
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 		g.beginRender();
+
+
+		if (mSelectedLightIndex != INDEX_NONE)
+		{
+			Light const& selectedLight = lights[mSelectedLightIndex];
+
+			g.pushXForm();
+			g.transformXForm(mWorldToScreen, true);
+
+
+			RenderUtility::SetBrush(g, EColor::Null);
+			RenderUtility::SetPen(g, EColor::Yellow);
+			g.drawRect( selectedLight.pos - Vector2(selectedLight.radius, selectedLight.radius), 2 * Vector2(selectedLight.radius, selectedLight.radius));
+
+			RenderUtility::SetPen(g, EColor::Green);
+			g.drawRect(selectedLight.pos - Vector2(selectedLight.sourceRadius, selectedLight.sourceRadius), 2 * Vector2(selectedLight.sourceRadius, selectedLight.sourceRadius));
+			g.popXForm();
+		}
+
 
 		RenderUtility::SetFont( g , FONT_S8 );
 		InlineString< 256 > str;
@@ -393,7 +434,8 @@ namespace Render
 			{
 				Light light;
 				light.pos = worldPos;
-				light.color = Color(float(::Global::Random()) / RAND_MAX,
+				light.color = Color3f(
+					float(::Global::Random()) / RAND_MAX,
 					float(::Global::Random()) / RAND_MAX,
 					float(::Global::Random()) / RAND_MAX);
 				light.radius = CalculateLightRadius(light.attenuation);
@@ -404,7 +446,7 @@ namespace Render
 			else
 			{
 				float minDist = 0.5f;
-				mSelectedLightIndex = -1;
+				mSelectedLightIndex = INDEX_NONE;
 				for (int i = 0; i < (int)lights.size(); ++i)
 				{
 					float d = Math::Distance(lights[i].pos, worldPos);
@@ -440,7 +482,7 @@ namespace Render
 		}
 		else if (msg.onMoving())
 		{
-			if (mSelectedLightIndex != -1 && msg.isShiftDown())
+			if (mSelectedLightIndex != INDEX_NONE && msg.isShiftDown())
 			{
 				lights[mSelectedLightIndex].pos = worldPos;
 				updateDetailView();
@@ -479,10 +521,34 @@ namespace Render
 	{
 		GPU_PROFILE("Render1DShadowMaps");
 
-		// Collect all segments (edges) from blocks
-		TArray< Segment > segments;
-		for (Block& block : blocks)
+		mVisibleBlockIndices.clear();
+		for (int i = 0; i < (int)blocks.size(); ++i)
 		{
+			Block& block = blocks[i];
+			bool bRelevant = false;
+			// A block is relevant if it's within the influence radius of any visible light
+			for (Light const& light : mVisibleLights)
+			{
+				float distSq = Math::DistanceSqure(block.pos, light.pos);
+				float checkRadius = light.radius + 10.0f; // Conservative block size estimate
+				if (distSq < checkRadius * checkRadius)
+				{
+					bRelevant = true;
+					break;
+				}
+			}
+
+			if (bRelevant)
+			{
+				mVisibleBlockIndices.push_back(i);
+			}
+		}
+
+		// Collect segments only from relevant blocks
+		TArray< Segment > segments;
+		for (int index : mVisibleBlockIndices)
+		{
+			Block& block = blocks[index];
 			int num = block.getVertexNum();
 			for (int i = 0; i < num; ++i)
 			{
@@ -500,35 +566,37 @@ namespace Render
 		}
 		mSegmentBuffer.updateBuffer(segments);
 
-		if (!mLightBuffer.isValid() || mLightBuffer.getElementNum() < (uint32)lights.size())
-		{
-			mLightBuffer.initializeResource((uint32)lights.size(), EStructuredBufferType::Buffer);
-		}
-		mLightBuffer.updateBuffer(lights);
-
 		RHIResourceTransition(commandList, { mShadowMapAtlas }, EResourceTransition::UAV);
-
-		RHISetShaderProgram(commandList, mProgShadow1D->getRHI());
 		
-		// Bind resources
-		SET_SHADER_PARAM(commandList, *mProgShadow1D, LightCount, (int)lights.size());
-		SET_SHADER_PARAM(commandList, *mProgShadow1D, SegmentCount, (int)segments.size());
+		{
+			GPU_PROFILE("ShadowMapRaw");
+			RHISetShaderProgram(commandList, mProgShadow1D->getRHI());
+			SET_SHADER_PARAM(commandList, *mProgShadow1D, LightCount, (int)mVisibleLights.size());
+			SET_SHADER_PARAM(commandList, *mProgShadow1D, SegmentCount, (int)segments.size());
+			float worldScale = mZoom * (float)::Global::GetScreenSize().y / 25.0f;
+			float shadowBias = (worldScale > 0) ? (0.5f / worldScale) : 0.01f;
+			SET_SHADER_PARAM(commandList, *mProgShadow1D, ShadowBias, shadowBias);
+			SET_SHADER_RWTEXTURE(commandList, *mProgShadow1D, ShadowMapAtlas, *mShadowMapAtlas);
+			SetStructuredStorageBuffer(commandList, *mProgShadow1D, mSegmentBuffer);
+			SetStructuredStorageBuffer(commandList, *mProgShadow1D, mLightBuffer);
+			RHIDispatchCompute(commandList, 1024 / 32, (uint32)mVisibleLights.size(), 1);
+			mProgShadow1D->clearRWTexture(commandList, SHADER_PARAM(ShadowMapAtlas));
+		}
 
-		float worldScale = mZoom * (float)::Global::GetScreenSize().y / 25.0f;
-		float shadowBias = (worldScale > 0) ? (0.5f / worldScale) : 0.01f;
-		SET_SHADER_PARAM(commandList, *mProgShadow1D, ShadowBias, shadowBias);
+		RHIResourceTransition(commandList, { mShadowMapAtlas }, EResourceTransition::UAVBarrier);
+		{
+			GPU_PROFILE("ShadowBlockerSearch");
 
-		SET_SHADER_RWTEXTURE(commandList, *mProgShadow1D, ShadowMapAtlas, *mShadowMapAtlas);
-		SetStructuredStorageBuffer(commandList, *mProgShadow1D, mSegmentBuffer);
-		SetStructuredStorageBuffer(commandList, *mProgShadow1D, mLightBuffer);
+			RHISetShaderProgram(commandList, mProgShadowBlockerSearch->getRHI());
+			SET_SHADER_PARAM(commandList, *mProgShadowBlockerSearch, MaxLightNum, (int)mShadowMapAtlas->getSizeY());
+			SET_SHADER_RWTEXTURE(commandList, *mProgShadowBlockerSearch, ShadowMapAtlas, *mShadowMapAtlas);
 
-		// Dispatch 1024x1 per light threads
-		RHIDispatchCompute(commandList, 1024 / 32, (uint32)lights.size(), 1);
+			RHIDispatchCompute(commandList, 1024 / 32, (uint32)mVisibleLights.size(), 1);
+
+			mProgShadowBlockerSearch->clearRWTexture(commandList, SHADER_PARAM(ShadowMapAtlas));
+		}
 
 		RHIResourceTransition(commandList, { mShadowMapAtlas }, EResourceTransition::SRV);
-
-		// Thoroughly unbind UAVs to prevent hazards in the next lighting pass
-		mProgShadow1D->clearRWTexture(commandList, SHADER_PARAM(ShadowMapAtlas));
 	}
 
 	void Lighting2DTestStage::renderLighting1D(RHICommandList& commandList)
@@ -562,7 +630,7 @@ namespace Render
 
 		SetStructuredStorageBuffer(commandList, *mProgLighting1D, mLightBuffer);
 
-		DrawUtility::ScreenRect(commandList, (uint32)lights.size());
+		DrawUtility::ScreenRect(commandList, (uint32)mVisibleLights.size());
 	}
 
 }//namespace Lighting

@@ -954,7 +954,8 @@ public:
 			GSlider* slider = new GSlider(UI_ANY, Vec2i(margin + labelWidth + 5, yCtx), sliderWidth, true, this);
 			slider->setRange(0, 1000);
 
-			slider->onEvent = [onChange, slider](int evt, GWidget*) {
+			slider->onEvent = [onChange, slider](int evt, GWidget*) 
+			{
 				if (evt == EVT_SLIDER_CHANGE)
 				{
 					onChange((float)slider->getValue());
@@ -965,7 +966,8 @@ public:
 			return slider;
 		};
 
-		mRotSlider = CreateSlider(0, 1024, [this](float val) {
+		mRotSlider = CreateSlider(0, 1024, [this](float val)
+		{
 			int rotVal = (int)(val * 1024 / 1000.0f);
 			mRotation = rotVal;
 			notifyChange();
@@ -973,9 +975,11 @@ public:
 
 		yCtx += 10; // Gap between Global and Local properties
 
-		mPosSlider = CreateSlider(0, 1000, [this](float val) {
+		mPosSlider = CreateSlider(0, 1000, [this](float val)
+		{
 			float timeVal = val / 1000.0f;
-			if (mSelection != -1) {
+			if (mSelection != INDEX_NONE) 
+			{
 				mKeys[mSelection].time = timeVal;
 				sortKeysAndNotify();
 			}
@@ -1083,7 +1087,7 @@ public:
 		};
 
 		DrawSliderInfo(mRotSlider, "Rot", std::to_string(mRotation).c_str());
-		if (mSelection != -1 && mSelection < mKeys.size())
+		if (mSelection != INDEX_NONE && mSelection < mKeys.size())
 		{
 			DrawSliderInfo(mPosSlider, "Pos", FStringConv::From(mKeys[mSelection].time));
 			DrawSliderInfo(mRSlider, "R", std::to_string((int)(mKeys[mSelection].color.r * 255)).c_str());
@@ -1112,7 +1116,7 @@ public:
 		if (msg.onLeftDown())
 		{
 			// Check Handle Hit (Based on visual position)
-			int bestIdx = -1;
+			int bestIdx = INDEX_NONE;
 			int hitDist = 8;
 			for (int i = 0; i < (int)mKeys.size(); ++i)
 			{
@@ -1129,7 +1133,7 @@ public:
 				}
 			}
 
-			if (bestIdx != -1)
+			if (bestIdx != INDEX_NONE)
 			{
 				mSelection = bestIdx;
 				mbDragging = true;
@@ -1182,7 +1186,7 @@ public:
 					if (std::abs(localPos.x - hx) < 8 && std::abs(localPos.y - (handleY + 5)) < 10)
 					{
 						mKeys.erase(mKeys.begin() + i);
-						mSelection = -1;
+						mSelection = INDEX_NONE;
 						notifyChange();
 						return MsgReply::Handled();
 					}
@@ -1249,7 +1253,7 @@ private:
 
 	void updateColorFromSliders()
 	{
-		if (mSelection != -1)
+		if (mSelection != INDEX_NONE)
 		{
 			// Map 0-1000 slider to 0-1 float
 			mKeys[mSelection].color = Color3f(
@@ -1275,7 +1279,7 @@ private:
 
 		if (bHasSelection)
 		{
-			mSelection = -1;
+			mSelection = INDEX_NONE;
 			for (int i = 0; i < (int)mKeys.size(); ++i)
 			{
 				if (std::abs(mKeys[i].time - selectedKey.time) < 1e-5f &&
@@ -1324,7 +1328,7 @@ private:
 	}
 
 	TArray<GradientKey> mKeys;
-	int mSelection = -1;
+	int mSelection = INDEX_NONE;
 	int mRotation = 0;
 	bool mbDragging = false;
 

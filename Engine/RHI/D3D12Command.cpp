@@ -4460,9 +4460,10 @@ namespace Render
 					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 				mGraphicsCmdList->ResourceBarrier(1, &barrier);
 			}
+
+			mRenderTargetsState = nullptr;
 		}
 
-		mRenderTargetsState = nullptr;
 	}
 
 	void D3D12Context::waitForGpu()

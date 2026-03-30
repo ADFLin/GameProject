@@ -47,7 +47,7 @@ namespace
 	{
 		&GetDefaultRHI, &SetDefaultRHI,
 		"g.DefaultRHI",
-		0
+		CVF_CONFIG
 	};
 
 	void SetAllowUseRenderThread(bool bAllow)

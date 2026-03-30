@@ -222,6 +222,11 @@ namespace Math
 	public:
 		bool  inverse( Matrix4& m , float& det ) const;
 		bool  inverseAffine( Matrix4& m , float& det ) const;
+
+
+		Matrix4 inverse() const;
+		Matrix4 inverseAffine() const;
+
 		bool  isAffine() const;
 
 		void  transpose();

@@ -258,8 +258,8 @@ public:
 class Color3f : public TColor3< float >
 	          , public ColorEnumT<Color3f , float >
 {
-	using Vector3 = Math::Vector3;
 public:
+	using Vector3 = Math::Vector3;
 	using TColor3<float>::TColor3;
 
 	Color3f() = default;

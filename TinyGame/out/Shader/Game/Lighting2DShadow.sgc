@@ -86,15 +86,16 @@ struct Segment
 	float2 p1;
 };
 
-uniform int    LightCount;
-uniform int    SegmentCount;
-// Use register 0 for UAV and SRV
-
-uniform image2D ShadowMapAtlas;
 DEFINE_STRUCTURED_BUFFER(Segment, BlockSegments);
 DEFINE_STRUCTURED_BUFFER(Light, Lights);
 
-uniform float ShadowBias;
+#if SHADER_ENTRY(MainCS)
+
+uniform int    LightCount;
+uniform int    SegmentCount;
+uniform float  ShadowBias;
+
+uniform image2D ShadowMapAtlas;
 
 CS_NUM_THREADS(32, 1, 1)
 CS_ENTRY(MainCS)
@@ -157,5 +158,45 @@ CS_ENTRY(MainCS)
 
 	imageStore(ShadowMapAtlas, int2(angleIdx, lightIdx), float4(result, 1.0));
 }
+
+#endif // SHADER_ENTRY(MainCS)
+
+
+#if SHADER_ENTRY(BlockerSearchCS)
+
+uniform int    MaxLightNum;
+uniform image2D ShadowMapAtlas;
+
+CS_NUM_THREADS(32, 1, 1)
+CS_ENTRY(BlockerSearchCS)
+{
+	uint x = SvDispatchThreadID.x;
+	uint y = SvDispatchThreadID.y;
+
+	if (x >= SHADOW_TEXTURE_WIDTH || y >= uint(MaxLightNum))
+		return;
+
+	float texelSize = 1.0 / SHADOW_TEXTURE_WIDTH;
+	float minOccluderDist = 1e8;
+	const int blockerSearchSamples = 16;
+	const float searchRange = 0.15; 
+	
+	// Read original RGB data from the center pixel using imageLoad
+	float3 originalData = imageLoad(ShadowMapAtlas, int2(x, y)).rgb;
+
+	for (int i = 0; i < blockerSearchSamples; ++i)
+	{
+		float offset = (float(i) - 7.5) * (searchRange / 15.0);
+		// Note: Use manual cyclic wrapping for 360-degree shadow map
+		float sampleXFloat = float(x) + (offset * float(SHADOW_TEXTURE_WIDTH) / (2.0 * PI));
+		int sampleX = (int(floor(sampleXFloat)) % SHADOW_TEXTURE_WIDTH + SHADOW_TEXTURE_WIDTH) % SHADOW_TEXTURE_WIDTH;
+		float d = imageLoad(ShadowMapAtlas, int2(sampleX, y)).r;
+		minOccluderDist = min(minOccluderDist, d);
+	}
+
+	imageStore(ShadowMapAtlas, int2(x, y), float4(originalData, minOccluderDist));
+}
+#endif // SHADER_ENTRY(BlockerSearchCS)
+
 
 #endif //COMPUTE_SHADER

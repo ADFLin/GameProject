@@ -28,7 +28,7 @@ namespace Render
 		Vector2 pos;
 		float   radius;
 		float   sourceRadius = 1.0f;
-		Color   color;
+		Color3f color;
 		float   intensity = 1.0f;
 		Vector3 attenuation = DefaultLightAttenuation;
 
@@ -97,7 +97,7 @@ namespace Render
 		void setParameters(RHICommandList& commandList, Light const& light)
 		{
 			SET_SHADER_PARAM(commandList, *this, LightLocation, light.pos);
-			SET_SHADER_PARAM(commandList, *this, LightColor, light.color * light.intensity);
+			SET_SHADER_PARAM(commandList, *this, LightColor, light.intensity * Vector3(light.color.r, light.color.g, light.color.b));
 			SET_SHADER_PARAM(commandList, *this, LightAttenuation, light.attenuation);
 		}
 
@@ -150,7 +150,7 @@ namespace Render
 	public:
 		static char const* GetShaderFileName() { return "Shader/Game/Lighting2DShadow"; }
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			option.addDefine(SHADER_PARAM(SHADOW_TEXTURE_WIDTH), ShadowTexureWidth);
 		}
@@ -171,6 +171,34 @@ namespace Render
 
 		DEFINE_SHADER_PARAM(LightCount);
 		DEFINE_SHADER_PARAM(SegmentCount);
+		DEFINE_SHADER_PARAM(ShadowMapAtlas);
+	};
+
+	class ShadowBlockerSearchCS : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(ShadowBlockerSearchCS, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/Lighting2DShadow"; }
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(SHADOW_TEXTURE_WIDTH), ShadowTexureWidth);
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Compute , SHADER_ENTRY(BlockerSearchCS) },
+			};
+			return entries;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, MaxLightNum);
+			BIND_SHADER_PARAM(parameterMap, ShadowMapAtlas);
+		}
+
+		DEFINE_SHADER_PARAM(MaxLightNum);
 		DEFINE_SHADER_PARAM(ShadowMapAtlas);
 	};
 
@@ -255,11 +283,14 @@ namespace Render
 		bool bUse1DShadowMap = false;
 
 		Shadow1DMapCS* mProgShadow1D = nullptr;
+		ShadowBlockerSearchCS* mProgShadowBlockerSearch = nullptr;
 		Lighting1DShadowProgram* mProgLighting1D = nullptr;
 		RHITexture2DRef mShadowMapAtlas;
 		RHIFrameBufferRef mShadowMapFB;
 		TStructuredBuffer<Segment> mSegmentBuffer;
 		TStructuredBuffer<Light>   mLightBuffer;
+		TArray<Light> mVisibleLights;
+		TArray<int> mVisibleBlockIndices;
 
 		bool onInit() override;
 

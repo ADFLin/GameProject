@@ -28,6 +28,7 @@
 #define usampler2D Texture2D<uint4>
 
 #define imageStore( Tex , Pos , Val ) Tex[Pos] = Val
+#define imageLoad( Tex , Pos ) Tex[Pos]
 #define texelFetch( Tex , Pos , Lod ) Tex.Load(int4(Pos, Lod))
 
 #else

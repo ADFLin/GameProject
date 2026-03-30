@@ -91,7 +91,19 @@ namespace Math
 		return true;
 	}
 
-	bool  Matrix4::inverse( Matrix4& m , float& det ) const
+	Matrix4 Matrix4::inverseAffine() const
+	{
+		Matrix4 result;
+		float det;
+		if (!inverseAffine(result, det))
+		{
+
+		}
+
+		return result;
+	}
+
+	bool  Matrix4::inverse(Matrix4& m, float& det) const
 	{
 		using ScalarType = double;
 		//inv(M) = cofactor / det(M)
@@ -162,7 +174,18 @@ namespace Math
 		return true;
 	}
 
-	Matrix4 Matrix4::leftMul( Matrix3 const& m ) const
+	Matrix4 Matrix4::inverse() const
+	{
+		Matrix4 result;
+		float det;
+		if (!inverse(result, det))
+		{
+
+		}
+		return result;
+	}
+
+	Matrix4 Matrix4::leftMul(Matrix3 const& m) const
 	{
 		// result = [m 0] * [ R P ] = [ m * R m * P ]
 		//          [0 1]   [ T Q ]   [  T      Q   ]

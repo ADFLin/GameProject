@@ -1,21 +1,20 @@
-#ifndef PacketDispatcher_h__
-#define PacketDispatcher_h__
+#pragma once
+#ifndef PacketDispatcher_H_5E13512A_86EC_40F8_9D99_6E0346698A10
+#define PacketDispatcher_H_5E13512A_86EC_40F8_9D99_6E0346698A10
 
 #include "GameConfig.h"
-#include "FastDelegate/FastDelegate.h"
-
-
 #include "DataStructure/Array.h"
+#include "FastDelegate/FastDelegate.h"
 
 #include <list>
 #include <unordered_map>
 
-
 class IComPacket;
 class ComVisitor;
 class PacketFactory;
-typedef uint32 ComID;
-typedef fastdelegate::FastDelegate< void (IComPacket*) > ComProcFunc;
+
+using ComID = uint32;
+using ComProcFunc = fastdelegate::FastDelegate< void (IComPacket*) >;
 
 
 class PacketDispatcher
@@ -29,7 +28,6 @@ public:
 		ProcFunc func;
 	};
 
-	// Packet Handler 信息
 	struct PacketHandler
 	{
 		PacketHandler()
@@ -47,7 +45,6 @@ public:
 	TINY_API PacketDispatcher();
 	TINY_API ~PacketDispatcher();
 
-	// Handler 管理
 	template<class GamePacketT, class T, class TFunc>
 	bool setUserFunc(T* processer, TFunc func){ return setUserFunc(GamePacketT::PID, processer, func); }
 	template<class GamePacketT, class T, class TFunc>
@@ -77,7 +74,6 @@ public:
 
 	TINY_API bool recvCommand(IComPacket* cp);
 
-	// Packet 处理
 	TINY_API void enqueue(IComPacket* packet, PacketHandler* handler);
 	TINY_API void procCommand();
 	TINY_API void procCommand(ComVisitor& visitor);
@@ -135,4 +131,4 @@ bool PacketDispatcher::setWorkerFunc(T* processer, TFunc func, TFunc funcSocket)
 	return true;
 }
 
-#endif // PacketDispatcher_h__
+#endif // PacketDispatcher_H_5E13512A_86EC_40F8_9D99_6E0346698A10

@@ -1,5 +1,6 @@
-#ifndef GameServer_h__
-#define GameServer_h__
+#pragma once
+#ifndef GameServer_H_3CA979C4_EB17_462F_BBDD_760806300BED
+#define GameServer_H_3CA979C4_EB17_462F_BBDD_760806300BED
 
 #define USE_NEW_NETWORK 0
 
@@ -378,7 +379,6 @@ public:
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }
 	NetSocket& getUdpSocket() { return mUdpServer.getSocket(); }
 
-	// ✅ ServerPlayerListener 設置 (兼容新架構的接口)
 	void setPlayerListener(ServerPlayerListener* listener) 
 	{ 
 		if (mPlayerManager) 
@@ -468,5 +468,4 @@ protected:
 
 #endif
 
-
-#endif // GameServer_h__
+#endif // GameServer_H_3CA979C4_EB17_462F_BBDD_760806300BED

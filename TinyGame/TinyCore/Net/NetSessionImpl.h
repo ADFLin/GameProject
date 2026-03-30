@@ -12,9 +12,6 @@
 #include <unordered_map>
 #include <memory>
 
-/**
- * @brief 會話層基礎實作
- */
 class NetSessionBase
 {
 public:
@@ -26,14 +23,12 @@ protected:
 	ENetSessionState mState = ENetSessionState::Disconnected;
 	PlayerId mUserPlayerId = ERROR_PLAYER_ID;
 	
-	// 封包處理器
 	using PacketHandler = std::function<void(PlayerId, IComPacket*)>;
 	std::unordered_map<ComID, PacketHandler> mPacketHandlers;
 
 
 	PacketDispatcher mPacketDispatcher;
 	
-	// 註冊核心封包處理
 	virtual void registerCorePacketHandlers() = 0;
 	
 public:
@@ -41,7 +36,6 @@ public:
 	
 protected:
 	
-	// 狀態變更
 	bool tryChangeState(ENetSessionState newState);
 	virtual bool isValidStateTransition(ENetSessionState from, ENetSessionState to) const;
 
@@ -65,16 +59,9 @@ protected:
 	ComListener* mComListener = nullptr;
 };
 
-// 前置聲明
 class NetSessionHostImpl;
 
 
-/**
- * @brief Session 層專用的 ServerPlayer 實現
- * 
- * ✅ 合併了 PlayerSession 的所有數據，統一玩家管理
- * 通過 NetSessionHostImpl 發送數據，不需要 NetClientData
- */
 class SSessionPlayer : public ServerPlayer
 {
 public:
@@ -83,14 +70,8 @@ public:
 	void sendTcpCommand(IComPacket* cp) override;
 	void sendUdpCommand(IComPacket* cp) override;
 	
-	// ✅ Session 映射數據（來自 PlayerSession）
 	PlayerId playerId = ERROR_PLAYER_ID;
 	SessionId sessionId = 0;
-	
-	// ✅ 玩家狀態標誌使用 ServerPlayer::mFlag (繼承自 ServerPlayer)
-	// 可用的標誌：eReady, eSyndDone, ePause, eLevelSetup, eLevelLoaded, eLevelReady, eDissconnect
-	
-	// 網絡延遲 (ms) - 繼承自 ServerPlayer::latency
 	
 private:
 	NetSessionHostImpl* mSession;
@@ -111,11 +92,6 @@ public:
 	LocalWorker* mLocalPlayer;
 };
 
-/**
- * @brief Server 端會話實作
- * 
- * ✅ 直接實現 IPlayerManager 介面，統一玩家資料管理
- */
 class NetSessionHostImpl : public INetSessionHost, protected NetSessionBase
 {
 public:
@@ -135,11 +111,9 @@ public:
 	ENetSessionState getState() const override { return mState; }
 	bool changeState(ENetSessionState newState) override;
 	
-	// INetSession::getPlayerManager() - 返回 SVPlayerManager (向後兼容)
 	IPlayerManager* getPlayerManager() override { return mPlayerManager.get(); }
 	PlayerId getUserPlayerId() const override { return mUserPlayerId; }
 	
-	// ✅ 直接訪問 SVPlayerManager (兼容舊代碼)
 	SVPlayerManager* getSVPlayerManager() { return mPlayerManager.get(); }
 	
 	void getPlayerInfos(TArray<NetPlayerInfo>& outInfos) const override;
@@ -183,20 +157,16 @@ public:
 protected:
 	void registerCorePacketHandlers() override;
 	
-	// Transport 回調
 	void onConnectionEstablished(SessionId id);
 	void onConnectionClosed(SessionId id, ENetCloseReason reason);
 	void onPacketReceived(IComPacket* packet);
 	void onUdpPacketReceived(IComPacket* packet, NetAddress const& clientAddr);
 	
-	// 房間搜尋處理（會話層功能）
 	void handleServerInfoRequest(NetAddress const& clientAddr);
 	
-	// 獲取伺服器資訊（可被子類覆蓋以自定義）
 	virtual void getServerInfo(class SPServerInfo& outInfo);
 
 	
-	// PacketDispatcher 處理器方法（用於 setUserFunc）
 	void procLoginPacket(IComPacket* cp);
 	void procPlayerStatePacket(IComPacket* cp);
 	void procClockSyncPacket(IComPacket* cp);
@@ -214,13 +184,11 @@ protected:
 		if (!mPlayerManager->getPlayerNum() == 0)
 			return false;
 		
-		// ✅ 遍历 SVPlayerManager 中的所有玩家
 		for (size_t i = 0; i < mPlayerManager->getPlayerNum(); ++i)
 		{
 			ServerPlayer* player = mPlayerManager->getPlayer(i);
 			if (player)
 			{
-				// ✅ 如果 networkOnly == true，跳过非网络玩家（local/user player）
 				if (networkOnly && !player->isNetwork())
 					continue;
 					
@@ -241,7 +209,6 @@ protected:
 	SessionId getPlayerSession(PlayerId id);
 	
 private:
-	// ✅ 完全使用 SVPlayerManager 管理玩家
 	std::unique_ptr<SVPlayerManager> mPlayerManager;
 	IServerTransport* mServerTransport = nullptr;
 	
@@ -252,15 +219,11 @@ private:
 	char mGameName[64] = {0};
 	int mMaxPlayers = MAX_PLAYER_NUM;
 	
-	// 快取的玩家資訊
 	mutable TArray<NetPlayerInfo> mCachedPlayerInfos;
 	mutable bool mPlayerInfosDirty = true;
 
 };
 
-/**
- * @brief Client 端會話實作
- */
 class NetSessionClientImpl : public INetSessionClient, protected NetSessionBase
 {
 public:
@@ -305,19 +268,16 @@ public:
 protected:
 	void registerCorePacketHandlers() override;
 	
-	// Transport 回調
 	void onConnectionEstablished(SessionId id);
 	void onConnectionClosed(SessionId id, ENetCloseReason reason);
 	void onConnectionFailed();
 	void onPacketReceived(IComPacket* packet);
 	
-	// 封包處理
 	void procLoginResponse(IComPacket* cp);
 	void procPlayerStatus(IComPacket* cp);
 	void procPlayerState(IComPacket* cp);
 	void procLevelInfo(IComPacket* cp);
 	
-	// PacketDispatcher 處理器方法（用於 setWorkerFunc）
 	void procLoginResponsePacket(IComPacket* cp);
 	void procPlayerStatusPacket(IComPacket* cp);
 	void procPlayerStatePacket(IComPacket* cp);

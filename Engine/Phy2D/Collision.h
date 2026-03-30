@@ -251,7 +251,7 @@ namespace Phy2D
 	public:
 		Broadphase()
 		{
-			mContactBreakThreshold = 0.1;
+			mContactBreakThreshold = 0.1f;
 		}
 		void addObject( CollideObject* obj )
 		{

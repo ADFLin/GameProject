@@ -938,11 +938,11 @@ public:
 	}
 
 
-	int  eraseToEnd(iterator is)
+	size_t  eraseToEnd(iterator is)
 	{
-		int numRemoved = end() - is;
+		size_t numRemoved = end() - is;
 		FTypeMemoryOp::DestructSequence(is, numRemoved);
-		mNum = size_t(is - getElement(0));
+		mNum -= numRemoved;
 		return numRemoved;
 	}
 

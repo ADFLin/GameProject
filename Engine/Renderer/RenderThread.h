@@ -188,7 +188,7 @@ public:
 	RenderCommandList mList;
 };
 
-class CORE_API RenderThread : public RunnableThreadT<RenderThread>
+class RenderThread : public RunnableThreadT<RenderThread>
 {
 public:
 	Mutex mCommandMutex;
@@ -205,20 +205,20 @@ public:
 		mWaitCV.notifyOne();
 	}
 
-	void add(RenderCommand* commnad);
+	CORE_API void add(RenderCommand* commnad);
 
-	static RenderThread* StaticInstance;
+	CORE_API static RenderThread* StaticInstance;
 
 	bool bRunning = true;
-	unsigned run();
+	CORE_API unsigned run();
 
-	static bool IsRunning(); 
+	CORE_API static bool IsRunning();
 
-	static void Initialize();
-	static void Finalize();
+	CORE_API static void Initialize();
+	CORE_API static void Finalize();
 
-	static void SetThreadCommandList(RenderCommandList* list);
-	static RenderCommandList* GetThreadCommandList();
+	CORE_API static void SetThreadCommandList(RenderCommandList* list);
+	CORE_API static RenderCommandList* GetThreadCommandList();
 
 	template< typename TCommand, typename ...TArgs >
 	static TCommand* AllocCommand(TArgs&& ...args)
@@ -287,7 +287,7 @@ public:
 		return *StaticInstance;
 	}
 
-	static void FlushCommands();
+	CORE_API static void FlushCommands();
 };
 
 CORE_API bool IsInRenderThread();

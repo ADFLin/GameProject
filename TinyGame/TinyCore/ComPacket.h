@@ -1,5 +1,6 @@
-#ifndef ComPacket_h__
-#define ComPacket_h__
+#pragma once
+#ifndef ComPacket_H_32D7D999_0089_40F5_8B36_42140455174C
+#define ComPacket_H_32D7D999_0089_40F5_8B36_42140455174C
 
 #include "CppVersion.h"
 #include "Core/IntegerType.h"
@@ -97,19 +98,15 @@ class ComLibrary
 
 typedef fastdelegate::FastDelegate< void ( IComPacket*) > ComProcFunc;
 
-// ========================================
-// ComEvaluator: 组合 PacketFactory 和 PacketDispatcher
-// ========================================
 class  ComEvaluator : public ComLibrary
 {
 public:
 	typedef ComProcFunc ProcFunc;
 
 	TINY_API ComEvaluator();
-	TINY_API ComEvaluator(PacketFactory& factory); // 使用外部 factory
+	TINY_API ComEvaluator(PacketFactory& factory); 
 	TINY_API ~ComEvaluator();
 
-	// 委托给 PacketDispatcher（需要 PacketFactory 协助注册）
 	template<class GamePacketT , class T , class TFunc >
 	bool setWorkerFunc( T* processer, TFunc func, TFunc funcSocket )
 	{
@@ -130,12 +127,10 @@ public:
 
 	TINY_API void  removeProcesserFunc( void* processer );
 
-	// 委托给 PacketDispatcher
 	TINY_API void  procCommand( ComVisitor& visitor );
 	TINY_API void  procCommand();
 	TINY_API void  procCommand(IComPacket* cp);
 
-	// 使用两个组件
 	TINY_API bool  evalCommand( SocketBuffer& buffer, int group = -1, void* userData = nullptr );
 
 	TINY_API IComPacket* readNewPacket(SocketBuffer& buffer, int group = -1, void* userData = nullptr);
@@ -144,9 +139,9 @@ public:
 	void addFactory() { mFactory->addFactory<GamePacketT>(); }
 
 private:
-	PacketFactory*   mFactory;      // 可以指向外部或内部 factory
+	PacketFactory*   mFactory;      
 	PacketDispatcher mDispatcher;
 };
 
 
-#endif // ComPacket_h__
+#endif // ComPacket_H_32D7D999_0089_40F5_8B36_42140455174C

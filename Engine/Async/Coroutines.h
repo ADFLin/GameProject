@@ -140,8 +140,9 @@ namespace Coroutines
 
 #define CO_DEFAULT_STACK_SIZE (128 * 1024)
 
-	struct ExecutionContext
+	class ExecutionContext
 	{
+	public:
 		ExecutionContext(std::function< void() >&& entryFunc, size_t stackSize, uint32 version);
 		~ExecutionContext();
 

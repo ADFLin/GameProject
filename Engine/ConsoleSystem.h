@@ -183,7 +183,7 @@ namespace ConsoleDetail
 					if (var)
 					{
 						std::string valStr = var->toString();
-						return FStringConv::ToCheck(valStr.c_str(), valStr.length(), outValue);
+						return FStringConv::ToCheck(valStr.c_str(), (int)valStr.length(), outValue);
 					}
 				}
 				// Var not found
@@ -191,7 +191,7 @@ namespace ConsoleDetail
 			}
 
 			// Literal Value
-			return FStringConv::ToCheck(str.data(), str.length(), outValue);
+			return FStringConv::ToCheck(str.data(), (int)str.length(), outValue);
 		}
 
 		// Specialization for String storage (char const* target)

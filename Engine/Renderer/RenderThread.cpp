@@ -5,6 +5,32 @@
 #include "TemplateMisc.h"
 #include "CoreShare.h"
 
+
+RenderCommand_ExecuteList::~RenderCommand_ExecuteList()
+{
+	mList.clear();
+}
+
+void RenderCommand_ExecuteList::execute(RenderExecuteContext& context)
+{
+	RenderCommand* cmd = mList.getHead();
+	while (cmd)
+	{
+		if (cmd->debugName)
+		{
+			//LogMsg("  SubCommand : %s", cmd->debugName);
+		}
+		cmd->execute(context);
+
+		RenderCommand* next = cmd->next;
+		cmd = next;
+	}
+
+	mList.clear();
+	RenderThread::Get().recycleCommandList(std::move(mList));
+}
+
+
 #if CORE_SHARE
 
 RenderThread* RenderThread::StaticInstance = nullptr;
@@ -28,31 +54,6 @@ void RenderThread::add(RenderCommand* commnad)
 	mCommandList.push_back(commnad);
 	bHasNewWork = true;
 	mWaitCV.notifyOne();
-}
-
-
-RenderCommand_ExecuteList::~RenderCommand_ExecuteList()
-{
-	mList.clear();
-}
-
-void RenderCommand_ExecuteList::execute(RenderExecuteContext& context)
-{
-	RenderCommand* cmd = mList.getHead();
-	while (cmd)
-	{
-		if (cmd->debugName)
-		{
-			//LogMsg("  SubCommand : %s", cmd->debugName);
-		}
-		cmd->execute(context);
-		
-		RenderCommand* next = cmd->next;
-		cmd = next;
-	}
-
-	mList.clear();
-	RenderThread::Get().recycleCommandList(std::move(mList));
 }
 
 #include "DeferredReleaseQueue.h"

@@ -131,10 +131,8 @@ public:
 	NetActionState  getActionState(){ return mNAState; }
 	void            setComListener( ComListener* listener ){  mComListener = listener; }
 	
-	// 新接口：直接访问组件
 	virtual PacketDispatcher& getPacketDispatcher() = 0;
 	
-	// 辅助方法：模拟 ComEvaluator 接口（用于兼容现有代码）
 	template<class GamePacketT, class T, class TFunc>
 	bool setUserFunc(T* processer, TFunc func)
 	{
@@ -224,7 +222,7 @@ public:
 	void  setNetListener( INetStateListener* listener ){ mNetListener = listener;  }
 	virtual bool  isServer() = 0;
 
-	long  getNetRunningTime() const { return mNetRunningTimeSpan;  }
+	int64  getNetRunningTime() const { return mNetRunningTimeSpan;  }
 
 protected:
 
@@ -350,10 +348,8 @@ private:
 class FNetCommand
 {
 public:
-	// 旧接口 - 使用 ComEvaluator（逐步淘汰）
 	static bool Eval(UdpChain& chain, ComEvaluator& evaluator, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
 	
-	// 新接口 - 使用分离的组件
 	static bool Eval(UdpChain& chain, PacketFactory& factory, PacketDispatcher& dispatcher, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
 	static bool EvalCommand(PacketFactory& factory, PacketDispatcher& dispatcher, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
 	

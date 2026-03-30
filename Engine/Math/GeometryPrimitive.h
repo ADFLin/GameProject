@@ -375,10 +375,10 @@ namespace Math
 
 	FORCEINLINE Vector2 CalcPolygonCentroid(TArrayView<Vector2 const> posList)
 	{
-		int indexPrev = posList.size() - 1;
+		int indexPrev = (int)posList.size() - 1;
 		float totalWeight = 0;
 		Vector2 pos = Vector2::Zero();
-		for (int index = 0; index < posList.size(); ++index)
+		for (int index = 0; index < (int)posList.size(); ++index)
 		{
 			Vector2 const& p1 = posList[indexPrev];
 			Vector2 const& p2 = posList[index];

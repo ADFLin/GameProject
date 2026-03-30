@@ -479,29 +479,29 @@ public:
 	String mText;
 };
 
-class TINY_API GScrollBar : public GWidget
+class GScrollBar : public GWidget
 {
 	using BaseClass = GWidget;
 public:
-	GScrollBar(int id, Vec2i const& pos, int length, bool beH, GWidget* parent);
+	TINY_API GScrollBar(int id, Vec2i const& pos, int length, bool beH, GWidget* parent);
 
-	void setRange(int range, int pageSize);
-	void setValue(int value);
+	TINY_API void setRange(int range, int pageSize);
+	TINY_API void setValue(int value);
 	int  getValue() const { return mValue; }
 
 	void onScrollChange(int value) { sendEvent(EVT_SCROLL_CHANGE); }
 
-	void setFixedThumb(bool beFixed);
+	TINY_API void setFixedThumb(bool beFixed);
 
 protected:
-	void onResize(Vec2i const& size) override;
-	void onRender() override;
-	MsgReply onMouseMsg(MouseMsg const& msg) override;
-	bool onChildEvent(int event, int id, GWidget* ui) override;
+	TINY_API void onResize(Vec2i const& size) override;
+	TINY_API void onRender() override;
+	TINY_API MsgReply onMouseMsg(MouseMsg const& msg) override;
+	TINY_API bool onChildEvent(int event, int id, GWidget* ui) override;
 
-	void updateThumbPos();
-	void updateThumbSize();
-	int  calcValueFromPos(Vec2i const& pos);
+	TINY_API void updateThumbPos();
+	TINY_API void updateThumbSize();
+	TINY_API int  calcValueFromPos(Vec2i const& pos);
 
 	virtual void onMouse(bool beIn)
 	{

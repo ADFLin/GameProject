@@ -579,7 +579,7 @@ namespace Render
 			SET_SHADER_RWTEXTURE(commandList, *mProgShadow1D, ShadowMapAtlas, *mShadowMapAtlas);
 			SetStructuredStorageBuffer(commandList, *mProgShadow1D, mSegmentBuffer);
 			SetStructuredStorageBuffer(commandList, *mProgShadow1D, mLightBuffer);
-			RHIDispatchCompute(commandList, 1024 / 32, (uint32)mVisibleLights.size(), 1);
+			RHIDispatchCompute(commandList, ShadowTexureWidth / 32, (uint32)mVisibleLights.size(), 1);
 			mProgShadow1D->clearRWTexture(commandList, SHADER_PARAM(ShadowMapAtlas));
 		}
 
@@ -591,7 +591,7 @@ namespace Render
 			SET_SHADER_PARAM(commandList, *mProgShadowBlockerSearch, MaxLightNum, (int)mShadowMapAtlas->getSizeY());
 			SET_SHADER_RWTEXTURE(commandList, *mProgShadowBlockerSearch, ShadowMapAtlas, *mShadowMapAtlas);
 
-			RHIDispatchCompute(commandList, 1024 / 32, (uint32)mVisibleLights.size(), 1);
+			RHIDispatchCompute(commandList, ShadowTexureWidth / 32, (uint32)mVisibleLights.size(), 1);
 
 			mProgShadowBlockerSearch->clearRWTexture(commandList, SHADER_PARAM(ShadowMapAtlas));
 		}

@@ -117,52 +117,68 @@ namespace Render
 	{
 		OpenGLTiming()
 		{
-			mHandles[0] = mHandles[1] = 0;
-		}
-
-		void start()
-		{
-			if (mHandles[0] == 0)
+			for (int i = 0; i < 4; ++i)
 			{
-				glGenQueries(2, mHandles);
+				mHandles[i][0] = mHandles[i][1] = 0;
 			}
-			glQueryCounter(mHandles[0], GL_TIMESTAMP);
 		}
-		void end()
-		{
-			glQueryCounter(mHandles[1], GL_TIMESTAMP);
-		}
-		bool getDuration(uint64& outDuration, uint64& outStart)
-		{
-			if (mHandles[0] == 0)
-				return false;
 
-			GLuint isAvailable = GL_FALSE;
-			glGetQueryObjectuiv(mHandles[1], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
-
-			if (isAvailable == GL_TRUE)
+		void start(int frameIndex)
+		{
+			int idx = frameIndex % 4;
+			if (mHandles[idx][0] == 0)
 			{
-				GLuint64 startTimeStamp;
-				glGetQueryObjectui64v(mHandles[0], GL_QUERY_RESULT, &startTimeStamp);
-				GLuint64 endTimeStamp;
-				glGetQueryObjectui64v(mHandles[1], GL_QUERY_RESULT, &endTimeStamp);
+				glGenQueries(2, mHandles[idx]);
+			}
+			glQueryCounter(mHandles[idx][0], GL_TIMESTAMP);
+		}
+		void end(int frameIndex)
+		{
+			int idx = frameIndex % 4;
+			if (mHandles[idx][1] == 0) return;
+			glQueryCounter(mHandles[idx][1], GL_TIMESTAMP);
+		}
+		bool getDuration(int frameIndex, uint64& outDuration, uint64& outStart)
+		{
+			// Check the oldest frame (frameIndex - 3) or later if available
+			for (int offset = 3; offset >= 1; --offset)
+			{
+				int checkFrame = frameIndex - offset;
+				if (checkFrame < 0) continue;
+				int idx = checkFrame % 4;
 
-				outDuration = endTimeStamp - startTimeStamp;
-				outStart = startTimeStamp;
-				return true;
+				if (mHandles[idx][0] == 0) continue;
+
+				GLuint isAvailable = GL_FALSE;
+				glGetQueryObjectuiv(mHandles[idx][1], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
+
+				if (isAvailable == GL_TRUE)
+				{
+					GLuint64 startTimeStamp;
+					glGetQueryObjectui64v(mHandles[idx][0], GL_QUERY_RESULT, &startTimeStamp);
+					GLuint64 endTimeStamp;
+					glGetQueryObjectui64v(mHandles[idx][1], GL_QUERY_RESULT, &endTimeStamp);
+
+					outDuration = endTimeStamp - startTimeStamp;
+					outStart = startTimeStamp;
+					return true;
+				}
 			}
 			return false;
 		}
 		void release()
 		{
-			if (mHandles[0] != 0)
+			for (int i = 0; i < 4; ++i)
 			{
-				glDeleteQueries(2, mHandles);
-				mHandles[0] = mHandles[1] = 0;
+				if (mHandles[i][0] != 0)
+				{
+					glDeleteQueries(2, mHandles[i]);
+					mHandles[i][0] = mHandles[i][1] = 0;
+				}
 			}
 		}
 
-		GLuint mHandles[2];
+		GLuint mHandles[4][2];
 	};
 
 	class OpenGLProfileCore : public RHIProfileCore
@@ -170,6 +186,10 @@ namespace Render
 	public:
 		void releaseRHI() override
 		{
+			for (auto& timing : mTimingStorage)
+			{
+				timing.release();
+			}
 		}
 		void beginFrame() override
 		{
@@ -177,6 +197,7 @@ namespace Render
 		}
 		bool endFrame() override
 		{
+			mCurFrameIndex++;
 			return true;
 		}
 		uint32 fetchTiming() override
@@ -189,26 +210,27 @@ namespace Render
 		void startTiming(uint32 timingHandle) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
-			timing.start();
+			timing.start(mCurFrameIndex);
 
 		}
 		void endTiming(uint32 timingHandle) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
-			timing.end();
+			timing.end(mCurFrameIndex);
 		}
 
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
-			return timing.getDuration(outDuration, outStart);
+			return timing.getDuration(mCurFrameIndex, outDuration, outStart);
 		}
 		double getCycleToMillisecond() override
 		{
 			return 1.0 / 1000000.0;
 		}
-		TArray< OpenGLTiming > mTimingStorage;
 
+		int mCurFrameIndex = 0;
+		TArray< OpenGLTiming > mTimingStorage;
 	};
 
 

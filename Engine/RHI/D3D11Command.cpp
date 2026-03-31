@@ -114,12 +114,24 @@ namespace Render
 
 		virtual void beginFrame() override
 		{
-			mDeviceContextImmdiate->Begin(mQueryDisjoint[mCurFrameIndex]);
+			if (mQueryDisjoint[mCurFrameIndex])
+				mDeviceContextImmdiate->Begin(mQueryDisjoint[mCurFrameIndex]);
+
+			mNextHandle[mCurFrameIndex] = 0;
+			mRecordingFrameIndex = mCurFrameIndex;
+			bRecordingStarted = true;
+			mPendingStartHandles.clear();
 		}
 
 		virtual bool endFrame() override
 		{
-			mDeviceContextImmdiate->End(mQueryDisjoint[mCurFrameIndex]);
+			if (mQueryDisjoint[mCurFrameIndex])
+				mDeviceContextImmdiate->End(mQueryDisjoint[mCurFrameIndex]);
+
+			bRecordingStarted = false;
+			mPendingStartHandles.clear();
+
+			mNextHandle[mCurFrameIndex] = 0;
 			mCurFrameIndex = (mCurFrameIndex + 1) % NUM_FRAME_BUFFER;
 			return true;
 		}
@@ -135,10 +147,35 @@ namespace Render
 			TComPtr< ID3D11Query > endQuery;
 			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
 
-			uint32 frameIndex = mCurFrameIndex;
+			uint32 frameIndex = mRecordingFrameIndex;
 			uint32 result = (frameIndex << 24) | mFrameSamples[frameIndex].size();
 			mFrameSamples[frameIndex].emplace_back(std::move(startQuery), std::move(endQuery));
 			return result;
+		}
+
+		void onBeginRender(ID3D11DeviceContext* context)
+		{
+			mActiveContext = context;
+			for (uint32 handle : mPendingStartHandles)
+			{
+				mActiveContext->End(mFrameSamples[mRecordingFrameIndex][handle].startQuery);
+			}
+			mPendingStartHandles.clear();
+		}
+
+		void onEndRender(ID3D11DeviceContext* context)
+		{
+			mActiveContext = nullptr;
+		}
+
+		virtual void onBeginRhiFrame(void* context) override
+		{
+			onBeginRender((ID3D11DeviceContext*)context);
+		}
+
+		virtual void onEndRhiFrame(void* context) override
+		{
+			onEndRender((ID3D11DeviceContext*)context);
 		}
 
 		virtual void startTiming(uint32 timingHandle) override
@@ -146,7 +183,9 @@ namespace Render
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
 			CHECK(handle < mFrameSamples[frameIndex].size());
-			mDeviceContext->End(mFrameSamples[frameIndex][handle].startQuery);
+
+			ID3D11DeviceContext* context = mActiveContext ? mActiveContext : mDeviceContextImmdiate.get();
+			context->End(mFrameSamples[frameIndex][handle].startQuery);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
@@ -154,7 +193,9 @@ namespace Render
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
 			CHECK(handle < mFrameSamples[frameIndex].size());
-			mDeviceContext->End(mFrameSamples[frameIndex][handle].endQuery);
+
+			ID3D11DeviceContext* context = mActiveContext ? mActiveContext : mDeviceContextImmdiate.get();
+			context->End(mFrameSamples[frameIndex][handle].endQuery);
 		}
 
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) override
@@ -213,7 +254,12 @@ namespace Render
 		}
 
 		double mCycleToMillisecond;
+		uint32 mNextHandle[NUM_FRAME_BUFFER];
 		int mCurFrameIndex;
+		int mRecordingFrameIndex;
+		bool bRecordingStarted;
+		TArray< uint32 > mPendingStartHandles;
+
 		TComPtr< ID3D11Query > mQueryDisjoint[NUM_FRAME_BUFFER];
 
 		struct Sample
@@ -229,6 +275,7 @@ namespace Render
 		TArray< Sample > mFrameSamples[NUM_FRAME_BUFFER];
 
 		bool bDeferredContext;
+		ID3D11DeviceContext* mActiveContext = nullptr;
 		TComPtr<ID3D11DeviceContext> mDeviceContext;
 		TComPtr<ID3D11DeviceContext> mDeviceContextImmdiate;
 		TComPtr<ID3D11Device> mDevice;
@@ -452,6 +499,7 @@ namespace Render
 			return nullptr;
 		}
 
+		mProfileCore = profileCore;
 		return profileCore;
 	}
 
@@ -459,12 +507,23 @@ namespace Render
 	{
 		mRenderContext.markRenderStateDirty();
 		mbInRendering = true;
+
+		if (mProfileCore)
+		{
+			mProfileCore->onBeginRhiFrame(mDeviceContext.get());
+		}
 		return true;
 	}
 
 	void D3D11System::RHIEndRender(bool bPresent)
 	{
 		mbInRendering = false;
+
+		if (mProfileCore)
+		{
+			mProfileCore->onEndRhiFrame(mDeviceContext.get());
+		}
+
 		if (mDeviceContextImmdiate.get() != mDeviceContext.get())
 		{
 			Mutex::Locker locker(mMutexContext);

@@ -901,7 +901,8 @@ namespace Render
 
 	bool CompileCode(ShaderCompileContext &context, ShaderFormat& shaderFormat)
 	{
-		do
+		int numCodes = context.codes.size();
+		for(;;)
 		{
 			TArray< uint8 > codeBuffer;
 			if (!LoadCode(context, shaderFormat, codeBuffer))
@@ -912,15 +913,17 @@ namespace Render
 			switch (shaderFormat.compileCode(context))
 			{
 			case EShaderCompileResult::Ok:
-				break;
+				return true;
 			case EShaderCompileResult::CodeError:
 				if (context.bAllowRecompile)
-					continue;
+				{
+					context.codes.resize(numCodes);
+				}
+				break;
 			case EShaderCompileResult::ResourceError:
 				return false;
 			}
-		} 
-		while (0);
+		}
 
 		return true;
 	}

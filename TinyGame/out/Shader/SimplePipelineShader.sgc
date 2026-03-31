@@ -68,7 +68,7 @@ PS_ENTRY_END(MainPS)
 #else
 	float4 color = Color;
 #endif
-
+	
 #if HAVE_TEXTCOORD
 	float4 texColor = TEXTURE_SAMPLE(Texture, OutputVS.UV);
 	OutColor = texColor * color;

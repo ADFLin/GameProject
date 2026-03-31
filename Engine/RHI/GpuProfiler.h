@@ -32,6 +32,9 @@ namespace Render
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration, uint64& outStart) = 0;
 		virtual void endReadback() {}
 		virtual double getCycleToMillisecond() = 0;
+
+		virtual void onBeginRhiFrame(void* cmdList) {}
+		virtual void onEndRhiFrame(void* cmdList) {}
 	};
 
 #define RHI_ERROR_PROFILE_HANDLE uint32(-1)

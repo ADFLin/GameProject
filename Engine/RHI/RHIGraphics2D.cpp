@@ -152,12 +152,6 @@ void RHIGraphics2D::setViewportSize(int w, int h)
 	mViewportHeight = h;
 	mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, (float)w, (float)h, 0, -1, 1));
 
-	if (mRenderMode == ERenderMode::Immediate)
-	{
-		RHIGraphicsBatchManager::Get().mBatchedRender.setViewportSize(w, h);
-	}
-
-
 	if (mWriteContext)
 	{
 		mWriteContext->viewportWidth = w;
@@ -266,7 +260,9 @@ void RHIGraphics2D::beginRender()
 	if (mRenderMode == ERenderMode::Immediate)
 	{
 		RHICommandList& commandList = getCommandList();
-		RHIGraphicsBatchManager::Get().mBatchedRender.beginRender(commandList);
+		auto& batchedRenderer = RHIGraphicsBatchManager::Get().mBatchedRender;
+		batchedRenderer.setViewportSize(mViewportWidth, mViewportHeight);
+		batchedRenderer.beginRender(commandList);
 	}
 
 

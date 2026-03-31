@@ -3,6 +3,7 @@
 #include "RHI/RHICommand.h"
 #include "RHI/TextureAtlas.h"
 #include "RHI/Font.h"
+#include "RHI/GpuProfiler.h"
 #include "Platform/Windows/ComUtility.h"
 
 #include "ImGui/backends/imgui_impl_dx11.h"
@@ -312,7 +313,22 @@ public:
 		const float clear_color_with_alpha[4] = { 0,0,0,1 };
 		mDeviceContext->OMSetRenderTargets(1, &renderData->mRenderTargetView, NULL);
 		mDeviceContext->ClearRenderTargetView(renderData->mRenderTargetView, clear_color_with_alpha);
-		ImGui_ImplDX11_RenderDrawData(drawData);
+
+		if (GRHISystem->mProfileCore)
+		{
+			GRHISystem->mProfileCore->onBeginRhiFrame(mDeviceContext.get());
+		}
+
+		{
+			GPU_PROFILE("Editor UI Draw");
+			ImGui_ImplDX11_RenderDrawData(drawData);
+		}
+
+		if (GRHISystem->mProfileCore)
+		{
+			GRHISystem->mProfileCore->onEndRhiFrame(mDeviceContext.get());
+		}
+
 		renderData->mSwapChain->Present(0, 0);
 	}
 
@@ -571,7 +587,20 @@ public:
 		// Temporarily point the global GraphicsCmdList to the editor's localized one for ImGui UI functions if they need it
 		mSystem->mRenderContext.mGraphicsCmdList = (Render::ID3D12GraphicsCommandListRHI*)cmdList.get();
 
-		ImGui_ImplDX12_RenderDrawData(drawData, cmdList.get());
+		if (mSystem->mProfileCore)
+		{
+			mSystem->mProfileCore->onBeginRhiFrame(cmdList.get());
+		}
+
+		{
+			GPU_PROFILE("Editor UI Draw");
+			ImGui_ImplDX12_RenderDrawData(drawData, cmdList.get());
+		}
+
+		if (mSystem->mProfileCore)
+		{
+			mSystem->mProfileCore->onEndRhiFrame(cmdList.get());
+		}
 
 		// Restore to native
 		mSystem->mRenderContext.mGraphicsCmdList = nativeCmdList;
@@ -621,7 +650,17 @@ public:
 		mSystem->mRenderContext.mGraphicsCmdList = (Render::ID3D12GraphicsCommandListRHI*)cmdList;
 
 
+		if (mSystem->mProfileCore)
+		{
+			mSystem->mProfileCore->onBeginRhiFrame(cmdList);
+		}
+
 		GDefaultImGuiRenderer_RenderWindow(viewport, renderArg);
+
+		if (mSystem->mProfileCore)
+		{
+			mSystem->mProfileCore->onEndRhiFrame(cmdList);
+		}
 		mSystem->mRenderContext.mGraphicsCmdList = nativeCmdList;
 		mSystem->mRenderContext.mRenderTargetsState = prevRenderTargetsState;
 	}
@@ -1305,11 +1344,18 @@ public:
 		renderPassInfo.pClearValues = clearValues.data();
 
 		mSystem->mDrawContext.mActiveCmdBuffer = cmdBuffer;
-		mSystem->mProfileCore->mCmdList = cmdBuffer;
 		mSystem->mDrawContext.mInsideRenderPass = true;
 
+		if (mSystem->mProfileCore)
+		{
+			mSystem->mProfileCore->onBeginRhiFrame(&mSystem->mDrawContext);
+		}
+
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+		{
+			GPU_PROFILE("Editor UI Draw");
+			ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+		}
 		
 		if (mSystem->mDrawContext.mInsideRenderPass)
 		{
@@ -1317,8 +1363,12 @@ public:
 			mSystem->mDrawContext.mInsideRenderPass = false;
 		}
 
+		if (mSystem->mProfileCore)
+		{
+			mSystem->mProfileCore->onEndRhiFrame(&mSystem->mDrawContext);
+		}
+
 		mSystem->mDrawContext.mActiveCmdBuffer = VK_NULL_HANDLE;
-		mSystem->mProfileCore->mCmdList = VK_NULL_HANDLE;
 
 		FVulkan::FlushCommandBuffer(mDevice, cmdBuffer, mSystem->mGraphicsQueue, mSystem->mGraphicsCommandPool, true, renderData->mImageAvailableSemaphore);
 
@@ -1385,13 +1435,9 @@ public:
 		bool initRenderResource(EditorWindow& window)
 		{
 			WGLPixelFormat format;
-			mContext.init(window.getHDC(), format, true);
-			if (!wglShareLists(static_cast<OpenGLSystem*>(GRHISystem)->mGLContext.getHandle(), mContext.getHandle()))
-			{
-			}
+			mContext.setupPixelFormat(window.getHDC(), format, true);
 			return true;
 		}
-
 
 		WindowsGLContext mContext;
 	};
@@ -1448,12 +1494,32 @@ public:
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 
-		renderData->mContext.makeCurrent();
+		HGLRC mainRC = static_cast<OpenGLSystem*>(GRHISystem)->mGLContext.getHandle();
+
+		// Force the driver to unbind the current context so that it correctly updates 
+		// its internal default framebuffer constraints (FBO 0) to the new HDC's size!
+		wglMakeCurrent(NULL, NULL);
+		wglMakeCurrent(window.getHDC(), mainRC);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClearColor(0,0,0,1);
 		glClear(GL_COLOR_BUFFER_BIT);
-		ImGui_ImplOpenGL3_RenderDrawData(drawData);
-		renderData->mContext.swapBuffer();
+
+		{
+			GPU_PROFILE("Editor UI Draw");
+			ImGui_ImplOpenGL3_RenderDrawData(drawData);
+		}
+
+		SwapBuffers(window.getHDC());
+
+		// CRITICAL: Unbind then restore the main OpenGL context to the Main Window's HDC!
+		wglMakeCurrent(NULL, NULL);
+		static_cast<OpenGLSystem*>(GRHISystem)->mGLContext.makeCurrent();
+	}
+
+	void renderViewport(ImGuiViewport* viewport, void* renderArg) override
+	{
+
 	}
 
 	void notifyWindowResize(EditorWindow& window, int width, int height) override
@@ -1476,6 +1542,8 @@ public:
 	{
 		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
 	}
+
+
 };
 
 IEditorRenderer* IEditorRenderer::Create()

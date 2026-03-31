@@ -969,6 +969,12 @@ void TinyGameApp::handleGameFrameStart()
 		PROFILE_ENTRY("DrawEngine.SyncFrame");
 		::Global::GetDrawEngine().syncFrame();
 	}
+
+	if (CVarProfileGPU)
+	{
+		using namespace Render;
+		GpuProfiler::Get().beginFrame();
+	}
 }
 
 long TinyGameApp::handleGameUpdate( long shouldTime )
@@ -1479,12 +1485,6 @@ void TinyGameApp::render( float dframe )
 			return;
 	}
 
-	{
-		PROFILE_ENTRY("GpuProfiler.BeginFrame");
-		if (CVarProfileGPU)
-			GpuProfiler::Get().beginFrame();
-	}
-
 	++GRenderFrame;
 
 	if ( getNextStage() || mbInitializingStage )
@@ -1692,11 +1692,6 @@ void TinyGameApp::render( float dframe )
 	g.endRender();	
 #endif
 
-	{
-		PROFILE_ENTRY("ProfileGPU.endFrame");
-		if (CVarProfileGPU)
-			GpuProfiler::Get().endFrame();
-	}
 
 
 	{
@@ -1713,6 +1708,10 @@ void TinyGameApp::render( float dframe )
 	}
 #endif
 
+	if (CVarProfileGPU)
+	{
+		GpuProfiler::Get().endFrame();
+	}
 }
 
 void TinyGameApp::importUserProfile()

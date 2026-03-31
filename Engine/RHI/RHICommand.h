@@ -453,6 +453,7 @@ namespace Render
 		RHI_FUNC(RHIBottomLevelAccelerationStructure* RHICreateBottomLevelAccelerationStructure(RayTracingGeometryDesc const* geometries, int numGeometries, EAccelerationStructureBuildFlags flags));
 		RHI_FUNC(RHITopLevelAccelerationStructure* RHICreateTopLevelAccelerationStructure(uint32 numInstances, EAccelerationStructureBuildFlags flags));
 		RHI_FUNC(RHIRayTracingShaderTable* RHICreateRayTracingShaderTable(RHIRayTracingPipelineState* pipelineState));
+		class RHIProfileCore* mProfileCore = nullptr;
 	};
 
 #if RHI_USE_RESOURCE_TRACE

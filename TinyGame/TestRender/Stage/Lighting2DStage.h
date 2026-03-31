@@ -129,19 +129,17 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_SHADER_PARAM(parameterMap, LightLocation);
-			BIND_SHADER_PARAM(parameterMap, ScreenSize);
-			BIND_SHADER_PARAM(parameterMap, XForm);
+			BIND_SHADER_PARAM(parameterMap, WorldToClip);
 		}
 
-		void setParameters(RHICommandList& commandList, Vector2 const& lightPos, Vector2 const& screenSize)
+		void setParameters(RHICommandList& commandList, Vector2 const& lightPos, Matrix4 const& worldToClip)
 		{
 			SET_SHADER_PARAM(commandList, *this, LightLocation, lightPos);
-			SET_SHADER_PARAM(commandList, *this, ScreenSize, screenSize);
+			SET_SHADER_PARAM(commandList, *this, WorldToClip, worldToClip);
 		}
 
 		DEFINE_SHADER_PARAM(LightLocation);
-		DEFINE_SHADER_PARAM(ScreenSize);
-		DEFINE_SHADER_PARAM(XForm);
+		DEFINE_SHADER_PARAM(WorldToClip);
 	};
 
 	class Shadow1DMapCS : public GlobalShaderProgram

@@ -520,11 +520,6 @@ namespace Render
 			}
 		}
 
-		void resetDescHeap()
-		{
-			mNumUsedHeaps = 0;
-			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
-		}
 
 		ID3D12PipelineState*     mPiplineStateCommitted = nullptr;
 
@@ -561,14 +556,19 @@ namespace Render
 		void commitInputStreams(bool bForce);
 		void commitInputBuffer(bool bForce);
 
+		void resetDescHeap()
+		{
+			mNumUsedHeaps = 0;
+			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
+		}
+
 		void updateCSUHeapUsage(D3D12PooledHeapHandle const& handle)
 		{
 			if (handle.chunk == nullptr)
 			{
 				return;
 			}
-			//mGraphicsCmdList->SetDescriptorHeaps(1, &handle.chunk->resource);
-			//return;
+
 			if (mUsedDescHeaps[0] != handle.chunk->resource)
 			{
 				if (mUsedDescHeaps[0] == nullptr)
@@ -584,8 +584,7 @@ namespace Render
 			{
 				return;
 			}
-			//mGraphicsCmdList->SetDescriptorHeaps(1, &handle.chunk->resource);
-			//return;
+
 			if (mUsedDescHeaps[1] != handle.chunk->resource)
 			{
 				if (mUsedDescHeaps[1] == nullptr)
@@ -598,9 +597,9 @@ namespace Render
 					mGraphicsCmdList->SetDescriptorHeaps(mNumUsedHeaps, mUsedDescHeaps);
 			}
 		}
+
 		ID3D12DescriptorHeap* mUsedDescHeaps[2];
 		int mNumUsedHeaps = 0;
-
 
 		uint32 getRootSlot(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
 		uint32 mRootSlotStart[EShader::Count];
@@ -885,7 +884,7 @@ namespace Render
 		D3D12Context   mRenderContext;
 		TComPtr<ID3D12DeviceRHI> mDevice;
 
-		class D3D12ProfileCore* mProfileCore = nullptr;
+		RHIProfileCore* mProfileCore = nullptr;
 		TRefCountPtr< D3D12SwapChain > mSwapChain;
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;

@@ -7,6 +7,9 @@ uniform float4x4 WorldToClip;
 DEFINE_STRUCTURED_BUFFER(Light, Lights);
 
 #if VERTEX_SHADER
+
+#if SHADER_ENTRY(MainVS)
+
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
 	VS_INPUT_INSTANCEID
@@ -19,6 +22,8 @@ VS_ENTRY_END(MainVS)
 	SvPosition = mul(WorldToClip, float4(worldPos, 0, 1.0));
 	LightId = SvInstanceID;
 }
+#endif
+
 #endif
 
 
@@ -47,6 +52,7 @@ PS_ENTRY_END(LightingPS)
 }
 
 #endif
+
 
 
 #if SHADER_ENTRY(LightingShadowMapPS)
@@ -99,7 +105,8 @@ PS_ENTRY_END(LightingShadowMapPS)
 	float minOccluderDist = TEXTURE_SAMPLE(ShadowMapAtlas, float2(x, y)).a;
 	#endif
 	// 2. Consistent base lighting calculation
-	float3 baseColor = (light.color.rgb) * (light.intensity / dot(light.attenuation, float3(1, distance, distance * distance)));
+	float attDist = max(0.0, distance - light.sourceRadius);
+	float3 baseColor = (light.color.rgb) * (light.intensity / dot(light.attenuation, float3(1, attDist, attDist * attDist)));
 
 	// Radius-based Fade Out to ensure sharp cut at radius boundary
 	float distRatio = saturate(distance / light.radius);
@@ -125,7 +132,7 @@ PS_ENTRY_END(LightingShadowMapPS)
 		return;
 	}
 	
-	float filterWidthInTexels = clamp(angularWidth * (SHADOW_TEXTURE_WIDTH / (2 * PI)), 1.0, SHADOW_TEXTURE_WIDTH);
+	float filterWidthInTexels = clamp(angularWidth * (SHADOW_TEXTURE_WIDTH / (2 * PI)), 1.0, float(SHADOW_TEXTURE_WIDTH));
 
 	// 3. Jittered PCF with strict depth-based penumbra rule
 	float shadow = 0.0;
@@ -142,7 +149,7 @@ PS_ENTRY_END(LightingShadowMapPS)
 		float Da = data.r;
 		
 		// Rule: Only calculate penumbra alpha if pixel distance > shadowMap distance
-		if (distance > Da + 0.02) 
+		if (distance > Da + ShadowBias)
 		{
 			float betaL = data.g; 
 			float betaR = data.b;

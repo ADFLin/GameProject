@@ -23,20 +23,24 @@ namespace Render
 
 
 
-	float CalculateLightRadius(Vector3 const& attenuation, float epsilon = 0.01f, float maxRadius = 2000.0f)
+	float CalculateLightRadius(float intensity, Color3f const& color, float sourceRadius, Vector3 const& attenuation, float epsilon = 0.01f, float maxRadius = 2000.0f)
 	{
+		// Use Rec. 709 luminance coefficients for more accurate perceived brightness
+		float colorLuminance = 0.2126f * color.r + 0.7152f * color.g + 0.0722f * color.b;
+		float effectiveIntensity = intensity * colorLuminance;
+
 		float a = attenuation.z;
 		float b = attenuation.y;
-		float c = attenuation.x - (1.0f / epsilon);
+		float c = attenuation.x - (effectiveIntensity / epsilon);
 
 		if (c > 0) 
-			return 0.0f;
+			return sourceRadius;
 		
 		if (Math::Abs(a) < 1e-6f)
 		{
 			if (Math::Abs(b) < 1e-6f)
 				return maxRadius; 
-			return Math::Min(maxRadius, -c / b);
+			return Math::Min(maxRadius, -c / b + sourceRadius);
 		}
 
 		float discriminant = b * b - 4.0f * a * c;
@@ -44,7 +48,7 @@ namespace Render
 			return maxRadius; 
 		
 		float radius = (-b + Math::Sqrt(discriminant)) / (2.0f * a);
-		return Math::Min(maxRadius, radius);
+		return Math::Min(maxRadius, radius + sourceRadius);
 	}
 
 	bool Lighting2DTestStage::onInit()
@@ -108,7 +112,7 @@ namespace Render
 				if (mSelectedLightIndex != INDEX_NONE)
 				{
 					Light& light = lights[mSelectedLightIndex];
-					light.radius = CalculateLightRadius(light.attenuation);
+					light.radius = CalculateLightRadius(light.intensity, light.color, light.sourceRadius, light.attenuation);
 				}
 			});
 		}
@@ -166,7 +170,7 @@ namespace Render
 					light.color = Color3f(float(::Global::Random()) / RAND_MAX,
 										  float(::Global::Random()) / RAND_MAX,
 										  float(::Global::Random()) / RAND_MAX);
-					light.radius = CalculateLightRadius(light.attenuation);
+					light.radius = CalculateLightRadius(light.intensity, light.color, light.sourceRadius, light.attenuation);
 					lights.push_back(light);
 				}
 				for( int i = 0; i < blockNum; ++i )
@@ -277,8 +281,7 @@ namespace Render
 					if (bUseGeometryShader)
 					{
 						RHISetShaderProgram(commandList, mProgShadow->getRHI());
-						SET_SHADER_PARAM(commandList, *mProgShadow, WorldToClip, worldToClipRHI);
-						mProgShadow->setParameters(commandList, light.pos, ::Global::GetScreenSize());
+						mProgShadow->setParameters(commandList, light.pos, worldToClipRHI);
 
 						if (!mBuffers.empty())
 						{
@@ -438,7 +441,7 @@ namespace Render
 					float(::Global::Random()) / RAND_MAX,
 					float(::Global::Random()) / RAND_MAX,
 					float(::Global::Random()) / RAND_MAX);
-				light.radius = CalculateLightRadius(light.attenuation);
+				light.radius = CalculateLightRadius(light.intensity, light.color, light.sourceRadius, light.attenuation);
 				lights.push_back(light);
 				mSelectedLightIndex = (int)lights.size() - 1;
 				updateDetailView();

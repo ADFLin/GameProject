@@ -95,7 +95,11 @@ uniform int    LightCount;
 uniform int    SegmentCount;
 uniform float  ShadowBias;
 
-uniform image2D ShadowMapAtlas;
+#if COMPILER_HLSL
+uniform RWTexture2D<float4> ShadowMapAtlas;
+#else
+layout(rgba32f) uniform image2D writeonly ShadowMapAtlas;
+#endif
 
 CS_NUM_THREADS(32, 1, 1)
 CS_ENTRY(MainCS)
@@ -165,7 +169,11 @@ CS_ENTRY(MainCS)
 #if SHADER_ENTRY(BlockerSearchCS)
 
 uniform int    MaxLightNum;
-uniform image2D ShadowMapAtlas;
+#if COMPILER_HLSL
+uniform RWTexture2D<float4> ShadowMapAtlas;
+#else
+layout(rgba32f) uniform image2D ShadowMapAtlas;
+#endif
 
 CS_NUM_THREADS(32, 1, 1)
 CS_ENTRY(BlockerSearchCS)

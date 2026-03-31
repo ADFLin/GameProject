@@ -11,6 +11,8 @@
 #include "LogSystem.h"
 #include "GpuProfiler.h"
 #include "MacroCommon.h"
+#include <set>
+#include "DataStructure/Array.h"
 
 #pragma comment(lib , "DXGI.lib")
 
@@ -43,6 +45,10 @@ namespace Render
 		{
 			mCycleToMillisecond = 0;
 			mCurFrameIndex = 0;
+			mRecordingFrameIndex = 0;
+			bRecordingStarted = false;
+			mCmdList = nullptr;
+			mPendingStartHandles.clear();
 		}
 
 		bool init(TComPtr<ID3D12DeviceRHI> const& device, double cycleToMillisecond)
@@ -95,19 +101,75 @@ namespace Render
 
 		virtual void beginFrame() override
 		{
-			mNextHandle[mCurFrameIndex] = 1;
-			mCmdList->EndQuery(mFrameChunks[mCurFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 0);
+			mNextHandle[mCurFrameIndex] = 0;
+			mRecordingFrameIndex = mCurFrameIndex;
+			bRecordingStarted = false;
+			mPendingStartHandles.clear();
 		}
 
 		virtual bool endFrame() override
 		{
-			mCmdList->EndQuery(mFrameChunks[mCurFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 1);
-			for (auto& chunk : mFrameChunks[mCurFrameIndex])
-			{
-				mCmdList->ResolveQueryData(chunk.heap, D3D12_QUERY_TYPE_TIMESTAMP, 0, TimeStampChunk::Size * 2, chunk.resultResource, 0);
-			}
+			bRecordingStarted = false;
+			mCmdList = nullptr;
+			mActiveHandles.clear();
+			mPendingStartHandles.clear();
+
+			mNextHandle[mCurFrameIndex] = 0;
 			mCurFrameIndex = (mCurFrameIndex + 1) % NUM_FRAME_BUFFER;
 			return true;
+		}
+
+		void onBeginRender(ID3D12GraphicsCommandListRHI* cmdList)
+		{
+			mCmdList = cmdList;
+			if (mCmdList && mFrameChunks[mRecordingFrameIndex].size() > 0)
+			{
+				if (bRecordingStarted == false)
+				{
+					mCmdList->EndQuery(mFrameChunks[mRecordingFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 0);
+					bRecordingStarted = true;
+				}
+
+				for (uint32 handle : mPendingStartHandles)
+				{
+					uint32 chunkIndex = handle / TimeStampChunk::Size;
+					uint32 index = 2 * (handle % TimeStampChunk::Size);
+					mCmdList->EndQuery(mFrameChunks[mRecordingFrameIndex][chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 0);
+					mActiveHandles.insert(handle);
+				}
+				mPendingStartHandles.clear();
+			}
+		}
+
+		void onEndRender(ID3D12GraphicsCommandListRHI* cmdList)
+		{
+			if (mCmdList && bRecordingStarted && mFrameChunks[mRecordingFrameIndex].size() > 0)
+			{
+				mCmdList->EndQuery(mFrameChunks[mRecordingFrameIndex][0].heap, D3D12_QUERY_TYPE_TIMESTAMP, 1);
+				
+				for (uint32 handle : mActiveHandles)
+				{
+					uint32 chunkIndex = handle / TimeStampChunk::Size;
+					uint32 index = 2 * (handle % TimeStampChunk::Size);
+					mCmdList->EndQuery(mFrameChunks[mRecordingFrameIndex][chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 1);
+				}
+
+				for (auto& chunk : mFrameChunks[mRecordingFrameIndex])
+				{
+					mCmdList->ResolveQueryData(chunk.heap, D3D12_QUERY_TYPE_TIMESTAMP, 0, TimeStampChunk::Size * 2, chunk.resultResource, 0);
+				}
+			}
+			mCmdList = nullptr;
+		}
+
+		virtual void onBeginRhiFrame(void* cmdList) override
+		{
+			onBeginRender((ID3D12GraphicsCommandListRHI*)cmdList);
+		}
+
+		virtual void onEndRhiFrame(void* cmdList) override
+		{
+			onEndRender((ID3D12GraphicsCommandListRHI*)cmdList);
 		}
 
 		virtual void beginReadback() override
@@ -128,6 +190,7 @@ namespace Render
 				}
 			}
 		}
+
 
 		virtual uint32 fetchTiming() override
 		{
@@ -150,15 +213,25 @@ namespace Render
 		{
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+			if (mCmdList == nullptr)
+			{
+				if (frameIndex == mRecordingFrameIndex)
+					mPendingStartHandles.push_back(handle);
+				return;
+			}
 			uint32 chunkIndex = handle / TimeStampChunk::Size;
 			uint32 index = 2 * (handle % TimeStampChunk::Size);
 			mCmdList->EndQuery(mFrameChunks[frameIndex][chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 0);
+			mActiveHandles.insert(handle);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
 		{
-			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+			mActiveHandles.erase(handle);
+			if (mCmdList == nullptr) return;
+
+			uint32 frameIndex = timingHandle >> 24;
 			uint32 chunkIndex = handle / TimeStampChunk::Size;
 			uint32 index = 2 * (handle % TimeStampChunk::Size);
 			mCmdList->EndQuery(mFrameChunks[frameIndex][chunkIndex].heap, D3D12_QUERY_TYPE_TIMESTAMP, index + 1);
@@ -187,7 +260,7 @@ namespace Render
 				// On some hardware/drivers, Map can return without waiting if no range is specified, 
 				// but ResolveQueryData might still be in flight. 
 				// Usually with 2 frames of lag, the data will be 0 or ready.
-				if (startData == 0 && endData == 0)
+				if (startData == 0 || endData == 0)
 					return false;
 
 				outDuration = endData - startData;
@@ -229,8 +302,11 @@ namespace Render
 		uint32 mNextHandle[NUM_FRAME_BUFFER];
 		TArray< TimeStampChunk > mFrameChunks[NUM_FRAME_BUFFER];
 		int mCurFrameIndex;
-		ID3D12GraphicsCommandListRHI* mReadBackCmdList;
 		ID3D12GraphicsCommandListRHI* mCmdList;
+		TArray< uint32 > mPendingStartHandles;
+		std::set< uint32 >   mActiveHandles;
+		int mRecordingFrameIndex;
+		bool bRecordingStarted;
 		TComPtr<ID3D12DeviceRHI> mDevice;
 	};
 #endif
@@ -395,7 +471,7 @@ namespace Render
 			{
 				double cycleToMillisecond = 1000.0 / frequency;
 				mProfileCore = new D3D12ProfileCore;
-				mProfileCore->init(mDevice, cycleToMillisecond);
+				static_cast<D3D12ProfileCore*>(mProfileCore)->init(mDevice, cycleToMillisecond);
 			}
 		}
 
@@ -417,7 +493,7 @@ namespace Render
 
 		if (mProfileCore)
 		{
-			mProfileCore->mCmdList = mRenderContext.mGraphicsCmdList;
+			mProfileCore->onBeginRhiFrame(mRenderContext.mGraphicsCmdList);
 		}
 
 		mbInRendering = true;
@@ -430,6 +506,13 @@ namespace Render
 		{
 			return;
 		}
+
+#if 1
+		if (mProfileCore)
+		{
+			mProfileCore->onEndRhiFrame(mRenderContext.mGraphicsCmdList);
+		}
+#endif
 
 		mbInRendering = false;
 
@@ -3270,7 +3353,7 @@ namespace Render
 		auto system = static_cast<D3D12System*>(GRHISystem);
 		if (system->mProfileCore)
 		{
-			system->mProfileCore->mCmdList = mGraphicsCmdList;
+			system->mProfileCore->onBeginRhiFrame(mGraphicsCmdList);
 		}
 
 		commitRenderTargetState();
@@ -3351,20 +3434,21 @@ namespace Render
 
 		if (d3d12RtPso->mBoundState && d3d12RtPso->mBoundState->mRootSignature)
 		{
+			mComputeBoundState = d3d12RtPso->mBoundState;
 			mGraphicsCmdList->SetComputeRootSignature(d3d12RtPso->mBoundState->mRootSignature);
+			resetDescHeap();
+
 			for (auto& shaderInfo : d3d12RtPso->mBoundState->mShaders)
 			{
 				mRootSlotStart[shaderInfo.type] = shaderInfo.rootSlotStart;
 			}
-
-			mNumUsedHeaps = 0;
-			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
 		}
 	}
 
 	void D3D12Context::RHIDispatchRays(uint32 width, uint32 height, uint32 depth)
 	{
-		if (!mCurrentRayTracingPipelineState) return;
+		if (!mCurrentRayTracingPipelineState) 
+			return;
 
 		D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 
@@ -3494,7 +3578,9 @@ namespace Render
 
 	void D3D12Context::RHISetShaderAccelerationStructure(RHIShader* shader, char const* name, RHIAccelerationStructure* as)
 	{
-		if (!mCurrentRayTracingPipelineState) return;
+		if (!mCurrentRayTracingPipelineState) 
+			return;
+
 		if (!as || as->getResourceType() != EResourceType::TopLevelAccelerationStructure) return;
 
 		auto* d3d12Tlas = static_cast<D3D12TopLevelAccelerationStructure*>(as);
@@ -3579,12 +3665,15 @@ namespace Render
 
 	void D3D12Context::setGfxShaderBoundState(D3D12ShaderBoundState* newState)
 	{
+		if (mGfxBoundState == newState)
+			return;
+
 		mGfxBoundState = newState;
 		if (newState)
 		{
 			mGraphicsCmdList->SetGraphicsRootSignature(mGfxBoundState->mRootSignature);
-			mNumUsedHeaps = 0;
-			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
+
+			resetDescHeap();
 
 			for (auto& shaderInfo : mGfxBoundState->mShaders)
 			{
@@ -3595,12 +3684,15 @@ namespace Render
 
 	void D3D12Context::setComputeShaderBoundState(D3D12ShaderBoundState* newState)
 	{
+		if (mComputeBoundState == newState)
+			return;
+
 		mComputeBoundState = newState;
 		if (newState)
 		{
 			mGraphicsCmdList->SetComputeRootSignature(mComputeBoundState->mRootSignature);
-			mNumUsedHeaps = 0;
-			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
+
+			resetDescHeap();
 
 			auto& shaderInfo = mComputeBoundState->mShaders[0];
 			mRootSlotStart[shaderInfo.type] = shaderInfo.rootSlotStart;

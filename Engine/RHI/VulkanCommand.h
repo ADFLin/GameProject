@@ -10,6 +10,7 @@
 #include "VulkanShaderCommon.h"
 
 #include <unordered_map>
+#include <set>
 
 #if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
@@ -632,9 +633,14 @@ namespace Render
 			return true;
 		}
 
-		virtual void beginFrame() override
+		virtual void onBeginRhiFrame(void* context) override
 		{
-			// State-only or stuff that doesn't need CMD buffer
+			onBeginRender(*(VulkanContext*)context);
+		}
+
+		virtual void onEndRhiFrame(void* context) override
+		{
+			onEndRender(*(VulkanContext*)context);
 		}
 
 		void onBeginRender(VulkanContext& context)
@@ -645,18 +651,45 @@ namespace Render
 
 			if (cmdBuffer != VK_NULL_HANDLE && mFrameChunks[mRecordingFrameIndex].size() > 0)
 			{
-				for (auto& chunk : mFrameChunks[mRecordingFrameIndex])
+				if (bRecordingStarted == false)
 				{
-					vkCmdResetQueryPool(cmdBuffer, chunk.queryPool, 0, TimeStampChunk::Size * 2);
+					for (auto& chunk : mFrameChunks[mRecordingFrameIndex])
+					{
+						vkCmdResetQueryPool(cmdBuffer, chunk.queryPool, 0, TimeStampChunk::Size * 2);
+					}
+					// Frame boundary markers
+					vkCmdWriteTimestamp(cmdBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, mFrameChunks[mRecordingFrameIndex][0].queryPool, 0);
+					bRecordingStarted = true;
 				}
-				vkCmdWriteTimestamp(cmdBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, mFrameChunks[mRecordingFrameIndex][0].queryPool, 0);
+
+				for (uint32 handle : mPendingStartHandles)
+				{
+					uint32 chunkIndex = handle / TimeStampChunk::Size;
+					uint32 index = 2 * (handle % TimeStampChunk::Size);
+					if (chunkIndex < mFrameChunks[mRecordingFrameIndex].size())
+					{
+						vkCmdWriteTimestamp(cmdBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, mFrameChunks[mRecordingFrameIndex][chunkIndex].queryPool, index + 0);
+						mActiveHandles.insert(handle);
+					}
+				}
+				mPendingStartHandles.clear();
 			}
+		}
+
+		virtual void beginFrame() override
+		{
+			mNextHandle[mCurFrameIndex] = 1;
+			mRecordingFrameIndex = mCurFrameIndex;
+			bRecordingStarted = false;
+			mPendingStartHandles.clear();
 		}
 
 		virtual bool endFrame() override
 		{
 			mNextHandle[mCurFrameIndex] = 1; // 0 is reserved
 			mCurFrameIndex = (mCurFrameIndex + 1) % NUM_FRAME_BUFFER;
+			bRecordingStarted = false;
+			mPendingStartHandles.clear();
 			return true;
 		}
 
@@ -665,6 +698,16 @@ namespace Render
 			VkCommandBuffer cmdBuffer = context.getActiveCommandBuffer();
 			if (cmdBuffer != VK_NULL_HANDLE && mFrameChunks[mRecordingFrameIndex].size() > 0)
 			{
+				for (uint32 handle : mActiveHandles)
+				{
+					uint32 chunkIndex = handle / TimeStampChunk::Size;
+					uint32 index = 2 * (handle % TimeStampChunk::Size);
+					if (chunkIndex < mFrameChunks[mRecordingFrameIndex].size())
+					{
+						vkCmdWriteTimestamp(cmdBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, mFrameChunks[mRecordingFrameIndex][chunkIndex].queryPool, index + 1);
+					}
+				}
+				// Frame boundary markers end
 				vkCmdWriteTimestamp(cmdBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, mFrameChunks[mRecordingFrameIndex][0].queryPool, 1);
 			}
 			mCmdList = VK_NULL_HANDLE;
@@ -698,24 +741,34 @@ namespace Render
 
 		virtual void startTiming(uint32 timingHandle) override
 		{
-			if (mCmdList == VK_NULL_HANDLE)
-				return;
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+
+			if (mCmdList == VK_NULL_HANDLE)
+			{
+				if (frameIndex == mRecordingFrameIndex)
+					mPendingStartHandles.push_back(handle);
+				return;
+			}
+
 			uint32 chunkIndex = handle / TimeStampChunk::Size;
 			uint32 index = 2 * (handle % TimeStampChunk::Size);
 			if (chunkIndex < mFrameChunks[frameIndex].size())
 			{
 				vkCmdWriteTimestamp(mCmdList, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, mFrameChunks[frameIndex][chunkIndex].queryPool, index + 0);
+				mActiveHandles.insert(handle);
 			}
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
 		{
-			if (mCmdList == VK_NULL_HANDLE)
-				return;
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+			mActiveHandles.erase(handle);
+
+			if (mCmdList == VK_NULL_HANDLE)
+				return;
+
 			uint32 chunkIndex = handle / TimeStampChunk::Size;
 			uint32 index = 2 * (handle % TimeStampChunk::Size);
 			if (chunkIndex < mFrameChunks[frameIndex].size())
@@ -769,6 +822,9 @@ namespace Render
 		TArray< TimeStampChunk > mFrameChunks[NUM_FRAME_BUFFER];
 		int mCurFrameIndex;
 		int mRecordingFrameIndex = 0;
+		bool bRecordingStarted = false;
+		TArray<uint32> mPendingStartHandles;
+		std::set<uint32> mActiveHandles;
 		VkCommandBuffer mCmdList = VK_NULL_HANDLE;
 		VulkanDevice* mDevice = nullptr;
 	};

@@ -7,11 +7,21 @@
 namespace Render
 {
 #if SHADER_DEBUG
-	void LogOuptput(char const* text, ShaderParameter const& param)
+	bool CheckParamIsBound(ShaderParameter const& param)
 	{
-		LogWarning(0, text, param.mName.c_str());
+		if (param.isBound())
+			return true;
+		
+		if (!param.bHasLogWarning)
+		{
+			LogWarning(0, "Shader Param is not bounded : %s", param.mName.c_str());
+			const_cast<ShaderParameter&>(param).bHasLogWarning = true;
+		}
+
+		return false;
 	}
-#define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){  if (!PARAM.bHasLogWarning){ const_cast<ShaderParameter&>( PARAM ).bHasLogWarning = true; LogOuptput( "Shader Param is not bounded : %s" , PARAM ); } return; } }
+
+#define CHECK_PARAMETER( PARAM ) { if (!CheckParamIsBound(PARAM)) return; }
 #else
 #define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){ return; } }
 #endif

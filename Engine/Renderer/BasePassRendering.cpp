@@ -34,6 +34,7 @@ namespace Render
 			desc.size = size;
 			desc.numSamples = numSamples;
 			desc.creationFlags = TCF_CreateSRV;
+			desc.clearColor = LinearColor(0,0,0,0);
 			if (i == EGBuffer::A)
 			{
 				desc.creationFlags |= TCF_CreateUAV;

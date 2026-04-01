@@ -27,7 +27,7 @@ struct GBufferData
 
 float3 GetGBufferNormal(float2 UVs)
 {
-	return TEXTURE_SAMPLE(GBufferTextureB, UVs).xyz;
+	return TEXTURE_SAMPLE(GBufferTextureA, UVs).xyz;
 }
 
 float3 EncodeNormal(float3 value)

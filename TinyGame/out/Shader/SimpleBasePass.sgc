@@ -22,7 +22,7 @@ VS_ENTRY_END(BasePassVS)
 {
 	OutputVS.color = InColor;
 	OutputVS.worldPos = mul( Primitive.localToWorld , float4(InPos , 1 ) );
-	OutputVS.normal = mul( float4(InNormal, 0) , Primitive.worldToLocal );
+	OutputVS.normal = mul( Primitive.worldToLocal , float4(InNormal, 0) );
 	SvPosition = mul( View.worldToClip , OutputVS.worldPos);
 }
 

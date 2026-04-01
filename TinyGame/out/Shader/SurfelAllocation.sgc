@@ -1,0 +1,138 @@
+#include "DeferredShadingCommon.sgc"
+
+struct SurfelData
+{
+	float4 posAndRadius; // xyz: position, w: radius
+	float4 normalAndDummy; // xyz: normal, w: dummy
+};
+
+// Explicit binding for SceneDepth
+Texture2D SceneDepth;
+
+float Hash(uint n) 
+{
+	n = (n << 13U) ^ n;
+	n = n * (n * n * 15731U + 789221U) + 1376312589U;
+	return float(n & uint(0x7fffffffU)) / float(0x7fffffff);
+}
+
+#if COMPUTE_SHADER
+DEFINE_RW_STRUCTURED_BUFFER(SurfelData, SurfelBuffer);
+DEFINE_RW_STRUCTURED_BUFFER(uint, SurfelCounter);
+
+[numthreads(8, 8, 1)]
+void SurfelAllocationCS(uint3 SvDispatchThreadID : SV_DispatchThreadID)
+{
+	float2 screenSize = 1.0 / View.rectPosAndSizeInv.zw;
+	if (SvDispatchThreadID.x >= (uint)screenSize.x || SvDispatchThreadID.y >= (uint)screenSize.y)
+		return;
+
+	// SCREEN SPACE TILES (24x24) - Standard for a good balance of density
+	uint2 tileID = SvDispatchThreadID.xy / 24;
+	uint2 localID = SvDispatchThreadID.xy % 24;
+
+	float2 invScreen = View.rectPosAndSizeInv.zw;
+	float2 centerUV = (float2(tileID * 24 + 12) + 0.5) * invScreen;
+	float centerDepth = SceneDepth.Load(int3(tileID * 24 + 12, 0)).r;
+	
+	// Create seed from World Cell index to ensure camera-movement stability
+	float3 tileWorldPos = StoreWorldPos(float2(centerUV.x, 1.0 - centerUV.y), centerDepth);
+	float cellSize = 0.25;
+	float3 worldCell = floor(tileWorldPos / cellSize);
+	uint seed = uint(abs(worldCell.x * 111) + abs(worldCell.y * 777) + abs(worldCell.z * 333));
+	
+	// Stochastic rejection for overall sparsity (approx 40% chance)
+	if (Hash(seed + 123) > 0.4)
+		return;
+
+	// Predict which pixel within the 24x24 tile is the "designated worker" for this cell
+	uint targetX = uint(Hash(seed + 456) * 23.0);
+	uint targetY = uint(Hash(seed + 789) * 23.0);
+
+	if (localID.x != targetX || localID.y != targetY)
+		return;
+
+	// Final verification of the winner pixel
+	float2 uv = (float2(SvDispatchThreadID.xy) + 0.5) * invScreen;
+	float depth = SceneDepth.Load(int3(SvDispatchThreadID.xy, 0)).r;
+	if (depth <= 0.0 || depth >= 1.0)
+		return;
+
+	float3 worldPos = StoreWorldPos(float2(uv.x, 1.0 - uv.y), depth);
+
+	uint index;
+	InterlockedAdd(SurfelCounter[0], 1, index);
+
+	if (index < 100000)
+	{
+		float3 encodedNormal = GetGBufferNormal(uv);
+		float3 worldNormal = normalize(DecodeNormal(encodedNormal));
+		
+		SurfelData s;
+		s.posAndRadius = float4(worldPos, 0.12); 
+		s.normalAndDummy = float4(worldNormal, 1.0);
+		SurfelBuffer[index] = s;
+	}
+}
+#endif
+
+#if VERTEX_SHADER
+DEFINE_STRUCTURED_BUFFER(SurfelData, SurfelBuffer);
+DEFINE_STRUCTURED_BUFFER(uint, SurfelCounter);
+
+struct VS_OUT
+{
+	float4 pos : SV_Position;
+	float3 normal : NORMAL;
+	float2 localUV : TEXCOORD0;
+	float4 color : COLOR;
+};
+
+void SurfelDisplayVS( uint SV_VertexID : SV_VertexID, uint SV_InstanceID : SV_InstanceID, out VS_OUT vout )
+{
+	uint surfelCount = SurfelCounter[0];
+	if (SV_InstanceID >= surfelCount || SV_InstanceID >= 81920)
+	{
+		vout.pos = float4(0, 0, 0, -1.0);
+		vout.normal = float3(0,0,0);
+		vout.localUV = float2(0,0);
+		vout.color = float4(0,0,0,0);
+		return;
+	}
+
+	SurfelData data = SurfelBuffer[SV_InstanceID];
+	float3 center = data.posAndRadius.xyz;
+	float radius = data.posAndRadius.w;
+	float3 worldNormal = data.normalAndDummy.xyz;
+
+	float3 up = abs(worldNormal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+	float3 right = normalize(cross(up, worldNormal));
+	float3 forward = cross(worldNormal, right);
+
+	float2 quadPos[6] = {
+		float2(-1, -1), float2(1, -1), float2(1, 1),
+		float2(-1, -1), float2(1, 1), float2(-1, 1)
+	};
+
+	float2 lPos = quadPos[SV_VertexID % 6];
+	float3 worldPos = center + (right * lPos.x + forward * lPos.y) * radius;
+
+	vout.pos = mul(View.worldToClip, float4(worldPos, 1.0));
+	vout.normal = worldNormal;
+	vout.localUV = lPos;
+	vout.color = float4(worldNormal * 0.5 + 0.5, 1.0);
+}
+#endif
+
+#if PIXEL_SHADER
+float4 SurfelDisplayPS( float4 inPos : SV_Position, float3 inNormal : NORMAL, float2 localUV : TEXCOORD0, float4 inColor : COLOR ) : SV_Target0
+{
+	float distSq = dot(localUV, localUV);
+	if (distSq > 1.0)
+		discard;
+
+	float alpha = 1.0 - smoothstep(0.9, 1.0, distSq);
+	float shading = saturate(dot(inNormal, normalize(float3(1, 1, 2)))) * 0.5 + 0.5;
+	return float4(inColor.rgb * shading, alpha);
+}
+#endif

@@ -1,0 +1,41 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "PrimitiveParam.sgc"
+
+struct VSOutput
+{
+	float3 rawNormal MEMBER_OUT(TEXCOORD0);
+};
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(DebugNormalVS)
+	VS_INPUT( float3 InPos,    ATTRIBUTE_POSITION )
+	VS_INPUT( float3 InNormal, ATTRIBUTE_NORMAL )
+	VS_OUTPUT_STRUCT(VSOutput OutputVS, 0)
+VS_ENTRY_END(DebugNormalVS)
+{
+	// 直接傳遞原始法線，不經過任何矩陣變換
+
+	float3 normal = mul(Primitive.localToWorld, float4(InNormal, 0)).xyz;
+	float4 worldPos = mul(Primitive.localToWorld, float4(InPos , 1 ) );
+
+
+	OutputVS.rawNormal = normal;
+	SvPosition = mul(View.worldToClip , worldPos);
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(DebugNormalPS)
+	PS_INPUT_STRUCT(VSOutput InputPS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(DebugNormalPS)
+{
+	float3 N = normalize(InputPS.rawNormal);
+	OutColor = float4(0.5 * N + 0.5, 1.0);
+}
+
+#endif

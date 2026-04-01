@@ -1,4 +1,4 @@
-#define MATERIAL_TEXCOORD_NUM 2
+#define MATERIAL_TEXCOORD_NUM 1
 
 #include "MaterialCommon.sgc"
 #include "ViewParam.sgc"
@@ -9,7 +9,7 @@ uniform float3    BaseColor = float3(1,1,1);
 
 void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	outputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0,0,0);
 }
 
 #endif //VERTEX_SHADER

@@ -258,6 +258,7 @@
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
+    <ClCompile Include="TestRender\Stage\GIRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\MeshImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\FractialStage.cpp" />

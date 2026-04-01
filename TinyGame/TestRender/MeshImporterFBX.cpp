@@ -307,8 +307,8 @@ namespace Render
 				if (pPosition)
 				{
 					FbxVector4 vLocal = pFBXMesh->GetControlPoints()[controlId];
-					FbxVector4 vGlobal = transform.MultT(vLocal);
-					*((Vector3*)pPosition) = importSetting.positionScale * Vector3(vGlobal.mData[0], vGlobal.mData[1], vGlobal.mData[2]);
+					// Revert to Old Behavior: USE RAW DATA, DON'T TRANSFORM IN IMPORTER
+					*((Vector3*)pPosition) = importSetting.positionScale * Vector3(vLocal.mData[0], vLocal.mData[1], vLocal.mData[2]);
 					pPosition += vertexSize;
 				}
 
@@ -320,19 +320,15 @@ namespace Render
 
 				if (pNormal)
 				{
+					// Revert to Old Behavior: USE RAW DATA, DON'T TRANSFORM IN IMPORTER
 					Vector4 n = GetNormalData(vertexFormat.normals[0], vertexId, controlId);
-					FbxVector4 nLocal(n.x, n.y, n.z, n.w);
-					FbxVector4 nGlobal = transform.MultR(nLocal);
-					*((Vector3*)pNormal) = Vector3(nGlobal.mData[0], nGlobal.mData[1], nGlobal.mData[2]);
+					*((Vector3*)pNormal) = Vector3(n.x, n.y, n.z);
 					pNormal += vertexSize;
 				}
 
 				if (pTangent)
 				{
-					Vector4 t = GetTangentData(vertexFormat.tangents[0], vertexId, controlId);
-					FbxVector4 tLocal(t.x, t.y, t.z, t.w);
-					FbxVector4 tGlobal = transform.MultR(tLocal);
-					*((Vector4*)pTangent) = Vector4(tGlobal.mData[0], tGlobal.mData[1], tGlobal.mData[2], t.w);
+					*((Vector4*)pTangent) = GetTangentData(vertexFormat.tangents[0], vertexId, controlId);
 					pTangent += vertexSize;
 				}
 
@@ -356,39 +352,24 @@ namespace Render
 		for (int idxPolygon = 0; idxPolygon < polygonCount; idxPolygon++)
 		{
 			int lPolygonSize = pFBXMesh->GetPolygonSize(idxPolygon);
-
 			int32 materialIndex = 0;
 
 			if (layerElementMaterial)
 			{
 				switch (materialMappingMode)
 				{
-					// material index is stored in the IndexArray, not the DirectArray (which is irrelevant with 2009.1)
 				case FbxLayerElement::eAllSame:
-					{
-						materialIndex = layerElementMaterial->GetIndexArray().GetAt(0);
-					}
+					materialIndex = layerElementMaterial->GetIndexArray().GetAt(0);
 					break;
 				case FbxLayerElement::eByPolygon:
-					{
-						materialIndex = layerElementMaterial->GetIndexArray().GetAt(idxPolygon);
-					}
+					materialIndex = layerElementMaterial->GetIndexArray().GetAt(idxPolygon);
 					break;
 				default:
-					{
-
-						int aa = 1;
-					}
-					// any other mapping modes don't make sense
 					break;
 				}
 			}
 
-			if (lPolygonSize < 3)
-			{
-				vertexId += lPolygonSize;
-				continue;
-			}
+			if (lPolygonSize < 3) { vertexId += lPolygonSize; continue; }
 			if (lPolygonSize == 3)
 			{
 				for (int i = 0; i < 3; ++i)
@@ -398,24 +379,21 @@ namespace Render
 					++pIndex;
 				}
 			}
-			else
-			{
-
-			}
 		}
 
 		if (importSetting.bAddTangleAndNormal)
 		{
-			if (pTangent == nullptr)
+			// CORRECT LOGIC: Fix the missing normal generation if tangents exist
+			if (pNormal == nullptr)
 			{
-				if (pNormal)
-				{
-					MeshUtility::FillTriangleListTangent(outData.desc, outData.vertices.data(), numVertices, outData.indices.data(), outData.indices.size());
-				}
-				else
-				{
+				if (pTangent == nullptr)
 					MeshUtility::FillTriangleListNormalAndTangent(outData.desc, outData.vertices.data(), numVertices, outData.indices.data(), outData.indices.size());
-				}
+				else
+					MeshUtility::FillTriangleListNormal(outData.desc, outData.vertices.data(), numVertices, outData.indices.data(), outData.indices.size());
+			}
+			else if (pTangent == nullptr)
+			{
+				MeshUtility::FillTriangleListTangent(outData.desc, outData.vertices.data(), numVertices, outData.indices.data(), outData.indices.size());
 			}
 		}
 

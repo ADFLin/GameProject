@@ -198,5 +198,6 @@
     <ClCompile Include="TestRender\Stage\VoxelRenderingStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\GIRenderingStage.cpp" />
   </ItemGroup>
 </Project>

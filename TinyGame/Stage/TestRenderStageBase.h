@@ -95,33 +95,33 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if (true || !::Global::DataCache().loadDelegate(key, MeshLoad))
+		if (::Global::DataCache().loadDelegate(key, MeshLoad))
+			return true;
+		
+		if (!FuncMeshCreate(mesh, meshPath) )
 		{
-			if (!FuncMeshCreate(mesh, meshPath) )
-			{
-				return false;
-			}
-
-			if (GRHISystem->getName() == RHISystemName::D3D11 ||
-				GRHISystem->getName() == RHISystemName::D3D12)
-				return true;
-
-			if (!::Global::DataCache().saveDelegate(key, MeshSave))
-			{
-
-			}
-#if 0
-			else
-			{
-				Mesh temp;
-				::Global::DataCache().loadDelegate(key, [&temp](IStreamSerializer& serializer) -> bool
-				{
-					return temp.load(serializer);
-				});
-
-			}
-#endif
+			return false;
 		}
+
+		if (GRHISystem->getName() == RHISystemName::D3D11 ||
+			GRHISystem->getName() == RHISystemName::D3D12)
+			return true;
+
+		if (!::Global::DataCache().saveDelegate(key, MeshSave))
+		{
+
+		}
+#if 0
+		else
+		{
+			Mesh temp;
+			::Global::DataCache().loadDelegate(key, [&temp](IStreamSerializer& serializer) -> bool
+			{
+				return temp.load(serializer);
+			});
+
+		}
+#endif
 
 		return true;
 	}

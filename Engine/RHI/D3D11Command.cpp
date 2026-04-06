@@ -114,6 +114,9 @@ namespace Render
 
 		virtual void beginFrame() override
 		{
+			if (bRecordingStarted)
+				return;
+
 			if (mQueryDisjoint[mCurFrameIndex])
 				mDeviceContextImmdiate->Begin(mQueryDisjoint[mCurFrameIndex]);
 
@@ -684,12 +687,23 @@ namespace Render
 		}
 		if (creationFlags & BCF_CreateUAV)
 		{
-#if 0
 			D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+			desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 			desc.Buffer.FirstElement = 0;
-			desc.Buffer.NumElements =
-#endif
-			device->CreateUnorderedAccessView(outResult.resource, NULL, &outResult.UAV);
+			desc.Buffer.NumElements = numElements;
+			if (creationFlags & BCF_Structured)
+			{
+				desc.Format = DXGI_FORMAT_UNKNOWN;
+			}
+			else
+			{
+				desc.Format = (elementSize == 2) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+			}
+			HRESULT hr = device->CreateUnorderedAccessView(outResult.resource, &desc, &outResult.UAV);
+			if (hr != S_OK)
+			{
+				LogWarning(0, "Can't Create buffer's UAV ! error code : %d", hr);
+			}
 		}
 		return true;
 	}

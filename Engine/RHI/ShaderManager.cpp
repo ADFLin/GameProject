@@ -977,6 +977,8 @@ namespace Render
 
 			for (ShaderCompileDesc& desc : managedData.descList)
 			{
+				LogDevMsg(0, "Shader Entry: %s ", desc.entryName.c_str());
+
 				ShaderCompileContext  context;
 				context.programSetupData = &setupData;
 				context.shaderIndex = shaderIndex;
@@ -1057,11 +1059,11 @@ namespace Render
 		bForceReload = true;
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
-			LogDevMsg(0, "Use Cache Data : %s", GetCompileInfo(managedData).c_str());
+			LogDevMsg(0, "Use Cache Data : %s, Entry = %s", GetCompileInfo(managedData).c_str(), managedData.desc.entryName.c_str());
 		}
 		else
 		{
-			LogDevMsg(0, "Recompile shader : %s", GetCompileInfo(managedData).c_str());
+			LogDevMsg(0, "Recompile shader : %s, Entry = %s", GetCompileInfo(managedData).c_str(), managedData.desc.entryName.c_str());
 
 			ShaderSetupData setupData;
 			shader.mRHIResource.release();

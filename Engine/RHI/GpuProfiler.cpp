@@ -42,7 +42,7 @@ namespace Render
 
 	void GpuProfiler::beginFrame()
 	{
-		if (mCore == nullptr)
+		if (mCore == nullptr || mbStartSampling)
 			return;
 
 		if (RenderThread::IsRunning() && !IsInRenderThread())

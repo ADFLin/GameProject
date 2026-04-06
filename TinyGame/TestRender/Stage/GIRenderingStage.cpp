@@ -66,10 +66,12 @@ namespace Render
 		{
 			BIND_SHADER_PARAM(parameterMap, SurfelBuffer);
 			BIND_SHADER_PARAM(parameterMap, SurfelCounter);
+			BIND_SHADER_PARAM(parameterMap, SceneDepthDecal);
 		}
 
 		DEFINE_SHADER_PARAM(SurfelBuffer);
 		DEFINE_SHADER_PARAM(SurfelCounter);
+		DEFINE_SHADER_PARAM(SceneDepthDecal);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(SurfelDisplayProgram);
@@ -150,7 +152,7 @@ namespace Render
 			mSurfelBuffer.initializeResource(100000, EStructuredBufferType::RWBuffer);
 
 			uint32 initValue = 0;
-			mSurfelCounter =  RHICreateBuffer(sizeof(uint32), 1, BCF_CreateUAV | BCF_CreateSRV, &initValue);
+			mSurfelCounter =  RHICreateBuffer(sizeof(uint32), 1, BCF_CreateUAV | BCF_CreateSRV | BCF_Structured, &initValue);
 
 			MeshImportData importData;
 			mModelXForm = Matrix4::Scale(0.01);
@@ -300,7 +302,11 @@ namespace Render
 				mView.setupShader(commandList, *shaderProgram);
 				shaderProgram->setStorageBuffer(commandList, shaderProgram->SHADER_MEMBER_PARAM(SurfelBuffer), *mSurfelBuffer.getRHI(), EAccessOp::ReadOnly);
 				shaderProgram->setStorageBuffer(commandList, shaderProgram->SHADER_MEMBER_PARAM(SurfelCounter), *mSurfelCounter, EAccessOp::ReadOnly);
+				// Bind scene depth so the PS can reconstruct world position for decal projection.
+				shaderProgram->setTexture(commandList, shaderProgram->SHADER_MEMBER_PARAM(SceneDepthDecal), mSceneRenderTargets.getDepthTexture());
 
+				// Decal: disable hardware depth test — the PS reconstructs scene depth
+				// and does its own per-pixel rejection via the surfel-plane distance check.
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 				RHISetInputStream(commandList, nullptr, nullptr , 0);

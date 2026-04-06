@@ -294,6 +294,7 @@
       <Filter>Game</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\Game\Lighting2DCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\SurfelAllocation.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

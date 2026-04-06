@@ -20,56 +20,69 @@ float Hash(uint n)
 DEFINE_RW_STRUCTURED_BUFFER(SurfelData, SurfelBuffer);
 DEFINE_RW_STRUCTURED_BUFFER(uint, SurfelCounter);
 
+// World-space cell size in metres.  One surfel per cell at most.
+static const float CELL_SIZE = 0.4;
+
 [numthreads(8, 8, 1)]
 void SurfelAllocationCS(uint3 SvDispatchThreadID : SV_DispatchThreadID)
 {
-	float2 screenSize = 1.0 / View.rectPosAndSizeInv.zw;
+	float2 invScreen  = View.rectPosAndSizeInv.zw;
+	float2 screenSize = 1.0 / invScreen;
+
 	if (SvDispatchThreadID.x >= (uint)screenSize.x || SvDispatchThreadID.y >= (uint)screenSize.y)
 		return;
 
-	// SCREEN SPACE TILES (24x24) - Standard for a good balance of density
-	uint2 tileID = SvDispatchThreadID.xy / 24;
-	uint2 localID = SvDispatchThreadID.xy % 24;
-
-	float2 invScreen = View.rectPosAndSizeInv.zw;
-	float2 centerUV = (float2(tileID * 24 + 12) + 0.5) * invScreen;
-	float centerDepth = SceneDepth.Load(int3(tileID * 24 + 12, 0)).r;
-	
-	// Create seed from World Cell index to ensure camera-movement stability
-	float3 tileWorldPos = StoreWorldPos(float2(centerUV.x, 1.0 - centerUV.y), centerDepth);
-	float cellSize = 0.25;
-	float3 worldCell = floor(tileWorldPos / cellSize);
-	uint seed = uint(abs(worldCell.x * 111) + abs(worldCell.y * 777) + abs(worldCell.z * 333));
-	
-	// Stochastic rejection for overall sparsity (approx 40% chance)
-	if (Hash(seed + 123) > 0.4)
-		return;
-
-	// Predict which pixel within the 24x24 tile is the "designated worker" for this cell
-	uint targetX = uint(Hash(seed + 456) * 23.0);
-	uint targetY = uint(Hash(seed + 789) * 23.0);
-
-	if (localID.x != targetX || localID.y != targetY)
-		return;
-
-	// Final verification of the winner pixel
-	float2 uv = (float2(SvDispatchThreadID.xy) + 0.5) * invScreen;
-	float depth = SceneDepth.Load(int3(SvDispatchThreadID.xy, 0)).r;
+	// ── 1. Valid surface depth ─────────────────────────────────────────────
+	float2 uv    = (float2(SvDispatchThreadID.xy) + 0.5) * invScreen;
+	float  depth = SceneDepth.Load(int3(SvDispatchThreadID.xy, 0)).r;
 	if (depth <= 0.0 || depth >= 1.0)
 		return;
 
-	float3 worldPos = StoreWorldPos(float2(uv.x, 1.0 - uv.y), depth);
+	// ── 2. World position & normal of this pixel ───────────────────────────
+	float3 worldPos    = StoreWorldPos(float2(uv.x, 1.0 - uv.y), depth);
+	float3 encodedNorm = GetGBufferNormal(uv);
+	float3 worldNormal = normalize(DecodeNormal(encodedNorm));
 
+	// ── 3. World-space grid cell ───────────────────────────────────────────
+	float3 worldCell  = floor(worldPos / CELL_SIZE);
+	float3 cellCenter = (worldCell + 0.5) * CELL_SIZE;
+
+	// ── 4. Project cell centre onto the SURFACE PLANE ─────────────────────
+	// The raw 3D cell centre floats above/below the surface.  At grazing angles
+	// that offset causes a large screen-space shift → no pixel claims the cell.
+	// Fix: pull the cell centre onto the tangent plane at worldPos.
+	float  along              = dot(cellCenter - worldPos, worldNormal);
+	float3 cellCenterOnSurf   = cellCenter - along * worldNormal;
+
+	// ── 5. Project surface-clamped cell centre to screen ──────────────────
+	float4 cellClip = mul(View.worldToClip, float4(cellCenterOnSurf, 1.0));
+	if (cellClip.w <= 0.0)
+		return;
+
+	// NDC → pixel coords (D3D11: y=0 is top → flip Y)
+	float2 cellNDC    = cellClip.xy / cellClip.w;
+	float2 cellScreen = (cellNDC * float2(0.5, -0.5) + 0.5) * screenSize;
+
+	// ── 6. Only the pixel that "owns" the projected cell centre continues ──
+	int2 ownerPixel = int2(floor(cellScreen));
+	if (ownerPixel.x != (int)SvDispatchThreadID.x ||
+	    ownerPixel.y != (int)SvDispatchThreadID.y)
+		return;
+
+	// ── 7. Stochastic sparsity (per-cell, camera-stable) ─────────────────
+	int3 iCell = int3(worldCell);
+	uint seed  = uint(iCell.x * 1117 + iCell.y * 7793 + iCell.z * 3313);
+	if (Hash(seed) > 0.6)
+		return;
+
+	// ── 8. Commit the surfel ───────────────────────────────────────────────
 	uint index;
 	InterlockedAdd(SurfelCounter[0], 1, index);
 
 	if (index < 100000)
 	{
-		float3 encodedNormal = GetGBufferNormal(uv);
-		float3 worldNormal = normalize(DecodeNormal(encodedNormal));
-		
 		SurfelData s;
-		s.posAndRadius = float4(worldPos, 0.12); 
+		s.posAndRadius   = float4(worldPos, CELL_SIZE * 0.55);
 		s.normalAndDummy = float4(worldNormal, 1.0);
 		SurfelBuffer[index] = s;
 	}
@@ -82,57 +95,116 @@ DEFINE_STRUCTURED_BUFFER(uint, SurfelCounter);
 
 struct VS_OUT
 {
-	float4 pos : SV_Position;
-	float3 normal : NORMAL;
-	float2 localUV : TEXCOORD0;
-	float4 color : COLOR;
+	float4 pos               : SV_Position;
+	flat float3 surfelCenter  : TEXCOORD0;
+	flat float3 surfelNormal  : TEXCOORD4;
+	flat float3 surfelRight   : TEXCOORD1;
+	flat float3 surfelForward : TEXCOORD2;
+	flat float  surfelRadius  : TEXCOORD3;
+	flat float4 color         : TEXCOORD5;
 };
 
+// Decal approach: render a world-space billboard quad that is slightly
+// pushed back along the normal so it sits just behind the surface.
+// The pixel shader will reconstruct the scene world-pos from depth,
+// project it into surfel local space, and discard if outside the disc.
 void SurfelDisplayVS( uint SV_VertexID : SV_VertexID, uint SV_InstanceID : SV_InstanceID, out VS_OUT vout )
 {
 	uint surfelCount = SurfelCounter[0];
 	if (SV_InstanceID >= surfelCount || SV_InstanceID >= 81920)
 	{
-		vout.pos = float4(0, 0, 0, -1.0);
-		vout.normal = float3(0,0,0);
-		vout.localUV = float2(0,0);
-		vout.color = float4(0,0,0,0);
+		vout.pos          = float4(0, 0, 0, -1.0); // cull w<0
+		vout.surfelCenter = float3(0,0,0);
+		vout.surfelNormal = float3(0,0,0);
+		vout.surfelRight  = float3(0,0,0);
+		vout.surfelForward= float3(0,0,0);
+		vout.surfelRadius = 0;
+		vout.color        = float4(0,0,0,0);
 		return;
 	}
 
-	SurfelData data = SurfelBuffer[SV_InstanceID];
-	float3 center = data.posAndRadius.xyz;
-	float radius = data.posAndRadius.w;
-	float3 worldNormal = data.normalAndDummy.xyz;
+	SurfelData data     = SurfelBuffer[SV_InstanceID];
+	float3 center       = data.posAndRadius.xyz;
+	float  radius       = data.posAndRadius.w;
+	float3 worldNormal  = normalize(data.normalAndDummy.xyz);
 
-	float3 up = abs(worldNormal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
-	float3 right = normalize(cross(up, worldNormal));
+	// Build a local tangent frame on the surfel disc.
+	float3 up      = abs(worldNormal.y) < 0.999 ? float3(0,1,0) : float3(1,0,0);
+	float3 right   = normalize(cross(up, worldNormal));
 	float3 forward = cross(worldNormal, right);
 
+	// Slightly expand the billboard so the PS depth-test window is generous.
+	const float expand = 1.05;
 	float2 quadPos[6] = {
-		float2(-1, -1), float2(1, -1), float2(1, 1),
-		float2(-1, -1), float2(1, 1), float2(-1, 1)
+		float2(-1,-1), float2(1,-1), float2(1, 1),
+		float2(-1,-1), float2(1, 1), float2(-1, 1)
 	};
+	float2 lPos    = quadPos[SV_VertexID % 6];
+	// World-space billboard vertex; push slightly behind the surface
+	// so the quad is behind real geometry – depth test will pass only when
+	// the scene pixel we're covering IS the surfel's surface.
+	float3 worldPos = center + (right * lPos.x + forward * lPos.y) * radius * expand
+	                         - worldNormal * (radius * 0.02);
 
-	float2 lPos = quadPos[SV_VertexID % 6];
-	float3 worldPos = center + (right * lPos.x + forward * lPos.y) * radius;
-
-	vout.pos = mul(View.worldToClip, float4(worldPos, 1.0));
-	vout.normal = worldNormal;
-	vout.localUV = lPos;
-	vout.color = float4(worldNormal * 0.5 + 0.5, 1.0);
+	vout.pos          = mul(View.worldToClip, float4(worldPos, 1.0));
+	vout.surfelCenter = center;
+	vout.surfelNormal = worldNormal;
+	vout.surfelRight  = right;
+	vout.surfelForward= forward;
+	vout.surfelRadius = radius;
+	vout.color        = float4(worldNormal * 0.5 + 0.5, 1.0);
 }
 #endif
 
 #if PIXEL_SHADER
-float4 SurfelDisplayPS( float4 inPos : SV_Position, float3 inNormal : NORMAL, float2 localUV : TEXCOORD0, float4 inColor : COLOR ) : SV_Target0
+// Decal depth texture to reconstruct scene world-position.
+DEFINE_TEXTURE(Texture2D, SceneDepthDecal);
+
+float4 SurfelDisplayPS(
+	float4 svPos        : SV_Position,
+	float3 surfelCenter : TEXCOORD0,
+	float3 surfelNormal : TEXCOORD4,
+	float3 surfelRight  : TEXCOORD1,
+	float3 surfelForward: TEXCOORD2,
+	float  surfelRadius : TEXCOORD3,
+	float4 inColor      : TEXCOORD5
+) : SV_Target0
 {
-	float distSq = dot(localUV, localUV);
+	// 1. Reconstruct scene world-position from the scene depth buffer.
+	float2 screenUV = (svPos.xy - View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
+	float  bufDepth = SceneDepthDecal.Load(int3((int2)svPos.xy, 0)).r;
+
+	// Skip sky / empty pixels.
+	if (bufDepth <= 0.0 || bufDepth >= 1.0)
+		discard;
+
+	float3 sceneWorldPos = StoreWorldPos(float2(screenUV.x, 1.0 - screenUV.y), bufDepth);
+
+	// 2. Project scene world-position into the surfel's local disc space.
+	float3 delta  = sceneWorldPos - surfelCenter;
+	float  along  = dot(delta, surfelNormal);
+	float  localX = dot(delta, surfelRight);
+	float  localY = dot(delta, surfelForward);
+
+	// 3. Reject if the scene surface is too far from the surfel plane (depth test).
+	//    「along」= 場景像素到 surfel 切平面的垂直距離。
+	//    A disc has no thickness; we give it a thin slab so depth precision
+	//    and slight surface curvature don't discard valid pixels.
+	//    Using a fixed world-space thickness (not radius-dependent) is more
+	//    geometrically correct — the disc does not "thicken" as it grows.
+	const float slabHalfThickness = surfelRadius * 0.25;  // ≈ 0.05m for default cell size
+	if (abs(along) > slabHalfThickness)
+		discard;
+
+	// 4. Reject if outside the disc.
+	float2 localUV = float2(localX, localY) / surfelRadius;
+	float  distSq  = dot(localUV, localUV);
 	if (distSq > 1.0)
 		discard;
 
-	float alpha = 1.0 - smoothstep(0.9, 1.0, distSq);
-	float shading = saturate(dot(inNormal, normalize(float3(1, 1, 2)))) * 0.5 + 0.5;
+	// 5. Soft edge.
+	float alpha   = 1.0 - smoothstep(0.7, 1.0, distSq);
+	float shading = saturate(dot(surfelNormal, normalize(float3(1,1,2)))) * 0.5 + 0.5;
 	return float4(inColor.rgb * shading, alpha);
 }
 #endif

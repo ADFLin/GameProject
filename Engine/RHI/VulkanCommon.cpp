@@ -20,7 +20,7 @@ namespace Render
 		case EPrimitive::LineLoop:
 		case EPrimitive::Quad:
 		case EPrimitive::Polygon:
-			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+			return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 		}
 
 		if (type >= EPrimitive::PatchPoint1)
@@ -28,7 +28,7 @@ namespace Render
 			outPatchPointCount = 1 + int(type) - int(EPrimitive::PatchPoint1);
 			return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 		}
-		return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 	}
 
 	VkBlendFactor VulkanTranslate::To(EBlend::Factor factor)

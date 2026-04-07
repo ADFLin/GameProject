@@ -14,6 +14,7 @@
 
 #include "RHI/RHICommon.h"
 #include "ReflectionCollect.h"
+#include "Template/ArrayView.h"
 
 class RHIGraphics2D;
 class JsonSerializer;
@@ -21,6 +22,21 @@ namespace Render
 {
     class RHITexture2D;
     class RHICommandList;
+
+	struct SpriteInstanceData
+	{
+		Vector2 size;
+		Vector2 uvPos;
+		Vector2 uvSize;
+		RenderTransform2D transform;
+		LinearColor color;
+	};
+
+	struct FSprite
+	{
+		static void Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, TArrayView< SpriteInstanceData const> data);
+	};
+
 }
 
 struct SpriteRegion
@@ -146,6 +162,7 @@ private:
     
     TArray<SpriteVertex> vertexBuffer;
     TArray<uint16> indexBuffer;
+	TArray<Render::SpriteInstanceData> instanceBuffer;
     Math::Matrix4 currentTransform;
 };
 
@@ -155,5 +172,8 @@ public:
 	static bool load(char const* path, SpriteSheet& sheet);
 	static bool save(char const* path, SpriteSheet& sheet, char const* texturePath);
 };
+
+
+
 
 #endif // SpriteRender_H_

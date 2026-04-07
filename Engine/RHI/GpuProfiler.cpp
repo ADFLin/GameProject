@@ -214,13 +214,13 @@ namespace Render
 
 	void GpuProfiler::setCore(RHIProfileCore* core)
 	{
-		assert(!mbStartSampling);
 		mCore = core;
 		if( mCore )
 		{
 			mCycleToSecond = mCore->getCycleToMillisecond();
 		}
-		else
+
+		if ( mCore == nullptr || mbStartSampling )
 		{
 			for (int i = 0; i < ARRAY_SIZE(mFrameBuffers); ++i)
 			{

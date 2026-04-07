@@ -3125,7 +3125,7 @@ namespace Render
 
 		MyBuffer myBuffer(outIndexAlloc);
 		int patchPointCount = 0;
-		return DetermitPrimitiveTopologyUP(primitive, VulkanTranslate::To(primitive, patchPointCount) != VK_PRIMITIVE_TOPOLOGY_POINT_LIST || primitive == EPrimitive::Points, num, pIndices, myBuffer, outPrimitiveDetermited, outIndexNum);
+		return DetermitPrimitiveTopologyUP(primitive, VulkanTranslate::To(primitive, patchPointCount) != VK_PRIMITIVE_TOPOLOGY_MAX_ENUM || primitive == EPrimitive::Points, num, pIndices, myBuffer, outPrimitiveDetermited, outIndexNum);
 	}
 
 	void VulkanContext::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData, uint32 numInstance)

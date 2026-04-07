@@ -4,6 +4,9 @@
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"
 #include "RHI/RHIUtility.h"
+#include "RHI/ShaderManager.h"
+
+#define SPRITE_USE_GEOMERTY_SHADER 1
 
 // Specialization for HashString to work with JsonSerializer map support
 namespace JsonDetail
@@ -144,6 +147,9 @@ void SpriteRendererG2D::endDraw()
 {
 }
 
+
+constexpr int MaxSpriteRenderCount = 60000;
+
 // -------------------------------------------------------------
 
 SpriteRendererRHICommand::SpriteRendererRHICommand(Render::RHICommandList& inCmdList)
@@ -155,8 +161,7 @@ void SpriteRendererRHICommand::beginDraw(Math::Matrix4 const& transform)
 {
 	currentTransform = transform;
 	currentTexture = nullptr;
-	vertexBuffer.clear();
-	indexBuffer.clear();
+	instanceBuffer.clear();
 }
 
 void SpriteRendererRHICommand::drawSprite(SpriteSheet const* sheet, int32 regionIndex, Render::RenderTransform2D const& transform, Color4f const& color)
@@ -164,42 +169,26 @@ void SpriteRendererRHICommand::drawSprite(SpriteSheet const* sheet, int32 region
 	if (!sheet || !sheet->texture || regionIndex < 0 || regionIndex >= sheet->regions.size())
 		return;
 
-	if (currentTexture != sheet->texture.get() || vertexBuffer.size() > 60000)
+	if (currentTexture != sheet->texture.get() || instanceBuffer.size() > MaxSpriteRenderCount)
 	{
 		if (currentTexture)
 			flushBatch();
 		currentTexture = const_cast<Render::RHITexture2D*>(sheet->texture.get());
 	}
 
-	const SpriteRegion& region = sheet->getRegion(regionIndex);
-	Math::Vector2 basePos = Math::Vector2(-region.size.x * region.pivot.x, -region.size.y * region.pivot.y);
-	Math::Vector2 p1 = basePos;
-	Math::Vector2 p2 = basePos + Math::Vector2(region.size.x, 0);
-	Math::Vector2 p3 = basePos + Math::Vector2(region.size.x, region.size.y);
-	Math::Vector2 p4 = basePos + Math::Vector2(0, region.size.y);
+	SpriteRegion const& region = sheet->getRegion(regionIndex);
+	Math::Vector2 localCenter = Math::Vector2((0.5f - region.pivot.x) * region.size.x, (0.5f - region.pivot.y) * region.size.y);
 
-	Math::Vector2 trP1 = transform.transformPosition(p1);
-	Math::Vector2 trP2 = transform.transformPosition(p2);
-	Math::Vector2 trP3 = transform.transformPosition(p3);
-	Math::Vector2 trP4 = transform.transformPosition(p4);
+	Render::RenderTransform2D finalTransform = transform;
+	finalTransform.translateLocal(localCenter);
 
-	Math::Vector2 uv1 = region.uvPos;
-	Math::Vector2 uv2 = region.uvPos + Math::Vector2(region.uvSize.x, 0);
-	Math::Vector2 uv3 = region.uvPos + region.uvSize;
-	Math::Vector2 uv4 = region.uvPos + Math::Vector2(0, region.uvSize.y);
-
-	Color4ub quadColor(color.r * 255.f, color.g * 255.f, color.b * 255.f, color.a * 255.f);
-	uint16 startIndex = (uint16)vertexBuffer.size();
-	vertexBuffer.push_back({trP1, uv1, quadColor});
-	vertexBuffer.push_back({trP2, uv2, quadColor});
-	vertexBuffer.push_back({trP3, uv3, quadColor});
-	vertexBuffer.push_back({trP4, uv4, quadColor});
-	indexBuffer.push_back(startIndex + 0);
-	indexBuffer.push_back(startIndex + 1);
-	indexBuffer.push_back(startIndex + 2);
-	indexBuffer.push_back(startIndex + 0);
-	indexBuffer.push_back(startIndex + 2);
-	indexBuffer.push_back(startIndex + 3);
+	Render::SpriteInstanceData data;
+	data.color = color;
+	data.size = region.size;
+	data.uvPos = region.uvPos;
+	data.uvSize = region.uvSize;
+	data.transform = finalTransform;
+	instanceBuffer.push_back(data);
 }
 
 void SpriteRendererRHICommand::drawTileMap(SpriteSheet const* sheet, TileMapData const& map, Math::Vector2 const& pos, Color4f const& color)
@@ -222,30 +211,21 @@ void SpriteRendererRHICommand::drawTileMap(SpriteSheet const* sheet, TileMapData
 			int32 index = map.tileIndices[y * map.width + x];
 			if (index >= 0 && index < sheet->regions.size())
 			{
-				if (vertexBuffer.size() > 60000)
+				if (instanceBuffer.size() > MaxSpriteRenderCount)
 				{
 					flushBatch();
 				}
-				const SpriteRegion& region = sheet->getRegion(index);
-				Math::Vector2 tl = pos + Math::Vector2(x * map.tileSize.x, y * map.tileSize.y);
-				Math::Vector2 tr = tl + Math::Vector2(region.size.x, 0);
-				Math::Vector2 bl = tl + Math::Vector2(0, region.size.y);
-				Math::Vector2 br = tl + region.size;
-				Math::Vector2 uvTL = region.uvPos;
-				Math::Vector2 uvTR = region.uvPos + Math::Vector2(region.uvSize.x, 0);
-				Math::Vector2 uvBL = region.uvPos + Math::Vector2(0, region.uvSize.y);
-				Math::Vector2 uvBR = region.uvPos + region.uvSize;
-				uint16 startIndex = (uint16)vertexBuffer.size();
-				vertexBuffer.push_back({tl, uvTL, quadColor});
-				vertexBuffer.push_back({tr, uvTR, quadColor});
-				vertexBuffer.push_back({br, uvBR, quadColor});
-				vertexBuffer.push_back({bl, uvBL, quadColor});
-				indexBuffer.push_back(startIndex + 0);
-				indexBuffer.push_back(startIndex + 1);
-				indexBuffer.push_back(startIndex + 2);
-				indexBuffer.push_back(startIndex + 0);
-				indexBuffer.push_back(startIndex + 2);
-				indexBuffer.push_back(startIndex + 3);
+
+				SpriteRegion const& region = sheet->getRegion(index);
+				
+				Render::SpriteInstanceData data;
+				data.color = color;
+				data.size = region.size;
+				data.uvPos = region.uvPos;
+				data.uvSize = region.uvSize;
+				data.transform.M.setIdentity();
+				data.transform.P = pos + Math::Vector2(x * map.tileSize.x + 0.5f * region.size.x, y * map.tileSize.y + 0.5f * region.size.y);
+				instanceBuffer.push_back(data);
 			}
 		}
 	}
@@ -253,16 +233,113 @@ void SpriteRendererRHICommand::drawTileMap(SpriteSheet const* sheet, TileMapData
 
 void SpriteRendererRHICommand::flushBatch()
 {
-	if (indexBuffer.empty() || !currentTexture)
+	if (instanceBuffer.empty())
 		return;
-	vertexBuffer.clear();
-	indexBuffer.clear();
+
+	CHECK(currentTexture);
+	using namespace Render;
+	FSprite::Render(cmdList, currentTransform, *currentTexture, instanceBuffer);
+	instanceBuffer.clear();
 }
 
 void SpriteRendererRHICommand::endDraw()
 {
-	if (currentTexture && !indexBuffer.empty())
+	if (currentTexture && !instanceBuffer.empty())
 	{
 		flushBatch();
 	}
+}
+
+
+namespace Render
+{
+	class SpriteInputLayout : public StaticRHIResourceT<SpriteInputLayout, RHIInputLayout>
+	{
+	public:
+		static RHIInputLayoutRef CreateRHI()
+		{
+			return RHICreateInputLayout(GetSetupValue());
+		}
+		static InputLayoutDesc GetSetupValue()
+		{
+			InputLayoutDesc desc;
+#if SPRITE_USE_GEOMERTY_SHADER
+			constexpr bool bInstanceData = false;
+#else
+			constexpr bool bInstanceData = true;
+#endif
+			desc.addElement(0, EVertex::ATTRIBUTE0, EVertex::Float2, false, bInstanceData); // InSize
+			desc.addElement(0, EVertex::ATTRIBUTE1, EVertex::Float2, false, bInstanceData); // InUVPos
+			desc.addElement(0, EVertex::ATTRIBUTE2, EVertex::Float2, false, bInstanceData); // InUVSize
+			desc.addElement(0, EVertex::ATTRIBUTE3, EVertex::Float4, false, bInstanceData); // InTransformM
+			desc.addElement(0, EVertex::ATTRIBUTE4, EVertex::Float2, false, bInstanceData); // InTransformP
+			desc.addElement(0, EVertex::ATTRIBUTE5, EVertex::Float4, false, bInstanceData); // InColor
+			return desc;
+		}
+
+		static uint32 GetHashKey()
+		{
+			return GetSetupValue().getTypeHash();
+		}
+	};
+
+	class SpriteShaderProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(SpriteShaderProgram, Global);
+	public:
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(USE_GEOMERTY_SHADER), SPRITE_USE_GEOMERTY_SHADER);
+		}
+		static char const* GetShaderFileName() { return "Shader/SpriteRender"; }
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+	#if SPRITE_USE_GEOMERTY_SHADER
+					{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+	#endif
+					{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, WorldToClip);
+			BIND_TEXTURE_PARAM(parameterMap, Texture);
+		}
+
+		void setParameters(RHICommandList& commandList, Matrix4 const& worldToClip, RHITexture2D& texture, RHISamplerState& sampler = TStaticSamplerState<ESampler::Trilinear>::GetRHI())
+		{
+			SET_SHADER_PARAM(commandList, *this, WorldToClip, worldToClip);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, Texture, texture, sampler);
+		}
+
+		DEFINE_SHADER_PARAM(WorldToClip);
+		DEFINE_TEXTURE_PARAM(Texture);
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(SpriteShaderProgram);
+
+	void FSprite::Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, TArrayView< SpriteInstanceData const> data)
+	{
+		SpriteShaderProgram* shader = ShaderManager::Get().getGlobalShaderT<SpriteShaderProgram>();
+		RHISetShaderProgram(commandList, shader->getRHI());
+		shader->setParameters(commandList, xForm, texture);
+
+		VertexDataInfo info;
+		info.ptr = data.data();
+		info.size = (int)(data.size() * sizeof(SpriteInstanceData));
+		info.stride = sizeof(SpriteInstanceData);
+
+		RHISetInputStream(commandList, &SpriteInputLayout::GetRHI(), nullptr, 0);
+#if SPRITE_USE_GEOMERTY_SHADER
+		RHIDrawPrimitiveUP(commandList, EPrimitive::Points, (int)data.size(), &info, 1);
+#else
+		RHIDrawPrimitiveUP(commandList, EPrimitive::TriangleStrip, 4, &info, 1, (int)data.size());
+#endif
+	}
+
+
 }

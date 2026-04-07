@@ -7,11 +7,10 @@
 #include "RenderUtility.h"
 #include "Image/ImageData.h"
 #include "GameGlobal.h"
+#include "RHI/GpuProfiler.h"
 
 namespace Survivors
 {
-	IMPLEMENT_SHADER_PROGRAM(MonsterShaderProgram);
-
 	static void ProcessTextureWithColorKey(RHITexture2DRef& tex, char const* path, Color4ub fallbackColor)
 	{
 		ImageData imageData;
@@ -133,45 +132,36 @@ namespace Survivors
 				auto& typeMonsters = monstersByType[i];
 				if (typeMonsters.empty()) continue;
 
-				auto const& tex = mMonsterTextures[i];
+				auto& tex = mMonsterTextures[i];
 				if (tex.isValid())
 				{
-					TArray<MonsterInstanceData> instanceData;
+					TArray<SpriteInstanceData> instanceData;
 					instanceData.reserve(typeMonsters.size());
 					for (auto* m : typeMonsters)
 					{
 						float drawScale = mMonsterDrawScales[i];
-						MonsterInstanceData data;
-						data.pos = m->pos;
+						SpriteInstanceData data;
 						data.size = Vector2(m->radius * 2, m->radius * 2);
 						data.uvPos = Vector2(0, 0);
 						data.uvSize = Vector2(1, 1);
-						if (scene.hero.pos.x > m->pos.x) { data.uvPos.x = 1; data.uvSize.x = -1; }
-						data.scale = m->scale * drawScale;
+						if (scene.hero.pos.x > m->pos.x) 
+						{ 
+							data.uvPos.x = 1; 
+							data.uvSize.x = -1; 
+						}
+						float scale = m->scale * drawScale;
+						data.transform = RenderTransform2D(Vector2(scale, scale), m->pos); 
 						data.color = (m->stunTimer > 0) ? LinearColor(5, 5, 5, 1) : LinearColor(1, 1, 1, 1);
 						instanceData.push_back(data);
 					}
 
-					g.drawCustomFunc([tex, data = std::move(instanceData)](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, Render::RenderTransform2D const& transform)
+					g.drawCustomFunc([&tex, data = std::move(instanceData)](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, Render::RenderTransform2D const& transform)
 					{
-						MonsterShaderProgram* shader = ShaderManager::Get().getGlobalShaderT<MonsterShaderProgram>();
-						if (shader)
-						{
-							RHISetShaderProgram(commandList, shader->getRHI());
-							shader->setWorldToClip(commandList, transform.toMatrix4() * baseTransform);
-							shader->bindMonsterTexture(commandList, const_cast<RHITexture2D&>(*tex));
-							RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
-							RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
-							RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-
-							VertexDataInfo info;
-							info.ptr = data.data();
-							info.size = (int)(data.size() * sizeof(MonsterInstanceData));
-							info.stride = sizeof(MonsterInstanceData);
-
-							RHISetInputStream(commandList, &MonsterInputLayout::GetRHI(), nullptr, 0);
-							RHIDrawPrimitiveUP(commandList, EPrimitive::Points, (int)data.size(), &info, 1);
-						}
+						GPU_PROFILE("Sprite Render");
+						RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
+						RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::LessEqual>::GetRHI());
+						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+						FSprite::Render(commandList, transform.toMatrix4() * baseTransform, *tex, data);
 					});
 				}
 				else

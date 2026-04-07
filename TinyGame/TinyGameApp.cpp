@@ -1898,13 +1898,8 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 		}
 	}
 
-	if (renderSetup)
-	{
-		if (!::Global::GetDrawEngine().setupRenderResource())
-			return false;
-
-		Render::ShaderManager::Get().cleanupLoadedSource();
-	}
+	if (!::Global::GetDrawEngine().setupRenderResource())
+		return false;
 
 	stage->postInit();
 

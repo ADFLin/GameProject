@@ -1,0 +1,164 @@
+#include "Common.sgc"
+
+#ifndef USE_GEOMERTY_SHADER
+#define USE_GEOMERTY_SHADER 1
+#endif
+
+#if VERTEX_SHADER || GEOMETRY_SHADER
+struct VSOutputParams
+{
+	float2 size   MEMBER_OUT(TEXCOORD0);
+	float2 uvPos  MEMBER_OUT(TEXCOORD1);
+	float2 uvSize MEMBER_OUT(TEXCOORD2);
+	float4 color  MEMBER_OUT(TEXCOORD3);
+	float4 transformM MEMBER_OUT(TEXCOORD4);
+	float2 transformP MEMBER_OUT(TEXCOORD5);
+};
+#endif
+
+#if VERTEX_SHADER || GEOMETRY_SHADER || PIXEL_SHADER
+struct GSOutputParams
+{
+	float2 uv    MEMBER_OUT(TEXCOORD0);
+	float4 color MEMBER_OUT(TEXCOORD1);
+#if GEOMETRY_SHADER
+	GS_SV_POSTITION_OUT
+#endif
+};
+#endif
+
+#if VERTEX_SHADER
+
+DECLARE_VERTEX_INPUT_START(VS_INPUT_STRUCT)
+	DECLARE_VERTEX_INPUT(float2, InSize, ATTRIBUTE0)
+	DECLARE_VERTEX_INPUT(float2, InUVPos, ATTRIBUTE1)
+	DECLARE_VERTEX_INPUT(float2, InUVSize, ATTRIBUTE2)
+	DECLARE_VERTEX_INPUT(float4, InTransformM, ATTRIBUTE3)
+	DECLARE_VERTEX_INPUT(float2, InTransformP, ATTRIBUTE4)
+	DECLARE_VERTEX_INPUT(float4, InColor,  ATTRIBUTE5)
+DECLARE_VERTEX_INPUT_END(VS_INPUT_STRUCT)
+
+#if USE_GEOMERTY_SHADER
+VS_ENTRY_START(MainVS)
+	VS_INPUT_PARAMETERS(VS_INPUT_STRUCT VertexInput)
+	VS_OUTPUT_STRUCT(VSOutputParams OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+	OutputVS.size = VERTEX_INPUT(InSize);
+	OutputVS.uvPos = VERTEX_INPUT(InUVPos);
+	OutputVS.uvSize = VERTEX_INPUT(InUVSize);
+	OutputVS.color = VERTEX_INPUT(InColor);
+	OutputVS.transformM = VERTEX_INPUT(InTransformM);
+	OutputVS.transformP = VERTEX_INPUT(InTransformP);
+	SvPosition = float4(0.0, 0.0, 0.0, 1.0);
+}
+#else
+uniform float4x4 WorldToClip;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT_VERTEXID
+	VS_INPUT_PARAMETERS(VS_INPUT_STRUCT VertexInput)
+	VS_OUTPUT_STRUCT(GSOutputParams OutputGS, 0)
+VS_ENTRY_END(MainVS)
+{
+	uint Vid = SvVertexID;
+	
+	float2 halfSize = 0.5 * VERTEX_INPUT(InSize);
+	float2 uvPos = VERTEX_INPUT(InUVPos);
+	float2 uvSize = VERTEX_INPUT(InUVSize);
+	
+	float2 offset = float2((Vid & 1) ? halfSize.x : -halfSize.x, (Vid & 2) ? halfSize.y : -halfSize.y);
+	float2 uvOffset = float2((Vid & 1) ? uvSize.x : 0, (Vid & 2) ? uvSize.y : 0);
+
+	float4 M = VERTEX_INPUT(InTransformM);
+	float2 P = VERTEX_INPUT(InTransformP);
+	float2x2 mat2 = float2x2(M.x, M.y, M.z, M.w);
+	offset = mul(offset, mat2) + P;
+
+	OutputGS.uv = uvPos + uvOffset;
+	OutputGS.color = VERTEX_INPUT(InColor);
+
+	float depth = saturate(0.5 - P.y * 0.0001);
+	float4 clipPos = mul(WorldToClip, float4(offset, 0, 1));
+	clipPos.z = depth * clipPos.w;
+	SvPosition = clipPos;
+}
+#endif
+#endif
+
+#if GEOMETRY_SHADER
+
+uniform float4x4 WorldToClip;
+
+#if COMPILER_GLSL
+in VSOutputParams OutputVS[];
+out GSOutputParams GSOutput;
+#define OutputGS GSOutput
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+void MainGS()
+{
+	VSOutputParams inputData = OutputVS[0];
+#else
+[maxvertexcount(4)]
+void MainGS(point VSOutputParams input[1], inout TriangleStream<GSOutputParams> OutputStream)
+{
+	VSOutputParams inputData = input[0];
+#endif
+	float2 halfSize = 0.5 * inputData.size;
+	float2 uvPos = inputData.uvPos;
+	float2 uvSize = inputData.uvSize;
+	float4 M = inputData.transformM;
+	float2x2 mat2 = float2x2(M.x, M.y, M.z, M.w);
+	float2 P = inputData.transformP;
+	float4 color = inputData.color;
+
+	// Calculate depth based on Y coordinate for sorting
+	float depth = saturate(0.5 - P.y * 0.0001);
+
+	GSOutputParams v;
+	v.color = color;
+
+	// TL
+	v.uv = uvPos;
+	float4 clipPos = mul(WorldToClip, float4(mul(float2(-halfSize.x, -halfSize.y), mat2) + P, 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	// TR
+	v.uv = uvPos + float2(uvSize.x, 0);
+	clipPos = mul(WorldToClip, float4(mul(float2(halfSize.x, -halfSize.y), mat2) + P, 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	// BL
+	v.uv = uvPos + float2(0, uvSize.y);
+	clipPos = mul(WorldToClip, float4(mul(float2(-halfSize.x, halfSize.y), mat2) + P, 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	// BR
+	v.uv = uvPos + uvSize;
+	clipPos = mul(WorldToClip, float4(mul(float2(halfSize.x, halfSize.y), mat2) + P, 0, 1));
+	clipPos.z = depth * clipPos.w;
+	GS_EMIT_VERTEX(clipPos, v)
+
+	GS_END_PRIMITIVE;
+}
+#endif
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, Texture);
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(GSOutputParams OutputGS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float4 texColor = TEXTURE_SAMPLE(Texture, OutputGS.uv);
+	float4 finalColor = texColor * OutputGS.color;
+	if (finalColor.a < 0.01) discard;
+	OutColor = finalColor;
+}
+#endif

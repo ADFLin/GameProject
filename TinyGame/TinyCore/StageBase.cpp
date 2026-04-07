@@ -120,10 +120,13 @@ void StageManager::checkNewStage()
 	{
 		finalizeStage(mCurStage);
 		
-		delete mCurStage;
+		StageBase* prevStage = mCurStage;
+		
 		mCurStage = mNextStage;
 		mNextStage = nullptr;
 		setupStage();
+
+		delete prevStage;
 	}
 }
 

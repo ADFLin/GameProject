@@ -23,6 +23,7 @@
 #include "ConsoleSystem.h"
 #include "ColorName.h"
 #include "Core/FNV1a.h"
+#include "RHI/ShaderManager.h"
 
 
 using namespace Render;
@@ -290,10 +291,12 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 
 bool DrawEngine::setupRenderResource()
 {
-	if (!mRenderSetup->setupRenderResource(mSystemName))
+	if (mRenderSetup && !mRenderSetup->setupRenderResource(mSystemName))
 	{
 		return false;
 	}
+
+	Render::ShaderManager::Get().cleanupLoadedSource();
 	return true;
 }
 

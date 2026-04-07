@@ -103,6 +103,7 @@ namespace Render
 			return true;
 		}
 		break;
+		case EPrimitive::TriangleFan:
 		case EPrimitive::Polygon:
 		{
 			if (num <= 2)

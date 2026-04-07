@@ -267,6 +267,7 @@
     <None Include="..\TinyGame\out\Shader\SkyBox.sgc" />
     <None Include="..\TinyGame\out\Shader\SphereCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\SplineCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\SpriteRender.sgc" />
     <None Include="..\TinyGame\out\Shader\SSAO.sgc" />
     <None Include="..\TinyGame\out\Shader\SurfelAllocation.sgc" />
     <None Include="..\TinyGame\out\Shader\Template\Test.sgc" />

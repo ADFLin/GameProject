@@ -335,16 +335,27 @@ namespace Survivors
 		snapshot->screenSize = Vector2(mScreenSize);
 
 		snapshot->monsters.reserve(mMonsters.size());
-		for (auto const& m : mMonsters) snapshot->monsters.push_back({ m->mPos, m->mRadius, m->mScale, m->mStunTimer, m->mType });
+		for (auto const& m : mMonsters) 
+		{
+			snapshot->monsters.push_back({ m->mPos, m->mRadius, m->mScale, m->mStunTimer, m->mType });
+		}
 
 		snapshot->gems.reserve(mGems.size());
-		for (auto const& gem : mGems) snapshot->gems.push_back({ gem.pos });
+		for (auto const& gem : mGems)
+		{
+			snapshot->gems.push_back({ gem.pos });
+		}
 
 		snapshot->bullets.reserve(mBullets.size());
-		for (auto const& b : mBullets) snapshot->bullets.push_back({ b->mPos, b->mVel, b->mRadius, b->mCategory });
-
+		for (auto const& b : mBullets) 
+		{
+			snapshot->bullets.push_back({ b->mPos, b->mVel, b->mRadius, b->mCategory });
+		}
 		snapshot->visuals.reserve(mVisuals.size());
-		for (auto const& v : mVisuals) snapshot->visuals.push_back({ v.pos, v.type, v.timer, v.duration, v.radius, v.angle, v.rotation });
+		for (auto const& v : mVisuals) 
+		{
+			snapshot->visuals.push_back({ v.pos, v.type, v.timer, v.duration, v.radius, v.angle, v.rotation });
+		}
 
 		if (mHero)
 		{
@@ -354,7 +365,10 @@ namespace Survivors
 			snapshot->hero.damageFlashTimer = mHero->mDamageFlashTimer;
 			snapshot->hero.facing = mHero->mFacing;
 			snapshot->hero.orbs.reserve(mHero->mOrbBullets.size());
-			for (auto const& b : mHero->mOrbBullets) snapshot->hero.orbs.push_back({ b->mPos, b->mVel, b->mRadius, b->mCategory });
+			for (auto const& b : mHero->mOrbBullets)
+			{
+				snapshot->hero.orbs.push_back({ b->mPos, b->mVel, b->mRadius, b->mCategory });
+			}
 		}
 
 		RenderThread::AddCommand("RenderSurvivors", [this, snapshot]()
@@ -614,7 +628,7 @@ namespace Survivors
 
 	ERenderSystem SurvivorsStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::Vulkan;
+		return ERenderSystem::None;
 	}
 
 	void SurvivorsStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
@@ -629,5 +643,5 @@ namespace Survivors
 		return new SurvivorsStage();
 	}
 
-	REGISTER_STAGE_ENTRY("Survivors Stage", SurvivorsStage, EExecGroup::Test, "Physics|Benchmark");
+	REGISTER_STAGE_ENTRY("Survivors Stage", SurvivorsStage, EExecGroup::Dev, "Game|Physics");
 }//namespace Survivors

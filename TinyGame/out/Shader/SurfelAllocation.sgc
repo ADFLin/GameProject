@@ -157,7 +157,7 @@ void SurfelDisplayVS( uint SV_VertexID : SV_VertexID, uint SV_InstanceID : SV_In
 #endif
 
 #if PIXEL_SHADER
-// Decal depth texture to reconstruct scene world-position.
+
 DEFINE_TEXTURE(Texture2D, SceneDepthDecal);
 
 float4 SurfelDisplayPS(
@@ -170,39 +170,28 @@ float4 SurfelDisplayPS(
 	float4 inColor      : TEXCOORD5
 ) : SV_Target0
 {
-	// 1. Reconstruct scene world-position from the scene depth buffer.
 	float2 screenUV = (svPos.xy - View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 	float  bufDepth = SceneDepthDecal.Load(int3((int2)svPos.xy, 0)).r;
 
-	// Skip sky / empty pixels.
 	if (bufDepth <= 0.0 || bufDepth >= 1.0)
 		discard;
 
 	float3 sceneWorldPos = StoreWorldPos(float2(screenUV.x, 1.0 - screenUV.y), bufDepth);
 
-	// 2. Project scene world-position into the surfel's local disc space.
 	float3 delta  = sceneWorldPos - surfelCenter;
 	float  along  = dot(delta, surfelNormal);
 	float  localX = dot(delta, surfelRight);
 	float  localY = dot(delta, surfelForward);
 
-	// 3. Reject if the scene surface is too far from the surfel plane (depth test).
-	//    「along」= 場景像素到 surfel 切平面的垂直距離。
-	//    A disc has no thickness; we give it a thin slab so depth precision
-	//    and slight surface curvature don't discard valid pixels.
-	//    Using a fixed world-space thickness (not radius-dependent) is more
-	//    geometrically correct — the disc does not "thicken" as it grows.
 	const float slabHalfThickness = surfelRadius * 0.25;  // ≈ 0.05m for default cell size
 	if (abs(along) > slabHalfThickness)
 		discard;
 
-	// 4. Reject if outside the disc.
 	float2 localUV = float2(localX, localY) / surfelRadius;
 	float  distSq  = dot(localUV, localUV);
 	if (distSq > 1.0)
 		discard;
 
-	// 5. Soft edge.
 	float alpha   = 1.0 - smoothstep(0.7, 1.0, distSq);
 	float shading = saturate(dot(surfelNormal, normalize(float3(1,1,2)))) * 0.5 + 0.5;
 	return float4(inColor.rgb * shading, alpha);

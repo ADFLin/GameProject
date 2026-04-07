@@ -109,14 +109,16 @@ protected:
 		InitFail ,
 	};
 	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return nullptr;  }
-	virtual void       postStageChange(StageBase* stage) {}
+
 	virtual bool       initializeStage(StageBase* stage) { return stage->onInit(); }
+
 	virtual void       finalizeStage(StageBase* stage) { stage->onEnd(); }
-	virtual void       prevStageChange(){}
+	virtual void       prevStageChange(StageBase* stage, StageBase* prevStage){}
+	virtual void       postStageChange(StageBase* stage) {}
 
 protected:
 	void             checkNewStage();
-	void             setupStage();
+	void             setupStage(StageBase* prevStage);
 
 	//std::string     mErrorMsg;
 private:

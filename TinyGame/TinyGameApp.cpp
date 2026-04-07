@@ -808,7 +808,7 @@ bool TinyGameApp::initializeGame()
 
 	{
 		TIME_SCOPE("Stage Initialize");
-		setupStage();
+		setupStage(nullptr);
 
 		setConsoleShowMode(ConsoleShowMode::None);
 
@@ -1868,13 +1868,6 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
 	GameStageBase* gameStage = stage->getGameStage();
 
-	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
-	if (renderSetup)
-	{
-		if (!::Global::GetDrawEngine().setupSystem(renderSetup, true))
-			return false;
-	}
-
 	if (gameStage)
 	{
 		mGameMode = gameStage->getStageMode();
@@ -1952,7 +1945,7 @@ void TinyGameApp::finalizeStage(StageBase* stage)
 	}
 }
 
-void TinyGameApp::prevStageChange()
+void TinyGameApp::prevStageChange(StageBase* stage, StageBase* prevStage)
 {
 	DrawEngine& de = ::Global::GetDrawEngine();
 	if ( de.beginFrame() )
@@ -1970,7 +1963,17 @@ void TinyGameApp::prevStageChange()
 	IGameModule* game = ::Global::ModuleManager().getRunningGame();
 	if (game)
 	{
-		game->notifyStagePreExit(getCurStage());
+		game->notifyStagePreExit(prevStage);
+	}
+
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
+	if (renderSetup)
+	{
+		if (!::Global::GetDrawEngine().setupSystem(renderSetup, true))
+		{
+
+
+		}
 	}
 }
 

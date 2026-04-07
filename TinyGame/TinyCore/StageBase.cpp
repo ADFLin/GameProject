@@ -77,11 +77,16 @@ StageManager::~StageManager()
 	cleanup();
 }
 
-void StageManager::setupStage()
+void StageManager::setupStage(StageBase* prevStage)
 {
-	prevStageChange();
-
 	mCurStage->mManager = this;
+
+	prevStageChange(mCurStage, prevStage);
+	if (prevStage)
+	{
+		delete prevStage;
+	}
+
 	for(;;)
 	{
 		if( initializeStage(mCurStage) )
@@ -121,12 +126,9 @@ void StageManager::checkNewStage()
 		finalizeStage(mCurStage);
 		
 		StageBase* prevStage = mCurStage;
-		
 		mCurStage = mNextStage;
 		mNextStage = nullptr;
-		setupStage();
-
-		delete prevStage;
+		setupStage(prevStage);
 	}
 }
 

@@ -163,7 +163,7 @@ protected:
 	bool           initializeStage(StageBase* stage);
 	void           finalizeStage(StageBase* stage);
 	void           postStageChange(StageBase* stage);
-	void           prevStageChange();
+	void           prevStageChange(StageBase* stage, StageBase* prevStage);
 	GameModeBase*  getActiveMode() override { return mGameMode; }
 	//~StageManager
 

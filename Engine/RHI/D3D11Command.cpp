@@ -89,6 +89,11 @@ namespace Render
 		{
 			mCycleToMillisecond = 0;
 			mCurFrameIndex = 0;
+			mRecordingFrameIndex = 0;
+			bRecordingStarted = false;
+			bDeferredContext = false;
+			mActiveContext = nullptr;
+			FMemory::Zero(mNextHandle, sizeof(mNextHandle));
 		}
 
 		bool init(TComPtr<ID3D11Device> const& device,
@@ -141,6 +146,9 @@ namespace Render
 
 		virtual uint32 fetchTiming() override
 		{
+			if (!bRecordingStarted)
+				return RHI_ERROR_PROFILE_HANDLE;
+
 			D3D11_QUERY_DESC desc;
 			desc.Query = D3D11_QUERY_TIMESTAMP;
 			desc.MiscFlags = 0;
@@ -151,6 +159,8 @@ namespace Render
 			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
 
 			uint32 frameIndex = mRecordingFrameIndex;
+			if (frameIndex >= NUM_FRAME_BUFFER)
+				return RHI_ERROR_PROFILE_HANDLE;
 			uint32 result = (frameIndex << 24) | mFrameSamples[frameIndex].size();
 			mFrameSamples[frameIndex].emplace_back(std::move(startQuery), std::move(endQuery));
 			return result;
@@ -185,6 +195,8 @@ namespace Render
 		{
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+			if (frameIndex >= NUM_FRAME_BUFFER)
+				return;
 			CHECK(handle < mFrameSamples[frameIndex].size());
 
 			ID3D11DeviceContext* context = mActiveContext ? mActiveContext : mDeviceContextImmdiate.get();
@@ -195,6 +207,8 @@ namespace Render
 		{
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+			if (frameIndex >= NUM_FRAME_BUFFER)
+				return;
 			CHECK(handle < mFrameSamples[frameIndex].size());
 
 			ID3D11DeviceContext* context = mActiveContext ? mActiveContext : mDeviceContextImmdiate.get();
@@ -205,6 +219,8 @@ namespace Render
 		{
 			uint32 frameIndex = timingHandle >> 24;
 			uint32 handle = timingHandle & 0xffffff;
+			if (frameIndex >= NUM_FRAME_BUFFER)
+				return false;
 
 			if (handle >= mFrameSamples[frameIndex].size())
 			{

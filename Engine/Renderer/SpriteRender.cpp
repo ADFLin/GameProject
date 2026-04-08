@@ -4,9 +4,10 @@
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"
 #include "RHI/RHIUtility.h"
+#include "RHI/RHIGlobalResource.h"
 #include "RHI/ShaderManager.h"
 
-#define SPRITE_USE_GEOMERTY_SHADER 1
+#define SPRITE_USE_GEOMERTY_SHADER 0
 
 // Specialization for HashString to work with JsonSerializer map support
 namespace JsonDetail
@@ -253,6 +254,66 @@ void SpriteRendererRHICommand::endDraw()
 
 namespace Render
 {
+	namespace
+	{
+		class SpriteInstanceDynamicBufferResource : public IGlobalRenderResource
+		{
+		public:
+			RHIBufferRef buffer;
+			uint32 capacity = 0;
+
+			virtual void restoreRHI() override
+			{
+			}
+
+			virtual void releaseRHI() override
+			{
+				buffer.release();
+				capacity = 0;
+			}
+
+			bool ensureCapacity(uint32 requiredCount)
+			{
+				if (requiredCount == 0)
+					return false;
+
+				if (!buffer || capacity < requiredCount)
+				{
+					uint32 newCapacity = capacity > 0 ? capacity : 1024;
+					while (newCapacity < requiredCount)
+						newCapacity = newCapacity * 2;
+
+					buffer = RHICreateBuffer(sizeof(SpriteInstanceData), newCapacity, BCF_CpuAccessWrite | BCF_UsageVertex);
+					if (!buffer)
+						return false;
+
+					capacity = newCapacity;
+				}
+				return true;
+			}
+
+			bool upload(TArrayView<SpriteInstanceData const> data)
+			{
+				if (!ensureCapacity(uint32(data.size())))
+					return false;
+
+				void* ptr = RHILockBuffer(buffer, ELockAccess::WriteDiscard);
+				if (!ptr)
+					return false;
+
+				FMemory::Copy(ptr, data.data(), data.size() * sizeof(SpriteInstanceData));
+				RHIUnlockBuffer(buffer);
+				return true;
+			}
+		};
+
+		SpriteInstanceDynamicBufferResource& GetSpriteInstanceDynamicBuffer()
+		{
+			static SpriteInstanceDynamicBufferResource StaticInstance;
+			return StaticInstance;
+		}
+	}
+
 	class SpriteInputLayout : public StaticRHIResourceT<SpriteInputLayout, RHIInputLayout>
 	{
 	public:
@@ -268,12 +329,13 @@ namespace Render
 #else
 			constexpr bool bInstanceData = true;
 #endif
-			desc.addElement(0, EVertex::ATTRIBUTE0, EVertex::Float2, false, bInstanceData); // InSize
-			desc.addElement(0, EVertex::ATTRIBUTE1, EVertex::Float2, false, bInstanceData); // InUVPos
-			desc.addElement(0, EVertex::ATTRIBUTE2, EVertex::Float2, false, bInstanceData); // InUVSize
-			desc.addElement(0, EVertex::ATTRIBUTE3, EVertex::Float4, false, bInstanceData); // InTransformM
-			desc.addElement(0, EVertex::ATTRIBUTE4, EVertex::Float2, false, bInstanceData); // InTransformP
-			desc.addElement(0, EVertex::ATTRIBUTE5, EVertex::Float4, false, bInstanceData); // InColor
+			constexpr int instanceStepRate = bInstanceData ? 1 : 0;
+			desc.addElement(0, EVertex::ATTRIBUTE0, EVertex::Float2, false, bInstanceData, instanceStepRate); // InSize
+			desc.addElement(0, EVertex::ATTRIBUTE1, EVertex::Float2, false, bInstanceData, instanceStepRate); // InUVPos
+			desc.addElement(0, EVertex::ATTRIBUTE2, EVertex::Float2, false, bInstanceData, instanceStepRate); // InUVSize
+			desc.addElement(0, EVertex::ATTRIBUTE3, EVertex::Float4, false, bInstanceData, instanceStepRate); // InTransformM
+			desc.addElement(0, EVertex::ATTRIBUTE4, EVertex::Float2, false, bInstanceData, instanceStepRate); // InTransformP
+			desc.addElement(0, EVertex::ATTRIBUTE5, EVertex::Float4, false, bInstanceData, instanceStepRate); // InColor
 			return desc;
 		}
 
@@ -298,9 +360,9 @@ namespace Render
 			{
 				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
 	#if SPRITE_USE_GEOMERTY_SHADER
-					{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
 	#endif
-					{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -310,7 +372,7 @@ namespace Render
 			BIND_TEXTURE_PARAM(parameterMap, Texture);
 		}
 
-		void setParameters(RHICommandList& commandList, Matrix4 const& worldToClip, RHITexture2D& texture, RHISamplerState& sampler = TStaticSamplerState<ESampler::Trilinear>::GetRHI())
+		void setParameters(RHICommandList& commandList, Matrix4 const& worldToClip, RHITexture2D& texture, RHISamplerState& sampler = TStaticSamplerState<>::GetRHI())
 		{
 			SET_SHADER_PARAM(commandList, *this, WorldToClip, worldToClip);
 			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, Texture, texture, sampler);
@@ -324,20 +386,46 @@ namespace Render
 
 	void FSprite::Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, TArrayView< SpriteInstanceData const> data)
 	{
+		FSprite::Render(commandList, xForm, texture, nullptr, data);
+	}
+
+	void FSprite::Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState* sampler, TArrayView< SpriteInstanceData const> data)
+	{
+		if (data.empty())
+			return;
+
+		auto& dynamicBuffer = GetSpriteInstanceDynamicBuffer();
+		if (!dynamicBuffer.upload(data))
+			return;
+
+		FSprite::Render(commandList, xForm, texture, sampler, *dynamicBuffer.buffer, int(data.size()), 0);
+	}
+
+	void FSprite::Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHIBuffer& instanceBuffer, int numInstance, uint32 baseInstance)
+	{
+		FSprite::Render(commandList, xForm, texture, nullptr, instanceBuffer, numInstance, baseInstance);
+	}
+
+	void FSprite::Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState* sampler, RHIBuffer& instanceBuffer, int numInstance, uint32 baseInstance)
+	{
+		if (numInstance <= 0)
+			return;
+		CHECK(instanceBuffer.getElementSize() == sizeof(SpriteInstanceData));
+		CHECK(baseInstance + uint32(numInstance) <= instanceBuffer.getNumElements());
+
 		SpriteShaderProgram* shader = ShaderManager::Get().getGlobalShaderT<SpriteShaderProgram>();
 		RHISetShaderProgram(commandList, shader->getRHI());
-		shader->setParameters(commandList, xForm, texture);
+		shader->setParameters(commandList, xForm, texture, sampler ? *sampler : TStaticSamplerState<>::GetRHI());
 
-		VertexDataInfo info;
-		info.ptr = data.data();
-		info.size = (int)(data.size() * sizeof(SpriteInstanceData));
-		info.stride = sizeof(SpriteInstanceData);
-
-		RHISetInputStream(commandList, &SpriteInputLayout::GetRHI(), nullptr, 0);
+		InputStreamInfo inputStream;
+		inputStream.buffer = &instanceBuffer;
+		inputStream.offset = 0;
+		inputStream.stride = sizeof(SpriteInstanceData);
+		RHISetInputStream(commandList, &SpriteInputLayout::GetRHI(), &inputStream, 1);
 #if SPRITE_USE_GEOMERTY_SHADER
-		RHIDrawPrimitiveUP(commandList, EPrimitive::Points, (int)data.size(), &info, 1);
+		RHIDrawPrimitive(commandList, EPrimitive::Points, int(baseInstance), numInstance);
 #else
-		RHIDrawPrimitiveUP(commandList, EPrimitive::TriangleStrip, 4, &info, 1, (int)data.size());
+		RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleStrip, 0, 4, uint32(numInstance), baseInstance);
 #endif
 	}
 

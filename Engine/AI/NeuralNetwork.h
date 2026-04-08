@@ -18,6 +18,23 @@ using IntVector3 = TVector3<int>;
 
 typedef float NNScalar;
 
+enum class ENNWeightInit
+{
+	Zero,
+	XavierUniform,
+	HeUniform,
+	SmallUniform,
+};
+
+struct NNParameterInitOptions
+{
+	ENNWeightInit hiddenWeightInit = ENNWeightInit::HeUniform;
+	ENNWeightInit outputWeightInit = ENNWeightInit::SmallUniform;
+	NNScalar hiddenScale = 1.0f;
+	NNScalar outputScale = 1e-2f;
+	bool bZeroBias = true;
+};
+
 
 template< class T , class Q , class TFunc >
 void Transform(T begin, T end, T dest, TFunc func = TFunc())
@@ -268,6 +285,16 @@ struct NNLinearLayer : NeuralLayer
 	}
 
 	int getOutputLength() const
+	{
+		return numNode;
+	}
+
+	int getFanIn() const
+	{
+		return inputLength;
+	}
+
+	int getFanOut() const
 	{
 		return numNode;
 	}
@@ -1024,6 +1051,10 @@ public:
 		NNScalar const parameters[],
 		NNScalar const inputs[],
 		NNScalar outputs[]) const;
+
+	void initializeParameters(
+		TArrayView<NNScalar> parameters,
+		NNParameterInitOptions const& options = NNParameterInitOptions()) const;
 
 	NNScalar* forward(
 		NNScalar const parameters[],

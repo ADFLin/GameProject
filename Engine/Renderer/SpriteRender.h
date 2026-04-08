@@ -22,6 +22,8 @@ namespace Render
 {
     class RHITexture2D;
     class RHICommandList;
+	class RHIBuffer;
+	class RHISamplerState;
 
 	struct SpriteInstanceData
 	{
@@ -35,6 +37,9 @@ namespace Render
 	struct FSprite
 	{
 		static void Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, TArrayView< SpriteInstanceData const> data);
+		static void Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState* sampler, TArrayView< SpriteInstanceData const> data);
+		static void Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHIBuffer& instanceBuffer, int numInstance, uint32 baseInstance = 0);
+		static void Render(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState* sampler, RHIBuffer& instanceBuffer, int numInstance, uint32 baseInstance = 0);
 	};
 
 }

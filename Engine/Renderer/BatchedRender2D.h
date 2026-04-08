@@ -789,7 +789,7 @@ namespace Render
 				{
 					tryUnlock();
 					CHECK(usedCount == 0);
-					int newNumElements = 3 * buffer->getNumElements() / 2;
+					int newNumElements = Math::Max(num, 3 * buffer->getNumElements() / 2);
 					buffer = RHICreateBuffer(sizeof(T), newNumElements, creationflags);
 					if (!lock())
 						return nullptr;

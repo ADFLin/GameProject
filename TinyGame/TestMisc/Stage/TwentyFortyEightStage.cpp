@@ -232,7 +232,7 @@ namespace TwentyFortyEight
 				if (canPlayLine(index, visit.blockStride))
 					return true;
 
-				index += visit.lineStrde;
+				index += visit.lineStride;
 			}
 			return false;
 		}
@@ -244,7 +244,7 @@ namespace TwentyFortyEight
 		{
 			int index;
 			int blockStride;
-			int lineStrde;
+			int lineStride;
 		};
 
 		static LineVisit const& GetLineVisit(uint8 dir)
@@ -324,7 +324,7 @@ namespace TwentyFortyEight
 			for (int i = 0; i < BoardSize; ++i)
 			{
 				result += getMovesLine(index, visit.blockStride, outMoves + result);
-				index += visit.lineStrde;
+				index += visit.lineStride;
 			}
 			return result;
 		}
@@ -415,7 +415,7 @@ namespace TwentyFortyEight
 
 		struct RewardInfo
 		{
-			int values[BoardSize];
+			int values[BoardSize * (BoardSize / 2)];
 			int count = 0;
 		};
 
@@ -430,7 +430,7 @@ namespace TwentyFortyEight
 			for (int i = 0; i < BoardSize; ++i)
 			{
 				playLineReward(index, visit.blockStride, result);
-				index += visit.lineStrde;
+				index += visit.lineStride;
 			}
 
 			return result;
@@ -518,7 +518,7 @@ namespace TwentyFortyEight
 			for (int i = 0; i < BoardSize; ++i)
 			{
 				playLine(index, visit.blockStride);
-				index += visit.lineStrde;
+				index += visit.lineStride;
 			}
 		}
 
@@ -709,7 +709,7 @@ namespace TwentyFortyEight
 				for (int i = 0; i < BoardSize * BoardSize; ++i)
 				{
 					int x = i % BoardSize;
-					int y = i % BoardSize;
+					int y = i / BoardSize;
 
 
 					auto CheckLink = [&](int index) -> NNScalar
@@ -727,6 +727,7 @@ namespace TwentyFortyEight
 						{
 							return 1;
 						}
+						return 0;
 					};
 
 					if (x < BoardSize)
@@ -792,7 +793,7 @@ namespace TwentyFortyEight
 	};
 
 #define DQN_MULTI_STEP 1
-#define DQN_DUALING 0
+#define DQN_DUALING 1
 #define DQN_DISTRIBUTION 1
 
 
@@ -826,6 +827,8 @@ namespace TwentyFortyEight
 		struct NetworkModel
 		{
 		public:
+			static constexpr int ActionNum = DQN::ActionNum;
+
 			NetworkModel()
 			{
 				int len = BoardSize * BoardSize;
@@ -853,6 +856,17 @@ namespace TwentyFortyEight
 				mActionLayer.init(parameterOffset, topologyAction);
 				mActionLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				mActionLayer.setOutputLayerTransform<NNFunc::Linear>();
+
+#if DQN_DISTRIBUTION
+				NNScalar vMin = -5;
+				NNScalar vMax = 5;
+				mSupports.resize(AtomCount);
+				NNScalar vDelta = (vMax - vMin) / (AtomCount - 1);
+				for (int i = 0; i < AtomCount; ++i)
+				{
+					mSupports[i] = vMin + vDelta * i;
+				}
+#endif
 			}
 
 			void inference(
@@ -860,6 +874,10 @@ namespace TwentyFortyEight
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
+#if DQN_DISTRIBUTION
+				NNScalar* pDistOutput = (NNScalar*)alloca(sizeof(NNScalar) * getOutputLength());
+				inference(parameters, inputs, outputs, pDistOutput);
+#else
 				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
 				mFeatureLayer.inference(parameters, inputs, featureOutputs);
 
@@ -875,8 +893,58 @@ namespace TwentyFortyEight
 				{
 					outputs[i] = actionValues[i] - mean + value;
 				}
+#endif
 			}
 
+#if DQN_DISTRIBUTION
+			void inference(
+				NNScalar const parameters[],
+				NNScalar const inputs[],
+				NNScalar outputs[],
+				NNScalar outDist[]) const
+			{
+				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
+				mFeatureLayer.inference(parameters, inputs, featureOutputs);
+
+				NNScalar valueDist[AtomCount];
+				mValueLayer.inference(parameters, featureOutputs, valueDist);
+
+				NNScalar actionDists[ActionNum * AtomCount];
+				mActionLayer.inference(parameters, featureOutputs, actionDists);
+
+				for (int atom = 0; atom < AtomCount; ++atom)
+				{
+					NNScalar mean = 0;
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						mean += actionDists[i * AtomCount + atom];
+					}
+					mean /= ActionNum;
+
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						outDist[i * AtomCount + atom] = actionDists[i * AtomCount + atom] - mean + valueDist[atom];
+					}
+				}
+
+				NNScalar* pActionDist = outDist;
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					FNNMath::SoftMax(AtomCount, pActionDist);
+					outputs[i] = FNNMath::VectorDot(AtomCount, mSupports.data(), pActionDist);
+					pActionDist += AtomCount;
+				}
+			}
+
+			void forwardDistribution(
+				NNScalar const parameters[],
+				NNScalar const inputs[],
+				NNScalar outputs[]) const
+			{
+				NNScalar outputsValue[ActionNum];
+				inference(parameters, inputs, outputsValue, outputs);
+			}
+#endif
 
 			NNScalar* forward(
 				NNScalar const parameters[],
@@ -894,13 +962,36 @@ namespace TwentyFortyEight
 				NNScalar const* pActionOutput = mActionLayer.forward(parameters, pInput, pOutput);
 				pOutput += mActionLayer.getPassOutputLength();
 
+#if DQN_DISTRIBUTION
+				for (int atom = 0; atom < AtomCount; ++atom)
+				{
+					NNScalar mean = 0;
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						mean += pActionOutput[i * AtomCount + atom];
+					}
+					mean /= ActionNum;
+
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						pOutput[i * AtomCount + atom] = pActionOutput[i * AtomCount + atom] - mean + pValueOutput[atom];
+					}
+				}
+
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					int offset = i * AtomCount;
+					FNNMath::SoftMax(AtomCount, pOutput + offset, pOutput + offset);
+				}
+#else
 				NNScalar mean = FNNMath::Sum(ActionNum, pActionOutput) / ActionNum;
 				for (int i = 0; i < ActionNum; ++i)
 				{
 					pOutput[i] = pActionOutput[i] - mean + *pValueOutput;
 				}
+#endif
 
-				CHECK(pOutput = outputs + (getPassOutputLength() - getOutputLength()));
+				CHECK(pOutput == outputs + (getPassOutputLength() - getOutputLength()));
 
 				return pOutput;
 			}
@@ -914,11 +1005,46 @@ namespace TwentyFortyEight
 				NNScalar inoutParameterGrads[],
 				NNScalar* outLossGrads = nullptr)
 			{
-				TArrayView<NNScalar> layerTempLossGrads(tempLossGrads.data() + 2 * mFeatureLayer.getOutputLength(), tempLossGrads.size() - 2 * mFeatureLayer.getOutputLength());
-
-#if 1
 				NNScalar const* pOutput = inOutputs + getPassOutputLength();
 
+				NNScalar const* pInput = inOutputs + (mFeatureLayer.getPassOutputLength() - mFeatureLayer.getOutputLength());
+				TArrayView<NNScalar> layerTempLossGrads(tempLossGrads.data() + getOutputLength() + 2 * mFeatureLayer.getOutputLength(), tempLossGrads.size() - getOutputLength() - 2 * mFeatureLayer.getOutputLength());
+				NNScalar* combinedLossGrads = tempLossGrads.data();
+				NNScalar* actionInputLossGrads = combinedLossGrads + getOutputLength();
+				NNScalar* valueInputLossGrads = actionInputLossGrads + mFeatureLayer.getOutputLength();
+
+#if DQN_DISTRIBUTION
+				pOutput -= getOutputLength();
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					int offset = i * AtomCount;
+					NNScalar const* pActionInput = pOutput + offset;
+					NNScalar const* pActionOutput = pOutput + offset;
+					FNNAlgo::SoftMaxBackward(AtomCount, pActionInput, pActionOutput, inOutputLossGrads + offset, combinedLossGrads + offset);
+				}
+
+				NNScalar actionLossGrads[ActionNum * AtomCount];
+				NNScalar valueLossGrads[AtomCount];
+				for (int atom = 0; atom < AtomCount; ++atom)
+				{
+					NNScalar valueGrad = 0;
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						valueGrad += combinedLossGrads[i * AtomCount + atom];
+					}
+					valueLossGrads[atom] = valueGrad;
+
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						actionLossGrads[i * AtomCount + atom] = combinedLossGrads[i * AtomCount + atom] - valueGrad / ActionNum;
+					}
+				}
+
+				pOutput -= mActionLayer.getPassOutputLength();
+				mActionLayer.backward(parameters, pInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
+				pOutput -= mValueLayer.getPassOutputLength();
+				mValueLayer.backward(parameters, pInput, pOutput, valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
+#else
 				pOutput -= ActionNum;
 				NNScalar actionLossGrads[ActionNum];
 				for (int i = 0; i < ActionNum; ++i)
@@ -931,33 +1057,30 @@ namespace TwentyFortyEight
 				}
 				NNScalar valueLossGrads = FNNMath::Sum(ActionNum, inOutputLossGrads);
 
-				NNScalar* actionInputLossGrads = tempLossGrads.data();
-
-				NNScalar const* pInput = inOutputs + (mFeatureLayer.getPassOutputLength() - mFeatureLayer.getOutputLength());
 				pOutput -= mActionLayer.getPassOutputLength();
 				mActionLayer.backward(parameters, pInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
-
-
-				NNScalar* valueInputLossGrads = tempLossGrads.data() + mFeatureLayer.getOutputLength();
 				pOutput -= mValueLayer.getPassOutputLength();
 				mValueLayer.backward(parameters, pInput, pOutput, &valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
-
+#endif
 
 				FNNMath::VectorAdd(mFeatureLayer.getOutputLength(), valueInputLossGrads, actionInputLossGrads);
 				CHECK(inOutputs == pOutput - mFeatureLayer.getPassOutputLength());
 
 				mFeatureLayer.backward(parameters, inInputs, inOutputs, valueInputLossGrads, layerTempLossGrads, inoutParameterGrads);
-#endif
 			}
 
 			int getOutputLength() const
 			{
+#if DQN_DISTRIBUTION
+				return ActionNum * AtomCount;
+#else
 				return ActionNum;
+#endif
 			}
 
 			int getPassOutputLength() const
 			{
-				return mFeatureLayer.getPassOutputLength() + mValueLayer.getPassOutputLength() + mActionLayer.getPassOutputLength() + ActionNum;
+				return mFeatureLayer.getPassOutputLength() + mValueLayer.getPassOutputLength() + mActionLayer.getPassOutputLength() + getOutputLength();
 			}
 
 			int getParameterLength() const
@@ -970,13 +1093,36 @@ namespace TwentyFortyEight
 				int length = mFeatureLayer.getTempLossGradLength();
 				length = Math::Max(length, mActionLayer.getTempLossGradLength());
 				length = Math::Max(length, mValueLayer.getTempLossGradLength());
-				length += 2 * mFeatureLayer.getOutputLength();
+				length += getOutputLength() + 2 * mFeatureLayer.getOutputLength();
 				return length;
 			}
 
 			NNFullConLayout mFeatureLayer;
 			NNFullConLayout mValueLayer;
 			NNFullConLayout mActionLayer;
+#if DQN_DISTRIBUTION
+			TArray<NNScalar> mSupports;
+#endif
+
+			void initializeParameters(TArrayView<NNScalar> parameters) const
+			{
+				NNParameterInitOptions featureInit;
+				featureInit.hiddenWeightInit = ENNWeightInit::HeUniform;
+				featureInit.outputWeightInit = ENNWeightInit::HeUniform;
+				featureInit.hiddenScale = 1.0f;
+				featureInit.outputScale = 1.0f;
+				featureInit.bZeroBias = true;
+				mFeatureLayer.initializeParameters(parameters, featureInit);
+
+				NNParameterInitOptions headInit;
+				headInit.hiddenWeightInit = ENNWeightInit::HeUniform;
+				headInit.outputWeightInit = ENNWeightInit::SmallUniform;
+				headInit.hiddenScale = 1.0f;
+				headInit.outputScale = 1e-2f;
+				headInit.bZeroBias = true;
+				mValueLayer.initializeParameters(parameters, headInit);
+				mActionLayer.initializeParameters(parameters, headInit);
+			}
 
 		};
 
@@ -1213,11 +1359,7 @@ namespace TwentyFortyEight
 			void initParameters()
 			{
 				parameters.resize(mModel->getParameterLength());
-				NNScalar v = 0.05 * Math::Sqrt( 2.0 / (BoardSize * BoardSize));
-				for (NNScalar& x : parameters)
-				{
-					x = RandFloat(1e-4, v);
-				}
+				mModel->initializeParameters(parameters);
 			}
 
 			NNScalar evalMaxActionValue(State const& state)
@@ -1310,6 +1452,7 @@ namespace TwentyFortyEight
 			struct StepSample
 			{
 				State    state;
+				Action   action;
 				NNScalar reward;
 			};
 
@@ -1325,6 +1468,7 @@ namespace TwentyFortyEight
 				NNScalar reward;
 #endif
 				State    stateNext;
+				uint32   playableDirMaskNext;
 				bool     bDone;
 
 
@@ -1333,37 +1477,33 @@ namespace TwentyFortyEight
 			struct ReplayData : Sample
 			{
 				NNScalar loss = 0;
+				NNScalar priorityValue = 0;
 				float priority;
 				float priorityAcc;
-
-				bool bUsed;
 			};
 
 			float mWeightBeta = 0.4;
 			float mMaxPriority = 1.0;
 
-			static float constexpr WeightBetaInc = 0.01;
+			static float constexpr WeightBetaInc = 1e-4;
 
 			void choiceReplays(ReplayData* outReplays[], float outWeights[], int numReplay)
 			{
-#if 1
 				float totalPriority = 0;
 				for (int i = 0; i < mReplay.size(); ++i)
 				{
 					auto& replay = mReplay[i];
-					replay.bUsed = false;
 					totalPriority += replay.priority;
 					replay.priorityAcc = totalPriority;
 				}
 
 
 				float maxWeight = 0;
-				float curTotalPriority = totalPriority;
 				for (int i = 0; i < numReplay; ++i)
 				{
-					float targtProb = RandFloat() * curTotalPriority;
+					float targtProb = RandFloat() * totalPriority;
 
-					if (targtProb == curTotalPriority)
+					if (targtProb == totalPriority)
 					{
 						--i;
 						continue;
@@ -1379,72 +1519,10 @@ namespace TwentyFortyEight
 						continue;
 					}
 	
-					float prob = replay->priority / curTotalPriority;
+					float prob = replay->priority / totalPriority;
 					outWeights[i] = Math::Pow(mReplay.size() * prob, -mWeightBeta);
 					outReplays[i] = replay;
 					maxWeight = Math::Max(maxWeight, outWeights[i]);
-
-					int index = replay - mReplay.data();
-					CHECK(index < mReplay.size());
-					if (!replay->bUsed)
-					{
-						replay->bUsed = true;
-
-						float priorityAcc = mReplay[index].priorityAcc;
-
-						if (index == 0)
-						{
-							mReplay[index].priorityAcc = -1;
-						}
-						else
-						{
-							mReplay[index].priorityAcc = mReplay[index - 1].priorityAcc;
-						}
-
-						int n = index + 1;
-						float priorityAccPrev = mReplay[index].priorityAcc;
-						for (;n < mReplay.size(); ++n)
-						{
-							if ( priorityAcc != mReplay[n].priorityAcc)
-								break;
-
-							mReplay[n].priorityAcc = priorityAccPrev;
-						}
-
-						for (; n < mReplay.size(); ++n)
-						{
-							mReplay[n].priorityAcc -= replay->priority;
-						}
-						curTotalPriority -= replay->priority;
-						if (curTotalPriority < 1e-5)
-						{
-							totalPriority = 0.0f;
-							for (int i = 0; i < mReplay.size(); ++i)
-							{
-								auto& replay = mReplay[i];
-								if (replay.bUsed)
-								{
-									replay.priorityAcc = totalPriority;
-									continue;
-								}
-								totalPriority += replay.priority;
-								replay.priorityAcc = totalPriority;
-							}
-
-							curTotalPriority = totalPriority;
-						}
-					}
-					else
-					{
-	
-						LogError("USED Index = %d %u %g %g %g", index, mReplay.size(), replay->priorityAcc, targtProb, curTotalPriority);
-
-						if (index > 0)
-						{
-
-							LogError("Prev = %g", mReplay[index - 1].priorityAcc);
-						}
-					}
 				}
 
 				mWeightBeta = Math::Min(1.0f, mWeightBeta + WeightBetaInc);
@@ -1453,14 +1531,6 @@ namespace TwentyFortyEight
 				{
 					outWeights[i] /= maxWeight;
 				}
-
-#else
-				for (int i = 0; i < numReplay; ++i)
-				{
-					int index = rand() % mReplay.size();
-					outReplays[i] = &mReplay[index];
-				}
-#endif
 			}
 
 
@@ -1517,15 +1587,17 @@ namespace TwentyFortyEight
 			{
 #if DQN_MULTI_STEP > 1
 				auto const& state = sample.steps[0].state;
+				auto const& action = sample.steps[0].action;
 #else
 				auto const& state = sample.state;
+				auto const& action = sample.action;
 #endif
 
 #if DQN_DISTRIBUTION
 				NNScalar* actionDist = agent.mModel->forward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data());
-				actionDist += sample.action.playDir * AtomCount;
+				actionDist += action.playDir * AtomCount;
 #else
-				auto actionValue = agent.evalActionValue(state, sample.action, threadData.outputs.data());
+				auto actionValue = agent.evalActionValue(state, action, threadData.outputs.data());
 #endif
 
 
@@ -1538,25 +1610,55 @@ namespace TwentyFortyEight
 					NNScalar actionValuesNext[4];
 					agent.evalActionValues(stateNext, actionValuesNext);
 					Action actionNext;
-					actionNext.playDir = FNNMath::Max(4, actionValuesNext);
+					actionNext.playDir = 0;
+					if (!sample.bDone)
+					{
+						NNScalar bestValue = NNScalar(-Math::MaxFloat);
+						for (int i = 0; i < ActionNum; ++i)
+						{
+							if (!(sample.playableDirMaskNext & BIT(i)))
+								continue;
+
+							if (bestValue < actionValuesNext[i])
+							{
+								bestValue = actionValuesNext[i];
+								actionNext.playDir = i;
+							}
+						}
+					}
 
 					TDTarget = Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), stateNext, actionNext) * (1 - float(sample.bDone));
 
-					for (int i = DQN_MULTI_STEP; i >= 0; --i)
+					for (int i = DQN_MULTI_STEP - 1; i >= 0; --i)
 					{
 						TDTarget *= DiscountRate;
 						TDTarget += sample.steps[i].reward;
 					}
-					lossDerivatives[sample.action.playDir] += LossFunc::CalcDevivative(actionValue, TDTarget);
+					lossDerivatives[action.playDir] += LossFunc::CalcDevivative(actionValue, TDTarget);
 
 					sample.loss += LossFunc::Calc(actionValue, TDTarget);
 				}
 #else
 				NNScalar actionValuesNext[4];
 				agent.evalActionValues(sample.stateNext, actionValuesNext);
-				Action actionNext;
-				actionNext.playDir = FNNMath::Max(4, actionValuesNext);
 
+				Action actionNext;
+				actionNext.playDir = 0;
+				if (!sample.bDone)
+				{
+					NNScalar bestValue = NNScalar(-Math::MaxFloat);
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						if (!(sample.playableDirMaskNext & BIT(i)))
+							continue;
+
+						if (bestValue < actionValuesNext[i])
+						{
+							bestValue = actionValuesNext[i];
+							actionNext.playDir = i;
+						}
+					}
+				}
 
 #if DQN_DISTRIBUTION
 				NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
@@ -1577,16 +1679,18 @@ namespace TwentyFortyEight
 				{
 					NNScalar t = sample.reward + DiscountRate * agent.mModel->mSupports[i] * (1 - float(sample.bDone));
 					NNScalar b = (t - minV) / deltaV;
+					b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
 					int l = Math::Clamp(Math::FloorToInt(b), 0 , AtomCount - 2);
 					int u = l + 1;
 					targetProjDist[l] += targetDist[i] * (u - b);
 					targetProjDist[u] += targetDist[i] * (b - l);
 				}
 				sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+				sample.priorityValue = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
 
 				NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-				FNNMath::Fill(agent.mModel->ActionNum * AtomCount, lossGrads, LossFunc::CalcDevivative(1, 1));
-				NNScalar* actionLossGrads = lossGrads + AtomCount * sample.action.playDir;
+				FMemory::Zero(lossGrads, sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+				NNScalar* actionLossGrads = lossGrads + AtomCount * action.playDir;
 				for (int i = 0; i < AtomCount; ++i)
 				{
 					if (actionDist[i] < 1e-6)
@@ -1622,6 +1726,7 @@ namespace TwentyFortyEight
 				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
 				lossDerivatives[sample.action.playDir] = weight * LossFunc::CalcDevivative(actionValue, TDTarget);
 				sample.loss = weight * LossFunc::Calc(actionValue, TDTarget);
+				sample.priorityValue = LossFunc::Calc(actionValue, TDTarget);
 
 #endif
 
@@ -1656,6 +1761,7 @@ namespace TwentyFortyEight
 #if DQN_MULTI_STEP > 1
 				stepSamples[mIndexStep].reward = stepResult.reward;
 				stepSamples[mIndexStep].state = inoutState;
+				stepSamples[mIndexStep].action = action;
 				++mIndexStep;
 				if (mIndexStep == DQN_MULTI_STEP)
 					mIndexStep = 0;
@@ -1676,6 +1782,7 @@ namespace TwentyFortyEight
 							sample.bDone = stepResult.bDone;
 							sample.action = action;
 							sample.stateNext = inoutState;
+							sample.playableDirMaskNext = env.playableDirMask;
 							for (int i = 0; i < DQN_MULTI_STEP; ++i)
 							{
 								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
@@ -1683,7 +1790,7 @@ namespace TwentyFortyEight
 							mReplay.push_back(sample);
 						}
 #else
-						mReplay.push_back({ action , oldState, { stepResult.reward }, inoutState, stepResult.bDone || !stepResult.bValidAction });
+						mReplay.push_back({ action , oldState, { stepResult.reward }, inoutState, env.playableDirMask, stepResult.bDone || !stepResult.bValidAction });
 #endif
 						mReplay.back().priority = mMaxPriority;
 					}
@@ -1697,13 +1804,14 @@ namespace TwentyFortyEight
 							sample.bDone = stepResult.bDone;
 							sample.action = action;
 							sample.stateNext = inoutState;
+							sample.playableDirMaskNext = env.playableDirMask;
 							for (int i = 0; i < DQN_MULTI_STEP; ++i)
 							{
 								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
 							}
 						}
 #else
-						sample = { action , oldState, stepResult.reward, inoutState, stepResult.bDone || !stepResult.bValidAction };
+						sample = { action , oldState, stepResult.reward, inoutState, env.playableDirMask, stepResult.bDone || !stepResult.bValidAction };
 #endif			
 
 						sample.priority = mMaxPriority;
@@ -1756,7 +1864,7 @@ namespace TwentyFortyEight
 					//loss += fit(sample, mMainData);
 					loss += sample.loss;
 
-					sample.priority = Math::Max(1e-5f, sample.loss) / weights[i];
+					sample.priority = Math::Max(1e-5f, sample.priorityValue);
 					mMaxPriority = Math::Max(mMaxPriority, sample.priority);
 					if (mMaxPriority > 1000)
 					{
@@ -1848,7 +1956,7 @@ namespace TwentyFortyEight
 						{
 							mLoss = optimize();
 							++mOptimizeCount;
-							if (mEpisode % 500 == 0)
+							if (mOptimizeCount % 500 == 0)
 							{
 								updateTargetParameter();
 							}
@@ -2152,24 +2260,34 @@ namespace TwentyFortyEight
 		int mNumPointRes = 0;
 		int mMergeSize = 1;
 		Vector2 mLastPointAcc = Vector2::Zero();
+		int mBucketMaxScore = 0;
+		int mBucketMinScore = 0;
 
-		TArray<Vector2> mScoreCurvePoints;
+		TArray<Vector2> mMeanScoreCurvePoints;
 		TArray<Vector2> mMaxScoreCurvePoints;
+		TArray<Vector2> mMinScoreCurvePoints;
 
 		void OnTrainEpisodeEnd(int episode)
 		{
-			mLastPointAcc += Vector2(episode, mTrain.env.game.score);
+			int score = mTrain.env.game.score;
+			mLastPointAcc += Vector2(episode, score);
 			mNumPointRes = mNumPointRes + 1;
 
 			if (mNumPointRes == 1)
 			{
-				mScoreCurvePoints.push_back(mLastPointAcc);
-				mMaxScoreCurvePoints.push_back(mLastPointAcc);
+				mBucketMaxScore = score;
+				mBucketMinScore = score;
+				mMeanScoreCurvePoints.push_back(mLastPointAcc);
+				mMaxScoreCurvePoints.push_back(Vector2(episode, score));
+				mMinScoreCurvePoints.push_back(Vector2(episode, score));
 			}
 			else
 			{
-				mScoreCurvePoints.back() = mLastPointAcc / float(mNumPointRes);
-				mMaxScoreCurvePoints.back() = Vector2(mScoreCurvePoints.back().x, Math::Max<float>(mTrain.env.game.score, mMaxScoreCurvePoints.back().y));
+				mBucketMaxScore = Math::Max(mBucketMaxScore, score);
+				mBucketMinScore = Math::Min(mBucketMinScore, score);
+				mMeanScoreCurvePoints.back() = mLastPointAcc / float(mNumPointRes);
+				mMaxScoreCurvePoints.back() = Vector2(mMeanScoreCurvePoints.back().x, mBucketMaxScore);
+				mMinScoreCurvePoints.back() = Vector2(mMeanScoreCurvePoints.back().x, mBucketMinScore);
 			}
 
 			if (mNumPointRes == mMergeSize)
@@ -2179,22 +2297,26 @@ namespace TwentyFortyEight
 			}
 
 			int MergeCount = 400;
-			int num = (mNumPointRes == mMergeSize) ? mScoreCurvePoints.size() : mScoreCurvePoints.size() - 1;
+			int num = (mNumPointRes == mMergeSize) ? mMeanScoreCurvePoints.size() : mMeanScoreCurvePoints.size() - 1;
 			if (num >= MergeCount)
 			{
-				TArray<Vector2> mergedCurve;
+				TArray<Vector2> mergedMeanCurve;
 				TArray<Vector2> mergedMaxCurve;
-				mergedCurve.resize(MergeCount / 2);
+				TArray<Vector2> mergedMinCurve;
+				mergedMeanCurve.resize(MergeCount / 2);
 				mergedMaxCurve.resize(MergeCount / 2);
+				mergedMinCurve.resize(MergeCount / 2);
 				for (int i = 0; i < MergeCount; i += 2)
 				{
-					mergedCurve[i / 2] = 0.5 * (mScoreCurvePoints[i] + mScoreCurvePoints[i + 1]);
-					mergedMaxCurve[i / 2] = Vector2(mergedCurve[i / 2].x, Math::Max(mMaxScoreCurvePoints[i].y, mMaxScoreCurvePoints[i + 1].y));
+					mergedMeanCurve[i / 2] = 0.5 * (mMeanScoreCurvePoints[i] + mMeanScoreCurvePoints[i + 1]);
+					mergedMaxCurve[i / 2] = Vector2(mergedMeanCurve[i / 2].x, Math::Max(mMaxScoreCurvePoints[i].y, mMaxScoreCurvePoints[i + 1].y));
+					mergedMinCurve[i / 2] = Vector2(mergedMeanCurve[i / 2].x, Math::Min(mMinScoreCurvePoints[i].y, mMinScoreCurvePoints[i + 1].y));
 				}
 
 
-				mScoreCurvePoints = std::move(mergedCurve);
+				mMeanScoreCurvePoints = std::move(mergedMeanCurve);
 				mMaxScoreCurvePoints = std::move(mergedMaxCurve);
+				mMinScoreCurvePoints = std::move(mergedMinCurve);
 				mMergeSize *= 2;
 			}
 
@@ -2471,7 +2593,7 @@ namespace TwentyFortyEight
 
 					index += visit.blockStride;
 				}
-				indexLine += visit.lineStrde;
+				indexLine += visit.lineStride;
 			}
 
 			if (bShowDeubg)
@@ -2593,7 +2715,8 @@ namespace TwentyFortyEight
 			diagram.drawGird(commandList, Vector2(0, 0), Vector2(mTrain.mEpisode / 10.0f, mMaxScore / 10.0f));
 
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add >::GetRHI());
-			diagram.drawCurve(commandList, mScoreCurvePoints, LinearColor(1, 0, 0, 1));
+			diagram.drawCurve(commandList, mMinScoreCurvePoints, LinearColor(1, 0, 0, 1));
+			diagram.drawCurve(commandList, mMeanScoreCurvePoints, LinearColor(1, 1, 1, 1));
 			diagram.drawCurve(commandList, mMaxScoreCurvePoints, LinearColor(1, 1, 0, 1));
 		}
 

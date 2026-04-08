@@ -552,10 +552,11 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 {
-	RenderThread::Finalize();
-
 	if( !isRHIEnabled())
 		return;
+
+	RenderThread::Finalize();
+
 	RHIClearResourceReference();
 
 	if (mRenderSetup)

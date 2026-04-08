@@ -158,7 +158,10 @@ PS_ENTRY_END(MainPS)
 {
 	float4 texColor = TEXTURE_SAMPLE(Texture, OutputGS.uv);
 	float4 finalColor = texColor * OutputGS.color;
-	if (finalColor.a < 0.01) discard;
+	
+	if (finalColor.a < 0.01) 
+		discard;
+	
 	OutColor = finalColor;
 }
 #endif

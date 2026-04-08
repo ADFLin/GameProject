@@ -1,4 +1,5 @@
 #include "BatchedRender2D.h"
+#include "SpriteRender.h"
 #include "RHI/DrawUtility.h"
 #include "ConsoleSystem.h"
 #include "CoreShare.h"
@@ -10,6 +11,7 @@
 
 #define USE_NEW_LINE_IDNEX 1
 #define USE_SHAPE_CACHE 1
+#define USE_SPRITE_RENDER 1
 
 namespace Render
 {
@@ -898,14 +900,15 @@ namespace Render
 				updateRenderState(*mCommandList, inoutRenderState);
 			}
 
-			auto CountBatch = [&](RenderBatchedElement::EType targetType) -> int {
+			auto CountBatch = [&](RenderBatchedElement::EType targetType) -> int
+			{
 				int count = 0;
 				int maxLookAhead = (int)elements.size() - i;
-				for (int k = 0; k < maxLookAhead; ++k) {
-					if (elements[i + k]->type == targetType && elements[i + k]->stateIndex == currentStateIndex)
-						count++;
-					else
+				for (int k = 0; k < maxLookAhead; ++k) 
+				{
+					if (elements[i + k]->type != targetType || elements[i + k]->stateIndex != currentStateIndex)
 						break;
+					++count;
 				}
 				return count;
 			};
@@ -939,6 +942,48 @@ namespace Render
 			case RenderBatchedElement::TextureRect:
 				{
 					PROFILE_ENTRY("Emit TextureRect");
+#if USE_SPRITE_RENDER
+	
+					TArray<SpriteInstanceData> instanceData;
+					instanceData.reserve(batchCount);
+
+					for (int k = 0; k < batchCount; ++k)
+					{
+						auto* curElem = elements[i + k];
+						auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::TextureRectPayload>(curElem);
+						auto& transform = transforms[curElem->transformIndex];
+
+						SpriteInstanceData data;
+						data.size = payload.max - payload.min;
+						data.uvPos = payload.uvMin;
+						data.uvSize = payload.uvMax - payload.uvMin;
+						data.transform = RenderTransform2D::Translate((payload.min + payload.max) * 0.5f) * transform;
+						if constexpr (Meta::IsSameType<Color4Type, Color4ub>::Value)
+						{
+							data.color = LinearColor(
+								float(payload.color.r) / 255.0f,
+								float(payload.color.g) / 255.0f,
+								float(payload.color.b) / 255.0f,
+								float(payload.color.a) / 255.0f);
+						}
+						else
+						{
+							data.color = LinearColor(payload.color.r, payload.color.g, payload.color.b, payload.color.a);
+						}
+						instanceData.push_back(data);
+					}
+
+					flushDrawCommand();
+					FSprite::Render(*mCommandList, mBaseTransform, *inoutRenderState.texture, inoutRenderState.sampler, instanceData);
+
+					if (!tryLockBuffer())
+						return;
+
+					// Restore batched 2D pipeline after sprite shader/input state override.
+					mProgramCur = nullptr;
+					updateRenderState(*mCommandList, inoutRenderState);
+
+#else
 					FetchedData data = fetchBuffer(4 * batchCount, 6 * batchCount);
 					TexVertex* pVertices = data.vertices;
 
@@ -967,6 +1012,8 @@ namespace Render
 						pVertices += 4;
 					}
 					FillQuadSequence(data.indices, data.base, batchCount);
+#endif
+
 				}
 				break;
 			case RenderBatchedElement::GradientRect:

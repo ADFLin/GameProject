@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef NNTrain_H_E17423EA_82CC_446C_8A7F_2CAAB54D7F6D
 #define NNTrain_H_E17423EA_82CC_446C_8A7F_2CAAB54D7F6D
 
@@ -74,7 +74,7 @@ struct RMSProp
 class FRMSELoss
 {
 public:
-	//MSE £U(r-s)^2
+	//MSE Î£(r-s)^2
 	static NNScalar CalcDevivative(NNScalar prediction, NNScalar label)
 	{
 		NNScalar delta = label - prediction;
@@ -92,9 +92,11 @@ public:
 class FCrossEntropyLoss
 {
 public:
-	//Cross-Entropy -£Urln(s)
+	//Cross-Entropy -Î£rln(s)
 	static NNScalar CalcDevivative(NNScalar prediction, NNScalar label)
 	{
+		constexpr NNScalar MinPrediction = 1e-8f;
+		prediction = Math::Max(prediction, MinPrediction);
 		return  -label / prediction;
 	}
 
@@ -105,15 +107,18 @@ public:
 
 	static NNScalar Calc(NNScalar prediction, NNScalar label)
 	{
+		constexpr NNScalar MinPrediction = 1e-8f;
+		prediction = Math::Max(prediction, MinPrediction);
 		return -label * log(prediction);
 	}
 
 	static NNScalar Calc(int dim , NNScalar* distribution, NNScalar* labels)
 	{
+		constexpr NNScalar MinPrediction = 1e-8f;
 		NNScalar result = 0.0;
 		for (int i = 0; i < dim; ++i)
 		{
-			result += -labels[i] * log(distribution[i]);
+			result += -labels[i] * log(Math::Max(distribution[i], MinPrediction));
 		}
 		return result;
 	}

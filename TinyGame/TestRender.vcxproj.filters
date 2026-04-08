@@ -169,6 +169,9 @@
     <ClCompile Include="TestRender\Stage\ShadertoyStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\SpriteBenchmarkStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
     <ClCompile Include="TestRender\Stage\VolumetricLightingStage.cpp" />
     <ClCompile Include="TestRender\MeshImporterGLB.cpp" />
     <ClCompile Include="TestRender\Stage\PathTracing\PathTracingRenderer.cpp">

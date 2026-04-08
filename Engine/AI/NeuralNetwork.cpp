@@ -1,8 +1,9 @@
-#include "NeuralNetwork.h"
+ï»¿#include "NeuralNetwork.h"
 
 #include "Math/Base.h"
 #include "CompilerConfig.h"
 #include "MacroCommon.h"
+#include <cstdlib>
 
 
 #define REORDER_WEIGHT 1
@@ -14,6 +15,31 @@
 #endif
 
 #define USE_DUFF_DEVICE 0
+
+namespace
+{
+	NNScalar GetUniformSigned()
+	{
+		return NNScalar(2.0 * (double(std::rand()) / double(RAND_MAX)) - 1.0);
+	}
+
+	NNScalar CalcInitBound(ENNWeightInit method, int fanIn, int fanOut, NNScalar scale)
+	{
+		switch (method)
+		{
+		case ENNWeightInit::Zero:
+			return 0;
+		case ENNWeightInit::XavierUniform:
+			return scale * Math::Sqrt(NNScalar(6.0) / NNScalar(fanIn + fanOut));
+		case ENNWeightInit::HeUniform:
+			return scale * Math::Sqrt(NNScalar(6.0) / NNScalar(fanIn));
+		case ENNWeightInit::SmallUniform:
+			return scale;
+		}
+		NEVER_REACH("");
+		return 0;
+	}
+}
 
 #if USE_DUFF_DEVICE
 #include "Misc/DuffDevice.h"
@@ -186,10 +212,19 @@ void FNNMath::VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRIC
 
 int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
 {
+	NNScalar maxInput = inputs[0];
+	for (int i = 1; i < dim; ++i)
+	{
+		if (maxInput < inputs[i])
+		{
+			maxInput = inputs[i];
+		}
+	}
+
 	NNScalar sum = 0.0;
 	for (int i = 0; i < dim; ++i)
 	{
-		outputs[i] = exp(inputs[i]);
+		outputs[i] = exp(inputs[i] - maxInput);
 		sum += outputs[i];
 	}
 	int index = INDEX_NONE;
@@ -208,10 +243,19 @@ int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs
 
 int FNNMath::SoftMax(int dim, NNScalar* RESTRICT inoutValues)
 {
+	NNScalar maxInput = inoutValues[0];
+	for (int i = 1; i < dim; ++i)
+	{
+		if (maxInput < inoutValues[i])
+		{
+			maxInput = inoutValues[i];
+		}
+	}
+
 	NNScalar sum = 0.0;
 	for (int i = 0; i < dim; ++i)
 	{
-		inoutValues[i] = exp(inoutValues[i]);
+		inoutValues[i] = exp(inoutValues[i] - maxInput);
 		sum += inoutValues[i];
 	}
 	int index = INDEX_NONE;
@@ -726,6 +770,35 @@ void NNFullConLayout::inference(
 	}
 }
 
+void NNFullConLayout::initializeParameters(
+	TArrayView<NNScalar> parameters,
+	NNParameterInitOptions const& options) const
+{
+	CHECK(!mLayers.empty());
+	CHECK(parameters.size() >= mLayers.back().biasOffset + mLayers.back().numNode);
+
+	for (int idxLayer = 0; idxLayer < mLayers.size(); ++idxLayer)
+	{
+		auto const& layer = mLayers[idxLayer];
+		bool const bOutputLayer = (idxLayer + 1 == mLayers.size());
+		ENNWeightInit initMethod = bOutputLayer ? options.outputWeightInit : options.hiddenWeightInit;
+		NNScalar initScale = bOutputLayer ? options.outputScale : options.hiddenScale;
+		NNScalar bound = CalcInitBound(initMethod, layer.getFanIn(), layer.getFanOut(), initScale);
+
+		NNScalar* pWeight = parameters.data() + layer.weightOffset;
+		for (int i = 0; i < layer.getWeightLength(); ++i)
+		{
+			pWeight[i] = (bound > 0) ? bound * GetUniformSigned() : 0;
+		}
+
+		NNScalar* pBias = parameters.data() + layer.biasOffset;
+		for (int i = 0; i < layer.numNode; ++i)
+		{
+			pBias[i] = options.bZeroBias ? 0 : ((bound > 0) ? bound * GetUniformSigned() : 0);
+		}
+	}
+}
+
 NNScalar* NNFullConLayout::inferenceSignal(
 	NNScalar const parameters[], 
 	NNScalar const inputs[], 
@@ -747,7 +820,7 @@ NNScalar* NNFullConLayout::inferenceSignal(
 		NNLinearLayer const& layer = mLayers.back();
 
 		pInputs = FNNAlgo::Forward(layer, parameters, pInputs, pOutputs);
-		FNNAlgo::Forward(mHiddenActiveLayer, layer.getOutputLength(), const_cast<NNScalar*>(pInputs));
+		FNNAlgo::Forward(mOutputActiveLayer, layer.getOutputLength(), const_cast<NNScalar*>(pInputs));
 	}
 
 	return const_cast<NNScalar*>(pInputs);
@@ -866,12 +939,12 @@ NNScalar* FNNAlgo::Forward(
 // a[l,n] : Signal 
 // dC/dz[l,n] : Sensitivity Value
 
-// z[l,n] = £Uk( w[l,n,k]*a[l-1,k] ) + b[l,n]
+// z[l,n] = Î£k( w[l,n,k]*a[l-1,k] ) + b[l,n]
 // C = sum( 0.5 *( t[n] - a[L,n] )^2 )
 // dC/da[L,n] = -(t[n] - a[L,n]) 
 
 // dC/dz[L,n] = dC/da * da/dz =  F'(z[L,n]) * dC/da[L,n] = F'(z[L,n]) * -(t[n] - a[L,n]) 
-// dC/dz[l,n] = dC/da * da/dz =  F'(z[l,n]) * £Uk( dC/dz[l+1,k] * w[l+1,k,n] )
+// dC/dz[l,n] = dC/da * da/dz =  F'(z[l,n]) * Î£k( dC/dz[l+1,k] * w[l+1,k,n] )
 
 // dC/dw[l,n,k] = dC/dz * dz/dw = dC/dz[l,n] * a[l-1,k]
 // dC/db[l,n] = dC/dz * dz/db = dC/dz[l,n]
@@ -1564,4 +1637,5 @@ void FNNAlgo::SoftMaxBackward(int inputLength, NNScalar const inInputs[], NNScal
 		outLossGrads[i] = lossGrad;
 	}
 }
+
 

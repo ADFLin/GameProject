@@ -27,10 +27,18 @@ namespace Render
 
 	void GpuProfiler::releaseRHIResource()
 	{
+		mbStartSampling = false;
+		mCurLevel = 0;
+		mRootSample = nullptr;
+		mSampleStack.clear();
+
 		for (int i = 0; i < ARRAY_SIZE(mFrameBuffers); ++i)
 		{
 			mFrameBuffers[i].clear();
+			mBufferStatus[i] = EBufferStatus::Free;
 		}
+		mIndexWriteBuffer = 0;
+		mIndexReadBuffer = 0;
 
 		if (mCore)
 		{
@@ -214,19 +222,24 @@ namespace Render
 
 	void GpuProfiler::setCore(RHIProfileCore* core)
 	{
+		mbStartSampling = false;
+		mCurLevel = 0;
+		mRootSample = nullptr;
+		mSampleStack.clear();
+
 		mCore = core;
 		if( mCore )
 		{
 			mCycleToSecond = mCore->getCycleToMillisecond();
 		}
 
-		if ( mCore == nullptr || mbStartSampling )
+		for (int i = 0; i < ARRAY_SIZE(mFrameBuffers); ++i)
 		{
-			for (int i = 0; i < ARRAY_SIZE(mFrameBuffers); ++i)
-			{
-				mFrameBuffers[i].clear();
-			}
+			mFrameBuffers[i].clear();
+			mBufferStatus[i] = EBufferStatus::Free;
 		}
+		mIndexWriteBuffer = 0;
+		mIndexReadBuffer = 0;
 	}
 
 	bool GpuProfiler::beginRead()

@@ -294,6 +294,8 @@ namespace SIMD
 		FORCEINLINE TFloatVector(float const* v) { reg = _mm256_loadu_ps(v); }
 		FORCEINLINE TFloatVector(float const* v, EAligned) { reg = _mm256_load_ps(v); }
 		FORCEINLINE TFloatVector(float val) { reg = _mm256_set1_ps(val); }
+		FORCEINLINE void store(float* v) const { _mm256_storeu_ps(v, reg); }
+		FORCEINLINE void store(float* v, EAligned) const { _mm256_store_ps(v, reg); }
 
 		static TFloatVector Zero() { return TFloatVector(0.0); }
 
@@ -334,7 +336,7 @@ namespace SIMD
 		}
 
 		template< int Scale >
-		FORCEINLINE static TFloatVector gather(float const* base, __m256i const& indices)
+		FORCEINLINE static TFloatVector Gather(float const* base, __m256i const& indices)
 		{
 			return _mm256_i32gather_ps(base, indices, Scale);
 		}
@@ -353,8 +355,12 @@ namespace SIMD
 	{
 		TIntVector() = default;
 		FORCEINLINE TIntVector(int val) { reg = _mm256_set1_epi32(val); }
+		FORCEINLINE TIntVector(int x, int y, int z, int w, int p, int q, int r, int s)
+		{
+			reg = _mm256_setr_epi32(x, y, z, w, p, q, r, s);
+		}
 		FORCEINLINE TIntVector(__m256i val) : reg(val) {}
-		FORCEINLINE static TIntVector load(int const* p) { return _mm256_loadu_si256((__m256i const*)p); }
+		FORCEINLINE static TIntVector Load(int const* p) { return _mm256_loadu_si256((__m256i const*)p); }
 		operator __m256i () const { return reg; }
 		__m256i reg;
 	};
@@ -452,6 +458,8 @@ namespace SIMD
 		FORCEINLINE TFloatVector(float const* v) { reg = _mm_loadu_ps(v); }
 		FORCEINLINE TFloatVector(float const* v, EAligned) { reg = _mm_load_ps(v); }
 		FORCEINLINE TFloatVector(float val) { reg = _mm_set1_ps(val); }
+		FORCEINLINE void store(float* v) const { _mm_storeu_ps(v, reg); }
+		FORCEINLINE void store(float* v, EAligned) const { _mm_store_ps(v, reg); }
 
 		static TFloatVector Zero() { return TFloatVector(0.0); }
 
@@ -489,7 +497,7 @@ namespace SIMD
 		}
 
 		template< int Scale >
-		FORCEINLINE static TFloatVector gather(float const* base, __m128i const& indices)
+		FORCEINLINE static TFloatVector Gather(float const* base, __m128i const& indices)
 		{
 			// SSE doesn't have native gather, implement an optimized emulation
 			int const* pIdx = (int const*)&indices;
@@ -515,8 +523,12 @@ namespace SIMD
 	{
 		TIntVector() = default;
 		FORCEINLINE TIntVector(int val) { reg = _mm_set1_epi32(val); }
+		FORCEINLINE TIntVector(int x, int y, int z, int w)
+		{
+			reg = _mm_setr_epi32(x, y, z, w);
+		}
 		FORCEINLINE TIntVector(__m128i val) : reg(val) {}
-		FORCEINLINE static TIntVector load(int const* p) { return _mm_loadu_si128((__m128i const*)p); }
+		FORCEINLINE static TIntVector Load(int const* p) { return _mm_loadu_si128((__m128i const*)p); }
 		operator __m128i () const { return reg; }
 		__m128i reg;
 	};

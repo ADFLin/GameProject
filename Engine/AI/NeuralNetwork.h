@@ -6,7 +6,6 @@
 #include "DataStructure/Array.h"
 
 #include "Meta/MetaBase.h"
-#include "Math/SIMD.h"
 #include <cassert>
 #include "Template/ArrayView.h"
 #include "Math/Vector2.h"
@@ -626,39 +625,7 @@ public:
 	}
 
 
-	static void ClipNormalize(int dim, NNScalar* RESTRICT inoutValues, NNScalar maxValue)
-	{
-		NNScalar total = 0.0;
-		for (int i = 0; i < dim; ++i)
-		{
-			total += Math::Square(inoutValues[i]);
-		}
-
-		if (isinf(total))
-		{
-			NNScalar maxValue = 0.0;
-			for (int i = 0; i < dim; ++i)
-			{
-				maxValue = Math::Max(maxValue, Math::Abs(inoutValues[i]));
-			}
-
-			total = 0.0;
-			for (int i = 0; i < dim; ++i)
-			{
-				inoutValues[i] /= maxValue;
-				total += Math::Square(inoutValues[i]);
-			}
-		}
-
-		NNScalar clipCoef = maxValue / (Math::Sqrt(total) + 1e-6);
-		if (clipCoef < 1)
-		{
-			for (int i = 0; i < dim; ++i)
-			{
-				inoutValues[i] *= clipCoef;
-			}
-		}
-	}
+	static void ClipNormalize(int dim, NNScalar* RESTRICT inoutValues, NNScalar maxValue);
 
 	static FORCEINLINE NNScalar AreaDot(int stride, NNScalar const* RESTRICT area, int dimX, int dimY, NNScalar const* RESTRICT weight)
 	{

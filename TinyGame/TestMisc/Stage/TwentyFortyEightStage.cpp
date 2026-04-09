@@ -20,6 +20,7 @@
 #include "Async/AsyncWork.h"
 
 #include "Misc/DiagramRender.h"
+#include "ProfileSystem.h"
 
 namespace TwentyFortyEight
 {
@@ -1437,7 +1438,7 @@ namespace TwentyFortyEight
 		static int constexpr BatchSize = 32;
 
 		static NNScalar constexpr LearnRate = 0.0001;
-		static constexpr int WorkerThreadNum = 16;
+		static constexpr int WorkerThreadNum = 8;
 
 
 		static constexpr float EPSILON_START = 1.0;
@@ -1530,22 +1531,106 @@ namespace TwentyFortyEight
 			float mMaxPriority = 1.0;
 
 			static float constexpr WeightBetaInc = 1e-4;
+			static float constexpr MinReplayPriority = 1e-5f;
+
+			static float SanitizeReplayPriority(float priority)
+			{
+				return (isnormal(priority) && priority > 0) ? priority : MinReplayPriority;
+			}
+
+			void addReplayPriorityFenwick(int replayIndex, float delta)
+			{
+				for (int index = replayIndex + 1; index < mReplayPriorityTree.size(); index += index & -index)
+				{
+					mReplayPriorityTree[index] += delta;
+				}
+			}
+
+			float getReplayPriorityTotal() const
+			{
+				float total = 0.0f;
+				int index = mReplay.size();
+				while (index > 0)
+				{
+					total += mReplayPriorityTree[index];
+					index -= index & -index;
+				}
+				return total;
+			}
+
+			int findReplayByPriority(float targetPriority) const
+			{
+				int index = 0;
+				int bit = 1;
+				while ((bit << 1) <= mReplay.size())
+				{
+					bit <<= 1;
+				}
+
+				for (; bit != 0; bit >>= 1)
+				{
+					int next = index + bit;
+					if (next <= mReplay.size() && mReplayPriorityTree[next] < targetPriority)
+					{
+						targetPriority -= mReplayPriorityTree[next];
+						index = next;
+					}
+				}
+
+				return Math::Min(index, (int)mReplay.size() - 1);
+			}
+
+			void rebuildReplaySamplingState()
+			{
+				mReplayPriorityTree.clear();
+				mReplayPriorityTree.resize(mReplay.size() + 1);
+				std::fill_n(mReplayPriorityTree.data(), mReplayPriorityTree.size(), 0.0f);
+
+				float totalPriority = 0.0f;
+				for (int i = 0; i < mReplay.size(); ++i)
+				{
+					auto& replay = mReplay[i];
+					replay.priority = SanitizeReplayPriority(replay.priority);
+					addReplayPriorityFenwick(i, replay.priority);
+					totalPriority += replay.priority;
+					replay.priorityAcc = totalPriority;
+				}
+			}
+
+			void appendReplayPriority(int replayIndex)
+			{
+				int oldSize = mReplayPriorityTree.size();
+				mReplayPriorityTree.resize(mReplay.size() + 1);
+				std::fill_n(mReplayPriorityTree.data() + oldSize, mReplayPriorityTree.size() - oldSize, 0.0f);
+
+				auto& replay = mReplay[replayIndex];
+				replay.priority = SanitizeReplayPriority(replay.priority);
+				addReplayPriorityFenwick(replayIndex, replay.priority);
+			}
+
+			void updateReplayPriority(int replayIndex, float priority)
+			{
+				if (mReplayPriorityTree.size() != mReplay.size() + 1)
+				{
+					rebuildReplaySamplingState();
+				}
+
+				auto& replay = mReplay[replayIndex];
+				float oldPriority = SanitizeReplayPriority(replay.priority);
+				float newPriority = SanitizeReplayPriority(priority);
+				replay.priority = newPriority;
+				addReplayPriorityFenwick(replayIndex, newPriority - oldPriority);
+			}
 
 			void choiceReplays(ReplayData* outReplays[], float outWeights[], int numReplay)
 			{
 				CHECK(!mReplay.empty());
-
-				float totalPriority = 0;
-				for (int i = 0; i < mReplay.size(); ++i)
+				if (mReplayPriorityTree.size() != mReplay.size() + 1)
 				{
-					auto& replay = mReplay[i];
-					if (!isnormal(replay.priority) || replay.priority <= 0)
-					{
-						replay.priority = 1e-5f;
-					}
-					totalPriority += replay.priority;
-					replay.priorityAcc = totalPriority;
+					rebuildReplaySamplingState();
 				}
+
+				float totalPriority = getReplayPriorityTotal();
 
 				if (!isnormal(totalPriority) || totalPriority <= 0)
 				{
@@ -1568,10 +1653,7 @@ namespace TwentyFortyEight
 						--i;
 						continue;
 					}
-					auto replay = std::lower_bound(mReplay.begin(), mReplay.end(), targtProb, [=](auto const& v, auto value)
-					{
-						return v.priorityAcc < value;
-					});
+					auto replay = mReplay.begin() + findReplayByPriority(targtProb);
 
 					if (replay == mReplay.end())
 					{
@@ -1607,6 +1689,7 @@ namespace TwentyFortyEight
 
 
 			TArray< ReplayData > mReplay;
+			TArray< float > mReplayPriorityTree;
 
 
 #if DQN_MULTI_STEP > 1
@@ -1630,6 +1713,7 @@ namespace TwentyFortyEight
 				mLoss = 0.0f;
 				mEpsilon = EPSILON_START;
 				mReplay.clear();
+				mReplayPriorityTree.clear();
 				mWeightBeta = 0.4f;
 				mMaxPriority = 1.0f;
 				indexNext = 0;
@@ -1888,6 +1972,7 @@ namespace TwentyFortyEight
 				{
 					if (mReplay.size() < MaxReplaySize)
 					{
+						bool bReplayAdded = false;
 #if DQN_MULTI_STEP > 1
 						if (env.game.step >= DQN_MULTI_STEP)
 						{
@@ -1901,15 +1986,22 @@ namespace TwentyFortyEight
 								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
 							}
 							mReplay.push_back(sample);
+							bReplayAdded = true;
 						}
 #else
 						mReplay.push_back({ action , oldState, { stepResult.reward }, inoutState, env.playableDirMask, stepResult.bDone || !stepResult.bValidAction });
+						bReplayAdded = true;
 #endif
-						mReplay.back().priority = mMaxPriority;
+						if (bReplayAdded)
+						{
+							mReplay.back().priority = mMaxPriority;
+							appendReplayPriority(mReplay.size() - 1);
+						}
 					}
 					else
 					{
 						auto& sample = mReplay[indexNext];
+						bool bReplayUpdated = false;
 
 #if DQN_MULTI_STEP > 1
 						if (env.game.step >= DQN_MULTI_STEP)
@@ -1922,15 +2014,20 @@ namespace TwentyFortyEight
 							{
 								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
 							}
+							bReplayUpdated = true;
 						}
 #else
 						sample = { action , oldState, stepResult.reward, inoutState, env.playableDirMask, stepResult.bDone || !stepResult.bValidAction };
+						bReplayUpdated = true;
 #endif			
 
-						sample.priority = mMaxPriority;
-						indexNext += 1;
-						if (indexNext == mReplay.size())
-							indexNext = 0;
+						if (bReplayUpdated)
+						{
+							updateReplayPriority(indexNext, mMaxPriority);
+							indexNext += 1;
+							if (indexNext == mReplay.size())
+								indexNext = 0;
+						}
 					}
 				}
 			}
@@ -1939,66 +2036,103 @@ namespace TwentyFortyEight
 			{
 				ReplayData* samples[BatchSize];
 				float weights[BatchSize];
-				choiceReplays(samples, weights, BatchSize);
+				{
+					PROFILE_ENTRY("Optimize.ChoiceReplays");
+					choiceReplays(samples, weights, BatchSize);
+				}
 
 				NNScalar loss = 0;
-				mMainData.reset();
-				for (int i = 0; i < WorkerThreadNum; ++i)
+				int const activeWorkerNum = Math::Min(WorkerThreadNum, BatchSize);
 				{
-					mThreadDatas[i].reset();
-				}
-
-				for (int i = 0; i < WorkerThreadNum; ++i)
-				{
-					auto& threadData = mThreadDatas[i];
-					int num = BatchSize / WorkerThreadNum;;
-					int index = i * num;
-					ReplayData** samplePtr = samples + index;
-					float* weightPtr = weights + index;
-					mPool.addFunctionWork([this, samplePtr, weightPtr, num, &threadData]()
+					PROFILE_ENTRY("Optimize.DispatchFit");
+					for (int i = 0; i < activeWorkerNum; ++i)
 					{
-						for (int i = 0; i < num; ++i)
+						auto& threadData = mThreadDatas[i];
+						int index = BatchSize * i / activeWorkerNum;
+						int indexEnd = BatchSize * (i + 1) / activeWorkerNum;
+						int num = indexEnd - index;
+						ReplayData** samplePtr = samples + index;
+						float* weightPtr = weights + index;
+						mPool.addFunctionWork([this, samplePtr, weightPtr, num, &threadData]()
 						{
-							fit(*samplePtr[i], weightPtr[i], threadData);
-						}
-					});
-				}
-
-				mPool.waitAllWorkComplete();
-
-				for (int i = 0; i < WorkerThreadNum; ++i)
-				{
-					FNNMath::VectorAdd(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), mThreadDatas[i].parameterGrads.data());
-				}
-
-				for (int i = 0; i < BatchSize; ++i)
-				{
-					ReplayData& sample = *samples[i];
-					//loss += fit(sample, mMainData);
-					loss += sample.loss;
-
-					sample.priority = Math::Max(1e-5f, sample.priorityValue);
-					mMaxPriority = Math::Max(mMaxPriority, sample.priority);
-					if (mMaxPriority > 1000)
-					{
-						//LogError("Loss = %g", sample.loss);
-						mMaxPriority = 1000;
+							threadData.reset();
+							for (int i = 0; i < num; ++i)
+							{
+								fit(*samplePtr[i], weightPtr[i], threadData);
+							}
+						});
 					}
+				}
 
+				{
+					PROFILE_ENTRY("Optimize.WaitWorkers");
+					mPool.waitAllWorkComplete();
+				}
+
+				{
+					PROFILE_ENTRY("Optimize.ReduceGrads");
+					int const numParameter = mMainData.parameterGrads.size();
+					for (int i = 0; i < activeWorkerNum; ++i)
+					{
+						int index = numParameter * i / activeWorkerNum;
+						int indexEnd = numParameter * (i + 1) / activeWorkerNum;
+						mPool.addFunctionWork([this, activeWorkerNum, index, indexEnd]()
+						{
+							for (int paramIndex = index; paramIndex < indexEnd; ++paramIndex)
+							{
+								NNScalar value = 0;
+								for (int threadIndex = 0; threadIndex < activeWorkerNum; ++threadIndex)
+								{
+									value += mThreadDatas[threadIndex].parameterGrads[paramIndex];
+								}
+								mMainData.parameterGrads[paramIndex] = value;
+							}
+						});
+					}
+					mPool.waitAllWorkComplete();
+				}
+
+				{
+					PROFILE_ENTRY("Optimize.UpdatePriority");
+					for (int i = 0; i < BatchSize; ++i)
+					{
+						ReplayData& sample = *samples[i];
+						//loss += fit(sample, mMainData);
+						loss += sample.loss;
+
+						sample.priority = Math::Max(MinReplayPriority, sample.priorityValue);
+						updateReplayPriority(&sample - mReplay.data(), sample.priority);
+						mMaxPriority = Math::Max(mMaxPriority, sample.priority);
+						if (mMaxPriority > 1000)
+						{
+							//LogError("Loss = %g", sample.loss);
+							mMaxPriority = 1000;
+						}
+
+					}
 				}
 
 
 #if 1
-				for (int i = 0; i < mMainData.parameterGrads.size(); ++i)
 				{
-					mMainData.parameterGrads[i] /= BatchSize;
+					PROFILE_ENTRY("Optimize.NormalizeGrads");
+					for (int i = 0; i < mMainData.parameterGrads.size(); ++i)
+					{
+						mMainData.parameterGrads[i] /= BatchSize;
+					}
+					loss /= BatchSize;
 				}
-				loss /= BatchSize;
 #endif
 
-				FNNMath::ClipNormalize(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), 1.0);
+				{
+					PROFILE_ENTRY("Optimize.ClipNormalize");
+					FNNMath::ClipNormalize(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), 1.0);
+				}
 
-				mOptimizer.update(agent.parameters, mMainData.parameterGrads, LearnRate);
+				{
+					PROFILE_ENTRY("Optimize.AdamUpdate");
+					mOptimizer.update(agent.parameters, mMainData.parameterGrads, LearnRate);
+				}
 				return loss;
 			}
 
@@ -2014,11 +2148,11 @@ namespace TwentyFortyEight
 			{
 			public:
 
-				void OnTrainEpisodeStart(int episode);
-				void OnTrainEpisodeEnd(int episode);
+				void noitfyTrainEpisodeStart(int episode);
+				void noitfyTrainEpisodeEnd(int episode);
 
-				void OnTrainInput(Action const& action);
-				void OnTrainResult(Action const& action, StepResult const& stepResult);
+				void noitfyTrainInput(Action const& action);
+				void noitfyTrainResult(Action const& action, StepResult const& stepResult);
 			};
 
 
@@ -2048,7 +2182,7 @@ namespace TwentyFortyEight
 					env.getState(state);
 					episodeReset(state);
 
-					monitor.OnTrainEpisodeStart(mEpisode);
+					monitor.noitfyTrainEpisodeStart(mEpisode);
 
 					uint32 ignorePlayMask = 0;
 
@@ -2056,7 +2190,7 @@ namespace TwentyFortyEight
 					{
 						DQN::Action action;
 						agent.getAction(state, env, mEpsilon, action);
-						monitor.OnTrainInput(action);
+						monitor.noitfyTrainInput(action);
 
 						bool bValidAction = env.isValidAction(action);
 
@@ -2068,6 +2202,8 @@ namespace TwentyFortyEight
 
 						if (mReplay.size() >= WarnMemorySize && mStepCount % 16 == 0)
 						{
+							//TIME_SCOPE("Optimize");
+
 							mLoss = optimize();
 							++mOptimizeCount;
 							if (mOptimizeCount % 200 == 0)
@@ -2076,7 +2212,7 @@ namespace TwentyFortyEight
 							}
 						}
 
-						monitor.OnTrainResult(action, stepResult);
+						monitor.noitfyTrainResult(action, stepResult);
 
 						if (stepResult.bDone)
 						{
@@ -2084,7 +2220,7 @@ namespace TwentyFortyEight
 						}
 					}
 
-					monitor.OnTrainEpisodeEnd(mEpisode);
+					monitor.noitfyTrainEpisodeEnd(mEpisode);
 					++mEpisode;
 					mEpsilon = Math::Max(EPSILON_END, mEpsilon * EPSILON_DECAY);
 				}
@@ -2292,6 +2428,8 @@ namespace TwentyFortyEight
 			if (!serializer.open(CheckpointPath))
 				return;
 
+			mTrain.rebuildReplaySamplingState();
+
 			int32 version = 1;
 			serializer.write(version);
 			IStreamSerializer::WriteOp op(serializer);
@@ -2315,6 +2453,7 @@ namespace TwentyFortyEight
 			}
 			IStreamSerializer::ReadOp op(serializer);
 			serializeCheckpoint(op);
+			mTrain.rebuildReplaySamplingState();
 			mTrain.bResumeFromCheckpoint = true;
 
 			clearAnimParams();
@@ -2415,6 +2554,7 @@ namespace TwentyFortyEight
 		DQN mDQN;
 		DQN::Train mTrain;
 		int mInputDir = 0;
+		static constexpr size_t TrainCoroutineStackSize = 512 * 1024;
 
 		void startTrain()
 		{
@@ -2422,10 +2562,10 @@ namespace TwentyFortyEight
 			mGameHandle = Coroutines::Start([this]()
 			{
 				mTrain.run(*this);
-			});
+			}, TrainCoroutineStackSize);
 		}
 
-		void OnTrainEpisodeStart(int episode)
+		void noitfyTrainEpisodeStart(int episode)
 		{
 
 		}
@@ -2443,7 +2583,7 @@ namespace TwentyFortyEight
 		TArray<Vector2> mMaxScoreCurvePoints;
 		TArray<Vector2> mMinScoreCurvePoints;
 
-		void OnTrainEpisodeEnd(int episode)
+		void noitfyTrainEpisodeEnd(int episode)
 		{
 			int score = mTrain.env.game.score;
 			mLastPointAcc += Vector2(episode, score);
@@ -2501,7 +2641,7 @@ namespace TwentyFortyEight
 			mMaxStep = Math::Max(mMaxStep, mTrain.env.game.step);
 		}
 
-		void OnTrainInput(DQN::Action& action)
+		void noitfyTrainInput(DQN::Action& action)
 		{
 			Game& game = mTrain.env.game;
 			mInputDir = action.playDir;
@@ -2531,7 +2671,7 @@ namespace TwentyFortyEight
 
 		}
 
-		void OnTrainResult(DQN::Action const& action, DQN::StepResult const& stepResult)
+		void noitfyTrainResult(DQN::Action const& action, DQN::StepResult const& stepResult)
 		{
 
 			uint8 inputDir = action.playDir;

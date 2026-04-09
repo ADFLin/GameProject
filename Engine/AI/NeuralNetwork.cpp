@@ -1,9 +1,19 @@
-﻿#include "NeuralNetwork.h"
+#include "NeuralNetwork.h"
 
 #include "Math/Base.h"
 #include "CompilerConfig.h"
 #include "MacroCommon.h"
 #include <cstdlib>
+
+#define NN_USE_SIMD 1
+
+#if NN_USE_SIMD
+#include "Math/SIMD.h"
+using namespace SIMD;
+using FloatVector = TFloatVector<4>;
+using IntVector = TIntVector<FloatVector::Size>;
+constexpr int NumLanes = FloatVector::Size;
+#endif
 
 
 #define REORDER_WEIGHT 1
@@ -18,6 +28,24 @@
 
 namespace
 {
+#if NN_USE_SIMD
+	FORCEINLINE FloatVector LoadStrided(NNScalar const* base, int stride)
+	{
+		if constexpr (FloatVector::Size == 8)
+		{
+			TIntVector<8> indices(
+				0, stride, 2 * stride, 3 * stride,
+				4 * stride, 5 * stride, 6 * stride, 7 * stride);
+			return TFloatVector<8>::Gather<4>(base, indices);
+		}
+		else
+		{
+			TIntVector<4> indices(0, stride, 2 * stride, 3 * stride);
+			return TFloatVector<4>::Gather<4>(base, indices);
+		}
+	}
+#endif
+
 	NNScalar GetUniformSigned()
 	{
 		return NNScalar(2.0 * (double(std::rand()) / double(RAND_MAX)) - 1.0);
@@ -51,6 +79,16 @@ void FNNMath::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 #define OP	*a += *b; ++a; ++b;
 	DUFF_DEVICE_8(dim, OP);
 #undef OP
+#elif NN_USE_SIMD
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(a + i) + FloatVector(b + i)).store(a + i);
+	}
+	for (; i < dim; ++i)
+	{
+		a[i] += b[i];
+	}
 #else
 	for (int i = 0; i < dim; ++i)
 	{
@@ -61,7 +99,17 @@ void FNNMath::VectorAdd(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 
 void FNNMath::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
-#if USE_DUFF_DEVICE
+#if NN_USE_SIMD
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(a + i) + FloatVector(b + i)).store(out + i);
+	}
+	for (; i < dim; ++i)
+	{
+		out[i] = a[i] + b[i];
+	}
+#elif USE_DUFF_DEVICE
 #define OP	*out = *a + *b; ++out; ++a; ++b;
 	DUFF_DEVICE_8(dim, OP);
 #undef OP
@@ -91,11 +139,7 @@ void FNNMath::VectorMul(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 
 NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
-#if USE_MATH_SIMD
-	using namespace SIMD;
-	using FloatVector = TFloatVector<4>;
-	constexpr int NumLanes = FloatVector::Size;
-
+#if NN_USE_SIMD
 	FloatVector acc = FloatVector::Zero();
 	for (; dim >= NumLanes; dim -= NumLanes)
 	{
@@ -119,7 +163,27 @@ NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride)
 {
 	NNScalar result = 0;
-#if USE_DUFF_DEVICE
+#if NN_USE_SIMD
+	if (bStride == 1)
+	{
+		return VectorDot(dim, a, b);
+	}
+
+	FloatVector acc = FloatVector::Zero();
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		acc = acc + FloatVector(a + i) * LoadStrided(b, bStride);
+		b += NumLanes * bStride;
+	}
+
+	result = acc.sum();
+	for (; i < dim; ++i)
+	{
+		result += a[i] * (*b);
+		b += bStride;
+	}
+#elif USE_DUFF_DEVICE
 #define OP	result += *a * *b; ++a; b += bStride;
 	DUFF_DEVICE_8(dim, OP);
 #undef OP
@@ -139,12 +203,31 @@ NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, int aStride, NNScalar const* RESTRICT b, int bStride)
 {
 	NNScalar result = 0;
+#if NN_USE_SIMD
+	FloatVector acc = FloatVector::Zero();
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		acc = acc + LoadStrided(a, aStride) * LoadStrided(b, bStride);
+		a += NumLanes * aStride;
+		b += NumLanes * bStride;
+	}
+
+	result = acc.sum();
+	for (; i < dim; ++i)
+	{
+		result += (*a) * (*b);
+		a += aStride;
+		b += bStride;
+	}
+#else
 	for (; dim; --dim)
 	{
 		result += (*a) * (*b);
 		a += aStride;
 		b += bStride;
 	}
+#endif
 	return result;
 }
 
@@ -181,13 +264,9 @@ void FNNMath::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRIC
 
 void FNNMath::VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
-#if USE_MATH_SIMD
-	using namespace SIMD;
-	using FloatVector = TFloatVector<4>;
-	constexpr int NumLanes = FloatVector::Size;
+#if NN_USE_SIMD
 
 	int col = 0;
-
 	for (; col + NumLanes <= dimCol; col += NumLanes)
 	{
 		FloatVector acc(b + col);
@@ -197,7 +276,7 @@ void FNNMath::VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRIC
 			acc = acc + FloatVector(pWeight) * FloatVector(v[row]);
 			pWeight += dimCol;
 		}
-		_mm_storeu_ps(out + col, acc.reg);
+		acc.store(out + col);
 	}
 
 	for (; col < dimCol; ++col)
@@ -301,6 +380,71 @@ NNScalar FNNMath::Sum(int dim, NNScalar const* inputs)
 	return result;
 }
 
+
+void FNNMath::ClipNormalize(int dim, NNScalar* RESTRICT inoutValues, NNScalar maxValue)
+{
+	NNScalar total = 0.0;
+#if NN_USE_SIMD
+	using FloatVector = SIMD::TFloatVector<4>;
+	constexpr int NumLanes = FloatVector::Size;
+
+	FloatVector totalVec = FloatVector::Zero();
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		FloatVector value(inoutValues + i);
+		totalVec = totalVec + value * value;
+	}
+	total = totalVec.sum();
+	for (; i < dim; ++i)
+	{
+		total += Math::Square(inoutValues[i]);
+	}
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		total += Math::Square(inoutValues[i]);
+	}
+#endif
+
+	if (isinf(total))
+	{
+		NNScalar maxValue = 0.0;
+		for (int i = 0; i < dim; ++i)
+		{
+			maxValue = Math::Max(maxValue, Math::Abs(inoutValues[i]));
+		}
+
+		total = 0.0;
+		for (int i = 0; i < dim; ++i)
+		{
+			inoutValues[i] /= maxValue;
+			total += Math::Square(inoutValues[i]);
+		}
+	}
+
+	NNScalar clipCoef = maxValue / (Math::Sqrt(total) + 1e-6);
+	if (clipCoef < 1)
+	{
+#if NN_USE_SIMD
+		FloatVector clipCoefVec(clipCoef);
+		int i = 0;
+		for (; i + NumLanes <= dim; i += NumLanes)
+		{
+			(FloatVector(inoutValues + i) * clipCoefVec).store(inoutValues + i);
+		}
+		for (; i < dim; ++i)
+		{
+			inoutValues[i] *= clipCoef;
+		}
+#else
+		for (int i = 0; i < dim; ++i)
+		{
+			inoutValues[i] *= clipCoef;
+		}
+#endif
+	}
+}
 
 void FNNMath::DeConv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int stride, int padding, NNScalar* RESTRICT inoutOutput)
 {
@@ -971,11 +1115,25 @@ void FNNAlgo::BackwardWeight(
 	NNScalar* pWeightGrad = inoutParameterGrads + layer.weightOffset;
 	for (int i = 0; i < layer.inputLength; ++i)
 	{
+#if NN_USE_SIMD
+		FloatVector inputValue(inInputs[i]);
+		int idxNode = 0;
+		for (; idxNode + NumLanes <= layer.numNode; idxNode += NumLanes)
+		{
+			(FloatVector(pWeightGrad + idxNode) + FloatVector(inLossGrads + idxNode) * inputValue).store(pWeightGrad + idxNode);
+		}
+		for (; idxNode < layer.numNode; ++idxNode)
+		{
+			pWeightGrad[idxNode] += inLossGrads[idxNode] * inInputs[i];
+		}
+		pWeightGrad += layer.numNode;
+#else
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{
 			*pWeightGrad += inLossGrads[idxNode] * inInputs[i];
 			++pWeightGrad;
 		}
+#endif
 	}
 #else
 	NNScalar* pLayerWeightGrad = inoutParameterGrads + layer.weightOffset;
@@ -984,18 +1142,32 @@ void FNNAlgo::BackwardWeight(
 	{
 		*pLayerBiasGrad += inLossGrads[idxNode];
 		++pLayerBiasGrad;
+#if NN_USE_SIMD
+		FloatVector lossGrad(inLossGrads[idxNode]);
+		int k = 0;
+		for (; k + NumLanes <= layer.inputLength; k += NumLanes)
+		{
+			(FloatVector(pLayerWeightGrad + k) + FloatVector(inInputs + k) * lossGrad).store(pLayerWeightGrad + k);
+		}
+		for (; k < layer.inputLength; ++k)
+		{
+			pLayerWeightGrad[k] += inLossGrads[idxNode] * inInputs[k];
+		}
+		pLayerWeightGrad += layer.inputLength;
+#else
 		for (int k = 0; k < layer.inputLength; ++k)
 		{
 			*pLayerWeightGrad += inLossGrads[idxNode] * inInputs[k];
 			++pLayerWeightGrad;
 		}
+#endif
 	}
 #endif
 }
 
 
 void FNNAlgo::BackwardLoss(
-	NNLinearLayer const& layer, 
+	NNLinearLayer const& layer,
 	NNScalar const parameters[],
 	NNScalar const inLossGrads[],
 	NNScalar outLossGrads[])
@@ -1006,10 +1178,7 @@ void FNNAlgo::BackwardLoss(
 #else
 	FNNMath::VectorMulMatrix(layer.numNode, layer.inputLength, pWeight, inLossGrads, outLossGrads);
 #endif
-
 }
-
-
 
 template< typename TKernel >
 NNScalar*  ForwardT(
@@ -1629,15 +1798,10 @@ void FNNAlgo::Backward(NNTransformLayer const& layer, int inputLength, NNScalar 
 
 void FNNAlgo::SoftMaxBackward(int inputLength, NNScalar const inInputs[], NNScalar const inOutputs[], NNScalar const inLossGrads[], NNScalar outLossGrads[])
 {
+	NNScalar dotLossOutput = FNNMath::VectorDot(inputLength, inLossGrads, inOutputs);
 	for (int i = 0; i < inputLength; ++i)
 	{
-		NNScalar lossGrad = 0;
-		for (int io = 0; io < inputLength; ++io)
-		{
-			lossGrad += inLossGrads[io] * (((io == i) ? 1 : 0) - inOutputs[io]) * inOutputs[i];
-		}
-
-		outLossGrads[i] = lossGrad;
+		outLossGrads[i] = inOutputs[i] * (inLossGrads[i] - dotLossOutput);
 	}
 }
 

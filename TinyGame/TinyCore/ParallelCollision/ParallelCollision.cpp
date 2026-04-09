@@ -631,16 +631,16 @@ namespace ParallelCollision
 				int count = pNCounts[cellIdx];
 				for (int n = 0; n < count; n += (int)FloatVector::Size)
 				{
-					IntVector vIdx = IntVector::load(pGCache + startIdx + n);
-					FloatVector vPosX_B = FloatVector::gather<8>((float*)pPos, vIdx);
-					FloatVector vPosY_B = FloatVector::gather<8>((float*)pPos + 1, vIdx);
-					FloatVector vRadii_B = FloatVector::gather<4>(pRadii, vIdx);
+					IntVector vIdx = IntVector::Load(pGCache + startIdx + n);
+					FloatVector vPosX_B = FloatVector::Gather<8>((float*)pPos, vIdx);
+					FloatVector vPosY_B = FloatVector::Gather<8>((float*)pPos + 1, vIdx);
+					FloatVector vRadii_B = FloatVector::Gather<4>(pRadii, vIdx);
 					auto vValid = (vRamp + FloatVector((float)n)) < FloatVector((float)count);
 					FloatVector vDX = vPosX_A - vPosX_B, vDY = vPosY_A - vPosY_B, vD2 = vDX * vDX + vDY * vDY, vMD = vRadii_A + vRadii_B - vMinS;
 					auto vColl = (vD2 < vMD * vMD) & (vD2 > vEps) & vValid;
 					if (!vColl.isAnyActive()) continue;
 					FloatVector vInvD = SIMD::rsqrt(vD2), vOv = SIMD::min((vMD - vD2 * vInvD) * vRelax, vMaxP);
-					FloatVector vF = vInvD * vOv * (FloatVector::gather<4>(pMasses, vIdx) / (vMass_A + FloatVector::gather<4>(pMasses, vIdx)));
+					FloatVector vF = vInvD * vOv * (FloatVector::Gather<4>(pMasses, vIdx) / (vMass_A + FloatVector::gather<4>(pMasses, vIdx)));
 					FloatVector vZero(0.0f);
 					vTPX = vTPX + SIMD::select(vColl, vDX * vF, vZero);
 					vTPY = vTPY + SIMD::select(vColl, vDY * vF, vZero);

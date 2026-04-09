@@ -2,6 +2,8 @@
 #ifndef NNTrain_H_E17423EA_82CC_446C_8A7F_2CAAB54D7F6D
 #define NNTrain_H_E17423EA_82CC_446C_8A7F_2CAAB54D7F6D
 
+#include "Math/SIMD.h"
+
 struct AdamOptimizer
 {
 	void init(int numParaneters)
@@ -30,7 +32,43 @@ struct AdamOptimizer
 		beta1Decayed *= Beta1;
 		beta2Decayed *= Beta2;
 
+#if USE_MATH_SIMD
+		using FloatVector = SIMD::TFloatVector<4>;
+		constexpr int NumLanes = FloatVector::Size;
+
+		FloatVector beta1(Beta1);
+		FloatVector beta2(Beta2);
+		FloatVector oneMinusBeta1(1.0f - Beta1);
+		FloatVector oneMinusBeta2(1.0f - Beta2);
+		FloatVector epsilon(Epsilon);
+		FloatVector learnRateVec(learnRate);
+		FloatVector invBias1(1.0f / (1.0f - beta1Decayed));
+		FloatVector invBias2(1.0f / (1.0f - beta2Decayed));
+
+		int i = 0;
+		for (; i + NumLanes <= inoutParameters.size(); i += NumLanes)
+		{
+			FloatVector grad(parametersGrads.data() + i);
+			FloatVector mt(m.data() + i);
+			FloatVector vt(v.data() + i);
+
+			mt = beta1 * mt + oneMinusBeta1 * grad;
+			vt = beta2 * vt + oneMinusBeta2 * grad * grad;
+
+			FloatVector mhat = mt * invBias1;
+			FloatVector vhat = vt * invBias2;
+			FloatVector param(inoutParameters.data() + i);
+			param = param - learnRateVec * mhat / (SIMD::sqrt(vhat) + epsilon);
+
+			mt.store(m.data() + i);
+			vt.store(v.data() + i);
+			param.store(inoutParameters.data() + i);
+		}
+
+		for (; i < inoutParameters.size(); ++i)
+#else
 		for (int i = 0; i < inoutParameters.size(); ++i)
+#endif
 		{
 			m[i] = Beta1 * m[i] + (1.0f - Beta1) * parametersGrads[i];
 			v[i] = Beta2 * v[i] + (1.0f - Beta2) * parametersGrads[i] * parametersGrads[i];

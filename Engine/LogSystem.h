@@ -25,37 +25,34 @@ CORE_API void LogDevMsgImpl(int level, StringView const& str);
 CORE_API void LogWarningImpl(int level, StringView const& str);
 
 #define LOG_BUFFER_SIZE 102400
+static thread_local char GLogBuffer[LOG_BUFFER_SIZE];
 
 template< class ...Arg >
 FORCEINLINE void LogMsgImpl(char const* format, Arg ...arg)
 {
-	char buffer[LOG_BUFFER_SIZE];
-	int len = FCString::PrintfT(buffer, format, arg...);
-	LogMsgImpl(StringView( buffer, len ));
+	int len = FCString::PrintfT(GLogBuffer, format, arg...);
+	LogMsgImpl(StringView(GLogBuffer, len ));
 }
 
 template< class ...Arg >
 FORCEINLINE void LogErrorImpl(char const* format, Arg ...arg)
 {
-	char buffer[LOG_BUFFER_SIZE];
-	int len = FCString::PrintfT(buffer, format, arg...);
-	LogErrorImpl(StringView(buffer, len));
+	int len = FCString::PrintfT(GLogBuffer, format, arg...);
+	LogErrorImpl(StringView(GLogBuffer, len));
 }
 
 template< class ...Arg >
 FORCEINLINE void LogDevMsgImpl(int level, char const* format, Arg ...arg)
 {
-	char buffer[LOG_BUFFER_SIZE];
-	int len = FCString::PrintfT(buffer, format, arg...);
-	LogDevMsgImpl(level, StringView(buffer, len));
+	int len = FCString::PrintfT(GLogBuffer, format, arg...);
+	LogDevMsgImpl(level, StringView(GLogBuffer, len));
 }
 
 template< class ...Arg >
 FORCEINLINE void LogWarningImpl(int level, char const* format, Arg ...arg)
 {
-	char buffer[LOG_BUFFER_SIZE];
-	int len = FCString::PrintfT(buffer, format, arg...);
-	LogWarningImpl(level, StringView(buffer, len));
+	int len = FCString::PrintfT(GLogBuffer, format, arg...);
+	LogWarningImpl(level, StringView(GLogBuffer, len));
 }
 
 CORE_API void LogMsgVImpl( char const* format , va_list argptr );

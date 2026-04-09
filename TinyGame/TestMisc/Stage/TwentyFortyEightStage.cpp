@@ -607,12 +607,24 @@ namespace TwentyFortyEight
 #else
 			NNScalar blocks[BoardSize * BoardSize * ( 1 + 1)];
 #endif
+
+			template< class OP >
+			void serialize(OP& op)
+			{
+				op & blocks;
+			}
 		};
 
 
 		struct Action
 		{
 			int playDir;
+
+			template< class OP >
+			void serialize(OP& op)
+			{
+				op & playDir;
+			}
 		};
 
 		struct StepResult
@@ -1420,7 +1432,7 @@ namespace TwentyFortyEight
 		//TD : Temporal Difference
 
 		static NNScalar constexpr DiscountRate = 0.995;
-		static int constexpr MaxReplaySize = 10000;
+		static int constexpr MaxReplaySize = 30000;
 		static int constexpr WarnMemorySize = 500;
 		static int constexpr BatchSize = 32;
 
@@ -1429,7 +1441,7 @@ namespace TwentyFortyEight
 
 
 		static constexpr float EPSILON_START = 1.0;
-		static constexpr float EPSILON_END = 0.05;
+		static constexpr float EPSILON_END = 0.02;
 		static constexpr float EPSILON_DECAY = 0.9999;
 
 		struct Train
@@ -1454,6 +1466,14 @@ namespace TwentyFortyEight
 				State    state;
 				Action   action;
 				NNScalar reward;
+
+				template< class OP >
+				void serialize(OP& op)
+				{
+					op & state;
+					op & action;
+					op & reward;
+				}
 			};
 
 
@@ -1471,6 +1491,20 @@ namespace TwentyFortyEight
 				uint32   playableDirMaskNext;
 				bool     bDone;
 
+				template< class OP >
+				void serialize(OP& op)
+				{
+					op & action;
+#if DQN_MULTI_STEP > 1
+					op & steps;
+#else
+					op & state;
+					op & reward;
+#endif
+					op & stateNext;
+					op & playableDirMaskNext;
+					op & bDone;
+				}
 
 			};
 
@@ -1480,6 +1514,16 @@ namespace TwentyFortyEight
 				NNScalar priorityValue = 0;
 				float priority;
 				float priorityAcc;
+
+				template< class OP >
+				void serialize(OP& op)
+				{
+					Sample::serialize(op);
+					op & loss;
+					op & priorityValue;
+					op & priority;
+					op & priorityAcc;
+				}
 			};
 
 			float mWeightBeta = 0.4;
@@ -1489,14 +1533,30 @@ namespace TwentyFortyEight
 
 			void choiceReplays(ReplayData* outReplays[], float outWeights[], int numReplay)
 			{
+				CHECK(!mReplay.empty());
+
 				float totalPriority = 0;
 				for (int i = 0; i < mReplay.size(); ++i)
 				{
 					auto& replay = mReplay[i];
+					if (!isnormal(replay.priority) || replay.priority <= 0)
+					{
+						replay.priority = 1e-5f;
+					}
 					totalPriority += replay.priority;
 					replay.priorityAcc = totalPriority;
 				}
 
+				if (!isnormal(totalPriority) || totalPriority <= 0)
+				{
+					for (int i = 0; i < numReplay; ++i)
+					{
+						int index = RandRange(0, mReplay.size());
+						outReplays[i] = &mReplay[index];
+						outWeights[i] = 1.0f;
+					}
+					return;
+				}
 
 				float maxWeight = 0;
 				for (int i = 0; i < numReplay; ++i)
@@ -1520,13 +1580,25 @@ namespace TwentyFortyEight
 					}
 	
 					float prob = replay->priority / totalPriority;
+					if (!isnormal(prob) || prob <= 0)
+					{
+						prob = 1.0f / mReplay.size();
+					}
 					outWeights[i] = Math::Pow(mReplay.size() * prob, -mWeightBeta);
+					if (!isnormal(outWeights[i]) || outWeights[i] <= 0)
+					{
+						outWeights[i] = 1.0f;
+					}
 					outReplays[i] = replay;
 					maxWeight = Math::Max(maxWeight, outWeights[i]);
 				}
 
 				mWeightBeta = Math::Min(1.0f, mWeightBeta + WeightBetaInc);
 
+				if (!isnormal(maxWeight) || maxWeight <= 0)
+				{
+					maxWeight = 1.0f;
+				}
 				for (int i = 0; i < numReplay; ++i)
 				{
 					outWeights[i] /= maxWeight;
@@ -1550,6 +1622,47 @@ namespace TwentyFortyEight
 #endif
 			}
 
+			void resetTrainState()
+			{
+				mEpisode = 0;
+				mStepCount = 0;
+				mOptimizeCount = 0;
+				mLoss = 0.0f;
+				mEpsilon = EPSILON_START;
+				mReplay.clear();
+				mWeightBeta = 0.4f;
+				mMaxPriority = 1.0f;
+				indexNext = 0;
+#if DQN_MULTI_STEP > 1
+				mIndexStep = 0;
+#endif
+				bResumeFromCheckpoint = false;
+			}
+
+
+			template< class OP >
+			void serializeCheckpoint(OP& op)
+			{
+				op & agent.parameters;
+				op & mTargetParameters;
+				op & mOptimizer.m;
+				op & mOptimizer.v;
+				op & mOptimizer.beta1Decayed;
+				op & mOptimizer.beta2Decayed;
+				op & mReplay;
+				op & mWeightBeta;
+				op & mMaxPriority;
+				op & mEpisode;
+				op & mStepCount;
+				op & mOptimizeCount;
+				op & mLoss;
+				op & mEpsilon;
+				op & indexNext;
+#if DQN_MULTI_STEP > 1
+				op & mIndexStep;
+				op & stepSamples;
+#endif
+			}
 
 			struct ThreadData
 			{
@@ -1923,10 +2036,11 @@ namespace TwentyFortyEight
 			{
 				DRLModel::State state;
 
-				mEpisode = 0;
-				mStepCount = 0;
-				mOptimizeCount = 0;
-				mEpsilon = EPSILON_START;
+				if (!bResumeFromCheckpoint)
+				{
+					resetTrainState();
+				}
+				bResumeFromCheckpoint = false;
 
 				for (;;)
 				{
@@ -1952,11 +2066,11 @@ namespace TwentyFortyEight
 						++mStepCount;
 						agent.update(action, stepResult);
 
-						if (mReplay.size() >= WarnMemorySize && mStepCount % 32 == 0)
+						if (mReplay.size() >= WarnMemorySize && mStepCount % 16 == 0)
 						{
 							mLoss = optimize();
 							++mOptimizeCount;
-							if (mOptimizeCount % 500 == 0)
+							if (mOptimizeCount % 200 == 0)
 							{
 								updateTargetParameter();
 							}
@@ -1983,12 +2097,8 @@ namespace TwentyFortyEight
 
 			Agent agent;
 			Environment env;
+			bool bResumeFromCheckpoint = false;
 		};
-
-
-
-
-
 
 	};
 
@@ -2137,6 +2247,18 @@ namespace TwentyFortyEight
 				return false;
 			});
 
+			frame->addButton("Save Checkpoint", [this](int event, GWidget*) -> bool
+			{
+				saveTrainCheckpoint();
+				return false;
+			});
+
+			frame->addButton("Load Checkpoint", [this](int event, GWidget*) -> bool
+			{
+				loadTrainCheckpoint();
+				return false;
+			});
+
 			frame->addCheckBox("Show Debug", bShowDeubg);
 			frame->addCheckBox("Pause Train", bPauseTrain);
 			frame->addCheckBox("Auto Save", bAutoSave);
@@ -2154,6 +2276,7 @@ namespace TwentyFortyEight
 
 
 		static constexpr char const* WeightsPath = "2048Weights.bin";
+		static constexpr char const* CheckpointPath = "2048TrainCheckpoint.bin";
 		void saveWeights()
 		{
 			OutputFileSerializer serializer;
@@ -2162,6 +2285,59 @@ namespace TwentyFortyEight
 				serializer.write(mTrain.agent.parameters);
 			}
 		};
+
+		void saveTrainCheckpoint()
+		{
+			OutputFileSerializer serializer;
+			if (!serializer.open(CheckpointPath))
+				return;
+
+			int32 version = 1;
+			serializer.write(version);
+			IStreamSerializer::WriteOp op(serializer);
+			serializeCheckpoint(op);
+		}
+
+		void loadTrainCheckpoint()
+		{
+			InputFileSerializer serializer;
+			if (!serializer.open(CheckpointPath))
+				return;
+
+			int32 version = 0;
+			serializer.read(version);
+			if (version != 1)
+				return;
+
+			if (mGameHandle.isValid())
+			{
+				Coroutines::Stop(mGameHandle);
+			}
+			IStreamSerializer::ReadOp op(serializer);
+			serializeCheckpoint(op);
+			mTrain.bResumeFromCheckpoint = true;
+
+			clearAnimParams();
+			mTweener.clear();
+			startTrain();
+		}
+
+		template< class OP >
+		void serializeCheckpoint(OP& op)
+		{
+			mTrain.serializeCheckpoint(op);
+
+			op & mMaxScore;
+			op & mMaxStep;
+			op & mNumPointRes;
+			op & mMergeSize;
+			op & mLastPointAcc;
+			op & mBucketMaxScore;
+			op & mBucketMinScore;
+			op & mMeanScoreCurvePoints;
+			op & mMaxScoreCurvePoints;
+			op & mMinScoreCurvePoints;
+		}
 
 		void restart()
 		{
@@ -2377,9 +2553,10 @@ namespace TwentyFortyEight
 				}
 			}
 
-			if (bAutoSave && (mTrain.mStepCount % 100 == 0))
+			if (bAutoSave && (mTrain.mEpisode % 500 == 0))
 			{
 				saveWeights();
+				saveTrainCheckpoint();
 			}
 
 			if (stepResult.bDone)

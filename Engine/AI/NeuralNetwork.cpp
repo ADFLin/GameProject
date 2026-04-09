@@ -91,50 +91,28 @@ void FNNMath::VectorMul(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT 
 
 NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b)
 {
-#if USE_MATH_SIMD  && 0
-	if constexpr (Meta::IsSameType< NNScalar, float >::Value)
+#if USE_MATH_SIMD
+	using namespace SIMD;
+	using FloatVector = TFloatVector<4>;
+	constexpr int NumLanes = FloatVector::Size;
+
+	FloatVector acc = FloatVector::Zero();
+	for (; dim >= NumLanes; dim -= NumLanes)
 	{
-		NNScalar result = 0;
-		using namespace SIMD;
-		int numPackedDim = dim / 4;
-
-		SScalar vr = SScalar(0.0f);
-		for (; numPackedDim; --numPackedDim)
-		{
-			SVector4 va = SVector4(a);
-			SVector4 vb = SVector4(b);
-			vr = vr + va.dot(vb);
-			a += 4;
-			b += 4;
-		}
-
-		switch (dim % 4)
-		{
-		case 1: vr = vr + SScalar(a[0]) * SScalar(b[0]); break;
-		case 2: 
-			{
-				SVector2 va = SVector2(a);
-				SVector2 vb = SVector2(b);
-				vr = vr + va.dot(vb);
-			}
-			break;
-		case 3:
-			{
-				SVector3 va = SVector3(a);
-				SVector3 vb = SVector3(b);
-				vr = vr + va.dot(vb);
-			}
-			break;
-		}
-		result = vr;
-
-		return result;
+		acc = acc + FloatVector(a) * FloatVector(b);
+		a += NumLanes;
+		b += NumLanes;
 	}
-	else
+
+	NNScalar result = acc.sum();
+	for (; dim; --dim)
+	{
+		result += (*a++) * (*b++);
+	}
+	return result;
+#else
+	return VectorDotNOP(dim, a, b);
 #endif
-	{
-		return VectorDotNOP(dim, a, b);
-	}
 }
 
 
@@ -203,11 +181,36 @@ void FNNMath::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRIC
 
 void FNNMath::VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
+#if USE_MATH_SIMD
+	using namespace SIMD;
+	using FloatVector = TFloatVector<4>;
+	constexpr int NumLanes = FloatVector::Size;
+
+	int col = 0;
+
+	for (; col + NumLanes <= dimCol; col += NumLanes)
+	{
+		FloatVector acc(b + col);
+		NNScalar const* pWeight = m + col;
+		for (int row = 0; row < dimRow; ++row)
+		{
+			acc = acc + FloatVector(pWeight) * FloatVector(v[row]);
+			pWeight += dimCol;
+		}
+		_mm_storeu_ps(out + col, acc.reg);
+	}
+
+	for (; col < dimCol; ++col)
+	{
+		out[col] = VectorDot(dimRow, v, m + col, dimCol) + b[col];
+	}
+#else
 	for (int col = 0; col < dimCol; ++col)
 	{
 		out[col] = VectorDot(dimRow, v, m, dimCol) + b[col];
 		m += 1;
 	}
+#endif
 }
 
 int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)

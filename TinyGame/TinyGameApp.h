@@ -193,6 +193,9 @@ public:
 
 private:
 	void               loadModules();
+#if USE_HOTRELOAD
+	void               deleteHotReloadModules();
+#endif
 	void               render( float dframe );
 
 	ServerWorker*      createServer();

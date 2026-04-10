@@ -477,12 +477,7 @@ TinyGameApp::TinyGameApp()
 
 TinyGameApp::~TinyGameApp()
 {
-	// Clean up mode managed by StageManager
-	if (mGameMode)
-	{
-		delete mGameMode;
-		mGameMode = nullptr;
-	}
+
 }
 
 
@@ -933,6 +928,13 @@ void TinyGameApp::finalizeGame()
 
 	StageManager::cleanup();
 
+	// Clean up mode managed by StageManager
+	if (mGameMode)
+	{
+		delete mGameMode;
+		mGameMode = nullptr;
+	}
+
 	ExecutionRegisterCollection::Get().cleanup();
 
 	//cleanup widget before delete game instance
@@ -961,6 +963,10 @@ void TinyGameApp::finalizeGame()
 	EngineFinalize();
 	
 	Global::ModuleManager().cleanupModuleMemory();
+
+#if USE_HOTRELOAD
+	deleteHotReloadModules();
+#endif
 }
 
 void TinyGameApp::handleGameFrameStart()
@@ -1140,6 +1146,35 @@ void TinyGameApp::loadModules()
 		}
 	}
 }
+
+#if USE_HOTRELOAD
+void TinyGameApp::deleteHotReloadModules()
+{
+	InlineString<MAX_PATH + 1> moduleDir;
+#if _DEBUG
+	GetCurrentDirectoryA(
+		moduleDir.max_size(),
+		moduleDir.data()
+	);
+#else
+	::GetModuleFileNameA(NULL, moduleDir.data(), moduleDir.max_size());
+	moduleDir = FFileUtility::GetDirectory(moduleDir);
+#endif
+
+	FileIterator fileIter;
+	if (FFileSystem::FindFiles<char>(moduleDir, ".dll", fileIter))
+	{
+		for (; fileIter.haveMore(); fileIter.goNext())
+		{
+			char const* fileName = fileIter.getFileName();
+			if (FCString::StrStr(fileName, "_HotReload") == nullptr)
+				continue;
+
+			FFileSystem::DeleteFile(fileName);
+		}
+	}
+}
+#endif
 
 bool TinyGameApp::haveServer()
 {

@@ -180,6 +180,9 @@ namespace Coroutines
 		template< typename T, TEnableIf_Type< std::is_base_of_v< IAwaitInstruction, std::remove_reference_t<T> >, bool > = true >
 		void yieldReturn(T&& value)
 		{
+			if (!value.isKeepWaiting())
+				return;
+			
 			using Type = std::remove_reference_t<T>;
 			CHECK(mInstruction == nullptr);
 			mInstruction.construct<Type>(value);
@@ -193,6 +196,9 @@ namespace Coroutines
 
 		void yieldReturn(IAwaitInstruction* instruction)
 		{
+			if (!instruction->isKeepWaiting())
+				return;
+
 			CHECK(mInstruction == nullptr);
 			mInstruction.construct<AwaitInstructionProxy>(instruction);
 			addPendingActive();

@@ -847,7 +847,7 @@ namespace TwentyFortyEight
 				int len = BoardSize * BoardSize;
 #if SPLIT_LEVEL_VALUE
 				int num = BoardSize * BoardSize;
-				uint32 const topology[] = { len * (num + 1), len * (num + 1), len * (num + 1) };
+				uint32 const topology[] = { len * (num + 1), len * num, len * num };
 #else
 				int num = BoardSize * BoardSize;
 				uint32 const topology[] = { len * 2, len * num, len * num };
@@ -952,10 +952,38 @@ namespace TwentyFortyEight
 			void forwardDistribution(
 				NNScalar const parameters[],
 				NNScalar const inputs[],
-				NNScalar outputs[]) const
+				NNScalar outDist[]) const
 			{
-				NNScalar outputsValue[ActionNum];
-				inference(parameters, inputs, outputsValue, outputs);
+				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
+				mFeatureLayer.inference(parameters, inputs, featureOutputs);
+
+				NNScalar valueDist[AtomCount];
+				mValueLayer.inference(parameters, featureOutputs, valueDist);
+
+				NNScalar actionDists[ActionNum * AtomCount];
+				mActionLayer.inference(parameters, featureOutputs, actionDists);
+
+				for (int atom = 0; atom < AtomCount; ++atom)
+				{
+					NNScalar mean = 0;
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						mean += actionDists[i * AtomCount + atom];
+					}
+					mean /= ActionNum;
+
+					for (int i = 0; i < ActionNum; ++i)
+					{
+						outDist[i * AtomCount + atom] = actionDists[i * AtomCount + atom] - mean + valueDist[atom];
+					}
+				}
+
+				NNScalar* pActionDistributionOutput = outDist;
+				for (int i = 0; i < ActionNum; ++i)
+				{
+					FNNMath::SoftMax(AtomCount, pActionDistributionOutput);
+					pActionDistributionOutput += AtomCount;
+				}
 			}
 #endif
 
@@ -1790,11 +1818,21 @@ namespace TwentyFortyEight
 				auto const& action = sample.action;
 #endif
 
+				PROFILE_ENTRY("Fit");
+
 #if DQN_DISTRIBUTION
-				NNScalar* actionDist = agent.mModel->forward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data());
-				actionDist += action.playDir * AtomCount;
+				NNScalar* actionDist;
+				{
+					PROFILE_ENTRY("Fit.Forward");
+					actionDist = agent.mModel->forward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data());
+					actionDist += action.playDir * AtomCount;
+				}
 #else
-				auto actionValue = agent.evalActionValue(state, action, threadData.outputs.data());
+				NNScalar actionValue;
+				{
+					PROFILE_ENTRY("Fit.Forward");
+					actionValue = agent.evalActionValue(state, action, threadData.outputs.data());
+				}
 #endif
 
 
@@ -1803,6 +1841,7 @@ namespace TwentyFortyEight
 				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
 				sample.loss = 0;
 				{
+					PROFILE_ENTRY("Fit.Target");
 					auto const& stateNext = sample.stateNext;
 					NNScalar actionValuesNext[4];
 					agent.evalActionValues(stateNext, actionValuesNext);
@@ -1837,7 +1876,10 @@ namespace TwentyFortyEight
 				}
 #else
 				NNScalar actionValuesNext[4];
-				agent.evalActionValues(sample.stateNext, actionValuesNext);
+				{
+					PROFILE_ENTRY("Fit.Target");
+					agent.evalActionValues(sample.stateNext, actionValuesNext);
+				}
 
 				Action actionNext;
 				actionNext.playDir = 0;
@@ -1858,65 +1900,47 @@ namespace TwentyFortyEight
 				}
 
 #if DQN_DISTRIBUTION
-				NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-				agent.mModel->forwardDistribution(mTargetParameters.data(), (NNScalar const*)&sample.stateNext, targetDist);
-				targetDist += actionNext.playDir * AtomCount;
-
-				NNScalar targetProjDist[AtomCount];
-				FMemory::Zero(targetProjDist, sizeof(targetProjDist));
-
-				NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
-				NNScalar minV = agent.mModel->mSupports[0];
-
-				if (sample.bDone)
 				{
-					int aa = 1;
-				}
-				for (int i = 0; i < AtomCount; ++i)
-				{
-					NNScalar t = sample.reward + DiscountRate * agent.mModel->mSupports[i] * (1 - float(sample.bDone));
-					NNScalar b = (t - minV) / deltaV;
-					b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
-					int l = Math::Clamp(Math::FloorToInt(b), 0 , AtomCount - 2);
-					int u = l + 1;
-					targetProjDist[l] += targetDist[i] * (u - b);
-					targetProjDist[u] += targetDist[i] * (b - l);
-				}
-				sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
-				sample.priorityValue = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+					PROFILE_ENTRY("Fit.DistributionTarget");
+					NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					agent.mModel->forwardDistribution(mTargetParameters.data(), (NNScalar const*)&sample.stateNext, targetDist);
+					targetDist += actionNext.playDir * AtomCount;
 
-				NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-				FMemory::Zero(lossGrads, sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-				NNScalar* actionLossGrads = lossGrads + AtomCount * action.playDir;
-				for (int i = 0; i < AtomCount; ++i)
-				{
-					if (actionDist[i] < 1e-6)
+					NNScalar targetProjDist[AtomCount];
+					FMemory::Zero(targetProjDist, sizeof(targetProjDist));
+
+					NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
+					NNScalar minV = agent.mModel->mSupports[0];
+
+					for (int i = 0; i < AtomCount; ++i)
 					{
-						int i = 1;
-
+						NNScalar t = sample.reward + DiscountRate * agent.mModel->mSupports[i] * (1 - float(sample.bDone));
+						NNScalar b = (t - minV) / deltaV;
+						b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
+						int l = Math::Clamp(Math::FloorToInt(b), 0 , AtomCount - 2);
+						int u = l + 1;
+						targetProjDist[l] += targetDist[i] * (u - b);
+						targetProjDist[u] += targetDist[i] * (b - l);
 					}
-					actionLossGrads[i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
-				}
+					sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+					sample.priorityValue = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
 
-				{
-					NNScalar* pLossGrad = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					NNScalar* pLossGrad2 = (NNScalar*)alloca(sizeof(NNScalar) * AtomCount);
-					NNScalar const* pOutput = threadData.outputs.data() + (agent.mModel->getPassOutputLength() - agent.mModel->getOutputLength());
-					NNScalar const* pInput = pOutput - agent.mModel->getOutputLength();
-					for (int i = 0; i < ActionNum; ++i)
+					NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					FMemory::Zero(lossGrads, sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					NNScalar* actionLossGrads = lossGrads + AtomCount * action.playDir;
 					{
-						int offset = i * AtomCount;
-						FNNAlgo::SoftMaxBackward(AtomCount, pInput + offset, pOutput + offset, lossGrads + offset, pLossGrad + offset);
-
+						PROFILE_ENTRY("Fit.LossGrad");
+						for (int i = 0; i < AtomCount; ++i)
+						{
+							actionLossGrads[i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
+						}
 					}
-					FNNMath::VectorSub(AtomCount, actionDist, targetProjDist, pLossGrad2);
 
-					int aa = 1;
+					{
+						PROFILE_ENTRY("Fit.Backward");
+						agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossGrads, threadData.lossGrads, threadData.parameterGrads.data());
+					}
 				}
-
-
-
-
 #else
 				NNScalar TDTarget;
 				TDTarget = sample.reward + DiscountRate * Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), sample.stateNext, actionNext) * (1 - float(sample.bDone));
@@ -1925,16 +1949,15 @@ namespace TwentyFortyEight
 				sample.loss = weight * LossFunc::Calc(actionValue, TDTarget);
 				sample.priorityValue = LossFunc::Calc(actionValue, TDTarget);
 
+				{
+					PROFILE_ENTRY("Fit.Backward");
+					agent.mModel->backward(agent.parameters.data(),(NNScalar const*)&state, threadData.outputs.data(), lossDerivatives, threadData.lossGrads, threadData.parameterGrads.data());
+				}
 #endif
 
 #endif
 
-#if DQN_DISTRIBUTION
-				agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossGrads, threadData.lossGrads, threadData.parameterGrads.data());
-#else
-				agent.mModel->backward(agent.parameters.data(),(NNScalar const*)&state, threadData.outputs.data(), lossDerivatives, threadData.lossGrads, threadData.parameterGrads.data());
-#endif
-
+#if 0
 				for (int i = 0; i < threadData.parameterGrads.size(); ++i)
 				{
 					if (threadData.parameterGrads[i] != 0 && !isnormal(threadData.parameterGrads[i]))
@@ -1942,6 +1965,7 @@ namespace TwentyFortyEight
 						int n = 1;
 					}
 				}
+#endif
 				return sample.loss;
 			}
 

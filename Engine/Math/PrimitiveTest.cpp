@@ -122,13 +122,13 @@ namespace Math
 		// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
 		Vector3 offset = pos - center;
 		float b = offset.dot(dirNormalized);
-#if 1
 		float radius2 = radius * radius;
+#if 1
 		// d = b * b - c = ( ld * vd )^2 - ld^2 + r^2
 		//   = r^2 - (ld - ( ld * vd ) vd)^2
 		float d = radius2 - (offset - b * dirNormalized).length2();
 #else
-		float c = offset.length2() - radius * radius;
+		float c = offset.length2() - radius2;
 		float d = b * b - c;
 #endif
 
@@ -145,11 +145,11 @@ namespace Math
 	{
 		Vector3 offset = pos - center;
 		float b = offset.dot(dirNormalized);
-#if 1
 		float radius2 = radius * radius;
+#if 1
 		float d = radius2 - (offset - b * dirNormalized).length2();
 #else
-		float c = offset.length2() - radius * radius;
+		float c = offset.length2() - radius2;
 		float d = b * b - c;
 #endif
 		if (d < 0)

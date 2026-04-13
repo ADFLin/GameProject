@@ -956,6 +956,7 @@ void RHIGraphics2D::flush()
 		return;
 
 	commitRenderState();
+	
 	if (mRenderMode == ERenderMode::Immediate)
 	{
 		if (!getElementList().mElements.empty())
@@ -967,8 +968,6 @@ void RHIGraphics2D::flush()
 			mWriteContext->allocator.clearFrame();
 		}
 	}
-
-
 	else
 	{
 		RHIRender2DContext* pendingContext = mWriteContext;

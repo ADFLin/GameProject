@@ -700,9 +700,7 @@ namespace TwentyFortyEight
 				if (!bScored)
 				{
 					result.reward += (rewardInfo.count - 1) / 8.0;
-
 				}
-
 
 #if 0
 				int emptyCount = 0;
@@ -713,7 +711,7 @@ namespace TwentyFortyEight
 						++emptyCount;
 					}
 				}
-				result.reward += 0.5 * emptyCount;
+				result.reward += 0.05f * emptyCount;
 #endif
 
 #if 0
@@ -805,15 +803,23 @@ namespace TwentyFortyEight
 		};
 	};
 
-#define DQN_MULTI_STEP 1
+#define DQN_MULTI_STEP 3
 #define DQN_DUALING 1
 #define DQN_DISTRIBUTION 1
+#define DQN_SIMPLE_PARAM_NOISE 1
 
 
 
 	class DQN
 	{
 	public:
+		static NNScalar SampleNormal()
+		{
+			NNScalar u1 = Math::Max<NNScalar>(RandFloat(), 1e-6f);
+			NNScalar u2 = RandFloat();
+			return Math::Sqrt(NNScalar(-2.0) * Math::Log(u1)) * Math::Cos(NNScalar(2.0 * Math::PI) * u2);
+		}
+
 		DQN()
 		{
 
@@ -847,10 +853,10 @@ namespace TwentyFortyEight
 				int len = BoardSize * BoardSize;
 #if SPLIT_LEVEL_VALUE
 				int num = BoardSize * BoardSize;
-				uint32 const topology[] = { len * (num + 1), len * num, len * num };
+				uint32 const topology[] = { len * (num + 1), 128, 128 };
 #else
 				int num = BoardSize * BoardSize;
-				uint32 const topology[] = { len * 2, len * num, len * num };
+				uint32 const topology[] = { len * 2, 128, 128 };
 #endif
 
 				int parameterOffset = 0;
@@ -859,13 +865,13 @@ namespace TwentyFortyEight
 				mFeatureLayer.setOutputLayerTransform<NNFunc::LeakyReLU>();
 				parameterOffset += mFeatureLayer.getParameterLength();
 
-				uint32 const topologyValue[] = { len * num, len * num, AtomCount };
+				uint32 const topologyValue[] = { 128, 64, AtomCount };
 				mValueLayer.init(parameterOffset, topologyValue);
 				mValueLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				mValueLayer.setOutputLayerTransform<NNFunc::Linear>();
 				parameterOffset += mValueLayer.getParameterLength();
 
-				uint32 const topologyAction[] = { len * num, len * num, ActionNum * AtomCount };
+				uint32 const topologyAction[] = { 128, 64, ActionNum * AtomCount };
 				mActionLayer.init(parameterOffset, topologyAction);
 				mActionLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				mActionLayer.setOutputLayerTransform<NNFunc::Linear>();
@@ -1335,11 +1341,20 @@ namespace TwentyFortyEight
 			NNScalar mActionDist[ActionNum * AtomCount];
 			void getAction( State const& state, Environment const& env, float epsilon, Action& outAction)
 			{
-				evalActionValues(state, mActionValues,
+#if DQN_SIMPLE_PARAM_NOISE
+				mModel->inference(noisyParameters.data(), (NNScalar const*)&state, mActionValues
 #if DQN_DISTRIBUTION
-					mActionDist
+					, mActionDist
 #endif
 				);
+#else
+				evalActionValues(state, mActionValues
+#if DQN_DISTRIBUTION
+					,mActionDist
+#endif
+				);
+#endif
+#if !DQN_SIMPLE_PARAM_NOISE
 				if (RandFloat() < epsilon)
 				{
 					int num = 0;
@@ -1358,6 +1373,9 @@ namespace TwentyFortyEight
 					outAction.playDir = dirs[RandRange(0, num)];
 				}
 				else
+#else
+				(void)epsilon;
+#endif
 				{
 					int indices[4] = { 0, 1, 2 ,3 };
 					std::sort(indices, indices + 4, [&](int a, int b)
@@ -1400,8 +1418,30 @@ namespace TwentyFortyEight
 			void initParameters()
 			{
 				parameters.resize(mModel->getParameterLength());
+#if DQN_SIMPLE_PARAM_NOISE
+				noisyParameters.resize(mModel->getParameterLength());
+#endif
 				mModel->initializeParameters(parameters);
+#if DQN_SIMPLE_PARAM_NOISE
+				resetNoisyParameters();
+#endif
 			}
+
+#if DQN_SIMPLE_PARAM_NOISE
+			void resetNoisyParameters()
+			{
+				noisyParameters = parameters;
+			}
+
+			void sampleNoisyParameters()
+			{
+				noisyParameters = parameters;
+				for (int i = 0; i < noisyParameters.size(); ++i)
+				{
+					noisyParameters[i] += ParameterNoiseScale * DQN::SampleNormal();
+				}
+			}
+#endif
 
 			NNScalar evalMaxActionValue(State const& state)
 			{
@@ -1455,6 +1495,10 @@ namespace TwentyFortyEight
 
 			NetworkModel* mModel;
 			TArray<NNScalar> parameters;
+#if DQN_SIMPLE_PARAM_NOISE
+			static constexpr NNScalar ParameterNoiseScale = 0.01f;
+			TArray<NNScalar> noisyParameters;
+#endif
 		};
 
 
@@ -1463,9 +1507,9 @@ namespace TwentyFortyEight
 		static NNScalar constexpr DiscountRate = 0.995;
 		static int constexpr MaxReplaySize = 30000;
 		static int constexpr WarnMemorySize = 500;
-		static int constexpr BatchSize = 32;
+		static int constexpr BatchSize = 128;
 
-		static NNScalar constexpr LearnRate = 0.0001;
+		static NNScalar constexpr LearnRate = 1e-3;
 		static constexpr int WorkerThreadNum = 8;
 
 
@@ -1837,8 +1881,6 @@ namespace TwentyFortyEight
 
 
 #if DQN_MULTI_STEP > 1
-				NNScalar TDTarget;
-				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
 				sample.loss = 0;
 				{
 					PROFILE_ENTRY("Fit.Target");
@@ -1863,16 +1905,62 @@ namespace TwentyFortyEight
 						}
 					}
 
-					TDTarget = Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), stateNext, actionNext) * (1 - float(sample.bDone));
-
+					NNScalar accumulatedReward = 0;
 					for (int i = DQN_MULTI_STEP - 1; i >= 0; --i)
 					{
-						TDTarget *= DiscountRate;
-						TDTarget += sample.steps[i].reward;
+						accumulatedReward *= DiscountRate;
+						accumulatedReward += sample.steps[i].reward;
 					}
-					lossDerivatives[action.playDir] += LossFunc::CalcDevivative(actionValue, TDTarget);
 
-					sample.loss += LossFunc::Calc(actionValue, TDTarget);
+#if DQN_DISTRIBUTION
+					NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					agent.mModel->forwardDistribution(mTargetParameters.data(), (NNScalar const*)&stateNext, targetDist);
+					targetDist += actionNext.playDir * AtomCount;
+
+					NNScalar targetProjDist[AtomCount];
+					FMemory::Zero(targetProjDist, sizeof(targetProjDist));
+
+					NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
+					NNScalar minV = agent.mModel->mSupports[0];
+					NNScalar bootstrapScale = sample.bDone ? 0.0f : Math::Pow(DiscountRate, DQN_MULTI_STEP);
+					for (int i = 0; i < AtomCount; ++i)
+					{
+						NNScalar t = accumulatedReward + bootstrapScale * agent.mModel->mSupports[i];
+						NNScalar b = (t - minV) / deltaV;
+						b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
+						int l = Math::Clamp(Math::FloorToInt(b), 0, AtomCount - 2);
+						int u = l + 1;
+						targetProjDist[l] += targetDist[i] * (u - b);
+						targetProjDist[u] += targetDist[i] * (b - l);
+					}
+
+					sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+					sample.priorityValue = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+
+					NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					FMemory::Zero(lossGrads, sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+					NNScalar* actionLossGrads = lossGrads + AtomCount * action.playDir;
+					for (int i = 0; i < AtomCount; ++i)
+					{
+						actionLossGrads[i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
+					}
+
+					{
+						PROFILE_ENTRY("Fit.Backward");
+						agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossGrads, threadData.lossGrads, threadData.parameterGrads.data());
+					}
+#else
+					NNScalar TDTarget = accumulatedReward + Math::Pow(DiscountRate, DQN_MULTI_STEP) * Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), stateNext, actionNext) * (1 - float(sample.bDone));
+					NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
+					lossDerivatives[action.playDir] = weight * LossFunc::CalcDevivative(actionValue, TDTarget);
+					sample.loss = weight * LossFunc::Calc(actionValue, TDTarget);
+					sample.priorityValue = LossFunc::Calc(actionValue, TDTarget);
+
+					{
+						PROFILE_ENTRY("Fit.Backward");
+						agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossDerivatives, threadData.lossGrads, threadData.parameterGrads.data());
+					}
+#endif
 				}
 #else
 				NNScalar actionValuesNext[4];
@@ -2001,7 +2089,7 @@ namespace TwentyFortyEight
 						if (env.game.step >= DQN_MULTI_STEP)
 						{
 							ReplayData sample;
-							sample.bDone = stepResult.bDone;
+							sample.bDone = stepResult.bDone || !stepResult.bValidAction;
 							sample.action = action;
 							sample.stateNext = inoutState;
 							sample.playableDirMaskNext = env.playableDirMask;
@@ -2030,7 +2118,7 @@ namespace TwentyFortyEight
 #if DQN_MULTI_STEP > 1
 						if (env.game.step >= DQN_MULTI_STEP)
 						{
-							sample.bDone = stepResult.bDone;
+							sample.bDone = stepResult.bDone || !stepResult.bValidAction;
 							sample.action = action;
 							sample.stateNext = inoutState;
 							sample.playableDirMaskNext = env.playableDirMask;
@@ -2160,34 +2248,27 @@ namespace TwentyFortyEight
 				return loss;
 			}
 
-	
 			void updateTargetParameter()
 			{
 				FNNMath::VectorCopy(mTargetParameters.size(), agent.parameters.data(), mTargetParameters.data());
 			}
-
-
-
-			class Monitor
-			{
-			public:
-
-				void noitfyTrainEpisodeStart(int episode);
-				void noitfyTrainEpisodeEnd(int episode);
-
-				void noitfyTrainInput(Action const& action);
-				void noitfyTrainResult(Action const& action, StepResult const& stepResult);
-			};
-
 
 			int mEpisode = 0;
 			int mStepCount = 0;
 			int mOptimizeCount = 0;
 			NNScalar mLoss = 0.0;
 			NNScalar mActionValues[4];
-
-
 			float mEpsilon;
+
+			class Monitor
+			{
+			public:
+				void noitfyTrainEpisodeStart(int episode);
+				void noitfyTrainEpisodeEnd(int episode);
+
+				void noitfyTrainInput(Action const& action);
+				void noitfyTrainResult(Action const& action, StepResult const& stepResult);
+			};
 
 			template< typename Monitor >
 			void run(Monitor& monitor)
@@ -2203,6 +2284,9 @@ namespace TwentyFortyEight
 				for (;;)
 				{
 					env.reset();
+#if DQN_SIMPLE_PARAM_NOISE
+					agent.sampleNoisyParameters();
+#endif
 					env.getState(state);
 					episodeReset(state);
 
@@ -2230,7 +2314,7 @@ namespace TwentyFortyEight
 
 							mLoss = optimize();
 							++mOptimizeCount;
-							if (mOptimizeCount % 200 == 0)
+							if (mOptimizeCount % 100 == 0)
 							{
 								updateTargetParameter();
 							}
@@ -2663,6 +2747,17 @@ namespace TwentyFortyEight
 
 			mMaxScore = Math::Max(mMaxScore, mTrain.env.game.score);
 			mMaxStep = Math::Max(mMaxStep, mTrain.env.game.step);
+
+			if (bAutoSave && (mTrain.mEpisode % 1000 == 0))
+			{
+				TIME_SCOPE("AutoSave");
+				saveWeights();
+				{
+					TIME_SCOPE("Checkpoint");
+					saveTrainCheckpoint();
+				}
+
+			}
 		}
 
 		void noitfyTrainInput(DQN::Action& action)
@@ -2715,12 +2810,6 @@ namespace TwentyFortyEight
 						mTweener.tweenValue< Easing::IOQuad >(sprite->scale, 0.0f, 1.0f, 0.1);
 					}
 				}
-			}
-
-			if (bAutoSave && (mTrain.mEpisode % 500 == 0))
-			{
-				saveWeights();
-				saveTrainCheckpoint();
 			}
 
 			if (stepResult.bDone)

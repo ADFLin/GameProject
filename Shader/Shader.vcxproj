@@ -227,6 +227,7 @@
     <None Include="..\TinyGame\out\Shader\GPUSkinVertexFactory.sgc" />
     <None Include="..\TinyGame\out\Shader\HitProxy.sgc" />
     <None Include="..\TinyGame\out\Shader\HLSLDefine.sgc" />
+    <None Include="..\TinyGame\out\Shader\HZB.sgc" />
     <None Include="..\TinyGame\out\Shader\IBLCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\LightingCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\LightParam.sgc" />

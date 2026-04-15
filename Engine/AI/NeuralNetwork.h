@@ -299,6 +299,62 @@ struct NNLinearLayer : NeuralLayer
 	}
 };
 
+struct NNLSTMLayer : NeuralLayer
+{
+	void init(int inInputLength, int inNumNode)
+	{
+		inputLength = inInputLength;
+		numNode = inNumNode;
+	}
+
+	int inputLength;
+
+	int getCombinedInputLength() const
+	{
+		return inputLength + numNode;
+	}
+
+	int getGateLength() const
+	{
+		return 4 * numNode;
+	}
+
+	int getParameterLength() const
+	{
+		return getGateLength() * (getCombinedInputLength() + 1);
+	}
+
+	int getWeightLength() const
+	{
+		return getGateLength() * getCombinedInputLength();
+	}
+
+	int getPassOutputLength() const
+	{
+		return getGateLength();
+	}
+
+	int getOutputLength() const
+	{
+		return numNode;
+	}
+
+	int getCellStateLength() const
+	{
+		return numNode;
+	}
+
+	int getFanIn() const
+	{
+		return getCombinedInputLength();
+	}
+
+	int getFanOut() const
+	{
+		return getGateLength();
+	}
+};
+
 struct NNConv2DLayer : NeuralLayer
 {
 	NNConv2DLayer() = default;
@@ -1054,6 +1110,16 @@ public:
 		NNScalar const inputs[],
 		NNScalar outputs[]);
 
+	static void Forward(
+		NNLSTMLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inputs[],
+		NNScalar const prevHiddenState[],
+		NNScalar const prevCellState[],
+		NNScalar outHiddenState[],
+		NNScalar outCellState[],
+		NNScalar outPassOutputs[] = nullptr);
+
 	static void BackwardLoss(
 		NNLinearLayer const& layer, 
 		NNScalar const parameters[], 
@@ -1065,6 +1131,21 @@ public:
 		NNScalar const inInput[], 
 		NNScalar const inLossGrads[],
 		NNScalar inoutParameterGrads[]);
+
+	static void Backward(
+		NNLSTMLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inputs[],
+		NNScalar const prevHiddenState[],
+		NNScalar const prevCellState[],
+		NNScalar const passOutputs[],
+		NNScalar const outCellState[],
+		NNScalar const inHiddenLossGrads[],
+		NNScalar const inCellLossGrads[],
+		NNScalar inoutParameterGrads[],
+		NNScalar outInputLossGrads[],
+		NNScalar outPrevHiddenLossGrads[],
+		NNScalar outPrevCellLossGrads[]);
 
 	static NNScalar* Forward(
 		NNConv2DLayer const& layer, 

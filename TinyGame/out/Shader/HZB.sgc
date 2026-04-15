@@ -1,0 +1,198 @@
+#include "Common.sgc"
+
+#if COMPUTE_SHADER
+
+#if SHADER_ENTRY(GenerateHZBCS)
+
+DEFINE_TEXTURE(Texture2D, SourceTexture)
+uniform image2D DestTexture;
+
+uniform int2 SourceTextureSize;
+uniform int2 DestTextureSize;
+uniform float SourceMipLevel;
+uniform int   DestMipLevel;
+
+CS_NUM_THREADS(8, 8, 1)
+CS_ENTRY(GenerateHZBCS)
+{
+	if (SvDispatchThreadID.x >= DestTextureSize.x || SvDispatchThreadID.y >= DestTextureSize.y)
+		return;
+
+	int2 destPos = int2(SvDispatchThreadID.xy);
+	bool bCopyPass = (DestTextureSize.x == SourceTextureSize.x && DestTextureSize.y == SourceTextureSize.y);
+	float2 invSourceSize = 1.0 / float2(SourceTextureSize);
+	float reducedDepth = 0;
+
+	if (bCopyPass)
+	{
+		float2 uv = (float2(destPos) + 0.5) * invSourceSize;
+		reducedDepth = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), uv, SourceMipLevel).r;
+	}
+	else
+	{
+		float2 srcBasePos = float2(destPos * 2) + 0.5;
+		float2 uv0 = srcBasePos * invSourceSize;
+		float2 uv1 = (srcBasePos + float2(1, 0)) * invSourceSize;
+		float2 uv2 = (srcBasePos + float2(0, 1)) * invSourceSize;
+		float2 uv3 = (srcBasePos + float2(1, 1)) * invSourceSize;
+
+		float d0 = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), uv0, SourceMipLevel).r;
+		float d1 = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), uv1, SourceMipLevel).r;
+		float d2 = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), uv2, SourceMipLevel).r;
+		float d3 = SourceTexture.SampleLevel(TEXTURE_SAMPLER_NAME(SourceTexture), uv3, SourceMipLevel).r;
+
+#if USE_INVERSE_ZBUFFER
+		reducedDepth = max(max(d0, d1), max(d2, d3));
+#else
+		reducedDepth = min(min(d0, d1), min(d2, d3));
+#endif
+	}
+
+	imageStore(DestTexture, destPos, float4(reducedDepth, 0, 0, 0));
+}
+
+#endif
+
+#if SHADER_ENTRY(HZBCullCSMain)
+
+struct HZBCullItem
+{
+	float3 boxMin;
+	float  padding0;
+	float3 boxMax;
+	float  padding1;
+	uint outputIndex;
+	uint indexCountPerInstance;
+	uint startIndexLocation;
+	int  baseVertexLocation;
+	uint instanceCount;
+	uint startInstanceLocation;
+	uint padding2;
+	uint padding3;
+};
+
+struct DrawCmdArgs
+{
+	uint indexCountPerInstance;
+	uint instanceCount;
+	uint startIndexLocation;
+	int  baseVertexLocation;
+	uint startInstanceLocation;
+};
+
+StructuredBuffer<HZBCullItem> CullItems;
+DEFINE_TEXTURE(Texture2D, HZBTexture);
+uniform image2D ResultTexture;
+RWBuffer<uint> VisibleCommands;
+
+uniform float4x4 WorldToClip;
+uniform int2 ViewSize;
+uniform int2 ResultTextureSize;
+uniform int NumMipLevel;
+uniform int NumItems;
+uniform float DepthBias;
+
+CS_NUM_THREADS(64, 1, 1)
+CS_ENTRY(HZBCullCSMain)
+{
+	uint itemIndex = SvDispatchThreadID.x;
+	if (itemIndex >= NumItems)
+		return;
+
+	HZBCullItem item = CullItems[itemIndex];
+
+	float3 corners[8];
+	corners[0] = float3(item.boxMin.x, item.boxMin.y, item.boxMin.z);
+	corners[1] = float3(item.boxMax.x, item.boxMin.y, item.boxMin.z);
+	corners[2] = float3(item.boxMax.x, item.boxMax.y, item.boxMin.z);
+	corners[3] = float3(item.boxMin.x, item.boxMax.y, item.boxMin.z);
+	corners[4] = float3(item.boxMin.x, item.boxMin.y, item.boxMax.z);
+	corners[5] = float3(item.boxMax.x, item.boxMin.y, item.boxMax.z);
+	corners[6] = float3(item.boxMax.x, item.boxMax.y, item.boxMax.z);
+	corners[7] = float3(item.boxMin.x, item.boxMax.y, item.boxMax.z);
+
+	float2 ndcMin = float2(2.0, 2.0);
+	float2 ndcMax = float2(-2.0, -2.0);
+#if USE_INVERSE_ZBUFFER
+	float nearestDepth = 0.0;
+#else
+	float nearestDepth = 1.0;
+#endif
+
+	bool visible = false;
+
+	UNROLL
+	for (int i = 0; i < 8; ++i)
+	{
+		float4 clip = mul(WorldToClip, float4(corners[i], 1.0));
+		if (clip.w <= 0.001)
+		{
+			visible = true;
+			break;
+		}
+
+		float3 ndc = clip.xyz / clip.w;
+		ndcMin = min(ndcMin, ndc.xy);
+		ndcMax = max(ndcMax, ndc.xy);
+#if USE_INVERSE_ZBUFFER
+		nearestDepth = max(nearestDepth, ndc.z);
+#else
+		nearestDepth = min(nearestDepth, ndc.z);
+#endif
+	}
+
+	if (!visible)
+	{
+		float2 uvMin = ndcMin * float2(0.5, -0.5) + 0.5;
+		float2 uvMax = ndcMax * float2(0.5, -0.5) + 0.5;
+		float2 rectMin = clamp(min(uvMin, uvMax), 0.0, 1.0);
+		float2 rectMax = clamp(max(uvMin, uvMax), 0.0, 1.0);
+		float2 rectSize = (rectMax - rectMin) * float2(ViewSize);
+
+		if (rectMin.x >= rectMax.x || rectMin.y >= rectMax.y)
+		{
+			visible = true;
+		}
+		else
+		{
+			float maxDim = max(rectSize.x, rectSize.y);
+			int mipLevel = clamp((int)floor(log2(max(maxDim, 1.0))), 0, NumMipLevel - 1);
+			int2 hzbSize = max(ViewSize >> mipLevel, int2(1, 1));
+			int2 texMin = clamp(int2(floor(rectMin * float2(hzbSize))), int2(0, 0), hzbSize - 1);
+			int2 texMax = clamp(int2(ceil(rectMax * float2(hzbSize))) - 1, int2(0, 0), hzbSize - 1);
+
+			bool occluded = true;
+			for (int y = texMin.y; y <= texMax.y && occluded; ++y)
+			{
+				for (int x = texMin.x; x <= texMax.x; ++x)
+				{
+					float hzbDepth = HZBTexture.Load(int3(x, y, mipLevel)).r;
+#if USE_INVERSE_ZBUFFER
+					if (!(nearestDepth < hzbDepth - DepthBias))
+#else
+					if (!(nearestDepth > hzbDepth + DepthBias))
+#endif
+					{
+						occluded = false;
+						break;
+					}
+				}
+			}
+			visible = !occluded;
+		}
+	}
+
+	uint baseIndex = item.outputIndex * 5;
+	VisibleCommands[baseIndex + 0] = item.indexCountPerInstance;
+	VisibleCommands[baseIndex + 1] = visible ? item.instanceCount : 0;
+	VisibleCommands[baseIndex + 2] = item.startIndexLocation;
+	VisibleCommands[baseIndex + 3] = asuint(item.baseVertexLocation);
+	VisibleCommands[baseIndex + 4] = item.startInstanceLocation;
+
+	int2 resultPos = int2(itemIndex % ResultTextureSize.x, itemIndex / ResultTextureSize.x);
+	imageStore(ResultTexture, resultPos, visible ? float4(1, 0, 0, 1) : float4(0, 0, 0, 1));
+}
+
+#endif
+
+#endif

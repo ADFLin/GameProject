@@ -560,15 +560,18 @@ namespace Render
 		}
 	}
 
-	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult)
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numMipLevel, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult)
 	{
 		if (creationFlags & TCF_CreateSRV)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
 			desc.Format = D3D11Translate::ToSRV(format);
 			desc.ViewDimension = (numSamples > 1 ) ? D3D_SRV_DIMENSION_TEXTURE2DMS : D3D_SRV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipLevels = -1;
-			desc.Texture2D.MostDetailedMip = 0;
+			if (numSamples <= 1)
+			{
+				desc.Texture2D.MipLevels = numMipLevel;
+				desc.Texture2D.MostDetailedMip = 0;
+			}
 			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, &desc, &outResult.SRV));
 		}
 		if (creationFlags & TCF_CreateUAV)
@@ -625,7 +628,7 @@ namespace Render
 
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D_RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
-		CreateResourceView(mDevice, DXColorFormat, info.numSamples, info.textureCreationFlags, textureCreationResult);
+		CreateResourceView(mDevice, DXColorFormat, 1, info.numSamples, info.textureCreationFlags, textureCreationResult);
 
 		TextureDesc colorDesc = TextureDesc::Type2D(info.colorForamt, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(info.textureCreationFlags | TCF_RenderTarget);
 		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(colorDesc, textureCreationResult);
@@ -1316,7 +1319,7 @@ namespace Render
 			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, nullptr, &outResult.resource));
 		}
 
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.numSamples, desc.creationFlags, outResult));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.numMipLevel, desc.numSamples, desc.creationFlags, outResult));
 
 
 		if (desc.creationFlags & TCF_GenerateMips)
@@ -1610,6 +1613,25 @@ namespace Render
 	{
 		D3D11TextureBase& textureImpl = D3D11Cast::ToTextureBase(texture);
 		ID3D11UnorderedAccessView* UAV = textureImpl.mUAV;
+		if (level != 0 && texture.getDesc().numSamples <= 1)
+		{
+			auto const& desc = texture.getDesc();
+			D3D11ResourceViewStorage::UnorderedAccessKey key = { level, 0 };
+
+			switch (texture.getType())
+			{
+			case ETexture::Type2D:
+				UAV = textureImpl.mViewStorage.getUnorderedAccessInternal(key, textureImpl.getD3D11Resource(), [&](D3D11_UNORDERED_ACCESS_VIEW_DESC& descView)
+				{
+					descView.Format = D3D11Translate::To(desc.format);
+					descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+					descView.Texture2D.MipSlice = level;
+				});
+				break;
+			default:
+				break;
+			}
+		}
 
 		if (mBoundedUAVs[parameter.mLoc] != UAV)
 		{
@@ -1648,6 +1670,35 @@ namespace Render
 		CHECK(0 <= parameter.mLoc && parameter.mLoc < MaxSimulatedBoundedUAVNum);
 		D3D11TextureBase& textureImpl = D3D11Cast::ToTextureBase(texture);
 		ID3D11UnorderedAccessView* UAV = textureImpl.mUAV;
+		if (texture.getDesc().numSamples <= 1)
+		{
+			auto const& desc = texture.getDesc();
+			D3D11ResourceViewStorage::UnorderedAccessKey key = { level, subIndex };
+
+			switch (texture.getType())
+			{
+			case ETexture::Type2D:
+				UAV = textureImpl.mViewStorage.getUnorderedAccessInternal(key, textureImpl.getD3D11Resource(), [&](D3D11_UNORDERED_ACCESS_VIEW_DESC& descView)
+				{
+					descView.Format = D3D11Translate::To(desc.format);
+					descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+					descView.Texture2D.MipSlice = level;
+				});
+				break;
+			case ETexture::Type2DArray:
+				UAV = textureImpl.mViewStorage.getUnorderedAccessInternal(key, textureImpl.getD3D11Resource(), [&](D3D11_UNORDERED_ACCESS_VIEW_DESC& descView)
+				{
+					descView.Format = D3D11Translate::To(desc.format);
+					descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+					descView.Texture2DArray.MipSlice = level;
+					descView.Texture2DArray.FirstArraySlice = subIndex;
+					descView.Texture2DArray.ArraySize = 1;
+				});
+				break;
+			default:
+				break;
+			}
+		}
 
 		if (mBoundedUAVs[parameter.mLoc] != UAV)
 		{
@@ -3045,22 +3096,21 @@ namespace Render
 				{
 					auto& textureImpl = D3D11Cast::ToTextureBase(static_cast<RHITextureBase&>(*resource));
 					UAV = textureImpl.mUAV;
-					
-					TArray<D3D11TextureBase::D3D11BindSlot, TInlineAllocator<16>> slotsToUnbind;
-					for(auto& slot : textureImpl.mBoundSlots)
+					auto ClearUAV = [this](ID3D11UnorderedAccessView* inUAV)
 					{
-						if (slot.isUAV)
-							slotsToUnbind.push_back(slot);
-					}
-					
-					// D3D11Context doesn't track UAV resources in mBoundedUAVResources like SRVs, so using BoundSlots is less reliable if we didn't track "removeBind" in all places (we don't track old UAV unbind in setRWTexture fully).
-					// But clearUAVResource below is safe: it scans all UAV slots. 
-					// Optimizing UAV->SRV is less critical than SRV->UAV because UAV slots are few (8).
+						if (inUAV)
+						{
+							mResourceBoundStates[EShader::Compute].clearUAVResource(inUAV);
+							mResourceBoundStates[EShader::Pixel].clearUAVResource(inUAV);
+						}
+					};
+					ClearUAV(UAV);
+					textureImpl.mViewStorage.visitUAV(ClearUAV);
+					continue;
 				}
 
 				if (UAV)
 				{
-					// Use scanning for UAVs as we don't have full tracking and loop count is small (8)
 					mResourceBoundStates[EShader::Compute].clearUAVResource(UAV);
 					mResourceBoundStates[EShader::Pixel].clearUAVResource(UAV);
 				}

@@ -25,8 +25,12 @@ public:
 	bool  bMaskA = true;
 	bool  bGrayScale = true;
 	bool  bVFlip = false;
+	bool  bShowDepth = false;
 	float gamma = 1.0f;
 	float scale = 1.0f;
+	float mipLevel = 0.0f;
+	float depthMin = 0.0f;
+	float depthMax = 100.0f;
 	
 	int selection = 0;
 	

@@ -374,12 +374,12 @@ namespace Render
 			RHICommandList& commandList, Matrix4 const& xForm, 
 			RHITexture2D& texture, RHISamplerState& sampler, 
 			Vector2 const& pos, Vector2 const& size, 
-			LinearColor const* colorMask, Vector3 const* mappingParams = nullptr);
+			LinearColor const* colorMask, Vector4 const* mappingParams = nullptr, float previewLevel = 0.0f);
 
 		static void DrawDepthTexture(
 			RHICommandList& commandList, Matrix4 const& xForm,
 			RHITexture2D& texture, RHISamplerState& sampler,
-			Vector2 const& pos, Vector2 const& size, float minDistance, float maxDistance);
+			Vector2 const& pos, Vector2 const& size, Vector4 const& mappingParams, float previewLevel = 0.0f);
 
 		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, float length);
 		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size);

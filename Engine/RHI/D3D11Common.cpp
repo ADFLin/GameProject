@@ -407,7 +407,7 @@ namespace Render
 
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D_RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), );
-		CreateResourceView(static_cast<D3D11System*>(GRHISystem)->mDevice, desc.BufferDesc.Format, colorDesc.numSamples, colorDesc.creationFlags, textureCreationResult);
+		CreateResourceView(static_cast<D3D11System*>(GRHISystem)->mDevice, desc.BufferDesc.Format, 1, colorDesc.numSamples, colorDesc.creationFlags, textureCreationResult);
 
 		colorDesc.dimension = IntVector3(w, h, 1);
 		mColorTexture = new D3D11Texture2D(colorDesc, textureCreationResult);

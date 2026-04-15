@@ -67,6 +67,16 @@ namespace
 		NEVER_REACH("");
 		return 0;
 	}
+
+	FORCEINLINE NNLinearLayer MakeLSTMGateLayer(NNLSTMLayer const& layer)
+	{
+		NNLinearLayer gateLayer;
+		gateLayer.inputLength = layer.getCombinedInputLength();
+		gateLayer.numNode = layer.getGateLength();
+		gateLayer.weightOffset = layer.weightOffset;
+		gateLayer.biasOffset = layer.biasOffset;
+		return gateLayer;
+	}
 }
 
 #if USE_DUFF_DEVICE
@@ -1072,6 +1082,51 @@ NNScalar* FNNAlgo::Forward(
 	return outputs;
 }
 
+void FNNAlgo::Forward(
+	NNLSTMLayer const& layer,
+	NNScalar const parameters[],
+	NNScalar const inputs[],
+	NNScalar const prevHiddenState[],
+	NNScalar const prevCellState[],
+	NNScalar outHiddenState[],
+	NNScalar outCellState[],
+	NNScalar outPassOutputs[])
+{
+	CHECK(prevHiddenState);
+	CHECK(prevCellState);
+	CHECK(outHiddenState);
+	CHECK(outCellState);
+
+	int const hiddenLength = layer.numNode;
+	int const combinedInputLength = layer.getCombinedInputLength();
+	int const gateLength = layer.getGateLength();
+
+	NNScalar* combinedInputs = (NNScalar*)ALLOCA(sizeof(NNScalar) * combinedInputLength);
+	FNNMath::VectorCopy(layer.inputLength, inputs, combinedInputs);
+	FNNMath::VectorCopy(hiddenLength, prevHiddenState, combinedInputs + layer.inputLength);
+
+	NNScalar* gateOutputs = outPassOutputs ? outPassOutputs : (NNScalar*)ALLOCA(sizeof(NNScalar) * gateLength);
+	FNNAlgo::Forward(MakeLSTMGateLayer(layer), parameters, combinedInputs, gateOutputs);
+
+	NNScalar* inputGate = gateOutputs;
+	NNScalar* forgetGate = gateOutputs + hiddenLength;
+	NNScalar* cellGate = gateOutputs + 2 * hiddenLength;
+	NNScalar* outputGate = gateOutputs + 3 * hiddenLength;
+
+	for (int i = 0; i < hiddenLength; ++i)
+	{
+		inputGate[i] = NNFunc::Sigmoid::Value(inputGate[i]);
+		forgetGate[i] = NNFunc::Sigmoid::Value(forgetGate[i]);
+		cellGate[i] = NNFunc::Tanh::Value(cellGate[i]);
+		outputGate[i] = NNFunc::Sigmoid::Value(outputGate[i]);
+
+		outCellState[i] = forgetGate[i] * prevCellState[i] + inputGate[i] * cellGate[i];
+		outCellState[i] = Math::Clamp(outCellState[i], NNScalar(-10.0f), NNScalar(10.0f));
+		NNScalar cellOutput = NNFunc::Tanh::Value(outCellState[i]);
+		outHiddenState[i] = outputGate[i] * cellOutput;
+	}
+}
+
 // l-1          l
 //             b[l,n] 
 //     w[l,n,k]   z[l,n]          w[l+1,m,n] z[l+1,m]
@@ -1163,6 +1218,83 @@ void FNNAlgo::BackwardWeight(
 #endif
 	}
 #endif
+}
+
+void FNNAlgo::Backward(
+	NNLSTMLayer const& layer,
+	NNScalar const parameters[],
+	NNScalar const inputs[],
+	NNScalar const prevHiddenState[],
+	NNScalar const prevCellState[],
+	NNScalar const passOutputs[],
+	NNScalar const outCellState[],
+	NNScalar const inHiddenLossGrads[],
+	NNScalar const inCellLossGrads[],
+	NNScalar inoutParameterGrads[],
+	NNScalar outInputLossGrads[],
+	NNScalar outPrevHiddenLossGrads[],
+	NNScalar outPrevCellLossGrads[])
+{
+	CHECK(prevHiddenState);
+	CHECK(prevCellState);
+	CHECK(passOutputs);
+	CHECK(outCellState);
+	CHECK(inHiddenLossGrads || inCellLossGrads);
+
+	int const hiddenLength = layer.numNode;
+	int const combinedInputLength = layer.getCombinedInputLength();
+	int const gateLength = layer.getGateLength();
+
+	NNScalar const* inputGate = passOutputs;
+	NNScalar const* forgetGate = passOutputs + hiddenLength;
+	NNScalar const* cellGate = passOutputs + 2 * hiddenLength;
+	NNScalar const* outputGate = passOutputs + 3 * hiddenLength;
+
+	NNScalar* gateLossGrads = (NNScalar*)ALLOCA(sizeof(NNScalar) * gateLength);
+	NNScalar* inputGateLoss = gateLossGrads;
+	NNScalar* forgetGateLoss = gateLossGrads + hiddenLength;
+	NNScalar* cellGateLoss = gateLossGrads + 2 * hiddenLength;
+	NNScalar* outputGateLoss = gateLossGrads + 3 * hiddenLength;
+
+	for (int i = 0; i < hiddenLength; ++i)
+	{
+		NNScalar tanhCell = NNFunc::Tanh::Value(outCellState[i]);
+		NNScalar hiddenGrad = inHiddenLossGrads ? inHiddenLossGrads[i] : 0.0f;
+		NNScalar cellGrad = inCellLossGrads ? inCellLossGrads[i] : 0.0f;
+		cellGrad += hiddenGrad * outputGate[i] * (1.0f - tanhCell * tanhCell);
+
+		inputGateLoss[i] = cellGrad * cellGate[i] * inputGate[i] * (1.0f - inputGate[i]);
+		forgetGateLoss[i] = cellGrad * prevCellState[i] * forgetGate[i] * (1.0f - forgetGate[i]);
+		cellGateLoss[i] = cellGrad * inputGate[i] * (1.0f - cellGate[i] * cellGate[i]);
+		outputGateLoss[i] = hiddenGrad * tanhCell * outputGate[i] * (1.0f - outputGate[i]);
+
+		if (outPrevCellLossGrads)
+		{
+			outPrevCellLossGrads[i] = cellGrad * forgetGate[i];
+		}
+	}
+
+	NNScalar* combinedInputs = (NNScalar*)ALLOCA(sizeof(NNScalar) * combinedInputLength);
+	FNNMath::VectorCopy(layer.inputLength, inputs, combinedInputs);
+	FNNMath::VectorCopy(hiddenLength, prevHiddenState, combinedInputs + layer.inputLength);
+
+	NNLinearLayer gateLayer = MakeLSTMGateLayer(layer);
+	FNNAlgo::BackwardWeight(gateLayer, combinedInputs, gateLossGrads, inoutParameterGrads);
+
+	if (outInputLossGrads || outPrevHiddenLossGrads)
+	{
+		NNScalar* combinedLossGrads = (NNScalar*)ALLOCA(sizeof(NNScalar) * combinedInputLength);
+		FNNAlgo::BackwardLoss(gateLayer, parameters, gateLossGrads, combinedLossGrads);
+
+		if (outInputLossGrads)
+		{
+			FNNMath::VectorCopy(layer.inputLength, combinedLossGrads, outInputLossGrads);
+		}
+		if (outPrevHiddenLossGrads)
+		{
+			FNNMath::VectorCopy(hiddenLength, combinedLossGrads + layer.inputLength, outPrevHiddenLossGrads);
+		}
+	}
 }
 
 

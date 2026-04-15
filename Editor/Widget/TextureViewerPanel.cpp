@@ -96,6 +96,26 @@ void TextureViewerPanel::update()
 	ImGui::SameLine();
 	ImGui::Checkbox("VFlip", &bVFlip);
 	ImGui::SameLine();
+	ImGui::Checkbox("ShowDepth", &bShowDepth);
+	if (bShowDepth)
+	{
+		ImGui::SameLine();
+		ImGui::Text("DepthMin");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(70);
+		ImGui::DragFloat("##DepthMin", &depthMin, 0.1f, 0.0f, 100000.0f, "%.2f");
+		ImGui::SameLine();
+		ImGui::Text("DepthMax");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(80);
+		ImGui::DragFloat("##DepthMax", &depthMax, 0.1f, 0.0f, 100000.0f, "%.2f");
+		constexpr float MinDepthRange = 1e-4f;
+		if (depthMax < depthMin + MinDepthRange)
+		{
+			depthMax = depthMin + MinDepthRange;
+		}
+	}
+	ImGui::SameLine();
 	ImGui::Text("Gamma");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
@@ -105,6 +125,11 @@ void TextureViewerPanel::update()
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(50);
 	ImGui::DragFloat("##Scale", &scale, 0.01, 0.01, 10, "%g");
+	ImGui::SameLine();
+	ImGui::Text("Mip");
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(60);
+	ImGui::DragFloat("##MipLevel", &mipLevel, 0.1f, 0.0f, 20.0f, "%.1f");
 	ImGui::SameLine();
 	ImGui::Text("SizeScale");
 	ImGui::SameLine();
@@ -141,12 +166,13 @@ void TextureViewerPanel::update()
 	{
 		width = texture->getSizeX();
 		height = texture->getSizeY();
+		mipLevel = Math::Clamp(mipLevel, 0.0f, float(texture->getNumMipLevel() - 1));
 	}
 	Math::Vector2 renderSize = Vector2(sizeScale * width, sizeScale * height);
 	ImGui::BeginChild("Split", ImVec2(0,0), false);
 	if (texture)
 	{
-		bool bUseShader = bVFlip || !bMaskR || !bMaskG || !bMaskB || gamma != 1.0 || scale != 1.0;
+		bool bUseShader = bShowDepth || bVFlip || !bMaskR || !bMaskG || !bMaskB || gamma != 1.0 || scale != 1.0 || mipLevel != 0.0f;
 
 		if (bUseShader)
 		{
@@ -173,10 +199,11 @@ void TextureViewerPanel::update()
 			data.windowSize = FImGuiConv::To(ImGui::GetWindowSize());
 			data.viewport = ImGui::GetWindowViewport();
 
-			Math::Vector3 mappingParams;
+			Math::Vector4 mappingParams;
 			mappingParams.x = scale;
 			mappingParams.y = 0.0f;
 			mappingParams.z = gamma;
+			mappingParams.w = 0.0f;
 
 			ImGui::Dummy(FImGuiConv::To(renderSize));
 
@@ -202,14 +229,22 @@ void TextureViewerPanel::update()
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 				Matrix4 xForm = AdjustProjectionMatrixForRHI(OrthoMatrix(0, drawData->DisplaySize.x, drawData->DisplaySize.y, 0, 1, -1));
-				if ( bVFlip )
+				if (bShowDepth)
+				{
+					Matrix4 projectMatrix = mTextureShowManager ? mTextureShowManager->getProjectMatrix() : Matrix4::Identity();
+					Vector4 depthMappingParams(depthMin, depthMax, projectMatrix(2, 2), projectMatrix(3, 2));
+					Vector2 pos = bVFlip ? (data.clientPos + Vector2(0, renderSize.y)) : data.clientPos;
+					Vector2 size = bVFlip ? Vector2(renderSize.x, -renderSize.y) : renderSize;
+					DrawUtility::DrawDepthTexture(commandList, xForm, *texture, TStaticSamplerState<ESampler::Trilinear>::GetRHI(), pos, size, depthMappingParams, mipLevel);
+				}
+				else if ( bVFlip )
 				{
 					Vector2 pos = data.clientPos + Vector2(0 , renderSize.y);
-					DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Bilinear >::GetRHI(), pos, Vector2(renderSize.x, -renderSize.y), &colorMask, &mappingParams);
+					DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Trilinear >::GetRHI(), pos, Vector2(renderSize.x, -renderSize.y), &colorMask, &mappingParams, mipLevel);
 				}
 				else
 				{
-					DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Bilinear >::GetRHI(), data.clientPos, renderSize, &colorMask, &mappingParams);
+					DrawUtility::DrawTexture(commandList, xForm, *texture, TStaticSamplerState< ESampler::Trilinear >::GetRHI(), data.clientPos, renderSize, &colorMask, &mappingParams, mipLevel);
 				}
 
 				RHIEndRender(false);

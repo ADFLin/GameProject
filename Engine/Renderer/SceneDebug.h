@@ -10,6 +10,8 @@
 
 namespace Render
 {
+	struct ViewInfo;
+
 	class ITextureShowManager
 	{
 	public:
@@ -21,6 +23,7 @@ namespace Render
 		};
 		using TextureHandleRef = TRefCountPtr< TextureHandle >;
 		virtual std::unordered_map< HashString, TextureHandleRef > const& getTextureMap() = 0;
+		virtual Matrix4 getProjectMatrix() = 0;
 	};
 }
 

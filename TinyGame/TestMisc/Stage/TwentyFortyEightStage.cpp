@@ -803,7 +803,8 @@ namespace TwentyFortyEight
 		};
 	};
 
-#define DQN_MULTI_STEP 3
+#define DQN_MULTI_STEP 1
+#define DQN_R2D2 1
 #define DQN_DUALING 1
 #define DQN_DISTRIBUTION 1
 #define DQN_SIMPLE_PARAM_NOISE 1
@@ -840,6 +841,26 @@ namespace TwentyFortyEight
 #endif
 
 		static constexpr int ActionNum = 4;
+		static constexpr int LSTMHiddenSize = 128;
+
+		struct RecurrentState
+		{
+			NNScalar hidden[LSTMHiddenSize];
+			NNScalar cell[LSTMHiddenSize];
+
+			void reset()
+			{
+				FMemory::Zero(hidden, sizeof(hidden));
+				FMemory::Zero(cell, sizeof(cell));
+			}
+
+			template< class OP >
+			void serialize(OP& op)
+			{
+				op & hidden;
+				op & cell;
+			}
+		};
 
 
 #if DQN_DUALING
@@ -864,6 +885,11 @@ namespace TwentyFortyEight
 				mFeatureLayer.setHiddenLayerTransform<NNFunc::LeakyReLU>();
 				mFeatureLayer.setOutputLayerTransform<NNFunc::LeakyReLU>();
 				parameterOffset += mFeatureLayer.getParameterLength();
+
+				mLSTMLayer.init(128, 128);
+				mLSTMLayer.weightOffset = parameterOffset;
+				mLSTMLayer.biasOffset = parameterOffset + mLSTMLayer.getWeightLength();
+				parameterOffset += mLSTMLayer.getParameterLength();
 
 				uint32 const topologyValue[] = { 128, 64, AtomCount };
 				mValueLayer.init(parameterOffset, topologyValue);
@@ -893,18 +919,37 @@ namespace TwentyFortyEight
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
+				RecurrentState prevState;
+				RecurrentState nextState;
+				prevState.reset();
+				inference(parameters, inputs, prevState, nextState, outputs);
+			}
+
+			void inference(
+				NNScalar const parameters[],
+				NNScalar const inputs[],
+				RecurrentState const& prevState,
+				RecurrentState& outNextState,
+				NNScalar outputs[]) const
+			{
 #if DQN_DISTRIBUTION
 				NNScalar* pDistOutput = (NNScalar*)alloca(sizeof(NNScalar) * getOutputLength());
-				inference(parameters, inputs, outputs, pDistOutput);
+				inference(parameters, inputs, prevState, outNextState, outputs, pDistOutput);
 #else
 				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
 				mFeatureLayer.inference(parameters, inputs, featureOutputs);
 
+				NNScalar* lstmOutput = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getOutputLength());
+				NNScalar* lstmCellState = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getCellStateLength());
+				FNNAlgo::Forward(mLSTMLayer, parameters, featureOutputs, prevState.hidden, prevState.cell, lstmOutput, lstmCellState);
+				FNNMath::VectorCopy(mLSTMLayer.getOutputLength(), lstmOutput, outNextState.hidden);
+				FNNMath::VectorCopy(mLSTMLayer.getCellStateLength(), lstmCellState, outNextState.cell);
+
 				NNScalar value;
-				mValueLayer.inference(parameters, featureOutputs, &value);
+				mValueLayer.inference(parameters, lstmOutput, &value);
 
 				NNScalar actionValues[ActionNum];
-				mActionLayer.inference(parameters, featureOutputs, actionValues);
+				mActionLayer.inference(parameters, lstmOutput, actionValues);
 
 				NNScalar mean = FNNMath::Sum(ActionNum, actionValues) / ActionNum;
 
@@ -922,14 +967,34 @@ namespace TwentyFortyEight
 				NNScalar outputs[],
 				NNScalar outDist[]) const
 			{
+				RecurrentState prevState;
+				RecurrentState nextState;
+				prevState.reset();
+				inference(parameters, inputs, prevState, nextState, outputs, outDist);
+			}
+
+			void inference(
+				NNScalar const parameters[],
+				NNScalar const inputs[],
+				RecurrentState const& prevState,
+				RecurrentState& outNextState,
+				NNScalar outputs[],
+				NNScalar outDist[]) const
+			{
 				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
 				mFeatureLayer.inference(parameters, inputs, featureOutputs);
 
+				NNScalar* lstmOutput = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getOutputLength());
+				NNScalar* lstmCellState = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getCellStateLength());
+				FNNAlgo::Forward(mLSTMLayer, parameters, featureOutputs, prevState.hidden, prevState.cell, lstmOutput, lstmCellState);
+				FNNMath::VectorCopy(mLSTMLayer.getOutputLength(), lstmOutput, outNextState.hidden);
+				FNNMath::VectorCopy(mLSTMLayer.getCellStateLength(), lstmCellState, outNextState.cell);
+
 				NNScalar valueDist[AtomCount];
-				mValueLayer.inference(parameters, featureOutputs, valueDist);
+				mValueLayer.inference(parameters, lstmOutput, valueDist);
 
 				NNScalar actionDists[ActionNum * AtomCount];
-				mActionLayer.inference(parameters, featureOutputs, actionDists);
+				mActionLayer.inference(parameters, lstmOutput, actionDists);
 
 				for (int atom = 0; atom < AtomCount; ++atom)
 				{
@@ -960,14 +1025,33 @@ namespace TwentyFortyEight
 				NNScalar const inputs[],
 				NNScalar outDist[]) const
 			{
+				RecurrentState prevState;
+				RecurrentState nextState;
+				prevState.reset();
+				forwardDistribution(parameters, inputs, prevState, nextState, outDist);
+			}
+
+			void forwardDistribution(
+				NNScalar const parameters[],
+				NNScalar const inputs[],
+				RecurrentState const& prevState,
+				RecurrentState& outNextState,
+				NNScalar outDist[]) const
+			{
 				NNScalar* featureOutputs = (NNScalar*)alloca(sizeof(NNScalar) * mFeatureLayer.getOutputLength());
 				mFeatureLayer.inference(parameters, inputs, featureOutputs);
 
+				NNScalar* lstmOutput = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getOutputLength());
+				NNScalar* lstmCellState = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getCellStateLength());
+				FNNAlgo::Forward(mLSTMLayer, parameters, featureOutputs, prevState.hidden, prevState.cell, lstmOutput, lstmCellState);
+				FNNMath::VectorCopy(mLSTMLayer.getOutputLength(), lstmOutput, outNextState.hidden);
+				FNNMath::VectorCopy(mLSTMLayer.getCellStateLength(), lstmCellState, outNextState.cell);
+
 				NNScalar valueDist[AtomCount];
-				mValueLayer.inference(parameters, featureOutputs, valueDist);
+				mValueLayer.inference(parameters, lstmOutput, valueDist);
 
 				NNScalar actionDists[ActionNum * AtomCount];
-				mActionLayer.inference(parameters, featureOutputs, actionDists);
+				mActionLayer.inference(parameters, lstmOutput, actionDists);
 
 				for (int atom = 0; atom < AtomCount; ++atom)
 				{
@@ -998,10 +1082,35 @@ namespace TwentyFortyEight
 				NNScalar const inputs[],
 				NNScalar outputs[]) const
 			{
+				RecurrentState prevState;
+				RecurrentState nextState;
+				prevState.reset();
+				return forward(parameters, inputs, prevState, nextState, outputs);
+			}
+
+			NNScalar* forward(
+				NNScalar const parameters[],
+				NNScalar const inputs[],
+				RecurrentState const& prevState,
+				RecurrentState& outNextState,
+				NNScalar outputs[]) const
+			{
 				NNScalar const* pInput = inputs;
 				NNScalar* pOutput = outputs;
 				pInput = mFeatureLayer.forward(parameters, pInput, pOutput);
 				pOutput += mFeatureLayer.getPassOutputLength();
+
+				NNScalar* pLSTMOutput = pOutput;
+				pOutput += mLSTMLayer.getOutputLength();
+				NNScalar* pLSTMCellState = pOutput;
+				pOutput += mLSTMLayer.getCellStateLength();
+				NNScalar* pLSTMPassOutput = pOutput;
+				pOutput += mLSTMLayer.getPassOutputLength();
+
+				FNNAlgo::Forward(mLSTMLayer, parameters, pInput, prevState.hidden, prevState.cell, pLSTMOutput, pLSTMCellState, pLSTMPassOutput);
+				FNNMath::VectorCopy(mLSTMLayer.getOutputLength(), pLSTMOutput, outNextState.hidden);
+				FNNMath::VectorCopy(mLSTMLayer.getCellStateLength(), pLSTMCellState, outNextState.cell);
+				pInput = pLSTMOutput;
 
 				NNScalar const* pValueOutput = mValueLayer.forward(parameters, pInput, pOutput);
 				pOutput += mValueLayer.getPassOutputLength();
@@ -1052,13 +1161,39 @@ namespace TwentyFortyEight
 				NNScalar inoutParameterGrads[],
 				NNScalar* outLossGrads = nullptr)
 			{
+				RecurrentState zeroState;
+				zeroState.reset();
+				backward(parameters, inInputs, zeroState, inOutputs, inOutputLossGrads, zeroState, zeroState, tempLossGrads, inoutParameterGrads, outLossGrads);
+			}
+
+			void backward(
+				NNScalar const parameters[],
+				NNScalar const inInputs[],
+				RecurrentState const& prevState,
+				NNScalar const inOutputs[],
+				NNScalar const inOutputLossGrads[],
+				RecurrentState const& inStateLossGrads,
+				RecurrentState& outPrevStateLossGrads,
+				TArrayView<NNScalar> tempLossGrads,
+				NNScalar inoutParameterGrads[],
+				NNScalar* outLossGrads = nullptr)
+			{
 				NNScalar const* pOutput = inOutputs + getPassOutputLength();
 
-				NNScalar const* pInput = inOutputs + (mFeatureLayer.getPassOutputLength() - mFeatureLayer.getOutputLength());
-				TArrayView<NNScalar> layerTempLossGrads(tempLossGrads.data() + getOutputLength() + 2 * mFeatureLayer.getOutputLength(), tempLossGrads.size() - getOutputLength() - 2 * mFeatureLayer.getOutputLength());
+				NNScalar const* pLSTMInput = inOutputs + (mFeatureLayer.getPassOutputLength() - mFeatureLayer.getOutputLength());
+				NNScalar const* pLSTMOutput = inOutputs + mFeatureLayer.getPassOutputLength();
+				NNScalar const* pLSTMCellState = pLSTMOutput + mLSTMLayer.getOutputLength();
+				NNScalar const* pLSTMPassOutput = pLSTMCellState + mLSTMLayer.getCellStateLength();
+				NNScalar const* pHeadInput = pLSTMOutput;
+				TArrayView<NNScalar> layerTempLossGrads(tempLossGrads.data() + getOutputLength() + 5 * mFeatureLayer.getOutputLength(), tempLossGrads.size() - getOutputLength() - 5 * mFeatureLayer.getOutputLength());
 				NNScalar* combinedLossGrads = tempLossGrads.data();
 				NNScalar* actionInputLossGrads = combinedLossGrads + getOutputLength();
 				NNScalar* valueInputLossGrads = actionInputLossGrads + mFeatureLayer.getOutputLength();
+				NNScalar* lstmInputLossGrads = valueInputLossGrads + mFeatureLayer.getOutputLength();
+				NNScalar* lstmPrevHiddenLossGrads = lstmInputLossGrads + mFeatureLayer.getOutputLength();
+				NNScalar* lstmPrevCellLossGrads = lstmPrevHiddenLossGrads + mFeatureLayer.getOutputLength();
+				FMemory::Zero(lstmPrevHiddenLossGrads, sizeof(NNScalar) * mFeatureLayer.getOutputLength());
+				FMemory::Zero(lstmPrevCellLossGrads, sizeof(NNScalar) * mFeatureLayer.getOutputLength());
 
 #if DQN_DISTRIBUTION
 				pOutput -= getOutputLength();
@@ -1088,9 +1223,9 @@ namespace TwentyFortyEight
 				}
 
 				pOutput -= mActionLayer.getPassOutputLength();
-				mActionLayer.backward(parameters, pInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
+				mActionLayer.backward(parameters, pHeadInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
 				pOutput -= mValueLayer.getPassOutputLength();
-				mValueLayer.backward(parameters, pInput, pOutput, valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
+				mValueLayer.backward(parameters, pHeadInput, pOutput, valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
 #else
 				pOutput -= ActionNum;
 				NNScalar actionLossGrads[ActionNum];
@@ -1105,15 +1240,21 @@ namespace TwentyFortyEight
 				NNScalar valueLossGrads = FNNMath::Sum(ActionNum, inOutputLossGrads);
 
 				pOutput -= mActionLayer.getPassOutputLength();
-				mActionLayer.backward(parameters, pInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
+				mActionLayer.backward(parameters, pHeadInput, pOutput, actionLossGrads, layerTempLossGrads, inoutParameterGrads, actionInputLossGrads);
 				pOutput -= mValueLayer.getPassOutputLength();
-				mValueLayer.backward(parameters, pInput, pOutput, &valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
+				mValueLayer.backward(parameters, pHeadInput, pOutput, &valueLossGrads, layerTempLossGrads, inoutParameterGrads, valueInputLossGrads);
 #endif
 
 				FNNMath::VectorAdd(mFeatureLayer.getOutputLength(), valueInputLossGrads, actionInputLossGrads);
-				CHECK(inOutputs == pOutput - mFeatureLayer.getPassOutputLength());
+				NNScalar* lstmHiddenLossGrads = (NNScalar*)alloca(sizeof(NNScalar) * mLSTMLayer.getOutputLength());
+				FNNMath::VectorCopy(mLSTMLayer.getOutputLength(), valueInputLossGrads, lstmHiddenLossGrads);
+				FNNMath::VectorAdd(mLSTMLayer.getOutputLength(), lstmHiddenLossGrads, inStateLossGrads.hidden);
+				FNNAlgo::Backward(mLSTMLayer, parameters, pLSTMInput, prevState.hidden, prevState.cell, pLSTMPassOutput, pLSTMCellState, lstmHiddenLossGrads, inStateLossGrads.cell, inoutParameterGrads, lstmInputLossGrads, lstmPrevHiddenLossGrads, lstmPrevCellLossGrads);
+				FNNMath::VectorCopy(mLSTMLayer.getOutputLength(), lstmPrevHiddenLossGrads, outPrevStateLossGrads.hidden);
+				FNNMath::VectorCopy(mLSTMLayer.getCellStateLength(), lstmPrevCellLossGrads, outPrevStateLossGrads.cell);
+				CHECK(inOutputs == pLSTMInput - (mFeatureLayer.getPassOutputLength() - mFeatureLayer.getOutputLength()));
 
-				mFeatureLayer.backward(parameters, inInputs, inOutputs, valueInputLossGrads, layerTempLossGrads, inoutParameterGrads);
+				mFeatureLayer.backward(parameters, inInputs, inOutputs, lstmInputLossGrads, layerTempLossGrads, inoutParameterGrads);
 			}
 
 			int getOutputLength() const
@@ -1127,12 +1268,12 @@ namespace TwentyFortyEight
 
 			int getPassOutputLength() const
 			{
-				return mFeatureLayer.getPassOutputLength() + mValueLayer.getPassOutputLength() + mActionLayer.getPassOutputLength() + getOutputLength();
+				return mFeatureLayer.getPassOutputLength() + mLSTMLayer.getOutputLength() + mLSTMLayer.getCellStateLength() + mLSTMLayer.getPassOutputLength() + mValueLayer.getPassOutputLength() + mActionLayer.getPassOutputLength() + getOutputLength();
 			}
 
 			int getParameterLength() const
 			{
-				return mFeatureLayer.getParameterLength() + mValueLayer.getParameterLength() + mActionLayer.getParameterLength();
+				return mFeatureLayer.getParameterLength() + mLSTMLayer.getParameterLength() + mValueLayer.getParameterLength() + mActionLayer.getParameterLength();
 			}
 
 			int getTempLossGradLength() const
@@ -1140,11 +1281,12 @@ namespace TwentyFortyEight
 				int length = mFeatureLayer.getTempLossGradLength();
 				length = Math::Max(length, mActionLayer.getTempLossGradLength());
 				length = Math::Max(length, mValueLayer.getTempLossGradLength());
-				length += getOutputLength() + 2 * mFeatureLayer.getOutputLength();
+				length += getOutputLength() + 5 * mFeatureLayer.getOutputLength();
 				return length;
 			}
 
 			NNFullConLayout mFeatureLayer;
+			NNLSTMLayer mLSTMLayer;
 			NNFullConLayout mValueLayer;
 			NNFullConLayout mActionLayer;
 #if DQN_DISTRIBUTION
@@ -1160,6 +1302,19 @@ namespace TwentyFortyEight
 				featureInit.outputScale = 1.0f;
 				featureInit.bZeroBias = true;
 				mFeatureLayer.initializeParameters(parameters, featureInit);
+
+				NNScalar* pLSTMWeight = parameters.data() + mLSTMLayer.weightOffset;
+				NNScalar* pLSTMBias = parameters.data() + mLSTMLayer.biasOffset;
+				NNScalar initBound = Math::Sqrt(NNScalar(6.0) / NNScalar(mLSTMLayer.getFanIn() + mLSTMLayer.getFanOut()));
+				for (int i = 0; i < mLSTMLayer.getWeightLength(); ++i)
+				{
+					pLSTMWeight[i] = initBound * NNScalar(2.0 * (double(std::rand()) / double(RAND_MAX)) - 1.0);
+				}
+				FMemory::Zero(pLSTMBias, sizeof(NNScalar) * mLSTMLayer.getGateLength());
+				for (int i = mLSTMLayer.numNode; i < 2 * mLSTMLayer.numNode; ++i)
+				{
+					pLSTMBias[i] = 1.0f;
+				}
 
 				NNParameterInitOptions headInit;
 				headInit.hiddenWeightInit = ENNWeightInit::HeUniform;
@@ -1339,21 +1494,38 @@ namespace TwentyFortyEight
 #endif
 
 			NNScalar mActionDist[ActionNum * AtomCount];
+			RecurrentState mRolloutRecurrentState;
+			RecurrentState mLastInputRecurrentState;
+
+			void resetRecurrentState()
+			{
+				mRolloutRecurrentState.reset();
+				mLastInputRecurrentState.reset();
+			}
+
+			RecurrentState const& getLastInputRecurrentState() const
+			{
+				return mLastInputRecurrentState;
+			}
+
 			void getAction( State const& state, Environment const& env, float epsilon, Action& outAction)
 			{
+				mLastInputRecurrentState = mRolloutRecurrentState;
+				RecurrentState nextRecurrentState;
 #if DQN_SIMPLE_PARAM_NOISE
-				mModel->inference(noisyParameters.data(), (NNScalar const*)&state, mActionValues
+				mModel->inference(noisyParameters.data(), (NNScalar const*)&state, mLastInputRecurrentState, nextRecurrentState, mActionValues
 #if DQN_DISTRIBUTION
 					, mActionDist
 #endif
 				);
 #else
-				evalActionValues(state, mActionValues
+				evalActionValues(state, mLastInputRecurrentState, nextRecurrentState, mActionValues
 #if DQN_DISTRIBUTION
 					,mActionDist
 #endif
 				);
 #endif
+				mRolloutRecurrentState = nextRecurrentState;
 #if !DQN_SIMPLE_PARAM_NOISE
 				if (RandFloat() < epsilon)
 				{
@@ -1422,6 +1594,7 @@ namespace TwentyFortyEight
 				noisyParameters.resize(mModel->getParameterLength());
 #endif
 				mModel->initializeParameters(parameters);
+				resetRecurrentState();
 #if DQN_SIMPLE_PARAM_NOISE
 				resetNoisyParameters();
 #endif
@@ -1473,16 +1646,32 @@ namespace TwentyFortyEight
 				mModel->inference(parameters.data(),(NNScalar const*)&state, outValues);
 			}
 
+			void evalActionValues(State const& state, RecurrentState const& recurrentState, RecurrentState& outNextState, NNScalar outValues[])
+			{
+				mModel->inference(parameters.data(), (NNScalar const*)&state, recurrentState, outNextState, outValues);
+			}
+
 #if DQN_DISTRIBUTION
 			void evalActionValues(State const& state, NNScalar outValues[], NNScalar outDist[])
 			{
 				mModel->inference(parameters.data(), (NNScalar const*)&state, outValues, outDist);
+			}
+
+			void evalActionValues(State const& state, RecurrentState const& recurrentState, RecurrentState& outNextState, NNScalar outValues[], NNScalar outDist[])
+			{
+				mModel->inference(parameters.data(), (NNScalar const*)&state, recurrentState, outNextState, outValues, outDist);
 			}
 #endif
 
 			NNScalar evalActionValue(State const& state, Action const& action, NNScalar outputs[])
 			{
 				NNScalar const* pOutputs = mModel->forward(parameters.data(), (NNScalar const*)&state, outputs);
+				return pOutputs[action.playDir];
+			}
+
+			NNScalar evalActionValue(State const& state, RecurrentState const& recurrentState, RecurrentState& outNextState, Action const& action, NNScalar outputs[])
+			{
+				NNScalar const* pOutputs = mModel->forward(parameters.data(), (NNScalar const*)&state, recurrentState, outNextState, outputs);
 				return pOutputs[action.playDir];
 			}
 
@@ -1507,9 +1696,12 @@ namespace TwentyFortyEight
 		static NNScalar constexpr DiscountRate = 0.995;
 		static int constexpr MaxReplaySize = 30000;
 		static int constexpr WarnMemorySize = 500;
-		static int constexpr BatchSize = 128;
+		static int constexpr BatchSize = 64;
+		static int constexpr R2D2BurnIn = 4;
+		static int constexpr R2D2Unroll = 8;
+		static int constexpr R2D2SequenceLength = R2D2BurnIn + R2D2Unroll;
 
-		static NNScalar constexpr LearnRate = 1e-3;
+		static NNScalar constexpr LearnRate = 2e-4;
 		static constexpr int WorkerThreadNum = 8;
 
 
@@ -1539,27 +1731,6 @@ namespace TwentyFortyEight
 				State    state;
 				Action   action;
 				NNScalar reward;
-
-				template< class OP >
-				void serialize(OP& op)
-				{
-					op & state;
-					op & action;
-					op & reward;
-				}
-			};
-
-
-			struct Sample
-			{
-				Action   action;
-
-#if DQN_MULTI_STEP > 1
-				StepSample steps[DQN_MULTI_STEP];
-#else
-				State    state;
-				NNScalar reward;
-#endif
 				State    stateNext;
 				uint32   playableDirMaskNext;
 				bool     bDone;
@@ -1567,16 +1738,28 @@ namespace TwentyFortyEight
 				template< class OP >
 				void serialize(OP& op)
 				{
-					op & action;
-#if DQN_MULTI_STEP > 1
-					op & steps;
-#else
 					op & state;
+					op & action;
 					op & reward;
-#endif
 					op & stateNext;
 					op & playableDirMaskNext;
 					op & bDone;
+				}
+			};
+
+
+			struct Sample
+			{
+				RecurrentState initialRecurrentState;
+				StepSample steps[R2D2SequenceLength];
+				int stepLength = 0;
+
+				template< class OP >
+				void serialize(OP& op)
+				{
+					op & initialRecurrentState;
+					op & steps;
+					op & stepLength;
 				}
 
 			};
@@ -1762,19 +1945,15 @@ namespace TwentyFortyEight
 
 			TArray< ReplayData > mReplay;
 			TArray< float > mReplayPriorityTree;
-
-
-#if DQN_MULTI_STEP > 1
-			int mIndexStep = 0;
-			StepSample stepSamples[DQN_MULTI_STEP];
-#endif
+			TArray<StepSample> mEpisodeSteps;
+			int mSequenceStride = 0;
 
 
 			void episodeReset(State const& state)
 			{
-#if DQN_MULTI_STEP > 1
-				mIndexStep = 0;
-#endif
+				agent.resetRecurrentState();
+				mEpisodeSteps.clear();
+				mSequenceStride = 0;
 			}
 
 			void resetTrainState()
@@ -1789,9 +1968,8 @@ namespace TwentyFortyEight
 				mWeightBeta = 0.4f;
 				mMaxPriority = 1.0f;
 				indexNext = 0;
-#if DQN_MULTI_STEP > 1
-				mIndexStep = 0;
-#endif
+				mEpisodeSteps.clear();
+				mSequenceStride = 0;
 				bResumeFromCheckpoint = false;
 			}
 
@@ -1814,17 +1992,16 @@ namespace TwentyFortyEight
 				op & mLoss;
 				op & mEpsilon;
 				op & indexNext;
-#if DQN_MULTI_STEP > 1
-				op & mIndexStep;
-				op & stepSamples;
-#endif
+				op & mEpisodeSteps;
+				op & mSequenceStride;
 			}
 
 			struct ThreadData
 			{
 				void init(NetworkModel& model)
 				{
-					outputs.resize(model.getPassOutputLength());
+					outputs.resize(model.getPassOutputLength() * R2D2Unroll);
+					outputLossGrads.resize(model.getOutputLength() * R2D2Unroll);
 					lossGrads.resize(model.getTempLossGradLength());
 					parameterGrads.resize(model.getParameterLength());
 				}
@@ -1835,6 +2012,7 @@ namespace TwentyFortyEight
 				}
 				TArray<NNScalar> parameterGrads;
 				TArray<NNScalar> outputs;
+				TArray<NNScalar> outputLossGrads;
 				TArray<NNScalar> lossGrads;
 			};
 			QueueThreadPool mPool;
@@ -1854,196 +2032,153 @@ namespace TwentyFortyEight
 
 			NNScalar fit(ReplayData& sample, float weight, ThreadData& threadData)
 			{
-#if DQN_MULTI_STEP > 1
-				auto const& state = sample.steps[0].state;
-				auto const& action = sample.steps[0].action;
-#else
-				auto const& state = sample.state;
-				auto const& action = sample.action;
-#endif
-
 				PROFILE_ENTRY("Fit");
+				int const trainLength = Math::Min(R2D2Unroll, sample.stepLength - R2D2BurnIn);
+				if (trainLength <= 0)
+				{
+					sample.loss = 0;
+					sample.priorityValue = MinReplayPriority;
+					return 0;
+				}
+
+				RecurrentState onlineState = sample.initialRecurrentState;
+				RecurrentState targetState = sample.initialRecurrentState;
+
+				for (int i = 0; i < R2D2BurnIn; ++i)
+				{
+					auto const& step = sample.steps[i];
+					RecurrentState nextOnlineState;
+					RecurrentState nextTargetState;
+					NNScalar burnValues[ActionNum];
+					agent.mModel->inference(agent.parameters.data(), (NNScalar const*)&step.state, onlineState, nextOnlineState, burnValues);
+					agent.mModel->inference(mTargetParameters.data(), (NNScalar const*)&step.state, targetState, nextTargetState, burnValues);
+					onlineState = nextOnlineState;
+					targetState = nextTargetState;
+				}
+
+				RecurrentState prevStates[R2D2Unroll];
+				RecurrentState nextStates[R2D2Unroll];
+				sample.loss = 0;
+				sample.priorityValue = 0;
+				FMemory::Zero(threadData.outputLossGrads.data(), sizeof(NNScalar) * agent.mModel->getOutputLength() * R2D2Unroll);
+
+				for (int trainIndex = 0; trainIndex < trainLength; ++trainIndex)
+				{
+					auto const& step = sample.steps[R2D2BurnIn + trainIndex];
+					prevStates[trainIndex] = onlineState;
+					RecurrentState targetStateAfterStep;
+					{
+						NNScalar targetStepValuesDummy[ActionNum];
+						agent.mModel->inference(mTargetParameters.data(), (NNScalar const*)&step.state, targetState, targetStateAfterStep, targetStepValuesDummy);
+					}
+
+					NNScalar* stepOutputs = threadData.outputs.data() + trainIndex * agent.mModel->getPassOutputLength();
+					NNScalar* stepOutputLossGrads = threadData.outputLossGrads.data() + trainIndex * agent.mModel->getOutputLength();
 
 #if DQN_DISTRIBUTION
-				NNScalar* actionDist;
-				{
-					PROFILE_ENTRY("Fit.Forward");
-					actionDist = agent.mModel->forward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data());
-					actionDist += action.playDir * AtomCount;
-				}
+					NNScalar* actionDist;
+					{
+						PROFILE_ENTRY("Fit.Forward");
+						actionDist = agent.mModel->forward(agent.parameters.data(), (NNScalar const*)&step.state, onlineState, nextStates[trainIndex], stepOutputs);
+						actionDist += step.action.playDir * AtomCount;
+					}
 #else
-				NNScalar actionValue;
-				{
-					PROFILE_ENTRY("Fit.Forward");
-					actionValue = agent.evalActionValue(state, action, threadData.outputs.data());
-				}
+					NNScalar actionValue;
+					{
+						PROFILE_ENTRY("Fit.Forward");
+						actionValue = agent.evalActionValue(step.state, onlineState, nextStates[trainIndex], step.action, stepOutputs);
+					}
 #endif
+					onlineState = nextStates[trainIndex];
 
-
-#if DQN_MULTI_STEP > 1
-				sample.loss = 0;
-				{
-					PROFILE_ENTRY("Fit.Target");
-					auto const& stateNext = sample.stateNext;
-					NNScalar actionValuesNext[4];
-					agent.evalActionValues(stateNext, actionValuesNext);
 					Action actionNext;
 					actionNext.playDir = 0;
-					if (!sample.bDone)
 					{
-						NNScalar bestValue = NNScalar(-Math::MaxFloat);
-						for (int i = 0; i < ActionNum; ++i)
+						PROFILE_ENTRY("Fit.Target");
+						NNScalar actionValuesNext[4];
+						RecurrentState onlineNextEvalState;
+						agent.evalActionValues(step.stateNext, onlineState, onlineNextEvalState, actionValuesNext);
+						if (!step.bDone)
 						{
-							if (!(sample.playableDirMaskNext & BIT(i)))
-								continue;
-
-							if (bestValue < actionValuesNext[i])
+							NNScalar bestValue = NNScalar(-Math::MaxFloat);
+							for (int i = 0; i < ActionNum; ++i)
 							{
-								bestValue = actionValuesNext[i];
-								actionNext.playDir = i;
+								if (!(step.playableDirMaskNext & BIT(i)))
+									continue;
+
+								if (bestValue < actionValuesNext[i])
+								{
+									bestValue = actionValuesNext[i];
+									actionNext.playDir = i;
+								}
 							}
 						}
 					}
 
-					NNScalar accumulatedReward = 0;
-					for (int i = DQN_MULTI_STEP - 1; i >= 0; --i)
-					{
-						accumulatedReward *= DiscountRate;
-						accumulatedReward += sample.steps[i].reward;
-					}
-
 #if DQN_DISTRIBUTION
-					NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					agent.mModel->forwardDistribution(mTargetParameters.data(), (NNScalar const*)&stateNext, targetDist);
-					targetDist += actionNext.playDir * AtomCount;
-
-					NNScalar targetProjDist[AtomCount];
-					FMemory::Zero(targetProjDist, sizeof(targetProjDist));
-
-					NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
-					NNScalar minV = agent.mModel->mSupports[0];
-					NNScalar bootstrapScale = sample.bDone ? 0.0f : Math::Pow(DiscountRate, DQN_MULTI_STEP);
-					for (int i = 0; i < AtomCount; ++i)
 					{
-						NNScalar t = accumulatedReward + bootstrapScale * agent.mModel->mSupports[i];
-						NNScalar b = (t - minV) / deltaV;
-						b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
-						int l = Math::Clamp(Math::FloorToInt(b), 0, AtomCount - 2);
-						int u = l + 1;
-						targetProjDist[l] += targetDist[i] * (u - b);
-						targetProjDist[u] += targetDist[i] * (b - l);
-					}
+						PROFILE_ENTRY("Fit.DistributionTarget");
+						NNScalar targetValuesDummy[ActionNum];
+						NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
+						RecurrentState targetNextEvalState;
+						agent.mModel->inference(mTargetParameters.data(), (NNScalar const*)&step.stateNext, targetStateAfterStep, targetNextEvalState, targetValuesDummy, targetDist);
+						targetDist += actionNext.playDir * AtomCount;
 
-					sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
-					sample.priorityValue = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+						NNScalar targetProjDist[AtomCount];
+						FMemory::Zero(targetProjDist, sizeof(targetProjDist));
 
-					NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					FMemory::Zero(lossGrads, sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					NNScalar* actionLossGrads = lossGrads + AtomCount * action.playDir;
-					for (int i = 0; i < AtomCount; ++i)
-					{
-						actionLossGrads[i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
-					}
+						NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
+						NNScalar minV = agent.mModel->mSupports[0];
 
-					{
-						PROFILE_ENTRY("Fit.Backward");
-						agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossGrads, threadData.lossGrads, threadData.parameterGrads.data());
-					}
-#else
-					NNScalar TDTarget = accumulatedReward + Math::Pow(DiscountRate, DQN_MULTI_STEP) * Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), stateNext, actionNext) * (1 - float(sample.bDone));
-					NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
-					lossDerivatives[action.playDir] = weight * LossFunc::CalcDevivative(actionValue, TDTarget);
-					sample.loss = weight * LossFunc::Calc(actionValue, TDTarget);
-					sample.priorityValue = LossFunc::Calc(actionValue, TDTarget);
-
-					{
-						PROFILE_ENTRY("Fit.Backward");
-						agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossDerivatives, threadData.lossGrads, threadData.parameterGrads.data());
-					}
-#endif
-				}
-#else
-				NNScalar actionValuesNext[4];
-				{
-					PROFILE_ENTRY("Fit.Target");
-					agent.evalActionValues(sample.stateNext, actionValuesNext);
-				}
-
-				Action actionNext;
-				actionNext.playDir = 0;
-				if (!sample.bDone)
-				{
-					NNScalar bestValue = NNScalar(-Math::MaxFloat);
-					for (int i = 0; i < ActionNum; ++i)
-					{
-						if (!(sample.playableDirMaskNext & BIT(i)))
-							continue;
-
-						if (bestValue < actionValuesNext[i])
-						{
-							bestValue = actionValuesNext[i];
-							actionNext.playDir = i;
-						}
-					}
-				}
-
-#if DQN_DISTRIBUTION
-				{
-					PROFILE_ENTRY("Fit.DistributionTarget");
-					NNScalar* targetDist = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					agent.mModel->forwardDistribution(mTargetParameters.data(), (NNScalar const*)&sample.stateNext, targetDist);
-					targetDist += actionNext.playDir * AtomCount;
-
-					NNScalar targetProjDist[AtomCount];
-					FMemory::Zero(targetProjDist, sizeof(targetProjDist));
-
-					NNScalar deltaV = agent.mModel->mSupports[1] - agent.mModel->mSupports[0];
-					NNScalar minV = agent.mModel->mSupports[0];
-
-					for (int i = 0; i < AtomCount; ++i)
-					{
-						NNScalar t = sample.reward + DiscountRate * agent.mModel->mSupports[i] * (1 - float(sample.bDone));
-						NNScalar b = (t - minV) / deltaV;
-						b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
-						int l = Math::Clamp(Math::FloorToInt(b), 0 , AtomCount - 2);
-						int u = l + 1;
-						targetProjDist[l] += targetDist[i] * (u - b);
-						targetProjDist[u] += targetDist[i] * (b - l);
-					}
-					sample.loss = weight * LossFunc::Calc(AtomCount, actionDist, targetProjDist);
-					sample.priorityValue = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
-
-					NNScalar* lossGrads = (NNScalar*)alloca(sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					FMemory::Zero(lossGrads, sizeof(NNScalar) * agent.mModel->ActionNum * AtomCount);
-					NNScalar* actionLossGrads = lossGrads + AtomCount * action.playDir;
-					{
-						PROFILE_ENTRY("Fit.LossGrad");
 						for (int i = 0; i < AtomCount; ++i)
 						{
-							actionLossGrads[i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
+							NNScalar t = step.reward + DiscountRate * agent.mModel->mSupports[i] * (1 - float(step.bDone));
+							NNScalar b = (t - minV) / deltaV;
+							b = Math::Clamp<NNScalar>(b, 0, AtomCount - 1);
+							int l = Math::Clamp(Math::FloorToInt(b), 0, AtomCount - 2);
+							int u = l + 1;
+							targetProjDist[l] += targetDist[i] * (u - b);
+							targetProjDist[u] += targetDist[i] * (b - l);
+						}
+
+						NNScalar stepLoss = LossFunc::Calc(AtomCount, actionDist, targetProjDist);
+						sample.loss += weight * stepLoss;
+						sample.priorityValue = Math::Max(sample.priorityValue, stepLoss);
+						for (int i = 0; i < AtomCount; ++i)
+						{
+							stepOutputLossGrads[step.action.playDir * AtomCount + i] = weight * LossFunc::CalcDevivative(actionDist[i], targetProjDist[i]);
 						}
 					}
-
-					{
-						PROFILE_ENTRY("Fit.Backward");
-						agent.mModel->backward(agent.parameters.data(), (NNScalar const*)&state, threadData.outputs.data(), lossGrads, threadData.lossGrads, threadData.parameterGrads.data());
-					}
-				}
 #else
-				NNScalar TDTarget;
-				TDTarget = sample.reward + DiscountRate * Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), sample.stateNext, actionNext) * (1 - float(sample.bDone));
-				NNScalar lossDerivatives[4] = { 0, 0, 0, 0 };
-				lossDerivatives[sample.action.playDir] = weight * LossFunc::CalcDevivative(actionValue, TDTarget);
-				sample.loss = weight * LossFunc::Calc(actionValue, TDTarget);
-				sample.priorityValue = LossFunc::Calc(actionValue, TDTarget);
-
-				{
-					PROFILE_ENTRY("Fit.Backward");
-					agent.mModel->backward(agent.parameters.data(),(NNScalar const*)&state, threadData.outputs.data(), lossDerivatives, threadData.lossGrads, threadData.parameterGrads.data());
+					NNScalar TDTarget = step.reward + DiscountRate * Agent::EvalActionValue(*agent.mModel, mTargetParameters.data(), step.stateNext, actionNext) * (1 - float(step.bDone));
+					stepOutputLossGrads[step.action.playDir] = weight * LossFunc::CalcDevivative(actionValue, TDTarget);
+					NNScalar stepLoss = LossFunc::Calc(actionValue, TDTarget);
+					sample.loss += weight * stepLoss;
+					sample.priorityValue = Math::Max(sample.priorityValue, stepLoss);
+#endif
+					targetState = targetStateAfterStep;
 				}
-#endif
 
-#endif
+				RecurrentState stateLossGrads;
+				stateLossGrads.reset();
+				for (int trainIndex = trainLength - 1; trainIndex >= 0; --trainIndex)
+				{
+					auto const& step = sample.steps[R2D2BurnIn + trainIndex];
+					RecurrentState prevStateLossGrads;
+					agent.mModel->backward(agent.parameters.data(),
+						(NNScalar const*)&step.state,
+						prevStates[trainIndex],
+						threadData.outputs.data() + trainIndex * agent.mModel->getPassOutputLength(),
+						threadData.outputLossGrads.data() + trainIndex * agent.mModel->getOutputLength(),
+						stateLossGrads,
+						prevStateLossGrads,
+						threadData.lossGrads,
+						threadData.parameterGrads.data());
+					stateLossGrads = prevStateLossGrads;
+				}
+
+				sample.loss /= trainLength;
+				sample.priorityValue = Math::Max(sample.priorityValue, NNScalar(MinReplayPriority));
 
 #if 0
 				for (int i = 0; i < threadData.parameterGrads.size(); ++i)
@@ -2060,88 +2195,92 @@ namespace TwentyFortyEight
 
 			int maxLossIndices[8] = { 0 };
 			int indexNext = 0;
+			void pushReplaySample(ReplayData const& inSample)
+			{
+				if (mReplay.size() < MaxReplaySize)
+				{
+					mReplay.push_back(inSample);
+					mReplay.back().priority = mMaxPriority;
+					appendReplayPriority(mReplay.size() - 1);
+				}
+				else
+				{
+					if (mReplayPriorityTree.size() != mReplay.size() + 1)
+					{
+						rebuildReplaySamplingState();
+					}
+					float oldPriority = SanitizeReplayPriority(mReplay[indexNext].priority);
+					auto& sample = mReplay[indexNext];
+					sample = inSample;
+					sample.priority = SanitizeReplayPriority(mMaxPriority);
+					addReplayPriorityFenwick(indexNext, sample.priority - oldPriority);
+					indexNext += 1;
+					if (indexNext == mReplay.size())
+						indexNext = 0;
+				}
+			}
+
+			void tryAppendSequenceReplay()
+			{
+				if (mEpisodeSteps.size() < R2D2SequenceLength)
+					return;
+
+				if (mSequenceStride < R2D2Unroll && !mEpisodeSteps.back().bDone)
+				{
+					++mSequenceStride;
+					return;
+				}
+
+				int startIndex = mEpisodeSteps.size() - R2D2SequenceLength;
+				ReplayData sample;
+				sample.initialRecurrentState.reset();
+				sample.stepLength = R2D2SequenceLength;
+				for (int i = 0; i < R2D2SequenceLength; ++i)
+				{
+					sample.steps[i] = mEpisodeSteps[startIndex + i];
+				}
+				pushReplaySample(sample);
+				mSequenceStride = 0;
+			}
+
+			void flushEpisodeSequenceReplay()
+			{
+				if (mEpisodeSteps.size() < R2D2SequenceLength)
+					return;
+
+				if (mSequenceStride == 0 && !mEpisodeSteps.back().bDone)
+					return;
+
+				int startIndex = mEpisodeSteps.size() - R2D2SequenceLength;
+				ReplayData sample;
+				sample.initialRecurrentState.reset();
+				sample.stepLength = R2D2SequenceLength;
+				for (int i = 0; i < R2D2SequenceLength; ++i)
+				{
+					sample.steps[i] = mEpisodeSteps[startIndex + i];
+				}
+				pushReplaySample(sample);
+				mSequenceStride = 0;
+			}
+
 			void step(Action const& action, State& inoutState, StepResult& stepResult)
 			{
 
 				auto oldState = inoutState;
-				auto actionValue = agent.evalActionValue(inoutState, action);
 				stepResult = env.step(action);
-
-#if DQN_MULTI_STEP > 1
-				stepSamples[mIndexStep].reward = stepResult.reward;
-				stepSamples[mIndexStep].state = inoutState;
-				stepSamples[mIndexStep].action = action;
-				++mIndexStep;
-				if (mIndexStep == DQN_MULTI_STEP)
-					mIndexStep = 0;
-#endif
 
 				env.getState(inoutState);
 
-#if DQN_MULTI_STEP > 1
-				if (mIndexStep == 0)
-#endif
-				{
-					if (mReplay.size() < MaxReplaySize)
-					{
-						bool bReplayAdded = false;
-#if DQN_MULTI_STEP > 1
-						if (env.game.step >= DQN_MULTI_STEP)
-						{
-							ReplayData sample;
-							sample.bDone = stepResult.bDone || !stepResult.bValidAction;
-							sample.action = action;
-							sample.stateNext = inoutState;
-							sample.playableDirMaskNext = env.playableDirMask;
-							for (int i = 0; i < DQN_MULTI_STEP; ++i)
-							{
-								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
-							}
-							mReplay.push_back(sample);
-							bReplayAdded = true;
-						}
-#else
-						mReplay.push_back({ action , oldState, { stepResult.reward }, inoutState, env.playableDirMask, stepResult.bDone || !stepResult.bValidAction });
-						bReplayAdded = true;
-#endif
-						if (bReplayAdded)
-						{
-							mReplay.back().priority = mMaxPriority;
-							appendReplayPriority(mReplay.size() - 1);
-						}
-					}
-					else
-					{
-						auto& sample = mReplay[indexNext];
-						bool bReplayUpdated = false;
+				StepSample sampleStep;
+				sampleStep.state = oldState;
+				sampleStep.action = action;
+				sampleStep.reward = stepResult.reward;
+				sampleStep.stateNext = inoutState;
+				sampleStep.playableDirMaskNext = env.playableDirMask;
+				sampleStep.bDone = stepResult.bDone || !stepResult.bValidAction;
+				mEpisodeSteps.push_back(sampleStep);
 
-#if DQN_MULTI_STEP > 1
-						if (env.game.step >= DQN_MULTI_STEP)
-						{
-							sample.bDone = stepResult.bDone || !stepResult.bValidAction;
-							sample.action = action;
-							sample.stateNext = inoutState;
-							sample.playableDirMaskNext = env.playableDirMask;
-							for (int i = 0; i < DQN_MULTI_STEP; ++i)
-							{
-								sample.steps[i] = stepSamples[(mIndexStep + i) % DQN_MULTI_STEP];
-							}
-							bReplayUpdated = true;
-						}
-#else
-						sample = { action , oldState, stepResult.reward, inoutState, env.playableDirMask, stepResult.bDone || !stepResult.bValidAction };
-						bReplayUpdated = true;
-#endif			
-
-						if (bReplayUpdated)
-						{
-							updateReplayPriority(indexNext, mMaxPriority);
-							indexNext += 1;
-							if (indexNext == mReplay.size())
-								indexNext = 0;
-						}
-					}
-				}
+				tryAppendSequenceReplay();
 			}
 
 			NNScalar optimize()
@@ -2236,9 +2375,22 @@ namespace TwentyFortyEight
 				}
 #endif
 
+				if (!FNNMath::IsValid(loss))
+				{
+					return mLoss;
+				}
+
+				for (int i = 0; i < mMainData.parameterGrads.size(); ++i)
+				{
+					if (!FNNMath::IsValid(mMainData.parameterGrads[i]))
+					{
+						return mLoss;
+					}
+				}
+
 				{
 					PROFILE_ENTRY("Optimize.ClipNormalize");
-					FNNMath::ClipNormalize(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), 1.0);
+					FNNMath::ClipNormalize(mMainData.parameterGrads.size(), mMainData.parameterGrads.data(), 0.5);
 				}
 
 				{
@@ -2324,6 +2476,7 @@ namespace TwentyFortyEight
 
 						if (stepResult.bDone)
 						{
+							flushEpisodeSequenceReplay();
 							break;
 						}
 					}

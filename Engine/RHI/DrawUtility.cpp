@@ -183,6 +183,21 @@ namespace Render
 			};
 			return entries;
 		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, XForm);
+			BIND_TEXTURE_PARAM(parameterMap, Texture);
+			BIND_SHADER_PARAM(parameterMap, PreviewLevel);
+			BIND_SHADER_PARAM(parameterMap, ColorMask);
+			BIND_SHADER_PARAM(parameterMap, MappingParams);
+		}
+
+		DEFINE_SHADER_PARAM(XForm);
+		DEFINE_TEXTURE_PARAM(Texture);
+		DEFINE_SHADER_PARAM(PreviewLevel);
+		DEFINE_SHADER_PARAM(ColorMask);
+		DEFINE_SHADER_PARAM(MappingParams);
 	};
 
 	void DrawUtility::CubeLine(RHICommandList& commandList)
@@ -433,7 +448,7 @@ namespace Render
 	}
 
 	template< typename TRHITexture >
-	bool SetupPreviewTextureShader(RHICommandList& commandList, ETexturePreview id, Matrix4 const& xForm, TRHITexture& texture, RHISamplerState* sampler = nullptr, LinearColor const* colorMask = nullptr , Vector3 const* mappingParams = nullptr)
+	bool SetupPreviewTextureShader(RHICommandList& commandList, ETexturePreview id, Matrix4 const& xForm, TRHITexture& texture, RHISamplerState* sampler = nullptr, LinearColor const* colorMask = nullptr , Vector4 const* mappingParams = nullptr, float previewLevel = 0.0f)
 	{
 		TexturePreviewProgram::PermutationDomain permutationVector;
 		permutationVector.set<TexturePreviewProgram::TextrueType>(id);
@@ -456,7 +471,8 @@ namespace Render
 			case Render::TEX_PREVIEW_2D:
 			case Render::TEX_PREVIEW_CUBE:
 			case Render::TEX_PREVIEW_CUBE_PROJECTION:
-				shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture, SHADER_SAMPLER(Texture), TStaticSamplerState<ESampler::Bilinear>::GetRHI());
+			case Render::TEX_PREVIEW_DEPTH:
+				shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture, SHADER_SAMPLER(Texture), TStaticSamplerState<ESampler::Trilinear>::GetRHI());
 				break;
 			case Render::TEX_PREVIEW_3D:
 				shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture, SHADER_SAMPLER(Texture), TStaticSamplerState<ESampler::Trilinear>::GetRHI());
@@ -464,7 +480,7 @@ namespace Render
 			}
 		}
 		shaderProgram->setParam(commandList, SHADER_PARAM(XForm), xForm);
-		shaderProgram->setParam(commandList, SHADER_PARAM(PreviewLevel), 0.0f);
+		shaderProgram->setParam(commandList, SHADER_PARAM(PreviewLevel), previewLevel);
 		if (colorMask)
 		{
 			shaderProgram->setParam(commandList, SHADER_PARAM(ColorMask), *colorMask);
@@ -492,9 +508,9 @@ namespace Render
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
 
-	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const* colorMask, Vector3 const* mappingParams)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const* colorMask, Vector4 const* mappingParams, float previewLevel)
 	{
-		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, xForm, texture, &sampler, colorMask, mappingParams ))
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, xForm, texture, &sampler, colorMask, mappingParams, previewLevel ))
 			return;
 
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
@@ -600,10 +616,9 @@ namespace Render
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
 
-	void DrawUtility::DrawDepthTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, float minDistance, float maxDistance)
+	void DrawUtility::DrawDepthTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, Vector4 const& mappingParams, float previewLevel)
 	{
-		Vector3 params = Vector3(minDistance, maxDistance, 0);
-		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_DEPTH, xForm, texture, &sampler, nullptr, &params) )
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_DEPTH, xForm, texture, &sampler, nullptr, &mappingParams, previewLevel) )
 			return;
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}

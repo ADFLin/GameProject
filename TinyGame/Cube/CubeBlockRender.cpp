@@ -145,29 +145,60 @@ namespace Cube
 						if (block && block->isFullCube())
 						{
 							int ex = x, ey = y, ez = z;
-							while (ex + 1 < ChunkSize) { BlockId nid = paddedAccess->blocks[ex + 2][y + 1][z + 1]; if (nid == 0 || !Block::Get(nid)->isFullCube()) break; ex++; }
-							while (ey + 1 < ChunkSize) {
+							while (ex + 1 < ChunkSize) 
+							{ 
+								BlockId nid = paddedAccess->blocks[ex + 2][y + 1][z + 1]; 
+								if (nid == 0 || !Block::Get(nid)->isFullCube()) 
+									break; 
+								ex++; 
+							}
+							while (ey + 1 < ChunkSize)
+							{
 								bool ok = true;
-								for (int tx = x; tx <= ex; ++tx) { BlockId nid = paddedAccess->blocks[tx + 1][ey + 2][z + 1]; if (nid == 0 || !Block::Get(nid)->isFullCube()) { ok = false; break; } }
-								if (!ok) break;
+								for (int tx = x; tx <= ex; ++tx) 
+								{
+									BlockId nid = paddedAccess->blocks[tx + 1][ey + 2][z + 1];
+									if (nid == 0 || !Block::Get(nid)->isFullCube()) 
+									{ 
+										ok = false; 
+										break;
+									}
+								}
+								if (!ok) 
+									break;
 								ey++;
 							}
-							while (ez + 1 < Chunk::LayerSize) {
+							while (ez + 1 < Chunk::LayerSize)
+							{
 								bool ok = true;
-								for (int ty = y; ty <= ey; ++ty) {
-									for (int tx = x; tx <= ex; ++tx) { BlockId nid = paddedAccess->blocks[tx + 1][ty + 1][ez + 2]; if (nid == 0 || !Block::Get(nid)->isFullCube()) { ok = false; break; } }
-									if (!ok) break;
+								for (int ty = y; ty <= ey; ++ty)
+								{
+									for (int tx = x; tx <= ex; ++tx) 
+									{ 
+										BlockId nid = paddedAccess->blocks[tx + 1][ty + 1][ez + 2]; 
+										if (nid == 0 || !Block::Get(nid)->isFullCube()) 
+										{ 
+											ok = false; 
+											break; 
+										} 
+									}
+									if (!ok) 
+										break;
 								}
-								if (!ok) break;
+
+								if (!ok) 
+									break;
 								ez++;
 							}
 							int vol = (ex - x + 1) * (ey - y + 1) * (ez - z + 1);
-							if (vol > maxVol) {
+							if (vol > maxVol)
+							{
 								maxVol = vol;
 								mOccluderBox.min = Vec3f(mBasePos) + Vec3f(x, y, z);
 								mOccluderBox.max = Vec3f(mBasePos) + Vec3f(ex + 1, ey + 1, ez + 1);
 							}
-							if (maxVol >= (ChunkSize * ChunkSize * Chunk::LayerSize) / 2) goto end_occluder;
+							if (maxVol >= (ChunkSize * ChunkSize * Chunk::LayerSize) / 2) 
+								goto end_occluder;
 						}
 					}
 				}
@@ -199,7 +230,7 @@ namespace Cube
 					FaceSide curFace = getFaceSide(axis, side != 0);
 					Vec3i nOffset = GetFaceOffset(curFace);
 
-					memset(mask, 0, du * dv * sizeof(uint32));
+					FMemory::Set(mask, 0, du * dv * sizeof(uint32));
 					bool bHasFace = false;
 
 					for (int j = 0; j < dv; ++j)

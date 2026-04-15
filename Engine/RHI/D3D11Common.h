@@ -258,6 +258,15 @@ namespace Render
 
 	struct D3D11ResourceViewStorage
 	{
+		template< class TFunc >
+		void visitUAV(TFunc&& func) const
+		{
+			for (auto& pair : mUAViewMap)
+			{
+				func(pair.second);
+			}
+		}
+
 		void releaseResource()
 		{
 			for (auto& pair : mRTViewMap)
@@ -615,7 +624,7 @@ namespace Render
 		TComPtr< ID3D11DepthStencilView >    DSV;
 	};
 
-	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult);
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numMipLevel, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult);
 
 	struct TextureCubeCreationResult
 	{

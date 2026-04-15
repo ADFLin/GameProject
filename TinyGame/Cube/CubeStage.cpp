@@ -4,8 +4,11 @@
 #include "GameGlobal.h"
 #include "GameGUISystem.h"
 
+#include "Widget/WidgetUtility.h"
+
 namespace Cube
 {
+	extern bool GRenderPreDepth;
 
 	bool TestStage::onInit()
 	{
@@ -24,6 +27,10 @@ namespace Cube
 		mScene = new Scene(screenSize.x, screenSize.y);
 		mScene->changeWorld( mLevel->getWorld() );
 
+		auto devFrame = WidgetUtility::CreateDevFrame();
+		devFrame->addCheckBox("Use HZB", mScene->mRenderEngine->bUseHZBOcclusion);
+		devFrame->addCheckBox("Use PreDepth", GRenderPreDepth);
+		devFrame->addCheckBox("Show Overdraw", mScene->mRenderEngine->bShowOverdraw);
 		restart();
 		return true;
 	}

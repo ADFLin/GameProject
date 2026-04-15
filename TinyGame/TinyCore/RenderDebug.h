@@ -28,6 +28,14 @@ namespace Render
 			return mTextureMap;
 		}
 		TINY_API void releaseRHI();
+		Matrix4 getProjectMatrix() 
+		{
+			return mMatProjection;
+		}
+
+		void setProjectMatrix(Matrix4 const& m){ mMatProjection = m; }
+
+		Matrix4 mMatProjection;
 	};
 
 	class GlobalTextureShowManager : public TextureShowManager

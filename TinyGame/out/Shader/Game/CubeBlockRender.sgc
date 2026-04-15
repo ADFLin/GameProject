@@ -3,6 +3,9 @@
 #ifndef DEPTH_PASS
 #define DEPTH_PASS 0
 #endif
+#ifndef OVERDRAW_PASS
+#define OVERDRAW_PASS 0
+#endif
 
 DEFINE_TEXTURE(Texture2D, BlockTexture);
 
@@ -50,13 +53,16 @@ VS_ENTRY_END(MainVS)
 #if PIXEL_SHADER
 
 PS_EARLY_DEPTH_TEST
+#if !DEPTH_PASS
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_INPUT(flat uint2 InAtlasPos, 4)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
-#if !DEPTH_PASS
+#if OVERDRAW_PASS
+	OutColor = float4(0.04, 0.04, 0.04, 1.0);
+#else
 	float3 N = normalize(VSOutput.normal);
 	float3 L = normalize(float3(0.3,0.2,1.0));
 
@@ -68,9 +74,16 @@ PS_ENTRY_END(MainPS)
 
 	float NoL = saturate(dot(N,L));
 	OutColor = float4(baseColor.rgb * saturate(NoL + 0.2 ) * VSOutput.color.rgb, 1);
-#else
-	OutColor = float4(0, 0, 0, 0); // Minimal output for depth pass
 #endif
 }
+#else
+PS_ENTRY_START(MainPS)
+	PS_INPUT(float4 InPosition, SV_POSITION)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	OutColor = float4(0, 0, 0, 0);
+}
+#endif
 
 #endif //PIXEL_SHADER

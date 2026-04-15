@@ -60,7 +60,7 @@ VS_ENTRY_END(MainVS)
 #if PIXEL_SHADER
 
 uniform float4 ColorMask;
-uniform float3 MappingParams;
+uniform float4 MappingParams;
 
 
 DEFINE_TEXTURE(TextureType, Texture);
@@ -81,14 +81,10 @@ PS_ENTRY_END(MainPS)
 
 
 #if TEX_PREVIEW == TEX_PREVIEW_DEPTH
-#if USE_INVERSE_ZBUFFER
-	float linearDepth = 1.0 / (1 - color.x);
-#else
-	float linearDepth = 1.0 / color.x;
-#endif
+	float linearDepth;
+	linearDepth = MappingParams.w / (BufferToNDCDepth(color.x) - MappingParams.z);
 	float c = saturate( (linearDepth - MappingParams.x ) / (MappingParams.y - MappingParams.x) );
-	c = color.x;
-	color = float4(c,c,c, 1.0);
+	color = float4(c, c, c, 1.0);
 #else
 
 #if USE_MAPPING_PARAMS

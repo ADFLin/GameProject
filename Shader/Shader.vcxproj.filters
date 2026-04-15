@@ -298,6 +298,7 @@
     <None Include="..\TinyGame\out\Shader\SpriteRender.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\HZB.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

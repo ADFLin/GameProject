@@ -68,8 +68,18 @@ namespace Cube
 		int cmdOffset;
 	};
 
+	using AABBox = Math::TAABBox< Vec3f >;
 	struct ChunkRenderData
 	{
+		ChunkRenderData()
+			: state(eNone)
+			, bNeedUpdate(false)
+			, chunk(nullptr)
+			, numLayer(0)
+		{
+			bound.invalidate();
+		}
+
 		enum EState
 		{
 			eNone,
@@ -81,16 +91,27 @@ namespace Cube
 		EState   state;
 		bool     bNeedUpdate = false;
 		Chunk*   chunk;
-		Math::TAABBox< Vec3f > bound;
+		AABBox   bound;
 		Vec3f    posOffset;
 
 		static int constexpr MaxLayerCount = 32;
 
 		struct Layer
 		{
+			Layer()
+				: index(0)
+				, meshPool(nullptr)
+			{
+				bound.invalidate();
+				occluderBox.invalidate();
+				FMemory::Zero(&args, sizeof(args));
+				FMemory::Zero(&vertexAllocation, sizeof(vertexAllocation));
+				FMemory::Zero(&indexAlloction, sizeof(indexAlloction));
+			}
+
 			int index;
-			Math::TAABBox< Vec3f > bound;
-			Math::TAABBox< Vec3f > occluderBox;
+			AABBox bound;
+			AABBox occluderBox;
 
 			MeshRenderPoolData* meshPool;
 			DrawCmdArgs args;
@@ -137,6 +158,8 @@ namespace Cube
 		virtual void onChunkAdded(Chunk* chunk);
 		virtual void onPrevRemovChunk(Chunk* chunk){}
 
+		void resetChunkRenderData(ChunkRenderData* data);
+		void markChunkDirty(ChunkPos const& chunkPos);
 		void updateRenderData(ChunkRenderData* data);
 
 		typedef std::unordered_map< uint64 , ChunkRenderData* > ChunkDataMap;
@@ -147,13 +170,13 @@ namespace Cube
 		{
 			Mesh mesh;
 			ChunkRenderData* chunkData;
-			Math::TAABBox<Vec3f> bound;
+			AABBox bound;
 
 			struct Layer
 			{
 				int index;
-				Math::TAABBox< Vec3f > bound;
-				Math::TAABBox< Vec3f > occluderBox;
+				AABBox bound;
+				AABBox occluderBox;
 
 				uint32 vertexOffset;
 				uint32 vertexCount;
@@ -182,6 +205,10 @@ namespace Cube
 
 		class BlockRenderShaderProgram* mProgBlockRender;
 		class BlockRenderShaderProgram* mProgBlockRenderDepth;
+		class BlockRenderShaderProgram* mProgBlockRenderOverdraw;
+		class HZBGenerateCS* mProgHZBGenerate;
+		bool bUseHZBOcclusion = true;
+		bool bShowOverdraw = false;
 		bool bWireframeMode = false;
 		double mMergeTimeAcc = 0;
 
@@ -191,17 +218,26 @@ namespace Cube
 		TArray< MeshRenderPoolData* > mMeshPool;
 
 		Render::RHITexture2DRef mHZBTexture;
+		Render::RHITexture2DRef mHZBScratchTexture;
+		Render::RHITexture2DRef mMipTestTexture;
 		Render::RHITexture2DRef mSceneTexture;
 		Render::RHITexture2DRef mSceneDepthTexture;
 		Render::RHIFrameBufferRef mSceneFrameBuffer;
+		Render::RHITexture2DRef mOccluderColorTexture;
+		Render::RHITexture2DRef mOccluderDepthTexture;
+		Render::RHIFrameBufferRef mOccluderFrameBuffer;
+		Render::RHIBufferRef mHZBCullItemBuffer;
+		Render::RHITexture2DRef mHZBCullResultTexture;
 
 
 		void resizeRenderTarget();
+		void generateHZB(Render::RHICommandList& commandList, Render::RHITexture2D& sourceDepthTexture);
 
 		void notifyViewSizeChanged(Vec2i const& newSize);
 
 		MeshRenderPoolData* acquireMeshRenderData(Mesh const& mesh);
 		MeshRenderPoolData* acquireMeshRenderData(uint32 vertexSize, uint32 indexSize);
+		Render::RHIBufferRef mCmdBuildBuffer;
 		Render::RHIBufferRef mCmdBuffer;
 		int mRenderFrame = 0;
 

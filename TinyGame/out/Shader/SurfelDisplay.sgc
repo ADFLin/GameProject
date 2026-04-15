@@ -1,0 +1,51 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+struct SurfelData
+{
+	float3 position;
+	float  radius;
+	float3 normal;
+	uint   dummy;
+};
+
+StructuredBuffer<SurfelData> SurfelBuffer   : BIND_SRV( SurfelBuffer );
+StructuredBuffer<uint> SurfelCounter : BIND_SRV( SurfelCounter );
+
+void SurfelDisplayVS( uint SV_VertexID : SV_VertexID, uint SV_InstanceID : SV_InstanceID,
+                      out float4 outPos : SV_Position, out float3 outNormal : NORMAL, out float4 outColor : COLOR )
+{
+	uint surfelCount = SurfelCounter[0];
+	if (SV_InstanceID >= surfelCount)
+	{
+		outPos = float4(0, 0, 0, -1.0);
+		outNormal = float3(0,0,0);
+		outColor = float4(0,0,0,0);
+		return;
+	}
+
+	SurfelData data = SurfelBuffer[SV_InstanceID];
+
+	float3 CubeVertices[8] = {
+		float3(-1, -1, -1), float3(1, -1, -1), float3(1, 1, -1), float3(-1, 1, -1),
+		float3(-1, -1, 1), float3(1, -1, 1), float3(1, 1, 1), float3(-1, 1, 1)
+	};
+
+	uint CubeIndices[36] = {
+		0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+		0, 1, 5, 0, 5, 4, 2, 3, 7, 2, 7, 6,
+		0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
+	};
+
+	float3 localPos = CubeVertices[CubeIndices[SV_VertexID]];
+	float3 worldPos = data.position + localPos * data.radius;
+	
+	outPos = mul(View.worldToClip, float4(worldPos, 1.0));
+	outNormal = data.normal;
+	outColor = float4(data.normal * 0.5 + 0.5, 1.0);
+}
+
+float4 SurfelDisplayPS( float4 inPos : SV_Position, float3 inNormal : NORMAL, float4 inColor : COLOR ) : SV_Target0
+{
+	return inColor;
+}

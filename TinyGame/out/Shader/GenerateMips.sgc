@@ -5,7 +5,7 @@
 DEFINE_TEXTURE(Texture2D, SourceTexture)
 uniform image2D DestTexture;
 
-uniform uint2  DestTextureSize;
+uniform int2  DestTextureSize;
 uniform float2 TexelSize;
 uniform float  SrcMipLevel;
 

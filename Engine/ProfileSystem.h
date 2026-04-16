@@ -24,13 +24,15 @@
 #if USE_PROFILE
 #	define	PROFILE_ENTRY( NAME , ... )    ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( NAME, ##__VA_ARGS__);
 #   define	PROFILE_FUNCTION()             ProfileSampleScope ANONYMOUS_VARIABLE(ProflieFunc)( __FUNCTION__);
+#   define  PROFILE_START( NAME , ... )    ::ProfileSystem::StartSample( NAME, ##__VA_ARGS__);
+#   define  PROFILE_END()                  ::ProfileSystem::EndSample();
 #else
 #	define	PROFILE_ENTRY( NAME )
 #   define	PROFILE_FUNCTION()
+#   define  PROFILE_END() 
+#   define  PROFILE_START( NAME , ... )
+#   define  PROFILE_END()
 #endif //USE_PROFILE
-
-
-
 
 #define  CLOCK_EPSILON 1e-6
 
@@ -165,6 +167,9 @@ class ProfileSystem
 {
 public:
 	CORE_API static ProfileSystem& Get();
+
+	CORE_API static void StartSample(const char * name, char const* category = nullptr, unsigned flag = 0);
+	CORE_API static void EndSample();
 
 	virtual bool   isEnabled() = 0;
 	virtual void   setEnabled(bool bNewEnabled) = 0;

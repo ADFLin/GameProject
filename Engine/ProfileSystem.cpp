@@ -256,15 +256,7 @@ ProfileSystem& ProfileSystem::Get()
 	return GSystem;
 }
 
-ProfileSampleScope::ProfileSampleScope(const char * name, unsigned flag)
-{
-	if (!GSystem.canSampling())
-		return;
-
-	ProfileSystemImpl::GetCurrentThreadData()->tryStartTiming(name, nullptr, flag);
-}
-
-ProfileSampleScope::ProfileSampleScope(const char * name, char const* category, unsigned flag /*= 0*/)
+void ProfileSystem::StartSample(const char * name, char const* category, unsigned flag)
 {
 	if (!GSystem.canSampling())
 		return;
@@ -272,12 +264,27 @@ ProfileSampleScope::ProfileSampleScope(const char * name, char const* category, 
 	ProfileSystemImpl::GetCurrentThreadData()->tryStartTiming(name, category, flag);
 }
 
-ProfileSampleScope::~ProfileSampleScope(void)
+void ProfileSystem::EndSample()
 {
 	if (!GSystem.canSampling())
 		return;
 
 	ProfileSystemImpl::GetCurrentThreadData()->stopTiming();
+}
+
+ProfileSampleScope::ProfileSampleScope(const char * name, unsigned flag)
+{
+	ProfileSystem::StartSample(name, nullptr, flag);
+}
+
+ProfileSampleScope::ProfileSampleScope(const char * name, char const* category, unsigned flag /*= 0*/)
+{
+	ProfileSystem::StartSample(name, category, flag);
+}
+
+ProfileSampleScope::~ProfileSampleScope(void)
+{
+	ProfileSystem::EndSample();
 }
 
 #endif //CORE_SHARE_CODE

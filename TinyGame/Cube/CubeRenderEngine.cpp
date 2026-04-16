@@ -25,9 +25,19 @@
 #include "RHI/RHIUtility.h"
 #include "RenderDebug.h"
 
+#include <chrono>
+
 namespace Cube
 {
 	using namespace Render;
+
+	namespace
+	{
+		constexpr uint32 GetFullLayerMask()
+		{
+			return (ChunkRenderData::MaxLayerCount >= 32) ? 0xFFFFFFFFu : ((1u << ChunkRenderData::MaxLayerCount) - 1u);
+		}
+	}
 
 	class BlockRenderShaderProgram : public GlobalShaderProgram
 	{
@@ -140,8 +150,8 @@ namespace Cube
 
 	IMPLEMENT_SHADER(HZBCullCS, EShader::Compute, SHADER_ENTRY(HZBCullCSMain));
 
-	static int constexpr MaxHZBCullItems = 4096;
-	static int constexpr HZBCullResultTextureWidth = 4096;
+	static int constexpr MaxHZBCullItems = 4 * 4096;
+	static int constexpr HZBCullResultTextureWidth = 4 * 4096;
 
 	struct HZBCullGPUItem
 	{
@@ -174,12 +184,15 @@ namespace Cube
 
 		mGereatePool = new QueueThreadPool;
 		mGereatePool->init(4);
+		mHighPriorityGeneratePool = new QueueThreadPool;
+		mHighPriorityGeneratePool->init(2);
 	}
 
 	RenderEngine::~RenderEngine()
 	{
 		cleanupRenderData();
 		delete mGereatePool;
+		delete mHighPriorityGeneratePool;
 	}
 
 	bool RenderEngine::initializeRHI()
@@ -203,13 +216,13 @@ namespace Cube
 		InputLayoutDesc desc;
 		desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::UByte4, true);
-		desc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+		desc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Short4, true);
 		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD2, EVertex::UInt1);
-		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
+		desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Half2);
 		mBlockInputLayout = RHICreateInputLayout(desc);
 
-		mCmdBuildBuffer = RHICreateBuffer(sizeof(uint32), 4096 * 16 * 5, BCF_CreateSRV | BCF_CreateUAV);
-		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), 4096 * 16, BCF_DrawIndirectArgs);
+		mCmdBuildBuffer = RHICreateBuffer(sizeof(uint32), MaxHZBCullItems * 16 * 5, BCF_CreateSRV | BCF_CreateUAV);
+		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), MaxHZBCullItems * 16, BCF_DrawIndirectArgs);
 		mHZBCullItemBuffer = RHICreateBuffer(sizeof(HZBCullGPUItem), MaxHZBCullItems, BCF_Structured | BCF_CreateSRV | BCF_CpuAccessWrite);
 
 		mSceneFrameBuffer = RHICreateFrameBuffer();
@@ -266,62 +279,161 @@ namespace Cube
 				continue;
 			if (data->state == ChunkRenderData::eMeshGenerating)
 				continue;
-
-			resetChunkRenderData(data);
-			updateRenderData(data);
+			updateRenderData(data, data->bHighPriorityUpdate);
 		}
 
-		if (!mPendingAddList.empty())
+		if (!mPendingAddList.empty() || !mProcessingAddList.empty())
 		{
 			PROFILE_ENTRY("Update Mesh Data");
+			processPendingMeshUpdates(mMeshUpdateBudgetPerFrame, mMeshUpdateTimeBudgetMS);
+		}
+	}
 
-			PROFILE_START("Move UpdateList");
-			mMutexPedingAdd.lock();
-			TArray<UpdatedRenderData> localAddList(std::move(mPendingAddList));
-			mMutexPedingAdd.unlock();
-			PROFILE_END();
+	void RenderEngine::processPendingMeshUpdates(int maxCount, double timeBudgetMS)
+	{
+		PROFILE_START("Move UpdateList");
+		mMutexPedingAdd.lock();
+		for (auto& item : mPendingAddList)
+		{
+			mProcessingAddList.push_back(std::move(item));
+		}
+		mPendingAddList.clear();
+		mMutexPedingAdd.unlock();
+		PROFILE_END();
 
-			for (auto const& updateData : localAddList)
+		int actualMaxCount = (maxCount > 0) ? Math::Min<int>((int)mProcessingAddList.size(), maxCount) : (int)mProcessingAddList.size();
+		int processedCount = 0;
+		auto const startTime = std::chrono::steady_clock::now();
+		for (; processedCount < actualMaxCount; ++processedCount)
+		{
+			auto& updateData = mProcessingAddList[processedCount];
+			auto data = updateData.chunkData;
+			auto& mesh = updateData.mesh;
+			using namespace Render;
+
+			auto ReleaseLayerResources = [](ChunkRenderData::Layer& layer)
 			{
-				auto data = updateData.chunkData;
-				auto& mesh = updateData.mesh;
-				using namespace Render;
+				if (layer.meshPool)
+				{
+					layer.meshPool->vertexAllocator.deallocate(layer.vertexAllocation);
+					layer.meshPool->indexAllocator.deallocate(layer.indexAlloction);
+				}
+				layer = ChunkRenderData::Layer();
+			};
 
-				data->bound.invalidate();
-				data->numLayer = updateData.numLayer;
-				data->bNeedUpdate = false;
-
+			auto FindLayerSlot = [&](int layerIndex)
+			{
 				for (int i = 0; i < data->numLayer; ++i)
 				{
-					auto const& updateLayer = updateData.layers[i];
-					auto& layer = data->layers[i];
+					if (data->layers[i].index == layerIndex)
+						return i;
+				}
+				return -1;
+			};
 
-					auto meshData = acquireMeshRenderData(updateLayer.vertexCount, updateLayer.indexCount);
-					if (meshData == nullptr)
-						continue;
+			auto RemoveLayerSlot = [&](int slot)
+			{
+				ReleaseLayerResources(data->layers[slot]);
+				for (int i = slot; i + 1 < data->numLayer; ++i)
+				{
+					data->layers[i] = data->layers[i + 1];
+				}
+				data->layers[data->numLayer - 1] = ChunkRenderData::Layer();
+				--data->numLayer;
+			};
 
-					layer.meshPool = meshData;
-					layer.bound = updateLayer.bound;
+			auto InsertLayerSlot = [&](int layerIndex)
+			{
+				int insertPos = 0;
+				while (insertPos < data->numLayer && data->layers[insertPos].index < layerIndex)
+				{
+					++insertPos;
+				}
+				for (int i = data->numLayer; i > insertPos; --i)
+				{
+					data->layers[i] = data->layers[i - 1];
+				}
+				data->layers[insertPos] = ChunkRenderData::Layer();
+				data->layers[insertPos].index = layerIndex;
+				++data->numLayer;
+				return insertPos;
+			};
 
-					meshData->vertexAllocator.alloc(updateLayer.vertexCount, 0, layer.vertexAllocation);
-					meshData->indexAllocator.alloc(updateLayer.indexCount, 0, layer.indexAlloction);
-					RHIUpdateBuffer(*meshData->vertexBuffer, layer.vertexAllocation.pos, updateLayer.vertexCount, (void*)(mesh.mVertices.data() + updateLayer.vertexOffset));
-					RHIUpdateBuffer(*meshData->indexBuffer, layer.indexAlloction.pos, updateLayer.indexCount, (void*)(mesh.mIndices.data() + updateLayer.indexOffset));
+			if (updateData.bFullRebuild)
+			{
+				resetChunkRenderData(data);
+			}
 
-					layer.args.baseVertexLocation = int(layer.vertexAllocation.pos) - int(updateLayer.vertexOffset);
-					layer.args.startIndexLocation = layer.indexAlloction.pos;
-					layer.args.indexCountPerInstance = updateLayer.indexCount;
-					layer.args.instanceCount = 1;
-					layer.args.startInstanceLocation = 0;
-
-					data->bound += layer.bound;
+			for (int i = 0; i < updateData.numLayer; ++i)
+			{
+				auto const& updateLayer = updateData.layers[i];
+				int slot = FindLayerSlot(updateLayer.index);
+				if (!updateLayer.bHasMesh)
+				{
+					if (slot != -1)
+					{
+						RemoveLayerSlot(slot);
+					}
+					continue;
 				}
 
-				//data->posOffset = ChunkSize * Vec3f(data->chunk->getPos() , 0.0);
-				//data->bound.translate(data->posOffset);
-				data->state = ChunkRenderData::eMesh;
+				if (slot == -1)
+				{
+					slot = InsertLayerSlot(updateLayer.index);
+				}
+				else
+				{
+					ReleaseLayerResources(data->layers[slot]);
+					data->layers[slot].index = updateLayer.index;
+				}
+
+				auto& layer = data->layers[slot];
+				auto meshData = acquireMeshRenderData(updateLayer.vertexCount, updateLayer.indexCount);
+				if (meshData == nullptr)
+				{
+					RemoveLayerSlot(slot);
+					continue;
+				}
+
+				layer.meshPool = meshData;
+				layer.bound = updateLayer.bound;
+
+				meshData->vertexAllocator.alloc(updateLayer.vertexCount, 0, layer.vertexAllocation);
+				meshData->indexAllocator.alloc(updateLayer.indexCount, 0, layer.indexAlloction);
+				RHIUpdateBuffer(*meshData->vertexBuffer, layer.vertexAllocation.pos, updateLayer.vertexCount, (void*)(mesh.mVertices.data() + updateLayer.vertexOffset));
+				RHIUpdateBuffer(*meshData->indexBuffer, layer.indexAlloction.pos, updateLayer.indexCount, (void*)(mesh.mIndices.data() + updateLayer.indexOffset));
+
+				layer.args.baseVertexLocation = int(layer.vertexAllocation.pos) - int(updateLayer.vertexOffset);
+				layer.args.startIndexLocation = layer.indexAlloction.pos;
+				layer.args.indexCountPerInstance = updateLayer.indexCount;
+				layer.args.instanceCount = 1;
+				layer.args.startInstanceLocation = 0;
+			}
+
+			data->bound.invalidate();
+			for (int i = 0; i < data->numLayer; ++i)
+			{
+				data->bound += data->layers[i].bound;
+			}
+			data->state = ChunkRenderData::eMesh;
+			data->bHighPriorityUpdate = false;
+
+			if (timeBudgetMS > 0)
+			{
+				double elapsedMS = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+				if (elapsedMS >= timeBudgetMS)
+				{
+					++processedCount;
+					break;
+				}
 			}
 		}
+
+		for (int i = processedCount; i < mProcessingAddList.size(); ++i)
+		{
+			mProcessingAddList[i - processedCount] = std::move(mProcessingAddList[i]);
+		}
+		mProcessingAddList.resize(mProcessingAddList.size() - processedCount);
 	}
 
 	void RenderEngine::resetChunkRenderData(ChunkRenderData* data)
@@ -355,16 +467,20 @@ namespace Cube
 			ChunkDataMap::iterator iter = mChunkMap.find(chunkPos.hash_value());
 			if (iter != mChunkMap.end())
 			{
-				ChunkRenderData* data = iter->second;
-				updateRenderData(data);
+				markChunkDirty(chunkPos, GetFullLayerMask(), false);
 			}
 		}
 
 	}
 
-	void RenderEngine::updateRenderData(ChunkRenderData* data)
+	void RenderEngine::updateRenderData(ChunkRenderData* data, bool bForceHighPriority)
 	{
-		if (data->state != ChunkRenderData::eNone)
+		if (data->state == ChunkRenderData::eMeshGenerating)
+			return;
+
+		bool const bFullRebuild = (data->state != ChunkRenderData::eMesh);
+		uint32 const dirtyLayerMask = bFullRebuild ? GetFullLayerMask() : data->dirtyLayerMask;
+		if (!bFullRebuild && dirtyLayerMask == 0)
 			return;
 
 		NeighborChunkAccess chunkAccess(*mClientWorld, data->chunk);
@@ -374,13 +490,29 @@ namespace Cube
 				return;
 		}
 
-		mGereatePool->addFunctionWork(
-			[this, data, chunkAccess]()
+		data->state = ChunkRenderData::eMeshGenerating;
+		data->bHighPriorityUpdate = bForceHighPriority;
+		if (!bFullRebuild)
+		{
+			data->dirtyLayerMask &= ~dirtyLayerMask;
+			if (data->dirtyLayerMask == 0)
+			{
+				data->bNeedUpdate = false;
+			}
+		}
+		else
+		{
+			data->bNeedUpdate = false;
+			data->dirtyLayerMask = 0;
+		}
+
+		QueueThreadPool* targetPool = bForceHighPriority ? mHighPriorityGeneratePool : mGereatePool;
+		targetPool->addFunctionWork(
+			[this, data, chunkAccess, bFullRebuild, dirtyLayerMask]()
 		{
 			PROFILE_ENTRY("Chunk Mesh Generate");
 
 			Chunk* chunk = data->chunk;
-			data->state = ChunkRenderData::eMeshGenerating;
 
 			Mesh mesh;
 			BlockRenderer renderer;
@@ -404,6 +536,7 @@ namespace Cube
 			UpdatedRenderData updateData;
 			updateData.chunkData = data;
 			updateData.numLayer = 0;
+			updateData.bFullRebuild = bFullRebuild;
 			renderer.mMesh = &updateData.mesh;
 
 			renderer.mDebugColor = RenderUtility::GetColor(ColorMap[(chunk->getPos().x + chunk->getPos().y) % ARRAY_SIZE(ColorMap)]);
@@ -413,35 +546,40 @@ namespace Cube
 
 			for (int indexLayer = 0; indexLayer < ChunkRenderData::MaxLayerCount; ++indexLayer)
 			{
-				auto layer = chunk->mLayer[indexLayer];
-				if (!layer)
+				if (!bFullRebuild && (dirtyLayerMask & (uint32(1) << indexLayer)) == 0)
 					continue;
 
-				paddedAccess.fill(chunkAccess, chunk, indexLayer);
+				auto layer = chunk->mLayer[indexLayer];
+				auto& layerData = updateData.layers[updateData.numLayer];
+				updateData.numLayer += 1;
+				layerData.index = indexLayer;
+				layerData.bound.invalidate();
+				layerData.vertexOffset = (uint32)updateData.mesh.mVertices.size();
+				layerData.indexOffset = (uint32)updateData.mesh.mIndices.size();
+				layerData.vertexCount = 0;
+				layerData.indexCount = 0;
+				layerData.bHasMesh = false;
 
-				int indexStart = updateData.mesh.mIndices.size();
-				int vertexStart = updateData.mesh.mVertices.size();
-
-				int zOff = indexLayer * Chunk::LayerSize;
-				renderer.setBasePos(Vec3i(chunk->getPos().x * ChunkSize, chunk->getPos().y * ChunkSize, zOff));
-				renderer.drawLayer(*chunk, indexLayer);
-
+				if (layer)
 				{
-					TIME_SCOPE(mMergeTimeAcc);
-					renderer.finalizeMesh();
-				}
+					paddedAccess.fill(chunkAccess, chunk, indexLayer);
 
-				if (indexStart != updateData.mesh.mIndices.size())
-				{
-					auto& layerData = updateData.layers[updateData.numLayer];
-					updateData.numLayer += 1;
+					int zOff = indexLayer * Chunk::LayerSize;
+					renderer.setBasePos(Vec3i(chunk->getPos().x * ChunkSize, chunk->getPos().y * ChunkSize, zOff));
+					renderer.drawLayer(*chunk, indexLayer);
 
-					layerData.bound = renderer.bound;
-					layerData.index = indexLayer;
-					layerData.vertexOffset = vertexStart;
-					layerData.vertexCount = (uint32)updateData.mesh.mVertices.size() - layerData.vertexOffset;
-					layerData.indexOffset = indexStart;
-					layerData.indexCount = (uint32)updateData.mesh.mIndices.size() - layerData.indexOffset;
+					{
+						TIME_SCOPE(mMergeTimeAcc);
+						renderer.finalizeMesh();
+					}
+
+					layerData.bHasMesh = (layerData.indexOffset != updateData.mesh.mIndices.size());
+					if (layerData.bHasMesh)
+					{
+						layerData.bound = renderer.bound;
+						layerData.vertexCount = (uint32)updateData.mesh.mVertices.size() - layerData.vertexOffset;
+						layerData.indexCount = (uint32)updateData.mesh.mIndices.size() - layerData.indexOffset;
+					}
 				}
 
 				renderer.bound.invalidate();
@@ -457,15 +595,34 @@ namespace Cube
 
 	void RenderEngine::markChunkDirty(ChunkPos const& chunkPos)
 	{
+		markChunkDirty(chunkPos, GetFullLayerMask(), true);
+	}
+
+	void RenderEngine::markChunkDirty(ChunkPos const& chunkPos, uint32 layerMask, bool bHighPriority)
+	{
 		ChunkDataMap::iterator iter = mChunkMap.find(chunkPos.hash_value());
 		if (iter == mChunkMap.end())
+		{
+			Chunk* chunk = mClientWorld ? mClientWorld->getChunk(chunkPos, true) : nullptr;
+			if (chunk == nullptr)
+				return;
+
+			ChunkRenderData* data = new ChunkRenderData;
+			data->chunk = chunk;
+			data->dirtyLayerMask = layerMask;
+			data->bNeedUpdate = true;
+			data->bHighPriorityUpdate = bHighPriority;
+			mChunkMap.insert(std::make_pair(chunkPos.hash_value(), data));
 			return;
+		}
 
 		ChunkRenderData* data = iter->second;
 		if (data == nullptr)
 			return;
 
+		data->dirtyLayerMask |= layerMask;
 		data->bNeedUpdate = true;
+		data->bHighPriorityUpdate = data->bHighPriorityUpdate || bHighPriority;
 	}
 
 	void RenderEngine::resizeRenderTarget()
@@ -561,7 +718,7 @@ namespace Cube
 			if (i == 0)
 			{
 				RHISetComputeShader(commandList, mProgHZBGenerate->getRHI());
-				mProgHZBGenerate->setTexture(commandList, SHADER_PARAM(SourceTexture), sourceDepthTexture, SHADER_SAMPLER(SourceTexture), TStaticSamplerState<ESampler::Point>::GetRHI());
+				mProgHZBGenerate->setTexture(commandList, SHADER_PARAM(SourceTexture), sourceDepthTexture, SHADER_SAMPLER(SourceTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 				mProgHZBGenerate->setParam(commandList, SHADER_PARAM(SourceTextureSize), IntVector2((int)srcW, (int)srcH));
 				mProgHZBGenerate->setParam(commandList, SHADER_PARAM(DestTextureSize), IntVector2((int)destW, (int)destH));
 				mProgHZBGenerate->setParam(commandList, SHADER_PARAM(SourceMipLevel), 0);
@@ -577,7 +734,7 @@ namespace Cube
 			RHIResourceTransition(commandList, { mHZBTexture }, EResourceTransition::SRV);
 			RHIResourceTransition(commandList, { mHZBScratchTexture }, EResourceTransition::UAV);
 			RHISetComputeShader(commandList, mProgHZBGenerate->getRHI());
-			mProgHZBGenerate->setTexture(commandList, SHADER_PARAM(SourceTexture), *mHZBTexture, SHADER_SAMPLER(SourceTexture), TStaticSamplerState<ESampler::Point>::GetRHI());
+			mProgHZBGenerate->setTexture(commandList, SHADER_PARAM(SourceTexture), *mHZBTexture, SHADER_SAMPLER(SourceTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 			mProgHZBGenerate->setParam(commandList, SHADER_PARAM(SourceTextureSize), IntVector2((int)srcW, (int)srcH));
 			mProgHZBGenerate->setParam(commandList, SHADER_PARAM(DestTextureSize), IntVector2((int)srcW, (int)srcH));
 			mProgHZBGenerate->setParam(commandList, SHADER_PARAM(SourceMipLevel), i - 1);
@@ -590,7 +747,7 @@ namespace Cube
 			RHIResourceTransition(commandList, { mHZBScratchTexture }, EResourceTransition::SRV);
 			RHIResourceTransition(commandList, { mHZBTexture }, EResourceTransition::UAV);
 			RHISetComputeShader(commandList, mProgHZBGenerate->getRHI());
-			mProgHZBGenerate->setTexture(commandList, SHADER_PARAM(SourceTexture), *mHZBScratchTexture, SHADER_SAMPLER(SourceTexture), TStaticSamplerState<ESampler::Point>::GetRHI());
+			mProgHZBGenerate->setTexture(commandList, SHADER_PARAM(SourceTexture), *mHZBScratchTexture, SHADER_SAMPLER(SourceTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 			mProgHZBGenerate->setParam(commandList, SHADER_PARAM(SourceTextureSize), IntVector2((int)srcW, (int)srcH));
 			mProgHZBGenerate->setParam(commandList, SHADER_PARAM(DestTextureSize), IntVector2((int)destW, (int)destH));
 			mProgHZBGenerate->setParam(commandList, SHADER_PARAM(SourceMipLevel), i - 1);
@@ -702,8 +859,10 @@ namespace Cube
 
 		ICamera* cameraRender = mDebugCamera ? mDebugCamera : &camera;
 		Matrix4 projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 2000);
-		Matrix4 worldToView = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
-		Matrix4 worldToClip = worldToView * projectMatrix;
+		Matrix4 worldToViewCull = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
+		Matrix4 worldToClipCull = worldToViewCull * projectMatrix;
+		Matrix4 worldToViewCullRelative = LookAtMatrix(Vec3f::Zero(), camera.getViewDir(), camera.getUpDir());
+		Matrix4 worldToClipCullRelative = worldToViewCullRelative * projectMatrix;
 
 		GTextureShowManager.setProjectMatrix(AdjustProjectionMatrixForRHI(projectMatrix));
 
@@ -716,19 +875,23 @@ namespace Cube
 		}
 		else
 		{
-			worldToViewRender = worldToView;
-			worldToClipRender = worldToClip;
+			worldToViewRender = worldToViewCull;
+			worldToClipRender = worldToClipCull;
 		}
 
 		Matrix4 clipToWorld;
 		float det;
-		worldToClip.inverse(clipToWorld, det);
+		worldToClipCull.inverse(clipToWorld, det);
 
 		Plane clipPlanes[6];
 		GetFrustomPlanes(camPos, camera.getViewDir(), clipToWorld, clipPlanes);
 
-		RnederContext context;
-		context.worldToClip = AdjustProjectionMatrixForRHI(worldToViewRender * projectMatrix);
+		RnederContext contextCull;
+		contextCull.worldToClip = AdjustProjectionMatrixForRHI(worldToClipCull);
+		Matrix4 worldToClipCullRelativeRHI = AdjustProjectionMatrixForRHI(worldToClipCullRelative);
+
+		RnederContext contextRender;
+		contextRender.worldToClip = AdjustProjectionMatrixForRHI(worldToClipRender);
 
 		if (mDebugCamera)
 		{
@@ -751,7 +914,70 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos(bx, by);
+		int const nearUpdateDist = 2;
+		bool bNeedSyncNearbyUpdate = false;
+		bool bNeedSyncNearbyGeneralWork = false;
+		for (int dy = -nearUpdateDist; dy <= nearUpdateDist; ++dy)
+		{
+			for (int dx = -nearUpdateDist; dx <= nearUpdateDist; ++dx)
+			{
+				ChunkPos nearPos = cPos + Vec2i(dx, dy);
+				auto iter = mChunkMap.find(nearPos.hash_value());
+				if (iter == mChunkMap.end())
+					continue;
+
+				ChunkRenderData* data = iter->second;
+				if (data == nullptr)
+					continue;
+
+				if (data->bNeedUpdate)
+				{
+					updateRenderData(data, true);
+				}
+				if (data->state == ChunkRenderData::eMeshGenerating && data->bHighPriorityUpdate)
+				{
+					bNeedSyncNearbyUpdate = true;
+					if (data->numLayer == 0)
+					{
+						bNeedSyncNearbyGeneralWork = true;
+					}
+				}
+			}
+		}
+		if (bNeedSyncNearbyUpdate)
+		{
+			if (bNeedSyncNearbyGeneralWork)
+			{
+				mGereatePool->waitAllWorkComplete();
+			}
+			mHighPriorityGeneratePool->waitAllWorkComplete();
+			processPendingMeshUpdates(0, 0);
+		}
 		int viewDist = 48;
+		if (mChunkScanOffsetViewDist != viewDist)
+		{
+			mChunkScanOffsetViewDist = viewDist;
+			mChunkScanOffsets.clear();
+			int viewDistSq = viewDist * viewDist;
+			for (int dy = -viewDist; dy <= viewDist; ++dy)
+			{
+				for (int dx = -viewDist; dx <= viewDist; ++dx)
+				{
+					if (dx == 0 && dy == 0)
+						continue;
+					int distSq = dx * dx + dy * dy;
+					if (distSq > viewDistSq)
+						continue;
+					mChunkScanOffsets.push_back(Vec2i(dx, dy));
+				}
+			}
+			std::sort(mChunkScanOffsets.begin(), mChunkScanOffsets.end(), [](Vec2i const& a, Vec2i const& b)
+			{
+				int distA = a.x * a.x + a.y * a.y;
+				int distB = b.x * b.x + b.y * b.y;
+				return distA < distB;
+			});
+		}
 
 		int chunkRenderCount = 0;
 		int triangleCount = 0;
@@ -770,9 +996,9 @@ namespace Cube
 			AABBox box;
 			AABBox boxProjected;
 		};
-		TArray<OccluderInfo> activeOccluders;
 		struct VisibleLayerItem
 		{
+			ChunkRenderData::Layer* layer;
 			int poolIndex;
 			HZBCullGPUItem cullItem;
 			int triangleCount;
@@ -796,7 +1022,8 @@ namespace Cube
 			outProjected.min = Vector3(2,2,2);
 			for (int i = 0; i < ARRAY_SIZE(v); ++i)
 			{
-				Vector4 clip = Vector4(v[i], 1.0f) * worldToClipRender;
+				Vector3 localPos = v[i] - camPos;
+				Vector4 clip = Vector4(localPos, 1.0f) * worldToClipCullRelative;
 				if (clip.w <= 0.001f) return false; // Conservative: If any point is behind or on near plane, don't use as occluder
 
 				Vector3 ndc = clip.dividedVector();
@@ -806,7 +1033,7 @@ namespace Cube
 			return (outProjected.max.x > outProjected.min.x && outProjected.max.y > outProjected.min.y);
 		};
 
-		auto ShouldScanOffset = [&](int dx, int dy)
+		auto IsPriorityScanOffset = [&](int dx, int dy)
 		{
 			int distSq = dx * dx + dy * dy;
 			if (distSq > viewDist * viewDist)
@@ -846,7 +1073,13 @@ namespace Cube
 				data = iter->second;
 			}
 
-			if (data == nullptr || data->state != ChunkRenderData::eMesh)
+			if (data == nullptr)
+				return;
+
+			bool const bHasUsableMesh = (data->numLayer > 0);
+			if (data->state == ChunkRenderData::eNone)
+				return;
+			if (data->state == ChunkRenderData::eMeshGenerating && !bHasUsableMesh)
 				return;
 
 			int chunkVisibility = FViewUtils::IsVisible(clipPlanes, data->bound);
@@ -878,21 +1111,32 @@ namespace Cube
 
 				int layerVisibility = FViewUtils::IsVisible(clipPlanes, layer.bound);
 				if (layerVisibility == 0)
+				{
+					if (mDebugCamera)
+					{
+						mDebugPrimitives.addCubeLine(layer.bound.getCenter(), Quaternion::Identity(), layer.bound.getSize(), LinearColor(RenderUtility::GetColor(EColor::Red)), 2);
+					}
 					continue;
+				}
+
 
 				Vector3 center = layer.bound.getCenter();
 				float distSq = (center - camPos).length2();
+#if 0
+
 				if (distSq > 256.0f * 256.0f)
 				{
 					occludedTriangleCount += (layer.args.indexCountPerInstance / 3) * layer.args.instanceCount;
 					continue;
 				}
+#endif
 
 				layerDrawList.push_back(&layer);
 				VisibleLayerItem visibleItem;
+				visibleItem.layer = &layer;
 				visibleItem.poolIndex = layer.meshPool->poolIndex;
-				visibleItem.cullItem.boxMin = layer.bound.min;
-				visibleItem.cullItem.boxMax = layer.bound.max;
+				visibleItem.cullItem.boxMin = layer.bound.min - camPos;
+				visibleItem.cullItem.boxMax = layer.bound.max - camPos;
 				visibleItem.cullItem.padding0 = 0;
 				visibleItem.cullItem.padding1 = 0;
 				visibleItem.cullItem.outputIndex = 0;
@@ -927,36 +1171,6 @@ namespace Cube
 					{
 						hzbOccluderCandidates.push_back({ &layer, distSq });
 					}
-
-					AABBox occluderProjectedBox;
-					if (layer.occluderBox.isValid() && ProjectBox(layer.occluderBox, occluderProjectedBox))
-					{
-						float occluderArea = (occluderProjectedBox.max.x - occluderProjectedBox.min.x) * (occluderProjectedBox.max.y - occluderProjectedBox.min.y);
-						if (occluderArea > 0.005f)
-						{
-							if (activeOccluders.size() < 32)
-							{
-								activeOccluders.push_back({ layer.occluderBox, occluderProjectedBox });
-							}
-							else
-							{
-								int worstIdx = -1;
-								float maxZ = -2.0f;
-								for (int k = 0; k < 32; ++k)
-								{
-									if (activeOccluders[k].boxProjected.max.z > maxZ)
-									{
-										maxZ = activeOccluders[k].boxProjected.max.z;
-										worstIdx = k;
-									}
-								}
-								if (occluderProjectedBox.max.z < maxZ)
-								{
-									activeOccluders[worstIdx] = { layer.occluderBox, occluderProjectedBox };
-								}
-							}
-						}
-					}
 				}
 			}
 
@@ -973,40 +1187,62 @@ namespace Cube
 
 			{
 				PROFILE_ENTRY("Chunk Scan");
-				int viewDistSq = viewDist * viewDist;
-				ProcessChunk(cPos);
-
-				for (int n = 1; n <= viewDist; ++n)
+				auto ScanChunks = [&](bool bPriorityPass)
 				{
-					for (int i = -(n - 1); i <= (n - 1); ++i)
+					if (bPriorityPass)
 					{
-						if (i * i + n * n > viewDistSq)
-							continue;
-						auto TryProcessOffset = [&](int dx, int dy)
-						{
-							if (!ShouldScanOffset(dx, dy))
-								return;
-							ProcessChunk(cPos + Vec2i(dx, dy));
-						};
-						TryProcessOffset(i, n);
-						TryProcessOffset(i, -n);
-						TryProcessOffset(n, i);
-						TryProcessOffset(-n, i);
+						ProcessChunk(cPos);
 					}
 
-					if (2 * n * n <= viewDistSq)
+					for (Vec2i const& offset : mChunkScanOffsets)
 					{
-						auto TryProcessOffset = [&](int dx, int dy)
-						{
-							if (!ShouldScanOffset(dx, dy))
-								return;
-							ProcessChunk(cPos + Vec2i(dx, dy));
-						};
-						TryProcessOffset(n, n);
-						TryProcessOffset(-n, n);
-						TryProcessOffset(n, -n);
-						TryProcessOffset(-n, -n);
+						bool const bPriorityOffset = IsPriorityScanOffset(offset.x, offset.y);
+						if (bPriorityPass != bPriorityOffset)
+							continue;
+						ProcessChunk(cPos + offset);
 					}
+				};
+
+				ScanChunks(true);
+				bool const bDoNonPriorityScan = ((mRenderFrame % mNonPriorityScanInterval) == 0) || (chunkRequestCount < mChunkRequestBudgetPerFrame / 2);
+				if (bDoNonPriorityScan && chunkRequestCount < mChunkRequestBudgetPerFrame)
+				{
+					ScanChunks(false);
+				}
+			}
+
+			{
+				PROFILE_ENTRY("Release Far Chunks");
+				int const releaseDist = viewDist + mChunkReleaseMargin;
+				int const releaseDistSq = releaseDist * releaseDist;
+				for (auto iter = mChunkMap.begin(); iter != mChunkMap.end();)
+				{
+					ChunkRenderData* data = iter->second;
+					if (data == nullptr || data->chunk == nullptr)
+					{
+						delete data;
+						iter = mChunkMap.erase(iter);
+						continue;
+					}
+
+					ChunkPos const& pos = data->chunk->getPos();
+					int dx = pos.x - cPos.x;
+					int dy = pos.y - cPos.y;
+					if (dx * dx + dy * dy <= releaseDistSq)
+					{
+						++iter;
+						continue;
+					}
+
+					if (data->state == ChunkRenderData::eMeshGenerating || data->bNeedUpdate)
+					{
+						++iter;
+						continue;
+					}
+
+					resetChunkRenderData(data);
+					delete data;
+					iter = mChunkMap.erase(iter);
 				}
 			}
 
@@ -1044,7 +1280,7 @@ namespace Cube
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNear>::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<CWM_None>::GetRHI());
 				RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
-				context.setupShader(commandList, *mProgBlockRender);
+				contextCull.setupShader(commandList, *mProgBlockRender);
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 
 				for (HZBOccluderCandidate const& candidate : hzbOccluderCandidates)
@@ -1095,6 +1331,10 @@ namespace Cube
 							++totalCmdCount;
 						}
 
+						if (totalCmdCount > MaxHZBCullItems)
+						{
+							LogWarning(0, "HZB cull item overflow: totalCmdCount=%d MaxHZBCullItems=%d", totalCmdCount, MaxHZBCullItems);
+						}
 						int testCount = Math::Min<int>(totalCmdCount, MaxHZBCullItems);
 						if (testCount > 0)
 						{
@@ -1148,12 +1388,12 @@ namespace Cube
 								progHZBCull->setStorageBuffer(commandList, SHADER_PARAM(CullItems), *mHZBCullItemBuffer, EAccessOp::ReadOnly);
 								progHZBCull->setTexture(commandList, SHADER_PARAM(HZBTexture), *mHZBTexture);
 								progHZBCull->setStorageBuffer(commandList, SHADER_PARAM(VisibleCommands), *mCmdBuildBuffer, EAccessOp::ReadAndWrite);
-								progHZBCull->setParam(commandList, SHADER_PARAM(WorldToClip), context.worldToClip);
+								progHZBCull->setParam(commandList, SHADER_PARAM(WorldToClip), worldToClipCullRelativeRHI);
 								progHZBCull->setParam(commandList, SHADER_PARAM(ViewSize), IntVector2(mOccluderDepthTexture->getSizeX(), mOccluderDepthTexture->getSizeY()));
 								progHZBCull->setParam(commandList, SHADER_PARAM(ResultTextureSize), IntVector2(HZBCullResultTextureWidth, 1));
 								progHZBCull->setParam(commandList, SHADER_PARAM(NumMipLevel), mHZBTexture->getDesc().numMipLevel);
 								progHZBCull->setParam(commandList, SHADER_PARAM(NumItems), testCount);
-								progHZBCull->setParam(commandList, SHADER_PARAM(DepthBias), 0.0005f);
+								progHZBCull->setParam(commandList, SHADER_PARAM(DepthBias), 0.00001f);
 								progHZBCull->setRWTexture(commandList, SHADER_PARAM(ResultTexture), *mHZBCullResultTexture, 0, EAccessOp::WriteOnly);
 								RHIDispatchCompute(commandList, (testCount + 63) / 64, 1, 1);
 								progHZBCull->clearRWTexture(commandList, SHADER_PARAM(ResultTexture));
@@ -1211,7 +1451,7 @@ namespace Cube
 					RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNear>::GetRHI());
 					RHISetBlendState(commandList, TStaticBlendState<CWM_None>::GetRHI());
 					RHISetShaderProgram(commandList, mProgBlockRenderDepth->getRHI());
-					context.setupShader(commandList, *mProgBlockRenderDepth);
+					contextRender.setupShader(commandList, *mProgBlockRenderDepth);
 
 					for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
 					{
@@ -1249,44 +1489,46 @@ namespace Cube
 							if (layer == nullptr || !layer->bound.isValid())
 								continue;
 
-							context.stack.push();
-							context.stack.translate(layer->bound.min);
-							context.stack.scale(layer->bound.getSize());
-							context.setupShader(commandList, LinearColor( 0.04, 0.04, 0.04, 1));
+							contextRender.stack.push();
+							contextRender.stack.translate(layer->bound.min);
+							contextRender.stack.scale(layer->bound.getSize());
+							contextRender.setupShader(commandList, LinearColor( 0.04, 0.04, 0.04, 1));
 
 							for (uint8 face : FaceOrder)
 							{
 								TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::Quad, GetFaceVertices((FaceSide)face), 4);
 							}
-							context.stack.pop();
+							contextRender.stack.pop();
 						}
 						chunkMeshCount = 0;
 					}
 					else
 					{
-						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
 
 						if (bShowOverdraw)
 						{
+							RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
 							RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::Always>::GetRHI());
 							RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::One, EBlend::One>::GetRHI());
 							RHISetShaderProgram(commandList, mProgBlockRenderOverdraw->getRHI());
-							context.setupShader(commandList, *mProgBlockRenderOverdraw);
+							contextRender.setupShader(commandList, *mProgBlockRenderOverdraw);
 						}
 						else if (GRenderPreDepth)
 						{
+							RHISetRasterizerState(commandList, bWireframeMode ? TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe >::GetRHI() : TStaticRasterizerState<ECullMode::Back>::GetRHI());
 							RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::DepthNearEqual>::GetRHI());
 							RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 							RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
-							context.setupShader(commandList, *mProgBlockRender);
+							contextRender.setupShader(commandList, *mProgBlockRender);
 							SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 						}
 						else
 						{
+							RHISetRasterizerState(commandList, bWireframeMode ? TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe >::GetRHI() : TStaticRasterizerState<ECullMode::Back>::GetRHI());
 							RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNear>::GetRHI());
 							RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 							RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
-							context.setupShader(commandList, *mProgBlockRender);
+							contextRender.setupShader(commandList, *mProgBlockRender);
 							SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 						}
 
@@ -1312,27 +1554,45 @@ namespace Cube
 				}
 			}
 
-			if (hzbCullTestCount > 0 && false)
+			if (mDebugCamera && hzbCullTestCount > 0)
 			{
 				PROFILE_ENTRY("HZB Readback");
 				TArray<uint8> readbackData;
-				RHIReadTexture(*mHZBCullResultTexture, ETexture::RGBA8, 0, readbackData);
+				{
+					PROFILE_ENTRY("Read Texture");
+					RHIReadTexture(*mHZBCullResultTexture, ETexture::RGBA8, 0, readbackData);
+				}
 
 				int const maxReadableItemCount = Math::Min<int>(hzbCullTestCount, readbackData.size() / sizeof(Color4ub));
 				triangleCount = 0;
+				chunkLayerCount = 0;
 				for (int itemIndex = 0; itemIndex < maxReadableItemCount; ++itemIndex)
 				{
 					Color4ub const& color = *(reinterpret_cast<Color4ub const*>(readbackData.data()) + itemIndex);
 					
 					bool const bVisible = (color.r > 0);
+
+					auto const& bound = visibleLayerItems[itemIndex].layer->bound;
+
 					if (bVisible)
 					{
 						chunkLayerCount += 1;
 						triangleCount += hzbCullTriangleCounts[itemIndex];
+						if (mDebugCamera)
+						{
+							mDebugPrimitives.addCubeLine(bound.getCenter(), Quaternion::Identity(), bound.getSize(), LinearColor(RenderUtility::GetColor(EColor::Green)), 2);
+						}
 					}
 					else
 					{
 						occludedTriangleCount += hzbCullTriangleCounts[itemIndex];
+						if (itemIndex < visibleLayerItems.size() && visibleLayerItems[itemIndex].layer && visibleLayerItems[itemIndex].layer->bound.isValid())
+						{
+							if (mDebugCamera)
+							{
+								mDebugPrimitives.addCubeLine(bound.getCenter(), Quaternion::Identity(), bound.getSize(), LinearColor(RenderUtility::GetColor(EColor::Yellow)), 2);
+							}
+						}
 					}
 				}
 			}
@@ -1343,21 +1603,21 @@ namespace Cube
 		BlockId id = world.rayBlockTest(camPos, camera.getViewDir(), 100, &info);
 		if (id)
 		{
-			context.stack.push();
-			context.stack.translate(Vector3(info.x, info.y, info.z) + 0.1 * GetFaceNoraml(info.face));
-			context.setupShader(commandList, LinearColor(1, 1, 1, 1));
+			contextRender.stack.push();
+			contextRender.stack.translate(Vector3(info.x, info.y, info.z) + 0.1 * GetFaceNoraml(info.face));
+			contextRender.setupShader(commandList, LinearColor(1, 1, 1, 1));
 			TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::LineLoop, GetFaceVertices(info.face), 4);
-			context.stack.pop();
+			contextRender.stack.pop();
 		}
 #endif
 
 		{
-			context.stack.push();
-			context.stack.translate(Vector3(0, 10, 0));
+			contextRender.stack.push();
+			contextRender.stack.translate(Vector3(0, 10, 0));
 			float len = 10;
-			context.setupShader(commandList);
+			contextRender.setupShader(commandList);
 			DrawUtility::AixsLine(commandList, len);
-			context.stack.pop();
+			contextRender.stack.pop();
 		}
 
 		{
@@ -1419,15 +1679,44 @@ namespace Cube
 	{
 		ChunkPos cPos;
 		cPos.setBlockPos(bx, by);
-		markChunkDirty(cPos);
-		cPos.setBlockPos(bx + 1, by);
-		markChunkDirty(cPos);
-		cPos.setBlockPos(bx - 1, by);
-		markChunkDirty(cPos);
-		cPos.setBlockPos(bx, by + 1);
-		markChunkDirty(cPos);
-		cPos.setBlockPos(bx, by - 1);
-		markChunkDirty(cPos);
+		int const localX = bx & ChunkMask;
+		int const localY = by & ChunkMask;
+		int const localZ = bz & Chunk::LayerMask;
+		int const layerIndex = bz >> Chunk::LayerBitCount;
+		uint32 const currentLayerBit = uint32(1) << layerIndex;
+
+		uint32 layerMask = currentLayerBit;
+		if (localZ == 0 && layerIndex > 0)
+		{
+			layerMask |= (uint32(1) << (layerIndex - 1));
+		}
+		if (localZ == Chunk::LayerMask && layerIndex + 1 < Chunk::NumLayer)
+		{
+			layerMask |= (uint32(1) << (layerIndex + 1));
+		}
+
+		markChunkDirty(cPos, layerMask);
+
+		if (localX == ChunkMask)
+		{
+			cPos.setBlockPos(bx + 1, by);
+			markChunkDirty(cPos, currentLayerBit);
+		}
+		if (localX == 0)
+		{
+			cPos.setBlockPos(bx - 1, by);
+			markChunkDirty(cPos, currentLayerBit);
+		}
+		if (localY == ChunkMask)
+		{
+			cPos.setBlockPos(bx, by + 1);
+			markChunkDirty(cPos, currentLayerBit);
+		}
+		if (localY == 0)
+		{
+			cPos.setBlockPos(bx, by - 1);
+			markChunkDirty(cPos, currentLayerBit);
+		}
 	}
 
 	bool MeshRenderPoolData::initialize()

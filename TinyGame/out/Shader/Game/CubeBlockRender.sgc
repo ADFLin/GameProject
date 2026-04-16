@@ -25,7 +25,7 @@ uniform float4x4 WorldToClip;
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
 #if !DEPTH_PASS
-	VS_INPUT(float3 InNoraml, ATTRIBUTE_NORMAL)
+	VS_INPUT(float4 InNoraml, ATTRIBUTE_NORMAL)
 	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
 	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
 	VS_INPUT(uint   InMeta, ATTRIBUTE_TEXCOORD2)
@@ -37,9 +37,9 @@ VS_ENTRY_END(MainVS)
 	float4 worldPos = mul( LocalToWorld, float4(InPos, 1.0));
 	SvPosition = mul( WorldToClip , worldPos);
 #if !DEPTH_PASS
-	float3 normal = mul(LocalToWorld, float4(InNoraml, 0.0)).xyz;
+	float3 normal = mul(LocalToWorld, float4(InNoraml.xyz, 0.0)).xyz;
 	VSOutput.color = InColor;
-	VSOutput.normal = InNoraml;
+	VSOutput.normal = InNoraml.xyz;
 	VSOutput.worldPos = worldPos.xyz;
 	VSOutput.uv = InUV;
 
@@ -74,6 +74,7 @@ PS_ENTRY_END(MainPS)
 
 	float NoL = saturate(dot(N,L));
 	OutColor = float4(baseColor.rgb * saturate(NoL + 0.2 ) * VSOutput.color.rgb, 1);
+	//OutColor = float4(N, 1.0);
 #endif
 }
 #else

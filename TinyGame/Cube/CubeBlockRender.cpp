@@ -13,6 +13,72 @@
 
 namespace Cube
 {
+	namespace
+	{
+		FORCEINLINE int16 PackNormalComponent(float value)
+		{
+			value = Math::Clamp(value, -1.0f, 1.0f);
+			return int16(Math::RoundToInt(32767.0f * value));
+		}
+
+		FORCEINLINE void SetPackedNormal(Mesh::Vertex& vertex, Vec3f const& normal)
+		{
+			vertex.normal[0] = PackNormalComponent(normal.x);
+			vertex.normal[1] = PackNormalComponent(normal.y);
+			vertex.normal[2] = PackNormalComponent(normal.z);
+			vertex.normal[3] = 0;
+		}
+
+		FORCEINLINE void SetPackedUV(Mesh::Vertex& vertex, Vec2f const& uv)
+		{
+			vertex.uv[0] = uv.x;
+			vertex.uv[1] = uv.y;
+		}
+
+		bool HasAnyRenderableFace(PaddedBlockAccess const& access)
+		{
+			for (int x = 1; x <= ChunkSize; ++x)
+			{
+				for (int y = 1; y <= ChunkSize; ++y)
+				{
+					for (int z = 1; z <= Chunk::LayerSize; ++z)
+					{
+						BlockId id = access.blocks[x][y][z];
+						if (id == 0)
+							continue;
+
+						Block* block = Block::Get(id);
+						if (!block || !block->isFullCube())
+						{
+							// Conservatively keep the general path for non-cube blocks.
+							return true;
+						}
+
+						if (id == BLOCK_WATER)
+						{
+							if (access.blocks[x + 1][y][z] != id || access.blocks[x - 1][y][z] != id ||
+								access.blocks[x][y + 1][z] != id || access.blocks[x][y - 1][z] != id ||
+								access.blocks[x][y][z + 1] != id || access.blocks[x][y][z - 1] != id)
+							{
+								return true;
+							}
+						}
+						else
+						{
+							if (access.blocks[x + 1][y][z] == 0 || access.blocks[x - 1][y][z] == 0 ||
+								access.blocks[x][y + 1][z] == 0 || access.blocks[x][y - 1][z] == 0 ||
+								access.blocks[x][y][z + 1] == 0 || access.blocks[x][y][z - 1] == 0)
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+	}
 
 	static uint32 TexPosToMatId(uint32 x, uint32 y)
 	{
@@ -21,10 +87,10 @@ namespace Cube
 
 	void PaddedBlockAccess::fill(NeighborChunkAccess const& chunkAccess, Chunk* center, int layerIdx)
 	{
-		memset(blocks, 0, sizeof(blocks));
+		FMemory::Set(blocks, 0, sizeof(blocks));
 		basePos = Vec3i(center->getPos().x * ChunkSize, center->getPos().y * ChunkSize, layerIdx * Chunk::LayerSize);
 
-		auto fillLayer = [&](int ox, int oy, Chunk* chunk)
+		auto FillLayer = [&](int ox, int oy, Chunk* chunk)
 		{
 			if (!chunk) return;
 			auto layer = chunk->mLayer[layerIdx];
@@ -33,8 +99,10 @@ namespace Cube
 			if (ox == 0 && oy == 0)
 			{
 				for (int x = 0; x < ChunkSize; ++x)
+				{
 					for (int y = 0; y < ChunkSize; ++y)
-						memcpy(&blocks[x + 1][y + 1][1], &layer->blockMap[x][y][0], Chunk::LayerSize * sizeof(BlockId));
+						FMemory::Copy(&blocks[x + 1][y + 1][1], &layer->blockMap[x][y][0], Chunk::LayerSize * sizeof(BlockId));
+				}
 			}
 			else
 			{
@@ -45,22 +113,22 @@ namespace Cube
 				{
 					int sx = (ox == 1) ? 0 : ChunkSize - 1;
 					for (int y = 0; y < ChunkSize; ++y)
-						memcpy(&blocks[lx][y + 1][1], &layer->blockMap[sx][y][0], Chunk::LayerSize * sizeof(BlockId));
+						FMemory::Copy(&blocks[lx][y + 1][1], &layer->blockMap[sx][y][0], Chunk::LayerSize * sizeof(BlockId));
 				}
 				else if (oy != 0)
 				{
 					int sy = (oy == 1) ? 0 : ChunkSize - 1;
 					for (int x = 0; x < ChunkSize; ++x)
-						memcpy(&blocks[x + 1][ly][1], &layer->blockMap[x][sy][0], Chunk::LayerSize * sizeof(BlockId));
+						FMemory::Copy(&blocks[x + 1][ly][1], &layer->blockMap[x][sy][0], Chunk::LayerSize * sizeof(BlockId));
 				}
 			}
 		};
 
-		fillLayer(0, 0, center);
-		fillLayer(1, 0, chunkAccess.mNeighborChunks[FACE_X]);
-		fillLayer(-1, 0, chunkAccess.mNeighborChunks[FACE_NX]);
-		fillLayer(0, 1, chunkAccess.mNeighborChunks[FACE_Y]);
-		fillLayer(0, -1, chunkAccess.mNeighborChunks[FACE_NY]);
+		FillLayer(0, 0, center);
+		FillLayer(1, 0, chunkAccess.mNeighborChunks[FACE_X]);
+		FillLayer(-1, 0, chunkAccess.mNeighborChunks[FACE_NX]);
+		FillLayer(0, 1, chunkAccess.mNeighborChunks[FACE_Y]);
+		FillLayer(0, -1, chunkAccess.mNeighborChunks[FACE_NY]);
 
 		// Z neighbors
 		if (layerIdx > 0 && center->mLayer[layerIdx - 1])
@@ -125,9 +193,12 @@ namespace Cube
 	void BlockRenderer::drawLayer(Chunk& chunk, int layerIdx)
 	{
 		auto layer = chunk.mLayer[layerIdx];
-		if (!layer) return;
+		if (!layer) 
+			return;
 
 		PaddedBlockAccess* paddedAccess = static_cast<PaddedBlockAccess*>(mBlockAccess);
+		if (!HasAnyRenderableFace(*paddedAccess))
+			return;
 
 		// Pre-reserve to avoid reallocations
 		mMesh->mVertices.reserve(mMesh->mVertices.size() + 1024);
@@ -237,9 +308,9 @@ namespace Cube
 								localPos.z = p_start.z + faceVerts[iv].z * (s.z ? s.z : 1);
 
 								vertex.pos = Vec3f(mBasePos) + localPos;
-								vertex.normal = normal;
+								SetPackedNormal(vertex, normal);
 								vertex.color = mDebugColor;
-								vertex.uv = Vec2f(faceUVVectorMap[curFace][0].dot(vertex.pos), faceUVVectorMap[curFace][1].dot(vertex.pos));
+								SetPackedUV(vertex, Vec2f(faceUVVectorMap[curFace][0].dot(localPos), faceUVVectorMap[curFace][1].dot(localPos)));
 								vertex.meta = matIdx;
 								mMesh->mVertices.push_back(vertex);
 								bound += vertex.pos;
@@ -694,8 +765,8 @@ namespace Cube
 
 			float l1 = d1.normalize();
 			float l2 = d2.normalize();
-
 			float dot = d1.dot(d2);
+
 
 			if (1 - Math::Abs(dot) > 1e-4)
 				return false;
@@ -888,8 +959,9 @@ namespace Cube
 			BlockVertex const& src = mVertices[i];
 			Mesh::Vertex& dest = pDest[i];
 			dest.pos = src.pos;
-			dest.uv = Vec2f(faceUVVectorMap[src.face][0].dot(src.pos), faceUVVectorMap[src.face][1].dot(src.pos));
-			dest.normal = GetFaceNoraml(FaceSide(src.face));
+			Vec3f localPos = src.pos - Vec3f(mBasePos);
+			SetPackedUV(dest, Vec2f(faceUVVectorMap[src.face][0].dot(localPos), faceUVVectorMap[src.face][1].dot(localPos)));
+			SetPackedNormal(dest, GetFaceNoraml(FaceSide(src.face)));
 			dest.color = Color4ub(255,255,255,255);
 			dest.meta = src.matId;
 		}

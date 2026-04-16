@@ -4,6 +4,7 @@
 #include "CubeBase.h"
 
 #include "Core/Color.h"
+#include "Core/HalfFlot.h"
 #include "DataStructure/Array.h"
 
 namespace Cube
@@ -26,9 +27,9 @@ namespace Cube
 		{
 			Vec3f     pos;
 			Color4ub  color;
-			Vec3f     normal;
+			int16     normal[4];
 			uint32    meta;
-			Vec2f     uv;
+			HalfFloat uv[2];
 		};
 
 		TArray< Vertex > mVertices;

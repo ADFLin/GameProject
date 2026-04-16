@@ -91,6 +91,8 @@ namespace Cube
 
 		EState   state;
 		bool     bNeedUpdate = false;
+		bool     bHighPriorityUpdate = false;
+		uint32   dirtyLayerMask = 0;
 		Chunk*   chunk;
 		AABBox   bound;
 		Vec3f    posOffset;
@@ -149,6 +151,8 @@ namespace Cube
 		{
 			mGereatePool->cencelAllWorks();
 			mGereatePool->waitAllWorkComplete();
+			mHighPriorityGeneratePool->cencelAllWorks();
+			mHighPriorityGeneratePool->waitAllWorkComplete();
 			for (auto const& pair : mChunkMap)
 			{
 				delete pair.second;
@@ -161,7 +165,9 @@ namespace Cube
 
 		void resetChunkRenderData(ChunkRenderData* data);
 		void markChunkDirty(ChunkPos const& chunkPos);
-		void updateRenderData(ChunkRenderData* data);
+		void markChunkDirty(ChunkPos const& chunkPos, uint32 layerMask, bool bHighPriority = true);
+		void updateRenderData(ChunkRenderData* data, bool bForceHighPriority = false);
+		void processPendingMeshUpdates(int maxCount, double timeBudgetMS);
 
 		typedef std::unordered_map< uint64 , ChunkRenderData* > ChunkDataMap;
 
@@ -172,11 +178,13 @@ namespace Cube
 			Mesh mesh;
 			ChunkRenderData* chunkData;
 			AABBox bound;
+			bool bFullRebuild = false;
 
 			struct Layer
 			{
 				int index;
 				AABBox bound;
+				bool bHasMesh = false;
 
 				uint32 vertexOffset;
 				uint32 vertexCount;
@@ -192,8 +200,12 @@ namespace Cube
 
 		Mutex mMutexPedingAdd;
 		TArray< UpdatedRenderData > mPendingAddList;
+		TArray< UpdatedRenderData > mProcessingAddList;
+		int    mMeshUpdateBudgetPerFrame = 8;
+		double mMeshUpdateTimeBudgetMS = 1.0;
 
 		QueueThreadPool* mGereatePool;
+		QueueThreadPool* mHighPriorityGeneratePool;
 		World* mClientWorld;
 		int    mRenderDepth;
 		int    mRenderHeight;
@@ -242,6 +254,10 @@ namespace Cube
 		Render::RHIBufferRef mCmdBuildBuffer;
 		Render::RHIBufferRef mCmdBuffer;
 		int mRenderFrame = 0;
+		int mChunkScanOffsetViewDist = 0;
+		int mChunkReleaseMargin = 8;
+		int mNonPriorityScanInterval = 4;
+		TArray<Vec2i> mChunkScanOffsets;
 
 
 	};

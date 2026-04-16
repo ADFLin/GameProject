@@ -130,20 +130,21 @@ namespace Cube
 		}
 		void setNormal(Vec3f const& noraml)
 		{
-			mCurVertex.normal = noraml;
+			mCurVertex.normal[0] = int16(Math::RoundToInt(32767.0f * Math::Clamp(noraml.x, -1.0f, 1.0f)));
+			mCurVertex.normal[1] = int16(Math::RoundToInt(32767.0f * Math::Clamp(noraml.y, -1.0f, 1.0f)));
+			mCurVertex.normal[2] = int16(Math::RoundToInt(32767.0f * Math::Clamp(noraml.z, -1.0f, 1.0f)));
+			mCurVertex.normal[3] = 0;
 		}
 
 
 		void mergeBlockPrimitives();
-
 		void fillBlockPrimitivesToMesh();
 
 
 		void finalizeMesh()
 		{
-			mergeBlockPrimitives();
+			//mergeBlockPrimitives();
 			fillBlockPrimitivesToMesh();
-
 			mQuads.clear();
 			mVertices.clear();
 			mIndices.clear();

@@ -153,7 +153,6 @@ namespace Cube
 		Vec3f   mVertexOffset;
 		Mesh::Vertex mCurVertex;
 		Math::TAABBox< Vec3f > bound;
-		Math::TAABBox< Vec3f > mOccluderBox;
 		TArray< BlockSurfaceQuad > mQuads;
 		TArray< BlockVertex > mVertices;
 		TArray< uint32 >      mIndices;

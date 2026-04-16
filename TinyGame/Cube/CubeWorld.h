@@ -197,7 +197,6 @@ namespace Cube
 
 		void update(float deltaTime)
 		{
-
 			mChunkProvider->update(deltaTime);
 		}
 

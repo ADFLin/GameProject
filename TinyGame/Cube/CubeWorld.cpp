@@ -237,6 +237,8 @@ namespace Cube
 	{
 		if (!mPendingAddChunks.empty())
 		{
+			PROFILE_ENTRY("Add Pending Chunks");
+
 			for (int index = 0; index < mPendingAddChunks.size(); ++index)
 			{
 				Chunk* chunk = mPendingAddChunks[index];

@@ -32,17 +32,7 @@ namespace Cube
 		bool onInit();
 		void onEnd();
 
-		virtual void onUpdate(GameTimeSpan deltaTime)
-		{
-			BaseClass::onUpdate(deltaTime);
-
-			mCamera.updatePosition(deltaTime);
-			mDebugCamera.updatePosition(deltaTime);
-
-
-			mLevel->tick(deltaTime);
-			mScene->tick(deltaTime);
-		}
+		virtual void onUpdate(GameTimeSpan deltaTime);
 
 		void onRender( float dFrame )
 		{

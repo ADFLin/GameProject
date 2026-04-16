@@ -5,6 +5,7 @@
 #include "GameGUISystem.h"
 
 #include "Widget/WidgetUtility.h"
+#include "ProfileSystem.h"
 
 namespace Cube
 {
@@ -28,9 +29,9 @@ namespace Cube
 		mScene->changeWorld( mLevel->getWorld() );
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
-		devFrame->addCheckBox("Use HZB", mScene->mRenderEngine->bUseHZBOcclusion);
 		devFrame->addCheckBox("Use PreDepth", GRenderPreDepth);
 		devFrame->addCheckBox("Show Overdraw", mScene->mRenderEngine->bShowOverdraw);
+		devFrame->addCheckBox("Show ChunkLayerBoundOverDraw", mScene->mRenderEngine->bShowChunkLayerBoundOverDraw);
 		restart();
 		return true;
 	}
@@ -39,6 +40,23 @@ namespace Cube
 	{
 		delete mScene;
 		delete mLevel;
+	}
+
+	void TestStage::onUpdate(GameTimeSpan deltaTime)
+	{
+		BaseClass::onUpdate(deltaTime);
+
+		mCamera.updatePosition(deltaTime);
+		mDebugCamera.updatePosition(deltaTime);
+
+		{
+			PROFILE_ENTRY("Level Tick");
+			mLevel->tick(deltaTime);
+		}
+		{
+			PROFILE_ENTRY("Scene Tick");
+			mScene->tick(deltaTime);
+		}
 	}
 
 	MsgReply TestStage::onMouse(MouseMsg const& msg)

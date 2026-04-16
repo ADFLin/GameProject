@@ -273,9 +273,13 @@ namespace Cube
 
 		if (!mPendingAddList.empty())
 		{
+			PROFILE_ENTRY("Update Mesh Data");
+
+			PROFILE_START("Move UpdateList");
 			mMutexPedingAdd.lock();
 			TArray<UpdatedRenderData> localAddList(std::move(mPendingAddList));
 			mMutexPedingAdd.unlock();
+			PROFILE_END();
 
 			for (auto const& updateData : localAddList)
 			{
@@ -298,7 +302,6 @@ namespace Cube
 
 					layer.meshPool = meshData;
 					layer.bound = updateLayer.bound;
-					layer.occluderBox = updateLayer.occluderBox;
 
 					meshData->vertexAllocator.alloc(updateLayer.vertexCount, 0, layer.vertexAllocation);
 					meshData->indexAllocator.alloc(updateLayer.indexCount, 0, layer.indexAlloction);
@@ -435,7 +438,6 @@ namespace Cube
 
 					layerData.bound = renderer.bound;
 					layerData.index = indexLayer;
-					layerData.occluderBox = renderer.mOccluderBox;
 					layerData.vertexOffset = vertexStart;
 					layerData.vertexCount = (uint32)updateData.mesh.mVertices.size() - layerData.vertexOffset;
 					layerData.indexOffset = indexStart;
@@ -631,6 +633,7 @@ namespace Cube
 
 		auto meshData = new MeshRenderPoolData;
 		meshData->initialize();
+		meshData->poolIndex = (int)mMeshPool.size();
 		mMeshPool.push_back(meshData);
 		return meshData;
 	}
@@ -690,6 +693,12 @@ namespace Cube
 		Vec3f camPos = camera.getPos();
 		Vec3f viewPos = camPos + camera.getViewDir();
 		Vec3f upDir = camera.getUpDir();
+		Vec2f viewDir2D = Vec2f(camera.getViewDir().x, camera.getViewDir().y);
+		bool bHaveViewDir2D = (viewDir2D.length2() > 1e-4f);
+		if (bHaveViewDir2D)
+		{
+			viewDir2D.normalize();
+		}
 
 		ICamera* cameraRender = mDebugCamera ? mDebugCamera : &camera;
 		Matrix4 projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 2000);
@@ -742,14 +751,10 @@ namespace Cube
 
 		ChunkPos cPos;
 		cPos.setBlockPos(bx, by);
-		int viewDist = 20;
+		int viewDist = 48;
 
 		int chunkRenderCount = 0;
 		int triangleCount = 0;
-
-
-
-
 
 		TArray<ChunkRenderData::Layer*> layerDrawList;
 		struct HZBOccluderCandidate
@@ -766,6 +771,14 @@ namespace Cube
 			AABBox boxProjected;
 		};
 		TArray<OccluderInfo> activeOccluders;
+		struct VisibleLayerItem
+		{
+			int poolIndex;
+			HZBCullGPUItem cullItem;
+			int triangleCount;
+		};
+		TArray<VisibleLayerItem> visibleLayerItems;
+		int chunkRequestCount = 0;
 
 		auto ProjectBox = [&](Math::TAABBox<Vec3f> const& box, AABBox& outProjected)
 		{
@@ -793,13 +806,33 @@ namespace Cube
 			return (outProjected.max.x > outProjected.min.x && outProjected.max.y > outProjected.min.y);
 		};
 
+		auto ShouldScanOffset = [&](int dx, int dy)
+		{
+			int distSq = dx * dx + dy * dy;
+			if (distSq > viewDist * viewDist)
+				return false;
+			int nearOmniDist = 24;
+			int nearOmniDistSq = nearOmniDist * nearOmniDist;
+			if (distSq <= nearOmniDistSq || !bHaveViewDir2D)
+				return true;
+
+			Vec2f dir = Vec2f(float(dx), float(dy));
+			dir.normalize();
+			float forwardDotThreshold = 0.35f;
+			return Math::Dot(dir, viewDir2D) >= forwardDotThreshold;
+		};
+
 		auto ProcessChunk = [&](ChunkPos chunkPos)
 		{
 			ChunkDataMap::iterator iter = mChunkMap.find(chunkPos.hash_value());
 			ChunkRenderData* data = NULL;
 			if (iter == mChunkMap.end())
 			{
+				if (chunkRequestCount >= mChunkRequestBudgetPerFrame)
+					return;
+
 				Chunk* chunk = world.getChunk(chunkPos, true);
+				++chunkRequestCount;
 				if (!chunk)
 					return;
 
@@ -815,7 +848,6 @@ namespace Cube
 
 			if (data == nullptr || data->state != ChunkRenderData::eMesh)
 				return;
-
 
 			int chunkVisibility = FViewUtils::IsVisible(clipPlanes, data->bound);
 			if (mDebugCamera)
@@ -833,32 +865,7 @@ namespace Cube
 			if (chunkVisibility == 0)
 				return;
 
-			if (!bUseHZBOcclusion)
-			{
-				AABBox cBox;
-				if (ProjectBox(data->bound, cBox))
-				{
-					int testCount = (int)activeOccluders.size();
-					for (int i = 0; i < testCount; ++i)
-					{
-						auto const& occluder = activeOccluders[i].boxProjected;
-						if (cBox.min.z > occluder.max.z - 0.001f &&
-							cBox.min.x >= occluder.min.x && cBox.max.x <= occluder.max.x &&
-							cBox.min.y >= occluder.min.y && cBox.max.y <= occluder.max.y)
-						{
-							for (int k = 0; k < data->numLayer; ++k)
-							{
-								if (data->layers[k].meshPool)
-									occludedTriangleCount += (data->layers[k].args.indexCountPerInstance / 3) * data->layers[k].args.instanceCount;
-							}
-							return;
-						}
-					}
-				}
-			}
-
-			// Optimization: Determine layer traversal order (Top-to-Bottom for better occlusion seeding)
-			bool bFromTop = true; // Always try top-to-bottom to catch surfaces as occluders
+			bool bFromTop = true;
 			int start = bFromTop ? data->numLayer - 1 : 0;
 			int end = bFromTop ? -1 : data->numLayer;
 			int step = bFromTop ? -1 : 1;
@@ -873,8 +880,6 @@ namespace Cube
 				if (layerVisibility == 0)
 					continue;
 
-				// Hard Distance Clip: If an object is further than 256 units, 
-				// just skip it. This is the ultimate way to save GPU vertex/pixel time.
 				Vector3 center = layer.bound.getCenter();
 				float distSq = (center - camPos).length2();
 				if (distSq > 256.0f * 256.0f)
@@ -884,10 +889,26 @@ namespace Cube
 				}
 
 				layerDrawList.push_back(&layer);
+				VisibleLayerItem visibleItem;
+				visibleItem.poolIndex = layer.meshPool->poolIndex;
+				visibleItem.cullItem.boxMin = layer.bound.min;
+				visibleItem.cullItem.boxMax = layer.bound.max;
+				visibleItem.cullItem.padding0 = 0;
+				visibleItem.cullItem.padding1 = 0;
+				visibleItem.cullItem.outputIndex = 0;
+				visibleItem.cullItem.indexCountPerInstance = layer.args.indexCountPerInstance;
+				visibleItem.cullItem.startIndexLocation = layer.args.startIndexLocation;
+				visibleItem.cullItem.baseVertexLocation = layer.args.baseVertexLocation;
+				visibleItem.cullItem.instanceCount = layer.args.instanceCount;
+				visibleItem.cullItem.startInstanceLocation = layer.args.startInstanceLocation;
+				visibleItem.cullItem.padding2 = 0;
+				visibleItem.cullItem.padding3 = 0;
+				visibleItem.triangleCount = (layer.args.indexCountPerInstance / 3) * layer.args.instanceCount;
+				visibleLayerItems.push_back(visibleItem);
 
-				Math::TAABBox<Vec3f> const& hzbCandidateBound = layer.bound;
-				if (distSq < 192.0f * 192.0f && hzbCandidateBound.isValid())
+				if (distSq < 192.0f * 192.0f && layer.bound.isValid())
 				{
+					Math::TAABBox<Vec3f> const& hzbCandidateBound = layer.bound;
 					AABBox oBox;
 					bool bProjected = ProjectBox(hzbCandidateBound, oBox);
 					float area = 0.0f;
@@ -899,7 +920,6 @@ namespace Cube
 					}
 					else
 					{
-						// Keep nearby occluders even if their AABB intersects the near plane.
 						bAcceptHZBOccluder = (distSq < 64.0f * 64.0f);
 					}
 
@@ -920,7 +940,6 @@ namespace Cube
 							}
 							else
 							{
-								// Replace the one that is FURTHEST away, as closer occluders are better
 								int worstIdx = -1;
 								float maxZ = -2.0f;
 								for (int k = 0; k < 32; ++k)
@@ -947,30 +966,50 @@ namespace Cube
 
 		int chunkMeshCount = 0;
 		int chunkLayerCount = 0;
-		int chunkLayerDepthPrepassCount = 0;
+		int chunkLayerHZBCount = 0;
 		{
 			PROFILE_ENTRY("Render Chunks");
 
 
-			ProcessChunk(cPos);
-
-			for (int n = 1; n <= viewDist; ++n)
 			{
-				for (int i = -(n - 1); i <= (n - 1); ++i)
-				{
-					ProcessChunk(cPos + Vec2i(i, n));
-					ProcessChunk(cPos + Vec2i(i, -n));
-					ProcessChunk(cPos + Vec2i(n, i));
-					ProcessChunk(cPos + Vec2i(-n, i));
-				}
+				PROFILE_ENTRY("Chunk Scan");
+				int viewDistSq = viewDist * viewDist;
+				ProcessChunk(cPos);
 
-				ProcessChunk(cPos + Vec2i(n, n));
-				ProcessChunk(cPos + Vec2i(-n, n));
-				ProcessChunk(cPos + Vec2i(n, -n));
-				ProcessChunk(cPos + Vec2i(-n, -n));
+				for (int n = 1; n <= viewDist; ++n)
+				{
+					for (int i = -(n - 1); i <= (n - 1); ++i)
+					{
+						if (i * i + n * n > viewDistSq)
+							continue;
+						auto TryProcessOffset = [&](int dx, int dy)
+						{
+							if (!ShouldScanOffset(dx, dy))
+								return;
+							ProcessChunk(cPos + Vec2i(dx, dy));
+						};
+						TryProcessOffset(i, n);
+						TryProcessOffset(i, -n);
+						TryProcessOffset(n, i);
+						TryProcessOffset(-n, i);
+					}
+
+					if (2 * n * n <= viewDistSq)
+					{
+						auto TryProcessOffset = [&](int dx, int dy)
+						{
+							if (!ShouldScanOffset(dx, dy))
+								return;
+							ProcessChunk(cPos + Vec2i(dx, dy));
+						};
+						TryProcessOffset(n, n);
+						TryProcessOffset(-n, n);
+						TryProcessOffset(n, -n);
+						TryProcessOffset(-n, -n);
+					}
+				}
 			}
 
-			TArray< DrawCmdArgs > drawCmdList;
 			TArray<int> meshPoolCmdBaseOffsets;
 			TArray<int> meshPoolCmdCounts;
 			TArray<int> hzbCullTriangleCounts;
@@ -982,16 +1021,20 @@ namespace Cube
 				meshPoolCmdBaseOffsets[poolIndex] = 0;
 				meshPoolCmdCounts[poolIndex] = 0;
 			}
-			std::sort(hzbOccluderCandidates.begin(), hzbOccluderCandidates.end(), [](HZBOccluderCandidate const& a, HZBOccluderCandidate const& b)
 			{
-				return a.distSq < b.distSq;
-			});
-			if (hzbOccluderCandidates.size() > 128)
-			{
-				hzbOccluderCandidates.resize(128);
+				PROFILE_ENTRY("Prepare HZB Candidates");
+				std::sort(hzbOccluderCandidates.begin(), hzbOccluderCandidates.end(), [](HZBOccluderCandidate const& a, HZBOccluderCandidate const& b)
+				{
+					return a.distSq < b.distSq;
+				});
+				if (hzbOccluderCandidates.size() > 128)
+				{
+					hzbOccluderCandidates.resize(128);
+				}
 			}
 
 			{
+				PROFILE_ENTRY("HZB Occluder Depth CPU");
 				GPU_PROFILE("HZB Occluder Depth");
 				RHISetFrameBuffer(commandList, mOccluderFrameBuffer);
 				RHISetViewport(commandList, 0, 0, mOccluderDepthTexture->getSizeX(), mOccluderDepthTexture->getSizeY());
@@ -1018,174 +1061,151 @@ namespace Cube
 					RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
 					RHISetIndexBuffer(commandList, meshPool->indexBuffer);
 					RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, layer->args.startIndexLocation, layer->args.indexCountPerInstance, layer->args.baseVertexLocation);
-					++chunkLayerDepthPrepassCount;
+					++chunkLayerHZBCount;
 				}
 
 				RHISetFrameBuffer(commandList, nullptr);
 				RHIResourceTransition(commandList, { mOccluderDepthTexture }, EResourceTransition::SRV);
 			}
 
-			if (bUseHZBOcclusion)
 			{
-				generateHZB(commandList, *mOccluderDepthTexture);
-
-				if (!layerDrawList.empty() && mHZBCullItemBuffer.isValid() && mHZBCullResultTexture.isValid())
 				{
-					for (auto mesh : mMeshPool)
-					{
-						mesh->drawCmdList.clear();
-					}
+					PROFILE_ENTRY("Generate HZB CPU");
+					generateHZB(commandList, *mOccluderDepthTexture);
+				}
 
-					int totalCmdCount = 0;
-					for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
+				if (!visibleLayerItems.empty() && mHZBCullItemBuffer.isValid() && mHZBCullResultTexture.isValid())
+				{
 					{
-						meshPoolCmdBaseOffsets[poolIndex] = totalCmdCount;
-						int count = 0;
-						for (auto* layer : layerDrawList)
+						PROFILE_ENTRY("Prepare HZB Cull Commands");
+						int totalCmdCount = 0;
+						for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
 						{
-							if (layer->meshPool == mMeshPool[poolIndex])
+							meshPoolCmdBaseOffsets[poolIndex] = 0;
+							meshPoolCmdCounts[poolIndex] = 0;
+						}
+
+						for (auto const& visibleItem : visibleLayerItems)
+						{
+							int poolIndex = visibleItem.poolIndex;
+							if (poolIndex < 0 || poolIndex >= (int)mMeshPool.size())
+								continue;
+
+							++meshPoolCmdCounts[poolIndex];
+							++totalCmdCount;
+						}
+
+						int testCount = Math::Min<int>(totalCmdCount, MaxHZBCullItems);
+						if (testCount > 0)
+						{
+							int remainingCount = testCount;
+							for (int poolIndex = 0; poolIndex < (int)meshPoolCmdCounts.size(); ++poolIndex)
 							{
-								++count;
+								meshPoolCmdBaseOffsets[poolIndex] = testCount - remainingCount;
+								meshPoolCmdCounts[poolIndex] = Math::Min(meshPoolCmdCounts[poolIndex], remainingCount);
+								remainingCount -= meshPoolCmdCounts[poolIndex];
 							}
-						}
-						meshPoolCmdCounts[poolIndex] = count;
-						totalCmdCount += count;
-					}
 
-					int testCount = Math::Min<int>(totalCmdCount, MaxHZBCullItems);
-					if (testCount > 0)
-					{
-						int remainingCount = testCount;
-						for (int poolIndex = 0; poolIndex < (int)meshPoolCmdCounts.size(); ++poolIndex)
-						{
-							meshPoolCmdBaseOffsets[poolIndex] = testCount - remainingCount;
-							meshPoolCmdCounts[poolIndex] = Math::Min(meshPoolCmdCounts[poolIndex], remainingCount);
-							remainingCount -= meshPoolCmdCounts[poolIndex];
-						}
+							TArray<HZBCullGPUItem> cullItems;
+							cullItems.resize(testCount);
+							hzbCullTriangleCounts.resize(testCount);
+							hzbCullTestCount = testCount;
 
-						TArray<HZBCullGPUItem> cullItems;
-						cullItems.resize(testCount);
-						hzbCullTriangleCounts.resize(testCount);
-						hzbCullTestCount = testCount;
-						int outputIndex = 0;
-						for (int poolIndex = 0; poolIndex < (int)mMeshPool.size() && outputIndex < testCount; ++poolIndex)
-						{
-							for (auto* layer : layerDrawList)
+							TArray<int> writeOffsets;
+							writeOffsets = meshPoolCmdBaseOffsets;
+
+							for (auto const& visibleItem : visibleLayerItems)
 							{
-								if (layer->meshPool != mMeshPool[poolIndex] || outputIndex >= testCount)
+								int poolIndex = visibleItem.poolIndex;
+								if (poolIndex < 0 || poolIndex >= (int)mMeshPool.size())
+									continue;
+								if (meshPoolCmdCounts[poolIndex] == 0)
 									continue;
 
-								auto const& bound = layer->bound;
+								int outputIndex = writeOffsets[poolIndex];
+								int outputEnd = meshPoolCmdBaseOffsets[poolIndex] + meshPoolCmdCounts[poolIndex];
+								if (outputIndex >= outputEnd)
+									continue;
+
 								auto& item = cullItems[outputIndex];
-								item.boxMin = bound.min;
-								item.boxMax = bound.max;
-								item.padding0 = 0;
-								item.padding1 = 0;
+								item = visibleItem.cullItem;
 								item.outputIndex = outputIndex;
-								item.indexCountPerInstance = layer->args.indexCountPerInstance;
-								item.startIndexLocation = layer->args.startIndexLocation;
-								item.baseVertexLocation = layer->args.baseVertexLocation;
-								item.instanceCount = layer->args.instanceCount;
-								item.startInstanceLocation = layer->args.startInstanceLocation;
-								item.padding2 = 0;
-								item.padding3 = 0;
-								hzbCullTriangleCounts[outputIndex] = (layer->args.indexCountPerInstance / 3) * layer->args.instanceCount;
-								++outputIndex;
+								hzbCullTriangleCounts[outputIndex] = visibleItem.triangleCount;
+								++writeOffsets[poolIndex];
+							}
+							{
+								PROFILE_ENTRY("HZB UpdateCullItemBuffer");
+								RHIUpdateBuffer(commandList, *mHZBCullItemBuffer, 0, testCount, cullItems.data());
+							}
+							{
+								PROFILE_ENTRY("HZB Cull Dispatch CPU");
+								GPU_PROFILE("HZB Cull");
+
+								auto* progHZBCull = ShaderManager::Get().getGlobalShaderT< HZBCullCS >();
+								RHIResourceTransition(commandList, { mHZBTexture }, EResourceTransition::SRV);
+								RHIResourceTransition(commandList, { mHZBCullResultTexture, mCmdBuildBuffer }, EResourceTransition::UAV);
+								RHISetComputeShader(commandList, progHZBCull->getRHI());
+								progHZBCull->setStorageBuffer(commandList, SHADER_PARAM(CullItems), *mHZBCullItemBuffer, EAccessOp::ReadOnly);
+								progHZBCull->setTexture(commandList, SHADER_PARAM(HZBTexture), *mHZBTexture);
+								progHZBCull->setStorageBuffer(commandList, SHADER_PARAM(VisibleCommands), *mCmdBuildBuffer, EAccessOp::ReadAndWrite);
+								progHZBCull->setParam(commandList, SHADER_PARAM(WorldToClip), context.worldToClip);
+								progHZBCull->setParam(commandList, SHADER_PARAM(ViewSize), IntVector2(mOccluderDepthTexture->getSizeX(), mOccluderDepthTexture->getSizeY()));
+								progHZBCull->setParam(commandList, SHADER_PARAM(ResultTextureSize), IntVector2(HZBCullResultTextureWidth, 1));
+								progHZBCull->setParam(commandList, SHADER_PARAM(NumMipLevel), mHZBTexture->getDesc().numMipLevel);
+								progHZBCull->setParam(commandList, SHADER_PARAM(NumItems), testCount);
+								progHZBCull->setParam(commandList, SHADER_PARAM(DepthBias), 0.0005f);
+								progHZBCull->setRWTexture(commandList, SHADER_PARAM(ResultTexture), *mHZBCullResultTexture, 0, EAccessOp::WriteOnly);
+								RHIDispatchCompute(commandList, (testCount + 63) / 64, 1, 1);
+								progHZBCull->clearRWTexture(commandList, SHADER_PARAM(ResultTexture));
+								progHZBCull->clearBuffer(commandList, SHADER_PARAM(VisibleCommands), EAccessOp::ReadAndWrite);
+								RHIResourceTransition(commandList, { mCmdBuildBuffer }, EResourceTransition::UAVBarrier);
+								RHIResourceTransition(commandList, { mHZBCullResultTexture }, EResourceTransition::SRV);
+							}
+
+							{
+								PROFILE_ENTRY("HZB Copy Visible Commands");
+								RHICopyResource(commandList, *mCmdBuffer, *mCmdBuildBuffer);
 							}
 						}
-						RHIUpdateBuffer(commandList, *mHZBCullItemBuffer, 0, testCount, cullItems.data());
-
-						{
-							GPU_PROFILE("HZB Cull");
-
-							auto* progHZBCull = ShaderManager::Get().getGlobalShaderT< HZBCullCS >();
-							RHIResourceTransition(commandList, { mHZBTexture }, EResourceTransition::SRV);
-							RHIResourceTransition(commandList, { mHZBCullResultTexture, mCmdBuildBuffer}, EResourceTransition::UAV);
-							RHISetComputeShader(commandList, progHZBCull->getRHI());
-							progHZBCull->setStorageBuffer(commandList, SHADER_PARAM(CullItems), *mHZBCullItemBuffer, EAccessOp::ReadOnly);
-							progHZBCull->setTexture(commandList, SHADER_PARAM(HZBTexture), *mHZBTexture);
-							progHZBCull->setStorageBuffer(commandList, SHADER_PARAM(VisibleCommands), *mCmdBuildBuffer, EAccessOp::ReadAndWrite);
-							progHZBCull->setParam(commandList, SHADER_PARAM(WorldToClip), context.worldToClip);
-							progHZBCull->setParam(commandList, SHADER_PARAM(ViewSize), IntVector2(mOccluderDepthTexture->getSizeX(), mOccluderDepthTexture->getSizeY()));
-							progHZBCull->setParam(commandList, SHADER_PARAM(ResultTextureSize), IntVector2(HZBCullResultTextureWidth, 1));
-							progHZBCull->setParam(commandList, SHADER_PARAM(NumMipLevel), mHZBTexture->getDesc().numMipLevel);
-							progHZBCull->setParam(commandList, SHADER_PARAM(NumItems), testCount);
-							progHZBCull->setParam(commandList, SHADER_PARAM(DepthBias), 0.0005f);
-							progHZBCull->setRWTexture(commandList, SHADER_PARAM(ResultTexture), *mHZBCullResultTexture, 0, EAccessOp::WriteOnly);
-							RHIDispatchCompute(commandList, (testCount + 63) / 64, 1, 1);
-							progHZBCull->clearRWTexture(commandList, SHADER_PARAM(ResultTexture));
-							progHZBCull->clearBuffer(commandList, SHADER_PARAM(VisibleCommands), EAccessOp::ReadAndWrite);
-							RHIResourceTransition(commandList, { mCmdBuildBuffer }, EResourceTransition::UAVBarrier);
-							RHIResourceTransition(commandList, { mHZBCullResultTexture }, EResourceTransition::SRV);
-						}
-
-						RHICopyResource(commandList, *mCmdBuffer, *mCmdBuildBuffer);
 					}
 				}
 			}
 
-			RHISetFrameBuffer(commandList, mSceneFrameBuffer);
-			RHISetViewport(commandList, 0, 0, mViewSize.x, mViewSize.y);
-			LinearColor clearColor(0, 0, 0, 1);
-			RHIClearRenderTargets(commandList, EClearBits::All, &clearColor, 1);
+			{
+				PROFILE_ENTRY("Setup Scene FrameBuffer");
+				RHISetFrameBuffer(commandList, mSceneFrameBuffer);
+				RHISetViewport(commandList, 0, 0, mViewSize.x, mViewSize.y);
+				LinearColor clearColor(0, 0, 0, 1);
+				RHIClearRenderTargets(commandList, EClearBits::All, &clearColor, 1);
+			}
 
 			// Front-to-Back Sorting: Closest first to maximize Early-Z culling
-			std::sort(layerDrawList.begin(), layerDrawList.end(), [&](ChunkRenderData::Layer* a, ChunkRenderData::Layer* b)
 			{
-				float distA = (a->bound.getCenter() - camPos).length2();
-				float distB = (b->bound.getCenter() - camPos).length2();
-				return distA < distB;
-			});
+				PROFILE_ENTRY("Sort Layer Draw List");
+				std::sort(layerDrawList.begin(), layerDrawList.end(), [&](ChunkRenderData::Layer* a, ChunkRenderData::Layer* b)
+				{
+					float distA = (a->bound.getCenter() - camPos).length2();
+					float distB = (b->bound.getCenter() - camPos).length2();
+					return distA < distB;
+				});
+			}
 
 			triangleCount = 0;
-			if (!bUseHZBOcclusion)
 			{
-				for (auto layer : layerDrawList)
-				{
-					triangleCount += (layer->args.indexCountPerInstance / 3) * layer->args.instanceCount;
-
-					auto meshPool = layer->meshPool;
-					if (meshPool->drawFrame != mRenderFrame)
-					{
-						meshPool->drawCmdList.clear();
-						meshPool->drawFrame = mRenderFrame;
-					}
-					meshPool->drawCmdList.push_back(layer->args);
-				}
-			}
-
-			drawCmdList.clear();
-			if (!bUseHZBOcclusion)
-			{
-				drawCmdList.reserve(2048);
-				for (auto mesh : mMeshPool)
-				{
-					if (mesh->drawFrame != mRenderFrame)
-						continue;
-
-					mesh->cmdOffset = sizeof(DrawCmdArgs) * (uint32)drawCmdList.size();
-					drawCmdList.append(mesh->drawCmdList);
-				}
-			}
-			else
-			{
+				PROFILE_ENTRY("Setup Indirect Draw Offsets");
 				for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
 				{
 					mMeshPool[poolIndex]->cmdOffset = sizeof(DrawCmdArgs) * meshPoolCmdBaseOffsets[poolIndex];
 				}
 			}
 
-			bool bHaveIndirectDraw = bUseHZBOcclusion ? !layerDrawList.empty() : !drawCmdList.empty();
+			bool bHaveIndirectDraw = !layerDrawList.empty();
 			if (bHaveIndirectDraw)
 			{
-				if (!bUseHZBOcclusion)
-				{
-					RHIUpdateBuffer(*mCmdBuffer, 0, (uint32)drawCmdList.size(), drawCmdList.data());
-				}
-
 				// 3. Z-Prepass (Depth Only)
-				if ( GRenderPreDepth )
+				if (!bShowChunkLayerBoundOverDraw && GRenderPreDepth)
 				{
+					PROFILE_ENTRY("Z-Prepass CPU");
 					GPU_PROFILE("Z-Prepass");
 					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
 					RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNear>::GetRHI());
@@ -1196,8 +1216,9 @@ namespace Cube
 					for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
 					{
 						auto mesh = mMeshPool[poolIndex];
-						int numCommands = bUseHZBOcclusion ? meshPoolCmdCounts[poolIndex] : (int)mesh->drawCmdList.size();
-						if (numCommands == 0) continue;
+						int numCommands = meshPoolCmdCounts[poolIndex];
+						if (numCommands == 0)
+							continue;
 
 						InputStreamInfo inputstream;
 						inputstream.buffer = mesh->vertexBuffer;
@@ -1210,59 +1231,90 @@ namespace Cube
 					}
 				}
 
-				// 4. Base Pass / Overdraw
+				// 4. Base Pass / Overdraw / Bound Overdraw
 				{
+					PROFILE_ENTRY("Base Pass CPU");
 					GPU_PROFILE("Base Pass");
-					chunkLayerCount = (int)drawCmdList.size();
-					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
+					chunkLayerCount = layerDrawList.size();
 
-					if (bShowOverdraw)
+					if (bShowChunkLayerBoundOverDraw)
 					{
+						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
 						RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::Always>::GetRHI());
 						RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::One, EBlend::One>::GetRHI());
-						RHISetShaderProgram(commandList, mProgBlockRenderOverdraw->getRHI());
-						context.setupShader(commandList, *mProgBlockRenderOverdraw);
-					}
-					else if (GRenderPreDepth)
-					{
-						RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::DepthNearEqual>::GetRHI());
-						RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-						RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
-						context.setupShader(commandList, *mProgBlockRender);
-						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
+
+						static uint8 FaceOrder[] = { FACE_X, FACE_NX, FACE_Y, FACE_NY, FACE_Z, FACE_NZ };
+						for (auto* layer : layerDrawList)
+						{
+							if (layer == nullptr || !layer->bound.isValid())
+								continue;
+
+							context.stack.push();
+							context.stack.translate(layer->bound.min);
+							context.stack.scale(layer->bound.getSize());
+							context.setupShader(commandList, LinearColor( 0.04, 0.04, 0.04, 1));
+
+							for (uint8 face : FaceOrder)
+							{
+								TRenderRT<RTVF_XYZ>::Draw(commandList, EPrimitive::Quad, GetFaceVertices((FaceSide)face), 4);
+							}
+							context.stack.pop();
+						}
+						chunkMeshCount = 0;
 					}
 					else
 					{
-						RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNear>::GetRHI());
-						RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-						RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
-						context.setupShader(commandList, *mProgBlockRender);
-						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
-					}
+						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back>::GetRHI());
 
-					chunkMeshCount = 0; // Reset for accurate display
-					for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
-					{
-						auto mesh = mMeshPool[poolIndex];
-						int numCommands = bUseHZBOcclusion ? meshPoolCmdCounts[poolIndex] : (int)mesh->drawCmdList.size();
-						if (!bUseHZBOcclusion && mesh->drawFrame != mRenderFrame) continue;
-						if (numCommands == 0) continue;
+						if (bShowOverdraw)
+						{
+							RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::Always>::GetRHI());
+							RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::One, EBlend::One>::GetRHI());
+							RHISetShaderProgram(commandList, mProgBlockRenderOverdraw->getRHI());
+							context.setupShader(commandList, *mProgBlockRenderOverdraw);
+						}
+						else if (GRenderPreDepth)
+						{
+							RHISetDepthStencilState(commandList, TStaticDepthStencilState<false, ECompareFunc::DepthNearEqual>::GetRHI());
+							RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+							RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
+							context.setupShader(commandList, *mProgBlockRender);
+							SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
+						}
+						else
+						{
+							RHISetDepthStencilState(commandList, TStaticDepthStencilState<true, ECompareFunc::DepthNear>::GetRHI());
+							RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+							RHISetShaderProgram(commandList, mProgBlockRender->getRHI());
+							context.setupShader(commandList, *mProgBlockRender);
+							SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
+						}
 
-						InputStreamInfo inputstream;
-						inputstream.buffer = mesh->vertexBuffer;
-						inputstream.offset = 0;
-						inputstream.stride = mesh->vertexBuffer->getElementSize();
-						RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
-						RHISetIndexBuffer(commandList, mesh->indexBuffer);
+						chunkMeshCount = 0; // Reset for accurate display
+						for (int poolIndex = 0; poolIndex < (int)mMeshPool.size(); ++poolIndex)
+						{
+							auto mesh = mMeshPool[poolIndex];
+							int numCommands = meshPoolCmdCounts[poolIndex];
+							if (numCommands == 0) 
+								continue;
 
-						RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, numCommands);
-						++chunkMeshCount;
+							InputStreamInfo inputstream;
+							inputstream.buffer = mesh->vertexBuffer;
+							inputstream.offset = 0;
+							inputstream.stride = mesh->vertexBuffer->getElementSize();
+							RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
+							RHISetIndexBuffer(commandList, mesh->indexBuffer);
+
+							RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mCmdBuffer, mesh->cmdOffset, numCommands);
+							++chunkMeshCount;
+						}
 					}
 				}
 			}
 
-			if (bUseHZBOcclusion && hzbCullTestCount > 0)
+			if (hzbCullTestCount > 0 && false)
 			{
+				PROFILE_ENTRY("HZB Readback");
 				TArray<uint8> readbackData;
 				RHIReadTexture(*mHZBCullResultTexture, ETexture::RGBA8, 0, readbackData);
 
@@ -1271,9 +1323,11 @@ namespace Cube
 				for (int itemIndex = 0; itemIndex < maxReadableItemCount; ++itemIndex)
 				{
 					Color4ub const& color = *(reinterpret_cast<Color4ub const*>(readbackData.data()) + itemIndex);
+					
 					bool const bVisible = (color.r > 0);
 					if (bVisible)
 					{
+						chunkLayerCount += 1;
 						triangleCount += hzbCullTriangleCounts[itemIndex];
 					}
 					else
@@ -1284,7 +1338,7 @@ namespace Cube
 			}
 		}
 
-#if 0
+#if 1
 		BlockPosInfo info;
 		BlockId id = world.rayBlockTest(camPos, camera.getViewDir(), 100, &info);
 		if (id)
@@ -1332,7 +1386,7 @@ namespace Cube
 		g.drawTextF(Vector2(10, 40), "Occluded Tri: %lld (%.1f%% culled)", occludedTriangleCount, cullingRate);
 		g.drawTextF(Vector2(10, 55), "Drawn Tri: %lld", triangleCount);
 		g.drawTextF(Vector2(10, 70), "MergeTimeAcc = %lf, Tri Time = %lf", mMergeTimeAcc, GTriTime);
-		g.drawTextF(Vector2(10, 85), "chunkMeshCount = %d, chunkLayerCount = %d, chunkLayerDepthPrepassCount = %d", chunkMeshCount, chunkLayerCount, chunkLayerDepthPrepassCount);
+		g.drawTextF(Vector2(10, 85), "chunkMeshCount = %d, chunkLayerCount = %d, chunkLayerHZBCount = %d", chunkMeshCount, chunkLayerCount, chunkLayerHZBCount);
 
 #if 0
 

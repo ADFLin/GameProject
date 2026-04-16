@@ -60,6 +60,7 @@ namespace Cube
 	{
 		BuddyAllocatorBase vertexAllocator;
 		BuddyAllocatorBase indexAllocator;
+		int poolIndex = -1;
 
 		bool initialize();
 
@@ -164,7 +165,7 @@ namespace Cube
 
 		typedef std::unordered_map< uint64 , ChunkRenderData* > ChunkDataMap;
 
-		typedef std::vector< ChunkRenderData* > WorldDataVec;
+		typedef TArray< ChunkRenderData* > WorldDataVec;
 
 		struct UpdatedRenderData
 		{
@@ -176,7 +177,6 @@ namespace Cube
 			{
 				int index;
 				AABBox bound;
-				AABBox occluderBox;
 
 				uint32 vertexOffset;
 				uint32 vertexCount;
@@ -207,8 +207,10 @@ namespace Cube
 		class BlockRenderShaderProgram* mProgBlockRenderDepth;
 		class BlockRenderShaderProgram* mProgBlockRenderOverdraw;
 		class HZBGenerateCS* mProgHZBGenerate;
-		bool bUseHZBOcclusion = true;
+
 		bool bShowOverdraw = false;
+		bool bShowChunkLayerBoundOverDraw = false;
+		int  mChunkRequestBudgetPerFrame = 256;
 		bool bWireframeMode = false;
 		double mMergeTimeAcc = 0;
 

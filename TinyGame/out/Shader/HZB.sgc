@@ -55,21 +55,7 @@ CS_ENTRY(GenerateHZBCS)
 
 #if SHADER_ENTRY(HZBCullCSMain)
 
-struct HZBCullItem
-{
-	float3 boxMin;
-	float  padding0;
-	float3 boxMax;
-	float  padding1;
-	uint outputIndex;
-	uint indexCountPerInstance;
-	uint startIndexLocation;
-	int  baseVertexLocation;
-	uint instanceCount;
-	uint startInstanceLocation;
-	uint padding2;
-	uint padding3;
-};
+
 
 struct DrawCmdArgs
 {
@@ -79,6 +65,18 @@ struct DrawCmdArgs
 	int  baseVertexLocation;
 	uint startInstanceLocation;
 };
+
+struct HZBCullItem
+{
+	float3 boxMin;
+	float  padding0;
+	float3 boxMax;
+	float  padding1;
+	uint   outputIndex;
+	DrawCmdArgs cmdArgs;
+};
+
+
 
 StructuredBuffer<HZBCullItem> CullItems;
 DEFINE_TEXTURE(Texture2D, HZBTexture);
@@ -183,11 +181,11 @@ CS_ENTRY(HZBCullCSMain)
 	}
 
 	uint baseIndex = item.outputIndex * 5;
-	VisibleCommands[baseIndex + 0] = item.indexCountPerInstance;
-	VisibleCommands[baseIndex + 1] = visible ? item.instanceCount : 0;
-	VisibleCommands[baseIndex + 2] = item.startIndexLocation;
-	VisibleCommands[baseIndex + 3] = asuint(item.baseVertexLocation);
-	VisibleCommands[baseIndex + 4] = item.startInstanceLocation;
+	VisibleCommands[baseIndex + 0] = item.cmdArgs.indexCountPerInstance;
+	VisibleCommands[baseIndex + 1] = visible ? item.cmdArgs.instanceCount : 0;
+	VisibleCommands[baseIndex + 2] = item.cmdArgs.startIndexLocation;
+	VisibleCommands[baseIndex + 3] = asuint(item.cmdArgs.baseVertexLocation);
+	VisibleCommands[baseIndex + 4] = item.cmdArgs.startInstanceLocation;
 
 	int2 resultPos = int2(itemIndex % ResultTextureSize.x, itemIndex / ResultTextureSize.x);
 	imageStore(ResultTexture, resultPos, visible ? float4(1, 0, 0, 1) : float4(0, 0, 0, 1));

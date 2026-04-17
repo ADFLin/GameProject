@@ -17,7 +17,7 @@ namespace Cube
 	Chunk::Chunk( ChunkPos const& pos )
 		:mPos( pos )
 	{
-		std::fill_n( mLayer , NumLayer , static_cast< LayerData*>(0) );
+		std::fill_n( mLayer , NumLayer , nullptr );
 	}
 
 	BlockId Chunk::getBlockId( int x , int y , int z )
@@ -65,7 +65,8 @@ namespace Cube
 		uint32 meta = layer->meta[ x & ChunkMask ][ y & ChunkMask ][ ( z & LayerMask ) / 2 ];
 		return ( z & 0x1 ) ? ( meta & 0xf ) : ( meta >> 4 );
 	}
-	void     Chunk::setBlockMeta( int x , int y , int z , MetaType meta )
+
+	void Chunk::setBlockMeta( int x , int y , int z , MetaType meta )
 	{
 		assert( meta < 16 );
 
@@ -87,41 +88,6 @@ namespace Cube
 			holdMeta = ( meta << 4 ) | ( holdMeta & 0xf);
 	}
 
-	void Chunk::render( BlockRenderer& renderer, int indexLayer, int layerCount)
-	{
-		int layerSize = (Chunk::NumLayer + layerCount - 1) / layerCount;
-		int indexLayerStart = indexLayer * layerSize;
-		int indexLayerEnd   = Math::Min(indexLayerStart + layerSize , (int)Chunk::NumLayer);
-		for( int n = indexLayerStart; n < indexLayerEnd; ++n )
-		{
-			LayerData* layer = mLayer[ n ];
-			if ( !layer )
-				continue;
-
-			renderer.setBasePos(Vec3i(mPos.x * ChunkSize, mPos.y * ChunkSize, 0));
-			int zOff = n * LayerSize;
-
-			Vec3i offset;
-			for(offset.x = 0 ; offset.x < ChunkSize ; ++offset.x )
-			{
-				for (offset.y = 0 ; offset.y < ChunkSize ; ++offset.y )
-				{
-					BlockId* pBlockMap = &layer->blockMap[offset.x][offset.y][0];
-					for( int k = 0 ; k < LayerSize ; ++k )
-					{
-						BlockId id = pBlockMap[k];
-						if (id)
-						{
-							offset.z = zOff + k;
-							renderer.draw(offset, id);
-						}
-
-					}
-				}
-			}
-		}
-	}
-
 	struct NoiseFunc
 	{
 		void setSeed(uint64 seed)
@@ -131,7 +97,6 @@ namespace Cube
 		}
 		float get()
 		{
-
 
 
 		}

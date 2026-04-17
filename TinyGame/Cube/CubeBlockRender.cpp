@@ -87,8 +87,22 @@ namespace Cube
 
 	void PaddedBlockAccess::fill(NeighborChunkAccess const& chunkAccess, Chunk* center, int layerIdx)
 	{
-		FMemory::Set(blocks, 0, sizeof(blocks));
 		basePos = Vec3i(center->getPos().x * ChunkSize, center->getPos().y * ChunkSize, layerIdx * Chunk::LayerSize);
+
+		// Interior [1..16][1..16][1..LayerSize] is fully overwritten by the center layer.
+		// Only clear the six padding faces that may remain untouched when neighbor chunks/layers are missing.
+		FMemory::Set(blocks[0], 0, sizeof(blocks[0]));
+		FMemory::Set(blocks[ChunkSize + 1], 0, sizeof(blocks[ChunkSize + 1]));
+		for (int x = 1; x <= ChunkSize; ++x)
+		{
+			FMemory::Set(blocks[x][0], 0, sizeof(blocks[x][0]));
+			FMemory::Set(blocks[x][ChunkSize + 1], 0, sizeof(blocks[x][ChunkSize + 1]));
+			for (int y = 1; y <= ChunkSize; ++y)
+			{
+				blocks[x][y][0] = 0;
+				blocks[x][y][Chunk::LayerSize + 1] = 0;
+			}
+		}
 
 		auto FillLayer = [&](int ox, int oy, Chunk* chunk)
 		{
@@ -149,7 +163,7 @@ namespace Cube
 
 	struct BlockMeshInfo
 	{
-		uint32 matId;
+		uint16 matId;
 		bool bStandard;
 	};
 
@@ -158,7 +172,7 @@ namespace Cube
 		Block* block = Block::Get(id);
 		if (block && block->isFullCube())
 		{
-			uint32 matId = 0;
+			uint16 matId = 0;
 			switch (id)
 			{
 			case BLOCK_BASE: matId = TexPosToMatId(11, 0); break;
@@ -205,7 +219,13 @@ namespace Cube
 		mMesh->mIndices.reserve(mMesh->mIndices.size() + 1536);
 
 		int dims[3] = { ChunkSize, ChunkSize, Chunk::LayerSize };
-		uint32 mask[ChunkSize * Chunk::LayerSize];
+		uint16 mask[ChunkSize * Chunk::LayerSize];
+		static Vec3f const FaceUVVectorMap[FaceSide::COUNT][2] =
+		{
+			{ Vec3f(0,1,0), Vec3f(0,0,-1) }, { Vec3f(0,1,0), Vec3f(0,0,-1) },
+			{ Vec3f(1,0,0), Vec3f(0,0,-1) }, { Vec3f(1,0,0), Vec3f(0,0,-1) },
+			{ Vec3f(1,0,0), Vec3f(0,1,0) },  { Vec3f(1,0,0), Vec3f(0,1,0) },
+		};
 
 		for (int axis = 0; axis < 3; ++axis)
 		{
@@ -223,7 +243,7 @@ namespace Cube
 					FaceSide curFace = getFaceSide(axis, side != 0);
 					Vec3i nOffset = GetFaceOffset(curFace);
 
-					FMemory::Set(mask, 0, du * dv * sizeof(uint32));
+					FMemory::Set(mask, 0, du * dv * sizeof(uint16));
 					bool bHasFace = false;
 
 					for (int j = 0; j < dv; ++j)
@@ -264,23 +284,24 @@ namespace Cube
 					{
 						for (int i = 0; i < du; ++i)
 						{
-							uint32 matIdx = mask[i + j * du];
+							uint16 matIdx = mask[i + j * du];
 							if (matIdx == 0) continue;
 
 							int w, h;
 							for (w = 1; i + w < du && mask[i + w + j * du] == matIdx; ++w);
-							bool done = false;
 							for (h = 1; j + h < dv; ++h)
 							{
+								bool bSame = true;
 								for (int k_u = 0; k_u < w; ++k_u)
 								{
 									if (mask[i + k_u + (j + h) * du] != matIdx)
 									{
-										done = true;
+										bSame = false;
 										break;
 									}
 								}
-								if (done) break;
+								if (!bSame)
+									break;
 							}
 
 							Vec3i p_start;
@@ -292,32 +313,33 @@ namespace Cube
 							auto faceVerts = GetFaceVertices(curFace);
 							Vec3f normal = GetFaceNoraml(curFace);
 
-							static Vec3f const faceUVVectorMap[FaceSide::COUNT][2] =
-							{
-								{ Vec3f(0,1,0), Vec3f(0,0,-1) }, { Vec3f(0,1,0), Vec3f(0,0,-1) },
-								{ Vec3f(1,0,0), Vec3f(0,0,-1) }, { Vec3f(1,0,0), Vec3f(0,0,-1) },
-								{ Vec3f(1,0,0), Vec3f(0,1,0) },  { Vec3f(1,0,0), Vec3f(0,1,0) },
-							};
-
+							mMesh->mVertices.resize(vStart + 4);
+							Mesh::Vertex* outVertices = mMesh->mVertices.data() + vStart;
 							for (int iv = 0; iv < 4; ++iv)
 							{
-								Mesh::Vertex vertex;
 								Vec3f localPos;
 								localPos.x = p_start.x + faceVerts[iv].x * (s.x ? s.x : 1);
 								localPos.y = p_start.y + faceVerts[iv].y * (s.y ? s.y : 1);
 								localPos.z = p_start.z + faceVerts[iv].z * (s.z ? s.z : 1);
 
+								Mesh::Vertex& vertex = outVertices[iv];
 								vertex.pos = Vec3f(mBasePos) + localPos;
 								SetPackedNormal(vertex, normal);
 								vertex.color = mDebugColor;
-								SetPackedUV(vertex, Vec2f(faceUVVectorMap[curFace][0].dot(localPos), faceUVVectorMap[curFace][1].dot(localPos)));
+								SetPackedUV(vertex, Vec2f(FaceUVVectorMap[curFace][0].dot(localPos), FaceUVVectorMap[curFace][1].dot(localPos)));
 								vertex.meta = matIdx;
-								mMesh->mVertices.push_back(vertex);
 								bound += vertex.pos;
 							}
 
-							mMesh->mIndices.push_back(vStart + 0); mMesh->mIndices.push_back(vStart + 1); mMesh->mIndices.push_back(vStart + 2);
-							mMesh->mIndices.push_back(vStart + 0); mMesh->mIndices.push_back(vStart + 2); mMesh->mIndices.push_back(vStart + 3);
+							unsigned indexStart = (unsigned)mMesh->mIndices.size();
+							mMesh->mIndices.resize(indexStart + 6);
+							uint32* outIndices = mMesh->mIndices.data() + indexStart;
+							outIndices[0] = vStart + 0;
+							outIndices[1] = vStart + 1;
+							outIndices[2] = vStart + 2;
+							outIndices[3] = vStart + 0;
+							outIndices[4] = vStart + 2;
+							outIndices[5] = vStart + 3;
 
 							for (int ly = 0; ly < h; ++ly)
 								for (int lx = 0; lx < w; ++lx)

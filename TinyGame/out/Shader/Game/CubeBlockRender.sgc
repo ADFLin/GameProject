@@ -66,10 +66,14 @@ PS_ENTRY_END(MainPS)
 	float3 N = normalize(VSOutput.normal);
 	float3 L = normalize(float3(0.3,0.2,1.0));
 
-	float2 texUV = float2( (float(InAtlasPos.x) + frac(VSOutput.uv.x)) / 64.0 , (float(InAtlasPos.y) + frac(VSOutput.uv.y)) / 32.0 );
+	float2 atlasGrid = float2(64.0, 32.0);
+	float2 atlasTextureSize = float2(TextureSize(BlockTexture));
+	float2 tileInset = 0.5 * atlasGrid / atlasTextureSize;
+	float2 localUV = lerp(tileInset, 1.0 - tileInset, frac(VSOutput.uv));
+	float2 texUV = (float2(InAtlasPos) + localUV) / atlasGrid;
 	// Manually calculate gradients to avoid Mipmap corruption at atlas boundaries
-	float2 dDX = ddx(VSOutput.uv / float2(64.0, 32.0));
-	float2 dDY = ddy(VSOutput.uv / float2(64.0, 32.0));
+	float2 dDX = ddx(VSOutput.uv / atlasGrid);
+	float2 dDY = ddy(VSOutput.uv / atlasGrid);
 	float4 baseColor = TEXTURE_SAMPLE_GRAD(BlockTexture, texUV, dDX, dDY);
 
 	float NoL = saturate(dot(N,L));

@@ -49,11 +49,11 @@ namespace Cube
 
 	struct DrawCmdArgs
 	{
-		uint indexCountPerInstance;
-		uint instanceCount;
-		uint startIndexLocation;
-		int  baseVertexLocation;
-		uint startInstanceLocation;
+		uint32 indexCountPerInstance;
+		uint32 instanceCount;
+		uint32 startIndexLocation;
+		int32  baseVertexLocation;
+		uint32 startInstanceLocation;
 	};
 
 	struct MeshRenderPoolData : MeshRenderData
@@ -199,8 +199,14 @@ namespace Cube
 		ICamera* mDebugCamera = nullptr;
 
 		Mutex mMutexPedingAdd;
-		TArray< UpdatedRenderData > mPendingAddList;
-		TArray< UpdatedRenderData > mProcessingAddList;
+		TArray< UpdatedRenderData* > mPendingAddList;
+		TArray< UpdatedRenderData* > mProcessingAddList;
+		TArray< UpdatedRenderData* > mFreeUpdateDataList;
+
+		UpdatedRenderData* acquireUpdateData();
+
+		void releaseUpdateData(UpdatedRenderData* data);
+		
 		int    mMeshUpdateBudgetPerFrame = 8;
 		double mMeshUpdateTimeBudgetMS = 1.0;
 
@@ -224,7 +230,7 @@ namespace Cube
 		bool bShowChunkLayerBoundOverDraw = false;
 		int  mChunkRequestBudgetPerFrame = 256;
 		bool bWireframeMode = false;
-		double mMergeTimeAcc = 0;
+		double mMeshBuildTimeAcc = 0;
 
 		Render::RHIInputLayoutRef mBlockInputLayout;
 		Render::RHITexture2DRef  mTexBlockAtlas;
@@ -233,7 +239,6 @@ namespace Cube
 
 		Render::RHITexture2DRef mHZBTexture;
 		Render::RHITexture2DRef mHZBScratchTexture;
-		Render::RHITexture2DRef mMipTestTexture;
 		Render::RHITexture2DRef mSceneTexture;
 		Render::RHITexture2DRef mSceneDepthTexture;
 		Render::RHIFrameBufferRef mSceneFrameBuffer;

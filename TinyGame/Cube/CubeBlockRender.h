@@ -42,7 +42,7 @@ namespace Cube
 
 	struct PaddedBlockAccess : public IBlockAccess
 	{
-		BlockId blocks[18][18][Chunk::LayerSize + 2];
+		BlockId blocks[ChunkSize + 2][ChunkSize + 2][Chunk::LayerSize + 2];
 		Vec3i basePos;
 
 		void fill(class NeighborChunkAccess const& chunkAccess, Chunk* center, int layerIdx);
@@ -52,7 +52,7 @@ namespace Cube
 			int lx = x - basePos.x + 1;
 			int ly = y - basePos.y + 1;
 			int lz = z - basePos.z + 1;
-			if (lx < 0 || lx >= 18 || ly < 0 || ly >= 18 || lz < 0 || lz >= (Chunk::LayerSize + 2))
+			if (lx < 0 || lx >= (ChunkSize + 2) || ly < 0 || ly >= (ChunkSize + 2) || lz < 0 || lz >= (Chunk::LayerSize + 2))
 				return BLOCK_NULL;
 			return blocks[lx][ly][lz];
 		}

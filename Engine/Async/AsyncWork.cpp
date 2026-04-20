@@ -151,7 +151,6 @@ void QueueThreadPool::waitAllWorkComplete(bool bHelpUpdate)
 
 void QueueThreadPool::waitAllWorkCompleteInWorker()
 {
-	// 1. 先處理完佇列中的工作
 	while (true)
 	{
 		IQueuedWork* work = nullptr;
@@ -195,8 +194,7 @@ void QueueThreadPool::addWorks(IQueuedWork* works[], int count)
 {
 	if (count == 0) return;
 
-	PoolRunableThread* dispatched[64];
-	int numDispatched = 0;
+	TArray< PoolRunableThread* , TInlineAllocator<64> > dispatched;
 
 	{
 		SpinLock::Locker locker(mQueueLock);
@@ -206,7 +204,7 @@ void QueueThreadPool::addWorks(IQueuedWork* works[], int count)
 			PoolRunableThread* runThread = mQueuedThreads.back();
 			mQueuedThreads.pop_back();
 			runThread->mWork.store(works[workIdx++], std::memory_order_release);
-			dispatched[numDispatched++] = runThread;
+			dispatched.push_back(runThread);
 		}
 
 		if( workIdx < count )
@@ -216,10 +214,10 @@ void QueueThreadPool::addWorks(IQueuedWork* works[], int count)
 	}
 
 	// Wake threads outside the lock (CV notify may block on mWaitWorkMutex)
-	for (int i = 0; i < numDispatched; ++i)
+	for (auto thread : dispatched)
 	{
-		Mutex::Locker locker(dispatched[i]->mWaitWorkMutex);
-		dispatched[i]->mWaitWorkCV.notifyOne();
+		Mutex::Locker locker(thread->mWaitWorkMutex);
+		thread->mWaitWorkCV.notifyOne();
 	}
 }
 

@@ -188,6 +188,27 @@ namespace Life
 			}
 		}
 
+		void drawBitCells(Vec2i const& rectPos, Vec2i const& rectSize, uint64 const* cellData, uint32 rowStride) override
+		{
+			Vec2i posStart = Vector2(rectPos) - offset;
+			for (int j = 0; j < rectSize.y; ++j)
+			{
+				Vec2i pos;
+				pos.y = posStart.y + j;
+				uint64 bits = cellData[j * rowStride];
+				int i;
+				int count;
+				while (FBitUtility::IterateMaskRange<64>(bits, i, count))
+				{
+					for (int n = 0; n < count; ++n)
+					{
+						pos.x = posStart.x + i + n;
+						fillData(pos);
+					}
+				}
+			}
+		}
+
 	};
 
 	class TextureGenerateWithScale : public TextureGenerate
@@ -219,6 +240,32 @@ namespace Life
 					if (pRow[i])
 					{
 						pos.x = posStart.x + i * scale;
+
+						Vec2i pixelPos;
+						pixelPos.x = Math::FloorToInt(pos.x);
+						pixelPos.y = Math::FloorToInt(pos.y);
+						fillData(pixelPos);
+					}
+				}
+			}
+		}
+
+		void drawBitCells(Vec2i const& rectPos, Vec2i const& rectSize, uint64 const* cellData, uint32 rowStride) override
+		{
+			Vector2 posStart = scale * (Vector2(rectPos) - offset);
+
+			for (int j = 0; j < rectSize.y; ++j)
+			{
+				Vector2 pos;
+				pos.y = posStart.y + j * scale;
+				uint64 bits = cellData[j * rowStride];
+				int i;
+				int count;
+				while (FBitUtility::IterateMaskRange<64>(bits, i, count))
+				{
+					for (int n = 0; n < count; ++n)
+					{
+						pos.x = posStart.x + (i + n) * scale;
 
 						Vec2i pixelPos;
 						pixelPos.x = Math::FloorToInt(pos.x);
@@ -378,6 +425,23 @@ namespace Life
 						if (pRowData[i])
 						{
 							g->drawRect(rectPos + Vec2i(i, j), Vector2(1, 1));
+						}
+					}
+				}
+			}
+
+			void drawBitCells(Vec2i const& rectPos, Vec2i const& rectSize, uint64 const* cellData, uint32 rowStride) override
+			{
+				for (int j = 0; j < rectSize.y; ++j)
+				{
+					uint64 bits = cellData[rowStride * j];
+					int i;
+					int count;
+					while (FBitUtility::IterateMaskRange<64>(bits, i, count))
+					{
+						for (int n = 0; n < count; ++n)
+						{
+							g->drawRect(rectPos + Vec2i(i + n, j), Vector2(1, 1));
 						}
 					}
 				}

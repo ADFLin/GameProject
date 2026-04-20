@@ -3,6 +3,7 @@
 #define ChunkAlgo_H_05DCDD15_EFBB_4D5A_8B94_02ECE60FF9EE
 
 #include "LifeCore.h"
+#include "BitUtility.h"
 #include "DataStructure/Grid2D.h"
 
 #define USE_CHUNK_COUNT 1
@@ -75,9 +76,9 @@ namespace Life
 
 		virtual void  getPattern(TArray<Vec2i>& outList) final
 		{
-			for (int indexChunk = 0; indexChunk < mChunks.size(); ++indexChunk)
+			for (int indexChunk = 0; indexChunk < mActiveChunks.size(); ++indexChunk)
 			{
-				auto chunk = mChunks[indexChunk];
+				auto chunk = mActiveChunks[indexChunk];
 
 #if USE_CHUNK_COUNT
 				if (chunk->count == 0)
@@ -85,15 +86,16 @@ namespace Life
 #endif
 				Vec2i chunkPos = ChunkLength * chunk->pos;
 
-				uint8 const* pChunkData = chunk->data[mIndex];
-
 				for (int j = 0; j < ChunkLength; ++j)
 				{
-					for (int i = 0; i < ChunkLength; ++i)
+					uint64 bits = chunk->data[mIndex][j];
+					int i;
+					int count;
+					while (FBitUtility::IterateMaskRange<64>(bits, i, count))
 					{
-						if (pChunkData[Chunk::ToDataIndex(i, j)])
+						for (int n = 0; n < count; ++n)
 						{
-							outList.push_back(chunkPos + Vec2i(i, j));
+							outList.push_back(chunkPos + Vec2i(i + n, j));
 						}
 					}
 				}
@@ -109,9 +111,9 @@ namespace Life
 			chunkBound.min = ToChunkPos(boundClip.min);
 			chunkBound.max = ToChunkPos(boundClip.max);
 
-			for (int indexChunk = 0; indexChunk < mChunks.size(); ++indexChunk)
+			for (int indexChunk = 0; indexChunk < mActiveChunks.size(); ++indexChunk)
 			{
-				auto chunk = mChunks[indexChunk];
+				auto chunk = mActiveChunks[indexChunk];
 #if USE_CHUNK_COUNT
 				if (chunk->count == 0)
 					continue;
@@ -120,18 +122,19 @@ namespace Life
 					continue;
 
 				Vec2i chunkPos = ChunkLength * chunk->pos;
-				uint8 const* pChunkData = chunk->data[mIndex];
 
 				for (int j = 0; j < ChunkLength; ++j)
 				{
-					for (int i = 0; i < ChunkLength; ++i)
+					uint64 bits = chunk->data[mIndex][j];
+					int i;
+					int count;
+					while (FBitUtility::IterateMaskRange<64>(bits, i, count))
 					{
-						Vec2i pos = chunkPos + Vec2i(i, j);
-						if (!bound.isInside(pos))
-							continue;
-
-						if (pChunkData[Chunk::ToDataIndex(i, j)])
+						for (int n = 0; n < count; ++n)
 						{
+							Vec2i pos = chunkPos + Vec2i(i + n, j);
+							if (!bound.isInside(pos))
+								continue;
 							outList.push_back(pos);
 						}
 					}
@@ -141,8 +144,6 @@ namespace Life
 
 
 		static constexpr int32 ChunkLength = 64; //1 << 8;
-		static constexpr int32 ChunkDataStrideLength = ChunkLength + 2;
-		static constexpr int32 ChunkDataSize = ChunkDataStrideLength * ChunkDataStrideLength;
 
 		static constexpr int ToChunkValue(int value)
 		{
@@ -168,32 +169,172 @@ namespace Life
 
 		struct Chunk
 		{
-			uint8 data[2][ChunkDataSize];
+			enum class State : uint8
+			{
+				Active,
+				Sleeping,
+				Free,
+			};
+
+			uint64 data[2][ChunkLength];
 
 #if USE_CHUNK_COUNT
 			uint32 count;
-			bool   bHadSleeped;
+			uint32 sleepGeneration;
 #endif
 			Vec2i pos;
+			State state = State::Free;
+			int   listIndex = INDEX_NONE;
 
-			static int ToDataIndex(int i, int j)
+			static uint64 ToBitMask(int i)
 			{
-				return (i + 1) + (j + 1) * ChunkDataStrideLength;
+				return uint64(1) << i;
+			}
+
+			bool testCell(int index, int i, int j) const
+			{
+				return (data[index][j] & ToBitMask(i)) != 0;
+			}
+
+			void setCell(int index, int i, int j, bool value)
+			{
+				uint64& row = data[index][j];
+				uint64 const mask = ToBitMask(i);
+				if (value)
+				{
+					row |= mask;
+				}
+				else
+				{
+					row &= ~mask;
+				}
 			}
 		};
 
+		static constexpr uint32 SleepReleaseDelay = 120;
+
+		void markChunkBoundDirty()
+		{
+			mChunkBoundDirty = true;
+		}
+
+		static void RemoveChunkFromList(TArray<Chunk*>& list, Chunk* chunk)
+		{
+			int index = chunk->listIndex;
+			CHECK(index != INDEX_NONE);
+			CHECK(list[index] == chunk);
+			
+			list.removeIndexSwap(index);
+			chunk->listIndex = INDEX_NONE;
+		}
+
+		void addChunkToList(TArray<Chunk*>& list, Chunk* chunk)
+		{
+			chunk->listIndex = list.size();
+			list.push_back(chunk);
+		}
+
+		void activateChunk(Chunk* chunk)
+		{
+			if (chunk->state == Chunk::State::Active)
+				return;
+
+			if (chunk->state == Chunk::State::Sleeping)
+			{
+				RemoveChunkFromList(mSleepingChunks, chunk);
+			}
+			else if (chunk->state == Chunk::State::Free)
+			{
+				return;
+			}
+
+			chunk->state = Chunk::State::Active;
+			addChunkToList(mActiveChunks, chunk);
+			mChunkBound.addPoint(chunk->pos);
+		}
+
+		void sleepChunk(Chunk* chunk, uint32 generation)
+		{
+			if (chunk->state != Chunk::State::Active)
+				return;
+
+			RemoveChunkFromList(mActiveChunks, chunk);
+			chunk->state = Chunk::State::Sleeping;
+#if USE_CHUNK_COUNT
+			chunk->sleepGeneration = generation;
+#endif
+			addChunkToList(mSleepingChunks, chunk);
+			markChunkBoundDirty();
+		}
+
+		void releaseChunk(Chunk* chunk)
+		{
+			if (chunk->state == Chunk::State::Active)
+			{
+				RemoveChunkFromList(mActiveChunks, chunk);
+			}
+			else if (chunk->state == Chunk::State::Sleeping)
+			{
+				RemoveChunkFromList(mSleepingChunks, chunk);
+			}
+
+			mChunkMap(chunk->pos) = nullptr;
+			FMemory::Set(chunk->data, 0, sizeof(chunk->data));
+#if USE_CHUNK_COUNT
+			chunk->count = 0;
+			chunk->sleepGeneration = 0;
+#endif
+			chunk->state = Chunk::State::Free;
+			chunk->listIndex = INDEX_NONE;
+			mFreeChunks.push_back(chunk);
+			markChunkBoundDirty();
+		}
+
+		void releaseSleepingChunks(uint32 generation)
+		{
+#if USE_CHUNK_COUNT
+			for (int index = 0; index < mSleepingChunks.size();)
+			{
+				Chunk* chunk = mSleepingChunks[index];
+				if (generation - chunk->sleepGeneration >= SleepReleaseDelay)
+				{
+					releaseChunk(chunk);
+					continue;
+				}
+				++index;
+			}
+#endif
+		}
+
+		void rebuildChunkBound()
+		{
+			mChunkBound.invalidate();
+			for (Chunk* chunk : mActiveChunks)
+			{
+				mChunkBound.addPoint(chunk->pos);
+			}
+			mChunkBoundDirty = false;
+		}
+
 		Chunk* createChunk(Vec2i const& cPos)
 		{
-
-			Chunk* chunk = new Chunk;
+			Chunk* chunk = nullptr;
+			if (!mFreeChunks.empty())
+			{
+				chunk = mFreeChunks.back();
+				mFreeChunks.pop_back();
+			}
+			else
+			{
+				chunk = new Chunk;
+			}
 			FMemory::Set(chunk, 0, sizeof(Chunk));
-			//std::fill_n(chunk->data[0], ARRAY_SIZE(chunk->data[0]), 0);
-			//std::fill_n(chunk->data[1], ARRAY_SIZE(chunk->data[1]), 0);
 			chunk->pos = cPos;
+			chunk->state = Chunk::State::Active;
 #if USE_CHUNK_COUNT
-			chunk->bHadSleeped = true;
+			chunk->sleepGeneration = 0;
 #endif
-			mChunks.push_back(chunk);
+			addChunkToList(mActiveChunks, chunk);
 			mChunkBound.addPoint(cPos);
 			return chunk;
 		}
@@ -205,14 +346,22 @@ namespace Life
 			{
 				chunk = createChunk(cPos);
 			}
+			else
+			{
+				activateChunk(chunk);
+			}
 			return chunk;
 		}
 
 		Rule  mRule;
 		int   mIndex = 0;
+		uint32 mGeneration = 0;
 		BoundBox mChunkBound;
+		bool mChunkBoundDirty = false;
 		TGrid2D< Chunk* > mChunkMap;
-		TArray< Chunk* > mChunks;
+		TArray< Chunk* > mActiveChunks;
+		TArray< Chunk* > mSleepingChunks;
+		TArray< Chunk* > mFreeChunks;
 	};
 
 }//namespace Life

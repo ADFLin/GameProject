@@ -52,7 +52,7 @@ namespace Life
 			mEvolvetinMap[ToIndex(3, 0)] = 1;
 		}
 
-		uint8 getEvoluteValue(uint32 count, uint8 value)
+		uint8 getEvoluteValue(uint32 count, uint8 value) const
 		{
 			return mEvolvetinMap[ToIndex(count, value)];
 		}
@@ -113,6 +113,7 @@ namespace Life
 	public:
 		virtual void drawCell(int x, int y) = 0;
 		virtual void drawCells(Vec2i const& rectPos, Vec2i const& rectSize, uint8 const* cellData, uint32 rowStride) = 0;
+		virtual void drawBitCells(Vec2i const& rectPos, Vec2i const& rectSize, uint64 const* cellData, uint32 rowStride) = 0;
 	};
 
 	class IRenderProxy

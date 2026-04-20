@@ -111,6 +111,11 @@ namespace Render
 			return TranslateThenScale(-lookPos, bFlipX ? Vector2(-zoom, zoom) : Vector2(zoom, zoom)) * RenderTransform2D(rotation, 0.5 * screenSize);
 		}
 
+		FORCEINLINE static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 zoomScale)
+		{
+			return TranslateThenScale(-lookPos, zoomScale) * Translate(0.5 * screenSize);
+		}
+
 		FORCEINLINE static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, float theta, float zoom, bool bFlipX = false)
 		{
 			return LookAt(screenSize, lookPos, Math::Rotation2D::Angle(theta), zoom, bFlipX);

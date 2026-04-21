@@ -306,6 +306,8 @@ namespace Life
 		{
 			auto& console = IConsoleSystem::Get();
 			console.unregisterAllCommandsByObject(this);
+			delete mAlgorithm;
+			mAlgorithm = nullptr;
 
 			BaseClass::onEnd();
 		}
@@ -320,11 +322,12 @@ namespace Life
 			if (bRunEvolate)
 			{
 				accEvolateCount += evolateTimeRate * deltaTime;
-				while (accEvolateCount > 0)
+				int numStep = Math::FloorToInt(accEvolateCount);
+				if (numStep > 0)
 				{
-					PROFILE_ENTRY("Life.Setp");
-					mAlgorithm->step();
-					accEvolateCount -= 1;
+					PROFILE_ENTRY("Life.Evalate");
+					mAlgorithm->evolate(numStep);
+					accEvolateCount -= numStep;
 				}
 			}
 			else

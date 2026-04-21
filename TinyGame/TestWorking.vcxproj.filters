@@ -27,6 +27,9 @@
     <ClCompile Include="Life\ChunkAlgo.cpp">
       <Filter>GameLife\Algorithms</Filter>
     </ClCompile>
+    <ClCompile Include="Life\HashLifeAlgo.cpp">
+      <Filter>GameLife\Algorithms</Filter>
+    </ClCompile>
     <ClCompile Include="Life\SimpleAlgo.cpp">
       <Filter>GameLife\Algorithms</Filter>
     </ClCompile>
@@ -173,6 +176,9 @@
       <Filter>GameLife</Filter>
     </ClInclude>
     <ClInclude Include="Life\ChunkAlgo.h">
+      <Filter>GameLife\Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="Life\HashLifeAlgo.h">
       <Filter>GameLife\Algorithms</Filter>
     </ClInclude>
     <ClInclude Include="Life\SimpleAlgo.h">

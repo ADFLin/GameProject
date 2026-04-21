@@ -169,6 +169,12 @@ namespace Life
 
 		struct Chunk
 		{
+			Chunk() = default;
+			Chunk(EForceInit)
+			{
+				FMemory::Zero(this, sizeof(*this));
+			}
+
 			enum class State : uint8
 			{
 				Active,
@@ -225,6 +231,11 @@ namespace Life
 			CHECK(list[index] == chunk);
 			
 			list.removeIndexSwap(index);
+			if (index < list.size())
+			{
+				CHECK(list[index] != nullptr);
+				list[index]->listIndex = index;
+			}
 			chunk->listIndex = INDEX_NONE;
 		}
 
@@ -313,7 +324,6 @@ namespace Life
 			{
 				mChunkBound.addPoint(chunk->pos);
 			}
-			mChunkBoundDirty = false;
 		}
 
 		Chunk* createChunk(Vec2i const& cPos)

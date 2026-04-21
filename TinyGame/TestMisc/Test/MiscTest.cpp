@@ -2,6 +2,9 @@
 
 #include "Memory/BuddyAllocator.h"
 
+#include <algorithm>
+#include <vector>
+
 void AllocatorTest()
 {
 	BuddyAllocatorBase allocator;
@@ -349,3 +352,101 @@ void StringTest()
 }
 
 REGISTER_MISC_TEST_ENTRY("String Test", StringTest);
+
+namespace
+{
+	constexpr int   GDeBruijnOrder32 = 5;
+	constexpr uint32 GDeBruijnNodeMask32 = (1u << (GDeBruijnOrder32 - 1)) - 1;
+	constexpr uint32 GDeBruijnEdgeCount32 = 1u << GDeBruijnOrder32;
+	constexpr uint32 GDeBruijnAllEdgesMask32 = 0xFFFFFFFFu;
+
+	uint32 RotateLeft32(uint32 value, uint32 shift)
+	{
+		shift &= 31;
+		if (shift == 0)
+			return value;
+		return (value << shift) | (value >> (32 - shift));
+	}
+
+	bool IsValidDeBruijnMagic32(uint32 magic)
+	{
+		uint32 seenMask = 0;
+		for (uint32 bitIndex = 0; bitIndex < GDeBruijnEdgeCount32; ++bitIndex)
+		{
+			uint32 key = (uint32((1u << bitIndex) * magic)) >> 27;
+			uint32 keyMask = 1u << key;
+			if (seenMask & keyMask)
+				return false;
+			seenMask |= keyMask;
+		}
+		return seenMask == GDeBruijnAllEdgesMask32;
+	}
+
+	void EnumerateDeBruijn32Cycles_R(uint32 node, uint32 usedEdges, uint32 sequenceBits, int depth, TArray< uint32 >& outCycles)
+	{
+		if (depth == int(GDeBruijnEdgeCount32))
+		{
+			if (node == 0 && usedEdges == GDeBruijnAllEdgesMask32)
+			{
+				outCycles.push_back(sequenceBits);
+			}
+			return;
+		}
+
+		for (uint32 bit = 0; bit < 2; ++bit)
+		{
+			uint32 edge = ((node << 1) | bit);
+			uint32 edgeMask = 1u << edge;
+			if (usedEdges & edgeMask)
+				continue;
+
+			uint32 nextNode = edge & GDeBruijnNodeMask32;
+			EnumerateDeBruijn32Cycles_R(nextNode, usedEdges | edgeMask, sequenceBits | (bit << depth), depth + 1, outCycles);
+		}
+	}
+
+	TArray< uint32 > EnumerateDeBruijn32Cycles()
+	{
+		TArray< uint32 > result;
+		result.reserve(2048);
+
+		// Fix the first traversed edge to 00000 to remove rotational duplicates.
+		EnumerateDeBruijn32Cycles_R(0, 1u << 0, 0, 1, result);
+		return result;
+	}
+}
+
+void ListAllDeBruijnConstants32()
+{
+	TArray< uint32 > cycleRepresentatives = EnumerateDeBruijn32Cycles();
+	TEST_CHECK(cycleRepresentatives.size() == 2048);
+
+	TArray< uint32 > allConstants;
+	allConstants.reserve(cycleRepresentatives.size() * GDeBruijnEdgeCount32);
+
+	for (uint32 representative : cycleRepresentatives)
+	{
+		for (uint32 shift = 0; shift < GDeBruijnEdgeCount32; ++shift)
+		{
+			uint32 magic = RotateLeft32(representative, shift);
+			if (IsValidDeBruijnMagic32(magic))
+			{
+				allConstants.push_back(magic);
+			}
+		}
+	}
+
+	std::sort(allConstants.begin(), allConstants.end());
+	allConstants.erase(std::unique(allConstants.begin(), allConstants.end()), allConstants.end());
+
+	LogMsg("32-bit De Bruijn cycle count = %u", uint32(cycleRepresentatives.size()));
+	LogMsg("32-bit De Bruijn constant count = %u", uint32(allConstants.size()));
+	TEST_CHECK(allConstants.size() == 4096);
+
+	for (size_t index = 0; index < allConstants.size(); ++index)
+	{
+		LogMsg("[%05u] 0x%08X", uint32(index), allConstants[index]);
+	}
+}
+
+REGISTER_MISC_TEST_ENTRY("List 32-bit DeBruijn Constants", ListAllDeBruijnConstants32);

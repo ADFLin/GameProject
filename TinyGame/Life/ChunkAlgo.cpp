@@ -19,10 +19,8 @@ namespace Life
 			NCI_Count,
 		};
 
-		uint64 GetRowBits(ChunkAlgo::Chunk const* chunk, int index, int row)
-		{
-			return chunk ? chunk->data[index][row] : 0;
-		}
+
+		ChunkAlgo::Chunk GEmpryChunk(ForceInit);
 
 		ChunkAlgo::Chunk* ResolveChunk(TGrid2D<ChunkAlgo::Chunk*>& chunkMap, Rule const& rule, Vec2i cPos)
 		{
@@ -34,30 +32,34 @@ namespace Life
 			{
 				return nullptr;
 			}
+
 			return chunkMap(cPos);
 		}
 
-		uint64 BuildCountMask(uint64 bit0, uint64 bit1, uint64 bit2, uint64 bit3, uint32 count)
+		void AddBitboard(uint64 bits[], uint64 value)
 		{
-			uint64 const maskBit0 = (count & 0x1) ? bit0 : ~bit0;
-			uint64 const maskBit1 = (count & 0x2) ? bit1 : ~bit1;
-			uint64 const maskBit2 = (count & 0x4) ? bit2 : ~bit2;
-			uint64 const maskBit3 = (count & 0x8) ? bit3 : ~bit3;
+			uint64 carry0 = bits[0] & value;
+			bits[0] ^= value;
+			uint64 carry1 = bits[1] & carry0;
+			bits[1] ^= carry0;
+			uint64 carry2 = bits[2] & carry1;
+			bits[2] ^= carry1;
+
+			bits[3] ^= carry2;
+		}
+
+		uint64 BuildCountMask(uint64 bits[], uint32 count)
+		{
+			uint64 const maskBit0 = (count & 0x1) ? bits[0] : ~bits[0];
+			uint64 const maskBit1 = (count & 0x2) ? bits[1] : ~bits[1];
+			uint64 const maskBit2 = (count & 0x4) ? bits[2] : ~bits[2];
+			uint64 const maskBit3 = (count & 0x8) ? bits[3] : ~bits[3];
 			return maskBit0 & maskBit1 & maskBit2 & maskBit3;
 		}
 
-		void AddBitboard(uint64 value, uint64& bit0, uint64& bit1, uint64& bit2, uint64& bit3)
+		uint64 GetRowBits(ChunkAlgo::Chunk const* chunk, int index, int row)
 		{
-			uint64 carry0 = bit0 & value;
-			bit0 ^= value;
-
-			uint64 carry1 = bit1 & carry0;
-			bit1 ^= carry0;
-
-			uint64 carry2 = bit2 & carry1;
-			bit2 ^= carry1;
-
-			bit3 ^= carry2;
+			return chunk ? chunk->data[index][row] : 0;
 		}
 
 		uint64 GetCarryLeft(ChunkAlgo::Chunk const* chunk, int index, int row)
@@ -101,26 +103,24 @@ namespace Life
 				uint64 const downLeft = (down << 1) | ((j + 1 < ChunkAlgo::ChunkLength) ? GetCarryLeft(chunkL, indexPrev, downRow) : GetCarryLeft(chunkDL, indexPrev, downRow));
 				uint64 const downRight = (down >> 1) | ((j + 1 < ChunkAlgo::ChunkLength) ? GetCarryRight(chunkR, indexPrev, downRow) : GetCarryRight(chunkDR, indexPrev, downRow));
 
-				uint64 countBit0 = 0;
-				uint64 countBit1 = 0;
-				uint64 countBit2 = 0;
-				uint64 countBit3 = 0;
+				uint64 countBits[4] = { 0 };
 
-				AddBitboard(upLeft, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(up, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(upRight, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(midLeft, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(midRight, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(downLeft, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(down, countBit0, countBit1, countBit2, countBit3);
-				AddBitboard(downRight, countBit0, countBit1, countBit2, countBit3);
+				AddBitboard(countBits, upLeft);
+				AddBitboard(countBits, up);
+				AddBitboard(countBits, upRight);
+				AddBitboard(countBits, midLeft);
+				AddBitboard(countBits, midRight);
+				AddBitboard(countBits, downLeft);
+				AddBitboard(countBits, down);
+				AddBitboard(countBits, downRight);
 
 				uint64 next = 0;
 				uint64 const aliveMask = mid;
 				uint64 const deadMask = ~mid;
+#if 1
 				for (uint32 count = 0; count <= 8; ++count)
 				{
-					uint64 const countMask = BuildCountMask(countBit0, countBit1, countBit2, countBit3, count);
+					uint64 const countMask = BuildCountMask(countBits, count);
 					if (rule.getEvoluteValue(count, 0))
 					{
 						next |= countMask & deadMask;
@@ -130,6 +130,18 @@ namespace Life
 						next |= countMask & aliveMask;
 					}
 				}
+#else
+
+				{
+					uint64 const countMask = BuildCountMask(countBits, 2);
+					next |= countMask & deadMask;
+				}
+				{
+					uint64 const countMask = BuildCountMask(countBits, 3);
+					next |= countMask & deadMask;
+					next |= countMask & aliveMask;
+				}
+#endif
 
 				pChunkData[j] = next;
 				countAlive += FBitUtility::CountSet(next);
@@ -140,7 +152,7 @@ namespace Life
 
 		bool HasAnyBit(uint64 value)
 		{
-			return value != 0;
+			return !!value;
 		}
 	}
 
@@ -222,6 +234,7 @@ namespace Life
 	{
 		if (mChunkBoundDirty)
 		{
+			mChunkBoundDirty = false;
 			rebuildChunkBound();
 		}
 
@@ -332,7 +345,7 @@ namespace Life
 
 			uint32 neighborCount = 0;
 			{
-				PROFILE_ENTRY("ChunkAlgo.Border");
+				//PROFILE_ENTRY("ChunkAlgo.Border");
 
 				neighborCount += CheckNeedCreateEdgeChunk(chunk->pos + Vec2i(0, -1), 0);
 				neighborCount += CheckNeedCreateEdgeChunk(chunk->pos + Vec2i(0, 1), 1);
@@ -394,7 +407,7 @@ namespace Life
 	#endif
 
 			{
-				PROFILE_ENTRY("ChunkAlgo.Evolve");
+				//PROFILE_ENTRY("ChunkAlgo.Evolve");
 				Chunk const* neighbors[NCI_Count] =
 				{
 					ResolveChunk(mChunkMap, mRule, chunk->pos + Vec2i(-1, 0)),

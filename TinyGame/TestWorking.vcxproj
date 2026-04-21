@@ -237,6 +237,7 @@
     <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp" />
     <ClCompile Include="FlowFree\FlowFreeSolver.cpp" />
     <ClCompile Include="Life\ChunkAlgo.cpp" />
+    <ClCompile Include="Life\HashLifeAlgo.cpp" />
     <ClCompile Include="Life\GollyFile.cpp" />
     <ClCompile Include="Life\LifeStage.cpp" />
     <ClCompile Include="Life\SimpleAlgo.cpp" />
@@ -287,6 +288,7 @@
     <ClInclude Include="FlowFree\FlowFreeLevelReader.h" />
     <ClInclude Include="FlowFree\FlowFreeSolver.h" />
     <ClInclude Include="Life\ChunkAlgo.h" />
+    <ClInclude Include="Life\HashLifeAlgo.h" />
     <ClInclude Include="Life\GollyFile.h" />
     <ClInclude Include="Life\LifeCore.h" />
     <ClInclude Include="Life\LifeStage.h" />

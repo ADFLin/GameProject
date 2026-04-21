@@ -4,6 +4,7 @@
 
 #include "SimpleAlgo.h"
 #include "ChunkAlgo.h"
+#include "HashLifeAlgo.h"
 
 #include "Serialize/FileStream.h"
 #include "FileSystem.h"
@@ -19,6 +20,7 @@ namespace Life
 
 	TConsoleVariable< bool > CVarUseRenderer{ true, "Life.UseRenderer", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarUseTexture{ true, "Life.UseTexture", CVF_TOGGLEABLE };
+	TConsoleVariable< bool > CVarUseHashLife{ false, "Life.UseHashLife", CVF_TOGGLEABLE };
 
 #define LIFE_DIR "LifeGame"
 
@@ -42,6 +44,8 @@ namespace Life
 		mEditMode = EditMode::SelectCell;
 
 		restart();
+
+		loadPattern("Sample");
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
 		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Run"), bRunEvolate, [this](bool v)
@@ -77,7 +81,7 @@ namespace Life
 			}
 			return false;
 		});
-		FWidgetProperty::Bind(devFrame->addSlider("Evolate Time Rate"), evolateTimeRate, 0.5, 100, 2, [this](float v)
+		FWidgetProperty::Bind(devFrame->addSlider("Evolate Time Rate"), evolateTimeRate, 0.5, 2400, 2, [this](float v)
 		{
 
 		});
@@ -119,8 +123,18 @@ namespace Life
 
 	void TestStage::restart()
 	{
+		delete mAlgorithm;
+		mAlgorithm = nullptr;
+
 		//mAlgorithm = new SimpleAlgo(1024, 1024);
-		mAlgorithm = new ChunkAlgo(4096, 4096);
+		if (CVarUseHashLife)
+		{
+			mAlgorithm = new HashLifeAlgo(4096, 4096);
+		}
+		else
+		{
+			mAlgorithm = new ChunkAlgo(4096, 4096);
+		}
 		evolateTimeRate = 15;
 		accEvolateCount = 0.0;
 		bRunEvolate = false;

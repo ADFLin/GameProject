@@ -29,6 +29,13 @@ namespace Life
 		virtual void  getPattern(TArray<Vec2i>& outList) = 0;
 		virtual void  getPattern(BoundBox const& bound, TArray<Vec2i>& outList) = 0;
 		virtual void  step() = 0;
+		virtual void  evolate(int nStep)
+		{
+			for (int i = 0; i < nStep; ++i)
+			{
+				step();
+			}
+		}
 		virtual IRenderProxy* getRenderProxy() { return nullptr; }
 	};
 
@@ -44,24 +51,24 @@ namespace Life
 	public:
 		Rule()
 		{
-			std::fill_n(mEvolvetinMap, ARRAY_SIZE(mEvolvetinMap), 0);
+			std::fill_n(mEvolvetionMap, ARRAY_SIZE(mEvolvetionMap), 0);
 
 			// B3/S23
-			mEvolvetinMap[ToIndex(3, 1)] = 1;
-			mEvolvetinMap[ToIndex(2, 1)] = 1;
-			mEvolvetinMap[ToIndex(3, 0)] = 1;
+			mEvolvetionMap[ToIndex(3, 1)] = 1;
+			mEvolvetionMap[ToIndex(2, 1)] = 1;
+			mEvolvetionMap[ToIndex(3, 0)] = 1;
 		}
 
 		uint8 getEvoluteValue(uint32 count, uint8 value) const
 		{
-			return mEvolvetinMap[ToIndex(count, value)];
+			return mEvolvetionMap[ToIndex(count, value)];
 		}
 
 		static uint32 ToIndex(uint32 count, uint8 value)
 		{
 			return (count << 1) | value;
 		}
-		uint8 mEvolvetinMap[9 * 2];
+		uint8 mEvolvetionMap[9 * 2];
 
 		bool bWarpX = true;
 		bool bWarpY = true;
@@ -83,11 +90,7 @@ namespace Life
 		void updateTransform()
 		{
 			cellPixelSize = cellLength / zoomOut;
-			xform.setIdentity();
-			xform.translateLocal(0.5 * Vector2(screenSize));
-			xform.scaleLocal(Vector2(cellPixelSize, cellPixelSize));
-			Vector2 offset = -pos;
-			xform.translateLocal(offset);
+			xform = RenderTransform2D::LookAt(screenSize, pos, Vector2(cellPixelSize, cellPixelSize));
 		}
 
 		BoundBox calcBound(Vector2 const& min, Vector2 const& max) const

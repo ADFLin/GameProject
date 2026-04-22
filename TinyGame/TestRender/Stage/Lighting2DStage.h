@@ -22,6 +22,8 @@ namespace Render
 
 	Vector3 DefaultLightAttenuation = Vector3(1, 0.2, 0.1);
 	int constexpr ShadowTexureWidth = 512;
+	int constexpr SDFTextureWidth = 512;
+	int constexpr SDFTextureHeight = 512;
 	struct Light
 	{
 		DECLARE_BUFFER_STRUCT(Lights);
@@ -92,6 +94,8 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, LightLocation);
 			BIND_SHADER_PARAM(parameterMap, LightColor);
 			BIND_SHADER_PARAM(parameterMap, LightAttenuation);
+			BIND_SHADER_PARAM(parameterMap, LightRadius);
+			BIND_SHADER_PARAM(parameterMap, LightSourceRadius);
 		}
 
 		void setParameters(RHICommandList& commandList, Light const& light)
@@ -99,11 +103,15 @@ namespace Render
 			SET_SHADER_PARAM(commandList, *this, LightLocation, light.pos);
 			SET_SHADER_PARAM(commandList, *this, LightColor, light.intensity * Vector3(light.color.r, light.color.g, light.color.b));
 			SET_SHADER_PARAM(commandList, *this, LightAttenuation, light.attenuation);
+			SET_SHADER_PARAM(commandList, *this, LightRadius, light.radius);
+			SET_SHADER_PARAM(commandList, *this, LightSourceRadius, light.sourceRadius);
 		}
 
 		DEFINE_SHADER_PARAM(LightLocation);
 		DEFINE_SHADER_PARAM(LightColor);
 		DEFINE_SHADER_PARAM(LightAttenuation);
+		DEFINE_SHADER_PARAM(LightRadius);
+		DEFINE_SHADER_PARAM(LightSourceRadius);
 	};
 
 
@@ -235,6 +243,80 @@ namespace Render
 		DEFINE_TEXTURE_PARAM(ShadowMapAtlas);
 	};
 
+	class BuildSceneSDFCS : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(BuildSceneSDFCS, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/Lighting2DShadow"; }
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Compute , SHADER_ENTRY(BuildSceneSDFCS) },
+			};
+			return entries;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, SegmentCount);
+			BIND_SHADER_PARAM(parameterMap, SDFWorldMin);
+			BIND_SHADER_PARAM(parameterMap, SDFWorldMax);
+			BIND_SHADER_PARAM(parameterMap, SDFTextureSize);
+			BIND_SHADER_PARAM(parameterMap, EmptyDistanceValue);
+			BIND_SHADER_PARAM(parameterMap, SceneSDFTexture);
+		}
+
+		DEFINE_SHADER_PARAM(SegmentCount);
+		DEFINE_SHADER_PARAM(SDFWorldMin);
+		DEFINE_SHADER_PARAM(SDFWorldMax);
+		DEFINE_SHADER_PARAM(SDFTextureSize);
+		DEFINE_SHADER_PARAM(EmptyDistanceValue);
+		DEFINE_SHADER_PARAM(SceneSDFTexture);
+	};
+
+	class LightingSDFProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(LightingSDFProgram, Global);
+	public:
+		static char const* GetShaderFileName() { return "Shader/Game/lighting2D"; }
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(LightingSDFPS) } ,
+			};
+			return entries;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, Lights);
+			BIND_SHADER_PARAM(parameterMap, ScreenToWorld);
+			BIND_SHADER_PARAM(parameterMap, WorldToClip);
+			BIND_SHADER_PARAM(parameterMap, SDFWorldMin);
+			BIND_SHADER_PARAM(parameterMap, SDFWorldMax);
+			BIND_SHADER_PARAM(parameterMap, ShadowBias);
+			BIND_SHADER_PARAM(parameterMap, SDFHitThreshold);
+			BIND_SHADER_PARAM(parameterMap, SDFMinStepScale);
+			BIND_SHADER_PARAM(parameterMap, SDFMaxSteps);
+			BIND_SHADER_PARAM(parameterMap, SDFMaxStepLength);
+			BIND_SHADER_PARAM(parameterMap, SDFSoftShadowScale);
+			BIND_TEXTURE_PARAM(parameterMap, SceneSDFTexture);
+		}
+		DEFINE_SHADER_PARAM(Lights);
+		DEFINE_SHADER_PARAM(ScreenToWorld);
+		DEFINE_SHADER_PARAM(WorldToClip);
+		DEFINE_SHADER_PARAM(SDFWorldMin);
+		DEFINE_SHADER_PARAM(SDFWorldMax);
+		DEFINE_SHADER_PARAM(ShadowBias);
+		DEFINE_SHADER_PARAM(SDFHitThreshold);
+		DEFINE_SHADER_PARAM(SDFMinStepScale);
+		DEFINE_SHADER_PARAM(SDFMaxSteps);
+		DEFINE_SHADER_PARAM(SDFMaxStepLength);
+		DEFINE_SHADER_PARAM(SDFSoftShadowScale);
+		DEFINE_TEXTURE_PARAM(SceneSDFTexture);
+	};
+
 
 	class Lighting2DTestStage : public TestRenderStageBase
 	{
@@ -279,11 +361,15 @@ namespace Render
 		bool bShowShadowRender = false;
 		bool bUseGeometryShader = true;
 		bool bUse1DShadowMap = false;
+		bool bUseSDFShadow = true;
 
 		Shadow1DMapCS* mProgShadow1D = nullptr;
 		ShadowBlockerSearchCS* mProgShadowBlockerSearch = nullptr;
 		Lighting1DShadowProgram* mProgLighting1D = nullptr;
+		BuildSceneSDFCS* mProgBuildSceneSDF = nullptr;
+		LightingSDFProgram* mProgLightingSDF = nullptr;
 		RHITexture2DRef mShadowMapAtlas;
+		RHITexture2DRef mSceneSDFTexture;
 		RHIFrameBufferRef mShadowMapFB;
 		TStructuredBuffer<Segment> mSegmentBuffer;
 		TStructuredBuffer<Light>   mLightBuffer;
@@ -305,7 +391,9 @@ namespace Render
 
 
 		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertices );
+		void renderSceneSDF(RHICommandList& commandList, Vector2 const& min, Vector2 const& max);
 		void render1DShadowMaps(RHICommandList& commandList);
+		void renderLightingSDF(RHICommandList& commandList, Matrix4 const& worldToClipRHI);
 		void renderLighting1D(RHICommandList& commandList);
 
 		void restart();

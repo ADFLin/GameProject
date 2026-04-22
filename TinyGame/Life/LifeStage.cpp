@@ -873,7 +873,7 @@ namespace Life
 
 	ERenderSystem TestStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::D3D12;
+		return ERenderSystem::None;
 	}
 
 }//namespace Life

@@ -20,6 +20,8 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(Shadow1DMapCS);
 	IMPLEMENT_SHADER_PROGRAM(ShadowBlockerSearchCS);
 	IMPLEMENT_SHADER_PROGRAM(Lighting1DShadowProgram);
+	IMPLEMENT_SHADER_PROGRAM(BuildSceneSDFCS);
+	IMPLEMENT_SHADER_PROGRAM(LightingSDFProgram);
 
 
 
@@ -65,6 +67,7 @@ namespace Render
 		frame->addCheckBox("bShowShadowRender", bShowShadowRender);
 		frame->addCheckBox("bUseGeometryShader", bUseGeometryShader);
 		frame->addCheckBox("bUse1DShadowMap", bUse1DShadowMap);
+		frame->addCheckBox("bUseSDFShadow", bUseSDFShadow);
 
 		restart();
 
@@ -80,12 +83,16 @@ namespace Render
 		mProgShadow1D = ShaderManager::Get().getGlobalShaderT<Shadow1DMapCS>();
 		mProgShadowBlockerSearch = ShaderManager::Get().getGlobalShaderT<ShadowBlockerSearchCS>();
 		mProgLighting1D = ShaderManager::Get().getGlobalShaderT<Lighting1DShadowProgram>();
+		mProgBuildSceneSDF = ShaderManager::Get().getGlobalShaderT<BuildSceneSDFCS>();
+		mProgLightingSDF = ShaderManager::Get().getGlobalShaderT<LightingSDFProgram>();
 
 		mShadowMapAtlas = RHICreateTexture2D(ETexture::RGBA32F, ShadowTexureWidth, 128, 1, 1, TCF_RenderTarget | TCF_CreateUAV | TCF_CreateSRV);
+		mSceneSDFTexture = RHICreateTexture2D(ETexture::RGBA32F, SDFTextureWidth, SDFTextureHeight, 1, 1, TCF_CreateUAV | TCF_CreateSRV);
 		mShadowMapFB = RHICreateFrameBuffer();
 		mShadowMapFB->addTexture(*mShadowMapAtlas);
 
 		GTextureShowManager.registerTexture("ShadowMap", mShadowMapAtlas);
+		GTextureShowManager.registerTexture("SceneSDF", mSceneSDFTexture);
 
 		if (::Global::Editor())
 		{
@@ -125,7 +132,10 @@ namespace Render
 		mProgShadow1D = nullptr;
 		mProgShadowBlockerSearch = nullptr;
 		mProgLighting1D = nullptr;
+		mProgBuildSceneSDF = nullptr;
+		mProgLightingSDF = nullptr;
 		mShadowMapAtlas.release();
+		mSceneSDFTexture.release();
 		mShadowMapFB.release();
 
 		if (mDetailView)
@@ -215,34 +225,44 @@ namespace Render
 		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 
 #if 1
-		if (bUse1DShadowMap)
+		Vector2 p0 = mScreenToWorld.transformPosition(Vector2(0, 0));
+		Vector2 p1 = mScreenToWorld.transformPosition(Vector2(screenSize.x, screenSize.y));
+		Vector2 min = p0.min(p1);
+		Vector2 max = p0.max(p1);
+
+		mVisibleLights.clear();
+		for (auto const& light : lights)
 		{
-			// Light Culling
-			Vector2 p0 = mScreenToWorld.transformPosition(Vector2(0, 0));
-			Vector2 p1 = mScreenToWorld.transformPosition(Vector2(screenSize.x, screenSize.y));
-			Vector2 min = p0.min(p1);
-			Vector2 max = p0.max(p1);
-
-			mVisibleLights.clear();
-			for (auto const& light : lights)
+			if (light.pos.x + light.radius > min.x && light.pos.x - light.radius < max.x &&
+				light.pos.y + light.radius > min.y && light.pos.y - light.radius < max.y)
 			{
-				if (light.pos.x + light.radius > min.x && light.pos.x - light.radius < max.x &&
-					light.pos.y + light.radius > min.y && light.pos.y - light.radius < max.y)
-				{
-					mVisibleLights.push_back(light);
-					if (mVisibleLights.size() >= (uint32)mShadowMapAtlas->getSizeY())
-						break;
-				}
+				mVisibleLights.push_back(light);
+				if (mVisibleLights.size() >= (uint32)mShadowMapAtlas->getSizeY())
+					break;
 			}
+		}
 
+		if (!mVisibleLights.empty())
+		{
+			if (!mLightBuffer.isValid() || mLightBuffer.getElementNum() < (uint32)mVisibleLights.size())
+			{
+				mLightBuffer.initializeResource((uint32)mVisibleLights.size(), EStructuredBufferType::Buffer);
+			}
+			mLightBuffer.updateBuffer(mVisibleLights);
+		}
+
+		if (bUseSDFShadow)
+		{
 			if (!mVisibleLights.empty())
 			{
-				if (!mLightBuffer.isValid() || mLightBuffer.getElementNum() < (uint32)mVisibleLights.size())
-				{
-					mLightBuffer.initializeResource((uint32)mVisibleLights.size(), EStructuredBufferType::Buffer);
-				}
-				mLightBuffer.updateBuffer(mVisibleLights);
-
+				renderSceneSDF(commandList, min, max);
+				renderLightingSDF(commandList, worldToClipRHI);
+			}
+		}
+		else if (bUse1DShadowMap)
+		{
+			if (!mVisibleLights.empty())
+			{
 				render1DShadowMaps(commandList);
 				renderLighting1D(commandList);
 			}
@@ -600,6 +620,114 @@ namespace Render
 		}
 
 		RHIResourceTransition(commandList, { mShadowMapAtlas }, EResourceTransition::SRV);
+	}
+
+	void Lighting2DTestStage::renderSceneSDF(RHICommandList& commandList, Vector2 const& min, Vector2 const& max)
+	{
+		GPU_PROFILE("RenderSceneSDF");
+
+		mVisibleBlockIndices.clear();
+		for (int i = 0; i < (int)blocks.size(); ++i)
+		{
+			Block& block = blocks[i];
+			bool bRelevant = false;
+			for (Light const& light : mVisibleLights)
+			{
+				float distSq = Math::DistanceSqure(block.pos, light.pos);
+				float checkRadius = light.radius + 10.0f;
+				if (distSq < checkRadius * checkRadius)
+				{
+					bRelevant = true;
+					break;
+				}
+			}
+
+			if (bRelevant)
+				mVisibleBlockIndices.push_back(i);
+		}
+
+		TArray< Segment > segments;
+		for (int index : mVisibleBlockIndices)
+		{
+			Block& block = blocks[index];
+			int num = block.getVertexNum();
+			for (int i = 0; i < num; ++i)
+			{
+				segments.push_back({ block.pos + block.vertices[i], block.pos + block.vertices[(i + 1) % num] });
+			}
+		}
+
+		if (segments.empty())
+		{
+			segments.push_back({ Vector2(0, 0), Vector2(0, 0) });
+		}
+
+		if (!mSegmentBuffer.isValid() || mSegmentBuffer.getElementNum() < (uint32)segments.size())
+		{
+			mSegmentBuffer.initializeResource((uint32)segments.size(), EStructuredBufferType::Buffer);
+		}
+		mSegmentBuffer.updateBuffer(segments);
+
+		Vector2 worldSize = max - min;
+		float emptyDistance = Math::Max(worldSize.x, worldSize.y);
+		if (emptyDistance < 1.0f)
+			emptyDistance = 1.0f;
+
+		RHIResourceTransition(commandList, { mSceneSDFTexture }, EResourceTransition::UAV);
+
+		RHISetShaderProgram(commandList, mProgBuildSceneSDF->getRHI());
+		SET_SHADER_PARAM(commandList, *mProgBuildSceneSDF, SegmentCount, (int)mVisibleBlockIndices.size() ? (int)(segments.size()) : 0);
+		SET_SHADER_PARAM(commandList, *mProgBuildSceneSDF, SDFWorldMin, min);
+		SET_SHADER_PARAM(commandList, *mProgBuildSceneSDF, SDFWorldMax, max);
+		SET_SHADER_PARAM(commandList, *mProgBuildSceneSDF, SDFTextureSize, Vector2(SDFTextureWidth, SDFTextureHeight));
+		SET_SHADER_PARAM(commandList, *mProgBuildSceneSDF, EmptyDistanceValue, emptyDistance);
+		SET_SHADER_RWTEXTURE(commandList, *mProgBuildSceneSDF, SceneSDFTexture, *mSceneSDFTexture);
+		SetStructuredStorageBuffer(commandList, *mProgBuildSceneSDF, mSegmentBuffer);
+
+		RHIDispatchCompute(commandList, (SDFTextureWidth + 7) / 8, (SDFTextureHeight + 7) / 8, 1);
+		mProgBuildSceneSDF->clearRWTexture(commandList, SHADER_PARAM(SceneSDFTexture));
+
+		RHIResourceTransition(commandList, { mSceneSDFTexture }, EResourceTransition::SRV);
+	}
+
+	void Lighting2DTestStage::renderLightingSDF(RHICommandList& commandList, Matrix4 const& worldToClipRHI)
+	{
+		GPU_PROFILE("RenderLightingSDF");
+
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
+		Vec2i screenSize = ::Global::GetScreenSize();
+		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+
+		Vector2 p0 = mScreenToWorld.transformPosition(Vector2(0, 0));
+		Vector2 p1 = mScreenToWorld.transformPosition(Vector2(screenSize.x, screenSize.y));
+		Vector2 min = p0.min(p1);
+		Vector2 max = p0.max(p1);
+
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
+
+		RHISetShaderProgram(commandList, mProgLightingSDF->getRHI());
+		auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp>::GetRHI();
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgLightingSDF, SceneSDFTexture, *mSceneSDFTexture, sampler);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, ScreenToWorld, mScreenToWorld.toMatrix4());
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, WorldToClip, worldToClipRHI);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFWorldMin, min);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFWorldMax, max);
+
+		float worldScale = mZoom * (float)::Global::GetScreenSize().y / 25.0f;
+		float shadowBias = (worldScale > 0) ? (0.5f / worldScale) : 0.01f;
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, ShadowBias, shadowBias);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFHitThreshold, shadowBias * 1.5f);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFMinStepScale, 0.45f);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFMaxSteps, 96);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFMaxStepLength, 0.35f);
+		SET_SHADER_PARAM(commandList, *mProgLightingSDF, SDFSoftShadowScale, 4.0f);
+
+		SetStructuredStorageBuffer(commandList, *mProgLightingSDF, mLightBuffer);
+
+		DrawUtility::ScreenRect(commandList, (uint32)mVisibleLights.size());
 	}
 
 	void Lighting2DTestStage::renderLighting1D(RHICommandList& commandList)

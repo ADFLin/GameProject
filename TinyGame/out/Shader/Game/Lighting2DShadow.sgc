@@ -207,4 +207,76 @@ CS_ENTRY(BlockerSearchCS)
 #endif // SHADER_ENTRY(BlockerSearchCS)
 
 
+#if SHADER_ENTRY(BuildSceneSDFCS)
+
+uniform int    SegmentCount;
+uniform float2 SDFWorldMin;
+uniform float2 SDFWorldMax;
+uniform float2 SDFTextureSize;
+uniform float  EmptyDistanceValue;
+
+#if COMPILER_HLSL
+uniform RWTexture2D<float4> SceneSDFTexture;
+#else
+layout(rgba32f) uniform image2D writeonly SceneSDFTexture;
+#endif
+
+float SegmentDistanceSq(float2 p, float2 a, float2 b)
+{
+	float2 ab = b - a;
+	float2 ap = p - a;
+	float abLenSq = dot(ab, ab);
+	float t = 0.0;
+	if (abLenSq > 1e-6)
+		t = saturate(dot(ap, ab) / abLenSq);
+	float2 nearest = a + ab * t;
+	float2 delta = p - nearest;
+	return dot(delta, delta);
+}
+
+bool RayCrossesSegment(float2 p, float2 a, float2 b)
+{
+	bool condY = ((a.y > p.y) != (b.y > p.y));
+	if (!condY)
+		return false;
+
+	float yDelta = b.y - a.y;
+	if (abs(yDelta) < 1e-6)
+		return false;
+
+	float xCross = a.x + (p.y - a.y) * (b.x - a.x) / yDelta;
+	return p.x < xCross;
+}
+
+CS_NUM_THREADS(8, 8, 1)
+CS_ENTRY(BuildSceneSDFCS)
+{
+	uint2 pixelPos = SvDispatchThreadID.xy;
+	if (pixelPos.x >= uint(SDFTextureSize.x) || pixelPos.y >= uint(SDFTextureSize.y))
+		return;
+
+	float2 uv = (float2(pixelPos) + 0.5) / SDFTextureSize;
+	float2 worldPos = lerp(SDFWorldMin, SDFWorldMax, uv);
+
+	float minDistSq = EmptyDistanceValue * EmptyDistanceValue;
+	int crossingCount = 0;
+
+	for (int i = 0; i < SegmentCount; ++i)
+	{
+		float2 p0 = BlockSegments[i].p0;
+		float2 p1 = BlockSegments[i].p1;
+		minDistSq = min(minDistSq, SegmentDistanceSq(worldPos, p0, p1));
+		crossingCount += RayCrossesSegment(worldPos, p0, p1) ? 1 : 0;
+	}
+
+	float distanceValue = sqrt(minDistSq);
+	if ((crossingCount & 1) != 0)
+		distanceValue = -distanceValue;
+
+	imageStore(SceneSDFTexture, int2(pixelPos), float4(distanceValue, 0, 0, 1));
+}
+
+#endif // SHADER_ENTRY(BuildSceneSDFCS)
+
+
 #endif //COMPUTE_SHADER

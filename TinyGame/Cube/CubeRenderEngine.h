@@ -225,6 +225,8 @@ namespace Cube
 		class BlockRenderShaderProgram* mProgBlockRenderDepth;
 		class BlockRenderShaderProgram* mProgBlockRenderOverdraw;
 		class HZBGenerateCS* mProgHZBGenerate;
+		class HZBOccluderTileVoteCS* mProgHZBOccluderTileVote;
+		class HZBOccluderSelectCS* mProgHZBOccluderSelect;
 
 		bool bShowOverdraw = false;
 		bool bShowChunkLayerBoundOverDraw = false;
@@ -246,6 +248,11 @@ namespace Cube
 		Render::RHITexture2DRef mOccluderDepthTexture;
 		Render::RHIFrameBufferRef mOccluderFrameBuffer;
 		Render::RHIBufferRef mHZBCullItemBuffer;
+		Render::RHIBufferRef mHZBOccluderSelectItemBuffer;
+		Render::RHIBufferRef mHZBOccluderVoteBuffer;
+		Render::RHIBufferRef mOccluderCmdBuildBuffer;
+		Render::RHIBufferRef mOccluderCmdBuffer;
+		Render::RHIBufferRef mOccluderPoolCounterBuffer;
 		Render::RHITexture2DRef mHZBCullResultTexture;
 
 

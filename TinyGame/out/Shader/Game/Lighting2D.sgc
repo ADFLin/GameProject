@@ -35,6 +35,23 @@ uniform float4x4 ScreenToWorld;
 uniform float2 LightLocation;
 uniform float3 LightColor;
 uniform float3 LightAttenuation;
+uniform float  LightRadius;
+uniform float  LightSourceRadius;
+
+float3 CalcBaseLightColor(float3 lightColor, float3 attenuationParam, float sourceRadius, float radius, float distance)
+{
+	if (distance >= radius)
+		return float3(0, 0, 0);
+
+	float attDist = max(0.0, distance - sourceRadius);
+	float3 baseColor = lightColor / dot(attenuationParam, float3(1, attDist, attDist * attDist));
+
+	float distRatio = saturate(distance / radius);
+	float fadeOut = saturate(1.0 - distRatio * distRatio * distRatio * distRatio);
+	fadeOut *= fadeOut;
+
+	return baseColor * fadeOut;
+}
 
 
 #if SHADER_ENTRY(LightingPS)
@@ -47,8 +64,8 @@ PS_ENTRY_END(LightingPS)
 	float2 worldPos = mul(ScreenToWorld, float4(SvPosition.xy, 0, 1)).xy;
 	float2 offset = worldPos - LightLocation;
 	float distance = length(offset);
-	float attenuation = 1.0 /( dot( LightAttenuation , float3( 1 , distance , distance*distance) ) );
-	OutColor = float4(attenuation * LightColor, 1);
+	float3 baseColor = CalcBaseLightColor(LightColor, LightAttenuation, LightSourceRadius, LightRadius, distance);
+	OutColor = float4(baseColor, 1);
 }
 
 #endif
@@ -105,14 +122,7 @@ PS_ENTRY_END(LightingShadowMapPS)
 	float minOccluderDist = TEXTURE_SAMPLE(ShadowMapAtlas, float2(x, y)).a;
 	#endif
 	// 2. Consistent base lighting calculation
-	float attDist = max(0.0, distance - light.sourceRadius);
-	float3 baseColor = (light.color.rgb) * (light.intensity / dot(light.attenuation, float3(1, attDist, attDist * attDist)));
-
-	// Radius-based Fade Out to ensure sharp cut at radius boundary
-	float distRatio = saturate(distance / light.radius);
-	float fadeOut = saturate(1.0 - distRatio * distRatio * distRatio * distRatio);
-	fadeOut *= fadeOut;
-	baseColor *= fadeOut;
+	float3 baseColor = CalcBaseLightColor(light.color.rgb * light.intensity, light.attenuation, light.sourceRadius, light.radius, distance);
 
 	// Pre-calculation for penumbra width
 	float angularWidth = 0.0;
@@ -169,6 +179,102 @@ PS_ENTRY_END(LightingShadowMapPS)
 	}
 	
 	shadow /= weightSum;
+	OutColor = float4(baseColor * shadow, 1);
+}
+
+#endif
+
+
+#if SHADER_ENTRY(LightingSDFPS)
+
+DEFINE_TEXTURE(Texture2D, SceneSDFTexture);
+
+uniform float2 SDFWorldMin;
+uniform float2 SDFWorldMax;
+uniform float ShadowBias;
+uniform float SDFHitThreshold;
+uniform float SDFMinStepScale;
+uniform int   SDFMaxSteps;
+uniform float SDFMaxStepLength;
+uniform float SDFSoftShadowScale;
+
+float SampleSceneSDF(float2 worldPos)
+{
+	float2 uv = (worldPos - SDFWorldMin) / (SDFWorldMax - SDFWorldMin);
+	if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+		return 1e6;
+	return TEXTURE_SAMPLE(SceneSDFTexture, uv).r;
+}
+
+float CalcSDFSoftShadow(float2 rayStart, float2 rayDir, float travelLimit, float sourceRadius)
+{
+	float startOffset = max(ShadowBias + sourceRadius * 0.25, SDFHitThreshold * 1.5);
+	float t = startOffset;
+	float shadow = 1.0;
+	float minStep = max(SDFHitThreshold * 0.75, 0.02);
+	float maxStep = max(SDFMaxStepLength, minStep * 2.0);
+	float hitThreshold = max(SDFHitThreshold * 0.75, 0.001);
+	float blendWidth = max(sourceRadius * 0.75, hitThreshold * 4.0);
+	float visibilityFloor = saturate(1.0 - sourceRadius / max(travelLimit + sourceRadius, 1e-4));
+
+	[loop]
+	for (int i = 0; i < SDFMaxSteps && t < travelLimit; ++i)
+	{
+		float2 samplePos = rayStart + rayDir * t;
+		float sdf = SampleSceneSDF(samplePos);
+		if (sdf < hitThreshold)
+			return 0.0;
+
+		float receiverDist = max(t - startOffset, 1e-4);
+		float penumbra = sourceRadius * saturate(receiverDist / max(travelLimit, 1e-4));
+		float nearOccluder = smoothstep(hitThreshold, blendWidth, sdf);
+		float effectiveDist = max(sdf - penumbra, 0.0);
+		float softness = saturate(SDFSoftShadowScale * effectiveDist / max(receiverDist + sourceRadius, 1e-4));
+		softness = lerp(0.0, softness, nearOccluder);
+		shadow = min(shadow, max(softness, visibilityFloor * nearOccluder));
+
+		float stepLength = clamp(sdf * SDFMinStepScale, minStep, maxStep);
+		t += stepLength;
+	}
+
+	shadow = smoothstep(0.0, 1.0, saturate(shadow));
+	return shadow;
+}
+
+PS_ENTRY_START(LightingSDFPS)
+	PS_INPUT(flat int LightId, 3)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(LightingSDFPS)
+{
+	Light light = Lights[LightId];
+
+	float2 worldPos = mul(ScreenToWorld, float4(SvPosition.xy, 0, 1)).xy;
+	float2 toLight = light.pos - worldPos;
+	float distance = length(toLight);
+	if (distance >= light.radius)
+	{
+		OutColor = float4(0, 0, 0, 1);
+		return;
+	}
+
+	float3 baseColor = CalcBaseLightColor(light.color.rgb * light.intensity, light.attenuation, light.sourceRadius, light.radius, distance);
+
+	float startSDF = SampleSceneSDF(worldPos);
+	if (startSDF < 0.0)
+	{
+		OutColor = float4(0, 0, 0, 1);
+		return;
+	}
+
+	if (distance <= light.sourceRadius + ShadowBias)
+	{
+		OutColor = float4(baseColor, 1);
+		return;
+	}
+
+	float2 rayDir = toLight / distance;
+	float travelLimit = max(0.0, distance - light.sourceRadius);
+	float shadow = CalcSDFSoftShadow(worldPos, rayDir, travelLimit, light.sourceRadius);
 	OutColor = float4(baseColor * shadow, 1);
 }
 

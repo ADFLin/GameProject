@@ -150,8 +150,79 @@ namespace Cube
 
 	IMPLEMENT_SHADER(HZBCullCS, EShader::Compute, SHADER_ENTRY(HZBCullCSMain));
 
+	class HZBOccluderTileVoteCS : public GlobalShader
+	{
+		DECLARE_SHADER(HZBOccluderTileVoteCS, Global);
+	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/HZB";
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BIND_SHADER_PARAM(parameterMap, OccluderItems);
+			BIND_SHADER_PARAM(parameterMap, CandidateVotes);
+			BIND_SHADER_PARAM(parameterMap, WorldToClip);
+			BIND_SHADER_PARAM(parameterMap, TileGridSize);
+			BIND_SHADER_PARAM(parameterMap, NumItems);
+			BIND_SHADER_PARAM(parameterMap, TileVoteScale);
+			BIND_SHADER_PARAM(parameterMap, UndergroundWeight);
+		}
+
+		DEFINE_SHADER_PARAM(OccluderItems);
+		DEFINE_SHADER_PARAM(CandidateVotes);
+		DEFINE_SHADER_PARAM(WorldToClip);
+		DEFINE_SHADER_PARAM(TileGridSize);
+		DEFINE_SHADER_PARAM(NumItems);
+		DEFINE_SHADER_PARAM(TileVoteScale);
+		DEFINE_SHADER_PARAM(UndergroundWeight);
+	};
+
+	IMPLEMENT_SHADER(HZBOccluderTileVoteCS, EShader::Compute, SHADER_ENTRY(HZBOccluderTileVoteCSMain));
+
+	class HZBOccluderSelectCS : public GlobalShader
+	{
+		DECLARE_SHADER(HZBOccluderSelectCS, Global);
+	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/HZB";
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BIND_SHADER_PARAM(parameterMap, OccluderItems);
+			BIND_SHADER_PARAM(parameterMap, CandidateVotes);
+			BIND_SHADER_PARAM(parameterMap, OccluderPoolCounters);
+			BIND_SHADER_PARAM(parameterMap, OccluderCommands);
+			BIND_SHADER_PARAM(parameterMap, NumItems);
+			BIND_SHADER_PARAM(parameterMap, NumMeshPools);
+			BIND_SHADER_PARAM(parameterMap, MaxCommandsPerPool);
+			BIND_SHADER_PARAM(parameterMap, VoteThreshold);
+			BIND_SHADER_PARAM(parameterMap, MandatoryVoteBias);
+			BIND_SHADER_PARAM(parameterMap, UndergroundVoteWeight);
+		}
+
+		DEFINE_SHADER_PARAM(OccluderItems);
+		DEFINE_SHADER_PARAM(CandidateVotes);
+		DEFINE_SHADER_PARAM(OccluderPoolCounters);
+		DEFINE_SHADER_PARAM(OccluderCommands);
+		DEFINE_SHADER_PARAM(NumItems);
+		DEFINE_SHADER_PARAM(NumMeshPools);
+		DEFINE_SHADER_PARAM(MaxCommandsPerPool);
+		DEFINE_SHADER_PARAM(VoteThreshold);
+		DEFINE_SHADER_PARAM(MandatoryVoteBias);
+		DEFINE_SHADER_PARAM(UndergroundVoteWeight);
+	};
+
+	IMPLEMENT_SHADER(HZBOccluderSelectCS, EShader::Compute, SHADER_ENTRY(HZBOccluderSelectCSMain));
+
 	static int constexpr MaxHZBCullItems = 4 * 4096;
 	static int constexpr HZBCullResultTextureWidth = 4 * 4096;
+	static int constexpr MaxOccluderPoolCount = 1024;
+	static int constexpr MaxOccluderVoteItems = 1536;
+	static IntVector2 const HZBOccluderTileGridSize(16, 9);
 
 	struct HZBCullGPUItem
 	{
@@ -162,6 +233,19 @@ namespace Cube
 		uint32 outputIndex;
 
 		DrawCmdArgs cmdArgs;
+	};
+
+	struct HZBOccluderSelectGPUItem
+	{
+		Vector3 boxMin;
+		float padding0;
+		Vector3 boxMax;
+		float padding1;
+		DrawCmdArgs cmdArgs;
+		uint32 poolIndex;
+		uint32 layerIndex;
+		uint32 lowerLayerCount;
+		uint32 flags;
 	};
 
 	bool GRenderPreDepth = false;
@@ -205,6 +289,8 @@ namespace Cube
 		mProgBlockRenderOverdraw = ShaderManager::Get().getGlobalShaderT< BlockRenderShaderProgram >(permutationVector);
 		mProgHZBGenerate = ShaderManager::Get().getGlobalShaderT< HZBGenerateCS >();
 		ShaderManager::Get().getGlobalShaderT< HZBCullCS >();
+		mProgHZBOccluderTileVote = ShaderManager::Get().getGlobalShaderT< HZBOccluderTileVoteCS >();
+		mProgHZBOccluderSelect = ShaderManager::Get().getGlobalShaderT< HZBOccluderSelectCS >();
 
 		mTexBlockAtlas = RHIUtility::LoadTexture2DFromFile("Cube/blocks.png", TextureLoadOption().AutoMipMap());
 
@@ -219,6 +305,11 @@ namespace Cube
 		mCmdBuildBuffer = RHICreateBuffer(sizeof(uint32), MaxHZBCullItems * 16 * 5, BCF_CreateSRV | BCF_CreateUAV);
 		mCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), MaxHZBCullItems * 16, BCF_DrawIndirectArgs);
 		mHZBCullItemBuffer = RHICreateBuffer(sizeof(HZBCullGPUItem), MaxHZBCullItems, BCF_Structured | BCF_CreateSRV | BCF_CpuAccessWrite);
+		mHZBOccluderSelectItemBuffer = RHICreateBuffer(sizeof(HZBOccluderSelectGPUItem), MaxHZBCullItems, BCF_Structured | BCF_CreateSRV | BCF_CpuAccessWrite);
+		mHZBOccluderVoteBuffer = RHICreateBuffer(sizeof(uint32), MaxHZBCullItems, BCF_CreateSRV | BCF_CreateUAV);
+		mOccluderCmdBuildBuffer = RHICreateBuffer(sizeof(uint32), MaxHZBCullItems * 5, BCF_CreateSRV | BCF_CreateUAV);
+		mOccluderCmdBuffer = RHICreateBuffer(sizeof(DrawCmdArgs), MaxHZBCullItems, BCF_DrawIndirectArgs);
+		mOccluderPoolCounterBuffer = RHICreateBuffer(sizeof(uint32), MaxOccluderPoolCount, BCF_CreateSRV | BCF_CreateUAV);
 
 		mSceneFrameBuffer = RHICreateFrameBuffer();
 		mOccluderFrameBuffer = RHICreateFrameBuffer();
@@ -234,11 +325,18 @@ namespace Cube
 		mProgBlockRenderDepth = nullptr;
 		mProgBlockRenderOverdraw = nullptr;
 		mProgHZBGenerate = nullptr;
+		mProgHZBOccluderTileVote = nullptr;
+		mProgHZBOccluderSelect = nullptr;
 		mTexBlockAtlas.release();
 		mBlockInputLayout.release();
 		mCmdBuildBuffer.release();
 		mCmdBuffer.release();
 		mHZBCullItemBuffer.release();
+		mHZBOccluderSelectItemBuffer.release();
+		mHZBOccluderVoteBuffer.release();
+		mOccluderCmdBuildBuffer.release();
+		mOccluderCmdBuffer.release();
+		mOccluderPoolCounterBuffer.release();
 		mSceneFrameBuffer.release();
 		mOccluderFrameBuffer.release();
 		mHZBTexture.release();
@@ -848,7 +946,7 @@ namespace Cube
 		}
 
 		ICamera* cameraRender = mDebugCamera ? mDebugCamera : &camera;
-		Matrix4 projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 2000);
+		Matrix4 projectMatrix = PerspectiveMatrix(Math::DegToRad(100.0f / mAspect), mAspect, 0.01, 1000);
 		Matrix4 worldToViewCull = LookAtMatrix(camera.getPos(), camera.getViewDir(), camera.getUpDir());
 		Matrix4 worldToClipCull = worldToViewCull * projectMatrix;
 		Matrix4 worldToViewCullRelative = LookAtMatrix(Vec3f::Zero(), camera.getViewDir(), camera.getUpDir());
@@ -975,32 +1073,14 @@ namespace Cube
 		TArray<ChunkRenderData::Layer*> layerDrawList;
 		layerDrawList.reserve(mChunkMap.size() * Chunk::NumLayer);
 
-		struct HZBOccluderCandidate
-		{
-			ChunkRenderData::Layer* layer;
-			float distSq;
-			float projectedArea;
-			float score;
-		};
-		static int constexpr MaxHZBPrimaryOccluders = 512;
-		static int constexpr MaxHZBSecondaryOccluders = 256;
-		TArray<HZBOccluderCandidate> hzbPrimaryOccluderCandidates;
-		TArray<HZBOccluderCandidate> hzbOccluderCandidates;
-		hzbPrimaryOccluderCandidates.reserve(MaxHZBPrimaryOccluders);
-		hzbOccluderCandidates.reserve(MaxHZBSecondaryOccluders);
-
-		int64 visTriangleCount = 0;
 		int64 occludedTriangleCount = 0;
-		struct OccluderInfo
-		{
-			AABBox box;
-			AABBox boxProjected;
-		};
 		struct VisibleLayerItem
 		{
 			ChunkRenderData::Layer* layer;
 			int poolIndex;
 			HZBCullGPUItem cullItem;
+			HZBOccluderSelectGPUItem occluderItem;
+			float occluderPriority = 0.0f;
 			int triangleCount;
 		};
 		TArray<VisibleLayerItem> visibleLayerItems;
@@ -1020,19 +1100,22 @@ namespace Cube
 			v[6] = Vector3(box.max.x, box.max.y, box.max.z);
 			v[7] = Vector3(box.min.x, box.max.y, box.max.z);
 
-			outProjected.max = Vector3(-2,-2,-2);
-			outProjected.min = Vector3(2,2,2);
+			outProjected.max = Vector3(-2, -2, -2);
+			outProjected.min = Vector3(2, 2, 2);
+			int validCount = 0;
 			for (int i = 0; i < ARRAY_SIZE(v); ++i)
 			{
 				Vector3 localPos = v[i] - camPos;
 				Vector4 clip = Vector4(localPos, 1.0f) * worldToClipCullRelative;
-				if (clip.w <= 0.001f) return false; // Conservative: If any point is behind or on near plane, don't use as occluder
+				if (clip.w <= 0.001f)
+					continue;
 
 				Vector3 ndc = clip.dividedVector();
 				outProjected.max = outProjected.max.max(ndc);
 				outProjected.min = outProjected.min.min(ndc);
+				++validCount;
 			}
-			return (outProjected.max.x > outProjected.min.x && outProjected.max.y > outProjected.min.y);
+			return validCount > 0 && (outProjected.max.x > outProjected.min.x && outProjected.max.y > outProjected.min.y);
 		};
 
 		auto IsPriorityScanOffset = [&](int dx, int dy)
@@ -1104,7 +1187,8 @@ namespace Cube
 			int start = bFromTop ? data->numLayer - 1 : 0;
 			int end = bFromTop ? -1 : data->numLayer;
 			int step = bFromTop ? -1 : 1;
-			bool bAddedPrimaryHZBOccluder = false;
+			int bestSecondaryVisibleItemIndex = -1;
+			float bestSecondaryScore = 0.0f;
 
 			for (int i = start; i != end; i += step)
 			{
@@ -1122,18 +1206,6 @@ namespace Cube
 					continue;
 				}
 
-
-				Vector3 center = layer.bound.getCenter();
-				float distSq = (center - camPos).length2();
-#if 0
-
-				if (distSq > 256.0f * 256.0f)
-				{
-					occludedTriangleCount += (layer.args.indexCountPerInstance / 3) * layer.args.instanceCount;
-					continue;
-				}
-#endif
-
 				layerDrawList.push_back(&layer);
 				VisibleLayerItem visibleItem;
 				visibleItem.layer = &layer;
@@ -1144,70 +1216,60 @@ namespace Cube
 				visibleItem.cullItem.padding1 = 0;
 				visibleItem.cullItem.outputIndex = 0;
 				visibleItem.cullItem.cmdArgs = layer.args;
+				AABBox const& occluderBox = layer.occluderBox.isValid() ? layer.occluderBox : layer.bound;
+				visibleItem.occluderItem.boxMin = occluderBox.min - camPos;
+				visibleItem.occluderItem.boxMax = occluderBox.max - camPos;
+				visibleItem.occluderItem.padding0 = 0;
+				visibleItem.occluderItem.padding1 = 0;
+				visibleItem.occluderItem.cmdArgs = layer.args;
+				visibleItem.occluderItem.poolIndex = layer.meshPool->poolIndex;
+				visibleItem.occluderItem.layerIndex = layer.index;
+				visibleItem.occluderItem.lowerLayerCount = bFromTop ? i : (data->numLayer - i - 1);
+				visibleItem.occluderItem.flags = 0;
+				if (i == start)
+				{
+					visibleItem.occluderItem.flags |= 1;
+				}
+				{
+					AABBox projectedBox;
+					if (ProjectBox(occluderBox, projectedBox))
+					{
+						float projectedWidth = projectedBox.max.x - projectedBox.min.x;
+						float projectedHeight = projectedBox.max.y - projectedBox.min.y;
+						float projectedArea = projectedWidth * projectedHeight;
+						float worldHeight = occluderBox.max.z - occluderBox.min.z;
+						visibleItem.occluderPriority = projectedArea * (0.25f + projectedHeight) * (1.0f + 0.03f * worldHeight);
+					}
+					if ((visibleItem.occluderItem.flags & 1) != 0)
+					{
+						visibleItem.occluderPriority += 10000.0f;
+					}
+				}
 				visibleItem.triangleCount = (layer.args.indexCountPerInstance / 3) * layer.args.instanceCount;
 				visibleLayerItems.push_back(visibleItem);
 
-				if (layer.bound.isValid())
+				if (i != start)
 				{
-					AABBox oBox;
-					bool bProjected = ProjectBox(layer.bound, oBox);
-					float area = 0.0f;
-					bool bAcceptPrimaryHZBOccluder = false;
-					bool bAcceptSecondaryHZBOccluder = false;
-					if (bProjected)
+					AABBox projectedBox;
+					if (ProjectBox(layer.bound, projectedBox))
 					{
-						float width = (oBox.max.x - oBox.min.x);
-						float height = (oBox.max.y - oBox.min.y);
-						area = width * height;
-
-						// Prefer candidates that cover more screen space and stay near the center,
-						// while still giving some weight to nearer occluders.
-						Vector2 ndcCenter = Vector2(
-							0.5f * (oBox.max.x + oBox.min.x),
-							0.5f * (oBox.max.y + oBox.min.y));
-						float centerDist = ndcCenter.length();
-						float centerWeight = Math::Clamp(1.25f - 0.5f * centerDist, 0.35f, 1.25f);
-						float distanceWeight = 1.0f / (1.0f + distSq / (256.0f * 256.0f));
-						float score = area * centerWeight * (0.5f + 0.5f * distanceWeight);
-
-						// Always try to keep the first visible layer in a chunk as an occluder.
-						// This helps far terrain top layers occlude deeper layers from the same chunk.
-						bAcceptPrimaryHZBOccluder = !bAddedPrimaryHZBOccluder && ((area > 0.0002f) || (distSq < 256.0f * 256.0f));
-						if (bAcceptPrimaryHZBOccluder)
+						float projectedWidth = projectedBox.max.x - projectedBox.min.x;
+						float projectedHeight = projectedBox.max.y - projectedBox.min.y;
+						float projectedArea = projectedWidth * projectedHeight;
+						float worldHeight = layer.bound.max.z - layer.bound.min.z;
+						float score = projectedArea * (0.25f + projectedHeight) * (1.0f + 0.05f * worldHeight);
+						if (score > bestSecondaryScore)
 						{
-							if (hzbPrimaryOccluderCandidates.size() < MaxHZBPrimaryOccluders)
-							{
-								hzbPrimaryOccluderCandidates.push_back({ &layer, distSq, area, score + 1000.0f });
-								bAddedPrimaryHZBOccluder = true;
-							}
-						}
-
-						// Additional occluders still favor large/central layers.
-						bAcceptSecondaryHZBOccluder = (area > 0.0015f) || (distSq < 96.0f * 96.0f);
-						if (!bAcceptPrimaryHZBOccluder && bAcceptSecondaryHZBOccluder)
-						{
-							hzbOccluderCandidates.push_back({ &layer, distSq, area, score });
-						}
-					}
-					else
-					{
-						bAcceptPrimaryHZBOccluder = !bAddedPrimaryHZBOccluder && (distSq < 64.0f * 64.0f);
-						if (bAcceptPrimaryHZBOccluder)
-						{
-							if (hzbPrimaryOccluderCandidates.size() < MaxHZBPrimaryOccluders)
-							{
-								hzbPrimaryOccluderCandidates.push_back({ &layer, distSq, 0.0f, 1000.0f });
-								bAddedPrimaryHZBOccluder = true;
-							}
-						}
-						else if (distSq < 64.0f * 64.0f)
-						{
-							// Near-plane fallback. Keep it, but score it low so proper projected
-							// candidates dominate whenever available.
-							hzbOccluderCandidates.push_back({ &layer, distSq, 0.0f, 0.0001f });
+							bestSecondaryScore = score;
+							bestSecondaryVisibleItemIndex = visibleLayerItems.size() - 1;
 						}
 					}
 				}
+			}
+
+			if (bestSecondaryVisibleItemIndex != -1)
+			{
+				visibleLayerItems[bestSecondaryVisibleItemIndex].occluderItem.flags |= 2;
 			}
 
 			++chunkRenderCount;
@@ -1294,31 +1356,109 @@ namespace Cube
 				meshPoolCmdCounts[poolIndex] = 0;
 			}
 			{
-				PROFILE_ENTRY("Prepare HZB Candidates");
-				auto SortByScore = [](HZBOccluderCandidate const& a, HZBOccluderCandidate const& b)
-				{
-					if (a.score != b.score)
-						return a.score > b.score;
-					if (a.projectedArea != b.projectedArea)
-						return a.projectedArea > b.projectedArea;
-					return a.distSq < b.distSq;
-				};
-				std::sort(hzbPrimaryOccluderCandidates.begin(), hzbPrimaryOccluderCandidates.end(), SortByScore);
-				if (hzbPrimaryOccluderCandidates.size() > MaxHZBPrimaryOccluders)
-				{
-					hzbPrimaryOccluderCandidates.resize(MaxHZBPrimaryOccluders);
-				}
-				std::sort(hzbOccluderCandidates.begin(), hzbOccluderCandidates.end(), SortByScore);
-				if (hzbOccluderCandidates.size() > MaxHZBSecondaryOccluders)
-				{
-					hzbOccluderCandidates.resize(MaxHZBSecondaryOccluders);
-				}
-				hzbOccluderCandidates.append(hzbPrimaryOccluderCandidates);
-			}
-
-			{
 				PROFILE_ENTRY("HZB Occluder Depth CPU");
 				GPU_PROFILE("HZB Occluder Depth");
+				int numOccluderItems = 0;
+				int numMeshPools = Math::Min<int>((int)mMeshPool.size(), MaxOccluderPoolCount);
+				int maxOccluderCommandsPerPool = (numMeshPools > 0) ? Math::Max(1, MaxHZBCullItems / numMeshPools) : 0;
+				if (!visibleLayerItems.empty() && numMeshPools > 0 && mHZBOccluderSelectItemBuffer.isValid())
+				{
+					TArray<int> selectedIndices;
+					selectedIndices.reserve(Math::Min<int>((int)visibleLayerItems.size(), MaxOccluderVoteItems));
+
+					for (int i = 0; i < visibleLayerItems.size(); ++i)
+					{
+						if ((visibleLayerItems[i].occluderItem.flags & 3) != 0)
+						{
+							selectedIndices.push_back(i);
+						}
+					}
+
+					if (selectedIndices.size() < Math::Min<int>((int)visibleLayerItems.size(), MaxOccluderVoteItems))
+					{
+						TArray<int> optionalIndices;
+						optionalIndices.reserve(visibleLayerItems.size());
+						for (int i = 0; i < visibleLayerItems.size(); ++i)
+						{
+							if ((visibleLayerItems[i].occluderItem.flags & 3) == 0)
+							{
+								optionalIndices.push_back(i);
+							}
+						}
+
+						std::sort(optionalIndices.begin(), optionalIndices.end(), [&](int a, int b)
+						{
+							return visibleLayerItems[a].occluderPriority > visibleLayerItems[b].occluderPriority;
+						});
+
+						int remaining = MaxOccluderVoteItems - selectedIndices.size();
+						for (int i = 0; i < optionalIndices.size() && i < remaining; ++i)
+						{
+							selectedIndices.push_back(optionalIndices[i]);
+						}
+					}
+
+					numOccluderItems = Math::Min<int>((int)selectedIndices.size(), Math::Min(MaxOccluderVoteItems, MaxHZBCullItems));
+					TArray<HZBOccluderSelectGPUItem> occluderItems;
+					occluderItems.resize(numOccluderItems);
+					for (int i = 0; i < numOccluderItems; ++i)
+					{
+						occluderItems[i] = visibleLayerItems[selectedIndices[i]].occluderItem;
+					}
+					RHIUpdateBuffer(commandList, *mHZBOccluderSelectItemBuffer, 0, numOccluderItems, occluderItems.data());
+				}
+
+				if (numOccluderItems > 0 && numMeshPools > 0 && maxOccluderCommandsPerPool > 0)
+				{
+					TArray<uint32> zeroCandidateVotes;
+					zeroCandidateVotes.resize(numOccluderItems);
+					FMemory::Zero(zeroCandidateVotes.data(), sizeof(uint32) * zeroCandidateVotes.size());
+					RHIUpdateBuffer(commandList, *mHZBOccluderVoteBuffer, 0, numOccluderItems, zeroCandidateVotes.data());
+
+					TArray<uint32> zeroPoolCounters;
+					zeroPoolCounters.resize(numMeshPools);
+					FMemory::Zero(zeroPoolCounters.data(), sizeof(uint32) * zeroPoolCounters.size());
+					RHIUpdateBuffer(commandList, *mOccluderPoolCounterBuffer, 0, numMeshPools, zeroPoolCounters.data());
+
+					int numOccluderCommandWords = numMeshPools * maxOccluderCommandsPerPool * 5;
+					TArray<uint32> zeroOccluderCommands;
+					zeroOccluderCommands.resize(numOccluderCommandWords);
+					FMemory::Zero(zeroOccluderCommands.data(), sizeof(uint32) * zeroOccluderCommands.size());
+					RHIUpdateBuffer(commandList, *mOccluderCmdBuildBuffer, 0, numOccluderCommandWords, zeroOccluderCommands.data());
+
+					RHIResourceTransition(commandList, { mHZBOccluderVoteBuffer, mOccluderPoolCounterBuffer, mOccluderCmdBuildBuffer }, EResourceTransition::UAV);
+					RHISetComputeShader(commandList, mProgHZBOccluderTileVote->getRHI());
+					mProgHZBOccluderTileVote->setStorageBuffer(commandList, SHADER_PARAM(OccluderItems), *mHZBOccluderSelectItemBuffer, EAccessOp::ReadOnly);
+					mProgHZBOccluderTileVote->setStorageBuffer(commandList, SHADER_PARAM(CandidateVotes), *mHZBOccluderVoteBuffer, EAccessOp::ReadAndWrite);
+					mProgHZBOccluderTileVote->setParam(commandList, SHADER_PARAM(WorldToClip), worldToClipCullRelativeRHI);
+					mProgHZBOccluderTileVote->setParam(commandList, SHADER_PARAM(TileGridSize), HZBOccluderTileGridSize);
+					mProgHZBOccluderTileVote->setParam(commandList, SHADER_PARAM(NumItems), numOccluderItems);
+					mProgHZBOccluderTileVote->setParam(commandList, SHADER_PARAM(TileVoteScale), 12);
+					mProgHZBOccluderTileVote->setParam(commandList, SHADER_PARAM(UndergroundWeight), 2);
+					RHIDispatchCompute(commandList, HZBOccluderTileGridSize.x, HZBOccluderTileGridSize.y, 1);
+					mProgHZBOccluderTileVote->clearBuffer(commandList, SHADER_PARAM(CandidateVotes), EAccessOp::ReadAndWrite);
+					RHIResourceTransition(commandList, { mHZBOccluderVoteBuffer }, EResourceTransition::UAVBarrier);
+
+					RHISetComputeShader(commandList, mProgHZBOccluderSelect->getRHI());
+					mProgHZBOccluderSelect->setStorageBuffer(commandList, SHADER_PARAM(OccluderItems), *mHZBOccluderSelectItemBuffer, EAccessOp::ReadOnly);
+					mProgHZBOccluderSelect->setStorageBuffer(commandList, SHADER_PARAM(CandidateVotes), *mHZBOccluderVoteBuffer, EAccessOp::ReadOnly);
+					mProgHZBOccluderSelect->setStorageBuffer(commandList, SHADER_PARAM(OccluderPoolCounters), *mOccluderPoolCounterBuffer, EAccessOp::ReadAndWrite);
+					mProgHZBOccluderSelect->setStorageBuffer(commandList, SHADER_PARAM(OccluderCommands), *mOccluderCmdBuildBuffer, EAccessOp::ReadAndWrite);
+					mProgHZBOccluderSelect->setParam(commandList, SHADER_PARAM(NumItems), numOccluderItems);
+					mProgHZBOccluderSelect->setParam(commandList, SHADER_PARAM(NumMeshPools), numMeshPools);
+					mProgHZBOccluderSelect->setParam(commandList, SHADER_PARAM(MaxCommandsPerPool), maxOccluderCommandsPerPool);
+					mProgHZBOccluderSelect->setParam(commandList, SHADER_PARAM(VoteThreshold), 3);
+					mProgHZBOccluderSelect->setParam(commandList, SHADER_PARAM(MandatoryVoteBias), 256);
+					mProgHZBOccluderSelect->setParam(commandList, SHADER_PARAM(UndergroundVoteWeight), 8);
+					RHIDispatchCompute(commandList, (numOccluderItems + 63) / 64, 1, 1);
+					mProgHZBOccluderSelect->clearBuffer(commandList, SHADER_PARAM(CandidateVotes), EAccessOp::ReadOnly);
+					mProgHZBOccluderSelect->clearBuffer(commandList, SHADER_PARAM(OccluderPoolCounters), EAccessOp::ReadAndWrite);
+					mProgHZBOccluderSelect->clearBuffer(commandList, SHADER_PARAM(OccluderCommands), EAccessOp::ReadAndWrite);
+					RHIResourceTransition(commandList, { mOccluderCmdBuildBuffer }, EResourceTransition::UAVBarrier);
+					RHICopyResource(commandList, *mOccluderCmdBuffer, *mOccluderCmdBuildBuffer);
+					chunkLayerHZBCount = 0;
+				}
+
 				RHISetFrameBuffer(commandList, mOccluderFrameBuffer);
 				RHISetViewport(commandList, 0, 0, mOccluderDepthTexture->getSizeX(), mOccluderDepthTexture->getSizeY());
 				LinearColor clearColor(0, 0, 0, 0);
@@ -1330,12 +1470,10 @@ namespace Cube
 				contextCull.setupShader(commandList, *mProgBlockRender);
 				auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp>::GetRHI();
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBlockRender, BlockTexture, *mTexBlockAtlas, sampler);
-
-				for (HZBOccluderCandidate const& candidate : hzbOccluderCandidates)
+				for (int poolIndex = 0; poolIndex < numMeshPools; ++poolIndex)
 				{
-					auto* layer = candidate.layer;
-					auto* meshPool = layer ? layer->meshPool : nullptr;
-					if (meshPool == nullptr)
+					auto* meshPool = mMeshPool[poolIndex];
+					if (meshPool == nullptr || maxOccluderCommandsPerPool == 0)
 						continue;
 
 					InputStreamInfo inputstream;
@@ -1344,8 +1482,7 @@ namespace Cube
 					inputstream.stride = meshPool->vertexBuffer->getElementSize();
 					RHISetInputStream(commandList, mBlockInputLayout, &inputstream, 1);
 					RHISetIndexBuffer(commandList, meshPool->indexBuffer);
-					RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, layer->args.startIndexLocation, layer->args.indexCountPerInstance, layer->args.baseVertexLocation);
-					++chunkLayerHZBCount;
+					RHIDrawIndexedPrimitiveIndirect(commandList, EPrimitive::TriangleList, mOccluderCmdBuffer, sizeof(DrawCmdArgs) * maxOccluderCommandsPerPool * poolIndex, maxOccluderCommandsPerPool);
 				}
 
 				RHISetFrameBuffer(commandList, nullptr);

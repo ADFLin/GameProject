@@ -4,6 +4,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "GameRenderSetup.h"
 #include "ConsoleSystem.h"
+#include "Renderer/RenderThread.h"
 
 namespace ODE
 {
@@ -12,7 +13,6 @@ namespace ODE
 	class Trajectory
 	{
 	public:
-
 		Trajectory()
 		{
 			mPoints.resize(2 * mMaxPointCount);
@@ -20,32 +20,25 @@ namespace ODE
 
 		void addPoint(Vector2 const& pos)
 		{
+			int index = (mIndexStart + mPointCount) % mMaxPointCount;
 			if (mPointCount < mMaxPointCount)
 			{
-				CHECK(mIndexStart == 0);
-				mPoints[mPointCount] = pos;
 				++mPointCount;
 			}
 			else
 			{
-				int indexNext = mIndexStart + mPointCount;
-				if (indexNext == 2 * mMaxPointCount)
-				{
-					std::copy(mPoints.data() + mIndexStart + 1, mPoints.data() + indexNext, mPoints.data());
-
-					indexNext = mMaxPointCount - 1;
-					mIndexStart = 0;
-				}
-				else
-				{
-					mIndexStart += 1;
-				}
-
-				mPoints[indexNext] = pos;
+				mIndexStart = (mIndexStart + 1) % mMaxPointCount;
+				index = (mIndexStart + mPointCount - 1) % mMaxPointCount;
 			}
+
+			mPoints[index] = pos;
+			mPoints[index + mMaxPointCount] = pos;
 		}
 
-		TArrayView< Vector2 > getPoints() { return TArrayView<Vector2>(mPoints.data() + mIndexStart, mPointCount); }
+		TArrayView< Vector2 > getPoints()
+		{
+			return TArrayView<Vector2>(mPoints.data() + mIndexStart, mPointCount);
+		}
 
 		int mIndexStart = 0;
 		int mPointCount = 0;
@@ -264,37 +257,10 @@ namespace ODE
 
 	struct RK4Method
 	{
-		template< typename TFy, typename T >
-		static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
-		{
-			using namespace Expr;
-
-			Scalar x1 = x0;
-			T y1 = y0;
-			T ky1 = Fy(x1, y1);
-
-			Scalar x2 = x0 + (h / 2.0);
-			T y2 = y0 + (h / 2.0) * ky1;
-			T ky2 = Fy(x2, y2);
-
-			Scalar x3 = x0 + (h / 2.0);
-			T y3 = y0 + (h / 2.0) * ky2;
-			T ky3 = Fy(x3, y3);
-
-			Scalar x4 = x0 + h;
-			T y4 = y0 + h * ky3;
-			T ky4 = Fy(x4, y4);
-
-			Scalar x = x0 + h;
-			T y = y0 + (h / 6.0) * (ky1 + 2.0 * ky2 + 2.0 * ky3 + ky4);
-
-			x0 = x;
-			y0 = y;
-		}
-
 		template< typename TModel>
 		static void Step(TModel const& model, typename TModel::State& state, Scalar t, Scalar dt)
 		{
+			using namespace Expr;
 			auto k1 = model.evalDerivative(t, state);
 			auto k2 = model.evalDerivative(t + 0.5 * dt, state + 0.5 * dt * k1);
 			auto k3 = model.evalDerivative(t + 0.5 * dt, state + 0.5 * dt * k2);
@@ -305,45 +271,10 @@ namespace ODE
 
 	struct ButcherRKMethod
 	{
-		template< typename TFy, typename T >
-		static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
-		{
-			using namespace Expr;
-
-			Scalar x1 = x0;
-			T y1 = y0;
-			T ky1 = Fy(x1, y1);
-
-			Scalar x2 = x0 + (h / 4.0);
-			T y2 = y0 + (h / 4.0) * ky1;
-			T ky2 = Fy(x2, y2);
-
-			Scalar x3 = x0 + (h / 4.0);
-			T y3 = y0 + (h / 8.0) * ky1 + (h / 8.0) * ky2;
-			T ky3 = Fy(x3, y3);
-
-			Scalar x4 = x0 + (h / 2.0);
-			T y4 = y0 - (h / 2.0) * ky2 + (h / 1.0) * ky3;
-			T ky4 = Fy(x4, y4);
-
-			Scalar x5 = x0 + (3.0 * h / 4.0);
-			T y5 = y0 + (3.0 * h / 16.0) * ky1 + (9.0 * h / 16.0) * ky4;
-			T ky5 = Fy(x5, y5);
-
-			Scalar x6 = x0 + (h / 1.0);
-			T y6 = y0 - (3.0 * h / 7.0) * ky1 + (2.0 * h / 7.0) * ky2 + (12.0 * h / 7.0) * ky3 - (12.0 * h / 7.0) * ky4 + (8.0 * h / 7.0) * ky5;
-			T ky6 = Fy(x6, y6);
-
-			Scalar x = x0 + h;
-			T  y = y0 + (h / 90.0) * (7.0 * ky1 + 32.0 * ky3 + 12.0 * ky4 + 32.0 * ky5 + 7.0 * ky6);
-
-			x0 = x;
-			y0 = y;
-		}
-
 		template< typename TModel >
 		static void Step(TModel const& model, typename TModel::State& state, Scalar t, Scalar dt)
 		{
+			using namespace Expr;
 			auto k1 = model.evalDerivative(t, state);
 			auto k2 = model.evalDerivative(t + (dt / 4.0), state + (dt / 4.0) * k1);
 			auto k3 = model.evalDerivative(t + (dt / 4.0), state + (dt / 8.0) * k1 + (dt / 8.0) * k2);
@@ -356,22 +287,206 @@ namespace ODE
 
 	struct EulerMethod
 	{
-		template< typename TFy, typename T >
-		static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
-		{
-			using namespace Expr;
-			Scalar x = x0 + h;
-			T y = y0 + h * Fy(x0, y0);
-			x0 = x;
-			y0 = y;
-		}
-
 		template< typename TModel >
 		static void Step(TModel const& model, typename TModel::State& state, Scalar t, Scalar dt)
 		{
+			using namespace Expr;
 			state = state + dt * model.evalDerivative(t, state);
 		}
 	};
+
+	using V2 = TValues<2>;
+	using V22 = TValues<2, V2>;
+
+	struct Pendulum
+	{
+		Scalar L0 = 1.0;
+		Scalar m = 1.0;
+		Scalar g = 9.8;
+
+		Pendulum()
+		{
+		}
+
+
+
+		struct State
+		{
+			State() {}
+
+			State(EForceInit)
+			{
+				x = Math::PI / 2;
+				dx = 0;
+			}
+
+			Scalar x;
+			Scalar dx;
+
+			STATE_OP(State, x, dx);
+		};
+
+		State evalDerivative(Scalar t, State const& s) const
+		{
+			State state;
+			state.x = s.dx;
+			state.dx = -g / L0 * sin(s.x);
+			return state;
+		}
+
+		Vector2 getTracePos(State const& s) const
+		{
+			Vector2 p1 = L0 * Vector2(sin(s.x), cos(s.x));
+			return p1;
+		}
+	};
+
+	struct ElasticPendulum
+	{
+		Scalar L0 = 1.0;
+		Scalar m = 1.0;
+		Scalar k = 20.0;
+		Scalar g = 9.8;
+
+		ElasticPendulum()
+		{
+		}
+
+
+		struct State
+		{
+			State() {}
+
+			State(EForceInit)
+			{
+				x = { 0.5 , Math::PI / 2 };
+				dx = { 0, 0 };
+			}
+			V2 x;
+			V2 dx;
+
+			STATE_OP(State, x, dx);
+		};
+
+		State evalDerivative(Scalar t, State const& s) const
+		{
+			Scalar r = s.x[0];
+			Scalar dr = s.dx[0];
+			Scalar theta = s.x[1];
+			Scalar w = s.dx[1];
+
+			State state;
+			state.x = s.dx;
+			state.dx[0] = (L0 + r) * w * w - k / m * r + g * cos(theta);
+			state.dx[1] = -g / (L0 + r) * sin(theta) - 2 * dr / (L0 + r) * w;
+			return state;
+		}
+
+		Vector2 getTracePos(State const& s) const
+		{
+			Vector2 p1 = (L0 + s.x[0]) * Vector2(sin(s.x[1]), cos(s.x[1]));
+			return p1;
+		}
+	};
+
+
+	struct DoublePendulum
+	{
+		Scalar l1;
+		Scalar l2;
+		Scalar m1;
+		Scalar m2;
+
+		Scalar g = 9.8;
+		DoublePendulum()
+		{
+			l1 = 1;
+			l2 = 1;
+			m1 = 1;
+			m2 = 1;
+		}
+
+		struct State
+		{
+			State() {}
+
+			State(EForceInit)
+			{
+				theta = { Math::PI / 2 , 2 * Math::PI / 4 };
+				w = { 0 , 0 };
+			}
+
+
+			V2 theta;
+			V2 w;
+
+			STATE_OP(State, theta, w);
+		};
+
+		State evalDerivative(Scalar t, State const& s) const
+		{
+			V2 theta = s.theta;
+			V2 w = s.w;
+			Scalar l21 = l2 / l1;
+			Scalar l12 = l1 / l2;
+			Scalar m = m1 + m2;
+			Scalar delta = theta[0] - theta[1];
+			Scalar cd = cos(delta);
+			Scalar sd = sin(delta);
+
+			Scalar f1 = -l21 * (m1 / m) * (w[1] * w[1]) * sd - (g / l1) * sin(theta[0]);
+			Scalar f2 = l12 * (w[0] * w[0]) * sd - (g / l2) * sin(theta[1]);
+			Scalar a1 = l21 * (m2 / m) * cd;
+			Scalar a2 = l12 * cd;
+
+			State state;
+			state.theta = s.w;
+			state.w[0] = (f1 - a1 * f2) / (1 - a1 * a2);
+			state.w[1] = (f2 - a2 * f1) / (1 - a1 * a2);
+			return state;
+		}
+
+
+		Scalar calcEnergy(State const& s) const
+		{
+			Scalar result = 0;
+			Scalar v1 = l1 * s.w[0];
+			Scalar v2 = l2 * s.w[1];
+			result += 0.5 * (m1 + m2)* v1 * v1;
+			result += 0.5 * m2 * v2 * v2;
+			result += m2 * l1 * l2 * s.w[0] * s.w[1] * cos(s.theta[0] - s.theta[1]);
+			Scalar h1 = l1 * (1 - cos(s.theta[0]));
+			result += m1 * g * h1;
+			result += m2 * g * (h1 + l2 * (1 - cos(s.theta[1])));
+
+			return result;
+		}
+
+
+		Vector2 getTracePos(State const& s) const
+		{
+			Vector2 p1 = l1 * Vector2(sin(s.theta[0]), cos(s.theta[0]));
+			Vector2 p2 = p1 + l2 * Vector2(sin(s.theta[1]), cos(s.theta[1]));
+			return p2;
+		}
+	};
+
+	template <typename TModel>
+	struct TSimulation
+	{
+		TModel model;
+		typename TModel::State state{ ForceInit };
+		Scalar time = 0.0;
+
+
+		template <typename TMethod>
+		void step(Scalar dt)
+		{
+			TMethod::Step(model, state, time, dt);
+			time += dt;
+		}
+	};
+
 
 	class TestStage : public StageBase
 					, public IGameRenderSetup
@@ -388,47 +503,51 @@ namespace ODE
 
 			IConsoleSystem::Get().registerCommand("ODE.UpdateCurve", &TestStage::updateCurve, this);
 
+			auto frame = ::WidgetUtility::CreateDevFrame();
+			frame->addCheckBox("Show Curve", bShowCurve);
+			frame->addCheckBox("Show Trace", bShowTrace);
+
 			initSimModel();
 			updateCurve();
 			restart();
 			return true;
 		}
 
-
-		template <typename TModel>
-		struct TSimulation
+		void onEnd() override
 		{
-			TModel model;
-			typename TModel::State state{ ForceInit };
-			Scalar time = 0.0;
+			IConsoleSystem::Get().unregisterAllCommandsByObject(this);
+			BaseClass::onEnd();
+		}
 
+		void restart()
+		{
 
-			template <typename TMethod>
-			void step(Scalar dt)
-			{
-				TMethod::Step(model, state, time, dt);
-				time += dt;
-			}
-		};
-
+		}
 
 		template <typename TMethod>
 		void updateCurve(TArray<Vector2>& curve, Scalar h, int numStep = 500)
 		{
-			auto Fy = [](Scalar x, V2 y)
+			struct Model
 			{
-				return V2{ y[1] , -y[0] };
+				using State = V2;
+				State evalDerivative(Scalar t, State const& s) const
+				{
+					return { s[1] , -s[0] };
+				}
 			};
 
 			curve.resize(numStep + 1);
 
-			Scalar x0 = 0;
-			V2 y0 = { 0 , 1 };
-			curve[0] = Vector2(x0, y0[0]);
+			Scalar t = 0;
+
+			Model model;
+			Model::State state = { 0 , 1 };
+			curve[0] = Vector2(t, state[0]);
 			for (int i = 1; i <= numStep; ++i)
 			{
-				TMethod::Step(Fy, x0, y0, h);
-				curve[i] = Vector2(x0, y0[0]);
+				TMethod::Step(model, state, t, h);
+				t += h;
+				curve[i] = Vector2(t, state[0]);
 			}
 		}
 		void updateCurve(int numStep = 500)
@@ -446,194 +565,6 @@ namespace ODE
 			updateCurve<EulerMethod>(mCurveEuler, h, numStep);
 			updateCurve<ButcherRKMethod>(mCurveRK4, h, numStep);
 		}
-
-		void onEnd() override
-		{
-			BaseClass::onEnd();
-		}
-
-		void restart() 
-		{
-
-		}
-
-
-
-		using V2 = TValues<2>;
-		using V22 = TValues<2,V2>;
-
-		struct Pendulum
-		{
-			Scalar L0 = 1.0;
-			Scalar m = 1.0;
-			Scalar g = 9.8;
-
-			Pendulum()
-			{
-			}
-
-
-
-			struct State
-			{
-				State(){}
-
-				State(EForceInit)
-				{
-					x = Math::PI / 2;
-					dx = 0;
-				}
-
-				Scalar x;
-				Scalar dx;
-
-				STATE_OP(State, x, dx);
-			};
-
-			State evalDerivative(Scalar t, State const& s) const
-			{
-				State state;
-				state.x = s.dx;
-				state.dx = -g / L0 * sin(s.x);
-				return state;
-			}
-
-			Vector2 getTracePos(State const& s) const
-			{
-				Vector2 p1 = L0 * Vector2(sin(s.x), cos(s.x));
-				return p1;
-			}
-		};
-
-		struct ElasticPendulum
-		{
-			Scalar L0 = 1.0;
-			Scalar m = 1.0;
-			Scalar k = 20.0;
-			Scalar g = 9.8;
-
-			ElasticPendulum()
-			{
-			}
-
-
-			struct State
-			{
-				State(){}
-
-				State(EForceInit)
-				{
-					x = { 0.5 , Math::PI / 2 };
-					dx = { 0, 0 };
-				}
-				V2 x;
-				V2 dx;
-
-				STATE_OP(State, x, dx);
-			};
-
-			State evalDerivative(Scalar t, State const& s) const
-			{
-				Scalar r = s.x[0];
-				Scalar dr = s.dx[0];
-				Scalar theta = s.x[1];
-				Scalar w = s.dx[1];
-
-				State state;
-				state.x = s.dx;
-				state.dx[0] = (L0 + r) * w * w - k / m * r + g * cos(theta);
-				state.dx[1] = -g / (L0 + r) * sin(theta) - 2 * dr / (L0 + r) * w;
-				return state;
-			}
-
-			Vector2 getTracePos(State const& s) const
-			{
-				Vector2 p1 = (L0 + s.x[0]) * Vector2(sin(s.x[1]), cos(s.x[1]));
-				return p1;
-			}
-		};
-
-
-		struct DoublePendulum
-		{
-			Scalar l1;
-			Scalar l2;
-			Scalar m1;
-			Scalar m2;
-
-			Scalar g = 9.8;
-			DoublePendulum()
-			{
-				l1 = 1;
-				l2 = 1;
-				m1 = 1;
-				m2 = 1;
-			}
-
-			struct State
-			{
-				State() {}
-
-				State(EForceInit)
-				{
-					theta = { Math::PI / 2 , 2 * Math::PI / 4 };
-					w = { 0 , 0 };
-				}
-
-
-				V2 theta;
-				V2 w;
-
-				STATE_OP(State, theta, w);
-			};
-
-			State evalDerivative(Scalar t, State const& s) const
-			{
-				V2 theta = s.theta;
-				V2 w = s.w;
-				Scalar l21 = l2 / l1;
-				Scalar l12 = l1 / l2;
-				Scalar m = m1 + m2;
-				Scalar delta = theta[0] - theta[1];
-				Scalar cd = cos(delta);
-				Scalar sd = sin(delta);
-
-				Scalar f1 = -l21 * (m1 / m) * (w[1] * w[1]) * sd - (g / l1) * sin(theta[0]);
-				Scalar f2 = l12 * (w[0] * w[0]) * sd - (g / l2) * sin(theta[1]);
-				Scalar a1 = l21 * (m2 / m) * cd;
-				Scalar a2 = l12 * cd;
-
-				State state;
-				state.theta = s.w;
-				state.w[0] = (f1 - a1 * f2) / (1 - a1 * a2);
-				state.w[1] = (f2 - a2 * f1) / (1 - a1 * a2);
-				return state;
-			}
-
-
-			Scalar calcEnergy(State const& s) const
-			{
-				Scalar result = 0;
-				Scalar v1 = l1 * s.w[0];
-				Scalar v2 = l2 * s.w[1];
-				result += 0.5 * (m1 + m2)* v1 * v1;
-				result += 0.5 * m2 * v2 * v2;
-				result += m2 * l1 * l2 * s.w[0] * s.w[1] * cos(s.theta[0] - s.theta[1]);
-				Scalar h1 = l1 * (1 - cos(s.theta[0]));
-				result += m1 * g * h1;
-				result += m2 * g * (h1 + l2 * (1 - cos(s.theta[1])));
-
-				return result;
-			}
-
-
-			Vector2 getTracePos(State const& s) const
-			{
-				Vector2 p1 = l1 * Vector2(sin(s.theta[0]), cos(s.theta[0]));
-				Vector2 p2 = p1 + l2 * Vector2(sin(s.theta[1]), cos(s.theta[1]));
-				return p2;
-			}
-		};
 
 
 		Scalar E0;
@@ -776,6 +707,9 @@ namespace ODE
 			}
 		}
 
+		bool bShowCurve = false;
+		bool bShowTrace = true;
+
 
 		TArray< Vector2 > mCurve;
 		TArray< Vector2 > mCurveEuler;
@@ -788,10 +722,13 @@ namespace ODE
 			using namespace Render;
 
 			Vec2i screenSize = ::Global::GetScreenSize();
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
+			RenderThread::AddCommand("InitState", [screenSize]
+			{
+				RHICommandList& commandList = RHICommandList::GetImmediateList();
+				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+				RHISetFrameBuffer(commandList, nullptr);
+				RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
+			});
 
 			g.beginRender();
 
@@ -800,13 +737,17 @@ namespace ODE
 
 			g.translateXForm(screenSize.x / 2, 200);
 			g.scaleXForm(160, 160);
-			for (auto& modelTrace : mModelTraces)
+
+			if (bShowTrace)
 			{
-				g.setPen(modelTrace.colorTrace, 1);
-				auto points = modelTrace.trace.getPoints();
-				if (points.size() >= 2)
+				for (auto& modelTrace : mModelTraces)
 				{
-					g.drawLineStrip(points.data(), points.size());
+					g.setPen(modelTrace.colorTrace, 1);
+					auto points = modelTrace.trace.getPoints();
+					if (points.size() >= 2)
+					{
+						g.drawLineStrip(points.data(), points.size());
+					}
 				}
 			}
 			for (auto& modelTrace : mModelTraces)
@@ -815,24 +756,24 @@ namespace ODE
 			}
 			g.popXForm();
 	
-#if 1
-			g.pushXForm();
-			g.translateXForm(10 , screenSize.y * 0.5);
-			g.scaleXForm(2.5, 20);
+			if (bShowCurve)
+			{
+				g.pushXForm();
+				g.translateXForm(10, screenSize.y * 0.5);
+				g.scaleXForm(2.5, 20);
 
-			g.setPen(Color3f(1, 0, 0), 5);
-			g.drawLineStrip(mCurve.data(), mCurve.size());
+				g.setPen(Color3f(1, 0, 0), 5);
+				g.drawLineStrip(mCurve.data(), mCurve.size());
 
-			g.setPen(Color3f(0, 0, 1), 1);
-			g.drawLineStrip(mCurveEuler.data(), mCurveEuler.size());
+				g.setPen(Color3f(0, 0, 1), 1);
+				g.drawLineStrip(mCurveEuler.data(), mCurveEuler.size());
 
-			g.setPen(Color3f(0, 1, 1), 1);
-			g.drawLineStrip(mCurveRK4.data(), mCurveRK4.size());
+				g.setPen(Color3f(0, 1, 1), 1);
+				g.drawLineStrip(mCurveRK4.data(), mCurveRK4.size());
 
-			g.popXForm();
-#endif
-			//Vector2 pos[] = { Vector2(0,0) , Vector2(100,100), Vector2(200,0) };
-			//g.drawLineStrip(pos, ARRAY_SIZE(pos));
+				g.popXForm();
+			}
+
 			{
 				auto& DP = mModelTraces[0].getModel<DoublePendulum>();
 				auto const& state = mModelTraces[0].getState<DoublePendulum>();

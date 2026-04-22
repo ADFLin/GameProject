@@ -229,7 +229,7 @@ namespace Life
 			int index = chunk->listIndex;
 			CHECK(index != INDEX_NONE);
 			CHECK(list[index] == chunk);
-			
+
 			list.removeIndexSwap(index);
 			if (index < list.size())
 			{

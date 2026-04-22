@@ -2,6 +2,28 @@
 
 #if COMPUTE_SHADER
 
+struct DrawCmdArgs
+{
+	uint indexCountPerInstance;
+	uint instanceCount;
+	uint startIndexLocation;
+	int  baseVertexLocation;
+	uint startInstanceLocation;
+};
+
+struct OccluderSelectItem
+{
+	float3 boxMin;
+	float  padding0;
+	float3 boxMax;
+	float  padding1;
+	DrawCmdArgs cmdArgs;
+	uint poolIndex;
+	uint layerIndex;
+	uint lowerLayerCount;
+	uint flags;
+};
+
 #if SHADER_ENTRY(GenerateHZBCS)
 
 DEFINE_TEXTURE(Texture2D, SourceTexture)
@@ -55,16 +77,6 @@ CS_ENTRY(GenerateHZBCS)
 
 #if SHADER_ENTRY(HZBCullCSMain)
 
-
-
-struct DrawCmdArgs
-{
-	uint indexCountPerInstance;
-	uint instanceCount;
-	uint startIndexLocation;
-	int  baseVertexLocation;
-	uint startInstanceLocation;
-};
 
 struct HZBCullItem
 {
@@ -189,6 +201,166 @@ CS_ENTRY(HZBCullCSMain)
 
 	int2 resultPos = int2(itemIndex % ResultTextureSize.x, itemIndex / ResultTextureSize.x);
 	imageStore(ResultTexture, resultPos, visible ? float4(1, 0, 0, 1) : float4(0, 0, 0, 1));
+}
+
+#endif
+
+#if SHADER_ENTRY(HZBOccluderTileVoteCSMain)
+
+StructuredBuffer<OccluderSelectItem> OccluderItems;
+RWBuffer<uint> CandidateVotes;
+
+uniform float4x4 WorldToClip;
+uniform int2 TileGridSize;
+uniform int NumItems;
+uniform int TileVoteScale;
+uniform int UndergroundWeight;
+
+CS_NUM_THREADS(1, 1, 1)
+CS_ENTRY(HZBOccluderTileVoteCSMain)
+{
+	if (SvDispatchThreadID.x >= TileGridSize.x || SvDispatchThreadID.y >= TileGridSize.y)
+		return;
+
+	float2 tileMin = float2(SvDispatchThreadID.xy) / float2(TileGridSize);
+	float2 tileMax = float2(SvDispatchThreadID.xy + 1) / float2(TileGridSize);
+	float tileArea = max((tileMax.x - tileMin.x) * (tileMax.y - tileMin.y), 1e-6);
+
+	float bestScore = -1.0;
+	uint bestIndex = 0xFFFFFFFF;
+
+	for (uint itemIndex = 0; itemIndex < NumItems; ++itemIndex)
+	{
+		OccluderSelectItem item = OccluderItems[itemIndex];
+
+		float3 corners[8];
+		corners[0] = float3(item.boxMin.x, item.boxMin.y, item.boxMin.z);
+		corners[1] = float3(item.boxMax.x, item.boxMin.y, item.boxMin.z);
+		corners[2] = float3(item.boxMax.x, item.boxMax.y, item.boxMin.z);
+		corners[3] = float3(item.boxMin.x, item.boxMax.y, item.boxMin.z);
+		corners[4] = float3(item.boxMin.x, item.boxMin.y, item.boxMax.z);
+		corners[5] = float3(item.boxMax.x, item.boxMin.y, item.boxMax.z);
+		corners[6] = float3(item.boxMax.x, item.boxMax.y, item.boxMax.z);
+		corners[7] = float3(item.boxMin.x, item.boxMax.y, item.boxMax.z);
+
+		float2 ndcMin = float2(2.0, 2.0);
+		float2 ndcMax = float2(-2.0, -2.0);
+#if USE_INVERSE_ZBUFFER
+		float nearestDepth = 0.0;
+#else
+		float nearestDepth = 1.0;
+#endif
+		uint validCornerCount = 0;
+
+		UNROLL
+		for (int i = 0; i < 8; ++i)
+		{
+			float4 clip = mul(WorldToClip, float4(corners[i], 1.0));
+			if (clip.w <= 0.001)
+				continue;
+
+			float3 ndc = clip.xyz / clip.w;
+			ndcMin = min(ndcMin, ndc.xy);
+			ndcMax = max(ndcMax, ndc.xy);
+#if USE_INVERSE_ZBUFFER
+			nearestDepth = max(nearestDepth, ndc.z);
+#else
+			nearestDepth = min(nearestDepth, ndc.z);
+#endif
+			++validCornerCount;
+		}
+
+		if (validCornerCount == 0)
+			continue;
+
+		float2 uvMin = ndcMin * float2(0.5, -0.5) + 0.5;
+		float2 uvMax = ndcMax * float2(0.5, -0.5) + 0.5;
+		float2 rectMin = clamp(min(uvMin, uvMax), 0.0, 1.0);
+		float2 rectMax = clamp(max(uvMin, uvMax), 0.0, 1.0);
+		float2 overlapMin = max(rectMin, tileMin);
+		float2 overlapMax = min(rectMax, tileMax);
+		float2 overlapSize = overlapMax - overlapMin;
+		if (overlapSize.x <= 0 || overlapSize.y <= 0)
+			continue;
+
+		float overlapArea = overlapSize.x * overlapSize.y / tileArea;
+		float verticalWeight = max(rectMax.y - rectMin.y, 0.02);
+		float undergroundBoost = 1.0 + float(UndergroundWeight) * float(item.lowerLayerCount);
+		float mandatoryBoost = ((item.flags & 3) != 0) ? 8.0 : 1.0;
+#if USE_INVERSE_ZBUFFER
+		float depthPriority = nearestDepth;
+#else
+		float depthPriority = 1.0 - nearestDepth;
+#endif
+		float score = overlapArea * verticalWeight * undergroundBoost * mandatoryBoost + depthPriority;
+		if (score > bestScore)
+		{
+			bestScore = score;
+			bestIndex = itemIndex;
+		}
+	}
+
+	if (bestIndex == 0xFFFFFFFF)
+		return;
+
+	OccluderSelectItem bestItem = OccluderItems[bestIndex];
+	uint voteWeight = uint(max(1.0, bestScore * TileVoteScale));
+	InterlockedAdd(CandidateVotes[bestIndex], voteWeight);
+	if ((bestItem.flags & 3) != 0)
+	{
+		InterlockedAdd(CandidateVotes[bestIndex], TileVoteScale * 2);
+	}
+}
+
+#endif
+
+#if SHADER_ENTRY(HZBOccluderSelectCSMain)
+
+StructuredBuffer<OccluderSelectItem> OccluderItems;
+StructuredBuffer<uint> CandidateVotes;
+RWBuffer<uint> OccluderPoolCounters;
+RWBuffer<uint> OccluderCommands;
+
+uniform int NumItems;
+uniform int NumMeshPools;
+uniform int MaxCommandsPerPool;
+uniform int VoteThreshold;
+uniform int MandatoryVoteBias;
+uniform int UndergroundVoteWeight;
+
+CS_NUM_THREADS(64, 1, 1)
+CS_ENTRY(HZBOccluderSelectCSMain)
+{
+	uint itemIndex = SvDispatchThreadID.x;
+	if (itemIndex >= NumItems)
+		return;
+
+	OccluderSelectItem item = OccluderItems[itemIndex];
+	if (item.poolIndex >= NumMeshPools)
+		return;
+
+	uint voteCount = CandidateVotes[itemIndex];
+	bool isMandatoryOccluder = ((item.flags & 3) != 0);
+	if (isMandatoryOccluder)
+	{
+		voteCount += MandatoryVoteBias;
+	}
+	voteCount += item.lowerLayerCount * UndergroundVoteWeight;
+	if (voteCount < VoteThreshold)
+		return;
+
+	uint localIndex = 0;
+	InterlockedAdd(OccluderPoolCounters[item.poolIndex], 1, localIndex);
+	if (localIndex >= MaxCommandsPerPool)
+		return;
+
+	uint outputIndex = item.poolIndex * MaxCommandsPerPool + localIndex;
+	uint baseIndex = outputIndex * 5;
+	OccluderCommands[baseIndex + 0] = item.cmdArgs.indexCountPerInstance;
+	OccluderCommands[baseIndex + 1] = item.cmdArgs.instanceCount;
+	OccluderCommands[baseIndex + 2] = item.cmdArgs.startIndexLocation;
+	OccluderCommands[baseIndex + 3] = asuint(item.cmdArgs.baseVertexLocation);
+	OccluderCommands[baseIndex + 4] = item.cmdArgs.startInstanceLocation;
 }
 
 #endif

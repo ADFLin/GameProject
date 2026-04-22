@@ -7,6 +7,7 @@
 #include "DataStructure/Array.h"
 #include "DataStructure/CycleQueue.h"
 #include <atomic>
+#include <type_traits>
 
 class IQueuedWork
 {
@@ -32,13 +33,16 @@ public:
 	template< class TFunc >
 	void  addFunctionWork(TFunc&& func)
 	{
+
 		class TFuncWork : public IQueuedWork
 		{
 		public:
 			TFuncWork(TFunc&& func):mFunc(std::forward<TFunc>(func)){}
 			virtual void executeWork() override { mFunc(); }
 			virtual void release() override { delete this; }
-			TFunc mFunc;
+
+			using StoredFunc = std::decay_t<TFunc>;
+			StoredFunc mFunc;
 		};
 
 		TFuncWork* work = new TFuncWork(std::forward<TFunc>(func));

@@ -62,7 +62,7 @@ namespace
 	TConsoleVariableDelegate< bool > CVarAllowUseRenderThread
 	{
 		&GetAllowUseRenderThread, &SetAllowUseRenderThread,
-		"g.AllowUseRenderThread", CVF_TOGGLEABLE
+		"g.AllowUseRenderThread", CVF_TOGGLEABLE | CVF_CONFIG
 	};
 
 	ERenderSystem ConvTo(RHISystemName name)
@@ -184,7 +184,7 @@ DrawEngine::DrawEngine()
 	mbInitialized = false;
 	bRHIShutdownDeferred = false;
 	bEnableRenderThread = false;
-	mAllowUseRenderThread = false;
+	mAllowUseRenderThread = true;
 }
 
 DrawEngine::~DrawEngine()
@@ -657,7 +657,7 @@ void DrawEngine::syncFrame()
 
 bool DrawEngine::beginFrame()
 {
-	if (bBlockRender)
+	if (bBlockRender || mGameWindow == nullptr)
 	{
 		LogMsg("====== Render blocked !! =====");
 		return false;
@@ -670,7 +670,7 @@ bool DrawEngine::beginFrame()
 			mGLContext->makeCurrent();
 		}
 
-		auto DoAdvanceFrame = [this]
+		auto DoAdvanceFrame = [this]()
 		{
 			if (RHIBeginRender(true))
 			{
@@ -685,6 +685,7 @@ bool DrawEngine::beginFrame()
 				}
 			}
 		};
+
 		if (canUseRenderThread())
 		{
 			mActiveCommandList = RenderThread::Get().allocCommandList();

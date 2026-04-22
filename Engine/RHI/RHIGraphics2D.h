@@ -14,6 +14,7 @@
 #include "Math/Matrix2.h"
 #include "Math/Matrix4.h"
 #include "DataStructure/Array.h"
+#include <type_traits>
 
 namespace Render
 {
@@ -134,8 +135,9 @@ public:
 	class TCustomFuncRenderer : public Render::ICustomElementRenderer
 	{
 	public:
-		TCustomFuncRenderer(TFunc&& func)
-			:mFunc(std::forward<TFunc>(func))
+		template <typename UFunc>
+		TCustomFuncRenderer(UFunc&& func)
+			:mFunc(std::forward<UFunc>(func))
 		{
 		}
 		void render(Render::RHICommandList& commandList, Math::Matrix4 const& baseTransform, Render::RenderBatchedElement& element, Render::RenderTransform2D const& transform, RenderState const& state) override
@@ -161,7 +163,8 @@ public:
 		commitRenderState();
 		syncTransform();
 
-		using MyCustomRenderer = TCustomFuncRenderer<TFunc>;
+		using StoredFunc = std::decay_t<TFunc>;
+		using MyCustomRenderer = TCustomFuncRenderer<StoredFunc>;
 		void* ptr = allocRaw(sizeof(MyCustomRenderer));
 		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
 		auto& element = getElementList().addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly, bChangeState);
@@ -175,7 +178,8 @@ public:
 		commitRenderState();
 		syncTransform();
 
-		using MyCustomRenderer = TCustomFuncRenderer<TFunc>;
+		using StoredFunc = std::decay_t<TFunc>;
+		using MyCustomRenderer = TCustomFuncRenderer<StoredFunc>;
 		void* ptr = allocRaw(sizeof(MyCustomRenderer));
 		new (ptr) MyCustomRenderer(std::forward<TFunc>(func));
 

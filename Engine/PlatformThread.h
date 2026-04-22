@@ -11,6 +11,7 @@
 #include "Meta/FunctionCall.h"
 
 #include <utility>
+#include <type_traits>
 
 uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 
@@ -393,7 +394,8 @@ template< class TFunc >
 class TFunctionThread : public RunnableThreadT< TFunctionThread<TFunc> >
 {
 public:
-	TFunctionThread( TFunc&& func ):mFunction( std::forward<TFunc>(func) ){}
+	template <typename UFunc>
+	TFunctionThread( UFunc&& func ):mFunction( std::forward<UFunc>(func) ){}
 	unsigned run(){  (mFunction)(); return 0; }
 private:
 	TFunc mFunction;
@@ -403,8 +405,9 @@ template< typename TFunc >
 class TAsyncFuncThread : public RunnableThreadT<TAsyncFuncThread<TFunc>>
 {
 public:
-	TAsyncFuncThread(TFunc&& func)
-		:mFunc(std::forward<TFunc>(func))
+	template <typename UFunc>
+	TAsyncFuncThread(UFunc&& func)
+		:mFunc(std::forward<UFunc>(func))
 	{
 	}
 
@@ -430,7 +433,8 @@ public:
 template< typename TFunc >
 void Async(TFunc&& func)
 {
-	TAsyncFuncThread< TFunc >* thread = new TAsyncFuncThread< TFunc >(std::forward<TFunc>(func));
+	using StoredFunc = std::decay_t<TFunc>;
+	TAsyncFuncThread< StoredFunc >* thread = new TAsyncFuncThread< StoredFunc >(std::forward<TFunc>(func));
 	thread->start();
 }
 

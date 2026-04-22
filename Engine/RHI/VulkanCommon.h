@@ -16,6 +16,7 @@
 #include "VulkanDevice.h"
 #include "Memory/BuddyAllocator.h"
 #include "PlatformThread.h"
+#include <type_traits>
 
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
@@ -1550,7 +1551,9 @@ namespace Render
 				{
 					mFunc();
 				}
-				TFunc mFunc;
+
+				using StoredFunc = std::decay_t<TFunc>;
+				StoredFunc mFunc;
 			};
 
 			IFenceRelease* fr = new FuncRelease(std::forward<TFunc>(func));

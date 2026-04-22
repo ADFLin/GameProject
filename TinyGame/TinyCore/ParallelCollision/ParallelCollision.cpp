@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstring>
+#include <type_traits>
 #include "ProfileSystem.h"
 
 #include <thread>
@@ -144,7 +145,8 @@ namespace ParallelCollision
 	class TFrameWork : public IQueuedWork
 	{
 	public:
-		TFrameWork(TFunc&& func) : mFunc(std::forward<TFunc>(func)) {}
+		template <typename UFunc>
+		TFrameWork(UFunc&& func) : mFunc(std::forward<UFunc>(func)) {}
 		void executeWork() override { mFunc(); }
 		void release() override { this->~TFrameWork(); }
 		TFunc mFunc;
@@ -155,12 +157,13 @@ namespace ParallelCollision
 	{
 		if (count <= 0) return;
 		StackMaker marker(allocator);
+		using StoredFunc = std::decay_t<TFunc>;
 
 		int numTasks = (count + batchSize - 1) / batchSize;
 		struct TaskRunner
 		{
 			int start, end;
-			TFunc func;
+			StoredFunc func;
 			char const* name;
 			void operator()()
 			{

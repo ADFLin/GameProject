@@ -3,6 +3,7 @@
 #define ScopeGuard_H_FDB42512_AFB1_41DB_B6F9_31A0B7245168
 
 #include <exception>
+#include <type_traits>
 
 namespace ScopeGuardSupport
 {
@@ -15,8 +16,9 @@ namespace ScopeGuardSupport
 	struct TScopeImpl : private TTriggerPolicy
 	{
 	public:
-		FORCEINLINE TScopeImpl(TFunc&& func)
-			:mFunc(std::forward<TFunc>(func))
+		template <typename UFunc>
+		FORCEINLINE TScopeImpl(UFunc&& func)
+			:mFunc(std::forward<UFunc>(func))
 		{
 		}
 
@@ -76,27 +78,27 @@ namespace ScopeGuardSupport
 	struct ExitSyntax
 	{
 		template <typename TFunc>
-		FORCEINLINE TScopeExit<TFunc> operator+(TFunc&& func) const
+		FORCEINLINE TScopeExit<std::decay_t<TFunc>> operator+(TFunc&& func) const
 		{
-			return TScopeExit<TFunc>(std::forward<TFunc>(func));
+			return TScopeExit<std::decay_t<TFunc>>(std::forward<TFunc>(func));
 		}
 	};
 
 	struct SuccessSyntax
 	{
 		template <typename TFunc>
-		FORCEINLINE TScopeSuccess<TFunc> operator+(TFunc&& func) const
+		FORCEINLINE TScopeSuccess<std::decay_t<TFunc>> operator+(TFunc&& func) const
 		{
-			return TScopeSuccess<TFunc>(std::forward<TFunc>(func));
+			return TScopeSuccess<std::decay_t<TFunc>>(std::forward<TFunc>(func));
 		}
 	};
 
 	struct FailSyntax
 	{
 		template <typename TFunc>
-		FORCEINLINE TScopeFail<TFunc> operator+(TFunc&& func) const
+		FORCEINLINE TScopeFail<std::decay_t<TFunc>> operator+(TFunc&& func) const
 		{
-			return TScopeFail<TFunc>(std::forward<TFunc>(func));
+			return TScopeFail<std::decay_t<TFunc>>(std::forward<TFunc>(func));
 		}
 	};
 }

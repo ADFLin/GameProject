@@ -90,6 +90,33 @@ namespace ODE
 
 			return *this;
 		}
+
+		template< class TExpr >
+		TValues& operator += (TExpr const& rhs)
+		{
+			for (int i = 0; i < Dim; ++i)
+				mValues[i] += rhs[i];
+
+			return *this;
+		}
+
+		template< class TExpr >
+		TValues& operator -= (TExpr const& rhs)
+		{
+			for (int i = 0; i < Dim; ++i)
+				mValues[i] -= rhs[i];
+
+			return *this;
+		}
+
+		TValues& operator *= (Scalar s)
+		{
+			for (int i = 0; i < Dim; ++i)
+				mValues[i] *= s;
+
+			return *this;
+		}
+
 		ScalarType  operator[](int index) const { return mValues[index]; }
 		ScalarType& operator[](int index) { return mValues[index]; }
 
@@ -172,6 +199,180 @@ namespace ODE
 		DEFINE_EXPR_OP(TExprMul, *);
 	}
 
+#define ODE_STATE_ADD_FIELD(field) result.field = lhs.field; result.field += rhs.field;
+#define ODE_STATE_SUB_FIELD(field) result.field = lhs.field; result.field -= rhs.field;
+#define ODE_STATE_SCALE_FIELD(field) result.field = value.field; result.field *= s;
+#define ODE_STATE_ADD_ASSIGN_FIELD(field) lhs.field += rhs.field;
+#define ODE_STATE_SUB_ASSIGN_FIELD(field) lhs.field -= rhs.field;
+#define ODE_STATE_SCALE_ASSIGN_FIELD(field) value.field *= s;
+
+#define ODE_APPLY(macro, args) ODE_APPLY_IMPL(macro, args)
+#define ODE_APPLY_IMPL(macro, args) macro args
+#define ODE_SELECT_1_8(_1, _2, _3, _4, _5, _6, _7, _8, NAME, ...) NAME
+
+#define ODE_FOR_EACH_1(M, F1) M(F1)
+#define ODE_FOR_EACH_2(M, F1, F2) M(F1) M(F2)
+#define ODE_FOR_EACH_3(M, F1, F2, F3) M(F1) M(F2) M(F3)
+#define ODE_FOR_EACH_4(M, F1, F2, F3, F4) M(F1) M(F2) M(F3) M(F4)
+#define ODE_FOR_EACH_5(M, F1, F2, F3, F4, F5) M(F1) M(F2) M(F3) M(F4) M(F5)
+#define ODE_FOR_EACH_6(M, F1, F2, F3, F4, F5, F6) M(F1) M(F2) M(F3) M(F4) M(F5) M(F6)
+#define ODE_FOR_EACH_7(M, F1, F2, F3, F4, F5, F6, F7) M(F1) M(F2) M(F3) M(F4) M(F5) M(F6) M(F7)
+#define ODE_FOR_EACH_8(M, F1, F2, F3, F4, F5, F6, F7, F8) M(F1) M(F2) M(F3) M(F4) M(F5) M(F6) M(F7) M(F8)
+
+#define ODE_FOR_EACH(M, ...) \
+	ODE_APPLY(ODE_SELECT_1_8(__VA_ARGS__, ODE_FOR_EACH_8, ODE_FOR_EACH_7, ODE_FOR_EACH_6, ODE_FOR_EACH_5, ODE_FOR_EACH_4, ODE_FOR_EACH_3, ODE_FOR_EACH_2, ODE_FOR_EACH_1), (M, __VA_ARGS__))
+
+#define STATE_OP(Self, ...) \
+	friend Self operator+(Self const& lhs, Self const& rhs) \
+	{ \
+		Self result{}; \
+		ODE_FOR_EACH(ODE_STATE_ADD_FIELD, __VA_ARGS__) \
+		return result; \
+	} \
+	friend Self operator-(Self const& lhs, Self const& rhs) \
+	{ \
+		Self result{}; \
+		ODE_FOR_EACH(ODE_STATE_SUB_FIELD, __VA_ARGS__) \
+		return result; \
+	} \
+	friend Self operator*(Scalar s, Self const& value) \
+	{ \
+		Self result{}; \
+		ODE_FOR_EACH(ODE_STATE_SCALE_FIELD, __VA_ARGS__) \
+		return result; \
+	} \
+	friend Self operator*(Self const& value, Scalar s) \
+	{ \
+		return s * value; \
+	} \
+	friend Self& operator+=(Self& lhs, Self const& rhs) \
+	{ \
+		ODE_FOR_EACH(ODE_STATE_ADD_ASSIGN_FIELD, __VA_ARGS__) \
+		return lhs; \
+	} \
+	friend Self& operator-=(Self& lhs, Self const& rhs) \
+	{ \
+		ODE_FOR_EACH(ODE_STATE_SUB_ASSIGN_FIELD, __VA_ARGS__) \
+		return lhs; \
+	} \
+	friend Self& operator*=(Self& value, Scalar s) \
+	{ \
+		ODE_FOR_EACH(ODE_STATE_SCALE_ASSIGN_FIELD, __VA_ARGS__) \
+		return value; \
+	}
+
+
+	struct RK4Method
+	{
+		template< typename TFy, typename T >
+		static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
+		{
+			using namespace Expr;
+
+			Scalar x1 = x0;
+			T y1 = y0;
+			T ky1 = Fy(x1, y1);
+
+			Scalar x2 = x0 + (h / 2.0);
+			T y2 = y0 + (h / 2.0) * ky1;
+			T ky2 = Fy(x2, y2);
+
+			Scalar x3 = x0 + (h / 2.0);
+			T y3 = y0 + (h / 2.0) * ky2;
+			T ky3 = Fy(x3, y3);
+
+			Scalar x4 = x0 + h;
+			T y4 = y0 + h * ky3;
+			T ky4 = Fy(x4, y4);
+
+			Scalar x = x0 + h;
+			T y = y0 + (h / 6.0) * (ky1 + 2.0 * ky2 + 2.0 * ky3 + ky4);
+
+			x0 = x;
+			y0 = y;
+		}
+
+		template< typename TModel>
+		static void Step(TModel const& model, typename TModel::State& state, Scalar t, Scalar dt)
+		{
+			auto k1 = model.evalDerivative(t, state);
+			auto k2 = model.evalDerivative(t + 0.5 * dt, state + 0.5 * dt * k1);
+			auto k3 = model.evalDerivative(t + 0.5 * dt, state + 0.5 * dt * k2);
+			auto k4 = model.evalDerivative(t + dt, state + dt * k3);
+			state = state + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+		}
+	};
+
+	struct ButcherRKMethod
+	{
+		template< typename TFy, typename T >
+		static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
+		{
+			using namespace Expr;
+
+			Scalar x1 = x0;
+			T y1 = y0;
+			T ky1 = Fy(x1, y1);
+
+			Scalar x2 = x0 + (h / 4.0);
+			T y2 = y0 + (h / 4.0) * ky1;
+			T ky2 = Fy(x2, y2);
+
+			Scalar x3 = x0 + (h / 4.0);
+			T y3 = y0 + (h / 8.0) * ky1 + (h / 8.0) * ky2;
+			T ky3 = Fy(x3, y3);
+
+			Scalar x4 = x0 + (h / 2.0);
+			T y4 = y0 - (h / 2.0) * ky2 + (h / 1.0) * ky3;
+			T ky4 = Fy(x4, y4);
+
+			Scalar x5 = x0 + (3.0 * h / 4.0);
+			T y5 = y0 + (3.0 * h / 16.0) * ky1 + (9.0 * h / 16.0) * ky4;
+			T ky5 = Fy(x5, y5);
+
+			Scalar x6 = x0 + (h / 1.0);
+			T y6 = y0 - (3.0 * h / 7.0) * ky1 + (2.0 * h / 7.0) * ky2 + (12.0 * h / 7.0) * ky3 - (12.0 * h / 7.0) * ky4 + (8.0 * h / 7.0) * ky5;
+			T ky6 = Fy(x6, y6);
+
+			Scalar x = x0 + h;
+			T  y = y0 + (h / 90.0) * (7.0 * ky1 + 32.0 * ky3 + 12.0 * ky4 + 32.0 * ky5 + 7.0 * ky6);
+
+			x0 = x;
+			y0 = y;
+		}
+
+		template< typename TModel >
+		static void Step(TModel const& model, typename TModel::State& state, Scalar t, Scalar dt)
+		{
+			auto k1 = model.evalDerivative(t, state);
+			auto k2 = model.evalDerivative(t + (dt / 4.0), state + (dt / 4.0) * k1);
+			auto k3 = model.evalDerivative(t + (dt / 4.0), state + (dt / 8.0) * k1 + (dt / 8.0) * k2);
+			auto k4 = model.evalDerivative(t + (dt / 2.0), state - (dt / 2.0) * k2 + dt * k3);
+			auto k5 = model.evalDerivative(t + (3.0 * dt / 4.0), state + (3.0 * dt / 16.0) * k1 + (9.0 * dt / 16.0) * k4);
+			auto k6 = model.evalDerivative(t + dt, state - (3.0 * dt / 7.0) * k1 + (2.0 * dt / 7.0) * k2 + (12.0 * dt / 7.0) * k3 - (12.0 * dt / 7.0) * k4 + (8.0 * dt / 7.0) * k5);
+			state = state + (dt / 90.0) * (7.0 * k1 + 32.0 * k3 + 12.0 * k4 + 32.0 * k5 + 7.0 * k6);
+		}
+	};
+
+	struct EulerMethod
+	{
+		template< typename TFy, typename T >
+		static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
+		{
+			using namespace Expr;
+			Scalar x = x0 + h;
+			T y = y0 + h * Fy(x0, y0);
+			x0 = x;
+			y0 = y;
+		}
+
+		template< typename TModel >
+		static void Step(TModel const& model, typename TModel::State& state, Scalar t, Scalar dt)
+		{
+			state = state + dt * model.evalDerivative(t, state);
+		}
+	};
+
 	class TestStage : public StageBase
 					, public IGameRenderSetup
 	{
@@ -193,88 +394,23 @@ namespace ODE
 			return true;
 		}
 
-		struct RK4Method
+
+		template <typename TModel>
+		struct TSimulation
 		{
-			template< typename TFy, typename T >
-			static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
+			TModel model;
+			typename TModel::State state{ ForceInit };
+			Scalar time = 0.0;
+
+
+			template <typename TMethod>
+			void step(Scalar dt)
 			{
-				using namespace Expr;
-
-				Scalar x1 = x0;
-				T y1 = y0;
-				T ky1 = Fy(x1, y1);
-
-				Scalar x2 = x0 + (h / 2.0);
-				T y2 = y0 + (h / 2.0) * ky1;
-				T ky2 = Fy(x2, y2);
-
-				Scalar x3 = x0 + (h / 2.0);
-				T y3 = y0 + (h / 2.0) * ky2;
-				T ky3 = Fy(x3, y3);
-
-				Scalar x4 = x0 + h;
-				T y4 = y0 + h * ky3;
-				T ky4 = Fy(x4, y4);
-
-				Scalar x = x0 + h;
-				T y = y0 + (h / 6.0) * (ky1 + 2.0 * ky2 + 2.0 * ky3 + ky4);
-
-				x0 = x;
-				y0 = y;
+				TMethod::Step(model, state, time, dt);
+				time += dt;
 			}
 		};
 
-		struct ButcherRKMethod
-		{
-			template< typename TFy, typename T >
-			static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
-			{
-				using namespace Expr;
-
-				Scalar x1 = x0;
-				T y1 = y0;
-				T ky1 = Fy(x1, y1);
-
-				Scalar x2 = x0 + (h / 4.0);
-				T y2 = y0 + (h / 4.0) * ky1;
-				T ky2 = Fy(x2, y2);
-				
-				Scalar x3 = x0 + (h / 4.0);
-				T y3 = y0 + (h / 8.0) * ky1 + (h / 8.0) * ky2;
-				T ky3 = Fy(x3, y3);
-
-				Scalar x4 = x0 + (h / 2.0);
-				T y4 = y0 - (h / 2.0) * ky2 + (h / 1.0) * ky3;
-				T ky4 = Fy(x4, y4);
-
-				Scalar x5 = x0 + (3.0 * h / 4.0);
-				T y5 = y0 + (3.0 * h / 16.0) * ky1 + (9.0 * h / 16.0) * ky4;
-				T ky5 = Fy(x5, y5);
-
-				Scalar x6 = x0 + (h / 1.0);
-				T y6 = y0 - (3.0 * h / 7.0) * ky1 + (2.0 * h / 7.0) * ky2 + (12.0 * h / 7.0) * ky3 - (12.0 * h / 7.0) * ky4 + (8.0 * h / 7.0) * ky5;
-				T ky6 = Fy(x6, y6);
-
-				Scalar x = x0 + h;
-				T  y = y0 + (h / 90.0) * (7.0 * ky1 + 32.0 * ky3 + 12.0 * ky4 + 32.0 * ky5 + 7.0 * ky6);
-
-				x0 = x;
-				y0 = y;
-			}
-		};
-
-		struct EulerMethod
-		{
-			template< typename TFy, typename T >
-			static void Step(TFy&& Fy, Scalar& x0, T& y0, Scalar h)
-			{
-				using namespace Expr;
-				Scalar x = x0 + h;
-				T y = y0 + h * Fy(x0, y0);
-				x0 = x;
-				y0 = y;
-			}
-		};
 
 		template <typename TMethod>
 		void updateCurve(TArray<Vector2>& curve, Scalar h, int numStep = 500)
@@ -330,43 +466,41 @@ namespace ODE
 		{
 			Scalar L0 = 1.0;
 			Scalar m = 1.0;
-			Scalar x;
-			Scalar dx;
-			Scalar t;
 			Scalar g = 9.8;
 
 			Pendulum()
 			{
-				t = 0;
-				x = Math::PI / 2;
-				dx = 0;
 			}
 
-			template <typename TMethod>
-			void simulate(Scalar dt)
+
+
+			struct State
 			{
-				auto Fy = [&](Scalar x, V2 y)
+				State(){}
+
+				State(EForceInit)
 				{
-					Scalar theta = y[0];
-					Scalar w = y[1];
+					x = Math::PI / 2;
+					dx = 0;
+				}
 
-					V2 out;
-					out[0] = y[1];
-					out[1] = - g / L0 * sin(theta);
-					return out;
-				};
+				Scalar x;
+				Scalar dx;
 
-				V2 y;
-				y[0] = x;
-				y[1] = dx;
-				TMethod::Step(Fy, t, y, dt);
-				x = y[0];
-				dx = y[1];
+				STATE_OP(State, x, dx);
+			};
+
+			State evalDerivative(Scalar t, State const& s) const
+			{
+				State state;
+				state.x = s.dx;
+				state.dx = -g / L0 * sin(s.x);
+				return state;
 			}
 
-			Vector2 getTracePos() const
+			Vector2 getTracePos(State const& s) const
 			{
-				Vector2 p1 = L0 * Vector2(sin(x), cos(x));
+				Vector2 p1 = L0 * Vector2(sin(s.x), cos(s.x));
 				return p1;
 			}
 		};
@@ -376,46 +510,45 @@ namespace ODE
 			Scalar L0 = 1.0;
 			Scalar m = 1.0;
 			Scalar k = 20.0;
-			V2 x;
-			V2 dx;
-			Scalar t;
 			Scalar g = 9.8;
 
 			ElasticPendulum()
 			{
-				t = 0;
-				x = { 0.5 , Math::PI / 2 };
-				dx = { 0, 0 };
 			}
 
-			template <typename TMethod>
-			void simulate(Scalar dt)
+
+			struct State
 			{
-				auto Fy = [&](Scalar x, V22 y)
+				State(){}
+
+				State(EForceInit)
 				{
-					Scalar r = y[0][0];
-					Scalar dr = y[1][0];
-					Scalar theta = y[0][1];
-					Scalar w = y[1][1];
+					x = { 0.5 , Math::PI / 2 };
+					dx = { 0, 0 };
+				}
+				V2 x;
+				V2 dx;
 
-					V22 out;
-					out[0] = y[1];
-					out[1][0] = (L0 + r) * w * w - k / m * r + g * cos(theta);
-					out[1][1] = -g / (L0 + r) * sin(theta) - 2 * dr / (L0 + r) * w;
-					return out;
-				};
+				STATE_OP(State, x, dx);
+			};
 
-				V22 y;
-				y[0] = x;
-				y[1] = dx;
-				TMethod::Step(Fy, t, y, dt);
-				x = y[0];
-				dx = y[1];
+			State evalDerivative(Scalar t, State const& s) const
+			{
+				Scalar r = s.x[0];
+				Scalar dr = s.dx[0];
+				Scalar theta = s.x[1];
+				Scalar w = s.dx[1];
+
+				State state;
+				state.x = s.dx;
+				state.dx[0] = (L0 + r) * w * w - k / m * r + g * cos(theta);
+				state.dx[1] = -g / (L0 + r) * sin(theta) - 2 * dr / (L0 + r) * w;
+				return state;
 			}
 
-			Vector2 getTracePos() const
+			Vector2 getTracePos(State const& s) const
 			{
-				Vector2 p1 = (L0 + x[0]) * Vector2(sin(x[1]), cos(x[1]));
+				Vector2 p1 = (L0 + s.x[0]) * Vector2(sin(s.x[1]), cos(s.x[1]));
 				return p1;
 			}
 		};
@@ -428,10 +561,6 @@ namespace ODE
 			Scalar m1;
 			Scalar m2;
 
-			V2     theta;
-			V2     w;
-			Scalar t;
-
 			Scalar g = 9.8;
 			DoublePendulum()
 			{
@@ -439,64 +568,69 @@ namespace ODE
 				l2 = 1;
 				m1 = 1;
 				m2 = 1;
-
-				theta = { Math::PI / 2 , 2 * Math::PI / 4 };
-				w = { 0 , 0 };
-				t = 0;
 			}
 
-			Scalar calcEnergy() const
+			struct State
+			{
+				State() {}
+
+				State(EForceInit)
+				{
+					theta = { Math::PI / 2 , 2 * Math::PI / 4 };
+					w = { 0 , 0 };
+				}
+
+
+				V2 theta;
+				V2 w;
+
+				STATE_OP(State, theta, w);
+			};
+
+			State evalDerivative(Scalar t, State const& s) const
+			{
+				V2 theta = s.theta;
+				V2 w = s.w;
+				Scalar l21 = l2 / l1;
+				Scalar l12 = l1 / l2;
+				Scalar m = m1 + m2;
+				Scalar delta = theta[0] - theta[1];
+				Scalar cd = cos(delta);
+				Scalar sd = sin(delta);
+
+				Scalar f1 = -l21 * (m1 / m) * (w[1] * w[1]) * sd - (g / l1) * sin(theta[0]);
+				Scalar f2 = l12 * (w[0] * w[0]) * sd - (g / l2) * sin(theta[1]);
+				Scalar a1 = l21 * (m2 / m) * cd;
+				Scalar a2 = l12 * cd;
+
+				State state;
+				state.theta = s.w;
+				state.w[0] = (f1 - a1 * f2) / (1 - a1 * a2);
+				state.w[1] = (f2 - a2 * f1) / (1 - a1 * a2);
+				return state;
+			}
+
+
+			Scalar calcEnergy(State const& s) const
 			{
 				Scalar result = 0;
-				Scalar v1 = l1 * w[0];
-				Scalar v2 = l2 * w[1];
-				result += 0.5 * ( m1 + m2 )* v1 * v1;
+				Scalar v1 = l1 * s.w[0];
+				Scalar v2 = l2 * s.w[1];
+				result += 0.5 * (m1 + m2)* v1 * v1;
 				result += 0.5 * m2 * v2 * v2;
-				result += m2 * l1 * l2 * w[0] * w[1] * cos(theta[0] - theta[1]);
-				Scalar h1 = l1 * ( 1 - cos(theta[0]));
+				result += m2 * l1 * l2 * s.w[0] * s.w[1] * cos(s.theta[0] - s.theta[1]);
+				Scalar h1 = l1 * (1 - cos(s.theta[0]));
 				result += m1 * g * h1;
-				result += m2 * g * ( h1 + l2 * (1 - cos(theta[1])) );
+				result += m2 * g * (h1 + l2 * (1 - cos(s.theta[1])));
 
 				return result;
 			}
 
-			template <typename TMethod>
-			void simulate(Scalar dt)
+
+			Vector2 getTracePos(State const& s) const
 			{
-				auto Fy = [&](Scalar x, V22 y)
-				{
-					V2 theta = y[0];
-					V2 w = y[1];
-					Scalar l21 = l2 / l1;
-					Scalar l12 = l1 / l2;
-					Scalar m = m1 + m2;
-					Scalar delta = theta[0] - theta[1];
-					Scalar c = cos(delta);
-					Scalar s = sin(delta);
-
-					Scalar f1 = -l21 * (m1 / m) * (w[1] * w[1]) * s - (g / l1) * sin(theta[0]);
-					Scalar f2 = l12 * (w[0] * w[0]) * s - (g / l2) * sin(theta[1]);
-					Scalar a1 = l21 * (m2 / m) * c;
-					Scalar a2 = l12 * c;
-					V22 out;
-					out[0] = w;
-					out[1][0] = (f1 - a1 * f2) / (1 - a1 * a2);
-					out[1][1] = (f2 - a2 * f1) / (1 - a1 * a2);
-					return out;
-				};
-
-				V22 y;
-				y[0] = theta;
-				y[1] = w;
-				TMethod::Step(Fy, t, y, dt);
-				theta = y[0];
-				w = y[1];
-			}
-
-			Vector2 getTracePos() const
-			{
-				Vector2 p1 = l1 * Vector2(sin(theta[0]), cos(theta[0]));
-				Vector2 p2 = p1 + l2 * Vector2(sin(theta[1]), cos(theta[1]));
+				Vector2 p1 = l1 * Vector2(sin(s.theta[0]), cos(s.theta[0]));
+				Vector2 p2 = p1 + l2 * Vector2(sin(s.theta[1]), cos(s.theta[1]));
 				return p2;
 			}
 		};
@@ -533,76 +667,85 @@ namespace ODE
 				}
 			}
 
-			template< typename TSimModel >
+			template< typename TModel >
 			class TModelProducer : public ITrajectoryProducer
+			                     , public TSimulation<TModel>
 			{
 			public:
-				TSimModel model;
+				Vector2 getPos()
+				{
+					return model.getTracePos(state);
+				}
+
 			};
 
-			template< typename TSimModel, typename TMethod >
-			TSimModel& buildModel()
+			template< typename TModel, typename TMethod >
+			TSimulation<TModel>& buildSimlution()
 			{
-				class ModelProducer : public TModelProducer< TSimModel >
+				class ModelProducer : public TModelProducer< TModel >
 				{
 				public:
 					void  update(int num, Scalar dt)
 					{
 						for (int i = num; i; --i)
-							model.simulate<TMethod>(dt);
-					}
-					Vector2 getPos()
-					{
-						return model.getTracePos();
+						{
+							TSimulation<TModel>::step<TMethod>(dt);
+						}
 					}
 				};
 				ModelProducer* producer = new ModelProducer;
 				modelProducer.reset(producer);
 				drawFunc = [](RHIGraphics2D& g, SimModelTrace& modelTrace)
 				{
-					Draw(g, modelTrace.getModel<TSimModel>(), modelTrace.colorModel);
+					Draw(g, modelTrace.getModel<TModel>(), modelTrace.getState<TModel>(), modelTrace.colorModel);
 				};
-				return producer->model;
+				return *producer;
 			}
 
-			template< typename TSimModel >
-			TSimModel& getModel()
+			template< typename TModel >
+			TModel& getModel()
 			{
-				return static_cast<TModelProducer<TSimModel>*>(modelProducer.get())->model;
+				return static_cast<TModelProducer<TModel>*>(modelProducer.get())->model;
+			}
+
+			template< typename TModel >
+			auto const& getState()
+			{
+				return static_cast<TModelProducer<TModel>*>(modelProducer.get())->state;
 			}
 		};
 
-		static void Draw(RHIGraphics2D& g, Pendulum& model, Color3f const& color)
+		static void Draw(RHIGraphics2D& g, Pendulum& model, Pendulum::State const& state, Color3f const& color)
 		{
-			Vector2 p1 = model.L0 * Vector2(sin(model.x), cos(model.x));
+			Vector2 p1 = model.L0 * Vector2(sin(state.x), cos(state.x));
 			g.setPen(color, 3);
 			g.drawLine(Vector2(0, 0), p1);
 		}
-		static void Draw(RHIGraphics2D& g, DoublePendulum& model, Color3f const& color)
+		static void Draw(RHIGraphics2D& g, DoublePendulum& model, DoublePendulum::State const& state, Color3f const& color)
 		{
-			Vector2 p1 = model.l1 * Vector2(sin(model.theta[0]), cos(model.theta[0]));
-			Vector2 p2 = p1 + model.l2 * Vector2(sin(model.theta[1]), cos(model.theta[1]));
+			Vector2 p1 = model.l1 * Vector2(sin(state.theta[0]), cos(state.theta[0]));
+			Vector2 p2 = p1 + model.l2 * Vector2(sin(state.theta[1]), cos(state.theta[1]));
 
 			g.setPen(color, 3);
 			g.drawLine(Vector2(0, 0), p1);
 			g.drawLine(p1, p2);
 		}
-		static void Draw(RHIGraphics2D& g, ElasticPendulum& model, Color3f const& color)
+		static void Draw(RHIGraphics2D& g, ElasticPendulum& model, ElasticPendulum::State const& state, Color3f const& color)
 		{
-			Vector2 p1 = (model.L0 + model.x[0]) * Vector2(sin(model.x[1]), cos(model.x[1]));
+			Vector2 p1 = (model.L0 + state.x[0]) * Vector2(sin(state.x[1]), cos(state.x[1]));
 			g.setPen(color, 3);
 			g.drawLine(Vector2(0, 0), p1);
 		}
 
 		TArray<SimModelTrace> mModelTraces;
 
-		template< typename TSimModel, typename TMethod >
-		TSimModel& addSimModel(Color3f const& colorTrace, Color3f const& colorModel)
+		template< typename TModel, typename TMethod >
+		TSimulation<TModel>& addSimlution(Color3f const& colorTrace, Color3f const& colorModel)
 		{
 			SimModelTrace modelTrace;
 			modelTrace.colorTrace = colorTrace;
 			modelTrace.colorModel = colorModel;
-			auto& model = modelTrace.buildModel<TSimModel, TMethod>();
+			auto& model = modelTrace.buildSimlution<TModel, TMethod>();
 			mModelTraces.push_back(std::move(modelTrace));
 			return model;
 		}
@@ -610,11 +753,10 @@ namespace ODE
 		void initSimModel()
 		{
 			using Method = ButcherRKMethod;
-
-			auto& DP = addSimModel<DoublePendulum, Method>(Color3f(1, 0, 0), Color3f(0.5, 0, 0));
-			E0 = DP.calcEnergy();
-			addSimModel<Pendulum, Method>(Color3f(0, 0, 1), Color3f(0, 0, 0.5));
-			addSimModel<ElasticPendulum, Method>(Color3f(0, 1, 0), Color3f(0, 0.5, 0));
+			auto& simlution = addSimlution<DoublePendulum, Method>(Color3f(1, 0, 0), Color3f(0.5, 0, 0));
+			E0 = simlution.model.calcEnergy(simlution.state);
+			addSimlution<Pendulum, Method>(Color3f(0, 0, 1), Color3f(0, 0, 0.5));
+			addSimlution<ElasticPendulum, Method>(Color3f(0, 1, 0), Color3f(0, 0.5, 0));
 		}
 
 		void onUpdate(GameTimeSpan deltaTime) override
@@ -693,7 +835,8 @@ namespace ODE
 			//g.drawLineStrip(pos, ARRAY_SIZE(pos));
 			{
 				auto& DP = mModelTraces[0].getModel<DoublePendulum>();
-				g.drawTextF(Vector2(100, 100), "E / E0 = %lf", DP.calcEnergy() / E0);
+				auto const& state = mModelTraces[0].getState<DoublePendulum>();
+				g.drawTextF(Vector2(100, 100), "E / E0 = %lf", DP.calcEnergy(state) / E0);
 			}
 
 			g.endRender();
@@ -727,6 +870,12 @@ namespace ODE
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
+		{
+			systemConfigs.bUseRenderThread = true;
+		}
+
 	protected:
 	};
 

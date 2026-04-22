@@ -10,6 +10,7 @@
 #include "PlatformThread.h"
 #include "Core/IntegerType.h"
 #include "DataStructure/LinearAllocator.h"
+#include <type_traits>
 
 namespace Render
 {
@@ -69,7 +70,9 @@ namespace Render
 				{
 					mFunc();
 				}
-				TFunc mFunc;
+
+				using StoredFunc = std::decay_t<TFunc>;
+				StoredFunc mFunc;
 			};
 
 			IFenceRelease* fr = new (mAllocator.alloc(sizeof(FuncRelease))) FuncRelease(std::forward<TFunc>(func));

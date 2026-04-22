@@ -7,6 +7,7 @@
 #include "DataStructure/LinearAllocator.h"
 #include "DataStructure/Array.h"
 #include "CoreShare.h"
+#include <type_traits>
 
 // Forward declaration
 class RenderCommandList;
@@ -55,8 +56,9 @@ template < typename TFunc >
 class TFuncRenderCommand : public RenderCommand
 {
 public:
-	TFuncRenderCommand(TFunc&& func)
-		:mFunc(std::forward<TFunc>(func))
+	template <typename UFunc>
+	TFuncRenderCommand(UFunc&& func)
+		:mFunc(std::forward<UFunc>(func))
 	{
 	}
 
@@ -133,7 +135,8 @@ public:
 	template < typename TFunc >
 	void addCommand(char const* name, TFunc&& func)
 	{
-		auto* command = allocCommand<TFuncRenderCommand<TFunc>>(std::forward<TFunc>(func));
+		using StoredFunc = std::decay_t<TFunc>;
+		auto* command = allocCommand<TFuncRenderCommand<StoredFunc>>(std::forward<TFunc>(func));
 		command->debugName = name;
 	}
 
@@ -249,7 +252,8 @@ public:
 	{
 		if (IsRunning())
 		{
-			auto* command = AllocCommand<TFuncRenderCommand<TFunc>>(std::forward<TFunc>(func));
+			using StoredFunc = std::decay_t<TFunc>;
+			auto* command = AllocCommand<TFuncRenderCommand<StoredFunc>>(std::forward<TFunc>(func));
 			if (command) command->debugName = name;
 		}
 		else

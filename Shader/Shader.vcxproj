@@ -181,6 +181,7 @@
     <None Include="..\TinyGame\out\Shader\Game\FS.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Grass.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\GravityField.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\IsometricWorldPosition.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2D.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2DCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2DShadow.sgc" />

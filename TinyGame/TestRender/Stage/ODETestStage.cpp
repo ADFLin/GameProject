@@ -389,6 +389,93 @@ namespace ODE
 		}
 	};
 
+	struct SpringCartPole
+	{
+		Scalar cartMass = 0.9;
+		Scalar poleMass = 0.7;
+		Scalar poleLength = 1.05;
+		Scalar springK = 6.0;
+		Scalar cartDamping = 0;
+		Scalar poleDamping = 0;
+		Scalar driveForceAmp = 0;
+		Scalar driveOmega = 2.15;
+		Scalar g = 9.8;
+
+		Scalar trackY = 0.75;
+		Scalar wallX = -1.55;
+		Scalar cartWidth = 0.34;
+		Scalar cartHeight = 0.18;
+
+		struct State
+		{
+			State() {}
+
+			State(EForceInit)
+			{
+				x = 0.0;
+				theta = Math::DegToRad(132.0);
+				dx = 0.0;
+				w = 2.75;
+			}
+
+			Scalar x;
+			Scalar theta;
+			Scalar dx;
+			Scalar w;
+
+			STATE_OP(State, x, theta, dx, w);
+		};
+
+		Vector2 getPivotPos(State const& s) const
+		{
+			return Vector2(s.x, trackY - 0.5 * cartHeight);
+		}
+
+		Vector2 getBobPos(State const& s) const
+		{
+			Vector2 pivot = getPivotPos(s);
+			return pivot + poleLength * Vector2(sin(s.theta), cos(s.theta));
+		}
+
+		State evalDerivative(Scalar t, State const& s) const
+		{
+			Scalar st = sin(s.theta);
+			Scalar ct = cos(s.theta);
+			Scalar denom = cartMass + poleMass * st * st;
+			CHECK(std::abs(denom) > 1e-8);
+
+			Scalar driveForce = driveForceAmp * Math::Cos(driveOmega * t);
+			Scalar rhsX = poleMass * poleLength * st * s.w * s.w - springK * s.x - cartDamping * s.dx + driveForce;
+			Scalar rhsTheta = -g * st - (poleDamping / (poleMass * poleLength)) * s.w;
+
+			Scalar accX = (rhsX - poleMass * ct * rhsTheta) / denom;
+			Scalar accTheta = ((cartMass + poleMass) * rhsTheta - ct * rhsX) / (poleLength * denom);
+
+			State out;
+			out.x = s.dx;
+			out.theta = s.w;
+			out.dx = accX;
+			out.w = accTheta;
+			return out;
+		}
+
+		Scalar calcEnergy(State const& s) const
+		{
+			Scalar st = sin(s.theta);
+			Scalar ct = cos(s.theta);
+			Scalar kinetic = 0.5 * (cartMass + poleMass) * s.dx * s.dx;
+			kinetic += poleMass * poleLength * ct * s.dx * s.w;
+			kinetic += 0.5 * poleMass * poleLength * poleLength * s.w * s.w;
+			Scalar potential = 0.5 * springK * s.x * s.x - poleMass * g * poleLength * ct;
+			return kinetic + potential;
+		}
+
+		Vector2 getTracePos(State const& s) const
+		{
+			return getBobPos(s);
+		}
+	};
+
 
 	struct DoublePendulum
 	{
@@ -475,15 +562,12 @@ namespace ODE
 	{
 		Scalar mainLength = 1.55;
 		Scalar mainMass = 1.0;
-		Vector2 mainCenterLocal = Vector2(0.22, -0.07);
-		Scalar mainLocalAngle = Math::DegToRad(17.0);
-		Vector2 sidePivotOnMainLocal = Vector2(-0.27, 0.08);
+		Scalar mainCenterOffset = 0.23;
+		Scalar sidePivotOffsetOnMain = -0.28;
 
-		Scalar sideLength = 0.95;
 		Scalar sideMass = 0.8;
 		Scalar sideLengthNeg = 0.22;
 		Scalar sideLengthPos = 0.73;
-		Scalar sideLocalAngle = Math::DegToRad(82.0);
 
 		Scalar supportHeight = 1.05;
 		Scalar g = 9.8;
@@ -494,7 +578,7 @@ namespace ODE
 
 			State(EForceInit)
 			{
-				theta = { Math::DegToRad(1.5), Math::DegToRad(-2.0) };
+				theta = { Math::DegToRad(1.5 + 17.0), Math::DegToRad(-2.0 + 82.0 - 17.0) };
 				w = { 0, 0 };
 			}
 
@@ -511,9 +595,9 @@ namespace ODE
 			return Vector2(c * pos.x + s * pos.y, -s * pos.x + c * pos.y);
 		}
 
-		static Vector2 MakeDir(Scalar angle)
+		static Vector2 MakeRodDir()
 		{
-			return Vector2(Math::Cos(angle), -Math::Sin(angle));
+			return Vector2(1, 0);
 		}
 
 		static Vector2 Tangent(Vector2 const& pos)
@@ -526,26 +610,31 @@ namespace ODE
 			return mainMass * mainLength * mainLength / 12.0;
 		}
 
+		Scalar getSideLength() const
+		{
+			return sideLengthNeg + sideLengthPos;
+		}
+
 		Scalar getSideInertia() const
 		{
+			Scalar sideLength = getSideLength();
 			return sideMass * sideLength * sideLength / 12.0;
 		}
 
 		Vector2 getMainCenter(State const& s) const
 		{
-			return Rotate(mainCenterLocal, s.theta[0]);
+			return Rotate(mainCenterOffset * MakeRodDir(), s.theta[0]);
 		}
 
 		Vector2 getSidePivot(State const& s) const
 		{
-			return Rotate(sidePivotOnMainLocal, s.theta[0]);
+			return Rotate(sidePivotOffsetOnMain * MakeRodDir(), s.theta[0]);
 		}
 
 		Vector2 getSideCenterRelative(State const& s) const
 		{
 			Scalar centerOffset = 0.5 * (sideLengthPos - sideLengthNeg);
-			Vector2 centerLocal = centerOffset * MakeDir(sideLocalAngle);
-			return Rotate(centerLocal, s.theta[0] + s.theta[1]);
+			return Rotate(centerOffset * MakeRodDir(), s.theta[0] + s.theta[1]);
 		}
 
 		Vector2 getSideCenter(State const& s) const
@@ -553,113 +642,37 @@ namespace ODE
 			return getSidePivot(s) + getSideCenterRelative(s);
 		}
 
-		void calcMassMatrix(State const& s, Scalar outM[2][2]) const
+		State evalDerivative(Scalar, State const& s) const
 		{
 			Vector2 mainCenter = getMainCenter(s);
 			Vector2 sidePivot = getSidePivot(s);
 			Vector2 sideCenterRelative = getSideCenterRelative(s);
+			Vector2 sideCenter = sidePivot + sideCenterRelative;
+			Scalar I1 = getMainInertia();
+			Scalar I2 = getSideInertia();
 
-			Vector2 jMain0 = Tangent(mainCenter);
-			Vector2 jSideP0 = Tangent(sidePivot);
-			Vector2 jSideC0 = jSideP0 + Tangent(sideCenterRelative);
-			Vector2 jSideC1 = Tangent(sideCenterRelative);
+			Scalar M11 = mainMass * mainCenter.dot(mainCenter) + I1 + sideMass * sideCenter.dot(sideCenter) + I2;
+			Scalar M12 = sideMass * sideCenter.dot(sideCenterRelative) + I2;
+			Scalar M22 = sideMass * sideCenterRelative.dot(sideCenterRelative) + I2;
 
-			outM[0][0] = mainMass * jMain0.dot(jMain0) + getMainInertia() + sideMass * jSideC0.dot(jSideC0) + getSideInertia();
-			outM[0][1] = sideMass * jSideC0.dot(jSideC1) + getSideInertia();
-			outM[1][0] = outM[0][1];
-			outM[1][1] = sideMass * jSideC1.dot(jSideC1) + getSideInertia();
-		}
+			Scalar coupling = sideMass * sideCenter.dot(Tangent(sideCenterRelative));
+			Scalar C0 = 2 * coupling * s.w[0] * s.w[1] + coupling * s.w[1] * s.w[1];
+			Scalar C1 = -coupling * s.w[0] * s.w[0];
 
-		Scalar calcPotential(State const& s) const
-		{
-			Vector2 mainCenter = getMainCenter(s);
-			Vector2 sideCenter = getSideCenter(s);
-			return -g * (mainMass * mainCenter.y + sideMass * sideCenter.y);
-		}
+			Scalar G0 = g * (mainMass * mainCenter.x + sideMass * sideCenter.x);
+			Scalar G1 = g * sideMass * sideCenterRelative.x;
 
-		void calcPotentialGradient(State const& s, Scalar outG[2]) const
-		{
-			Scalar eps = 1e-5;
-			State sp = s;
-			State sm = s;
-
-			sp.theta[0] += eps;
-			sm.theta[0] -= eps;
-			outG[0] = (calcPotential(sp) - calcPotential(sm)) / (2 * eps);
-
-			sp = s;
-			sm = s;
-			sp.theta[1] += eps;
-			sm.theta[1] -= eps;
-			outG[1] = (calcPotential(sp) - calcPotential(sm)) / (2 * eps);
-		}
-
-		void calcMassDerivative(State const& s, int coordIndex, Scalar outDM[2][2]) const
-		{
-			Scalar eps = 1e-5;
-			State sp = s;
-			State sm = s;
-			sp.theta[coordIndex] += eps;
-			sm.theta[coordIndex] -= eps;
-
-			Scalar Mp[2][2];
-			Scalar Mm[2][2];
-			calcMassMatrix(sp, Mp);
-			calcMassMatrix(sm, Mm);
-
-			for (int i = 0; i < 2; ++i)
-			{
-				for (int j = 0; j < 2; ++j)
-				{
-					outDM[i][j] = (Mp[i][j] - Mm[i][j]) / (2 * eps);
-				}
-			}
-		}
-
-		void solveAcceleration(State const& s, Scalar outAcc[2]) const
-		{
-			Scalar M[2][2];
-			calcMassMatrix(s, M);
-
-			Scalar dM0[2][2];
-			Scalar dM1[2][2];
-			calcMassDerivative(s, 0, dM0);
-			calcMassDerivative(s, 1, dM1);
-
-			Scalar G[2];
-			calcPotentialGradient(s, G);
-
-			Scalar c[2] = { 0, 0 };
-			Scalar const qd[2] = { s.w[0], s.w[1] };
-			Scalar const(*dM[2])[2] = { dM0, dM1 };
-			for (int i = 0; i < 2; ++i)
-			{
-				for (int j = 0; j < 2; ++j)
-				{
-					for (int k = 0; k < 2; ++k)
-					{
-						Scalar gamma = 0.5 * (dM[k][i][j] + dM[j][i][k] - dM[i][j][k]);
-						c[i] += gamma * qd[j] * qd[k];
-					}
-				}
-			}
-
-			Scalar rhs0 = -(c[0] + G[0]);
-			Scalar rhs1 = -(c[1] + G[1]);
-			Scalar det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+			Scalar rhs0 = -(C0 + G0);
+			Scalar rhs1 = -(C1 + G1);
+			Scalar det = M11 * M22 - M12 * M12;
 			CHECK(std::abs(det) > 1e-8);
-			outAcc[0] = (rhs0 * M[1][1] - M[0][1] * rhs1) / det;
-			outAcc[1] = (M[0][0] * rhs1 - rhs0 * M[1][0]) / det;
-		}
 
-		State evalDerivative(Scalar t, State const& s) const
-		{
-			Scalar acc[2];
-			solveAcceleration(s, acc);
+			Scalar acc0 = (rhs0 * M22 - M12 * rhs1) / det;
+			Scalar acc1 = (M11 * rhs1 - rhs0 * M12) / det;
 
 			State out;
 			out.theta = s.w;
-			out.w = { acc[0], acc[1] };
+			out.w = { acc0, acc1 };
 			return out;
 		}
 
@@ -681,22 +694,23 @@ namespace ODE
 
 		Vector2 getTracePos(State const& s) const
 		{
-			Vector2 dir = Rotate(MakeDir(sideLocalAngle), s.theta[0] + s.theta[1]);
+			Vector2 dir = Rotate(MakeRodDir(), s.theta[0] + s.theta[1]);
 			Vector2 sideCenter = getSideCenter(s);
-			return sideCenter + 0.5 * sideLength * dir;
+			return sideCenter + sideLengthPos * dir;
 		}
 
 		void getMainSegment(State const& s, Vector2& outA, Vector2& outB) const
 		{
-			Vector2 dir = MakeDir(mainLocalAngle);
-			outA = Rotate(mainCenterLocal - 0.5 * mainLength * dir, s.theta[0]);
-			outB = Rotate(mainCenterLocal + 0.5 * mainLength * dir, s.theta[0]);
+			Vector2 center = mainCenterOffset * MakeRodDir();
+			Vector2 dir = MakeRodDir();
+			outA = Rotate(center - 0.5 * mainLength * dir, s.theta[0]);
+			outB = Rotate(center + 0.5 * mainLength * dir, s.theta[0]);
 		}
 
 		void getSideSegment(State const& s, Vector2& outA, Vector2& outB) const
 		{
 			Vector2 sidePivot = getSidePivot(s);
-			Vector2 sideDir = Rotate(MakeDir(sideLocalAngle), s.theta[0] + s.theta[1]);
+			Vector2 sideDir = Rotate(MakeRodDir(), s.theta[0] + s.theta[1]);
 			outA = sidePivot - sideLengthNeg * sideDir;
 			outB = sidePivot + sideLengthPos * sideDir;
 		}
@@ -888,6 +902,7 @@ namespace ODE
 			g.setPen(color, 3);
 			g.drawLine(Vector2(0, 0), p1);
 		}
+
 		static void Draw(RHIGraphics2D& g, DoublePendulum& model, DoublePendulum::State const& state, Color3f const& color)
 		{
 			Vector2 p1 = model.l1 * Vector2(sin(state.theta[0]), cos(state.theta[0]));
@@ -897,12 +912,48 @@ namespace ODE
 			g.drawLine(Vector2(0, 0), p1);
 			g.drawLine(p1, p2);
 		}
+
 		static void Draw(RHIGraphics2D& g, ElasticPendulum& model, ElasticPendulum::State const& state, Color3f const& color)
 		{
 			Vector2 p1 = (model.L0 + state.x[0]) * Vector2(sin(state.x[1]), cos(state.x[1]));
 			g.setPen(color, 3);
 			g.drawLine(Vector2(0, 0), p1);
 		}
+
+		static void Draw(RHIGraphics2D& g, SpringCartPole& model, SpringCartPole::State const& state, Color3f const& color)
+		{
+			Vector2 cartCenter(state.x, model.trackY);
+			Vector2 cartMin = cartCenter + Vector2(-0.5 * model.cartWidth, -0.5 * model.cartHeight);
+			Vector2 cartMax = cartCenter + Vector2(0.5 * model.cartWidth, 0.5 * model.cartHeight);
+			Vector2 pivot = model.getPivotPos(state);
+			Vector2 bob = model.getBobPos(state);
+
+			g.setPen(Color3f(0.08, 0.08, 0.08), 5);
+			g.drawLine(Vector2(model.wallX, model.trackY + 0.5 * model.cartHeight), Vector2(1.55, model.trackY + 0.5 * model.cartHeight));
+
+			g.setPen(Color3f(0.25, 0.25, 0.25), 2);
+			Vector2 prev(model.wallX, model.trackY);
+			int numSegment = 8;
+			for (int i = 1; i <= numSegment; ++i)
+			{
+				Scalar t = Scalar(i) / numSegment;
+				Scalar x = Math::Lerp(model.wallX, cartMin.x, t);
+				Scalar y = model.trackY + ((i & 1) ? -0.08 : 0.08);
+				Vector2 cur = (i == numSegment) ? Vector2(cartMin.x, model.trackY) : Vector2(x, y);
+				g.drawLine(prev, cur);
+				prev = cur;
+			}
+
+			g.setPen(Color3f(0.15, 0.15, 0.15), 2);
+			g.drawRect(cartMin, cartMax - cartMin);
+
+			g.setPen(color, 3);
+			g.drawLine(pivot, bob);
+
+			g.setBrush(color);
+			g.drawCircle(bob, 0.035);
+		}
+
 		static void Draw(RHIGraphics2D& g, SwingSticks& model, SwingSticks::State const& state, Color3f const& color)
 		{
 			Vector2 p1, p2;
@@ -942,6 +993,7 @@ namespace ODE
 			E0 = simlution.getEnergy();
 			addSimlution<Pendulum, Method>(Color3f(0, 0, 1), Color3f(0, 0, 0.5));
 			addSimlution<ElasticPendulum, Method>(Color3f(0, 1, 0), Color3f(0, 0.5, 0));
+			addSimlution<SpringCartPole, Method>(Color3f(0.05, 0.45, 0.85), Color3f(0.08, 0.15, 0.55));
 			addSimlution<SwingSticks, Method>(Color3f(0.8, 0.65, 0.2), Color3f(0.72, 0.72, 0.74));
 		}
 

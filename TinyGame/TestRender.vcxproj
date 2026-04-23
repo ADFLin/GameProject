@@ -263,6 +263,7 @@
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\FractialStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
+    <ClCompile Include="TestRender\Stage\IsometricShadowStage.cpp" />
     <ClCompile Include="TestRender\Stage\Lighting2DStage.cpp" />
     <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
     <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />

@@ -76,6 +76,9 @@
     <None Include="..\TinyGame\out\Shader\Game\GravityField.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\IsometricWorldPosition.sgc">
+      <Filter>Game</Filter>
+    </None>
     <None Include="..\TinyGame\out\Shader\Game\Lighting2D.sgc">
       <Filter>Game</Filter>
     </None>

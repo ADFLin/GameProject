@@ -10,7 +10,7 @@ namespace Render
 	public:
 		DECLARE_SHADER_PROGRAM(IsometricWorldPosProgram, Global);
 
-		static char const* GetShaderFileName() { return "Shader/Game/IsometricWorldPosition"; }
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
 		static TArrayView<ShaderEntryInfo const> GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -24,16 +24,18 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_SHADER_PARAM(parameterMap, LocalToWorld);
+			BIND_SHADER_PARAM(parameterMap, HeightRange);
 		}
 
 		DEFINE_SHADER_PARAM(LocalToWorld);
+		DEFINE_SHADER_PARAM(HeightRange);
 	};
 
 	class ClearShadowMapCS : public GlobalShader
 	{
 	public:
 		DECLARE_SHADER(ClearShadowMapCS, Global);
-		static char const* GetShaderFileName() { return "Shader/Game/IsometricWorldPosition"; }
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
@@ -51,7 +53,7 @@ namespace Render
 	{
 	public:
 		DECLARE_SHADER(ProjectWorldToShadowCS, Global);
-		static char const* GetShaderFileName() { return "Shader/Game/IsometricWorldPosition"; }
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
@@ -60,7 +62,10 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, ShadowDebugRW);
 			BIND_SHADER_PARAM(parameterMap, WorldPosTransform);
 			BIND_SHADER_PARAM(parameterMap, WorldToShadowClip);
+			BIND_SHADER_PARAM(parameterMap, CaptureClipToWorld);
+			BIND_SHADER_PARAM(parameterMap, HeightRange);
 			BIND_SHADER_PARAM(parameterMap, ShadowTextureSize);
+			BIND_SHADER_PARAM(parameterMap, ShadowTriangleRejectThreshold);
 		}
 
 		DEFINE_TEXTURE_PARAM(WorldPositionTexture);
@@ -68,7 +73,10 @@ namespace Render
 		DEFINE_SHADER_PARAM(ShadowDebugRW);
 		DEFINE_SHADER_PARAM(WorldPosTransform);
 		DEFINE_SHADER_PARAM(WorldToShadowClip);
+		DEFINE_SHADER_PARAM(CaptureClipToWorld);
+		DEFINE_SHADER_PARAM(HeightRange);
 		DEFINE_SHADER_PARAM(ShadowTextureSize);
+		DEFINE_SHADER_PARAM(ShadowTriangleRejectThreshold);
 	};
 
 	class ShadowMapVisualizeProgram : public GlobalShaderProgram
@@ -76,7 +84,7 @@ namespace Render
 	public:
 		DECLARE_SHADER_PROGRAM(ShadowMapVisualizeProgram, Global);
 
-		static char const* GetShaderFileName() { return "Shader/Game/IsometricWorldPosition"; }
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
 		static TArrayView<ShaderEntryInfo const> GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -100,7 +108,7 @@ namespace Render
 	public:
 		DECLARE_SHADER_PROGRAM(WorldPosVisualizeProgram, Global);
 
-		static char const* GetShaderFileName() { return "Shader/Game/IsometricWorldPosition"; }
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
 		static TArrayView<ShaderEntryInfo const> GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -130,7 +138,7 @@ namespace Render
 	public:
 		DECLARE_SHADER_PROGRAM(WorldPosShadeProgram, Global);
 
-		static char const* GetShaderFileName() { return "Shader/Game/IsometricWorldPosition"; }
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
 		static TArrayView<ShaderEntryInfo const> GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -148,6 +156,9 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, UVRect);
 			BIND_SHADER_PARAM(parameterMap, WorldPosTransform);
 			BIND_SHADER_PARAM(parameterMap, WorldToShadowClip);
+			BIND_SHADER_PARAM(parameterMap, WorldToClip);
+			BIND_SHADER_PARAM(parameterMap, CaptureClipToWorld);
+			BIND_SHADER_PARAM(parameterMap, HeightRange);
 			BIND_SHADER_PARAM(parameterMap, BaseColor);
 			BIND_SHADER_PARAM(parameterMap, ShadowBias);
 			BIND_SHADER_PARAM(parameterMap, ShadowRejectThreshold);
@@ -158,9 +169,58 @@ namespace Render
 		DEFINE_SHADER_PARAM(UVRect);
 		DEFINE_SHADER_PARAM(WorldPosTransform);
 		DEFINE_SHADER_PARAM(WorldToShadowClip);
+		DEFINE_SHADER_PARAM(WorldToClip);
+		DEFINE_SHADER_PARAM(CaptureClipToWorld);
+		DEFINE_SHADER_PARAM(HeightRange);
 		DEFINE_SHADER_PARAM(BaseColor);
 		DEFINE_SHADER_PARAM(ShadowBias);
 		DEFINE_SHADER_PARAM(ShadowRejectThreshold);
+	};
+
+	class WorldPosRectShadeProgram : public GlobalShaderProgram
+	{
+	public:
+		DECLARE_SHADER_PROGRAM(WorldPosRectShadeProgram, Global);
+
+		static char const* GetShaderFileName() { return "Shader/Game/IsometricRender"; }
+		static TArrayView<ShaderEntryInfo const> GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex, SHADER_ENTRY(RectVS) },
+				{ EShader::Pixel , SHADER_ENTRY(ShadeWorldPosPS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_TEXTURE_PARAM(parameterMap, SourceWorldPosTexture);
+			BIND_TEXTURE_PARAM(parameterMap, SourceShadowTexture);
+			BIND_SHADER_PARAM(parameterMap, UVRect);
+			BIND_SHADER_PARAM(parameterMap, WorldPosTransform);
+			BIND_SHADER_PARAM(parameterMap, WorldToShadowClip);
+			BIND_SHADER_PARAM(parameterMap, WorldToClip);
+			BIND_SHADER_PARAM(parameterMap, CaptureClipToWorld);
+			BIND_SHADER_PARAM(parameterMap, HeightRange);
+			BIND_SHADER_PARAM(parameterMap, BaseColor);
+			BIND_SHADER_PARAM(parameterMap, ShadowBias);
+			BIND_SHADER_PARAM(parameterMap, ShadowRejectThreshold);
+			BIND_SHADER_PARAM(parameterMap, XForm);
+		}
+
+		DEFINE_TEXTURE_PARAM(SourceWorldPosTexture);
+		DEFINE_TEXTURE_PARAM(SourceShadowTexture);
+		DEFINE_SHADER_PARAM(UVRect);
+		DEFINE_SHADER_PARAM(WorldPosTransform);
+		DEFINE_SHADER_PARAM(WorldToShadowClip);
+		DEFINE_SHADER_PARAM(WorldToClip);
+		DEFINE_SHADER_PARAM(CaptureClipToWorld);
+		DEFINE_SHADER_PARAM(HeightRange);
+		DEFINE_SHADER_PARAM(BaseColor);
+		DEFINE_SHADER_PARAM(ShadowBias);
+		DEFINE_SHADER_PARAM(ShadowRejectThreshold);
+		DEFINE_SHADER_PARAM(XForm);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(IsometricWorldPosProgram);
@@ -169,6 +229,7 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(ShadowMapVisualizeProgram);
 	IMPLEMENT_SHADER_PROGRAM(WorldPosVisualizeProgram);
 	IMPLEMENT_SHADER_PROGRAM(WorldPosShadeProgram);
+	IMPLEMENT_SHADER_PROGRAM(WorldPosRectShadeProgram);
 
 	class IsometricShadowStage : public TestRenderStageBase
 	{
@@ -178,9 +239,11 @@ namespace Render
 		struct RenderTargetBundle
 		{
 			IntVector2       size = IntVector2(0, 0);
-			RHITexture2DRef   colorTexture;
+			RHITexture2DRef   colorTextures[2];
 			RHITexture2DRef   depthTexture;
 			RHIFrameBufferRef frameBuffer;
+			Matrix4           captureClipToWorld;
+			Vector2           heightRange = Vector2(0, 1);
 		};
 
 	public:
@@ -219,11 +282,15 @@ namespace Render
 			VERIFY_RETURN_FALSE(mShadowVisualizeProgram = ShaderManager::Get().getGlobalShaderT<ShadowMapVisualizeProgram>(true));
 			VERIFY_RETURN_FALSE(mWorldPosVisualizeProgram = ShaderManager::Get().getGlobalShaderT<WorldPosVisualizeProgram>(true));
 			VERIFY_RETURN_FALSE(mWorldPosShadeProgram = ShaderManager::Get().getGlobalShaderT<WorldPosShadeProgram>(true));
+			VERIFY_RETURN_FALSE(mWorldPosRectShadeProgram = ShaderManager::Get().getGlobalShaderT<WorldPosRectShadeProgram>(true));
+
+			mCaptureCamera.lookAt(Vector3(14, 14, 14), Vector3(0, 0, 0), Vector3(0, 0, 1));
+			updateLightCamera();
 
 			setupScene();
 			calcWorldPosTargetSizes();
-			VERIFY_RETURN_FALSE(createWorldPosTarget(mPlaneWorldPosTarget));
-			VERIFY_RETURN_FALSE(createWorldPosTarget(mDoughnutWorldPosTarget));
+			VERIFY_RETURN_FALSE(createWorldPosTarget(mPlaneWorldPosTarget, false));
+			VERIFY_RETURN_FALSE(createWorldPosTarget(mDoughnutWorldPosTarget, true));
 
 			VERIFY_RETURN_FALSE(mShadowMapTexture = RHICreateTexture2D(
 				TextureDesc::Type2D(ETexture::R32U, ShadowTextureSize, ShadowTextureSize)
@@ -233,9 +300,6 @@ namespace Render
 				.Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_CreateUAV | TCF_DefalutValue)));
 			VERIFY_RETURN_FALSE(mShadowDebugFrameBuffer = RHICreateFrameBuffer());
 			mShadowDebugFrameBuffer->setTexture(0, *mShadowDebugTexture);
-
-			mCaptureCamera.lookAt(Vector3(14, 14, 14), Vector3(0, 0, 0), Vector3(0, 0, 1));
-			updateLightCamera();
 
 			if (::Global::Editor())
 			{
@@ -249,10 +313,12 @@ namespace Render
 				});
 				mDetailView->addValue(mShadowRejectThreshold, "ShadowRejectThreshold");
 				mDetailView->addValue(mShadowBias, "ShadowBias");
+				mDetailView->addValue(mShadowTriangleRejectThreshold, "ShadowTriRejectThreshold");
 			}
 
-			GTextureShowManager.registerTexture("PlaneWorldPos", mPlaneWorldPosTarget.colorTexture);
-			GTextureShowManager.registerTexture("DoughnutWorldPos", mDoughnutWorldPosTarget.colorTexture);
+			GTextureShowManager.registerTexture("PlaneHeight", mPlaneWorldPosTarget.colorTextures[0]);
+			GTextureShowManager.registerTexture("DoughnutHeight", mDoughnutWorldPosTarget.colorTextures[0]);
+			GTextureShowManager.registerTexture("DoughnutHeight_Back", mDoughnutWorldPosTarget.colorTextures[1]);
 			GTextureShowManager.registerTexture("IsometricShadowMap", mShadowMapTexture);
 			GTextureShowManager.registerTexture("IsometricShadowDebug", mShadowDebugTexture);
 			return true;
@@ -273,6 +339,7 @@ namespace Render
 			mShadowVisualizeProgram = nullptr;
 			mWorldPosVisualizeProgram = nullptr;
 			mWorldPosShadeProgram = nullptr;
+			mWorldPosRectShadeProgram = nullptr;
 
 			BaseClass::preShutdownRenderSystem(bReInit);
 		}
@@ -294,7 +361,7 @@ namespace Render
 			g.beginRender();
 			RenderUtility::SetFont(g, FONT_S12);
 			g.setTextColor(Color3f(1, 1, 1));
-			g.drawText(Vector2(18, 18), "Shadowed scene from PlaneWorldPos + DoughnutWorldPos");
+			g.drawText(Vector2(18, 18), "Shadowed scene from PlaneHeight + DoughnutHeight");
 			g.endRender();
 		}
 
@@ -325,16 +392,23 @@ namespace Render
 			mLightCamera.lookAt(lightPos, Vector3(0, 0, 0), GetLightUpDir(mLightDir));
 		}
 
-		bool createWorldPosTarget(RenderTargetBundle& outTarget)
+		bool createWorldPosTarget(RenderTargetBundle& outTarget, bool bHaveBackFace)
 		{
 			CHECK(outTarget.size.x > 0 && outTarget.size.y > 0);
-			VERIFY_RETURN_FALSE(outTarget.colorTexture = RHICreateTexture2D(
+			VERIFY_RETURN_FALSE(outTarget.colorTextures[0] = RHICreateTexture2D(
 				TextureDesc::Type2D(ETexture::RGBA16F, outTarget.size.x, outTarget.size.y)
 				.Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_DefalutValue)));
+
+			if (bHaveBackFace)
+			{
+				VERIFY_RETURN_FALSE(outTarget.colorTextures[1] = RHICreateTexture2D(
+					TextureDesc::Type2D(ETexture::RGBA16F, outTarget.size.x, outTarget.size.y)
+					.Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_DefalutValue)));
+			}
 			VERIFY_RETURN_FALSE(outTarget.depthTexture = RHICreateTexture2D(
 				TextureDesc::Type2D(ETexture::D24S8, outTarget.size.x, outTarget.size.y).Flags(TCF_None)));
 			VERIFY_RETURN_FALSE(outTarget.frameBuffer = RHICreateFrameBuffer());
-			outTarget.frameBuffer->setTexture(0, *outTarget.colorTexture);
+			outTarget.frameBuffer->setTexture(0, *outTarget.colorTextures[0]);
 			outTarget.frameBuffer->setDepth(*outTarget.depthTexture);
 			return true;
 		}
@@ -343,7 +417,8 @@ namespace Render
 		{
 			target.frameBuffer.release();
 			target.depthTexture.release();
-			target.colorTexture.release();
+			target.colorTextures[0].release();
+			target.colorTextures[1].release();
 		}
 
 		void setupScene()
@@ -351,11 +426,17 @@ namespace Render
 			mPlaneTransform = Matrix4::Scale(10.0f, 10.0f, 1.0f);
 			mPlaneBounds = BoundBox(Vector3(-1, -1, 0), Vector3(1, 1, 0));
 
-			mDoughnutTextureTransform = Matrix4::Translate(Vector3(0, 0, 1.0f));
-			mDoughnutBounds = BoundBox(Vector3(-3, -3, -1), Vector3(3, 3, 1));
+			mDoughnutTextureTransform = Matrix4::Translate(Vector3(0, 0, 0.0f));
+			mDoughnutBounds = BoundBox(Vector3(-1, -1, -1), Vector3(1, 1, 1));
 
 			mDoughnutTransforms.clear();
+			float len = 5;
 			mDoughnutTransforms.push_back(Matrix4::Scale(1.0f, 1.0f, 1.0f) * Matrix4::Translate(Vector3(0.0f, 0.0f, 1.0f)));
+			mDoughnutTransforms.push_back(Matrix4::Scale(1.0f, 1.0f, 1.0f) * Matrix4::Translate(Vector3(len, 0.0f, 1.0f)));
+			mDoughnutTransforms.push_back(Matrix4::Scale(1.0f, 1.0f, 1.0f) * Matrix4::Translate(Vector3(-len, 0.0f, 1.0f)));
+			mDoughnutTransforms.push_back(Matrix4::Scale(1.0f, 1.0f, 1.0f) * Matrix4::Translate(Vector3(len, len, 1.0f)));
+			mDoughnutTransforms.push_back(Matrix4::Scale(1.0f, 1.0f, 1.0f) * Matrix4::Translate(Vector3(len, -len, 1.0f)));
+			mDoughnutTransforms.push_back(Matrix4::Scale(1.0f, 1.0f, 1.0f) * Matrix4::Translate(Vector3(0.0f, -len, 1.0f)));
 
 			mSceneBounds.invalidate();
 			accumulateBounds(mPlaneBounds, mPlaneTransform);
@@ -364,8 +445,6 @@ namespace Render
 				accumulateBounds(mDoughnutBounds, xform);
 			}
 			mSceneBounds.expand(Vector3(0.5f, 0.5f, 0.5f));
-			calcPlaneUVRect();
-			calcDoughnutUVRect();
 		}
 
 		void accumulateBounds(BoundBox const& localBounds, Matrix4 const& localToWorld)
@@ -392,7 +471,10 @@ namespace Render
 		{
 			Vector3 sceneSize = mSceneBounds.getSize();
 			float viewExtent = 0.6f * Math::Max(sceneSize.x, sceneSize.y);
-			Matrix4 projection = OrthoMatrix(-viewExtent, viewExtent, viewExtent, -viewExtent, -30.0f, 30.0f);
+			float aspect = float(rectSize.x) / float(Math::Max(rectSize.y, 1));
+			float extentX = viewExtent * Math::Max(aspect, 1.0f);
+			float extentY = viewExtent / Math::Min(aspect, 1.0f);
+			Matrix4 projection = OrthoMatrix(-extentX, extentX, -extentY, extentY, -30.0f, 30.0f);
 
 			mCaptureView.rectOffset = IntVector2(0, 0);
 			mCaptureView.rectSize = rectSize;
@@ -414,7 +496,7 @@ namespace Render
 
 			for (Vector3 const& corner : corners)
 			{
-				Vector3 viewPos = (Vector4(corner, 1.0f) * xform * viewMatrix).dividedVector();
+				Vector3 viewPos = Math::TransformPosition(Math::TransformPosition(corner, xform), viewMatrix);
 				minView.x = Math::Min(minView.x, viewPos.x);
 				minView.y = Math::Min(minView.y, viewPos.y);
 				minView.z = Math::Min(minView.z, viewPos.z);
@@ -437,7 +519,7 @@ namespace Render
 
 			float zCenter = 0.5f * (minView.z + maxView.z);
 			float zExtent = 0.5f * Math::Max(maxView.z - minView.z, 0.01f) + 2.0f;
-			Matrix4 projection = OrthoMatrix(center.x - extentX, center.x + extentX, center.y + extentY, center.y - extentY, zCenter - zExtent, zCenter + zExtent);
+			Matrix4 projection = OrthoMatrix(center.x - extentX, center.x + extentX, center.y - extentY, center.y + extentY, zCenter - zExtent, zCenter + zExtent);
 
 			mCaptureView.rectOffset = IntVector2(0, 0);
 			mCaptureView.rectSize = rectSize;
@@ -448,7 +530,7 @@ namespace Render
 		{
 			Vector3 sceneSize = mSceneBounds.getSize();
 			float viewExtent = 0.6f * Math::Max(sceneSize.x, sceneSize.y);
-			Matrix4 projection = OrthoMatrix(-viewExtent, viewExtent, viewExtent, -viewExtent, -40.0f, 40.0f);
+			Matrix4 projection = OrthoMatrix(-viewExtent, viewExtent, -viewExtent, viewExtent, -40.0f, 40.0f);
 
 			mLightView.rectOffset = IntVector2(0, 0);
 			mLightView.rectSize = IntVector2(ShadowTextureSize, ShadowTextureSize);
@@ -471,7 +553,7 @@ namespace Render
 
 			for (Vector3 const& corner : corners)
 			{
-				Vector4 clip = Vector4((Vector4(corner, 1.0f) * xform).dividedVector(), 1.0f) * mCaptureView.worldToClip;
+				Vector4 clip = Vector4(Math::TransformPosition(corner, xform), 1.0f) * mCaptureView.worldToClip;
 				if (Math::Abs(clip.w) < 1e-6)
 					continue;
 				Vector3 ndc = clip.dividedVector();
@@ -492,12 +574,14 @@ namespace Render
 
 		void calcPlaneUVRect()
 		{
-			mPlaneUVRect = Vector4(0, 0, 1, 1);
+			setupCaptureViewForBounds(Matrix4::Identity(), mPlaneBounds, mPlaneWorldPosTarget.size);
+			calcTextureUVRect(Matrix4::Identity(), mPlaneBounds, mPlaneUVRect);
 		}
 
 		void calcDoughnutUVRect()
 		{
-			mDoughnutUVRect = Vector4(0, 0, 1, 1);
+			setupCaptureViewForBounds(mDoughnutTextureTransform, mDoughnutBounds, mDoughnutWorldPosTarget.size);
+			calcTextureUVRect(mDoughnutTextureTransform, mDoughnutBounds, mDoughnutUVRect);
 		}
 
 		IntVector2 calcTargetSize(Matrix4 const& xform, BoundBox const& bounds)
@@ -506,8 +590,9 @@ namespace Render
 			calcTextureUVRect(xform, bounds, uvRect);
 			float extentU = Math::Max(uvRect.z - uvRect.x, 1.0f / BaseWorldPosTextureSize);
 			float extentV = Math::Max(uvRect.w - uvRect.y, 1.0f / BaseWorldPosTextureSize);
-			int width = Math::Clamp<int>(Math::CeilToInt(extentU * BaseWorldPosTextureSize), MinWorldPosTextureSize, BaseWorldPosTextureSize);
-			int height = Math::Clamp<int>(Math::CeilToInt(extentV * BaseWorldPosTextureSize), MinWorldPosTextureSize, BaseWorldPosTextureSize);
+			float extent = Math::Max(extentU, extentV);
+			int width = Math::Clamp<int>(Math::CeilToInt(extent * BaseWorldPosTextureSize), MinWorldPosTextureSize, BaseWorldPosTextureSize);
+			int height = width;
 			return IntVector2(width, height);
 		}
 
@@ -516,6 +601,8 @@ namespace Render
 			setupCaptureView();
 			mPlaneWorldPosTarget.size = calcTargetSize(Matrix4::Identity(), mPlaneBounds);
 			mDoughnutWorldPosTarget.size = calcTargetSize(mDoughnutTextureTransform, mDoughnutBounds);
+			calcPlaneUVRect();
+			calcDoughnutUVRect();
 		}
 
 		bool calcInstanceRect(BoundBox const& bounds, Matrix4 const& xform, int width, int height, int outRect[4])
@@ -531,7 +618,7 @@ namespace Render
 
 			for (Vector3 const& corner : corners)
 			{
-				Vector4 clip = Vector4((Vector4(corner, 1.0f) * xform).dividedVector(), 1.0f) * mCaptureView.worldToClip;
+				Vector4 clip = Vector4(Math::TransformPosition(corner, xform), 1.0f) * mCaptureView.worldToClip;
 				if (Math::Abs(clip.w) < 1e-6)
 					continue;
 				Vector3 ndc = clip.dividedVector();
@@ -553,49 +640,56 @@ namespace Render
 			return true;
 		}
 
-		void beginWorldPosPass(RHICommandList& commandList, RenderTargetBundle& target, Matrix4 const& xform, BoundBox const& bounds)
+		void beginWorldPosPass(RHICommandList& commandList, RenderTargetBundle& target, Matrix4 const& xform, BoundBox const& bounds, int colorIndex, ECullMode cullMode)
 		{
 			setupCaptureViewForBounds(xform, bounds, target.size);
 			mCaptureView.updateRHIResource();
-
+			target.captureClipToWorld = mCaptureView.clipToWorld;
+			target.heightRange = Vector2(bounds.min.z, bounds.max.z);
+			target.frameBuffer->setTexture(0, *target.colorTextures[colorIndex]);
 			RHISetFrameBuffer(commandList, target.frameBuffer);
 			RHISetViewport(commandList, 0, 0, target.size.x, target.size.y);
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 0), 1, 1.0f, 0);
-			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+			RHISetRasterizerState(commandList, GetStaticRasterizerState(cullMode, EFillMode::Solid));
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetShaderProgram(commandList, mWorldPosProgram->getRHI());
 			mCaptureView.setupShader(commandList, *mWorldPosProgram);
+			mWorldPosProgram->setParam(commandList, SHADER_PARAM(HeightRange), target.heightRange);
 		}
 
 		void renderPlaneWorldPos(RHICommandList& commandList)
 		{
-			beginWorldPosPass(commandList, mPlaneWorldPosTarget, Matrix4::Identity(), mPlaneBounds);
+			beginWorldPosPass(commandList, mPlaneWorldPosTarget, Matrix4::Identity(), mPlaneBounds, 0, ECullMode::None);
 			mWorldPosProgram->setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Identity());
 			getMesh(SimpleMeshId::Plane).draw(commandList);
 		}
 
 		void renderDoughnutWorldPos(RHICommandList& commandList)
 		{
-			beginWorldPosPass(commandList, mDoughnutWorldPosTarget, mDoughnutTextureTransform, mDoughnutBounds);
+			beginWorldPosPass(commandList, mDoughnutWorldPosTarget, mDoughnutTextureTransform, mDoughnutBounds, 0, ECullMode::Back);
 			mWorldPosProgram->setParam(commandList, SHADER_PARAM(LocalToWorld), mDoughnutTextureTransform);
-			getMesh(SimpleMeshId::Doughnut).draw(commandList);
+			getMesh(SimpleMeshId::Box).draw(commandList);
+			beginWorldPosPass(commandList, mDoughnutWorldPosTarget, mDoughnutTextureTransform, mDoughnutBounds, 1, ECullMode::Front);
+			mWorldPosProgram->setParam(commandList, SHADER_PARAM(LocalToWorld), mDoughnutTextureTransform);
+			getMesh(SimpleMeshId::Box).draw(commandList);
 		}
 
-		void projectWorldTextureToShadow(RHICommandList& commandList, RHITexture2D& texture, Matrix4 const& transform)
+		void projectWorldTextureToShadow(RHICommandList& commandList, RHITexture2D& texture, Matrix4 const& transform, Matrix4 const& captureClipToWorld, Vector2 const& heightRange)
 		{
 			RHISetComputeShader(commandList, mProjectWorldToShadowCS->getRHI());
 			mProjectWorldToShadowCS->setTexture(commandList, SHADER_PARAM(WorldPositionTexture), texture,
 				SHADER_SAMPLER(WorldPositionTexture),
 				TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 			mProjectWorldToShadowCS->setRWTexture(commandList, SHADER_PARAM(ShadowMapRW), *mShadowMapTexture, 0, EAccessOp::ReadAndWrite);
-			mProjectWorldToShadowCS->setRWTexture(commandList, SHADER_PARAM(ShadowDebugRW), *mShadowDebugTexture, 0, EAccessOp::ReadAndWrite);
 			mProjectWorldToShadowCS->setParam(commandList, SHADER_PARAM(WorldPosTransform), transform);
 			mProjectWorldToShadowCS->setParam(commandList, SHADER_PARAM(WorldToShadowClip), mLightView.worldToClip);
+			mProjectWorldToShadowCS->setParam(commandList, SHADER_PARAM(CaptureClipToWorld), captureClipToWorld);
+			mProjectWorldToShadowCS->setParam(commandList, SHADER_PARAM(HeightRange), heightRange);
 			mProjectWorldToShadowCS->setParam(commandList, SHADER_PARAM(ShadowTextureSize), IntVector2(ShadowTextureSize, ShadowTextureSize));
+			mProjectWorldToShadowCS->setParam(commandList, SHADER_PARAM(ShadowTriangleRejectThreshold), mShadowTriangleRejectThreshold);
 			RHIDispatchCompute(commandList, (texture.getSizeX() + 7) / 8, (texture.getSizeY() + 7) / 8, 1);
 			mProjectWorldToShadowCS->clearRWTexture(commandList, SHADER_PARAM(ShadowMapRW));
-			mProjectWorldToShadowCS->clearRWTexture(commandList, SHADER_PARAM(ShadowDebugRW));
 			mProjectWorldToShadowCS->clearTexture(commandList, SHADER_PARAM(WorldPositionTexture));
 		}
 
@@ -607,10 +701,9 @@ namespace Render
 			setupLightView();
 			mLightView.updateRHIResource();
 
-			RHISetFrameBuffer(commandList, mShadowDebugFrameBuffer);
+			RHISetFrameBuffer(commandList, nullptr);
 			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
-			RHIResourceTransition(commandList, { mShadowDebugTexture, mShadowMapTexture }, EResourceTransition::UAV);
+			RHIResourceTransition(commandList, { mShadowMapTexture }, EResourceTransition::UAV);
 
 			RHISetComputeShader(commandList, mClearShadowMapCS->getRHI());
 			mClearShadowMapCS->setRWTexture(commandList, SHADER_PARAM(ShadowMapRW), *mShadowMapTexture, 0, EAccessOp::WriteOnly);
@@ -619,65 +712,73 @@ namespace Render
 			RHIDispatchCompute(commandList, (ShadowTextureSize + 7) / 8, (ShadowTextureSize + 7) / 8, 1);
 			mClearShadowMapCS->clearRWTexture(commandList, SHADER_PARAM(ShadowMapRW));
 
-			RHIResourceTransition(commandList, { mShadowDebugTexture, mShadowMapTexture }, EResourceTransition::UAVBarrier);
-			projectWorldTextureToShadow(commandList, *mPlaneWorldPosTarget.colorTexture, mPlaneTransform);
 			for (Matrix4 const& xform : mDoughnutTransforms)
 			{
-				RHIResourceTransition(commandList, { mShadowDebugTexture, mShadowMapTexture }, EResourceTransition::UAVBarrier);
-				projectWorldTextureToShadow(commandList, *mDoughnutWorldPosTarget.colorTexture, xform);
+				RHIResourceTransition(commandList, { mShadowMapTexture }, EResourceTransition::UAVBarrier);
+				projectWorldTextureToShadow(commandList, *mDoughnutWorldPosTarget.colorTextures[0], xform, mDoughnutWorldPosTarget.captureClipToWorld, mDoughnutWorldPosTarget.heightRange);
+
+				RHIResourceTransition(commandList, { mShadowMapTexture }, EResourceTransition::UAVBarrier);
+				projectWorldTextureToShadow(commandList, *mDoughnutWorldPosTarget.colorTextures[1], xform, mDoughnutWorldPosTarget.captureClipToWorld, mDoughnutWorldPosTarget.heightRange);
 			}
-			RHIResourceTransition(commandList, { mShadowDebugTexture, mShadowMapTexture }, EResourceTransition::SRV);
+			RHIResourceTransition(commandList, { mShadowMapTexture }, EResourceTransition::SRV);
 		}
 
 		void renderPreviewPass(RHICommandList& commandList, IntVector2 const& screenSize)
 		{
-			setupCaptureView();
+			setupCaptureView(screenSize);
+			Matrix4 screenXForm = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1));
 			RHISetFrameBuffer(commandList, nullptr);
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.02f, 0.02f, 0.025f, 1.0f), 1);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.02f, 0.02f, 0.025f, 1.0f), 1, 1.0f, 0);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
-			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			RHISetShaderProgram(commandList, mWorldPosShadeProgram->getRHI());
+			RHISetShaderProgram(commandList, mWorldPosRectShadeProgram->getRHI());
 			{
 				int rect[4];
 				if (calcInstanceRect(mPlaneBounds, mPlaneTransform, screenSize.x, screenSize.y, rect))
 				{
-					RHISetViewport(commandList, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
-					mWorldPosShadeProgram->setTexture(commandList, SHADER_PARAM(SourceWorldPosTexture), *mPlaneWorldPosTarget.colorTexture,
+					mWorldPosRectShadeProgram->setTexture(commandList, SHADER_PARAM(SourceWorldPosTexture), *mPlaneWorldPosTarget.colorTextures[0],
 						SHADER_SAMPLER(SourceWorldPosTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-					mWorldPosShadeProgram->setTexture(commandList, SHADER_PARAM(SourceShadowTexture), *mShadowMapTexture,
+					mWorldPosRectShadeProgram->setTexture(commandList, SHADER_PARAM(SourceShadowTexture), *mShadowMapTexture,
 						SHADER_SAMPLER(SourceShadowTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-					mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(UVRect), mPlaneUVRect);
-					mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(WorldPosTransform), mPlaneTransform);
-					mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(WorldToShadowClip), mLightView.worldToClip);
-					mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(BaseColor), Vector4(0.72f, 0.66f, 0.48f, 1.0f));
-					mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(ShadowBias), mShadowBias);
-					mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(ShadowRejectThreshold), mShadowRejectThreshold);
-					DrawUtility::ScreenRect(commandList);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(UVRect), mPlaneUVRect);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(WorldPosTransform), mPlaneTransform);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(WorldToShadowClip), mLightView.worldToClip);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(WorldToClip), mCaptureView.worldToClip);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(CaptureClipToWorld), mPlaneWorldPosTarget.captureClipToWorld);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(HeightRange), mPlaneWorldPosTarget.heightRange);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(BaseColor), Vector4(0.72f, 0.66f, 0.48f, 1.0f));
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(ShadowBias), mShadowBias);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(ShadowRejectThreshold), mShadowRejectThreshold);
+					mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(XForm), screenXForm);
+					DrawUtility::Rect(commandList, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
 				}
 			}
 
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			for (Matrix4 const& xform : mDoughnutTransforms)
 			{
 				int rect[4];
 				if (!calcInstanceRect(mDoughnutBounds, xform, screenSize.x, screenSize.y, rect))
 					continue;
 
-				RHISetViewport(commandList, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
-				mWorldPosShadeProgram->setTexture(commandList, SHADER_PARAM(SourceWorldPosTexture), *mDoughnutWorldPosTarget.colorTexture,
+				mWorldPosRectShadeProgram->setTexture(commandList, SHADER_PARAM(SourceWorldPosTexture), *mDoughnutWorldPosTarget.colorTextures[0],
 					SHADER_SAMPLER(SourceWorldPosTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-				mWorldPosShadeProgram->setTexture(commandList, SHADER_PARAM(SourceShadowTexture), *mShadowMapTexture,
+				mWorldPosRectShadeProgram->setTexture(commandList, SHADER_PARAM(SourceShadowTexture), *mShadowMapTexture,
 					SHADER_SAMPLER(SourceShadowTexture), TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-				mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(UVRect), mDoughnutUVRect);
-				mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(WorldPosTransform), xform);
-				mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(WorldToShadowClip), mLightView.worldToClip);
-				mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(BaseColor), Vector4(0.74f, 0.79f, 0.96f, 1.0f));
-				mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(ShadowBias), mShadowBias);
-				mWorldPosShadeProgram->setParam(commandList, SHADER_PARAM(ShadowRejectThreshold), mShadowRejectThreshold);
-				DrawUtility::ScreenRect(commandList);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(UVRect), mDoughnutUVRect);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(WorldPosTransform), xform);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(WorldToShadowClip), mLightView.worldToClip);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(WorldToClip), mCaptureView.worldToClip);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(CaptureClipToWorld), mDoughnutWorldPosTarget.captureClipToWorld);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(HeightRange), mDoughnutWorldPosTarget.heightRange);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(BaseColor), Vector4(0.74f, 0.79f, 0.96f, 1.0f));
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(ShadowBias), mShadowBias);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(ShadowRejectThreshold), mShadowRejectThreshold);
+				mWorldPosRectShadeProgram->setParam(commandList, SHADER_PARAM(XForm), screenXForm);
+				DrawUtility::Rect(commandList, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
 			}
 
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -689,9 +790,10 @@ namespace Render
 		static int constexpr ShadowTextureSize = 1024;
 
 		Vector3    mLightDir = Vector3(1.0f, -1.0f, -2.0f).getNormal();
-		Quaternion mLightRotation = Quaternion::EulerZYX(Vector3(Math::DegToRad(35.264f), 0.0f, Math::DegToRad(45.0f)));
+		Quaternion mLightRotation = Quaternion::EulerZYX(Vector3(0.0f, Math::DegToRad(35.264f), Math::DegToRad(45.0f)));
 		float      mShadowBias = 0.0025f;
 		float      mShadowRejectThreshold = 0.01f;
+		float      mShadowTriangleRejectThreshold = 1.5f;
 
 		SimpleCamera mCaptureCamera;
 		SimpleCamera mLightCamera;
@@ -713,6 +815,7 @@ namespace Render
 		ShadowMapVisualizeProgram* mShadowVisualizeProgram = nullptr;
 		WorldPosVisualizeProgram*  mWorldPosVisualizeProgram = nullptr;
 		WorldPosShadeProgram*      mWorldPosShadeProgram = nullptr;
+		WorldPosRectShadeProgram*  mWorldPosRectShadeProgram = nullptr;
 		IEditorDetailView*         mDetailView = nullptr;
 
 		RenderTargetBundle mPlaneWorldPosTarget;

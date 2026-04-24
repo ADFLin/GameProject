@@ -225,17 +225,17 @@ struct DetailViewPanel::RenderContext
 				if (slider)
 				{
 					ImGuiSliderFlags flags = 0;
-					verify(ImGui::SliderFloat("##Property", (float*)pData, slider->min, slider->max, "%.3f", flags));
+					verify(ImGui::SliderFloat("##Property", (float*)pData, slider->min, slider->max, "%.5f", flags));
 				}
 				else
 				{
-					verify(ImGui::DragFloat("##Property", (float*)pData, 0.1f, 0.0f, 0.0f, "%.3f"));
+					verify(ImGui::DragFloat("##Property", (float*)pData, 0.1f, 0.0f, 0.0f, "%.5f"));
 				}
 			}
 			break;
 		case EPropertyType::Double:
 			{
-				verify(ImGui::DragScalar("##Property", ImGuiDataType_Double, pData, 0.1f, nullptr, nullptr, "%.3f"));
+				verify(ImGui::DragScalar("##Property", ImGuiDataType_Double, pData, 0.1f, nullptr, nullptr, "%.6f"));
 			}
 			break;
 		}

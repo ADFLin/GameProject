@@ -1058,7 +1058,7 @@ namespace Render
 		desc.DepthBias = Math::FloorToInt(initializer.depthBias * (float)(1 << 24)); 
 		desc.DepthBiasClamp = 0;
 		desc.SlopeScaledDepthBias = initializer.slopeScaleDepthBias;
-		desc.DepthClipEnable = FALSE;
+		desc.DepthClipEnable = TRUE;
 		desc.ScissorEnable = initializer.bEnableScissor;
 		desc.MultisampleEnable = initializer.bEnableMultisample;
 		desc.AntialiasedLineEnable = initializer.bEnableMultisample;

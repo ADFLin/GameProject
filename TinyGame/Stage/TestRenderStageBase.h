@@ -406,7 +406,9 @@ namespace Render
 		ViewInfo      mView;
 		ViewFrustum   mViewFrustum;
 		SimpleCamera  mCamera;
+		SimpleCamera  mDebugCamera;
 		bool          mbGamePased;
+		bool          mbUseDebugCamera = false;
 
 		TINY_API bool onInit() override;
 
@@ -414,6 +416,10 @@ namespace Render
 
 		virtual void restart(){}
 		TINY_API void onUpdate(GameTimeSpan deltaTime) override;
+		SimpleCamera& getRenderCamera() { return mbUseDebugCamera ? mDebugCamera : mCamera; }
+		SimpleCamera const& getRenderCamera() const { return mbUseDebugCamera ? mDebugCamera : mCamera; }
+		SimpleCamera& getControlCamera() { return mbUseDebugCamera ? mDebugCamera : mCamera; }
+		SimpleCamera const& getControlCamera() const { return mbUseDebugCamera ? mDebugCamera : mCamera; }
 
 		//
 		virtual bool setupRenderResource(ERenderSystem systemName)

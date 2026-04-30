@@ -276,12 +276,36 @@ namespace ODE
 		{
 			using namespace Expr;
 			auto k1 = model.evalDerivative(t, state);
-			auto k2 = model.evalDerivative(t + (dt / 4.0), state + (dt / 4.0) * k1);
-			auto k3 = model.evalDerivative(t + (dt / 4.0), state + (dt / 8.0) * k1 + (dt / 8.0) * k2);
-			auto k4 = model.evalDerivative(t + (dt / 2.0), state - (dt / 2.0) * k2 + dt * k3);
-			auto k5 = model.evalDerivative(t + (3.0 * dt / 4.0), state + (3.0 * dt / 16.0) * k1 + (9.0 * dt / 16.0) * k4);
-			auto k6 = model.evalDerivative(t + dt, state - (3.0 * dt / 7.0) * k1 + (2.0 * dt / 7.0) * k2 + (12.0 * dt / 7.0) * k3 - (12.0 * dt / 7.0) * k4 + (8.0 * dt / 7.0) * k5);
-			state = state + (dt / 90.0) * (7.0 * k1 + 32.0 * k3 + 12.0 * k4 + 32.0 * k5 + 7.0 * k6);
+
+			auto k2 = model.evalDerivative(
+				t + dt / 4.0,
+				state + (dt / 4.0) * k1);
+
+			auto k3 = model.evalDerivative(
+				t + dt / 4.0,
+				state + (dt / 8.0) * k1 + (dt / 8.0) * k2);
+
+			auto k4 = model.evalDerivative(
+				t + dt / 2.0,
+				state + (dt / 2.0) * k3);
+
+			auto k5 = model.evalDerivative(
+				t + 3.0 * dt / 4.0,
+				state + (3.0 * dt / 16.0) * k1
+				- (3.0 * dt / 8.0) * k2
+				+ (3.0 * dt / 8.0) * k3
+				+ (9.0 * dt / 16.0) * k4);
+
+			auto k6 = model.evalDerivative(
+				t + dt,
+				state - (3.0 * dt / 7.0) * k1
+				+ (8.0 * dt / 7.0) * k2
+				+ (6.0 * dt / 7.0) * k3
+				- (12.0 * dt / 7.0) * k4
+				+ (8.0 * dt / 7.0) * k5);
+
+			state = state + (dt / 90.0) *
+				(7.0 * k1 + 32.0 * k3 + 12.0 * k4 + 32.0 * k5 + 7.0 * k6);
 		}
 	};
 

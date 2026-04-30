@@ -2169,6 +2169,8 @@ class SSESIMDCodeGeneratorX64 : public TCodeGenerator<SSESIMDCodeGeneratorX64>
 	, public SSECodeGeneratorX64Base
 {
 	using BaseClass = SSECodeGeneratorX64Base;
+	static int constexpr InputScratchReg = 4;
+	static int constexpr SpillScratchReg = RegAllocator::ScratchReg;
 public:
 	using TokenType = SSECodeGeneratorX64Base::TokenType;
 
@@ -2185,6 +2187,123 @@ public:
 		BaseClass::codeInit(numInput, inputLayouts);
 	}
 
+	int getSIMDInputOffset(int index) const
+	{
+		return -176 - 16 - mRegAllocator.mNumTemps * 16 - index * 16;
+	}
+
+	int getSIMDCallSaveOffset(int slot) const
+	{
+		return -176 - 16 - mRegAllocator.mNumTemps * 16 - std::max(4, mReservedInputCount) * 16 - (slot + 1) * 16;
+	}
+
+	void emitLoadSIMDInput(int index, RegXMM const& dst)
+	{
+		Asm::movups(dst, xmmword_ptr(rbp, getSIMDInputOffset(index)));
+	}
+
+	void emitLoadSIMDPhysicalValue(int phyIdx, RegXMM const& dst)
+	{
+		if (phyIdx >= RegAllocator::RegSlotBase)
+		{
+			int offset = GetTempStackOffsetSIMD(phyIdx - RegAllocator::RegSlotBase);
+			Asm::movups(dst, xmmword_ptr(rbp, offset));
+		}
+		else if (dst.index() != xmm(phyIdx).index())
+		{
+			Asm::movups(dst, xmm(phyIdx));
+		}
+	}
+
+	void emitStoreSIMDPhysicalValue(int phyIdx, RegXMM const& src)
+	{
+		if (phyIdx >= RegAllocator::RegSlotBase)
+		{
+			int offset = GetTempStackOffsetSIMD(phyIdx - RegAllocator::RegSlotBase);
+			Asm::movups(xmmword_ptr(rbp, offset), src);
+		}
+		else if (xmm(phyIdx).index() != src.index())
+		{
+			Asm::movups(xmm(phyIdx), src);
+		}
+	}
+
+	bool isSIMDRegUsedByLiveValue(int phyIdx, int numLive) const
+	{
+		int count = std::min(numLive, (int)mXMMStack.size());
+		for (int i = 0; i < count; ++i)
+		{
+			if (mXMMStack[i].idxXMM == phyIdx)
+				return true;
+		}
+		return false;
+	}
+
+	void ensureSIMDNonVolatileSaved(int phyIdx)
+	{
+		if (!(6 <= phyIdx && phyIdx <= 15))
+			return;
+
+		uint32 bit = (1u << phyIdx);
+		if ((mRegAllocator.usedMask & bit) == 0)
+		{
+			Asm::movups(xmmword_ptr(rbp, -16 - ((phyIdx - 6) * 16)), xmm(phyIdx));
+			++mNumInstruction;
+			mRegAllocator.usedMask |= bit;
+		}
+	}
+
+	int resolveSIMDResultRegCollision(int desiredIdx, int numLive)
+	{
+		if (desiredIdx >= RegAllocator::RegSlotBase)
+			return desiredIdx;
+		if (!isSIMDRegUsedByLiveValue(desiredIdx, numLive))
+			return desiredIdx;
+
+		for (int phyIdx = 6; phyIdx <= 15; ++phyIdx)
+		{
+			if (!isSIMDRegUsedByLiveValue(phyIdx, numLive))
+			{
+				ensureSIMDNonVolatileSaved(phyIdx);
+				return phyIdx;
+			}
+		}
+		return desiredIdx;
+	}
+
+	uint32 spillLiveVolatileAcrossCall(int numLive)
+	{
+		uint32 spilledMask = 0;
+		for (int i = 0; i < numLive; ++i)
+		{
+			int phyIdx = mXMMStack[i].idxXMM;
+			if (1 <= phyIdx && phyIdx <= 4)
+			{
+				uint32 bit = (1u << phyIdx);
+				if ((spilledMask & bit) == 0)
+				{
+					Asm::movups(xmmword_ptr(rbp, getSIMDCallSaveOffset(phyIdx - 1)), xmm(phyIdx));
+					++mNumInstruction;
+					spilledMask |= bit;
+				}
+			}
+		}
+		return spilledMask;
+	}
+
+	void restoreLiveVolatileAcrossCall(uint32 spilledMask)
+	{
+		for (int phyIdx = 1; phyIdx <= 4; ++phyIdx)
+		{
+			uint32 bit = (1u << phyIdx);
+			if (spilledMask & bit)
+			{
+				Asm::movups(xmm(phyIdx), xmmword_ptr(rbp, getSIMDCallSaveOffset(phyIdx - 1)));
+				++mNumInstruction;
+			}
+		}
+	}
+
 	void postLoadCode()
 	{
 		// Function prologue for x64
@@ -2196,15 +2315,8 @@ public:
 			mRegAllocator.pushSimValue(mRegAllocator.mSimPrevUnit);
 		}
 
-		// Calculate precise stack size. SIMD needs more space for temps? 
-		// Actually xmmword is 16 bytes. tempIndex counts slots. 
-		// If tempIndex is used for SIMD, each slot is 16 bytes.
-		// GetTempStackOffsetSIMD confirms index*16.
+		// SIMD path stores temporaries and vector inputs in 16-byte slots.
 		int tempSize = mRegAllocator.mNumTemps * 16;
-		int finalStackSize = 32 + 16 * MaxXMMStackSize + tempSize + 64;
-
-		Asm::sub(rsp, imm32(finalStackSize));
-		mNumInstruction += 3;
 
 		// Calculate precise input reserve count for Shadow Space storage
 		mReservedInputCount = 0;
@@ -2213,6 +2325,13 @@ public:
 			if (mRegAllocator.mInputUsed[i])
 				mReservedInputCount = i + 1;
 		}
+
+		int inputSaveSize = std::max(4, mReservedInputCount) * 16;
+		int callSaveSize = 4 * 16;
+		int finalStackSize = 32 + 16 * MaxXMMStackSize + tempSize + inputSaveSize + callSaveSize;
+
+		Asm::sub(rsp, imm32(finalStackSize));
+		mNumInstruction += 3;
 
 		// Generate the allocation plan based on collected stack info
 		mRegAllocator.generateAllocPlan(mAllocPlan);
@@ -2231,22 +2350,18 @@ public:
 			}
 		}
 
-		// SIMD: Save first 4 scalar args to shadow space (if used)
-		// Even in SIMD mode, JIT inputs are usually scalar unless specifically handled.
+		// SIMD ABI: first 4 vector arguments arrive in xmm0-xmm3.
+		// Persist them into local 16-byte slots so later loads are uniform.
 		for (int i = 0; i < mReservedInputCount; ++i)
 		{
 			if (mRegAllocator.mInputUsed[i])
 			{
-				// Use movss or movsd to avoid overwriting adjacent shadow slots (8 bytes each)
-				// Assuming float/double inputs.
-				if (mInputStack[i].layout == ValueLayout::Double || mInputStack[i].layout == ValueLayout::DoublePtr)
-					Asm::movsd(qword_ptr(rbp, int8(mInputStack[i].offset)), xmm(i));
-				else
-					Asm::movss(dword_ptr(rbp, int8(mInputStack[i].offset)), xmm(i));
+				Asm::movups(xmmword_ptr(rbp, getSIMDInputOffset(i)), xmm(i));
+				++mNumInstruction;
 			}
 		}
 
-		mNumInstruction += 4 + mReservedInputCount;
+		mNumInstruction += 4;
 	}
 
 	void codeConstValue(ConstValueInfo const& val)
@@ -2287,17 +2402,31 @@ public:
 
 		int regIdx = mXMMStack.back().idxXMM;
 		int offset = GetTempStackOffsetSIMD(tempIndex);
-		Asm::movups(xmmword_ptr(rbp, offset), xmm(regIdx));
-		mNumInstruction++;
+		emitLoadSIMDPhysicalValue(regIdx, xmm(SpillScratchReg));
+		Asm::movups(xmmword_ptr(rbp, offset), xmm(SpillScratchReg));
+		mNumInstruction += 2;
 
 	}
 
 	// Internal SIMD wrappers to get addresses
-	static __m128 __cdecl SIMD_Sin(__m128 v) { return SIMD::sin(v); }
-	static __m128 __cdecl SIMD_Cos(__m128 v) { return SIMD::cos(v); }
-	static __m128 __cdecl SIMD_Tan(__m128 v) { return SIMD::tan(v); }
-	static __m128 __cdecl SIMD_Exp(__m128 v) { return SIMD::exp(v); }
-	static __m128 __cdecl SIMD_Log(__m128 v) { return SIMD::log(v); }
+	template< class TFunc >
+	static __m128 __vectorcall ApplyScalarMath(__m128 v, TFunc&& func)
+	{
+		alignas(16) float values[4];
+		_mm_store_ps(values, v);
+		return _mm_setr_ps(
+			float(func(double(values[0]))),
+			float(func(double(values[1]))),
+			float(func(double(values[2]))),
+			float(func(double(values[3])))
+		);
+	}
+
+	static __m128 __vectorcall SIMD_Sin(__m128 v) { return ApplyScalarMath(v, [](double x) { return std::sin(x); }); }
+	static __m128 __vectorcall SIMD_Cos(__m128 v) { return ApplyScalarMath(v, [](double x) { return std::cos(x); }); }
+	static __m128 __vectorcall SIMD_Tan(__m128 v) { return ApplyScalarMath(v, [](double x) { return std::tan(x); }); }
+	static __m128 __vectorcall SIMD_Exp(__m128 v) { return ApplyScalarMath(v, [](double x) { return std::exp(x); }); }
+	static __m128 __vectorcall SIMD_Log(__m128 v) { return ApplyScalarMath(v, [](double x) { return std::log(x); }); }
 
 	static void* GetSIMDFuncAddress(int id)
 	{
@@ -2317,6 +2446,7 @@ public:
 		checkAndLoadPrevValue();
 		int numParam = info.getArgNum();
 		int numLive = (int)mXMMStack.size() - numParam;
+		uint32 spilledMask = spillLiveVolatileAcrossCall(numLive);
 
 		// Use the plan's assigned result register as the accumulator
 		// Note: The plan assumes arguments are popped (freed) before result is pushed (allocated).
@@ -2327,6 +2457,7 @@ public:
 		mCurPushIndex++;
 
 		if (accRegIdx == -1) throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Register allocation failed");
+		accRegIdx = resolveSIMDResultRegCollision(accRegIdx, numLive);
 
 
 		// Check for conflict: Does accRegIdx alias any live input argument?
@@ -2380,8 +2511,8 @@ public:
 				{
 					// Load from spilled virtual register slot
 					int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
-					Asm::movups(xmm(RegAllocator::ScratchReg), xmmword_ptr(rbp, offset)); 
-					srcReg = xmm(RegAllocator::ScratchReg);
+					Asm::movups(xmm(InputScratchReg), xmmword_ptr(rbp, offset)); 
+					srcReg = xmm(InputScratchReg);
 					mNumInstruction++;
 				}
 				else
@@ -2419,6 +2550,8 @@ public:
 			mNumInstruction++;
 		}
 
+		restoreLiveVolatileAcrossCall(spilledMask);
+
 		// If result was spilled, move from scratch register to stack slot
 		if (accRegIdx >= RegAllocator::RegSlotBase)
 		{
@@ -2445,8 +2578,19 @@ public:
 		if (info.id == EFuncSymbol::Sqrt)
 		{
 			int xmmIdx = mXMMStack.back().idxXMM;
-			Asm::sqrtps(xmm(xmmIdx), xmm(xmmIdx));
-			mNumInstruction++;
+			if (xmmIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(xmmIdx - RegAllocator::RegSlotBase);
+				Asm::movups(xmm(SpillScratchReg), xmmword_ptr(rbp, offset));
+				Asm::sqrtps(xmm(SpillScratchReg), xmm(SpillScratchReg));
+				Asm::movups(xmmword_ptr(rbp, offset), xmm(SpillScratchReg));
+				mNumInstruction += 3;
+			}
+			else
+			{
+				Asm::sqrtps(xmm(xmmIdx), xmm(xmmIdx));
+				mNumInstruction++;
+			}
 			return;
 		}
 
@@ -2455,6 +2599,7 @@ public:
 
 		int numParam = info.numArgs;
 		int numLive = (int)mXMMStack.size() - numParam;
+		uint32 spilledMask = spillLiveVolatileAcrossCall(numLive);
 
 		for (int i = 0; i < numParam; ++i)
 		{
@@ -2477,6 +2622,8 @@ public:
 		Asm::call(rax);
 		mNumInstruction += 2;
 
+		restoreLiveVolatileAcrossCall(spilledMask);
+
 		for (int i = 0; i < numParam; ++i) {
 			mXMMStack.pop_back();
 		}
@@ -2485,6 +2632,7 @@ public:
 		if (mCurPushIndex < mAllocPlan.size())
 			resultIdx = mAllocPlan[mCurPushIndex];
 		mCurPushIndex++;
+		resultIdx = resolveSIMDResultRegCollision(resultIdx, (int)mXMMStack.size());
 
 		if (resultIdx >= RegAllocator::RegSlotBase)
 		{
@@ -2517,8 +2665,9 @@ public:
 						throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Input value layout is not pointer when assign");
 					if (!mXMMStack.empty()) {
 						int srcPhyIdx = mXMMStack.back().idxXMM;
-						Asm::movups(xmmword_ptr(rbp, inputValue.offset), xmm(srcPhyIdx));
-						mNumInstruction++;
+						emitLoadSIMDPhysicalValue(srcPhyIdx, xmm(SpillScratchReg));
+						Asm::movups(xmmword_ptr(rbp, inputValue.offset), xmm(SpillScratchReg));
+						mNumInstruction += 2;
 					}
 				}
 				break;
@@ -2527,8 +2676,9 @@ public:
 					if (!mXMMStack.empty()) {
 						int srcPhyIdx = mXMMStack.back().idxXMM;
 						Asm::movabs(rax, (uint64)mPrevValue.var->ptr);
-						Asm::movups(xmmword_ptr(rax, 0), xmm(srcPhyIdx));
-						mNumInstruction += 2;
+						emitLoadSIMDPhysicalValue(srcPhyIdx, xmm(SpillScratchReg));
+						Asm::movups(xmmword_ptr(rax, 0), xmm(SpillScratchReg));
+						mNumInstruction += 3;
 					}
 				}
 				break;
@@ -2550,9 +2700,7 @@ public:
 				else
 					dstXMMIdx = (mXMMStack.size() >= 2) ? mXMMStack[mXMMStack.size() - 2].idxXMM : mReservedInputCount;
 			}
-			RegXMM dst = xmm(dstXMMIdx);
-
-			auto emitSIMDBOP = [&](auto const& src) {
+			auto emitSIMDBOP = [&](RegXMM const& dst, auto const& src) {
 				switch (opType) {
 				case BOP_ADD: Asm::addps(dst, src); break;
 				case BOP_MUL: Asm::mulps(dst, src); break;
@@ -2568,23 +2716,31 @@ public:
 				mNumInstruction++;
 			};
 
+			RegXMM dstReg = (dstXMMIdx >= RegAllocator::RegSlotBase) ? xmm(SpillScratchReg) : xmm(dstXMMIdx);
+			if (dstXMMIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(dstXMMIdx - RegAllocator::RegSlotBase);
+				Asm::movups(dstReg, xmmword_ptr(rbp, offset));
+				++mNumInstruction;
+			}
+
 			if (mPrevValue.idxXMM != INDEX_NONE)
 			{
 				int srcPhyIdx = mPrevValue.idxXMM;
 				if (srcPhyIdx >= RegAllocator::RegSlotBase)
 				{
 					int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
-					emitSIMDBOP(xmmword_ptr(rbp, offset));
+					emitSIMDBOP(dstReg, xmmword_ptr(rbp, offset));
 				}
 				else
 				{
-					emitSIMDBOP(xmm(srcPhyIdx));
+					emitSIMDBOP(dstReg, xmm(srcPhyIdx));
 				}
 			}
 			else if (IsValue(mPrevValue.type))
 			{
-				emitLoadValue(mPrevValue, xmm1);
-				emitSIMDBOP(xmm1);
+				mNumInstruction += emitLoadValue(mPrevValue, xmm(InputScratchReg));
+				emitSIMDBOP(dstReg, xmm(InputScratchReg));
 			}
 			else
 			{
@@ -2593,14 +2749,21 @@ public:
 				if (srcPhyIdx >= RegAllocator::RegSlotBase)
 				{
 					int offset = GetTempStackOffsetSIMD(srcPhyIdx - RegAllocator::RegSlotBase);
-					emitSIMDBOP(xmmword_ptr(rbp, offset));
+					emitSIMDBOP(dstReg, xmmword_ptr(rbp, offset));
 				}
 				else
 				{
-					emitSIMDBOP(xmm(srcPhyIdx));
+					emitSIMDBOP(dstReg, xmm(srcPhyIdx));
 				}
 
 				mXMMStack.pop_back();
+			}
+
+			if (dstXMMIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(dstXMMIdx - RegAllocator::RegSlotBase);
+				Asm::movups(xmmword_ptr(rbp, offset), dstReg);
+				++mNumInstruction;
 			}
 		}
 
@@ -2615,12 +2778,19 @@ public:
 		{
 			// Negate all 4 lanes: xorps with 0x80000000
 			int xmmIdx = mXMMStack.back().idxXMM;
-			RegXMM reg = xmm(xmmIdx);
+			RegXMM reg = (xmmIdx >= RegAllocator::RegSlotBase) ? xmm(SpillScratchReg) : xmm(xmmIdx);
 
 			// Use a constant -0.0f (which is 0x80000000 bit mask)
 			ConstValueInfo maskVal(-0.0f);
 			int idx = addConstValue(maskVal);
 			StackValue& constValue = mConstStack[idx];
+
+			if (xmmIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(xmmIdx - RegAllocator::RegSlotBase);
+				Asm::movups(reg, xmmword_ptr(rbp, offset));
+				++mNumInstruction;
+			}
 
 			// 1. Load mask [v, ?, ?, ?]
 			Asm::movss(xmm1, dword_ptr(&mConstLabel, constValue.offset));
@@ -2629,6 +2799,13 @@ public:
 			// 3. XOR to negate
 			Asm::xorps(reg, xmm1);
 			mNumInstruction += 4;
+
+			if (xmmIdx >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(xmmIdx - RegAllocator::RegSlotBase);
+				Asm::movups(xmmword_ptr(rbp, offset), reg);
+				++mNumInstruction;
+			}
 		}
 
 		mPrevValue.type = TOKEN_FUNC;
@@ -2642,10 +2819,8 @@ public:
 		if (!mXMMStack.empty())
 		{
 			int resultXMMIdx = mXMMStack.back().idxXMM;
-			Asm::movups(xmm0, xmm(resultXMMIdx));
-			// Note: result must be in xmm0. stackXMM(i) assumption is broken if we use RegAllocator indices.
-			// mXMMStack now stores PHYSICAL indices.
-			mNumInstruction++;
+			emitLoadSIMDPhysicalValue(resultXMMIdx, xmm0);
+			++mNumInstruction;
 		}
 
 		// Standard Epilogue: Restore used non-volatile XMM registers (xmm6+)
@@ -2675,6 +2850,12 @@ public:
 	{
 		if (info.idxXMM != INDEX_NONE)
 		{
+			if (info.idxXMM >= RegAllocator::RegSlotBase)
+			{
+				int offset = GetTempStackOffsetSIMD(info.idxXMM - RegAllocator::RegSlotBase);
+				Asm::movups(dst, xmmword_ptr(rbp, offset));
+				return 1;
+			}
 			if (xmm(info.idxXMM).index() != dst.index())
 			{
 				Asm::movups(dst, xmm(info.idxXMM));
@@ -2692,10 +2873,8 @@ public:
 			return 3;
 		case VALUE_INPUT:
 			{
-				StackValue& inputValue = mInputStack[info.input.index];
-				Asm::movss(dst, dword_ptr(rbp, inputValue.offset));
-				Asm::shufps(dst, dst, 0);
-				return 3;
+				emitLoadSIMDInput(info.input.index, dst);
+				return 1;
 			}
 		case VALUE_CONST:
 			{

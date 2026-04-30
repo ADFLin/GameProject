@@ -10,6 +10,7 @@
 #include "Asset.h"
 #include "Renderer/MeshImportor.h"
 #include "FileSystem.h"
+#include "InputManager.h"
 
 
 
@@ -118,6 +119,7 @@ namespace Render
 		mViewFrustum.mYFov = Math::DegToRad(60 / mViewFrustum.mAspect);
 
 		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
+		mDebugCamera = mCamera;
 
 		return true;
 	}
@@ -140,6 +142,7 @@ namespace Render
 		}
 
 		mCamera.updatePosition(deltaTime);
+		mDebugCamera.updatePosition(deltaTime);
 	}
 
 	void TestRenderStageBase::initializeRenderState()
@@ -152,7 +155,8 @@ namespace Render
 
 		mView.rectOffset = IntVector2(0, 0);
 		mView.rectSize = screenSize;
-		mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
+		SimpleCamera const& renderCamera = getRenderCamera();
+		mView.setupTransform(renderCamera.getPos(), renderCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 
 		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
@@ -199,7 +203,7 @@ namespace Render
 		{
 			float rotateSpeed = 0.01;
 			Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
-			mCamera.rotateByMouse(off.x, off.y);
+			getControlCamera().rotateByMouse(off.x, off.y);
 			oldPos = msg.getPos();
 		}
 
@@ -208,21 +212,47 @@ namespace Render
 
 	MsgReply TestRenderStageBase::onKey(KeyMsg const& msg)
 	{
-		float baseImpulse = 500;
+		auto updateMoveImpulse = [this]()
+		{
+			float baseImpulse = InputManager::Get().isKeyDown(EKeyCode::Control) ? 20000.0f : 500.0f;
+			SimpleCamera& camera = getControlCamera();
+			camera.moveForwardImpulse =
+				InputManager::Get().isKeyDown(EKeyCode::W) ? baseImpulse :
+				InputManager::Get().isKeyDown(EKeyCode::S) ? -baseImpulse : 0.0f;
+			camera.moveRightImpulse =
+				InputManager::Get().isKeyDown(EKeyCode::D) ? baseImpulse :
+				InputManager::Get().isKeyDown(EKeyCode::A) ? -baseImpulse : 0.0f;
+		};
+
 		switch (msg.getCode())
 		{
-		case EKeyCode::W: mCamera.moveForwardImpulse = msg.isDown() ? baseImpulse : 0 ; break;
-		case EKeyCode::S: mCamera.moveForwardImpulse = msg.isDown() ? -baseImpulse : 0; break;
-		case EKeyCode::D: mCamera.moveRightImpulse = msg.isDown() ? baseImpulse : 0; break;
-		case EKeyCode::A: mCamera.moveRightImpulse = msg.isDown() ? -baseImpulse : 0; break;
-		case EKeyCode::Z: mCamera.moveUp(0.5); break;
-		case EKeyCode::X: mCamera.moveUp(-0.5); break;
+		case EKeyCode::W:
+		case EKeyCode::S:
+		case EKeyCode::D:
+		case EKeyCode::A:
+		case EKeyCode::Control:
+			updateMoveImpulse();
+			break;
+		case EKeyCode::Z: getControlCamera().moveUp(0.5); break;
+		case EKeyCode::X: getControlCamera().moveUp(-0.5); break;
 		}
 
 		if (msg.isDown())
 		{
 			switch (msg.getCode())
 			{
+			case EKeyCode::Q:
+				if (mbUseDebugCamera)
+				{
+					mbUseDebugCamera = false;
+				}
+				else
+				{
+					mbUseDebugCamera = true;
+					mDebugCamera.lookAt(mCamera.getPos(), mCamera.getPos() + mCamera.getViewDir(), mCamera.getUpDir());
+				}
+				updateMoveImpulse();
+				break;
 			case EKeyCode::R: restart(); break;
 			case EKeyCode::F2:
 				{

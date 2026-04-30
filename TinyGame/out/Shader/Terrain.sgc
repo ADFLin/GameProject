@@ -4,57 +4,105 @@
 struct OutputVSParam
 {
 	float2 UV MEMBER_OUT(TEXCOORD0);
-	float3 normal MEMBER_OUT(TEXCOORD1);
-	float3 data MEMBER_OUT(TEXCOORD2);
+	float3 data MEMBER_OUT(TEXCOORD1);
 };
-
-#if VERTEX_SHADER
 
 uniform float4x4 LocalToWorld;
 DEFINE_TEXTURE(Texture2D, TextureHeight);
+DEFINE_TEXTURE(Texture2D, TextureNormal);
 
 uniform float3 TerrainScale;
+uniform float2 TerrainHeightRange;
+uniform int TerrainMeshTileCount;
+uniform float4 TerrainLODBlend;
+uniform int4 TerrainStitchDelta;
 
+float SnapStitchCoord(float coord, int delta)
+{
+	float step = float(1 << delta) / float(TerrainMeshTileCount);
+	return floor(coord / step + 1e-6) * step;
+}
+
+float2 ApplyLODStitch(float2 uv)
+{
+	float edgeEpsilon = 0.5 / float(TerrainMeshTileCount);
+	if (TerrainStitchDelta.x > 0 && uv.y <= edgeEpsilon)
+	{
+		uv.x = SnapStitchCoord(uv.x, TerrainStitchDelta.x);
+	}
+	if (TerrainStitchDelta.y > 0 && uv.y >= (1.0 - edgeEpsilon))
+	{
+		uv.x = SnapStitchCoord(uv.x, TerrainStitchDelta.y);
+	}
+	if (TerrainStitchDelta.z > 0 && uv.x <= edgeEpsilon)
+	{
+		uv.y = SnapStitchCoord(uv.y, TerrainStitchDelta.z);
+	}
+	if (TerrainStitchDelta.w > 0 && uv.x >= (1.0 - edgeEpsilon))
+	{
+		uv.y = SnapStitchCoord(uv.y, TerrainStitchDelta.w);
+	}
+	return uv;
+}
+
+float2 ApplyLODBlend(float2 uv)
+{
+	if (TerrainMeshTileCount <= 1)
+		return uv;
+
+	float edgeEpsilon = 0.5 / float(TerrainMeshTileCount);
+	if (uv.x <= edgeEpsilon || uv.x >= (1.0 - edgeEpsilon) ||
+		uv.y <= edgeEpsilon || uv.y >= (1.0 - edgeEpsilon))
+	{
+		return uv;
+	}
+
+	float coarseStep = 2.0 / float(TerrainMeshTileCount);
+	float2 coarseUV = floor(uv / coarseStep + 0.5) * coarseStep;
+	float bottomBlend = lerp(TerrainLODBlend.x, TerrainLODBlend.y, uv.x);
+	float topBlend = lerp(TerrainLODBlend.z, TerrainLODBlend.w, uv.x);
+	float blend = saturate(lerp(bottomBlend, topBlend, uv.y));
+	return lerp(uv, coarseUV, blend);
+}
+
+float DecodeTerrainHeight01(float2 uv)
+{
+	float2 bytes = floor(TEXTURE_SAMPLE_LEVEL(TextureHeight, uv, 0).rg * 255.0 + 0.5);
+	return (bytes.x * 256.0 + bytes.y) / 65535.0;
+}
 
 float  GetTerrainHeight(float2 uv)
 {
-	return TEXTURE_SAMPLE(TextureHeight, uv).r * TerrainScale.z;
+	return DecodeTerrainHeight01(uv) * TerrainScale.z;
 }
-float3 GetTerrainLocalPos(float2 uv)
+
+float GetTerrainAbsoluteHeight(float2 uv)
 {
-	return float3(uv, TEXTURE_SAMPLE(TextureHeight, uv).r) * TerrainScale;
+	float h = DecodeTerrainHeight01(uv);
+	return lerp(TerrainHeightRange.x, TerrainHeightRange.y, h);
 }
-float3 CalcTerrainNormal(float2 uv)
+
+float3 DecodeTerrainNormal(float2 uv)
 {
-	int2 texSize = TextureSize(TextureHeight);
-	float3 dtex = float3( float2(1.0) / float2(texSize) , 0 );
-
-#if 1
-
-	float3 result;
-	result.x = (GetTerrainHeight(uv - dtex.xz) - GetTerrainHeight(uv + dtex.xz));
-	result.y = (GetTerrainHeight(uv - dtex.zy) - GetTerrainHeight(uv + dtex.zy));
-	result.xy = result.xy / (TerrainScale.xy * dtex.xy);
-	result.z = 2;
-
-	return normalize(result);
-#else
-
-	float3 offset = float3(TerrainScale.xy * dtex.xy, 0);
-	float h = GetTerrainHeight(uv);
-	float hnx = GetTerrainHeight(uv - dtex.xz);
-	float hpx = GetTerrainHeight(uv + dtex.xz);
-	float hny = GetTerrainHeight(uv - dtex.zy);
-	float hpy = GetTerrainHeight(uv + dtex.zy);
-
-	float3 dnx = float3(-offset.xz, hnx - h);
-	float3 dpx = float3(offset.xz, hpx - h);
-	float3 dny = float3(-offset.zy, hny - h);
-	float3 dpy = float3(offset.zy, hpy - h);
-
-	return normalize(normalize(cross(dpx, dpy)) + normalize(cross(dpy, dnx)) + normalize(cross(dnx, dny)) + normalize(cross(dny, dpx)));
-#endif
+	float2 normalXY = TEXTURE_SAMPLE(TextureNormal, uv).ba * 2.0 - 1.0;
+	float normalZ = sqrt(saturate(1.0 - dot(normalXY, normalXY)));
+	return normalize(float3(normalXY, normalZ));
 }
+
+float GetTerrainSkirtDepth()
+{
+	return 0.1 * max(TerrainScale.z, 0.05 * max(TerrainScale.x, TerrainScale.y));
+}
+
+float3 GetTerrainLocalPos(float3 inPos)
+{
+	float2 uv = ApplyLODStitch(ApplyLODBlend(inPos.xy));
+	float height = GetTerrainHeight(uv);
+	height += inPos.z * GetTerrainSkirtDepth();
+	return float3(uv * TerrainScale.xy, height);
+}
+
+#if VERTEX_SHADER
 
 
 VS_ENTRY_START(MainVS)
@@ -62,34 +110,64 @@ VS_ENTRY_START(MainVS)
 	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
 VS_ENTRY_END(MainVS)
 {
-	float height = GetTerrainHeight(InPos.xy);
-	float4 worldPos = mul(LocalToWorld , float4(GetTerrainLocalPos(InPos.xy), 1));
-	SvPosition = mul( View.worldToClip , worldPos );
-	OutputVS.UV = float2(InPos.x, InPos.y);
-	OutputVS.normal = CalcTerrainNormal(InPos.xy);
-	OutputVS.data = float3(InPos.x, InPos.y, TEXTURE_SAMPLE(TextureHeight, InPos.xy).r);
+	float2 stitchedUV = ApplyLODStitch(ApplyLODBlend(InPos.xy));
+	float4 worldPos = mul(LocalToWorld , float4(GetTerrainLocalPos(InPos.xyz), 1));
+	float3 translatedWorldPos = worldPos.xyz - View.worldPos;
+	SvPosition = mul(View.translatedWorldToClip, float4(translatedWorldPos, 1));
+	OutputVS.UV = stitchedUV;
+	OutputVS.data = float3(stitchedUV.x, stitchedUV.y, GetTerrainAbsoluteHeight(stitchedUV));
 }
 
 #endif //VERTEX_SHADER
 
-DEFINE_TEXTURE(Texture2D, TextureBaseColor);
-
 #if PIXEL_SHADER
+
+float3 GetTerrainHeightColor(float heightMeters)
+{
+	float3 lowColor = float3(0.12, 0.32, 0.10);
+	float3 midColor = float3(0.42, 0.30, 0.18);
+	float3 highColor = float3(0.62, 0.60, 0.56);
+	float3 snowColor = float3(0.92, 0.93, 0.95);
+
+	float lowToMid = saturate((heightMeters - 200.0) / 1000.0);
+	float midToHigh = saturate((heightMeters - 1200.0) / 1200.0);
+	float highToSnow = saturate((heightMeters - 2800.0) / 900.0);
+
+	float3 color = lerp(lowColor, midColor, lowToMid);
+	color = lerp(color, highColor, midToHigh);
+	color = lerp(color, snowColor, highToSnow);
+	return color;
+}
+
+float3 GetTerrainSlopeColor(float slope)
+{
+	float3 grassColor = float3(0.18, 0.38, 0.12);
+	float3 rockColor = float3(0.34, 0.31, 0.28);
+	float3 cliffColor = float3(0.22, 0.21, 0.20);
+
+	float grassToRock = saturate((slope - 0.18) / 0.28);
+	float rockToCliff = saturate((slope - 0.55) / 0.25);
+
+	float3 color = lerp(grassColor, rockColor, grassToRock);
+	color = lerp(color, cliffColor, rockToCliff);
+	return color;
+}
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
-	float3 normal = normalize(OutputVS.normal);
-	float b = OutputVS.data.b;
-	float3 c = TEXTURE_SAMPLE(TextureBaseColor, OutputVS.UV).rgb;
-	float shade = clamp(dot(normal, normalize(float3(1, 1, 1))), 0, 1);
-	c = c * shade;
+	float3 normal = DecodeTerrainNormal(OutputVS.UV);
+	float heightMeters = OutputVS.data.b;
+	float slope = 1.0 - saturate(normal.z);
+	float3 heightColor = GetTerrainHeightColor(heightMeters);
+	float3 slopeColor = GetTerrainSlopeColor(slope);
+	float3 c = lerp(heightColor, slopeColor, saturate(slope * 1.35));
+	float shade = 0.25 + 0.75 * clamp(dot(normal, normalize(float3(1, 1, 1))), 0, 1);
+	c *= shade;
 	OutColor = float4(c, 1);
-	//OutColor = float4(shade, shade, shade, 1);
-	//OutColor = float4(0.5 * normal + 0.5, 1);
-	//OutColor = float4(b,b,b,1);
+	OutColor = float4(0.5 * normal + 0.5, 1);
 }
 
 #endif //PIXEL_SHADER

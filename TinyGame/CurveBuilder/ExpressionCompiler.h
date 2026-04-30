@@ -37,14 +37,32 @@ struct CodeDataEmpty {};
 
 namespace ExprInternal
 {
+	template<typename T>
+	using TAsmArgType = std::conditional_t<std::is_same_v<std::decay_t<T>, FloatVector>, __m128, T>;
+
+	template<typename T>
+	FORCEINLINE TAsmArgType<T> ToAsmArg(T&& value)
+	{
+#if TARGET_PLATFORM_64BITS
+		if constexpr (std::is_same_v<std::decay_t<T>, FloatVector>)
+		{
+			return (__m128)value;
+		}
+		else
+#endif
+		{
+			return std::forward<T>(value);
+		}
+	}
+
 	template< typename RT, typename ...Args >
 	FORCEINLINE RT CallAsm(void const* ptr, Args... args)
 	{
 #if TARGET_PLATFORM_64BITS
 		if constexpr (std::is_same_v<RT, FloatVector>)
 		{
-			using FuncPtr = __m128(*)(Args...);
-			return (RT)reinterpret_cast<FuncPtr>(const_cast<void*>(ptr))(args...);
+			using FuncPtr = __m128(__vectorcall*)(TAsmArgType<Args>...);
+			return (RT)reinterpret_cast<FuncPtr>(const_cast<void*>(ptr))(ToAsmArg(args)...);
 		}
 		else
 #endif

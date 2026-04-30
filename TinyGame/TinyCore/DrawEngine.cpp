@@ -665,13 +665,13 @@ bool DrawEngine::beginFrame()
 
 	if (isRHIEnabled())
 	{
-		if (mGLContext)
-		{
-			mGLContext->makeCurrent();
-		}
-
 		auto DoAdvanceFrame = [this]()
 		{
+			if (mGLContext)
+			{
+				mGLContext->makeCurrent();
+			}
+
 			if (RHIBeginRender(true))
 			{
 				GRenderTargetPool.freeAllUsedElements();

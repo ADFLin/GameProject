@@ -57,7 +57,7 @@ namespace Render
 		{
 			for (int i = 0; i < 6; ++i)
 			{
-				if (frustumPlanes[i].calcDistance(pos) > radius)
+				if (frustumPlanes[i].calcDistance(pos) < -radius)
 					return false;
 			}
 			return true;

@@ -20,7 +20,7 @@ struct TSoAReferenceImpl
 	template<size_t I>
 	decltype(auto) get() const
 	{
-		return std::get<I + 1>(parent.getColumnsInternal())[index];
+		return parent.template getColumn<I>()[index];
 	}
 
 	template<size_t I>
@@ -61,20 +61,63 @@ public:
 
 	TSoAVectorWithAllocator() : mNum(0) {}
 
+	TSoAVectorWithAllocator(const TSoAVectorWithAllocator& rhs) : mNum(0)
+	{
+		copyConstructFrom(rhs);
+	}
+
+	TSoAVectorWithAllocator(TSoAVectorWithAllocator&& rhs) : mNum(0)
+	{
+		moveConstructFrom(rhs);
+	}
+
+	~TSoAVectorWithAllocator()
+	{
+		clear();
+	}
+
+	TSoAVectorWithAllocator& operator = (const TSoAVectorWithAllocator& rhs)
+	{
+		CHECK(this != &rhs);
+		clear();
+		copyConstructFrom(rhs);
+		return *this;
+	}
+
+	TSoAVectorWithAllocator& operator = (TSoAVectorWithAllocator&& rhs)
+	{
+		CHECK(this != &rhs);
+		clear();
+		moveConstructFrom(rhs);
+		return *this;
+	}
+
 	void clear()
 	{
-		std::apply([](auto&... cols) { (cols.clear(), ...); }, mColumns);
+		std::apply([this](auto&... cols) { (destructColumn(cols, mNum), ...); }, mColumns);
 		mNum = 0;
 	}
 
 	void reserve(size_t cap)
 	{
-		std::apply([cap](auto&... cols) { (cols.reserve(cap), ...); }, mColumns);
+		std::apply([this, cap](auto&... cols) { (reserveColumn(cols, mNum, cap), ...); }, mColumns);
 	}
 
 	void resize(size_t sz)
 	{
-		std::apply([sz](auto&... cols) { (cols.resize(sz), ...); }, mColumns);
+		if (sz == mNum)
+			return;
+
+		if (sz < mNum)
+		{
+			size_t numRemove = mNum - sz;
+			std::apply([sz, numRemove](auto&... cols) { (destructColumn(cols, sz, numRemove), ...); }, mColumns);
+		}
+		else
+		{
+			size_t numAdd = sz - mNum;
+			std::apply([this, numAdd](auto&... cols) { (addDefaultColumn(cols, mNum, numAdd), ...); }, mColumns);
+		}
 		mNum = sz;
 	}
 
@@ -88,14 +131,14 @@ public:
 		return { *this, i };
 	}
 
-	template<size_t I> auto& getColumn()
+	template<size_t I> auto* getColumn()
 	{
-		return std::get<I + 1>(mColumns);
+		return getColumnData<I + 1>();
 	}
 
-	template<size_t I> const auto& getColumn() const
+	template<size_t I> const auto* getColumn() const
 	{
-		return std::get<I + 1>(mColumns);
+		return getColumnData<I + 1>();
 	}
 
 	auto& getColumnsInternal()
@@ -110,7 +153,9 @@ public:
 
 	void push_back(const Ts&... values)	
 	{
-		std::apply([&](auto& dummyCol, auto&... cols) { (cols.push_back(values), ...); }, mColumns);
+		std::apply([this](auto&... cols) { (reserveColumn(cols, mNum, mNum + 1), ...); }, mColumns);
+		FTypeMemoryOp::Construct(getColumnData<0>() + mNum);
+		push_back_impl(std::make_index_sequence<sizeof...(Ts)>{}, values...);
 		mNum++;
 	}
 
@@ -126,13 +171,122 @@ public:
 	}
 
 private:
+	template<typename, typename, typename...>
+	friend class TSoAVectorWithAllocator;
+
 	template<typename OtherAlloc, size_t... Is>
 	void copyFrom_impl(size_t dst, const TSoAVectorWithAllocator<OtherAlloc, Dummy, Ts...>& src, size_t srcIdx, std::index_sequence<Is...>)
 	{
-		((std::get<Is>(mColumns)[dst] = std::get<Is>(src.getColumnsInternal())[srcIdx]), ...);
+		((getColumnData<Is>()[dst] = src.template getColumnData<Is>()[srcIdx]), ...);
 	}
 
-	std::tuple<TArray<Dummy, Allocator>, TArray<Ts, Allocator>...> mColumns;
+	template<size_t... Is>
+	void push_back_impl(std::index_sequence<Is...>, const Ts&... values)
+	{
+		(pushBackColumn(std::get<Is + 1>(mColumns), values), ...);
+	}
+
+	void copyConstructFrom(const TSoAVectorWithAllocator& rhs)
+	{
+		std::apply([this, &rhs](auto&... cols) { (reserveColumn(cols, 0, rhs.mNum), ...); }, mColumns);
+		copyConstructFrom_impl(rhs, std::make_index_sequence<NumTotalColumns>{});
+		mNum = rhs.mNum;
+	}
+
+	template<size_t... Is>
+	void copyConstructFrom_impl(const TSoAVectorWithAllocator& rhs, std::index_sequence<Is...>)
+	{
+		(copyConstructColumn(std::get<Is>(mColumns), std::get<Is>(rhs.mColumns), rhs.mNum), ...);
+	}
+
+	void moveConstructFrom(TSoAVectorWithAllocator& rhs)
+	{
+		std::apply([this, &rhs](auto&... cols) { (reserveColumn(cols, 0, rhs.mNum), ...); }, mColumns);
+		moveConstructFrom_impl(rhs, std::make_index_sequence<NumTotalColumns>{});
+		mNum = rhs.mNum;
+		rhs.mNum = 0;
+	}
+
+	template<size_t... Is>
+	void moveConstructFrom_impl(TSoAVectorWithAllocator& rhs, std::index_sequence<Is...>)
+	{
+		(moveConstructColumn(std::get<Is>(mColumns), std::get<Is>(rhs.mColumns), rhs.mNum), ...);
+	}
+
+	template<typename T>
+	using AllocatorData = typename Allocator::template TArrayData<T>;
+
+	template<typename TColumn>
+	static auto* getColumnData(TColumn& col)
+	{
+		return col.getAllocation();
+	}
+
+	template<typename TColumn>
+	static const auto* getColumnData(const TColumn& col)
+	{
+		return col.getAllocation();
+	}
+
+	template<size_t I>
+	auto* getColumnData()
+	{
+		return getColumnData(std::get<I>(mColumns));
+	}
+
+	template<size_t I>
+	const auto* getColumnData() const
+	{
+		return getColumnData(std::get<I>(mColumns));
+	}
+
+	template<typename TColumn>
+	static void reserveColumn(TColumn& col, size_t oldSize, size_t newSize)
+	{
+		if (newSize > oldSize && col.needAlloc(oldSize, newSize - oldSize))
+		{
+			col.alloc(oldSize, newSize - oldSize);
+		}
+	}
+
+	template<typename TColumn>
+	static void destructColumn(TColumn& col, size_t num)
+	{
+		destructColumn(col, 0, num);
+	}
+
+	template<typename TColumn>
+	static void destructColumn(TColumn& col, size_t index, size_t num)
+	{
+		FTypeMemoryOp::DestructSequence(getColumnData(col) + index, num);
+	}
+
+	template<typename TColumn>
+	static void addDefaultColumn(TColumn& col, size_t oldSize, size_t numAdd)
+	{
+		reserveColumn(col, oldSize, oldSize + numAdd);
+		FTypeMemoryOp::ConstructSequence(getColumnData(col) + oldSize, numAdd);
+	}
+
+	template<typename T, typename TColumn>
+	void pushBackColumn(TColumn& col, const T& value)
+	{
+		FTypeMemoryOp::Construct(getColumnData(col) + mNum, value);
+	}
+
+	template<typename TColumn>
+	static void copyConstructColumn(TColumn& dst, const TColumn& src, size_t num)
+	{
+		FTypeMemoryOp::ConstructSequence(getColumnData(dst), num, getColumnData(src));
+	}
+
+	template<typename TColumn>
+	static void moveConstructColumn(TColumn& dst, TColumn& src, size_t num)
+	{
+		FTypeMemoryOp::MoveSequence(getColumnData(dst), num, getColumnData(src));
+	}
+
+	std::tuple<AllocatorData<Dummy>, AllocatorData<Ts>...> mColumns;
 	size_t mNum = 0;
 };
 
@@ -154,11 +308,12 @@ template<size_t I, typename T, bool C> decltype(auto) get(TSoAReferenceImpl<T, C
 #define SOA_EXTRACT_MEM(type, name) type name;
 #define SOA_EXTRACT_REF_MEM(type, name) type& name;
 #define SOA_EXTRACT_CONST_REF_MEM(type, name) const type& name;
+#define SOA_EXTRACT_VALUE(type, name) name,
 
 #define DECLARE_SOA_LAYOUT(Name, Fields) \
 	struct Name { Fields(SOA_EXTRACT_MEM) }; \
-	struct Name##Ref { Fields(SOA_EXTRACT_REF_MEM) }; \
-	struct Name##ConstRef { Fields(SOA_EXTRACT_CONST_REF_MEM) }; \
+	struct Name##Ref { Fields(SOA_EXTRACT_REF_MEM) operator Name() const { return Name{ Fields(SOA_EXTRACT_VALUE) }; } }; \
+	struct Name##ConstRef { Fields(SOA_EXTRACT_CONST_REF_MEM) operator Name() const { return Name{ Fields(SOA_EXTRACT_VALUE) }; } }; \
 	template<typename Alloc = DefaultAllocator> \
 	using Name##SoAWithAllocator = TSoAVectorWithAllocator<Alloc, int Fields(SOA_EXTRACT_TYPE) >; \
 	using Name##SoA = Name##SoAWithAllocator<DefaultAllocator>;

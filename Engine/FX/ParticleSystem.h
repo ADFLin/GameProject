@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef PS_USE_SOA
-#define PS_USE_SOA 0
+#define PS_USE_SOA 1
 #endif
 
 #include "CoreShare.h"

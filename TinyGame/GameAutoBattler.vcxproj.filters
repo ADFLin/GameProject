@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="AutoBattler\ABBot.cpp" />
+    <ClCompile Include="AutoBattler\ABGame.cpp" />
+    <ClCompile Include="AutoBattler\ABPCH.cpp" />
+    <ClCompile Include="AutoBattler\ABPlayer.cpp" />
+    <ClCompile Include="AutoBattler\ABPlayerBoard.cpp" />
+    <ClCompile Include="AutoBattler\ABStage.cpp" />
+    <ClCompile Include="AutoBattler\ABUnit.cpp" />
+    <ClCompile Include="AutoBattler\ABWorld.cpp" />
+    <ClCompile Include="AutoBattler\ABGameHUD.cpp" />
+    <ClCompile Include="AutoBattler\ABShopUI.cpp" />
+    <ClCompile Include="AutoBattler\ABAction.cpp" />
+    <ClCompile Include="AutoBattler\ABGameRenderer.cpp" />
+    <ClCompile Include="AutoBattler\ABPlayerController.cpp" />
+    <ClCompile Include="AutoBattler\ABNetwork.cpp" />
+    <ClCompile Include="AutoBattler\ABRound.cpp" />
+    <ClCompile Include="AutoBattler\ABViewCamera.cpp" />
+    <ClCompile Include="AutoBattler\ABNetSession.cpp" />
+    <ClCompile Include="AutoBattler\ABCombat.cpp" />
+    <ClCompile Include="AutoBattler\ABCombatReplay.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AutoBattler\ABBot.h" />
+    <ClInclude Include="AutoBattler\ABDefine.h" />
+    <ClInclude Include="AutoBattler\ABGame.h" />
+    <ClInclude Include="AutoBattler\ABPCH.h" />
+    <ClInclude Include="AutoBattler\ABPlayer.h" />
+    <ClInclude Include="AutoBattler\ABPlayerBoard.h" />
+    <ClInclude Include="AutoBattler\ABStage.h" />
+    <ClInclude Include="AutoBattler\ABUnit.h" />
+    <ClInclude Include="AutoBattler\ABWorld.h" />
+    <ClInclude Include="AutoBattler\ABGameHUD.h" />
+    <ClInclude Include="AutoBattler\ABShopUI.h" />
+    <ClInclude Include="AutoBattler\ABAction.h" />
+    <ClInclude Include="AutoBattler\ABGameActionControl.h" />
+    <ClInclude Include="AutoBattler\ABGameRenderer.h" />
+    <ClInclude Include="AutoBattler\ABPlayerController.h" />
+    <ClInclude Include="AutoBattler\ABNetwork.h" />
+    <ClInclude Include="AutoBattler\ABRound.h" />
+    <ClInclude Include="AutoBattler\ABViewCamera.h" />
+    <ClInclude Include="AutoBattler\ABNetSession.h" />
+    <ClInclude Include="AutoBattler\ABCombat.h" />
+    <ClInclude Include="AutoBattler\ABCombatDefs.h" />
+    <ClInclude Include="AutoBattler\ABCombatReplay.h" />
+  </ItemGroup>
+</Project>

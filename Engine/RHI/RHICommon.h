@@ -331,10 +331,12 @@ namespace Render
 
 
 		static CORE_API std::function<bool(RHIResource*)> DeferDeleteDelegate;
+		static CORE_API bool UseDeferDelete;
+
 		void destroyThis()
 		{
 			//LogMsg("RHI Resource destroy : %s", mTypeName.c_str());
-			if (DeferDeleteDelegate && DeferDeleteDelegate(this))
+			if (UseDeferDelete && DeferDeleteDelegate && DeferDeleteDelegate(this))
 			{
 				return;
 			}

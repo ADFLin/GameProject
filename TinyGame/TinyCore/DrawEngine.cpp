@@ -447,6 +447,9 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 {
 	if (isRHIEnabled())
 	{
+		if (systemName == ERenderSystem::None)
+			systemName = mLastRHIName;
+
 		if (mSystemLocked != ERenderSystem::None && mSystemLocked != systemName)
 			return false;
 		if (configs.screenWidth > 0 && configs.screenHeight > 0)
@@ -509,6 +512,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	}
 
 	mSystemName = systemName;
+	mLastRHIName = mSystemName;
 
 	setupBuffer(getScreenWidth(), getScreenHeight());
 
@@ -600,7 +604,6 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 		{
 			bReconsructWindow = true;
 		}
-		mLastRHIName = mSystemName;
 	}
 
 	mSystemName = ERenderSystem::None;

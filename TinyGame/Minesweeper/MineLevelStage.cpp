@@ -1,9 +1,45 @@
 #include "MineLevelStage.h"
 #include "ExpSolveStrategy.h"
 #include "MineSweeperSolver.h"
+#include "CSPSolveStrategy.h"
+#include "RHI/RHIGraphics2D.h"
+#include "ProfileSystem.h"
+
+
+#include <fstream>
+#include <string>
+#include <vector>
+
 
 namespace Mine
 {
+	namespace
+	{
+		class MineLayerPolicy : public RHIGraphics2D::LayerPolicy
+		{
+		public:
+			enum
+			{
+				eRectLayer = 0,
+				eShapeLayer = 1,
+				eTextLayer = 2,
+			};
+
+			int32 getLayer(Render::RenderBatchedElement const& element, RHIGraphics2D::RenderState const& state) override
+			{
+				switch (element.type)
+				{
+				case Render::RenderBatchedElement::Text:
+				case Render::RenderBatchedElement::ColoredText:
+					return eTextLayer;
+				case Render::RenderBatchedElement::Rect:
+					return eRectLayer;
+				default:
+					return eShapeLayer;
+				}
+			}
+		};
+	}
 
 	REGISTER_STAGE_ENTRY("Mine Sweeper", TestStage, EExecGroup::Test, "Game|AI");
 
@@ -276,9 +312,192 @@ namespace Mine
 		}
 	}
 
+	bool TestStage::saveDebugState(char const* path)
+	{
+		std::ofstream file(path);
+		if (!file)
+		{
+			LogWarning(0, "Minesweeper save debug state failed: %s", path);
+			return false;
+		}
+
+		int const sizeX = mLevel.mCells.getSizeX();
+		int const sizeY = mLevel.mCells.getSizeY();
+
+		file << "MinesweeperDebugState 1\n";
+		file << "Size " << sizeX << " " << sizeY << "\n";
+		file << "Bombs " << mLevel.mNumBombs << "\n";
+		file << "BuildBomb " << (mLevel.mbBuildBomb ? 1 : 0) << "\n";
+		file << "GameOver " << (bGameOver ? 1 : 0) << "\n";
+		file << "Elapsed " << mElapsedTime << "\n";
+		file << "FailedCell " << (mbHaveFailedCell ? 1 : 0) << " " << mLastFailedCellPos.x << " " << mLastFailedCellPos.y << "\n";
+
+		file << "Numbers\n";
+		for (int y = 0; y < sizeY; ++y)
+		{
+			for (int x = 0; x < sizeX; ++x)
+			{
+				Level::CellData const& cell = mLevel.mCells(x, y);
+				int const number = int(cell.number);
+				file << (number == CV_BOMB ? '*' : char('0' + number));
+			}
+			file << "\n";
+		}
+
+		file << "View\n";
+		for (int y = 0; y < sizeY; ++y)
+		{
+			for (int x = 0; x < sizeX; ++x)
+			{
+				Level::CellData const& cell = mLevel.mCells(x, y);
+				int const number = int(cell.number);
+				bool const bSkipFailedStep = bGameOver && mbHaveFailedCell && x == mLastFailedCellPos.x && y == mLastFailedCellPos.y;
+				if (bSkipFailedStep)
+					file << '#';
+				else if (cell.isProbed())
+					file << (number == CV_BOMB ? '*' : char('0' + number));
+				else if (cell.isMarked())
+					file << 'F';
+				else
+					file << '#';
+			}
+			file << "\n";
+		}
+
+		LogMsg("Minesweeper save debug state: %s", path);
+		return true;
+	}
+
+	bool TestStage::loadDebugState(char const* path)
+	{
+		std::ifstream file(path);
+		if (!file)
+		{
+			LogWarning(0, "Minesweeper load debug state failed: %s", path);
+			return false;
+		}
+
+		std::string tag;
+		int version = 0;
+		file >> tag >> version;
+		if (tag != "MinesweeperDebugState" || version != 1)
+		{
+			LogWarning(0, "Minesweeper load debug state invalid header: %s", path);
+			return false;
+		}
+
+		int sizeX = 0;
+		int sizeY = 0;
+		int numBombs = 0;
+		int buildBomb = 0;
+		int gameOver = 0;
+		int haveFailedCell = 0;
+		int64 elapsed = 0;
+		Vec2i failedCellPos = Vec2i(-1, -1);
+
+		file >> tag >> sizeX >> sizeY;
+		if (tag != "Size" || sizeX <= 0 || sizeY <= 0)
+			return false;
+
+		file >> tag >> numBombs;
+		if (tag != "Bombs")
+			return false;
+
+		file >> tag >> buildBomb;
+		if (tag != "BuildBomb")
+			return false;
+
+		file >> tag >> gameOver;
+		if (tag != "GameOver")
+			return false;
+
+		file >> tag >> elapsed;
+		if (tag != "Elapsed")
+			return false;
+
+		file >> tag;
+		if (tag == "FailedCell")
+		{
+			file >> haveFailedCell >> failedCellPos.x >> failedCellPos.y;
+			file >> tag;
+		}
+
+		if (tag != "Numbers")
+			return false;
+
+		TArray< std::string > numbers(sizeY);
+		for (int y = 0; y < sizeY; ++y)
+		{
+			file >> numbers[y];
+			if (int(numbers[y].size()) != sizeX)
+				return false;
+		}
+
+		file >> tag;
+		if (tag != "View")
+			return false;
+
+		TArray< std::string > view(sizeY);
+		for (int y = 0; y < sizeY; ++y)
+		{
+			file >> view[y];
+			if (int(view[y].size()) != sizeX)
+				return false;
+		}
+
+		mLevel.restoreCell(sizeX, sizeY, numBombs);
+		mLevel.mbBuildBomb = buildBomb != 0;
+		mLevel.mMarkCount = 0;
+
+		for (int y = 0; y < sizeY; ++y)
+		{
+			for (int x = 0; x < sizeX; ++x)
+			{
+				Level::CellData& cell = mLevel.mCells(x, y);
+				char const numChar = numbers[y][x];
+				if (numChar == '*')
+					cell.number = CV_BOMB;
+				else if ('0' <= numChar && numChar <= '8')
+					cell.number = numChar - '0';
+				else
+					return false;
+
+				char const viewChar = view[y][x];
+				cell.bProbed = (viewChar == '*') || ('0' <= viewChar && viewChar <= '8');
+				cell.bMarked = viewChar == 'F';
+				if (cell.bMarked)
+					++mLevel.mMarkCount;
+			}
+		}
+
+		bGameOver = false;
+		mbHaveFailedCell = false;
+		mLastFailedCellPos = Vec2i(-1, -1);
+		mElapsedTime = elapsed;
+		mMsStart = 0;
+		bOpenNeighborOp = false;
+		mapOrigin.x = (::Global::GetScreenSize().x - LengthCell * mLevel.mCells.getSizeX()) / 2;
+
+		if (mSolver)
+			mSolver->scanMap();
+
+		LogMsg("Minesweeper load debug state: %s", path);
+		return true;
+	}
+
 	void TestStage::onRender(float dFrame)
 	{
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
+		MineLayerPolicy layerPolicy;
+		RHIGraphics2D* rhiGraphics = nullptr;
+		RHIGraphics2D::LayerPolicy* prevLayerPolicy = nullptr;
+		if (g.isUseRHI())
+		{
+			rhiGraphics = &g.getImpl<RHIGraphics2D>();
+			prevLayerPolicy = rhiGraphics->getLayerPolicy();
+			rhiGraphics->setLayerPolicy(&layerPolicy);
+		}
+
 		LevelMineQuery map{ mLevel };
 		if (bPlayMode)
 		{
@@ -286,6 +505,12 @@ namespace Mine
 			map.bGameOver = bGameOver;
 		}
 		draw(g, map, mapOrigin);
+
+		if (rhiGraphics)
+		{
+			rhiGraphics->flush();
+			rhiGraphics->setLayerPolicy(prevLayerPolicy);
+		}
 
 		if (bPlayMode)
 		{
@@ -317,6 +542,18 @@ namespace Mine
 			RenderUtility::SetFontColor(g, EColor::Yellow);
 			g.drawText(Vec2i(200, 0), InlineStringA<>::Make("Mark Count = %d", mLevel.getMarkCount()));
 
+			if (CSPSolveStrategy* cspStrategy = dynamic_cast<CSPSolveStrategy*>(mStrategy))
+			{
+				int guessX;
+				int guessY;
+				float guessProb;
+				cspStrategy->getLastGuessInfo(guessX, guessY, guessProb);
+				if (guessProb >= 0.0f)
+				{
+					g.drawText(Vec2i(360, 0), InlineStringA<>::Make("Guess = (%d,%d) %d%%", guessX, guessY, int(100.0f * guessProb + 0.5f)));
+				}
+			}
+
 			if (!bGameOver && mMsStart > 0)
 			{
 				mElapsedTime = SystemPlatform::GetTickCount() - mMsStart;
@@ -326,7 +563,7 @@ namespace Mine
 		}
 	}
 
-	void TestStage::draw(Graphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin)
+	void TestStage::draw(IGraphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin)
 	{
 		RenderUtility::SetPen(g, EColor::Gray);
 		RenderUtility::SetBrush(g, EColor::Gray);
@@ -346,6 +583,20 @@ namespace Mine
 			Color3ub(3, 150, 170),
 			Color3ub(66, 66, 66),
 			Color3ub(117, 128, 139),
+		};
+
+		static const Color3ub GroupFrameColorMap[] =
+		{
+			Color3ub(255, 235, 59),
+			Color3ub(244, 67, 54),
+			Color3ub(33, 150, 243),
+			Color3ub(76, 175, 80),
+			Color3ub(156, 39, 176),
+			Color3ub(255, 152, 0),
+			Color3ub(0, 188, 212),
+			Color3ub(233, 30, 99),
+			Color3ub(205, 220, 57),
+			Color3ub(121, 85, 72),
 		};
 
 		int sizeX = mineMap.getSizeX();
@@ -417,11 +668,11 @@ namespace Mine
 							int By = Ty + L;
 
 
-							Vec2i TriPos[] =
+							Vector2 TriPos[] =
 							{
-								pt + Vec2i(Tx,By),
-								pt + Vec2i(Bx,(By+Ty)/2),
-								pt + Vec2i(Tx,Ty),
+								pt + Vector2(Tx,By),
+								pt + Vector2(Bx,(By+Ty)/2),
+								pt + Vector2(Tx,Ty),
 							};
 							g.drawPolygon(TriPos, 3);
 							g.drawRect(pt + Vec2i(Tx, Ty), Vec2i(2 , 80 * LengthCell / 100));
@@ -434,6 +685,25 @@ namespace Mine
 							g.setPen(Color3ub(255, 0, 0), 2);
 							g.drawLine(pt + Vec2i(offset, offset), pt + Vec2i(LengthCell - offset, LengthCell - offset));
 							g.drawLine(pt + Vec2i(LengthCell - offset, offset), pt + Vec2i(offset, LengthCell - offset));
+						}
+						else if (state == CV_UNPROBLED)
+						{
+							if (CSPSolveStrategy* cspStrategy = dynamic_cast<CSPSolveStrategy*>(mStrategy))
+							{
+								int groupIndex = cspStrategy->getCellConstraintGroupIndex(i, j);
+								if (groupIndex >= 0)
+								{
+									int const border = 2;
+									Color3ub frameColor = GroupFrameColorMap[groupIndex % ARRAY_SIZE(GroupFrameColorMap)];
+									g.setPen(frameColor);
+									g.setBrush(frameColor);
+									g.drawRect(pt, Vec2i(LengthCell, border));
+									g.drawRect(pt, Vec2i(border, LengthCell));
+									g.drawRect(pt + Vec2i(0, LengthCell - border), Vec2i(LengthCell, border));
+									g.drawRect(pt + Vec2i(LengthCell - border, 0), Vec2i(border, LengthCell));
+								}
+
+							}
 						}
 					}
 					break;
@@ -525,6 +795,21 @@ namespace Mine
 								case 3: g.drawRect(pt + Vec2i(LengthCell - border, 0), Vec2i(border, border)); break;
 								}
 							}
+						}
+					}
+				}
+
+				if (state == CV_UNPROBLED)
+				{
+					if (CSPSolveStrategy* cspStrategy = dynamic_cast<CSPSolveStrategy*>(mStrategy))
+					{
+						float prob = cspStrategy->getCellProbability(i, j);
+						if (prob >= 0.0f)
+						{
+							RenderUtility::SetFont(g, FONT_S8);
+							g.setTextColor(Color3ub(255, 255, 0));
+							g.drawText(pt, Vec2i(LengthCell, LengthCell), InlineStringA<>::Make("%d", int(100.0f * prob + 0.5f)));
+							RenderUtility::SetFont(g, FONT_S12);
 						}
 					}
 				}
@@ -626,13 +911,49 @@ namespace Mine
 		return BaseClass::onMouse(msg);
 	}
 
+	MsgReply TestStage::onKey(KeyMsg const& msg)
+	{
+		if (msg.isDown())
+		{
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::C:
+				if (bPlayMode)
+				{
+					mbCracked = !mbCracked;
+				}
+				break;
+			case EKeyCode::X:
+				{
+					buildLevelSolver();
+					{
+						PROFILE_ENTRY("StepSolve");
+						mSolver->stepSolve();
+					}
+
+				}
+				break;
+			case EKeyCode::F5:
+				saveDebugState("MinesweeperDebugState.txt");
+				break;
+			case EKeyCode::F6:
+				loadDebugState("MinesweeperDebugState.txt");
+				break;
+			}
+		}
+		return BaseClass::onKey(msg);
+	}
+
 	void TestStage::buildLevelSolver()
 	{
 		if (mSolver == nullptr)
 		{
 			mControl = new LevelGameControlClient(*this);
-			mStrategy = new ExpSolveStrategy();
+			//mStrategy = new ExpSolveStrategy();
+			mStrategy = new CSPSolveStrategy();
 			mSolver = new MineSweeperSolver(*mStrategy, *mControl);
+			mSolver->enableSetting(ST_MARK_FLAG, true);
 			mSolver->scanMap();
 		}
 	}
@@ -655,7 +976,7 @@ namespace Mine
 
 	void LevelGameControlClient::restart()
 	{
-		mLevel.restart();
+		mStage.restart(false);
 	}
 
 	EGameState LevelGameControlClient::checkState()

@@ -41,9 +41,11 @@ namespace Mine
 		void       restart();
 		void       scanMap()
 		{
+			updateGameInfoFromControl();
 			mStrategy->loadMap(*this);
 		}
-		bool       setepSolve() /*throw ( ControlException )*/;
+		void       resetStrategy();
+		bool       stepSolve() /*throw ( ControlException )*/;
 		void       enableSetting(SolverSetting setting, bool beE = true);
 		bool       checkSetting(SolverSetting setting) { return (mSettingFlag & setting) != 0; }
 		void       setCustomMode(int sx, int sy, int numBomb);
@@ -102,6 +104,7 @@ namespace Mine
 
 		int        getCellSizeX() const { return mCellSizeX; }
 		int        getCellSizeY() const { return mCellSizeY; }
+		void       updateGameInfoFromControl();
 
 
 

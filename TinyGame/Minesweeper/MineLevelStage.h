@@ -119,15 +119,21 @@ namespace Mine
 			BaseClass::onEnd();
 		}
 
-		void restart()
+		void restart(bool bResetSolver = true)
 		{
 			mLevel.restoreCell(30, 16, 99 + 20);
 			bGameOver = false;
+			mbHaveFailedCell = false;
 			mMsStart = 0;
 			mElapsedTime = 0;
 			bOpenNeighborOp = false;
 
 			mapOrigin.x = (::Global::GetScreenSize().x - LengthCell * mLevel.mCells.getSizeX()) / 2;
+
+			if (bResetSolver && mSolver)
+			{
+				mSolver->resetStrategy();
+			}
 		}
 
 		virtual void onUpdate(GameTimeSpan deltaTime)
@@ -136,7 +142,7 @@ namespace Mine
 
 			mTweener.update(deltaTime);
 		}
-		Vec2i mapOrigin = Vec2i(20, 20);
+		Vec2i mapOrigin = Vec2i(20, 80);
 		int const LengthCell = 24;
 
 		int openGameCell(int cx, int cy)
@@ -154,6 +160,8 @@ namespace Mine
 			int state = mLevel.openCell(cx, cy);
 			if (state == CV_BOMB)
 			{
+				mLastFailedCellPos = Vec2i(cx, cy);
+				mbHaveFailedCell = true;
 				execGameOver();
 			}
 
@@ -170,7 +178,9 @@ namespace Mine
 			return Vec2i(Math::ToTileValue(pos.x, LengthCell), Math::ToTileValue(pos.y, LengthCell));
 		}
 
-		void draw(Graphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin);
+		void draw(IGraphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin);
+		bool saveDebugState(char const* path);
+		bool loadDebugState(char const* path);
 
 
 
@@ -182,29 +192,7 @@ namespace Mine
 
 		Tween::GroupTweener< float > mTweener;
 
-		MsgReply onKey(KeyMsg const& msg)
-		{
-			if (msg.isDown())
-			{
-				switch (msg.getCode())
-				{
-				case EKeyCode::R: restart(); break;
-				case EKeyCode::C:
-					if (bPlayMode)
-					{
-						mbCracked = !mbCracked;
-					}
-					break;
-				case EKeyCode::X:
-					{
-						buildLevelSolver();
-						mSolver->setepSolve();
-					}
-					break;
-				}
-			}
-			return BaseClass::onKey(msg);
-		}
+		MsgReply onKey(KeyMsg const& msg);
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
@@ -222,6 +210,8 @@ namespace Mine
 
 		bool bPlayMode = true;
 		bool bGameOver;
+		bool mbHaveFailedCell = false;
+		Vec2i mLastFailedCellPos;
 
 		float mCanvasAlpha;
 		int64 mMsStart;

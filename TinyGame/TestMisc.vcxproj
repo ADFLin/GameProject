@@ -317,6 +317,7 @@
     <ClCompile Include="Mario\MBStage.cpp" />
     <ClCompile Include="Minesweeper\CSolverFrame.cpp" />
     <ClCompile Include="Minesweeper\CSPSolveStrategy.cpp" />
+    <ClCompile Include="Minesweeper\CSPSolveStrategyTest.cpp" />
     <ClCompile Include="Minesweeper\ExpSolveStrategy.cpp" />
     <ClCompile Include="Minesweeper\GameController_Windows7.cpp" />
     <ClCompile Include="Minesweeper\ImageScanser.cpp" />

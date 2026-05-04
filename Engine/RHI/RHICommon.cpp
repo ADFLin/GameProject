@@ -89,6 +89,7 @@ namespace Render
 	}
 
 	std::function<bool(RHIResource*)> RHIResource::DeferDeleteDelegate;
+	bool RHIResource::UseDeferDelete = true;
 
 	namespace ETableID
 	{

@@ -884,7 +884,7 @@ namespace Render
 		uint32 currentStateIndex = 0;
 		for (int i = 0; i < elements.size(); ++i)
 		{
-			PROFILE_ENTRY("Element");
+			//PROFILE_ENTRY("Element");
 			RenderBatchedElement* element = elements[i];
 
 			if (element->stateIndex != currentStateIndex)
@@ -1114,7 +1114,8 @@ namespace Render
 					if (firstPayload.paintArgs.bUseBrush && !firstPayload.paintArgs.bUsePen)
 					{
 						int strictCount = 0;
-						for (int k = 0; k < batchCount; ++k) {
+						for (int k = 0; k < batchCount; ++k) 
+						{
 							auto* curElem = elements[i + k];
 							auto& payload = RenderBatchedElementList::GetPayload<RenderBatchedElementList::RectPayload>(curElem);
 							if (payload.paintArgs.bUseBrush && !payload.paintArgs.bUsePen) strictCount++;

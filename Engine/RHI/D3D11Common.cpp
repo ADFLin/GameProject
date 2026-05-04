@@ -387,6 +387,7 @@ namespace Render
 	void D3D11SwapChain::updateRenderTargetsState()
 	{
 		mRenderTargetsState.numColorBuffers = 1;
+		mRenderTargetsState.colorResources[0] = mColorTexture;
 		mRenderTargetsState.colorBuffers[0] = mColorTexture->getRenderTargetView(0);
 		if (mDepthTexture)
 		{
@@ -397,8 +398,20 @@ namespace Render
 
 	void D3D11SwapChain::resizeBuffer(int w, int h)
 	{
+		auto system = static_cast<D3D11System*>(GRHISystem);
+		if (system->mRenderContext.mRenderTargetsState == &mRenderTargetsState)
+		{
+			system->mRenderContext.mDeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+		}
+
 		TextureDesc colorDesc = mColorTexture->getDesc();
-		mColorTexture.release();
+
+		{
+			TGuardValue<bool> scopedValue(RHIResource::UseDeferDelete, false);
+			mRenderTargetsState.colorResources[0] = nullptr;
+			mColorTexture.release();
+		}
+
 		DXGI_SWAP_CHAIN_DESC desc;
 		mResource->GetDesc(&desc);
 
@@ -419,6 +432,11 @@ namespace Render
 		}
 
 		updateRenderTargetsState();
+
+		if (system->mRenderContext.mRenderTargetsState == &mRenderTargetsState)
+		{
+			system->mRenderContext.mDeviceContext->OMSetRenderTargets(mRenderTargetsState.numColorBuffers, mRenderTargetsState.colorBuffers, mRenderTargetsState.depthBuffer); 
+		}
 	}
 
 }//namespace Render

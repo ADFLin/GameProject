@@ -9,7 +9,7 @@ namespace Mine
 		mGameState = EGameState::Run;
 		mControl = &control;
 		mStrategy = &strategy;
-		setCustomMode(30, 16, 99);
+		updateGameInfoFromControl();
 	}
 
 
@@ -20,7 +20,12 @@ namespace Mine
 		mNumTotalBomb = numBomb;
 	}
 
-	bool MineSweeperSolver::setepSolve() /*throw ( ControlException )*/
+	void MineSweeperSolver::updateGameInfoFromControl()
+	{
+		setCustomMode(mControl->getSizeX(), mControl->getSizeY(), mControl->getBombNum());
+	}
+
+	bool MineSweeperSolver::stepSolve() /*throw ( ControlException )*/
 	{
 		mGameState = mControl->checkState();
 
@@ -49,6 +54,15 @@ namespace Mine
 	void MineSweeperSolver::restart()
 	{
 		mControl->restart();
+		updateGameInfoFromControl();
+		enableSetting(ST_PAUSE_SOLVE, false);
+		mStrategy->restart(*this);
+	}
+
+	void MineSweeperSolver::resetStrategy()
+	{
+		mGameState = EGameState::Run;
+		updateGameInfoFromControl();
 		enableSetting(ST_PAUSE_SOLVE, false);
 		mStrategy->restart(*this);
 	}

@@ -867,6 +867,16 @@ public:
 		addRange(itBegin, itEnd);
 	}
 
+	void assign(size_t num, T const& value)
+	{
+		eraseToEnd(begin());
+		if (num)
+		{
+			T* ptr = addUninitialized(num);
+			FTypeMemoryOp::ConstructSequence(ptr, num, value);
+		}
+	}
+
 	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
 	void addRange(Iter itBegin, Iter itEnd)
 	{

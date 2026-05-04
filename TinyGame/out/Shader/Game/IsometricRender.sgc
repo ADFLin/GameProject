@@ -7,16 +7,56 @@ struct MeshVSOutputParameters
 	float3 worldPos MEMBER_OUT(TEXCOORD0);
 };
 
+struct ProceduralShadowVSOutput
+{
+	float valid MEMBER_OUT(TEXCOORD0);
+};
+
 uniform float4x4 WorldPosTransform;
 uniform float4x4 WorldToShadowClip;
 uniform float4x4 WorldToClip;
 uniform float4x4 CaptureClipToWorld;
 uniform float2 HeightRange;
 uniform float4 BaseColor;
+DEFINE_TEXTURE(Texture2D, SourceWorldPosTexture);
+
+struct SceneRenderParams
+{
+	float4x4 WorldToShadowClip;
+	float4x4 WorldToClip;
+	float4x4 XForm;
+	float4 ShadowParams;
+};
+
+#if SHADER_COMPILING
+layout(std140) cbuffer SceneRenderParamsBlock
+{
+	SceneRenderParams SceneParams;
+};
+#else
+SceneRenderParams SceneParams;
+#endif
+
+float3 ReconstructCaptureWorldPos(float2 uv, float height)
+{
+	float2 ndcXY = float2(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
+	float localZ = lerp(HeightRange.x, HeightRange.y, height);
+	float4 nearPosH = mul(CaptureClipToWorld, float4(ndcXY, BufferToNDCDepth(0.0), 1.0));
+	float4 farPosH = mul(CaptureClipToWorld, float4(ndcXY, BufferToNDCDepth(1.0), 1.0));
+	float3 nearPos = nearPosH.xyz / nearPosH.w;
+	float3 farPos = farPosH.xyz / farPosH.w;
+	float3 rayDir = farPos - nearPos;
+	if (abs(rayDir.z) < 1e-6)
+		return nearPos;
+
+	float t = (localZ - nearPos.z) / rayDir.z;
+	return nearPos + t * rayDir;
+}
+
 #if VERTEX_SHADER
 
 uniform float4x4 LocalToWorld;
-uniform float4x4 XForm;
+uniform int2 ProceduralTextureSize;
 
 #if SHADER_ENTRY(MainVS)
 VS_ENTRY_START(MainVS)
@@ -37,9 +77,39 @@ VS_ENTRY_START(RectVS)
 	VS_OUTPUT_STRUCT(noperspective VSOutputParameters VSOutput, 0)
 VS_ENTRY_END(RectVS)
 {
-	SvPosition = mul(XForm, float4(InPosition, 0.0, 1.0));
+	SvPosition = mul(SceneParams.XForm, float4(InPosition, 0.0, 1.0));
 	VSOutput.pos = InPosition.xy;
 	VSOutput.UVs = InUV;
+}
+#endif
+
+#if SHADER_ENTRY(ProceduralShadowDepthVS)
+VS_ENTRY_START(ProceduralShadowDepthVS)
+	VS_INPUT_VERTEXID
+	VS_OUTPUT_STRUCT(ProceduralShadowVSOutput OutputVS, 0)
+VS_ENTRY_END(ProceduralShadowDepthVS)
+{
+	uint2 sourceSize = uint2(max(ProceduralTextureSize.x, 2), max(ProceduralTextureSize.y, 2));
+	uint gridWidth = sourceSize.x - 1;
+	uint cellId = SvVertexID / 6;
+	uint vertexId = SvVertexID - cellId * 6;
+	uint2 cell = uint2(cellId % gridWidth, cellId / gridWidth);
+	uint2 corner = uint2(0, 0);
+	if (vertexId == 1)
+		corner = uint2(1, 0);
+	else if (vertexId == 2 || vertexId == 4)
+		corner = uint2(1, 1);
+	else if (vertexId == 5)
+		corner = uint2(0, 1);
+
+	uint2 pixel = min(cell + corner, sourceSize - 1);
+	float4 heightData = SourceWorldPosTexture.Load(int3(pixel, 0));
+	float2 uv = (float2(pixel) + 0.5) / float2(sourceSize);
+	float3 captureWorldPos = ReconstructCaptureWorldPos(uv, heightData.r);
+	float3 worldPos = mul(WorldPosTransform, float4(captureWorldPos, 1.0)).xyz;
+
+	OutputVS.valid = heightData.a;
+	SvPosition = mul(WorldToShadowClip, float4(worldPos, 1.0));
 }
 #endif
 
@@ -61,6 +131,7 @@ PS_ENTRY_END(MainPS)
 
 uniform usampler2D SourceShadowTexture;
 uniform SamplerState SourceShadowTextureSampler;
+DEFINE_TEXTURE(Texture2D, SourceShadowDepthTexture);
 
 #if SHADER_ENTRY(VisualizeShadowPS)
 PS_ENTRY_START(VisualizeShadowPS)
@@ -84,12 +155,9 @@ PS_ENTRY_END(VisualizeShadowPS)
 }
 #endif
 
-DEFINE_TEXTURE(Texture2D, SourceWorldPosTexture);
 uniform float3 WorldMin;
 uniform float3 WorldMax;
 uniform float4 UVRect;
-uniform float ShadowBias;
-uniform float ShadowRejectThreshold;
 
 float4 SampleHeightPoint(float2 uv)
 {
@@ -99,48 +167,12 @@ float4 SampleHeightPoint(float2 uv)
 	return SourceWorldPosTexture.Load(int3(pixel, 0));
 }
 
-float3 ReconstructCaptureWorldPos(float2 uv, float height)
-{
-	float2 ndcXY = float2(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
-	float localZ = lerp(HeightRange.x, HeightRange.y, height);
-	float4 nearPosH = mul(CaptureClipToWorld, float4(ndcXY, BufferToNDCDepth(0.0), 1.0));
-	float4 farPosH = mul(CaptureClipToWorld, float4(ndcXY, BufferToNDCDepth(1.0), 1.0));
-	float3 nearPos = nearPosH.xyz / nearPosH.w;
-	float3 farPos = farPosH.xyz / farPosH.w;
-	float3 rayDir = farPos - nearPos;
-	if (abs(rayDir.z) < 1e-6)
-		return nearPos;
-
-	float t = (localZ - nearPos.z) / rayDir.z;
-	return nearPos + t * rayDir;
-}
-
-#if SHADER_ENTRY(VisualizeWorldPosPS)
-PS_ENTRY_START(VisualizeWorldPosPS)
-	PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
-	PS_OUTPUT(float4 OutColor, 0)
-PS_ENTRY_END(VisualizeWorldPosPS)
-{
-	float2 uv = lerp(UVRect.xy, UVRect.zw, InputPS.UVs);
-	uv.y = 1.0 - uv.y;
-	float4 heightData = TEXTURE_SAMPLE_LEVEL(SourceWorldPosTexture, uv, 0);
-	if (heightData.a < 0.5)
-	{
-		OutColor = float4(0, 0, 0, 0);
-		return;
-	}
-
-	float height = saturate(heightData.r);
-	OutColor = float4(height, height, height, 1.0);
-}
-#endif
-
-#if SHADER_ENTRY(ShadeWorldPosPS)
-PS_ENTRY_START(ShadeWorldPosPS)
+#if SHADER_ENTRY(SceneRenderPS)
+PS_ENTRY_START(SceneRenderPS)
 	PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 	PS_OUTPUT_DEPTH
-PS_ENTRY_END(ShadeWorldPosPS)
+PS_ENTRY_END(SceneRenderPS)
 {
 	float2 uv = lerp(UVRect.xy, UVRect.zw, InputPS.UVs);
 	//uv.y = 1.0 - uv.y;
@@ -152,14 +184,14 @@ PS_ENTRY_END(ShadeWorldPosPS)
 
 	float3 captureWorldPos = ReconstructCaptureWorldPos(uv, heightData.r);
 	float3 worldPos = mul(WorldPosTransform, float4(captureWorldPos, 1.0)).xyz;
-	float4 clipPos = mul(WorldToClip, float4(worldPos, 1.0));
+	float4 clipPos = mul(SceneParams.WorldToClip, float4(worldPos, 1.0));
 	if (abs(clipPos.w) < 1e-6)
 	{
 		discard;
 	}
 	SvDepth = NDCToBufferDepth(clipPos.z / clipPos.w);
 
-	float4 shadowPos = mul(WorldToShadowClip, float4(worldPos, 1.0));
+	float4 shadowPos = mul(SceneParams.WorldToShadowClip, float4(worldPos, 1.0));
 	if (abs(shadowPos.w) < 1e-6)
 	{
 		OutColor = BaseColor;
@@ -172,8 +204,13 @@ PS_ENTRY_END(ShadeWorldPosPS)
 	if (shadowUV.x >= 0.0 && shadowUV.y >= 0.0 && shadowUV.x <= 1.0 && shadowUV.y <= 1.0)
 	{
 		uint2 textureSize;
-		SourceShadowTexture.GetDimensions(textureSize.x, textureSize.y);
+		if (SceneParams.ShadowParams.w != 0.0)
+			SourceShadowDepthTexture.GetDimensions(textureSize.x, textureSize.y);
+		else
+			SourceShadowTexture.GetDimensions(textureSize.x, textureSize.y);
 		float currentDepth = saturate(shadowPos.z / shadowPos.w);
+		float depthSlope = max(abs(ddx(currentDepth)), abs(ddy(currentDepth)));
+		float shadowDepthBias = SceneParams.ShadowParams.x + SceneParams.ShadowParams.y * depthSlope;
 		float shadowSum = 0.0;
 		float sampleCount = 0.0;
 		float2 shadowTexel = 1.0 / float2(textureSize);
@@ -186,15 +223,25 @@ PS_ENTRY_END(ShadeWorldPosPS)
 					continue;
 
 				int2 pixelPos = clamp(int2(sampleUV * float2(textureSize)), int2(0, 0), int2(textureSize) - 1);
-				uint depthBits = SourceShadowTexture.Load(int3(pixelPos, 0)).r;
-				if (depthBits == asuint(1.0))
+				float shadowDepth = 1.0;
+				if (SceneParams.ShadowParams.w != 0.0)
+				{
+					shadowDepth = SourceShadowDepthTexture.Load(int3(pixelPos, 0)).r;
+				}
+				else
+				{
+					uint depthBits = SourceShadowTexture.Load(int3(pixelPos, 0)).r;
+					if (depthBits != asuint(1.0))
+						shadowDepth = asfloat(depthBits);
+				}
+
+				if (shadowDepth >= 1.0)
 				{
 					shadowSum += 1.0;
 				}
 				else
 				{
-					float shadowDepth = asfloat(depthBits);
-					shadowSum += (currentDepth > shadowDepth + ShadowBias) ? 0.35 : 1.0;
+					shadowSum += (currentDepth > shadowDepth + shadowDepthBias) ? SceneParams.ShadowParams.z : 1.0;
 				}
 				sampleCount += 1.0;
 			}
@@ -207,23 +254,38 @@ PS_ENTRY_END(ShadeWorldPosPS)
 }
 #endif
 
+#if SHADER_ENTRY(ProceduralShadowDepthPS)
+PS_ENTRY_START(ProceduralShadowDepthPS)
+	PS_INPUT_STRUCT(ProceduralShadowVSOutput InputPS, 0)
+PS_ENTRY_END(ProceduralShadowDepthPS)
+{
+	if (InputPS.valid < 0.999)
+		discard;
+}
+#endif
+
 #endif
 
 #if COMPUTE_SHADER
 
 DEFINE_TEXTURE(Texture2D, WorldPositionTexture);
+DEFINE_TEXTURE(Texture2D, FrontFaceTexture);
 
 #if COMPILER_HLSL
 RWTexture2D<uint> ShadowMapRW;
 RWTexture2D<float4> ShadowDebugRW;
+RWTexture2D<float4> BackFaceTextureRW;
 #else
 layout(r32ui) uniform uimage2D ShadowMapRW;
 layout(rgba8) uniform image2D ShadowDebugRW;
+layout(rgba16f) uniform image2D BackFaceTextureRW;
 #endif
 
 uniform uint ClearDepthValue;
 uniform int2 ShadowTextureSize;
+uniform int2 BackFaceTextureSize;
 uniform float ShadowTriangleRejectThreshold;
+uniform float BackFaceHeightSnapThreshold;
 
 bool ProjectToShadow(float3 inWorldPos, out float2 outShadowUV, out float outDepth)
 {
@@ -239,22 +301,6 @@ bool ProjectToShadow(float3 inWorldPos, out float2 outShadowUV, out float outDep
 	outShadowUV = float2(0.5 * ndc.x + 0.5, 0.5 - 0.5 * ndc.y);
 	outDepth = saturate(shadowPos.z / shadowPos.w);
 	return true;
-}
-
-float3 ReconstructCaptureWorldPos(float2 uv, float height)
-{
-	float2 ndcXY = float2(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y);
-	float localZ = lerp(HeightRange.x, HeightRange.y, height);
-	float4 nearPosH = mul(CaptureClipToWorld, float4(ndcXY, BufferToNDCDepth(0.0), 1.0));
-	float4 farPosH = mul(CaptureClipToWorld, float4(ndcXY, BufferToNDCDepth(1.0), 1.0));
-	float3 nearPos = nearPosH.xyz / nearPosH.w;
-	float3 farPos = farPosH.xyz / farPosH.w;
-	float3 rayDir = farPos - nearPos;
-	if (abs(rayDir.z) < 1e-6)
-		return nearPos;
-
-	float t = (localZ - nearPos.z) / rayDir.z;
-	return nearPos + t * rayDir;
 }
 
 float EdgeFunction(float2 a, float2 b, float2 p)
@@ -299,8 +345,8 @@ void StoreConservativeShadowPixel(int2 shadowPixel, float depth)
 
 void RasterizeTriangle(float2 a, float2 b, float2 c, float depthA, float depthB, float depthC)
 {
-	float2 triMinUV = max(min(a, min(b, c)) - 1.5 / float2(ShadowTextureSize), float2(0.0, 0.0));
-	float2 triMaxUV = min(max(a, max(b, c)) + 1.5 / float2(ShadowTextureSize), float2(1.0, 1.0));
+	float2 triMinUV = max(min(a, min(b, c)) - 0.5 / float2(ShadowTextureSize), float2(0.0, 0.0));
+	float2 triMaxUV = min(max(a, max(b, c)) + 0.5 / float2(ShadowTextureSize), float2(1.0, 1.0));
 	if (triMinUV.x > triMaxUV.x || triMinUV.y > triMaxUV.y)
 		return;
 
@@ -316,7 +362,7 @@ void RasterizeTriangle(float2 a, float2 b, float2 c, float depthA, float depthB,
 			if (any(bary < 0.0) || any(bary > 1.0))
 				continue;
 			float depth = saturate(bary.x * depthA + bary.y * depthB + bary.z * depthC);
-			StoreConservativeShadowPixel(int2(x, y), depth);
+			StoreShadowPixel(int2(x, y), depth);
 		}
 	}
 }
@@ -344,6 +390,78 @@ CS_ENTRY(ClearShadowMapCS)
 }
 #endif
 
+#if SHADER_ENTRY(FixBackFaceTextureCS)
+CS_NUM_THREADS(8, 8, 1)
+CS_ENTRY(FixBackFaceTextureCS)
+{
+	int2 pixel = int2(SvDispatchThreadID.xy);
+	if (pixel.x >= BackFaceTextureSize.x || pixel.y >= BackFaceTextureSize.y)
+		return;
+
+#if COMPILER_HLSL
+	float4 backData = BackFaceTextureRW[pixel];
+#else
+	float4 backData = imageLoad(BackFaceTextureRW, pixel);
+#endif
+	float4 result = backData;
+	if (backData.a >= 0.5)
+	{
+		bool bIsContour = false;
+		for (int oy = -2; oy <= 2; ++oy)
+		{
+			for (int ox = -2; ox <= 2; ++ox)
+			{
+				if (ox == 0 && oy == 0)
+					continue;
+
+				int2 neighborPixel = pixel + int2(ox, oy);
+				if (neighborPixel.x < 0 || neighborPixel.y < 0 || neighborPixel.x >= BackFaceTextureSize.x || neighborPixel.y >= BackFaceTextureSize.y)
+				{
+					bIsContour = true;
+					continue;
+				}
+
+#if COMPILER_HLSL
+				float4 neighborBackData = BackFaceTextureRW[neighborPixel];
+#else
+				float4 neighborBackData = imageLoad(BackFaceTextureRW, neighborPixel);
+#endif
+				if (neighborBackData.a < 0.5)
+					bIsContour = true;
+			}
+		}
+
+		if (bIsContour)
+		{
+			float bestHeightDiff = BackFaceHeightSnapThreshold;
+			for (int oy = -2; oy <= 2; ++oy)
+			{
+				for (int ox = -2; ox <= 2; ++ox)
+				{
+					int2 frontPixel = clamp(pixel + int2(ox, oy), int2(0, 0), BackFaceTextureSize - 1);
+					float4 frontData = FrontFaceTexture.Load(int3(frontPixel, 0));
+					if (frontData.a < 0.5)
+						continue;
+
+					float heightDiff = abs(frontData.r - backData.r);
+					if (heightDiff <= bestHeightDiff)
+					{
+						bestHeightDiff = heightDiff;
+						result = frontData;
+					}
+				}
+			}
+		}
+	}
+
+#if COMPILER_HLSL
+	BackFaceTextureRW[pixel] = result;
+#else
+	imageStore(BackFaceTextureRW, pixel, result);
+#endif
+}
+#endif
+
 #if SHADER_ENTRY(ProjectWorldToShadowCS)
 CS_NUM_THREADS(8, 8, 1)
 CS_ENTRY(ProjectWorldToShadowCS)
@@ -355,7 +473,7 @@ CS_ENTRY(ProjectWorldToShadowCS)
 	uint2 sampleCoord = SvDispatchThreadID.xy;
 	float2 texelSize = 1.0 / float2(srcSize);
 	float2 uv = (float2(sampleCoord) + 0.5) * texelSize;
-	float4 heightData = TEXTURE_SAMPLE_LEVEL(WorldPositionTexture, uv, 0);
+	float4 heightData = WorldPositionTexture.Load(int3(sampleCoord, 0));
 	if (heightData.a < 0.5)
 		return;
 
@@ -366,16 +484,24 @@ CS_ENTRY(ProjectWorldToShadowCS)
 	if (!ProjectToShadow(centerWorldPos, centerUV, centerDepth))
 		return;
 
-	uint2 rightCoord = min(sampleCoord + uint2(1, 0), srcSize - 1);
-	uint2 downCoord = min(sampleCoord + uint2(0, 1), srcSize - 1);
-	uint2 diagCoord = min(sampleCoord + uint2(1, 1), srcSize - 1);
+	bool bCanUseRight = sampleCoord.x + 1 < srcSize.x;
+	bool bCanUseDown = sampleCoord.y + 1 < srcSize.y;
+	uint2 rightCoord = sampleCoord + uint2(1, 0);
+	uint2 downCoord = sampleCoord + uint2(0, 1);
+	uint2 diagCoord = sampleCoord + uint2(1, 1);
 
 	float2 rightSrcUV = (float2(rightCoord) + 0.5) * texelSize;
 	float2 downSrcUV = (float2(downCoord) + 0.5) * texelSize;
 	float2 diagSrcUV = (float2(diagCoord) + 0.5) * texelSize;
-	float4 rightData = TEXTURE_SAMPLE_LEVEL(WorldPositionTexture, rightSrcUV, 0);
-	float4 downData = TEXTURE_SAMPLE_LEVEL(WorldPositionTexture, downSrcUV, 0);
-	float4 diagData = TEXTURE_SAMPLE_LEVEL(WorldPositionTexture, diagSrcUV, 0);
+	float4 rightData = float4(0, 0, 0, 0);
+	float4 downData = float4(0, 0, 0, 0);
+	float4 diagData = float4(0, 0, 0, 0);
+	if (bCanUseRight)
+		rightData = WorldPositionTexture.Load(int3(rightCoord, 0));
+	if (bCanUseDown)
+		downData = WorldPositionTexture.Load(int3(downCoord, 0));
+	if (bCanUseRight && bCanUseDown)
+		diagData = WorldPositionTexture.Load(int3(diagCoord, 0));
 
 	float3 rightWorldPos = centerWorldPos;
 	float3 downWorldPos = centerWorldPos;
@@ -419,7 +545,8 @@ CS_ENTRY(ProjectWorldToShadowCS)
 	}
 	if (!bRasterized)
 	{
-		RasterizeTriangle(centerUV, centerUV, centerUV, centerDepth, centerDepth, centerDepth);
+		int2 shadowPixel = clamp(int2(centerUV * float2(ShadowTextureSize)), int2(0, 0), ShadowTextureSize - 1);
+		StoreShadowPixel(shadowPixel, centerDepth);
 	}
 }
 #endif

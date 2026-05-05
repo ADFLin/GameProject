@@ -22,6 +22,7 @@ class RenderCommand
 public:
 	virtual ~RenderCommand() = default;
 	virtual void execute(RenderExecuteContext& context) {}
+	virtual void destroy() { this->~RenderCommand(); }
 	
 	char const* debugName = nullptr;
 	RenderCommand* next = nullptr;
@@ -48,6 +49,7 @@ public:
 	{
 		mEvent.fire();
 	}
+	virtual void destroy() override { this->~RenderCommand_FlushCommands(); }
 
 	ThreadEvent mEvent;
 };
@@ -73,6 +75,7 @@ public:
 			mFunc();
 		}
 	}
+	virtual void destroy() override { this->~TFuncRenderCommand(); }
 
 	TFunc mFunc;
 };
@@ -84,6 +87,11 @@ public:
 		: mAllocator(1024 * 64) // 64KB Page Size
 	{
 
+	}
+
+	~RenderCommandList()
+	{
+		clear();
 	}
 
 	RenderCommandList(RenderCommandList&& other) noexcept
@@ -99,6 +107,7 @@ public:
 	{
 		if (this != &other)
 		{
+			clear();
 			mAllocator = std::move(other.mAllocator);
 			mHead = other.mHead;
 			mTail = other.mTail;
@@ -148,17 +157,11 @@ public:
 
 	void clear()
 	{
-		// Destructors? 
-		// RenderCommands are usually POD-like or have specific destructors.
-		// Since we use LinearAllocator which cleans up pages, we might need to manually call destructors if they have side effects beyond memory.
-		// For now, assuming standard command pattern where resources are managed via ref counting or specialized cleanup not reliant on command destructor for critical unique resources.
-		// However, TFuncRenderCommand might capture non-trivial objects.
-		
 		RenderCommand* cmd = mHead;
 		while (cmd)
 		{
 			RenderCommand* next = cmd->next;
-			cmd->~RenderCommand();
+			cmd->destroy();
 			cmd = next;
 		}
 
@@ -187,6 +190,7 @@ public:
 
 	~RenderCommand_ExecuteList();
 	void execute(RenderExecuteContext& context) override;
+	void destroy() override { this->~RenderCommand_ExecuteList(); }
 
 	RenderCommandList mList;
 };

@@ -84,7 +84,6 @@ namespace Render
 
 	void ParticleSystem::prepareUpdate(float dt)
 	{
-		// 呼叫所有 Emitter 的 Spawn 模組來產生新的請求
 		for (auto& emitter : mEmitters)
 		{
 			for (auto& spawnMod : emitter->spawnModules)
@@ -96,9 +95,14 @@ namespace Render
 		processSpawnRequests();
 	}
 
-	void ParticleSystem::tick(float dt, QueueThreadPool* threadPool, RenderContext* renderContext)
+	void ParticleSystem::tick(float dt, QueueThreadPool* threadPool, UpdateStats* updateStats)
 	{
 		PROFILE_ENTRY("ParticleSystem.tick");
+		if (updateStats)
+		{
+			updateStats->reset();
+		}
+
 		struct TaskInfo { ParticleEmitter* emitter; ParticleChunk* chunk; };
 		TArray<TaskInfo> tasks;
 		for (auto& e : mEmitters)
@@ -124,9 +128,15 @@ namespace Render
 			for (int i = 0; i < (int)tasks.size(); i += batchSize)
 			{
 				int endStart = std::min(i + batchSize, (int)tasks.size());
-				threadPool->addFunctionWork([i, endStart, &tasks, &contexts, renderContext]()
+				threadPool->addFunctionWork([i, endStart, &tasks, &contexts, updateStats]()
 				{
 					PROFILE_ENTRY("ParticleSystem.ParallelUpdate");
+					uint64 updateStartTick = 0;
+					if (updateStats)
+					{
+						Profile_GetTicks(&updateStartTick);
+					}
+
 					for (int tIdx = i; tIdx < endStart; ++tIdx)
 					{
 						auto& task = tasks[tIdx];
@@ -141,9 +151,8 @@ namespace Render
 							mod->update(ctx, *chunk);
 #endif
 						}
-
-						int L = 0, R = chunk->count - 1;
 #if !PS_USE_SOA
+						int L = 0, R = chunk->count - 1;
 						while (L <= R)
 						{
 							if (chunk->data[L].life <= 0.0f)
@@ -161,10 +170,12 @@ namespace Render
 							}
 							L++;
 						}
+						chunk->count = L;
 #else
 						for (int j = 0; j < chunk->count; )
 						{
-							if (chunk->data[j].template get<4>() <= 0.0f) // index 4: life
+							auto p = chunk->data[j].template as<ParticleRef>();
+							if (p.life <= 0.0f)
 							{
 								if (j < chunk->count - 1)
 								{
@@ -177,50 +188,78 @@ namespace Render
 								j++;
 							}
 						}
-						L = chunk->count;
 #endif
-						chunk->count = L;
+					}
 
-						if (renderContext && L > 0)
-						{
-							int offset = renderContext->pCounter->fetch_add(L);
-							if (offset + L <= renderContext->maxInstances)
-							{
-								char* pOutBase = (char*)renderContext->pOutBase + (size_t)offset * renderContext->instanceStride;
-								for (int idx = 0; idx < L; ++idx)
-								{
-									char* pOut = pOutBase + (size_t)idx * renderContext->instanceStride;
-#if !PS_USE_SOA
-									std::memcpy(pOut, &chunk->data[idx], 32);
-#else
-									auto p = chunk->data[idx];
-									struct Out { Vector3 pos; float rad; Color4f col; };
-									Out& out = *(Out*)pOut;
-									out.pos = p.template get<0>();
-									out.rad = p.template get<1>();
-									out.col = p.template get<2>();
-#endif
-								}
-							}
-						}
+					if (updateStats)
+					{
+						uint64 updateEndTick;
+						Profile_GetTicks(&updateEndTick);
+						updateStats->workerUpdateTicks.fetch_add(updateEndTick - updateStartTick);
 					}
 				});
 			}
 			threadPool->waitAllWorkComplete(true);
 
+			uint64 gameUpdateStartTick = 0;
+			if (updateStats)
+			{
+				Profile_GetTicks(&gameUpdateStartTick);
+			}
+
+			{
+				PROFILE_ENTRY("ParticleSystem.NewParticles");
+
+				struct NewParticleBatch
+				{
+					int profileId;
+					TArray<ParticleUpdateContext::NewParticle const*> particles;
+				};
+
+				auto FindOrAddBatch = [](TArray<NewParticleBatch>& batches, int profileId) -> NewParticleBatch&
+				{
+					for (auto& batch : batches)
+					{
+						if (batch.profileId == profileId)
+						{
+							return batch;
+						}
+					}
+
+					NewParticleBatch batch;
+					batch.profileId = profileId;
+					batches.push_back(std::move(batch));
+					return batches.back();
+				};
+
+				TArray<NewParticleBatch> newParticleBatches;
+				for (auto& ctx : contexts)
+				{
+					for (auto& np : ctx.newParticles)
+					{
+						FindOrAddBatch(newParticleBatches, np.profileId).particles.push_back(&np);
+					}
+				}
+
+				for (auto& batch : newParticleBatches)
+				{
+					spawnParticles(batch.profileId, (int)batch.particles.size(), [&](auto& p, int idx)
+					{
+						auto const& np = *batch.particles[idx];
+						p.pos = np.pos;
+						p.vel = np.vel;
+						p.color = np.color;
+						p.life = 1.0f;
+						p.maxLife = 1.0f;
+						p.radius = 1.0f;
+					});
+				}
+			}
+
 			for (int i = 0; i < (int)tasks.size(); ++i)
 			{
 				auto& ctx = contexts[i];
 				auto& task = tasks[i];
-
-				{
-					PROFILE_ENTRY("ParticleSystem.NewParticles");
-					// Process New Particles
-					for (auto& np : ctx.newParticles)
-					{
-						createParticles(np.profileId, 1, np.pos, np.vel, np.color);
-					}
-				}
 
 				{
 					PROFILE_ENTRY("ParticleSystem.DeathEvents");
@@ -275,6 +314,13 @@ namespace Render
 						e->mChunks.pop_back();
 					}
 				}
+			}
+
+			if (updateStats)
+			{
+				uint64 gameUpdateEndTick;
+				Profile_GetTicks(&gameUpdateEndTick);
+				updateStats->gameThreadUpdateTicks += gameUpdateEndTick - gameUpdateStartTick;
 			}
 		}
 	}

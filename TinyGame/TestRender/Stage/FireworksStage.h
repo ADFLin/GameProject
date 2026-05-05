@@ -74,6 +74,10 @@ namespace Render
 		float blurRadiusScale = 1.5f;
 		float mExposure = 1.0f;
 
+		int mLastParticleUpdateCount = 0;
+		double mLastParticleUpdateTimeMs = 0.0;
+		double mAvgParticleUpdatesPerMs = 0.0;
+
 		TArray<int> mRocketProfileIds;
 	};
 }

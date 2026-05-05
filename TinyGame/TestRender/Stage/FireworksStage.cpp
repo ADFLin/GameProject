@@ -255,7 +255,9 @@ namespace Render
 	{
 	public:
 		ClusterBurst(int childProfileId, int clusters = 30) : childProfileId(childProfileId), clusters(clusters) {}
-		int clusters; int childProfileId;
+		int clusters; 
+		int childProfileId;
+		
 		void execute(const Particle& parent, ParticleSystem& system) const override
 		{
 			if (childProfileId < 0) return;
@@ -285,12 +287,126 @@ namespace Render
 		}
 	};
 
+	static int CountActiveParticles(ParticleSystem const& particleSystem)
+	{
+		int result = 0;
+		for (auto const& emitterPtr : particleSystem.mEmitters)
+		{
+			if (emitterPtr == nullptr)
+				continue;
+
+			for (auto const& chunkPtr : emitterPtr->mChunks)
+			{
+				result += chunkPtr->count;
+			}
+		}
+		return result;
+	}
+
+	static void FillRenderInstances(ParticleChunk const& chunk, ParticleSpriteRenderer::InstanceData* outInstances)
+	{
+#if !PS_USE_SOA
+		for (int i = 0; i < chunk.count; ++i)
+		{
+			auto& instance = outInstances[i];
+			instance.pos = chunk.data[i].pos;
+			instance.radius = chunk.data[i].radius;
+			instance.color = chunk.data[i].color;
+		}
+#else
+		auto const* pos = chunk.data.template getColumn<0>();
+		auto const* radius = chunk.data.template getColumn<1>();
+		auto const* color = chunk.data.template getColumn<2>();
+		for (int i = 0; i < chunk.count; ++i)
+		{
+			auto& instance = outInstances[i];
+			instance.pos = pos[i];
+			instance.radius = radius[i];
+			instance.color = color[i];
+		}
+#endif
+	}
+
+	static int BuildRenderInstances(ParticleSystem const& particleSystem, TArray<ParticleSpriteRenderer::InstanceData>& outInstances, QueueThreadPool* threadPool)
+	{
+		PROFILE_ENTRY("BuildRenderInstances");
+
+		struct RenderBuildTask
+		{
+			ParticleChunk const* chunk;
+			int offset;
+		};
+
+		TArray<RenderBuildTask> tasks;
+		int count = 0;
+		for (auto const& emitterPtr : particleSystem.mEmitters)
+		{
+			if (emitterPtr == nullptr)
+				continue;
+
+			for (auto const& chunkPtr : emitterPtr->mChunks)
+			{
+				if (chunkPtr->count <= 0)
+					continue;
+
+				tasks.push_back({ chunkPtr.get(), count });
+				count += chunkPtr->count;
+			}
+		}
+
+		if (outInstances.size() != count)
+		{
+			outInstances.resize(count);
+		}
+		if (count == 0)
+		{
+			return 0;
+		}
+
+		ParticleSpriteRenderer::InstanceData* instanceBase = outInstances.data();
+		if (threadPool && tasks.size() > 1)
+		{
+			const int batchSize = 8;
+			for (int i = 0; i < (int)tasks.size(); i += batchSize)
+			{
+				int endIndex = std::min(i + batchSize, (int)tasks.size());
+				threadPool->addFunctionWork([i, endIndex, &tasks, instanceBase]()
+				{
+					for (int taskIndex = i; taskIndex < endIndex; ++taskIndex)
+					{
+						auto const& task = tasks[taskIndex];
+						FillRenderInstances(*task.chunk, instanceBase + task.offset);
+					}
+				});
+			}
+			threadPool->waitAllWorkComplete(true);
+		}
+		else
+		{
+			for (auto const& task : tasks)
+			{
+				FillRenderInstances(*task.chunk, instanceBase + task.offset);
+			}
+		}
+
+		return count;
+	}
+
 	// --- Archetype IDs ---
 	enum EArchetypeID
 	{
 		Arch_Rocket_Base = 0,
-		Arch_Star_Simple, Arch_Star_Willlow, Arch_Star_Spider, Arch_Star_Fish, Arch_Star_Strobe, Arch_Star_Palm, Arch_Star_Cluster, Arch_Star_Brocade, Arch_Star_Ghost,
-		Arch_Trail_Simple, Arch_Trail_Long,
+		Arch_Star_Simple,
+		Arch_Star_Willlow, 
+		Arch_Star_Spider, 
+		Arch_Star_Fish, 
+		Arch_Star_Strobe, 
+		Arch_Star_Palm, 
+		Arch_Star_Cluster, 
+		Arch_Star_Brocade, 
+		Arch_Star_Ghost,
+		Arch_Trail_Simple,
+		Arch_Trail_Long,
 		Arch_Max
 	};
 
@@ -439,25 +555,18 @@ namespace Render
 		}
 		if (mRocketSpawnerRate) { mRocketSpawnerRate->rate = (1.0f / 0.15f) * mSpawnScale; }
 		mParticleSystem.prepareUpdate(deltaTime);
-		int maxParticles = 0;
-		for (auto& emitterPtr : mParticleSystem.mEmitters) 
-		{ 
-			if (emitterPtr) maxParticles += (int)emitterPtr->mChunks.size() * ParticleChunk::MaxParticles; 
-		}
-		if (maxParticles > 0) 
-		{
-			auto& storage = mInstanceDataStorage[mStorageIdx % 2];
-			if (storage.size() != maxParticles) storage.resize(maxParticles);
-			mRenderCount = 0;
-			ParticleSystem::RenderContext ctx;
-			ctx.pOutBase = storage.data(); ctx.pCounter = &mRenderCount; ctx.maxInstances = maxParticles;
-			ctx.instanceStride = sizeof(ParticleSpriteRenderer::InstanceData);
-			mParticleSystem.tick(deltaTime, mUpdateThreadPool.get(), &ctx);
-		} 
-		else 
-		{ 
-			mParticleSystem.tick(deltaTime, mUpdateThreadPool.get()); 
-		}
+		int particleUpdateCount = CountActiveParticles(mParticleSystem);
+
+		ParticleSystem::UpdateStats updateStats;
+		mParticleSystem.tick(deltaTime, mUpdateThreadPool.get(), &updateStats);
+
+		auto& storage = mInstanceDataStorage[mStorageIdx % 2];
+		mRenderCount = BuildRenderInstances(mParticleSystem, storage, mUpdateThreadPool.get());
+
+		mLastParticleUpdateCount = particleUpdateCount;
+		mLastParticleUpdateTimeMs = double(updateStats.getTotalUpdateTicks()) / Profile_GetTickRate();
+		double updatesPerMs = (mLastParticleUpdateTimeMs > CLOCK_EPSILON) ? double(particleUpdateCount) / mLastParticleUpdateTimeMs : 0.0;
+		mAvgParticleUpdatesPerMs = (mAvgParticleUpdatesPerMs > 0.0) ? (mAvgParticleUpdatesPerMs * 0.9 + updatesPerMs * 0.1) : updatesPerMs;
 		mStorageIdx++;
 	}
 
@@ -514,8 +623,11 @@ namespace Render
 		});
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
-		InlineString< 128 > str; str.format("Particles : %d", totalParticles);
+		InlineString< 128 > str;
+		str.format("Particles : %d", totalParticles);
 		g.drawText(Vector2(20, 20), str);
+		str.format("CPU Update : %.0f particles/ms (%d in %.3f ms)", mAvgParticleUpdatesPerMs, mLastParticleUpdateCount, mLastParticleUpdateTimeMs);
+		g.drawText(Vector2(20, 40), str);
 		g.endRender();
 	}
 

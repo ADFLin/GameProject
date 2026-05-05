@@ -8,7 +8,7 @@
 #include "Math/Vector3.h"
 #include "Core/Color.h"
 #include "DataStructure/Array.h"
-#include "DataStructure/SoAVector.h"
+#include "DataStructure/SoALayout.h"
 #include "Async/AsyncWork.h"
 
 #include <memory>
@@ -60,6 +60,49 @@ namespace Render
 	};
 
 	struct ParticleChunk;
+
+	template<typename T, typename = void>
+	struct THasParticlePreUpdate : std::false_type {};
+
+	template<typename T>
+	struct THasParticlePreUpdate<T, std::void_t<decltype(std::declval<T&>().preUpdate(std::declval<ParticleUpdateContext&>()))>> : std::true_type {};
+
+	template<typename T>
+	FORCEINLINE void ParticlePreUpdate(T& op, ParticleUpdateContext& ctx)
+	{
+		if constexpr (THasParticlePreUpdate<T>::value)
+		{
+			op.preUpdate(ctx);
+		}
+	}
+
+	template<typename... Ts>
+	struct TParticleUpdateModuleSequence
+	{
+		std::tuple<Ts...> ops;
+
+		TParticleUpdateModuleSequence(Ts const&... inOps)
+			: ops(inOps...)
+		{
+		}
+
+		void preUpdate(ParticleUpdateContext& ctx)
+		{
+			std::apply([&ctx](auto&... op)
+			{
+				(ParticlePreUpdate(op, ctx), ...);
+			}, ops);
+		}
+
+		template<typename P>
+		FORCEINLINE void operator()(ParticleUpdateContext& ctx, P&& p)
+		{
+			std::apply([&ctx, &p](auto&... op)
+			{
+				(op(ctx, p), ...);
+			}, ops);
+		}
+	};
 
 	// 2. Module Interfaces
 	class IParticleInitModule
@@ -135,13 +178,62 @@ namespace Render
 #if !PS_USE_SOA
 		Particle data[MaxParticles];
 #else
-		ParticleLayoutSoAWithAllocator<TFixedAllocator<MaxParticles>> data;
+		ParticleLayoutArray<TFixedAllocator<MaxParticles>> data;
 		ParticleChunk()
 		{
 			data.resize(MaxParticles);
 		}
 #endif
 	};
+
+#if PS_USE_SOA
+	struct ParticleSoAView
+	{
+		Vector3* pos;
+		float* radius;
+		Color4f* color;
+		Vector3* vel;
+		float* life;
+		float* maxLife;
+	};
+
+	FORCEINLINE ParticleSoAView MakeParticleSoAView(ParticleChunk& chunk)
+	{
+		return {
+			chunk.data.template getColumn<0>(),
+			chunk.data.template getColumn<1>(),
+			chunk.data.template getColumn<2>(),
+			chunk.data.template getColumn<3>(),
+			chunk.data.template getColumn<4>(),
+			chunk.data.template getColumn<5>(),
+		};
+	}
+
+	struct ParticleSoAProxy
+	{
+		Vector3& pos;
+		float& radius;
+		Color4f& color;
+		Vector3& vel;
+		float& life;
+		float& maxLife;
+
+		ParticleSoAProxy(ParticleSoAView& view, int index)
+			: pos(view.pos[index])
+			, radius(view.radius[index])
+			, color(view.color[index])
+			, vel(view.vel[index])
+			, life(view.life[index])
+			, maxLife(view.maxLife[index])
+		{
+		}
+
+		operator ParticleLayout() const
+		{
+			return { pos, radius, color, vel, life, maxLife };
+		}
+	};
+#endif
 
 	// 5. Template Module Implementations
 	template<typename PerParticleInitType>
@@ -181,18 +273,23 @@ namespace Render
 #if !PS_USE_SOA
 		void update(ParticleUpdateContext& ctx, Particle pData[], int count) const override
 		{
+			auto localOp = op;
+			ParticlePreUpdate(localOp, ctx);
 			for (int i = 0; i < count; ++i)
 			{
-				op(ctx, pData[i]);
+				localOp(ctx, pData[i]);
 			}
 		}
 #else
 		void update(ParticleUpdateContext& ctx, ParticleChunk& chunk) const override
 		{
+			auto localOp = op;
+			ParticlePreUpdate(localOp, ctx);
+			auto view = MakeParticleSoAView(chunk);
 			for (int i = 0; i < chunk.count; ++i)
 			{
-				auto p = chunk.data[i].template as<ParticleRef>();
-				op(ctx, p);
+				ParticleSoAProxy p(view, i);
+				localOp(ctx, p);
 			}
 		}
 #endif
@@ -241,11 +338,7 @@ namespace Render
 		template<typename... Ts>
 		void addUpdateModuleSequence(Ts const&... ops)
 		{
-			auto fun = [=](ParticleUpdateContext& ctx, auto& p)
-			{
-				(ops(ctx, p), ...);
-			};
-			addUpdateModuleByOp(fun);
+			addUpdateModuleByOp(TParticleUpdateModuleSequence<Ts...>(ops...));
 		}
 	};
 
@@ -276,12 +369,21 @@ namespace Render
 			TArray<std::unique_ptr<ParticleChunk>> chunks;
 		};
 
-		struct RenderContext
+		struct UpdateStats
 		{
-			void* pOutBase;
-			std::atomic<int>* pCounter;
-			int maxInstances;
-			int instanceStride;
+			std::atomic<uint64> workerUpdateTicks;
+			uint64 gameThreadUpdateTicks;
+
+			void reset()
+			{
+				workerUpdateTicks = 0;
+				gameThreadUpdateTicks = 0;
+			}
+
+			uint64 getTotalUpdateTicks() const
+			{
+				return workerUpdateTicks.load() + gameThreadUpdateTicks;
+			}
 		};
 
 		int registerProfile(ParticleProfile const& profile);
@@ -296,7 +398,7 @@ namespace Render
 		void recycleChunk(std::unique_ptr<ParticleChunk> chunk);
 		void processSpawnRequests();
 		void prepareUpdate(float dt);
-		void tick(float dt, QueueThreadPool* threadPool, RenderContext* renderContext = nullptr);
+		void tick(float dt, QueueThreadPool* threadPool, UpdateStats* updateStats = nullptr);
 
 		template<typename TInit>
 		void spawnParticles(int profileId, int count, TInit&& initFunc)

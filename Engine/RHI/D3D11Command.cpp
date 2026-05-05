@@ -83,7 +83,7 @@ namespace Render
 	class D3D11ProfileCore : public RHIProfileCore
 	{
 	public:
-		static constexpr int NUM_FRAME_BUFFER = 4;
+		static constexpr int NUM_FRAME_BUFFER = 8;
 
 		D3D11ProfileCore()
 		{
@@ -122,13 +122,15 @@ namespace Render
 			if (bRecordingStarted)
 				return;
 
+			mFrameSamples[mCurFrameIndex].clear();
+			mNextHandle[mCurFrameIndex] = 0;
+			mRecordingFrameIndex = mCurFrameIndex;
+			mPendingStartHandles.clear();
+
 			if (mQueryDisjoint[mCurFrameIndex])
 				mDeviceContextImmdiate->Begin(mQueryDisjoint[mCurFrameIndex]);
 
-			mNextHandle[mCurFrameIndex] = 0;
-			mRecordingFrameIndex = mCurFrameIndex;
 			bRecordingStarted = true;
-			mPendingStartHandles.clear();
 		}
 
 		virtual bool endFrame() override
@@ -161,7 +163,12 @@ namespace Render
 			uint32 frameIndex = mRecordingFrameIndex;
 			if (frameIndex >= NUM_FRAME_BUFFER)
 				return RHI_ERROR_PROFILE_HANDLE;
-			uint32 result = (frameIndex << 24) | mFrameSamples[frameIndex].size();
+
+			uint32 handle = uint32(mFrameSamples[frameIndex].size());
+			if (handle >= 0x1000000)
+				return RHI_ERROR_PROFILE_HANDLE;
+
+			uint32 result = (frameIndex << 24) | handle;
 			mFrameSamples[frameIndex].emplace_back(std::move(startQuery), std::move(endQuery));
 			return result;
 		}
@@ -401,7 +408,7 @@ namespace Render
 	bool D3D11System::initialize(RHISystemInitParams const& initParam)
 	{
 		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-		if ( initParam.bDebugMode )
+		if (initParam.bDebugMode)
 			deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 
 		LogWarning(0, "=== D3D11 Initialize: bDebugMode = %s ===", initParam.bDebugMode ? "TRUE" : "FALSE");
@@ -511,15 +518,19 @@ namespace Render
 
 	RHIProfileCore* D3D11System::createProfileCore()
 	{
-		D3D11ProfileCore* profileCore = new D3D11ProfileCore;
-		if (!profileCore->init(mDevice, mDeviceContextImmdiate, mDeviceContext))
+		if (mProfileCore == nullptr)
 		{
-			delete profileCore;
-			return nullptr;
+			D3D11ProfileCore* profileCore = new D3D11ProfileCore;
+			if (!profileCore->init(mDevice, mDeviceContextImmdiate, mDeviceContext))
+			{
+				delete profileCore;
+				return nullptr;
+			}
+
+			mProfileCore = profileCore;
 		}
 
-		mProfileCore = profileCore;
-		return profileCore;
+		return mProfileCore;
 	}
 
 	bool D3D11System::RHIBeginRender(bool bAdvanceFrame)

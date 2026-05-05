@@ -1,3 +1,6 @@
+#ifndef SOALayout_h__
+#define SOALayout_h__
+
 #pragma once
 
 #include "Array.h"
@@ -5,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-template<typename Allocator, typename Dummy, typename... Ts> class TSoAVectorWithAllocator;
+template<typename Allocator, typename... Ts> class TArraySoA;
 
 /**
  * TSoAReferenceImpl: SoA reference proxy.
@@ -46,37 +49,37 @@ private:
 	}
 };
 
-template<typename Allocator, typename Dummy, typename... Ts>
-class TSoAVectorWithAllocator
+template<typename Allocator, typename... Ts>
+class TArraySoA
 {
 public:
 	static constexpr size_t NumActualComponents = sizeof...(Ts);
-	static constexpr size_t NumTotalColumns = sizeof...(Ts) + 1;
+	static constexpr size_t NumTotalColumns = sizeof...(Ts);
 
 	template<size_t I>
-	using ComponentType = typename std::tuple_element<I + 1, std::tuple<Dummy, Ts...>>::type;
+	using ComponentType = typename std::tuple_element<I, std::tuple<Ts...>>::type;
 
-	using Reference = TSoAReferenceImpl<TSoAVectorWithAllocator, false>;
-	using ConstReference = TSoAReferenceImpl<TSoAVectorWithAllocator, true>;
+	using Reference = TSoAReferenceImpl<TArraySoA, false>;
+	using ConstReference = TSoAReferenceImpl<TArraySoA, true>;
 
-	TSoAVectorWithAllocator() : mNum(0) {}
+	TArraySoA() : mNum(0) {}
 
-	TSoAVectorWithAllocator(const TSoAVectorWithAllocator& rhs) : mNum(0)
+	TArraySoA(const TArraySoA& rhs) : mNum(0)
 	{
 		copyConstructFrom(rhs);
 	}
 
-	TSoAVectorWithAllocator(TSoAVectorWithAllocator&& rhs) : mNum(0)
+	TArraySoA(TArraySoA&& rhs) : mNum(0)
 	{
 		moveConstructFrom(rhs);
 	}
 
-	~TSoAVectorWithAllocator()
+	~TArraySoA()
 	{
 		clear();
 	}
 
-	TSoAVectorWithAllocator& operator = (const TSoAVectorWithAllocator& rhs)
+	TArraySoA& operator = (const TArraySoA& rhs)
 	{
 		CHECK(this != &rhs);
 		clear();
@@ -84,7 +87,7 @@ public:
 		return *this;
 	}
 
-	TSoAVectorWithAllocator& operator = (TSoAVectorWithAllocator&& rhs)
+	TArraySoA& operator = (TArraySoA&& rhs)
 	{
 		CHECK(this != &rhs);
 		clear();
@@ -133,12 +136,12 @@ public:
 
 	template<size_t I> auto* getColumn()
 	{
-		return getColumnData<I + 1>();
+		return getColumnData<I>();
 	}
 
 	template<size_t I> const auto* getColumn() const
 	{
-		return getColumnData<I + 1>();
+		return getColumnData<I>();
 	}
 
 	auto& getColumnsInternal()
@@ -154,13 +157,12 @@ public:
 	void push_back(const Ts&... values)	
 	{
 		std::apply([this](auto&... cols) { (reserveColumn(cols, mNum, mNum + 1), ...); }, mColumns);
-		FTypeMemoryOp::Construct(getColumnData<0>() + mNum);
 		push_back_impl(std::make_index_sequence<sizeof...(Ts)>{}, values...);
 		mNum++;
 	}
 
 	template<typename OtherAlloc>
-	void copyFrom(size_t dst, const TSoAVectorWithAllocator<OtherAlloc, Dummy, Ts...>& src, size_t srcIdx)
+	void copyFrom(size_t dst, const TArraySoA<OtherAlloc, Ts...>& src, size_t srcIdx)
 	{
 		copyFrom_impl(dst, src, srcIdx, std::make_index_sequence<NumTotalColumns>{});
 	}
@@ -171,11 +173,11 @@ public:
 	}
 
 private:
-	template<typename, typename, typename...>
-	friend class TSoAVectorWithAllocator;
+	template<typename, typename...>
+	friend class TArraySoA;
 
 	template<typename OtherAlloc, size_t... Is>
-	void copyFrom_impl(size_t dst, const TSoAVectorWithAllocator<OtherAlloc, Dummy, Ts...>& src, size_t srcIdx, std::index_sequence<Is...>)
+	void copyFrom_impl(size_t dst, const TArraySoA<OtherAlloc, Ts...>& src, size_t srcIdx, std::index_sequence<Is...>)
 	{
 		((getColumnData<Is>()[dst] = src.template getColumnData<Is>()[srcIdx]), ...);
 	}
@@ -183,10 +185,10 @@ private:
 	template<size_t... Is>
 	void push_back_impl(std::index_sequence<Is...>, const Ts&... values)
 	{
-		(pushBackColumn(std::get<Is + 1>(mColumns), values), ...);
+		(pushBackColumn(std::get<Is>(mColumns), values), ...);
 	}
 
-	void copyConstructFrom(const TSoAVectorWithAllocator& rhs)
+	void copyConstructFrom(const TArraySoA& rhs)
 	{
 		std::apply([this, &rhs](auto&... cols) { (reserveColumn(cols, 0, rhs.mNum), ...); }, mColumns);
 		copyConstructFrom_impl(rhs, std::make_index_sequence<NumTotalColumns>{});
@@ -194,12 +196,12 @@ private:
 	}
 
 	template<size_t... Is>
-	void copyConstructFrom_impl(const TSoAVectorWithAllocator& rhs, std::index_sequence<Is...>)
+	void copyConstructFrom_impl(const TArraySoA& rhs, std::index_sequence<Is...>)
 	{
 		(copyConstructColumn(std::get<Is>(mColumns), std::get<Is>(rhs.mColumns), rhs.mNum), ...);
 	}
 
-	void moveConstructFrom(TSoAVectorWithAllocator& rhs)
+	void moveConstructFrom(TArraySoA& rhs)
 	{
 		std::apply([this, &rhs](auto&... cols) { (reserveColumn(cols, 0, rhs.mNum), ...); }, mColumns);
 		moveConstructFrom_impl(rhs, std::make_index_sequence<NumTotalColumns>{});
@@ -208,7 +210,7 @@ private:
 	}
 
 	template<size_t... Is>
-	void moveConstructFrom_impl(TSoAVectorWithAllocator& rhs, std::index_sequence<Is...>)
+	void moveConstructFrom_impl(TArraySoA& rhs, std::index_sequence<Is...>)
 	{
 		(moveConstructColumn(std::get<Is>(mColumns), std::get<Is>(rhs.mColumns), rhs.mNum), ...);
 	}
@@ -286,14 +288,17 @@ private:
 		FTypeMemoryOp::MoveSequence(getColumnData(dst), num, getColumnData(src));
 	}
 
-	std::tuple<AllocatorData<Dummy>, AllocatorData<Ts>...> mColumns;
+	std::tuple<AllocatorData<Ts>...> mColumns;
 	size_t mNum = 0;
 };
 
 namespace std
 {
-	template<typename T, bool C> struct tuple_size<TSoAReferenceImpl<T, C>> : std::integral_constant<size_t, T::NumActualComponents> {};
-	template<size_t I, typename T, bool C> struct tuple_element<I, TSoAReferenceImpl<T, C>>
+	template<typename T, bool C> 
+	struct tuple_size<TSoAReferenceImpl<T, C>> : std::integral_constant<size_t, T::NumActualComponents> {};
+	
+	template<size_t I, typename T, bool C> 
+	struct tuple_element<I, TSoAReferenceImpl<T, C>>
 	{
 		using type = std::conditional_t<C, const typename T::template ComponentType<I>, typename T::template ComponentType<I>>;
 	};
@@ -315,5 +320,6 @@ template<size_t I, typename T, bool C> decltype(auto) get(TSoAReferenceImpl<T, C
 	struct Name##Ref { Fields(SOA_EXTRACT_REF_MEM) operator Name() const { return Name{ Fields(SOA_EXTRACT_VALUE) }; } }; \
 	struct Name##ConstRef { Fields(SOA_EXTRACT_CONST_REF_MEM) operator Name() const { return Name{ Fields(SOA_EXTRACT_VALUE) }; } }; \
 	template<typename Alloc = DefaultAllocator> \
-	using Name##SoAWithAllocator = TSoAVectorWithAllocator<Alloc, int Fields(SOA_EXTRACT_TYPE) >; \
-	using Name##SoA = Name##SoAWithAllocator<DefaultAllocator>;
+	using Name##Array = TArraySoA<Alloc Fields(SOA_EXTRACT_TYPE) >; \
+
+#endif // SOALayout_h__

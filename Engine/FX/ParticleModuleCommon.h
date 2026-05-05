@@ -71,9 +71,16 @@ namespace Render
 	struct DragUpdate
 	{
 		float drag;
+		float factor = 1.0f;
+
+		void preUpdate(ParticleUpdateContext& ctx)
+		{
+			factor = std::pow(drag, ctx.dt);
+		}
+
 		PS_UPDATE(ctx, p)
 		{
-			p.vel *= std::pow(drag, ctx.dt);
+			p.vel *= factor;
 		}
 	};
 

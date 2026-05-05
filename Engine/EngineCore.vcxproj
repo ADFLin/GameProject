@@ -374,6 +374,7 @@
     <ClInclude Include="DataStructure\SkipList.h" />
     <ClInclude Include="DataStructure\SList.h" />
     <ClInclude Include="DataStructure\Grid2D.h" />
+    <ClInclude Include="DataStructure\SoALayout.h" />
     <ClInclude Include="DataStructure\TLinkable.h" />
     <ClInclude Include="DataStructure\TTable.h" />
     <ClInclude Include="DataStructure\TUnsignedHash.h" />

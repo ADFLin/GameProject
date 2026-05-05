@@ -62,6 +62,10 @@ public:
 
 	void clear()
 	{
+		if (mCurrentPage)
+		{
+			mFreePages.push_back(mCurrentPage);
+		}
 		mCurrentPage = nullptr;
 		mCurrentOffset = 0;
 		mFreePages.insert(mFreePages.end(), mUsedPages.begin(), mUsedPages.end());

@@ -70,7 +70,7 @@ PS_ENTRY_START(LightingPassPS)
 	PS_ENTRY_END(LightingPassPS)
 {
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
-	float2 ScreenUVs = (SvPosition.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
+	float2 ScreenUVs = (SvPosition.xy - View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 #else
 	float2 ScreenUVs = VSOutput.UVs;
 #endif
@@ -180,6 +180,8 @@ PS_ENTRY_START(LightingPassPS)
 	//OutColor = float4(GLight.spotParam.x);
 	//OutColor = float4(shadow, 1);
 
+	OutColor = float4(worldPos, 1);
+	//return;
 	OutColor = float4(lighting, 1);
 	float d = GBuffer.sceneDepth / 1000;
 	//OutColor = float4(d, d, d, 1);

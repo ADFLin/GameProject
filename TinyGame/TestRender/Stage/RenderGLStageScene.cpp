@@ -11,6 +11,7 @@
 //#TODO Remove
 #include "DrawEngine.h"
 #include "WGLContext.h"
+#include "RHI/OpenGLCommand.h"
 
 namespace Render
 {
@@ -158,8 +159,11 @@ namespace Render
 			std::function< void() > exitFunc;
 		};
 
+
+
+
 		DrawEngine& de = ::Global::GetDrawEngine();
-		HGLRC hRC = de.getGLContext()->getHandle();
+		HGLRC hRC = static_cast<OpenGLSystem*>(GRHISystem)->mGLContext.getHandle();
 		HGLRC hLoadRC = wglCreateContext(de.getWindow().getHDC());
 		wglShareLists( hRC , hLoadRC );
 
@@ -412,10 +416,10 @@ namespace Render
 				shader->setParam(commandList, SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
 #if 0
 				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
-				shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(NormalTexture), getTexture(TextureId::RocksNH).getRHI());
 #else
 				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
-				shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(NormalTexture), getTexture(TextureId::Normal).getRHI());
 #endif
 			}
 			matWorld = Matrix4::Scale(0.5) * Matrix4::Translate(Vector3(-12, 0, 2));
@@ -540,10 +544,10 @@ namespace Render
 					shader->setParam(commandList, SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
 #if 1
 					shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
-					shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
+					shader->setTexture(commandList, SHADER_PARAM(NormalTexture), getTexture(TextureId::RocksNH).getRHI());
 #else
 					shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
-					shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
+					shader->setTexture(commandList, SHADER_PARAM(NormalTexture), getTexture(TextureId::Normal).getRHI());
 #endif
 				}
 #endif

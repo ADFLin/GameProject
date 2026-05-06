@@ -328,11 +328,11 @@ namespace Render
 		template<typename... Ts>
 		void addInitModuleSequence(Ts const&... ops)
 		{
-			auto fun = [=](ParticleInitContext& ctx, auto& p)
+			auto func = [=](ParticleInitContext& ctx, auto& p)
 			{
 				(ops(ctx, p), ...);
 			};
-			addInitModuleByOp(fun);
+			addInitModuleByOp(func);
 		}
 
 		template<typename... Ts>

@@ -7,6 +7,8 @@ struct POMParameters
 	float4    dispMask;
 	float     dispBias;
 	float     parallaxScale;
+	float     directionSign;
+	float     referenceDepth;
 	float2    iteratorParams;
 	float2    shadowIteratorParams;
 };
@@ -17,44 +19,74 @@ struct POMOutput
 	float  depth;
 };
 
-float GetDispDepth( in sampler2D dispTexture , in POMParameters parameters , float2 inUVs )
+#if COMPILER_HLSL
+#define POM_TEXTURE_PARAM(NAME) in sampler2D NAME, in SamplerState TEXTURE_SAMPLER_NAME(NAME)
+#define POM_TEXTURE_ARG(NAME) NAME, TEXTURE_SAMPLER_NAME(NAME)
+#define POM_TEXTURE_SAMPLE(NAME, UV) NAME.Sample(TEXTURE_SAMPLER_NAME(NAME), UV)
+#else
+#define POM_TEXTURE_PARAM(NAME) in sampler2D NAME
+#define POM_TEXTURE_ARG(NAME) NAME
+#define POM_TEXTURE_SAMPLE(NAME, UV) TEXTURE_SAMPLE(NAME, UV)
+#endif
+
+float GetDispDepthInternal(POM_TEXTURE_PARAM(dispTexture), in POMParameters parameters, float2 inUVs)
 {
-	return dot( texture(dispTexture , inUVs ) , parameters.dispMask ) + parameters.dispBias;
+	return dot(POM_TEXTURE_SAMPLE(dispTexture, inUVs), parameters.dispMask) + parameters.dispBias;
 }
 
-POMOutput BumpMapping(in sampler2D dispTexture, in POMParameters parameters , float3 viewVector , float2 inUVs )
+POMOutput BumpMappingInternal(POM_TEXTURE_PARAM(dispTexture), in POMParameters parameters, float3 viewVector, float2 inUVs)
 {
-	float h = GetDispDepth(dispTexture , parameters , inUVs ) * parameters.parallaxScale;
+	float h = saturate(GetDispDepthInternal(POM_TEXTURE_ARG(dispTexture), parameters, inUVs));
+	float NoV = saturate(viewVector.z);
+	float viewZ = max(NoV, 0.12);
+	float2 parallaxOffset = parameters.directionSign * viewVector.xy / viewZ * parameters.parallaxScale;
+	float offsetLen = length(parallaxOffset);
+	//if (offsetLen > 0.08)
+	//{
+	//	parallaxOffset *= 0.08 / offsetLen;
+	//}
 	POMOutput pomOutput;
-	pomOutput.UVs = inUVs - viewVector.xy / viewVector.z * h;
-	pomOutput.depth = h;
+	pomOutput.UVs = inUVs + (parameters.referenceDepth - h) * parallaxOffset;
+	pomOutput.depth = h * parameters.parallaxScale;
 	return pomOutput;
 }
 
-POMOutput POMapping(in sampler2D dispTexture, in POMParameters parameters, float3 viewVector, float2 inUVs)
+POMOutput POMappingInternal(POM_TEXTURE_PARAM(dispTexture), in POMParameters parameters, float3 viewVector, float2 inUVs)
 {
-	float numLayer = mix( parameters.iteratorParams.x , parameters.iteratorParams.y , abs(dot(viewVector, float3(0, 0, 1))));
+	float NoV = saturate(viewVector.z);
+	float numLayer = lerp(parameters.iteratorParams.y, parameters.iteratorParams.x, NoV);
 	float stepDepth = 1.0 / numLayer;
 
-	float2  dt = viewVector.xy * (parameters.parallaxScale / viewVector.z) / numLayer;
+	float viewZ = max(NoV, 0.12);
+	float2 parallaxOffset = parameters.directionSign * viewVector.xy * (parameters.parallaxScale / viewZ);
+	float offsetLen = length(parallaxOffset);
+	//if (offsetLen > 0.08)
+	//{
+	//	parallaxOffset *= 0.08 / offsetLen;
+	//}
+	float2  dt = parallaxOffset / numLayer;
 	float curDepth = 0.0;
 	float2  texCur = inUVs;
-	float texDepth = GetDispDepth(dispTexture,parameters, texCur);
+	float texDepth = saturate(GetDispDepthInternal(POM_TEXTURE_ARG(dispTexture), parameters, texCur));
+
+	LOOP
 	while( curDepth < texDepth )
 	{
 		curDepth += stepDepth;
 		texCur -= dt;
-		texDepth = GetDispDepth(dispTexture, parameters , texCur);
+		texDepth = saturate(GetDispDepthInternal(POM_TEXTURE_ARG(dispTexture), parameters, texCur));
 	}
 	//#TODO: binary search?
 	POMOutput pomOutput;
 	if ( curDepth > 0 )
 	{
 		float2 texPrev = texCur + dt;
-		float texDepthPrev = GetDispDepth(dispTexture, parameters, texPrev);
-		float w = (curDepth - texDepth) / (stepDepth + texDepthPrev - texDepth);
-		pomOutput.UVs = texCur + w * dt;
-		pomOutput.depth = curDepth - w * stepDepth;
+		float texDepthPrev = saturate(GetDispDepthInternal(POM_TEXTURE_ARG(dispTexture), parameters, texPrev));
+		float afterDepth = texDepth - curDepth;
+		float beforeDepth = texDepthPrev - curDepth + stepDepth;
+		float w = afterDepth / (afterDepth - beforeDepth);
+		pomOutput.depth = curDepth - stepDepth * saturate(w);
+		pomOutput.UVs = lerp(texCur, texPrev, saturate(w)) + parameters.referenceDepth * parallaxOffset;
 	}
 	else
 	{
@@ -64,7 +96,7 @@ POMOutput POMapping(in sampler2D dispTexture, in POMParameters parameters, float
 	return pomOutput;
 }
 
-float CalcPOMSoftShadowMultiplier(in sampler2D dispTexture, in POMParameters parameters , float3 LightVector, float2 inPosUVs , float inPosDepth )
+float CalcPOMSoftShadowMultiplierInternal(POM_TEXTURE_PARAM(dispTexture), in POMParameters parameters, float3 LightVector, float2 inPosUVs, float inPosDepth)
 {
 	float shadowMultiplier = 1;
 
@@ -74,17 +106,18 @@ float CalcPOMSoftShadowMultiplier(in sampler2D dispTexture, in POMParameters par
 		// calculate initial parameters
 		float numSamplesUnderSurface = 0;
 		shadowMultiplier = 0;
-		float numLayers = mix(parameters.shadowIteratorParams.x, parameters.shadowIteratorParams.y, abs(dot(float3(0, 0, 1), LightVector)));
+		float numLayers = lerp(parameters.shadowIteratorParams.x, parameters.shadowIteratorParams.y, abs(dot(float3(0, 0, 1), LightVector)));
 		float layerHeight = inPosDepth / numLayers;
 		float2 texStep = parameters.parallaxScale * LightVector.xy / LightVector.z / numLayers;
 
 		// current parameters
 		float curDepth = inPosDepth - layerHeight;
 		float2 curTexcoord = inPosUVs + texStep;
-		float depthTexture = GetDispDepth(dispTexture, parameters , curTexcoord);
+		float depthTexture = GetDispDepthInternal(POM_TEXTURE_ARG(dispTexture), parameters, curTexcoord);
 		int stepIndex = 1;
 
 		// while point is below depth 0.0 )
+		LOOP
 		while( curDepth > 0 )
 		{
 			// if point is under the surface
@@ -101,7 +134,7 @@ float CalcPOMSoftShadowMultiplier(in sampler2D dispTexture, in POMParameters par
 			stepIndex += 1;
 			curDepth -= layerHeight;
 			curTexcoord += texStep;
-			depthTexture = GetDispDepth(dispTexture , parameters, curTexcoord);
+			depthTexture = GetDispDepthInternal(POM_TEXTURE_ARG(dispTexture), parameters, curTexcoord);
 		}
 
 		// Shadowing factor should be 1 if there were no points under the surface
@@ -117,19 +150,24 @@ float CalcPOMSoftShadowMultiplier(in sampler2D dispTexture, in POMParameters par
 	return shadowMultiplier;
 }
 
-float CalcPOMCorrectDepth( in POMOutput pomOutput , mat3 tangentToWorld , float3 viewVectorTangent )
+#define GetDispDepth(TEX, PARAMETERS, UVS) GetDispDepthInternal(POM_TEXTURE_ARG(TEX), PARAMETERS, UVS)
+#define BumpMapping(TEX, PARAMETERS, VIEW_VECTOR, UVS) BumpMappingInternal(POM_TEXTURE_ARG(TEX), PARAMETERS, VIEW_VECTOR, UVS)
+#define POMapping(TEX, PARAMETERS, VIEW_VECTOR, UVS) POMappingInternal(POM_TEXTURE_ARG(TEX), PARAMETERS, VIEW_VECTOR, UVS)
+#define CalcPOMSoftShadowMultiplier(TEX, PARAMETERS, LIGHT_VECTOR, POS_UVS, POS_DEPTH) CalcPOMSoftShadowMultiplierInternal(POM_TEXTURE_ARG(TEX), PARAMETERS, LIGHT_VECTOR, POS_UVS, POS_DEPTH)
+
+float CalcPOMCorrectDepth(in POMOutput pomOutput, float3x3 tangentToWorld, float3 viewVectorTangent)
 {
 #if 1
 	float3 viewVectorDirTangent = normalize(viewVectorTangent);
-	float3 viewOffset = tangentToWorld * ( viewVectorTangent + viewVectorDirTangent * (pomOutput.depth / viewVectorTangent.z) );
-	float4 clipPos = View.worldToClip * float4(View.worldPos - viewOffset,1.0);
+	float3 viewOffset = mul(tangentToWorld, viewVectorTangent + viewVectorDirTangent * (pomOutput.depth / viewVectorTangent.z));
+	float4 clipPos = mul(View.worldToClip, float4(View.worldPos - viewOffset, 1.0));
 	return clipPos.z / clipPos.w;
 #else
-	float3 viewDirTangent = View.direction * tangentToWorld;
+	float3 viewDirTangent = mul(View.direction, tangentToWorld);
 	//float sceneDepth = dot(-viewVectorTangent, viewDirTangent);
 	float sceneDepth = length(viewVectorTangent);
 	sceneDepth += sceneDepth * (pomOutput.depth / viewVectorTangent.z);
-	float4 clipPos = View.viewToClip * float4(0, 0, -sceneDepth, 1.0);
+	float4 clipPos = mul(View.viewToClip, float4(0, 0, -sceneDepth, 1.0));
 	return clipPos.z / clipPos.w;
 #endif
 }

@@ -49,6 +49,7 @@ struct FactoryInterpolantsParam
 #else //VERTEX_FACTORY_USE_GEOMETRY_SHADER
 struct FactoryInterpolantsParam
 {
+	float3 worldPos    MEMBER_OUT(TEXCOORD0);
 	float3 worldNormal MEMBER_OUT(TEXCOORD1);
 #if VERTEX_FACTORY_HAVE_TANGENT
 	float4 tangent     MEMBER_OUT(TEXCOORD2);
@@ -246,6 +247,8 @@ FactoryInterpolantsParam VertexFactory_GetInterpolants(
 {
 	FactoryInterpolantsParam interpolants;
 
+	interpolants.worldPos = materialParameters.worldPos;
+
 #if !VERTEX_FACTORY_USE_POSITION_ONLY
 	interpolants.worldNormal = intermediates.normal.xyz;
 	interpolants.vertexColor = intermediates.vertexColor;
@@ -271,6 +274,7 @@ FactoryInterpolantsParam VertexFactory_GetInterpolants(
 MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolantsParam factoryInterpolants, float4 svPosition)
 {
 	MaterialParametersPS parameters;
+	parameters.worldPos = factoryInterpolants.worldPos;
 
 #if !VERTEX_FACTORY_USE_POSITION_ONLY
 	float3x3  tangentToWorld;

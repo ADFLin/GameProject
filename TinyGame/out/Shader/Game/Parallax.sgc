@@ -1,254 +1,232 @@
+#include "Common.sgc"
+#include "PrimitiveParam.sgc"
 #include "ViewParam.sgc"
 #include "LightParam.sgc"
 #include "ParallaxOcclusionCommon.sgc"
+
 #define PARALLAX_DEPTH_CORRECT 1
 #define PARALLAX_DRAW_SHADOW 1
-#define PARALLAX_USE_VIEW_TSPACE 1
 
-#define PARALLAX_BUMP
-
-
-uniform sampler2D texBase;
-uniform sampler2D texNormal;
+struct VSOutputParameters
+{
+	float2 UVs         MEMBER_OUT(TEXCOORD0);
+	float3 worldPos    MEMBER_OUT(TEXCOORD1);
+	float3 tangentX    MEMBER_OUT(TEXCOORD2);
+	float3 tangentY    MEMBER_OUT(TEXCOORD3);
+	float3 tangentZ    MEMBER_OUT(TEXCOORD4);
+	float3 lightOffset MEMBER_OUT(TEXCOORD5);
+	float3 viewOffset  MEMBER_OUT(TEXCOORD6);
+};
 
 uniform float parallaxScale = 0.05;
 uniform float parallaxBias = 1.0;
 uniform float ShadowBias = 0.01;
 
-#if PARALLAX_DEPTH_CORRECT
-varying float3 tangentX;
-varying float3 tangentZ;
-#endif
-varying float3 lightOffset;
-varying float3 viewOffset;
-
-struct VSOutputParameters
-{
-	float3 cameraOffset;
-#ifdef USE_SHADOW_MAP
-	float3 cameraOffsetInView;
-#endif
-};
-
 #if VERTEX_SHADER
 
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 Position, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 Normal, ATTRIBUTE_NORMAL)
+	VS_INPUT(float4 Tangent, ATTRIBUTE_TANGENT)
+	VS_INPUT(float2 TexCoord0, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
-#if PARALLAX_USE_VIEW_TSPACE
-	float3 tangent  = normalize( gl_NormalMatrix * gl_Tangent.xyz );
-	float3 normal   = normalize( gl_NormalMatrix * gl_Normal );
-
-	float3 cPos  = float3( gl_ModelViewMatrix * gl_Vertex );	
-	float3 cCamPos = float3( gl_ModelViewMatrix * float4( View.worldPos , 1.0 ) );
-	float3 cLightPos =  float3( gl_ModelViewMatrix * float4(GLight.worldPosAndRadius.xyz , 1.0 ) );
+	float3 worldPos = mul(Primitive.localToWorld, float4(Position.xyz, 1)).xyz;
+#if COMPILER_HLSL
+	float3 normal = normalize(mul(transpose((float3x3)Primitive.worldToLocal), Normal));
+	float3 tangent = normalize(mul((float3x3)Primitive.localToWorld, Tangent.xyz));
 #else
-	float3 tangent  = normalize( gl_Tangent.xyz );
-	float3 normal   = normalize( gl_Normal );
+	float3 normal = normalize(mul(transpose(float3x3(Primitive.worldToLocal)), Normal));
+	float3 tangent = normalize(mul(float3x3(Primitive.localToWorld), Tangent.xyz));
+#endif
+	tangent = normalize(tangent - normal * dot(tangent, normal));
+	float3 binormal = sign(Tangent.w) * cross(normal, tangent);
 
-	float3 cPos  = float3( gl_Vertex );
-	float3 cCamPos = View.worldPos;
-	float3 cLightPos = GLight.worldPosAndRadius.xyz;
+	float3x3 tangentToWorld = float3x3(tangent, binormal, normal);
+#if COMPILER_HLSL
+	tangentToWorld = transpose(tangentToWorld);
+	VSOutput.lightOffset = mul(GLight.worldPosAndRadius.xyz - worldPos, tangentToWorld);
+	VSOutput.viewOffset = mul(View.worldPos - worldPos, tangentToWorld);
+#else
+	VSOutput.lightOffset = mul(transpose(tangentToWorld), GLight.worldPosAndRadius.xyz - worldPos);
+	VSOutput.viewOffset = mul(transpose(tangentToWorld), View.worldPos - worldPos);
 #endif
 
-	float3 binormal = cross( normal , tangent );
-	mat3 tbn  = mat3( tangent , binormal , normal );
-
-#if PARALLAX_DEPTH_CORRECT
-	tangentX = tangent;
-	tangentZ = normal;
-#endif
-
-	lightOffset = ( cLightPos - cPos ) * tbn;
-	viewOffset   = ( cCamPos - cPos ) * tbn;
-
-	gl_Position = ftransform();
-	gl_TexCoord[0] = gl_MultiTexCoord0;
-
+	VSOutput.UVs = TexCoord0;
+	VSOutput.worldPos = worldPos;
+	VSOutput.tangentX = tangent;
+	VSOutput.tangentY = binormal;
+	VSOutput.tangentZ = normal;
+	SvPosition = mul(View.worldToClip, float4(worldPos, 1));
 }
 
-
-#endif //VERTEX_SHADER
+#endif
 
 #if PIXEL_SHADER
 
-float getDepth( in float2 T )
+DEFINE_TEXTURE(Texture2D, texBase);
+DEFINE_TEXTURE(Texture2D, texNormal);
+
+float GetDepth(float2 uv)
 {
-	return texture( texNormal , T ).a;
+	return TEXTURE_SAMPLE(texNormal, uv).a;
 }
 
-float2 calcParallaxPos( in float3 V , in float2 T , out float parallaxDepth )
+float2 CalcParallaxPos(float3 viewVector, float2 uv, out float parallaxDepth)
 {
-	float h = getDepth( T );
-	return T - V.xy / V.z * ( h * parallaxScale );
+	float h = GetDepth(uv);
+	parallaxDepth = h;
+	return uv - viewVector.xy / viewVector.z * (h * parallaxScale);
 }
 
-float2 calcParallaxPos2( in float3 V , in float2 T , out float parallaxDepth )
+float2 CalcParallaxPos2(float3 viewVector, float2 uv, out float parallaxDepth)
 {
 	const float minLayer = 20;
 	const float maxLayer = 35;
-	float numLayer = mix( maxLayer , minLayer , abs( dot( V , float3( 0 , 0 , 1 ) ) ) );
+	float numLayer = lerp(maxLayer, minLayer, abs(dot(viewVector, float3(0, 0, 1))));
 	float stepDepth = 1.0 / numLayer;
 
-	float2  dt = V.xy * ( parallaxScale / V.z ) / numLayer;
+	float2 dt = viewVector.xy * (parallaxScale / viewVector.z) / numLayer;
 	float curDepth = 0.0;
-	float2  texCur   = T;
-	float texDepth = getDepth( texCur );
-	while( curDepth < texDepth )
+	float2 texCur = uv;
+	float texDepth = GetDepth(texCur);
+
+	LOOP
+	while (curDepth < texDepth)
 	{
 		curDepth += stepDepth;
 		texCur -= dt;
-		texDepth = getDepth( texCur );
+		texDepth = GetDepth(texCur);
 	}
 
 	parallaxDepth = curDepth;
 	return texCur + dt;
 }
 
-float2 calcParallaxPos3( in float3 V , in float2 T , out float parallaxDepth )
+float2 CalcParallaxPos3(float3 viewVector, float2 uv, out float parallaxDepth)
 {
 	const float minLayer = 30;
 	const float maxLayer = 105;
-	float numLayer = mix( maxLayer , minLayer , abs( dot( V , float3( 0 , 0 , 1 ) ) ) );
+	float numLayer = lerp(maxLayer, minLayer, abs(dot(viewVector, float3(0, 0, 1))));
 	float stepDepth = 1.0 / numLayer;
 
-	float2  dt = V.xy * ( parallaxScale / V.z ) / numLayer;
+	float2 dt = viewVector.xy * (parallaxScale / viewVector.z) / numLayer;
 	float curDepth = 0.0;
-	float2  texCur   = T;
-	float texDepth = getDepth( texCur );
-	while( curDepth < texDepth )
+	float2 texCur = uv;
+	float texDepth = GetDepth(texCur);
+
+	LOOP
+	while (curDepth < texDepth)
 	{
 		curDepth += stepDepth;
 		texCur -= dt;
-		texDepth = getDepth( texCur );
+		texDepth = GetDepth(texCur);
 	}
 
 	float2 texPrev = texCur + dt;
-	float texDepthPrev = getDepth( texPrev );
-
-	float w = ( curDepth - texDepth ) / ( stepDepth + texDepthPrev - texDepth );
+	float texDepthPrev = GetDepth(texPrev);
+	float w = (curDepth - texDepth) / (stepDepth + texDepthPrev - texDepth);
 
 	parallaxDepth = curDepth - w * stepDepth;
 	return texCur + w * dt;
 }
 
-float parallaxSoftShadowMultiplier(in float3 L, in float2 initialTexCoord,
-								   in float initialHeight)
+float ParallaxSoftShadowMultiplier(float3 lightVector, float2 initialTexCoord, float initialHeight)
 {
 	float shadowMultiplier = 1;
 
 	const float minLayers = 15;
 	const float maxLayers = 40;
 
-	// calculate lighting only for surface oriented to the light source
-	if(dot(float3(0, 0, 1), L) > 0)
+	if (dot(float3(0, 0, 1), lightVector) > 0)
 	{
-		// calculate initial parameters
-		float numSamplesUnderSurface	= 0;
-		shadowMultiplier	= 0;
-		float numLayers	= mix(maxLayers, minLayers, abs(dot(float3(0, 0, 1), L)));
-		float layerHeight	= initialHeight / numLayers;
-		float2 texStep	= parallaxScale * L.xy / L.z / numLayers;
+		float numSamplesUnderSurface = 0;
+		shadowMultiplier = 0;
+		float numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), lightVector)));
+		float layerHeight = initialHeight / numLayers;
+		float2 texStep = parallaxScale * lightVector.xy / lightVector.z / numLayers;
 
-		// current parameters
-		float currentLayerHeight	= initialHeight - layerHeight;
-		float2 currentTextureCoords	= initialTexCoord + texStep;
-		float heightFromTexture	= getDepth( currentTextureCoords );
-		int stepIndex	= 1;
+		float currentLayerHeight = initialHeight - layerHeight;
+		float2 currentTextureCoords = initialTexCoord + texStep;
+		float heightFromTexture = GetDepth(currentTextureCoords);
+		int stepIndex = 1;
 
-		// while point is below depth 0.0 )
-		while(currentLayerHeight > 0)
+		LOOP
+		while (currentLayerHeight > 0)
 		{
-			// if point is under the surface
-			if(heightFromTexture < currentLayerHeight)
+			if (heightFromTexture < currentLayerHeight)
 			{
-				// calculate partial shadowing factor
-				numSamplesUnderSurface	+= 1;
-				float newShadowMultiplier	= (currentLayerHeight - heightFromTexture) *
-					(1.0 - stepIndex / numLayers);
-				shadowMultiplier	= max(shadowMultiplier, newShadowMultiplier);
+				numSamplesUnderSurface += 1;
+				float newShadowMultiplier = (currentLayerHeight - heightFromTexture) * (1.0 - stepIndex / numLayers);
+				shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
 			}
 
-			// offset to the next layer
-			stepIndex	+= 1;
-			currentLayerHeight	-= layerHeight;
-			currentTextureCoords	+= texStep;
-			heightFromTexture	= getDepth( currentTextureCoords );
+			stepIndex += 1;
+			currentLayerHeight -= layerHeight;
+			currentTextureCoords += texStep;
+			heightFromTexture = GetDepth(currentTextureCoords);
 		}
 
-		// Shadowing factor should be 1 if there were no points under the surface
-		if(numSamplesUnderSurface < 1)
-		{
-			shadowMultiplier = 1;
-		}
-		else
-		{
-			shadowMultiplier = 1.0 - shadowMultiplier;
-		}
+		shadowMultiplier = numSamplesUnderSurface < 1 ? 1.0 : 1.0 - shadowMultiplier;
 	}
 	return shadowMultiplier;
 }
 
-
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+#if PARALLAX_DEPTH_CORRECT
+	PS_OUTPUT_DEPTH
+#endif
+PS_ENTRY_END(MainPS)
 {
-
-	float3 E = normalize( viewOffset );
-	float3 L = normalize( lightOffset );
-
+	float3 E = normalize(VSOutput.viewOffset);
+	float3 L = normalize(VSOutput.lightOffset);
 
 	POMParameters pomParams;
 	pomParams.dispMask = float4(0, 0, 0, 1);
 	pomParams.dispBias = 0;
 	pomParams.parallaxScale = parallaxScale;
-	pomParams.iteratorParams = float2(30, 105);
-	pomParams.shadowIteratorParams = float2(15, 40);
+	pomParams.directionSign = 1.0;
+	pomParams.referenceDepth = 0.0;
 	pomParams.iteratorParams = float2(3, 10);
 	pomParams.shadowIteratorParams = float2(1, 4);
-	
-	POMOutput pomOutput = POMapping(texNormal , pomParams, E, gl_TexCoord[0].st);
+
+	POMOutput pomOutput = POMapping(texNormal, pomParams, E, VSOutput.UVs);
 	float parallaxDepth = pomOutput.depth;
-	float2 T = pomOutput.UVs;
+	float2 uv = pomOutput.UVs;
 
-	float3 N = texture( texNormal , T ).xyz * 2.0 - 1.0;
-	float3 baseColor = texture( texBase , T ).rgb;
+	float3 N = normalize(TEXTURE_SAMPLE(texNormal, uv).xyz * 2.0 - 1.0);
+	float3 baseColor = TEXTURE_SAMPLE(texBase, uv).rgb;
 
-	float3 color = float3(0,0,0);
-
-	float diff = max(0.0, dot(N, L));
+	float diff = saturate(dot(N, L));
 	float spec = 0.0;
 
-	if(diff != 0.0)
+	if (diff != 0.0)
 	{
 		float3 H = normalize(L + E);
-		spec = pow( max( dot(N,H), 0.0 ) , 10.0 );
+		spec = pow(saturate(dot(N, H)), 10.0);
 	}
 
 #if PARALLAX_DRAW_SHADOW
-	float shadowMultiplier = CalcPOMSoftShadowMultiplier(texNormal, pomParams , L , T , parallaxDepth - ShadowBias );
-	color += pow( shadowMultiplier , 10.0 ) * ( diff + spec ) * float3( 0.6 , 0.6 , 0.6 );
+	float shadowMultiplier = CalcPOMSoftShadowMultiplier(texNormal, pomParams, L, uv, parallaxDepth - ShadowBias);
+	float3 color = pow(shadowMultiplier, 10.0) * (diff + spec) * float3(0.6, 0.6, 0.6);
 #else
-	color += ( diff + spec ) * float3( 0.6 , 0.6 , 0.6 );
+	float3 color = (diff + spec) * float3(0.6, 0.6, 0.6);
 #endif
 
+	OutColor = float4(color * baseColor, 1.0);
 
 #if PARALLAX_DEPTH_CORRECT
-	float3 tz = normalize( tangentZ );
-	float3 tx = normalize( tangentX - tangentZ * dot( tangentZ , tangentX ) );
-	float3 ty = cross( tz , tx );
-	float3 V = - mat3( tx , ty , tz ) * ( viewOffset + E * ( parallaxDepth / E.z ) );
-#if PARALLAX_USE_VIEW_TSPACE
-	float4 depth = gl_ProjectionMatrix * float4( V , 1.0 );
-#else
-	float4 depth = gl_ModelViewProjectionMatrix * float4( V , 1.0 );
+	float3 tangentDisplacement = E * (parallaxDepth * parallaxScale / E.z);
+	float3 worldDisplacement =
+		VSOutput.tangentX * tangentDisplacement.x +
+		VSOutput.tangentY * tangentDisplacement.y +
+		VSOutput.tangentZ * tangentDisplacement.z;
+	float4 clipPos = mul(View.worldToClip, float4(VSOutput.worldPos + worldDisplacement, 1));
+	SvDepth = NDCToBufferDepth(clipPos.z / clipPos.w);
 #endif
-	gl_FragDepth = ( gl_DepthRange.diff * depth.z / depth.w + gl_DepthRange.near + gl_DepthRange.far ) * 0.5 ;
-	gl_FragColor = float4( 2.0 * float3( depth.z / depth.w / depth.w ) - 0.1 , 1 );
-#endif
-	//gl_FragColor = float4( E , 1.0 );
-	//gl_FragColor = texture( tex , gl_TexCoord[0].xy ) ;
-	//gl_FragColor = float4( color , 1.0 );
-	//gl_FragColor = float4( baseColor , 1.0 );
-	gl_FragColor = float4( color * baseColor , 1.0 );
 }
 
-#endif //PIXEL_SHADER
+#endif

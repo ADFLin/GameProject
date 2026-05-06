@@ -6,15 +6,18 @@
 #include "ViewParam.sgc"
 #include "ParallaxOcclusionCommon.sgc"
 
-uniform sampler2D BaseTexture;
-uniform sampler2D NoramlTexture;
+
+DEFINE_TEXTURE(Texture2D, BaseTexture);
+DEFINE_TEXTURE(Texture2D, NormalTexture);
 uniform float3    DispFactor;
 uniform float3    TileUVScale = float3(1,1,1);
+uniform float     ParallaxScale = 0.04;
+uniform float     ParallaxDirection = 1.0;
 #if VERTEX_SHADER
 
-void CalcMaterialOutnputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	outputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0.0, 0.0, 0.0);
 }
 
 #endif //VERTEX_SHADER
@@ -24,28 +27,42 @@ void CalcMaterialOutnputVS(inout MaterialOutputVS outputVS, inout MaterialParame
 void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
 	float3 viewVector = View.worldPos - parameters.worldPos;
-	float3 viewVectorTangent = viewVector * parameters.tangentToWorld;
+#if COMPILER_HLSL
+	float3 viewVectorTangent = mul(viewVector, parameters.tangentToWorld);
+#else
+	float3 viewVectorTangent = mul(transpose(parameters.tangentToWorld), viewVector);
+#endif
 
 	POMParameters pomParams;
 	pomParams.dispMask = float4(0, 0, 0, DispFactor.x);
 	pomParams.dispBias = DispFactor.y;
-	pomParams.parallaxScale = 0.2;
-	pomParams.iteratorParams = float2(20,120);
+	pomParams.parallaxScale = ParallaxScale;
+	pomParams.directionSign = ParallaxDirection;
+	pomParams.referenceDepth = DispFactor.z;
+	pomParams.iteratorParams = float2(15, 128);
 	pomParams.shadowIteratorParams = float2(15, 128);
 
-	POMOutput pomOutput = POMapping(NoramlTexture , pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy * TileUVScale.xy );
+	POMOutput pomOutput = POMapping(NormalTexture , pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy * TileUVScale.xy );
+
+	float2 rectMin = pomOutput.UVs;
+	float2 rectMax = TileUVScale.xy - pomOutput.UVs;
+
+	float3 tangentNormal = GetTextureNormal(TEXTURE_SAMPLE(NormalTexture, pomOutput.UVs));
+	float3 worldNormal = normalize(mul(parameters.tangentToWorld, tangentNormal));
 
 	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	outputPS.baseColor = texture(BaseTexture, pomOutput.UVs).rgb;
-	//outputPS.emissiveColor = texture(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
+	outputPS.baseColor = TEXTURE_SAMPLE(BaseTexture, pomOutput.UVs);
+	//outputPS.emissiveColor = TEXTURE_SAMPLE(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
 	//outputPS.emissiveColor = normalize(parameters.tangentToWorld[0]);
-	outputPS.metallic = 0.9;
-	outputPS.roughness = 0.5;
-	outputPS.specular = 0.1;
-	outputPS.normal = GetTextureNormal( TEXTURE_SAMPLE( NoramlTexture, pomOutput.UVs ) );
-#if 1
+	outputPS.metallic = 0.0;
+	outputPS.roughness = 0.75;
+	outputPS.specular = 0.2;
+	outputPS.normal = tangentNormal;
+	outputPS.mask = (rectMin.x >= 0.0 && rectMin.y >= 0.0 && rectMax.x >= 0.0 && rectMax.y >= 0.0) ? 1.0 : 0.0;
+	//outputPS.mask = 1.0;
+#if MATERIAL_USE_DEPTH_OFFSET
 	if( pomOutput.depth > 0 )
-		outputPS.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.screenPos.z;
+		outputPS.depthOffset = 0.15 * (CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.svPosition.z);
 	else
 		outputPS.depthOffset = 0;
 #endif

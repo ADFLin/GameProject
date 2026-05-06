@@ -93,16 +93,22 @@ float3 NDCToViewPos(float4 NDC)
 	return pos.xyz / pos.w;
 }
 
+float2 ScreenUVToNDCXY(float2 screenUV)
+{
+	float2 uv = VFLIP(float2(screenUV.x, 1.0 - screenUV.y));
+	return 2.0 * uv - 1.0;
+}
+
 float3 StoreWorldPos(float2 screenUV, float bufferDepth)
 {
-	float2 screenPos = (2.0 * VFLIP(screenUV) - 1.0);
+	float2 screenPos = ScreenUVToNDCXY(screenUV);
 	float4 NDC = float4(screenPos, BufferToNDCDepth( bufferDepth ), 1);
 	return NDCToWorldPos(NDC);
 }
 
 float3 StoreViewPos(float2 screenUV, float bufferDepth)
 {
-	float2 screenPos = (2.0 * VFLIP(screenUV) - 1.0);
+	float2 screenPos = ScreenUVToNDCXY(screenUV);
 	float4 NDC = float4(screenPos, BufferToNDCDepth(bufferDepth), 1);
 	return NDCToViewPos(NDC);
 }

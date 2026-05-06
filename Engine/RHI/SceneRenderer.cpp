@@ -1310,11 +1310,11 @@ namespace Render
 
 	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets)
 	{
-		auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
+		auto& sampler = TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 		setParameters(commandList, program, sceneRenderTargets.getGBuffer(), sampler);
 		if( mParamFrameDepthTexture.isBound() )
 		{
-			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, FrameRenderTexture, sceneRenderTargets.getDepthTexture(), sampler);
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, program, FrameDepthTexture, sceneRenderTargets.getDepthTexture(), sampler);
 		}
 	}
 

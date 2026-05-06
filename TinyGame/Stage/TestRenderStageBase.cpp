@@ -181,6 +181,7 @@ namespace Render
 		if (true)
 		{
 			RHISetFrameBuffer(commandList, nullptr);
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			ShaderHelper::Get().copyTextureToBuffer(commandList, texture);
 		}
 		else if (GRHISystem->getName() == RHISystemName::OpenGL)

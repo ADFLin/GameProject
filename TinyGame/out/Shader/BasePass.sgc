@@ -58,8 +58,7 @@ PS_ENTRY_START(BasePassPS)
 PS_ENTRY_END(BasePassPS)
 {
 	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants, SvPosition);
-	float4 NDC = SvPositionToNDC(SvPosition);
-	float3 worldPos = NDCToWorldPos(NDC);
+	float3 worldPos = materialParameters.worldPos;
 	Material_CalcParametersPS(materialParameters, SvPosition , worldPos);
 	MaterialOutputPS materialOutput = Material_GetOutputPS(materialParameters);
 

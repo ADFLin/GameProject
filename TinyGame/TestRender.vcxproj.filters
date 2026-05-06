@@ -156,6 +156,9 @@
     <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\POMRenderStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
     <ClCompile Include="TestRender\Stage\TemplateRenderingTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>

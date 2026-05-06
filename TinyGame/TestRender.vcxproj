@@ -287,6 +287,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="TestRender\Stage\PlantRenderingStage.cpp" />
+    <ClCompile Include="TestRender\Stage\POMRenderStage.cpp" />
     <ClCompile Include="TestRender\MeshImporterOBJ.cpp" />
     <ClCompile Include="TestRender\MeshImporterGLB.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>

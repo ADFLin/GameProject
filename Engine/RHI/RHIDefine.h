@@ -66,7 +66,7 @@ namespace Render
 
 	struct FRHIZBuffer
 	{
-#if 1
+#if 0
 		static int constexpr FarPlane = 0;
 		static int constexpr NearPlane = 1;
 #else

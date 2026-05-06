@@ -496,7 +496,7 @@ namespace Render
 			20 , 21 , 22 , 20 , 22 , 23 ,
 		};
 
-		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6);
+		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6, true);
 		data.vertices.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
 		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 #else
@@ -510,7 +510,7 @@ namespace Render
 			20 , 21 , 22 , 23 ,
 		};
 
-		MeshUtility::FillTangent_QuadList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4);
+		MeshUtility::FillTangent_QuadList(inputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4, true);
 		data.vertices.assign((uint8*)vertices, (uint8*)(vertices + ARRAY_SIZE(vertices)));
 		data.indices.assign(indices, indices + ARRAY_SIZE(indices));
 #endif
@@ -702,7 +702,7 @@ namespace Render
 		};
 
 		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &idx[0], 6);
+		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &idx[0], 6, true);
 
 		data.vertices.assign((uint8*)v, (uint8*)(v + 4));
 		data.indices.assign(idx, idx + 6);
@@ -1208,7 +1208,7 @@ namespace Render
 
 		uint32 indices[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &indices[0], 6);
+		MeshUtility::FillTangent_TriangleList(inputLayoutDesc, &v[0], 4, &indices[0], 6, true);
 
 		data.vertices.assign((uint8*)v, (uint8*)(v + 4));
 		data.indices.assign(indices, indices + 6);

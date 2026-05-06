@@ -91,10 +91,11 @@ float3 Material_CorrectWorldPosByDepthOffset(in MaterialOutputPS inputPS, inout 
 	float3 worldPos = parameters.worldPos;
 #if MATERIAL_USE_DEPTH_OFFSET
 	float4 svPosition = parameters.svPosition;
+	float4 NDC = SvPositionToNDC(svPosition);
 	if( inputPS.depthOffset != 0 )
 	{
 		svPosition.z += inputPS.depthOffset;
-		float4 NDC = SvPositionToNDC(svPosition);
+		NDC = SvPositionToNDC(svPosition);
 		float4 worldPosH = mul( View.clipToWorld , NDC );
 		worldPos = worldPosH.xyz / worldPosH.w;
 	}

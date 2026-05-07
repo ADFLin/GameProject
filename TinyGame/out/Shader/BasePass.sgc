@@ -3,9 +3,9 @@
 #define FORWARD_SHADING 0
 #endif //FORWARD_SHADING
 
-
-#include "MaterialProcess.sgc"
 #include "VertexFactoryProcess.sgc"
+#include "MaterialProcess.sgc"
+
 
 #include "DeferredShadingCommon.sgc"
 #include "ViewParam.sgc"

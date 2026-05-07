@@ -4,30 +4,33 @@
 
 struct OutputVSParam
 {
-	float4 color;
-	float  size;
+	float4 color MEMBER_OUT(TEXCOORD0);
+	float  size  MEMBER_OUT(TEXCOORD1);
 };
 
 #if VERTEX_SHADER
 
 DEFINE_STRUCTURED_BUFFER(ParticleData, Particles);
 
-layout(location = ATTRIBUTE0) in float3 InPos;
-layout(location = ATTRIBUTE1) in float3 InColor;
-layout(location = ATTRIBUTE2) in float3 InParam;
-
+#if COMPILER_GLSL
 out OutputVSParam OutputVS;
 void MainVS()
+#else
+VS_ENTRY_START(MainVS)
+	VS_INPUT_VERTEXID
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
+#endif
 {
 #if 1
-	ParticleData particle = Particles[ gl_VertexID ];
-	gl_Position = float4(particle.pos, 1.0);
+	ParticleData particle = Particles[SvVertexID];
+	SvPosition = float4(particle.pos, 1.0);
 	OutputVS.color = particle.color;
 	OutputVS.color.a *= clamp( 1 - ( particle.lifeTime - 0.9 ) / 0.1 , 0 , 1 );
 	OutputVS.size = particle.size;
 #else
-	ParticleData particle = Particles[gl_VertexID];
-	gl_Position = float4(0 ,float(gl_VertexID) / 100, float(gl_VertexID % 100),1);
+	ParticleData particle = Particles[SvVertexID];
+	SvPosition = float4(0, float(SvVertexID) / 100, float(SvVertexID % 100), 1);
 	OutputVS.color = float4(1,1,1,1);
 	OutputVS.size = 20;
 #endif
@@ -37,16 +40,20 @@ void MainVS()
 
 struct OutputGSParam
 {
-	float4 color;
-	float2 UVs;
+	float4 color MEMBER_OUT(TEXCOORD0);
+	float2 UVs   MEMBER_OUT(TEXCOORD1);
+#if GEOMETRY_SHADER
+	GS_SV_POSTITION_OUT
+#endif
 };
 
 
 #if GEOMETRY_SHADER
 
+#if COMPILER_GLSL
 in OutputVSParam OutputVS[];
 out OutputGSParam OutputGS;
-
+#define GSOutput OutputGS
 
 layout(points, invocations = 1) in;
 layout(triangle_strip, max_vertices = 4) out;
@@ -54,45 +61,55 @@ void MainGS()
 {
 	float4 color = OutputVS[0].color;
 
-	float4 pos = View.worldToView * float4(gl_in[0].gl_Position.xyz, 1);
+#else
+[maxvertexcount(4)]
+void MainGS(point OutputVSParam InputGS[1], point float4 SvPositions[1] : SV_POSITION, inout TriangleStream<OutputGSParam> OutputStream)
+{
+	float4 color = InputGS[0].color;
+#endif
+
+	float4 pos = mul(View.worldToView, float4(GS_SVPOSITION(0).xyz, 1));
 	//float size = (aa + 1)  * 0.05 * OutputVS[0].size;
+#if COMPILER_GLSL
 	float size = 0.05 * OutputVS[0].size;
+#else
+	float size = 0.05 * InputGS[0].size;
+#endif
 
-	gl_Position = View.viewToClip * float4(pos.xyz + float3(size, size, 0.0), 1.0);
-	OutputGS.color = color;
-	OutputGS.UVs = float2(1, 1);
-	EmitVertex();
+	OutputGSParam outputData;
+	outputData.color = color;
 
-	gl_Position = View.viewToClip * float4(pos.xyz + float3(-size, size, 0.0), 1.0);
-	OutputGS.color = color;
-	OutputGS.UVs = float2(0, 1);
-	EmitVertex();
+	float4 outPos = mul(View.viewToClip, float4(pos.xyz + float3(-size, size, 0.0), 1.0));
+	outputData.UVs = float2(0, 1);
+	GS_EMIT_VERTEX(outPos, outputData)
 
-	gl_Position = View.viewToClip * float4(pos.xyz + float3(size, -size, 0.0), 1.0);
-	OutputGS.color = color;
-	OutputGS.UVs = float2(1, 0);
-	EmitVertex();
+	outPos = mul(View.viewToClip, float4(pos.xyz + float3(size, size, 0.0), 1.0));
+	outputData.UVs = float2(1, 1);
+	GS_EMIT_VERTEX(outPos, outputData)
 
-	gl_Position = View.viewToClip * float4(pos.xyz + float3(-size, -size, 0.0), 1.0);
-	OutputGS.color = color;
-	OutputGS.UVs = float2(0, 0);
-	EmitVertex();
+	outPos = mul(View.viewToClip, float4(pos.xyz + float3(-size, -size, 0.0), 1.0));
+	outputData.UVs = float2(0, 0);
+	GS_EMIT_VERTEX(outPos, outputData)
 
-	EndPrimitive();
+	outPos = mul(View.viewToClip, float4(pos.xyz + float3(size, -size, 0.0), 1.0));
+	outputData.UVs = float2(1, 0);
+	GS_EMIT_VERTEX(outPos, outputData)
+
+	GS_END_PRIMITIVE;
 }
 
 #endif //GEOMETRY_SHADER
 
 #if PIXEL_SHADER
 
-layout(location = 0) out float4 OutColor;
+DEFINE_TEXTURE(Texture2D, BaseTexture);
 
-in OutputGSParam OutputGS;
-
-uniform sampler2D BaseTexture;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(OutputGSParam OutputGS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
-	OutColor =  float4(texture(BaseTexture, OutputGS.UVs).rgb , 1.0) * OutputGS.color;
+	OutColor =  float4(TEXTURE_SAMPLE(BaseTexture, OutputGS.UVs).rgb , 1.0) * OutputGS.color;
 }
 
 #endif //PIXEL_SHADER

@@ -13,6 +13,7 @@ uniform float3    DispFactor;
 uniform float3    TileUVScale = float3(1,1,1);
 uniform float     ParallaxScale = 0.04;
 uniform float     ParallaxDirection = 1.0;
+uniform float     ParallaxNormalScale = 1.0;
 #if VERTEX_SHADER
 
 void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
@@ -27,11 +28,7 @@ void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParamet
 void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
 	float3 viewVector = View.worldPos - parameters.worldPos;
-#if COMPILER_HLSL
 	float3 viewVectorTangent = mul(viewVector, parameters.tangentToWorld);
-#else
-	float3 viewVectorTangent = mul(transpose(parameters.tangentToWorld), viewVector);
-#endif
 
 	POMParameters pomParams;
 	pomParams.dispMask = float4(0, 0, 0, DispFactor.x);
@@ -39,7 +36,7 @@ void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParamet
 	pomParams.parallaxScale = ParallaxScale;
 	pomParams.directionSign = ParallaxDirection;
 	pomParams.referenceDepth = DispFactor.z;
-	pomParams.iteratorParams = float2(15, 128);
+	pomParams.iteratorParams = float2(5, 128);
 	pomParams.shadowIteratorParams = float2(15, 128);
 
 	POMOutput pomOutput = POMapping(NormalTexture , pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy * TileUVScale.xy );
@@ -47,8 +44,7 @@ void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParamet
 	float2 rectMin = pomOutput.UVs;
 	float2 rectMax = TileUVScale.xy - pomOutput.UVs;
 
-	float3 tangentNormal = GetTextureNormal(TEXTURE_SAMPLE(NormalTexture, pomOutput.UVs));
-	float3 worldNormal = normalize(mul(parameters.tangentToWorld, tangentNormal));
+	float3 tangentNormal = AdjustPOMTangentNormal(GetTextureNormal(TEXTURE_SAMPLE(NormalTexture, pomOutput.UVs)), pomParams, ParallaxNormalScale);
 
 	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 	outputPS.baseColor = TEXTURE_SAMPLE(BaseTexture, pomOutput.UVs);

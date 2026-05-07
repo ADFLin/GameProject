@@ -1,0 +1,369 @@
+#pragma once
+#include "Common.sgc"
+
+#define ComponentMulT(TYPE)\
+	TYPE ComponentMul(float2 b, TYPE v0, TYPE v1) { return b.x * v0 + b.y * v1; }\
+	TYPE ComponentMul(float3 b, TYPE v0, TYPE v1, TYPE v2) { return b.x * v0 + b.y * v1 + b.z * v2; }\
+	TYPE ComponentMul(float4 b, TYPE v0, TYPE v1, TYPE v2, TYPE v3) { return b.x * v0 + b.y * v1 + b.z * v2 + b.w * v3; }
+
+VECTOR_TYPE_LIST(ComponentMulT)
+#undef ComponentMulT
+
+struct PNTrianglePatchConst
+{
+#if COMPILER_HLSL
+	float edgeTessFactor[3] : SV_TessFactor;
+	float insideTessFactor  : SV_InsideTessFactor;
+#endif
+	float3 P111 MEMBER_OUT(TEXCOORD9);
+};
+
+float3 CalcPNTriangleControlPoint(float3 start, float3 end, float3 startNormal)
+{
+	return (2 * start + end - dot(startNormal, end - start) * startNormal) / 3;
+}
+
+float3 CalcPNTriangleCenterControlPoint(
+	float3 P300, float3 P030, float3 P003,
+	float3 P210, float3 P120, float3 P021,
+	float3 P012, float3 P102, float3 P201)
+{
+	return (P021 + P012 + P201 + P102 + P210 + P120) / 4 - (P300 + P030 + P003) / 6;
+}
+
+float3 EvaluatePNTrianglePosition(
+	float3 uvw,
+	float3 P300, float3 P030, float3 P003,
+	float3 P210, float3 P120, float3 P021,
+	float3 P012, float3 P102, float3 P201,
+	float3 P111)
+{
+	float3 uvw2 = uvw * uvw;
+	float3 uvw3 = uvw2 * uvw;
+	float u = uvw.x;
+	float v = uvw.y;
+	float w = uvw.z;
+
+	return ComponentMul(uvw3, P300, P030, P003)
+	     + 3 * ComponentMul(uvw2, (v * P210 + w * P201), u * P120 + w * P021, v * P012 + u * P102)
+	     + 6 * u * v * w * P111;
+}
+
+#if HULL_SHADER && COMPILER_GLSL
+void SetTriangleTessellationFactors3(float outerFactor0, float outerFactor1, float outerFactor2, float innerFactor)
+{
+	gl_TessLevelOuter[0] = outerFactor0;
+	gl_TessLevelOuter[1] = outerFactor1;
+	gl_TessLevelOuter[2] = outerFactor2;
+	gl_TessLevelInner[0] = innerFactor;
+}
+
+void SetTriangleTessellationFactors(float outerFactor, float innerFactor)
+{
+	SetTriangleTessellationFactors3(outerFactor, outerFactor, outerFactor, innerFactor);
+}
+#endif
+
+#if USE_TESSELLATION && TESSELLATION_COMMON_IMPLEMENT_TRIANGLE_MAIN
+
+#if COMPILER_HLSL
+#define TESSELLATION_PRIMITIVE_ID PrimitiveID
+#else
+#define TESSELLATION_PRIMITIVE_ID gl_PrimitiveID
+#endif
+
+#if HULL_SHADER
+
+uniform int TessOuter;
+uniform int TessInner;
+
+float GetOuterTessFactor()
+{
+	return max(1.0, float(TessOuter));
+}
+
+float GetInnerTessFactor()
+{
+	return max(1.0, float(TessInner));
+}
+
+#if USE_AUTO_TESSELLATION
+float2 TessellationWorldToScreenPixel(float3 worldPos)
+{
+	float4 clip = mul(View.worldToClip, float4(worldPos, 1));
+	float invW = rcp(max(clip.w, 1e-4));
+	float2 ndc = clip.xy * invW;
+	ndc = clamp(ndc, float2(-4.0, -4.0), float2(4.0, 4.0));
+	float2 screenUV = 0.5 * ndc + 0.5;
+	float2 screenSize = 1.0 / View.rectPosAndSizeInv.zw;
+	return screenUV * screenSize;
+}
+
+float CalcEdgeTessFactor(float3 p0, float3 p1)
+{
+	float targetEdgePixels = GetInnerTessFactor();
+	float maxTessFactor = GetOuterTessFactor();
+	float edgePixels = length(TessellationWorldToScreenPixel(p1) - TessellationWorldToScreenPixel(p0));
+	return clamp(edgePixels / targetEdgePixels, 1.0, maxTessFactor);
+}
+
+float3 CalcTriangleOuterTessFactors(float3 p0, float3 p1, float3 p2)
+{
+	return float3(
+		CalcEdgeTessFactor(p1, p2),
+		CalcEdgeTessFactor(p2, p0),
+		CalcEdgeTessFactor(p0, p1));
+}
+
+float CalcTriangleInnerTessFactor(float3 outerFactors)
+{
+	return max(1.0, (outerFactors.x + outerFactors.y + outerFactors.z) / 3.0);
+}
+#endif
+
+#if COMPILER_HLSL
+
+PNTrianglePatchConst MainHSConst(InputPatch<VertexOutputParamVSToPS, 3> InputHS)
+{
+	PNTrianglePatchConst output;
+#if USE_AUTO_TESSELLATION
+	float3 p0 = TESSELLATION_GET_HS_POSITION(0);
+	float3 p1 = TESSELLATION_GET_HS_POSITION(1);
+	float3 p2 = TESSELLATION_GET_HS_POSITION(2);
+	float3 outerTessFactors = CalcTriangleOuterTessFactors(p0, p1, p2);
+	output.edgeTessFactor[0] = outerTessFactors.x;
+	output.edgeTessFactor[1] = outerTessFactors.y;
+	output.edgeTessFactor[2] = outerTessFactors.z;
+	output.insideTessFactor = CalcTriangleInnerTessFactor(outerTessFactors);
+#else
+	float outerTessFactor = GetOuterTessFactor();
+	output.edgeTessFactor[0] = outerTessFactor;
+	output.edgeTessFactor[1] = outerTessFactor;
+	output.edgeTessFactor[2] = outerTessFactor;
+	output.insideTessFactor = GetInnerTessFactor();
+#endif
+
+#if USE_PN_TRIANGLE
+	float3 P300 = TESSELLATION_GET_HS_POSITION(0);
+	float3 P030 = TESSELLATION_GET_HS_POSITION(1);
+	float3 P003 = TESSELLATION_GET_HS_POSITION(2);
+
+	float3 N0 = TESSELLATION_GET_VERTEX_NORMAL(InputHS[0]);
+	float3 N1 = TESSELLATION_GET_VERTEX_NORMAL(InputHS[1]);
+	float3 N2 = TESSELLATION_GET_VERTEX_NORMAL(InputHS[2]);
+
+	float3 P210 = CalcPNTriangleControlPoint(P300, P030, N0);
+	float3 P120 = CalcPNTriangleControlPoint(P030, P300, N1);
+	float3 P021 = CalcPNTriangleControlPoint(P030, P003, N1);
+	float3 P012 = CalcPNTriangleControlPoint(P003, P030, N2);
+	float3 P102 = CalcPNTriangleControlPoint(P003, P300, N2);
+	float3 P201 = CalcPNTriangleControlPoint(P300, P003, N0);
+	output.P111 = CalcPNTriangleCenterControlPoint(P300, P030, P003, P210, P120, P021, P012, P102, P201);
+#else
+	output.P111 = float3(0, 0, 0);
+#endif
+	return output;
+}
+
+[domain("tri")]
+[partitioning("fractional_odd")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(3)]
+[patchconstantfunc("MainHSConst")]
+VertexOutputParamHSToDS MainHS(InputPatch<VertexOutputParamVSToPS, 3> InputHS, uint curIndex : SV_OutputControlPointID)
+{
+	VertexOutputParamHSToDS output;
+	TESSELLATION_COPY_HS_VERTEX_PARAMS(output, InputHS[curIndex]);
+
+#if USE_PN_TRIANGLE
+	float3 curPos = TESSELLATION_GET_HS_POSITION(curIndex);
+	float3 curNormal = TESSELLATION_GET_VERTEX_NORMAL(InputHS[curIndex]);
+	
+	int nextIndex = curIndex < 2 ? curIndex + 1 : 0;
+
+	float3 nextNormal = TESSELLATION_GET_VERTEX_NORMAL(InputHS[nextIndex]);
+	float3 nextPos = TESSELLATION_GET_HS_POSITION(nextIndex);
+
+	output.pos0 = curPos;
+	output.pos1 = CalcPNTriangleControlPoint(curPos, nextPos, curNormal);
+	output.pos2 = CalcPNTriangleControlPoint(nextPos, curPos, nextNormal);
+#else
+	output.pos = TESSELLATION_GET_HS_POSITION(curIndex);
+#endif
+	return output;
+}
+
+#else //COMPILER_HLSL
+
+layout(vertices = 3) out;
+layout(location = 0) in  VertexOutputParamVSToPS InputHS[];
+
+in  VertexOutputParamDS     VertexOuputDS[];
+out VertexOutputParamHSToDS OutputHS[];
+#if USE_PN_TRIANGLE
+patch out PNTrianglePatchConst OutputConstHS;
+#endif
+
+void MainHS()
+{
+#define curIndex gl_InvocationID
+	TESSELLATION_COPY_HS_VERTEX_PARAMS(OutputHS[curIndex], InputHS[curIndex]);
+
+#if USE_PN_TRIANGLE
+	float3 curPos = TESSELLATION_GET_HS_POSITION(curIndex);
+	float3 curNormal = TESSELLATION_GET_VERTEX_NORMAL(InputHS[curIndex]);
+	
+	int nextIndex = curIndex < 2 ? curIndex + 1 : 0;
+
+	float3 nextNormal = TESSELLATION_GET_VERTEX_NORMAL(InputHS[nextIndex]);
+	float3 nextPos = TESSELLATION_GET_HS_POSITION(nextIndex);
+
+	OutputHS[curIndex].pos0 = curPos;
+
+#if USE_AEN
+	int neighborIndex = 3 + 2 * curIndex;
+	int neighborNextIndex = 3 + 2 * curIndex + 1;
+
+	float3 neighborNormal = TESSELLATION_GET_VERTEX_NORMAL(InputHS[neighborIndex]);
+	float3 neighborNextNormal = TESSELLATION_GET_VERTEX_NORMAL(InputHS[neighborNextIndex]);
+
+	OutputHS[curIndex].pos1 = 0.5 * ( CalcPNTriangleControlPoint(curPos, nextPos, curNormal) + CalcPNTriangleControlPoint(curPos, nextPos, neighborNormal) );
+	OutputHS[curIndex].pos2 = 0.5 * ( CalcPNTriangleControlPoint(nextPos, curPos, nextNormal) + CalcPNTriangleControlPoint(nextPos, curPos, neighborNextNormal) );
+#else
+	OutputHS[curIndex].pos1 = CalcPNTriangleControlPoint(curPos, nextPos, curNormal);
+	OutputHS[curIndex].pos2 = CalcPNTriangleControlPoint(nextPos, curPos, nextNormal);
+#endif
+
+#else
+	OutputHS[curIndex].pos = TESSELLATION_GET_HS_POSITION(curIndex);
+#endif
+
+#undef curIndex
+
+	barrier();
+	if ( gl_InvocationID == 0 )
+	{
+#if USE_AUTO_TESSELLATION
+		float3 p0 = TESSELLATION_GET_HS_POSITION(0);
+		float3 p1 = TESSELLATION_GET_HS_POSITION(1);
+		float3 p2 = TESSELLATION_GET_HS_POSITION(2);
+		float3 outerTessFactors = CalcTriangleOuterTessFactors(p0, p1, p2);
+		SetTriangleTessellationFactors3(outerTessFactors.x, outerTessFactors.y, outerTessFactors.z, CalcTriangleInnerTessFactor(outerTessFactors));
+#else
+		SetTriangleTessellationFactors(GetOuterTessFactor(), GetInnerTessFactor());
+#endif
+
+#if USE_PN_TRIANGLE
+		float3 P300 = InputDS[0].pos0;
+		float3 P210 = InputDS[0].pos1;
+		float3 P120 = InputDS[0].pos2;
+		float3 P030 = InputDS[1].pos0;
+		float3 P021 = InputDS[1].pos1;
+		float3 P012 = InputDS[1].pos2;
+		float3 P003 = InputDS[2].pos0;
+		float3 P102 = InputDS[2].pos1;
+		float3 P201 = InputDS[2].pos2;
+		OutputConstHS.P111 = CalcPNTriangleCenterControlPoint(P300, P030, P003, P210, P120, P021, P012, P102, P201);
+#endif
+	}
+}
+
+#endif //COMPILER_HLSL
+
+#endif //HULL_SHADER
+
+#if DOMAIN_SHADER
+
+#if COMPILER_HLSL
+
+[domain("tri")]
+VertexOutputParamVSToPS MainDS(
+	PNTrianglePatchConst InputConstDS,
+	float3 TessCoord : SV_DomainLocation,
+	const OutputPatch<VertexOutputParamHSToDS, 3> InputDS,
+	uint PrimitiveID : SV_PrimitiveID,
+	out float4 SvPosition : SV_POSITION)
+{
+#define INTERPOLATE_MEMBER(NAME) ComponentMul(TessCoord, InputDS[0].NAME, InputDS[1].NAME, InputDS[2].NAME)
+#define INTERPOLATE_VERTEX_PARAM_MEMBER(NAME) OutputDS.NAME = INTERPOLATE_MEMBER(vetexParams.NAME);
+
+	VertexOutputParamVSToPS OutputDS;
+	TESSELLATION_INTERPOLATE_DS_OUTPUT(OutputDS);
+
+#if USE_PN_TRIANGLE
+	float3 P300 = InputDS[0].pos0;
+	float3 P210 = InputDS[0].pos1;
+	float3 P120 = InputDS[0].pos2;
+	float3 P030 = InputDS[1].pos0;
+	float3 P021 = InputDS[1].pos1;
+	float3 P012 = InputDS[1].pos2;
+	float3 P003 = InputDS[2].pos0;
+	float3 P102 = InputDS[2].pos1;
+	float3 P201 = InputDS[2].pos2;
+
+	float3 pos = EvaluatePNTrianglePosition(TessCoord, P300, P030, P003, P210, P120, P021, P012, P102, P201, InputConstDS.P111);
+
+	TESSELLATION_SET_DS_POSITION(OutputDS, pos);
+#else
+	float3 pos = INTERPOLATE_MEMBER(pos);
+	INTERPOLATE_VERTEX_PARAM_MEMBER(factoryInterpolants.pos);
+#endif
+
+	TESSELLATION_APPLY_DS_DISPLACEMENT(pos, OutputDS);
+
+	SvPosition = mul(View.worldToClip, float4(pos, 1));
+
+#undef INTERPOLATE_MEMBER
+#undef INTERPOLATE_VERTEX_PARAM_MEMBER
+	return OutputDS;
+}
+
+#else //COMPILER_HLSL
+
+layout(triangles, fractional_odd_spacing, ccw) in;
+
+in VertexOutputParamHSToDS  InputDS[];
+layout(location = 0) out VertexOutputParamVSToPS OutputDS;
+#if USE_PN_TRIANGLE
+patch in PNTrianglePatchConst InputConstDS;
+#endif
+
+void MainDS()
+{
+#define INTERPOLATE_MEMBER(NAME) ComponentMul(gl_TessCoord, InputDS[0].NAME, InputDS[1].NAME, InputDS[2].NAME)
+#define INTERPOLATE_VERTEX_PARAM_MEMBER(NAME) OutputDS.NAME = INTERPOLATE_MEMBER(vetexParams.NAME);
+
+	TESSELLATION_INTERPOLATE_DS_OUTPUT(OutputDS);
+
+#if USE_PN_TRIANGLE
+	float3 P300 = InputDS[0].pos0;
+	float3 P210 = InputDS[0].pos1;
+	float3 P120 = InputDS[0].pos2;
+	float3 P030 = InputDS[1].pos0;
+	float3 P021 = InputDS[1].pos1;
+	float3 P012 = InputDS[1].pos2;
+	float3 P003 = InputDS[2].pos0;
+	float3 P102 = InputDS[2].pos1;
+	float3 P201 = InputDS[2].pos2;
+
+	float3 pos = EvaluatePNTrianglePosition(gl_TessCoord.xyz, P300, P030, P003, P210, P120, P021, P012, P102, P201, InputConstDS.P111);
+
+	TESSELLATION_SET_DS_POSITION(OutputDS, pos);
+#else
+	float3 pos = INTERPOLATE_MEMBER(pos);
+	INTERPOLATE_VERTEX_PARAM_MEMBER(factoryInterpolants.pos);
+#endif
+
+	TESSELLATION_APPLY_DS_DISPLACEMENT(pos, OutputDS);
+
+	gl_Position = View.worldToClip * float4(pos, 1);
+
+#undef INTERPOLATE_MEMBER
+#undef INTERPOLATE_VERTEX_PARAM_MEMBER
+}
+
+#endif //COMPILER_HLSL
+
+#endif //DOMAIN_SHADER
+
+#endif //USE_TESSELLATION && TESSELLATION_COMMON_IMPLEMENT_TRIANGLE_MAIN

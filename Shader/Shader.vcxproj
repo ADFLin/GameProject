@@ -236,6 +236,7 @@
     <None Include="..\TinyGame\out\Shader\LocalVertexFactory.sgc" />
     <None Include="..\TinyGame\out\Shader\Material.sgc" />
     <None Include="..\TinyGame\out\Shader\MaterialCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\MaterialDefine.sgc" />
     <None Include="..\TinyGame\out\Shader\MaterialProcess.sgc" />
     <None Include="..\TinyGame\out\Shader\MediaShaders.sgc" />
     <None Include="..\TinyGame\out\Shader\MeshCulling.sgc" />
@@ -281,6 +282,7 @@
     <None Include="..\TinyGame\out\Shader\Test\RayTracingTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc" />
     <None Include="..\TinyGame\out\Shader\TexturePreview.sgc" />
+    <None Include="..\TinyGame\out\Shader\TessellationCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightInjection.sgc" />
     <None Include="..\TinyGame\out\Shader\Tonemap.sgc" />

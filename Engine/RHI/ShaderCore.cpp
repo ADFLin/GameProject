@@ -109,7 +109,10 @@ namespace Render
 
 	void MaterialShaderCompileInfo::setup(ShaderCompileOption& option) const
 	{
-		option.addDefine(SHADER_PARAM(MATERIAL_FILENAME) , InlineString<>::Make("\"Material/%s%s\"" , name, SHADER_FILE_SUBNAME) );
+		std::string materialFilePath = GetFilePath(name);
+		materialFilePath += SHADER_FILE_SUBNAME;
+		option.addDefine(SHADER_PARAM(MATERIAL_FILENAME), InlineString<>::Make("\"%s\"", materialFilePath.c_str()));
+		option.addMeta(SHADER_PARAM(MATERIAL_FILENAME), materialFilePath.c_str());
 		switch (tessellationMode)
 		{
 		case ETessellationMode::Flat:

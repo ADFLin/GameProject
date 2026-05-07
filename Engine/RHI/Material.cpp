@@ -154,6 +154,7 @@ namespace Render
 	{
 		for( auto& pair : mShaderMap )
 		{
+			ShaderManager::Get().removeFromShaderCompileMap(*pair.second);
 			delete pair.second;
 		}
 		mShaderMap.clear();

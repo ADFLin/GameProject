@@ -14,8 +14,9 @@
 #define VERTEX_FACTORY_USE_POSITION_ONLY 1
 #endif
 
-#include "MaterialProcess.sgc"
 #include "VertexFactoryProcess.sgc"
+#include "MaterialProcess.sgc"
+
 
 #include "ShadowCommon.sgc"
 

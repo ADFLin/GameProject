@@ -1,8 +1,7 @@
 
-#include "MaterialProcess.sgc"
 #include "VertexFactoryProcess.sgc"
+#include "MaterialProcess.sgc"
 #include "ViewParam.sgc"
-
 
 struct VertexOutputParamVSToPS
 {

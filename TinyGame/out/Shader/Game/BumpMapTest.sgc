@@ -35,12 +35,9 @@ VS_ENTRY_END(MainVS)
 	float3x3 tangentToWorld = float3x3(tangent, binormal, normal);
 #if COMPILER_HLSL
 	tangentToWorld = transpose(tangentToWorld);
+#endif
 	VSOutput.lightOffset = mul(LightPos - worldPos, tangentToWorld);
 	VSOutput.viewOffset = mul(View.worldPos - worldPos, tangentToWorld);
-#else
-	VSOutput.lightOffset = mul(transpose(tangentToWorld), LightPos - worldPos);
-	VSOutput.viewOffset = mul(transpose(tangentToWorld), View.worldPos - worldPos);
-#endif
 
 	VSOutput.UVs = TexCoord0;
 	SvPosition = mul(View.worldToClip, float4(worldPos, 1));

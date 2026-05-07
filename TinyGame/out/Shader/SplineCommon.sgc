@@ -27,12 +27,50 @@
 struct VertexOutputParamHSToDS
 {
 	VertexOutputParamVSToPS vetexParams;
+	float4 pos MEMBER_OUT(TEXCOORD8);
 };
+#endif
+
+#if COMPILER_HLSL
+
+struct SplinePatchConst
+{
+	float edgeTessFactor[2] : SV_TessFactor;
+};
+
 #endif
 
 #if HULL_SHADER
 
 uniform int TessFactor;
+
+#if COMPILER_HLSL
+
+SplinePatchConst MainHSConst(InputPatch<VertexOutputParamVSToPS, 4> InputHS)
+{
+	SplinePatchConst output;
+	output.edgeTessFactor[0] = 1.0;
+	output.edgeTessFactor[1] = float(TessFactor);
+	return output;
+}
+
+[domain("isoline")]
+[partitioning("integer")]
+[outputtopology("line")]
+[outputcontrolpoints(4)]
+[patchconstantfunc("MainHSConst")]
+VertexOutputParamHSToDS MainHS(InputPatch<VertexOutputParamVSToPS, 4> InputHS, uint curIndex : SV_OutputControlPointID)
+{
+	VertexOutputParamHSToDS output;
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+	output.vetexParams = InputHS[curIndex];
+#endif
+	output.pos = InputHS[curIndex].pos;
+	return output;
+}
+
+#else //COMPILER_HLSL
+
 layout(vertices = 4) out;
 
 #if HAVE_VERTEX_OUTPUT_PARAMETERS
@@ -43,11 +81,15 @@ void MainHS()
 {
 #if HAVE_VERTEX_OUTPUT_PARAMETERS
 	OutputHS[gl_InvocationID].vetexParams = InputHS[gl_InvocationID];
+	OutputHS[gl_InvocationID].pos = gl_in[gl_InvocationID].gl_Position;
 #endif
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 	gl_TessLevelOuter[0] = float(1.0f);
 	gl_TessLevelOuter[1] = float(TessFactor);
 }
+
+#endif //COMPILER_HLSL
+
 #endif //HULL_SHADER
 
 #if DOMAIN_SHADER
@@ -65,15 +107,17 @@ float4 SplineParams(float t)
 	return float4(b0, b1, b2, b3);
 #else
 	float t2 = t * t;
-	float4x4 m =
-	{
-		{ 0.0,  2,  0.0,  0.0},
-		{-1,  0.0,  1,  0.0},
-		{ 2, -5,  4, -1},
-		{-1,  3, -3,  1},
-	};
+	float4x4 m = float4x4(
+		 0.0,  2.0,  0.0,  0.0,
+		-1.0,  0.0,  1.0,  0.0,
+		 2.0, -5.0,  4.0, -1.0,
+		-1.0,  3.0, -3.0,  1.0);
 
-	return 0.5 * (  m * float4(1.0, t, t2, t * t2) );
+#if COMPILER_HLSL
+	return 0.5 * mul(m, float4(1.0, t, t2, t * t2));
+#else
+	return 0.5 * (m * float4(1.0, t, t2, t * t2));
+#endif
 #endif
 }
 
@@ -96,6 +140,33 @@ VertexOutputParameters InterpolantParameter(
 #define INTERPOLANT_PARAMETER_MEMBER( RESULT , NAME ) RESULT.NAME = InterpolantParameter(factor, a.NAME, b.NAME, c.NAME, d.NAME);
 #endif
 
+#if COMPILER_HLSL
+
+[domain("isoline")]
+VertexOutputParamVSToPS MainDS(
+	SplinePatchConst InputConstDS,
+	float2 TessCoord : SV_DomainLocation,
+	const OutputPatch<VertexOutputParamHSToDS, 4> InputDS,
+	out float4 SvPosition : SV_POSITION)
+{
+	float u = TessCoord.x;
+	float4 b = SplineParams(u);
+	float4 p0 = InputDS[0].pos;
+	float4 p1 = InputDS[1].pos;
+	float4 p2 = InputDS[2].pos;
+	float4 p3 = InputDS[3].pos;
+
+	SvPosition = InterpolantParameter(b, p0, p1, p2, p3);
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+	return InterpolantParameter(b, InputDS[0].vetexParams, InputDS[1].vetexParams, InputDS[2].vetexParams, InputDS[3].vetexParams);
+#else
+	VertexOutputParamVSToPS output;
+	return output;
+#endif
+}
+
+#else //COMPILER_HLSL
+
 layout(isolines, equal_spacing) in;
 #if HAVE_VERTEX_OUTPUT_PARAMETERS
 in VertexOutputParamHSToDS  InputDS[];
@@ -104,7 +175,6 @@ layout(location = 0) out VertexOutputParamVSToPS OutputDS;
 void MainDS()
 {
 	float u = gl_TessCoord.x;
-	float v = gl_TessCoord.y;
 	// the basis functions:
 	float4 b = SplineParams(u);
 	float4 p0 = gl_in[0].gl_Position;
@@ -117,6 +187,8 @@ void MainDS()
 	OutputDS = InterpolantParameter(b, InputDS[0].vetexParams, InputDS[1].vetexParams, InputDS[2].vetexParams, InputDS[3].vetexParams);
 #endif
 }
+
+#endif //COMPILER_HLSL
 
 #endif //DOMAIN_SHADER
 

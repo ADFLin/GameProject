@@ -8,6 +8,12 @@ struct WaterVertexData
 	float v;
 };
 
+#if COMPILER_HLSL
+DEFINE_STRUCTURED_BUFFER(WaterVertexData, WaterDataInBlock);
+DEFINE_RW_STRUCTURED_BUFFER(WaterVertexData, WaterDataOutBlock);
+#define WaterVertices WaterDataInBlock
+#define OutWaterVertices WaterDataOutBlock
+#else
 layout(std430) buffer WaterDataInBlock
 {
 	readonly WaterVertexData WaterVertices[];
@@ -17,6 +23,7 @@ layout(std430) buffer WaterDataOutBlock
 {
 	WaterVertexData OutWaterVertices[];
 };
+#endif
 
 uniform float4 WaterParam; // dt , c , dumpping
 uniform int TileNum;
@@ -28,7 +35,7 @@ int GetIndex(int2 pos)
 
 int GetClampedIndex( int2 pos )
 {
-	int2 posClamped = clamp(pos , int2(0), int2(TileNum - 1));
+	int2 posClamped = clamp(pos, int2(0, 0), int2(TileNum - 1, TileNum - 1));
 	return GetIndex(posClamped);
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.sgc"
+#include "MaterialDefine.sgc"
 
 #ifndef VEREX_FACTORY_FILENAME
 #define VEREX_FACTORY_FILENAME "VertexFactory.sgc"

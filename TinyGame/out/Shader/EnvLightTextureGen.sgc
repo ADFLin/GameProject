@@ -105,7 +105,7 @@ PS_ENTRY_END(IrradianceGenPS)
 			float2 csTheta;
 			sincos(float(n) * dTheta, csTheta.y, csTheta.x);
 
-			float3 L = normalize(mul(float3(csTheta.y * csPhi, csTheta.x), tangentToWorld));
+			float3 L = normalize(mul(tangentToWorld, float3(csTheta.y * csPhi, csTheta.x)));
 			irradiance += csTheta.x * csTheta.y * GetEnvRadiance(L);
 		}
 	}

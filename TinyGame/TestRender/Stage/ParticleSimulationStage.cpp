@@ -54,9 +54,10 @@ namespace Render
 		void setParameters(RHICommandList& commandList,
 			TStructuredBuffer< ParticleData >& particleBuffer,
 			TStructuredBuffer< ParticleParameters >& paramBuffer,
-			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer)
+			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer,
+			EAccessOp particleAccess = EAccessOp::ReadOnly)
 		{
-			setStructuredStorageBufferT< ParticleData >(commandList, *particleBuffer.getRHI());
+			setStructuredStorageBufferT< ParticleData >(commandList, *particleBuffer.getRHI(), particleAccess);
 			setStructuredUniformBufferT< ParticleInitParameters >(commandList, *paramInitBuffer.getRHI());
 			setStructuredUniformBufferT< ParticleParameters >(commandList, *paramBuffer.getRHI());
 		}
@@ -77,7 +78,7 @@ namespace Render
 			TStructuredBuffer< ParticleParameters >& paramBuffer,
 			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer)
 		{
-			BaseClass::setParameters(commandList, particleBuffer, paramBuffer, paramInitBuffer);
+			BaseClass::setParameters(commandList, particleBuffer, paramBuffer, paramInitBuffer, EAccessOp::WriteOnly);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -115,7 +116,7 @@ namespace Render
 			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer,
 			float deltaTime , int32 numCol )
 		{
-			BaseClass::setParameters(commandList, particleBuffer, paramBuffer, paramInitBuffer);
+			BaseClass::setParameters(commandList, particleBuffer, paramBuffer, paramInitBuffer, EAccessOp::ReadAndWrite);
 			setParam(commandList, mParamDeltaTime, deltaTime);
 			setParam(commandList, mParamNumCollisionPrimitive, numCol);
 		}
@@ -267,6 +268,9 @@ namespace Render
 		{
 			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_TESSELLATION), bEnable);
+			option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), false);
+			option.addDefine(SHADER_PARAM(USE_DISPLACEMENT_MAP), bEnable);
+			option.addDefine(SHADER_PARAM(USE_AUTO_TESSELLATION), false);
 		}
 
 		static char const* GetShaderFileName()
@@ -325,7 +329,7 @@ namespace Render
 		void setParameters(RHICommandList& commandList, Vector4 const& param , int TileNum , RHIBuffer& DataIn , RHIBuffer& DataOut )
 		{
 			setStorageBuffer(commandList, mParamDataIn, DataIn);
-			setStorageBuffer(commandList, mParamDataOut, DataOut);
+			setStorageBuffer(commandList, mParamDataOut, DataOut, EAccessOp::WriteOnly);
 			setParam(commandList, mParamWaterParam, param);
 			setParam(commandList, mParamTileNum, TileNum);
 		}
@@ -371,7 +375,7 @@ namespace Render
 
 		void setParameters(RHICommandList& commandList, int TileNum, RHIBuffer& Data)
 		{
-			setStorageBuffer(commandList, mParamData, Data);
+			setStorageBuffer(commandList, mParamData, Data, EAccessOp::ReadAndWrite);
 			setParam(commandList, mParamTileNum, TileNum);
 		}
 
@@ -456,13 +460,14 @@ namespace Render
 
 		bool initialize()
 		{
-			
+			mPrimitives.clear();
+
 			VERIFY_RETURN_FALSE(mProgInit = ShaderManager::Get().getGlobalShaderT< ParticleInitProgram >(true));
 			VERIFY_RETURN_FALSE(mProgUpdate = ShaderManager::Get().getGlobalShaderT< ParticleUpdateProgram >(true));
 
 			VERIFY_RETURN_FALSE(mProgParticleRender = ShaderManager::Get().getGlobalShaderT< SimpleSpriteParticleProgram >(true));
 
-			VERIFY_RETURN_FALSE(mParticleBuffer.initializeResource(1000));
+			VERIFY_RETURN_FALSE(mParticleBuffer.initializeResource(1000, EStructuredBufferType::RWBuffer));
 			VERIFY_RETURN_FALSE(mInitParamBuffer.initializeResource(1));
 			VERIFY_RETURN_FALSE(mParamBuffer.initializeResource(1));
 
@@ -503,10 +508,8 @@ namespace Render
 					mPrimitives.push_back(primitive);
 				}
 				VERIFY_RETURN_FALSE(mCollisionPrimitiveBuffer.initializeResource(mPrimitives.size()));
-				CollisionPrimitive* pData = mCollisionPrimitiveBuffer.lock();
-				memcpy(pData, &mPrimitives[0], mPrimitives.size() * sizeof(CollisionPrimitive));
-				mCollisionPrimitiveBuffer.unlock();
 
+				mCollisionPrimitiveBuffer.updateBuffer(mPrimitives);
 				return true;
 			}
 		}
@@ -514,17 +517,21 @@ namespace Render
 
 		void initParticleData(RHICommandList& commandList)
 		{
+			RHIResourceTransition(commandList, { mParticleBuffer.getRHI() }, EResourceTransition::UAV);
 			RHISetShaderProgram(commandList, mProgInit->getRHI());
 			mProgInit->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer);
 			RHIDispatchCompute(commandList, mParticleBuffer.getElementNum(), 1, 1);
+			RHIResourceTransition(commandList, { mParticleBuffer.getRHI() }, EResourceTransition::SRV);
 		}
 
 		void updateParticleData(RHICommandList& commandList, float dt)
 		{
+			RHIResourceTransition(commandList, { mParticleBuffer.getRHI() }, EResourceTransition::UAV);
 			RHISetShaderProgram(commandList, mProgUpdate->getRHI());
 			mProgUpdate->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
 			mProgUpdate->setStructuredUniformBufferT<CollisionPrimitive>(commandList, *mCollisionPrimitiveBuffer.getRHI());
 			RHIDispatchCompute(commandList, mParticleBuffer.getElementNum(), 1, 1);
+			RHIResourceTransition(commandList, { mParticleBuffer.getRHI() }, EResourceTransition::SRV);
 		}
 
 		TStructuredBuffer< ParticleInitParameters > mInitParamBuffer;
@@ -536,7 +543,7 @@ namespace Render
 		ParticleUpdateProgram* mProgUpdate;
 		SimpleSpriteParticleProgram* mProgParticleRender;
 
-		std::vector< CollisionPrimitive > mPrimitives;
+		TArray< CollisionPrimitive > mPrimitives;
 	};
 
 
@@ -584,6 +591,25 @@ namespace Render
 			if( !BaseClass::onInit() )
 				return false;
 
+			::Global::GUI().cleanupWidget();
+
+			auto devFrame = WidgetUtility::CreateDevFrame();
+			FWidgetProperty::Bind(devFrame->addSlider("Water Speed"), mWaterSpeed, 0, 10);
+			FWidgetProperty::Bind(devFrame->addSlider("Spline Type"), mSplineType, 0 , 1);
+			devFrame->addText("MaxTess / EdgePx");
+			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 1, 128);
+			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 1, 128);
+			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 128);
+			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
+			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
+			FWidgetProperty::Bind(devFrame->addSlider("DispFactor"), mDispFactor, 0, 10);
+
+			return true;
+		}
+
+		bool setupRenderResource(ERenderSystem systemName) override
+		{
+			VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
 			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 			VERIFY_RETURN_FALSE(GPUParticleData::initialize());
 
@@ -591,64 +617,54 @@ namespace Render
 			VERIFY_RETURN_FALSE(mBaseTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones.bmp"));
 			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones_NM_height.tga"));
 
+			GTextureShowManager.registerTexture("Stone", mBaseTexture);
+			GTextureShowManager.registerTexture("Stone_NH", mNormalTexture);
+
 			VERIFY_RETURN_FALSE(mTexture.isValid());
 			Vector3 v[] =
 			{
-				Vector3(1,1,0),
-				Vector3(-1,1,0) ,
-				Vector3(-1,-1,0),
-				Vector3(1,-1,0),
+				Vector3(1, 1, 0),
+				Vector3(-1, 1, 0),
+				Vector3(-1, -1, 0),
+				Vector3(1, -1, 0),
 			};
-			uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+			uint32 idx[6] = { 0, 2, 1, 0, 3, 2 };
+			mSpherePlane.mInputLayoutDesc.clear();
 			mSpherePlane.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 			VERIFY_RETURN_FALSE(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6));
 
 			VERIFY_RETURN_FALSE(FMeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
-			VERIFY_RETURN_FALSE(FMeshBuild::Tile(mTilePlane, 4, 1, false));
-			VERIFY_RETURN_FALSE(FMeshBuild::CubeShare(mCube,1));
+			VERIFY_RETURN_FALSE(FMeshBuild::Tile(mTilePlane, 8, 1, false));
+			VERIFY_RETURN_FALSE(FMeshBuild::CubeShare(mCube, 1));
 
-			VERIFY_RETURN_FALSE(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum));
-			VERIFY_RETURN_FALSE(mWaterDataBuffers[1].initializeResource(mTileNum * mTileNum));
 			VERIFY_RETURN_FALSE(mProgWaterSimulation = ShaderManager::Get().getGlobalShaderT< WaterSimulationProgram >(true));
 			VERIFY_RETURN_FALSE(mProgWaterUpdateNormal = ShaderManager::Get().getGlobalShaderT< WaterUpdateNormalProgram >(true));
 			VERIFY_RETURN_FALSE(mProgWater = ShaderManager::Get().getGlobalShaderT< WaterProgram >(true));
+
+			std::vector<WaterVertexData> waterData(mTileNum * mTileNum);
 			{
-				auto pWaterData = mWaterDataBuffers[0].lock();
-				for( int i = 0; i < mTileNum * mTileNum; ++i )
+				for (int i = 0; i < mTileNum * mTileNum; ++i)
 				{
 					int x = i % mTileNum;
 					int y = i / mTileNum;
-					pWaterData[i].h = 0;
-					pWaterData[i].v = 0;
+					waterData[i].h = 0;
+					waterData[i].v = 0;
+					waterData[i].normal = Vector2(0, 0);
 
 					float dist = Distance(Vector2(x, y), 0.5 * Vector2(mTileNum, mTileNum));
 #if 0
-					if( dist < 30 )
+					if (dist < 30)
 					{
-						pWaterData[i].h = 10 * ( 30 - dist ) / 30 ;
+						waterData[i].h = 10 * (30 - dist) / 30;
 					}
 #else
-					pWaterData[i].h = 10 * Math::Exp(-Math::Square(dist / 10));
+					waterData[i].h = 10 * Math::Exp(-Math::Square(dist / 10));
 #endif
-					//pWaterData[i].normal = Vector3(0, 0, 1);
 				}
-				mWaterDataBuffers[0].unlock();
 			}
+			VERIFY_RETURN_FALSE(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum, EStructuredBufferType::RWBuffer, BCF_None, waterData.data()));
+			VERIFY_RETURN_FALSE(mWaterDataBuffers[1].initializeResource(mTileNum * mTileNum, EStructuredBufferType::RWBuffer));
 
-
-			Vec2i screenSize = ::Global::GetScreenSize();
-			::Global::GUI().cleanupWidget();
-
-			auto devFrame = WidgetUtility::CreateDevFrame();
-			FWidgetProperty::Bind(devFrame->addSlider("Water Speed"), mWaterSpeed, 0, 10);
-			FWidgetProperty::Bind(devFrame->addSlider("Spline Type"), mSplineType, 0 , 1);
-			devFrame->addText("TessFactor");
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 0, 70);
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 0, 70);
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 70);
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
-			FWidgetProperty::Bind(devFrame->addSlider("DispFactor"), mDispFactor, 0, 10);
 			restart();
 
 			return true;
@@ -673,6 +689,8 @@ namespace Render
 		void upateWaterData(RHICommandList& commandList, float dt)
 		{
 			mIndexWaterBufferUsing = 1 - mIndexWaterBufferUsing;
+			RHIResourceTransition(commandList, { mWaterDataBuffers[1 - mIndexWaterBufferUsing].getRHI() }, EResourceTransition::SRV);
+			RHIResourceTransition(commandList, { mWaterDataBuffers[mIndexWaterBufferUsing].getRHI() }, EResourceTransition::UAV);
 			{
 				RHISetShaderProgram(commandList, mProgWaterSimulation->getRHI());
 				Vector4 waterParam;
@@ -682,12 +700,14 @@ namespace Render
 				mProgWaterSimulation->setParameters(commandList, waterParam, mTileNum, *mWaterDataBuffers[1 - mIndexWaterBufferUsing].getRHI(), *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				RHIDispatchCompute(commandList, mTileNum, mTileNum, 1);
 			}
+			RHIResourceTransition(commandList, { mWaterDataBuffers[mIndexWaterBufferUsing].getRHI() }, EResourceTransition::UAVBarrier);
 			{
 				RHISetShaderProgram(commandList, mProgWaterUpdateNormal->getRHI());
 				mProgWaterUpdateNormal->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				RHIDispatchCompute(commandList, mTileNum, mTileNum, 1);
 
 			}
+			RHIResourceTransition(commandList, { mWaterDataBuffers[mIndexWaterBufferUsing].getRHI() }, EResourceTransition::SRV);
 		}
 		void restart() override 
 		{
@@ -833,10 +853,10 @@ namespace Render
 
 				MyVertex vertices[] =
 				{
-					Vector3(-1, -1,0), Vector3(1, 0, 0), Vector3(-1, -1,1 ).getNormal() , Vector2(0,0),
-					Vector3(1, -1,0), Vector3(0, 1, 0),   Vector3(1, -1,1).getNormal() ,Vector2(1,0),
-					Vector3(-1, 1,0),	Vector3(0, 0, 1),   Vector3(-1, 1,1).getNormal() ,Vector2(0,1),
-					Vector3(1, 1,0),	Vector3(1, 1, 1),   Vector3(1, 1,1).getNormal() ,Vector2(1,1),
+					Vector3(-1, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(0, 0),
+					Vector3( 1, -1, 0), Vector3(0, 1, 0), Vector3(0, 0, 1), Vector2(1, 0),
+					Vector3(-1,  1, 0), Vector3(0, 0, 1), Vector3(0, 0, 1), Vector2(0, 1),
+					Vector3( 1,  1, 0), Vector3(1, 1, 1), Vector3(0, 0, 1), Vector2(1, 1),
 				};
 
 				uint32 indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
@@ -845,8 +865,8 @@ namespace Render
 					bUseTessellation ? EPrimitive::PatchPoint3 : EPrimitive::TriangleList, 
 					vertices, ARRAY_SIZE(vertices) , indices , ARRAY_SIZE(indices) );
 #else
-				//mTilePlane.drawTessellation(commandList);
-				mCube.drawTessellation(commandList,3);
+				mTilePlane.drawTessellation(commandList, 3);
+				//mCube.drawTessellation(commandList,3);
 #endif
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
@@ -854,15 +874,17 @@ namespace Render
 
 
 			{
-				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
+				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
 				RHISetShaderProgram(commandList, mProgParticleRender->getRHI());
 				mView.setupShader(commandList, *mProgParticleRender);
 				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
 				//glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
 
-				RHIDrawPrimitive(commandList, EPrimitive::Points, 0, mParticleBuffer.getElementNum() - 2);
+				RHISetInputStream(commandList, nullptr, nullptr, 0);
+				RHIDrawPrimitive(commandList, EPrimitive::Points, 0, mParticleBuffer.getElementNum());
 			}
 
 

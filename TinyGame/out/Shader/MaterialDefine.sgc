@@ -1,0 +1,10 @@
+#pragma once
+
+#ifndef MATERIAL_FILENAME
+#define MATERIAL_FILENAME "Material.sgc"
+#endif
+
+#ifndef MATERIAL_FILE_INCLUDED
+#define MATERIAL_FILE_INCLUDED 1
+#include MATERIAL_FILENAME
+#endif

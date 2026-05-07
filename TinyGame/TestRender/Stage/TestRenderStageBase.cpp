@@ -88,7 +88,7 @@ namespace Render
 			Vector3(-1,-1,0),
 			Vector3(1,-1,0),
 		};
-		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+		uint32 idx[6] = { 0 , 2 , 1 , 0 , 3 , 2 };
 		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		if( !mSimpleMeshs[SimpleMeshId::SpherePlane].createRHIResource(&v[0], 4, &idx[0], 6) )
 			return false;

@@ -3,8 +3,8 @@
 #include "ViewParam.sgc"
 
 #if USE_MATERIAL
-#include "MaterialProcess.sgc"
 #include "VertexFactoryProcess.sgc"
+#include "MaterialProcess.sgc"
 
 struct PassInterpolantsParam
 {

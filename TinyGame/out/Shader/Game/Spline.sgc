@@ -2,7 +2,8 @@
 
 struct VertexOutputParamVSToPS
 {
-	float3 color;
+	float3 color MEMBER_OUT(TEXCOORD0);
+	float4 pos   MEMBER_OUT(TEXCOORD1);
 };
 
 #define VertexOutputParameters VertexOutputParamVSToPS
@@ -19,6 +20,7 @@ VertexOutputParamVSToPS InterpolantParameter(
 {
 	VertexOutputParamVSToPS result;
 	INTERPOLANT_PARAMETER_MEMBER(result, color);
+	INTERPOLANT_PARAMETER_MEMBER(result, pos);
 
 	return result;
 }
@@ -28,27 +30,30 @@ uniform mat4 XForm;
 
 #if VERTEX_SHADER
 
-layout( location = ATTRIBUTE_POSITION ) in float2 VertexInput_pos;
-layout( location = ATTRIBUTE_COLOR ) in float3 VertexInput_color;
-
-layout(location = 0) out VertexOutputParameters OutputVS;
-
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float2 VertexInput_pos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 VertexInput_color, ATTRIBUTE_COLOR)
+	VS_OUTPUT_STRUCT(VertexOutputParameters OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
 	OutputVS.color = VertexInput_color;
-	gl_Position = XForm * float4( VertexInput_pos.xy , 0 , 1 );
+#if COMPILER_HLSL
+	OutputVS.pos = mul(XForm, float4(VertexInput_pos.xy, 0, 1));
+#else
+	OutputVS.pos = XForm * float4(VertexInput_pos.xy, 0, 1);
+#endif
+	SvPosition = OutputVS.pos;
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-layout(location = 0) in VertexOutputParamVSToPS InputPS;
-
-out float4 OutColor;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VertexOutputParamVSToPS InputPS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
 	OutColor = float4(InputPS.color, 0);
-
 }
 #endif

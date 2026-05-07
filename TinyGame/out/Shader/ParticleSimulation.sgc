@@ -19,7 +19,7 @@
 #include "DeferredShadingCommon.sgc"
 #endif
 
-DEFINE_STRUCTURED_BUFFER(ParticleData, Particles);
+DEFINE_RW_STRUCTURED_BUFFER(ParticleData, Particles);
 
 struct ParticleParameters
 {
@@ -45,28 +45,59 @@ layout(std140) cbuffer ParticleInitParamBlock
 	ParticleInitParameters ParticleInitParam;
 };
 
-void InitParticleData(inout ParticleData particle, in uint index)
+uint ParticleHash(uint value)
 {
-	float3 seed = float3(index);
-	seed = RandVec(seed);
-	//particle.pos = RandRangeSeparate(seed, ParticleInitParam.posMin,ParticleInitParam.posMax);
-	particle.pos = float3(0,0,50);
-	seed = RandVec(seed);
-	particle.velocity = RandRangeSeparate(seed, float3(-10,-10,-5), float3(10, 10, 0));
-	seed = RandVec(seed);
-	particle.color = float4(RandRangeSeparate(seed , float3(0) ,float3(1) ) , 1);
-	seed = RandVec(seed);
-	particle.size = RandRange( seed.x , 10 , 20 );
-	particle.lifeTimeScale = 1.0 / RandRange(seed.y, 7, 10 );
-	particle.lifeTime = 0;
+	value ^= value >> 16;
+	value *= 2246822519u;
+	value ^= value >> 13;
+	value *= 3266489917u;
+	value ^= value >> 16;
+	return value;
 }
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-void MainInitCS()
+float ParticleRandom01(uint index, uint salt)
 {
-	uint indexParticle = gl_GlobalInvocationID.x;
+	return float(ParticleHash(index ^ salt) & 16777215u) / 16777216.0;
+}
 
-	InitParticleData(Particles[indexParticle], indexParticle);
+float3 ParticleRandomVec3(uint index, uint salt)
+{
+	return float3(
+		ParticleRandom01(index, salt),
+		ParticleRandom01(index, salt + 1u),
+		ParticleRandom01(index, salt + 2u));
+}
+
+float ParticleRandomRange(uint index, uint salt, float a, float b)
+{
+	return lerp(a, b, ParticleRandom01(index, salt));
+}
+
+float3 ParticleRandomRange3(uint index, uint salt, float3 a, float3 b)
+{
+	return lerp(a, b, ParticleRandomVec3(index, salt));
+}
+
+void InitParticleData(inout ParticleData particle, in uint index)
+{
+	//particle.pos = RandRangeSeparate(seed, ParticleInitParam.posMin,ParticleInitParam.posMax);
+	particle.pos = float3(0,0,50);
+	particle.velocity = ParticleRandomRange3(index, 11u, float3(-10,-10,-5), float3(10, 10, 0));
+	particle.color = float4(ParticleRandomRange3(index, 23u, float3(0, 0, 0), float3(1, 1, 1)), 1);
+	particle.size = ParticleRandomRange(index, 37u, 10, 20);
+	particle.lifeTimeScale = 1.0 / ParticleRandomRange(index, 41u, 7, 10);
+	particle.lifeTime = 0;
+	particle.dumy = float3(0, 0, 0);
+}
+
+CS_NUM_THREADS(1, 1, 1)
+CS_ENTRY(MainInitCS)
+{
+	uint indexParticle = SvDispatchThreadID.x;
+
+	ParticleData particle;
+	InitParticleData(particle, indexParticle);
+	Particles[indexParticle] = particle;
 }
 
 uniform float DeltaTime;
@@ -79,7 +110,7 @@ struct CollisionPrimitive
 };
 
 
-uniform int NumCollisionPrimitive = 1;
+uniform int NumCollisionPrimitive;
 layout(std140) cbuffer CollisionPrimitiveBlock
 {
 	CollisionPrimitive CollisionPrimitives[10];
@@ -104,12 +135,10 @@ void ResolveCollision( inout float3 pos , inout float3 velocity , float3 normal 
 	velocity += step(1e-5, depth) * bounce( velocity , normal , 0.7 , 0 );
 }
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-void MainUpdateCS()
+CS_NUM_THREADS(1, 1, 1)
+CS_ENTRY(MainUpdateCS)
 {
-	uint indexParticle = gl_GlobalInvocationID.x;
-	if( indexParticle >= ParticleParam.numParticle )
-		return;
+	uint indexParticle = SvDispatchThreadID.x;
 
 	ParticleData particle = Particles[indexParticle];
 #if 0
@@ -123,7 +152,8 @@ void MainUpdateCS()
 
 	if ( lifeTime > 1.0 )
 	{
-		InitParticleData(Particles[indexParticle], indexParticle);
+		InitParticleData(particle, indexParticle);
+		Particles[indexParticle] = particle;
 		return;
 	}
 

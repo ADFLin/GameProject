@@ -155,6 +155,15 @@ float CalcPOMSoftShadowMultiplierInternal(POM_TEXTURE_PARAM(dispTexture), in POM
 #define POMapping(TEX, PARAMETERS, VIEW_VECTOR, UVS) POMappingInternal(POM_TEXTURE_ARG(TEX), PARAMETERS, VIEW_VECTOR, UVS)
 #define CalcPOMSoftShadowMultiplier(TEX, PARAMETERS, LIGHT_VECTOR, POS_UVS, POS_DEPTH) CalcPOMSoftShadowMultiplierInternal(POM_TEXTURE_ARG(TEX), PARAMETERS, LIGHT_VECTOR, POS_UVS, POS_DEPTH)
 
+float3 AdjustPOMTangentNormal(float3 tangentNormal, in POMParameters parameters, float normalScale)
+{
+	float referenceDepth = saturate(parameters.referenceDepth);
+	float referenceScale = max(referenceDepth, 1.0 - referenceDepth) * 2.0;
+	float resolvedNormalScale = normalScale > 0.0 ? normalScale : 1.0;
+	tangentNormal.xy *= resolvedNormalScale * referenceScale;
+	return normalize(tangentNormal);
+}
+
 float CalcPOMCorrectDepth(in POMOutput pomOutput, float3x3 tangentToWorld, float3 viewVectorTangent)
 {
 #if 1

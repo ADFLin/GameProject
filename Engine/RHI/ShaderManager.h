@@ -235,6 +235,8 @@ namespace Render
 		void setupManagedData(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
 			ShaderCompileOption const& option, char const* fileName);
 
+		void addCompileOptionDependencies(ShaderManagedDataBase& managedData, ShaderCompileOption const& option);
+
 		void postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData, ShaderClassType classType);
 
 		uint32          mDefaultVersion;

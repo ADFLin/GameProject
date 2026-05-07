@@ -238,6 +238,9 @@ MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolants
 		float3 tangentZ = normalFactor * worldNormal;
 		float3 tangentY = cross(tangentZ, tangentX);
 		tangentToWorld = float3x3(tangentX, tangentY, tangentZ);
+#if COMPILER_HLSL
+		tangentToWorld = transpose(tangentToWorld);
+#endif
 	}
 	else
 	{

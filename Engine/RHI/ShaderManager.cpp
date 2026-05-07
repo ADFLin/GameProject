@@ -27,6 +27,49 @@ TConsoleVariable< bool > CVarShaderDectectFileModify(true, "Shader.DetectFileMod
 
 namespace Render
 {
+	namespace
+	{
+		bool ExtractDefinedFilePath(char const* value, std::string& outPath)
+		{
+			if (value == nullptr)
+				return false;
+
+			std::string filePath = value;
+			size_t start = filePath.find_first_not_of(" \t\r\n");
+			if (start == std::string::npos)
+				return false;
+
+			size_t end = filePath.find_last_not_of(" \t\r\n");
+			filePath = filePath.substr(start, end - start + 1);
+			if (filePath.size() >= 2 && filePath.front() == '"' && filePath.back() == '"')
+			{
+				filePath = filePath.substr(1, filePath.size() - 2);
+			}
+
+			if (filePath.empty())
+				return false;
+
+			outPath = std::move(filePath);
+			return true;
+		}
+
+		bool IsFullPath(char const* path)
+		{
+			return path[0] == '/' || path[0] == '\\' || (path[0] != 0 && path[1] == ':');
+		}
+
+		void AddIncludeFileDependency(std::unordered_set< HashString >& includeFiles, std::string const& filePath)
+		{
+			for (HashString const& includeFile : includeFiles)
+			{
+				if (FCString::CompareIgnoreCase(includeFile.c_str(), filePath.c_str()) == 0)
+					return;
+			}
+
+			includeFiles.insert(filePath.c_str());
+		}
+	}
+
 	struct ShaderCacheBinaryData
 	{
 	public:
@@ -560,15 +603,8 @@ namespace Render
 
 					if ( managedData )
 					{
-						if (classType == ShaderClassType::Material)
-						{
-							delete managedData;
-						}
-						else
-						{
-							managedData->shaderClass = &shaderObjectClass;
-							managedData->permutationId = permutationId;
-						}
+						managedData->shaderClass = &shaderObjectClass;
+						managedData->permutationId = permutationId;
 					}
 					else
 					{
@@ -590,15 +626,8 @@ namespace Render
 
 					if ( managedData )
 					{
-						if (classType == ShaderClassType::Material)
-						{
-							delete managedData;
-						}
-						else
-						{
-							managedData->shaderClass = &shaderObjectClass;
-							managedData->permutationId = permutationId;
-						}
+						managedData->shaderClass = &shaderObjectClass;
+						managedData->permutationId = permutationId;
 					}
 					else
 					{
@@ -917,6 +946,10 @@ namespace Render
 			case EShaderCompileResult::CodeError:
 				if (context.bAllowRecompile)
 				{
+					if (context.sourceLibrary)
+					{
+						context.sourceLibrary->cleanup();
+					}
 					context.codes.resize(numCodes);
 				}
 				break;
@@ -933,6 +966,11 @@ namespace Render
 	{
 		if ( !RHIIsInitialized() )
 			return false;
+
+		if (bForceReload)
+		{
+			cleanupLoadedSource();
+		}
 
 		TIME_SCOPE("Build Shader Program");
 		
@@ -1052,6 +1090,10 @@ namespace Render
 		if (!RHIIsInitialized())
 			return false;
 
+		if (bForceReload)
+		{
+			cleanupLoadedSource();
+		}
 
 		TIME_SCOPE("Build Shader");
 
@@ -1157,6 +1199,7 @@ namespace Render
 		{
 			managedData.sourceFile = sourceFile;
 		}
+		addCompileOptionDependencies(managedData, option);
 		for( auto const& entry : entries )
 		{
 			std::string defCode;
@@ -1196,6 +1239,7 @@ namespace Render
 		{
 			managedData.sourceFile = sourceFile;
 		}
+		addCompileOptionDependencies(managedData, option);
 		int index = 0;
 		for (auto const& entry : entries)
 		{
@@ -1229,6 +1273,7 @@ namespace Render
 		{
 			managedData.sourceFile = sourceFile;
 		}
+		addCompileOptionDependencies(managedData, option);
 
 		std::string defCode;
 		mShaderFormat->getHeadCode(defCode, option, entry);
@@ -1247,11 +1292,21 @@ namespace Render
 		}
 	}
 
-	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData, ShaderClassType classType)
+	void ShaderManager::addCompileOptionDependencies(ShaderManagedDataBase& managedData, ShaderCompileOption const& option)
 	{
-		if ( classType == ShaderClassType::Material )
+		std::string filePath;
+		if (!ExtractDefinedFilePath(option.getMeta(SHADER_PARAM(MATERIAL_FILENAME)), filePath))
 			return;
 
+		if (!IsFullPath(filePath.c_str()))
+		{
+			filePath = mBaseDir + filePath;
+		}
+		AddIncludeFileDependency(managedData.includeFiles, filePath);
+	}
+
+	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData, ShaderClassType classType)
+	{
 		mShaderDataMap.insert({ &shader , &managedData });
 		if (mAssetViewerReigster && CVarShaderDectectFileModify)
 		{

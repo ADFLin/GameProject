@@ -342,6 +342,8 @@ void WinGdiGraphics2D::endRender()
 void WinGdiGraphics2D::setTargetDC( HDC hDC )
 {
 	mhDCTarget = hDC;
+	if ( mBlendCount == 0 )
+		mhDCRender = hDC;
 	if ( mhDCTarget )
 		::SetBkMode( mhDCTarget , TRANSPARENT );
 }

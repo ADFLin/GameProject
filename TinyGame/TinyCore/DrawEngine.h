@@ -156,6 +156,7 @@ public:
 	TINY_API void  syncFrame();
 	TINY_API bool  beginFrame();
 	TINY_API void  endFrame();
+	TINY_API bool  bitbltPlatformBufferToRHI();
 
 	TINY_API IGraphics2D* createGraphicInterface(Graphics2D& g);
 
@@ -182,6 +183,8 @@ private:
 	BitmapDC    mBufferDC;
 
 	Render::RHISwapChainRef mSwapChain;
+	Render::RHITexture2DRef mPlatformBufferTexture;
+	uint8* mPlatformBufferData = nullptr;
 
 	std::unique_ptr< Graphics2D > mPlatformGraphics;
 

@@ -7,6 +7,7 @@
 
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"
+#include "RHI/RHIGlobalResource.h"
 
 #include "RHI/OpenGLCommand.h"
 #include "Renderer/RenderThread.h"
@@ -88,6 +89,31 @@ namespace
 		}
 		NEVER_REACH("Unknown systemName");
 		return RHISystemName::OpenGL;
+	}
+
+	void DrawTextureToRHIBackBuffer(RHIGraphics2D& g, RHITexture2D& texture, int w, int h)
+	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHISetFrameBuffer(commandList, nullptr);
+		RHISetViewport(commandList, 0, 0, w, h);
+		RHISetScissorRect(commandList, 0, 0, w, h);
+
+		g.setViewportSize(w, h);
+		g.beginRender();
+		g.setBlendState(ESimpleBlendMode::None);
+		g.setSampler(TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+		g.setTexture(texture);
+		g.drawTexture(Vector2(0, 0), Vector2(w, h), Color4f(1, 1, 1, 1));
+		g.endRender();
+	}
+
+	void CopyBGRAWithOpaqueAlpha(uint8* dest, uint8 const* src, size_t size)
+	{
+		FMemory::Copy(dest, src, size);
+		for (size_t index = 3; index < size; index += 4)
+		{
+			dest[index] = 0xff;
+		}
 	}
 };
 
@@ -200,17 +226,15 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 	mWindowProvider = &provider;
 	mGameWindow = &provider.getMainWindow();
 
-	BITMAPINFO bmpInfo;
+	BITMAPINFO bmpInfo = {};
 	bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmpInfo.bmiHeader.biWidth = mGameWindow->getWidth();
-	bmpInfo.bmiHeader.biHeight = mGameWindow->getHeight();
+	bmpInfo.bmiHeader.biHeight = -mGameWindow->getHeight();
 	bmpInfo.bmiHeader.biPlanes = 1;
 	bmpInfo.bmiHeader.biBitCount = 32;
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
-	bmpInfo.bmiHeader.biXPelsPerMeter = 0;
-	bmpInfo.bmiHeader.biYPelsPerMeter = 0;
-	bmpInfo.bmiHeader.biSizeImage = 0;
-	if (!mBufferDC.initialize(getWindow().getHDC(), &bmpInfo))
+	bmpInfo.bmiHeader.biSizeImage = mGameWindow->getWidth() * mGameWindow->getHeight() * 4;
+	if (!mBufferDC.initialize(getWindow().getHDC(), &bmpInfo, (void**)&mPlatformBufferData))
 	{ 
 
 	}
@@ -233,6 +257,7 @@ void DrawEngine::release()
 	}
 
 	mSwapChain.release();
+	mPlatformBufferTexture.release();
 	mPlatformGraphics->releaseReources();
 	if (mRHIGraphics)
 	{
@@ -583,6 +608,7 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 		{
 			mSwapChain.release();
 		}
+		mPlatformBufferTexture.release();
 		RenderUtility::ReleaseRHI();
 		mRHIGraphics->releaseRHI();
 		if (mRHIGraphics_RenderThread)
@@ -752,6 +778,56 @@ void DrawEngine::endFrame()
 	{
 		mBufferDC.bitBltTo(getWindow().getHDC());
 	}
+}
+
+bool DrawEngine::bitbltPlatformBufferToRHI()
+{
+#if SYS_PLATFORM_WIN
+	if (!isRHIEnabled() || !mBufferDC.isValid())
+		return false;
+
+	int const width = mBufferDC.getWidth();
+	int const height = mBufferDC.getHeight();
+
+	if (!mPlatformBufferTexture ||
+		mPlatformBufferTexture->getSizeX() != width ||
+		mPlatformBufferTexture->getSizeY() != height)
+	{
+		mPlatformBufferTexture = RHICreateTexture2D(ETexture::BGRA8, width, height, 1, 1);
+		if (!mPlatformBufferTexture)
+			return false;
+	}
+
+	if (canUseRenderThread())
+	{
+		mRHIGraphics->flush();
+
+		TArray<uint8> pixels;
+		pixels.resize(size_t(width) * height * 4);
+		CopyBGRAWithOpaqueAlpha(pixels.data(), mPlatformBufferData, pixels.size());
+
+		Render::RHITexture2DRef texture = mPlatformBufferTexture;
+		RHIGraphics2D* graphics = mRHIGraphics_RenderThread.get();
+		mActiveCommandList.addCommand("bitbltPlatformBufferToRHI", [texture, pixels = std::move(pixels), graphics, width, height]() mutable
+		{
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHIUpdateTexture(commandList, *texture, 0, 0, width, height, pixels.data(), 0, width);
+			DrawTextureToRHIBackBuffer(*graphics, *texture, width, height);
+		});
+		return true;
+	}
+
+	TArray<uint8> pixels;
+	pixels.resize(size_t(width) * height * 4);
+	CopyBGRAWithOpaqueAlpha(pixels.data(), mPlatformBufferData, pixels.size());
+
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+	RHIUpdateTexture(commandList, *mPlatformBufferTexture, 0, 0, width, height, pixels.data(), 0, width);
+	DrawTextureToRHIBackBuffer(*mRHIGraphics, *mPlatformBufferTexture, width, height);
+	return true;
+#else
+	return false;
+#endif
 }
 
 IGraphics2D* DrawEngine::createGraphicInterface(Graphics2D& g)
@@ -1062,50 +1138,32 @@ void DrawEngine::changetViewportSize(int w, int h)
 		{
 			mSwapChain->resizeBuffer(w, h);
 		}
+		mPlatformBufferTexture.release();
 	}
 }
 
 void DrawEngine::setupBuffer( int w , int h )
 {
+	mPlatformBufferData = nullptr;
 	mBufferDC.release();
 	if ( isRHIEnabled() || true )
 	{
-		int bitsPerPixel = GetDeviceCaps( getWindow().getHDC() , BITSPIXEL );
-
-		switch (bitsPerPixel) 
-		{
-		case 8:
-			/* bmiColors is 256 WORD palette indices */
-			//bmiSize += (256 * sizeof(WORD)) - sizeof(RGBQUAD);
-			break;
-		case 16:
-			/* bmiColors is 3 WORD component masks */
-			//bmiSize += (3 * sizeof(DWORD)) - sizeof(RGBQUAD);
-			break;
-		case 24:
-		case 32:
-		default:
-			/* bmiColors not used */
-			break;
-		}
-
-		BITMAPINFO bmpInfo;
+		BITMAPINFO bmpInfo = {};
 		bmpInfo.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
 		bmpInfo.bmiHeader.biWidth    = w;
-		bmpInfo.bmiHeader.biHeight   = h;
+		bmpInfo.bmiHeader.biHeight   = -h;
 		bmpInfo.bmiHeader.biPlanes   = 1;
-		bmpInfo.bmiHeader.biBitCount = bitsPerPixel;
+		bmpInfo.bmiHeader.biBitCount = 32;
 		bmpInfo.bmiHeader.biCompression = BI_RGB;
-		bmpInfo.bmiHeader.biXPelsPerMeter = 0;
-		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
-		bmpInfo.bmiHeader.biSizeImage = 0;
+		bmpInfo.bmiHeader.biSizeImage = w * h * 4;
 
-		if ( !mBufferDC.initialize( getWindow().getHDC() , &bmpInfo ) )
+		if ( !mBufferDC.initialize( getWindow().getHDC() , &bmpInfo, (void**)&mPlatformBufferData ) )
 			return;
 	}
 	else
 	{
 		mBufferDC.initialize( getWindow().getHDC() , w , h );
+		mPlatformBufferData = nullptr;
 	}
 
 	mPlatformGraphics->setTargetDC( mBufferDC.getHandle() );

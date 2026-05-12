@@ -369,8 +369,6 @@ namespace RenderVulkan
 
 		bool setupRenderResource(ERenderSystem systemName) override
 		{
-			::Global::GetDrawEngine().bUsePlatformBuffer = false;
-
 			//VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
 			//VERIFY_RETURN_FALSE( createWindowSwapchain() );
 			InitBirdge();

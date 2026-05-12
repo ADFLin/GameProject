@@ -462,6 +462,7 @@
     <ClCompile Include="TestMisc\Stage\FractialRenderStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\ImageUpscaaleStage.cpp" />
     <ClCompile Include="TestMisc\Stage\MidlineTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\NumberRecognizerStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp" />

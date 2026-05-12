@@ -145,7 +145,7 @@ namespace Render
 		if (indexBuffer == nullptr)
 			return;
 
-		drawInternal(commandList, EPrimitive((int)EPrimitive::PatchPoint1 + patchPointCount), 0, indexBuffer->getNumElements(), indexBuffer);
+		drawInternal(commandList, EPrimitive((int)EPrimitive::PatchPoint1 + (patchPointCount - 1)), 0, indexBuffer->getNumElements(), indexBuffer);
 	}
 
 

@@ -10,17 +10,27 @@
 
 #include "Math/Transform.h"
 #include "RHI/RHIType.h"
+#include "DataStructure/Array.h"
 
 #include "RefCount.h"
 
 #include "Renderer/SimpleCamera.h"
 #include "Math/PrimitiveTest.h"
+#include "DrawEngine.h"
+#include "Core/Color.h"
 
 namespace SR
 {
 	using namespace Render;
 
 	using XForm = Math::Transform;
+
+
+	Vector3 Reflection(Vector3 InV, Vector3 n)
+	{
+		return InV - (2 * n.dot(InV)) * n;
+	}
+
 	struct Color
 	{
 		union
@@ -41,13 +51,6 @@ namespace SR
 		}
 		Color(Color const& other) :word(other.word) {}
 	};
-
-
-	Vector3 Reflection(Vector3 InV, Vector3 n)
-	{
-		return InV - (2 * n.dot(InV)) * n;
-	}
-
 
 	struct LinearColor
 	{
@@ -149,6 +152,47 @@ namespace SR
 		uint32   mRowStride;
 		uint32*  mData;
 		BitmapDC mBufferDC;
+	};
+
+	class DepthBuffer
+	{
+	public:
+		bool create(Vec2i const& size)
+		{
+			mSize = size;
+			mData.resize(size_t(size.x) * size.y);
+			return mData.size() != 0;
+		}
+
+		void clear(float depth)
+		{
+			std::fill_n(mData.data(), mData.size(), depth);
+		}
+
+		float getDepth(uint32 x, uint32 y) const
+		{
+			return mData[x + mSize.x * y];
+		}
+
+		void setDepth(uint32 x, uint32 y, float depth)
+		{
+			mData[x + mSize.x * y] = depth;
+		}
+
+		bool testAndSet(uint32 x, uint32 y, float depth)
+		{
+			float& value = mData[x + mSize.x * y];
+			if (depth >= value)
+				return false;
+
+			value = depth;
+			return true;
+		}
+
+		Vec2i const& getSize() const { return mSize; }
+
+		Vec2i mSize;
+		TArray<float> mData;
 	};
 
 	struct PixelShaderType
@@ -256,7 +300,15 @@ namespace SR
 
 	struct RenderTarget
 	{
-		ColorBuffer* colorBuffer;
+		ColorBuffer* colorBuffer = nullptr;
+		DepthBuffer* depthBuffer = nullptr;
+	};
+
+	struct RasterVertex
+	{
+		Vector3 pos;
+		LinearColor color;
+		Vector2 uv;
 	};
 
 	class RendererBase
@@ -271,6 +323,8 @@ namespace SR
 		{
 			if( mRenderTarget.colorBuffer )
 				mRenderTarget.colorBuffer->clear(color);
+			if (mRenderTarget.depthBuffer)
+				mRenderTarget.depthBuffer->clear(Math::MaxFloat);
 		}
 	protected:
 		RenderTarget mRenderTarget;
@@ -278,6 +332,12 @@ namespace SR
 	class RasterizedRenderer : public RendererBase
 	{
 	public:
+		enum class ECullMode
+		{
+			None,
+			Back,
+			Front,
+		};
 
 		bool init()
 		{
@@ -291,6 +351,7 @@ namespace SR
 		Vector2 viewportOrg;
 		Vector2 viewportSize;
 		Matrix4 worldToClip;
+		ECullMode cullMode = ECullMode::Back;
 
 		Vector2 toScreenPos(Vector4 clipPos)
 		{
@@ -301,6 +362,16 @@ namespace SR
 						  Vector3 v1, LinearColor color1, Vector2 uv1,
 						  Vector3 v2, LinearColor color2, Vector2 uv2);
 
+		void drawIndexedTriangleList(RasterVertex const* vertices, int numVertices, uint32 const* indices, int numIndices);
+
+		template< class TPixelShader >
+		void drawTrianglePS(Vector3 v0, LinearColor color0, Vector2 uv0,
+						    Vector3 v1, LinearColor color1, Vector2 uv1,
+						    Vector3 v2, LinearColor color2, Vector2 uv2,
+						    TPixelShader const& pixelShader);
+
+		template< class TPixelShader >
+		void drawIndexedTriangleListPS(RasterVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TPixelShader const& pixelShader);
 
 	};
 
@@ -552,13 +623,14 @@ namespace SR
 		using BaseClass = StageBase;
 	public:
 
-		bool bRayTracerUsed = true;
+		bool bRayTracerUsed = false;
 		bool bRender = true;
 
 		RayTraceRenderer   mRTRenderer;
 		RasterizedRenderer mRenderer;
 
 		ColorBuffer mColorBuffer;
+		DepthBuffer mDepthBuffer;
 
 		Scene  mScene;
 		Camera mCamera;
@@ -583,9 +655,10 @@ namespace SR
 
 			if( !bPause )
 			{
-				angle += deltaTime;
+				mElapsedTime += deltaTime;
 				mCameraControl.updatePosition(deltaTime);
 			}
+
 		}
 
 		void renderTest1(RenderTarget& renderTarget);
@@ -596,10 +669,13 @@ namespace SR
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
+			g.beginRender();
+
 			if ( bRender )
 			{
 				RenderTarget renderTarget;
 				renderTarget.colorBuffer = &mColorBuffer;
+				renderTarget.depthBuffer = &mDepthBuffer;
 
 				if (bRayTracerUsed)
 				{
@@ -610,8 +686,17 @@ namespace SR
 					renderTest1(renderTarget);
 				}
 			}
-			
+
+
 			mColorBuffer.draw(g);
+
+			RenderUtility::SetBrush(g, EColor::Red);
+			RenderUtility::SetPen(g, EColor::Red);
+			g.drawRect(Vec2i(0,0), Vec2i(100,100));
+
+			g.endRender();
+
+			::Global::GetDrawEngine().bitbltPlatformBufferToRHI();
 		}
 
 		void restart()
@@ -620,22 +705,28 @@ namespace SR
 		}
 
 		bool bPause = false;
-		float angle = 0;
+		float mElapsedTime = 0;
+		float mCubeRotateYaw = 0;
+		float mCubeRotatePitch = 0;
+		Vec2i mLastMousePos = Vec2i(0, 0);
+		GButton* mPauseButton = nullptr;
+		GText* mTimeText = nullptr;
+
+		void togglePause();
 
 		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			static Vec2i oldPos = msg.getPos();
-
 			if (msg.onLeftDown())
 			{
-				oldPos = msg.getPos();
+				mLastMousePos = msg.getPos();
 			}
 			if (msg.onMoving() && msg.isLeftDown())
 			{
 				float rotateSpeed = 0.01;
-				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
-				mCameraControl.rotateByMouse(off.x, off.y);
-				oldPos = msg.getPos();
+				Vector2 off = rotateSpeed * Vector2(msg.getPos() - mLastMousePos);
+				mCubeRotateYaw += off.x;
+				mCubeRotatePitch += off.y;
+				mLastMousePos = msg.getPos();
 			}
 
 			return BaseClass::onMouse(msg);

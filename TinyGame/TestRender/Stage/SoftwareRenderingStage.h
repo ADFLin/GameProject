@@ -17,6 +17,8 @@
 #include "Renderer/SimpleCamera.h"
 #include "Math/PrimitiveTest.h"
 #include "DrawEngine.h"
+
+#include <type_traits>
 #include "Core/Color.h"
 
 namespace SR
@@ -304,11 +306,80 @@ namespace SR
 		DepthBuffer* depthBuffer = nullptr;
 	};
 
-	struct RasterVertex
+	enum class ECullMode
 	{
-		Vector3 pos;
-		LinearColor color;
-		Vector2 uv;
+		None,
+		Front,
+		Back,
+	};
+
+	template< ECullMode CullMode = ECullMode::Back >
+	struct TRasterizerState
+	{
+		FORCEINLINE static bool ShouldCull(float signedArea)
+		{
+			if constexpr (CullMode == ECullMode::None)
+				return false;
+			if constexpr (CullMode == ECullMode::Front)
+				return signedArea <= 0.0f;
+			else
+				return signedArea >= 0.0f;
+		}
+	};
+
+
+	enum class EDepthFunc
+	{
+		Always,
+		Less,
+	};
+
+	template< EDepthFunc DepthFunc = EDepthFunc::Less, bool bWriteDepth = true >
+	struct TDepthState
+	{
+		static constexpr bool EnableTest = (DepthFunc != EDepthFunc::Always);
+		static constexpr bool EnableWrite = bWriteDepth;
+		static constexpr float ClearValue = Math::MaxFloat;
+
+		FORCEINLINE static bool Pass(float srcDepth, float destDepth)
+		{
+			if constexpr (DepthFunc == EDepthFunc::Always)
+				return true;
+			else
+				return srcDepth < destDepth;
+		}
+	};
+
+	using DepthDisableState = TDepthState< EDepthFunc::Always, false >;
+	using DepthLessWriteState = TDepthState< EDepthFunc::Less, true >;
+
+	enum class EBlendMode
+	{
+		Opaque,
+		Translucent,
+		Add,
+	};
+
+	template< EBlendMode BlendMode = EBlendMode::Opaque >
+	struct TBlendState
+	{
+		static constexpr bool Enable = (BlendMode != EBlendMode::Opaque);
+
+		FORCEINLINE static LinearColor Blend(LinearColor const& src, LinearColor const& dest)
+		{
+			if constexpr (BlendMode == EBlendMode::Opaque)
+			{
+				return src;
+			}
+			else if constexpr (BlendMode == EBlendMode::Translucent)
+			{
+				return Math::LinearLerp(dest, src, src.a);
+			}
+			else
+			{
+				return dest + src;
+			}
+		}
 	};
 
 	class RendererBase
@@ -329,49 +400,74 @@ namespace SR
 	protected:
 		RenderTarget mRenderTarget;
 	};
+
+	template< class TRasterState, class TDepthState, class TBlendState >
+	struct TRenderStatePipeline
+	{
+		using RasterState = TRasterState;
+		using DepthState = TDepthState;
+		using BlendState = TBlendState;
+	};
+
+	using DefaultRasterPipeline = TRenderStatePipeline< TRasterizerState<>, TDepthState<>, TBlendState<> >;
+
 	class RasterizedRenderer : public RendererBase
 	{
 	public:
-		enum class ECullMode
-		{
-			None,
-			Back,
-			Front,
-		};
-
 		bool init()
 		{
-
-
 			return true;
 		}
-
-
 
 		Vector2 viewportOrg;
 		Vector2 viewportSize;
 		Matrix4 worldToClip;
-		ECullMode cullMode = ECullMode::Back;
 
 		Vector2 toScreenPos(Vector4 clipPos)
 		{
 			return viewportOrg + viewportSize.mul(0.5 *Vector2(clipPos.x / clipPos.w, clipPos.y / clipPos.w) + Vector2(0.5, 0.5));
 		}
 
+		template< class TPipeline >
+		void clearBuffer(LinearColor const& color)
+		{
+			if (this->mRenderTarget.colorBuffer)
+				this->mRenderTarget.colorBuffer->clear(color);
+			using TDepthState = typename TPipeline::DepthState;
+			if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+			{
+				if (this->mRenderTarget.depthBuffer)
+					this->mRenderTarget.depthBuffer->clear(TDepthState::ClearValue);
+			}
+		}
+
+		template< class TPipeline >
 		void drawTriangle(Vector3 v0, LinearColor color0, Vector2 uv0,
 						  Vector3 v1, LinearColor color1, Vector2 uv1,
 						  Vector3 v2, LinearColor color2, Vector2 uv2);
 
-		void drawIndexedTriangleList(RasterVertex const* vertices, int numVertices, uint32 const* indices, int numIndices);
+		template< class TPipeline, class TVertex, class TVertexShader >
+		void drawIndexedTriangleList(TVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TVertexShader const& vertexShader);
 
-		template< class TPixelShader >
+		template< class TPipeline, class TPixelShader >
 		void drawTrianglePS(Vector3 v0, LinearColor color0, Vector2 uv0,
 						    Vector3 v1, LinearColor color1, Vector2 uv1,
 						    Vector3 v2, LinearColor color2, Vector2 uv2,
 						    TPixelShader const& pixelShader);
 
-		template< class TPixelShader >
-		void drawIndexedTriangleListPS(RasterVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TPixelShader const& pixelShader);
+		template< class TPipeline, class TVSOutput, class TPixelShader >
+		void drawTrianglePS(Vector4 const& sv0, TVSOutput const& output0,
+						    Vector4 const& sv1, TVSOutput const& output1,
+						    Vector4 const& sv2, TVSOutput const& output2,
+						    TPixelShader const& pixelShader);
+
+		template< class TPipeline, class TVSOutput, class TPixelShader >
+		void drawLinePS(Vector4 const& sv0, TVSOutput const& output0,
+						Vector4 const& sv1, TVSOutput const& output1,
+						TPixelShader const& pixelShader);
+
+		template< class TPipeline, class TVertex, class TVertexShader, class TPixelShader >
+		void drawIndexedTriangleListPS(TVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TVertexShader const& vertexShader, TPixelShader const& pixelShader);
 
 	};
 
@@ -661,43 +757,11 @@ namespace SR
 
 		}
 
+
+		void onRender(float dFrame) override;
+
 		void renderTest1(RenderTarget& renderTarget);
 		void renderTest2(RenderTarget& renderTarget);
-
-	
-		void onRender(float dFrame) override
-		{
-			Graphics2D& g = Global::GetGraphics2D();
-
-			g.beginRender();
-
-			if ( bRender )
-			{
-				RenderTarget renderTarget;
-				renderTarget.colorBuffer = &mColorBuffer;
-				renderTarget.depthBuffer = &mDepthBuffer;
-
-				if (bRayTracerUsed)
-				{
-					renderTest2(renderTarget);
-				}
-				else
-				{
-					renderTest1(renderTarget);
-				}
-			}
-
-
-			mColorBuffer.draw(g);
-
-			RenderUtility::SetBrush(g, EColor::Red);
-			RenderUtility::SetPen(g, EColor::Red);
-			g.drawRect(Vec2i(0,0), Vec2i(100,100));
-
-			g.endRender();
-
-			::Global::GetDrawEngine().bitbltPlatformBufferToRHI();
-		}
 
 		void restart()
 		{

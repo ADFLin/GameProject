@@ -905,10 +905,11 @@ namespace Render
 #endif
 
 		DrawUtility::ScreenRect(commandList);
-		RHISetShaderProgram(commandList, nullptr);
+
 #if USE_SEPARATE_SHADER
 		mCopyTexturePS->clearTexture(commandList, mCopyTexturePS->mParamCopyTexture);
 #else
+		RHISetShaderProgram(commandList, nullptr);
 		mProgCopyTexture->clearTexture(commandList, mProgCopyTexture->mParamCopyTexture);
 #endif
 	}

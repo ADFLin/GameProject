@@ -91,30 +91,18 @@ namespace
 		return RHISystemName::OpenGL;
 	}
 
-	void DrawTextureToRHIBackBuffer(RHIGraphics2D& g, RHITexture2D& texture, int w, int h)
+	void DrawTextureToRHIBackBuffer(RHICommandList& commandList, RHITexture2D& texture, int w, int h)
 	{
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		RHISetFrameBuffer(commandList, nullptr);
 		RHISetViewport(commandList, 0, 0, w, h);
 		RHISetScissorRect(commandList, 0, 0, w, h);
-
-		g.setViewportSize(w, h);
-		g.beginRender();
-		g.setBlendState(ESimpleBlendMode::None);
-		g.setSampler(TStaticSamplerState<ESampler::Point, ESampler::Clamp, ESampler::Clamp>::GetRHI());
-		g.setTexture(texture);
-		g.drawTexture(Vector2(0, 0), Vector2(w, h), Color4f(1, 1, 1, 1));
-		g.endRender();
+		
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		ShaderHelper::Get().copyTextureToBuffer(commandList, texture);
 	}
 
-	void CopyBGRAWithOpaqueAlpha(uint8* dest, uint8 const* src, size_t size)
-	{
-		FMemory::Copy(dest, src, size);
-		for (size_t index = 3; index < size; index += 4)
-		{
-			dest[index] = 0xff;
-		}
-	}
 };
 
 WORD GameWindow::getIcon()
@@ -392,6 +380,8 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI, b
 	{
 		return false;
 	}
+
+	ShaderHelper::Get().init();
 
 	if (bSetupDeferred == false)
 	{
@@ -797,33 +787,31 @@ bool DrawEngine::bitbltPlatformBufferToRHI()
 		if (!mPlatformBufferTexture)
 			return false;
 	}
+	
+	mRHIGraphics->flush();
+
+
 
 	if (canUseRenderThread())
 	{
-		mRHIGraphics->flush();
-
 		TArray<uint8> pixels;
 		pixels.resize(size_t(width) * height * 4);
-		CopyBGRAWithOpaqueAlpha(pixels.data(), mPlatformBufferData, pixels.size());
+		FMemory::Copy(pixels.data(), mPlatformBufferTexture, pixels.size());
 
-		Render::RHITexture2DRef texture = mPlatformBufferTexture;
-		RHIGraphics2D* graphics = mRHIGraphics_RenderThread.get();
-		mActiveCommandList.addCommand("bitbltPlatformBufferToRHI", [texture, pixels = std::move(pixels), graphics, width, height]() mutable
+		RHITexture2DRef texture = mPlatformBufferTexture;
+		mActiveCommandList.addCommand("bitbltPlatformBufferToRHI", [texture, pixels = std::move(pixels), width, height]() mutable
 		{
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHIUpdateTexture(commandList, *texture, 0, 0, width, height, pixels.data(), 0, width);
-			DrawTextureToRHIBackBuffer(*graphics, *texture, width, height);
+			DrawTextureToRHIBackBuffer(commandList, *texture, width, height);
 		});
-		return true;
 	}
-
-	TArray<uint8> pixels;
-	pixels.resize(size_t(width) * height * 4);
-	CopyBGRAWithOpaqueAlpha(pixels.data(), mPlatformBufferData, pixels.size());
-
-	RHICommandList& commandList = RHICommandList::GetImmediateList();
-	RHIUpdateTexture(commandList, *mPlatformBufferTexture, 0, 0, width, height, pixels.data(), 0, width);
-	DrawTextureToRHIBackBuffer(*mRHIGraphics, *mPlatformBufferTexture, width, height);
+	else
+	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHIUpdateTexture(commandList, *mPlatformBufferTexture, 0, 0, width, height, mPlatformBufferData, 0, width);
+		DrawTextureToRHIBackBuffer(commandList, *mPlatformBufferTexture, width, height);
+	}
 	return true;
 #else
 	return false;

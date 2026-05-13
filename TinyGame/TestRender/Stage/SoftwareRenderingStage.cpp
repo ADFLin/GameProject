@@ -86,8 +86,51 @@ namespace SR
 		return mData[pos.x + pos.y * mSize.x];
 	}
 
+	FORCEINLINE Color SampleBilinearFixed(Texture const& tex, float u, float v)
+	{
+		constexpr int FixedBits = 8;
+		constexpr int FixedScale = 1 << FixedBits;
+		constexpr int FixedMask = FixedScale - 1;
+		constexpr int WeightShift = 2 * FixedBits;
+
+		u = Math::Clamp(u, 0.0f, 1.0f);
+		v = Math::Clamp(v, 0.0f, 1.0f);
+
+		int fx = int(u * ((tex.mSize.x - 1) << FixedBits));
+		int fy = int(v * ((tex.mSize.y - 1) << FixedBits));
+
+		int x0 = fx >> FixedBits;
+		int y0 = fy >> FixedBits;
+		int x1 = std::min(x0 + 1, tex.mSize.x - 1);
+		int y1 = std::min(y0 + 1, tex.mSize.y - 1);
+
+		int tx = fx & FixedMask;
+		int ty = fy & FixedMask;
+
+		int w00 = (FixedScale - tx) * (FixedScale - ty);
+		int w10 = tx * (FixedScale - ty);
+		int w01 = (FixedScale - tx) * ty;
+		int w11 = tx * ty;
+
+		Color const* row0 = tex.mData.data() + y0 * tex.mSize.x;
+		Color const* row1 = tex.mData.data() + y1 * tex.mSize.x;
+
+		Color const& c00 = row0[x0];
+		Color const& c10 = row0[x1];
+		Color const& c01 = row1[x0];
+		Color const& c11 = row1[x1];
+
+		Color out;
+		out.r = uint8((c00.r * w00 + c10.r * w10 + c01.r * w01 + c11.r * w11) >> WeightShift);
+		out.g = uint8((c00.g * w00 + c10.g * w10 + c01.g * w01 + c11.g * w11) >> WeightShift);
+		out.b = uint8((c00.b * w00 + c10.b * w10 + c01.b * w01 + c11.b * w11) >> WeightShift);
+		out.a = uint8((c00.a * w00 + c10.a * w10 + c01.a * w01 + c11.a * w11) >> WeightShift);
+		return out;
+	}
+
 	LinearColor Texture::sample(Vector2 const& UV) const
 	{
+#if 0
 		float u = Math::Clamp<float>(UV.x, 0.0f, 1.0f) * (mSize.x - 1);
 		float v = Math::Clamp<float>(UV.y, 0.0f, 1.0f) * (mSize.y - 1);
 
@@ -121,6 +164,9 @@ namespace SR
 			Inv255 * (w00 * c00.g + w10 * c10.g + w01 * c01.g + w11 * c11.g),
 			Inv255 * (w00 * c00.b + w10 * c10.b + w01 * c01.b + w11 * c11.b),
 			Inv255 * (w00 * c00.a + w10 * c10.a + w01 * c01.a + w11 * c11.a));
+#else
+		return SampleBilinearFixed(*this, UV.x, UV.y);
+#endif
 	}
 
 
@@ -168,128 +214,141 @@ namespace SR
 #endif
 	}
 
-	template< class T , class TVertexData, T TVertexData::*Member >
-	struct TDataLerpParams
+	struct DefaultVSOutput
 	{
-		T wv0;
-		T dwv;
-
-		TDataLerpParams(TVertexData const& v0, TVertexData const& v1)
-		{
-			wv0 =   v0.w * (v0.*Member);
-			T temp = v1.w * (v1.*Member);
-			dwv = temp - wv0;
-		}
-
-		void lerpTo(TVertexData& to, float wInv , float alpha_w)
-		{
-			(to.*Member) = wInv * wv0 + (alpha_w) * dwv;
-		}
-	};
-
-	struct VertexData
-	{
-		float    w;
-		float    depth;
 		Vector2  uv;
 		LinearColor color;
 	};
 
 	struct VertexColorPixelShader
 	{
-		FORCEINLINE LinearColor operator()(VertexData const& input) const
+		using Input = DefaultVSOutput;
+
+		FORCEINLINE LinearColor operator()(Input const& input) const
 		{
 			return input.color;
 		}
 	};
 
-	struct VertexLerpParams
+	template< typename TVertexData >
+	struct TVertexLerpParams
 	{
-		TDataLerpParams<Vector2, VertexData, &VertexData::uv > uv;
-		TDataLerpParams<LinearColor, VertexData, &VertexData::color > color;
+		static_assert(sizeof(TVertexData) % sizeof(float) == 0, "TVertexData must be float-packed");
+
+		static constexpr int NumParams = sizeof(TVertexData) / sizeof(float);
 
 		float w0;
 		float dw;
-		float depth0;
-		float dDepth;
+		float wv0[NumParams];
+		float dwv[NumParams];
 
-		VertexLerpParams(VertexData const& v0, VertexData const& v1)
-			:uv(v0, v1)
-			,color(v0, v1)
+		TVertexLerpParams(TVertexData const& v0, TVertexData const& v1, float inW0, float inW1)
 		{
-			w0 = v0.w;
-			dw = v1.w - v0.w;
-			depth0 = v0.depth;
-			dDepth = v1.depth - v0.depth;
+			float const* p0 = reinterpret_cast<float const*>(&v0);
+			float const* p1 = reinterpret_cast<float const*>(&v1);
+
+			w0 = inW0;
+			dw = inW1 - inW0;
+
+			for (int i = 0; i < NumParams; ++i)
+			{
+				wv0[i] = inW0 * p0[i];
+				dwv[i] = inW1 * p1[i] - wv0[i];
+			}
 		}
 
-		void perspectiveLerp(VertexData& outData, float alpha)
+		void perspectiveLerp(TVertexData& outData, float alpha, float& outW) const
 		{
-			outData.w = w0 + alpha * dw;
-			outData.depth = depth0 + alpha * dDepth;
-			float wInv = 1.0 / outData.w;
-			float alpha_w = alpha * wInv;
-			uv.lerpTo(outData, wInv, alpha_w);
-			color.lerpTo(outData, wInv, alpha_w);
+			float* pOut = reinterpret_cast<float*>(&outData);
+
+			outW = w0 + alpha * dw;
+			float const wInv = 1.0f / outW;
+			float const alphaW = alpha * wInv;
+
+			for (int i = 0; i < NumParams; ++i)
+			{
+				pOut[i] = wInv * wv0[i] + alphaW * dwv[i];
+			}
 		}
 	};
 
-	struct VertexLerpStepper
+	template< typename TVertexData >
+	struct TVertexLerpStepper
 	{
+		static_assert(sizeof(TVertexData) % sizeof(float) == 0, "TVertexData must be float-packed");
+
+		static constexpr int NumParams = sizeof(TVertexData) / sizeof(float);
+
 		float w;
 		float dw;
 		float depth;
 		float dDepth;
-		Vector2 uvW;
-		Vector2 duvW;
-		LinearColor colorW;
-		LinearColor dColorW;
 
-		VertexLerpStepper(VertexLerpParams const& params, float alpha, float dAlpha)
+		float paramW[NumParams];
+		float dParamW[NumParams];
+
+		TVertexLerpStepper(TVertexLerpParams<TVertexData> const& params, float alpha, float dAlpha, float depth0, float dDepthIn)
 		{
 			w = params.w0 + alpha * params.dw;
 			dw = dAlpha * params.dw;
-			depth = params.depth0 + alpha * params.dDepth;
-			dDepth = dAlpha * params.dDepth;
-			uvW = params.uv.wv0 + alpha * params.uv.dwv;
-			duvW = dAlpha * params.uv.dwv;
-			colorW = params.color.wv0 + alpha * params.color.dwv;
-			dColorW = dAlpha * params.color.dwv;
+			depth = depth0 + alpha * dDepthIn;
+			dDepth = dAlpha * dDepthIn;
+			for (int i = 0; i < NumParams; ++i)
+			{
+				paramW[i] = params.wv0[i] + alpha * params.dwv[i];
+				dParamW[i] = dAlpha * params.dwv[i];
+			}
 		}
 
-		FORCEINLINE void get(VertexData& outData) const
+		FORCEINLINE void get(TVertexData& outData) const
 		{
-			float wInv = 1.0f / w;
-			outData.w = w;
-			outData.depth = depth;
-			outData.uv = wInv * uvW;
-			outData.color = wInv * colorW;
+			float* pOut = reinterpret_cast<float*>(&outData);
+			float const wInv = 1.0f / w;
+
+			for (int i = 0; i < NumParams; ++i)
+			{
+				pOut[i] = wInv * paramW[i];
+			}
 		}
 
 		FORCEINLINE void advance()
 		{
 			w += dw;
 			depth += dDepth;
-			uvW += duvW;
-			colorW += dColorW;
+			for (int i = 0; i < NumParams; ++i)
+			{
+				paramW[i] += dParamW[i];
+			}
 		}
 	};
 
-	VertexData PerspectiveLerp(VertexData const& v0, VertexData const& v1, float alpha)
+	template< typename TVSOutput >
+	TVSOutput PerspectiveLerp(TVSOutput const& v0, TVSOutput const& v1, float w0, float w1, float alpha)
 	{
-		VertexData result;
-		result.w = Math::Lerp(v0.w, v1.w, alpha);
-		result.depth = Math::Lerp(v0.depth, v1.depth, alpha);
-		result.uv = PerspectiveLerp(v0.uv, v1.uv, v0.w, v1.w, result.w, alpha);
-		result.color = PerspectiveLerp(v0.color, v1.color, v0.w, v1.w, result.w, alpha);
+		TVertexLerpParams<TVSOutput> lerpParams(v0, v1, w0, w1);
+		TVSOutput result;
+		float w;
+		lerpParams.perspectiveLerp(result, alpha, w);
 		return result;
 	}
 
-
-#if 1
-	template< class TPixelShader >
-	void ClipAndInterpolantColor(ColorBuffer& buffer, DepthBuffer* depthBuffer, ScanLineIterator& lineIter, VertexData const& vL, VertexData const& vR, VertexData const& vS, bool bInverse, TPixelShader const& pixelShader)
+	struct RasterPosition
 	{
+		Vector2 screenPos;
+		float w;
+		float depth;
+	};
+
+	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
+	void ClipAndInterpolantColor(ColorBuffer& buffer, DepthBuffer* depthBuffer, ScanLineIterator& lineIter,
+								 RasterPosition const& pL, TVSOutput const& vL,
+								 RasterPosition const& pR, TVSOutput const& vR,
+								 RasterPosition const& pS, TVSOutput const& vS,
+								 bool bInverse, TPixelShader const& pixelShader)
+	{
+		using LerpParams = TVertexLerpParams<TVSOutput>;
+		using LerpStepper = TVertexLerpStepper<TVSOutput>;
+
 		Vec2i size = buffer.getSize();
 
 		if (lineIter.yStart < 0)
@@ -308,8 +367,12 @@ namespace SR
 				ay = 1 + (lineIter.yStart + 0.5f - lineIter.yMin) * day;
 			}
 
-			VertexLerpParams lerpParamsMin(vL, vS);
-			VertexLerpParams lerpParamsMax(vR, vS);
+			LerpParams lerpParamsMin(vL, vS, pL.w, pS.w);
+			LerpParams lerpParamsMax(vR, vS, pR.w, pS.w);
+			float depthMin0 = pL.depth;
+			float dDepthMin = pS.depth - pL.depth;
+			float depthMax0 = pR.depth;
+			float dDepthMax = pS.depth - pR.depth;
 
 			for (int y = lineIter.yStart; y < lineIter.yEnd; ++y)
 			{
@@ -327,25 +390,47 @@ namespace SR
 
 				if (xStart < xEnd)
 				{
-					VertexData vMin;
-					lerpParamsMin.perspectiveLerp(vMin, ay);
-					VertexData vMax;
-					lerpParamsMax.perspectiveLerp(vMax, ay);
+					TVSOutput vMin;
+					float wMin;
+					lerpParamsMin.perspectiveLerp(vMin, ay, wMin);
+					TVSOutput vMax;
+					float wMax;
+					lerpParamsMax.perspectiveLerp(vMax, ay, wMax);
+					float depthMin = depthMin0 + ay * dDepthMin;
+					float depthMax = depthMax0 + ay * dDepthMax;
 
 					float dax = 1 / (lineIter.xMax - lineIter.xMin);
 					float ax = (xStart + 0.5f - lineIter.xMin) * dax;
 
-					VertexLerpParams lerpParamsX( vMin , vMax );
-					VertexLerpStepper lerpStepperX(lerpParamsX, ax, dax);
+					LerpParams lerpParamsX(vMin, vMax, wMin, wMax);
+					LerpStepper lerpStepperX(lerpParamsX, ax, dax, depthMin, depthMax - depthMin);
 
-					VertexData v;
+					TVSOutput v;
 					for (int x = xStart; x < xEnd; ++x)
 					{
 						lerpStepperX.get(v);
-						if (depthBuffer == nullptr || depthBuffer->testAndSet(x, y, v.depth))
+						bool bPassDepth = true;
+						if constexpr (TDepthState::EnableTest)
 						{
-							LinearColor destC = buffer.getPixel(x, y);
-							buffer.setPixel(x, y, Math::LinearLerp(destC, pixelShader(v), 1.0));
+							if (depthBuffer)
+								bPassDepth = TDepthState::Pass(lerpStepperX.depth, depthBuffer->getDepth(x, y));
+						}
+
+						if (bPassDepth)
+						{
+							LinearColor srcC = pixelShader(v);
+							LinearColor outC = srcC;
+							if constexpr (TBlendState::Enable)
+							{
+								LinearColor destC = buffer.getPixel(x, y);
+								outC = TBlendState::Blend(srcC, destC);
+							}
+							buffer.setPixel(x, y, outC);
+							if constexpr (TDepthState::EnableWrite)
+							{
+								if (depthBuffer)
+									depthBuffer->setDepth(x, y, lerpStepperX.depth);
+							}
 						}
 						lerpStepperX.advance();
 					}
@@ -356,101 +441,48 @@ namespace SR
 		}
 	}
 
-#else
 
-	void ClipAndInterpolantColor(ColorBuffer& buffer, ScanLineIterator& lineIter, VertexData const& vL, VertexData const& vR, VertexData const& vS, bool bInverse)
-	{
-
-		Vec2i size = buffer.getSize();
-
-		if( lineIter.yStart < 0 )
-			lineIter.yStart = 0;
-		if( lineIter.yEnd > size.y )
-			lineIter.yEnd = size.y;
-
-		if( lineIter.yStart < lineIter.yEnd )
-		{
-			float day = 1 / (lineIter.yMax - lineIter.yMin);
-			float ay = 0;
-			if (bInverse)
-			{
-				day = -day;
-				ay = 1;
-			}
-
-			for( int y = lineIter.yStart; y < lineIter.yEnd; ++y )
-			{
-
-				int xStart = PixelCut(lineIter.xMin);
-				if( xStart < 0 )
-					xStart = 0;
-				int xEnd = PixelCut(lineIter.xMax) + 1;
-				if( xEnd > size.x )
-					xEnd = size.x;
-
-				if( xStart < xEnd )
-				{
-					VertexData vMin = PerspectiveLerp(vL, vS, ay);
-					VertexData vMax = PerspectiveLerp(vR, vS, ay);
-
-					float dax = 1 / (lineIter.xMax - lineIter.xMin);
-					float ax = 0;
-					for( int x = xStart; x < xEnd; ++x )
-					{
-						VertexData v = PerspectiveLerp(vMin, vMax, ax);
-#if 0
-
-						if( Math::Fmod(10 * v.uv.x, 1.0) > 0.5 &&
-						    Math::Fmod(10 * v.uv.y, 1.0) > 0.5 )
-							buffer.setPixel(x, y, LinearColor(1, 1, 1, 1));
-#else
-						LinearColor destC = buffer.getPixel(x, y);
-						buffer.setPixel(x, y, Math::LinearLerp(destC, v.color * simpleTexture.sample(v.uv), 0.8));
-#endif
-						ax += dax;
-					}
-				}
-				lineIter.advance();
-				ay += day;
-			}
-		}
-	}
-#endif
-
-
-
-	template< class TPixelShader >
-	void DrawTrianglePS(ColorBuffer& buffer, DepthBuffer* depthBuffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2,
-					    VertexData const& vd0, VertexData const& vd1, VertexData const& vd2,
+	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
+	void DrawTrianglePS(ColorBuffer& buffer, DepthBuffer* depthBuffer,
+						RasterPosition const& p0, RasterPosition const& p1, RasterPosition const& p2,
+					    TVSOutput const& vd0, TVSOutput const& vd1, TVSOutput const& vd2,
 					    TPixelShader const& pixelShader)
 	{
 		Vector2 maxV, minV, midV;
-		VertexData const* maxVD;
-		VertexData const* minVD;
-		VertexData const* midVD;
-		if( v0.y > v1.y )
+		RasterPosition const* maxP;
+		RasterPosition const* minP;
+		RasterPosition const* midP;
+		TVSOutput const* maxVD;
+		TVSOutput const* minVD;
+		TVSOutput const* midVD;
+		if( p0.screenPos.y > p1.screenPos.y )
 		{
-			minV = v1; maxV = v0;
+			minV = p1.screenPos; maxV = p0.screenPos;
+			minP = &p1; maxP = &p0;
 			minVD = &vd1, maxVD = &vd0;
 		}
 		else
 		{
-			minV = v0; maxV = v1;
+			minV = p0.screenPos; maxV = p1.screenPos;
+			minP = &p0; maxP = &p1;
 			minVD = &vd0, maxVD = &vd1;
 		}
-		if( v2.y > maxV.y )
+		if( p2.screenPos.y > maxV.y )
 		{
-			midV = maxV; maxV = v2;
+			midV = maxV; maxV = p2.screenPos;
+			midP = maxP; maxP = &p2;
 			midVD = maxVD; maxVD = &vd2;
 		}
-		else if( v2.y < minV.y )
+		else if( p2.screenPos.y < minV.y )
 		{
-			midV = minV; minV = v2;
+			midV = minV; minV = p2.screenPos;
+			midP = minP; minP = &p2;
 			midVD = minVD; minVD = &vd2;
 		}
 		else
 		{
-			midV = v2;
+			midV = p2.screenPos;
+			midP = &p2;
 			midVD = &vd2;
 		}
 
@@ -466,7 +498,12 @@ namespace SR
 		float dxdy = delta.x / delta.y;
 
 		Vector2 deltaB = midV - minV;
-		VertexData pVD = PerspectiveLerp(*minVD, *maxVD, deltaB.y / delta.y);
+		float splitAlpha = deltaB.y / delta.y;
+		RasterPosition splitP;
+		splitP.screenPos = minV + splitAlpha * delta;
+		splitP.w = Math::Lerp(minP->w, maxP->w, splitAlpha);
+		splitP.depth = Math::Lerp(minP->depth, maxP->depth, splitAlpha);
+		TVSOutput pVD = PerspectiveLerp(*minVD, *maxVD, minP->w, maxP->w, splitAlpha);
 		if( Math::Abs(deltaB.y) > RasterEpsilon )
 		{
 			float dxdySide = deltaB.x / deltaB.y;
@@ -490,7 +527,7 @@ namespace SR
 					lineIter.dxdyMax = dxdy;
 					lineIter.xMin = xSide;
 					lineIter.xMax = xLong;
-					ClipAndInterpolantColor(buffer, depthBuffer, lineIter, *midVD, pVD, *minVD, true, pixelShader);
+					ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, *midP, *midVD, splitP, pVD, *minP, *minVD, true, pixelShader);
 				}
 				else
 				{
@@ -498,7 +535,7 @@ namespace SR
 					lineIter.dxdyMin = dxdy;
 					lineIter.xMax = xSide;
 					lineIter.xMin = xLong;
-					ClipAndInterpolantColor(buffer, depthBuffer, lineIter, pVD, *midVD, *minVD, true, pixelShader);
+					ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, splitP, pVD, *midP, *midVD, *minP, *minVD, true, pixelShader);
 				}
 			}
 
@@ -529,7 +566,7 @@ namespace SR
 				lineIter.dxdyMax = dxdy;
 				lineIter.xMin = xSide;
 				lineIter.xMax = xLong;
-				ClipAndInterpolantColor(buffer, depthBuffer, lineIter, *midVD, pVD, *maxVD, false, pixelShader);
+				ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, *midP, *midVD, splitP, pVD, *maxP, *maxVD, false, pixelShader);
 			}
 			else
 			{
@@ -537,15 +574,19 @@ namespace SR
 				lineIter.dxdyMin = dxdy;
 				lineIter.xMax = xSide;
 				lineIter.xMin = xLong;
-				ClipAndInterpolantColor(buffer, depthBuffer, lineIter, pVD, *midVD, *maxVD, false, pixelShader);
+				ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, splitP, pVD, *midP, *midVD, *maxP, *maxVD, false, pixelShader);
 			}
 		}
 	}
 
+	template< class TVSOutput >
 	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2,
-					  VertexData const& vd0, VertexData const& vd1, VertexData const& vd2)
+					  TVSOutput const& vd0, TVSOutput const& vd1, TVSOutput const& vd2)
 	{
-		DrawTrianglePS(buffer, nullptr, v0, v1, v2, vd0, vd1, vd2, VertexColorPixelShader{});
+		RasterPosition p0 = { v0, 1.0f, 0.0f };
+		RasterPosition p1 = { v1, 1.0f, 0.0f };
+		RasterPosition p2 = { v2, 1.0f, 0.0f };
+		DrawTrianglePS<DepthDisableState, OpaqueBlendState>(buffer, nullptr, p0, p1, p2, vd0, vd1, vd2, VertexColorPixelShader{});
 	}
 
 	void ClipAndFillColor(ColorBuffer& buffer, ScanLineIterator& lineIter, Color const& color)
@@ -676,6 +717,7 @@ namespace SR
 			int x = Math::FloorToInt(from.x);
 			int y = Math::FloorToInt(from.y);
 			buffer.setPixelCheck(x, y, color);
+			return;
 		}
 
 		// #TODO : Clip line first
@@ -731,70 +773,104 @@ namespace SR
 		}
 	}
 
+	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
+	void DrawLinePS(ColorBuffer& buffer, DepthBuffer* depthBuffer, RasterPosition const& p0, RasterPosition const& p1, TVSOutput const& output0, TVSOutput const& output1, TPixelShader const& pixelShader);
 
 
-	template< class TPixelShader >
+
+	template< class TPipeline , class TPixelShader >
 	void RasterizedRenderer::drawTrianglePS(Vector3 v0, LinearColor color0, Vector2 uv0, Vector3 v1, LinearColor color1, Vector2 uv1, Vector3 v2, LinearColor color2, Vector2 uv2, TPixelShader const& pixelShader)
 	{
-		Vector4 clip0 = Vector4(v0, 1) * worldToClip;
-		Vector4 clip1 = Vector4(v1, 1) * worldToClip;
-		Vector4 clip2 = Vector4(v2, 1) * worldToClip;
+		DefaultVSOutput output0;
+		output0.uv = uv0;
+		output0.color = color0;
+
+		DefaultVSOutput output1;
+		output1.uv = uv1;
+		output1.color = color1;
+
+		DefaultVSOutput output2;
+		output2.uv = uv2;
+		output2.color = color2;
+
+		drawTrianglePS<TPipeline>(
+			Vector4(v0, 1) * worldToClip, output0,
+			Vector4(v1, 1) * worldToClip, output1,
+			Vector4(v2, 1) * worldToClip, output2,
+			pixelShader);
+	}
+
+	template< class TPipeline , class TVSOutput , class TPixelShader >
+	void RasterizedRenderer::drawTrianglePS(Vector4 const& sv0, TVSOutput const& output0, Vector4 const& sv1, TVSOutput const& output1, Vector4 const& sv2, TVSOutput const& output2, TPixelShader const& pixelShader)
+	{
+		using TRasterState = typename TPipeline::RasterState;
+		using TDepthState = typename TPipeline::DepthState;
+		using TBlendState = typename TPipeline::BlendState;
+
+		Vector4 const& clip0 = sv0;
+		Vector4 const& clip1 = sv1;
+		Vector4 const& clip2 = sv2;
 
 		if (clip0.w <= 0.01f || clip1.w <= 0.01f || clip2.w <= 0.01f)
 			return;
 
-		Vector2 screen0 = toScreenPos(clip0);
-		Vector2 screen1 = toScreenPos(clip1);
-		Vector2 screen2 = toScreenPos(clip2);
+		RasterPosition p0;
+		p0.screenPos = toScreenPos(clip0);
+		p0.w = 1.0f / clip0.w;
+		p0.depth = clip0.z / clip0.w;
 
-		float signedArea = (screen1 - screen0).cross(screen2 - screen0);
+		RasterPosition p1;
+		p1.screenPos = toScreenPos(clip1);
+		p1.w = 1.0f / clip1.w;
+		p1.depth = clip1.z / clip1.w;
+
+		RasterPosition p2;
+		p2.screenPos = toScreenPos(clip2);
+		p2.w = 1.0f / clip2.w;
+		p2.depth = clip2.z / clip2.w;
+
+		float signedArea = (p1.screenPos - p0.screenPos).cross(p2.screenPos - p0.screenPos);
 		if (Math::Abs(signedArea) < 1e-4f)
 			return;
 
-		switch (cullMode)
-		{
-		case ECullMode::Back:
-			if (signedArea >= 0)
-				return;
-			break;
-		case ECullMode::Front:
-			if (signedArea <= 0)
-				return;
-			break;
-		default:
-			break;
-		}
+		if (TRasterState::ShouldCull(signedArea))
+			return;
 
-		VertexData vd0;
-		vd0.uv = uv0;
-		vd0.w = 1.0 / clip0.w;
-		vd0.depth = clip0.z / clip0.w;
-		vd0.color = color0;
-
-		VertexData vd1;
-		vd1.uv = uv1;
-		vd1.w = 1.0 / clip1.w;
-		vd1.depth = clip1.z / clip1.w;
-		vd1.color = color1;
-
-		VertexData vd2;
-		vd2.uv = uv2;
-		vd2.w = 1.0 / clip2.w;
-		vd2.depth = clip2.z / clip2.w;
-		vd2.color = color2;
-
-		DrawTrianglePS(*mRenderTarget.colorBuffer, mRenderTarget.depthBuffer, screen0, screen1, screen2, vd0, vd1, vd2, pixelShader);
+		DrawTrianglePS<TDepthState, TBlendState>(*this->mRenderTarget.colorBuffer, this->mRenderTarget.depthBuffer, p0, p1, p2, output0, output1, output2, pixelShader);
 	}
 
+	template< class TPipeline >
 	void RasterizedRenderer::drawTriangle(Vector3 v0, LinearColor color0, Vector2 uv0, Vector3 v1, LinearColor color1, Vector2 uv1, Vector3 v2, LinearColor color2, Vector2 uv2)
 	{
-		drawTrianglePS(v0, color0, uv0, v1, color1, uv1, v2, color2, uv2, VertexColorPixelShader{});
+		drawTrianglePS<TPipeline>(v0, color0, uv0, v1, color1, uv1, v2, color2, uv2, VertexColorPixelShader{});
 	}
 
-	template< class TPixelShader >
-	void RasterizedRenderer::drawIndexedTriangleListPS(RasterVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TPixelShader const& pixelShader)
+	template< class TPipeline, class TVSOutput, class TPixelShader >
+	void RasterizedRenderer::drawLinePS(Vector4 const& sv0, TVSOutput const& output0, Vector4 const& sv1, TVSOutput const& output1, TPixelShader const& pixelShader)
 	{
-		if (mRenderTarget.colorBuffer == nullptr || vertices == nullptr || indices == nullptr)
+		using TDepthState = typename TPipeline::DepthState;
+		using TBlendState = typename TPipeline::BlendState;
+
+		if (sv0.w <= 0.01f || sv1.w <= 0.01f)
+			return;
+
+		RasterPosition p0;
+		p0.screenPos = toScreenPos(sv0);
+		p0.w = 1.0f / sv0.w;
+		p0.depth = sv0.z / sv0.w;
+
+		RasterPosition p1;
+		p1.screenPos = toScreenPos(sv1);
+		p1.w = 1.0f / sv1.w;
+		p1.depth = sv1.z / sv1.w;
+
+		DrawLinePS<TDepthState, TBlendState>(*this->mRenderTarget.colorBuffer, this->mRenderTarget.depthBuffer, p0, p1, output0, output1, pixelShader);
+	}
+
+	template< class TPipeline, class TVertex, class TVertexShader, class TPixelShader >
+	void RasterizedRenderer::drawIndexedTriangleListPS(TVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TVertexShader const& vertexShader, TPixelShader const& pixelShader)
+	{
+		if (vertices == nullptr || indices == nullptr)
 			return;
 
 		int const numValidIndices = numIndices - numIndices % 3;
@@ -807,19 +883,105 @@ namespace SR
 			if (index0 >= uint32(numVertices) || index1 >= uint32(numVertices) || index2 >= uint32(numVertices))
 				continue;
 
-			RasterVertex const& v0 = vertices[index0];
-			RasterVertex const& v1 = vertices[index1];
-			RasterVertex const& v2 = vertices[index2];
-			drawTrianglePS(v0.pos, v0.color, v0.uv,
-						   v1.pos, v1.color, v1.uv,
-						   v2.pos, v2.color, v2.uv,
-						   pixelShader);
+			auto v0 = vertexShader(vertices[index0]);
+			auto v1 = vertexShader(vertices[index1]);
+			auto v2 = vertexShader(vertices[index2]);
+			drawTrianglePS<TPipeline>(v0.svPosition, v0.output,
+									  v1.svPosition, v1.output,
+									  v2.svPosition, v2.output,
+									  pixelShader);
 		}
 	}
 
-	void RasterizedRenderer::drawIndexedTriangleList(RasterVertex const* vertices, int numVertices, uint32 const* indices, int numIndices)
+	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
+	void DrawLinePS(ColorBuffer& buffer, DepthBuffer* depthBuffer, RasterPosition const& p0, RasterPosition const& p1, TVSOutput const& output0, TVSOutput const& output1, TPixelShader const& pixelShader)
 	{
-		drawIndexedTriangleListPS(vertices, numVertices, indices, numIndices, VertexColorPixelShader{});
+		Vec2i bufferSize = buffer.getSize();
+		Vector2 delta = p1.screenPos - p0.screenPos;
+		Vector2 deltaAbs = Vector2(Math::Abs(delta.x), Math::Abs(delta.y));
+		float steps = Math::Max(deltaAbs.x, deltaAbs.y);
+
+		if (steps < 1.0f)
+		{
+			int x = Math::FloorToInt(p0.screenPos.x);
+			int y = Math::FloorToInt(p0.screenPos.y);
+			if (0 <= x && x < bufferSize.x && 0 <= y && y < bufferSize.y)
+			{
+				bool bPassDepth = true;
+				if constexpr (TDepthState::EnableTest)
+				{
+					if (depthBuffer)
+						bPassDepth = TDepthState::Pass(p0.depth, depthBuffer->getDepth(x, y));
+				}
+
+				if (bPassDepth)
+				{
+					LinearColor srcC = pixelShader(output0);
+					LinearColor outC = srcC;
+					if constexpr (TBlendState::Enable)
+					{
+						LinearColor destC = buffer.getPixel(x, y);
+						outC = TBlendState::Blend(srcC, destC);
+					}
+					buffer.setPixel(x, y, outC);
+					if constexpr (TDepthState::EnableWrite)
+					{
+						if (depthBuffer)
+							depthBuffer->setDepth(x, y, p0.depth);
+					}
+				}
+			}
+			return;
+		}
+
+		TVertexLerpParams<TVSOutput> lerpParams(output0, output1, p0.w, p1.w);
+		float dAlpha = 1.0f / steps;
+		TVertexLerpStepper<TVSOutput> lerpStepper(lerpParams, 0.0f, dAlpha, p0.depth, p1.depth - p0.depth);
+
+		Vector2 pos = p0.screenPos;
+		Vector2 dPos = delta * dAlpha;
+		TVSOutput output;
+		for (int i = 0; i <= Math::FloorToInt(steps); ++i)
+		{
+			int x = Math::FloorToInt(pos.x);
+			int y = Math::FloorToInt(pos.y);
+			if (0 <= x && x < bufferSize.x && 0 <= y && y < bufferSize.y)
+			{
+				lerpStepper.get(output);
+				bool bPassDepth = true;
+				if constexpr (TDepthState::EnableTest)
+				{
+					if (depthBuffer)
+						bPassDepth = TDepthState::Pass(lerpStepper.depth, depthBuffer->getDepth(x, y));
+				}
+
+				if (bPassDepth)
+				{
+					LinearColor srcC = pixelShader(output);
+					LinearColor outC = srcC;
+					if constexpr (TBlendState::Enable)
+					{
+						LinearColor destC = buffer.getPixel(x, y);
+						outC = TBlendState::Blend(srcC, destC);
+					}
+					buffer.setPixel(x, y, outC);
+					if constexpr (TDepthState::EnableWrite)
+					{
+						if (depthBuffer)
+							depthBuffer->setDepth(x, y, lerpStepper.depth);
+					}
+				}
+			}
+
+			pos += dPos;
+			lerpStepper.advance();
+		}
+	}
+
+	template< class TPipeline, class TVertex, class TVertexShader >
+	void RasterizedRenderer::drawIndexedTriangleList(TVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TVertexShader const& vertexShader)
+	{
+		drawIndexedTriangleListPS<TPipeline>(vertices, numVertices, indices, numIndices, vertexShader, VertexColorPixelShader{});
 	}
 
 	void TestStage::togglePause()
@@ -873,30 +1035,51 @@ namespace SR
 		return true;
 	}
 
+	void TestStage::onRender(float dFrame)
+	{
+		Graphics2D& g = Global::GetGraphics2D();
+
+		g.beginRender();
+
+		if (bRender)
+		{
+			RenderTarget renderTarget;
+			renderTarget.colorBuffer = &mColorBuffer;
+			renderTarget.depthBuffer = &mDepthBuffer;
+
+			if (bRayTracerUsed)
+			{
+				renderTest2(renderTarget);
+			}
+			else
+			{
+				renderTest1(renderTarget);
+			}
+		}
+
+
+		mColorBuffer.draw(g);
+
+		RenderUtility::SetBrush(g, EColor::Red);
+		RenderUtility::SetPen(g, EColor::Red);
+		g.drawRect(Vec2i(0, 0), Vec2i(100, 100));
+
+		g.endRender();
+
+		{
+			PROFILE_ENTRY("bitbltPlatformBufferToRHI");
+			::Global::GetDrawEngine().bitbltPlatformBufferToRHI();
+		}
+
+	}
+
 	void TestStage::renderTest1(RenderTarget& renderTarget)
 	{
 		PROFILE_ENTRY("RasterizedRenderer");
 
 		mRenderer.setRenderTarget(renderTarget);
-		mRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
+		mRenderer.clearBuffer<DefaultRasterPipeline>(LinearColor(0.2, 0.2, 0.2, 0));
 
-		//DrawLine(mColorBuffer, Vector2(0, 0), Vector2(100, 200), LinearColor(1, 0, 0));
-		//DrawTriangle(mColorBuffer, Vector2(123, 100), Vector2(400, 200), Vector2(200, 300), LinearColor(1, 1, 0));
-		//DrawTriangle(mColorBuffer, Vector2(400, 200), Vector2(200, 300), Vector2(400, 300), LinearColor(0, 1, 1));
-
-		{
-			VertexData vd0 = { 1 , 0 , Vector2(0,0) , LinearColor(1,0,0) };
-			VertexData vd1 = { 1 , 0 , Vector2(1,0) ,LinearColor(0,1,0) };
-			VertexData vd2 = { 1 , 0 , Vector2(1,1) ,LinearColor(0,0,1) };
-			//DrawTriangle(mColorBuffer, Vector2(100, 400), Vector2(200, 500), Vector2(400, 300), vd0, vd1, vd2);
-		}
-
-		{
-			VertexData vd0 = { 1 , 0 , Vector2(0,0) ,LinearColor(1,0,0) };
-			VertexData vd1 = { 0.5 , 0 , Vector2(1,0) ,LinearColor(0,1,0) };
-			VertexData vd2 = { 0.4 , 0 , Vector2(1,1) ,LinearColor(0,0,1) };
-			//DrawTriangle(mColorBuffer, Vector2(300, 400), Vector2(400, 500), Vector2(600, 300), vd0, vd1, vd2);
-		}
 		using namespace Render;
 		Vec2i screenSize = ::Global::GetScreenSize();
 		float aspect = float(screenSize.x) / screenSize.y;
@@ -913,7 +1096,6 @@ namespace SR
 
 		mRenderer.worldToClip = LookAtMatrix(cameraPos, Vector3(0, 0, 2) - cameraPos, Vector3(0, 0, 1)) *
 								PerspectiveMatrix(Math::DegToRad(60), aspect, 0.01, 500);
-		mRenderer.cullMode = RasterizedRenderer::ECullMode::Back;
 
 		Vector3 localVertices[] =
 		{
@@ -943,7 +1125,14 @@ namespace SR
 			{ { 4, 5, 6, 7 }, LinearColor(0.1f, 1.0f, 1.0f) },
 		};
 
-		RasterVertex drawVertices[24];
+		struct DrawVertex
+		{
+			Vector3 pos;
+			LinearColor color;
+			Vector2 uv;
+		};
+
+		DrawVertex drawVertices[24];
 		uint32 drawIndices[36];
 		int numDrawVertices = 0;
 		int numDrawIndices = 0;
@@ -980,17 +1169,33 @@ namespace SR
 		}
 
 
-		auto pixelShader = [this](VertexData const& input)
+		auto pixelShader = [this](DefaultVSOutput const& input)
 		{
-			return 	simpleTexture.sample(input.uv) * input.color;
+			//return input.color;
+			return simpleTexture.sample(input.uv) * input.color;
 		};
 
-		mRenderer.drawIndexedTriangleListPS(drawVertices, numDrawVertices, drawIndices, numDrawIndices, pixelShader);
+		auto vertexShader = [this](DrawVertex const& input)
+		{
+			struct Output
+			{
+				Vector4 svPosition;
+				DefaultVSOutput output;
+			};
+
+			Output result;
+			result.svPosition = Vector4(input.pos, 1) * mRenderer.worldToClip;
+			result.output.uv = input.uv;
+			result.output.color = input.color;
+			return result;
+		};
+
+		mRenderer.drawIndexedTriangleListPS<DefaultRasterPipeline>(drawVertices, numDrawVertices, drawIndices, numDrawIndices, vertexShader, pixelShader);
 
 #if 0
 		struct TestPixelShader
 		{
-			FORCEINLINE LinearColor operator()(VertexData const& input) const
+			FORCEINLINE LinearColor operator()(DefaultVSOutput const& input) const
 			{
 				float checker = (Math::Fmod(10 * input.uv.x, 1.0f) > 0.5f) ==
 							    (Math::Fmod(10 * input.uv.y, 1.0f) > 0.5f) ? 1.0f : 0.35f;
@@ -998,19 +1203,19 @@ namespace SR
 			}
 		};
 
-		mRenderer.drawTrianglePS(Vector3(-20, 0, -25), LinearColor(1, 0, 0), Vector2(0, 0),
-							     Vector3(20, 0, -25), LinearColor(0, 1, 0), Vector2(1, 0),
-							     Vector3(0, 0, 10), LinearColor(0, 0, 1), Vector2(0.5, 1),
-							     TestPixelShader{});
+		mRenderer.drawTrianglePS<DefaultRasterPipeline>(Vector3(-20, 0, -25), LinearColor(1, 0, 0), Vector2(0, 0),
+														Vector3(20, 0, -25), LinearColor(0, 1, 0), Vector2(1, 0),
+														Vector3(0, 0, 10), LinearColor(0, 0, 1), Vector2(0.5, 1),
+														TestPixelShader{});
 
-		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 1, 1), Vector2(0, 0),
-							   Vector3(10, -10, 0), LinearColor(1, 1, 1), Vector2(1, 0),
-							   Vector3(10, 0, 0), LinearColor(1, 1, 1), Vector2(1, 1));
+		mRenderer.drawTriangle<DefaultRasterPipeline>(Vector3(-10, -10, 0), LinearColor(1, 1, 1), Vector2(0, 0),
+													  Vector3(10, -10, 0), LinearColor(1, 1, 1), Vector2(1, 0),
+													  Vector3(10, 0, 0), LinearColor(1, 1, 1), Vector2(1, 1));
 
 
-		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 1, 1), Vector2(0, 0),
-							   Vector3(10, 0, 0), LinearColor(1, 1, 1), Vector2(1, 1),
-							   Vector3(-10, 0, 0), LinearColor(1, 1, 1), Vector2(0, 1));
+		mRenderer.drawTriangle<DefaultRasterPipeline>(Vector3(-10, -10, 0), LinearColor(1, 1, 1), Vector2(0, 0),
+													  Vector3(10, 0, 0), LinearColor(1, 1, 1), Vector2(1, 1),
+													  Vector3(-10, 0, 0), LinearColor(1, 1, 1), Vector2(0, 1));
 #endif
 
 #endif

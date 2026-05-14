@@ -1211,6 +1211,42 @@ namespace Render
 		desc.CPUAccessFlags = (creationFlags & TCF_AllowCPUAccess) ? D3D11_CPU_ACCESS_READ : 0;
 	}
 
+	static bool IsBlockCompressedFormat(ETexture::Format format)
+	{
+		switch (format)
+		{
+		case ETexture::BC1:
+		case ETexture::BC2:
+		case ETexture::BC3:
+		case ETexture::BC4:
+		case ETexture::BC5:
+		case ETexture::BC6H:
+		case ETexture::BC7:
+			return true;
+		}
+		return false;
+	}
+
+	static uint32 GetTextureRowPitch(ETexture::Format format, uint32 width)
+	{
+		uint32 formatSize = ETexture::GetFormatSize(format);
+		if (IsBlockCompressedFormat(format))
+		{
+			return Math::Max<uint32>(1, (width + 3) / 4) * formatSize;
+		}
+		return width * formatSize;
+	}
+
+	static uint32 GetTextureSlicePitch(ETexture::Format format, uint32 width, uint32 height)
+	{
+		uint32 rowPitch = GetTextureRowPitch(format, width);
+		if (IsBlockCompressedFormat(format))
+		{
+			return rowPitch * Math::Max<uint32>(1, (height + 3) / 4);
+		}
+		return rowPitch * height;
+	}
+
 	template< class TTextureCreationResult >
 	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, uint32 creationFlags, TTextureCreationResult& outResult)
 	{
@@ -1255,7 +1291,6 @@ namespace Render
 	{
 		bool bDepthFormat = ETexture::IsDepthStencil(desc.format);
 		DXGI_FORMAT format = D3D11Translate::To(desc.format);
-		uint32 pixelSize = ETexture::GetFormatSize(desc.format);
 
 		D3D11_TEXTURE2D_DESC d3dDesc = {};
 
@@ -1297,8 +1332,8 @@ namespace Render
 			{
 				D3D11_SUBRESOURCE_DATA initData;
 				initData.pSysMem = (void *)data;
-				initData.SysMemPitch = desc.dimension.x * pixelSize;
-				initData.SysMemSlicePitch = initData.SysMemPitch * desc.dimension.y;
+				initData.SysMemPitch = GetTextureRowPitch(desc.format, desc.dimension.x);
+				initData.SysMemSlicePitch = GetTextureSlicePitch(desc.format, desc.dimension.x, desc.dimension.y);
 
 				VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, nullptr, &outResult.resource));
 				mDeviceContextImmdiate->UpdateSubresource(outResult.resource, 0, nullptr, initData.pSysMem, initData.SysMemPitch, initData.SysMemSlicePitch);
@@ -1315,8 +1350,8 @@ namespace Render
 					int w = Math::Max(1, desc.dimension.x >> level);
 					int h = Math::Max(1, desc.dimension.y >> level);
 					initData.pSysMem = (void *)pData;
-					initData.SysMemPitch = w * pixelSize;
-					initData.SysMemSlicePitch = initData.SysMemPitch * h;
+					initData.SysMemPitch = GetTextureRowPitch(desc.format, w);
+					initData.SysMemSlicePitch = GetTextureSlicePitch(desc.format, w, h);
 
 					pData += initData.SysMemSlicePitch;
 					++level;

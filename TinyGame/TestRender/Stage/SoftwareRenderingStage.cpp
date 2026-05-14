@@ -58,7 +58,7 @@ namespace SR
 				unsigned char* pPixel = (unsigned char*)imageData.data;
 				for( int i = 0; i < mData.size(); ++i )
 				{
-					mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], 0xff);
+					mData[i] = Color4ub(pPixel[0], pPixel[1], pPixel[2], 0xff);
 					pPixel += 3;
 				}
 			}
@@ -69,7 +69,7 @@ namespace SR
 				unsigned char* pPixel = (unsigned char*)imageData.data;
 				for( int i = 0; i < mData.size(); ++i )
 				{
-					mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], pPixel[3]);
+					mData[i] = Color4ub(pPixel[0], pPixel[1], pPixel[2], pPixel[3]);
 					pPixel += 4;
 				}
 			}
@@ -79,14 +79,14 @@ namespace SR
 		return mData.empty() == false;
 	}
 
-	Color Texture::getColor(Vec2i const& pos) const
+	Color4ub Texture::getColor(Vec2i const& pos) const
 	{
 		assert(0 <= pos.x && pos.x < mSize.x);
 		assert(0 <= pos.y && pos.y < mSize.y);
 		return mData[pos.x + pos.y * mSize.x];
 	}
 
-	FORCEINLINE Color SampleBilinearFixed(Texture const& tex, float u, float v)
+	FORCEINLINE Color4ub SampleBilinearFixed(Texture const& tex, float u, float v)
 	{
 		constexpr int FixedBits = 8;
 		constexpr int FixedScale = 1 << FixedBits;
@@ -112,15 +112,15 @@ namespace SR
 		int w01 = (FixedScale - tx) * ty;
 		int w11 = tx * ty;
 
-		Color const* row0 = tex.mData.data() + y0 * tex.mSize.x;
-		Color const* row1 = tex.mData.data() + y1 * tex.mSize.x;
+		Color4ub const* row0 = tex.mData.data() + y0 * tex.mSize.x;
+		Color4ub const* row1 = tex.mData.data() + y1 * tex.mSize.x;
 
-		Color const& c00 = row0[x0];
-		Color const& c10 = row0[x1];
-		Color const& c01 = row1[x0];
-		Color const& c11 = row1[x1];
+		Color4ub const& c00 = row0[x0];
+		Color4ub const& c10 = row0[x1];
+		Color4ub const& c01 = row1[x0];
+		Color4ub const& c11 = row1[x1];
 
-		Color out;
+		Color4ub out;
 		out.r = uint8((c00.r * w00 + c10.r * w10 + c01.r * w01 + c11.r * w11) >> WeightShift);
 		out.g = uint8((c00.g * w00 + c10.g * w10 + c01.g * w01 + c11.g * w11) >> WeightShift);
 		out.b = uint8((c00.b * w00 + c10.b * w10 + c01.b * w01 + c11.b * w11) >> WeightShift);
@@ -146,12 +146,12 @@ namespace SR
 		assert(0 <= x1 && x1 < mSize.x);
 		assert(0 <= y1 && y1 < mSize.y);
 
-		Color const* row0 = mData.data() + y0 * mSize.x;
-		Color const* row1 = mData.data() + y1 * mSize.x;
-		Color const& c00 = row0[x0];
-		Color const& c10 = row0[x1];
-		Color const& c01 = row1[x0];
-		Color const& c11 = row1[x1];
+		ColorBGRA8 const* row0 = mData.data() + y0 * mSize.x;
+		ColorBGRA8 const* row1 = mData.data() + y1 * mSize.x;
+		ColorBGRA8 const& c00 = row0[x0];
+		ColorBGRA8 const& c10 = row0[x1];
+		ColorBGRA8 const& c01 = row1[x0];
+		ColorBGRA8 const& c11 = row1[x1];
 
 		float const w00 = (1.0f - dx) * (1.0f - dy);
 		float const w10 = dx * (1.0f - dy);
@@ -586,10 +586,10 @@ namespace SR
 		RasterPosition p0 = { v0, 1.0f, 0.0f };
 		RasterPosition p1 = { v1, 1.0f, 0.0f };
 		RasterPosition p2 = { v2, 1.0f, 0.0f };
-		DrawTrianglePS<DepthDisableState, OpaqueBlendState>(buffer, nullptr, p0, p1, p2, vd0, vd1, vd2, VertexColorPixelShader{});
+		DrawTrianglePS<DepthDisableState, TBlendState<EBlendMode::Opaque>>(buffer, nullptr, p0, p1, p2, vd0, vd1, vd2, VertexColorPixelShader{});
 	}
 
-	void ClipAndFillColor(ColorBuffer& buffer, ScanLineIterator& lineIter, Color const& color)
+	void ClipAndFillColor(ColorBuffer& buffer, ScanLineIterator& lineIter, ColorBGRA8 const& color)
 	{
 		Vec2i size = buffer.getSize();
 
@@ -621,7 +621,7 @@ namespace SR
 		}
 	}
 
-	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, Color const& color)
+	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, ColorBGRA8 const& color)
 	{
 		Vector2 maxV, minV, midV;
 		if( v0.y > v1.y )
@@ -706,7 +706,7 @@ namespace SR
 		}
 	}
 
-	void DrawLine(ColorBuffer& buffer, Vector2 const& from, Vector2 const& to, Color const& color)
+	void DrawLine(ColorBuffer& buffer, Vector2 const& from, Vector2 const& to, ColorBGRA8 const& color)
 	{
 		Vec2i bufferSize = buffer.getSize();
 		Vector2 delta = to - from;
@@ -1088,7 +1088,7 @@ namespace SR
 		mRenderer.viewportSize = Vector2(::Global::GetScreenSize());
 
 #if 1
-		Vector3 cameraPos(0, -20, 10);
+		Vector3 cameraPos(0, -15, 8);
 		Matrix4 model = Matrix4::Scale(4.0f) *
 						Matrix4::Rotate(Vector3(0, 0, 1), mCubeRotateYaw) *
 						Matrix4::Rotate(Vector3(1, 0, 0), mCubeRotatePitch) *
@@ -1097,33 +1097,7 @@ namespace SR
 		mRenderer.worldToClip = LookAtMatrix(cameraPos, Vector3(0, 0, 2) - cameraPos, Vector3(0, 0, 1)) *
 								PerspectiveMatrix(Math::DegToRad(60), aspect, 0.01, 500);
 
-		Vector3 localVertices[] =
-		{
-			Vector3(-1, -1, -1), Vector3( 1, -1, -1), Vector3( 1,  1, -1), Vector3(-1,  1, -1),
-			Vector3(-1, -1,  1), Vector3( 1, -1,  1), Vector3( 1,  1,  1), Vector3(-1,  1,  1),
-		};
 
-		Vector3 vertices[8];
-		for (int i = 0; i < 8; ++i)
-		{
-			vertices[i] = localVertices[i] * model;
-		}
-
-		struct Face
-		{
-			int index[4];
-			LinearColor color;
-		};
-
-		Face faces[] =
-		{
-			{ { 0, 1, 5, 4 }, LinearColor(1.0f, 0.1f, 0.1f) },
-			{ { 3, 7, 6, 2 }, LinearColor(0.1f, 1.0f, 0.1f) },
-			{ { 0, 4, 7, 3 }, LinearColor(0.1f, 0.3f, 1.0f) },
-			{ { 1, 2, 6, 5 }, LinearColor(1.0f, 0.9f, 0.1f) },
-			{ { 0, 3, 2, 1 }, LinearColor(1.0f, 0.1f, 1.0f) },
-			{ { 4, 5, 6, 7 }, LinearColor(0.1f, 1.0f, 1.0f) },
-		};
 
 		struct DrawVertex
 		{
@@ -1132,41 +1106,63 @@ namespace SR
 			Vector2 uv;
 		};
 
-		DrawVertex drawVertices[24];
-		uint32 drawIndices[36];
-		int numDrawVertices = 0;
-		int numDrawIndices = 0;
 
-		for (Face const& face : faces)
+		struct CubeMsh
 		{
-			Vector3 const& p0 = vertices[face.index[0]];
-			Vector3 const& p1 = vertices[face.index[1]];
-			Vector3 const& p2 = vertices[face.index[2]];
-			Vector3 const& p3 = vertices[face.index[3]];
+			CubeMsh()
+			{
 
-			uint32 baseIndex = numDrawVertices;
-			drawVertices[numDrawVertices++] = { p0, face.color, Vector2(0, 0) };
-			drawVertices[numDrawVertices++] = { p1, face.color, Vector2(1, 0) };
-			drawVertices[numDrawVertices++] = { p2, face.color, Vector2(1, 1) };
-			drawVertices[numDrawVertices++] = { p3, face.color, Vector2(0, 1) };
+				Vector3 localVertices[] =
+				{
+					Vector3(-1, -1, -1), Vector3(1, -1, -1), Vector3(1,  1, -1), Vector3(-1,  1, -1),
+					Vector3(-1, -1,  1), Vector3(1, -1,  1), Vector3(1,  1,  1), Vector3(-1,  1,  1),
+				};
 
-			drawIndices[numDrawIndices++] = baseIndex;
-			drawIndices[numDrawIndices++] = baseIndex + 1;
-			drawIndices[numDrawIndices++] = baseIndex + 2;
-			drawIndices[numDrawIndices++] = baseIndex;
-			drawIndices[numDrawIndices++] = baseIndex + 2;
-			drawIndices[numDrawIndices++] = baseIndex + 3;
+				struct Face
+				{
+					int index[4];
+					LinearColor color;
+				};
 
-#if 0
-			mRenderer.drawTriangle(p0, face.color, Vector2(0, 0),
-								   p1, face.color, Vector2(1, 0),
-								   p2, face.color, Vector2(1, 1));
+				Face faces[] =
+				{
+					{ { 0, 1, 5, 4 }, LinearColor(1.0f, 0.1f, 0.1f) },
+					{ { 3, 7, 6, 2 }, LinearColor(0.1f, 1.0f, 0.1f) },
+					{ { 0, 4, 7, 3 }, LinearColor(0.1f, 0.3f, 1.0f) },
+					{ { 1, 2, 6, 5 }, LinearColor(1.0f, 0.9f, 0.1f) },
+					{ { 0, 3, 2, 1 }, LinearColor(1.0f, 0.1f, 1.0f) },
+					{ { 4, 5, 6, 7 }, LinearColor(0.1f, 1.0f, 1.0f) },
+				};
+				int numDrawVertices = 0;
+				int numDrawIndices = 0;
 
-			mRenderer.drawTriangle(p0, face.color, Vector2(0, 0),
-								   p2, face.color, Vector2(1, 1),
-								   p3, face.color, Vector2(0, 1));
-#endif
-		}
+				for (Face const& face : faces)
+				{
+					Vector3 const& p0 = localVertices[face.index[0]];
+					Vector3 const& p1 = localVertices[face.index[1]];
+					Vector3 const& p2 = localVertices[face.index[2]];
+					Vector3 const& p3 = localVertices[face.index[3]];
+
+					uint32 baseIndex = numDrawVertices;
+					drawVertices[numDrawVertices++] = { p0, face.color, Vector2(0, 0) };
+					drawVertices[numDrawVertices++] = { p1, face.color, Vector2(1, 0) };
+					drawVertices[numDrawVertices++] = { p2, face.color, Vector2(1, 1) };
+					drawVertices[numDrawVertices++] = { p3, face.color, Vector2(0, 1) };
+
+					drawIndices[numDrawIndices++] = baseIndex;
+					drawIndices[numDrawIndices++] = baseIndex + 1;
+					drawIndices[numDrawIndices++] = baseIndex + 2;
+					drawIndices[numDrawIndices++] = baseIndex;
+					drawIndices[numDrawIndices++] = baseIndex + 2;
+					drawIndices[numDrawIndices++] = baseIndex + 3;
+				}
+			}
+
+			DrawVertex drawVertices[24];
+			uint32 drawIndices[36];
+		};
+
+		static CubeMsh localMesh;
 
 
 		auto pixelShader = [this](DefaultVSOutput const& input)
@@ -1175,7 +1171,10 @@ namespace SR
 			return simpleTexture.sample(input.uv) * input.color;
 		};
 
-		auto vertexShader = [this](DrawVertex const& input)
+
+		Matrix4 localToClip = model * mRenderer.worldToClip;
+
+		auto vertexShader = [this, &localToClip](DrawVertex const& input)
 		{
 			struct Output
 			{
@@ -1184,14 +1183,26 @@ namespace SR
 			};
 
 			Output result;
-			result.svPosition = Vector4(input.pos, 1) * mRenderer.worldToClip;
+			result.svPosition = Vector4(input.pos, 1) * localToClip;
 			result.output.uv = input.uv;
 			result.output.color = input.color;
 			return result;
 		};
 
-		mRenderer.drawIndexedTriangleListPS<DefaultRasterPipeline>(drawVertices, numDrawVertices, drawIndices, numDrawIndices, vertexShader, pixelShader);
+		mRenderer.drawIndexedTriangleListPS<DefaultRasterPipeline>(
+			localMesh.drawVertices, ARRAY_SIZE(localMesh.drawVertices), 
+			localMesh.drawIndices, ARRAY_SIZE(localMesh.drawIndices), vertexShader, pixelShader);
 
+
+#if 0
+		mRenderer.drawTriangle(p0, face.color, Vector2(0, 0),
+			p1, face.color, Vector2(1, 0),
+			p2, face.color, Vector2(1, 1));
+
+		mRenderer.drawTriangle(p0, face.color, Vector2(0, 0),
+			p2, face.color, Vector2(1, 1),
+			p3, face.color, Vector2(0, 1));
+#endif
 #if 0
 		struct TestPixelShader
 		{

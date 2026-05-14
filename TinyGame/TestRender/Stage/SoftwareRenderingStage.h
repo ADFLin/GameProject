@@ -33,38 +33,19 @@ namespace SR
 		return InV - (2 * n.dot(InV)) * n;
 	}
 
-	struct Color
-	{
-		union
-		{
-			struct
-			{
-				uint8 b, g, r, a;
-			};
-			uint32 word;
-		};
 
-		operator uint32() const { return word; }
-
-		Color() {}
-		Color(uint8 r, uint8 g, uint8 b, uint8 a = 255)
-			:r(r), g(g), b(b), a(a)
-		{
-		}
-		Color(Color const& other) :word(other.word) {}
-	};
 
 	struct LinearColor
 	{
 		float r, g, b, a;
 
-		operator Color() const
+		operator ColorBGRA8() const
 		{
 			uint8 byteR = uint8(255 * Math::Clamp<float>(r, 0, 1));
 			uint8 byteG = uint8(255 * Math::Clamp<float>(g, 0, 1));
 			uint8 byteB = uint8(255 * Math::Clamp<float>(b, 0, 1));
 			uint8 byteA = uint8(255 * Math::Clamp<float>(a, 0, 1));
-			return Color(byteR, byteG, byteB, byteA);
+			return ColorBGRA8(byteR, byteG, byteB, byteA);
 		}
 		LinearColor operator + (LinearColor const& rhs) const
 		{
@@ -97,7 +78,11 @@ namespace SR
 			:r(r), g(g), b(b), a(a)
 		{
 		}
-		LinearColor(Color const& rhs)
+		LinearColor(ColorBGRA8 const& rhs)
+			:r(float(rhs.r) / 255.0f), g(float(rhs.g) / 255.0f), b(float(rhs.b) / 255.0f), a(float(rhs.a) / 255.0f)
+		{
+		}
+		LinearColor(Color4ub const& rhs)
 			:r(float(rhs.r) / 255.0f), g(float(rhs.g) / 255.0f), b(float(rhs.b) / 255.0f), a(float(rhs.a) / 255.0f)
 		{
 		}
@@ -119,24 +104,24 @@ namespace SR
 	public:
 		bool create(Vec2i const& size);
 
-		void clear(Color const& color)
+		void clear(ColorBGRA8 const& color)
 		{
 			std::fill_n(mData, mSize.y * mRowStride, uint32(color));
 		}
 
-		Color getPixel(uint32 x, uint32 y)
+		ColorBGRA8 getPixel(uint32 x, uint32 y)
 		{
-			Color result;
+			ColorBGRA8 result;
 			result.word = mData[(x + mRowStride * y)];
 			return result;
 		}
 
-		void setPixel(uint32 x, uint32 y, Color color)
+		void setPixel(uint32 x, uint32 y, ColorBGRA8 color)
 		{
 			uint32* pData = mData + (x + mRowStride * y);
 			*pData = color;
 		}
-		void setPixelCheck(uint32 x, uint32 y, Color color)
+		void setPixelCheck(uint32 x, uint32 y, ColorBGRA8 color)
 		{
 			if( 0 <= x && x < mSize.x &&
 			   0 <= y && y < mSize.y )
@@ -208,12 +193,12 @@ namespace SR
 	public:
 		bool load(char const* path);
 
-		Color getColor(Vec2i const& pos) const;
+		Color4ub getColor(Vec2i const& pos) const;
 
 		LinearColor sample(Vector2 const& UV) const;
 
 		Vec2i mSize;
-		std::vector< Color > mData;
+		TArray< Color4ub > mData;
 
 	};
 
@@ -221,11 +206,11 @@ namespace SR
 	void GenerateDistanceFieldTexture(Texture const& texture)
 	{
 		Vec2i size = texture.mSize;
-		std::vector< Vec2i > countMap(size.x * size.y, Vec2i(0, 0));
+		TArray< Vec2i > countMap(size.x * size.y, Vec2i(0, 0));
 
 		{
 			{
-				uint32 c = texture.getColor(Vec2i(0, 0));
+				uint32 c = texture.getColor(Vec2i(0, 0)).toRGBA();
 				Vec2i& count = countMap[0 + size.x * 0];
 				if( c & 0x00ffffff )
 				{
@@ -238,7 +223,7 @@ namespace SR
 			}
 			for( int i = 1; i < size.x; ++i )
 			{
-				uint32 c = texture.getColor(Vec2i(i, 0));
+				uint32 c = texture.getColor(Vec2i(i, 0)).toRGBA();
 				Vec2i& count = countMap[i + size.x * 0];
 				Vec2i& countLeft = countMap[i - 1 + size.x * 0];
 
@@ -257,7 +242,7 @@ namespace SR
 		for( int j = 1; j < size.y; ++j )
 		{
 			{
-				uint32 c = texture.getColor(Vec2i(0, j));
+				uint32 c = texture.getColor(Vec2i(0, j)).toRGBA();
 				Vec2i& countDown = countMap[0 + size.x * (j - 1)];
 				Vec2i& count = countMap[0 + size.x * j];
 
@@ -273,7 +258,7 @@ namespace SR
 			}
 			for( int i = 1; i < size.x; ++i )
 			{
-				uint32 c = texture.getColor(Vec2i(i, j));
+				uint32 c = texture.getColor(Vec2i(i, j)).toRGBA();
 				Vec2i& count = countMap[i + size.x * 0];
 				Vec2i& countLeft = countMap[i - 1 + size.x * j];
 				Vec2i& countDown = countMap[i + size.x * (j - 1)];
@@ -293,7 +278,7 @@ namespace SR
 		{
 			for( int i = 0; i < size.x; ++i )
 			{
-				uint32 c = texture.getColor(Vec2i(i, j));
+				uint32 c = texture.getColor(Vec2i(i, j)).toRGBA();
 
 
 			}

@@ -413,6 +413,14 @@ namespace Render
 		TEXTURE_INFO(ETexture::SRGB   ,3,CVT_UByte)
 		TEXTURE_INFO(ETexture::SRGBA  ,4,CVT_UByte)
 
+		TEXTURE_INFO(ETexture::BC1    ,8,CVT_UByte)
+		TEXTURE_INFO(ETexture::BC2    ,16,CVT_UByte)
+		TEXTURE_INFO(ETexture::BC3    ,16,CVT_UByte)
+		TEXTURE_INFO(ETexture::BC4    ,8,CVT_UByte)
+		TEXTURE_INFO(ETexture::BC5    ,16,CVT_UByte)
+		TEXTURE_INFO(ETexture::BC6H   ,16,CVT_UByte)
+		TEXTURE_INFO(ETexture::BC7    ,16,CVT_UByte)
+
 #undef TEXTURE_INFO
 	};
 #if _DEBUG

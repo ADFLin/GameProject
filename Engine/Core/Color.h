@@ -42,6 +42,16 @@ public:
 		return (a << 24) | (b << 16) | (g << 8) | r;
 	}
 
+	static uint32 ToBGR(uint8 r, uint8 g, uint8 b)
+	{
+		return (r << 16) | (g << 8) | b;
+	}
+
+	static uint32 ToBGRA(uint8 r, uint8 g, uint8 b, uint8 a)
+	{
+		return (a << 24) | (r << 16) | (g << 8) | b;
+	}
+
 	static uint32 ToABGR(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
 		return (r << 24) | (g << 16) | (b << 8) | a;
@@ -53,12 +63,22 @@ public:
 		g = (v >> 8) & 0xff;
 		b = (v >> 16) & 0xff;
 	}
+
 	static void FromBGR(uint32 v, uint8& r, uint8& g, uint8& b)
 	{
 		r = (v >> 16) & 0xff;
 		g = (v >> 8) & 0xff;
 		b = (v >> 0) & 0xff;
 	}
+
+	static void FromBGRA(uint32 v, uint8& r, uint8& g, uint8& b, uint8& a)
+	{
+		a = (v >> 24) & 0xff;
+		r = (v >> 16) & 0xff;
+		g = (v >> 8) & 0xff;
+		b = (v >> 0) & 0xff;
+	}
+
 	static void FromRGBA(uint32 v, uint8& r, uint8& g, uint8& b, uint8& a)
 	{
 		r = (v >> 0) & 0xff;
@@ -339,6 +359,28 @@ public:
 
 
 using LinearColor = Color4f;
+
+
+struct ColorBGRA8
+{
+	union
+	{
+		struct
+		{
+			uint8 b, g, r, a;
+		};
+		uint32 word;
+	};
+
+	operator uint32() const { return word; }
+
+	ColorBGRA8() {}
+	ColorBGRA8(uint8 r, uint8 g, uint8 b, uint8 a = 255)
+		:r(r), g(g), b(b), a(a)
+	{
+	}
+	ColorBGRA8(ColorBGRA8 const& other) :word(other.word) {}
+};
 
 
 class FColorConv

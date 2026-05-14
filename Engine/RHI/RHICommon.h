@@ -167,7 +167,13 @@ namespace Render
 			SRGB ,
 			SRGBA ,
 
-
+			BC1,
+			BC2,
+			BC3,
+			BC4,
+			BC5,
+			BC6H,
+			BC7,
 
 			DEPTH_STENCIL_FORMAT_START,
 			DEPTH_FORMAT_START = DEPTH_STENCIL_FORMAT_START,

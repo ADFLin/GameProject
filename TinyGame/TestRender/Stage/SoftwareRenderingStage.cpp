@@ -270,57 +270,62 @@ namespace SR
 				pOut[i] = wInv * wv0[i] + alphaW * dwv[i];
 			}
 		}
+
+		struct Stepper
+		{
+			float w;
+			float dw;
+			float depth;
+			float dDepth;
+
+			float paramW[NumParams];
+			float dParamW[NumParams];
+
+			Stepper(TVertexData const& v0, TVertexData const& v1, float inW0, float inW1, float alpha, float dAlpha, float depth0, float dDepthIn)
+			{		
+				float paramW0 = inW0;
+				float paramDw = inW1 - inW0;
+
+				w = paramW0 + alpha * paramDw;
+				dw = dAlpha * paramDw;
+				depth = depth0 + alpha * dDepthIn;
+				dDepth = dAlpha * dDepthIn;
+
+				float const* p0 = reinterpret_cast<float const*>(&v0);
+				float const* p1 = reinterpret_cast<float const*>(&v1);
+				for (int i = 0; i < NumParams; ++i)
+				{
+					float wv0 = inW0 * p0[i];
+					float dwv = inW1 * p1[i] - wv0;
+					paramW[i] = wv0 + alpha * dwv;
+					dParamW[i] = dAlpha * dwv;
+				}
+			}
+
+			FORCEINLINE void get(TVertexData& outData) const
+			{
+				float* pOut = reinterpret_cast<float*>(&outData);
+				float const wInv = 1.0f / w;
+
+				for (int i = 0; i < NumParams; ++i)
+				{
+					pOut[i] = wInv * paramW[i];
+				}
+			}
+
+			FORCEINLINE void advance()
+			{
+				w += dw;
+				depth += dDepth;
+				for (int i = 0; i < NumParams; ++i)
+				{
+					paramW[i] += dParamW[i];
+				}
+			}
+		};
 	};
 
-	template< typename TVertexData >
-	struct TVertexLerpStepper
-	{
-		static_assert(sizeof(TVertexData) % sizeof(float) == 0, "TVertexData must be float-packed");
 
-		static constexpr int NumParams = sizeof(TVertexData) / sizeof(float);
-
-		float w;
-		float dw;
-		float depth;
-		float dDepth;
-
-		float paramW[NumParams];
-		float dParamW[NumParams];
-
-		TVertexLerpStepper(TVertexLerpParams<TVertexData> const& params, float alpha, float dAlpha, float depth0, float dDepthIn)
-		{
-			w = params.w0 + alpha * params.dw;
-			dw = dAlpha * params.dw;
-			depth = depth0 + alpha * dDepthIn;
-			dDepth = dAlpha * dDepthIn;
-			for (int i = 0; i < NumParams; ++i)
-			{
-				paramW[i] = params.wv0[i] + alpha * params.dwv[i];
-				dParamW[i] = dAlpha * params.dwv[i];
-			}
-		}
-
-		FORCEINLINE void get(TVertexData& outData) const
-		{
-			float* pOut = reinterpret_cast<float*>(&outData);
-			float const wInv = 1.0f / w;
-
-			for (int i = 0; i < NumParams; ++i)
-			{
-				pOut[i] = wInv * paramW[i];
-			}
-		}
-
-		FORCEINLINE void advance()
-		{
-			w += dw;
-			depth += dDepth;
-			for (int i = 0; i < NumParams; ++i)
-			{
-				paramW[i] += dParamW[i];
-			}
-		}
-	};
 
 	template< typename TVSOutput >
 	TVSOutput PerspectiveLerp(TVSOutput const& v0, TVSOutput const& v1, float w0, float w1, float alpha)
@@ -339,24 +344,54 @@ namespace SR
 		float depth;
 	};
 
-	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
-	void ClipAndInterpolantColor(ColorBuffer& buffer, DepthBuffer* depthBuffer, ScanLineIterator& lineIter,
-								 RasterPosition const& pL, TVSOutput const& vL,
-								 RasterPosition const& pR, TVSOutput const& vR,
-								 RasterPosition const& pS, TVSOutput const& vS,
-								 bool bInverse, TPixelShader const& pixelShader)
+	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
+	FORCEINLINE void ProcessPixel(uint32* colorPtr, float* depthPtr, float depth, TVSOutput const& v, TPixelShader const& pixelShader)
 	{
-		using LerpParams = TVertexLerpParams<TVSOutput>;
-		using LerpStepper = TVertexLerpStepper<TVSOutput>;
+		if constexpr (TDepthState::EnableTest)
+		{
+			if (!TDepthState::Pass(depth, *depthPtr))
+			{
+				return;
+			}
+		}
 
-		Vec2i size = buffer.getSize();
+		LinearColor srcC = pixelShader(v);
+		LinearColor outC = srcC;
+		if constexpr (TBlendState::Enable)
+		{
+			ColorBGRA8 dest;
+			dest.word = *colorPtr;
+			LinearColor destC = dest;
+			outC = TBlendState::Blend(srcC, destC);
+		}
+		
+		ColorBGRA8 colorOut = outC.toBGRA();
+		//ColorBGRA8 colorOut = ColorBGRA8{0xff, 0 , 0};
+		*colorPtr = colorOut.word;
+		if constexpr (TDepthState::EnableWrite)
+		{
+			*depthPtr = depth;
+		}
+	}
+
+	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
+	void ProcessPixels(RenderTarget& renderTarget, ScanLineIterator& lineIter,
+					   RasterPosition const& pL, TVSOutput const& vL,
+					   RasterPosition const& pR, TVSOutput const& vR,
+					   RasterPosition const& pS, TVSOutput const& vS,
+					   bool bInverse, TPixelShader const& pixelShader)
+	{
+		using LerpStepper = typename TVertexLerpParams<TVSOutput>::Stepper;
+
+		Vec2i size = renderTarget.colorBuffer->getSize();
 
 		if (lineIter.yStart < 0)
 			lineIter.yStart = 0;
 		if (lineIter.yEnd > size.y)
 			lineIter.yEnd = size.y;
 
-		if (lineIter.yStart < lineIter.yEnd)
+		
+		if (LIKELY(lineIter.yStart < lineIter.yEnd))
 		{
 			float day = 1 / (lineIter.yMax - lineIter.yMin);
 			float ay = (lineIter.yStart + 0.5f - lineIter.yMin) * day;
@@ -367,12 +402,12 @@ namespace SR
 				ay = 1 + (lineIter.yStart + 0.5f - lineIter.yMin) * day;
 			}
 
-			LerpParams lerpParamsMin(vL, vS, pL.w, pS.w);
-			LerpParams lerpParamsMax(vR, vS, pR.w, pS.w);
 			float depthMin0 = pL.depth;
 			float dDepthMin = pS.depth - pL.depth;
 			float depthMax0 = pR.depth;
 			float dDepthMax = pS.depth - pR.depth;
+			LerpStepper lerpStepperMin(vL, vS, pL.w, pS.w, ay, day, depthMin0, dDepthMin);
+			LerpStepper lerpStepperMax(vR, vS, pR.w, pS.w, ay, day, depthMax0, dDepthMax);
 
 			for (int y = lineIter.yStart; y < lineIter.yEnd; ++y)
 			{
@@ -388,62 +423,47 @@ namespace SR
 				if (xEnd > size.x)
 					xEnd = size.x;
 
-				if (xStart < xEnd)
+				if (LIKELY(xStart < xEnd))
 				{
 					TVSOutput vMin;
-					float wMin;
-					lerpParamsMin.perspectiveLerp(vMin, ay, wMin);
+					lerpStepperMin.get(vMin);
 					TVSOutput vMax;
-					float wMax;
-					lerpParamsMax.perspectiveLerp(vMax, ay, wMax);
-					float depthMin = depthMin0 + ay * dDepthMin;
-					float depthMax = depthMax0 + ay * dDepthMax;
+					lerpStepperMax.get(vMax);
 
 					float dax = 1 / (lineIter.xMax - lineIter.xMin);
 					float ax = (xStart + 0.5f - lineIter.xMin) * dax;
 
-					LerpParams lerpParamsX(vMin, vMax, wMin, wMax);
-					LerpStepper lerpStepperX(lerpParamsX, ax, dax, depthMin, depthMax - depthMin);
+					LerpStepper lerpStepperX(vMin, vMax, lerpStepperMin.w, lerpStepperMax.w, ax, dax, lerpStepperMin.depth, lerpStepperMax.depth - lerpStepperMin.depth);
 
 					TVSOutput v;
+					uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + xStart;
+					float* depthPtr = nullptr;
+					if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+					{
+						depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + xStart;
+					}
 					for (int x = xStart; x < xEnd; ++x)
 					{
 						lerpStepperX.get(v);
-						bool bPassDepth = true;
-						if constexpr (TDepthState::EnableTest)
+						ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, lerpStepperX.depth, v, pixelShader);
+						++colorPtr;
+						if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
 						{
-							if (depthBuffer)
-								bPassDepth = TDepthState::Pass(lerpStepperX.depth, depthBuffer->getDepth(x, y));
-						}
-
-						if (bPassDepth)
-						{
-							LinearColor srcC = pixelShader(v);
-							LinearColor outC = srcC;
-							if constexpr (TBlendState::Enable)
-							{
-								LinearColor destC = buffer.getPixel(x, y);
-								outC = TBlendState::Blend(srcC, destC);
-							}
-							buffer.setPixel(x, y, outC);
-							if constexpr (TDepthState::EnableWrite)
-							{
-								if (depthBuffer)
-									depthBuffer->setDepth(x, y, lerpStepperX.depth);
-							}
+							++depthPtr;
 						}
 						lerpStepperX.advance();
 					}
 				}
 				lineIter.advance();
-				ay += day;
+				lerpStepperMin.advance();
+				lerpStepperMax.advance();
 			}
 		}
 	}
 
 
 	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
-	void DrawTrianglePS(ColorBuffer& buffer, DepthBuffer* depthBuffer,
+	void DrawTrianglePS(RenderTarget& renderTarget,
 						RasterPosition const& p0, RasterPosition const& p1, RasterPosition const& p2,
 					    TVSOutput const& vd0, TVSOutput const& vd1, TVSOutput const& vd2,
 					    TPixelShader const& pixelShader)
@@ -508,7 +528,7 @@ namespace SR
 		{
 			float dxdySide = deltaB.x / deltaB.y;
 			int yStart = Math::Max(0, Math::CeilToInt(minV.y - 0.5f - RasterEpsilon));
-			int yEnd = Math::Min(buffer.getSize().y, Math::CeilToInt(midV.y - 0.5f - RasterEpsilon));
+			int yEnd = Math::Min(renderTarget.colorBuffer->getSize().y, Math::CeilToInt(midV.y - 0.5f - RasterEpsilon));
 			if (yStart < yEnd)
 			{
 				float scanY = yStart + 0.5f;
@@ -527,7 +547,7 @@ namespace SR
 					lineIter.dxdyMax = dxdy;
 					lineIter.xMin = xSide;
 					lineIter.xMax = xLong;
-					ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, *midP, *midVD, splitP, pVD, *minP, *minVD, true, pixelShader);
+					ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, *midP, *midVD, splitP, pVD, *minP, *minVD, true, pixelShader);
 				}
 				else
 				{
@@ -535,7 +555,7 @@ namespace SR
 					lineIter.dxdyMin = dxdy;
 					lineIter.xMax = xSide;
 					lineIter.xMin = xLong;
-					ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, splitP, pVD, *midP, *midVD, *minP, *minVD, true, pixelShader);
+					ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, splitP, pVD, *midP, *midVD, *minP, *minVD, true, pixelShader);
 				}
 			}
 
@@ -546,7 +566,7 @@ namespace SR
 		{
 			float dxdySide = deltaT.x / deltaT.y;
 			int yStart = Math::Max(0, Math::CeilToInt(midV.y - 0.5f - RasterEpsilon));
-			int yEnd = Math::Min(buffer.getSize().y, Math::CeilToInt(maxV.y - 0.5f - RasterEpsilon));
+			int yEnd = Math::Min(renderTarget.colorBuffer->getSize().y, Math::CeilToInt(maxV.y - 0.5f - RasterEpsilon));
 			if (yStart >= yEnd)
 				return;
 
@@ -566,7 +586,7 @@ namespace SR
 				lineIter.dxdyMax = dxdy;
 				lineIter.xMin = xSide;
 				lineIter.xMax = xLong;
-				ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, *midP, *midVD, splitP, pVD, *maxP, *maxVD, false, pixelShader);
+				ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, *midP, *midVD, splitP, pVD, *maxP, *maxVD, false, pixelShader);
 			}
 			else
 			{
@@ -574,209 +594,23 @@ namespace SR
 				lineIter.dxdyMin = dxdy;
 				lineIter.xMax = xSide;
 				lineIter.xMin = xLong;
-				ClipAndInterpolantColor<TDepthState, TBlendState>(buffer, depthBuffer, lineIter, splitP, pVD, *midP, *midVD, *maxP, *maxVD, false, pixelShader);
+				ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, splitP, pVD, *midP, *midVD, *maxP, *maxVD, false, pixelShader);
 			}
 		}
 	}
 
 	template< class TVSOutput >
-	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2,
+	void DrawTriangle(RenderTarget& renderTarget, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2,
 					  TVSOutput const& vd0, TVSOutput const& vd1, TVSOutput const& vd2)
 	{
 		RasterPosition p0 = { v0, 1.0f, 0.0f };
 		RasterPosition p1 = { v1, 1.0f, 0.0f };
 		RasterPosition p2 = { v2, 1.0f, 0.0f };
-		DrawTrianglePS<DepthDisableState, TBlendState<EBlendMode::Opaque>>(buffer, nullptr, p0, p1, p2, vd0, vd1, vd2, VertexColorPixelShader{});
-	}
-
-	void ClipAndFillColor(ColorBuffer& buffer, ScanLineIterator& lineIter, ColorBGRA8 const& color)
-	{
-		Vec2i size = buffer.getSize();
-
-		if( lineIter.yStart < 0 )
-			lineIter.yStart = 0;
-		if( lineIter.yEnd > size.y )
-			lineIter.yEnd = size.y;
-
-		if( lineIter.yStart < lineIter.yEnd )
-		{
-			for( int y = lineIter.yStart; y < lineIter.yEnd; ++y )
-			{
-				int xStart = PixelCut(lineIter.xMin);
-				if( xStart < 0 )
-					xStart = 0;
-				int xEnd = PixelCut(lineIter.xMax);
-				if( xEnd > size.x )
-					xEnd = size.x;
-
-				if( xStart < xEnd )
-				{
-					for( int x = xStart; x < xEnd; ++x )
-					{
-						buffer.setPixel(x, y, color);
-					}
-				}
-				lineIter.advance();
-			}
-		}
-	}
-
-	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, ColorBGRA8 const& color)
-	{
-		Vector2 maxV, minV, midV;
-		if( v0.y > v1.y )
-		{
-			minV = v1; maxV = v0;
-		}
-		else
-		{
-			minV = v0; maxV = v1;
-		}
-		if( v2.y > maxV.y )
-		{
-			midV = maxV; maxV = v2;
-		}
-		else if( v2.y < minV.y )
-		{
-			midV = minV; minV = v2;
-		}
-		else
-		{
-			midV = v2;
-		}
-
-		Vector2 delta = maxV - minV;
-
-		if( Math::Abs(delta.y) < 1 )
-		{
-			return;
-		}
-
-		float dxdy = delta.x / delta.y;
-		int yMid = PixelCut(midV.y);
-
-		Vector2 deltaB = midV - minV;
-		if( Math::Abs(deltaB.y) > 1 )
-		{
-			ScanLineIterator lineIter;
-			lineIter.yStart = PixelCut(minV.y);
-			lineIter.yEnd = yMid;
-			lineIter.yMin = minV.y;
-			lineIter.yMax = midV.y;
-			lineIter.xMin = minV.x;
-			lineIter.xMax = minV.x;
-			float px = minV.x + dxdy * deltaB.y;
-			if( px > midV.x )
-			{
-				lineIter.dxdyMin = deltaB.x / deltaB.y;
-				lineIter.dxdyMax = dxdy;
-			}
-			else
-			{
-				lineIter.dxdyMax = deltaB.x / deltaB.y;
-				lineIter.dxdyMin = dxdy;
-			}
-			ClipAndFillColor(buffer, lineIter, color);
-		}
-
-		Vector2 deltaT = maxV - midV;
-		if( Math::Abs(deltaT.y) > 1 )
-		{
-			ScanLineIterator lineIter;
-			lineIter.yStart = yMid;
-			lineIter.yEnd = PixelCut(maxV.y);
-			lineIter.yMin = midV.y;
-			lineIter.yMax = maxV.y;
-			float px = maxV.x - dxdy * deltaT.y;
-			if( px > midV.x )
-			{
-				lineIter.dxdyMin = deltaT.x / deltaT.y;
-				lineIter.dxdyMax = dxdy;
-				lineIter.xMin = midV.x;
-				lineIter.xMax = px;
-			}
-			else
-			{
-				lineIter.dxdyMax = deltaT.x / deltaT.y;
-				lineIter.dxdyMin = dxdy;
-				lineIter.xMax = midV.x;
-				lineIter.xMin = px;
-			}
-			ClipAndFillColor(buffer, lineIter, color);
-		}
-	}
-
-	void DrawLine(ColorBuffer& buffer, Vector2 const& from, Vector2 const& to, ColorBGRA8 const& color)
-	{
-		Vec2i bufferSize = buffer.getSize();
-		Vector2 delta = to - from;
-		Vector2 deltaAbs = Vector2(Math::Abs(delta.x), Math::Abs(delta.y));
-
-		if( deltaAbs.x < 1 && deltaAbs.y < 1 )
-		{
-			int x = Math::FloorToInt(from.x);
-			int y = Math::FloorToInt(from.y);
-			buffer.setPixelCheck(x, y, color);
-			return;
-		}
-
-		// #TODO : Clip line first
-		if( deltaAbs.x > deltaAbs.y )
-		{
-			float dDelta = delta.y / delta.x;
-			int start = Math::FloorToInt(from.x);
-			int end = Math::FloorToInt(to.x);
-
-			float v;
-			if( start > end )
-			{
-				std::swap(start, end);
-				dDelta = -dDelta;
-				v = to.y;
-			}
-			else
-			{
-				v = from.y;
-			}
-
-			for( int i = start; i <= end; ++i )
-			{
-				int vi = Math::FloorToInt(v);
-				buffer.setPixelCheck(i, vi, color);
-				v += dDelta;
-			}
-		}
-		else
-		{
-			float dDelta = delta.x / delta.y;
-			int start = Math::FloorToInt(from.y);
-			int end = Math::FloorToInt(to.y);
-
-			float v;
-			if( start > end )
-			{
-				std::swap(start, end);
-				dDelta = -dDelta;
-				v = to.x;
-			}
-			else
-			{
-				v = from.x;
-			}
-
-			for( int i = start; i <= end; ++i )
-			{
-				int vi = Math::FloorToInt(v);
-				buffer.setPixelCheck(vi, i, color);
-				v += dDelta;
-			}
-		}
+		DrawTrianglePS<DepthDisableState, TBlendState<EBlendMode::Opaque>>(renderTarget, p0, p1, p2, vd0, vd1, vd2, VertexColorPixelShader{});
 	}
 
 	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
-	void DrawLinePS(ColorBuffer& buffer, DepthBuffer* depthBuffer, RasterPosition const& p0, RasterPosition const& p1, TVSOutput const& output0, TVSOutput const& output1, TPixelShader const& pixelShader);
-
-
+	void DrawLinePS(RenderTarget& renderTarget, RasterPosition const& p0, RasterPosition const& p1, TVSOutput const& output0, TVSOutput const& output1, TPixelShader const& pixelShader);
 
 	template< class TPipeline , class TPixelShader >
 	void RasterizedRenderer::drawTrianglePS(Vector3 v0, LinearColor color0, Vector2 uv0, Vector3 v1, LinearColor color1, Vector2 uv1, Vector3 v2, LinearColor color2, Vector2 uv2, TPixelShader const& pixelShader)
@@ -816,18 +650,10 @@ namespace SR
 
 		RasterPosition p0;
 		p0.screenPos = toScreenPos(clip0);
-		p0.w = 1.0f / clip0.w;
-		p0.depth = clip0.z / clip0.w;
-
 		RasterPosition p1;
 		p1.screenPos = toScreenPos(clip1);
-		p1.w = 1.0f / clip1.w;
-		p1.depth = clip1.z / clip1.w;
-
 		RasterPosition p2;
 		p2.screenPos = toScreenPos(clip2);
-		p2.w = 1.0f / clip2.w;
-		p2.depth = clip2.z / clip2.w;
 
 		float signedArea = (p1.screenPos - p0.screenPos).cross(p2.screenPos - p0.screenPos);
 		if (Math::Abs(signedArea) < 1e-4f)
@@ -836,7 +662,14 @@ namespace SR
 		if (TRasterState::ShouldCull(signedArea))
 			return;
 
-		DrawTrianglePS<TDepthState, TBlendState>(*this->mRenderTarget.colorBuffer, this->mRenderTarget.depthBuffer, p0, p1, p2, output0, output1, output2, pixelShader);
+		p0.w = 1.0f / clip0.w;
+		p0.depth = clip0.z / clip0.w;
+		p1.w = 1.0f / clip1.w;
+		p1.depth = clip1.z / clip1.w;
+		p2.w = 1.0f / clip2.w;
+		p2.depth = clip2.z / clip2.w;
+
+		DrawTrianglePS<TDepthState, TBlendState>(mRenderTarget, p0, p1, p2, output0, output1, output2, pixelShader);
 	}
 
 	template< class TPipeline >
@@ -864,7 +697,7 @@ namespace SR
 		p1.w = 1.0f / sv1.w;
 		p1.depth = sv1.z / sv1.w;
 
-		DrawLinePS<TDepthState, TBlendState>(*this->mRenderTarget.colorBuffer, this->mRenderTarget.depthBuffer, p0, p1, output0, output1, pixelShader);
+		DrawLinePS<TDepthState, TBlendState>(mRenderTarget, p0, p1, output0, output1, pixelShader);
 	}
 
 	template< class TPipeline, class TVertex, class TVertexShader, class TPixelShader >
@@ -894,9 +727,9 @@ namespace SR
 	}
 
 	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
-	void DrawLinePS(ColorBuffer& buffer, DepthBuffer* depthBuffer, RasterPosition const& p0, RasterPosition const& p1, TVSOutput const& output0, TVSOutput const& output1, TPixelShader const& pixelShader)
+	void DrawLinePS(RenderTarget& renderTarget, RasterPosition const& p0, RasterPosition const& p1, TVSOutput const& output0, TVSOutput const& output1, TPixelShader const& pixelShader)
 	{
-		Vec2i bufferSize = buffer.getSize();
+		Vec2i bufferSize = renderTarget.colorBuffer->getSize();
 		Vector2 delta = p1.screenPos - p0.screenPos;
 		Vector2 deltaAbs = Vector2(Math::Abs(delta.x), Math::Abs(delta.y));
 		float steps = Math::Max(deltaAbs.x, deltaAbs.y);
@@ -907,36 +740,19 @@ namespace SR
 			int y = Math::FloorToInt(p0.screenPos.y);
 			if (0 <= x && x < bufferSize.x && 0 <= y && y < bufferSize.y)
 			{
-				bool bPassDepth = true;
-				if constexpr (TDepthState::EnableTest)
+				uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + x;
+				float* depthPtr = nullptr;
+				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
 				{
-					if (depthBuffer)
-						bPassDepth = TDepthState::Pass(p0.depth, depthBuffer->getDepth(x, y));
+					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + x;
 				}
-
-				if (bPassDepth)
-				{
-					LinearColor srcC = pixelShader(output0);
-					LinearColor outC = srcC;
-					if constexpr (TBlendState::Enable)
-					{
-						LinearColor destC = buffer.getPixel(x, y);
-						outC = TBlendState::Blend(srcC, destC);
-					}
-					buffer.setPixel(x, y, outC);
-					if constexpr (TDepthState::EnableWrite)
-					{
-						if (depthBuffer)
-							depthBuffer->setDepth(x, y, p0.depth);
-					}
-				}
+				ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, p0.depth, output0, pixelShader);
 			}
 			return;
 		}
 
-		TVertexLerpParams<TVSOutput> lerpParams(output0, output1, p0.w, p1.w);
 		float dAlpha = 1.0f / steps;
-		TVertexLerpStepper<TVSOutput> lerpStepper(lerpParams, 0.0f, dAlpha, p0.depth, p1.depth - p0.depth);
+		typename TVertexLerpParams<TVSOutput>::Stepper lerpStepper(output0, output1, p0.w, p1.w, 0.0f, dAlpha, p0.depth, p1.depth - p0.depth);
 
 		Vector2 pos = p0.screenPos;
 		Vector2 dPos = delta * dAlpha;
@@ -948,29 +764,13 @@ namespace SR
 			if (0 <= x && x < bufferSize.x && 0 <= y && y < bufferSize.y)
 			{
 				lerpStepper.get(output);
-				bool bPassDepth = true;
-				if constexpr (TDepthState::EnableTest)
+				uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + x;
+				float* depthPtr = nullptr;
+				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
 				{
-					if (depthBuffer)
-						bPassDepth = TDepthState::Pass(lerpStepper.depth, depthBuffer->getDepth(x, y));
+					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + x;
 				}
-
-				if (bPassDepth)
-				{
-					LinearColor srcC = pixelShader(output);
-					LinearColor outC = srcC;
-					if constexpr (TBlendState::Enable)
-					{
-						LinearColor destC = buffer.getPixel(x, y);
-						outC = TBlendState::Blend(srcC, destC);
-					}
-					buffer.setPixel(x, y, outC);
-					if constexpr (TDepthState::EnableWrite)
-					{
-						if (depthBuffer)
-							depthBuffer->setDepth(x, y, lerpStepper.depth);
-					}
-				}
+				ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, lerpStepper.depth, output, pixelShader);
 			}
 
 			pos += dPos;
@@ -1164,13 +964,11 @@ namespace SR
 
 		static CubeMsh localMesh;
 
-
-		auto pixelShader = [this](DefaultVSOutput const& input)
+		struct MyVSOutput
 		{
-			//return input.color;
-			return simpleTexture.sample(input.uv) * input.color;
+			LinearColor color;
+			//Vector2 uv;
 		};
-
 
 		Matrix4 localToClip = model * mRenderer.worldToClip;
 
@@ -1179,20 +977,25 @@ namespace SR
 			struct Output
 			{
 				Vector4 svPosition;
-				DefaultVSOutput output;
+				MyVSOutput output;
 			};
 
 			Output result;
 			result.svPosition = Vector4(input.pos, 1) * localToClip;
-			result.output.uv = input.uv;
+			//result.output.uv = input.uv;
 			result.output.color = input.color;
 			return result;
+		};
+
+		auto pixelShader = [this](MyVSOutput const& input)
+		{
+			return input.color;
+			//return simpleTexture.sample(input.uv) * input.color;
 		};
 
 		mRenderer.drawIndexedTriangleListPS<DefaultRasterPipeline>(
 			localMesh.drawVertices, ARRAY_SIZE(localMesh.drawVertices), 
 			localMesh.drawIndices, ARRAY_SIZE(localMesh.drawIndices), vertexShader, pixelShader);
-
 
 #if 0
 		mRenderer.drawTriangle(p0, face.color, Vector2(0, 0),
@@ -1381,12 +1184,12 @@ namespace SR
 					}
 #endif
 
-					mRenderTarget.colorBuffer->setPixel(i, j, c);
+					mRenderTarget.colorBuffer->setPixel(i, j, c.toBGRA());
 				}
 				else
 				{
 					Vector3 c = 0.5 * (result.normal + Vector3(1));
-					mRenderTarget.colorBuffer->setPixel(i, j, LinearColor(c));
+					mRenderTarget.colorBuffer->setPixel(i, j, LinearColor(c).toBGRA());
 				}
 
 			}

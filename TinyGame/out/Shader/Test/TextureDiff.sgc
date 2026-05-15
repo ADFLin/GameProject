@@ -1,0 +1,23 @@
+#include "ScreenVertexShader.sgc"
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, BCTexture);
+DEFINE_TEXTURE(Texture2D, OriginalTexture);
+
+#if SHADER_ENTRY(MainPS)
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float2 UVs = VSOutput.UVs;
+	float4 bcColor = TEXTURE_SAMPLE(BCTexture, UVs);
+	float4 originalColor = TEXTURE_SAMPLE(OriginalTexture, UVs);
+	OutColor = 5 * float4(abs(bcColor.rgb - originalColor.rgb), 1.0);
+}
+
+#endif
+
+#endif

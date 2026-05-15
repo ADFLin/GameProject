@@ -39,7 +39,7 @@ namespace SR
 	{
 		float r, g, b, a;
 
-		operator ColorBGRA8() const
+		FORCEINLINE ColorBGRA8 toBGRA() const
 		{
 			uint8 byteR = uint8(255 * Math::Clamp<float>(r, 0, 1));
 			uint8 byteG = uint8(255 * Math::Clamp<float>(g, 0, 1));
@@ -156,12 +156,12 @@ namespace SR
 			std::fill_n(mData.data(), mData.size(), depth);
 		}
 
-		float getDepth(uint32 x, uint32 y) const
+		FORCEINLINE float getDepth(uint32 x, uint32 y) const
 		{
 			return mData[x + mSize.x * y];
 		}
 
-		void setDepth(uint32 x, uint32 y, float depth)
+		FORCEINLINE void setDepth(uint32 x, uint32 y, float depth)
 		{
 			mData[x + mSize.x * y] = depth;
 		}
@@ -330,8 +330,8 @@ namespace SR
 		{
 			if constexpr (DepthFunc == EDepthFunc::Always)
 				return true;
-			else
-				return srcDepth < destDepth;
+			
+			return srcDepth < destDepth;
 		}
 	};
 
@@ -378,7 +378,7 @@ namespace SR
 		void clearBuffer(LinearColor const& color)
 		{
 			if( mRenderTarget.colorBuffer )
-				mRenderTarget.colorBuffer->clear(color);
+				mRenderTarget.colorBuffer->clear(color.toBGRA());
 			if (mRenderTarget.depthBuffer)
 				mRenderTarget.depthBuffer->clear(Math::MaxFloat);
 		}
@@ -417,7 +417,7 @@ namespace SR
 		void clearBuffer(LinearColor const& color)
 		{
 			if (this->mRenderTarget.colorBuffer)
-				this->mRenderTarget.colorBuffer->clear(color);
+				this->mRenderTarget.colorBuffer->clear(color.toBGRA());
 			using TDepthState = typename TPipeline::DepthState;
 			if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
 			{

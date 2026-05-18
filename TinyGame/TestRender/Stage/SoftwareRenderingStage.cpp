@@ -5,6 +5,7 @@
 #define USE_OMP 1
 #define USE_EDGE_FUNCTION 0
 #define USE_EDGE_TILE 1
+#define USE_LANE_SCALAR 1
 
 #if USE_OMP
 #include "omp.h"
@@ -30,6 +31,8 @@ namespace SR
 		return 0;
 #endif
 	}
+
+	alignas(32) float constexpr GLaneOffsetsData[LaneScalar::Size] = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f };
 
 
 	bool ColorBuffer::create(Vec2i const& size)
@@ -182,6 +185,87 @@ namespace SR
 #endif
 	}
 
+	LaneLinearColor Texture::sample(LaneVector2 const& UV) const
+	{
+		constexpr int FixedBits = 8;
+		constexpr int FixedScale = 1 << FixedBits;
+		constexpr int FixedMask = FixedScale - 1;
+		constexpr float Inv255FixedWeight = 1.0f / float(255 * FixedScale * FixedScale);
+
+		float uValues[LaneScalar::Size];
+		float vValues[LaneScalar::Size];
+		UV.x.store(uValues);
+		UV.y.store(vValues);
+
+		int index00Values[LaneScalar::Size];
+		int index10Values[LaneScalar::Size];
+		int index01Values[LaneScalar::Size];
+		int index11Values[LaneScalar::Size];
+		float w00Values[LaneScalar::Size];
+		float w10Values[LaneScalar::Size];
+		float w01Values[LaneScalar::Size];
+		float w11Values[LaneScalar::Size];
+
+		for (int lane = 0; lane < LaneScalar::Size; ++lane)
+		{
+			float u = Math::Clamp(uValues[lane], 0.0f, 1.0f);
+			float v = Math::Clamp(vValues[lane], 0.0f, 1.0f);
+
+			int fx = int(u * ((mSize.x - 1) << FixedBits));
+			int fy = int(v * ((mSize.y - 1) << FixedBits));
+
+			int x0 = fx >> FixedBits;
+			int y0 = fy >> FixedBits;
+			int x1 = std::min(x0 + 1, mSize.x - 1);
+			int y1 = std::min(y0 + 1, mSize.y - 1);
+
+			int tx = fx & FixedMask;
+			int ty = fy & FixedMask;
+
+			int w00 = (FixedScale - tx) * (FixedScale - ty);
+			int w10 = tx * (FixedScale - ty);
+			int w01 = (FixedScale - tx) * ty;
+			int w11 = tx * ty;
+
+			index00Values[lane] = x0 + y0 * mSize.x;
+			index10Values[lane] = x1 + y0 * mSize.x;
+			index01Values[lane] = x0 + y1 * mSize.x;
+			index11Values[lane] = x1 + y1 * mSize.x;
+			w00Values[lane] = float(w00);
+			w10Values[lane] = float(w10);
+			w01Values[lane] = float(w01);
+			w11Values[lane] = float(w11);
+		}
+
+		__m256i index00 = _mm256_loadu_si256((__m256i const*)index00Values);
+		__m256i index10 = _mm256_loadu_si256((__m256i const*)index10Values);
+		__m256i index01 = _mm256_loadu_si256((__m256i const*)index01Values);
+		__m256i index11 = _mm256_loadu_si256((__m256i const*)index11Values);
+		__m256i c00 = _mm256_i32gather_epi32((int const*)mData.data(), index00, 4);
+		__m256i c10 = _mm256_i32gather_epi32((int const*)mData.data(), index10, 4);
+		__m256i c01 = _mm256_i32gather_epi32((int const*)mData.data(), index01, 4);
+		__m256i c11 = _mm256_i32gather_epi32((int const*)mData.data(), index11, 4);
+
+		__m256i mask = _mm256_set1_epi32(0xff);
+		auto unpackChannel = [mask](__m256i color, int shift)
+		{
+			return LaneScalar(_mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(color, shift), mask)));
+		};
+
+		LaneScalar w00(w00Values);
+		LaneScalar w10(w10Values);
+		LaneScalar w01(w01Values);
+		LaneScalar w11(w11Values);
+		LaneScalar scale(Inv255FixedWeight);
+
+		LaneLinearColor result;
+		result.r = (unpackChannel(c00, 0) * w00 + unpackChannel(c10, 0) * w10 + unpackChannel(c01, 0) * w01 + unpackChannel(c11, 0) * w11) * scale;
+		result.g = (unpackChannel(c00, 8) * w00 + unpackChannel(c10, 8) * w10 + unpackChannel(c01, 8) * w01 + unpackChannel(c11, 8) * w11) * scale;
+		result.b = (unpackChannel(c00, 16) * w00 + unpackChannel(c10, 16) * w10 + unpackChannel(c01, 16) * w01 + unpackChannel(c11, 16) * w11) * scale;
+		result.a = (unpackChannel(c00, 24) * w00 + unpackChannel(c10, 24) * w10 + unpackChannel(c01, 24) * w01 + unpackChannel(c11, 24) * w11) * scale;
+		return result;
+	}
+
 
 	struct ScanLineIterator
 	{
@@ -229,6 +313,12 @@ namespace SR
 
 	struct DefaultVSOutput
 	{
+		struct LaneType
+		{
+			LaneVector2 uv;
+			LaneLinearColor color;
+		};
+
 		Vector2  uv;
 		LinearColor color;
 	};
@@ -241,7 +331,15 @@ namespace SR
 		{
 			return input.color;
 		}
+
+		FORCEINLINE LaneLinearColor operator()(Input::LaneType const& input) const
+		{
+			return input.color;
+		}
 	};
+
+
+#define USE_InterpolantsParam_SIMD 1
 
 	template< typename TVertexData >
 	struct TPixelInterpolantsParam
@@ -249,7 +347,7 @@ namespace SR
 		static_assert(sizeof(TVertexData) % sizeof(float) == 0, "TVertexData must be float-packed");
 
 		static constexpr int NumParams = sizeof(TVertexData) / sizeof(float);
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 		using FloatVector = SIMD::TFloatVector<4>;
 		static constexpr int LaneSize = FloatVector::Size;
 		static constexpr int NumParamBlocks = (NumParams + LaneSize - 1) / LaneSize;
@@ -259,7 +357,7 @@ namespace SR
 
 		float w0;
 		float dw;
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 		FloatVector wv0[NumParamBlocks];
 		FloatVector dwv[NumParamBlocks];
 #else
@@ -275,7 +373,7 @@ namespace SR
 			w0 = inW0;
 			dw = inW1 - inW0;
 
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 			for (int block = 0; block < NumParamBlocks; ++block)
 			{
 				float wv0Values[LaneSize] = {};
@@ -325,7 +423,7 @@ namespace SR
 			float const wInv = 1.0f / outW;
 			float const alphaW = alpha * wInv;
 
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 			for (int block = 0; block < NumFullParamBlocks; ++block)
 			{
 				(wv0[block] * wInv + dwv[block] * alphaW).store(pOut + block * LaneSize);
@@ -354,7 +452,7 @@ namespace SR
 			float depth;
 			float dDepth;
 
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 			FloatVector paramW[NumParamBlocks];
 			FloatVector dParamW[NumParamBlocks];
 #else
@@ -374,7 +472,7 @@ namespace SR
 
 				float const* p0 = reinterpret_cast<float const*>(&v0);
 				float const* p1 = reinterpret_cast<float const*>(&v1);
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 				for (int block = 0; block < NumParamBlocks; ++block)
 				{
 					float paramWValues[LaneSize] = {};
@@ -413,7 +511,7 @@ namespace SR
 				depth = v0.depth + alpha * dDepthIn;
 				dDepth = dAlpha * dDepthIn;
 
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 				FloatVector alphaVec(alpha);
 				FloatVector dAlphaVec(dAlpha);
 				for (int block = 0; block < NumParamBlocks; ++block)
@@ -437,7 +535,7 @@ namespace SR
 				float* pOut = reinterpret_cast<float*>(&outData);
 				float const wInv = 1.0f / w;
 
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 				for (int block = 0; block < NumFullParamBlocks; ++block)
 				{
 					(paramW[block] * wInv).store(pOut + block * LaneSize);
@@ -459,11 +557,47 @@ namespace SR
 #endif
 			}
 
+#if USE_LANE_SCALAR
+			FORCEINLINE void getLane(typename TVertexData::LaneType& outData, LaneScalar& outDepth) const
+			{
+				LaneScalar const LaneOffsets(GLaneOffsetsData, EAligned{});
+				static_assert(sizeof(typename TVertexData::LaneType) == NumParams * sizeof(LaneScalar), "LaneType must match TVertexData float layout");
+
+				LaneScalar const laneW = LaneScalar(w) + LaneScalar(dw) * LaneOffsets;
+				LaneScalar const laneWInv = LaneScalar(1.0f) / laneW;
+				outDepth = LaneScalar(depth) + LaneScalar(dDepth) * LaneOffsets;
+
+				LaneScalar* pOut = reinterpret_cast<LaneScalar*>(&outData);
+#if USE_InterpolantsParam_SIMD
+				float paramValues[LaneSize];
+				float dParamValues[LaneSize];
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					paramW[block].store(paramValues);
+					dParamW[block].store(dParamValues);
+
+					int indexStart = block * LaneSize;
+					int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
+					for (int i = indexStart; i < indexEnd; ++i)
+					{
+						int lane = i - indexStart;
+						pOut[i] = (LaneScalar(paramValues[lane]) + LaneScalar(dParamValues[lane]) * LaneOffsets) * laneWInv;
+					}
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					pOut[i] = (LaneScalar(paramW[i]) + LaneScalar(dParamW[i]) * LaneOffsets) * laneWInv;
+				}
+#endif
+			}
+#endif
+
 			FORCEINLINE void advance()
 			{
 				w += dw;
 				depth += dDepth;
-#if USE_MATH_SIMD
+#if USE_InterpolantsParam_SIMD
 				for (int block = 0; block < NumParamBlocks; ++block)
 				{
 					paramW[block] = paramW[block] + dParamW[block];
@@ -475,6 +609,26 @@ namespace SR
 				}
 #endif
 			}
+
+#if USE_LANE_SCALAR
+			FORCEINLINE void advance(int count)
+			{
+				float const countFloat = float(count);
+				w += dw * countFloat;
+				depth += dDepth * countFloat;
+#if USE_InterpolantsParam_SIMD
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					paramW[block] = paramW[block] + dParamW[block] * countFloat;
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					paramW[i] += dParamW[i] * countFloat;
+				}
+#endif
+			}
+#endif
 		};
 	};
 
@@ -731,6 +885,151 @@ namespace SR
 			*depthPtr = depth;
 		}
 	}
+
+	FORCEINLINE __m256i PackOpaqueBGRA(LaneLinearColor const& color)
+	{
+		LaneScalar const zero = LaneScalar::Zero();
+		LaneScalar const one(1.0f);
+		LaneScalar const scale(255.0f);
+		LaneScalar r = min(max(color.r, zero), one) * scale;
+		LaneScalar g = min(max(color.g, zero), one) * scale;
+		LaneScalar b = min(max(color.b, zero), one) * scale;
+
+		__m256i ri = _mm256_cvttps_epi32(r.reg);
+		__m256i gi = _mm256_cvttps_epi32(g.reg);
+		__m256i bi = _mm256_cvttps_epi32(b.reg);
+		__m256i ai = _mm256_set1_epi32(0xff000000);
+		return _mm256_or_si256(
+			_mm256_or_si256(bi, _mm256_slli_epi32(gi, 8)),
+			_mm256_or_si256(_mm256_slli_epi32(ri, 16), ai));
+	}
+
+	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
+	FORCEINLINE void ProcessPixel(LaneMask writeMask, uint32* colorPtr, float* depthPtr, LaneScalar depth, typename TVSOutput::LaneType const& v, TPixelShader const& pixelShader)
+	{
+		if constexpr (TDepthState::EnableTest)
+		{
+			LaneScalar destDepth(_mm256_maskload_ps(depthPtr, writeMask.reg));
+			LaneMask depthMask = TDepthState::Pass(depth, destDepth);
+			writeMask = LaneMask(_mm256_and_si256(writeMask.reg, depthMask.reg));
+		}
+
+		int const activeMask = _mm256_movemask_ps(_mm256_castsi256_ps(writeMask.reg));
+		if (activeMask == 0)
+			return;
+
+
+		if constexpr (TDepthState::EnableWrite)
+		{
+			_mm256_maskstore_ps(depthPtr, writeMask.reg, depth.reg);
+		}
+
+		LaneLinearColor srcC = pixelShader(v);
+		if constexpr (!TBlendState::Enable)
+		{
+			_mm256_maskstore_epi32((int*)colorPtr, writeMask.reg, PackOpaqueBGRA(srcC));
+			return;
+		}
+
+		float srcR[LaneScalar::Size];
+		float srcG[LaneScalar::Size];
+		float srcB[LaneScalar::Size];
+		float srcA[LaneScalar::Size];
+		srcC.r.store(srcR);
+		srcC.g.store(srcG);
+		srcC.b.store(srcB);
+		srcC.a.store(srcA);
+
+		for (int lane = 0; lane < LaneScalar::Size; ++lane)
+		{
+			if ((activeMask & (1 << lane)) == 0)
+				continue;
+
+			LinearColor src(srcR[lane], srcG[lane], srcB[lane], srcA[lane]);
+			LinearColor outC = src;
+			if constexpr (TBlendState::Enable)
+			{
+				ColorBGRA8 dest;
+				dest.word = colorPtr[lane];
+				outC = TBlendState::Blend(src, LinearColor(dest));
+			}
+
+			ColorBGRA8 colorOut;
+			if constexpr (TBlendState::Enable)
+			{
+				colorOut = outC.toBGRA();
+			}
+			else
+			{
+				colorOut = outC.toOpaqueBGRA();
+			}
+
+			colorPtr[lane] = colorOut.word;
+		}
+	}
+
+	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
+	FORCEINLINE void ProcessPixelFullLane(uint32* colorPtr, float* depthPtr, LaneScalar depth, typename TVSOutput::LaneType const& v, TPixelShader const& pixelShader)
+	{
+		int activeMask = 0xff;
+		LaneMask writeMask(-1);
+		if constexpr (TDepthState::EnableTest)
+		{
+			LaneMask depthMask = TDepthState::Pass(depth, LaneScalar(depthPtr));
+			writeMask = depthMask;
+			activeMask = _mm256_movemask_ps(_mm256_castsi256_ps(depthMask.reg));
+			if (activeMask == 0)
+				return;
+		}
+
+		if constexpr (TDepthState::EnableWrite)
+		{
+			if (activeMask == 0xff)
+			{
+				_mm256_storeu_ps(depthPtr, depth.reg);
+			}
+			else
+			{
+				_mm256_maskstore_ps(depthPtr, writeMask.reg, depth.reg);
+			}
+		}
+
+		LaneLinearColor srcC = pixelShader(v);
+		if constexpr (!TBlendState::Enable)
+		{
+			__m256i packedBGRA = PackOpaqueBGRA(srcC);
+			if (activeMask == 0xff)
+			{
+				_mm256_storeu_si256((__m256i*)colorPtr, packedBGRA);
+			}
+			else
+			{
+				_mm256_maskstore_epi32((int*)colorPtr, writeMask.reg, packedBGRA);
+			}
+			return;
+		}
+
+		float srcR[LaneScalar::Size];
+		float srcG[LaneScalar::Size];
+		float srcB[LaneScalar::Size];
+		float srcA[LaneScalar::Size];
+		srcC.r.store(srcR);
+		srcC.g.store(srcG);
+		srcC.b.store(srcB);
+		srcC.a.store(srcA);
+
+		for (int lane = 0; lane < LaneScalar::Size; ++lane)
+		{
+			if ((activeMask & (1 << lane)) == 0)
+				continue;
+
+			LinearColor src(srcR[lane], srcG[lane], srcB[lane], srcA[lane]);
+			ColorBGRA8 dest;
+			dest.word = colorPtr[lane];
+			colorPtr[lane] = TBlendState::Blend(src, LinearColor(dest)).toBGRA().word;
+		}
+	}
+
 	//constexpr float RasterEpsilon = 1e-4f;
 	constexpr float RasterEpsilon = 0;
 
@@ -786,6 +1085,33 @@ namespace SR
 					{
 						depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + xStart;
 					}
+#if USE_LANE_SCALAR
+					constexpr int LaneCount = LaneScalar::Size;
+					typename TVSOutput::LaneType laneV;
+					LaneScalar laneDepth;
+					int x = xStart;
+					int const xLaneEnd = xStart + (xEnd - xStart) / LaneCount * LaneCount;
+					for (; x < xLaneEnd; x += LaneCount)
+					{
+						xStepper.getLane(laneV, laneDepth);
+						ProcessPixelFullLane< TDepthState, TBlendState, TVSOutput >(colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+						colorPtr += LaneCount;
+						if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+						{
+							depthPtr += LaneCount;
+						}
+						xStepper.advance(LaneCount);
+					}
+					if (x < xEnd)
+					{
+						int const tailCount = xEnd - x;
+						LaneMask tailMask(_mm256_cmpgt_epi32(
+							_mm256_set1_epi32(tailCount),
+							_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7)));
+						xStepper.getLane(laneV, laneDepth);
+						ProcessPixel< TDepthState, TBlendState, TVSOutput >(tailMask, colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+					}
+#else
 					for (int x = xStart; x < xEnd; ++x)
 					{
 						xStepper.get(v);
@@ -797,6 +1123,7 @@ namespace SR
 						}
 						xStepper.advance();
 					}
+#endif
 				}
 				lineIter.advance();
 				yStepperMin.advance();
@@ -1514,10 +1841,18 @@ namespace SR
 		mRenderer.worldToClip = LookAtMatrix(cameraPos, Vector3(0, 0, 2) - cameraPos, Vector3(0, 0, 1)) *
 								PerspectiveMatrix(Math::DegToRad(60), aspect, 0.01, 500);
 
+		struct LaneDrawVertex
+		{
+			LaneVector3 pos;
+			LaneLinearColor color;
+			LaneVector2 uv;
+		};
 
 
 		struct DrawVertex
 		{
+			using LaneType = LaneDrawVertex;
+
 			Vector3 pos;
 			LinearColor color;
 			Vector2 uv;
@@ -1583,6 +1918,12 @@ namespace SR
 
 		struct MyVSOutput
 		{
+			struct LaneType
+			{
+				LaneLinearColor color;
+				LaneVector2 uv;
+			};
+
 			LinearColor color;
 			Vector2 uv;
 		};
@@ -1604,9 +1945,9 @@ namespace SR
 			return result;
 		};
 
-		auto pixelShader = [this](MyVSOutput const& input)
+		auto pixelShader = [this](auto const& input)
 		{
-			++mPixelCountRendered;
+			mPixelCountRendered += std::is_same_v< std::decay_t< decltype(input)> , MyVSOutput > ? 1 : LaneScalar::Size;
 			//return input.color;
 			return simpleTexture.sample(input.uv) * input.color;
 		};

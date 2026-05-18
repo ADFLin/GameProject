@@ -29,6 +29,14 @@ namespace SR
 	using XForm = Math::Transform;
 
 
+
+	using LaneScalar = SIMD::TFloatVector<8>;
+	using LaneVector2 = TVector2<LaneScalar>;
+	using LaneVector3 = TVector3<LaneScalar>;
+	using LaneVector4 = TVector4<LaneScalar>;
+	using LaneMask = SIMD::TIntVector<LaneScalar::Size>;
+
+
 	Vector3 Reflection(Vector3 InV, Vector3 n)
 	{
 		return InV - (2 * n.dot(InV)) * n;
@@ -124,6 +132,26 @@ namespace SR
 
 		
 	};
+
+	struct LaneLinearColor
+	{
+		LaneScalar r, g, b, a;
+	};
+
+	FORCEINLINE LaneLinearColor operator * (LaneLinearColor const& lhs, LaneLinearColor const& rhs)
+	{
+		return LaneLinearColor{ lhs.r * rhs.r, lhs.g * rhs.g, lhs.b * rhs.b, lhs.a * rhs.a };
+	}
+
+	FORCEINLINE LaneLinearColor operator * (LaneScalar const& s, LaneLinearColor const& rhs)
+	{
+		return LaneLinearColor{ s * rhs.r, s * rhs.g, s * rhs.b, s * rhs.a };
+	}
+
+	FORCEINLINE LaneLinearColor operator + (LaneLinearColor const& lhs, LaneLinearColor const& rhs)
+	{
+		return LaneLinearColor{ lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b, lhs.a + rhs.a };
+	}
 
 	LinearColor operator * (float s, LinearColor const& rhs) { return LinearColor(s * rhs.r, s * rhs.g, s * rhs.b, s * rhs.a); }
 	LinearColor operator - (LinearColor const& lhs, LinearColor& rhs) { return LinearColor(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
@@ -226,6 +254,8 @@ namespace SR
 		Color4ub getColor(Vec2i const& pos) const;
 
 		LinearColor sample(Vector2 const& UV) const;
+
+		LaneLinearColor sample(LaneVector2 const& UV) const;
 
 		Vec2i mSize;
 		TArray< Color4ub > mData;
@@ -365,6 +395,14 @@ namespace SR
 			
 			return srcDepth < destDepth;
 		}
+
+		FORCEINLINE static LaneMask Pass(LaneScalar srcDepth, LaneScalar destDepth)
+		{
+			if constexpr (DepthFunc == EDepthFunc::Always)
+				return LaneMask(-1);
+
+			return LaneMask(_mm256_castps_si256((srcDepth < destDepth).reg));
+		}
 	};
 
 	using DepthDisableState = TDepthState< EDepthFunc::Always, false >;
@@ -382,7 +420,8 @@ namespace SR
 	{
 		static constexpr bool Enable = (BlendMode != EBlendMode::Opaque);
 
-		FORCEINLINE static LinearColor Blend(LinearColor const& src, LinearColor const& dest)
+		template<typename ColorType >
+		FORCEINLINE static ColorType Blend(ColorType const& src, ColorType const& dest)
 		{
 			if constexpr (BlendMode == EBlendMode::Opaque)
 			{

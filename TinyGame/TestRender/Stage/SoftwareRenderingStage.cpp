@@ -3,6 +3,8 @@
 #include "ProfileSystem.h"
 
 #define USE_OMP 1
+#define USE_EDGE_FUNCTION 0
+#define USE_EDGE_TILE 1
 
 #if USE_OMP
 #include "omp.h"
@@ -12,11 +14,22 @@
 #include "BitUtility.h"
 #include "DrawEngine.h"
 
+#if CPP_COMPILER_MSVC
+#include <intrin.h>
+#endif
+
 namespace SR
 {
 	REGISTER_STAGE_ENTRY("Software Renderering", TestStage, EExecGroup::GraphicsTest, "Render");
 
-	Texture simpleTexture;
+	FORCEINLINE uint64 ReadCPUCycles()
+	{
+#if CPP_COMPILER_MSVC
+		return __rdtsc();
+#else
+		return 0;
+#endif
+	}
 
 
 	bool ColorBuffer::create(Vec2i const& size)
@@ -146,12 +159,12 @@ namespace SR
 		assert(0 <= x1 && x1 < mSize.x);
 		assert(0 <= y1 && y1 < mSize.y);
 
-		ColorBGRA8 const* row0 = mData.data() + y0 * mSize.x;
-		ColorBGRA8 const* row1 = mData.data() + y1 * mSize.x;
-		ColorBGRA8 const& c00 = row0[x0];
-		ColorBGRA8 const& c10 = row0[x1];
-		ColorBGRA8 const& c01 = row1[x0];
-		ColorBGRA8 const& c11 = row1[x1];
+		Color4ub const* row0 = mData.data() + y0 * mSize.x;
+		Color4ub const* row1 = mData.data() + y1 * mSize.x;
+		Color4ub const& c00 = row0[x0];
+		Color4ub const& c10 = row0[x1];
+		Color4ub const& c01 = row1[x0];
+		Color4ub const& c11 = row1[x1];
 
 		float const w00 = (1.0f - dx) * (1.0f - dy);
 		float const w10 = dx * (1.0f - dy);
@@ -231,18 +244,30 @@ namespace SR
 	};
 
 	template< typename TVertexData >
-	struct TVertexLerpParams
+	struct TPixelInterpolantsParam
 	{
 		static_assert(sizeof(TVertexData) % sizeof(float) == 0, "TVertexData must be float-packed");
 
 		static constexpr int NumParams = sizeof(TVertexData) / sizeof(float);
+#if USE_MATH_SIMD
+		using FloatVector = SIMD::TFloatVector<4>;
+		static constexpr int LaneSize = FloatVector::Size;
+		static constexpr int NumParamBlocks = (NumParams + LaneSize - 1) / LaneSize;
+		static constexpr int NumFullParamBlocks = NumParams / LaneSize;
+		static constexpr int NumTailParams = NumParams % LaneSize;
+#endif
 
 		float w0;
 		float dw;
+#if USE_MATH_SIMD
+		FloatVector wv0[NumParamBlocks];
+		FloatVector dwv[NumParamBlocks];
+#else
 		float wv0[NumParams];
 		float dwv[NumParams];
+#endif
 
-		TVertexLerpParams(TVertexData const& v0, TVertexData const& v1, float inW0, float inW1)
+		TPixelInterpolantsParam(TVertexData const& v0, TVertexData const& v1, float inW0, float inW1)
 		{
 			float const* p0 = reinterpret_cast<float const*>(&v0);
 			float const* p1 = reinterpret_cast<float const*>(&v1);
@@ -250,11 +275,46 @@ namespace SR
 			w0 = inW0;
 			dw = inW1 - inW0;
 
+#if USE_MATH_SIMD
+			for (int block = 0; block < NumParamBlocks; ++block)
+			{
+				float wv0Values[LaneSize] = {};
+				float dwvValues[LaneSize] = {};
+
+				if constexpr (NumTailParams == 0)
+				{
+					int indexStart = block * LaneSize;
+					int indexEnd = indexStart + LaneSize;
+					for (int i = indexStart; i < indexEnd; ++i)
+					{
+						int lane = i - indexStart;
+						wv0Values[lane] = inW0 * p0[i];
+						dwvValues[lane] = inW1 * p1[i] - wv0Values[lane];
+					}
+				}
+				else
+				{
+					int indexStart = block * LaneSize;
+					int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
+					for (int i = indexStart; i < indexEnd; ++i)
+					{
+						int lane = i - indexStart;
+						wv0Values[lane] = inW0 * p0[i];
+						dwvValues[lane] = inW1 * p1[i] - wv0Values[lane];
+					}
+
+				}
+
+				wv0[block] = FloatVector(wv0Values);
+				dwv[block] = FloatVector(dwvValues);
+			}
+#else
 			for (int i = 0; i < NumParams; ++i)
 			{
 				wv0[i] = inW0 * p0[i];
 				dwv[i] = inW1 * p1[i] - wv0[i];
 			}
+#endif
 		}
 
 		void perspectiveLerp(TVertexData& outData, float alpha, float& outW) const
@@ -265,10 +325,26 @@ namespace SR
 			float const wInv = 1.0f / outW;
 			float const alphaW = alpha * wInv;
 
+#if USE_MATH_SIMD
+			for (int block = 0; block < NumFullParamBlocks; ++block)
+			{
+				(wv0[block] * wInv + dwv[block] * alphaW).store(pOut + block * LaneSize);
+			}
+			if constexpr (NumTailParams != 0)
+			{
+				float tailValues[LaneSize];
+				(wv0[NumFullParamBlocks] * wInv + dwv[NumFullParamBlocks] * alphaW).store(tailValues);
+				for (int i = 0; i < NumTailParams; ++i)
+				{
+					pOut[NumFullParamBlocks * LaneSize + i] = tailValues[i];
+				}
+			}
+#else
 			for (int i = 0; i < NumParams; ++i)
 			{
 				pOut[i] = wInv * wv0[i] + alphaW * dwv[i];
 			}
+#endif
 		}
 
 		struct Stepper
@@ -278,8 +354,13 @@ namespace SR
 			float depth;
 			float dDepth;
 
+#if USE_MATH_SIMD
+			FloatVector paramW[NumParamBlocks];
+			FloatVector dParamW[NumParamBlocks];
+#else
 			float paramW[NumParams];
 			float dParamW[NumParams];
+#endif
 
 			Stepper(TVertexData const& v0, TVertexData const& v1, float inW0, float inW1, float alpha, float dAlpha, float depth0, float dDepthIn)
 			{		
@@ -293,6 +374,25 @@ namespace SR
 
 				float const* p0 = reinterpret_cast<float const*>(&v0);
 				float const* p1 = reinterpret_cast<float const*>(&v1);
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					float paramWValues[LaneSize] = {};
+					float dParamWValues[LaneSize] = {};
+					int indexStart = block * LaneSize;
+					int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
+					for (int i = indexStart; i < indexEnd; ++i)
+					{
+						float wv0 = inW0 * p0[i];
+						float dwv = inW1 * p1[i] - wv0;
+						int lane = i - indexStart;
+						paramWValues[lane] = wv0 + alpha * dwv;
+						dParamWValues[lane] = dAlpha * dwv;
+					}
+					paramW[block] = FloatVector(paramWValues);
+					dParamW[block] = FloatVector(dParamWValues);
+				}
+#else
 				for (int i = 0; i < NumParams; ++i)
 				{
 					float wv0 = inW0 * p0[i];
@@ -300,6 +400,36 @@ namespace SR
 					paramW[i] = wv0 + alpha * dwv;
 					dParamW[i] = dAlpha * dwv;
 				}
+#endif
+			}
+
+			Stepper(Stepper const& v0, Stepper const& v1, float alpha, float dAlpha)
+			{
+				float paramDw = v1.w - v0.w;
+				float dDepthIn = v1.depth - v0.depth;
+
+				w = v0.w + alpha * paramDw;
+				dw = dAlpha * paramDw;
+				depth = v0.depth + alpha * dDepthIn;
+				dDepth = dAlpha * dDepthIn;
+
+#if USE_MATH_SIMD
+				FloatVector alphaVec(alpha);
+				FloatVector dAlphaVec(dAlpha);
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					FloatVector dParam = v1.paramW[block] - v0.paramW[block];
+					paramW[block] = v0.paramW[block] + alphaVec * dParam;
+					dParamW[block] = dAlphaVec * dParam;
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					float dParam = v1.paramW[i] - v0.paramW[i];
+					paramW[i] = v0.paramW[i] + alpha * dParam;
+					dParamW[i] = dAlpha * dParam;
+				}
+#endif
 			}
 
 			FORCEINLINE void get(TVertexData& outData) const
@@ -307,20 +437,237 @@ namespace SR
 				float* pOut = reinterpret_cast<float*>(&outData);
 				float const wInv = 1.0f / w;
 
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumFullParamBlocks; ++block)
+				{
+					(paramW[block] * wInv).store(pOut + block * LaneSize);
+				}
+				if constexpr (NumTailParams != 0)
+				{
+					float tailValues[LaneSize];
+					(paramW[NumFullParamBlocks] * wInv).store(tailValues);
+					for (int i = 0; i < NumTailParams; ++i)
+					{
+						pOut[NumFullParamBlocks * LaneSize + i] = tailValues[i];
+					}
+				}
+#else
 				for (int i = 0; i < NumParams; ++i)
 				{
 					pOut[i] = wInv * paramW[i];
 				}
+#endif
 			}
 
 			FORCEINLINE void advance()
 			{
 				w += dw;
 				depth += dDepth;
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					paramW[block] = paramW[block] + dParamW[block];
+				}
+#else
 				for (int i = 0; i < NumParams; ++i)
 				{
 					paramW[i] += dParamW[i];
 				}
+#endif
+			}
+		};
+	};
+
+	template< typename TVertexData >
+	struct TPixelTriangleInterpolantsParam
+	{
+		static_assert(sizeof(TVertexData) % sizeof(float) == 0, "TVertexData must be float-packed");
+
+
+
+		static constexpr int NumParams = sizeof(TVertexData) / sizeof(float);
+#if USE_MATH_SIMD
+		using FloatVector = SIMD::TFloatVector<4>;
+		static constexpr int LaneSize = FloatVector::Size;
+		static constexpr int NumParamBlocks = (NumParams + LaneSize - 1) / LaneSize;
+		static constexpr int NumFullParamBlocks = NumParams / LaneSize;
+		static constexpr int NumTailParams = NumParams % LaneSize;
+#endif
+
+		float w0;
+		float w1;
+		float w2;
+#if USE_MATH_SIMD
+		FloatVector wv0[NumParamBlocks];
+		FloatVector wv1[NumParamBlocks];
+		FloatVector wv2[NumParamBlocks];
+#else
+		float wv0[NumParams];
+		float wv1[NumParams];
+		float wv2[NumParams];
+#endif
+
+		TPixelTriangleInterpolantsParam(TVertexData const& v0, TVertexData const& v1, TVertexData const& v2, float inW0, float inW1, float inW2)
+		{
+			float const* p0 = reinterpret_cast<float const*>(&v0);
+			float const* p1 = reinterpret_cast<float const*>(&v1);
+			float const* p2 = reinterpret_cast<float const*>(&v2);
+
+			w0 = inW0;
+			w1 = inW1;
+			w2 = inW2;
+
+#if USE_MATH_SIMD
+			for (int block = 0; block < NumParamBlocks; ++block)
+			{
+				float wv0Values[LaneSize] = {};
+				float wv1Values[LaneSize] = {};
+				float wv2Values[LaneSize] = {};
+
+				int indexStart = block * LaneSize;
+				int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
+				for (int i = indexStart; i < indexEnd; ++i)
+				{
+					int lane = i - indexStart;
+					wv0Values[lane] = inW0 * p0[i];
+					wv1Values[lane] = inW1 * p1[i];
+					wv2Values[lane] = inW2 * p2[i];
+				}
+
+				wv0[block] = FloatVector(wv0Values);
+				wv1[block] = FloatVector(wv1Values);
+				wv2[block] = FloatVector(wv2Values);
+			}
+#else
+			for (int i = 0; i < NumParams; ++i)
+			{
+				wv0[i] = inW0 * p0[i];
+				wv1[i] = inW1 * p1[i];
+				wv2[i] = inW2 * p2[i];
+			}
+#endif
+		}
+
+		FORCEINLINE void perspectiveLerp(TVertexData& outData, float b0, float b1, float b2, float& outW) const
+		{
+			float* pOut = reinterpret_cast<float*>(&outData);
+
+			outW = b0 * w0 + b1 * w1 + b2 * w2;
+			float const wInv = 1.0f / outW;
+
+#if USE_MATH_SIMD
+			FloatVector b0Vec(b0);
+			FloatVector b1Vec(b1);
+			FloatVector b2Vec(b2);
+			FloatVector wInvVec(wInv);
+			for (int block = 0; block < NumFullParamBlocks; ++block)
+			{
+				((wv0[block] * b0Vec + wv1[block] * b1Vec + wv2[block] * b2Vec) * wInvVec).store(pOut + block * LaneSize);
+			}
+			if constexpr (NumTailParams != 0)
+			{
+				float tailValues[LaneSize];
+				(wv0[NumFullParamBlocks] * b0Vec + wv1[NumFullParamBlocks] * b1Vec + wv2[NumFullParamBlocks] * b2Vec).store(tailValues);
+				for (int i = 0; i < NumTailParams; ++i)
+				{
+					pOut[NumFullParamBlocks * LaneSize + i] = tailValues[i] * wInv;
+				}
+			}
+#else
+			for (int i = 0; i < NumParams; ++i)
+			{
+				pOut[i] = wInv * (b0 * wv0[i] + b1 * wv1[i] + b2 * wv2[i]);
+			}
+#endif
+		}
+
+		struct Stepper
+		{
+			float w;
+			float dw;
+			float depth;
+			float dDepth;
+#if USE_MATH_SIMD
+			FloatVector paramW[NumParamBlocks];
+			FloatVector dParamW[NumParamBlocks];
+#else
+			float paramW[NumParams];
+			float dParamW[NumParams];
+#endif
+
+			Stepper(TPixelTriangleInterpolantsParam const& interpolants,
+					float b0, float b1, float b2,
+					float db0, float db1, float db2,
+					float depth0, float depth1, float depth2)
+			{
+				w = b0 * interpolants.w0 + b1 * interpolants.w1 + b2 * interpolants.w2;
+				dw = db0 * interpolants.w0 + db1 * interpolants.w1 + db2 * interpolants.w2;
+				depth = b0 * depth0 + b1 * depth1 + b2 * depth2;
+				dDepth = db0 * depth0 + db1 * depth1 + db2 * depth2;
+
+#if USE_MATH_SIMD
+				FloatVector b0Vec(b0);
+				FloatVector b1Vec(b1);
+				FloatVector b2Vec(b2);
+				FloatVector db0Vec(db0);
+				FloatVector db1Vec(db1);
+				FloatVector db2Vec(db2);
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					paramW[block] = interpolants.wv0[block] * b0Vec + interpolants.wv1[block] * b1Vec + interpolants.wv2[block] * b2Vec;
+					dParamW[block] = interpolants.wv0[block] * db0Vec + interpolants.wv1[block] * db1Vec + interpolants.wv2[block] * db2Vec;
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					paramW[i] = b0 * interpolants.wv0[i] + b1 * interpolants.wv1[i] + b2 * interpolants.wv2[i];
+					dParamW[i] = db0 * interpolants.wv0[i] + db1 * interpolants.wv1[i] + db2 * interpolants.wv2[i];
+				}
+#endif
+			}
+
+			FORCEINLINE void get(TVertexData& outData) const
+			{
+				float* pOut = reinterpret_cast<float*>(&outData);
+				float const wInv = 1.0f / w;
+
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumFullParamBlocks; ++block)
+				{
+					(paramW[block] * wInv).store(pOut + block * LaneSize);
+				}
+				if constexpr (NumTailParams != 0)
+				{
+					float tailValues[LaneSize];
+					(paramW[NumFullParamBlocks] * wInv).store(tailValues);
+					for (int i = 0; i < NumTailParams; ++i)
+					{
+						pOut[NumFullParamBlocks * LaneSize + i] = tailValues[i];
+					}
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					pOut[i] = wInv * paramW[i];
+				}
+#endif
+			}
+
+			FORCEINLINE void advance()
+			{
+				w += dw;
+				depth += dDepth;
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					paramW[block] = paramW[block] + dParamW[block];
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					paramW[i] += dParamW[i];
+				}
+#endif
 			}
 		};
 	};
@@ -330,10 +677,10 @@ namespace SR
 	template< typename TVSOutput >
 	TVSOutput PerspectiveLerp(TVSOutput const& v0, TVSOutput const& v1, float w0, float w1, float alpha)
 	{
-		TVertexLerpParams<TVSOutput> lerpParams(v0, v1, w0, w1);
+		TPixelInterpolantsParam<TVSOutput> lnterpolantsParam(v0, v1, w0, w1);
 		TVSOutput result;
 		float w;
-		lerpParams.perspectiveLerp(result, alpha, w);
+		lnterpolantsParam.perspectiveLerp(result, alpha, w);
 		return result;
 	}
 
@@ -365,32 +712,39 @@ namespace SR
 			outC = TBlendState::Blend(srcC, destC);
 		}
 		
-		ColorBGRA8 colorOut = outC.toBGRA();
-		//ColorBGRA8 colorOut = ColorBGRA8{0xff, 0 , 0};
+#if 1
+		ColorBGRA8 colorOut;
+		if constexpr (TBlendState::Enable)
+		{
+			colorOut = outC.toBGRA();
+		}
+		else
+		{
+			colorOut = outC.toOpaqueBGRA();
+		}
+#else
+		ColorBGRA8 colorOut = ColorBGRA8{ 0xff, 0 , 0 };
+#endif
 		*colorPtr = colorOut.word;
 		if constexpr (TDepthState::EnableWrite)
 		{
 			*depthPtr = depth;
 		}
 	}
+	//constexpr float RasterEpsilon = 1e-4f;
+	constexpr float RasterEpsilon = 0;
 
 	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
-	void ProcessPixels(RenderTarget& renderTarget, ScanLineIterator& lineIter,
-					   RasterPosition const& pL, TVSOutput const& vL,
-					   RasterPosition const& pR, TVSOutput const& vR,
-					   RasterPosition const& pS, TVSOutput const& vS,
-					   bool bInverse, TPixelShader const& pixelShader)
+	void ProcessScanLines(RenderTarget& renderTarget, ScanLineIterator& lineIter,
+					      RasterPosition const& pL, TVSOutput const& vL,
+					      RasterPosition const& pR, TVSOutput const& vR,
+					      RasterPosition const& pS, TVSOutput const& vS,
+					      bool bInverse, TPixelShader const& pixelShader)
 	{
-		using LerpStepper = typename TVertexLerpParams<TVSOutput>::Stepper;
+		using InterpolantsStepper = typename TPixelInterpolantsParam<TVSOutput>::Stepper;
 
 		Vec2i size = renderTarget.colorBuffer->getSize();
 
-		if (lineIter.yStart < 0)
-			lineIter.yStart = 0;
-		if (lineIter.yEnd > size.y)
-			lineIter.yEnd = size.y;
-
-		
 		if (LIKELY(lineIter.yStart < lineIter.yEnd))
 		{
 			float day = 1 / (lineIter.yMax - lineIter.yMin);
@@ -406,34 +760,24 @@ namespace SR
 			float dDepthMin = pS.depth - pL.depth;
 			float depthMax0 = pR.depth;
 			float dDepthMax = pS.depth - pR.depth;
-			LerpStepper lerpStepperMin(vL, vS, pL.w, pS.w, ay, day, depthMin0, dDepthMin);
-			LerpStepper lerpStepperMax(vR, vS, pR.w, pS.w, ay, day, depthMax0, dDepthMax);
+			InterpolantsStepper yStepperMin(vL, vS, pL.w, pS.w, ay, day, depthMin0, dDepthMin);
+			InterpolantsStepper yStepperMax(vR, vS, pR.w, pS.w, ay, day, depthMax0, dDepthMax);
 
 			for (int y = lineIter.yStart; y < lineIter.yEnd; ++y)
 			{
 				CHECK(lineIter.xMin <= lineIter.xMax);
 				float xMin = lineIter.xMin;
 				float xMax = lineIter.xMax;
-				//constexpr float RasterEpsilon = 1e-4f;
-				constexpr float RasterEpsilon = 0;
-				int xStart = Math::CeilToInt(xMin - 0.5f - RasterEpsilon);
-				if (xStart < 0)
-					xStart = 0;
-				int xEnd = Math::CeilToInt(xMax - 0.5f - RasterEpsilon);
-				if (xEnd > size.x)
-					xEnd = size.x;
+
+				int xStart = Math::Max(0, Math::FloorToInt(xMin + 0.5f + RasterEpsilon));
+				int xEnd = Math::Min(size.x, Math::FloorToInt(xMax + 0.5f + RasterEpsilon));
 
 				if (LIKELY(xStart < xEnd))
 				{
-					TVSOutput vMin;
-					lerpStepperMin.get(vMin);
-					TVSOutput vMax;
-					lerpStepperMax.get(vMax);
-
 					float dax = 1 / (lineIter.xMax - lineIter.xMin);
 					float ax = (xStart + 0.5f - lineIter.xMin) * dax;
 
-					LerpStepper lerpStepperX(vMin, vMax, lerpStepperMin.w, lerpStepperMax.w, ax, dax, lerpStepperMin.depth, lerpStepperMax.depth - lerpStepperMin.depth);
+					InterpolantsStepper xStepper(yStepperMin, yStepperMax, ax, dax);
 
 					TVSOutput v;
 					uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + xStart;
@@ -444,21 +788,275 @@ namespace SR
 					}
 					for (int x = xStart; x < xEnd; ++x)
 					{
-						lerpStepperX.get(v);
-						ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, lerpStepperX.depth, v, pixelShader);
+						xStepper.get(v);
+						ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, xStepper.depth, v, pixelShader);
 						++colorPtr;
 						if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
 						{
 							++depthPtr;
 						}
-						lerpStepperX.advance();
+						xStepper.advance();
 					}
 				}
 				lineIter.advance();
-				lerpStepperMin.advance();
-				lerpStepperMax.advance();
+				yStepperMin.advance();
+				yStepperMax.advance();
 			}
 		}
+	}
+
+	FORCEINLINE float EdgeFunction(Vector2 const& a, Vector2 const& b, Vector2 const& p)
+	{
+		return (b - a).cross(p - a);
+	}
+
+	FORCEINLINE bool IsEdgeTileOutside(float e00, float e10, float e01, float e11, float orient)
+	{
+		return e00 * orient < 0.0f && e10 * orient < 0.0f && e01 * orient < 0.0f && e11 * orient < 0.0f;
+	}
+
+	FORCEINLINE bool IsEdgeTileInside(float e00, float e10, float e01, float e11, float orient)
+	{
+		return e00 * orient >= 0.0f && e10 * orient >= 0.0f && e01 * orient >= 0.0f && e11 * orient >= 0.0f;
+	}
+
+	template< class TDepthState, class TBlendState, class TVSOutput, class TPixelShader >
+	void DrawTrianglePSEdge(RenderTarget& renderTarget,
+						    RasterPosition const& p0, RasterPosition const& p1, RasterPosition const& p2,
+						    TVSOutput const& vd0, TVSOutput const& vd1, TVSOutput const& vd2,
+						    TPixelShader const& pixelShader)
+	{
+		Vector2 const& v0 = p0.screenPos;
+		Vector2 const& v1 = p1.screenPos;
+		Vector2 const& v2 = p2.screenPos;
+
+		float const area = EdgeFunction(v0, v1, v2);
+		if (Math::Abs(area) < 1e-4f)
+			return;
+
+		Vec2i size = renderTarget.colorBuffer->getSize();
+		float minX = Math::Min(v0.x, Math::Min(v1.x, v2.x));
+		float maxX = Math::Max(v0.x, Math::Max(v1.x, v2.x));
+		float minY = Math::Min(v0.y, Math::Min(v1.y, v2.y));
+		float maxY = Math::Max(v0.y, Math::Max(v1.y, v2.y));
+
+		int xStart = Math::Max(0, Math::CeilToInt(minX - 0.5f));
+		int xEnd = Math::Min(size.x, Math::CeilToInt(maxX - 0.5f));
+		int yStart = Math::Max(0, Math::CeilToInt(minY - 0.5f));
+		int yEnd = Math::Min(size.y, Math::CeilToInt(maxY - 0.5f));
+		if (xStart >= xEnd || yStart >= yEnd)
+			return;
+
+		float const invArea = 1.0f / area;
+		float const orient = (area > 0.0f) ? 1.0f : -1.0f;
+
+		Vector2 const e12Delta = v2 - v1;
+		Vector2 const e20Delta = v0 - v2;
+		Vector2 const e01Delta = v1 - v0;
+		float const e12dx = -e12Delta.y;
+		float const e20dx = -e20Delta.y;
+		float const e01dx = -e01Delta.y;
+		float const e12dy = e12Delta.x;
+		float const e20dy = e20Delta.x;
+		float const e01dy = e01Delta.x;
+
+		Vector2 rowSample(float(xStart) + 0.5f, float(yStart) + 0.5f);
+		float rowE12 = EdgeFunction(v1, v2, rowSample);
+		float rowE20 = EdgeFunction(v2, v0, rowSample);
+		float rowE01 = EdgeFunction(v0, v1, rowSample);
+
+		TPixelTriangleInterpolantsParam<TVSOutput> interpolants(vd0, vd1, vd2, p0.w, p1.w, p2.w);
+		float const db0dx = e12dx * invArea;
+		float const db1dx = e20dx * invArea;
+		float const db2dx = e01dx * invArea;
+		TVSOutput v;
+#if USE_EDGE_TILE
+		constexpr int TileSize = 8;
+
+		auto processFullPixels = [&](int inXStart, int inXEnd, int inYStart, int inYEnd)
+		{
+			Vector2 tileSample(float(inXStart) + 0.5f, float(inYStart) + 0.5f);
+			float tileRowE12 = EdgeFunction(v1, v2, tileSample);
+			float tileRowE20 = EdgeFunction(v2, v0, tileSample);
+			float tileRowE01 = EdgeFunction(v0, v1, tileSample);
+
+			for (int y = inYStart; y < inYEnd; ++y)
+			{
+				float e12 = tileRowE12;
+				float e20 = tileRowE20;
+				float e01 = tileRowE01;
+				typename TPixelTriangleInterpolantsParam<TVSOutput>::Stepper xStepper(
+					interpolants,
+					e12 * invArea, e20 * invArea, e01 * invArea,
+					db0dx, db1dx, db2dx,
+					p0.depth, p1.depth, p2.depth);
+
+				uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + inXStart;
+				float* depthPtr = nullptr;
+				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+				{
+					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + inXStart;
+				}
+
+				for (int x = inXStart; x < inXEnd; ++x)
+				{
+					xStepper.get(v);
+					ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, xStepper.depth, v, pixelShader);
+					xStepper.advance();
+					++colorPtr;
+					if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+					{
+						++depthPtr;
+					}
+				}
+
+				tileRowE12 += e12dy;
+				tileRowE20 += e20dy;
+				tileRowE01 += e01dy;
+			}
+		};
+
+		auto processPartialPixels = [&](int inXStart, int inXEnd, int inYStart, int inYEnd)
+		{
+			Vector2 tileSample(float(inXStart) + 0.5f, float(inYStart) + 0.5f);
+			float tileRowE12 = EdgeFunction(v1, v2, tileSample);
+			float tileRowE20 = EdgeFunction(v2, v0, tileSample);
+			float tileRowE01 = EdgeFunction(v0, v1, tileSample);
+
+			for (int y = inYStart; y < inYEnd; ++y)
+			{
+				float e12 = tileRowE12;
+				float e20 = tileRowE20;
+				float e01 = tileRowE01;
+				typename TPixelTriangleInterpolantsParam<TVSOutput>::Stepper xStepper(
+					interpolants,
+					e12 * invArea, e20 * invArea, e01 * invArea,
+					db0dx, db1dx, db2dx,
+					p0.depth, p1.depth, p2.depth);
+
+				uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + inXStart;
+				float* depthPtr = nullptr;
+				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+				{
+					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + inXStart;
+				}
+
+				for (int x = inXStart; x < inXEnd; ++x)
+				{
+					if (e12 * orient >= 0.0f && e20 * orient >= 0.0f && e01 * orient >= 0.0f)
+					{
+						xStepper.get(v);
+						ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, xStepper.depth, v, pixelShader);
+					}
+
+					e12 += e12dx;
+					e20 += e20dx;
+					e01 += e01dx;
+					xStepper.advance();
+					++colorPtr;
+					if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+					{
+						++depthPtr;
+					}
+				}
+
+				tileRowE12 += e12dy;
+				tileRowE20 += e20dy;
+				tileRowE01 += e01dy;
+			}
+		};
+
+		for (int tileY = yStart; tileY < yEnd; tileY += TileSize)
+		{
+			int tileYEnd = Math::Min(tileY + TileSize, yEnd);
+			for (int tileX = xStart; tileX < xEnd; tileX += TileSize)
+			{
+				int tileXEnd = Math::Min(tileX + TileSize, xEnd);
+
+				Vector2 p00(float(tileX) + 0.5f, float(tileY) + 0.5f);
+				Vector2 p10(float(tileXEnd) - 0.5f, float(tileY) + 0.5f);
+				Vector2 p01(float(tileX) + 0.5f, float(tileYEnd) - 0.5f);
+				Vector2 p11(float(tileXEnd) - 0.5f, float(tileYEnd) - 0.5f);
+
+				float e12_00 = EdgeFunction(v1, v2, p00);
+				float e12_10 = EdgeFunction(v1, v2, p10);
+				float e12_01 = EdgeFunction(v1, v2, p01);
+				float e12_11 = EdgeFunction(v1, v2, p11);
+				if (IsEdgeTileOutside(e12_00, e12_10, e12_01, e12_11, orient))
+					continue;
+
+				float e20_00 = EdgeFunction(v2, v0, p00);
+				float e20_10 = EdgeFunction(v2, v0, p10);
+				float e20_01 = EdgeFunction(v2, v0, p01);
+				float e20_11 = EdgeFunction(v2, v0, p11);
+				if (IsEdgeTileOutside(e20_00, e20_10, e20_01, e20_11, orient))
+					continue;
+
+				float e01_00 = EdgeFunction(v0, v1, p00);
+				float e01_10 = EdgeFunction(v0, v1, p10);
+				float e01_01 = EdgeFunction(v0, v1, p01);
+				float e01_11 = EdgeFunction(v0, v1, p11);
+				if (IsEdgeTileOutside(e01_00, e01_10, e01_01, e01_11, orient))
+					continue;
+
+				bool bFullCover =
+					IsEdgeTileInside(e12_00, e12_10, e12_01, e12_11, orient) &&
+					IsEdgeTileInside(e20_00, e20_10, e20_01, e20_11, orient) &&
+					IsEdgeTileInside(e01_00, e01_10, e01_01, e01_11, orient);
+
+				if (bFullCover)
+				{
+					processFullPixels(tileX, tileXEnd, tileY, tileYEnd);
+				}
+				else
+				{
+					processPartialPixels(tileX, tileXEnd, tileY, tileYEnd);
+				}
+			}
+		}
+#else
+		for (int y = yStart; y < yEnd; ++y)
+		{
+			float e12 = rowE12;
+			float e20 = rowE20;
+			float e01 = rowE01;
+			typename TPixelTriangleInterpolantsParam<TVSOutput>::Stepper xStepper(
+				interpolants,
+				e12 * invArea, e20 * invArea, e01 * invArea,
+				db0dx, db1dx, db2dx,
+				p0.depth, p1.depth, p2.depth);
+
+			uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + xStart;
+			float* depthPtr = nullptr;
+			if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+			{
+				depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + xStart;
+			}
+
+			for (int x = xStart; x < xEnd; ++x)
+			{
+				if (e12 * orient >= 0.0f && e20 * orient >= 0.0f && e01 * orient >= 0.0f)
+				{
+					xStepper.get(v);
+					ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, xStepper.depth, v, pixelShader);
+				}
+
+				e12 += e12dx;
+				e20 += e20dx;
+				e01 += e01dx;
+				xStepper.advance();
+				++colorPtr;
+				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+				{
+					++depthPtr;
+				}
+			}
+
+			rowE12 += e12dy;
+			rowE20 += e20dy;
+			rowE01 += e01dy;
+		}
+#endif
 	}
 
 
@@ -468,6 +1066,9 @@ namespace SR
 					    TVSOutput const& vd0, TVSOutput const& vd1, TVSOutput const& vd2,
 					    TPixelShader const& pixelShader)
 	{
+#if USE_EDGE_FUNCTION
+		DrawTrianglePSEdge<TDepthState, TBlendState>(renderTarget, p0, p1, p2, vd0, vd1, vd2, pixelShader);
+#else
 		Vector2 maxV, minV, midV;
 		RasterPosition const* maxP;
 		RasterPosition const* minP;
@@ -517,6 +1118,8 @@ namespace SR
 
 		float dxdy = delta.x / delta.y;
 
+		Vec2i rtSize = renderTarget.colorBuffer->getSize();
+
 		Vector2 deltaB = midV - minV;
 		float splitAlpha = deltaB.y / delta.y;
 		RasterPosition splitP;
@@ -527,8 +1130,8 @@ namespace SR
 		if( Math::Abs(deltaB.y) > RasterEpsilon )
 		{
 			float dxdySide = deltaB.x / deltaB.y;
-			int yStart = Math::Max(0, Math::CeilToInt(minV.y - 0.5f - RasterEpsilon));
-			int yEnd = Math::Min(renderTarget.colorBuffer->getSize().y, Math::CeilToInt(midV.y - 0.5f - RasterEpsilon));
+			int yStart = Math::Max(0, Math::FloorToInt(minV.y + 0.5f + RasterEpsilon));
+			int yEnd = Math::Min(rtSize.y, Math::FloorToInt(midV.y + 0.5f + RasterEpsilon));
 			if (yStart < yEnd)
 			{
 				float scanY = yStart + 0.5f;
@@ -547,7 +1150,7 @@ namespace SR
 					lineIter.dxdyMax = dxdy;
 					lineIter.xMin = xSide;
 					lineIter.xMax = xLong;
-					ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, *midP, *midVD, splitP, pVD, *minP, *minVD, true, pixelShader);
+					ProcessScanLines<TDepthState, TBlendState>(renderTarget, lineIter, *midP, *midVD, splitP, pVD, *minP, *minVD, true, pixelShader);
 				}
 				else
 				{
@@ -555,7 +1158,7 @@ namespace SR
 					lineIter.dxdyMin = dxdy;
 					lineIter.xMax = xSide;
 					lineIter.xMin = xLong;
-					ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, splitP, pVD, *midP, *midVD, *minP, *minVD, true, pixelShader);
+					ProcessScanLines<TDepthState, TBlendState>(renderTarget, lineIter, splitP, pVD, *midP, *midVD, *minP, *minVD, true, pixelShader);
 				}
 			}
 
@@ -566,7 +1169,7 @@ namespace SR
 		{
 			float dxdySide = deltaT.x / deltaT.y;
 			int yStart = Math::Max(0, Math::CeilToInt(midV.y - 0.5f - RasterEpsilon));
-			int yEnd = Math::Min(renderTarget.colorBuffer->getSize().y, Math::CeilToInt(maxV.y - 0.5f - RasterEpsilon));
+			int yEnd = Math::Min(rtSize.y, Math::CeilToInt(maxV.y - 0.5f - RasterEpsilon));
 			if (yStart >= yEnd)
 				return;
 
@@ -586,7 +1189,7 @@ namespace SR
 				lineIter.dxdyMax = dxdy;
 				lineIter.xMin = xSide;
 				lineIter.xMax = xLong;
-				ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, *midP, *midVD, splitP, pVD, *maxP, *maxVD, false, pixelShader);
+				ProcessScanLines<TDepthState, TBlendState>(renderTarget, lineIter, *midP, *midVD, splitP, pVD, *maxP, *maxVD, false, pixelShader);
 			}
 			else
 			{
@@ -594,9 +1197,10 @@ namespace SR
 				lineIter.dxdyMin = dxdy;
 				lineIter.xMax = xSide;
 				lineIter.xMin = xLong;
-				ProcessPixels<TDepthState, TBlendState>(renderTarget, lineIter, splitP, pVD, *midP, *midVD, *maxP, *maxVD, false, pixelShader);
+				ProcessScanLines<TDepthState, TBlendState>(renderTarget, lineIter, splitP, pVD, *midP, *midVD, *maxP, *maxVD, false, pixelShader);
 			}
 		}
+#endif
 	}
 
 	template< class TVSOutput >
@@ -752,7 +1356,7 @@ namespace SR
 		}
 
 		float dAlpha = 1.0f / steps;
-		typename TVertexLerpParams<TVSOutput>::Stepper lerpStepper(output0, output1, p0.w, p1.w, 0.0f, dAlpha, p0.depth, p1.depth - p0.depth);
+		typename TPixelInterpolantsParam<TVSOutput>::Stepper stepper(output0, output1, p0.w, p1.w, 0.0f, dAlpha, p0.depth, p1.depth - p0.depth);
 
 		Vector2 pos = p0.screenPos;
 		Vector2 dPos = delta * dAlpha;
@@ -763,18 +1367,18 @@ namespace SR
 			int y = Math::FloorToInt(pos.y);
 			if (0 <= x && x < bufferSize.x && 0 <= y && y < bufferSize.y)
 			{
-				lerpStepper.get(output);
+				stepper.get(output);
 				uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + x;
 				float* depthPtr = nullptr;
 				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
 				{
 					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + x;
 				}
-				ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, lerpStepper.depth, output, pixelShader);
+				ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, stepper.depth, output, pixelShader);
 			}
 
 			pos += dPos;
-			lerpStepper.advance();
+			stepper.advance();
 		}
 	}
 
@@ -839,10 +1443,17 @@ namespace SR
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
+
 		g.beginRender();
+
+		double renderTime = 0;
+		uint64 renderCycleCount = 0;
+		mPixelCountRendered = 0;
 
 		if (bRender)
 		{
+			TIME_SCOPE(renderTime);
+			uint64 cycleStart = ReadCPUCycles();
 			RenderTarget renderTarget;
 			renderTarget.colorBuffer = &mColorBuffer;
 			renderTarget.depthBuffer = &mDepthBuffer;
@@ -855,6 +1466,7 @@ namespace SR
 			{
 				renderTest1(renderTarget);
 			}
+			renderCycleCount = ReadCPUCycles() - cycleStart;
 		}
 
 
@@ -863,6 +1475,11 @@ namespace SR
 		RenderUtility::SetBrush(g, EColor::Red);
 		RenderUtility::SetPen(g, EColor::Red);
 		g.drawRect(Vec2i(0, 0), Vec2i(100, 100));
+
+
+		double pixelThroughputMpxPerSec = (renderTime > 0.0) ? (double(mPixelCountRendered) / (renderTime * 1000.0)) : 0.0;
+		double cyclesPerPixel = (mPixelCountRendered > 0) ? (double(renderCycleCount) / mPixelCountRendered) : 0.0;
+		g.drawText(Vec2i(10, 10), InlineString<>::Make("Frame: %.2f ms | Pixels: %d | Throughput: %.2f Mpx/s | Cycles/Pixel: %.1f", renderTime, mPixelCountRendered, pixelThroughputMpxPerSec, cyclesPerPixel));
 
 		g.endRender();
 
@@ -967,7 +1584,7 @@ namespace SR
 		struct MyVSOutput
 		{
 			LinearColor color;
-			//Vector2 uv;
+			Vector2 uv;
 		};
 
 		Matrix4 localToClip = model * mRenderer.worldToClip;
@@ -982,15 +1599,16 @@ namespace SR
 
 			Output result;
 			result.svPosition = Vector4(input.pos, 1) * localToClip;
-			//result.output.uv = input.uv;
+			result.output.uv = input.uv;
 			result.output.color = input.color;
 			return result;
 		};
 
 		auto pixelShader = [this](MyVSOutput const& input)
 		{
-			return input.color;
-			//return simpleTexture.sample(input.uv) * input.color;
+			++mPixelCountRendered;
+			//return input.color;
+			return simpleTexture.sample(input.uv) * input.color;
 		};
 
 		mRenderer.drawIndexedTriangleListPS<DefaultRasterPipeline>(

@@ -42,6 +42,8 @@ inline double Profile_GetTickRate()
 	return 1000.f;
 }
 CORE_API void Profile_GetTicks(uint64* ticks);
+CORE_API uint64 Profile_GetClockFrequency();
+
 class ProfileSystem;
 
 

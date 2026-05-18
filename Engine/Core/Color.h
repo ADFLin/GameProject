@@ -12,49 +12,49 @@ public:
 
 	static uint32 ToRGBA(float r, float g, float b, float a = 1.0)
 	{
-		return ToRGBA(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
+		return ToRGBA(uint8(255.0f * r), uint8(255.0f * g), uint8(255.0f * b), uint8(255.0f * a));
 	}
 	static uint32 ToARGB(float r, float g, float b, float a = 1.0)
 	{
-		return ToARGB(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
+		return ToARGB(uint8(255.0f * r), uint8(255.0f * g), uint8(255.0f * b), uint8(255.0f * a));
 	}
 	static uint32 ToABGR(float r, float g, float b, float a = 1.0)
 	{
-		return ToABGR(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
+		return ToABGR(uint8(255.0f * r), uint8(255.0f * g), uint8(255.0f * b), uint8(255.0f * a));
 	}
 	static uint32 ToRGB(float r, float g, float b)
 	{
-		return ToRGB(uint8(255 * r), uint8(255 * g), uint8(255 * b));
+		return ToRGB(uint8(255.0f * r), uint8(255.0f * g), uint8(255.0f * b));
 	}
 
 	static uint32 ToARGB(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (b << 24) | (g << 16) | (r << 8) | a;
+		return (uint32(b) << 24) | (uint32(g) << 16) | (uint32(r) << 8) | a;
 	}
 
 	static uint32 ToRGB(uint8 r, uint8 g, uint8 b)
 	{
-		return (b << 16) | (g << 8) | r;
+		return (uint32(b) << 16) | (uint32(g) << 8) | r;
 	}
 
 	static uint32 ToRGBA(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (a << 24) | (b << 16) | (g << 8) | r;
+		return (uint32(a) << 24) | (uint32(b) << 16) | (uint32(g) << 8) | r;
 	}
 
 	static uint32 ToBGR(uint8 r, uint8 g, uint8 b)
 	{
-		return (r << 16) | (g << 8) | b;
+		return (uint32(r) << 16) | (uint32(g) << 8) | b;
 	}
 
 	static uint32 ToBGRA(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (a << 24) | (r << 16) | (g << 8) | b;
+		return (uint32(a) << 24) | (uint32(r) << 16) | (uint32(g) << 8) | b;
 	}
 
 	static uint32 ToABGR(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (r << 24) | (g << 16) | (b << 8) | a;
+		return (uint32(r) << 24) | (uint32(g) << 16) | (uint32(b) << 8) | a;
 	}
 
 	static void FromRGB(uint32 v, uint8& r, uint8& g, uint8& b)
@@ -121,7 +121,7 @@ struct TColorElementTraits< uint8 >
 	}
 	static uint8 Normalize(float value)
 	{
-		return uint8(255 * value);
+		return uint8(255.0f * value);
 	}
 };
 
@@ -376,9 +376,10 @@ struct ColorBGRA8
 
 	ColorBGRA8() {}
 	ColorBGRA8(uint8 r, uint8 g, uint8 b, uint8 a = 255)
-		:r(r), g(g), b(b), a(a)
 	{
+		word = FColor::ToBGRA(r, g, b, a);
 	}
+
 	ColorBGRA8(ColorBGRA8 const& other) :word(other.word) {}
 };
 

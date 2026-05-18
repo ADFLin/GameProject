@@ -7,6 +7,7 @@
 #include "WindowsHeader.h"
 #include "Widget/WidgetUtility.h"
 #include "Math/Base.h"
+#include "Math/SIMD.h"
 
 #include "Math/Transform.h"
 #include "RHI/RHIType.h"
@@ -41,12 +42,41 @@ namespace SR
 
 		FORCEINLINE ColorBGRA8 toBGRA() const
 		{
-			uint8 byteR = uint8(255 * Math::Clamp<float>(r, 0, 1));
-			uint8 byteG = uint8(255 * Math::Clamp<float>(g, 0, 1));
-			uint8 byteB = uint8(255 * Math::Clamp<float>(b, 0, 1));
-			uint8 byteA = uint8(255 * Math::Clamp<float>(a, 0, 1));
-			return ColorBGRA8(byteR, byteG, byteB, byteA);
+#if USE_MATH_SIMD
+			return PackBGRA(SIMD::TFloatVector<4>(r, g, b, a));
+#else
+			return ColorBGRA8(ToByte(r), ToByte(g), ToByte(b), ToByte(a));
+#endif
 		}
+		FORCEINLINE ColorBGRA8 toOpaqueBGRA() const
+		{
+#if USE_MATH_SIMD
+			return PackBGRA(SIMD::TFloatVector<4>(r, g, b, 1.0f));
+#else
+			return ColorBGRA8(ToByte(r), ToByte(g), ToByte(b), 0xff);
+#endif
+		}
+
+#if USE_MATH_SIMD
+		FORCEINLINE static ColorBGRA8 PackBGRA(SIMD::TFloatVector<4> const& color)
+		{
+			SIMD::TFloatVector<4> clamped = min(max(color, SIMD::TFloatVector<4>::Zero()), SIMD::TFloatVector<4>(1.0f));
+			__m128i rgba32 = _mm_cvttps_epi32((clamped * 255.0f).reg);
+			__m128i rgba16 = _mm_packs_epi32(rgba32, _mm_setzero_si128());
+			__m128i rgba8 = _mm_packus_epi16(rgba16, _mm_setzero_si128());
+			uint32 rgba = uint32(_mm_cvtsi128_si32(rgba8));
+
+			ColorBGRA8 result;
+			result.word = (rgba & 0xff00ff00) | ((rgba & 0x000000ff) << 16) | ((rgba & 0x00ff0000) >> 16);
+			return result;
+		}
+#else
+		FORCEINLINE static uint8 ToByte(float value)
+		{
+			return uint8(255.0f * Math::Clamp<float>(value, 0.0f, 1.0f));
+		}
+#endif
+
 		LinearColor operator + (LinearColor const& rhs) const
 		{
 			return LinearColor(r + rhs.r, g + rhs.g, b + rhs.b, a + rhs.a);
@@ -289,6 +319,8 @@ namespace SR
 	{
 		ColorBuffer* colorBuffer = nullptr;
 		DepthBuffer* depthBuffer = nullptr;
+
+		Vec2i const& getSize() const { return colorBuffer->getSize(); }
 	};
 
 	enum class ECullMode
@@ -716,7 +748,12 @@ namespace SR
 		Scene  mScene;
 		Camera mCamera;
 
+		Texture simpleTexture;
+
+
 		SimpleCamera mCameraControl;
+
+		int mPixelCountRendered = 0;
 
 
 		void setupScene();

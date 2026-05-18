@@ -26,6 +26,7 @@ public:
 	uint64 getTimeMilliseconds() { return getTimeMicroseconds() / 1000; }
 	uint64 getTimeMicroseconds();
 
+	uint64 getClockFrequency() const { return mClockFrequency.QuadPart; }
 private:
 
 #if SYS_PLATFORM_WIN

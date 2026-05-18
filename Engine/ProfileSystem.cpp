@@ -234,6 +234,11 @@ void Profile_GetTicks(uint64 * ticks)
 	*ticks = GProfileClock.getTimeMicroseconds();
 }
 
+uint64 Profile_GetClockFrequency()
+{
+	return GProfileClock.getClockFrequency();
+}
+
 static ProfileSystemImpl GSystem;
 thread_local TArray< TimeScopeResult* > GTimeScopeStacks;
 TArray< TimeScopeResult* >& TimeScope::GetResultStack()

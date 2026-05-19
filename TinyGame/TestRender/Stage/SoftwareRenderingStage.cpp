@@ -3,6 +3,7 @@
 #include "ProfileSystem.h"
 
 #define USE_OMP 1
+#define USE_THREAD_POOL 0
 #define USE_EDGE_FUNCTION 0
 #define USE_EDGE_TILE 1
 #define USE_LANE_SCALAR 1
@@ -14,10 +15,13 @@
 #include "SystemPlatform.h"
 #include "BitUtility.h"
 #include "DrawEngine.h"
+#include "Renderer/MeshImportor.h"
 
 #if CPP_COMPILER_MSVC
 #include <intrin.h>
 #endif
+#include "Async/AsyncWork.h"
+#include "Memory/FrameAllocator.h"
 
 namespace SR
 {
@@ -33,6 +37,22 @@ namespace SR
 	}
 
 	alignas(32) float constexpr GLaneOffsetsData[LaneScalar::Size] = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f };
+
+	template< int Index >
+	FORCEINLINE LaneScalar BuildLaneInterpolant(__m128 param, __m128 dParam, LaneScalar const& laneOffsets, LaneScalar const& laneWInv)
+	{
+		__m128 const paramLane = _mm_shuffle_ps(param, param, _MM_SHUFFLE(Index, Index, Index, Index));
+		__m128 const dParamLane = _mm_shuffle_ps(dParam, dParam, _MM_SHUFFLE(Index, Index, Index, Index));
+		return (LaneScalar(_mm256_broadcastss_ps(paramLane)) + LaneScalar(_mm256_broadcastss_ps(dParamLane)) * laneOffsets) * laneWInv;
+	}
+
+	FORCEINLINE void StoreLaneInterpolantBlock(LaneScalar* pOut, int indexStart, SIMD::TFloatVector<4> const& param, SIMD::TFloatVector<4> const& dParam, LaneScalar const& laneOffsets, LaneScalar const& laneWInv)
+	{
+		pOut[indexStart + 0] = BuildLaneInterpolant<0>(param.reg, dParam.reg, laneOffsets, laneWInv);
+		pOut[indexStart + 1] = BuildLaneInterpolant<1>(param.reg, dParam.reg, laneOffsets, laneWInv);
+		pOut[indexStart + 2] = BuildLaneInterpolant<2>(param.reg, dParam.reg, laneOffsets, laneWInv);
+		pOut[indexStart + 3] = BuildLaneInterpolant<3>(param.reg, dParam.reg, laneOffsets, laneWInv);
+	}
 
 
 	bool ColorBuffer::create(Vec2i const& size)
@@ -59,7 +79,7 @@ namespace SR
 	bool Texture::load(char const* path)
 	{
 		ImageData imageData;
-		if (!imageData.load(path))
+		if (!imageData.load(path, ImageLoadOption().FlipV()))
 			return false;
 
 		mSize.x = imageData.width;
@@ -192,55 +212,35 @@ namespace SR
 		constexpr int FixedMask = FixedScale - 1;
 		constexpr float Inv255FixedWeight = 1.0f / float(255 * FixedScale * FixedScale);
 
-		float uValues[LaneScalar::Size];
-		float vValues[LaneScalar::Size];
-		UV.x.store(uValues);
-		UV.y.store(vValues);
+		LaneScalar const zero = LaneScalar::Zero();
+		LaneScalar const one(1.0f);
+		LaneScalar u = min(max(UV.x, zero), one);
+		LaneScalar v = min(max(UV.y, zero), one);
 
-		int index00Values[LaneScalar::Size];
-		int index10Values[LaneScalar::Size];
-		int index01Values[LaneScalar::Size];
-		int index11Values[LaneScalar::Size];
-		float w00Values[LaneScalar::Size];
-		float w10Values[LaneScalar::Size];
-		float w01Values[LaneScalar::Size];
-		float w11Values[LaneScalar::Size];
+		__m256i fx = _mm256_cvttps_epi32((u * float((mSize.x - 1) << FixedBits)).reg);
+		__m256i fy = _mm256_cvttps_epi32((v * float((mSize.y - 1) << FixedBits)).reg);
 
-		for (int lane = 0; lane < LaneScalar::Size; ++lane)
-		{
-			float u = Math::Clamp(uValues[lane], 0.0f, 1.0f);
-			float v = Math::Clamp(vValues[lane], 0.0f, 1.0f);
+		__m256i x0 = _mm256_srai_epi32(fx, FixedBits);
+		__m256i y0 = _mm256_srai_epi32(fy, FixedBits);
+		__m256i x1 = _mm256_min_epi32(_mm256_add_epi32(x0, _mm256_set1_epi32(1)), _mm256_set1_epi32(mSize.x - 1));
+		__m256i y1 = _mm256_min_epi32(_mm256_add_epi32(y0, _mm256_set1_epi32(1)), _mm256_set1_epi32(mSize.y - 1));
 
-			int fx = int(u * ((mSize.x - 1) << FixedBits));
-			int fy = int(v * ((mSize.y - 1) << FixedBits));
+		__m256i tx = _mm256_and_si256(fx, _mm256_set1_epi32(FixedMask));
+		__m256i ty = _mm256_and_si256(fy, _mm256_set1_epi32(FixedMask));
+		__m256i invTx = _mm256_sub_epi32(_mm256_set1_epi32(FixedScale), tx);
+		__m256i invTy = _mm256_sub_epi32(_mm256_set1_epi32(FixedScale), ty);
 
-			int x0 = fx >> FixedBits;
-			int y0 = fy >> FixedBits;
-			int x1 = std::min(x0 + 1, mSize.x - 1);
-			int y1 = std::min(y0 + 1, mSize.y - 1);
+		__m256i w00i = _mm256_mullo_epi32(invTx, invTy);
+		__m256i w10i = _mm256_mullo_epi32(tx, invTy);
+		__m256i w01i = _mm256_mullo_epi32(invTx, ty);
+		__m256i w11i = _mm256_mullo_epi32(tx, ty);
 
-			int tx = fx & FixedMask;
-			int ty = fy & FixedMask;
+		__m256i textureWidth = _mm256_set1_epi32(mSize.x);
+		__m256i index00 = _mm256_add_epi32(x0, _mm256_mullo_epi32(y0, textureWidth));
+		__m256i index10 = _mm256_add_epi32(x1, _mm256_mullo_epi32(y0, textureWidth));
+		__m256i index01 = _mm256_add_epi32(x0, _mm256_mullo_epi32(y1, textureWidth));
+		__m256i index11 = _mm256_add_epi32(x1, _mm256_mullo_epi32(y1, textureWidth));
 
-			int w00 = (FixedScale - tx) * (FixedScale - ty);
-			int w10 = tx * (FixedScale - ty);
-			int w01 = (FixedScale - tx) * ty;
-			int w11 = tx * ty;
-
-			index00Values[lane] = x0 + y0 * mSize.x;
-			index10Values[lane] = x1 + y0 * mSize.x;
-			index01Values[lane] = x0 + y1 * mSize.x;
-			index11Values[lane] = x1 + y1 * mSize.x;
-			w00Values[lane] = float(w00);
-			w10Values[lane] = float(w10);
-			w01Values[lane] = float(w01);
-			w11Values[lane] = float(w11);
-		}
-
-		__m256i index00 = _mm256_loadu_si256((__m256i const*)index00Values);
-		__m256i index10 = _mm256_loadu_si256((__m256i const*)index10Values);
-		__m256i index01 = _mm256_loadu_si256((__m256i const*)index01Values);
-		__m256i index11 = _mm256_loadu_si256((__m256i const*)index11Values);
 		__m256i c00 = _mm256_i32gather_epi32((int const*)mData.data(), index00, 4);
 		__m256i c10 = _mm256_i32gather_epi32((int const*)mData.data(), index10, 4);
 		__m256i c01 = _mm256_i32gather_epi32((int const*)mData.data(), index01, 4);
@@ -252,10 +252,10 @@ namespace SR
 			return LaneScalar(_mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(color, shift), mask)));
 		};
 
-		LaneScalar w00(w00Values);
-		LaneScalar w10(w10Values);
-		LaneScalar w01(w01Values);
-		LaneScalar w11(w11Values);
+		LaneScalar w00(_mm256_cvtepi32_ps(w00i));
+		LaneScalar w10(_mm256_cvtepi32_ps(w10i));
+		LaneScalar w01(_mm256_cvtepi32_ps(w01i));
+		LaneScalar w11(_mm256_cvtepi32_ps(w11i));
 		LaneScalar scale(Inv255FixedWeight);
 
 		LaneLinearColor result;
@@ -479,13 +479,29 @@ namespace SR
 					float dParamWValues[LaneSize] = {};
 					int indexStart = block * LaneSize;
 					int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
-					for (int i = indexStart; i < indexEnd; ++i)
+					if constexpr (NumTailParams == 0)
 					{
-						float wv0 = inW0 * p0[i];
-						float dwv = inW1 * p1[i] - wv0;
-						int lane = i - indexStart;
-						paramWValues[lane] = wv0 + alpha * dwv;
-						dParamWValues[lane] = dAlpha * dwv;
+						int indexEnd = indexStart + LaneSize;
+						for (int i = indexStart; i < indexEnd; ++i)
+						{
+							float wv0 = inW0 * p0[i];
+							float dwv = inW1 * p1[i] - wv0;
+							int lane = i - indexStart;
+							paramWValues[lane] = wv0 + alpha * dwv;
+							dParamWValues[lane] = dAlpha * dwv;
+						}
+					}
+					else
+					{
+						int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
+						for (int i = indexStart; i < indexEnd; ++i)
+						{
+							float wv0 = inW0 * p0[i];
+							float dwv = inW1 * p1[i] - wv0;
+							int lane = i - indexStart;
+							paramWValues[lane] = wv0 + alpha * dwv;
+							dParamWValues[lane] = dAlpha * dwv;
+						}
 					}
 					paramW[block] = FloatVector(paramWValues);
 					dParamW[block] = FloatVector(dParamWValues);
@@ -569,20 +585,19 @@ namespace SR
 
 				LaneScalar* pOut = reinterpret_cast<LaneScalar*>(&outData);
 #if USE_InterpolantsParam_SIMD
-				float paramValues[LaneSize];
-				float dParamValues[LaneSize];
-				for (int block = 0; block < NumParamBlocks; ++block)
+				for (int block = 0; block < NumFullParamBlocks; ++block)
 				{
-					paramW[block].store(paramValues);
-					dParamW[block].store(dParamValues);
-
-					int indexStart = block * LaneSize;
-					int indexEnd = Math::Min(indexStart + LaneSize, NumParams);
-					for (int i = indexStart; i < indexEnd; ++i)
-					{
-						int lane = i - indexStart;
-						pOut[i] = (LaneScalar(paramValues[lane]) + LaneScalar(dParamValues[lane]) * LaneOffsets) * laneWInv;
-					}
+					StoreLaneInterpolantBlock(pOut, block * LaneSize, paramW[block], dParamW[block], LaneOffsets, laneWInv);
+				}
+				if constexpr (NumTailParams != 0)
+				{
+					int constexpr TailIndexStart = NumFullParamBlocks * LaneSize;
+					if constexpr (NumTailParams >= 1)
+						pOut[TailIndexStart + 0] = BuildLaneInterpolant<0>(paramW[NumFullParamBlocks].reg, dParamW[NumFullParamBlocks].reg, LaneOffsets, laneWInv);
+					if constexpr (NumTailParams >= 2)
+						pOut[TailIndexStart + 1] = BuildLaneInterpolant<1>(paramW[NumFullParamBlocks].reg, dParamW[NumFullParamBlocks].reg, LaneOffsets, laneWInv);
+					if constexpr (NumTailParams >= 3)
+						pOut[TailIndexStart + 2] = BuildLaneInterpolant<2>(paramW[NumFullParamBlocks].reg, dParamW[NumFullParamBlocks].reg, LaneOffsets, laneWInv);
 				}
 #else
 				for (int i = 0; i < NumParams; ++i)
@@ -807,6 +822,41 @@ namespace SR
 #endif
 			}
 
+#if USE_LANE_SCALAR
+			FORCEINLINE void getLane(typename TVertexData::LaneType& outData, LaneScalar& outDepth) const
+			{
+				LaneScalar const LaneOffsets(GLaneOffsetsData, EAligned{});
+				static_assert(sizeof(typename TVertexData::LaneType) == NumParams * sizeof(LaneScalar), "LaneType must match TVertexData float layout");
+
+				LaneScalar const laneW = LaneScalar(w) + LaneScalar(dw) * LaneOffsets;
+				LaneScalar const laneWInv = LaneScalar(1.0f) / laneW;
+				outDepth = LaneScalar(depth) + LaneScalar(dDepth) * LaneOffsets;
+
+				LaneScalar* pOut = reinterpret_cast<LaneScalar*>(&outData);
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumFullParamBlocks; ++block)
+				{
+					StoreLaneInterpolantBlock(pOut, block * LaneSize, paramW[block], dParamW[block], LaneOffsets, laneWInv);
+				}
+				if constexpr (NumTailParams != 0)
+				{
+					int constexpr TailIndexStart = NumFullParamBlocks * LaneSize;
+					if constexpr (NumTailParams >= 1)
+						pOut[TailIndexStart + 0] = BuildLaneInterpolant<0>(paramW[NumFullParamBlocks].reg, dParamW[NumFullParamBlocks].reg, LaneOffsets, laneWInv);
+					if constexpr (NumTailParams >= 2)
+						pOut[TailIndexStart + 1] = BuildLaneInterpolant<1>(paramW[NumFullParamBlocks].reg, dParamW[NumFullParamBlocks].reg, LaneOffsets, laneWInv);
+					if constexpr (NumTailParams >= 3)
+						pOut[TailIndexStart + 2] = BuildLaneInterpolant<2>(paramW[NumFullParamBlocks].reg, dParamW[NumFullParamBlocks].reg, LaneOffsets, laneWInv);
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					pOut[i] = (LaneScalar(paramW[i]) + LaneScalar(dParamW[i]) * LaneOffsets) * laneWInv;
+				}
+#endif
+			}
+#endif
+
 			FORCEINLINE void advance()
 			{
 				w += dw;
@@ -823,6 +873,26 @@ namespace SR
 				}
 #endif
 			}
+
+#if USE_LANE_SCALAR
+			FORCEINLINE void advance(int count)
+			{
+				float const countFloat = float(count);
+				w += dw * countFloat;
+				depth += dDepth * countFloat;
+#if USE_MATH_SIMD
+				for (int block = 0; block < NumParamBlocks; ++block)
+				{
+					paramW[block] = paramW[block] + dParamW[block] * countFloat;
+				}
+#else
+				for (int i = 0; i < NumParams; ++i)
+				{
+					paramW[i] += dParamW[i] * countFloat;
+				}
+#endif
+			}
+#endif
 		};
 	};
 
@@ -1032,6 +1102,28 @@ namespace SR
 
 	//constexpr float RasterEpsilon = 1e-4f;
 	constexpr float RasterEpsilon = 0;
+	constexpr int ScanlineThreadMinRows = 64;
+	constexpr int ScanlineThreadMinRowsPerTask = 64;
+	QueueThreadPool GScanlineThreadPool;
+	QueueThreadPool* GThreadPool = nullptr;
+	FrameAllocator GScanlineWorkAllocator(64 * 1024);
+	bool GScanlineThreadPoolInitialized = false;
+
+	template< typename TFunc >
+	class TFrameQueuedWork : public IQueuedWork
+	{
+	public:
+		template< typename UFunc >
+		TFrameQueuedWork(UFunc&& func)
+			:mFunc(std::forward<UFunc>(func))
+		{
+		}
+
+		void executeWork() override { mFunc(); }
+		void release() override { this->~TFrameQueuedWork(); }
+
+		TFunc mFunc;
+	};
 
 	template< class TDepthState , class TBlendState , class TVSOutput , class TPixelShader >
 	void ProcessScanLines(RenderTarget& renderTarget, ScanLineIterator& lineIter,
@@ -1062,72 +1154,136 @@ namespace SR
 			InterpolantsStepper yStepperMin(vL, vS, pL.w, pS.w, ay, day, depthMin0, dDepthMin);
 			InterpolantsStepper yStepperMax(vR, vS, pR.w, pS.w, ay, day, depthMax0, dDepthMax);
 
-			for (int y = lineIter.yStart; y < lineIter.yEnd; ++y)
+			auto processRows = [&](int yBegin, int yEnd)
 			{
-				CHECK(lineIter.xMin <= lineIter.xMax);
-				float xMin = lineIter.xMin;
-				float xMax = lineIter.xMax;
+				PROFILE_ENTRY("ProcessRows");
 
-				int xStart = Math::Max(0, Math::FloorToInt(xMin + 0.5f + RasterEpsilon));
-				int xEnd = Math::Min(size.x, Math::FloorToInt(xMax + 0.5f + RasterEpsilon));
+				ScanLineIterator rowIter = lineIter;
+				int const rowOffset = yBegin - lineIter.yStart;
+				rowIter.xMin += rowIter.dxdyMin * rowOffset;
+				rowIter.xMax += rowIter.dxdyMax * rowOffset;
 
-				if (LIKELY(xStart < xEnd))
+				InterpolantsStepper rowStepperMin = yStepperMin;
+				InterpolantsStepper rowStepperMax = yStepperMax;
+				rowStepperMin.advance(rowOffset);
+				rowStepperMax.advance(rowOffset);
+
+				for (int y = yBegin; y < yEnd; ++y)
 				{
-					float dax = 1 / (lineIter.xMax - lineIter.xMin);
-					float ax = (xStart + 0.5f - lineIter.xMin) * dax;
+					CHECK(rowIter.xMin <= rowIter.xMax);
+					float xMin = rowIter.xMin;
+					float xMax = rowIter.xMax;
 
-					InterpolantsStepper xStepper(yStepperMin, yStepperMax, ax, dax);
+					int xStart = Math::Max(0, Math::FloorToInt(xMin + 0.5f + RasterEpsilon));
+					int xEnd = Math::Min(size.x, Math::FloorToInt(xMax + 0.5f + RasterEpsilon));
 
-					TVSOutput v;
-					uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + xStart;
-					float* depthPtr = nullptr;
-					if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+					if (LIKELY(xStart < xEnd))
 					{
-						depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + xStart;
-					}
+						float dax = 1 / (rowIter.xMax - rowIter.xMin);
+						float ax = (xStart + 0.5f - rowIter.xMin) * dax;
+
+						InterpolantsStepper xStepper(rowStepperMin, rowStepperMax, ax, dax);
+
+						TVSOutput v;
+						uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + xStart;
+						float* depthPtr = nullptr;
+						if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+						{
+							depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + xStart;
+						}
 #if USE_LANE_SCALAR
-					constexpr int LaneCount = LaneScalar::Size;
-					typename TVSOutput::LaneType laneV;
-					LaneScalar laneDepth;
-					int x = xStart;
-					int const xLaneEnd = xStart + (xEnd - xStart) / LaneCount * LaneCount;
-					for (; x < xLaneEnd; x += LaneCount)
-					{
-						xStepper.getLane(laneV, laneDepth);
-						ProcessPixelFullLane< TDepthState, TBlendState, TVSOutput >(colorPtr, depthPtr, laneDepth, laneV, pixelShader);
-						colorPtr += LaneCount;
-						if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+						constexpr int LaneCount = LaneScalar::Size;
+						typename TVSOutput::LaneType laneV;
+						LaneScalar laneDepth;
+						int x = xStart;
+						int const xLaneEnd = xStart + (xEnd - xStart) / LaneCount * LaneCount;
+						for (; x < xLaneEnd; x += LaneCount)
 						{
-							depthPtr += LaneCount;
+							xStepper.getLane(laneV, laneDepth);
+							ProcessPixelFullLane< TDepthState, TBlendState, TVSOutput >(colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+							colorPtr += LaneCount;
+							if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+							{
+								depthPtr += LaneCount;
+							}
+							xStepper.advance(LaneCount);
 						}
-						xStepper.advance(LaneCount);
-					}
-					if (x < xEnd)
-					{
-						int const tailCount = xEnd - x;
-						LaneMask tailMask(_mm256_cmpgt_epi32(
-							_mm256_set1_epi32(tailCount),
-							_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7)));
-						xStepper.getLane(laneV, laneDepth);
-						ProcessPixel< TDepthState, TBlendState, TVSOutput >(tailMask, colorPtr, depthPtr, laneDepth, laneV, pixelShader);
-					}
+						if (x < xEnd)
+						{
+							int const tailCount = xEnd - x;
+							LaneMask tailMask(_mm256_cmpgt_epi32(
+								_mm256_set1_epi32(tailCount),
+								_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7)));
+							xStepper.getLane(laneV, laneDepth);
+							ProcessPixel< TDepthState, TBlendState, TVSOutput >(tailMask, colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+						}
 #else
-					for (int x = xStart; x < xEnd; ++x)
-					{
-						xStepper.get(v);
-						ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, xStepper.depth, v, pixelShader);
-						++colorPtr;
-						if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+						for (int x = xStart; x < xEnd; ++x)
 						{
-							++depthPtr;
+							xStepper.get(v);
+							ProcessPixel< TDepthState, TBlendState >(colorPtr, depthPtr, xStepper.depth, v, pixelShader);
+							++colorPtr;
+							if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+							{
+								++depthPtr;
+							}
+							xStepper.advance();
 						}
-						xStepper.advance();
-					}
 #endif
+					}
+					rowIter.advance();
+					rowStepperMin.advance();
+					rowStepperMax.advance();
 				}
-				lineIter.advance();
-				yStepperMin.advance();
-				yStepperMax.advance();
+			};
+
+#if USE_THREAD_POOL
+			int const rowCount = lineIter.yEnd - lineIter.yStart;
+			if (GThreadPool && GThreadPool->getAllThreadNum() > 0 && rowCount >= ScanlineThreadMinRows)
+			{
+				int const maxTasksByRows = Math::Max(1, rowCount / ScanlineThreadMinRowsPerTask);
+				int const numTasks = Math::Min(GThreadPool->getAllThreadNum(), maxTasksByRows);
+				if (numTasks > 1)
+				{
+					StackMaker frameMark(GScanlineWorkAllocator);
+					int const rowsPerTask = (rowCount + numTasks - 1) / numTasks;
+					struct ScanlineTask
+					{
+						int yBegin;
+						int yEnd;
+						decltype(processRows)* processRowsFunc;
+
+						void operator()()
+						{
+							(*processRowsFunc)(yBegin, yEnd);
+						}
+					};
+
+					using WorkType = TFrameQueuedWork<ScanlineTask>;
+					size_t constexpr WorkAlignment = alignof(WorkType) > 16 ? alignof(WorkType) : 16;
+					uint8* workStorage = (uint8*)GScanlineWorkAllocator.alloc(sizeof(WorkType) * numTasks, WorkAlignment);
+					IQueuedWork** works = (IQueuedWork**)GScanlineWorkAllocator.alloc(sizeof(IQueuedWork*) * numTasks, alignof(IQueuedWork*));
+
+					for (int taskIndex = 0; taskIndex < numTasks; ++taskIndex)
+					{
+						int yBegin = lineIter.yStart + taskIndex * rowsPerTask;
+						int yEnd = Math::Min(lineIter.yEnd, yBegin + rowsPerTask);
+						ScanlineTask task = { yBegin, yEnd, &processRows };
+						works[taskIndex] = new (workStorage + taskIndex * sizeof(WorkType)) WorkType(std::move(task));
+					}
+
+					GThreadPool->addWorks(works, numTasks);
+					GThreadPool->waitAllWorkComplete();
+				}
+				else
+				{
+					processRows(lineIter.yStart, lineIter.yEnd);
+				}
+			}
+			else
+#endif
+			{
+				processRows(lineIter.yStart, lineIter.yEnd);
 			}
 		}
 	}
@@ -1200,6 +1356,43 @@ namespace SR
 #if USE_EDGE_TILE
 		constexpr int TileSize = 8;
 
+#if USE_LANE_SCALAR
+		static_assert(TileSize == LaneScalar::Size, "Full tile lane path assumes one SIMD lane group per tile row");
+
+		auto processFullTile = [&](int inXStart, int inYStart)
+		{
+			Vector2 tileSample(float(inXStart) + 0.5f, float(inYStart) + 0.5f);
+			float tileRowE12 = EdgeFunction(v1, v2, tileSample);
+			float tileRowE20 = EdgeFunction(v2, v0, tileSample);
+			float tileRowE01 = EdgeFunction(v0, v1, tileSample);
+
+			for (int y = inYStart; y < inYStart + TileSize; ++y)
+			{
+				typename TPixelTriangleInterpolantsParam<TVSOutput>::Stepper xStepper(
+					interpolants,
+					tileRowE12 * invArea, tileRowE20 * invArea, tileRowE01 * invArea,
+					db0dx, db1dx, db2dx,
+					p0.depth, p1.depth, p2.depth);
+
+				uint32* colorPtr = renderTarget.colorBuffer->mData + y * renderTarget.colorBuffer->mRowStride + inXStart;
+				float* depthPtr = nullptr;
+				if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+				{
+					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + inXStart;
+				}
+
+				typename TVSOutput::LaneType laneV;
+				LaneScalar laneDepth;
+				xStepper.getLane(laneV, laneDepth);
+				ProcessPixelFullLane< TDepthState, TBlendState, TVSOutput >(colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+
+				tileRowE12 += e12dy;
+				tileRowE20 += e20dy;
+				tileRowE01 += e01dy;
+			}
+		};
+#endif
+
 		auto processFullPixels = [&](int inXStart, int inXEnd, int inYStart, int inYEnd)
 		{
 			Vector2 tileSample(float(inXStart) + 0.5f, float(inYStart) + 0.5f);
@@ -1225,6 +1418,33 @@ namespace SR
 					depthPtr = renderTarget.depthBuffer->mData.data() + y * renderTarget.depthBuffer->mSize.x + inXStart;
 				}
 
+#if USE_LANE_SCALAR
+				constexpr int LaneCount = LaneScalar::Size;
+				typename TVSOutput::LaneType laneV;
+				LaneScalar laneDepth;
+				int x = inXStart;
+				int const xLaneEnd = inXStart + (inXEnd - inXStart) / LaneCount * LaneCount;
+				for (; x < xLaneEnd; x += LaneCount)
+				{
+					xStepper.getLane(laneV, laneDepth);
+					ProcessPixelFullLane< TDepthState, TBlendState, TVSOutput >(colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+					xStepper.advance(LaneCount);
+					colorPtr += LaneCount;
+					if constexpr (TDepthState::EnableTest || TDepthState::EnableWrite)
+					{
+						depthPtr += LaneCount;
+					}
+				}
+				if (x < inXEnd)
+				{
+					int const tailCount = inXEnd - x;
+					LaneMask tailMask(_mm256_cmpgt_epi32(
+						_mm256_set1_epi32(tailCount),
+						_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7)));
+					xStepper.getLane(laneV, laneDepth);
+					ProcessPixel< TDepthState, TBlendState, TVSOutput >(tailMask, colorPtr, depthPtr, laneDepth, laneV, pixelShader);
+				}
+#else
 				for (int x = inXStart; x < inXEnd; ++x)
 				{
 					xStepper.get(v);
@@ -1236,6 +1456,7 @@ namespace SR
 						++depthPtr;
 					}
 				}
+#endif
 
 				tileRowE12 += e12dy;
 				tileRowE20 += e20dy;
@@ -1333,7 +1554,16 @@ namespace SR
 
 				if (bFullCover)
 				{
-					processFullPixels(tileX, tileXEnd, tileY, tileYEnd);
+#if USE_LANE_SCALAR
+					if (tileXEnd - tileX == TileSize && tileYEnd - tileY == TileSize)
+					{
+						processFullTile(tileX, tileY);
+					}
+					else
+#endif
+					{
+						processFullPixels(tileX, tileXEnd, tileY, tileYEnd);
+					}
 				}
 				else
 				{
@@ -1634,8 +1864,7 @@ namespace SR
 	template< class TPipeline, class TVertex, class TVertexShader, class TPixelShader >
 	void RasterizedRenderer::drawIndexedTriangleListPS(TVertex const* vertices, int numVertices, uint32 const* indices, int numIndices, TVertexShader const& vertexShader, TPixelShader const& pixelShader)
 	{
-		if (vertices == nullptr || indices == nullptr)
-			return;
+		CHECK(vertices != nullptr && indices != nullptr);
 
 		int const numValidIndices = numIndices - numIndices % 3;
 		for (int i = 0; i < numValidIndices; i += 3)
@@ -1739,13 +1968,22 @@ namespace SR
 
 		VERIFY_RETURN_FALSE(mRTRenderer.init());
 
+#if USE_THREAD_POOL
+		if (!GScanlineThreadPoolInitialized)
+		{
+			GScanlineThreadPool.init(Math::Max(1, SystemPlatform::GetProcessorNumber() - 1));
+			GScanlineThreadPoolInitialized = true;
+		}
+		GThreadPool = &GScanlineThreadPool;
+#endif
+
 
 #if 1
 		char const* texPath =
 #if 0
 			"Texture/tile1.tga";
 #else
-			"Texture/rocks.png";
+			"Model/crate.jpg";
 #endif
 		VERIFY_RETURN_FALSE(simpleTexture.load(texPath));
 #endif
@@ -1804,9 +2042,13 @@ namespace SR
 		g.drawRect(Vec2i(0, 0), Vec2i(100, 100));
 
 
-		double pixelThroughputMpxPerSec = (renderTime > 0.0) ? (double(mPixelCountRendered) / (renderTime * 1000.0)) : 0.0;
-		double cyclesPerPixel = (mPixelCountRendered > 0) ? (double(renderCycleCount) / mPixelCountRendered) : 0.0;
-		g.drawText(Vec2i(10, 10), InlineString<>::Make("Frame: %.2f ms | Pixels: %d | Throughput: %.2f Mpx/s | Cycles/Pixel: %.1f", renderTime, mPixelCountRendered, pixelThroughputMpxPerSec, cyclesPerPixel));
+		float fps = 1000.0 / renderTime;
+		mFPS = Math::Lerp(mFPS , fps , 0.1f);
+
+		int const pixelCountRendered = mPixelCountRendered.load(std::memory_order_relaxed);
+		double pixelThroughputMpxPerSec = (renderTime > 0.0) ? (double(pixelCountRendered) / (renderTime * 1000.0)) : 0.0;
+		double cyclesPerPixel = (pixelCountRendered > 0) ? (double(renderCycleCount) / pixelCountRendered) : 0.0;
+		g.drawText(Vec2i(10, 10), InlineString<>::Make("FPS = %g | Frame: %.2f ms | Pixels: %d | Throughput: %.2f Mpx/s | Cycles/Pixel: %.1f", mFPS, renderTime, pixelCountRendered, pixelThroughputMpxPerSec, cyclesPerPixel));
 
 		g.endRender();
 
@@ -1859,62 +2101,58 @@ namespace SR
 		};
 
 
-		struct CubeMsh
+		struct ImportedDrawMesh
 		{
-			CubeMsh()
+			bool load()
 			{
+				if (bLoaded)
+					return true;
 
-				Vector3 localVertices[] =
+				IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("OBJ");
+				if (!importer)
+					return false;
+
+				MeshImportData meshData;
+				if (!importer->importFromFile("Model/crate.obj", meshData))
 				{
-					Vector3(-1, -1, -1), Vector3(1, -1, -1), Vector3(1,  1, -1), Vector3(-1,  1, -1),
-					Vector3(-1, -1,  1), Vector3(1, -1,  1), Vector3(1,  1,  1), Vector3(-1,  1,  1),
-				};
-
-				struct Face
-				{
-					int index[4];
-					LinearColor color;
-				};
-
-				Face faces[] =
-				{
-					{ { 0, 1, 5, 4 }, LinearColor(1.0f, 0.1f, 0.1f) },
-					{ { 3, 7, 6, 2 }, LinearColor(0.1f, 1.0f, 0.1f) },
-					{ { 0, 4, 7, 3 }, LinearColor(0.1f, 0.3f, 1.0f) },
-					{ { 1, 2, 6, 5 }, LinearColor(1.0f, 0.9f, 0.1f) },
-					{ { 0, 3, 2, 1 }, LinearColor(1.0f, 0.1f, 1.0f) },
-					{ { 4, 5, 6, 7 }, LinearColor(0.1f, 1.0f, 1.0f) },
-				};
-				int numDrawVertices = 0;
-				int numDrawIndices = 0;
-
-				for (Face const& face : faces)
-				{
-					Vector3 const& p0 = localVertices[face.index[0]];
-					Vector3 const& p1 = localVertices[face.index[1]];
-					Vector3 const& p2 = localVertices[face.index[2]];
-					Vector3 const& p3 = localVertices[face.index[3]];
-
-					uint32 baseIndex = numDrawVertices;
-					drawVertices[numDrawVertices++] = { p0, face.color, Vector2(0, 0) };
-					drawVertices[numDrawVertices++] = { p1, face.color, Vector2(1, 0) };
-					drawVertices[numDrawVertices++] = { p2, face.color, Vector2(1, 1) };
-					drawVertices[numDrawVertices++] = { p3, face.color, Vector2(0, 1) };
-
-					drawIndices[numDrawIndices++] = baseIndex;
-					drawIndices[numDrawIndices++] = baseIndex + 1;
-					drawIndices[numDrawIndices++] = baseIndex + 2;
-					drawIndices[numDrawIndices++] = baseIndex;
-					drawIndices[numDrawIndices++] = baseIndex + 2;
-					drawIndices[numDrawIndices++] = baseIndex + 3;
+					return false;
 				}
+
+				VertexElementReader posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
+				VertexElementReader uvReader;
+				bool const bHasUV = meshData.desc.findElementByAttribute(EVertex::ATTRIBUTE_TEXCOORD) != nullptr;
+				if (bHasUV)
+				{
+					uvReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_TEXCOORD);
+				}
+
+				Math::TAABBox<Vector3> bound = meshData.getBoundBox();
+				Vector3 center = bound.getCenter();
+				Vector3 size = bound.getSize();
+				float maxSize = Math::Max(size.x, Math::Max(size.y, size.z));
+				float normalizeScale = maxSize > 1e-6f ? 2.0f / maxSize : 1.0f;
+
+				drawVertices.resize(meshData.numVertices);
+				for (int i = 0; i < meshData.numVertices; ++i)
+				{
+					Vector3 pos = (posReader.get<Vector3>(i) - center) * normalizeScale;
+					Vector2 uv = bHasUV ? uvReader.get<Vector2>(i) : Vector2(pos.x * 0.5f + 0.5f, pos.z * 0.5f + 0.5f);
+					drawVertices[i] = { pos, LinearColor(1.0f, 1.0f, 1.0f), uv };
+				}
+
+				drawIndices = std::move(meshData.indices);
+				bLoaded = true;
+				return true;
 			}
 
-			DrawVertex drawVertices[24];
-			uint32 drawIndices[36];
+			bool bLoaded = false;
+			TArray<DrawVertex> drawVertices;
+			TArray<uint32> drawIndices;
 		};
 
-		static CubeMsh localMesh;
+		static ImportedDrawMesh localMesh;
+		if (!localMesh.load())
+			return;
 
 		struct MyVSOutput
 		{
@@ -1947,14 +2185,14 @@ namespace SR
 
 		auto pixelShader = [this](auto const& input)
 		{
-			mPixelCountRendered += std::is_same_v< std::decay_t< decltype(input)> , MyVSOutput > ? 1 : LaneScalar::Size;
+			mPixelCountRendered.fetch_add(std::is_same_v< std::decay_t< decltype(input)> , MyVSOutput > ? 1 : LaneScalar::Size, std::memory_order_relaxed);
 			//return input.color;
 			return simpleTexture.sample(input.uv) * input.color;
 		};
 
 		mRenderer.drawIndexedTriangleListPS<DefaultRasterPipeline>(
-			localMesh.drawVertices, ARRAY_SIZE(localMesh.drawVertices), 
-			localMesh.drawIndices, ARRAY_SIZE(localMesh.drawIndices), vertexShader, pixelShader);
+			localMesh.drawVertices.data(), (int)localMesh.drawVertices.size(),
+			localMesh.drawIndices.data(), (int)localMesh.drawIndices.size(), vertexShader, pixelShader);
 
 #if 0
 		mRenderer.drawTriangle(p0, face.color, Vector2(0, 0),

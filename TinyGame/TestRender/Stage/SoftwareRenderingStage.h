@@ -20,6 +20,7 @@
 #include "DrawEngine.h"
 
 #include <type_traits>
+#include <atomic>
 #include "Core/Color.h"
 
 namespace SR
@@ -788,11 +789,11 @@ namespace SR
 		Camera mCamera;
 
 		Texture simpleTexture;
-
+		float mFPS = 0.0f;
 
 		SimpleCamera mCameraControl;
 
-		int mPixelCountRendered = 0;
+		std::atomic<int> mPixelCountRendered = 0;
 
 
 		void setupScene();

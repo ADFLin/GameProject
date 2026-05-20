@@ -46,12 +46,36 @@ namespace SR
 		return (LaneScalar(_mm256_broadcastss_ps(paramLane)) + LaneScalar(_mm256_broadcastss_ps(dParamLane)) * laneOffsets) * laneWInv;
 	}
 
-	FORCEINLINE void StoreLaneInterpolantBlock(LaneScalar* pOut, int indexStart, SIMD::TFloatVector<4> const& param, SIMD::TFloatVector<4> const& dParam, LaneScalar const& laneOffsets, LaneScalar const& laneWInv)
+	FORCEINLINE LaneScalar BuildLaneInterpolant(__m256 param, __m256 dParam, LaneScalar const& laneOffsets, LaneScalar const& laneWInv)
+	{
+		return (LaneScalar(param) + LaneScalar(dParam) * laneOffsets) * laneWInv;
+	}
+
+	template< int Index >
+	FORCEINLINE LaneScalar BuildLaneInterpolant(__m256 param, __m256 dParam, LaneScalar const& laneOffsets, LaneScalar const& laneWInv)
+	{
+		__m256i const laneIndex = _mm256_set1_epi32(Index);
+		return BuildLaneInterpolant(
+			_mm256_permutevar8x32_ps(param, laneIndex),
+			_mm256_permutevar8x32_ps(dParam, laneIndex),
+			laneOffsets,
+			laneWInv);
+	}
+
+	template< int N >
+	FORCEINLINE void StoreLaneInterpolantBlock(LaneScalar* pOut, int indexStart, SIMD::TFloatVector<N> const& param, SIMD::TFloatVector<N> const& dParam, LaneScalar const& laneOffsets, LaneScalar const& laneWInv)
 	{
 		pOut[indexStart + 0] = BuildLaneInterpolant<0>(param.reg, dParam.reg, laneOffsets, laneWInv);
 		pOut[indexStart + 1] = BuildLaneInterpolant<1>(param.reg, dParam.reg, laneOffsets, laneWInv);
 		pOut[indexStart + 2] = BuildLaneInterpolant<2>(param.reg, dParam.reg, laneOffsets, laneWInv);
 		pOut[indexStart + 3] = BuildLaneInterpolant<3>(param.reg, dParam.reg, laneOffsets, laneWInv);
+		if constexpr (N == 8)
+		{
+			pOut[indexStart + 4] = BuildLaneInterpolant<4>(param.reg, dParam.reg, laneOffsets, laneWInv);
+			pOut[indexStart + 5] = BuildLaneInterpolant<5>(param.reg, dParam.reg, laneOffsets, laneWInv);
+			pOut[indexStart + 6] = BuildLaneInterpolant<6>(param.reg, dParam.reg, laneOffsets, laneWInv);
+			pOut[indexStart + 7] = BuildLaneInterpolant<7>(param.reg, dParam.reg, laneOffsets, laneWInv);
+		}
 	}
 
 
@@ -998,43 +1022,28 @@ namespace SR
 		if constexpr (!TBlendState::Enable)
 		{
 			_mm256_maskstore_epi32((int*)colorPtr, writeMask.reg, PackOpaqueBGRA(srcC));
-			return;
 		}
-
-		float srcR[LaneScalar::Size];
-		float srcG[LaneScalar::Size];
-		float srcB[LaneScalar::Size];
-		float srcA[LaneScalar::Size];
-		srcC.r.store(srcR);
-		srcC.g.store(srcG);
-		srcC.b.store(srcB);
-		srcC.a.store(srcA);
-
-		for (int lane = 0; lane < LaneScalar::Size; ++lane)
+		else
 		{
-			if ((activeMask & (1 << lane)) == 0)
-				continue;
+			float srcR[LaneScalar::Size];
+			float srcG[LaneScalar::Size];
+			float srcB[LaneScalar::Size];
+			float srcA[LaneScalar::Size];
+			srcC.r.store(srcR);
+			srcC.g.store(srcG);
+			srcC.b.store(srcB);
+			srcC.a.store(srcA);
 
-			LinearColor src(srcR[lane], srcG[lane], srcB[lane], srcA[lane]);
-			LinearColor outC = src;
-			if constexpr (TBlendState::Enable)
+			for (int lane = 0; lane < LaneScalar::Size; ++lane)
 			{
+				if ((activeMask & (1 << lane)) == 0)
+					continue;
+
+				LinearColor src(srcR[lane], srcG[lane], srcB[lane], srcA[lane]);
 				ColorBGRA8 dest;
 				dest.word = colorPtr[lane];
-				outC = TBlendState::Blend(src, LinearColor(dest));
+				colorPtr[lane] = TBlendState::Blend(src, LinearColor(dest)).toBGRA().word;
 			}
-
-			ColorBGRA8 colorOut;
-			if constexpr (TBlendState::Enable)
-			{
-				colorOut = outC.toBGRA();
-			}
-			else
-			{
-				colorOut = outC.toOpaqueBGRA();
-			}
-
-			colorPtr[lane] = colorOut.word;
 		}
 	}
 
@@ -1076,27 +1085,28 @@ namespace SR
 			{
 				_mm256_maskstore_epi32((int*)colorPtr, writeMask.reg, packedBGRA);
 			}
-			return;
 		}
-
-		float srcR[LaneScalar::Size];
-		float srcG[LaneScalar::Size];
-		float srcB[LaneScalar::Size];
-		float srcA[LaneScalar::Size];
-		srcC.r.store(srcR);
-		srcC.g.store(srcG);
-		srcC.b.store(srcB);
-		srcC.a.store(srcA);
-
-		for (int lane = 0; lane < LaneScalar::Size; ++lane)
+		else
 		{
-			if ((activeMask & (1 << lane)) == 0)
-				continue;
+			float srcR[LaneScalar::Size];
+			float srcG[LaneScalar::Size];
+			float srcB[LaneScalar::Size];
+			float srcA[LaneScalar::Size];
+			srcC.r.store(srcR);
+			srcC.g.store(srcG);
+			srcC.b.store(srcB);
+			srcC.a.store(srcA);
 
-			LinearColor src(srcR[lane], srcG[lane], srcB[lane], srcA[lane]);
-			ColorBGRA8 dest;
-			dest.word = colorPtr[lane];
-			colorPtr[lane] = TBlendState::Blend(src, LinearColor(dest)).toBGRA().word;
+			for (int lane = 0; lane < LaneScalar::Size; ++lane)
+			{
+				if ((activeMask & (1 << lane)) == 0)
+					continue;
+
+				LinearColor src(srcR[lane], srcG[lane], srcB[lane], srcA[lane]);
+				ColorBGRA8 dest;
+				dest.word = colorPtr[lane];
+				colorPtr[lane] = TBlendState::Blend(src, LinearColor(dest)).toBGRA().word;
+			}
 		}
 	}
 

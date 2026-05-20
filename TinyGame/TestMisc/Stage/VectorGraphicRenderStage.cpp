@@ -46,11 +46,11 @@ namespace VGR
 			return true;
 		}
 
-		Vector2 get(float t)
+		Vector2 get(float t) const
 		{
 			return Math::BezierLerp(start, control, end, t);
 		}
-		void drawDebug(RHIGraphics2D& g)
+		void drawDebug(RHIGraphics2D& g) const
 		{
 			RenderUtility::SetBrush(g, EColor::Null);
 
@@ -62,7 +62,7 @@ namespace VGR
 			g.drawRect(control - 0.5 * size, size);
 		}
 
-		void draw(RHIGraphics2D& g, int num)
+		void draw(RHIGraphics2D& g, int num) const
 		{
 			float delta = 1.0f / num;
 			Vector2 p0 = get(0);
@@ -917,13 +917,20 @@ namespace VGR
 	public:
 		TestStage() {}
 
-		TArray< CurveSegment > segments;
+		TArray< CurveSegment > mSegments;
 
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
 				return false;
 			::Global::GUI().cleanupWidget();
+
+			if (!mTTFLoader.load("C:/Windows/Fonts/arial.ttf"))
+				return false;
+
+			TrueTypeFileLoader::FontMetrics const& metrics = mTTFLoader.getFontMetrics();
+			if (metrics.unitsPerEm == 0)
+				return false;
 
 			auto frame = WidgetUtility::CreateDevFrame();
 			FWidgetProperty::Bind(frame->addSlider("Size") , mSettings.size , 1 , 20, [&](float value)
@@ -942,74 +949,76 @@ namespace VGR
 
 		void restart() 
 		{
-			segments.clear();
-			mTextSegments.clear();
+			mSegments.clear();
+
 			if (loadFontGlyph())
 			{
-				loadFontText();
-				rasterize(mSettings);
-				return;
+
+			}
+			else
+			{
+				mSegments.resize(8);
+				{
+					CurveSegment& segment = mSegments[0];
+					segment.start = Vector2(100, 200);
+					segment.control = Vector2(100, 100);
+					segment.end = Vector2(200, 100);
+				}
+				{
+					CurveSegment& segment = mSegments[1];
+					segment.start = Vector2(200, 100);
+					segment.control = Vector2(300, 100);
+					segment.end = Vector2(300, 200);
+				}
+				{
+					CurveSegment& segment = mSegments[2];
+					segment.start = Vector2(300, 200);
+					segment.control = Vector2(300, 300);
+					segment.end = Vector2(200, 300);
+				}
+				{
+					CurveSegment& segment = mSegments[3];
+					segment.start = Vector2(200, 300);
+					segment.control = Vector2(100, 300);
+					segment.end = Vector2(100, 200);
+				}
+
+				Vector2 offset = Vector2(50, 50);
+				{
+					CurveSegment& segment = mSegments[4];
+					segment.start = Vector2(100, 150) + offset;
+					segment.control = Vector2(100, 100) + offset;
+					segment.end = Vector2(150, 100) + offset;
+				}
+				{
+					CurveSegment& segment = mSegments[5];
+					segment.start = Vector2(150, 100) + offset;
+					segment.control = Vector2(150, 250);
+					segment.end = Vector2(200, 150) + offset;
+				}
+				{
+					CurveSegment& segment = mSegments[6];
+					segment.start = Vector2(200, 150) + offset;
+					segment.control = Vector2(300, 300);
+					segment.end = Vector2(150, 200) + offset;
+				}
+				{
+					CurveSegment& segment = mSegments[7];
+					segment.start = Vector2(150, 200) + offset;
+					segment.control = Vector2(100, 300);
+					segment.end = Vector2(100, 150) + offset;
+				}
+
+				mSettings.bound.min = Vector2(50, 50);
+				mSettings.bound.max = Vector2(350, 350);
 			}
 
-			segments.resize(8);
-			{
-				CurveSegment& segment = segments[0];
-				segment.start = Vector2(100, 200);
-				segment.control = Vector2(100, 100);
-				segment.end = Vector2(200, 100);
-			}
-			{
-				CurveSegment& segment = segments[1];
-				segment.start = Vector2(200, 100);
-				segment.control = Vector2(300, 100);
-				segment.end = Vector2(300, 200);
-			}
-			{
-				CurveSegment& segment = segments[2];
-				segment.start = Vector2(300, 200);
-				segment.control = Vector2(300, 300);
-				segment.end = Vector2(200, 300);
-			}
-			{
-				CurveSegment& segment = segments[3];
-				segment.start = Vector2(200, 300);
-				segment.control = Vector2(100, 300);
-				segment.end = Vector2(100, 200);
-			}
 
-			Vector2 offset = Vector2(50, 50);
-			{
-				CurveSegment& segment = segments[4];
-				segment.start = Vector2(100, 150) + offset;
-				segment.control = Vector2(100, 100) + offset;
-				segment.end = Vector2(150, 100) + offset;
-			}
-			{
-				CurveSegment& segment = segments[5];
-				segment.start = Vector2(150, 100) + offset;
-				segment.control = Vector2(150, 250);
-				segment.end = Vector2(200, 150) + offset;
-			}
-			{
-				CurveSegment& segment = segments[6];
-				segment.start = Vector2(200, 150) + offset;
-				segment.control = Vector2(300, 300);
-				segment.end = Vector2(150, 200) + offset;
-			}
-			{
-				CurveSegment& segment = segments[7];
-				segment.start = Vector2(150, 200) + offset;
-				segment.control = Vector2(100, 300);
-				segment.end = Vector2(100, 150) + offset;
-			}
 
-			mSettings.bound.min = Vector2(50,50);
-			mSettings.bound.max = Vector2(350,350);
-			loadFontText();
 			rasterize(mSettings);
 		}
 
-		void appendGlyphSegments(TrueTypeFileLoader::GlyphData const& glyph, Vector2 const& offset, float scale, TArray< CurveSegment >& outSegments, Math::TAABBox< Vector2 >* bound)
+		void appendGlyphSegments(TrueTypeFileLoader::GlyphData const& glyph, Vector2 const& offset, float scale, TArray< CurveSegment >& outSegments)
 		{
 			for (CurveSegment const& srcSegment : glyph.segments)
 			{
@@ -1023,33 +1032,23 @@ namespace VGR
 				segment.control = TransformPos(srcSegment.control);
 				segment.end = TransformPos(srcSegment.end);
 				outSegments.push_back(segment);
-				if (bound)
-				{
-					bound->addPoint(segment.start);
-					bound->addPoint(segment.control);
-					bound->addPoint(segment.end);
-				}
 			}
 		}
 
 		bool loadFontGlyph()
 		{
-			TrueTypeFileLoader loader;
-			if (!loader.load("C:/Windows/Fonts/arial.ttf"))
-				return false;
-
 			TrueTypeFileLoader::GlyphData glyph;
-			TrueTypeFileLoader::FontMetrics const& metrics = loader.getFontMetrics();
-			if (!loader.loadGlyph('R', glyph) || metrics.unitsPerEm == 0)
+			TrueTypeFileLoader::FontMetrics const& metrics = mTTFLoader.getFontMetrics();
+			if (!mTTFLoader.loadGlyph('R', glyph) || metrics.unitsPerEm == 0)
 				return false;
 
 			float scale = 220.0f / metrics.unitsPerEm;
 			Vector2 offset = Vector2(100, 320);
 
-			segments.reserve(glyph.segments.size());
-			appendGlyphSegments(glyph, offset, scale, segments, nullptr);
+			mSegments.reserve(glyph.segments.size());
+			appendGlyphSegments(glyph, offset, scale, mSegments);
 
-			if (segments.empty())
+			if (mSegments.empty())
 				return false;
 
 			Math::TAABBox< Vector2 > bound;
@@ -1062,38 +1061,49 @@ namespace VGR
 			return true;
 		}
 
-		bool loadFontText()
+		TrueTypeFileLoader::GlyphData* getGlyhData(uint32 c)
 		{
-			TrueTypeFileLoader loader;
-			if (!loader.load("C:/Windows/Fonts/arial.ttf"))
-				return false;
+			auto iter = mGlyphMap.find(c);
+			if (iter != mGlyphMap.end())
+				return &iter->second;
 
-			char const* text = "CurveSegment Text";
-			TrueTypeFileLoader::FontMetrics const& metrics = loader.getFontMetrics();
-			if (metrics.unitsPerEm == 0)
-				return false;
+			TrueTypeFileLoader::GlyphData glyph;
+			if (!mTTFLoader.loadGlyph(c, glyph))
+				return nullptr;
 
-			float scale = 72.0f / metrics.unitsPerEm;
-			Vector2 penPos = Vector2(80, 520);
-			mTextSegments.clear();
-
-			for (char const* ch = text; *ch; ++ch)
-			{
-				TrueTypeFileLoader::GlyphData glyph;
-				if (!loader.loadGlyph(uint8(*ch), glyph))
-					continue;
-
-				if (glyph.bHasOutline)
-				{
-					appendGlyphSegments(glyph, penPos, scale, mTextSegments, nullptr);
-				}
-
-				penPos.x += scale * glyph.advanceWidth;
-			}
-
-			return !mTextSegments.empty();
+			auto& pair = mGlyphMap.emplace(uint32(c), std::move(glyph));
+			return &pair.first->second;
 		}
 
+		void drawText(RHIGraphics2D& g, float size, char const* text)
+		{
+			TrueTypeFileLoader::FontMetrics const& metrics = mTTFLoader.getFontMetrics();
+			float scale = size / metrics.unitsPerEm;
+
+			Vector2 textPos = Vector2::Zero();
+
+			g.scaleXForm(scale, -scale);
+			for (char const* ch = text; *ch; ++ch)
+			{
+				TrueTypeFileLoader::GlyphData* glyph = getGlyhData(*ch);
+
+				if (glyph->bHasOutline)
+				{
+					g.pushXForm();
+					g.translateXForm(textPos.x, textPos.y);
+					for (auto& segment : glyph->segments)
+					{
+						segment.draw(g, 24);
+					}
+					g.popXForm();
+				}
+
+				textPos.x += glyph->advanceWidth;
+			}
+		}
+
+		std::unordered_map< uint32, TrueTypeFileLoader::GlyphData > mGlyphMap;
+		TrueTypeFileLoader mTTFLoader;
 
 		void onUpdate(GameTimeSpan deltaTime) override
 		{
@@ -1117,18 +1127,14 @@ namespace VGR
 				g.drawRect(pos - 0.5 * size, size);
 			}
 
-			for (auto& segment : segments)
+			for (auto& segment : mSegments)
 			{
 				RenderUtility::SetPen(g, EColor::Yellow);
 				segment.draw(g, 32);
 				segment.drawDebug(g);
 			}
 
-			RenderUtility::SetPen(g, EColor::Cyan);
-			for (auto& segment : mTextSegments)
-			{
-				segment.draw(g, 24);
-			}
+
 
 			RenderUtility::SetBrush(g, EColor::Null);
 			for (auto const& pos : mDebugPosList)
@@ -1137,6 +1143,12 @@ namespace VGR
 				RenderUtility::SetPen(g, EColor::Green);
 				g.drawRect(pos - 0.5 * size, size);
 			}
+
+			g.pushXForm();
+			char const* text = "CurveSegment Text";
+			g.translateXForm(80, 520);
+			drawText(g, 72, text);
+			g.popXForm();
 
 			g.endRender();
 		}
@@ -1189,7 +1201,7 @@ namespace VGR
 			{
 				intersectionList.clear();
 
-				for (auto& segment : segments)
+				for (auto& segment : mSegments)
 				{
 					auto AddPosConditional = [&](float t)
 					{
@@ -1295,7 +1307,7 @@ namespace VGR
 				Vector2 pos = msg.getPos();
 				mDebugPosList.clear();
 
-				for (auto& segment : segments)
+				for (auto& segment : mSegments)
 				{
 					auto AddPosConditional = [&](float t)
 					{

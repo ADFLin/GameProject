@@ -13,6 +13,7 @@
 #include <cwchar>
 #include <unordered_map>
 #include "Rect.h"
+#include "ProfileSystem.h"
 
 template< class FormCharT, class ToCharT >
 struct FCharConv
@@ -55,11 +56,22 @@ namespace Render
 			}
 		}
 
+		struct RenderGlyphResult
+		{
+			ABCFLOAT abcFloat;
+			int width = 1;
+			int height = 1;
+			int offsetY = 0;
+			bool bHasImage = false;
+		};
+
+		bool renderGlyph(wchar_t charW, RenderGlyphResult& outResult);
 		bool getCharData(uint32 charWord, CharImageData& outData) override;
 		bool getCharDesc(uint32 charWord, CharImageDesc& outDesc) override;
 
 		int      getFontHeight() const override { return textureDC.getHeight(); }
 		int      mSize;
+		int      mAscent = 0;
 		BitmapDC textureDC;
 		uint8*   pDataTexture = nullptr;
 		HFONT    hFont = NULL;
@@ -102,6 +114,7 @@ namespace Render
 		::SelectObject(textureDC, hFont);
 		::SetTextColor(textureDC, RGB(255, 255, 255));
 		mSize = fontFace.size;
+		mAscent = tm.tmAscent;
 		return true;
 	}
 
@@ -113,6 +126,43 @@ namespace Render
 			::ReleaseDC(NULL, hDC);
 			hDC = NULL;
 		}
+	}
+
+	bool GDIFontCharDataProvider::renderGlyph(wchar_t charW, RenderGlyphResult& outResult)
+	{
+		if (!::GetCharABCWidthsFloatW(textureDC, charW, charW, &outResult.abcFloat))
+			return false;
+
+		outResult.width = Math::Max(1, Math::Min((int)outResult.abcFloat.abcfB, textureDC.getWidth()));
+		outResult.offsetY = 0;
+		outResult.height = 1;
+		outResult.bHasImage = false;
+
+		GLYPHMETRICS glyphMetrics;
+		MAT2 mat = {};
+		mat.eM11.value = 1;
+		mat.eM22.value = 1;
+		if (::GetGlyphOutlineW(textureDC, charW, GGO_METRICS, &glyphMetrics, 0, nullptr, &mat) != GDI_ERROR)
+		{
+			outResult.bHasImage = glyphMetrics.gmBlackBoxX > 0 && glyphMetrics.gmBlackBoxY > 0;
+			if (outResult.bHasImage)
+			{
+				int offsetY = mAscent - glyphMetrics.gmptGlyphOrigin.y;
+				offsetY = Math::Clamp(offsetY, 0, Math::Max(0, textureDC.getHeight() - 1));
+				outResult.offsetY = offsetY;
+				outResult.height = Math::Max(1, Math::Min(int(glyphMetrics.gmBlackBoxY), textureDC.getHeight() - offsetY));
+			}
+		}
+
+		::Rectangle(textureDC, 0, 0, textureDC.getWidth(), textureDC.getHeight());
+		RECT rect;
+		rect.left = -(int)outResult.abcFloat.abcfA;
+		rect.right = (int)outResult.abcFloat.abcfB;
+		rect.top = 0;
+		rect.bottom = textureDC.getHeight();
+		::DrawTextW(textureDC, &charW, 1, &rect, DT_LEFT | DT_TOP);
+
+		return true;
 	}
 
 	bool GDIFontCharDataProvider::getCharData(uint32 charWord, CharImageData& outData)
@@ -128,25 +178,25 @@ namespace Render
 		}
 #endif
 
-		ABCFLOAT abcFloat;
-		::GetCharABCWidthsFloatW(textureDC, charW, charW, &abcFloat);
-		::Rectangle(textureDC, 0, 0, textureDC.getWidth(), textureDC.getHeight());
-		RECT rect;
-		rect.left = -(int)abcFloat.abcfA;
-		rect.right = (int)abcFloat.abcfB;
-		rect.top = 0;
-		rect.bottom = textureDC.getHeight();
-		::DrawTextW(textureDC, &charW, 1, &rect, DT_LEFT | DT_TOP);
+		RenderGlyphResult glyphResult;
+		if (!renderGlyph(charW, glyphResult))
+			return false;
 
-		outData.width = (int)abcFloat.abcfB;
-		outData.height = textureDC.getHeight();
-		outData.kerning = abcFloat.abcfA;
-		outData.advance = abcFloat.abcfB + abcFloat.abcfC;
+		outData.width = glyphResult.width;
+		outData.height = glyphResult.height;
+		outData.kerning = glyphResult.abcFloat.abcfA;
+		outData.offsetX = 0;
+		outData.offsetY = float(glyphResult.offsetY);
+		outData.advance = glyphResult.abcFloat.abcfB + glyphResult.abcFloat.abcfC;
 		outData.imageWidth = outData.width;
-		outData.imageHeight = textureDC.getHeight();
+		outData.imageHeight = outData.height;
 		outData.pixelSize = 4;
-		outData.imageData.resize(outData.imageWidth * outData.imageHeight * outData.pixelSize);
-		CopyImage(&outData.imageData[0], outData.imageWidth, outData.imageHeight, outData.pixelSize, pDataTexture, textureDC.getWidth());
+		outData.imageData.resize(outData.imageWidth * outData.imageHeight * outData.pixelSize, 0);
+		if (glyphResult.bHasImage)
+		{
+			uint8* src = pDataTexture + glyphResult.offsetY * textureDC.getWidth() * outData.pixelSize;
+			CopyImage(&outData.imageData[0], outData.imageWidth, outData.imageHeight, outData.pixelSize, src, textureDC.getWidth());
+		}
 
 		if (GRHISystem->getName() == RHISystemName::D3D11 || 
 			GRHISystem->getName() == RHISystemName::D3D12 ||
@@ -167,12 +217,16 @@ namespace Render
 	bool GDIFontCharDataProvider::getCharDesc(uint32 charWord, CharImageDesc& outDesc)
 	{
 		wchar_t charW = charWord;
-		ABCFLOAT abcFloat;
-		::GetCharABCWidthsFloatW(textureDC, charW, charW, &abcFloat);
-		outDesc.width = (int)abcFloat.abcfB;
-		outDesc.height = textureDC.getHeight();
-		outDesc.kerning = abcFloat.abcfA;
-		outDesc.advance = abcFloat.abcfB + abcFloat.abcfC;
+		RenderGlyphResult glyphResult;
+		if (!renderGlyph(charW, glyphResult))
+			return false;
+
+		outDesc.width = glyphResult.width;
+		outDesc.height = glyphResult.height;
+		outDesc.kerning = glyphResult.abcFloat.abcfA;
+		outDesc.offsetX = 0;
+		outDesc.offsetY = float(glyphResult.offsetY);
+		outDesc.advance = glyphResult.abcFloat.abcfB + glyphResult.abcFloat.abcfC;
 		return true;
 	}
 
@@ -292,6 +346,38 @@ namespace Render
 	}
 
 	
+	CharDataSet* FontCharCache::getCharDataSet(ICustomCharDataProvider& provider)
+	{
+		FontFaceInfo fontFace{ provider.getName(), provider.getFontHeight(), false };
+
+		auto iter = mCharDataSetMap.find(fontFace);
+		if (iter == mCharDataSetMap.end())
+		{
+			CharDataSet* dataSet = new CharDataSet;
+			if (!dataSet->initialize(provider))
+			{
+				LogWarning(0, "Can't Init Char Data Set");
+				delete dataSet;
+				return nullptr;
+			}
+			dataSet->mUsedTextAtlas = &mTextAtlas;
+			mCharDataSetMap.insert({ fontFace , dataSet });
+			return dataSet;
+		}
+		return iter->second;
+	}
+
+	void FontCharCache::removeCharDataSet(ICustomCharDataProvider& provider)
+	{
+		FontFaceInfo fontFace{ provider.getName(), provider.getFontHeight(), false };
+		auto iter = mCharDataSetMap.find(fontFace);
+		if (iter != mCharDataSetMap.end())
+		{
+			delete iter->second;
+			mCharDataSetMap.erase(iter);
+		}
+	}
+
 #endif //CORE_SHARE_CODE
 
 	bool CharDataSet::initialize(FontFaceInfo const& font)
@@ -300,6 +386,14 @@ namespace Render
 		if( mProvider == nullptr )
 			return false;
 
+		mFontHeight = mProvider->getFontHeight();
+		mProvider->getKerningPairs(mKerningPairMap);
+		return true;
+	}
+
+	bool CharDataSet::initialize(ICustomCharDataProvider& provider)
+	{
+		mProvider = &provider;
 		mFontHeight = mProvider->getFontHeight();
 		mProvider->getKerningPairs(mKerningPairMap);
 		return true;
@@ -343,6 +437,8 @@ namespace Render
 
 		charData.advance = imageData.advance;
 		charData.kerning = imageData.kerning;
+		charData.offsetX = imageData.offsetX;
+		charData.offsetY = imageData.offsetY;
 		return charData;
 	}
 
@@ -364,6 +460,8 @@ namespace Render
 		charData.width = imageDesc.width;
 		charData.height = imageDesc.height;
 		charData.kerning = imageDesc.kerning;
+		charData.offsetX = imageDesc.offsetX;
+		charData.offsetY = imageDesc.offsetY;
 		charData.advance = imageDesc.advance;
 
 		return charData;
@@ -455,7 +553,8 @@ namespace Render
 					}
 #endif
 				}
-				lineMaxHeight = Math::Max(lineMaxHeight, float(data.height));
+				result.x = Math::Max(result.x, xOffset + data.offsetX + data.width);
+				lineMaxHeight = Math::Max(lineMaxHeight, data.offsetY + data.height);
 				xOffset += data.advance;
 				bApplyKerning = !FCString::IsSpace(c);
 				prevChar = c;
@@ -532,7 +631,8 @@ namespace Render
 					}
 #endif
 				}
-				lineMaxHeight = Math::Max(lineMaxHeight, float(data.height));
+				result.x = Math::Max(result.x, xOffset + data.offsetX + data.width);
+				lineMaxHeight = Math::Max(lineMaxHeight, data.offsetY + data.height);
 				xOffset += data.advance;
 				bApplyKerning = !FCString::IsSpace(c);
 				prevChar = c;
@@ -659,6 +759,19 @@ namespace Render
 		return true;
 	}
 
+	bool FontDrawer::initialize(ICustomCharDataProvider& provider)
+	{
+		if (!FontCharCache::Get().initialize())
+			return false;
+
+		mCharDataSet = FontCharCache::Get().getCharDataSet(provider);
+		if (mCharDataSet == nullptr)
+			return false;
+
+		return true;
+
+	}
+
 	void FontDrawer::cleanup()
 	{
 		mCharDataSet = nullptr;
@@ -709,7 +822,7 @@ namespace Render
 					}
 #endif
 				}
-				addQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
+				addQuad(curPos + Vector2(data.offsetX, data.offsetY), Vector2(data.width, data.height), data.uvMin, data.uvMax);
 				curPos.x += data.advance;
 				bApplyKerning = true;
 				prevChar = c;
@@ -762,7 +875,7 @@ namespace Render
 					}
 #endif
 				}
-				addQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
+				addQuad(curPos + scale * Vector2(data.offsetX, data.offsetY), scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
 				curPos.x += scale * data.advance;
 				bApplyKerning = true;
 				prevChar = c;
@@ -861,7 +974,7 @@ namespace Render
 #endif
 				}
 
-				AddQuad(curPos, scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
+				AddQuad(curPos + scale * Vector2(data.offsetX, data.offsetY), scale * Vector2(data.width, data.height), data.uvMin, data.uvMax);
 				curPos.x += scale * data.advance;
 				bApplyKerning = true;
 				prevChar = c;
@@ -1015,8 +1128,8 @@ namespace Render
 				}
 
 				Vector2 size = scale * Vector2(data.width, data.height);
-				Vector2 p0 = curPos;
-				Vector2 p1 = curPos + size;
+				Vector2 p0 = curPos + scale * Vector2(data.offsetX, data.offsetY);
+				Vector2 p1 = p0 + size;
 
 				if (p0.x >= c1.x)
 				{

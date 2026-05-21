@@ -3,11 +3,13 @@
 #include "GameRenderSetup.h"
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/Font.h"
 #include "Math/GeometryPrimitive.h"
 #include "Renderer/RenderTransform2D.h"
 #include "FileSystem.h"
 
 #include <cstring>
+#include "ProfileSystem.h"
 
 namespace VGR
 {
@@ -19,7 +21,7 @@ namespace VGR
 		Vector2 end;
 		Vector2 control;
 
-		bool findIntersection(float y, float outT[2])
+		int findIntersection(float y, float outT[2]) const
 		{
 			float a = start.y + end.y - 2 * control.y;
 			float b = control.y - start.y;
@@ -27,22 +29,36 @@ namespace VGR
 			if (Math::Abs(a) < 1e-6f)
 			{
 				if (Math::Abs(b) < 1e-6f)
-					return false;
+					return 0;
 
 				outT[0] = outT[1] = -c / (2 * b);
-				return true;
+				return 1;
 			}
 
 			float det = b * b - a * c;
 			if (det < 0)
 			{
-				return false;
+				return 0;
 			}
 
 			det = Math::Sqrt(det);
 
 			outT[0] = (-b + det) / a;
 			outT[1] = (-b - det) / a;
+			return 2;
+		}
+		bool trySplitYMonotonic(CurveSegment& other)
+		{
+			float denom = start.y - 2 * control.y + end.y;
+			if ( Math::Abs(denom) < 1e-5 )
+				return false;
+
+			float t = (start.y - control.y) / denom;
+
+			if (t <= 0 || t >= 1 )
+				return false;
+
+			split(t, other);
 			return true;
 		}
 
@@ -76,7 +92,37 @@ namespace VGR
 				p0 = p1;
 			}
 		}
+
+		void split(float s, CurveSegment& other)
+		{
+			Vector2 a = Math::LinearLerp(start, control, s);
+			Vector2 b = Math::LinearLerp(control, end, s);
+			Vector2 c = Math::LinearLerp(a, b, s);
+
+			other.start = c;
+			other.control = b;
+			other.end = end;
+
+			control = a;
+			end = c;
+		}
+
+		static void Split(CurveSegment const& src, float s, CurveSegment& left, CurveSegment& right)
+		{
+			Vector2 a = Math::LinearLerp(src.start, src.control, s);
+			Vector2 b = Math::LinearLerp(src.control, src.end, s);
+			Vector2 c = Math::LinearLerp(a, b, s);
+
+			left.start = src.start;
+			left.control = a;
+			left.end = c;
+
+			right.start = c;
+			right.control = b;
+			right.end = src.end;
+		}
 	};
+
 
 	class TrueTypeFileLoader
 	{
@@ -108,13 +154,23 @@ namespace VGR
 			int16 rightSideBearing = 0;
 		};
 
+		struct KerningPair
+		{
+			uint32 firstCodepoint = 0;
+			uint32 secondCodepoint = 0;
+			int16 value = 0;
+		};
+
 		FontMetrics const& getFontMetrics() const { return mFontMetrics; }
+		TArray< KerningPair > const& getKerningPairs() const { return mKerningPairs; }
 
 		bool load(char const* path)
 		{
 			mBuffer.clear();
 			mTables.clear();
 			mGlyphOffsets.clear();
+			mGlyphCodepoints.clear();
+			mKerningPairs.clear();
 			mCMap = CMapInfo();
 			mGlyphTableOffset = 0;
 			mNumGlyphs = 0;
@@ -174,7 +230,11 @@ namespace VGR
 			mFontMetrics.ascender = readS16(offset);
 			mFontMetrics.descender = readS16(offset);
 			mFontMetrics.lineGap = readS16(offset);
-			return loadGlyphOffsets(*loca) && chooseCMap();
+			if (!loadGlyphOffsets(*loca) || !chooseCMap())
+				return false;
+
+			buildGlyphCodepointMap();
+			return loadKerningPairs();
 		}
 
 		bool loadGlyph(uint32 codepoint, GlyphData& outGlyph) const
@@ -254,6 +314,18 @@ namespace VGR
 		static constexpr uint32 LeftSideBearingSize = 2;
 		static constexpr float F2Dot14Scale = 16384.0f;
 		static constexpr int MaxCompositeDepth = 8;
+
+		static constexpr uint16 KernVersion0 = 0;
+		static constexpr uint32 KernHeaderSize = 4;
+		static constexpr uint32 KernSubtableHeaderSize = 6;
+		static constexpr uint32 KernFormat0HeaderSize = 8;
+		static constexpr uint32 KernFormat0PairSize = 6;
+		static constexpr uint16 KernFormat0 = 0;
+		static constexpr uint16 KernCoverageHorizontal = 0x0001;
+		static constexpr uint16 KernCoverageMinimum = 0x0002;
+		static constexpr uint16 KernCoverageCrossStream = 0x0004;
+		static constexpr uint16 KernCoverageOverride = 0x0008;
+		static constexpr uint16 KernCoverageFormatShift = 8;
 
 		struct Table
 		{
@@ -706,6 +778,166 @@ namespace VGR
 			return mCMap.offset != 0;
 		}
 
+		void buildGlyphCodepointMap()
+		{
+			mGlyphCodepoints.clear();
+			mGlyphCodepoints.resize(mNumGlyphs, 0);
+
+			if (mCMap.format == CMapFormat4)
+			{
+				buildGlyphCodepointMapFormat4();
+			}
+			else if (mCMap.format == CMapFormat12)
+			{
+				buildGlyphCodepointMapFormat12();
+			}
+		}
+
+		void buildGlyphCodepointMapFormat4()
+		{
+			uint32 offset = mCMap.offset;
+			size_t header = offset;
+			readU16(header); // format
+			uint16 length = readU16(header);
+			if (!checkRange(offset, length) || length < CMapFormat4EndCodeOffset + sizeof(uint16))
+				return;
+
+			readU16(header); // language
+			uint16 segCount = readU16(header) / sizeof(uint16);
+			size_t endCodeOffset = offset + CMapFormat4EndCodeOffset;
+			size_t startCodeOffset = endCodeOffset + sizeof(uint16) * segCount + CMapFormat4ReservedPadSize;
+			if (!checkRange(startCodeOffset, sizeof(uint16) * segCount * 3))
+				return;
+
+			for (uint16 i = 0; i < segCount; ++i)
+			{
+				size_t segOffset = sizeof(uint16) * i;
+				uint16 startCode = readU16At(startCodeOffset + segOffset);
+				uint16 endCode = readU16At(endCodeOffset + segOffset);
+				if (startCode == UnicodeBmpMax && endCode == UnicodeBmpMax)
+					continue;
+
+				for (uint32 codepoint = startCode; codepoint <= endCode; ++codepoint)
+				{
+					uint16 glyphIndex = getGlyphIndexFormat4(codepoint);
+					if (glyphIndex != 0 && glyphIndex < mGlyphCodepoints.size() && mGlyphCodepoints[glyphIndex] == 0)
+					{
+						mGlyphCodepoints[glyphIndex] = codepoint;
+					}
+				}
+			}
+		}
+
+		void buildGlyphCodepointMapFormat12()
+		{
+			uint32 offset = mCMap.offset;
+			if (!checkRange(offset, CMapFormat12GroupOffset))
+				return;
+
+			size_t header = offset;
+			readU16(header); // format
+			readU16(header); // reserved
+			readU32(header); // length
+			readU32(header); // language
+			uint32 numGroups = readU32(header);
+			uint32 groupOffset = offset + CMapFormat12GroupOffset;
+			if (!checkRange(groupOffset, CMapFormat12GroupSize * numGroups))
+				return;
+
+			for (uint32 i = 0; i < numGroups; ++i)
+			{
+				size_t record = groupOffset + CMapFormat12GroupSize * i;
+				uint32 startCharCode = readU32(record);
+				uint32 endCharCode = readU32(record);
+				uint32 startGlyphID = readU32(record);
+				for (uint32 codepoint = startCharCode; codepoint <= endCharCode; ++codepoint)
+				{
+					uint32 glyphIndex = startGlyphID + codepoint - startCharCode;
+					if (glyphIndex != 0 && glyphIndex < mGlyphCodepoints.size() && mGlyphCodepoints[glyphIndex] == 0)
+					{
+						mGlyphCodepoints[glyphIndex] = codepoint;
+					}
+				}
+			}
+		}
+
+		bool loadKerningPairs()
+		{
+			Table const* kern = findTable("kern");
+			if (!kern)
+				return true;
+			if (kern->length < KernHeaderSize)
+				return false;
+
+			size_t pos = kern->offset;
+			uint16 version = readU16(pos);
+			if (version != KernVersion0)
+				return true;
+
+			uint16 numTables = readU16(pos);
+			size_t subtable = pos;
+			for (uint16 tableIndex = 0; tableIndex < numTables; ++tableIndex)
+			{
+				if (!checkRange(subtable, KernSubtableHeaderSize))
+					return false;
+
+				size_t subtableHeader = subtable;
+				readU16(subtableHeader); // version
+				uint16 length = readU16(subtableHeader);
+				uint16 coverage = readU16(subtableHeader);
+				if (length < KernSubtableHeaderSize || !checkRange(subtable, length))
+					return false;
+
+				uint16 format = coverage >> KernCoverageFormatShift;
+				uint16 flags = coverage & 0xff;
+				if (format == KernFormat0 &&
+				    (flags & KernCoverageHorizontal) &&
+				    !(flags & (KernCoverageMinimum | KernCoverageCrossStream | KernCoverageOverride)))
+				{
+					loadKerningFormat0(subtable + KernSubtableHeaderSize, length - KernSubtableHeaderSize);
+				}
+
+				subtable += length;
+				if (subtable > kern->offset + kern->length)
+					return false;
+			}
+
+			return true;
+		}
+
+		void loadKerningFormat0(size_t offset, uint32 length)
+		{
+			if (length < KernFormat0HeaderSize || !checkRange(offset, length))
+				return;
+
+			size_t pos = offset;
+			uint16 numPairs = readU16(pos);
+			readU16(pos); // searchRange
+			readU16(pos); // entrySelector
+			readU16(pos); // rangeShift
+			if (length < KernFormat0HeaderSize + KernFormat0PairSize * uint32(numPairs))
+				return;
+
+			for (uint16 i = 0; i < numPairs; ++i)
+			{
+				uint16 leftGlyph = readU16(pos);
+				uint16 rightGlyph = readU16(pos);
+				int16 value = readS16(pos);
+				if (value == 0)
+					continue;
+
+				if (leftGlyph >= mGlyphCodepoints.size() || rightGlyph >= mGlyphCodepoints.size())
+					continue;
+
+				uint32 firstCodepoint = mGlyphCodepoints[leftGlyph];
+				uint32 secondCodepoint = mGlyphCodepoints[rightGlyph];
+				if (firstCodepoint == 0 || secondCodepoint == 0)
+					continue;
+
+				mKerningPairs.push_back({ firstCodepoint, secondCodepoint, value });
+			}
+		}
+
 		uint16 getGlyphIndex(uint32 codepoint) const
 		{
 			if (mCMap.format == CMapFormat4)
@@ -899,12 +1131,369 @@ namespace VGR
 		TArray< uint8 > mBuffer;
 		TArray< Table > mTables;
 		TArray< uint32 > mGlyphOffsets;
+		TArray< uint32 > mGlyphCodepoints;
+		TArray< KerningPair > mKerningPairs;
 		CMapInfo mCMap;
 		uint32 mGlyphTableOffset = 0;
 		uint16 mNumGlyphs = 0;
 		uint16 mNumHMetrics = 0;
 		FontMetrics mFontMetrics;
 		int16 mIndexToLocFormat = 0;
+	};
+
+
+	struct RasterizeSettings
+	{
+		float size = 1;
+		Math::TAABBox< Vector2 > bound;
+	};
+
+	template< typename TFunc >
+	static void Rasterize(RasterizeSettings const& settings, TArray< CurveSegment > const& segments, TFunc func)
+	{
+		struct Intersection
+		{
+			CurveSegment const* segment;
+			float minY;
+			float maxY;
+			float posX;
+			float t;
+		};
+
+		struct RasterSegment
+		{
+			CurveSegment const* segment;
+			float minY;
+			float maxY;
+		};
+
+		float halfSize = 0.5 * settings.size;
+		Vector2 curPos;
+		Vec2i pxIndex;
+		curPos.y = settings.bound.min.y + halfSize;
+		pxIndex.y = 0;
+
+		TArray<Intersection> intersectionList;
+		TArray<RasterSegment> rasterSegments;
+		rasterSegments.reserve(segments.size());
+		for (CurveSegment const& segment : segments)
+		{
+			RasterSegment rasterSegment;
+			rasterSegment.segment = &segment;
+			rasterSegment.minY = Math::Min(segment.start.y, Math::Min(segment.control.y, segment.end.y));
+			rasterSegment.maxY = Math::Max(segment.start.y, Math::Max(segment.control.y, segment.end.y));
+			rasterSegments.push_back(rasterSegment);
+		}
+
+
+		std::sort(rasterSegments.begin(), rasterSegments.end(),
+			[](auto const& lhs, auto const& rhs)
+		{
+			return lhs.minY < rhs.minY;
+		}
+		);
+
+		int indexRasterCheck = 0;
+		TArray< RasterSegment* > activeSegments;
+		activeSegments.reserve(rasterSegments.size());
+
+		auto TestCount = [](Intersection& intersection, float yValue)
+		{
+			if (yValue < intersection.minY || yValue > intersection.maxY)
+				return 0;
+
+			float outT[2];
+			if (!intersection.segment->findIntersection(yValue, outT))
+				return 0;
+
+			int index = (Math::Abs(outT[0] - intersection.t) <= Math::Abs(outT[1] - intersection.t)) ? 0 : 1;
+			int count = 0;
+			if (0 <= outT[index] && outT[index] <= 1.0f)
+			{
+				++count;
+			}
+			return count;
+		};
+
+		while (curPos.y < settings.bound.max.y + halfSize)
+		{
+			for (int i = 0; i < activeSegments.size(); )
+			{
+				if (activeSegments[i]->maxY < curPos.y)
+				{
+					activeSegments.removeIndexSwap(i);
+				}
+				else
+				{
+					++i;
+				}
+			}
+			while (indexRasterCheck < rasterSegments.size())
+			{
+				if (rasterSegments[indexRasterCheck].minY > curPos.y)
+					break;
+
+				activeSegments.push_back(&rasterSegments[indexRasterCheck]);
+				++indexRasterCheck;
+			}
+
+
+			intersectionList.clear();
+
+			for (RasterSegment const* rasterSegment : activeSegments)
+			{
+				CurveSegment const& segment = *rasterSegment->segment;
+				auto AddPosConditional = [&](float t)
+				{
+					if (0 <= t && t <= 1.0f)
+					{
+						intersectionList.push_back({ &segment, rasterSegment->minY, rasterSegment->maxY, segment.get(t).x, t });
+					}
+				};
+
+				float outT[2];
+				int num = segment.findIntersection(curPos.y, outT);
+				if (num)
+				{
+					AddPosConditional(outT[0]);
+					if (Math::Abs(outT[0] - outT[1]) > 1e-5)
+					{
+						AddPosConditional(outT[1]);
+					}
+				}
+			}
+
+			std::sort(intersectionList.begin(), intersectionList.end(),
+				[](auto const& lhs, auto const& rhs)
+			{
+				return lhs.posX < rhs.posX;
+			}
+			);
+
+			{
+				int index = 0;
+				while (index < intersectionList.size())
+				{
+					int nextIndex = index + 1;
+					if (nextIndex >= intersectionList.size())
+						break;
+
+					if (Math::Abs(intersectionList[index].posX - intersectionList[nextIndex].posX) < 1e-4)
+					{
+						auto RunTest = [&](float yValue)
+						{
+							int countA = TestCount(intersectionList[index], yValue);
+							int countB = TestCount(intersectionList[nextIndex], yValue);
+							return countA == 0 && countB == 0;
+						};
+						float offset = 0.1 * settings.size;
+						if (RunTest(curPos.y + offset) || RunTest(curPos.y - offset))
+						{
+							++index;
+						}
+						else
+						{
+							intersectionList.removeIndex(nextIndex);
+						}
+					}
+					else
+					{
+						++index;
+					}
+				}
+			}
+
+			if (!intersectionList.empty())
+			{
+				int curIndex = 0;
+
+				curPos.x = settings.bound.min.x + halfSize;
+				pxIndex.x = 0;
+
+				bool bInside = false;
+				while (curPos.x < settings.bound.max.x + halfSize)
+				{
+					while (curIndex < intersectionList.size())
+					{
+						if (bInside)
+						{
+							if (curPos.x <= intersectionList[curIndex].posX)
+								break;
+						}
+						else
+						{
+							if (curPos.x < intersectionList[curIndex].posX)
+								break;
+						}
+
+						++curIndex;
+						bInside = !bInside;
+					}
+
+					if (bInside)
+					{
+						func(pxIndex, curPos);
+					}
+
+
+					curPos.x += settings.size;
+					pxIndex.x += 1;
+				}
+			}
+
+			curPos.y += settings.size;
+			pxIndex.y += 1;
+		}
+	}
+
+	class TrueTypeCharDataProvider : public ICustomCharDataProvider
+	{
+	public:
+		TrueTypeCharDataProvider() = default;
+
+		TrueTypeCharDataProvider(HashString name, TrueTypeFileLoader& loader, int pixelSize, int sampleFactor = 4)
+		{
+			initialize(name, loader, pixelSize, sampleFactor);
+		}
+
+		bool initialize(HashString name, TrueTypeFileLoader& loader, int pixelSize, int sampleFactor = 4)
+		{
+			if (pixelSize <= 0 || sampleFactor <= 0)
+				return false;
+
+			mLoader = &loader;
+			mPixelSize = pixelSize;
+			mSampleFactor = sampleFactor;
+			TrueTypeFileLoader::FontMetrics const& metrics = mLoader->getFontMetrics();
+			if (metrics.unitsPerEm == 0)
+			{
+				mLoader = nullptr;
+				return false;
+			}
+
+			mScale = float(pixelSize) / metrics.unitsPerEm;
+			mFontHeight = Math::CeilToInt(float(metrics.ascender - metrics.descender + metrics.lineGap) * mScale);
+			mBaseline = float(metrics.ascender) * mScale;
+			return mFontHeight > 0;
+		}
+
+		bool getCharData(uint32 charWord, CharImageData& outData) override
+		{
+			if (!mLoader)
+				return false;
+
+			TrueTypeFileLoader::GlyphData glyph;
+			if (!mLoader->loadGlyph(charWord, glyph))
+				return false;
+
+			int segmentCount = glyph.segments.size();
+			for (int i = 0; i < segmentCount; ++i)
+			{
+				CurveSegment other;
+				if (glyph.segments[i].trySplitYMonotonic(other))
+				{
+					glyph.segments.push_back(other);
+				}
+			}
+
+			setupDesc(glyph, outData);
+			outData.imageWidth = Math::Max(1, outData.width);
+			outData.imageHeight = Math::Max(1, outData.height);
+			outData.pixelSize = 4;
+			outData.imageData.resize(outData.imageWidth * outData.imageHeight * outData.pixelSize, 0);
+
+			if (!glyph.bHasOutline || outData.width <= 0 || outData.height <= 0)
+				return true;
+
+			float sampleSize = 1.0f / (mSampleFactor * mScale);
+			float sampleWeight = 255.0f / float(mSampleFactor * mSampleFactor);
+			RasterizeSettings settings;
+			settings.size = sampleSize;
+			settings.bound = glyph.bound;
+
+			Rasterize(settings, glyph.segments, [&](Vec2i const& sampleIndex, Vector2 const& pos)
+			{
+				Vec2i pixelIndex;
+				pixelIndex.x = sampleIndex.x / mSampleFactor;
+				pixelIndex.y = outData.imageHeight - 1 - sampleIndex.y / mSampleFactor;
+				if (pixelIndex.x < 0 || pixelIndex.y < 0 || pixelIndex.x >= outData.imageWidth || pixelIndex.y >= outData.imageHeight)
+					return;
+
+				int imageIndex = (pixelIndex.x + pixelIndex.y * outData.imageWidth) * outData.pixelSize;
+				uint8 alpha = uint8(Math::Min(255.0f, float(outData.imageData[imageIndex + 3]) + sampleWeight));
+				outData.imageData[imageIndex + 0] = 255;
+				outData.imageData[imageIndex + 1] = 255;
+				outData.imageData[imageIndex + 2] = 255;
+				outData.imageData[imageIndex + 3] = alpha;
+			});
+
+			return true;
+		}
+
+		bool getCharDesc(uint32 charWord, CharImageDesc& outDesc) override
+		{
+			if (!mLoader)
+				return false;
+
+			TrueTypeFileLoader::GlyphData glyph;
+			if (!mLoader->loadGlyph(charWord, glyph))
+				return false;
+
+			setupDesc(glyph, outDesc);
+			return true;
+		}
+
+		int getFontHeight() const override
+		{
+			return mFontHeight;
+		}
+
+		void getKerningPairs(std::unordered_map< uint32, float >& outKerningMap) const override
+		{
+			outKerningMap.clear();
+			if (!mLoader)
+				return;
+
+			for (TrueTypeFileLoader::KerningPair const& pair : mLoader->getKerningPairs())
+			{
+				uint32 key = Math::PairingFunction(pair.firstCodepoint, pair.secondCodepoint);
+				outKerningMap[key] = float(pair.value) * mScale;
+			}
+		}
+
+	private:
+
+		void setupDesc(TrueTypeFileLoader::GlyphData const& glyph, CharImageDesc& outDesc) const
+		{
+			if (glyph.bHasOutline)
+			{
+				outDesc.width = Math::Max(1, Math::CeilToInt((glyph.bound.max.x - glyph.bound.min.x) * mScale));
+				outDesc.height = Math::Max(1, Math::CeilToInt((glyph.bound.max.y - glyph.bound.min.y) * mScale));
+				outDesc.kerning = glyph.bound.min.x * mScale;
+				outDesc.offsetX = 0;
+				outDesc.offsetY = mBaseline - glyph.bound.max.y * mScale;
+				outDesc.advance = (glyph.advanceWidth - glyph.bound.min.x) * mScale;
+			}
+			else
+			{
+				outDesc.width = 1;
+				outDesc.height = 1;
+				outDesc.kerning = 0;
+				outDesc.offsetX = 0;
+				outDesc.offsetY = 0;
+				outDesc.advance = glyph.advanceWidth * mScale;
+			}
+		}
+
+		HashString getName(){ return mName; }
+
+		TrueTypeFileLoader* mLoader = nullptr;
+		HashString mName;
+		float mScale = 1;
+		float mBaseline = 0;
+		int mPixelSize = 0;
+		int mFontHeight = 0;
+		int mSampleFactor = 4;
 	};
 
 
@@ -932,6 +1521,10 @@ namespace VGR
 			if (metrics.unitsPerEm == 0)
 				return false;
 
+
+			provider.initialize("arial-ttf", mTTFLoader, 48, 4);
+			drawer.initialize(provider);
+
 			auto frame = WidgetUtility::CreateDevFrame();
 			FWidgetProperty::Bind(frame->addSlider("Size") , mSettings.size , 1 , 20, [&](float value)
 			{
@@ -941,6 +1534,12 @@ namespace VGR
 			restart();
 			return true;
 		}
+
+
+		TrueTypeCharDataProvider provider;
+
+		FontDrawer drawer;
+
 
 		void onEnd() override
 		{
@@ -1037,27 +1636,28 @@ namespace VGR
 
 		bool loadFontGlyph()
 		{
-			TrueTypeFileLoader::GlyphData glyph;
-			TrueTypeFileLoader::FontMetrics const& metrics = mTTFLoader.getFontMetrics();
-			if (!mTTFLoader.loadGlyph('R', glyph) || metrics.unitsPerEm == 0)
+			auto glyph = getGlyhData('R');
+			if ( glyph == nullptr)
 				return false;
 
+			TrueTypeFileLoader::FontMetrics const& metrics = mTTFLoader.getFontMetrics();
 			float scale = 220.0f / metrics.unitsPerEm;
 			Vector2 offset = Vector2(100, 320);
 
-			mSegments.reserve(glyph.segments.size());
-			appendGlyphSegments(glyph, offset, scale, mSegments);
+			mSegments.reserve(glyph->segments.size());
+			appendGlyphSegments(*glyph, offset, scale, mSegments);
 
 			if (mSegments.empty())
 				return false;
 
 			Math::TAABBox< Vector2 > bound;
-			bound.min = Vector2(offset.x + scale * glyph.bound.min.x, offset.y - scale * glyph.bound.max.y);
-			bound.max = Vector2(offset.x + scale * glyph.bound.max.x, offset.y - scale * glyph.bound.min.y);
+			bound.min = offset + scale * Vector2(glyph->bound.min.x, -glyph->bound.max.y);
+			bound.max = offset + scale * Vector2(glyph->bound.max.x, -glyph->bound.min.y);
 
-			Vector2 padding(20, 20);
-			mSettings.bound.min = bound.min - padding;
-			mSettings.bound.max = bound.max + padding;
+			mSettings.bound = bound;
+			//Vector2 padding(20, 20);
+			//mSettings.bound.min -= padding;
+			//mSettings.bound.max += padding;
 			return true;
 		}
 
@@ -1071,6 +1671,16 @@ namespace VGR
 			if (!mTTFLoader.loadGlyph(c, glyph))
 				return nullptr;
 
+
+			int segmentCount = glyph.segments.size();
+			for (int i = 0; i < segmentCount; ++i)
+			{
+				CurveSegment other;
+				if (glyph.segments[i].trySplitYMonotonic(other))
+				{
+					glyph.segments.push_back(other);
+				}
+			}
 			auto& pair = mGlyphMap.emplace(uint32(c), std::move(glyph));
 			return &pair.first->second;
 		}
@@ -1104,6 +1714,10 @@ namespace VGR
 
 		std::unordered_map< uint32, TrueTypeFileLoader::GlyphData > mGlyphMap;
 		TrueTypeFileLoader mTTFLoader;
+		RHITexture2DRef mFontTexture;
+
+
+
 
 		void onUpdate(GameTimeSpan deltaTime) override
 		{
@@ -1150,6 +1764,19 @@ namespace VGR
 			drawText(g, 72, text);
 			g.popXForm();
 
+
+			RenderUtility::SetBrush(g, EColor::White);
+			g.setBlendState(ESimpleBlendMode::Translucent);
+			g.setBlendAlpha(1.0f);
+			g.drawTexture(*mFontTexture, Vector2(300,150), Vector2(200,200));
+
+
+
+			g.setFont(drawer);
+			g.drawText(Vector2(0, 400), L"ABCDEFG@");
+
+
+
 			g.endRender();
 		}
 
@@ -1157,148 +1784,51 @@ namespace VGR
 		TArray< Vector2 > mDebugPosList;
 		TArray< Vector2 > mRasterDebugPosList;
 		TArray< CurveSegment > mTextSegments;
-		struct RasterizeSettings
-		{
-			float size = 20;
-			Math::TAABBox< Vector2 > bound;
-		};
 
 		RasterizeSettings mSettings;
 
-		struct Intersection
-		{
-			CurveSegment* segment;
-			float posX;
-			float t;
-		};
-
-		//TArray< TArray<Intersection> > mDebug;
-
 		void rasterize(RasterizeSettings const& settings)
 		{
-			//mDebug.clear();
 			mRasterDebugPosList.clear();
-
-			float curY = settings.bound.min.y + 0.5 * settings.size;
-			TArray<Intersection> intersectionList;
-
-			auto TestCount = [](Intersection& intersection, float yValue)
+			Rasterize(settings, mSegments, [this](Vec2i const& pixelIndex, Vector2 const& pos)
 			{
-				float outT[2];
-				if (!intersection.segment->findIntersection(yValue, outT))
-					return 0;
+				mRasterDebugPosList.push_back(pos);
+			});
 
-				int index = (Math::Abs(outT[0] - intersection.t) <= Math::Abs(outT[1] - intersection.t)) ? 0 : 1;
-				int count = 0;
-				if (0 <= outT[index] && outT[index] <= 1.0f)
-				{
-					++count;
-				}
-				return count;
-			};
 
-			while (curY < settings.bound.max.y)
+			Vec2i texSize;
+			Vector2 boundSize = settings.bound.getSize();
+			texSize.x = Math::CeilToInt(boundSize.x / settings.size);
+			texSize.y = Math::CeilToInt(boundSize.y / settings.size);
+
+
+			TArray< Color4ub > fontData;
+			fontData.resize(texSize.x * texSize.y, Color4ub(0,0,0,0));
+			RasterizeSettings texSettings = settings;
+			int const sampleFactor = 4;
+			texSettings.size /= sampleFactor;
+
 			{
-				intersectionList.clear();
-
-				for (auto& segment : mSegments)
+				TIME_SCOPE("Rasterize");
+				Rasterize(texSettings, mSegments, [&](Vec2i const& pixelIndex, Vector2 const& pos)
 				{
-					auto AddPosConditional = [&](float t)
-					{
-						if (0 <= t && t <= 1.0f)
-						{
-							intersectionList.push_back({&segment, segment.get(t).x, t});
-						}
-					};
+					Vec2i texIndex = pixelIndex / sampleFactor;
 
-					float outT[2];
-					if (segment.findIntersection(curY, outT))
-					{
-						AddPosConditional(outT[0]);
-						if (Math::Abs(outT[0] - outT[1]) > 1e-5)
-						{
-							AddPosConditional(outT[1]);
-						}
-					}
-				}
-
-				std::sort(intersectionList.begin(), intersectionList.end(), 
-					[](auto const& lhs, auto const& rhs)
-					{
-						return lhs.posX < rhs.posX;
-					}
-				);
-
-				{
-					int index = 0;
-					while (index < intersectionList.size())
-					{
-						int nextIndex = index + 1;
-						if (nextIndex >= intersectionList.size())
-							break;
-
-						if (Math::Abs(intersectionList[index].posX - intersectionList[nextIndex].posX) < 1e-4 )
-						{
-							auto RunTest = [&](float yValue)
-							{
-								int countA = TestCount(intersectionList[index], yValue);
-								int countB = TestCount(intersectionList[nextIndex], yValue);
-								return countA == 0 && countB == 0;
-							};
-							float offset = 0.1 * settings.size;
-							if (RunTest(curY + offset) || RunTest(curY - offset))
-							{
-								++index;
-							}
-							else
-							{
-								intersectionList.removeIndex(nextIndex);
-							}
-						}
-						else
-						{
-							++index;
-						}
-					}
-				}
-
-				if ( !intersectionList.empty() )
-				{
-					int curIndex = 0;
-					float curX = settings.bound.min.x + 0.5 * settings.size;
-					bool bInside = false;
-					while (curX < settings.bound.max.x)
-					{
-						while (intersectionList.isValidIndex(curIndex))
-						{
-							if (bInside)
-							{
-								if (curX <= intersectionList[curIndex].posX)
-									break;
-							}
-							else
-							{
-								if (curX < intersectionList[curIndex].posX)
-									break;
-							}
-
-							++curIndex;
-							bInside = !bInside;
-						}
-
-						if (bInside)
-						{
-							mRasterDebugPosList.push_back(Vector2(curX, curY));
-						}
-						curX += settings.size;
-					}
-
-					//mDebug.push_back(std::move(intersectionList));
-				}
-
-				curY += settings.size;
+					fontData[texIndex.x + texIndex.y * texSize.x].r += 1;
+				});
 			}
+
+			float factor = 1.0f / (sampleFactor * sampleFactor);
+			for (auto& c : fontData)
+			{
+				uint8 gray = uint8(255.0f * (float(c.r) * factor));
+				c = Color4ub(gray, gray, gray, gray);
+			}
+
+			mFontTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, texSize.x, texSize.y), fontData.data());
 		}
+
+
 
 		MsgReply onMouse(MouseMsg const& msg) override
 		{

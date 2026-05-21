@@ -108,10 +108,10 @@ public:
 
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if ( !( bPrevSpace || bStartChar ) )
+			if (!(bPrevSpace || bStartChar))
 				curPos.x += data.kerning;
 
-			addQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
+			addQuad(curPos + Vector2(data.offsetX, data.offsetY), Vector2(data.width, data.height), data.uvMin, data.uvMax);
 			curPos.x += data.advance;
 			bStartChar = false;
 			if( c == iswspace(c) )

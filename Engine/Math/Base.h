@@ -59,17 +59,17 @@ namespace Math
 	FORCEINLINE float Pow(float base, float exp) { return ::pow(base, exp); }
 	FORCEINLINE float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE T Abs(T val) { return (val >= 0) ? val : -val; }
-	template< class T >
+	template< typename T >
 	FORCEINLINE T Square(T val) { return val * val; }
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE T Min(T v1, T v2) { return (v1 < v2) ? v1 : v2; }
-	template< class T >
+	template< typename T >
 	FORCEINLINE T Max(T v1, T v2) { return (v1 > v2) ? v1 : v2; }
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE T Clamp(T val, T minVal, T maxVal)
 	{
 		if( val < minVal )
@@ -79,20 +79,20 @@ namespace Math
 		return val;
 	}
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE T LinearLerp(T const& p0, T const& p1, float alpha)
 	{
 		return (1 - alpha) * p0 + alpha * p1;
 	}
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE T BezierLerp(T const& p0, T const& p1, T const& p2, float alpha)
 	{
 		float frac = 1 - alpha;
 		return (frac * frac) * p0 + (2 * frac * alpha) * p1 + (alpha * alpha) * p2;
 	}
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE T BezierLerp(T const& p0, T const& p1, T const& p2, T const& p3, float alpha)
 	{
 		float frac = 1 - alpha;
@@ -101,7 +101,7 @@ namespace Math
 		return (frac * frac2) * p0 + (3 * frac2 * alpha) * p1 + (3 * frac * alpha2) * p2 + (alpha * alpha2) * p3;
 	}
 
-	template< class T >
+	template< typename T >
 	FORCEINLINE bool Barycentric(T const& p, T const& a, T const& b, T const& c, float coord[])
 	{
 		T v0 = b - a, v1 = c - a, v2 = p - a;

@@ -23,6 +23,8 @@ namespace Render
 		int    width;
 		int    height;
 		float  kerning;
+		float  offsetX;
+		float  offsetY;
 		float  advance;
 	};
 
@@ -85,13 +87,19 @@ namespace Render
 	class ICharDataProvider
 	{
 	public:
-		~ICharDataProvider() {}
+		virtual ~ICharDataProvider() = default;
 		virtual bool getCharData(uint32 charWord, CharImageData& outData) = 0;
 		virtual bool getCharDesc(uint32 charWord, CharImageDesc& outDesc) = 0;
 		virtual int  getFontHeight() const = 0;
 		virtual void getKerningPairs(std::unordered_map< uint32 , float >& outKerningMap ) const = 0;
 
 		static ICharDataProvider* Create(FontFaceInfo const& fontFace);
+	};
+
+	class ICustomCharDataProvider : public ICharDataProvider
+	{
+	public:
+		virtual HashString getName() = 0;
 	};
 
 
@@ -104,6 +112,8 @@ namespace Render
 			int     width;
 			int     height;
 			float   kerning;
+			float   offsetX;
+			float   offsetY;
 			float   advance;
 		};
 
@@ -115,6 +125,8 @@ namespace Render
 		};
 
 		bool initialize(FontFaceInfo const& font);
+		bool initialize(ICustomCharDataProvider& provider);
+
 		void clearRHIResource();
 		RHITexture2D& getTexture()
 		{
@@ -157,7 +169,8 @@ namespace Render
 		CORE_API bool initialize();
 		CORE_API void finalize();
 		CORE_API CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
-
+		CORE_API CharDataSet* getCharDataSet(ICustomCharDataProvider& provider);
+		CORE_API void removeCharDataSet(ICustomCharDataProvider& provider);
 		void restoreRHI() override;
 		void releaseRHI() override;
 
@@ -185,6 +198,7 @@ namespace Render
 		~FontDrawer();
 
 		bool initialize(FontFaceInfo const& fontFace);
+		bool initialize(ICustomCharDataProvider& provider);
 		bool isValid() const { return !!mCharDataSet; }
 		void cleanup();
 

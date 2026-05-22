@@ -194,6 +194,9 @@
     <ClCompile Include="FX\ParticleRenderer.cpp">
       <Filter>FX</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\TrueType.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RHI\RHITraceScope.h">
@@ -409,6 +412,9 @@
       <Filter>FX</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\DeferredReleaseQueue.h" />
+    <ClInclude Include="Renderer\TrueType.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

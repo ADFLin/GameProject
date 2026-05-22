@@ -1,4 +1,4 @@
-#include "TinyGamePCH.h"
+﻿#include "TinyGamePCH.h"
 #include "RenderUtility.h"
 
 #include "GameGlobal.h"
@@ -18,7 +18,7 @@ namespace
 	HFONT  hFont[FONT_NUM];
 	FontDrawer FontRHI[FONT_NUM];
 	Color3ub gColorMap[3][EColor::COUNT];
-	TCHAR const* FontName = "�رd������";
+	TCHAR const* FontName = "標楷體";
 }
 
 static HBRUSH GetColorBrush( int color , int type = COLOR_NORMAL )

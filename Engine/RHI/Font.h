@@ -106,6 +106,7 @@ namespace Render
 	class CharDataSet
 	{
 	public:
+		~CharDataSet();
 
 		struct CharDesc
 		{
@@ -151,10 +152,11 @@ namespace Render
 			return true;
 		}
 
-		int mFontHeight;
+		int mFontHeight = 0;
 		std::unordered_map< uint32, float > mKerningPairMap;
-		ICharDataProvider* mProvider;
-		TextureAtlas* mUsedTextAtlas;
+		ICharDataProvider* mProvider = nullptr;
+		bool bOwnProvider = false;
+		TextureAtlas* mUsedTextAtlas = nullptr;
 		std::unordered_map< uint32, CharData > mCharMap;
 		RWLock mLock;
 

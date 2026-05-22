@@ -13,7 +13,7 @@
 #include <cmath>
 #include <vector>
 
-namespace ImageUpscaale
+namespace ImageUpscale
 {
 	using namespace Render;
 
@@ -1792,5 +1792,5 @@ namespace ImageUpscaale
 		bool mbNeedReadback = false;
 	};
 
-	REGISTER_STAGE_ENTRY("Image Upscaale", Stage, EExecGroup::FeatureDev, "Render|RHI");
+	REGISTER_STAGE_ENTRY("Image Upscale", Stage, EExecGroup::FeatureDev, "Render|RHI");
 }

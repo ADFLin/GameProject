@@ -280,7 +280,7 @@
     <ClCompile Include="TestMisc\Stage\CollisionBenchmarkStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="TestMisc\Stage\ImageUpscaaleStage.cpp">
+    <ClCompile Include="TestMisc\Stage\ImageUpscaleStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>

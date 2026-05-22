@@ -10,10 +10,14 @@
 
 #include "FileSystem.h"
 #include "Core/ScopeGuard.h"
-#include <cwchar>
-#include <unordered_map>
 #include "Rect.h"
 #include "ProfileSystem.h"
+#include "Renderer/TrueType.h"
+#include "Core/FNV1a.h"
+
+#include <cwchar>
+#include <memory>
+#include <unordered_map>
 
 template< class FormCharT, class ToCharT >
 struct FCharConv
@@ -41,7 +45,12 @@ namespace Render
 	class GDIFontCharDataProvider : public ICharDataProvider
 	{
 	public:
-		bool initialize(FontFaceInfo const& fontFace);
+		~GDIFontCharDataProvider()
+		{
+			finalize();
+		}
+
+		bool initialize(FontFaceInfo const& fontFace, HFONT inFont, bool bTakeFontOwnership);
 		void finalize();
 
 		static void CopyImage(uint8* dest, int w, int h, int pixeSize, uint8* src, int pixelStride)
@@ -75,19 +84,22 @@ namespace Render
 		BitmapDC textureDC;
 		uint8*   pDataTexture = nullptr;
 		HFONT    hFont = NULL;
-		HDC      hDC = NULL;
+		bool     bOwnFont = false;
 
 		void getKerningPairs(std::unordered_map<uint32, float>& outKerningMap) const override;
 
 	};
 
-	bool GDIFontCharDataProvider::initialize( FontFaceInfo const& fontFace)
+	bool GDIFontCharDataProvider::initialize(FontFaceInfo const& fontFace, HFONT inFont, bool bTakeFontOwnership)
 	{
-		hDC = ::GetDC(NULL);
+		HDC hDC = ::GetDC(NULL);
+		ON_SCOPE_EXIT
+		{
+			::ReleaseDC(NULL, hDC);
+		};
 
-		hFont = FWinGDI::CreateFont(hDC, fontFace.name.c_str(), fontFace.size, fontFace.bBold, false, fontFace.bUnderLine);
-		if( hFont == NULL )
-			return false;
+		hFont = inFont;
+		bOwnFont = bTakeFontOwnership;
 
 		TEXTMETRIC tm;
 		HGDIOBJ hOldFont = ::SelectObject(hDC, hFont);
@@ -121,11 +133,12 @@ namespace Render
 	void GDIFontCharDataProvider::finalize()
 	{
 		textureDC.release();
-		if (hDC)
+		if (bOwnFont && hFont)
 		{
-			::ReleaseDC(NULL, hDC);
-			hDC = NULL;
+			::DeleteObject(hFont);
 		}
+		hFont = NULL;
+		bOwnFont = false;
 	}
 
 	bool GDIFontCharDataProvider::renderGlyph(wchar_t charW, RenderGlyphResult& outResult)
@@ -167,7 +180,6 @@ namespace Render
 
 	bool GDIFontCharDataProvider::getCharData(uint32 charWord, CharImageData& outData)
 	{
-		
 		wchar_t charW = charWord;
 #if 0
 		WORD index = 0;
@@ -250,14 +262,208 @@ namespace Render
 		}
 	}
 
+	struct TrueTypeLoaderKey
+	{
+		uint64 hash = 0;
+		size_t size = 0;
+
+		bool operator == (TrueTypeLoaderKey const& rhs) const
+		{
+			return hash == rhs.hash && size == rhs.size;
+		}
+	};
+
+	struct TrueTypeLoaderKeyHasher
+	{
+		size_t operator()(TrueTypeLoaderKey const& key) const
+		{
+			return size_t(key.hash ^ (key.hash >> 32) ^ key.size);
+		}
+	};
+
+	class TrueTypeLoaderManager
+	{
+	public:
+		using LoaderPtr = std::shared_ptr< TrueTypeFileLoader >;
+
+		static TrueTypeLoaderManager& Get()
+		{
+			static TrueTypeLoaderManager sInstance;
+			return sInstance;
+		}
+
+		LoaderPtr getOrCreate(TArrayView< uint8 const > fontData)
+		{
+			Mutex::Locker locker(mMutex);
+			TrueTypeLoaderKey key{ FNV1a::MakeHash<uint64>( fontData.data(), fontData.size()), fontData.size() };
+			auto iter = mLoaders.find(key);
+			if (iter != mLoaders.end())
+			{
+				LoaderPtr loader = iter->second.lock();
+				if (loader)
+					return loader;
+
+				mLoaders.erase(iter);
+			}
+
+			LoaderPtr loader = std::make_shared< TrueTypeFileLoader >();
+			if (!loader->loadFromBuffer(fontData))
+				return nullptr;
+
+			mLoaders.emplace(key, loader);
+			cleanupExpiredLoaders();
+			return loader;
+		}
+
+	private:
+		void cleanupExpiredLoaders()
+		{
+			for (auto iter = mLoaders.begin(); iter != mLoaders.end(); )
+			{
+				if (iter->second.expired())
+				{
+					iter = mLoaders.erase(iter);
+				}
+				else
+				{
+					++iter;
+				}
+			}
+		}
+
+		std::unordered_map< TrueTypeLoaderKey, std::weak_ptr< TrueTypeFileLoader >, TrueTypeLoaderKeyHasher > mLoaders;
+		Mutex mMutex;
+	};
+
+	class TrueTypeWithGDIFallbackCharDataProvider : public ICharDataProvider
+	{
+	public:
+		~TrueTypeWithGDIFallbackCharDataProvider()
+		{
+			mGDIProvider.finalize();
+			if (mFont)
+			{
+				::DeleteObject(mFont);
+				mFont = NULL;
+			}
+		}
+
+		bool initialize(FontFaceInfo const& fontFace, HFONT font, TArrayView< uint8 const > fontData, int pixelSize, int fontHeight, int baseline)
+		{
+			mFont = font;
+			mLoader = TrueTypeLoaderManager::Get().getOrCreate(fontData);
+			if (!mLoader)
+				return false;
+
+			if (!mTrueTypeProvider.initialize(fontFace.name, *mLoader.get(), pixelSize, fontHeight, baseline))
+				return false;
+
+			return mGDIProvider.initialize(fontFace, mFont, false);
+		}
+
+		bool getCharData(uint32 charWord, CharImageData& outData) override
+		{
+			if (mTrueTypeProvider.getCharData(charWord, outData))
+				return true;
+
+			return mGDIProvider.getCharData(charWord, outData);
+		}
+
+		bool getCharDesc(uint32 charWord, CharImageDesc& outDesc) override
+		{
+			if (mTrueTypeProvider.getCharDesc(charWord, outDesc))
+				return true;
+
+			return mGDIProvider.getCharDesc(charWord, outDesc);
+		}
+
+		int getFontHeight() const override
+		{
+			return mGDIProvider.getFontHeight();
+		}
+
+		void getKerningPairs(std::unordered_map< uint32, float >& outKerningMap) const override
+		{
+			mTrueTypeProvider.getKerningPairs(outKerningMap);
+			std::unordered_map< uint32, float > fallbackKerningMap;
+			mGDIProvider.getKerningPairs(fallbackKerningMap);
+			for (auto const& pair : fallbackKerningMap)
+			{
+				outKerningMap.emplace(pair.first, pair.second);
+			}
+		}
+
+	private:
+		HFONT mFont = NULL;
+		TrueTypeLoaderManager::LoaderPtr mLoader;
+		TrueTypeCharDataProvider mTrueTypeProvider;
+		GDIFontCharDataProvider mGDIProvider;
+	};
+
+	bool IsSupportedByTrueTypeLoader(HDC hdc)
+	{
+		DWORD size = GetFontData(hdc, 0, 0, nullptr, 0);
+		if (size == GDI_ERROR || size < 4)
+			return false;
+
+		uint8 header[4];
+		if (GetFontData(hdc, 0, 0, header, 4) == GDI_ERROR)
+			return false;
+
+		uint32 tag =
+			(uint32(header[0]) << 24) |
+			(uint32(header[1]) << 16) |
+			(uint32(header[2]) << 8) |
+			uint32(header[3]);
+
+		return tag == 0x00010000 || tag == MAKE_MAGIC_ID('t', 'r', 'u', 'e');
+	}
+
 #endif //SYS_PLATFORM_WIN
 
 
 	ICharDataProvider* ICharDataProvider::Create(FontFaceInfo const& fontFace)
 	{
 #if SYS_PLATFORM_WIN
+		HDC hDC = ::GetDC(NULL);
+		ON_SCOPE_EXIT
+		{
+			::ReleaseDC(NULL, hDC);
+		};
+
+		HFONT hFont = FWinGDI::CreateFont(hDC, fontFace.name.c_str(), fontFace.size, fontFace.bBold, false, fontFace.bUnderLine);
+		if (hFont == NULL)
+		{
+			return nullptr;
+		}
+
+		HGDIOBJ hOldFont = ::SelectObject(hDC, hFont);
+		int pixelSize = MulDiv(fontFace.size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
+		TEXTMETRIC tm;
+		::GetTextMetrics(hDC, &tm);
+
+		if (IsSupportedByTrueTypeLoader(hDC))
+		{
+			DWORD size = GetFontData(hDC, 0, 0, nullptr, 0);
+			TArray<uint8> data;
+			data.resize(size);
+			GetFontData(hDC, 0, 0, data.data(), size);
+
+			::SelectObject(hDC, hOldFont);
+			TrueTypeWithGDIFallbackCharDataProvider* result = new TrueTypeWithGDIFallbackCharDataProvider;
+			if (result->initialize(fontFace, hFont, data, pixelSize, tm.tmHeight, tm.tmAscent))
+			{
+				return result;
+			}
+
+			delete result;
+			hOldFont = ::SelectObject(hDC, hFont);
+		}
+
+		::SelectObject(hDC, hOldFont);
+
 		GDIFontCharDataProvider* result = new GDIFontCharDataProvider;
-		if( !result->initialize(fontFace) )
+		if( !result->initialize(fontFace, hFont, true) )
 		{
 			delete result;
 			return nullptr;
@@ -380,12 +586,24 @@ namespace Render
 
 #endif //CORE_SHARE_CODE
 
+	CharDataSet::~CharDataSet()
+	{
+		clearRHIResource();
+		if (bOwnProvider)
+		{
+			delete mProvider;
+		}
+		mProvider = nullptr;
+		bOwnProvider = false;
+	}
+
 	bool CharDataSet::initialize(FontFaceInfo const& font)
 	{
 		mProvider = ICharDataProvider::Create(font);
 		if( mProvider == nullptr )
 			return false;
 
+		bOwnProvider = true;
 		mFontHeight = mProvider->getFontHeight();
 		mProvider->getKerningPairs(mKerningPairMap);
 		return true;
@@ -394,6 +612,7 @@ namespace Render
 	bool CharDataSet::initialize(ICustomCharDataProvider& provider)
 	{
 		mProvider = &provider;
+		bOwnProvider = false;
 		mFontHeight = mProvider->getFontHeight();
 		mProvider->getKerningPairs(mKerningPairMap);
 		return true;

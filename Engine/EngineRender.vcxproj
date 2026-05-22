@@ -50,6 +50,7 @@
     <ClCompile Include="Renderer\RenderThread.cpp" />
     <ClCompile Include="Renderer\RenderTransform2D.cpp" />
     <ClCompile Include="Renderer\SceneLighting.cpp" />
+    <ClCompile Include="Renderer\TrueType.cpp" />
     <ClCompile Include="Renderer\VolumetricLighting.cpp" />
     <ClCompile Include="Renderer\SceneView.cpp" />
     <ClCompile Include="Renderer\ShadowDepthRendering.cpp" />
@@ -113,6 +114,7 @@
     <ClInclude Include="Renderer\RenderTransform2D.h" />
     <ClInclude Include="Renderer\SceneDebug.h" />
     <ClInclude Include="Renderer\SceneLighting.h" />
+    <ClInclude Include="Renderer\TrueType.h" />
     <ClInclude Include="Renderer\VolumetricLighting.h" />
     <ClInclude Include="Renderer\SceneView.h" />
     <ClInclude Include="Renderer\ShadowDepthRendering.h" />

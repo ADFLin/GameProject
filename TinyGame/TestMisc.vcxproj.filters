@@ -195,6 +195,9 @@
     <ClCompile Include="Laser2D\LATestStage.cpp">
       <Filter>GameLaser2D</Filter>
     </ClCompile>
+    <ClCompile Include="LordMonarch\LmStage.cpp">
+      <Filter>GameLordMonarch</Filter>
+    </ClCompile>
     <ClCompile Include="Minesweeper\GameController_Windows7.cpp">
       <Filter>GameMinesweeper</Filter>
     </ClCompile>
@@ -395,6 +398,9 @@
       <Filter>GameMario</Filter>
     </ClInclude>
     <ClInclude Include="LordMonarch\LmLevel.h">
+      <Filter>GameLordMonarch</Filter>
+    </ClInclude>
+    <ClInclude Include="LordMonarch\LmStage.h">
       <Filter>GameLordMonarch</Filter>
     </ClInclude>
     <ClInclude Include="MonumentValley\MVCommon.h">

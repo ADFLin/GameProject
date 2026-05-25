@@ -90,6 +90,200 @@ namespace Render
 
 	};
 
+	class GDITrueTypeLoader : public ITrueTypeLoader
+	{
+	public:
+		bool initialize(HFONT inFont)
+		{
+			hFont = inFont;
+			HDC hDC = ::GetDC(NULL);
+			ON_SCOPE_EXIT
+			{
+				::ReleaseDC(NULL, hDC);
+			};
+
+			HGDIOBJ hOldFont = ::SelectObject(hDC, hFont);
+			TEXTMETRIC tm;
+			::GetTextMetrics(hDC, &tm);
+			::SelectObject(hDC, hOldFont);
+
+			mFontMetrics.unitsPerEm = uint16(Math::Max<int>(int(tm.tmHeight), 1));
+			mFontMetrics.ascender = int16(tm.tmAscent);
+			mFontMetrics.descender = int16(tm.tmDescent);
+			mFontMetrics.lineGap = int16(Math::Max<int>(0, int(tm.tmHeight - tm.tmAscent - tm.tmDescent)));
+
+			int num = GetKerningPairsW(hDC, 0, nullptr);
+			if (num > 0)
+			{
+				TArray<KERNINGPAIR> pairs;
+				pairs.resize(num);
+				GetKerningPairsW(hDC, num, pairs.data());
+				mKerningPairs.clear();
+				for (auto const& pair : pairs)
+				{
+					if (pair.iKernAmount == 0)
+						continue;
+					mKerningPairs.push_back({ uint32(pair.wFirst), uint32(pair.wSecond), int16(pair.iKernAmount) });
+				}
+			}
+			return true;
+		}
+
+		FontMetrics const& getFontMetrics() const override { return mFontMetrics; }
+		TArray< KerningPair > const& getKerningPairs() const override { return mKerningPairs; }
+
+		bool loadGlyph(uint32 codepoint, GlyphData& outGlyph) const override
+		{
+			if (!hFont)
+				return false;
+
+			HDC hDC = ::GetDC(NULL);
+			ON_SCOPE_EXIT
+			{
+				::ReleaseDC(NULL, hDC);
+			};
+
+			HGDIOBJ hOldFont = ::SelectObject(hDC, hFont);
+			ON_SCOPE_EXIT
+			{
+				::SelectObject(hDC, hOldFont);
+			};
+
+			wchar_t charW = wchar_t(codepoint);
+			GLYPHMETRICS gm;
+			MAT2 mat = {};
+			mat.eM11.value = 1;
+			mat.eM22.value = 1;
+
+			outGlyph = GlyphData();
+			outGlyph.codepoint = codepoint;
+			ABCFLOAT abcFloat;
+			if (::GetCharABCWidthsFloatW(hDC, charW, charW, &abcFloat))
+			{
+				outGlyph.advanceWidth = uint16(Math::Max(0, Math::RoundToInt(abcFloat.abcfA + abcFloat.abcfB + abcFloat.abcfC)));
+				outGlyph.leftSideBearing = int16(Math::RoundToInt(abcFloat.abcfA));
+				outGlyph.rightSideBearing = int16(Math::RoundToInt(abcFloat.abcfC));
+			}
+
+			if (::GetGlyphOutlineW(hDC, charW, GGO_METRICS, &gm, 0, nullptr, &mat) == GDI_ERROR)
+				return false;
+
+			outGlyph.advanceWidth = uint16(gm.gmCellIncX);
+			outGlyph.leftSideBearing = int16(gm.gmptGlyphOrigin.x);
+			outGlyph.rightSideBearing = int16(gm.gmCellIncX - gm.gmptGlyphOrigin.x - gm.gmBlackBoxX);
+
+			DWORD bufferSize = ::GetGlyphOutlineW(hDC, charW, GGO_NATIVE, &gm, 0, nullptr, &mat);
+			if (bufferSize == GDI_ERROR)
+				return false;
+			if (bufferSize == 0)
+				return true;
+
+			TArray<uint8> buffer;
+			buffer.resize(bufferSize);
+			if (::GetGlyphOutlineW(hDC, charW, GGO_NATIVE, &gm, bufferSize, buffer.data(), &mat) == GDI_ERROR)
+				return false;
+
+			auto ToFloat = [](FIXED const& value)
+			{
+				return float(value.value) + float(value.fract) / 65536.0f;
+			};
+			auto ToVector = [&](POINTFX const& value)
+			{
+				return Vector2(ToFloat(value.x), ToFloat(value.y));
+			};
+			auto AddLine = [&](Vector2 const& start, Vector2 const& end)
+			{
+				if ((end - start).length2() < 1e-6f)
+					return;
+				CurveSegment segment;
+				segment.start = start;
+				segment.control = 0.5f * (start + end);
+				segment.end = end;
+				outGlyph.segments.push_back(segment);
+			};
+			auto AddQuad = [&](Vector2 const& start, Vector2 const& control, Vector2 const& end)
+			{
+				if ((end - start).length2() < 1e-6f)
+					return;
+				CurveSegment segment;
+				segment.start = start;
+				segment.control = control;
+				segment.end = end;
+				outGlyph.segments.push_back(segment);
+			};
+
+			size_t pos = 0;
+			while (pos + sizeof(TTPOLYGONHEADER) <= buffer.size())
+			{
+				auto* header = reinterpret_cast<TTPOLYGONHEADER const*>(buffer.data() + pos);
+				size_t polyEnd = pos + header->cb;
+				if (polyEnd > buffer.size() || header->cb < sizeof(TTPOLYGONHEADER))
+					return false;
+
+				Vector2 contourStart = ToVector(header->pfxStart);
+				Vector2 current = contourStart;
+				size_t curvePos = pos + sizeof(TTPOLYGONHEADER);
+				int segmentOffset = int(outGlyph.segments.size());
+				while (curvePos + sizeof(TTPOLYCURVE) <= polyEnd)
+				{
+					auto* curve = reinterpret_cast<TTPOLYCURVE const*>(buffer.data() + curvePos);
+					size_t curveSize = sizeof(TTPOLYCURVE) + sizeof(POINTFX) * (curve->cpfx - 1);
+					if (curve->cpfx == 0 || curvePos + curveSize > polyEnd)
+						return false;
+
+					if (curve->wType == TT_PRIM_LINE)
+					{
+						for (uint32 i = 0; i < curve->cpfx; ++i)
+						{
+							Vector2 next = ToVector(curve->apfx[i]);
+							AddLine(current, next);
+							current = next;
+						}
+					}
+					else if (curve->wType == TT_PRIM_QSPLINE)
+					{
+						for (uint32 i = 0; i + 1 < curve->cpfx; ++i)
+						{
+							Vector2 control = ToVector(curve->apfx[i]);
+							Vector2 end = (i + 2 < curve->cpfx) ? 0.5f * (control + ToVector(curve->apfx[i + 1])) : ToVector(curve->apfx[i + 1]);
+							AddQuad(current, control, end);
+							current = end;
+						}
+					}
+
+					curvePos += curveSize;
+				}
+
+				AddLine(current, contourStart);
+				outGlyph.contours.push_back({ segmentOffset, int(outGlyph.segments.size()) - segmentOffset });
+				pos = polyEnd;
+			}
+
+			outGlyph.bHasOutline = !outGlyph.segments.empty();
+			if (outGlyph.bHasOutline)
+			{
+				outGlyph.bound.invalidate();
+				for (auto const& segment : outGlyph.segments)
+				{
+					outGlyph.bound.addPoint(segment.start);
+					outGlyph.bound.addPoint(segment.control);
+					outGlyph.bound.addPoint(segment.end);
+				}
+			}
+			return true;
+		}
+
+		bool hintGlyph(GlyphData& ioGlyph, float pixelSize) const override
+		{
+			return true;
+		}
+
+	private:
+		HFONT hFont = NULL;
+		FontMetrics mFontMetrics;
+		TArray< KerningPair > mKerningPairs;
+	};
+
 	bool GDIFontCharDataProvider::initialize(FontFaceInfo const& fontFace, HFONT inFont, bool bTakeFontOwnership)
 	{
 		HDC hDC = ::GetDC(NULL);
@@ -284,7 +478,7 @@ namespace Render
 	class TrueTypeLoaderManager
 	{
 	public:
-		using LoaderPtr = std::shared_ptr< TrueTypeFileLoader >;
+		using LoaderPtr = std::shared_ptr< ITrueTypeLoader >;
 
 		static TrueTypeLoaderManager& Get()
 		{
@@ -292,7 +486,7 @@ namespace Render
 			return sInstance;
 		}
 
-		LoaderPtr getOrCreate(TArrayView< uint8 const > fontData)
+		LoaderPtr getOrCreate(TArrayView< uint8 const > fontData, HFONT hFont)
 		{
 			Mutex::Locker locker(mMutex);
 			TrueTypeLoaderKey key{ FNV1a::MakeHash<uint64>( fontData.data(), fontData.size()), fontData.size() };
@@ -306,9 +500,21 @@ namespace Render
 				mLoaders.erase(iter);
 			}
 
-			LoaderPtr loader = std::make_shared< TrueTypeFileLoader >();
-			if (!loader->loadFromBuffer(fontData))
-				return nullptr;
+			LoaderPtr loader;
+			if (mUseGDILoaderImpl)
+			{
+				auto gdiLoader = std::make_shared< GDITrueTypeLoader >();
+				if (!gdiLoader->initialize(hFont))
+					return nullptr;
+				loader = gdiLoader;
+			}
+			else
+			{
+				auto ttLoader = std::make_shared< TrueTypeFileLoader >();
+				if (!ttLoader->loadFromBuffer(fontData))
+					return nullptr;
+				loader = ttLoader;
+			}
 
 			mLoaders.emplace(key, loader);
 			cleanupExpiredLoaders();
@@ -331,8 +537,9 @@ namespace Render
 			}
 		}
 
-		std::unordered_map< TrueTypeLoaderKey, std::weak_ptr< TrueTypeFileLoader >, TrueTypeLoaderKeyHasher > mLoaders;
+		std::unordered_map< TrueTypeLoaderKey, std::weak_ptr< ITrueTypeLoader >, TrueTypeLoaderKeyHasher > mLoaders;
 		Mutex mMutex;
+		bool mUseGDILoaderImpl = true;
 	};
 
 	class TrueTypeWithGDIFallbackCharDataProvider : public ICharDataProvider
@@ -351,11 +558,11 @@ namespace Render
 		bool initialize(FontFaceInfo const& fontFace, HFONT font, TArrayView< uint8 const > fontData, int pixelSize, int fontHeight, int baseline)
 		{
 			mFont = font;
-			mLoader = TrueTypeLoaderManager::Get().getOrCreate(fontData);
+			mLoader = TrueTypeLoaderManager::Get().getOrCreate(fontData, mFont);
 			if (!mLoader)
 				return false;
 
-			if (!mTrueTypeProvider.initialize(fontFace.name, *mLoader.get(), pixelSize, fontHeight, baseline))
+			if (!mTrueTypeProvider.initialize(fontFace.name, *mLoader, pixelSize, fontHeight, baseline))
 				return false;
 
 			return mGDIProvider.initialize(fontFace, mFont, false);

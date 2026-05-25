@@ -321,7 +321,7 @@ namespace VGR
 
 
 			RenderUtility::SetFont(g, FONT_S24);
-			g.drawText(Vector2(0,0), L"大家好");
+			g.drawText(Vector2(0,0), L"ABC大家好");
 
 
 
@@ -380,7 +380,7 @@ namespace VGR
 			for (auto& c : fontData)
 			{
 				uint8 gray = uint8(255.0f * (float(c.r) * factor));
-				c = Color4ub(gray, gray, gray, gray);
+				c = Color4ub(255, 255, 255, gray);
 			}
 
 			mFontTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, texSize.x, texSize.y), fontData.data());

@@ -250,6 +250,7 @@
     <ClInclude Include="FlappyBird\FBLevel.h" />
     <ClInclude Include="FlappyBird\FBStage.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
+    <ClInclude Include="LordMonarch\LmStage.h" />
     <ClInclude Include="Mario\MBLevel.h" />
     <ClInclude Include="Mario\MBStage.h" />
     <ClInclude Include="Minesweeper\CSolverFrame.h" />
@@ -313,6 +314,7 @@
     <ClCompile Include="FlappyBird\FBLevel.cpp" />
     <ClCompile Include="FlappyBird\FBStage.cpp" />
     <ClCompile Include="Laser2D\LATestStage.cpp" />
+    <ClCompile Include="LordMonarch\LmStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
     <ClCompile Include="Mario\MBStage.cpp" />
     <ClCompile Include="Minesweeper\CSolverFrame.cpp" />

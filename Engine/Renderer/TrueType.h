@@ -97,10 +97,15 @@ namespace Render
 		}
 	};
 
-
-	class TrueTypeFileLoader
+	class ITrueTypeLoader
 	{
 	public:
+		struct GlyphPoint
+		{
+			Vector2 pos;
+			bool bOnCurve;
+		};
+
 		struct FontMetrics
 		{
 			uint16 unitsPerEm = 0;
@@ -119,6 +124,9 @@ namespace Render
 
 			uint32 codepoint = 0;
 			uint16 glyphIndex = 0;
+			TArray< GlyphPoint > points;
+			TArray< uint16 > endPts;
+			TArray< uint8 > instructions;
 			TArray< CurveSegment > segments;
 			TArray< Contour > contours;
 			Math::TAABBox< Vector2 > bound;
@@ -135,15 +143,32 @@ namespace Render
 			int16 value = 0;
 		};
 
-		FontMetrics const& getFontMetrics() const { return mFontMetrics; }
-		TArray< KerningPair > const& getKerningPairs() const { return mKerningPairs; }
+		virtual ~ITrueTypeLoader() = default;
+		virtual FontMetrics const& getFontMetrics() const = 0;
+		virtual TArray< KerningPair > const& getKerningPairs() const = 0;
+		virtual bool loadGlyph(uint32 codepoint, GlyphData& outGlyph) const = 0;
+		virtual bool hintGlyph(GlyphData& ioGlyph, float pixelSize) const = 0;
+	};
+
+
+	class TrueTypeFileLoader : public ITrueTypeLoader
+	{
+	public:
+		using GlyphPoint = ITrueTypeLoader::GlyphPoint;
+		using FontMetrics = ITrueTypeLoader::FontMetrics;
+		using GlyphData = ITrueTypeLoader::GlyphData;
+		using KerningPair = ITrueTypeLoader::KerningPair;
+
+		FontMetrics const& getFontMetrics() const override { return mFontMetrics; }
+		TArray< KerningPair > const& getKerningPairs() const override { return mKerningPairs; }
 
 		bool loadFromBuffer(TArrayView<uint8 const> buffer);
 		bool load(char const* path);
 
 		bool loadInternal();
 
-		bool loadGlyph(uint32 codepoint, GlyphData& outGlyph) const;
+		bool loadGlyph(uint32 codepoint, GlyphData& outGlyph) const override;
+		bool hintGlyph(GlyphData& ioGlyph, float pixelSize) const override;
 
 	private:
 		static constexpr uint32 OffsetTableSize = 12;
@@ -155,6 +180,17 @@ namespace Render
 		static constexpr uint32 HeadIndexToLocFormatOffset = 50;
 		static constexpr uint32 HeadMinSize = 54;
 		static constexpr uint32 MaxpNumGlyphsOffset = 4;
+		static constexpr uint32 MaxpMaxPointsOffset = 6;
+		static constexpr uint32 MaxpMaxContoursOffset = 8;
+		static constexpr uint32 MaxpMaxCompositePointsOffset = 10;
+		static constexpr uint32 MaxpMaxCompositeContoursOffset = 12;
+		static constexpr uint32 MaxpMaxZonesOffset = 14;
+		static constexpr uint32 MaxpMaxTwilightPointsOffset = 16;
+		static constexpr uint32 MaxpMaxStorageOffset = 18;
+		static constexpr uint32 MaxpMaxFunctionDefsOffset = 20;
+		static constexpr uint32 MaxpMaxInstructionDefsOffset = 22;
+		static constexpr uint32 MaxpMaxStackElementsOffset = 24;
+		static constexpr uint32 MaxpMaxSizeOfInstructionsOffset = 26;
 		static constexpr uint32 MaxpMinSize = 6;
 		static constexpr uint32 HheaAscenderOffset = 4;
 		static constexpr uint32 HheaNumHMetricsOffset = 34;
@@ -225,10 +261,25 @@ namespace Render
 			uint16 encodingID = 0;
 		};
 
-		struct GlyphPoint
+		struct ProgramRange
 		{
-			Vector2 pos;
-			bool bOnCurve;
+			uint32 offset = 0;
+			uint32 length = 0;
+		};
+
+		struct HintMetrics
+		{
+			uint16 maxPoints = 0;
+			uint16 maxContours = 0;
+			uint16 maxCompositePoints = 0;
+			uint16 maxCompositeContours = 0;
+			uint16 maxZones = 0;
+			uint16 maxTwilightPoints = 0;
+			uint16 maxStorage = 0;
+			uint16 maxFunctionDefs = 0;
+			uint16 maxInstructionDefs = 0;
+			uint16 maxStackElements = 0;
+			uint16 maxSizeOfInstructions = 0;
 		};
 
 		static Vector2 MidPoint(Vector2 const& a, Vector2 const& b)
@@ -278,6 +329,12 @@ namespace Render
 		}
 
 		bool appendGlyphSegments(uint16 glyphIndex, RenderTransform2D const& transform, TArray< CurveSegment >& outSegments, TArray< GlyphData::Contour >* outContours, int depth, Math::TAABBox< Vector2 >* bound) const;
+
+		bool loadGlyphInstructions(uint16 glyphIndex, TArray< uint8 >& outInstructions) const;
+
+		bool loadSimpleGlyphPoints(uint32 glyphStart, uint32 glyphEnd, int numContours, TArray< GlyphPoint >& outPoints, TArray< uint16 >& outEndPts) const;
+
+		bool appendGlyphOutline(uint16 glyphIndex, RenderTransform2D const& transform, TArray< GlyphPoint >& outPoints, TArray< uint16 >& outEndPts, int depth) const;
 
 		bool appendSimpleGlyph(uint32 glyphStart, uint32 glyphEnd, int numContours, RenderTransform2D const& transform, TArray< CurveSegment >& outSegments, TArray< GlyphData::Contour >* outContours) const;
 
@@ -419,12 +476,16 @@ namespace Render
 		TArray< uint32 > mGlyphOffsets;
 		TArray< uint32 > mGlyphCodepoints;
 		TArray< KerningPair > mKerningPairs;
+		TArray< int16 > mCVTValues;
+		ProgramRange mFpgmRange;
+		ProgramRange mPrepRange;
 		CMapInfo mCMap;
 		TArray< CMapInfo > mCMaps;
 		uint32 mGlyphTableOffset = 0;
 		uint16 mNumGlyphs = 0;
 		uint16 mNumHMetrics = 0;
 		FontMetrics mFontMetrics;
+		HintMetrics mHintMetrics;
 		int16 mIndexToLocFormat = 0;
 	};
 
@@ -607,13 +668,13 @@ namespace Render
 	public:
 		TrueTypeCharDataProvider() = default;
 
-		TrueTypeCharDataProvider(HashString name, TrueTypeFileLoader& loader, int pixelSize, int sampleFactor = 4)
+		TrueTypeCharDataProvider(HashString name, ITrueTypeLoader& loader, int pixelSize, int sampleFactor = 4)
 		{
 			initialize(name, loader, pixelSize, sampleFactor);
 		}
 
-		bool initialize(HashString name, TrueTypeFileLoader& loader, int pixelSize, int sampleFactor = 4);
-		bool initialize(HashString name, TrueTypeFileLoader& loader, int pixelSize, int fontHeight, int baseline, int sampleFactor = 4);
+		bool initialize(HashString name, ITrueTypeLoader& loader, int pixelSize, int sampleFactor = 4);
+		bool initialize(HashString name, ITrueTypeLoader& loader, int pixelSize, int fontHeight, int baseline, int sampleFactor = 4);
 
 		bool getCharData(uint32 charWord, CharImageData& outData) override;
 
@@ -621,7 +682,7 @@ namespace Render
 		{
 			CHECK(mLoader);
 
-			TrueTypeFileLoader::GlyphData glyph;
+			ITrueTypeLoader::GlyphData glyph;
 			if (!mLoader->loadGlyph(charWord, glyph))
 				return false;
 
@@ -638,7 +699,7 @@ namespace Render
 		{
 			CHECK(mLoader);
 
-			for (TrueTypeFileLoader::KerningPair const& pair : mLoader->getKerningPairs())
+			for (ITrueTypeLoader::KerningPair const& pair : mLoader->getKerningPairs())
 			{
 				uint32 key = Math::PairingFunction(pair.firstCodepoint, pair.secondCodepoint);
 				outKerningMap[key] = float(pair.value) * mScale;
@@ -647,7 +708,7 @@ namespace Render
 
 	private:
 
-		void setupDesc(TrueTypeFileLoader::GlyphData const& glyph, CharImageDesc& outDesc) const
+		void setupDesc(ITrueTypeLoader::GlyphData const& glyph, CharImageDesc& outDesc) const
 		{
 			if (glyph.bHasOutline)
 			{
@@ -676,7 +737,7 @@ namespace Render
 
 		HashString getName() { return mName; }
 
-		TrueTypeFileLoader* mLoader = nullptr;
+		ITrueTypeLoader* mLoader = nullptr;
 		HashString mName;
 		float mScale = 1;
 		float mBaseline = 0;

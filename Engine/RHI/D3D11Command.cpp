@@ -2073,14 +2073,12 @@ namespace Render
 
 		UINT subresource = D3D11CalcSubresource(level, face, texture.getNumMipLevel());
 
-		if (dataWidth)
+		if (dataWidth == 0)
 		{
-			mDeviceContext->UpdateSubresource(textureImpl.mResource, subresource, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), 0);
+			dataWidth = w;
 		}
-		else
-		{
-			mDeviceContext->UpdateSubresource(textureImpl.mResource, subresource, &box, data, w * ETexture::GetFormatSize(texture.getFormat()), 0);
-		}
+
+		mDeviceContext->UpdateSubresource(textureImpl.mResource, subresource, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), 0);
 	}
 
 	void D3D11Context::RHIUpdateBuffer(RHIBuffer& buffer, int start, int numElements, void* data)

@@ -621,7 +621,7 @@ namespace Render
 
 		void updateFormatGUID()
 		{
-			static uint32 NextGUID = 0;
+			static uint32 NextGUID = 1;
 			static std::unordered_map< FormatKey, uint32 , MemberFuncHasher > FormatIDMap;
 			FormatKey key;
 			getFormatKey(key);

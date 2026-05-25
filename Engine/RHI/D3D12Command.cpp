@@ -610,6 +610,7 @@ namespace Render
 					dsvDesc.Texture2D.MipSlice = 0;
 				}
 				RTState.depthBuffer.DSVHandle = D3D12DescriptorHeapPool::Alloc(RTState.depthBuffer.resource, &dsvDesc);
+				RTState.updateFormatGUID();
 			}
 
 		}

@@ -11,9 +11,10 @@
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 
+#define REORDER_WEIGHT 1
+
 using IntVector2 = TVector2<int>;
 using IntVector3 = TVector3<int>;
-
 
 typedef float NNScalar;
 
@@ -1229,6 +1230,21 @@ public:
 		NNScalar const inOutputs[],
 		NNScalar const inLossGrads[],
 		NNScalar outLossGrads[]);
+
+
+	template< typename TKernel >
+	static void ConvertWeights(NNScalar const inWeights[], NNScalar outWeights[])
+	{
+		int constexpr weightLen = TKernel::WeightSize * TKernel::WeightSize;
+
+		NNScalar temp[TKernel::WeightSize * TKernel::ConvSize];
+		FNNMath::MatrixMulMatrix(TKernel::WeightSize, TKernel::ConvSize, TKernel::G, TKernel::ConvSize, inWeights, temp);
+#if REORDER_WEIGHT
+		FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, outWeights);
+#else
+		FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, outWeights);
+#endif
+	}
 };
 
 #endif // NeuralNetwork_H_9D9E20F4_5B5B_45BE_A95C_5A2CEB755C3F

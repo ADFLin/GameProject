@@ -270,6 +270,7 @@ namespace Render
 			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Alloc<D3D12_RENDER_TARGET_VIEW_DESC>(state.colorBuffers[0].resource, nullptr);
 			D3D12_RESOURCE_DESC desc = state.colorBuffers[0].resource->GetDesc();
 			state.colorBuffers[0].format = desc.Format;
+			state.updateFormatGUID();
 		}
 
 		return true;
@@ -344,6 +345,11 @@ namespace Render
 				}
 				state.depthBuffer.DSVHandle = D3D12DescriptorHeapPool::Alloc(state.depthBuffer.resource, &dsvDesc);
 			}
+			else
+			{
+				state.depthBuffer.format = DXGI_FORMAT_UNKNOWN;
+			}
+			state.updateFormatGUID();
 		}
 	}
 

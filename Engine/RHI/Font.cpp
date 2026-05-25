@@ -649,7 +649,7 @@ namespace Render
 		TEXTMETRIC tm;
 		::GetTextMetrics(hDC, &tm);
 
-		if (IsSupportedByTrueTypeLoader(hDC))
+		if (IsSupportedByTrueTypeLoader(hDC) && false)
 		{
 			DWORD size = GetFontData(hDC, 0, 0, nullptr, 0);
 			TArray<uint8> data;

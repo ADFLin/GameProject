@@ -624,8 +624,10 @@ namespace AR
 
 
 			mTexPaint = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, ImageSize[0] * 16, ImageSize[1] * 16).MipLevel(5).AddFlags(TCF_RenderTarget | TCF_GenerateMips | TCF_CreateSRV), nullptr);
-			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, ImageSize[0], ImageSize[1]).AddFlags(TCF_RenderTarget | TCF_AllowCPUAccess), nullptr);
-			
+			mTexPaint->setDebugName("TexPaint");
+			mTexInput = RHICreateTexture2D(TextureDesc::Type2D(ETexture::R32F, ImageSize[0], ImageSize[1]).AddFlags(TCF_RenderTarget), nullptr);
+			mTexPaint->setDebugName("TexInput");
+
 			GTextureShowManager.registerTexture("Paint", mTexPaint);
 			GTextureShowManager.registerTexture("Input", mTexInput);
 
@@ -766,6 +768,9 @@ namespace AR
 				return;
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+			RHIResourceTransition(commandList, { mTexPaint, mTexInput }, EResourceTransition::RenderTarget);
+
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 			RHISetFrameBuffer(commandList, mFrameBufferPaint);
 			g.setViewportSize(mTexPaint->getSizeX(), mTexPaint->getSizeY());
@@ -802,7 +807,7 @@ namespace AR
 
 			RenderUtility::SetBrush(g, EColor::White);
 			g.setTexture(*mTexPaint);
-			g.setSampler(TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp>::GetRHI());
+			g.setSampler(TStaticSamplerState<ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp>::GetRHI());
 			g.drawTexture(Vector2(0, 0), Vector2(mTexInput->getSizeX(), mTexInput->getSizeY()));
 
 			g.endRender();

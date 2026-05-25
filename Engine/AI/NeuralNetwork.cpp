@@ -16,8 +16,6 @@ constexpr int NumLanes = FloatVector::Size;
 #endif
 
 
-#define REORDER_WEIGHT 1
-
 #if CPP_COMPILER_MSVC
 #define ALLOCA _alloca
 #else
@@ -174,11 +172,6 @@ NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 {
 	NNScalar result = 0;
 #if NN_USE_SIMD
-	if (bStride == 1)
-	{
-		return VectorDot(dim, a, b);
-	}
-
 	FloatVector acc = FloatVector::Zero();
 	int i = 0;
 	for (; i + NumLanes <= dim; i += NumLanes)
@@ -1743,8 +1736,8 @@ NNScalar* FNNAlgo::Forward(
 				{
 					for (int ox = 0; ox < layer.poolSize; ++ox)
 					{
-						int indexOffset = ox + oy * layer.inputSize[0];
-						value = Math::Max(value, pNodeInput[indexInput + indexOffset]);
+						int index = indexInput + ox + oy * layer.inputSize[0];
+						value = Math::Max(value, pNodeInput[index]);
 					}
 				}
 				pNodeOutput[indexOutput] = value;

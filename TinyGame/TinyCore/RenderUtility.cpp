@@ -18,7 +18,7 @@ namespace
 	HFONT  hFont[FONT_NUM];
 	FontDrawer FontRHI[FONT_NUM];
 	Color3ub gColorMap[3][EColor::COUNT];
-	TCHAR const* FontName = "標楷體";
+	TCHAR const* FontName = "華康中圓體";
 }
 
 static HBRUSH GetColorBrush( int color , int type = COLOR_NORMAL )

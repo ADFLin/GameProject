@@ -390,16 +390,10 @@ namespace AR
 
 	using namespace Render;
 
-	class TestStage : public StageBase
-		            , public IGameRenderSetup
-	{
-		typedef StageBase BaseClass;
-	public:
-		TestStage() 
-		{
-		}
 
-#define REORDER_WEIGHT 1
+	class Model 
+	{
+	public:
 		TArray< NNScalar > mParamters;
 		template< typename TKernel >
 		void addParamT(NNConv2DLayer& inoutlayer, TArrayView<NNScalar> parameters)
@@ -417,14 +411,7 @@ namespace AR
 			{
 				for (int i = 0; i < inoutlayer.inputSize.z; ++i)
 				{
-					NNScalar temp[TKernel::WeightSize * TKernel::ConvSize];
-					FNNMath::MatrixMulMatrix(TKernel::WeightSize, TKernel::ConvSize, TKernel::G, TKernel::ConvSize, pCopyParams, temp);
-#if REORDER_WEIGHT
-					FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, pWeight + weightLen * (i * inoutlayer.numNode + idxNode));
-#else
-					FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, pWeight);
-					pWeight += weightLen;
-#endif
+					FNNAlgo::ConvertWeights< TKernel >(pCopyParams, pWeight + weightLen * (i * inoutlayer.numNode + idxNode));
 					pCopyParams += TKernel::ConvSize * TKernel::ConvSize;
 				}
 
@@ -461,24 +448,17 @@ namespace AR
 			inoutlayer.fastMethod = NNConv2DLayer::eNone;
 
 			mParamters.resize(mParamters.size() + numParameters);
-			
+
 			NNScalar* pWeight = mParamters.data() + inoutlayer.weightOffset;
 			NNScalar* pBias = mParamters.data() + inoutlayer.biasOffset;
 			NNScalar const* pCopyParams = parameters.data();
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
-#if REORDER_WEIGHT
 				for (int i = 0; i < inoutlayer.inputSize.z; ++i)
 				{
 					FMemory::Copy(pWeight + convLen * (i * inoutlayer.numNode + idxNode), pCopyParams, convLen * sizeof(NNScalar));
 					pCopyParams += convLen;
 				}
-#else
-				FMemory::Copy(pWeight, pCopyParams, nodeWeightLen * sizeof(NNScalar));
-				pWeight += nodeWeightLen;
-				pCopyParams += nodeWeightLen;
-#endif
-
 
 				*pBias = *pCopyParams;
 				pBias += 1;
@@ -502,15 +482,11 @@ namespace AR
 
 			for (int idxNode = 0; idxNode < inoutlayer.numNode; ++idxNode)
 			{
-#if REORDER_WEIGHT
 				for (int i = 0; i < inoutlayer.inputLength; ++i)
 				{
 					pWeight[i * inoutlayer.numNode + idxNode] = pCopyParams[i];
 				}
-#else
-				FMemory::Copy(pWeight, pCopyParams, inoutlayer.inputLength * sizeof(NNScalar));
-				pWeight += inoutlayer.inputLength;
-#endif
+
 				pCopyParams += inoutlayer.inputLength;
 
 				*pBias = *pCopyParams;
@@ -526,6 +502,20 @@ namespace AR
 		NNMaxPooling2DLayer layer6;
 		NNLinearLayer layer7;
 		NNTransformLayer layerReLU;
+
+	};
+
+	class TestStage : public StageBase
+		            , public IGameRenderSetup
+					, public Model
+	{
+		typedef StageBase BaseClass;
+	public:
+		TestStage() 
+		{
+		}
+
+
 		static int constexpr ImageSize[] = { 28 , 28 };
 
 		virtual bool onInit()
@@ -646,6 +636,11 @@ namespace AR
 			mFrameBuffer = RHICreateFrameBuffer();
 			mFrameBuffer->addTexture(*mTexInput);
 
+			auto screenSize = ::Global::GetScreenSize();
+			float OffsetY = mTexPaint->getSizeY() + 0.5 * ( screenSize.y - mTexPaint->getSizeY() );
+			mXFormInput = RenderTransform2D(Vector2(1, -1), Vector2(600, OffsetY));
+
+
 			updateFromInput();
 			return true;
 		}
@@ -728,6 +723,8 @@ namespace AR
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+
+			RHIResourceTransition(commandList, { mTexPaint }, EResourceTransition::RenderTarget);
 
 			RHISetFrameBuffer(commandList, mFrameBufferPaint);
 			g.setViewportSize(mTexPaint->getSizeX(), mTexPaint->getSizeY());
@@ -835,40 +832,46 @@ namespace AR
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 			g.beginRender();
+
+			g.pushXForm();
+			g.transformXForm(mXFormInput, true);
+
 			RenderUtility::SetBrush(g, EColor::White);
 
+
+			g.drawTexture(*mTexPaint, Vector2(0, 0));
+
+			RenderUtility::SetPen(g, EColor::White);
+			RenderUtility::SetBrush(g, EColor::Null);
+			g.drawRect(Vector2(0, 0), Vector2(mTexPaint->getSizeX(), mTexPaint->getSizeY()));
+			g.popXForm();
+
+
 			Vector2 pos = Vector2(10, 10);
+			float const gapY = 5;
 			auto DrawLayer = [&](RHITexture2D& textrue, int num, float len = DefaultLen)
 			{
 				RenderUtility::SetBrush(g, EColor::White);
+
+
+				float offsetY = 0.5 * ( screenSize.y - ( len + gapY ) * num - gapY );
 				float dV = 1.0 / num;
 				g.setTexture(textrue);
 				g.setSampler(TStaticSamplerState<ESampler::Point>::GetRHI());
 				for (int i = 0; i < num; ++i)
 				{
-					g.drawTexture(pos + Vector2(0 , i * (len + 5)), Vector2(len, len), Vector2(0, (i + 1) * dV), Vector2(1, -dV));
+					g.drawTexture(pos + Vector2(0 , i * (len + gapY) + offsetY), Vector2(len, len), Vector2(0, (i + 1) * dV), Vector2(1, -dV));
 				}
 
 				RenderUtility::SetPen(g, EColor::White);
 				RenderUtility::SetBrush(g, EColor::Null);
 				for (int i = 0; i < num; ++i)
 				{
-					g.drawRect(pos + Vector2(0, i * (len + 5)), Vector2(len, len));
+					g.drawRect(pos + Vector2(0, i * (len + gapY) + offsetY), Vector2(len, len));
 				}
 
 				pos.x += len + 10;
 			};
-
-			g.pushXForm();
-			g.transformXForm(mXFormInput, true);
-
-			RenderUtility::SetBrush(g, EColor::White);
-			g.drawTexture(*mTexPaint, Vector2(0,0));
-
-			RenderUtility::SetPen(g, EColor::White);
-			RenderUtility::SetBrush(g, EColor::Null);
-			g.drawRect(Vector2(0, 0), Vector2(mTexPaint->getSizeX(), mTexPaint->getSizeY()));
-			g.popXForm();
 
 			DrawLayer(*mTexInput, 1);
 			DrawLayer(*mTexLayers[0], layer1.numNode);
@@ -877,8 +880,19 @@ namespace AR
 			DrawLayer(*mTexLayers[3], layer4.numNode);
 			DrawLayer(*mTexLayers[4], layer5.numNode);
 			DrawLayer(*mTexLayers[5], layer6.numNode);
-			DrawLayer(*mTexLayers[6], layer7.numNode, 15.0);
-			DrawLayer(*mTexResult, layer7.numNode, 15.0);
+
+			float const SignalLen = 15;
+			DrawLayer(*mTexLayers[6], layer7.numNode, SignalLen);
+			DrawLayer(*mTexResult, layer7.numNode, SignalLen);
+
+			pos.x -= 5;
+			int num = layer7.numNode;
+			float offsetY = 0.5 * (screenSize.y - (SignalLen + gapY) * num - gapY);
+			RenderUtility::SetFont(g, FONT_S8);
+			for (int i = 0; i < num; ++i)
+			{
+				g.drawTextF(pos + Vector2(0, i * (SignalLen + gapY) + offsetY), Vector2(SignalLen, SignalLen), "%c", 'A' + i);
+			}
 
 			g.beginBlend(0.4);
 			RenderUtility::SetPen(g, EColor::Null);
@@ -890,7 +904,7 @@ namespace AR
 
 		RHIFrameBufferRef mFrameBufferPaint;
 		RHIFrameBufferRef mFrameBuffer;
-		RenderTransform2D mXFormInput = RenderTransform2D(Vector2(1,-1), Vector2(600, 510));
+		RenderTransform2D mXFormInput = RenderTransform2D(Vector2(1,-1), Vector2(600, 810));
 
 		Vector2 mPrevPos;
 		Vector2 mMousePos;

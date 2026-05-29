@@ -2,6 +2,29 @@
 
 #include "RenderUtility.h"
 
+namespace
+{
+	Color3ub GetNodeColor(NNScalar value)
+	{
+		if (value > 0.9)
+			return Color3ub(245, 245, 245);
+		if (value > 0.75)
+			return Color3ub(245, 215, 65);
+		if (value > 0.5)
+			return Color3ub(245, 145, 55);
+		if (value > 0.25)
+			return Color3ub(55, 115, 230);
+		if (value > 0.1)
+			return Color3ub(145, 145, 145);
+		return Color3ub(12, 12, 12);
+	}
+
+	Color3ub GetLinkColor(NNScalar value)
+	{
+		return (value >= 0) ? Color3ub(35, 215, 100) : Color3ub(235, 65, 55);
+	}
+}
+
 int NeuralNetworkRenderer::getValueColor(NNScalar value)
 {
 	if (value > 0.9)
@@ -19,50 +42,56 @@ int NeuralNetworkRenderer::getValueColor(NNScalar value)
 
 void NeuralNetworkRenderer::draw(IGraphics2D& g)
 {
+	int const numLayer = (int)model.mLayers.size();
+
+	if (parameters)
+	{
+		for (int idxLayer = numLayer - 1; idxLayer >= 0; --idxLayer)
+		{
+			NNLinearLayer const& layer = model.getLayer(idxLayer);
+			int numPrevNode = (idxLayer == 0) ? model.getInputNum() : model.getLayer(idxLayer - 1).numNode;
+			int idxPrevLayerSignal = (idxLayer == 0) ? 0 : model.getOutputSignalOffset(idxLayer - 1, false);
+
+			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+			{
+				Vector2 pos = getLayerNodePos(idxLayer, idxNode);
+				for (int idxPrevNode = 0; idxPrevNode < numPrevNode; ++idxPrevNode)
+				{
+					Vector2 prevPos = (idxLayer == 0) ? getInputNodePos(idxPrevNode) : getLayerNodePos(idxLayer - 1, idxPrevNode);
+					NNScalar weight = getWeight(idxLayer, idxNode, idxPrevNode);
+					NNScalar value = weight;
+					if (bShowSignalLink && signals)
+					{
+						value *= signals[idxPrevLayerSignal + idxPrevNode];
+					}
+
+					g.setPen(GetLinkColor(value), 1 + Math::Min(3, Math::FloorToInt(2.5f * Math::Abs(weight))));
+					drawLink(g, prevPos, pos, Math::Abs(weight));
+				}
+			}
+		}
+	}
+
 	for (int i = 0; i < model.getInputNum(); ++i)
 	{
 		Vector2 pos = getInputNodePos(i);
-		RenderUtility::SetPen(g, EColor::Black);
-		RenderUtility::SetBrush(g, getValueColor(signals[i]));
+		g.setPen(Color3ub(10, 10, 10), 2);
+		g.setBrush(signals ? GetNodeColor(signals[i]) : Color3ub(150, 95, 210));
 		drawNode(g, pos);
 	}
 
 	int idxSignal = model.getInputNum();
-	int idxPrevLayerSignal = 0;
-	for (int i = 0; i <= model.getHiddenLayerNum(); ++i)
+	for (int idxLayer = 0; idxLayer < numLayer; ++idxLayer)
 	{
-		NNLinearLayer const& layer = model.getLayer(i);
-		int numNodeWeight = model.getLayerInputNum(i);
+		NNLinearLayer const& layer = model.getLayer(idxLayer);
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{
-			Vector2 pos = getLayerNodePos(i, idxNode);
-			RenderUtility::SetPen(g, EColor::Black);
-			if (signals)
-			{
-				RenderUtility::SetBrush(g, getValueColor(signals[idxSignal]));
-			}
-			else
-			{
-				RenderUtility::SetBrush(g, EColor::Purple);
-			}
+			Vector2 pos = getLayerNodePos(idxLayer, idxNode);
+			g.setPen(Color3ub(10, 10, 10), 2);
+			g.setBrush(signals ? GetNodeColor(signals[idxSignal]) : Color3ub(150, 95, 210));
 			drawNode(g, pos);
-
-			NNScalar* weights = getWeights(i, idxNode);
-			for (int n = 0; n < numNodeWeight; ++n)
-			{
-				Vector2 prevPos = (i == 0) ? getInputNodePos(n) : getLayerNodePos(i - 1, n);
-				NNScalar value = weights[n + 1];
-				if (bShowSignalLink && signals)
-				{
-					value *= signals[idxPrevLayerSignal + n];
-				}
-				RenderUtility::SetPen(g, (value > 0) ? EColor::Green : EColor::Red);
-				RenderUtility::SetBrush(g, (value > 0) ? EColor::Green : EColor::Red);
-				drawLink(g, prevPos, pos, Math::Abs(value));
-			}
 			++idxSignal;
 		}
-		idxPrevLayerSignal += numNodeWeight;
 	}
 }
 
@@ -72,15 +101,7 @@ void NeuralNetworkRenderer::drawLink(IGraphics2D& g, Vector2 const& p1, Vector2 
 	if (dir.normalize() < 1e-4)
 		return;
 
-	float halfWidth = 0.25 * width;
-	if (bShowSignalLink)
-		halfWidth *= 4;
-
-	halfWidth = std::min(10.0f, halfWidth);
-	Vector2 normalOffset;
-	normalOffset.x = dir.y;
-	normalOffset.y = -dir.x;
-	normalOffset *= halfWidth;
-	Vector2 v[4] = { p1 + normalOffset , p1 - normalOffset , p2 - normalOffset , p2 + normalOffset };
-	g.drawPolygon(v, 4);
+	Vector2 start = p1 + nodeRadius * dir;
+	Vector2 end = p2 - nodeRadius * dir;
+	g.drawLine(start, end);
 }

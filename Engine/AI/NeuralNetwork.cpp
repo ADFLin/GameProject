@@ -15,7 +15,6 @@ using IntVector = TIntVector<FloatVector::Size>;
 constexpr int NumLanes = FloatVector::Size;
 #endif
 
-
 #if CPP_COMPILER_MSVC
 #define ALLOCA _alloca
 #else
@@ -75,6 +74,39 @@ namespace
 		gateLayer.biasOffset = layer.biasOffset;
 		return gateLayer;
 	}
+
+	void DeConvBackwardWeight(int dimX, int dimY, NNScalar const* RESTRICT inputs, int dimXOutput, int dimYOutput, NNScalar const* RESTRICT lossGrads, int dimXW, int dimYW, int stride, int padding, NNScalar* RESTRICT inoutWeightGrads)
+	{
+		for (int mj = 0; mj < dimY; ++mj)
+		{
+			int baseY = mj * stride - padding;
+			int wjBegin = Math::Max(0, -baseY);
+			int wjEnd = Math::Min(dimYW, dimYOutput - baseY);
+			if (wjBegin >= wjEnd)
+				continue;
+
+			for (int mi = 0; mi < dimX; ++mi)
+			{
+				NNScalar a = inputs[mj * dimX + mi];
+
+				int baseX = mi * stride - padding;
+				int wiBegin = Math::Max(0, -baseX);
+				int wiEnd = Math::Min(dimXW, dimXOutput - baseX);
+				if (wiBegin >= wiEnd)
+					continue;
+
+				NNScalar const* pOutputLossGrad = lossGrads + (baseY + wjBegin) * dimXOutput + baseX + wiBegin;
+				NNScalar* pWeightGrad = inoutWeightGrads + wjBegin * dimXW + wiBegin;
+
+				for (int wj = wjBegin; wj < wjEnd; ++wj)
+				{
+					FNNMath::VectorMulAdd(wiEnd - wiBegin, pOutputLossGrad, a, pWeightGrad);
+					pOutputLossGrad += dimXOutput;
+					pWeightGrad += dimXW;
+				}
+			}
+		}
+	}
 }
 
 #if USE_DUFF_DEVICE
@@ -131,10 +163,110 @@ void FNNMath::VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RES
 
 void FNNMath::VectorSub(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
+#if NN_USE_SIMD
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(a + i) - FloatVector(b + i)).store(out + i);
+	}
+	for (; i < dim; ++i)
+	{
+		out[i] = a[i] - b[i];
+	}
+#elif USE_DUFF_DEVICE
+#define OP	*out = *a - *b; ++out; ++a; ++b;
+	DUFF_DEVICE_8(dim, OP);
+#undef OP
+#else
 	for (int i = 0; i < dim; ++i)
 	{
 		out[i] = a[i] - b[i];
 	}
+#endif
+}
+
+void FNNMath::VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out)
+{
+#if NN_USE_SIMD
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(a + i) * FloatVector(b + i) + FloatVector(c + i)).store(out + i);
+	}
+	for (; i < dim; ++i)
+	{
+		out[i] = a[i] * b[i] + c[i];
+	}
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		out[i] = a[i] * b[i] + c[i];
+	}
+#endif
+}
+
+void FNNMath::VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar b, NNScalar c, NNScalar* RESTRICT out)
+{
+#if NN_USE_SIMD
+	FloatVector vB(b);
+	FloatVector vC(c);
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(a + i) * vB + c).store(out + i);
+	}
+	for (; i < dim; ++i)
+	{
+		out[i] = a[i] * b + c;
+	}
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		out[i] = a[i] * b + c;
+	}
+#endif
+}
+
+void FNNMath::VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout)
+{
+#if NN_USE_SIMD
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(inout + i) + FloatVector(a + i) * FloatVector(b + i)).store(inout + i);
+	}
+	for (; i < dim; ++i)
+	{
+		inout[i] += a[i] * b[i];
+	}
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		inout[i] += a[i] * b[i];
+	}
+#endif
+}
+
+
+void FNNMath::VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar b, NNScalar* RESTRICT inout)
+{
+#if NN_USE_SIMD
+	FloatVector vB(b);
+	int i = 0;
+	for (; i + NumLanes <= dim; i += NumLanes)
+	{
+		(FloatVector(inout + i) + FloatVector(a + i) * vB).store(inout + i);
+	}
+	for (; i < dim; ++i)
+	{
+		inout[i] += a[i] * b;
+	}
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		inout[i] += a[i] * b;
+	}
+#endif
 }
 
 void FNNMath::VectorMul(int dim, NNScalar* RESTRICT a, NNScalar const* RESTRICT b)
@@ -162,11 +294,16 @@ NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const*
 		result += (*a++) * (*b++);
 	}
 	return result;
+#elif USE_DUFF_DEVICE
+	NNScalar result = 0;
+#define OP	result += (*a++) * (*b++);
+	DUFF_DEVICE_8(dim, OP);
+#undef OP
+	return result;
 #else
 	return VectorDotNOP(dim, a, b);
 #endif
 }
-
 
 NNScalar FNNMath::VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride)
 {
@@ -250,6 +387,30 @@ NNScalar FNNMath::VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar con
 	return result;
 }
 
+FORCEINLINE void FNNMath::VectorCopy(int dim, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
+{
+#if 1
+	FMemory::Copy(out, v, sizeof(NNScalar) * dim);
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		out[i] = v[i];
+	}
+#endif
+}
+
+FORCEINLINE void FNNMath::Fill(int dim, NNScalar* RESTRICT v, NNScalar value)
+{
+#if 1
+	std::fill_n(v, dim, value);
+#else
+	for (int i = 0; i < dim; ++i)
+	{
+		v[i] = value;
+	}
+#endif
+}
+
 void FNNMath::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
 {
 #if USE_DUFF_DEVICE
@@ -263,6 +424,24 @@ void FNNMath::MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRIC
 		m += dimCol;
 	}
 #endif
+}
+
+void FNNMath::MatrixMulVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
+{
+	for (int row = 0; row < dimRow; ++row)
+	{
+		out[row] = VectorDot(dimCol, m, v);
+		m += dimCol;
+	}
+}
+
+void FNNMath::VectorMulMatrix(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
+{
+	for (int col = 0; col < dimCol; ++col)
+	{
+		out[col] = VectorDot(dimRow, v, m, dimCol);
+		m += 1;
+	}
 }
 
 void FNNMath::VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out)
@@ -297,14 +476,7 @@ void FNNMath::VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRIC
 
 int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs)
 {
-	NNScalar maxInput = inputs[0];
-	for (int i = 1; i < dim; ++i)
-	{
-		if (maxInput < inputs[i])
-		{
-			maxInput = inputs[i];
-		}
-	}
+	NNScalar maxInput = FNNMath::Max(dim, inputs);
 
 	NNScalar sum = 0.0;
 	for (int i = 0; i < dim; ++i)
@@ -328,14 +500,7 @@ int FNNMath::SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs
 
 int FNNMath::SoftMax(int dim, NNScalar* RESTRICT inoutValues)
 {
-	NNScalar maxInput = inoutValues[0];
-	for (int i = 1; i < dim; ++i)
-	{
-		if (maxInput < inoutValues[i])
-		{
-			maxInput = inoutValues[i];
-		}
-	}
+	NNScalar maxInput = FNNMath::Max(dim, inoutValues);
 
 	NNScalar sum = 0.0;
 	for (int i = 0; i < dim; ++i)
@@ -358,7 +523,7 @@ int FNNMath::SoftMax(int dim, NNScalar* RESTRICT inoutValues)
 }
 
 
-int FNNMath::Max(int dim, NNScalar const* inputs)
+int FNNMath::MaxIndex(int dim, NNScalar const* inputs)
 {
 	int index = 0;
 	NNScalar maxValue = inputs[0];
@@ -383,6 +548,16 @@ NNScalar FNNMath::Sum(int dim, NNScalar const* inputs)
 	return result;
 }
 
+
+NNScalar FNNMath::Sum(int dim, NNScalar const* inputs, int stride)
+{
+	NNScalar result = 0;
+	for (int i = 0; i < dim; ++i)
+	{
+		result += inputs[i * stride];
+	}
+	return result;
+}
 
 void FNNMath::ClipNormalize(int dim, NNScalar* RESTRICT inoutValues, NNScalar maxValue)
 {
@@ -449,13 +624,89 @@ void FNNMath::ClipNormalize(int dim, NNScalar* RESTRICT inoutValues, NNScalar ma
 	}
 }
 
+void FNNMath::Conv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int stride, int padding, NNScalar* RESTRICT inoutOutput)
+{
+	int dimXOutput = (dimX + 2 * padding - dimXW) / stride + 1;
+	int dimYOutput = (dimY + 2 * padding - dimYW) / stride + 1;
+
+	for (int oy = 0; oy < dimYOutput; ++oy)
+	{
+		int baseY = oy * stride - padding;
+		int wjBegin = Math::Max(0, -baseY);
+		int wjEnd = Math::Min(dimYW, dimY - baseY);
+		if (wjBegin >= wjEnd)
+			continue;
+
+		NNScalar* pOutput = inoutOutput + oy * dimXOutput;
+		for (int ox = 0; ox < dimXOutput; ++ox)
+		{
+			int baseX = ox * stride - padding;
+			int wiBegin = Math::Max(0, -baseX);
+			int wiEnd = Math::Min(dimXW, dimX - baseX);
+			if (wiBegin >= wiEnd)
+				continue;
+
+			NNScalar value = 0;
+			NNScalar const* pArea = m + (baseY + wjBegin) * dimX + baseX + wiBegin;
+			NNScalar const* pWeight = weight + wjBegin * dimXW + wiBegin;
+
+			for (int wj = wjBegin; wj < wjEnd; ++wj)
+			{
+				value += FNNMath::VectorDot(wiEnd - wiBegin, pArea, pWeight);
+				pArea += dimX;
+				pWeight += dimXW;
+			}
+
+			pOutput[ox] += value;
+		}
+	}
+}
+
 void FNNMath::DeConv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int stride, int padding, NNScalar* RESTRICT inoutOutput)
 {
 	//CHECK(dimX >= dimXW);
 	//CHECK(dimY >= dimYW);
 
+
+#if 1
+
+	int dimXOutput = (dimX - 1) * stride + dimXW - 2 * padding;
+	int dimYOutput = (dimY - 1) * stride + dimYW - 2 * padding;
+
+	for (int mj = 0; mj < dimY; ++mj)
+	{
+		int baseY = mj * stride - padding;
+		int wjBegin = Math::Max(0, -baseY);
+		int wjEnd = Math::Min(dimYW, dimYOutput - baseY);
+		if (wjBegin >= wjEnd)
+			continue;
+
+		for (int mi = 0; mi < dimX; ++mi)
+		{
+			NNScalar a = m[mj * dimX + mi];
+
+			int baseX = mi * stride - padding;
+			int wiBegin = Math::Max(0, -baseX);
+			int wiEnd = Math::Min(dimXW, dimXOutput - baseX);
+			if (wiBegin >= wiEnd)
+				continue;
+
+			NNScalar* pOut = inoutOutput + (baseY + wjBegin) * dimXOutput + baseX + wiBegin;
+			NNScalar const* pWeight = weight + wjBegin * dimXW + wiBegin;
+
+			for (int wj = wjBegin; wj < wjEnd; ++wj)
+			{
+				FNNMath::VectorMulAdd(wiEnd - wiBegin, pWeight, a, pOut);
+				pOut += dimXOutput;
+				pWeight += dimXW;
+			}
+		}
+	}
+
+#else
+
 	int paddingX = (dimXW - 1) - padding;
-	int paddingY = (dimXW - 1) - padding;
+	int paddingY = (dimYW - 1) - padding;
 
 	int areaDimX = (dimX - 1) * stride + 1;
 	int areaDimY = (dimY - 1) * stride + 1;
@@ -466,28 +717,6 @@ void FNNMath::DeConv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, 
 
 	int weightOffset = dimXW * dimYW - 1;
 
-#if 0
-	for (int mj = 0; mj < dimY; ++mj)
-	{
-		for (int mi = 0; mi < dimX; ++mi)
-		{
-			for (int wj = 0; wj < dimYW; ++wj)
-			{
-				for (int wi = 0; wi < dimXW; ++wi)
-				{
-					float w = weight[weightOffset - (wj * dimXW + wi)];
-					float a = m[mj * dimX + mi];
-
-					int oi = ;
-					int oj = ;
-					inoutOutput[ oj * dimXOutput + oi ] += w * a;
-				}
-			}
-
-		}
-	}
-
-#else
 	for (int oy = 0; oy < dimYOutput; ++oy)
 	{
 		int offY, sizeY;
@@ -551,7 +780,6 @@ void TranformArea(int rowStride, int numSlice, int sliceStride, NNScalar const* 
 	}
 }
 
-
 template< typename TKernel >
 void AreaConvT(NNScalar inoutV[], int rowStride, int numSlice, int numNode, int sliceStride, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
 {
@@ -562,11 +790,7 @@ void AreaConvT(NNScalar inoutV[], int rowStride, int numSlice, int numNode, int 
 	{
 		FNNMath::VectorMulAdd(TKernel::WeightSize * TKernel::WeightSize, area, weight, temp2);
 		area += TKernel::WeightSize * TKernel::WeightSize;
-#if REORDER_WEIGHT
 		weight += numNode * TKernel::WeightSize * TKernel::WeightSize;
-#else
-		weight += TKernel::WeightSize * TKernel::WeightSize;
-#endif
 	}
 
 	NNScalar temp3[TKernel::O * TKernel::WeightSize];
@@ -624,15 +848,10 @@ void FNNMath::TranformAreaF23(int rowStride, int numSlice, int sliceStride, NNSc
 
 void FNNMath::AreaConvF23(int stride, NNScalar inoutV[], int numSlice, int numNode, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
 {
-	NNScalar temp2[4 * 4];
-	FNNMath::Fill(ARRAY_SIZE(temp2), temp2, 0);
+	NNScalar temp2[4 * 4] = { 0 };
 
 	int constexpr WeightLen = WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
-#if REORDER_WEIGHT
 	int WeightStride = numNode * WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
-#else
-	int constexpr WeightStride = WinogradKernel23::WeightSize * WinogradKernel23::WeightSize;
-#endif
 	for (int indexSlice = 0; indexSlice < numSlice; ++indexSlice)
 	{
 		FNNMath::VectorMulAdd(WeightLen, area, weight, temp2);
@@ -720,15 +939,10 @@ void FNNMath::TranformAreaF43(int rowStride, int numSlice, int sliceStride, NNSc
 
 void FNNMath::AreaConvF43(int stride, NNScalar inoutV[], int numSlice, int numNode, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight)
 {
-	NNScalar temp2[6 * 6];
-	FNNMath::Fill(ARRAY_SIZE(temp2), temp2, 0);
+	NNScalar temp2[6 * 6] = { 0 };
 
 	int constexpr WeightLen = WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
-#if REORDER_WEIGHT
 	int WeightStride = numNode * WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
-#else
-	int constexpr WeightStride = WinogradKernel43::WeightSize * WinogradKernel43::WeightSize;
-#endif
 	for (int indexSlice = 0; indexSlice < numSlice; ++indexSlice)
 	{
 		FNNMath::VectorMulAdd(WeightLen, area, weight, temp2);
@@ -882,41 +1096,35 @@ void NNFullConLayout::inference(
 	NNScalar const inputs[], 
 	NNScalar outputs[])  const
 {
+	NNScalar* pInputs;
 	if (mLayers.size() == 1)
 	{
-		NNScalar const* pInputs = inputs;
-		NNScalar* pOutputs = outputs;
-
-		NNLinearLayer const& layer = mLayers.back();
-
-		pInputs = FNNAlgo::Forward(layer, parameters, pInputs, pOutputs);
-		FNNAlgo::Forward(mOutputActiveLayer, layer.getOutputLength(), const_cast<NNScalar*>(pInputs));
+		pInputs = const_cast<NNScalar*>(inputs);
 	}
 	else
 	{
-		NNScalar* pInputs = (NNScalar*)(ALLOCA((2 * getMaxLayerNodeNum()) * sizeof(NNScalar)));
+		pInputs = (NNScalar*)(ALLOCA((2 * getMaxLayerNodeNum()) * sizeof(NNScalar)));
 		NNScalar* pOutputs = pInputs + getMaxLayerNodeNum();
 
-		int inputNum = getInputNum();
 		{
 			auto& layer = mLayers.front();
-			FNNAlgo::Forward(layer, parameters, inputs, pInputs);
-			FNNAlgo::Forward(mHiddenActiveLayer, layer.getOutputLength(), pInputs);
+			FNNAlgo::Inference(layer, parameters, inputs, pInputs);
+			FNNAlgo::Inference(mHiddenActiveLayer, layer.getOutputLength(), pInputs);
 		}
 
 		for (int i = 1; i < mLayers.size() - 1; ++i)
 		{
 			auto& layer = mLayers[i];
-			FNNAlgo::Forward(layer, parameters, pInputs, pOutputs);
-			FNNAlgo::Forward(mHiddenActiveLayer, layer.getOutputLength(), pOutputs);
+			FNNAlgo::Inference(layer, parameters, pInputs, pOutputs);
+			FNNAlgo::Inference(mHiddenActiveLayer, layer.getOutputLength(), pOutputs);
 			std::swap(pInputs, pOutputs);
 		}
+	}
 
-		{
-			auto& layer = mLayers.back();
-			FNNAlgo::Forward(layer, parameters, pInputs, outputs);
-			FNNAlgo::Forward(mOutputActiveLayer, layer.getOutputLength(), outputs);
-		}
+	{
+		auto& layer = mLayers.back();
+		FNNAlgo::Inference(layer, parameters, pInputs, outputs);
+		FNNAlgo::Inference(mOutputActiveLayer, layer.getOutputLength(), outputs);
 	}
 }
 
@@ -954,14 +1162,14 @@ NNScalar* NNFullConLayout::inferenceSignal(
 	NNScalar const inputs[], 
 	NNScalar outputs[]) const
 {
-	NNScalar const* pInputs = inputs;
+	NNScalar* pInputs = const_cast<NNScalar*>(inputs);
 	NNScalar* pOutputs = outputs;
 	for (int i = 0; i < mLayers.size() - 1; ++i)
 	{
 		NNLinearLayer const& layer = mLayers[i];
 
 		pInputs = FNNAlgo::Forward(layer, parameters, pInputs, pOutputs);
-		FNNAlgo::Forward(mHiddenActiveLayer, layer.getOutputLength(), const_cast<NNScalar*>(pInputs));
+		FNNAlgo::Forward(mHiddenActiveLayer, layer.getOutputLength(), pInputs);
 
 		pOutputs += layer.getPassOutputNum();
 	}
@@ -970,10 +1178,10 @@ NNScalar* NNFullConLayout::inferenceSignal(
 		NNLinearLayer const& layer = mLayers.back();
 
 		pInputs = FNNAlgo::Forward(layer, parameters, pInputs, pOutputs);
-		FNNAlgo::Forward(mOutputActiveLayer, layer.getOutputLength(), const_cast<NNScalar*>(pInputs));
+		FNNAlgo::Forward(mOutputActiveLayer, layer.getOutputLength(), pInputs);
 	}
 
-	return const_cast<NNScalar*>(pInputs);
+	return pInputs;
 }
 
 NNScalar* NNFullConLayout::forward(
@@ -1067,11 +1275,7 @@ NNScalar* FNNAlgo::Forward(
 {
 	NNScalar const* pWeight = parameters + layer.weightOffset;
 	NNScalar const* pBias = parameters + layer.biasOffset;
-#if REORDER_WEIGHT
 	FNNMath::VectorMulMatrixAdd(layer.inputLength, layer.numNode, pWeight, inputs, pBias, outputs);
-#else
-	FNNMath::MatrixMulAddVector(layer.numNode, layer.inputLength, pWeight, inputs, pBias, outputs);
-#endif
 	return outputs;
 }
 
@@ -1120,6 +1324,167 @@ void FNNAlgo::Forward(
 	}
 }
 
+NNScalar* FNNAlgo::Forward(NNConvTranspose2DLayer const& layer, NNScalar const parameters[], NNScalar const inputs[], NNScalar outputs[])
+{
+	int numSliceInput = layer.inputSize[2];
+
+	int const nx = layer.dataSize[0];
+	int const ny = layer.dataSize[1];
+
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
+
+	int const sliceInputLength = layer.inputSize[0] * layer.inputSize[1];
+	int const convLength = layer.convSize * layer.convSize;
+	int const nodeOutputLength = nx * ny;
+
+	int const nodeWeightSize = numSliceInput * convLength;
+
+	NNScalar const* pNodeWeight = pWeight;
+
+	CHECK(layer.stride > 0);
+
+	if (layer.stride > 1)
+	{
+		NNScalar* pNodeOutput = outputs;
+		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+		{
+			FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
+			pNodeOutput += nodeOutputLength;
+		}
+
+		NNScalar const* pSliceInput = inputs;
+		for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
+		{
+			pNodeOutput = outputs;
+			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+			{
+				FNNMath::DeConv(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, pNodeWeight, layer.stride, layer.padding, pNodeOutput);
+
+				pNodeOutput += nodeOutputLength;
+				pNodeWeight += convLength;
+			}
+
+			pSliceInput += sliceInputLength;
+		}
+	}
+	else
+	{
+
+#define USE_ROTATE_180_FUNC 1
+#if USE_ROTATE_180_FUNC
+
+#else
+		NNScalar* weightRotated = (NNScalar*)alloca(sizeof(NNScalar) * convLength);
+#endif
+
+		NNScalar* pNodeOutput = outputs;
+		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+		{
+			FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
+			pNodeOutput += nodeOutputLength;
+		}
+
+		NNScalar const* pSliceInput = inputs;
+		for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
+		{
+			pNodeOutput = outputs;
+			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+			{
+#if USE_ROTATE_180_FUNC
+				FNNMath::FullConvRotate180(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, pNodeWeight, pNodeOutput, -layer.padding);
+#else
+				FNNMath::Rotate180(layer.convSize, layer.convSize, pNodeWeight, weightRotated);
+				FNNMath::FullConv(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, weightRotated, layer.stride, pNodeOutput, -layer.padding);
+#endif
+				pNodeOutput += nodeOutputLength;
+				pNodeWeight += convLength;
+			}
+
+			pSliceInput += sliceInputLength;
+		}
+	}
+	return outputs;
+}
+
+
+void FNNAlgo::BackwardLoss(
+	NNConvTranspose2DLayer const& layer,
+	NNScalar const parameters[],
+	NNScalar const inLossGrads[],
+	NNScalar outLossGrads[])
+{
+	CHECK(layer.stride > 0);
+
+	int const numSliceInput = layer.inputSize[2];
+	int const nx = layer.dataSize[0];
+	int const ny = layer.dataSize[1];
+	int const sliceInputLength = layer.inputSize[0] * layer.inputSize[1];
+	int const convLength = layer.convSize * layer.convSize;
+	int const nodeOutputLength = nx * ny;
+
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+
+	FNNMath::Fill(sliceInputLength * numSliceInput, outLossGrads, 0);
+
+	NNScalar* pSliceLossGrad = outLossGrads;
+	NNScalar const* pSliceWeight = pWeight;
+	for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
+	{
+		NNScalar const* pNodeLossGrad = inLossGrads;
+		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+		{
+			FNNMath::Conv(nx, ny, pNodeLossGrad, layer.convSize, layer.convSize, pSliceWeight, layer.stride, layer.padding, pSliceLossGrad);
+			pNodeLossGrad += nodeOutputLength;
+			pSliceWeight += convLength;
+		}
+		pSliceLossGrad += sliceInputLength;
+	}
+}
+
+
+void FNNAlgo::BackwardWeight(
+	NNConvTranspose2DLayer const& layer,
+	NNScalar const inInputs[],
+	NNScalar const inOutputs[],
+	NNScalar const inLossGrads[],
+	NNScalar inoutParameterGrads[])
+{
+	(void)inOutputs;
+	CHECK(layer.stride > 0);
+
+	int const numSliceInput = layer.inputSize[2];
+	int const nx = layer.dataSize[0];
+	int const ny = layer.dataSize[1];
+	int const sliceInputLength = layer.inputSize[0] * layer.inputSize[1];
+	int const convLength = layer.convSize * layer.convSize;
+	int const nodeOutputLength = nx * ny;
+
+	NNScalar* pWeightGrad = inoutParameterGrads + layer.weightOffset;
+	NNScalar* pBiasGrad = inoutParameterGrads + layer.biasOffset;
+
+	NNScalar const* pNodeLossGrad = inLossGrads;
+	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+	{
+		pBiasGrad[idxNode] = FNNMath::Sum(nodeOutputLength, pNodeLossGrad);
+		pNodeLossGrad += nodeOutputLength;
+	}
+
+	NNScalar const* pSliceInput = inInputs;
+	NNScalar* pSliceWeightGrad = pWeightGrad;
+	for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
+	{
+		pNodeLossGrad = inLossGrads;
+		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
+		{
+			DeConvBackwardWeight(layer.inputSize[0], layer.inputSize[1], pSliceInput, nx, ny, pNodeLossGrad, layer.convSize, layer.convSize, layer.stride, layer.padding, pSliceWeightGrad);
+			pNodeLossGrad += nodeOutputLength;
+			pSliceWeightGrad += convLength;
+		}
+		pSliceInput += sliceInputLength;
+	}
+}
+
 // l-1          l
 //             b[l,n] 
 //     w[l,n,k]   z[l,n]          w[l+1,m,n] z[l+1,m]
@@ -1156,61 +1521,15 @@ void FNNAlgo::BackwardWeight(
 	NNScalar const inLossGrads[],
 	NNScalar inoutParameterGrads[])
 {
-#if REORDER_WEIGHT
 	NNScalar* pBiasGrad = inoutParameterGrads + layer.biasOffset;
 	FNNMath::VectorAdd(layer.numNode, pBiasGrad, inLossGrads);
 
 	NNScalar* pWeightGrad = inoutParameterGrads + layer.weightOffset;
 	for (int i = 0; i < layer.inputLength; ++i)
 	{
-#if NN_USE_SIMD
-		FloatVector inputValue(inInputs[i]);
-		int idxNode = 0;
-		for (; idxNode + NumLanes <= layer.numNode; idxNode += NumLanes)
-		{
-			(FloatVector(pWeightGrad + idxNode) + FloatVector(inLossGrads + idxNode) * inputValue).store(pWeightGrad + idxNode);
-		}
-		for (; idxNode < layer.numNode; ++idxNode)
-		{
-			pWeightGrad[idxNode] += inLossGrads[idxNode] * inInputs[i];
-		}
+		FNNMath::VectorMulAdd(layer.numNode, inLossGrads, inInputs[i], pWeightGrad);
 		pWeightGrad += layer.numNode;
-#else
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			*pWeightGrad += inLossGrads[idxNode] * inInputs[i];
-			++pWeightGrad;
-		}
-#endif
 	}
-#else
-	NNScalar* pLayerWeightGrad = inoutParameterGrads + layer.weightOffset;
-	NNScalar* pLayerBiasGrad = inoutParameterGrads + layer.biasOffset;
-	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-	{
-		*pLayerBiasGrad += inLossGrads[idxNode];
-		++pLayerBiasGrad;
-#if NN_USE_SIMD
-		FloatVector lossGrad(inLossGrads[idxNode]);
-		int k = 0;
-		for (; k + NumLanes <= layer.inputLength; k += NumLanes)
-		{
-			(FloatVector(pLayerWeightGrad + k) + FloatVector(inInputs + k) * lossGrad).store(pLayerWeightGrad + k);
-		}
-		for (; k < layer.inputLength; ++k)
-		{
-			pLayerWeightGrad[k] += inLossGrads[idxNode] * inInputs[k];
-		}
-		pLayerWeightGrad += layer.inputLength;
-#else
-		for (int k = 0; k < layer.inputLength; ++k)
-		{
-			*pLayerWeightGrad += inLossGrads[idxNode] * inInputs[k];
-			++pLayerWeightGrad;
-		}
-#endif
-	}
-#endif
 }
 
 void FNNAlgo::Backward(
@@ -1298,11 +1617,7 @@ void FNNAlgo::BackwardLoss(
 	NNScalar outLossGrads[])
 {
 	NNScalar const* pWeight = parameters + layer.weightOffset;
-#if REORDER_WEIGHT
 	FNNMath::MatrixMulVector(layer.inputLength, layer.numNode, pWeight, inLossGrads, outLossGrads);
-#else
-	FNNMath::VectorMulMatrix(layer.numNode, layer.inputLength, pWeight, inLossGrads, outLossGrads);
-#endif
 }
 
 template< typename TKernel >
@@ -1354,11 +1669,7 @@ NNScalar*  ForwardT(
 			{
 				TKernel::AreaConv(nx, pNodeOutput, layer.inputSize.z, layer.numNode, inputTransformed, pNodeWeight);
 				pNodeOutput += nodeOutputLength;
-#if REORDER_WEIGHT
 				pNodeWeight += TKernel::WeightSize * TKernel::WeightSize;
-#else
-				pNodeWeight += nodeWeightLength;
-#endif
 			}
 		}
 	}
@@ -1406,7 +1717,6 @@ NNScalar* FNNAlgo::Forward(
 	NNScalar* pNodeOutput = outputs;
 	NNScalar const* pNodeWeight = pWeight;
 
-#if REORDER_WEIGHT
 	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 	{
 		FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
@@ -1426,29 +1736,6 @@ NNScalar* FNNAlgo::Forward(
 
 		pSliceInput += sliceInputLength;
 	}
-#else
-
-	int const nodeWeightSize = numSliceInput * convLength;
-
-	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-	{
-		NNScalar const* pSliceInput = inputs;
-		NNScalar const* pSliceWeight = pNodeWeight;
-
-		FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
-
-		for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
-		{
-			FNNMath::Conv(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, pSliceWeight, pNodeOutput);
-			pSliceWeight += convLength;
-			pSliceInput += sliceInputLength;
-		}
-
-		pNodeOutput += nodeOutputLength;
-		pNodeWeight += nodeWeightSize;
-	}
-#endif
-
 	return outputs;
 }
 
@@ -1479,7 +1766,6 @@ NNScalar* FNNAlgo::Forward(
 
 	if (layer.padding > 0)
 	{
-#if REORDER_WEIGHT
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{
 			FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
@@ -1499,29 +1785,9 @@ NNScalar* FNNAlgo::Forward(
 
 			pSliceInput += sliceInputLength;
 		}
-#else
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			NNScalar const* pSliceInput = inputs;
-			NNScalar const* pSliceWeight = pNodeWeight;
-
-			FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
-
-			for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
-			{
-				FNNMath::Conv(inputSize[0], inputSize[1], pSliceInput, layer.convSize[0], layer.convSize[1], pSliceWeight, layer.padding, layer.padding, pNodeOutput);
-				pSliceWeight += convLength;
-				pSliceInput += sliceInputLength;
-			}
-
-			pNodeOutput += nodeOutputLength;
-			pNodeWeight += nodeWeightSize;
-		}
-#endif
 	}
 	else
 	{
-#if REORDER_WEIGHT
 		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 		{
 			FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
@@ -1541,25 +1807,6 @@ NNScalar* FNNAlgo::Forward(
 
 			pSliceInput += sliceInputLength;
 		}
-#else
-		for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-		{
-			NNScalar const* pSliceInput = inputs;
-			NNScalar const* pSliceWeight = pNodeWeight;
-
-			FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
-
-			for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
-			{
-				FNNMath::Conv(inputSize[0], inputSize[1], pSliceInput, layer.convSize[0], layer.convSize[1], pSliceWeight, pNodeOutput);
-				pSliceWeight += convLength;
-				pSliceInput += sliceInputLength;
-			}
-
-			pNodeOutput += nodeOutputLength;
-			pNodeWeight += nodeWeightSize;
-		}
-#endif
 	}
 
 	return outputs;
@@ -1581,7 +1828,6 @@ void FNNAlgo::BackwardLoss(
 
 	NNScalar const* pWeight = parameters + layer.weightOffset;
 
-#if REORDER_WEIGHT
 
 #define USE_ROTATE_180_FUNC 1
 
@@ -1611,40 +1857,6 @@ void FNNAlgo::BackwardLoss(
 		}
 		pSliceLossGrad += sliceInputLength;
 	}
-
-#else
-
-#define USE_ROTATE_180_FUNC 1
-
-	NNScalar const* pNodeLossGrad = inLossGrads;
-	NNScalar const* pSliceWeight = pWeight;
-
-	FNNMath::Fill(sliceInputLength * layer.inputSize.z, outLossGrads, 0);
-
-#if USE_ROTATE_180_FUNC
-
-#else
-	NNScalar* weightRotated = (NNScalar*)ALLOCA(sizeof(NNScalar) * convLength);
-#endif
-	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-	{
-		NNScalar* pSliceLossGrad = outLossGrads;
-		for (int idxSlice = 0; idxSlice < layer.inputSize.z; ++idxSlice)
-		{
-#if USE_ROTATE_180_FUNC
-			FNNMath::FullConvRotate180(nx, ny, pNodeLossGrad, layer.convSize, layer.convSize, pSliceWeight, pSliceLossGrad);
-#else
-			FNNMath::Rotate180(layer.convSize, layer.convSize, pSliceWeight, weightRotated);
-			FNNMath::FullConv(nx, ny, pNodeLossGrad, layer.convSize, layer.convSize, weightRotated, pSliceLossGrad);
-#endif
-
-			pSliceWeight += convLength;
-			pSliceLossGrad += sliceInputLength;
-		}
-
-		pNodeLossGrad += nodeOutputLength;
-	}
-#endif
 }
 
 
@@ -1668,8 +1880,6 @@ void FNNAlgo::BackwardWeight(
 	NNScalar* pNodeBiasGrad = inoutParameterGrads + layer.biasOffset;
 	NNScalar const* pNodeLossGrad = inLossGrads;
 
-
-#if REORDER_WEIGHT
 	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
 	{
 		pNodeBiasGrad[idxNode] = FNNMath::Sum(nodeOutputLength, pNodeLossGrad);
@@ -1690,24 +1900,6 @@ void FNNAlgo::BackwardWeight(
 		pSliceInputs += sliceInputLength;
 
 	}
-
-#else
-	for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-	{
-		pNodeBiasGrad[idxNode] = FNNMath::Sum(nodeOutputLength, pNodeLossGrad);
-
-		NNScalar const* pSliceInputs = inInputs;
-		for (int idxSlice = 0; idxSlice < layer.inputSize.z; ++idxSlice)
-		{
-			FNNMath::Conv(layer.inputSize[0], layer.inputSize[1], pSliceInputs, nx, ny, pNodeLossGrad, pNodeWeightGrad);
-			pSliceInputs += sliceInputLength;
-			pNodeWeightGrad += convLength;
-		}
-
-		pNodeLossGrad += nodeOutputLength;
-	}
-#endif
-
 }
 
 NNScalar* FNNAlgo::Forward(
@@ -1930,4 +2122,132 @@ void FNNAlgo::SoftMaxBackward(int inputLength, NNScalar const inInputs[], NNScal
 	}
 }
 
+
+NNScalar* FNNAlgo::Forward(NNBatchNormlizeLayer const& layer, NNScalar const parameters[], NNScalar const inputs[], NNScalar outputs[])
+{
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
+
+	NNScalar const* pInput = inputs;
+	NNScalar* pOutput = outputs;
+	NNScalar* pMean = pOutput + layer.numNode;
+	NNScalar* pVariance = pMean + layer.numNode;
+	for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
+	{
+		NNScalar mean, variance;
+		FNNMath::GetNormalizeParams(layer.batchLength * layer.length, pInput, layer.numNode, mean, variance);
+		*pMean = mean;
+		++pMean;
+		*pVariance = variance;
+		++pVariance;
+
+		for (int i = 0; i < layer.batchLength; ++i)
+		{
+			int index = i * layer.numNode;
+			for (int j = 0; j < layer.length; ++j)
+			{
+				outputs[index + j] = (pInput[index + j] - mean) / Math::Sqrt(variance + 1e-5) * (*pWeight) + (*pBias);
+			}
+
+		}
+
+		++pWeight;
+		++pBias;
+		pInput += layer.length;
+		pOutput += layer.length;
+	}
+
+	return outputs;
+}
+
+void FNNAlgo::BackwardWeight(NNBatchNormlizeLayer const& layer, NNScalar const inInputs[], NNScalar const inLossGrads[], NNScalar inoutParameterGrads[])
+{
+	NNScalar* pWeightGrads = inoutParameterGrads + layer.weightOffset;
+	NNScalar* pBiasGrads = inoutParameterGrads + layer.biasOffset;
+
+	NNScalar const* pInput = inInputs;
+
+	NNScalar const* pInLossGrad = inLossGrads;
+	for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
+	{
+		NNScalar mean, variance;
+		FNNMath::GetNormalizeParams(layer.batchLength, pInput, layer.numNode, mean, variance);
+		for (int i = 0; i < layer.batchLength; ++i)
+		{
+			int index = i * layer.numNode;
+			*pBiasGrads += pInLossGrad[index];
+			*pWeightGrads += pInLossGrad[index] * (pInput[index] - mean) / variance;
+		}
+		++pInLossGrad;
+
+		++pWeightGrads;
+		++pBiasGrads;
+		++pInput;
+	}
+}
+
+void FNNAlgo::BackwardLoss(NNBatchNormlizeLayer const& layer, NNScalar const parameters[], NNScalar const inInputs[], NNScalar const inOutputs[], NNScalar const inLossGrads[], NNScalar outLossGrads[])
+{
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pInput = inInputs;
+	NNScalar const* pInLossGrad = inLossGrads;
+	NNScalar* pLossGrad = outLossGrads;
+
+	for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
+	{
+		NNScalar mean, variance;
+		FNNMath::GetNormalizeParams(layer.batchLength, pInput, layer.numNode, mean, variance);
+		for (int i = 0; i < layer.batchLength; ++i)
+		{
+			int index = i * layer.numNode;
+			//mean = IiEi / N
+			//variance = sqrt( (Ii - mean)(Ii - mean) / N )
+			//Oi = (Ii - mean) / variance * w + b;
+
+			pLossGrad[index] = 0;
+			for (int j = 0; j < layer.batchLength; ++j)
+			{
+				int indexJ = j * layer.numNode;
+				pLossGrad[index] += (((i == j) ? 1 : 0 - 1.0 / layer.numNode) / variance) * (1 - Math::Square((pInput[indexJ] - mean) / variance) / layer.numNode) * *pWeight;
+			}
+		}
+
+		++pLossGrad;
+		++pInLossGrad;
+		++pWeight;
+	}
+}
+
+NNScalar* FNNAlgo::Inference(NNBatchNormlizeLayer const& layer, NNScalar const parameters[], NNScalar const inputs[], NNScalar outputs[])
+{
+	NNScalar const* pWeight = parameters + layer.weightOffset;
+	NNScalar const* pBias = parameters + layer.biasOffset;
+	NNScalar const* pMean = parameters + layer.meanOffset;
+	NNScalar const* pVariance = parameters + layer.varianceOffset;
+
+
+	NNScalar const* pInput = inputs;
+	NNScalar* pOutput = outputs;
+
+	for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
+	{
+		NNScalar mean = *pMean;
+		NNScalar variance = *pVariance;
+		NNScalar invVar = 1.0 / Math::Sqrt(variance + 1e-5);
+		NNScalar alpha = invVar * (*pWeight);
+		NNScalar beta = *pBias - mean * alpha;
+
+		FNNMath::VectorMulAdd(layer.length, pInput, alpha, beta, pOutput);
+		
+		pInput += layer.length;
+		pOutput += layer.length;
+		
+		++pMean;
+		++pVariance;
+		++pWeight;
+		++pBias;
+	}
+
+	return outputs;
+}
 

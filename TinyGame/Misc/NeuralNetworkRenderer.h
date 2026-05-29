@@ -19,7 +19,7 @@ public:
 
 	void drawNode(IGraphics2D& g, Vector2 pos)
 	{
-		g.drawCircle(pos, 10);
+		g.drawCircle(pos, nodeRadius);
 	}
 
 	void drawLink(IGraphics2D& g, Vector2 const& p1, Vector2 const& p2, float width);
@@ -49,16 +49,15 @@ public:
 	float scaleFactor = 1.5;
 	float layerOffset = scaleFactor * 40;
 	float nodeOffset = scaleFactor * 30;
+	float nodeRadius = 8;
 	Vector2 basePos = Vector2(0, 0);
 	NNFullConLayout const& model;
 
 
-	NNScalar* getWeights(int idxLayer, int idxNode)
+	NNScalar getWeight(int idxLayer, int idxNode, int idxInput)
 	{
 		NNLinearLayer const& layer = model.mLayers[idxLayer];
-		NNScalar* result = parameters + layer.weightOffset;
-		result += idxNode * model.getLayerInputNum(idxLayer);
-		return result;
+		return parameters[layer.weightOffset + idxInput * layer.numNode + idxNode];
 	}
 };
 

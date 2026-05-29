@@ -21,326 +21,6 @@ using namespace Render;
 
 #define WEIGHT_VERSION 3
 
-struct NNBatchNormlizeLayer : NeuralLayer
-{
-
-	int getPassOutputLength() const
-	{
-		return 3 * length * numNode;
-	}
-	int getOutputLength() const
-	{
-		return length * numNode;
-	}
-
-
-	int length;
-	int batchLength = 1;
-	int meanOffset;
-	int varianceOffset;
-
-	int setParameterOffset(int offset)
-	{
-		weightOffset = offset;
-		offset += numNode;
-		biasOffset = offset;
-		offset += numNode;
-		meanOffset = offset;
-		offset += numNode;
-		varianceOffset = offset;
-		offset += numNode;
-		return offset;
-	}
-
-	static NNScalar* Inference(
-		NNBatchNormlizeLayer const& layer, NNScalar const* parameters,
-		NNScalar const inputs[],
-		NNScalar outputs[])
-	{
-		NNScalar const* pWeight = parameters + layer.weightOffset;
-		NNScalar const* pBias = parameters + layer.biasOffset;
-		NNScalar const* pMean = parameters + layer.meanOffset;
-		NNScalar const* pVariance = parameters + layer.varianceOffset;
-
-		for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
-		{
-			NNScalar mean = *pMean;
-			NNScalar variance = *pVariance;
-
-			int index = indexInput * layer.length;
-
-			NNScalar invVar = 1.0 / Math::Sqrt(variance + 1e-5);
-			NNScalar alpha = invVar * (*pWeight);
-			NNScalar beta = *pBias - mean * alpha;
-			for (int i = 0; i < layer.length; ++i)
-			{
-				outputs[index] = alpha * inputs[index] + beta;
-				++index;
-			}
-
-			++pMean;
-			++pVariance;
-			++pWeight;
-			++pBias;
-		}
-
-		return outputs;
-	}
-
-	static NNScalar* Forward(
-		NNBatchNormlizeLayer const& layer, NNScalar const* parameters,
-		NNScalar const inputs[],
-		NNScalar outputs[])
-	{
-
-		NNScalar const* pWeight = parameters + layer.weightOffset;
-		NNScalar const* pBias = parameters + layer.biasOffset;
-
-		NNScalar const* pInput = inputs;
-		NNScalar* pOutput = outputs;
-		NNScalar* pMean = pOutput + layer.numNode;
-		NNScalar* pVariance = pMean + layer.numNode;
-		for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
-		{
-			NNScalar mean, variance;
-			FNNMath::GetNormalizeParams(layer.batchLength * layer.length, pInput, layer.numNode, mean, variance);
-			*pMean = mean;
-			++pMean;
-			*pVariance = variance;
-			++pVariance;
-
-			for (int i = 0; i < layer.batchLength; ++i)
-			{
-				int index = i * layer.numNode;
-				for (int j = 0; j < layer.length; ++j)
-				{
-					outputs[index + j] = (pInput[index + j] - mean) / Math::Sqrt(variance + 1e-5) * (*pWeight) + (*pBias);
-				}
-
-			}
-
-			++pWeight;
-			++pBias;
-			pInput += layer.length;
-			pOutput += layer.length;
-		}
-
-		return outputs;
-	}
-
-	static void BackwardLoss(
-		NNBatchNormlizeLayer const& layer, NNScalar const* parameters,
-		NNScalar const inInputs[],
-		NNScalar const inOutputs[],
-		NNScalar const inLossGrads[],
-		NNScalar outLossGrads[])
-	{
-		NNScalar const* pWeight = parameters + layer.weightOffset;
-		NNScalar const* pInput = inInputs;
-		NNScalar const* pInLossGrad = inLossGrads;
-		NNScalar* pLossGrad = outLossGrads;
-
-		for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
-		{
-			NNScalar mean, variance;
-			FNNMath::GetNormalizeParams(layer.batchLength, pInput, layer.numNode, mean, variance);
-			for (int i = 0; i < layer.batchLength; ++i)
-			{
-				int index = i * layer.numNode;
-				//mean = IiEi / N
-				//variance = sqrt( (Ii - mean)(Ii - mean) / N )
-				//Oi = (Ii - mean) / variance * w + b;
-
-				pLossGrad[index] = 0;
-				for (int j = 0; j < layer.batchLength; ++j)
-				{
-					int indexJ = j * layer.numNode;
-					pLossGrad[index] += (((i == j) ? 1 : 0 - 1.0 / layer.numNode) / variance) * (1 - Math::Square((pInput[indexJ] - mean) / variance) / layer.numNode) * *pWeight;
-				}
-			}
-
-			++pLossGrad;
-			++pInLossGrad;
-			++pWeight;
-		}
-
-	}
-
-	static void BackwardWeight(
-		NNBatchNormlizeLayer const& layer,
-		NNScalar const inInputs[],
-		NNScalar const inLossGrads[],
-		NNScalar inoutParameterGrads[])
-	{
-		NNScalar* pWeightGrads = inoutParameterGrads + layer.weightOffset;
-		NNScalar* pBiasGrads = inoutParameterGrads + layer.biasOffset;
-
-		NNScalar const* pInput = inInputs;
-
-		NNScalar const* pInLossGrad = inLossGrads;
-		for (int indexInput = 0; indexInput < layer.numNode; ++indexInput)
-		{
-			NNScalar mean, variance;
-			FNNMath::GetNormalizeParams(layer.batchLength, pInput, layer.numNode, mean, variance);
-			for (int i = 0; i < layer.batchLength; ++i)
-			{
-				int index = i * layer.numNode;
-				*pBiasGrads += pInLossGrad[index];
-				*pWeightGrads += pInLossGrad[index] * (pInput[index] - mean) / variance;
-			}
-			++pInLossGrad;
-
-			++pWeightGrads;
-			++pBiasGrads;
-			++pInput;
-		}
-
-	}
-};;
-
-struct NNConvTranspose2DLayer : NeuralLayer
-{
-	IntVector3 inputSize;
-	IntVector2 dataSize;
-
-
-	int stride;
-	int padding;
-	int convSize;
-
-	void init(IntVector3 const& inInputSize, int inNumNode, int inConvSize, int inPadding = 0, int inStride = 1)
-	{
-		inputSize = inInputSize;
-		convSize = inConvSize;
-		numNode = inNumNode;
-		padding = inPadding;
-		stride = inStride;
-
-		int dilation = 1;
-		dataSize[0] = (inputSize[0] - 1) * stride - 2 * padding + dilation * (convSize - 1) + 1;
-		dataSize[1] = (inputSize[1] - 1) * stride - 2 * padding + dilation * (convSize - 1) + 1;
-	}
-
-
-	static NNScalar* Forward(
-		NNConvTranspose2DLayer const& layer, NNScalar const parameters[],
-		NNScalar const inputs[],
-		NNScalar outputs[])
-	{
-		int numSliceInput = layer.inputSize[2];
-
-		int const nx = layer.dataSize[0];
-		int const ny = layer.dataSize[1];
-
-		NNScalar const* pWeight = parameters + layer.weightOffset;
-		NNScalar const* pBias = parameters + layer.biasOffset;
-
-		int const sliceInputLength = layer.inputSize[0] * layer.inputSize[1];
-		int const convLength = layer.convSize * layer.convSize;
-		int const nodeOutputLength = nx * ny;
-
-		int const nodeWeightSize = numSliceInput * convLength;
-
-
-		NNScalar const* pNodeWeight = pWeight;
-
-
-		if (layer.stride > 0)
-		{
-			NNScalar* pNodeOutput = outputs;
-			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-			{
-				FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
-				pNodeOutput += nodeOutputLength;
-			}
-
-			NNScalar const* pSliceInput = inputs;
-			for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
-			{
-				pNodeOutput = outputs;
-				for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-				{
-					FNNMath::DeConv(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, pNodeWeight, layer.stride, layer.padding, pNodeOutput);
-
-					pNodeOutput += nodeOutputLength;
-					pNodeWeight += convLength;
-				}
-
-				pSliceInput += sliceInputLength;
-			}
-		}
-		else
-		{
-
-#define USE_ROTATE_180_FUNC 1
-#if USE_ROTATE_180_FUNC
-
-#else
-			NNScalar* weightRotated = (NNScalar*)alloca(sizeof(NNScalar) * convLength);
-#endif
-
-			NNScalar* pNodeOutput = outputs;
-			for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-			{
-				FNNMath::Fill(nodeOutputLength, pNodeOutput, pBias[idxNode]);
-				pNodeOutput += nodeOutputLength;
-			}
-
-			NNScalar const* pSliceInput = inputs;
-			for (int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice)
-			{
-				pNodeOutput = outputs;
-				for (int idxNode = 0; idxNode < layer.numNode; ++idxNode)
-				{
-#if USE_ROTATE_180_FUNC
-					FNNMath::FullConvRotate180(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, pNodeWeight, pNodeOutput, -layer.padding);
-#else
-					FNNMath::Rotate180(layer.convSize, layer.convSize, pNodeWeight, weightRotated);
-					FNNMath::FullConv(layer.inputSize[0], layer.inputSize[1], pSliceInput, layer.convSize, layer.convSize, weightRotated, layer.stride, pNodeOutput, -layer.padding);
-#endif
-					pNodeOutput += nodeOutputLength;
-					pNodeWeight += convLength;
-				}
-
-				pSliceInput += sliceInputLength;
-			}	 
-		}
-		return outputs;
-	}
-
-	int getParameterLength() const
-	{
-		return numNode * (inputSize.z * convSize * convSize + 1);
-	}
-
-	int getWeightLength() const
-	{
-		return numNode * (inputSize.z * convSize * convSize);
-	}
-
-	int getPassOutputLength() const
-	{
-		return dataSize[0] * dataSize[1] * numNode;
-	}
-
-	int getOutputLength() const
-	{
-		return dataSize[0] * dataSize[1] * numNode;
-	}
-
-	IntVector3 getOutputSize() const
-	{
-		return IntVector3(dataSize.x, dataSize.y, numNode);
-	}
-
-	int setParameterOffset(int offset)
-	{
-		weightOffset = offset;
-		biasOffset = weightOffset + getWeightLength();
-		return offset + getParameterLength();
-	}
-};
-
 
 template< class T1, class ...Args >
 typename std::common_type< T1, Args... >::type
@@ -435,36 +115,36 @@ struct Model
 		NNScalar* pInput = (NNScalar*)alloca(2 * maxOutputLength * sizeof(NNScalar));
 		NNScalar* pOutput = pInput + maxOutputLength;
 
-		NNConvTranspose2DLayer::Forward(layer1, parameters, inputs, pOutput);
+		FNNAlgo::Inference(layer1, parameters, inputs, pOutput);
 
 		std::swap(pInput, pOutput);
-		NNBatchNormlizeLayer::Inference(layer2, parameters, pInput, pOutput);
-		FNNAlgo::Forward(layerReLU, layer2.getOutputLength(), pOutput);
+		FNNAlgo::Inference(layer2, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layerReLU, layer2.getOutputLength(), pOutput);
 
 		std::swap(pInput, pOutput);
-		NNConvTranspose2DLayer::Forward(layer3, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layer3, parameters, pInput, pOutput);
 
 		std::swap(pInput, pOutput);
-		NNBatchNormlizeLayer::Inference(layer4, parameters, pInput, pOutput);
-		FNNAlgo::Forward(layerReLU, layer4.getOutputLength(), pOutput);
+		FNNAlgo::Inference(layer4, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layerReLU, layer4.getOutputLength(), pOutput);
 
 		std::swap(pInput, pOutput);
-		NNConvTranspose2DLayer::Forward(layer5, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layer5, parameters, pInput, pOutput);
 
 		std::swap(pInput, pOutput);
-		NNBatchNormlizeLayer::Inference(layer6, parameters, pInput, pOutput);
-		FNNAlgo::Forward(layerReLU, layer6.getOutputLength(), pOutput);
+		FNNAlgo::Inference(layer6, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layerReLU, layer6.getOutputLength(), pOutput);
 
 		std::swap(pInput, pOutput);
-		NNConvTranspose2DLayer::Forward(layer7, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layer7, parameters, pInput, pOutput);
 
 		std::swap(pInput, pOutput);
-		NNBatchNormlizeLayer::Inference(layer8, parameters, pInput, pOutput);
-		FNNAlgo::Forward(layerReLU, layer8.getOutputLength(), pOutput);
+		FNNAlgo::Inference(layer8, parameters, pInput, pOutput);
+		FNNAlgo::Inference(layerReLU, layer8.getOutputLength(), pOutput);
 
 		std::swap(pInput, pOutput);
-		NNConvTranspose2DLayer::Forward(layer9, parameters, pInput, outputs);
-		FNNAlgo::Forward(layerTanh, layer9.getOutputLength(), outputs);
+		FNNAlgo::Inference(layer9, parameters, pInput, outputs);
+		FNNAlgo::Inference(layerTanh, layer9.getOutputLength(), outputs);
 	}
 
 	int getMaxOutputLength() const

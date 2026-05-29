@@ -11,7 +11,7 @@
 
 #define USE_NEW_LINE_IDNEX 1
 #define USE_SHAPE_CACHE 1
-#define USE_SPRITE_RENDER 1
+#define USE_SPRITE_RENDER 0
 
 namespace Render
 {

@@ -11,8 +11,6 @@
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 
-#define REORDER_WEIGHT 1
-
 using IntVector2 = TVector2<int>;
 using IntVector3 = TVector3<int>;
 
@@ -442,6 +440,62 @@ struct NNConv2DPaddingLayer : NeuralLayer
 	}
 };
 
+struct NNConvTranspose2DLayer : NeuralLayer
+{
+	IntVector3 inputSize;
+	IntVector2 dataSize;
+
+
+	int stride;
+	int padding;
+	int convSize;
+
+	void init(IntVector3 const& inInputSize, int inNumNode, int inConvSize, int inPadding = 0, int inStride = 1)
+	{
+		inputSize = inInputSize;
+		convSize = inConvSize;
+		numNode = inNumNode;
+		padding = inPadding;
+		stride = inStride;
+
+		int dilation = 1;
+		dataSize[0] = (inputSize[0] - 1) * stride - 2 * padding + dilation * (convSize - 1) + 1;
+		dataSize[1] = (inputSize[1] - 1) * stride - 2 * padding + dilation * (convSize - 1) + 1;
+	}
+
+	int getParameterLength() const
+	{
+		return numNode * (inputSize.z * convSize * convSize + 1);
+	}
+
+	int getWeightLength() const
+	{
+		return numNode * (inputSize.z * convSize * convSize);
+	}
+
+	int getPassOutputLength() const
+	{
+		return dataSize[0] * dataSize[1] * numNode;
+	}
+
+	int getOutputLength() const
+	{
+		return dataSize[0] * dataSize[1] * numNode;
+	}
+
+	IntVector3 getOutputSize() const
+	{
+		return IntVector3(dataSize.x, dataSize.y, numNode);
+	}
+
+	int setParameterOffset(int offset)
+	{
+		weightOffset = offset;
+		biasOffset = weightOffset + getWeightLength();
+		return offset + getParameterLength();
+	}
+};
+
 struct NNMaxPooling2DLayer
 {
 	IntVector2 inputSize;
@@ -492,7 +546,37 @@ struct NNAveragePooling2DLayer
 	}
 };
 
+struct NNBatchNormlizeLayer : NeuralLayer
+{
 
+	int getPassOutputLength() const
+	{
+		return 3 * length * numNode;
+	}
+	int getOutputLength() const
+	{
+		return length * numNode;
+	}
+
+
+	int length;
+	int batchLength = 1;
+	int meanOffset;
+	int varianceOffset;
+
+	int setParameterOffset(int offset)
+	{
+		weightOffset = offset;
+		offset += numNode;
+		biasOffset = offset;
+		offset += numNode;
+		meanOffset = offset;
+		offset += numNode;
+		varianceOffset = offset;
+		offset += numNode;
+		return offset;
+	}
+};
 class FNNMath
 {
 public:
@@ -511,63 +595,26 @@ public:
 	static void VectorAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 	static void VectorSub(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 	// out = a * b + c
-	FORCEINLINE static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out)
-	{
-		for (int i = 0; i < dim; ++i)
-		{
-			out[i] = a[i] * b[i] + c[i];
-		}
-	}
+	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar const* RESTRICT c, NNScalar* RESTRICT out);
+	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar b, NNScalar c, NNScalar* RESTRICT out);
 
-	FORCEINLINE static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout)
-	{
-		for (int i = 0; i < dim; ++i)
-		{
-			inout[i] += a[i] * b[i];
-		}
-	}
+	//inout += a * b
+	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, NNScalar* RESTRICT inout);
+	static void VectorMulAdd(int dim, NNScalar const* RESTRICT a, NNScalar b, NNScalar* RESTRICT inout);
+
 
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b, int bStride);
 	static NNScalar VectorDot(int dim, NNScalar const* RESTRICT a, int aStride, NNScalar const* RESTRICT b, int bStride);
 	static NNScalar VectorDotNOP(int dim, NNScalar const* RESTRICT a, NNScalar const* RESTRICT b);
 
-	FORCEINLINE static void VectorCopy(int dim, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
-	{
-		for (int i = 0; i < dim; ++i)
-		{
-			out[i] = v[i];
-		}
-	}
+	FORCEINLINE static void VectorCopy(int dim, NNScalar const* RESTRICT v, NNScalar* RESTRICT out);
 
-	FORCEINLINE static void Fill(int dim, NNScalar* RESTRICT v, NNScalar value)
-	{
-		for (int i = 0; i < dim; ++i)
-		{
-			v[i] = value;
-		}
-	}
+	FORCEINLINE static void Fill(int dim, NNScalar* RESTRICT v, NNScalar value);
 	static void MatrixMulAddVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
+	static void MatrixMulVector(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out);
 
-	static void MatrixMulVector(int dimRow, int dimCol,  NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
-	{
-		for (int row = 0; row < dimRow; ++row)
-		{
-			out[row] = VectorDot(dimCol, m, v);
-			m += dimCol;
-		}
-	}
-
-	static void VectorMulMatrix(int dimRow,  int dimCol,  NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out)
-	{
-		for (int col = 0; col < dimCol; ++col)
-		{
-			out[col] = VectorDot(dimRow, v, m, dimCol);
-			m += 1;
-		}
-	}
-
-
+	static void VectorMulMatrix(int dimRow,  int dimCol,  NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar* RESTRICT out);
 	static void VectorMulMatrixAdd(int dimRow, int dimCol, NNScalar const* RESTRICT m, NNScalar const* RESTRICT v, NNScalar const* RESTRICT b, NNScalar* RESTRICT out);
 
 	static void MatrixMulMatrix(int dimRow, int dimCol, NNScalar const* RESTRICT m, int dimCol2, NNScalar const* RESTRICT m2, NNScalar* RESTRICT out)
@@ -619,19 +666,15 @@ public:
 	static int SoftMax(int dim, NNScalar const* RESTRICT inputs, NNScalar* outputs);
 	static int SoftMax(int dim, NNScalar* RESTRICT inoutValues);
 
-	static int Max(int dim, NNScalar const* inputs);
+	static int MaxIndex(int dim, NNScalar const* inputs);
+	static FORCEINLINE float Max(int dim, NNScalar const* inputs){ return inputs[MaxIndex(dim, inputs)]; }
 
 	static NNScalar Sum(int dim, NNScalar const* inputs);
-
+	static NNScalar Sum(int dim, NNScalar const* inputs, int stride);
 
 	static void GetNormalizeParams(int dim, NNScalar const* RESTRICT inputs, int stride, NNScalar& outMean, NNScalar& outVariance)
 	{
-		NNScalar mean = 0.0;
-		for (int i = 0; i < dim; ++i)
-		{
-			mean += inputs[i * stride];
-		}
-		mean /= dim;
+		NNScalar mean = Sum(dim, inputs, stride) / dim;
 
 		NNScalar variance = 0;
 		for (int i = 0; i < dim; ++i)
@@ -647,12 +690,7 @@ public:
 
 	static void GetNormalizeParams(int dim, NNScalar const* RESTRICT inputs, NNScalar& outMean, NNScalar& outVariance)
 	{
-		NNScalar mean = 0.0;
-		for( int i = 0; i < dim; ++i)
-		{
-			mean += inputs[i];
-		}
-		mean /= dim;
+		NNScalar mean = Sum(dim, inputs) / dim;
 
 		NNScalar variance = 0;
 		for (int i = 0; i < dim; ++i)
@@ -668,10 +706,7 @@ public:
 
 	static void Normalize(int dim, NNScalar const* RESTRICT inputs, NNScalar mean, NNScalar variance, NNScalar* output)
 	{
-		for (int i = 0; i < dim; ++i)
-		{
-			output[i] = (inputs[i] - mean) / variance;
-		}
+		VectorMulAdd(dim, inputs, 1 / variance, - mean / variance, output);
 	}
 
 	static void Normalize(int dim, NNScalar const* RESTRICT inputs, NNScalar* output)
@@ -741,7 +776,7 @@ public:
 		//int dimYOutput = dimY + dimYW - 1;
 		int paddingX = dimXW + padding - 1;
 		int paddingY = dimYW + padding - 1;
-		Conv(dimX, dimY, m, dimXW, dimYW, weight, paddingX, paddingY, inoutOutput);
+		ConvPadding(dimX, dimY, m, dimXW, dimYW, weight, paddingX, paddingY, inoutOutput);
 	}
 
 	static void ClipToAreaRange(int offset, int size, int wSize, int padding, int& outOffset, int& outSize)
@@ -777,7 +812,7 @@ public:
 		}
 	}
 
-	static FORCEINLINE void Conv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int paddingX, int paddingY, NNScalar* RESTRICT inoutOutput)
+	static FORCEINLINE void ConvPadding(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int paddingX, int paddingY, NNScalar* RESTRICT inoutOutput)
 	{
 		//CHECK(dimX >= dimXW && dimY >= dimYW);
 		CHECK(paddingX > 0 && paddingY > 0);
@@ -882,6 +917,7 @@ public:
 	}
 
 	static void DeConv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int stride, int padding, NNScalar* RESTRICT inoutOutput);
+	static void Conv(int dimX, int dimY, NNScalar const* RESTRICT m, int dimXW, int dimYW, NNScalar const* RESTRICT weight, int stride, int padding, NNScalar* RESTRICT inoutOutput);
 
 	static void TranformAreaF23(int rowStride, int numSlice, int sliceStride, NNScalar const* RESTRICT area, NNScalar* RESTRICT outArea);
 	static void AreaConvF23(int stride, NNScalar inoutV[], int numSlice, int numNode, NNScalar const* RESTRICT area, NNScalar const* RESTRICT weight);
@@ -1019,6 +1055,7 @@ public:
 	int getInputSignalOffset(int idxLayer, bool bHadActiveInput) const;
 	int getOutputSignalOffset(int idxLayer, bool bHadActiveInput) const;
 
+	int getLayerNum() const { return (int)mLayers.size(); }
 	int getHiddenLayerNum() const { return (int)mLayers.size() - 1; }
 	int getInputNum()  const { return mLayers[0].inputLength; }
 
@@ -1111,16 +1148,6 @@ public:
 		NNScalar const inputs[],
 		NNScalar outputs[]);
 
-	static void Forward(
-		NNLSTMLayer const& layer,
-		NNScalar const parameters[],
-		NNScalar const inputs[],
-		NNScalar const prevHiddenState[],
-		NNScalar const prevCellState[],
-		NNScalar outHiddenState[],
-		NNScalar outCellState[],
-		NNScalar outPassOutputs[] = nullptr);
-
 	static void BackwardLoss(
 		NNLinearLayer const& layer, 
 		NNScalar const parameters[], 
@@ -1132,6 +1159,16 @@ public:
 		NNScalar const inInput[], 
 		NNScalar const inLossGrads[],
 		NNScalar inoutParameterGrads[]);
+
+	static void Forward(
+		NNLSTMLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inputs[],
+		NNScalar const prevHiddenState[],
+		NNScalar const prevCellState[],
+		NNScalar outHiddenState[],
+		NNScalar outCellState[],
+		NNScalar outPassOutputs[] = nullptr);
 
 	static void Backward(
 		NNLSTMLayer const& layer,
@@ -1173,6 +1210,25 @@ public:
 		int numSliceInput, int const inputSize[],
 		NNScalar const inputs[],
 		NNScalar outputs[]);
+
+	static NNScalar* Forward(
+		NNConvTranspose2DLayer const& layer, 
+		NNScalar const parameters[],
+		NNScalar const inputs[],
+		NNScalar outputs[]);
+
+	static void BackwardLoss(
+		NNConvTranspose2DLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inLossGrads[],
+		NNScalar outLossGrads[]);
+
+	static void BackwardWeight(
+		NNConvTranspose2DLayer const& layer,
+		NNScalar const inInputs[],
+		NNScalar const inOutputs[],
+		NNScalar const inLossGrads[],
+		NNScalar inoutParameterGrads[]);
 
 	static NNScalar* Forward(
 		NNMaxPooling2DLayer const& layer,
@@ -1231,6 +1287,32 @@ public:
 		NNScalar const inLossGrads[],
 		NNScalar outLossGrads[]);
 
+	static NNScalar* Inference(
+		NNBatchNormlizeLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inputs[],
+		NNScalar outputs[]);
+
+	static NNScalar* Forward(
+		NNBatchNormlizeLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inputs[],
+		NNScalar outputs[]);
+
+	static void BackwardLoss(
+		NNBatchNormlizeLayer const& layer,
+		NNScalar const parameters[],
+		NNScalar const inInputs[],
+		NNScalar const inOutputs[],
+		NNScalar const inLossGrads[],
+		NNScalar outLossGrads[]);
+
+	static void BackwardWeight(
+		NNBatchNormlizeLayer const& layer,
+		NNScalar const inInputs[],
+		NNScalar const inLossGrads[],
+		NNScalar inoutParameterGrads[]);
+
 
 	template< typename TKernel >
 	static void ConvertWeights(NNScalar const inWeights[], NNScalar outWeights[])
@@ -1239,11 +1321,22 @@ public:
 
 		NNScalar temp[TKernel::WeightSize * TKernel::ConvSize];
 		FNNMath::MatrixMulMatrix(TKernel::WeightSize, TKernel::ConvSize, TKernel::G, TKernel::ConvSize, inWeights, temp);
-#if REORDER_WEIGHT
 		FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, outWeights);
-#else
-		FNNMath::MatrixMulMatrixT(TKernel::WeightSize, TKernel::ConvSize, temp, TKernel::WeightSize, TKernel::G, outWeights);
-#endif
+	}
+
+	template< typename TLayer>
+	FORCEINLINE static NNScalar* Inference(TLayer const& layer, 
+		NNScalar const parameters[],
+		NNScalar inputs[],
+		NNScalar outputs[])
+	{
+		return Inference(layer, parameters, (NNScalar const*)inputs, outputs);
+	}
+
+	template< typename TLayer, typename ...Ts >
+	FORCEINLINE static NNScalar* Inference(TLayer const& layer, Ts ...ts)
+	{
+		return Forward(layer, ts...);
 	}
 };
 

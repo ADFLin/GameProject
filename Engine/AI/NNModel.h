@@ -6,6 +6,10 @@
 #include "NeuralNetwork.h"
 #include "Math/TVector3.h"
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+
 namespace NNModel
 {
 	using IntVector3 = TVector3<int>;
@@ -14,12 +18,12 @@ namespace NNModel
 	struct SetupContext
 	{
 		IntVector3 inputSize;
-		int parameterOffset;
+		int parameterOffset = 0;
 
 		IntVector3 nodeInputSize;
 		IntVector3 nodeOutputSize;
-		int nodePassOutputNum;
-		int nodeParameterNum;
+		int nodePassOutputNum = 0;
+		int nodeParameterNum = 0;
 	};
 
 	FORCEINLINE int GetLength(IntVector3 const& size)
@@ -31,33 +35,45 @@ namespace NNModel
 		return result;
 	}
 
-	struct FowrwardContext
+	struct InferenceContext
 	{
 		IntVector3 inputSize;
-		NNScalar*  parameters;
-		NNScalar*  inputs;
-		NNScalar*  outputs;
+		NNScalar const* parameters = nullptr;
+		NNScalar const* inputs = nullptr;
+		NNScalar* outputs = nullptr;
 
+		int tempDataSize = 0;
+		NNScalar* tempData = nullptr;
+	};
+
+	struct ForwardContext
+	{
+		IntVector3 inputSize;
+		NNScalar const* parameters = nullptr;
+		NNScalar const* inputs = nullptr;
+		NNScalar* outputs = nullptr;
 	};
 
 	struct BackwardContext
 	{
 		IntVector3 inputSize;
-		NNScalar* parameters;
-		NNScalar* inputs;
-		NNScalar* outputs;
+		NNScalar const* parameters = nullptr;
+		NNScalar const* inputs = nullptr;
+		NNScalar const* outputs = nullptr;
 
-		NNScalar* parameterGrads;
-		NNScalar* lossGradsInput;
-		NNScalar* lossGrads;
-		NNScalar* lossGradsOutput;
+		NNScalar* parameterGrads = nullptr;
+		NNScalar const* lossGradsInput = nullptr;
+		NNScalar* lossGrads = nullptr;
+		NNScalar* lossGradsOutput = nullptr;
 	};
 
 	class IExprNode
 	{
 	public:
+		virtual ~IExprNode() = default;
 		virtual void setup(SetupContext& context) = 0;
-		virtual NNScalar* forward(FowrwardContext& context) = 0;
+		virtual NNScalar* inference(InferenceContext& context) = 0;
+		virtual NNScalar* forward(ForwardContext& context) = 0;
 		virtual void backward(BackwardContext& context) = 0;
 	};
 
@@ -66,28 +82,41 @@ namespace NNModel
 	{
 	};
 
-
 	class TransformExprNode : public IExprNode
 		                     ,public NNTransformLayer
 	{
 	public:
-		virtual void setup(SetupContext& context)
+		TransformExprNode() = default;
+		TransformExprNode(NNTransformLayer const& layer)
+			: NNTransformLayer(layer)
+		{
+		}
+
+		virtual void setup(SetupContext& context) override
 		{
 			int len = GetLength(context.inputSize);
 			context.nodeParameterNum = 0;
 			context.nodeInputSize = IntVector3(len, 0, 0);
 			context.nodeOutputSize = context.nodeInputSize;
 			context.nodePassOutputNum = len;
-
 		}
-		virtual NNScalar* forwardPass(FowrwardContext& context)
+
+		virtual NNScalar* inference(InferenceContext& context) override
+		{
+			return FNNAlgo::Inference(*this, context.inputSize.x, context.inputs, context.outputs);
+		}
+
+		virtual NNScalar* forward(ForwardContext& context) override
 		{
 			return FNNAlgo::Forward(*this, context.inputSize.x, context.inputs, context.outputs);
 		}
 
-		virtual void backwardPass(BackwardContext& context)
+		virtual void backward(BackwardContext& context) override
 		{
-			FNNAlgo::Backward(*this, context.inputSize.x, context.inputs, context.lossGradsInput, context.lossGrads);
+			if (context.lossGrads == nullptr)
+				return;
+
+			FNNAlgo::Backward(*this, context.inputSize.x, context.inputs, context.outputs, context.lossGradsInput, context.lossGrads);
 		}
 	};
 	template<>
@@ -96,25 +125,37 @@ namespace NNModel
 	class LinearExprNode : public IExprNode
 	{
 	public:
-		virtual void setup(SetupContext& context)
+		LinearExprNode() = default;
+		LinearExprNode(NNLinearLayer const& layer)
+			: mLayer(layer)
+		{
+		}
+
+		virtual void setup(SetupContext& context) override
 		{
 			int inputLength = GetLength(context.inputSize);
+			mLayer.inputLength = inputLength;
 
-			mLayer.biasOffset = context.parameterOffset;
-			mLayer.weightOffset = mLayer.biasOffset + mLayer.numNode;
+			mLayer.weightOffset = context.parameterOffset;
+			mLayer.biasOffset = mLayer.weightOffset + mLayer.getWeightLength();
 
-			context.nodeParameterNum = mLayer.getParameterLength(inputLength);
+			context.nodeParameterNum = mLayer.getParameterLength();
 			context.nodeInputSize = IntVector3(inputLength, 0, 0);
 			context.nodeOutputSize = IntVector3(mLayer.numNode, 0, 0);
 			context.nodePassOutputNum = mLayer.getPassOutputNum();
 		}
 
-		virtual NNScalar* forwardPass(FowrwardContext& context)
+		virtual NNScalar* inference(InferenceContext& context) override
+		{
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+		}
+
+		virtual NNScalar* forward(ForwardContext& context) override
 		{
 			return FNNAlgo::Forward(mLayer, context.parameters, context.inputs, context.outputs);
 		}
 
-		virtual void backwardPass(BackwardContext& context)
+		virtual void backward(BackwardContext& context) override
 		{
 			FNNAlgo::BackwardWeight(mLayer, context.inputs, context.lossGradsInput, context.parameterGrads);
 			if (context.lossGrads)
@@ -131,30 +172,45 @@ namespace NNModel
 	class Conv2DExprNode : public IExprNode
 	{
 	public:
-		virtual void setup(SetupContext& context)
+		Conv2DExprNode() = default;
+		Conv2DExprNode(NNConv2DLayer const& layer)
+			: mLayer(layer)
 		{
+		}
+
+		virtual void setup(SetupContext& context) override
+		{
+			mLayer.inputSize = context.inputSize;
 			mLayer.dataSize[0] = context.inputSize.x - mLayer.convSize + 1;
 			mLayer.dataSize[1] = context.inputSize.y - mLayer.convSize + 1;
 
-			mLayer.biasOffset = context.parameterOffset;
-			mLayer.weightOffset = mLayer.biasOffset + mLayer.numNode;
+			mLayer.weightOffset = context.parameterOffset;
+			mLayer.biasOffset = mLayer.weightOffset + mLayer.getWeightLength();
 
 			CHECK(context.inputSize.z > 0);
-			context.nodeParameterNum = mLayer.getParameterLength(context.inputSize.z);
-
+			context.nodeParameterNum = mLayer.getParameterLength();
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = IntVector3(mLayer.dataSize[0], mLayer.dataSize[1], mLayer.numNode);
-
+			context.nodePassOutputNum = mLayer.getPassOutputLength();
 		}
-		virtual NNScalar* forwardPass(FowrwardContext& context)
+
+		virtual NNScalar* inference(InferenceContext& context) override
 		{
-
-
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
 		}
-		virtual void backwardPass(BackwardContext& context)
+
+		virtual NNScalar* forward(ForwardContext& context) override
 		{
+			return FNNAlgo::Forward(mLayer, context.parameters, context.inputs, context.outputs);
+		}
 
-
+		virtual void backward(BackwardContext& context) override
+		{
+			FNNAlgo::BackwardWeight(mLayer, context.inputs, context.outputs, context.lossGradsInput, context.parameterGrads);
+			if (context.lossGrads)
+			{
+				FNNAlgo::BackwardLoss(mLayer, context.parameters, context.lossGradsInput, context.lossGrads);
+			}
 		}
 
 		NNConv2DLayer mLayer;
@@ -162,32 +218,214 @@ namespace NNModel
 	template<>
 	struct TLayerTraits< NNConv2DLayer > { using ExprNode = Conv2DExprNode; };
 
-
-
-
-	struct Sequence
+	class ConvTranspose2DExprNode : public IExprNode
 	{
+	public:
+		ConvTranspose2DExprNode() = default;
+		ConvTranspose2DExprNode(NNConvTranspose2DLayer const& layer)
+			: mLayer(layer)
+		{
+		}
+
+		virtual void setup(SetupContext& context) override
+		{
+			mLayer.init(context.inputSize, mLayer.numNode, mLayer.convSize, mLayer.padding, mLayer.stride);
+			mLayer.setParameterOffset(context.parameterOffset);
+
+			context.nodeParameterNum = mLayer.getParameterLength();
+			context.nodeInputSize = context.inputSize;
+			context.nodeOutputSize = mLayer.getOutputSize();
+			context.nodePassOutputNum = mLayer.getPassOutputLength();
+		}
+
+		virtual NNScalar* inference(InferenceContext& context) override
+		{
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+		}
+
+		virtual NNScalar* forward(ForwardContext& context) override
+		{
+			return FNNAlgo::Forward(mLayer, context.parameters, context.inputs, context.outputs);
+		}
+
+		virtual void backward(BackwardContext& context) override
+		{
+			FNNAlgo::BackwardWeight(mLayer, context.inputs, context.outputs, context.lossGradsInput, context.parameterGrads);
+			if (context.lossGrads)
+			{
+				FNNAlgo::BackwardLoss(mLayer, context.parameters, context.lossGradsInput, context.lossGrads);
+			}
+		}
+
+		NNConvTranspose2DLayer mLayer;
+	};
+	template<>
+	struct TLayerTraits< NNConvTranspose2DLayer > { using ExprNode = ConvTranspose2DExprNode; };
+
+	class MaxPooling2DExprNode : public IExprNode
+	{
+	public:
+		MaxPooling2DExprNode() = default;
+		MaxPooling2DExprNode(NNMaxPooling2DLayer const& layer)
+			: mLayer(layer)
+		{
+		}
+
+		virtual void setup(SetupContext& context) override
+		{
+			mLayer.init(context.inputSize, mLayer.poolSize);
+
+			context.nodeParameterNum = 0;
+			context.nodeInputSize = context.inputSize;
+			context.nodeOutputSize = IntVector3(mLayer.dataSize[0], mLayer.dataSize[1], mLayer.numNode);
+			context.nodePassOutputNum = mLayer.getOutputLength();
+		}
+
+		virtual NNScalar* inference(InferenceContext& context) override
+		{
+			return FNNAlgo::Inference(mLayer, context.inputs, context.outputs);
+		}
+
+		virtual NNScalar* forward(ForwardContext& context) override
+		{
+			return FNNAlgo::Forward(mLayer, context.inputs, context.outputs);
+		}
+
+		virtual void backward(BackwardContext& context) override
+		{
+			if (context.lossGrads == nullptr)
+				return;
+
+			FNNAlgo::Backward(mLayer, context.inputs, context.outputs, context.lossGradsInput, context.lossGrads);
+		}
+
+		NNMaxPooling2DLayer mLayer;
+	};
+	template<>
+	struct TLayerTraits< NNMaxPooling2DLayer > { using ExprNode = MaxPooling2DExprNode; };
+
+	class AveragePooling2DExprNode : public IExprNode
+	{
+	public:
+		AveragePooling2DExprNode() = default;
+		AveragePooling2DExprNode(NNAveragePooling2DLayer const& layer)
+			: mLayer(layer)
+		{
+		}
+
+		virtual void setup(SetupContext& context) override
+		{
+			mLayer.init(context.inputSize, mLayer.poolSize);
+
+			context.nodeParameterNum = 0;
+			context.nodeInputSize = context.inputSize;
+			context.nodeOutputSize = IntVector3(mLayer.dataSize[0], mLayer.dataSize[1], mLayer.numNode);
+			context.nodePassOutputNum = mLayer.getOutputLength();
+		}
+
+		virtual NNScalar* inference(InferenceContext& context) override
+		{
+			return FNNAlgo::Inference(mLayer, context.inputs, context.outputs);
+		}
+
+		virtual NNScalar* forward(ForwardContext& context) override
+		{
+			return FNNAlgo::Forward(mLayer, context.inputs, context.outputs);
+		}
+
+		virtual void backward(BackwardContext& context) override
+		{
+			if (context.lossGrads == nullptr)
+				return;
+
+			FNNAlgo::Backward(mLayer, context.lossGradsInput, context.lossGrads);
+		}
+
+		NNAveragePooling2DLayer mLayer;
+	};
+	template<>
+	struct TLayerTraits< NNAveragePooling2DLayer > { using ExprNode = AveragePooling2DExprNode; };
+
+	class BatchNormalizeExprNode : public IExprNode
+	{
+	public:
+		BatchNormalizeExprNode() = default;
+		BatchNormalizeExprNode(NNBatchNormlizeLayer const& layer)
+			: mLayer(layer)
+		{
+		}
+
+		virtual void setup(SetupContext& context) override
+		{
+			mLayer.numNode = context.inputSize.z ? context.inputSize.z : GetLength(context.inputSize);
+			mLayer.length = GetLength(context.inputSize) / mLayer.numNode;
+			mLayer.setParameterOffset(context.parameterOffset);
+
+			context.nodeParameterNum = 4 * mLayer.numNode;
+			context.nodeInputSize = context.inputSize;
+			context.nodeOutputSize = context.inputSize;
+			context.nodePassOutputNum = mLayer.getPassOutputLength();
+		}
+
+		virtual NNScalar* inference(InferenceContext& context) override
+		{
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+		}
+
+		virtual NNScalar* forward(ForwardContext& context) override
+		{
+			return FNNAlgo::Forward(mLayer, context.parameters, context.inputs, context.outputs);
+		}
+
+		virtual void backward(BackwardContext& context) override
+		{
+			FNNAlgo::BackwardWeight(mLayer, context.inputs, context.lossGradsInput, context.parameterGrads);
+			if (context.lossGrads)
+			{
+				FNNAlgo::BackwardLoss(mLayer, context.parameters, context.inputs, context.outputs, context.lossGradsInput, context.lossGrads);
+			}
+		}
+
+		NNBatchNormlizeLayer mLayer;
+	};
+	template<>
+	struct TLayerTraits< NNBatchNormlizeLayer > { using ExprNode = BatchNormalizeExprNode; };
+
+	struct Sequence : public IExprNode
+	{
+		Sequence() = default;
+
 		template< typename ...TNNLayers >
 		Sequence(TNNLayers&& ...layers)
 		{
-			addLayer(layers)...;
+			(addLayer(std::forward<TNNLayers>(layers)), ...);
 		}
-
 
 		template< typename TNNLayer >
 		void addLayer(TNNLayer&& layer)
 		{
-			using ExprNodeType = TLayerTraits<TNNLayer>::ExprNode;
+			using LayerType = std::decay_t<TNNLayer>;
+			using ExprNodeType = typename TLayerTraits<LayerType>::ExprNode;
 
-			ExprNodeType exprNode = new ExprNodeType(layer);
-			mNodes.push_back(exprNode);
+			Node node;
+			node.expr = std::make_unique<ExprNodeType>(std::forward<TNNLayer>(layer));
+			mNodes.push_back(std::move(node));
 		}
 
-		virtual void setup(SetupContext& context)
+		void setup(SetupContext& context)
 		{
+			if (mNodes.empty())
+			{
+				context.nodeParameterNum = 0;
+				context.nodeInputSize = context.inputSize;
+				context.nodeOutputSize = context.inputSize;
+				context.nodePassOutputNum = 0;
+				return;
+			}
+
 			SetupContext childContext;
 			childContext.inputSize = context.inputSize;
-			childContext.parameterOffset = 0;
+			childContext.parameterOffset = context.parameterOffset;
 
 			int passOutputOffset = 0;
 
@@ -197,21 +435,60 @@ namespace NNModel
 				node.expr->setup(childContext);
 
 				node.inputSize = childContext.nodeInputSize;
+				node.outputSize = childContext.nodeOutputSize;
 				node.passOutputOffset = passOutputOffset;
+				node.passOutputNum = childContext.nodePassOutputNum;
 				passOutputOffset += childContext.nodePassOutputNum;
 
 				childContext.parameterOffset += childContext.nodeParameterNum;
 				childContext.inputSize = childContext.nodeOutputSize;
 			}
 
+			context.nodeParameterNum = childContext.parameterOffset - context.parameterOffset;
 			context.parameterOffset = childContext.parameterOffset;
-			context.nodeInputSize = context.nodeInputSize;
+			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = childContext.nodeOutputSize;
+			context.nodePassOutputNum = passOutputOffset;
 		}
 
-		virtual NNScalar* forward(FowrwardContext& context)
+		NNScalar* inference(InferenceContext& context)
 		{
-			FowrwardContext childContext;
+			if (mNodes.empty())
+				return const_cast<NNScalar*>(context.inputs);
+
+			NNScalar* nodeOutputs = context.tempData ? context.tempData : context.outputs;
+			CHECK(nodeOutputs);
+			CHECK(context.tempData == nullptr || context.tempDataSize >= mNodes.back().passOutputOffset + mNodes.back().passOutputNum);
+
+			InferenceContext childContext;
+			childContext.inputs = context.inputs;
+			childContext.parameters = context.parameters;
+
+			for (int i = 0; i < mNodes.size(); ++i)
+			{
+				auto& node = mNodes[i];
+				childContext.outputs = nodeOutputs + node.passOutputOffset;
+				childContext.inputSize = node.inputSize;
+				childContext.inputs = node.expr->inference(childContext);
+			}
+
+			NNScalar* result = const_cast<NNScalar*>(childContext.inputs);
+			if (context.outputs && context.outputs != result)
+			{
+				int outputLength = GetLength(mNodes.back().outputSize);
+				for (int i = 0; i < outputLength; ++i)
+				{
+					context.outputs[i] = result[i];
+				}
+				result = context.outputs;
+			}
+
+			return result;
+		}
+
+		NNScalar* forward(ForwardContext& context)
+		{
+			ForwardContext childContext;
 			childContext.inputs = context.inputs;
 			childContext.parameters = context.parameters;
 
@@ -223,56 +500,41 @@ namespace NNModel
 				childContext.inputs = node.expr->forward(childContext);
 			}
 
-			return childContext.inputs;
+			return const_cast<NNScalar*>(childContext.inputs);
 		}
 
-		virtual NNScalar* forwardPsss(FowrwardContext& context)
+		void backward(BackwardContext& context)
 		{
-			FowrwardContext childContext;
-			childContext.inputs = context.inputs;
-			childContext.parameters = context.parameters;
+			if (mNodes.empty())
+				return;
 
-			for (int i = 0; i < mNodes.size(); ++i)
-			{
-				auto& node = mNodes[i];
-				childContext.outputs = context.outputs + node.passOutputOffset;
-				childContext.inputSize = node.inputSize;
-				childContext.inputs = node.expr->forward(childContext);
-			}
+			CHECK(mNodes.size() == 1 || context.lossGrads);
 
-			return childContext.inputs;
-		}
-
-		virtual void backwardPass(BackwardContext& context)
-		{
 			BackwardContext childContext;
 			childContext.parameters = context.parameters;
 			childContext.parameterGrads = context.parameterGrads;
 
-			childContext.lossGradsInput = childContext.lossGradsInput;
-			childContext.lossGrads = childContext.lossGrads;
-			childContext.lossGradsOutput = childContext.lossGrads;
-			for (int i = mNodes.size() - 1; i > 0; --i)
+			for (int i = int(mNodes.size()) - 1; i >= 0; --i)
 			{
 				auto& node = mNodes[i];
 
+				childContext.inputSize = node.inputSize;
+				childContext.inputs = (i == 0) ? context.inputs : context.outputs + mNodes[i - 1].passOutputOffset;
 				childContext.outputs = context.outputs + node.passOutputOffset;
-				childContext.lossGrads = context.lossGrads + node.passOutputOffset;
+				childContext.lossGradsInput = (i + 1 == int(mNodes.size())) ? context.lossGradsInput : context.lossGrads + node.passOutputOffset;
+				childContext.lossGrads = (i == 0) ? context.lossGradsOutput : context.lossGrads + mNodes[i - 1].passOutputOffset;
 
 				node.expr->backward(childContext);
-
-				childContext.lossGradsInput = childContext.lossGradsOutput;
 			}
-
-			childContext.inputs = context.inputs;
-			childContext.lossGrads = context.lossGrads;
-			mNodes[0].expr->backward(childContext);
 		}
+
 		struct Node
 		{
-			IExprNode* expr;
+			std::unique_ptr<IExprNode> expr;
 			IntVector3 inputSize;
-			int        passOutputOffset;
+			IntVector3 outputSize;
+			int passOutputOffset = 0;
+			int passOutputNum = 0;
 		};
 
 		TArray< Node > mNodes;

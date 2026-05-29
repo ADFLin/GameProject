@@ -3,6 +3,7 @@
 #include "GameRenderSetup.h"
 
 #include "AI/NeuralNetwork.h"
+#include "AI/NNModel.h"
 #include "AI/NNTrain.h"
 
 #include "RHI/RHICommand.h"
@@ -15,7 +16,7 @@
 
 #include <random>
 
-
+#define USE_NNMODEL 0
 
 float TestFunc(float x)
 {
@@ -41,9 +42,16 @@ class CurveFitTestStage : public StageBase
 public:
 	CurveFitTestStage() {}
 
-
+#if USE_NNMODEL
+	NNModel::Sequence mModel;
+	NNModel::SetupContext mModelSetupContext;
+#else
 	NNFullConLayout mLayout;
+#endif
 	TArray< NNScalar > mParameters;
+#if USE_NNMODEL
+	TArray< NNScalar > mInferenceOutputs;
+#endif
 
 	struct TrainData
 	{
@@ -53,6 +61,15 @@ public:
 		TArray< NNScalar > batchNormParameters;
 		NNScalar loss;
 
+#if USE_NNMODEL
+		void init(NNModel::SetupContext const& setupContext, int batchSize = 1)
+		{
+			batchSize = 1;
+			outputs.resize(batchSize * setupContext.nodePassOutputNum);
+			lossGrads.resize(batchSize * setupContext.nodePassOutputNum);
+			parameterGrads.resize(setupContext.nodeParameterNum);
+		}
+#else
 		void init(NNFullConLayout& layout, int batchSize = 1)
 		{
 			batchSize = 1;
@@ -60,6 +77,7 @@ public:
 			lossGrads.resize(batchSize * layout.getTempLossGradLength());
 			parameterGrads.resize(layout.getParameterLength());
 		}
+#endif
 
 		void reset()
 		{
@@ -101,21 +119,47 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		int size = 64;
+#if USE_NNMODEL
+		mModel.addLayer(MakeLinearLayer(size));
+		mModel.addLayer(MakeTransformLayer<NNFunc::ReLU>());
+		mModel.addLayer(MakeLinearLayer(2 * size));
+		mModel.addLayer(MakeTransformLayer<NNFunc::ReLU>());
+		mModel.addLayer(MakeLinearLayer(2 * size));
+		mModel.addLayer(MakeTransformLayer<NNFunc::ReLU>());
+		mModel.addLayer(MakeLinearLayer(size));
+		mModel.addLayer(MakeTransformLayer<NNFunc::ReLU>());
+		mModel.addLayer(MakeLinearLayer(1));
+
+		mModelSetupContext.inputSize = NNModel::IntVector3(1, 0, 0);
+		mModelSetupContext.parameterOffset = 0;
+		mModel.setup(mModelSetupContext);
+#else
 		uint32 topology[] = { 1, size,  2 * size, 2 * size, size, 1 };
 		mLayout.init(topology);
 		mLayout.setHiddenLayerTransform<NNFunc::ReLU>();
 		mLayout.setOutputLayerTransform<NNFunc::Linear>();
+#endif
 
 
+#if USE_NNMODEL
+		mParameters.resize(mModelSetupContext.nodeParameterNum);
+		mOptimizer.init(mModelSetupContext.nodeParameterNum);
+		mInferenceOutputs.resize(mModelSetupContext.nodePassOutputNum);
+#else
 		mParameters.resize(mLayout.getParameterLength());
 		mOptimizer.init(mLayout.getParameterLength());
+#endif
 
 
 		int workerNum = 16;
 		for (int i = 0; i < workerNum; ++i)
 		{
 			mThreadTrainDatas.push_back(std::make_unique<TrainData>());
+#if USE_NNMODEL
+			mThreadTrainDatas.back()->init(mModelSetupContext, bUseBatchNormaliztion ? (i == 0 ? mBatchSize : 1) : 1);
+#else
 			mThreadTrainDatas.back()->init(mLayout , bUseBatchNormaliztion ? (i == 0 ? mBatchSize : 1) : 1);
+#endif
 		}
 		mPool.init(workerNum);
 
@@ -127,6 +171,24 @@ public:
 		generateFuncCurve();
 		return true;
 	}
+
+#if USE_NNMODEL
+	static NNLinearLayer MakeLinearLayer(int numNode)
+	{
+		NNLinearLayer layer;
+		layer.numNode = numNode;
+		return layer;
+	}
+
+	template< typename FuncType >
+	static NNTransformLayer MakeTransformLayer()
+	{
+		NNTransformLayer layer;
+		layer.setFuncionT<FuncType>();
+		return layer;
+	}
+#endif
+
 	static NNScalar RandFloat(NNScalar min, NNScalar max)
 	{
 		return min + (max - min) * NNScalar(::rand()) / RAND_MAX;
@@ -229,16 +291,52 @@ public:
 
 	using LossFunc = FRMSELoss;
 
+#if USE_NNMODEL
+	NNScalar inference(NNScalar const* inputs)
+	{
+		NNModel::InferenceContext inferenceContext;
+		inferenceContext.inputSize = mModelSetupContext.inputSize;
+		inferenceContext.parameters = mParameters.data();
+		inferenceContext.inputs = inputs;
+		inferenceContext.tempData = mInferenceOutputs.data();
+		inferenceContext.tempDataSize = int(mInferenceOutputs.size());
+		NNScalar const* outputs = mModel.inference(inferenceContext);
+		return outputs[0];
+	}
+#endif
+
 	NNScalar fit(SampleData const& sample, TrainData& trainData)
 	{
+#if USE_NNMODEL
+		NNModel::ForwardContext forwardContext;
+		forwardContext.inputSize = mModelSetupContext.inputSize;
+		forwardContext.parameters = mParameters.data();
+		forwardContext.inputs = &sample.input;
+		forwardContext.outputs = trainData.outputs.data();
+		NNScalar const* pOutput = mModel.forward(forwardContext);
+#else
 		NNScalar const* pOutput = mLayout.forward(mParameters.data(), &sample.input, trainData.outputs.data());
+#endif
 		NNScalar lossGrads[1];
 		FNNMath::Fill(1, lossGrads, 0);
 		
 		lossGrads[0] = LossFunc::CalcDevivative(pOutput[0], sample.label);
 		NNScalar loss = LossFunc::Calc(pOutput[0], sample.label);
 
+#if USE_NNMODEL
+		NNModel::BackwardContext backwardContext;
+		backwardContext.inputSize = mModelSetupContext.inputSize;
+		backwardContext.parameters = mParameters.data();
+		backwardContext.inputs = &sample.input;
+		backwardContext.outputs = trainData.outputs.data();
+		backwardContext.parameterGrads = trainData.parameterGrads.data();
+		backwardContext.lossGradsInput = lossGrads;
+		backwardContext.lossGrads = trainData.lossGrads.data();
+		backwardContext.lossGradsOutput = nullptr;
+		mModel.backward(backwardContext);
+#else
 		mLayout.backward(mParameters.data(), &sample.input, trainData.outputs.data(), lossGrads, trainData.lossGrads, trainData.parameterGrads.data());
+#endif
 #if 0
 		static int GCount = 0;
 		++GCount;
@@ -364,9 +462,14 @@ public:
 		NNScalar lossTest = 0.0;
 		for (auto const& sample : mTestSamples)
 		{
+#if USE_NNMODEL
+			NNScalar output = inference(&sample.input);
+#else
 			NNScalar outputs[1];
 			mLayout.inference(mParameters.data(), &sample.input, outputs);
-			lossTest += LossFunc::Calc(outputs[0], sample.label);
+			NNScalar output = outputs[0];
+#endif
+			lossTest += LossFunc::Calc(output, sample.label);
 		}
 		lossTest /= mTestSamples.size();
 		mTestLossPoints.emplace_back(float(mEpoch), log10(lossTest));
@@ -415,9 +518,13 @@ public:
 		{
 			NNScalar inputs[1];
 			inputs[0] = x * mInputScale;
+#if USE_NNMODEL
+			return inference(inputs);
+#else
 			NNScalar outputs[1];
 			mLayout.inference(mParameters.data(), inputs, outputs);
 			return outputs[0];
+#endif
 		});
 	}
 

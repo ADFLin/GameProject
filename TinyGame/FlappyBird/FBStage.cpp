@@ -646,6 +646,8 @@ namespace FlappyBird
 
 		mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1));
 
+		g.beginRender();
+
 		if ( mbDebugDraw )
 		{
 
@@ -724,7 +726,6 @@ namespace FlappyBird
 			drawScreenHole(g, holePos, holeSize);
 		}
 
-		g.beginRender();
 
 		if( mbTrainMode )
 		{

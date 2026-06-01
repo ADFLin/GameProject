@@ -24,6 +24,7 @@ namespace NNModel
 		IntVector3 nodeOutputSize;
 		int nodePassOutputNum = 0;
 		int nodeParameterNum = 0;
+		int nodeInferenceTempDataSize = 0;
 	};
 
 	FORCEINLINE int GetLength(IntVector3 const& size)
@@ -40,7 +41,6 @@ namespace NNModel
 		IntVector3 inputSize;
 		NNScalar const* parameters = nullptr;
 		NNScalar const* inputs = nullptr;
-		NNScalar* outputs = nullptr;
 
 		int tempDataSize = 0;
 		NNScalar* tempData = nullptr;
@@ -99,11 +99,12 @@ namespace NNModel
 			context.nodeInputSize = IntVector3(len, 0, 0);
 			context.nodeOutputSize = context.nodeInputSize;
 			context.nodePassOutputNum = len;
+			context.nodeInferenceTempDataSize = len;
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(*this, context.inputSize.x, context.inputs, context.outputs);
+			return FNNAlgo::Inference(*this, context.inputSize.x, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -143,11 +144,12 @@ namespace NNModel
 			context.nodeInputSize = IntVector3(inputLength, 0, 0);
 			context.nodeOutputSize = IntVector3(mLayer.numNode, 0, 0);
 			context.nodePassOutputNum = mLayer.getPassOutputNum();
+			context.nodeInferenceTempDataSize = mLayer.getOutputLength();
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -192,11 +194,12 @@ namespace NNModel
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = IntVector3(mLayer.dataSize[0], mLayer.dataSize[1], mLayer.numNode);
 			context.nodePassOutputNum = mLayer.getPassOutputLength();
+			context.nodeInferenceTempDataSize = mLayer.getOutputLength();
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -236,11 +239,12 @@ namespace NNModel
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = mLayer.getOutputSize();
 			context.nodePassOutputNum = mLayer.getPassOutputLength();
+			context.nodeInferenceTempDataSize = mLayer.getOutputLength();
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -279,11 +283,12 @@ namespace NNModel
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = IntVector3(mLayer.dataSize[0], mLayer.dataSize[1], mLayer.numNode);
 			context.nodePassOutputNum = mLayer.getOutputLength();
+			context.nodeInferenceTempDataSize = mLayer.getOutputLength();
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(mLayer, context.inputs, context.outputs);
+			return FNNAlgo::Inference(mLayer, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -321,11 +326,12 @@ namespace NNModel
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = IntVector3(mLayer.dataSize[0], mLayer.dataSize[1], mLayer.numNode);
 			context.nodePassOutputNum = mLayer.getOutputLength();
+			context.nodeInferenceTempDataSize = mLayer.getOutputLength();
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(mLayer, context.inputs, context.outputs);
+			return FNNAlgo::Inference(mLayer, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -365,11 +371,12 @@ namespace NNModel
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = context.inputSize;
 			context.nodePassOutputNum = mLayer.getPassOutputLength();
+			context.nodeInferenceTempDataSize = mLayer.getOutputLength();
 		}
 
 		virtual NNScalar* inference(InferenceContext& context) override
 		{
-			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.outputs);
+			return FNNAlgo::Inference(mLayer, context.parameters, context.inputs, context.tempData);
 		}
 
 		virtual NNScalar* forward(ForwardContext& context) override
@@ -420,6 +427,7 @@ namespace NNModel
 				context.nodeInputSize = context.inputSize;
 				context.nodeOutputSize = context.inputSize;
 				context.nodePassOutputNum = 0;
+				context.nodeInferenceTempDataSize = 0;
 				return;
 			}
 
@@ -428,6 +436,7 @@ namespace NNModel
 			childContext.parameterOffset = context.parameterOffset;
 
 			int passOutputOffset = 0;
+			int inferenceTempSlotSize[2] = { 0, 0 };
 
 			for (int i = 0; i < mNodes.size(); ++i)
 			{
@@ -439,6 +448,10 @@ namespace NNModel
 				node.passOutputOffset = passOutputOffset;
 				node.passOutputNum = childContext.nodePassOutputNum;
 				passOutputOffset += childContext.nodePassOutputNum;
+				int inferenceOutputSlot = i % 2;
+				inferenceTempSlotSize[inferenceOutputSlot] = Math::Max(
+					inferenceTempSlotSize[inferenceOutputSlot],
+					GetLength(node.outputSize));
 
 				childContext.parameterOffset += childContext.nodeParameterNum;
 				childContext.inputSize = childContext.nodeOutputSize;
@@ -449,6 +462,9 @@ namespace NNModel
 			context.nodeInputSize = context.inputSize;
 			context.nodeOutputSize = childContext.nodeOutputSize;
 			context.nodePassOutputNum = passOutputOffset;
+			context.nodeInferenceTempDataSize = inferenceTempSlotSize[0] + inferenceTempSlotSize[1];
+			mInferenceTempDataSize = context.nodeInferenceTempDataSize;
+			mInferenceOffset = inferenceTempSlotSize[0];
 		}
 
 		NNScalar* inference(InferenceContext& context)
@@ -456,9 +472,9 @@ namespace NNModel
 			if (mNodes.empty())
 				return const_cast<NNScalar*>(context.inputs);
 
-			NNScalar* nodeOutputs = context.tempData ? context.tempData : context.outputs;
+			NNScalar* nodeOutputs = context.tempData;
 			CHECK(nodeOutputs);
-			CHECK(context.tempData == nullptr || context.tempDataSize >= mNodes.back().passOutputOffset + mNodes.back().passOutputNum);
+			CHECK(context.tempDataSize >= mInferenceTempDataSize);
 
 			InferenceContext childContext;
 			childContext.inputs = context.inputs;
@@ -467,23 +483,15 @@ namespace NNModel
 			for (int i = 0; i < mNodes.size(); ++i)
 			{
 				auto& node = mNodes[i];
-				childContext.outputs = nodeOutputs + node.passOutputOffset;
+
+				int inferenceOutputOffset = (i % 2 == 0) ? 0 : mInferenceOffset;
+				childContext.tempData = nodeOutputs + inferenceOutputOffset;
+				childContext.tempDataSize = GetLength(node.outputSize);
 				childContext.inputSize = node.inputSize;
 				childContext.inputs = node.expr->inference(childContext);
 			}
 
-			NNScalar* result = const_cast<NNScalar*>(childContext.inputs);
-			if (context.outputs && context.outputs != result)
-			{
-				int outputLength = GetLength(mNodes.back().outputSize);
-				for (int i = 0; i < outputLength; ++i)
-				{
-					context.outputs[i] = result[i];
-				}
-				result = context.outputs;
-			}
-
-			return result;
+			return const_cast<NNScalar*>(childContext.inputs);
 		}
 
 		NNScalar* forward(ForwardContext& context)
@@ -538,6 +546,8 @@ namespace NNModel
 		};
 
 		TArray< Node > mNodes;
+		int mInferenceOffset;
+		int mInferenceTempDataSize = 0;
 	};
 
 }

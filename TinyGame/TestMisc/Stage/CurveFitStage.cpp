@@ -136,7 +136,7 @@ public:
 
 		mParameters.resize(setupContext.nodeParameterNum);
 		mOptimizer.init(setupContext.nodeParameterNum);
-		mInferenceOutputs.resize(setupContext.nodePassOutputNum);
+		mInferenceOutputs.resize(setupContext.nodeInferenceTempDataSize);
 #else
 		uint32 topology[] = { 1, size,  2 * size, 2 * size, size, 1 };
 		mLayout.init(topology);

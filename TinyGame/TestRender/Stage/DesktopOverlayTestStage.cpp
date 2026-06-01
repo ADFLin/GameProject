@@ -58,47 +58,47 @@ namespace Render
 				return alpha > 16;
 			}
 
-			void beginDrag(HWND hWnd, POINT clientPos)
+			void beginDrag(POINT clientPos)
 			{
 				POINT screenPos = clientPos;
-				ClientToScreen(hWnd, &screenPos);
+				ClientToScreen(getHWnd(), &screenPos);
 				if (!hitTestDrawnPixel(screenPos))
 					return;
 
 				RECT rect;
-				GetWindowRect(hWnd, &rect);
+				GetWindowRect(getHWnd(), &rect);
 				mDragOffset.x = screenPos.x - rect.left;
 				mDragOffset.y = screenPos.y - rect.top;
 				mbDragging = true;
-				SetCapture(hWnd);
+				SetCapture(getHWnd());
 			}
 
-			void updateDrag(HWND hWnd)
+			void updateDrag()
 			{
 				if (!mbDragging)
 					return;
 
 				if ((GetKeyState(VK_LBUTTON) & 0x8000) == 0)
 				{
-					endDrag(hWnd);
+					endDrag();
 					return;
 				}
 
 				POINT screenPos;
 				GetCursorPos(&screenPos);
-				SetWindowPos(hWnd, HWND_TOPMOST,
+				SetWindowPos(getHWnd(), HWND_TOPMOST,
 				             screenPos.x - mDragOffset.x,
 				             screenPos.y - mDragOffset.y,
 				             0, 0,
 				             SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 
-			void endDrag(HWND hWnd)
+			void endDrag()
 			{
 				if (mbDragging)
 				{
 					mbDragging = false;
-					if (GetCapture() == hWnd)
+					if (GetCapture() == getHWnd())
 					{
 						ReleaseCapture();
 					}
@@ -125,21 +125,21 @@ namespace Render
 					if (sActiveWindow)
 					{
 						POINT clientPos = { int(short(LOWORD(lParam))), int(short(HIWORD(lParam))) };
-						sActiveWindow->beginDrag(hWnd, clientPos);
+						sActiveWindow->beginDrag(clientPos);
 						return 0;
 					}
 					break;
 				case WM_MOUSEMOVE:
 					if (sActiveWindow)
 					{
-						sActiveWindow->updateDrag(hWnd);
+						sActiveWindow->updateDrag();
 						return 0;
 					}
 					break;
 				case WM_LBUTTONUP:
 					if (sActiveWindow)
 					{
-						sActiveWindow->endDrag(hWnd);
+						sActiveWindow->endDrag();
 						return 0;
 					}
 					break;
@@ -176,7 +176,19 @@ namespace Render
 			if (!BaseClass::onInit())
 				return false;
 
-			mOverlayWindow.create(TEXT("Desktop Overlay RHI Test"), OverlayWidth, OverlayHeight, OverlayWindow::StaticWndProc);
+			mOverlayWindow.create(TEXT("DesktopOverlay"), OverlayWidth, OverlayHeight, OverlayWindow::StaticWndProc);
+
+			BITMAPINFO info = {};
+			info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			info.bmiHeader.biWidth = OverlayWidth;
+			info.bmiHeader.biHeight = -OverlayHeight;
+			info.bmiHeader.biPlanes = 1;
+			info.bmiHeader.biBitCount = 32;
+			info.bmiHeader.biCompression = BI_RGB;
+
+			HDC screenDC = GetDC(nullptr);
+			mBitmapDC.initialize(screenDC, &info, &mBitampDataPtr);
+			ReleaseDC(nullptr, screenDC);
 
 			::Global::GUI().cleanupWidget();
 			return true;
@@ -185,6 +197,9 @@ namespace Render
 		void onEnd() override
 		{
 			mOverlayWindow.destroy();
+			mBitmapDC.release();
+			mBitampDataPtr = nullptr;
+
 			BaseClass::onEnd();
 		}
 
@@ -302,44 +317,27 @@ namespace Render
 
 			RECT rect;
 			GetWindowRect(mOverlayWindow.getHWnd(), &rect);
-
-			BITMAPINFO info = {};
-			info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-			info.bmiHeader.biWidth = OverlayWidth;
-			info.bmiHeader.biHeight = -OverlayHeight;
-			info.bmiHeader.biPlanes = 1;
-			info.bmiHeader.biBitCount = 32;
-			info.bmiHeader.biCompression = BI_RGB;
-
 			HDC screenDC = GetDC(nullptr);
-			HDC memoryDC = CreateCompatibleDC(screenDC);
 
-			void* bitmapData = nullptr;
-			HBITMAP bitmap = CreateDIBSection(screenDC, &info, DIB_RGB_COLORS, &bitmapData, nullptr, 0);
-			if (bitmap)
-			{
-				std::memcpy(bitmapData, mReadbackData.data(), mReadbackData.size());
-				HGDIOBJ oldBitmap = SelectObject(memoryDC, bitmap);
+			FMemory::Copy(mBitampDataPtr, mReadbackData.data(), mReadbackData.size());
 
-				POINT dstPos = { rect.left, rect.top };
-				POINT srcPos = { 0, 0 };
-				SIZE size = { OverlayWidth, OverlayHeight };
-				BLENDFUNCTION blend = {};
-				blend.BlendOp = AC_SRC_OVER;
-				blend.SourceConstantAlpha = 255;
-				blend.AlphaFormat = AC_SRC_ALPHA;
+			POINT dstPos = { rect.left, rect.top };
+			POINT srcPos = { 0, 0 };
+			SIZE size = { OverlayWidth, OverlayHeight };
+			BLENDFUNCTION blend = {};
+			blend.BlendOp = AC_SRC_OVER;
+			blend.SourceConstantAlpha = 255;
+			blend.AlphaFormat = AC_SRC_ALPHA;
 
-				UpdateLayeredWindow(mOverlayWindow.getHWnd(), screenDC, &dstPos, &size, memoryDC, &srcPos, 0, &blend, ULW_ALPHA);
+			UpdateLayeredWindow(mOverlayWindow.getHWnd(), screenDC, &dstPos, &size, mBitmapDC.getHandle(), &srcPos, 0, &blend, ULW_ALPHA);
 
-				SelectObject(memoryDC, oldBitmap);
-				DeleteObject(bitmap);
-			}
-
-			DeleteDC(memoryDC);
 			ReleaseDC(nullptr, screenDC);
 		}
 
 		OverlayWindow mOverlayWindow;
+		BitmapDC      mBitmapDC;
+		void*         mBitampDataPtr = nullptr;
+
 		RHIGraphics2D mOverlayGraphics;
 		RHITexture2DRef mOverlayTexture;
 		RHIFrameBufferRef mOverlayFrameBuffer;

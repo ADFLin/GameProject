@@ -1019,6 +1019,13 @@ namespace Render
 			VERIFY_D3D_RESULT(surface->ReleaseDC(nullptr), );
 		}
 
+		TComPtr<IDXGISurface1> getColorSurface()
+		{
+			TComPtr<IDXGISurface1> surface;
+			VERIFY_D3D_RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&surface)), );
+			return surface;
+		}
+
 		virtual void releaseResource()
 		{
 			mColorTexture.release();

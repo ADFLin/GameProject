@@ -38,12 +38,22 @@ namespace LordMonarch
 				uint8((int(color.b) + 255) / 2));
 		}
 
+		Color3ub GetCastleColor(int id)
+		{
+			Color3ub color = GetKingdomColor(id);
+			return Color3ub(
+				uint8(Math::Min(255, int(color.r) + 80)),
+				uint8(Math::Min(255, int(color.g) + 80)),
+				uint8(Math::Min(255, int(color.b) + 80)));
+		}
+
 		char const* GetActionText(Action::Id id)
 		{
 			switch (id)
 			{
 			case Action::eAuto: return "Auto";
 			case Action::eStandBy: return "Stand";
+			case Action::eDefend: return "Defend";
 			case Action::eMove: return "Move";
 			case Action::eAttack: return "Attack";
 			case Action::eBuildVillage: return "Village";
@@ -160,6 +170,7 @@ namespace LordMonarch
 				switch (tile.id)
 				{
 				case TID_DIRT: brush = Color3ub(116, 88, 52); break;
+				case TID_CASTLE: brush = GetCastleColor(tile.meta); break;
 				case TID_TERRITORY: brush = GetTerritoryColor(tile.meta); break;
 				case TID_VILLAGE: brush = GetVillageColor(tile.meta); break;
 				case TID_BRIDGE: brush = Color3ub(170, 125, 70); break;
@@ -173,7 +184,13 @@ namespace LordMonarch
 				g.setPen(Color3ub(18, 18, 18));
 				g.drawRect(pos, size);
 
-				if (tile.id == TID_VILLAGE)
+				if (tile.id == TID_CASTLE)
+				{
+					g.setPen(Color3ub(255, 255, 255));
+					g.drawRect(pos + Vec2i(4, 4), Vec2i(mTileSize - 8, mTileSize - 8));
+					g.drawLine(pos + Vec2i(4, 8), pos + Vec2i(mTileSize - 4, 8));
+				}
+				else if (tile.id == TID_VILLAGE)
 				{
 					g.setPen(Color3ub(255, 255, 255));
 					g.drawLine(pos + Vec2i(4, mTileSize - 5), pos + Vec2i(mTileSize / 2, 4));
@@ -185,7 +202,7 @@ namespace LordMonarch
 		for (int id = 0; id < int(mLevel.getActors().size()); ++id)
 		{
 			ActorData const& actor = mLevel.getActorData(id);
-			if (!actor.bAlive || actor.type == ActorData::eVillage)
+			if (!actor.bAlive || actor.type == ActorData::eVillage || actor.type == ActorData::eCastle)
 				continue;
 
 			Vec2i pos = tileToScreen(actor.pos);
@@ -219,8 +236,8 @@ namespace LordMonarch
 			Kingdom const& kingdom = mLevel.getPlayer(i);
 			Kingdom::Status const& st = kingdom.getStatus();
 			g.setTextColor(GetKingdomColor(i));
-			str.format("%d  land:%d  village:%d  money:%d  tax:%d",
-				i + 1, st.countTerritory, st.countVillege, st.momey, kingdom.getTaxRate());
+			str.format("%d  land:%d  castle:%d  village:%d  money:%d  tax:%d(%d)",
+				i + 1, st.countTerritory, st.countCastle, st.countVillege, st.momey, kingdom.getTaxRate(), mLevel.getEffectiveTaxRate(i));
 			g.drawText(hudPos, str);
 			hudPos.y += 20;
 		}

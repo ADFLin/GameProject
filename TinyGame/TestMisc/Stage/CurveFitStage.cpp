@@ -16,7 +16,7 @@
 
 #include <random>
 
-#define USE_NNMODEL 0
+#define USE_NNMODEL 1
 
 float TestFunc(float x)
 {
@@ -44,14 +44,13 @@ public:
 
 #if USE_NNMODEL
 	NNModel::Sequence mModel;
-	NNModel::SetupContext mModelSetupContext;
+	TArray< NNScalar > mInferenceOutputs;
+	NNModel::IntVector3 mInputSize = NNModel::IntVector3(1, 0, 0);
 #else
 	NNFullConLayout mLayout;
 #endif
 	TArray< NNScalar > mParameters;
-#if USE_NNMODEL
-	TArray< NNScalar > mInferenceOutputs;
-#endif
+
 
 	struct TrainData
 	{
@@ -101,7 +100,7 @@ public:
 
 	TArray< std::unique_ptr< TrainData > > mThreadTrainDatas;
 
-	bool bUseParallelComputing = false;
+	bool bUseParallelComputing = true;
 	bool bAutoTrain = true;
 	//bool bShowLog = true;
 	bool bUseBatchNormaliztion = false;
@@ -130,33 +129,30 @@ public:
 		mModel.addLayer(MakeTransformLayer<NNFunc::ReLU>());
 		mModel.addLayer(MakeLinearLayer(1));
 
-		mModelSetupContext.inputSize = NNModel::IntVector3(1, 0, 0);
-		mModelSetupContext.parameterOffset = 0;
-		mModel.setup(mModelSetupContext);
+		NNModel::SetupContext setupContext;
+		setupContext.inputSize = mInputSize;
+		setupContext.parameterOffset = 0;
+		mModel.setup(setupContext);
+
+		mParameters.resize(setupContext.nodeParameterNum);
+		mOptimizer.init(setupContext.nodeParameterNum);
+		mInferenceOutputs.resize(setupContext.nodePassOutputNum);
 #else
 		uint32 topology[] = { 1, size,  2 * size, 2 * size, size, 1 };
 		mLayout.init(topology);
 		mLayout.setHiddenLayerTransform<NNFunc::ReLU>();
 		mLayout.setOutputLayerTransform<NNFunc::Linear>();
-#endif
 
-
-#if USE_NNMODEL
-		mParameters.resize(mModelSetupContext.nodeParameterNum);
-		mOptimizer.init(mModelSetupContext.nodeParameterNum);
-		mInferenceOutputs.resize(mModelSetupContext.nodePassOutputNum);
-#else
 		mParameters.resize(mLayout.getParameterLength());
 		mOptimizer.init(mLayout.getParameterLength());
 #endif
 
-
-		int workerNum = 16;
+		int workerNum = 24;
 		for (int i = 0; i < workerNum; ++i)
 		{
 			mThreadTrainDatas.push_back(std::make_unique<TrainData>());
 #if USE_NNMODEL
-			mThreadTrainDatas.back()->init(mModelSetupContext, bUseBatchNormaliztion ? (i == 0 ? mBatchSize : 1) : 1);
+			mThreadTrainDatas.back()->init(setupContext, bUseBatchNormaliztion ? (i == 0 ? mBatchSize : 1) : 1);
 #else
 			mThreadTrainDatas.back()->init(mLayout , bUseBatchNormaliztion ? (i == 0 ? mBatchSize : 1) : 1);
 #endif
@@ -295,7 +291,7 @@ public:
 	NNScalar inference(NNScalar const* inputs)
 	{
 		NNModel::InferenceContext inferenceContext;
-		inferenceContext.inputSize = mModelSetupContext.inputSize;
+		inferenceContext.inputSize = mInputSize;
 		inferenceContext.parameters = mParameters.data();
 		inferenceContext.inputs = inputs;
 		inferenceContext.tempData = mInferenceOutputs.data();
@@ -309,7 +305,7 @@ public:
 	{
 #if USE_NNMODEL
 		NNModel::ForwardContext forwardContext;
-		forwardContext.inputSize = mModelSetupContext.inputSize;
+		forwardContext.inputSize = mInputSize;
 		forwardContext.parameters = mParameters.data();
 		forwardContext.inputs = &sample.input;
 		forwardContext.outputs = trainData.outputs.data();
@@ -325,7 +321,7 @@ public:
 
 #if USE_NNMODEL
 		NNModel::BackwardContext backwardContext;
-		backwardContext.inputSize = mModelSetupContext.inputSize;
+		backwardContext.inputSize = mInputSize;
 		backwardContext.parameters = mParameters.data();
 		backwardContext.inputs = &sample.input;
 		backwardContext.outputs = trainData.outputs.data();
@@ -428,7 +424,7 @@ public:
 
 	void train()
 	{
-		TIME_SCOPE("Train");
+		PROFILE_ENTRY("Train");
 
 		std::mt19937 g(::rand());
 		std::shuffle(mOrderedSamples.begin(), mOrderedSamples.end(), g);
@@ -450,10 +446,12 @@ public:
 		CHECK(numSampleCheck == mSamples.size());
 
 
+#if 0
 		if (mEpoch == 1)
 		{
-			//Print(mParameters);
+			Print(mParameters);
 		}
+#endif
 
 		generateNNCurve();
 		mLossPoints.emplace_back(float(mEpoch), log10(loss / mSamples.size()));

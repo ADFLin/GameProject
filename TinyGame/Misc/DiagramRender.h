@@ -76,8 +76,8 @@ namespace Render
 				{
 					Vector2(min.x,min.y), Vector2(min.x,max.y),
 					Vector2(max.x,min.y), Vector2(max.x,max.y),
-					Vector2(min.x,min.y) , Vector2(max.x,min.y),
-					Vector2(min.x,max.y) , Vector2(max.x,max.y),
+					Vector2(min.x,min.y), Vector2(max.x,min.y),
+					Vector2(min.x,max.y), Vector2(max.x,max.y),
 				};
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 0, 0));

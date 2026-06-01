@@ -257,6 +257,7 @@
     <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp" />
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
+    <ClCompile Include="TestRender\Stage\DesktopOverlayTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
     <ClCompile Include="TestRender\Stage\GIRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\MeshImportTest.cpp" />

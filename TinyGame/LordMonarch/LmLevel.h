@@ -21,6 +21,7 @@ namespace LordMonarch
 	{
 		TID_DIRT = 0,
 
+		TID_CASTLE,
 		TID_VILLAGE,
 		TID_TERRITORY,
 		TID_GRASS,
@@ -92,6 +93,7 @@ namespace LordMonarch
 			eArmy,
 			eLeader,
 			eVillage,
+			eCastle,
 		};
 
 		Type type = eArmy;
@@ -140,6 +142,7 @@ namespace LordMonarch
 		struct Status
 		{
 			int countTerritory = 0;
+			int countCastle = 0;
 			int countVillege = 0;
 			int totalPoplution = 0;
 			int momey = 0;
@@ -151,6 +154,7 @@ namespace LordMonarch
 			mStatus = Status();
 			mTaxRate = 10;
 			mLeaderId = INDEX_NONE;
+			mCastleId = INDEX_NONE;
 			mStatus.momey = 80;
 		}
 
@@ -160,19 +164,24 @@ namespace LordMonarch
 		void setTaxRate(int rate) { mTaxRate = Math::Clamp(rate, 0, 30); }
 		int  getTaxRate() const { return mTaxRate; }
 
-		int getBaseDecRate(int population, int numTerritory) const
+		int getBaseDecRate(int population, int numTerritory, int effectiveTaxRate) const
 		{
 			int crowding = std::max(0, population - 24 * (numTerritory + 1));
-			return mTaxRate / 6 + crowding / 16;
+			return effectiveTaxRate / 6 + crowding / 16;
 		}
 
 		int getId() const { return mId; }
 		int getLeaderId() const { return mLeaderId; }
 		void setLeaderId(int id) { mLeaderId = id; }
+		int getCastleId() const { return mCastleId; }
+		void setCastleId(int id) { mCastleId = id; }
 
-		void updateEconomy()
+		void updateEconomy(int effectiveTaxRate)
 		{
-			mStatus.momey += std::max(1, mTaxRate * (mStatus.countTerritory + 2 * mStatus.countVillege) / 20);
+			if (effectiveTaxRate <= 0)
+				return;
+
+			mStatus.momey += std::max(1, effectiveTaxRate * (mStatus.countTerritory + 2 * mStatus.countVillege + 4 * mStatus.countCastle) / 20);
 		}
 
 		void addTerritory(Tile& tile)
@@ -199,6 +208,24 @@ namespace LordMonarch
 			++mStatus.countVillege;
 		}
 
+		void addCastle(Tile& tile)
+		{
+			tile.id = TID_CASTLE;
+			tile.meta = getId();
+			++mStatus.countCastle;
+		}
+
+		void removeCastle(Tile& tile)
+		{
+			if (tile.id == TID_CASTLE && tile.meta == getId())
+			{
+				tile.id = TID_DIRT;
+				tile.meta = INDEX_NONE;
+				tile.unitId = INDEX_NONE;
+				--mStatus.countCastle;
+			}
+		}
+
 		void removeVillage(Tile& tile)
 		{
 			if (tile.id == TID_VILLAGE && tile.meta == getId())
@@ -214,6 +241,7 @@ namespace LordMonarch
 		Status mStatus;
 		int    mTaxRate = 10;
 		int    mLeaderId = INDEX_NONE;
+		int    mCastleId = INDEX_NONE;
 	};
 
 	inline Vec2i const& linkOffset(int dir)
@@ -243,15 +271,20 @@ namespace LordMonarch
 
 			generateDefaultMap();
 
-			createVillage(Vec2i(3, 3), 0, 72);
-			createVillage(Vec2i(size.x - 4, 3), 1, 72);
-			createVillage(Vec2i(3, size.y - 4), 2, 72);
-			createVillage(Vec2i(size.x - 4, size.y - 4), 3, 72);
+			createCastle(Vec2i(3, 3), 0);
+			createCastle(Vec2i(size.x - 4, 3), 1);
+			createCastle(Vec2i(3, size.y - 4), 2);
+			createCastle(Vec2i(size.x - 4, size.y - 4), 3);
 
-			createLeader(Vec2i(4, 4), 0);
-			createLeader(Vec2i(size.x - 5, 4), 1);
-			createLeader(Vec2i(4, size.y - 5), 2);
-			createLeader(Vec2i(size.x - 5, size.y - 5), 3);
+			createVillage(Vec2i(5, 3), 0, 72);
+			createVillage(Vec2i(size.x - 6, 3), 1, 72);
+			createVillage(Vec2i(5, size.y - 4), 2, 72);
+			createVillage(Vec2i(size.x - 6, size.y - 4), 3, 72);
+
+			createLeader(Vec2i(4, 3), 0);
+			createLeader(Vec2i(size.x - 5, 3), 1);
+			createLeader(Vec2i(4, size.y - 4), 2);
+			createLeader(Vec2i(size.x - 5, size.y - 4), 3);
 		}
 
 		bool isValidPos(Vec2i const& pos) const { return mMap.checkRange(pos); }
@@ -274,20 +307,52 @@ namespace LordMonarch
 
 		bool isAllies(int id1, int id2) const { return id1 == id2; }
 
-		bool canEnter(Vec2i const& pos) const
+		bool isLeaderInCastle(int owner) const
 		{
-			return isValidPos(pos) && !isBlocked(TerrainID(getTile(pos).id));
+			if (owner < 0 || owner >= NumKingdoms)
+				return false;
+
+			Kingdom const& kingdom = mPlayers[owner];
+			int leaderId = kingdom.getLeaderId();
+			int castleId = kingdom.getCastleId();
+			if (leaderId == INDEX_NONE || castleId == INDEX_NONE)
+				return false;
+
+			ActorData const& leader = mUnitData[leaderId];
+			ActorData const& castle = mUnitData[castleId];
+			return leader.bAlive && castle.bAlive && leader.pos == castle.pos;
 		}
 
-		bool canBuildVillage(Vec2i const& pos) const
+		int getEffectiveTaxRate(int owner) const
 		{
-			if (!isValidPos(pos) || getTile(pos).id != TID_DIRT)
+			if (!isLeaderInCastle(owner))
+				return 0;
+
+			return mPlayers[owner].getTaxRate();
+		}
+
+		bool canEnter(Vec2i const& pos) const
+		{
+			if (!isValidPos(pos))
+				return false;
+
+			TerrainID id = TerrainID(getTile(pos).id);
+			return !isBlocked(id) || id == TID_FOREST;
+		}
+
+		bool canBuildVillage(Vec2i const& pos, int owner = INDEX_NONE) const
+		{
+			if (!isValidPos(pos))
+				return false;
+
+			Tile const& tile = getTile(pos);
+			if (tile.id != TID_DIRT && !(tile.id == TID_TERRITORY && (owner == INDEX_NONE || tile.meta == owner)))
 				return false;
 
 			for (int i = 0; i < 8; ++i)
 			{
 				Vec2i linkPos = pos + linkOffset(i);
-				if (isValidPos(linkPos) && getTile(linkPos).id == TID_VILLAGE)
+				if (isValidPos(linkPos) && (getTile(linkPos).id == TID_VILLAGE || getTile(linkPos).id == TID_CASTLE))
 					return false;
 			}
 			return true;
@@ -299,7 +364,7 @@ namespace LordMonarch
 				return false;
 
 			ActorData& actor = mUnitData[actorId];
-			if (!actor.bAlive || actor.type == ActorData::eVillage || !isValidPos(dest))
+			if (!actor.bAlive || actor.type == ActorData::eVillage || actor.type == ActorData::eCastle || !isValidPos(dest))
 				return false;
 
 			actor.comAction = action;
@@ -318,18 +383,20 @@ namespace LordMonarch
 			{
 				++mDay;
 				for (int i = 0; i < NumKingdoms; ++i)
-					mPlayers[i].updateEconomy();
+					mPlayers[i].updateEconomy(getEffectiveTaxRate(i));
 			}
 
 			for (int id = 0; id < int(mUnitData.size()); ++id)
 			{
 				if (mUnitData[id].bAlive && mUnitData[id].type == ActorData::eVillage)
 					updateVillage(id);
+				else if (mUnitData[id].bAlive && mUnitData[id].type == ActorData::eCastle)
+					updateCastle(id);
 			}
 
 			for (int id = 0; id < int(mUnitData.size()); ++id)
 			{
-				if (mUnitData[id].bAlive && mUnitData[id].type != ActorData::eVillage)
+				if (mUnitData[id].bAlive && mUnitData[id].type != ActorData::eVillage && mUnitData[id].type != ActorData::eCastle)
 					updateActor(id);
 			}
 
@@ -393,10 +460,23 @@ namespace LordMonarch
 			return id;
 		}
 
+		int createCastle(Vec2i const& pos, int owner)
+		{
+			int id = createActor(pos, owner, 180, ActorData::eCastle);
+			Tile& tile = getTile(pos);
+			mPlayers[owner].addCastle(tile);
+			mPlayers[owner].setCastleId(id);
+			tile.unitId = id;
+			claimAround(pos, owner);
+			return id;
+		}
+
 		int createVillage(Vec2i const& pos, int owner, int score)
 		{
 			int id = createActor(pos, owner, score, ActorData::eVillage);
 			Tile& tile = getTile(pos);
+			if (tile.id == TID_TERRITORY && tile.meta == owner)
+				mPlayers[owner].removeTerritory(tile);
 			mPlayers[owner].addVillage(tile);
 			tile.unitId = id;
 			claimAround(pos, owner);
@@ -416,7 +496,7 @@ namespace LordMonarch
 				return false;
 
 			Tile& tile = getTile(pos);
-			if (isBlocked(TerrainID(tile.id)) || tile.id == TID_VILLAGE)
+			if (isBlocked(TerrainID(tile.id)) || tile.id == TID_VILLAGE || tile.id == TID_CASTLE)
 				return false;
 
 			if (tile.id == TID_TERRITORY && tile.meta == owner)
@@ -447,6 +527,7 @@ namespace LordMonarch
 		{
 			ActorData& village = mUnitData[villageId];
 			Kingdom& player = getPlayer(village.owner);
+			int effectiveTaxRate = getEffectiveTaxRate(village.owner);
 
 			int numTerritory = 0;
 			int tileId[8];
@@ -458,7 +539,8 @@ namespace LordMonarch
 					++numTerritory;
 			}
 
-			village.score += (numTerritory + 1) - player.getBaseDecRate(village.score, numTerritory);
+			int growRate = (numTerritory + 1) - player.getBaseDecRate(village.score, numTerritory, effectiveTaxRate);
+			village.score += std::max(1, growRate);
 			village.score = Math::Clamp(village.score, 0, 255);
 
 			int const TerritoryDirMap[] = { 4, 0, 6, 2, 5, 3, 7, 1 };
@@ -486,6 +568,18 @@ namespace LordMonarch
 			}
 		}
 
+		void updateCastle(int castleId)
+		{
+			ActorData& castle = mUnitData[castleId];
+			int effectiveTaxRate = getEffectiveTaxRate(castle.owner);
+
+			castle.score = Math::Clamp(castle.score + 1 + effectiveTaxRate / 10, 0, 255);
+			if (castle.score >= 120 && produceUnit(castle.pos, castle.owner, castle.score / 2))
+			{
+				castle.score /= 2;
+			}
+		}
+
 		void updateActor(int actorId)
 		{
 			ActorData& actor = mUnitData[actorId];
@@ -501,8 +595,17 @@ namespace LordMonarch
 			if (tryCompleteBuildAction(actorId))
 				return;
 
+			if (tryCompleteAutoAction(actorId))
+				return;
+
+			if (actor.curAction == Action::eMove && actor.pos == actor.posDest)
+			{
+				actor.curAction = Action::eStandBy;
+				return;
+			}
+
 			if (actor.curAction == Action::eAuto || actor.pos == actor.posDest)
-				chooseAutoTarget(actor);
+				chooseAutoTarget(actorId);
 
 			Vec2i nextPos = chooseStep(actor.pos, actor.posDest, actor.owner);
 			if (nextPos == actor.pos)
@@ -512,21 +615,82 @@ namespace LordMonarch
 			actor.moveCooldown = (actor.type == ActorData::eLeader) ? 2 : 3;
 		}
 
-		void chooseAutoTarget(ActorData& actor)
+		void chooseAutoTarget(int actorId)
 		{
+			ActorData& actor = mUnitData[actorId];
 			Vec2i target;
-			if (findNearestEnemyAsset(actor.owner, actor.pos, target))
+
+			if (actor.type == ActorData::eLeader)
 			{
-				actor.curAction = Action::eAttack;
+				int castleId = getPlayer(actor.owner).getCastleId();
+				if (castleId != INDEX_NONE && mUnitData[castleId].bAlive)
+				{
+					actor.curAction = Action::eDefend;
+					actor.posDest = mUnitData[castleId].pos;
+				}
+				return;
+			}
+
+			if (findNearestAutoWorkerTarget(actor.owner, actor.pos, target))
+			{
+				actor.curAction = Action::eAuto;
 				actor.posDest = target;
 				return;
 			}
 
-			if (findNearestClaimable(actor.owner, actor.pos, target))
+			if (findNearestOwnedVillage(actor.owner, actor.pos, target))
 			{
-				actor.curAction = Action::eAuto;
+				actor.curAction = Action::eStandBy;
+				actor.posDest = target;
+				return;
+			}
+
+			if (actor.score >= 80 && findNearestEnemyAsset(actor.owner, actor.pos, target))
+			{
+				actor.curAction = Action::eAttack;
 				actor.posDest = target;
 			}
+		}
+
+		bool tryCompleteAutoAction(int actorId)
+		{
+			ActorData& actor = mUnitData[actorId];
+			if (actor.type != ActorData::eArmy || actor.curAction != Action::eAuto)
+				return false;
+
+			Kingdom& kingdom = getPlayer(actor.owner);
+
+			Tile& tile = getTile(actor.pos);
+			if (tile.id == TID_FOREST)
+			{
+				tile.id = TID_DIRT;
+				tile.meta = INDEX_NONE;
+				actor.score = std::max(8, actor.score - 8);
+				return false;
+			}
+
+			if (actor.score >= 110 && kingdom.getStatus().momey >= 50 && canBuildVillage(actor.pos, actor.owner))
+			{
+				kingdom.getStatus().momey -= 50;
+				int score = actor.score / 2;
+				if (tile.unitId == actorId)
+					tile.unitId = INDEX_NONE;
+				actor.bAlive = false;
+				createVillage(actor.pos, actor.owner, std::max(48, score));
+				return true;
+			}
+
+			if (actor.pos == actor.posDest)
+			{
+				Vec2i home;
+				if (findNearestOwnedVillageWaitTile(actor.owner, actor.pos, home))
+				{
+					actor.curAction = Action::eMove;
+					actor.posDest = home;
+				}
+			}
+
+			return false;
 		}
 
 		bool findNearestEnemyAsset(int owner, Vec2i const& from, Vec2i& outPos) const
@@ -539,7 +703,7 @@ namespace LordMonarch
 				if (!actor.bAlive || actor.owner == owner)
 					continue;
 
-				if (actor.type != ActorData::eVillage && actor.type != ActorData::eLeader)
+				if (actor.type != ActorData::eVillage && actor.type != ActorData::eLeader && actor.type != ActorData::eCastle)
 					continue;
 
 				int dist = TaxicabDistance(from, actor.pos);
@@ -584,6 +748,134 @@ namespace LordMonarch
 			return bFound;
 		}
 
+		bool isAutoWorkerTargetTile(int owner, Vec2i const& pos) const
+		{
+			if (!isValidPos(pos))
+				return false;
+
+			Tile const& tile = getTile(pos);
+			if (tile.id == TID_BRIDGE || tile.id == TID_CASTLE || tile.id == TID_VILLAGE)
+				return false;
+
+			if (tile.id == TID_TERRITORY && tile.meta == owner)
+				return false;
+
+			if (tile.id == TID_DIRT || tile.id == TID_FOREST)
+				return canBuildVillageAfterClear(pos, owner);
+
+			return tile.id == TID_TERRITORY && tile.meta != owner;
+		}
+
+		bool canBuildVillageAfterClear(Vec2i const& pos, int owner) const
+		{
+			if (!isValidPos(pos))
+				return false;
+
+			Tile const& tile = getTile(pos);
+			if (tile.id != TID_DIRT && tile.id != TID_FOREST && !(tile.id == TID_TERRITORY && tile.meta == owner))
+				return false;
+
+			for (int i = 0; i < 8; ++i)
+			{
+				Vec2i linkPos = pos + linkOffset(i);
+				if (isValidPos(linkPos) && (getTile(linkPos).id == TID_VILLAGE || getTile(linkPos).id == TID_CASTLE))
+					return false;
+			}
+			return true;
+		}
+
+		bool findNearestAutoWorkerTarget(int owner, Vec2i const& from, Vec2i& outPos) const
+		{
+			TGrid2D<int> distMap(mMap.getSize());
+			distMap.fillValue(INDEX_NONE);
+
+			std::vector<Vec2i> queue;
+			queue.push_back(from);
+			distMap(from) = 0;
+
+			bool bFound = false;
+			int bestDist = std::numeric_limits<int>::max();
+			for (int read = 0; read < int(queue.size()); ++read)
+			{
+				Vec2i pos = queue[read];
+				int dist = distMap(pos);
+
+				if (dist > 0 && isAutoWorkerTargetTile(owner, pos) && dist < bestDist)
+				{
+					bestDist = dist;
+					outPos = pos;
+					bFound = true;
+				}
+
+				for (int i = 0; i < 8; ++i)
+				{
+					Vec2i next = pos + linkOffset(i);
+					if (!canEnter(next) || distMap(next) != INDEX_NONE)
+						continue;
+
+					Tile const& tile = getTile(next);
+					if (tile.unitId != INDEX_NONE && mUnitData[tile.unitId].owner != owner)
+						continue;
+
+					distMap(next) = dist + 1;
+					queue.push_back(next);
+				}
+			}
+
+			return bFound;
+		}
+
+		bool findNearestOwnedVillage(int owner, Vec2i const& from, Vec2i& outPos) const
+		{
+			int bestDist = std::numeric_limits<int>::max();
+			bool bFound = false;
+			for (ActorData const& actor : mUnitData)
+			{
+				if (!actor.bAlive || actor.owner != owner || actor.type != ActorData::eVillage)
+					continue;
+
+				int dist = TaxicabDistance(from, actor.pos);
+				if (dist < bestDist)
+				{
+					bestDist = dist;
+					outPos = actor.pos;
+					bFound = true;
+				}
+			}
+			return bFound;
+		}
+
+		bool findNearestOwnedVillageWaitTile(int owner, Vec2i const& from, Vec2i& outPos) const
+		{
+			int bestDist = std::numeric_limits<int>::max();
+			bool bFound = false;
+			for (ActorData const& actor : mUnitData)
+			{
+				if (!actor.bAlive || actor.owner != owner || actor.type != ActorData::eVillage)
+					continue;
+
+				for (int i = 0; i < 8; ++i)
+				{
+					Vec2i pos = actor.pos + linkOffset(i);
+					if (!canEnter(pos))
+						continue;
+
+					Tile const& tile = getTile(pos);
+					if (tile.unitId != INDEX_NONE)
+						continue;
+
+					int dist = TaxicabDistance(from, pos);
+					if (dist < bestDist)
+					{
+						bestDist = dist;
+						outPos = pos;
+						bFound = true;
+					}
+				}
+			}
+			return bFound;
+		}
+
 		Vec2i chooseStep(Vec2i const& from, Vec2i const& to, int owner) const
 		{
 			Vec2i best = from;
@@ -600,8 +892,7 @@ namespace LordMonarch
 					continue;
 
 				int score = TaxicabDistance(pos, to);
-				if (tile.id == TID_TERRITORY && tile.meta == owner)
-					score -= 1;
+				score += getMoveCostScore(owner, tile);
 
 				if (score < bestScore)
 				{
@@ -613,6 +904,20 @@ namespace LordMonarch
 			return best;
 		}
 
+		int getMoveCostScore(int owner, Tile const& tile) const
+		{
+			if (tile.id == TID_VILLAGE && tile.meta == owner)
+				return -10;
+
+			if (tile.id == TID_CASTLE && tile.meta == owner)
+				return -8;
+
+			if (tile.id == TID_TERRITORY && tile.meta == owner)
+				return 2;
+
+			return 4;
+		}
+
 		bool tryCompleteBuildAction(int actorId)
 		{
 			ActorData& actor = mUnitData[actorId];
@@ -621,7 +926,7 @@ namespace LordMonarch
 			switch (actor.curAction)
 			{
 			case Action::eBuildVillage:
-				if (actor.pos == actor.posDest && canBuildVillage(actor.pos) && kingdom.getStatus().momey >= 50)
+				if (actor.pos == actor.posDest && canBuildVillage(actor.pos, actor.owner) && kingdom.getStatus().momey >= 50)
 				{
 					kingdom.getStatus().momey -= 50;
 					int score = std::max(48, actor.score);
@@ -672,11 +977,19 @@ namespace LordMonarch
 		void moveActor(int actorId, Vec2i const& pos)
 		{
 			ActorData& actor = mUnitData[actorId];
+			Tile& toTile = getTile(pos);
+			if (toTile.unitId != INDEX_NONE && mUnitData[toTile.unitId].owner == actor.owner)
+			{
+				if (tryMergeActor(actorId, toTile.unitId))
+					return;
+
+				return;
+			}
+
 			Tile& fromTile = getTile(actor.pos);
 			if (fromTile.unitId == actorId)
 				fromTile.unitId = INDEX_NONE;
 
-			Tile& toTile = getTile(pos);
 			if (toTile.unitId != INDEX_NONE)
 			{
 				resolveCombat(actorId, toTile.unitId);
@@ -690,6 +1003,71 @@ namespace LordMonarch
 			actor.pos = pos;
 			toTile.unitId = actorId;
 			onUnitMoveTile(actor);
+			applyMoveDamage(actorId, toTile);
+		}
+
+		void applyMoveDamage(int actorId, Tile const& tile)
+		{
+			ActorData& actor = mUnitData[actorId];
+			if (!actor.bAlive || actor.type != ActorData::eArmy)
+				return;
+
+			if ((tile.id == TID_VILLAGE || tile.id == TID_CASTLE) && tile.meta == actor.owner)
+				return;
+
+			int damage = 1;
+			if (tile.id == TID_TERRITORY && tile.meta == actor.owner)
+				damage = 1;
+			else if (tile.id == TID_FOREST)
+				damage = 2;
+
+			actor.score -= damage;
+			if (actor.score <= 0)
+				killActor(actorId);
+		}
+
+		bool tryMergeActor(int actorId, int otherId)
+		{
+			ActorData& actor = mUnitData[actorId];
+			ActorData& other = mUnitData[otherId];
+			if (!actor.bAlive || !other.bAlive)
+				return false;
+
+			if (actor.type != ActorData::eArmy || other.type != ActorData::eArmy)
+				return false;
+
+			int totalScore = actor.score + other.score;
+			ActorData* keep = &actor;
+			ActorData* remove = &other;
+			int keepId = actorId;
+			int removeId = otherId;
+			if (other.score >= actor.score)
+			{
+				keep = &other;
+				remove = &actor;
+				keepId = otherId;
+				removeId = actorId;
+			}
+
+			Vec2i mergePos = other.pos;
+			keep->score = Math::Min(255, totalScore);
+			remove->bAlive = false;
+
+			Tile& removeTile = getTile(remove->pos);
+			if (removeTile.unitId == removeId)
+				removeTile.unitId = INDEX_NONE;
+
+			if (keepId == actorId)
+			{
+				Tile& oldTile = getTile(actor.pos);
+				if (oldTile.unitId == actorId)
+					oldTile.unitId = INDEX_NONE;
+
+				actor.pos = mergePos;
+				getTile(mergePos).unitId = actorId;
+			}
+
+			return true;
 		}
 
 		void resolveCombat(int attackerId, int defenderId)
@@ -700,7 +1078,11 @@ namespace LordMonarch
 				return;
 
 			int attackPower = attacker.score;
-			int defensePower = defender.score + ((defender.type == ActorData::eVillage) ? 24 : 0);
+			int defensePower = defender.score;
+			if (defender.type == ActorData::eVillage)
+				defensePower += 24;
+			else if (defender.type == ActorData::eCastle)
+				defensePower += 64;
 
 			if (attackPower > defensePower)
 			{
@@ -727,6 +1109,11 @@ namespace LordMonarch
 			if (actor.type == ActorData::eVillage)
 			{
 				getPlayer(actor.owner).removeVillage(tile);
+			}
+			else if (actor.type == ActorData::eCastle)
+			{
+				getPlayer(actor.owner).removeCastle(tile);
+				getPlayer(actor.owner).setCastleId(INDEX_NONE);
 			}
 			else if (actor.type == ActorData::eLeader)
 			{

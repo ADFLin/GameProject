@@ -375,10 +375,11 @@ public:
 
 	void onRender(float dFrame) override
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		Vector2 screenSize = ::Global::GetScreenSize();
-		auto& commandList = g.getCommandList();
 
 		auto const& curPoints = mPoints[1 - mIndexBufferWrite];
 		auto const& prevPoints = mPoints[mIndexBufferWrite];

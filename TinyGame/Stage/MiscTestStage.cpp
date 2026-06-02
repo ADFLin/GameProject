@@ -377,13 +377,14 @@ bool RHIGraphics2DTestStage::onInit()
 void RHIGraphics2DTestStage::onRender(float dFrame)
 {
 	using namespace Render;
-	RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-	RHICommandList& commandList = g.getCommandList();
+
+
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 	//RHISetFrameBuffer(commandList, nullptr);
 	//RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
-
+	RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 	g.beginRender();
 
 	float angle = mAngle + mSpeed * dFrame * gDefaultTickTime;

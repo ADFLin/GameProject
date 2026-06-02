@@ -319,11 +319,8 @@ namespace Render
 			mStates.push_back(defaultState);
 		}
 
-		uint32 setTransform(RenderTransform2D const& xform)
+		uint32 addTransform(RenderTransform2D const& xform)
 		{
-			if (mTransforms.back() == xform)
-				return (uint32)mTransforms.size() - 1;
-
 			uint32 index = (uint32)mTransforms.size();
 			mTransforms.push_back(xform);
 			return index;

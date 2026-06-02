@@ -32,28 +32,29 @@ namespace MV
 		Vec2i size = getSize();
 		Vec2i screenSize = ::Global::GetScreenSize();
 
-		GrapthicStateScope scope(g);
-
-		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-		RHISetViewport(commandList, wPos.x, screenSize.y - size.y, size.x, size.y);
-
-		RenderEngine& re = getRenderEngine();
+		g.drawCustomFunc( [&](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 		{
-			float width = 2;
-			float height = width * size.y / size.x;
-			Mat4 matProj = OrthoMatrix( width , width , -10 , 10 );
-			Mat4 matView = LookAtMatrix( Vec3f(0,0,0) , -Vec3f( FDir::ParallaxOffset(0) ) , Vector3(0,0,1) );
-			Render::MatrixSaveScope Scope( matProj , matView );
-			
-			RenderContext context;
-			context.view = &WidgetView;
-			context.view->setupTransform(matView, matProj);
-			context.setColor(LinearColor(1, 1, 1, 1));
-			context.mCommandList = &RHICommandList::GetImmediateList();
-			re.beginRender(context);
-			re.renderMesh(context, idMesh, Vec3f(0,0,0), AxisRoataion::Identity());
-			re.endRender(context);
-		}
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+			RHISetViewport(commandList, wPos.x, screenSize.y - size.y, size.x, size.y);
+
+			RenderEngine& re = getRenderEngine();
+			{
+				float width = 2;
+				float height = width * size.y / size.x;
+				Mat4 matProj = OrthoMatrix(width, width, -10, 10);
+				Mat4 matView = LookAtMatrix(Vec3f(0, 0, 0), -Vec3f(FDir::ParallaxOffset(0)), Vector3(0, 0, 1));
+				Render::MatrixSaveScope Scope(matProj, matView);
+
+				RenderContext context;
+				context.view = &WidgetView;
+				context.view->setupTransform(matView, matProj);
+				context.setColor(LinearColor(1, 1, 1, 1));
+				context.mCommandList = &commandList;
+				re.beginRender(context);
+				re.renderMesh(context, idMesh, Vec3f(0, 0, 0), AxisRoataion::Identity());
+				re.endRender(context);
+			}
+		});
 	}
 
 }//namespace MV

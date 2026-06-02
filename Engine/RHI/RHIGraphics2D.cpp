@@ -113,8 +113,7 @@ RHIGraphicsBatchManager& RHIGraphicsBatchManager::Get()
 
 RHIGraphics2D::RHIGraphics2D()
 { 
-	mImmediateContext = new RHIRender2DContext(2048);
-	mWriteContext = mImmediateContext;
+	mWriteContext = RHIGraphicsBatchManager::Get().acquire();
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
 
@@ -122,12 +121,14 @@ RHIGraphics2D::RHIGraphics2D()
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 
-	mBaseTransform = Math::Matrix4::Identity();
+	mWriteContext->baseTransform = Math::Matrix4::Identity();
+	mWriteContext->viewportWidth = 0;
+	mWriteContext->viewportHeight = 0;
 }
 
 RHIGraphics2D::~RHIGraphics2D()
 {
-	delete mImmediateContext;
+	RHIGraphicsBatchManager::Get().release(mWriteContext);
 }
 
 
@@ -148,23 +149,17 @@ void RHIGraphics2D::releaseRHI()
 void RHIGraphics2D::setViewportSize(int w, int h)
 {
 	//LogMsg("RHIGraphics2D::setViewportSize [w: %d, h: %d]", w, h);
-	mViewportWidth = w;
-	mViewportHeight = h;
-	mBaseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, (float)w, (float)h, 0, -1, 1));
 
-	if (mWriteContext)
-	{
-		mWriteContext->viewportWidth = w;
-		mWriteContext->viewportHeight = h;
-		mWriteContext->baseTransform = mBaseTransform;
-	}
+	mWriteContext->viewportWidth = w;
+	mWriteContext->viewportHeight = h;
+	mWriteContext->baseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, (float)w, (float)h, 0, -1, 1));
 }
 
 void RHIGraphics2D::syncTransform()
 {
 	if (bTransformDirty)
 	{
-		mCurrentTransformIndex = getElementList().setTransform(mXFormStack.get());
+		mCurrentTransformIndex = getElementList().addTransform(mXFormStack.get());
 		bTransformDirty = false;
 	}
 }
@@ -192,15 +187,18 @@ void RHIGraphics2D::finishXForm()
 void RHIGraphics2D::pushXForm()
 {
 	mXFormStack.push();
-	mTransformIndexStack.push_back(mCurrentTransformIndex);
+	mTransformIndexStack.push_back(bTransformDirty ? INDEX_NONE : mCurrentTransformIndex);
 }
 
 void RHIGraphics2D::popXForm()
 {
+	CHECK(!mTransformIndexStack.empty());
+
 	mXFormStack.pop();
 	mCurrentTransformIndex = mTransformIndexStack.back();
+	bTransformDirty = mCurrentTransformIndex != INDEX_NONE;
+
 	mTransformIndexStack.pop_back();
-	bTransformDirty = false;
 }
 
 void RHIGraphics2D::identityXForm()
@@ -250,18 +248,15 @@ void RHIGraphics2D::beginRender()
 	mXFormStack.clear();
 	mTransformIndexStack.clear();
 	mCurrentTransformIndex = 0;
+
 	bTransformDirty = false;
 	mNextLayer = 0;
 
-	mWriteContext->baseTransform = mBaseTransform;
-	mWriteContext->viewportWidth = mViewportWidth;
-	mWriteContext->viewportHeight = mViewportHeight;
-
 	if (mRenderMode == ERenderMode::Immediate)
 	{
-		RHICommandList& commandList = getCommandList();
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		auto& batchedRenderer = RHIGraphicsBatchManager::Get().mBatchedRender;
-		batchedRenderer.setViewportSize(mViewportWidth, mViewportHeight);
+		batchedRenderer.setViewportSize(mWriteContext->viewportWidth, mWriteContext->viewportHeight);
 		batchedRenderer.beginRender(commandList);
 	}
 
@@ -713,7 +708,7 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charC
 	CHECK(mFont);
 	CHECK(charCount > 0 || charCount == INDEX_NONE);
 
-	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+	ESimpleBlendMode prevMode = mRenderStatePending.blendMode;
 	setBlendState(ESimpleBlendMode::Translucent);
 	setTextureState(&mFont->getTexture());
 	Vector2 pos = Vector2(ox, oy);
@@ -778,7 +773,7 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, float scale, CharT const* s
 	CHECK(mFont);
 	CHECK(charCount > 0 || charCount == INDEX_NONE);
 
-	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+	ESimpleBlendMode prevMode = mRenderStatePending.blendMode;
 	setBlendState(ESimpleBlendMode::Translucent);
 	setTextureState(&mFont->getTexture());
 	Vector2 pos = Vector2(ox, oy);
@@ -812,7 +807,7 @@ RHIGraphics2D::Vec2i RHIGraphics2D::calcTextExtentSize(char const* str, int len)
 {
 	if (mFont)
 	{
-		Vector2 extent = mFont->calcTextExtent(str, nullptr);
+		Vector2 extent = mFont->calcTextExtent(StringView(str, len), nullptr);
 		return Vec2i((int)extent.x, (int)extent.y);
 	}
 	return Vec2i(0, 0);
@@ -851,29 +846,13 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color)
 {
-	drawTexture(pos, mCurTextureSize, texPos, texSize);
+	drawTexture(pos, mCurTextureSize, texPos, texSize, color);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color)
 {
 	auto& element = getElementList().addTextureRect(color, pos, pos + size, texPos, texPos + texSize);
 	setupElement(element);
-}
-
-void RHIGraphics2D::flushBatchedElements()
-{
-	flush();
-}
-
-RHICommandList& RHIGraphics2D::getCommandList()
-{
-	if (mRenderMode == ERenderMode::Buffered && !IsInRenderThread())
-	{
-		// This should not be used on Game Thread in buffered mode!
-		// Return a dummy or handle error. 
-		// For now, return immediate list but flushBatchedElements should prevent its use.
-	}
-	return RHICommandList::GetImmediateList();
 }
 
 void RHIGraphics2D::setTextureState(RHITexture2D* texture /*= nullptr*/)
@@ -933,15 +912,17 @@ public:
 
 	void execute(RenderExecuteContext& context) override
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		auto& batchRender = RHIGraphicsBatchManager::Get().mBatchedRender;
 		batchRender.mWidth = mContext->viewportWidth;
 		batchRender.mHeight = mContext->viewportHeight;
 		batchRender.mBaseTransform = mContext->baseTransform;
 
-		batchRender.beginRender(mGraphics.getCommandList());
-		batchRender.render(mGraphics.getCommandList(), mContext->elementList);
+		batchRender.beginRender(commandList);
+		batchRender.render(commandList, mContext->elementList);
 		batchRender.flush();
-		mGraphics.releaseContext(mContext);
+
+		RHIGraphicsBatchManager::Get().release(mContext);
 	}
 
 
@@ -961,8 +942,9 @@ void RHIGraphics2D::flush()
 	{
 		if (!getElementList().mElements.empty())
 		{
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			auto& batchRender = RHIGraphicsBatchManager::Get().mBatchedRender;
-			batchRender.render(getCommandList(), getElementList());
+			batchRender.render(commandList, mWriteContext->elementList);
 			batchRender.flush();
 			getElementList().reset();
 			mWriteContext->allocator.clearFrame();
@@ -990,6 +972,15 @@ void RHIGraphics2D::flush()
 			command->debugName = "RHIGraphicsBatch";
 		}
 	}
+
+	mCurrentTransformIndex = 0;
+	for (int& index : mTransformIndexStack)
+	{
+		if ( index != 0 )
+			index = INDEX_NONE;
+	}
+	bTransformDirty = true;
+	setupCommittedRenderState();
 }
 
 RHIRender2DContext* RHIGraphics2D::acquireContext()
@@ -998,37 +989,19 @@ RHIRender2DContext* RHIGraphics2D::acquireContext()
 }
 
 
-void RHIGraphics2D::setRecordingList(::RenderCommandList* list)
+void RHIGraphics2D::setRecordingList(RenderCommandList* list)
 {
 	mRecordingList = list;
 	mFlushCount = 0;
 	if (mRecordingList)
 	{
 		mRenderMode = ERenderMode::Buffered;
-		if (mWriteContext == mImmediateContext)
-		{
-			mWriteContext = acquireContext();
-		}
 	}
 	else
 	{
 		mRenderMode = ERenderMode::Immediate;
 	}
 }
-
-
-void RHIGraphics2D::releaseContext(RHIRender2DContext* context)
-{
-	if (context == mImmediateContext)
-	{
-		context->reset();
-		return;
-	}
-
-	RHIGraphicsBatchManager::Get().release(context);
-}
-
-
 
 void RHIGraphics2D::setPen(Color3Type const& color, int width)
 {
@@ -1080,4 +1053,9 @@ void RHIGraphics2D::endBlend()
 void* RHIGraphics2D::allocRaw(size_t size)
 {
 	return mWriteContext->allocator.alloc(size);
+}
+
+Math::Matrix4 const& RHIGraphics2D::getBaseTransform() const
+{
+	return mWriteContext->baseTransform;
 }

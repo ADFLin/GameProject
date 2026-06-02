@@ -530,9 +530,7 @@ public:
 	{
 		using namespace Render;
 
-		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-		RHICommandList& commandList = g.getCommandList();
-
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
@@ -557,6 +555,8 @@ public:
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add >::GetRHI());
 		diagram.drawCurve(commandList, mLossPoints, LinearColor(1, 1, 0, 1));
 		diagram.drawCurve(commandList, mTestLossPoints, LinearColor(0, 1, 1, 1));
+
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
 
 		g.endRender();

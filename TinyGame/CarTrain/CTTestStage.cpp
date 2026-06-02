@@ -326,17 +326,18 @@ namespace CarTrain
 
 	void TestStage::onRender(float dFrame)
 	{
-		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		using namespace Render;
 
 		Vec2i screenSize = ::Global::GetScreenSize();
-		RHICommandList& commandList = g.getCommandList();
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		g.beginRender();
 
 		{

@@ -79,10 +79,8 @@ public:
 	bool bUseRTArray = true;
 	void onRender(float dFrame) override
 	{
-		RHIGraphics2D& g = Global::GetRHIGraphics2D();
-
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		Vector2 screenSize = ::Global::GetScreenSize();
-		auto& commandList = g.getCommandList();
 
 		if (bUseRTArray)
 		{

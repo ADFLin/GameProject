@@ -131,11 +131,14 @@ namespace Transport
 		void onRender(float dFrame) override
 		{
 			using namespace Render;
-			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
-			RHICommandList& cmdList =  g.getCommandList();
-			RHISetFrameBuffer(cmdList, nullptr);
-			RHIClearRenderTargets(cmdList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
+
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHISetFrameBuffer(commandList, nullptr);
+			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
+
+
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			g.beginRender();
 
 			g.beginXForm();

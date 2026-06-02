@@ -414,12 +414,12 @@ namespace FlowFree
 
 	void LevelStage::onRender(float dFrame)
 	{
-		RHIGraphics2D& g = Global::GetRHIGraphics2D();
-		RHICommandList& commandList = g.getCommandList();
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		g.beginRender();
 
 		Vec2i size = mLevel.getSize();

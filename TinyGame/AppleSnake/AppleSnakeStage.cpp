@@ -20,10 +20,10 @@ namespace AppleSnake
 		template< typename TFunc >
 		void drawStencil(TFunc func)
 		{
-			RHIClearRenderTargets(g.getCommandList(), EClearBits::Stencil, nullptr, 0, 0, 0);
 			g.resetRenderState();
 			g.setCustomRenderState([this](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
 			{
+				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 0, 0);
 				RHISetBlendState(commandList, bShowMask ? TStaticBlendState< CWM_RGBA >::GetRHI() : TStaticBlendState< CWM_None >::GetRHI());
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<
 					false, ECompareFunc::Always, true, ECompareFunc::Always,

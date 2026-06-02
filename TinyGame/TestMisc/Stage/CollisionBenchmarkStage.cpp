@@ -301,12 +301,13 @@ namespace CollisionBenchmark
 
 		void onRender(float dFrame) override
 		{
-			RHIGraphics2D& g = Global::GetRHIGraphics2D();
-			RHICommandList& commandList = g.getCommandList();
+
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHISetViewport(commandList, 0, 0, mScreenSize.x, mScreenSize.y);
 			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.1f, 0.1f, 0.1f, 1), 1);
 
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			g.beginRender();
 			RenderUtility::SetPen(g, EColor::White); g.drawLine(Vector2(mHalfWidth, 0), Vector2(mHalfWidth, mScreenSize.y));
 

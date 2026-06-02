@@ -214,14 +214,11 @@ namespace Render
 			VERIFY_RETURN_FALSE(mOverlayFrameBuffer.isValid());
 			mOverlayFrameBuffer->setTexture(0, *mOverlayTexture);
 
-			mOverlayGraphics.setViewportSize(OverlayWidth, OverlayHeight);
-			mOverlayGraphics.initializeRHI();
 			return true;
 		}
 
 		void preShutdownRenderSystem(bool bReInit) override
 		{
-			mOverlayGraphics.releaseRHI();
 			mOverlayFrameBuffer.release();
 			mOverlayTexture.release();
 			BaseClass::preShutdownRenderSystem(bReInit);
@@ -261,7 +258,9 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			RHIGraphics2D& g = mOverlayGraphics;
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+
+			g.setViewportSize(OverlayWidth, OverlayHeight);
 			g.beginRender();
 
 			g.setPen(Color3ub(80, 120, 170), 2);
@@ -304,6 +303,8 @@ namespace Render
 			g.drawLineStrip(wave, ARRAY_SIZE(wave));
 
 			g.endRender();
+			Vec2i screenSize = ::Global::GetScreenSize();
+			g.setViewportSize(screenSize.x, screenSize.y);
 
 			RHIFlushCommand(commandList);
 			RHIReadTexture(*mOverlayTexture, ETexture::BGRA8, 0, mReadbackData);
@@ -338,7 +339,6 @@ namespace Render
 		BitmapDC      mBitmapDC;
 		void*         mBitampDataPtr = nullptr;
 
-		RHIGraphics2D mOverlayGraphics;
 		RHITexture2DRef mOverlayTexture;
 		RHIFrameBufferRef mOverlayFrameBuffer;
 		TArray< uint8 > mReadbackData;

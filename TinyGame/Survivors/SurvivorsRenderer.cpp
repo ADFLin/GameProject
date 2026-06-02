@@ -56,13 +56,13 @@ namespace Survivors
 
 	void SurvivorsRenderer::renderScene(SceneSnapshot const& scene)
 	{
-		RHIGraphics2D& g = Global::GetRHIGraphics2D_RenderThread();
-		RHICommandList& commandList = g.getCommandList();
-		g.setViewportSize(scene.screenSize.x, scene.screenSize.y);
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		RHISetViewport(commandList, 0, 0, (float)scene.screenSize.x, (float)scene.screenSize.y);
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.04f, 0.04f, 0.08f, 1), 1);
 
+		RHIGraphics2D& g = Global::GetRHIGraphics2D_RenderThread();
+		g.setViewportSize(scene.screenSize.x, scene.screenSize.y);
 		g.beginRender();
 		g.setBlendAlpha(1.0f);
 		g.transformXForm(scene.worldToScreen, true);

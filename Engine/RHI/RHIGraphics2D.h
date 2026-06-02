@@ -269,10 +269,7 @@ public:
 
 	void flush();
 
-	Math::Matrix4 const& getBaseTransform() const
-	{
-		return mBaseTransform;
-	}
+	Math::Matrix4 const& getBaseTransform() const;
 
 	Render::RenderTransform2D const& getCurrentTransform() const
 	{
@@ -281,7 +278,6 @@ public:
 
 	Render::TransformStack2D& getTransformStack() { return mXFormStack; }
 
-	Render::RHICommandList& getCommandList();
 
 	void initializeRHI();
 	void releaseRHI();
@@ -294,8 +290,7 @@ public:
 
 	void setTextRemoveScale(bool bRemoved) { bTextRemoveScale = bRemoved; }
 	void setTextRemoveRotation(bool bRemoved) { bTextRemoveRotation = bRemoved; }
-	void setRecordingList(::RenderCommandList* list);
-	void releaseContext(RHIRender2DContext* context);
+	void setRecordingList(RenderCommandList* list);
 
 	class LayerPolicy
 	{
@@ -316,8 +311,6 @@ private:
 	void drawTextImpl(float ox, float oy, float scale, CharT const* str, int charCount = INDEX_NONE);
 
 	void setupCommittedRenderState();
-
-	void flushBatchedElements();
 	void preModifyRenderState();
 
 	ERenderMode mRenderMode = ERenderMode::Immediate;
@@ -371,43 +364,19 @@ private:
 
 	Render::FontDrawer*   mFont;
 
-
-	RHIRender2DContext* mImmediateContext = nullptr;
 	Render::TransformStack2D mXFormStack;
-	TArray<uint32> mTransformIndexStack;
-	uint32 mCurrentTransformIndex = 0;
-	bool bTransformDirty = true;
-	uint32 mCurrentStateIndex = 0;
-	bool bStateDirty = true;
-	class ::RenderCommandList* mRecordingList = nullptr;
+	TArray<int32> mTransformIndexStack;
 
-	Math::Matrix4 mBaseTransform;
-	int mViewportWidth = 0;
-	int mViewportHeight = 0;
+	bool bTransformDirty = false;
+	int32 mCurrentTransformIndex = 0;
+
+	bool bStateDirty = true;
+	int32 mCurrentStateIndex = INDEX_NONE;
+
+	class RenderCommandList* mRecordingList = nullptr;
+
 
 	LayerPolicy* mLayerPolicy = nullptr;
 };
-
-
-struct GrapthicStateScope
-{
-	GrapthicStateScope(RHIGraphics2D& g, bool bNeedFlash = true)
-		:mGraphics(g)
-	{
-		if (bNeedFlash)
-		{
-			mGraphics.flush();
-		}
-	}
-
-	~GrapthicStateScope()
-	{
-		mGraphics.restoreRenderState();
-	}
-
-	RHIGraphics2D& mGraphics;
-};
-
-
 
 #endif // RHIGraphics2D_H_B76821A9_0E45_4D52_8371_17DAF128C490

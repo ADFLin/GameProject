@@ -72,7 +72,6 @@ namespace GoCore
 		using namespace Render;
 		using namespace Go;
 
-		RHICommandList& commandList = g.getCommandList();
 		{
 			GPU_PROFILE("Draw Stone");
 
@@ -126,8 +125,6 @@ namespace GoCore
 
 		float const border = 0.5 * context.cellLength + ((bDrawCoord) ? 30 : 0);
 		float const boardRenderLength = length + 2 * border;
-
-		RHICommandList& commandList = g.getCommandList();
 
 #if DRAW_TEXTURE
 		RenderUtility::SetBrush(g, EColor::White);

@@ -1065,12 +1065,8 @@ namespace Go
 		}
 	}
 
-	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
+	void LeelaZeroGoStage::drawWinRateDiagram(RHICommandList& commandList, Vec2i const& renderPos, Vec2i const& renderSize)
 	{
-		::Global::GetRHIGraphics2D().flush();
-
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
-
 		if(mWinRateDataList[0].history.size() > 1 || mWinRateDataList[1].history.size() > 1 )
 		{
 			GPU_PROFILE("Draw WinRate Diagram");
@@ -1240,9 +1236,6 @@ namespace Go
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 		}
-
-
-		::Global::GetRHIGraphics2D().restoreRenderState();
 	}
 
 	void LeelaZeroGoStage::updateViewGameTerritory()
@@ -2012,7 +2005,11 @@ namespace Go
 									Vec2i screenSize = ::Global::GetScreenSize();
 									Vec2i diagramPos = widget->getWorldPos() + Vec2i(5, 5);
 									Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
-									drawWinRateDiagram(diagramPos, diagramSize);
+									RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+									g.drawCustomFunc([this, diagramPos, diagramSize](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element)
+									{
+										drawWinRateDiagram(commandList, diagramPos, diagramSize);
+									});
 								})
 							);
 							::Global::GUI().addWidget(mWinRateWidget);

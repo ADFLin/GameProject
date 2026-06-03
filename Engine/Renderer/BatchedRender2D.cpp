@@ -1724,6 +1724,23 @@ namespace Render
 	}
 
 
+	void ShapeVertexCache::updateFrame()
+	{
+		for (auto iter = mCachedMap.begin(); iter != mCachedMap.end(); )
+		{
+			if (mFrame - iter->second.frame > 120)
+			{
+				iter = mCachedMap.erase(iter);
+			}
+			else
+			{
+				++iter;
+			}
+		}
+
+		mFrame += 1;
+	}
+
 	template< typename TFunc >
 	ShapeCachedData* ShapeVertexCache::findOrCache(CacheKey const& key, TFunc& func)
 	{
@@ -1813,6 +1830,5 @@ namespace Render
 			}
 		);
 	}
-
 
 }// namespace Render

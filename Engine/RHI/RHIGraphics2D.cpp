@@ -24,7 +24,6 @@ struct RHIRender2DContext
 {
 	FrameAllocator allocator;
 	Render::RenderBatchedElementList elementList;
-	Math::Matrix4 baseTransform;
 	int viewportWidth;
 	int viewportHeight;
 
@@ -32,7 +31,6 @@ struct RHIRender2DContext
 		:allocator(pageSize)
 		,elementList(allocator)
 	{
-		baseTransform = Math::Matrix4::Identity();
 		viewportWidth = 0;
 		viewportHeight = 0;
 	}
@@ -67,6 +65,14 @@ public:
 		auto* context = new RHIRender2DContext(2048);
 		mUsedContexts.push_back(context);
 		return context;
+	}
+
+	void render(RHICommandList& commandList, RHIRender2DContext& context)
+	{
+		mBatchedRender.setViewportSize(context.viewportWidth, context.viewportHeight);
+		mBatchedRender.beginRender(commandList);
+		mBatchedRender.render(commandList, context.elementList);
+		mBatchedRender.flush();
 	}
 
 	void release(RHIRender2DContext* context)
@@ -121,7 +127,6 @@ RHIGraphics2D::RHIGraphics2D()
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 
-	mWriteContext->baseTransform = Math::Matrix4::Identity();
 	mWriteContext->viewportWidth = 0;
 	mWriteContext->viewportHeight = 0;
 }
@@ -149,10 +154,8 @@ void RHIGraphics2D::releaseRHI()
 void RHIGraphics2D::setViewportSize(int w, int h)
 {
 	//LogMsg("RHIGraphics2D::setViewportSize [w: %d, h: %d]", w, h);
-
 	mWriteContext->viewportWidth = w;
 	mWriteContext->viewportHeight = h;
-	mWriteContext->baseTransform = AdjustProjectionMatrixForRHI(OrthoMatrix(0, (float)w, (float)h, 0, -1, 1));
 }
 
 void RHIGraphics2D::syncTransform()
@@ -251,15 +254,6 @@ void RHIGraphics2D::beginRender()
 
 	bTransformDirty = false;
 	mNextLayer = 0;
-
-	if (mRenderMode == ERenderMode::Immediate)
-	{
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		auto& batchedRenderer = RHIGraphicsBatchManager::Get().mBatchedRender;
-		batchedRenderer.setViewportSize(mWriteContext->viewportWidth, mWriteContext->viewportHeight);
-		batchedRenderer.beginRender(commandList);
-	}
-
 
 	mPaintArgs.penWidth = 1;
 	mPaintArgs.bUseBrush = true;
@@ -907,26 +901,17 @@ void RHIGraphics2D::restoreRenderState()
 class RenderCommand_RHIGraphicsBatch : public RenderCommand
 {
 public:
-	RenderCommand_RHIGraphicsBatch(RHIGraphics2D& graphics, RHIRender2DContext* context)
-		:mGraphics(graphics), mContext(context) {}
+	RenderCommand_RHIGraphicsBatch(RHIRender2DContext* context)
+		:mContext(context) {}
 
 	void execute(RenderExecuteContext& context) override
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		auto& batchRender = RHIGraphicsBatchManager::Get().mBatchedRender;
-		batchRender.mWidth = mContext->viewportWidth;
-		batchRender.mHeight = mContext->viewportHeight;
-		batchRender.mBaseTransform = mContext->baseTransform;
 
-		batchRender.beginRender(commandList);
-		batchRender.render(commandList, mContext->elementList);
-		batchRender.flush();
-
+		RHIGraphicsBatchManager::Get().render(commandList, *mContext);
 		RHIGraphicsBatchManager::Get().release(mContext);
 	}
 
-
-	RHIGraphics2D& mGraphics;
 	RHIRender2DContext* mContext;
 	int mBatchId;
 };
@@ -944,8 +929,8 @@ void RHIGraphics2D::flush()
 		{
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			auto& batchRender = RHIGraphicsBatchManager::Get().mBatchedRender;
-			batchRender.render(commandList, mWriteContext->elementList);
-			batchRender.flush();
+
+			RHIGraphicsBatchManager::Get().render(commandList, *mWriteContext);
 			getElementList().reset();
 			mWriteContext->allocator.clearFrame();
 		}
@@ -955,19 +940,18 @@ void RHIGraphics2D::flush()
 		RHIRender2DContext* pendingContext = mWriteContext;
 		mWriteContext = acquireContext();
 		mRenderStateCommitted.setInit();
-		mWriteContext->baseTransform = pendingContext->baseTransform;
 		mWriteContext->viewportWidth = pendingContext->viewportWidth;
 		mWriteContext->viewportHeight = pendingContext->viewportHeight;
 		
 		if (mRecordingList)
 		{
-			auto* command = mRecordingList->allocCommand<RenderCommand_RHIGraphicsBatch>(*this, pendingContext);
+			auto* command = mRecordingList->allocCommand<RenderCommand_RHIGraphicsBatch>(pendingContext);
 			command->mBatchId = mFlushCount++;
 			command->debugName = "RHIGraphicsBatch";
 		}
 		else
 		{
-			auto* command = RenderThread::AllocCommand<RenderCommand_RHIGraphicsBatch>(*this, pendingContext);
+			auto* command = RenderThread::AllocCommand<RenderCommand_RHIGraphicsBatch>(pendingContext);
 			command->mBatchId = mFlushCount++;
 			command->debugName = "RHIGraphicsBatch";
 		}
@@ -1057,5 +1041,5 @@ void* RHIGraphics2D::allocRaw(size_t size)
 
 Math::Matrix4 const& RHIGraphics2D::getBaseTransform() const
 {
-	return mWriteContext->baseTransform;
+	return AdjustProjectionMatrixForRHI(OrthoMatrix(0, mWriteContext->viewportWidth, mWriteContext->viewportHeight, 0, -1, 1));
 }

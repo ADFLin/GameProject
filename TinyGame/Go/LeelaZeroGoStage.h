@@ -356,7 +356,7 @@ namespace Go
 		MatchGameData mMatchData;
 		InlineString<32> mLastGameResult;
 
-		void drawWinRateDiagram( Vec2i const& renderPos ,  Vec2i const& renderSize );
+		void drawWinRateDiagram(RHICommandList& commandList, Vec2i const& renderPos ,  Vec2i const& renderSize );
 
 		class GameStatusQuery : public IGameCopier
 		{

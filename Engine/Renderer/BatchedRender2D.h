@@ -140,6 +140,8 @@ namespace Render
 		template< typename TFunc >
 		TArrayView< Vector2 > getOrBuild(FrameAllocator& allocator, RenderTransform2D const& xForm, CacheKey const& key, TFunc& func);
 
+		void updateFrame();
+
 		std::unordered_map< CacheKey, ShapeCachedData, MemberFuncHasher > mCachedMap;
 
 		int mFrame  = 0;
@@ -544,8 +546,8 @@ namespace Render
 			using ElementType = TRenderBatchedElement<TPayload>;
 			ElementType* ptr = (ElementType*)mAllocator.alloc(sizeof(ElementType));
 			FTypeMemoryOp::Construct(ptr);
-			ptr->transformIndex = (uint32)mTransforms.size() - 1;
-			ptr->stateIndex = (uint32)mStates.size() - 1;
+			ptr->transformIndex = 0;
+			ptr->stateIndex = 0;
 			mElements.push_back(ptr);
 
 			static_assert(std::is_trivially_destructible_v< RenderBatchedElement >);

@@ -127,7 +127,7 @@ namespace Zuma
 	void RenderSystemRHI::drawBitmapWithinMask(ITexture2D const& tex, ITexture2D const& mask, Vector2 const& pos, unsigned flag)
 	{
 		setupBlend(true, flag);
-		mGraphics->drawCustomFunc([this, &tex, &mask, pos, flag](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, Render::RenderTransform2D const& transformEle)
+		mGraphics->drawCustomFunc([this, brushColor = mGraphics->getBrushColor(),  &tex, &mask, pos, flag](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, Render::RenderTransform2D const& transformEle)
 		{
 			PROFILE_ENTRY("drawBitmapWithinMask");
 
@@ -139,13 +139,13 @@ namespace Zuma
 			Vector2 texSize = Vector2(mask.getWidth(), mask.getHeight());
 
 			RHISetShaderProgram(commandList, shaderProgram->getRHI());
-			SET_SHADER_PARAM(commandList, *shaderProgram, Color, Color4f(mGraphics->getBrushColor()));
+			SET_SHADER_PARAM(commandList, *shaderProgram, Color, Color4f(brushColor));
 			RenderTransform2D transform = transformEle;
 			if (flag & TBF_OFFSET_CENTER)
 			{
 				transform.translateLocal(-0.5 * texSize);
 			}
-			SET_SHADER_PARAM(commandList, *shaderProgram, XForm, transform.toMatrix4() * mGraphics->getBaseTransform());
+			SET_SHADER_PARAM(commandList, *shaderProgram, XForm, transform.toMatrix4() * baseTransform);
 
 			Vector2 uvLT;
 			Vector2 uvRB;

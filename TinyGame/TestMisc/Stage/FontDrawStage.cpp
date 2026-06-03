@@ -73,66 +73,6 @@ public:
 		return true;
 	}
 
-	struct TextVertex
-	{
-		Vector2 pos;
-		Vector2 uv;
-	};
-
-	std::vector< TextVertex > mBuffer;
-	void addQuad(Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
-	{
-		Vector2 posMax = pos + size;
-		mBuffer.push_back({ pos , uvMin });
-		mBuffer.push_back({ Vector2( posMax.x , pos.y ) , Vector2( uvMax.x , uvMin.y) });
-		mBuffer.push_back({ posMax , uvMax });
-		mBuffer.push_back({ Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) });
-	}
-	void drawText( RHICommandList& commandList, Vec2i const& pos, wchar_t const* str)
-	{
-		mBuffer.clear();
-		Vector2 curPos = pos;
-
-		bool bPrevSpace = false;
-		bool bStartChar = true;
-		while( *str != 0 )
-		{
-			wchar_t c = *(str++);
-			if( c == L'\n' )
-			{
-				curPos.x = pos.x;
-				curPos.y += mCharDataSet->getFontHeight() + 2;
-				bStartChar = true;
-				continue;
-			}
-
-			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
-
-			if (!(bPrevSpace || bStartChar))
-				curPos.x += data.kerning;
-
-			addQuad(curPos + Vector2(data.offsetX, data.offsetY), Vector2(data.width, data.height), data.uvMin, data.uvMax);
-			curPos.x += data.advance;
-			bStartChar = false;
-			if( c == iswspace(c) )
-			{
-				bPrevSpace = true;
-			}
-		}
-		if( !mBuffer.empty() )
-		{
-			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
-			{
-				glEnable(GL_TEXTURE_2D);
-				GL_SCOPED_BIND_OBJECT(mCharDataSet->getTexture());
-				TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, &mBuffer[0], mBuffer.size());
-				glDisable(GL_TEXTURE_2D);
-			}
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		}
-			
-	}
-
 	CharDataSet* mCharDataSet;
 	CharDataSet* mBigCharDataSet;
 	CharDataSet::CharData charData;
@@ -187,7 +127,7 @@ public:
 
 		DrawUtility::DrawTexture(commandList, g.getBaseTransform(), mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
 
-		g.beginRender();
+
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
 			"你對愛並不了解　誤會愛的分類\n"
@@ -220,15 +160,9 @@ public:
 			"遍地野生的薔薇　不如玫瑰珍貴\n"
 			"承諾要灰飛煙滅　誰還能被愛紀念\n"
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
-#if 0
-		glColor4f(1, 0.5, 0, 1);
-		RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
-		drawText(commandList, Vec2i(100, 50), (const wchar_t*)( textBuffer.data()));
-
-#else
-		g.restoreRenderState();
+		
+		g.beginRender();
 		g.drawText(Vec2i(0, 0), (const wchar_t*)(textBuffer.data()));
-#endif
 
 		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
 		g.setBrush(Color3f(1, 0, 0));

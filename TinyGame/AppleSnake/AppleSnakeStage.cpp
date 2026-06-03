@@ -44,7 +44,7 @@ namespace AppleSnake
 					true, ECompareFunc::Always, true, bIncluded ? ECompareFunc::Equal : ECompareFunc::NotEqual,
 					EStencil::Keep, EStencil::Keep, EStencil::Keep
 				>::GetRHI(), refValue);
-				BatchedRender::SetupShaderState(commandList, g.getBaseTransform(), state);
+				BatchedRender::SetupShaderState(commandList, baseTransform, state);
 			});
 		}
 

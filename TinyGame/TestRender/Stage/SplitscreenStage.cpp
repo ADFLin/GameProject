@@ -1370,7 +1370,7 @@ public:
 		g.setCustomRenderState([&](RHICommandList& commandList, Matrix4 const& baseTransform, RenderBatchedElement& element, RenderTransform2D const& transform, GraphicsDefinition::RenderState const& state)
 		{
 			SetupDrawState(commandList);
-			BatchedRender::SetupShaderState(commandList, g.getBaseTransform(), state);
+			BatchedRender::SetupShaderState(commandList, baseTransform, state);
 		});
 		RenderUtility::SetBrush(g, EColor::White);
 		float len = 80;

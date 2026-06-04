@@ -11,12 +11,19 @@
 #include "RHI/RHIGraphics2D.h"
 #include "ProfileSystem.h"
 #include "Async/AsyncWork.h"
+#include "Async/ParallelFor.h"
 
 #include "Misc/DiagramRender.h"
 
 #include <random>
 
 #define USE_NNMODEL 1
+
+#if CPP_COMPILER_MSVC
+#define ALLOCA _alloca
+#else
+#define ALLOCA alloca
+#endif
 
 float TestFunc(float x)
 {
@@ -40,10 +47,14 @@ class CurveFitTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
 public:
-	CurveFitTestStage() {}
+	CurveFitTestStage()
+		:mFrameAllocator(1024 * 1024)
+	{
+	}
 
 #if USE_NNMODEL
 	NNModel::Sequence mModel;
+	int mInferenceTempSize;
 	TArray< NNScalar > mInferenceOutputs;
 	NNModel::IntVector3 mInputSize = NNModel::IntVector3(1, 0, 0);
 #else
@@ -136,7 +147,8 @@ public:
 
 		mParameters.resize(setupContext.nodeParameterNum);
 		mOptimizer.init(setupContext.nodeParameterNum);
-		mInferenceOutputs.resize(setupContext.nodeInferenceTempDataSize);
+
+		mInferenceTempSize = setupContext.nodeInferenceTempDataSize;
 #else
 		uint32 topology[] = { 1, size,  2 * size, 2 * size, size, 1 };
 		mLayout.init(topology);
@@ -290,12 +302,13 @@ public:
 #if USE_NNMODEL
 	NNScalar inference(NNScalar const* inputs)
 	{
+		NNScalar* inferenceTempData = (NNScalar*)(ALLOCA(mInferenceTempSize * sizeof(NNScalar)));
 		NNModel::InferenceContext inferenceContext;
 		inferenceContext.inputSize = mInputSize;
 		inferenceContext.parameters = mParameters.data();
 		inferenceContext.inputs = inputs;
-		inferenceContext.tempData = mInferenceOutputs.data();
-		inferenceContext.tempDataSize = int(mInferenceOutputs.size());
+		inferenceContext.tempData = inferenceTempData;
+		inferenceContext.tempDataSize = mInferenceTempSize;
 		NNScalar const* outputs = mModel.inference(inferenceContext);
 		return outputs[0];
 	}
@@ -353,38 +366,26 @@ public:
 		if (bUseParallelComputing)
 		{
 			int numWorker = mPool.getAllThreadNum();
-			int workerSampleNum = samples.size() / numWorker;
-			int remainingCount = samples.size() % numWorker;
-			int indexSampleStart = 0;
-			for (int i = 0; i < numWorker; ++i)
+			int numSample = int(samples.size());
+			int batchSize = Math::Max(1, (numSample + numWorker - 1) / numWorker);
+			int numTask = (numSample + batchSize - 1) / batchSize;
+			SampleData* const* pSamples = samples.data();
+
+			ParallelFor(mPool, mFrameAllocator, "TrainStep", numSample, [this, pSamples, batchSize](int index, int batchIndex)
 			{
-				int numSample = workerSampleNum + ((remainingCount > 0) ? 1 : 0);
-				--remainingCount;
+				TrainData& trainData = *mThreadTrainDatas[batchIndex];
+				if (index == batchIndex * batchSize)
+				{
+					trainData.reset();
+				}
 
-				TrainData& trainData = *mThreadTrainDatas[i];
-
-				SampleData* const* pSamples = samples.data() + indexSampleStart;
-				mPool.addFunctionWork(
-					[this, pSamples, numSample, &trainData]()
-					{
-						trainData.reset();
-						for (int i = 0; i < numSample; ++i)
-						{
-							SampleData* sample = pSamples[i];
-							trainData.loss += fit(*sample, trainData);
-						}
-					}
-				);
-
-				indexSampleStart += numSample;
-			}
-
-			CHECK(indexSampleStart == samples.size());
-			mPool.waitAllWorkComplete();
+				SampleData* sample = pSamples[index];
+				trainData.loss += fit(*sample, trainData);
+			}, batchSize);
 
 
 			TrainData& masterTrainData = *mThreadTrainDatas[0];
-			for (int i = 1; i < numWorker; ++i)
+			for (int i = 1; i < numTask; ++i)
 			{
 				TrainData& trainData = *mThreadTrainDatas[i];
 
@@ -415,10 +416,12 @@ public:
 		return trainResult;
 	}
 
-	int mBatchSize = 100;
+	int mBatchSize = 400;
 	int mEpoch = 0;
 	TArray< Vector2 > mLossPoints;
 	TArray< Vector2 > mTestLossPoints;
+
+	FrameAllocator mFrameAllocator;
 
 	//std::random_device rd;
 
@@ -435,6 +438,8 @@ public:
 		int numSampleCheck = 0;
 		for (int iter = 0; iter < iterCount; ++iter)
 		{
+			PROFILE_ENTRY("TrainStep");
+
 			int offset = mBatchSize * iter;
 			int numSampleData = (iter == iterCount - 1 ) ? mOrderedSamples.size() - offset : mBatchSize;
 			TArrayView< SampleData* > samples = TArrayView< SampleData* >(mOrderedSamples.data() + offset, numSampleData);
@@ -457,20 +462,56 @@ public:
 		mLossPoints.emplace_back(float(mEpoch), log10(loss / mSamples.size()));
 		++mEpoch;
 
-		NNScalar lossTest = 0.0;
-		for (auto const& sample : mTestSamples)
 		{
+			PROFILE_ENTRY("Test");
+
+			NNScalar lossTest = 0.0;
+			int const sampleCount = int(mTestSamples.size());
+			if (bUseParallelComputing)
+			{
+				int const batchSize = 256;
+				int const batchCount = (sampleCount + batchSize - 1) / batchSize;
+				TArray< NNScalar > batchLosses;
+				batchLosses.resize(batchCount);
+				std::fill(batchLosses.begin(), batchLosses.end(), NNScalar(0));
+
+				SampleData const* pSamples = mTestSamples.data();
+				ParallelFor(mPool, mFrameAllocator, "TestLoss", sampleCount, [this, pSamples, &batchLosses](int index, int batchIndex)
+				{
+					SampleData const& sample = pSamples[index];
 #if USE_NNMODEL
-			NNScalar output = inference(&sample.input);
+
+					NNScalar output = inference(&sample.input);
 #else
-			NNScalar outputs[1];
-			mLayout.inference(mParameters.data(), &sample.input, outputs);
-			NNScalar output = outputs[0];
+					NNScalar outputs[1];
+					mLayout.inference(mParameters.data(), &sample.input, outputs);
+					NNScalar output = outputs[0];
 #endif
-			lossTest += LossFunc::Calc(output, sample.label);
+					batchLosses[batchIndex] += LossFunc::Calc(output, sample.label);
+				}, batchSize);
+
+				for (NNScalar batchLoss : batchLosses)
+				{
+					lossTest += batchLoss;
+				}
+			}
+			else
+			{
+				for (auto const& sample : mTestSamples)
+				{
+#if USE_NNMODEL
+					NNScalar output = inference(&sample.input);
+#else
+					NNScalar outputs[1];
+					mLayout.inference(mParameters.data(), &sample.input, outputs);
+					NNScalar output = outputs[0];
+#endif
+					lossTest += LossFunc::Calc(output, sample.label);
+				}
+			}
+			lossTest /= mTestSamples.size();
+			mTestLossPoints.emplace_back(float(mEpoch), log10(lossTest));
 		}
-		lossTest /= mTestSamples.size();
-		mTestLossPoints.emplace_back(float(mEpoch), log10(lossTest));
 	}
 
 
@@ -498,13 +539,14 @@ public:
 		float max = mSampleRange.max;
 		int num = 800;
 		points.resize(num);
-		for (int i = 0; i < num; ++i)
+		ParallelFor(mPool, mFrameAllocator, "GenCurve", num, [=, &points, &func](int index)
 		{
-			Vector2& pt = points[i];
-			pt.x = min + (max - min) * i / float(num - 1);
+			Vector2& pt = points[index];
+			pt.x = min + (max - min) * index / float(num - 1);
 			pt.y = func(pt.x);
-		}
+		});
 	}
+
 	void generateFuncCurve()
 	{
 		generateFuncCurve(mFuncCurvePoints, TestFunc);

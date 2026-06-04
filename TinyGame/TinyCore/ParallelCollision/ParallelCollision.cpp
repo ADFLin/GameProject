@@ -10,6 +10,7 @@
 
 #include <thread>
 #include "Math/SIMD.h"
+#include "Async/ParallelFor.h"
 
 #define USE_COLLISION_COLORING 0
 #define USE_SIMD_LEGACY 0
@@ -141,58 +142,6 @@ namespace ParallelCollision
 		}
 	}
 
-	template< typename TFunc >
-	class TFrameWork : public IQueuedWork
-	{
-	public:
-		template <typename UFunc>
-		TFrameWork(UFunc&& func) : mFunc(std::forward<UFunc>(func)) {}
-		void executeWork() override { mFunc(); }
-		void release() override { this->~TFrameWork(); }
-		TFunc mFunc;
-	};
-
-	template< typename TFunc >
-	static void ParallelFor(QueueThreadPool& threadPool, FrameAllocator& allocator, char const* taskName, int count, TFunc&& func, int batchSize = 64)
-	{
-		if (count <= 0) return;
-		StackMaker marker(allocator);
-		using StoredFunc = std::decay_t<TFunc>;
-
-		int numTasks = (count + batchSize - 1) / batchSize;
-		struct TaskRunner
-		{
-			int start, end;
-			StoredFunc func;
-			char const* name;
-			void operator()()
-			{
-				PROFILE_ENTRY(name);
-				for (int k = start; k < end; ++k) func(k);
-			}
-		};
-
-		using WorkType = TFrameWork<TaskRunner>;
-		size_t workSize = sizeof(WorkType);
-		size_t checkAlign = alignof(WorkType) > 16 ? alignof(WorkType) : 16;
-
-		uint8* chunkStart = (uint8*)allocator.alloc(workSize * numTasks, checkAlign);
-		IQueuedWork** works;
-		works = (IQueuedWork**)allocator.alloc(sizeof(IQueuedWork*) * numTasks);
-
-		for (int i = 0; i < numTasks; ++i)
-		{
-			int start = i * batchSize;
-			int end = Math::Min(start + batchSize, count);
-			TaskRunner runner = { start, end, func , taskName };
-			WorkType* work = new (chunkStart + i * workSize) WorkType(std::move(runner));
-			works[i] = work;
-		}
-
-		threadPool.addWorks(works , numTasks);
-		threadPool.waitAllWorkCompleteInWorker();
-	}
-
 	void ParallelCollisionSolver::clearEntities()
 	{
 		positions.clear();
@@ -284,11 +233,11 @@ namespace ParallelCollision
 			mSolveEvent.fire();
 		};
 
-		TFrameWork< decltype(pipelineTask) >* work;
+		TParallelForWork< decltype(pipelineTask) >* work;
 		{
 			size_t alignedOffset = (mTaskAllocator.mOffset + 15) & ~15;
 			if (alignedOffset > mTaskAllocator.mOffset) mTaskAllocator.alloc(alignedOffset - mTaskAllocator.mOffset);
-			work = new (mTaskAllocator.alloc(sizeof(TFrameWork< decltype(pipelineTask) >))) TFrameWork< decltype(pipelineTask) >(std::move(pipelineTask));
+			work = new (mTaskAllocator.alloc(sizeof(TParallelForWork< decltype(pipelineTask) >))) TParallelForWork< decltype(pipelineTask) >(std::move(pipelineTask));
 		}
 		threadPool.addWork(work);
 	}
@@ -308,7 +257,7 @@ namespace ParallelCollision
 		Vector2* __restrict pPos = positions.data();
 		Vector2 const* __restrict pVel = velocities.data();
 		bool const* __restrict pStatic = isStatic.data();
-		ParallelFor(threadPool, mTaskAllocator, "UpdateMove", mEntityCount, [=](int i)
+		ParallelForInWorker(threadPool, mTaskAllocator, "UpdateMove", mEntityCount, [=](int i)
 		{
 			if (!pStatic[i]) pPos[i] += pVel[i] * dt;
 		}, 512);
@@ -333,7 +282,7 @@ namespace ParallelCollision
 		int activeCount = (int)grid.activeCellIndices.size();
 		int const* pActiveIndices = grid.activeCellIndices.data();
 
-		ParallelFor(threadPool, mTaskAllocator, "FillNeighborCache", activeCount, [=](int idx)
+		ParallelForInWorker(threadPool, mTaskAllocator, "FillNeighborCache", activeCount, [=](int idx)
 		{
 			int i = pActiveIndices[idx];
 			int cx = i % gridWidth, cy = i / gridWidth;
@@ -395,7 +344,7 @@ namespace ParallelCollision
 		bool const* __restrict pStatic = isStatic.data();
 		CollisionWall const* __restrict pWalls = walls.data();
 		int wallCount = (int)walls.size();
-		ParallelFor(threadPool, mTaskAllocator, "SolveWalls", mEntityCount, [=](int i)
+		ParallelForInWorker(threadPool, mTaskAllocator, "SolveWalls", mEntityCount, [=](int i)
 		{
 			if (pStatic[i]) return;
 			Vector2 pos = pPos[i];
@@ -440,7 +389,7 @@ namespace ParallelCollision
 			for (int color = 0; color < 4; ++color)
 			{
 				int* pColorIdx = mColorEntities[color].data(), colorCount = (int)mColorEntities[color].size();
-				ParallelFor(threadPool, mTaskAllocator, "SolveXPBD", colorCount, [=](int idx) {
+				ParallelForInWorker(threadPool, mTaskAllocator, "SolveXPBD", colorCount, [=](int idx) {
 					int i = pColorIdx[idx];
 					int cellIdx = pCellIdx[i];
 					if (cellIdx < 0 || cellIdx >= nCSize) return;
@@ -480,7 +429,7 @@ namespace ParallelCollision
 				}, 512);
 			}
 #else
-			ParallelFor(threadPool, mTaskAllocator, "SolveXPBD", mEntityCount, [=](int i)
+			ParallelForInWorker(threadPool, mTaskAllocator, "SolveXPBD", mEntityCount, [=](int i)
 			{
 				int cellIdx = pCellIdx[i];
 				if (cellIdx < 0 || cellIdx >= nCSize) return;
@@ -542,7 +491,7 @@ namespace ParallelCollision
 			for (int color = 0; color < 4; ++color)
 			{
 				int* pColorIdx = mColorEntities[color].data(), colorCount = (int)mColorEntities[color].size();
-				ParallelFor(threadPool, mTaskAllocator, "SolveCollision", colorCount, [=](int idx) {
+				ParallelForInWorker(threadPool, mTaskAllocator, "SolveCollision", colorCount, [=](int idx) {
 					int i = pColorIdx[idx];
 					int cellIdx = pCellIdx[i];
 					if (cellIdx < 0 || cellIdx >= nCSize) return;
@@ -582,7 +531,7 @@ namespace ParallelCollision
 				}, 512);
 			}
 #else
-			ParallelFor(threadPool, mTaskAllocator, "SolveCollision", mEntityCount, [=](int i)
+			ParallelForInWorker(threadPool, mTaskAllocator, "SolveCollision", mEntityCount, [=](int i)
 			{
 #if !USE_SIMD_LEGACY
 				int cellIdx = pCellIdx[i];
@@ -678,7 +627,7 @@ namespace ParallelCollision
 		DeferredQueryRequest const* pQueries = deferredQueries.data();
 		DeferredQueryResult* pResults = deferredQueryResults.data();
 
-		ParallelFor(threadPool, mTaskAllocator, "DeferredQueries", queryCount, [this, pQueries, pResults](int idx)
+		ParallelForInWorker(threadPool, mTaskAllocator, "DeferredQueries", queryCount, [this, pQueries, pResults](int idx)
 		{
 			auto const& query = pQueries[idx];
 			auto& result = pResults[idx];
@@ -727,7 +676,7 @@ namespace ParallelCollision
 		int const* pLIdx = largeEntityIndices.data();
 		int lCount = (int)largeEntityIndices.size();
 
-		ParallelFor(threadPool, mTaskAllocator, "EntityQuery", (mEntityCount + batch - 1) / batch, [=, &entityHitMutex](int tId)
+		ParallelForInWorker(threadPool, mTaskAllocator, "EntityQuery", (mEntityCount + batch - 1) / batch, [=, &entityHitMutex](int tId)
 		{
 			int start = tId * batch, end = Math::Min(start + batch, mEntityCount);
 			TArray<TVector2<int>, TInlineAllocator<16>> hits;
@@ -766,7 +715,7 @@ namespace ParallelCollision
 
 		if (mBulletCount > 0)
 		{
-			ParallelFor(threadPool, mTaskAllocator, "BulletQuery", (mBulletCount + batch - 1) / batch, [this, batch, &bulletHitMutex, &bulletBulletHitMutex, pLIdx, lCount](int tId)
+			ParallelForInWorker(threadPool, mTaskAllocator, "BulletQuery", (mBulletCount + batch - 1) / batch, [this, batch, &bulletHitMutex, &bulletBulletHitMutex, pLIdx, lCount](int tId)
 			{
 				int start = tId * batch, end = Math::Min(start + batch, mBulletCount);
 				TArray<TVector2<int>, TInlineAllocator<16>> bhits, bbhits;

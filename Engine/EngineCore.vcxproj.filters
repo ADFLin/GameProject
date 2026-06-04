@@ -1083,6 +1083,9 @@
     <ClInclude Include="DataStructure\SoALayout.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="Async\ParallelFor.h">
+      <Filter>Async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

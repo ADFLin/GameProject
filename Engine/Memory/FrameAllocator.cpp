@@ -130,21 +130,12 @@ void FrameAllocator::freeStack(StackMarkInfo& info)
 	CHECK(info.chunk);
 	if (info.chunk != mCur)
 	{
-		if (mFreeList)
-		{
-			Chunk* chunk = info.chunk->link;
-			while (chunk)
-			{
-				if (chunk->link == nullptr)
-				{
-					chunk->link = mFreeList;
-					break;
-				}
-				chunk = chunk->link;
-			}
-		}
+		Chunk* freeChunkList = info.chunk->link;
+		Chunk* freeChunkTail = mCur;
 
-		mFreeList = info.chunk->link;
+		freeChunkTail->link = mFreeList;
+		mFreeList = freeChunkList;
+
 		mCur = info.chunk;
 		mCur->link = nullptr;
 	}

@@ -49,7 +49,6 @@ public:
 
 	BatchedRender mBatchedRender;
 	TArray<RHIRender2DContext*> mFreeContexts;
-	TArray<RHIRender2DContext*> mUsedContexts;
 	Mutex mContextMutex;
 
 	RHIRender2DContext* acquire()
@@ -59,11 +58,10 @@ public:
 		{
 			auto* context = mFreeContexts.back();
 			mFreeContexts.pop_back();
-			mUsedContexts.push_back(context);
 			return context;
 		}
+
 		auto* context = new RHIRender2DContext(2048);
-		mUsedContexts.push_back(context);
 		return context;
 	}
 
@@ -79,11 +77,15 @@ public:
 	{
 		context->reset();
 		Mutex::Locker lock(mContextMutex);
-		auto iter = std::find(mUsedContexts.begin(), mUsedContexts.end(), context);
-		if (iter != mUsedContexts.end())
+		mFreeContexts.push_back(context);
+
+		if (initializeCount == 0)
 		{
-			mUsedContexts.erase(iter);
-			mFreeContexts.push_back(context);
+			for(auto context : mFreeContexts)
+			{
+				delete context;
+			}
+			mFreeContexts.clear();
 		}
 	}
 

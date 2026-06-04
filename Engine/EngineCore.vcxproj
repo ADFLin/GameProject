@@ -323,6 +323,7 @@
     <ClInclude Include="AStarTile2D.h" />
     <ClInclude Include="Async\AsyncWork.h" />
     <ClInclude Include="Async\Coroutines.h" />
+    <ClInclude Include="Async\ParallelFor.h" />
     <ClInclude Include="Audio\AudioDecoder.h" />
     <ClInclude Include="Audio\AudioDevice.h" />
     <ClInclude Include="Audio\AudioStreamSource.h" />

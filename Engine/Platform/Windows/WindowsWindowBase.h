@@ -19,11 +19,16 @@ public:
 	bool      setFullScreen(unsigned bits);
 	void      destroyInternal();
 
+
+	static bool RegisterWindowClass(LPTSTR className, WNDPROC wndProc, DWORD wIcon, WORD wSIcon);
+
 	TVector2<int> getPosition();
 	void          setPosition(TVector2<int> const& InPos);
 
 	bool      isShow() const;
 	void      show(bool bShow);
+
+	bool     createWindow(TCHAR const* szTitle, LPTSTR className, DWORD style, DWORD exStyle);
 
 	POINT     mPositionBeforeFullscreen = { 0,0 };
 	int       mWidth;

@@ -568,10 +568,10 @@ namespace Render
 			TD3D11Resource< RHITextureType >::releaseResource();
 		}
 		virtual void* getNativeInternal() override { return static_cast<D3D11TextureBase*>(this); }
-		virtual ID3D11Resource* getD3D11Resource() override { return mResource; }
+
 
 	public:
-
+		virtual ID3D11Resource* getD3D11Resource() override { return mResource; }
 		enum EDepthFormat
 		{
 			DepthFormat,

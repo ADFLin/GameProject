@@ -206,10 +206,9 @@ public:
 	bool createGLContext( BYTE colorDepth );
 
 protected:
-	void   destoryWindow()
+	void   onWinodwPrevDestory()
 	{
 		OpenGLSupport::cleanup();
-		WindowsPlatform::destoryWindow();
 	}
 	bool   setupWindow( bool fullscreen , unsigned colorBit )
 	{

@@ -55,6 +55,8 @@ public:
 		// move the window back to its old position
 		BOOL result = SetWindowPos( mhWnd, 0, 0 , 0 , 		
 			rect.right -rect.left ,rect.bottom - rect.top , SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+		_this()->onWindowResize();
 	}
 
 
@@ -140,7 +142,8 @@ public:
 	LPTSTR getWinClassName(){ return TEXT("GameWindow"); }
 protected:
 	bool   setupWindow( bool fullscreen , unsigned colorBits ){ return true; }
-	void   destoryWindow(){}
+	void   onWinodwPrevDestory(){}
+	void   onWindowResize(){}
 	/////
 
 
@@ -184,11 +187,11 @@ bool WinFrameT<T>::create( TCHAR const* szTitle, int iWidth , int iHeight, WNDPR
 
 	if (!mbHasRegisterClass )
 	{
-		if( !registerWindow(
-			wndProc,
-			_this()->getIcon(),
-			_this()->getSmallIcon()
-		) )
+		if( !RegisterWindowClass(
+				_this()->getWinClassName(),
+				wndProc,
+				_this()->getIcon(),
+				_this()->getSmallIcon()))
 		{
 			MessageBox(NULL, TEXT("RegisterClassEx failed!"),
 					   _this()->getWinClassName(), MB_ICONERROR
@@ -214,7 +217,7 @@ bool WinFrameT<T>::create( TCHAR const* szTitle, int iWidth , int iHeight, WNDPR
 template< class T >
 void WinFrameT<T>::destroy()
 {
-	_this()->destoryWindow();
+	_this()->onWinodwPrevDestory();
 	destroyInternal();
 
 }
@@ -228,7 +231,7 @@ bool WinFrameT<T>::registerWindow( WNDPROC wndProc, DWORD wIcon ,WORD wSIcon )
 
 	// Create the window class for the main window
 	wc.cbSize         = sizeof(WNDCLASSEX);
-	wc.style          = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS /*| CS_OWNDC*/ | CS_CLASSDC;
+	wc.style          = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | CS_OWNDC /*|CS_CLASSDC*/;
 	wc.lpfnWndProc    = wndProc;
 	wc.cbClsExtra     = 0;
 	wc.cbWndExtra     = 0;
@@ -266,31 +269,7 @@ bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 		exStyle = _this()->getWinExtStyle();
 	}
 
-
-	RECT rect;
-	SetRect (&rect , 0, 0, mWidth , mHeight );
-	AdjustWindowRectEx(&rect,style, FALSE ,exStyle);
-
-	mhWnd = CreateWindowEx(
-		exStyle,
-		_this()->getWinClassName() ,
-		szTitle,
-		style ,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		rect.right -rect.left ,
-		rect.bottom - rect.top ,
-		NULL,
-		NULL,
-		::GetModuleHandle( NULL ) ,
-		NULL
-	);
-
-	if ( !mhWnd )
-		return false;
-
-	mhDC = GetDC( mhWnd );
-
-	return true;
+	return WindowsWindowBase::createWindow(szTitle, _this()->getWinClassName(), style, exStyle);
 }
 
 #endif // Win32Platform_h__

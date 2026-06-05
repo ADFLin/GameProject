@@ -9,6 +9,9 @@
 
 #include <cstring>
 
+#include "RHI/D3D11Common.h"
+#include "ProfileSystem.h"
+
 namespace Render
 {
 	namespace
@@ -27,34 +30,38 @@ namespace Render
 			{
 				sActiveWindow = this;
 				SetWindowPos(getHWnd(), HWND_TOPMOST, 120, 120, getWidth(), getHeight(), SWP_SHOWWINDOW | SWP_NOACTIVATE);
+
+				BITMAPINFO info = {};
+				info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+				info.bmiHeader.biWidth = OverlayWidth;
+				info.bmiHeader.biHeight = -OverlayHeight;
+				info.bmiHeader.biPlanes = 1;
+				info.bmiHeader.biBitCount = 32;
+				info.bmiHeader.biCompression = BI_RGB;
+				mBitmapDC.initialize(getHDC(), &info, (void**)&mBitampDataPtr);
 				return true;
 			}
 
-			void destoryWindow()
+			void onWinodwPrevDestory()
 			{
+				mBitmapDC.release();
+				mBitampDataPtr = nullptr;
+
 				if (sActiveWindow == this)
 				{
 					sActiveWindow = nullptr;
 				}
 			}
 
-			void setHitTestData(TArray< uint8 > const* data)
-			{
-				mHitTestData = data;
-			}
-
 			bool hitTestDrawnPixel(POINT screenPos) const
 			{
-				if (mHitTestData == nullptr || mHitTestData->empty())
-					return false;
-
 				POINT clientPos = screenPos;
 				ScreenToClient(getHWnd(), &clientPos);
 				if (clientPos.x < 0 || clientPos.y < 0 || clientPos.x >= OverlayWidth || clientPos.y >= OverlayHeight)
 					return false;
 
 				int index = 4 * (clientPos.y * OverlayWidth + clientPos.x);
-				uint8 alpha = (*mHitTestData)[index + 3];
+				uint8 alpha = mBitampDataPtr[index + 3];
 				return alpha > 16;
 			}
 
@@ -86,11 +93,7 @@ namespace Render
 
 				POINT screenPos;
 				GetCursorPos(&screenPos);
-				SetWindowPos(getHWnd(), HWND_TOPMOST,
-				             screenPos.x - mDragOffset.x,
-				             screenPos.y - mDragOffset.y,
-				             0, 0,
-				             SWP_NOSIZE | SWP_NOACTIVATE);
+				SetWindowPos(getHWnd(), HWND_TOPMOST, screenPos.x - mDragOffset.x, screenPos.y - mDragOffset.y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 
 			void endDrag()
@@ -153,11 +156,33 @@ namespace Render
 				return DefWindowProc(hWnd, message, wParam, lParam);
 			}
 
+
+			void blitFromBitmap()
+			{
+				RECT rect;
+				GetWindowRect(getHWnd(), &rect);
+
+				POINT dstPos = { rect.left, rect.top };
+				POINT srcPos = { 0, 0 };
+				SIZE size = { OverlayWidth, OverlayHeight };
+				BLENDFUNCTION blend = {};
+				blend.BlendOp = AC_SRC_OVER;
+				blend.SourceConstantAlpha = 255;
+				blend.AlphaFormat = AC_SRC_ALPHA;
+
+				UpdateLayeredWindow(getHWnd(), getHDC(), &dstPos, &size, mBitmapDC.getHandle(), &srcPos, 0, &blend, ULW_ALPHA);
+			}
+
 			static OverlayWindow* sActiveWindow;
-			TArray< uint8 > const* mHitTestData = nullptr;
+
+			BitmapDC  mBitmapDC;
+			uint8*    mBitampDataPtr = nullptr;
+
 			bool mbDragging = false;
 			POINT mDragOffset = { 0, 0 };
 		};
+
+
 
 		OverlayWindow* OverlayWindow::sActiveWindow = nullptr;
 
@@ -177,19 +202,6 @@ namespace Render
 				return false;
 
 			mOverlayWindow.create(TEXT("DesktopOverlay"), OverlayWidth, OverlayHeight, OverlayWindow::StaticWndProc);
-
-			BITMAPINFO info = {};
-			info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-			info.bmiHeader.biWidth = OverlayWidth;
-			info.bmiHeader.biHeight = -OverlayHeight;
-			info.bmiHeader.biPlanes = 1;
-			info.bmiHeader.biBitCount = 32;
-			info.bmiHeader.biCompression = BI_RGB;
-
-			HDC screenDC = GetDC(nullptr);
-			mBitmapDC.initialize(screenDC, &info, &mBitampDataPtr);
-			ReleaseDC(nullptr, screenDC);
-
 			::Global::GUI().cleanupWidget();
 			return true;
 		}
@@ -197,9 +209,6 @@ namespace Render
 		void onEnd() override
 		{
 			mOverlayWindow.destroy();
-			mBitmapDC.release();
-			mBitampDataPtr = nullptr;
-
 			BaseClass::onEnd();
 		}
 
@@ -233,7 +242,7 @@ namespace Render
 		void onRender(float dFrame) override
 		{
 			renderOverlayTexture();
-			blitOverlayWindow();
+			mOverlayWindow.blitFromBitmap();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHISetFrameBuffer(commandList, nullptr);
@@ -307,37 +316,21 @@ namespace Render
 			g.setViewportSize(screenSize.x, screenSize.y);
 
 			RHIFlushCommand(commandList);
+			
 			RHIReadTexture(*mOverlayTexture, ETexture::BGRA8, 0, mReadbackData);
-			mOverlayWindow.setHitTestData(&mReadbackData);
-		}
+			FMemory::Copy(mOverlayWindow.mBitampDataPtr, mReadbackData.data(), mReadbackData.size());
 
-		void blitOverlayWindow()
-		{
-			if (mOverlayWindow.getHWnd() == nullptr || mReadbackData.empty())
-				return;
-
-			RECT rect;
-			GetWindowRect(mOverlayWindow.getHWnd(), &rect);
-			HDC screenDC = GetDC(nullptr);
-
-			FMemory::Copy(mBitampDataPtr, mReadbackData.data(), mReadbackData.size());
-
-			POINT dstPos = { rect.left, rect.top };
-			POINT srcPos = { 0, 0 };
-			SIZE size = { OverlayWidth, OverlayHeight };
-			BLENDFUNCTION blend = {};
-			blend.BlendOp = AC_SRC_OVER;
-			blend.SourceConstantAlpha = 255;
-			blend.AlphaFormat = AC_SRC_ALPHA;
-
-			UpdateLayeredWindow(mOverlayWindow.getHWnd(), screenDC, &dstPos, &size, mBitmapDC.getHandle(), &srcPos, 0, &blend, ULW_ALPHA);
-
-			ReleaseDC(nullptr, screenDC);
+			for (int i = 0; i < 4 * OverlayWidth * OverlayHeight; i += 4)
+			{
+				if (mOverlayWindow.mBitampDataPtr[i + 3] == 255)
+				{
+					mOverlayWindow.mBitampDataPtr[i + 3] = 128;
+				}
+			}
 		}
 
 		OverlayWindow mOverlayWindow;
-		BitmapDC      mBitmapDC;
-		void*         mBitampDataPtr = nullptr;
+
 
 		RHITexture2DRef mOverlayTexture;
 		RHIFrameBufferRef mOverlayFrameBuffer;

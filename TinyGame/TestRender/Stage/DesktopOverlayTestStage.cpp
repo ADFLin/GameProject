@@ -251,8 +251,12 @@ namespace Render
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.05, 0.06, 0.08, 1), 1);
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-			Matrix4 projectMatrix = AdjustProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1));
-			DrawUtility::DrawTexture(commandList, projectMatrix, *mOverlayTexture, Vec2i(24, 24), Vec2i(OverlayWidth, OverlayHeight));
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+
+			g.beginRender();
+			g.setBrush(Color3ub(255, 255, 255));
+			g.drawTexture(*mOverlayTexture, Vec2i(24, 24), Vec2i(OverlayWidth, OverlayHeight));
+			g.endRender();
 		}
 
 	private:

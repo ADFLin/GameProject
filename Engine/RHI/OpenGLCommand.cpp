@@ -463,10 +463,6 @@ namespace Render
 		auto GetFormatClientSize = [](ETexture::Format format) -> int
 		{
 			int formatSize = ETexture::GetFormatSize(format);
-			if (ETexture::GetComponentType(format) == CVT_Half)
-			{
-				formatSize *= 2;
-			}
 			return formatSize;
 		};
 		int formatSize = GetFormatClientSize(format);
@@ -474,7 +470,7 @@ namespace Render
 		outData.resize(dataSize);
 
 		OpenGLCast::To(&texture)->bind();
-		glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
+		glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::ReadComponentType(format), &outData[0]);
 		OpenGLCast::To(&texture)->unbind();
 	}
 
@@ -483,10 +479,6 @@ namespace Render
 		auto GetFormatClientSize = [](ETexture::Format format)
 		{
 			int formatSize = ETexture::GetFormatSize(format);
-			if (ETexture::GetComponentType(format) == CVT_Half)
-			{
-				formatSize *= 2;
-			}
 			return formatSize;
 		};
 
@@ -498,7 +490,7 @@ namespace Render
 		OpenGLCast::To(&texture)->bind();
 		for (int face = 0; face < ETexture::FaceCount; ++face)
 		{
-			glGetTexImage(OpenGLTranslate::TexureType(ETexture::Face(face)), level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*face]);
+			glGetTexImage(OpenGLTranslate::TexureType(ETexture::Face(face)), level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::ReadComponentType(format), &outData[faceDataSize*face]);
 		}
 		OpenGLCast::To(&texture)->unbind();
 	}
@@ -636,7 +628,7 @@ namespace Render
 
 	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 	{
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::ComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
 		return result;
 	}
@@ -645,12 +637,12 @@ namespace Render
 	{
 #if 1
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::ComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #else
 		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
-		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
+		GLenum typeGL = OpenGLTranslate::ComponentType(format);
 		uint8* pData = (uint8*)data;
 		int dataStride = dataImageWidth * ETexture::GetFormatSize(format);
 		for (int dy = 0; dy < h; ++dy)

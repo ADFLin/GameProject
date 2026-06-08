@@ -95,7 +95,7 @@ namespace Render
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 		glTexImage1D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, 0,
-					 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
+					 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::ComponentType(mDesc.format), data);
 
 		if(mDesc.numMipLevel > 1)
 		{
@@ -116,7 +116,7 @@ namespace Render
 	bool OpenGLTexture1D::update(int offset, int length, ETexture::Format format, void* data, int level /*= 0*/)
 	{
 		bind();
-		glTexSubImage1D(TypeEnumGL, level, offset, length, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		glTexSubImage1D(TypeEnumGL, level, offset, length, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::ComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
 		unbind();
 		return result;
@@ -145,13 +145,13 @@ namespace Render
 			{
 				glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, 0,
-							 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
+							 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::ComponentType(mDesc.format), data);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
 			}
 			else
 			{
 				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, 0,
-							 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
+							 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::ComponentType(mDesc.format), data);
 			}
 
 
@@ -242,7 +242,7 @@ namespace Render
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 
 			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, mDesc.dimension.z, 0,
-						 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
+						 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::ComponentType(mDesc.format), data);
 
 			if(mDesc.numMipLevel > 1)
 			{
@@ -274,7 +274,7 @@ namespace Render
 		{
 			GLenum formatGL = OpenGLTranslate::To(mDesc.format);
 			GLenum baseFormat = OpenGLTranslate::BaseFormat(mDesc.format);
-			GLenum componentType = OpenGLTranslate::TextureComponentType(mDesc.format);
+			GLenum componentType = OpenGLTranslate::ComponentType(mDesc.format);
 			for (int face = 0; face < ETexture::FaceCount; ++face)
 			{
 				for (int level = 0; level < mDesc.numMipLevel; ++level)
@@ -322,7 +322,7 @@ namespace Render
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 
 			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, mDesc.dimension.z, 0,
-						 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
+						 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::ComponentType(mDesc.format), data);
 
 			if(mDesc.numMipLevel > 1 )
 			{
@@ -675,73 +675,74 @@ namespace Render
 		GLenum foramt;
 		GLenum pixelFormat;
 		GLenum compType;
+		GLenum readCompType;
 		GLenum baseFormat;
 	};
 
 	constexpr OpenGLTextureConvInfo GTexConvMapGL[] =
 	{
 #if _DEBUG
-#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , PIXEL_FORMAT , COMP_TYPE , BASE_FORMAT )\
-	{ FORMAT_CHECK , FORMAT , PIXEL_FORMAT , COMP_TYPE, BASE_FORMAT },
+#define TEXTURE_INFO( FORMAT_CHECK, FORMAT, PIXEL_FORMAT, COMP_TYPE, READ_COMP_TYPE, BASE_FORMAT )\
+	{ FORMAT_CHECK, FORMAT, PIXEL_FORMAT, COMP_TYPE, EAD_COMP_TYPE, BASE_FORMAT },
 #else
-#define TEXTURE_INFO( FORMAT_CHECK , FORMAT ,PIXEL_FORMAT ,COMP_TYPE,  BASE_FORMAT )\
-	{ FORMAT , PIXEL_FORMAT , COMP_TYPE ,BASE_FORMAT },
+#define TEXTURE_INFO( FORMAT_CHECK, FORMAT, PIXEL_FORMAT ,COMP_TYPE, EAD_COMP_TYPE, BASE_FORMAT )\
+	{ FORMAT, PIXEL_FORMAT, COMP_TYPE, EAD_COMP_TYPE, BASE_FORMAT },
 #endif
-		TEXTURE_INFO(ETexture::RGBA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_RGBA)
-		TEXTURE_INFO(ETexture::RGB8    ,GL_RGB8    ,GL_RGB ,GL_UNSIGNED_BYTE ,GL_RGB)
-		TEXTURE_INFO(ETexture::RG8     ,GL_RG8     ,GL_RG  ,GL_UNSIGNED_BYTE ,GL_RG)
-		TEXTURE_INFO(ETexture::BGRA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
-		TEXTURE_INFO(ETexture::RGB10A2 ,GL_RGB10_A2,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
-		TEXTURE_INFO(ETexture::R16     ,GL_R16     ,GL_RED,GL_UNSIGNED_SHORT ,GL_RED)
-		TEXTURE_INFO(ETexture::R8      ,GL_R8      ,GL_RED,GL_UNSIGNED_BYTE  ,GL_RED)
+		TEXTURE_INFO(ETexture::RGBA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::RGB8    ,GL_RGB8    ,GL_RGB ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGB)
+		TEXTURE_INFO(ETexture::RG8     ,GL_RG8     ,GL_RG  ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RG)
+		TEXTURE_INFO(ETexture::BGRA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_BGRA)
+		TEXTURE_INFO(ETexture::RGB10A2 ,GL_RGB10_A2,GL_RGBA,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_BGRA)
+		TEXTURE_INFO(ETexture::R16     ,GL_R16     ,GL_RED,GL_UNSIGNED_SHORT ,GL_UNSIGNED_SHORT, GL_RED)
+		TEXTURE_INFO(ETexture::R8      ,GL_R8      ,GL_RED,GL_UNSIGNED_BYTE  ,GL_UNSIGNED_BYTE ,GL_RED)
 		
-		TEXTURE_INFO(ETexture::R32F    ,GL_R32F    ,GL_RED ,GL_FLOAT ,GL_RED)
-		TEXTURE_INFO(ETexture::RG32F   ,GL_RG32F   ,GL_RG  ,GL_FLOAT ,GL_RG)
-		TEXTURE_INFO(ETexture::RGB32F  ,GL_RGB32F  ,GL_RGB ,GL_FLOAT ,GL_RGB)
-		TEXTURE_INFO(ETexture::RGBA32F ,GL_RGBA32F ,GL_RGBA,GL_FLOAT ,GL_RGBA)
-		TEXTURE_INFO(ETexture::R16F    ,GL_R16F    ,GL_RED ,GL_FLOAT ,GL_RED)
-		TEXTURE_INFO(ETexture::RG16F   ,GL_RG16F   ,GL_RG  ,GL_FLOAT ,GL_RG)
-		TEXTURE_INFO(ETexture::RGB16F  ,GL_RGB16F  ,GL_RGB ,GL_FLOAT ,GL_RGB)
-		TEXTURE_INFO(ETexture::RGBA16F ,GL_RGBA16F ,GL_RGBA,GL_FLOAT ,GL_RGBA)
+		TEXTURE_INFO(ETexture::R32F    ,GL_R32F    ,GL_RED ,GL_FLOAT ,GL_FLOAT ,GL_RED)
+		TEXTURE_INFO(ETexture::RG32F   ,GL_RG32F   ,GL_RG  ,GL_FLOAT ,GL_FLOAT ,GL_RG)
+		TEXTURE_INFO(ETexture::RGB32F  ,GL_RGB32F  ,GL_RGB ,GL_FLOAT ,GL_FLOAT ,GL_RGB)
+		TEXTURE_INFO(ETexture::RGBA32F ,GL_RGBA32F ,GL_RGBA,GL_FLOAT ,GL_FLOAT ,GL_RGBA)
+		TEXTURE_INFO(ETexture::R16F    ,GL_R16F    ,GL_RED ,GL_FLOAT ,GL_HALF_FLOAT ,GL_RED)
+		TEXTURE_INFO(ETexture::RG16F   ,GL_RG16F   ,GL_RG  ,GL_FLOAT ,GL_HALF_FLOAT ,GL_RG)
+		TEXTURE_INFO(ETexture::RGB16F  ,GL_RGB16F  ,GL_RGB ,GL_FLOAT ,GL_HALF_FLOAT ,GL_RGB)
+		TEXTURE_INFO(ETexture::RGBA16F ,GL_RGBA16F ,GL_RGBA,GL_FLOAT ,GL_HALF_FLOAT ,GL_RGBA)
 
-		TEXTURE_INFO(ETexture::R32I    ,GL_R32I    ,GL_RED_INTEGER ,GL_INT           ,GL_RED_INTEGER)
-		TEXTURE_INFO(ETexture::R16I    ,GL_R16I    ,GL_RED_INTEGER ,GL_SHORT         ,GL_RED_INTEGER)
-		TEXTURE_INFO(ETexture::R8I     ,GL_R8I     ,GL_RED_INTEGER ,GL_BYTE          ,GL_RED_INTEGER)
-		TEXTURE_INFO(ETexture::R32U    ,GL_R32UI   ,GL_RED_INTEGER ,GL_UNSIGNED_INT  ,GL_RED_INTEGER)
-		TEXTURE_INFO(ETexture::R16U    ,GL_R16UI   ,GL_RED_INTEGER ,GL_UNSIGNED_SHORT,GL_RED_INTEGER)
-		TEXTURE_INFO(ETexture::R8U     ,GL_R8UI    ,GL_RED_INTEGER ,GL_UNSIGNED_BYTE ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R32I    ,GL_R32I    ,GL_RED_INTEGER ,GL_INT           ,GL_INT ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R16I    ,GL_R16I    ,GL_RED_INTEGER ,GL_SHORT         ,GL_SHORT ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R8I     ,GL_R8I     ,GL_RED_INTEGER ,GL_BYTE          ,GL_BYTE ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R32U    ,GL_R32UI   ,GL_RED_INTEGER ,GL_UNSIGNED_INT  ,GL_UNSIGNED_INT ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R16U    ,GL_R16UI   ,GL_RED_INTEGER ,GL_UNSIGNED_SHORT,GL_UNSIGNED_SHORT ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R8U     ,GL_R8UI    ,GL_RED_INTEGER ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RED_INTEGER)
 		
-		TEXTURE_INFO(ETexture::RG32I   ,GL_RG32I   ,GL_RG_INTEGER ,GL_INT           ,GL_RG_INTEGER)
-		TEXTURE_INFO(ETexture::RG16I   ,GL_RG16I   ,GL_RG_INTEGER ,GL_SHORT         ,GL_RG_INTEGER)
-		TEXTURE_INFO(ETexture::RG8I    ,GL_RG8I    ,GL_RG_INTEGER ,GL_BYTE          ,GL_RG_INTEGER)
-		TEXTURE_INFO(ETexture::RG32U   ,GL_RG32UI  ,GL_RG_INTEGER ,GL_UNSIGNED_INT  ,GL_RG_INTEGER)
-		TEXTURE_INFO(ETexture::RG16U   ,GL_RG16UI  ,GL_RG_INTEGER ,GL_UNSIGNED_SHORT,GL_RG_INTEGER)
-		TEXTURE_INFO(ETexture::RG8U    ,GL_RG8UI   ,GL_RG_INTEGER ,GL_UNSIGNED_BYTE ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG32I   ,GL_RG32I   ,GL_RG_INTEGER ,GL_INT           ,GL_INT ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG16I   ,GL_RG16I   ,GL_RG_INTEGER ,GL_SHORT         ,GL_SHORT ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG8I    ,GL_RG8I    ,GL_RG_INTEGER ,GL_BYTE          ,GL_BYTE ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG32U   ,GL_RG32UI  ,GL_RG_INTEGER ,GL_UNSIGNED_INT  ,GL_UNSIGNED_INT ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG16U   ,GL_RG16UI  ,GL_RG_INTEGER ,GL_UNSIGNED_SHORT,GL_UNSIGNED_SHORT ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG8U    ,GL_RG8UI   ,GL_RG_INTEGER ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RG_INTEGER)
 		
-		TEXTURE_INFO(ETexture::RGB32I  ,GL_RGB32I  ,GL_RGB_INTEGER ,GL_INT            ,GL_RGB_INTEGER)
-		TEXTURE_INFO(ETexture::RGB16I  ,GL_RGB16I  ,GL_RGB_INTEGER ,GL_SHORT          ,GL_RGB_INTEGER)
-		TEXTURE_INFO(ETexture::RGB8I   ,GL_RGB8I   ,GL_RGB_INTEGER ,GL_BYTE           ,GL_RGB_INTEGER)
-		TEXTURE_INFO(ETexture::RGB32U  ,GL_RGB32UI ,GL_RGB_INTEGER ,GL_UNSIGNED_INT   ,GL_RGB_INTEGER)
-		TEXTURE_INFO(ETexture::RGB16U  ,GL_RGB16UI ,GL_RGB_INTEGER ,GL_UNSIGNED_SHORT ,GL_RGB_INTEGER)
-		TEXTURE_INFO(ETexture::RGB8U   ,GL_RGB8UI  ,GL_RGB_INTEGER ,GL_UNSIGNED_BYTE  ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB32I  ,GL_RGB32I  ,GL_RGB_INTEGER ,GL_INT            ,GL_INT ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB16I  ,GL_RGB16I  ,GL_RGB_INTEGER ,GL_SHORT          ,GL_SHORT ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB8I   ,GL_RGB8I   ,GL_RGB_INTEGER ,GL_BYTE           ,GL_BYTE ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB32U  ,GL_RGB32UI ,GL_RGB_INTEGER ,GL_UNSIGNED_INT   ,GL_UNSIGNED_INT ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB16U  ,GL_RGB16UI ,GL_RGB_INTEGER ,GL_UNSIGNED_SHORT ,GL_UNSIGNED_SHORT ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB8U   ,GL_RGB8UI  ,GL_RGB_INTEGER ,GL_UNSIGNED_BYTE  ,GL_UNSIGNED_BYTE ,GL_RGB_INTEGER)
 		
-		TEXTURE_INFO(ETexture::RGBA32I ,GL_RGBA32I  ,GL_RGBA_INTEGER ,GL_INT            ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(ETexture::RGBA16I ,GL_RGBA16I  ,GL_RGBA_INTEGER ,GL_SHORT          ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(ETexture::RGBA8I  ,GL_RGBA8I   ,GL_RGBA_INTEGER ,GL_BYTE           ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(ETexture::RGBA32U ,GL_RGBA32UI ,GL_RGBA_INTEGER ,GL_UNSIGNED_INT   ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(ETexture::RGBA16U ,GL_RGBA16UI ,GL_RGBA_INTEGER ,GL_UNSIGNED_SHORT ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(ETexture::RGBA8U  ,GL_RGBA8UI  ,GL_RGBA_INTEGER ,GL_UNSIGNED_BYTE  ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA32I ,GL_RGBA32I  ,GL_RGBA_INTEGER ,GL_INT            ,GL_INT ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA16I ,GL_RGBA16I  ,GL_RGBA_INTEGER ,GL_SHORT          ,GL_SHORT ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA8I  ,GL_RGBA8I   ,GL_RGBA_INTEGER ,GL_BYTE           ,GL_BYTE ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA32U ,GL_RGBA32UI ,GL_RGBA_INTEGER ,GL_UNSIGNED_INT   ,GL_UNSIGNED_INT ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA16U ,GL_RGBA16UI ,GL_RGBA_INTEGER ,GL_UNSIGNED_SHORT ,GL_UNSIGNED_SHORT ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA8U  ,GL_RGBA8UI  ,GL_RGBA_INTEGER ,GL_UNSIGNED_BYTE  ,GL_UNSIGNED_BYTE ,GL_RGBA_INTEGER)
 
-		TEXTURE_INFO(ETexture::SRGB   ,GL_SRGB8        ,GL_RGB  ,GL_UNSIGNED_BYTE ,GL_RGB)
-		TEXTURE_INFO(ETexture::SRGBA  ,GL_SRGB8_ALPHA8 ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::SRGB   ,GL_SRGB8        ,GL_RGB  ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGB)
+		TEXTURE_INFO(ETexture::SRGBA  ,GL_SRGB8_ALPHA8 ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGBA)
 
-		TEXTURE_INFO(ETexture::BC1    ,GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA)
-		TEXTURE_INFO(ETexture::BC2    ,GL_COMPRESSED_RGBA_S3TC_DXT3_EXT ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA)
-		TEXTURE_INFO(ETexture::BC3    ,GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA)
-		TEXTURE_INFO(ETexture::BC4    ,GL_COMPRESSED_RED_RGTC1          ,GL_RED  ,GL_UNSIGNED_BYTE ,GL_RED)
-		TEXTURE_INFO(ETexture::BC5    ,GL_COMPRESSED_RG_RGTC2           ,GL_RG   ,GL_UNSIGNED_BYTE ,GL_RG)
-		TEXTURE_INFO(ETexture::BC6H   ,GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT ,GL_RGB  ,GL_FLOAT ,GL_RGB)
-		TEXTURE_INFO(ETexture::BC7    ,GL_COMPRESSED_RGBA_BPTC_UNORM    ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::BC1    ,GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::BC2    ,GL_COMPRESSED_RGBA_S3TC_DXT3_EXT ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::BC3    ,GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::BC4    ,GL_COMPRESSED_RED_RGTC1          ,GL_RED  ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RED)
+		TEXTURE_INFO(ETexture::BC5    ,GL_COMPRESSED_RG_RGTC2           ,GL_RG   ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RG)
+		TEXTURE_INFO(ETexture::BC6H   ,GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT ,GL_RGB  ,GL_FLOAT ,GL_FLOAT ,GL_RGB)
+		TEXTURE_INFO(ETexture::BC7    ,GL_COMPRESSED_RGBA_BPTC_UNORM    ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_UNSIGNED_BYTE ,GL_RGBA)
 			
 		
 #undef TEXTURE_INFO
@@ -764,9 +765,14 @@ namespace Render
 		return GTexConvMapGL[(int)format].foramt;
 	}
 
-	GLenum OpenGLTranslate::TextureComponentType(ETexture::Format format)
+	GLenum OpenGLTranslate::ComponentType(ETexture::Format format)
 	{
 		return GTexConvMapGL[format].compType;
+	}
+
+	GLenum OpenGLTranslate::ReadComponentType(ETexture::Format format)
+	{
+		return GTexConvMapGL[format].readCompType;
 	}
 
 	GLenum OpenGLTranslate::BaseFormat(ETexture::Format format)

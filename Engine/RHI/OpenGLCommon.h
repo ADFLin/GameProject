@@ -322,6 +322,7 @@ namespace Render
 		static GLenum BaseFormat(ETexture::Format format);
 		static GLenum PixelFormat(ETexture::Format format);
 		static GLenum TextureComponentType(ETexture::Format format);
+		static GLenum ReadComponentType(ETexture::Format format);
 		static GLenum Image2DType(ETexture::Format format);
 		static GLenum TexureType(ETexture::Face face);
 		static GLenum BufferUsageEnum(uint32 creationFlags);

@@ -37,7 +37,7 @@ public:
 	HDC       mhDC;
 	unsigned  mColorBits;
 	bool      mbFullscreen;
-	bool      mbHasRegisterClass = false;
+
 
 	LRESULT CALLBACK DefaultProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };

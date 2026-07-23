@@ -64,13 +64,7 @@ LRESULT CALLBACK GameWindowWin::DefaultProc( HWND hWnd, UINT message, WPARAM wPa
 	case WM_CREATE:
 		{
 			CREATESTRUCT* ps = (CREATESTRUCT*)lParam;
-			SetWindowLong( hWnd ,
-				#if TARGET_PLATFORM_64BITS
-						  GWLP_USERDATA, (LONG)ps->lpCreateParams
-				#else
-						  GWL_USERDATA, (LONG)ps->lpCreateParams
-				#endif
-			);
+			SetWindowLongPtr(hWnd , GWLP_USERDATA, (LONG)ps->lpCreateParams);
 		}
 		break;
 	case WM_DESTROY:
@@ -79,13 +73,7 @@ LRESULT CALLBACK GameWindowWin::DefaultProc( HWND hWnd, UINT message, WPARAM wPa
 
 	}
 
-	GameWindowWin* window = ( GameWindowWin* )GetWindowLong( hWnd , 
-#if TARGET_PLATFORM_64BITS
-	GWLP_USERDATA
-#else
-	GWL_USERDATA
-#endif
-	);
+	GameWindowWin* window = ( GameWindowWin* )GetWindowLongPtr(hWnd , GWLP_USERDATA);
 
 	if ( !window->procMsg( message , wParam , lParam ) )
 		return 0;

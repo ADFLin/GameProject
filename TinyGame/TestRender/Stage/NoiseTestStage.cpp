@@ -243,17 +243,17 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
-		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
-		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
+		devFrame->addCheckBox("Use Instanced", mbDrawInstaced);
+		devFrame->addCheckBox("Use OptMesh", mbUseOptMesh);
 
 		devFrame->addText("FBM Shift");
-		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
+		FWidgetProperty::Bind(devFrame->addSlider("FBM Shift"), mData.FBMFactor.x, 0, 20);
 		devFrame->addText("FBM Scale");
-		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
+		FWidgetProperty::Bind(devFrame->addSlider("FBM Scale"), mData.FBMFactor.y, 0, 3);
 		devFrame->addText("FBM Rotate Angle");
-		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
+		FWidgetProperty::Bind(devFrame->addSlider("FBM Rotate Angle"), mData.FBMFactor.z, 0, 2);
 		devFrame->addText("FBM Octaves");
-		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
+		FWidgetProperty::Bind(devFrame->addSlider("FBM Octaves"), mData.FBMFactor.w, 0, 20);
 
 		devFrame->addText("StepSize");
 		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);

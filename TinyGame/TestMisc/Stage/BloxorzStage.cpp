@@ -334,12 +334,12 @@ namespace Bloxorz
 		mCamera.lookAt(Vector3(10, 10, 10), Vector3(0, 0, 0), Vector3(0, 0, 1));
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseRayTrace"), bUseRayTrace);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseSceneButin"), bUseSceneBuitin);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseDeferredRending"), bUseDeferredRending);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bFreeView"), bFreeView);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bMoveCamera"), bMoveCamera);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseBloom"), bUseBloom);
+		frame->addCheckBox("bUseRayTrace", bUseRayTrace);
+		frame->addCheckBox("bUseSceneButin", bUseSceneBuitin);
+		frame->addCheckBox("bUseDeferredRending", bUseDeferredRending);
+		frame->addCheckBox("bFreeView", bFreeView);
+		frame->addCheckBox("bMoveCamera", bMoveCamera);
+		frame->addCheckBox("bUseBloom", bUseBloom);
 
 		auto UpdateSceneEnvBufferFunc = [this](float) { updateSceneEnvBuffer(); };
 

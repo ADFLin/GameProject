@@ -824,8 +824,8 @@ namespace Render
 				mIsolevel = value;
 				updateMesh();
 			});
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Wireframe"), mbWireframeMode);
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Draw Data"), mbDrawData);
+			devFrame->addCheckBox("Wireframe", mbWireframeMode);
+			devFrame->addCheckBox("Draw Data", mbDrawData);
 			return true;
 		}
 

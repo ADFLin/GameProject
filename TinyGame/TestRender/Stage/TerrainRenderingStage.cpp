@@ -841,10 +841,10 @@ namespace Render
 			mViewFrustum.mFar = 80000.0;
 			::Global::GUI().cleanupWidget();
 			auto frame = WidgetUtility::CreateDevFrame();
-			frame->addButton(UI_DOWNLOAD_DEM, "Request Chunk");
-			frame->addButton(UI_OPEN_DEM, "Reload Chunk");
-			FWidgetProperty::Bind(frame->addCheckBox(UI_WIREFRAME, "Wireframe"), mbWireframe);
-			FWidgetProperty::Bind(frame->addCheckBox(UI_USE_LOD, "Use LOD"), mbUseLOD);
+			frame->addButton("Request Chunk", UI_DOWNLOAD_DEM);
+			frame->addButton("Reload Chunk", UI_OPEN_DEM);
+			FWidgetProperty::Bind(frame->addCheckBox("Wireframe", UI_WIREFRAME), mbWireframe);
+			FWidgetProperty::Bind(frame->addCheckBox("Use LOD", UI_USE_LOD), mbUseLOD);
 			restart();
 			return true;
 		}

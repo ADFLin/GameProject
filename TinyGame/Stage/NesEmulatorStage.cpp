@@ -211,7 +211,7 @@ public:
 		::Global::GUI().cleanupWidget();
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton(UI_LOAD_ROM, "Load Rom");
+		frame->addButton("Load Rom", UI_LOAD_ROM);
 
 		mNes = std::make_shared<Nes>();
 		mNes->Initialize(mRenderer);

@@ -118,7 +118,7 @@ bool WindowsWindowBase::createWindow(TCHAR const* szTitle, LPTSTR className, DWO
 		NULL,
 		NULL,
 		::GetModuleHandle(NULL),
-		NULL
+		this
 	);
 
 	if (mhWnd == NULL)

@@ -1808,9 +1808,9 @@ public:
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Native Double"), bUseNativeDouble, [this](bool bValue) { bNeedUpdateTexture = true; });
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Double Sim"), bUseDoubleSim, [this](bool bValue) { bNeedUpdateTexture = true; });
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use Perturbation"), bUsePerturb, [this](bool bValue) { bNeedUpdateTexture = true; });
+		FWidgetProperty::Bind(frame->addCheckBox("Native Double"), bUseNativeDouble, [this](bool bValue) { bNeedUpdateTexture = true; });
+		FWidgetProperty::Bind(frame->addCheckBox("Double Sim"), bUseDoubleSim, [this](bool bValue) { bNeedUpdateTexture = true; });
+		FWidgetProperty::Bind(frame->addCheckBox("Use Perturbation"), bUsePerturb, [this](bool bValue) { bNeedUpdateTexture = true; });
 
 		GradientEditorPanel* gradientPanel = new GradientEditorPanel(UI_ANY, Vec2i(10, 300), Vec2i(300, 250), nullptr);
 		::Global::GUI().addWidget(gradientPanel);

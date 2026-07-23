@@ -48,7 +48,7 @@ namespace Life
 		loadPattern("Sample");
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
-		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Run"), bRunEvolate, [this](bool v)
+		FWidgetProperty::Bind(devFrame->addCheckBox("Run"), bRunEvolate, [this](bool v)
 		{
 			if (bResotoreState)
 			{ 
@@ -68,7 +68,7 @@ namespace Life
 			}
 		});
 
-		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Restore State"), bResotoreState, [this](bool v)
+		FWidgetProperty::Bind(devFrame->addCheckBox("Restore State"), bResotoreState, [this](bool v)
 		{
 
 		});

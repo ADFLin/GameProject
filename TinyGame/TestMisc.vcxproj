@@ -497,6 +497,7 @@
     </ClCompile>
     <ClCompile Include="TestMisc\Test\HanoiTowerTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />
+    <ClCompile Include="TestMisc\Test\LeetCodeTest.cpp" />
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />
     <ClCompile Include="TestMisc\Test\MiscTest.cpp" />
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp" />

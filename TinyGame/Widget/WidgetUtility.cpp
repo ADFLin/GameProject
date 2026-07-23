@@ -32,7 +32,7 @@ T* DevFrame::addWidget( LAMBDA Lambda, bool bUseBroder )
 }
 
 template< class T >
-T* DevFrame::addWidget(int id, char const* title)
+T* DevFrame::addWidget(char const* title, int id)
 {
 	return addWidget<T>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
 	{
@@ -42,19 +42,19 @@ T* DevFrame::addWidget(int id, char const* title)
 	});
 }
 
-GButton* DevFrame::addButton( int id , char const* title )
+GButton* DevFrame::addButton(char const* title, int id)
 {
-	return addWidget<GButton>(id, title);
+	return addWidget<GButton>(title, id);
 }
 
-GCheckBox* DevFrame::addCheckBox(int id, char const* title)
+GCheckBox* DevFrame::addCheckBox(char const* title, int id)
 {
-	return addWidget<GCheckBox>(id, title);
+	return addWidget<GCheckBox>(title, id);
 }
 
-GCheckBox* DevFrame::addCheckBox(char const* text, bool& value)
+GCheckBox* DevFrame::addCheckBox(char const* title, bool& value)
 {
-	GCheckBox* result = addCheckBox(UI_ANY, text);
+	GCheckBox* result = addCheckBox(title, UI_ANY);
 	FWidgetProperty::Bind(result, value);
 	return result;
 }
@@ -98,6 +98,13 @@ GSlider* DevFrame::addSlider(char const* title, int id , bool bUseBroder)
 		addText(title);
 	}
 	return addSlider(id, bUseBroder);
+}
+
+GSlider* DevFrame::addSlider(char const* title, float& valueRef, float min, float max)
+{
+	auto result = addSlider(title, UI_ANY);
+	FWidgetProperty::Bind(result, valueRef, min, max);
+	return result;
 }
 
 GTextCtrl* DevFrame::addTextCtrl(int id)
@@ -171,7 +178,7 @@ DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )
 
 	DevFrame* frame = new DevFrame( UI_ANY , Vec2i( screenSize.x - size.x - 5 , 5 ) , size  , nullptr );
 	frame->setRenderType( GPanel::eRectType );
-	frame->addButton( UI_MAIN_MENU , "Main Menu" );
+	frame->addButton("Main Menu", UI_MAIN_MENU);
 	system.addWidget( frame );
 
 	return frame;

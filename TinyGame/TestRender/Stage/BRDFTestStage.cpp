@@ -29,9 +29,9 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto frame = WidgetUtility::CreateDevFrame();
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use Tonemap"), bEnableTonemap);
+		frame->addCheckBox("Use Tonemap", bEnableTonemap);
 		FWidgetProperty::Bind(frame->addSlider(UI_ANY), SkyboxShowIndex , 0 , (int)ESkyboxShow::Count - 1);
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
+		frame->addCheckBox("Use Shader Blit", mbUseShaderBlit);
 
 		return true;
 	}

@@ -35,8 +35,8 @@ namespace Rich
 		LoadMap(mScene);
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton( UI_WORLD_EDITOR , "World Edit" );
-		frame->addButton( UI_RESTART_GAME , "Restart");
+		frame->addButton("World Edit", UI_WORLD_EDITOR);
+		frame->addButton("Restart", UI_RESTART_GAME);
 		frame->addCheckBox("Pause", mbPauseGame );
 		frame->addCheckBox("ShowDebugDraw", mbShowDebugDraw);
 		frame->addCheckBox("FollowPlayer", mbFollowPlayer);

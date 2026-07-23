@@ -146,7 +146,7 @@ protected:
 	void   onWindowResize(){}
 	/////
 
-
+	static bool  mbHasRegisterClass;
 private:
 	RECT   calcAdjustWindowRect()
 	{
@@ -155,11 +155,12 @@ private:
 		AdjustWindowRectEx(&rect, _this()->getWinStyle(), FALSE, _this()->getWinExtStyle());
 		return rect;
 	}
-	bool      createWindow( TCHAR const* szTitle , bool fullscreen );
-	bool      registerWindow( WNDPROC wndProc , DWORD wIcon ,WORD wSIcon );
 
+	bool      createWindow( TCHAR const* szTitle , bool fullscreen );
 };
 
+template< class T >
+bool WinFrameT<T>::mbHasRegisterClass = false;
 
 template< class T >
 WinFrameT<T>::WinFrameT()
@@ -222,32 +223,6 @@ void WinFrameT<T>::destroy()
 
 }
 
-template< class T >
-bool WinFrameT<T>::registerWindow( WNDPROC wndProc, DWORD wIcon ,WORD wSIcon )
-{
-	WNDCLASSEX  wc;
-
-	HINSTANCE hInstance = ::GetModuleHandle( NULL );
-
-	// Create the window class for the main window
-	wc.cbSize         = sizeof(WNDCLASSEX);
-	wc.style          = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | CS_OWNDC /*|CS_CLASSDC*/;
-	wc.lpfnWndProc    = wndProc;
-	wc.cbClsExtra     = 0;
-	wc.cbWndExtra     = 0;
-	wc.hInstance      = hInstance;
-	wc.hIcon          = LoadIcon(hInstance,MAKEINTRESOURCE(wIcon));
-	wc.hIconSm        = LoadIcon(hInstance,MAKEINTRESOURCE(wSIcon));
-	wc.hCursor        = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-	wc.lpszMenuName   = NULL;
-	wc.lpszClassName  = _this()->getWinClassName();
-
-	// Register the window class
-	if (!RegisterClassEx(&wc))
-		return false;
-	return true;
-}
 
 template< class T >
 bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )

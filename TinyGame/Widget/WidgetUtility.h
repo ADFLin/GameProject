@@ -159,14 +159,15 @@ class DevFrame : public GFrame
 {
 public:
 	DevFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
-	GButton*   addButton(int id, char const* tile);
+	GButton*   addButton(char const* tile, int id = UI_ANY);
 	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
-	GCheckBox* addCheckBox(int id, char const* tile);
+	GCheckBox* addCheckBox(char const* title, int id = UI_ANY);
 	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
-	GCheckBox* addCheckBox(char const* text, bool& value);
+	GCheckBox* addCheckBox(char const* title, bool& value);
 
 	GSlider*   addSlider(int id = UI_ANY, bool bUseBroder = true);
 	GSlider*   addSlider(char const* title, int id = UI_ANY, bool bUseBroder = true);
+	GSlider*   addSlider(char const* title, float& valueRef, float min, float max);
 	GTextCtrl* addTextCtrl(int id);
 	GTextCtrl* addTextCtrl(char const* title, int id = UI_ANY);
 	GChoice*   addChoice(int id = UI_ANY);
@@ -178,7 +179,7 @@ public:
 	void refresh();
 private:
 	template< class T >
-	T* addWidget(int id, char const* title);
+	T* addWidget(char const* title, int id);
 	template< class T, class LAMBDA >
 	T* addWidget(LAMBDA Lambda, bool bUseBroder = true);
 	template< class T >

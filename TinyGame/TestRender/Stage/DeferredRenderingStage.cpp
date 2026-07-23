@@ -29,9 +29,9 @@ namespace Render
 			IntVector2 screenSize = ::Global::GetScreenSize();
 			::Global::GUI().cleanupWidget();
 
-			auto frameWidget = WidgetUtility::CreateDevFrame();
-			FWidgetProperty::Bind(frameWidget->addCheckBox(UI_ANY, "bShowGBuffer"), bShowGBuffer);
-			FWidgetProperty::Bind(frameWidget->addCheckBox(UI_ANY, "bPause"), mbPause);
+			auto frame = WidgetUtility::CreateDevFrame();
+			frame->addCheckBox("bShowGBuffer", bShowGBuffer);
+			frame->addCheckBox("bPause", mbPause);
 			return true;
 		}
 

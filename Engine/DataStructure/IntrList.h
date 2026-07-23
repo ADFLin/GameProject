@@ -6,14 +6,14 @@
 #include <cassert>
 #include <algorithm>
 
-class ListNode
+class IntrListNode
 {
 public:
-	ListNode* getPrev() const { return mPrev; }
-	ListNode* getNext() const { return mNext; }
+	IntrListNode* getPrev() const { return mPrev; }
+	IntrListNode* getNext() const { return mNext; }
 protected:
-	ListNode* mPrev;
-	ListNode* mNext;
+	IntrListNode* mPrev;
+	IntrListNode* mNext;
 	friend struct ListNodeTraits;
 };
 
@@ -29,9 +29,9 @@ struct NodeTraits
 
 struct ListNodeTraits
 {
-	typedef ListNode  NodeType;
-	typedef ListNode* NodePtr;
-	typedef ListNode const* ConstNodePtr;
+	typedef IntrListNode  NodeType;
+	typedef IntrListNode* NodePtr;
+	typedef IntrListNode const* ConstNodePtr;
 
 	static NodePtr getPrev( NodePtr const& n ){ return n->mPrev; }
 	static NodePtr getNext( NodePtr const& n ){ return n->mNext; }
@@ -146,7 +146,7 @@ public:
 
 
 
-class LinkHook : public ListNode
+class LinkHook : public IntrListNode
 {
 public:
 	typedef ListNodeTraits NodeTraits;
@@ -174,7 +174,7 @@ struct HookTraits
 template< class Base , LinkHook Base::*Member >
 struct MemberHook
 {
-	typedef ListNode NodeType;
+	typedef IntrListNode NodeType;
 	typedef LinkHook::NodeTraits NodeTraits;
 	
 	template< class T >

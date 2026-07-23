@@ -131,7 +131,7 @@ namespace Render
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
 
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Wireframe"), bWireframe);
+		frame->addCheckBox("Wireframe", bWireframe);
 
 		FWidgetProperty::Bind(frame->addSlider("Mesh Level"), mSettings.meshLevel, 0, 250,
 			[this](int level)

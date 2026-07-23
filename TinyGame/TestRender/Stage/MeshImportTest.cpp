@@ -129,7 +129,7 @@ namespace Render
 				return false;
 
 			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
-			FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
+			frame->addCheckBox("Use MinpMap", mbUseMipMap);
 			FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
  			return true;
 		}

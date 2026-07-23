@@ -3,7 +3,7 @@
 
 #include "DataStructure/Array.h"
 
-template< class KT , class CmpFunc = std::less< KT > >
+template< class KT, class CmpFunc = std::less< KT > >
 class TBinaryHeap
 {
 public:
@@ -19,40 +19,33 @@ public:
 
 	void clear()
 	{
-		for( int i = 0 ; i < mTreeMap.size() ; ++i )
-		{
-			freeNode( mTreeMap[i] );
-		}
+
 		mTreeMap.clear();
 	}
 
-	KeyType&   top(){ return *mTreeMap[0]; }
+	KeyType&   top() { return mTreeMap[0]; }
 
 	void pop()
 	{
-		assert( size() != 0 ); 
+		assert(size() != 0);
 		remove(0);
 	}
 
 	void push(const KeyType& Val)
 	{
-		Node* node = allocNode( Val );
-		mTreeMap.push_back( node );
-		filterUp((int)size()-1);
+		mTreeMap.push_back(Val);
+		filterUp((int)size() - 1);
 	}
 
-	bool empty(){ return  mTreeMap.empty(); }
+	bool empty() { return  mTreeMap.empty(); }
 	void remove(int index)
 	{
 		//assert( index >= 0 && index < size() );
-		Node* node = mTreeMap[ index ];
-		freeNode( node );
-
-		std::swap( mTreeMap[index] , mTreeMap.back() );
+		std::swap(mTreeMap[index], mTreeMap.back());
 		mTreeMap.pop_back();
-		if ( !empty() )
+		if (!empty())
 		{
-			filterDown( index );
+			filterDown(index);
 		}
 	}
 	size_t size() const { return mTreeMap.size(); }
@@ -60,62 +53,59 @@ public:
 
 private:
 
-	Node* getNode(int index){ return mTreeMap[index]; }
-	void  setNode(int index, Node* node ){  mTreeMap[index] = node; }
+	Node& getNode(int index) { return mTreeMap[index]; }
+	void  setNode(int index, Node const& node) { mTreeMap[index] = node; }
 
-	static int ParentIndex(int index){ return (index - 1) / 2;}
-	static int RightChildIndex(int index){ return 2 * (index + 1); }
-	static int LeftChildIndex(int index){ return 2 * index + 1; }
+	static int ParentIndex(int index) { return (index - 1) / 2; }
+	static int RightChildIndex(int index) { return 2 * (index + 1); }
+	static int LeftChildIndex(int index) { return 2 * index + 1; }
 
-	void filterDown( int idxStart )
+	void filterDown(int idxStart)
 	{
-		Node* target = getNode(idxStart);
+		Node target = getNode(idxStart);
 
 		int idxRChild;
 
 		int idxCur = idxStart;
 		int idxChild = LeftChildIndex(idxCur);
 
-		while ( idxChild < size() )
+		while (idxChild < size())
 		{
 			idxRChild = idxChild + 1;
-			if ( idxRChild < size() && compareNode(getNode(idxRChild),getNode(idxChild)) )
+			if (idxRChild < size() && compareNode(getNode(idxRChild), getNode(idxChild)))
 				idxChild = idxRChild;
 
-			if ( compareNode(target, getNode(idxChild)) )
+			if (compareNode(target, getNode(idxChild)))
 				break;
 
-			setNode( idxCur , getNode(idxChild) );
+			setNode(idxCur, getNode(idxChild));
 
 			idxCur = idxChild;
 			idxChild = LeftChildIndex(idxCur);
 		}
-		setNode(idxCur,target);
+		setNode(idxCur, target);
 	}
 
-	void filterUp(int idxStart )
+	void filterUp(int idxStart)
 	{
-		Node* Target= getNode(idxStart);
+		Node Target = getNode(idxStart);
 
 		int idxCur = idxStart;
 		while (idxCur != 0)
 		{
 			int idxParent = ParentIndex(idxCur);
-			if ( compareNode( getNode(idxParent), Target ) )
+			if (compareNode(getNode(idxParent), Target))
 				break;
 
-			setNode(idxCur,getNode(idxParent));
+			setNode(idxCur, getNode(idxParent));
 			idxCur = idxParent;
 		}
-		setNode(idxCur,Target);
+		setNode(idxCur, Target);
 	}
 
-	bool  compareNode(Node* a, Node* b) { return CompareFunType()(*a, *b); }
-	void  freeNode(Node* node) { delete node; }
-	Node* allocNode(KeyType const& key) { return new Node(key); }
-	TArray< Node* > mTreeMap;
+	bool  compareNode(Node& a, Node& b) { return CompareFunType()(a, b); }
+	TArray< Node > mTreeMap;
 };
-
 
 class TreeHeapBase
 {

@@ -157,7 +157,7 @@ namespace Holdem {
 			::Global::GUI().addWidget(mDevPanel);
 		}
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton( UI_RESTART_GAME , "Restart" );
+		frame->addButton("Restart", UI_RESTART_GAME);
 	}
 
 	void LevelStage::onEnd()

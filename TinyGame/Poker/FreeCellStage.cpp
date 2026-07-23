@@ -85,9 +85,9 @@ namespace Poker
 		mSeed  = 0;
 		::Global::GUI().cleanupWidget();
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton( UI_RESTART_GAME , "Restart Game" );
-		frame->addButton( UI_NEW_GAME     , "New Game" );
-		frame->addButton( UI_CHIOCE_GAME  , "Choice Game" );
+		frame->addButton("Restart Game", UI_RESTART_GAME);
+		frame->addButton("New Game", UI_NEW_GAME);
+		frame->addButton("Choice Game", UI_CHIOCE_GAME);
 
 		//restart();
 		return true; 

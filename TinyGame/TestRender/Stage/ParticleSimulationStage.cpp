@@ -600,8 +600,8 @@ namespace Render
 			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 1, 128);
 			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 1, 128);
 			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 128);
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
+			devFrame->addCheckBox("UseTess", bUseTessellation);
+			devFrame->addCheckBox("WireFrame", bWireframe);
 			FWidgetProperty::Bind(devFrame->addSlider("DispFactor"), mDispFactor, 0, 10);
 
 			return true;

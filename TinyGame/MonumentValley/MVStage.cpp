@@ -90,11 +90,10 @@ namespace MV
 		restart( true );
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton( UI_SHOW_NAV_LINK , "Show NavLink");
-		frame->addButton( UI_SHOW_NAV_PATH , "Show NavPath");
-		frame->addButton( UI_SAVE_LEVEL , "Save Level" );
-		frame->addButton( UI_LOAD_LEVEL , "Load Level" );
-
+		frame->addButton("Show NavLink", UI_SHOW_NAV_LINK);
+		frame->addButton("Show NavPath", UI_SHOW_NAV_PATH);
+		frame->addButton("Save Level", UI_SAVE_LEVEL);
+		frame->addButton("Load Level", UI_LOAD_LEVEL);
 
 		MeshViewPanel* panel = new MeshViewPanel( UI_MESH_VIEW_PANEL , Vec2i(0,0) , Vec2i(30,30) , nullptr );
 		panel->idMesh = 3;

@@ -2003,7 +2003,7 @@ namespace SR
 		::Global::GUI().cleanupWidget();
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton(UI_RESTART_GAME, "Restart");
+		frame->addButton("Restart", UI_RESTART_GAME);
 		mPauseButton = frame->addButton("Pause", [this](int, GWidget*) -> bool
 		{
 			togglePause();

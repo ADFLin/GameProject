@@ -141,11 +141,11 @@ namespace Bsp2D
 		::Global::GUI().cleanupWidget();
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		frame->addButton(UI_BUILD_TREE, "Build Tree");
-		frame->addButton(UI_ADD_POLYAREA, "Add PolyArea");
-		frame->addButton(UI_TEST_INTERATION, "Test Collision");
+		frame->addButton("Build Tree", UI_BUILD_TREE);
+		frame->addButton("Add PolyArea", UI_ADD_POLYAREA);
+		frame->addButton("Test Collision", UI_TEST_INTERATION);
 #if 0
-		frame->addButton(UI_ACTOR_MOVE, "Actor Move");
+		frame->addButton("Actor Move", UI_ACTOR_MOVE);
 #endif
 		restart();
 		return true;

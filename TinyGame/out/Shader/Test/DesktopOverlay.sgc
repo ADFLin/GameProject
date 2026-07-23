@@ -1,0 +1,42 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+#if SHADER_ENTRY(BackgroundEffectPS)
+
+DEFINE_TEXTURE(Texture2D, BackgroundTexture);
+uniform float2 TextureSizeInv;
+
+PS_ENTRY_START(BackgroundEffectPS)
+	PS_INPUT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(BackgroundEffectPS)
+{
+	float2 uv = VSOutput.UVs;
+	float3 color = float3(0, 0, 0);
+	float weightSum = 0;
+
+	// Wide single-pass Gaussian blur for the small overlay surface. The sample
+	// stride spreads the 11x11 kernel across roughly a 12-pixel radius.
+	for (int y = -5; y <= 5; ++y)
+	{
+		for (int x = -5; x <= 5; ++x)
+		{
+			float2 tap = float2(x, y);
+			float weight = exp(-dot(tap, tap) / 8.0);
+			color += weight * TEXTURE_SAMPLE(BackgroundTexture, uv + 2.5 * tap * TextureSizeInv).rgb;
+			weightSum += weight;
+		}
+	}
+	color /= weightSum;
+	color = lerp(color, float3(0.78, 0.88, 1.0), 0.16);
+
+	float2 p = uv * 2.0 - 1.0;
+	float2 rounded = abs(p) - float2(0.86, 0.78);
+	float distanceToRoundedRect = length(max(rounded, 0.0)) + min(max(rounded.x, rounded.y), 0.0) - 0.14;
+	float alpha = 1.0 - smoothstep(-0.015, 0.015, distanceToRoundedRect);
+
+	// UpdateLayeredWindow expects premultiplied-alpha BGRA data.
+	OutColor = float4(color * alpha, alpha);
+}
+
+#endif

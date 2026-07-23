@@ -62,7 +62,7 @@ namespace Render
 
 		::Global::GUI().cleanupWidget();
 		auto frame = WidgetUtility::CreateDevFrame();
-		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
+		frame->addButton("Run Benchmark", UI_RUN_BENCHMARK);
 
 		frame->addCheckBox("bShowShadowRender", bShowShadowRender);
 		frame->addCheckBox("bUseGeometryShader", bUseGeometryShader);

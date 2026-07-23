@@ -256,9 +256,9 @@ namespace Render
 			::Global::GUI().cleanupWidget();
 
 			auto frameWidget = WidgetUtility::CreateDevFrame();
-			FWidgetProperty::Bind(frameWidget->addCheckBox(UI_ANY, "Use Mesh Shader"), bUseMeshShader);
-			FWidgetProperty::Bind(frameWidget->addCheckBox(UI_ANY, "With Task Shader"), bUseTask);
-			FWidgetProperty::Bind(frameWidget->addCheckBox(UI_ANY, "Hold Cull View"), bHoldCullView, 
+			FWidgetProperty::Bind(frameWidget->addCheckBox("Use Mesh Shader"), bUseMeshShader);
+			FWidgetProperty::Bind(frameWidget->addCheckBox("With Task Shader"), bUseTask);
+			FWidgetProperty::Bind(frameWidget->addCheckBox("Hold Cull View"), bHoldCullView, 
 				[this](bool bHold)
 				{
 					if (bHold)

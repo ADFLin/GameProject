@@ -94,7 +94,7 @@ public:
 
 		auto frame = WidgetUtility::CreateDevFrame();
 		FWidgetProperty::Bind(frame->addSlider("Width") , mWidth , 0.02 , 1 );
-		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use 2 Order"), bUse2Order, 
+		FWidgetProperty::Bind(frame->addCheckBox("Use 2 Order"), bUse2Order, 
 		[this](bool)
 		{
 			generateShader();

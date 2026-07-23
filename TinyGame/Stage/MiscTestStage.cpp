@@ -220,10 +220,10 @@ namespace MRT
 		restart();
 
 		auto frame = WidgetUtility::CreateDevFrame();
-		frame->addButton(UI_NEW_STATION, "New Station");
-		frame->addButton(UI_LINK_STATION, "Link Station");
-		frame->addButton(UI_REMOVE_STATION, "Remove Station");
-		frame->addButton(UI_CALC_PATH, "Calc Path");
+		frame->addButton("New Station", UI_NEW_STATION);
+		frame->addButton("Link Station", UI_LINK_STATION);
+		frame->addButton("Remove Station", UI_REMOVE_STATION);
+		frame->addButton("Calc Path", UI_CALC_PATH);
 		return true;
 	}
 

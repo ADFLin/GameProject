@@ -50,9 +50,6 @@ END
 // Bitmap
 //
 
-IDB_CARDS               BITMAP                  "Poker\\cards.bmp"
-
-IDB_CARDS_MASK          BITMAP                  "Poker\\cards_mask.bmp"
 
 
 /////////////////////////////////////////////////////////////////////////////

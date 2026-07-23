@@ -21,7 +21,7 @@ namespace Bejeweled
 		::Global::GUI().cleanupWidget();
 
 		auto frame = WidgetUtility::CreateDevFrame();
-		frame->addButton(UI_RESTART_GAME, "Restart");
+		frame->addButton("Restart", UI_RESTART_GAME);
 		frame->addCheckBox("Auto Play", mScene.bAutoPlay);
 		frame->addCheckBox("Draw Debug", mScene.bDrawDebugForce);
 		return true;

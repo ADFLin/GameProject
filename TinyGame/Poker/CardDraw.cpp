@@ -21,6 +21,38 @@ namespace Poker {
 
 	using namespace Render;
 
+	static void DrawTarotCard(IGraphics2D& g, Vec2i const& pos, Vec2i const& cardSize, Card const& card)
+	{
+		g.setPen(Color3ub(70, 45, 20), 2);
+		g.setBrush(Color3ub(248, 228, 178));
+		g.drawRoundRect(pos, cardSize, Vec2i(8, 8));
+
+		Vec2i innerPos = pos + Vec2i(5, 5);
+		Vec2i innerSize = cardSize - Vec2i(10, 10);
+		g.setPen(Color3ub(174, 117, 45), 1);
+		g.setBrush(Color3ub(42, 28, 28));
+		g.drawRoundRect(innerPos, innerSize, Vec2i(5, 5));
+
+		InlineString<128> label;
+		label.format("%02d", card.getTarotIndex());
+		g.setTextColor(Color3ub(252, 236, 190));
+		g.drawText(innerPos + Vec2i(0, 1), Vec2i(innerSize.x, 16), label.c_str(), EHorizontalAlign::Center);
+
+		label.format("%s", Card::ToTarotString(card.getTarotIndex()));
+		g.drawText(innerPos + Vec2i(4, innerSize.y - 28), Vec2i(innerSize.x - 8, 24), label.c_str(), EHorizontalAlign::Center, true);
+
+		Vector2 points[4];
+		Vector2 center(pos.x + cardSize.x * 0.5f, pos.y + cardSize.y * 0.48f);
+		points[0] = center + Vector2(0, -18);
+		points[1] = center + Vector2(18, 0);
+		points[2] = center + Vector2(0, 18);
+		points[3] = center + Vector2(-18, 0);
+		g.setPen(Color3ub(248, 214, 122), 1);
+		g.setBrush(Color3ub(139, 51, 45));
+		g.drawPolygon(points, 4);
+		g.setBrush(Color3ub(255, 255, 255));
+	}
+
 	class CCardDraw : public ICardDraw
 	{
 	public:
@@ -34,8 +66,13 @@ namespace Poker {
 		}
 		void draw(IGraphics2D& g, Vec2i const& pos , Card const& card ) override
 		{
-			if( card == Card::None() )
+			if( card.isNone() )
 				return;
+			if (card.isTarot())
+			{
+				DrawTarotCard(g, pos, getSize(), card);
+				return;
+			}
 
 			Graphics2D& impl = g.getImpl< Graphics2D >();
 			cdtDraw( mBugFixDC.getHandle() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
@@ -146,8 +183,13 @@ namespace Poker {
 
 		void draw(IGraphics2D& g, Vec2i const& pos , Card const& card ) override
 		{
-			if( card == Card::None() )
+			if( card.isNone() )
 				return;
+			if (card.isTarot())
+			{
+				DrawTarotCard(g, pos, CardSize, card);
+				return;
+			}
 			Graphics2D& impl = g.getImpl< Graphics2D >();
 			Vec2i const& posImg = mCardPos[ card.getIndex() ];
 			mBmpDC.bitBltTo(impl.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
@@ -227,8 +269,13 @@ namespace Poker {
 
 		void draw(IGraphics2D& g, Vec2i const& pos, Card const& card) override
 		{
-			if (card == Card::None())
+			if (card.isNone())
 				return;
+			if (card.isTarot())
+			{
+				DrawTarotCard(g, pos, CardSize, card);
+				return;
+			}
 			drawCard(g, pos, mCardPos[card.getIndex()]);
 		}
 
@@ -255,6 +302,8 @@ namespace Poker {
 
 		TRect<float> getUVRect(Card const& card) const override
 		{
+			if (!card.isStandard())
+				return getCardUVRect(mCardBackPos);
 			return getCardUVRect( mCardPos[card.getIndex()]);
 		}
 		TRect<float> getBackUVRect(Card const& card) const override
@@ -287,8 +336,13 @@ namespace Poker {
 		static int const RoundSize = 12;
 		void draw(IGraphics2D& g, Vec2i const& pos , Card const& card ) override
 		{
-			if( card == Card::None() )
+			if( card.isNone() )
 				return;
+			if (card.isTarot())
+			{
+				DrawTarotCard(g, pos, CardSize, card);
+				return;
+			}
 			RenderUtility::SetPen(g, EColor::Black);
 			RenderUtility::SetBrush(g, EColor::White);
 			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));

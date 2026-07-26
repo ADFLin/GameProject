@@ -30,48 +30,31 @@ namespace Rubiks
 {
 	using namespace Render;
 
-	//     U1
-	//  L4 F0 R2 B5
-	//     D3
+	//     U2
+	//  L4 F0 R1 B3
+	//     D5
 	//  0 1 2
 	//  7 8 3
 	//  6 5 4  
 	enum FaceDir
 	{
 		FaceFront = 0,
-		FaceUp    = 1,
-		FaceRight = 2,
-		FaceDown  = 3,
+		FaceRight = 1,
+		FaceUp    = 2,
+		FaceBack  = 3,
 		FaceLeft  = 4,
-		FaceBack  = 5,
+		FaceDown  = 5,
 
 		CountFace = 6,
 	};
 
+	FORCEINLINE bool IsOppositeFace(FaceDir a, FaceDir b)
+	{
+		return ( a % 3 ) == ( b % 3 );
+	}
+
 	int const CubeBlockSize = 3;
 	int const CubeFaceEdgeNum = 4;
-
-	struct EdgeLinkParam
-	{
-		FaceDir face;
-		int     dataOffset;
-	};
-
-	struct FaceLinkParam
-	{
-		FaceDir invFace;
-		EdgeLinkParam edges[4];
-	};
-
-	FaceLinkParam const gFaceLinkParam[CountFace] = 
-	{
-		/*F*/{ FaceBack , FaceUp    , 6 , FaceRight , 0  ,  FaceDown , 2  , FaceLeft , 4  } ,
-		/*U*/{ FaceDown , FaceBack  , 2 , FaceRight , 2  , FaceFront , 2  , FaceLeft , 2 } ,
-		/*R*/{ FaceLeft , FaceUp    , 4 , FaceBack , 0  , FaceDown , 4  , FaceFront , 4 } ,
-		/*D*/{ FaceUp   , FaceFront , 6 , FaceRight , 6  , FaceBack , 6 , FaceLeft , 6 } ,
-		/*L*/{ FaceRight, FaceUp    , 0 , FaceFront , 0  , FaceDown , 0  , FaceBack , 4 } ,
-		/*B*/{ FaceFront, FaceUp    , 2 , FaceLeft , 0  , FaceDown , 6  , FaceRight , 4 } ,
-	};
 
 	struct CubeState
 	{
@@ -87,16 +70,6 @@ namespace Rubiks
 			int8 y;
 			int8 z;
 		};
-		enum CubieFace : uint8
-		{
-			CF_U,
-			CF_R,
-			CF_F,
-			CF_D,
-			CF_L,
-			CF_B,
-			CF_None = 0xff,
-		};
 		struct MoveCache
 		{
 			bool  bInitialized = false;
@@ -104,6 +77,19 @@ namespace Rubiks
 			uint8 edgeDest[2][CountFace][12];
 			uint8 cornerOri[2][CountFace][8][3];
 			uint8 edgeOri[2][CountFace][12][2];
+		};
+		struct SymmetryTransform
+		{
+			int8 axis[3];
+			int8 sign[3];
+		};
+		struct SymmetryCache
+		{
+			bool  bInitialized = false;
+			uint8 cornerDest[48][8];
+			uint8 edgeDest[48][12];
+			uint8 cornerValue[48][8][8][3];
+			uint8 edgeValue[48][12][12][2];
 		};
 
 		uint64 cornerKey;
@@ -120,23 +106,31 @@ namespace Rubiks
 			return cornerKey == other.cornerKey && edgeKey == other.edgeKey;
 		}
 
+		bool isLess( CubeState const& other ) const
+		{
+			if ( cornerKey != other.cornerKey )
+				return cornerKey < other.cornerKey;
+			return edgeKey < other.edgeKey;
+		}
+
 		void setEmptyState()
 		{
 			cornerKey = 0;
 			edgeKey = 0;
 			updateHash();
 		}
-		void setGlobalState()
+
+		void setGoalState()
 		{
 			cornerKey = 0;
 			edgeKey = 0;
 			for ( uint8 i = 0 ; i < 8 ; ++i )
 			{
-				SetCorner(i, i, 0);
+				setCorner(i, i, 0);
 			}
 			for ( uint8 i = 0 ; i < 12 ; ++i )
 			{
-				SetEdge(i, i, 0);
+				setEdge(i, i, 0);
 			}
 			updateHash();
 		}
@@ -153,15 +147,15 @@ namespace Rubiks
 			{
 				uint8 piece;
 				uint8 ori;
-				GetCorner(desc.pos, piece, ori);
-				CubieFace colorFace = GetCornerPieceFaces()[piece][Mod(desc.slot - ori, 3)];
+				getCorner(desc.pos, piece, ori);
+				FaceDir colorFace = GetCornerPieceFaces()[piece][Mod(desc.slot - ori, 3)];
 				return GetColorValue(colorFace);
 			}
 
 			uint8 piece;
 			uint8 ori;
-			GetEdge(desc.pos, piece, ori);
-			CubieFace colorFace = GetEdgePieceFaces()[piece][Mod(desc.slot - ori, 2)];
+			getEdge(desc.pos, piece, ori);
+			FaceDir colorFace = GetEdgePieceFaces()[piece][Mod(desc.slot - ori, 2)];
 			return GetColorValue(colorFace);
 		}
 
@@ -175,16 +169,16 @@ namespace Rubiks
 				uint8 dest = cache.cornerDest[invIndex][dir][i];
 				uint8 piece;
 				uint8 ori;
-				oldState.GetCorner(i, piece, ori);
-				newState.SetCorner(dest, piece, cache.cornerOri[invIndex][dir][i][ori]);
+				oldState.getCorner(i, piece, ori);
+				newState.setCorner(dest, piece, cache.cornerOri[invIndex][dir][i][ori]);
 			}
 			for ( int i = 0 ; i < 12 ; ++i )
 			{
 				uint8 dest = cache.edgeDest[invIndex][dir][i];
 				uint8 piece;
 				uint8 ori;
-				oldState.GetEdge(i, piece, ori);
-				newState.SetEdge(dest, piece, cache.edgeOri[invIndex][dir][i][ori]);
+				oldState.getEdge(i, piece, ori);
+				newState.setEdge(dest, piece, cache.edgeOri[invIndex][dir][i][ori]);
 			}
 			newState.updateHash();
 		}
@@ -194,27 +188,27 @@ namespace Rubiks
 			return ((uint64(1) << bits) - 1) << (bits * index);
 		}
 
-		void GetCorner(uint8 index, uint8& outPiece, uint8& outOri) const
+		void getCorner(uint8 index, uint8& outPiece, uint8& outOri) const
 		{
 			uint64 value = (cornerKey >> (5 * index)) & 0x1f;
 			outPiece = value & 0x7;
 			outOri = (value >> 3) & 0x3;
 		}
 
-		void SetCorner(uint8 index, uint8 piece, uint8 ori)
+		void setCorner(uint8 index, uint8 piece, uint8 ori)
 		{
 			uint64 value = (piece & 0x7) | ((uint64(ori & 0x3)) << 3);
 			cornerKey = (cornerKey & ~GetFieldMask(5, index)) | (value << (5 * index));
 		}
 
-		void GetEdge(uint8 index, uint8& outPiece, uint8& outOri) const
+		void getEdge(uint8 index, uint8& outPiece, uint8& outOri) const
 		{
 			uint64 value = (edgeKey >> (5 * index)) & 0x1f;
 			outPiece = value & 0xf;
 			outOri = (value >> 4) & 0x1;
 		}
 
-		void SetEdge(uint8 index, uint8 piece, uint8 ori)
+		void setEdge(uint8 index, uint8 piece, uint8 ori)
 		{
 			uint64 value = (piece & 0xf) | ((uint64(ori & 0x1)) << 4);
 			edgeKey = (edgeKey & ~GetFieldMask(5, index)) | (value << (5 * index));
@@ -231,63 +225,71 @@ namespace Rubiks
 			return cache;
 		}
 
+		void buildSymmetryCanonicalState(CubeState& outState) const
+		{
+			CubeState testState;
+			BuildSymmetryState(0, testState);
+			outState = testState;
+
+			for ( int i = 1 ; i < GetSymmetryTransformCount() ; ++i )
+			{
+				BuildSymmetryState(i, testState);
+				if ( testState.isLess(outState) )
+					outState = testState;
+			}
+			outState.updateHash();
+		}
+
 		static int Mod(int value, int mod)
 		{
 			int result = value % mod;
 			return ( result < 0 ) ? ( result + mod ) : result;
 		}
 
-		static CubieFace ToCubieFace(FaceDir dir)
+		static uint32 GetColorValue(FaceDir face)
 		{
-			switch ( dir )
-			{
-			case FaceFront: return CF_F;
-			case FaceUp:    return CF_U;
-			case FaceRight: return CF_R;
-			case FaceDown:  return CF_D;
-			case FaceLeft:  return CF_L;
-			case FaceBack:  return CF_B;
-			default:        return CF_None;
-			}
+			return ( face != CountFace ) ? uint32(face) + 1 : 0;
 		}
 
-		static uint32 GetColorValue(CubieFace face)
+		static Coord GetFaceCoord(FaceDir face)
 		{
 			switch ( face )
 			{
-			case CF_F: return FaceFront + 1;
-			case CF_U: return FaceUp + 1;
-			case CF_R: return FaceRight + 1;
-			case CF_D: return FaceDown + 1;
-			case CF_L: return FaceLeft + 1;
-			case CF_B: return FaceBack + 1;
-			default:   return 0;
+			case FaceUp:    return { 0, 0, 1 };
+			case FaceRight: return { 1, 0, 0 };
+			case FaceFront: return { 0, 1, 0 };
+			case FaceDown:  return { 0, 0,-1 };
+			case FaceLeft:  return {-1, 0, 0 };
+			case FaceBack:  return { 0,-1, 0 };
+			default:        return { 0, 0, 0 };
 			}
 		}
 
-		static Coord GetFaceCoord(CubieFace face)
+		static FaceDir GetFaceFromCoord(Coord coord)
 		{
-			switch ( face )
+			if ( coord.x == 1 ) return FaceRight;
+			if ( coord.x == -1 ) return FaceLeft;
+			if ( coord.y == 1 ) return FaceFront;
+			if ( coord.y == -1 ) return FaceBack;
+			if ( coord.z == 1 ) return FaceUp;
+			if ( coord.z == -1 ) return FaceDown;
+			return CountFace;
+		}
+
+		static Coord TransformCoord(SymmetryTransform const& transform, Coord coord)
+		{
+			int8 values[3] = { coord.x, coord.y, coord.z };
+			return Coord
 			{
-			case CF_U: return { 0, 1, 0 };
-			case CF_R: return { 1, 0, 0 };
-			case CF_F: return { 0, 0, 1 };
-			case CF_D: return { 0,-1, 0 };
-			case CF_L: return {-1, 0, 0 };
-			case CF_B: return { 0, 0,-1 };
-			default:   return { 0, 0, 0 };
-			}
+				int8(transform.sign[0] * values[transform.axis[0]]),
+				int8(transform.sign[1] * values[transform.axis[1]]),
+				int8(transform.sign[2] * values[transform.axis[2]])
+			};
 		}
 
-		static CubieFace GetFaceFromCoord(Coord coord)
+		static FaceDir TransformFace(SymmetryTransform const& transform, FaceDir face)
 		{
-			if ( coord.x == 1 ) return CF_R;
-			if ( coord.x == -1 ) return CF_L;
-			if ( coord.y == 1 ) return CF_U;
-			if ( coord.y == -1 ) return CF_D;
-			if ( coord.z == 1 ) return CF_F;
-			if ( coord.z == -1 ) return CF_B;
-			return CF_None;
+			return GetFaceFromCoord(TransformCoord(transform, GetFaceCoord(face)));
 		}
 
 		static Coord RotateAroundPositiveAxis(int axis, int quarterTurn, Coord coord)
@@ -311,17 +313,17 @@ namespace Rubiks
 			{
 			case FaceRight: axis = 0; axisSign = 1; break;
 			case FaceLeft:  axis = 0; axisSign = -1; break;
-			case FaceUp:    axis = 1; axisSign = -1; break;
-			case FaceDown:  axis = 1; axisSign = 1; break;
-			case FaceFront: axis = 2; axisSign = -1; break;
-			case FaceBack:  axis = 2; axisSign = 1; break;
+			case FaceFront: axis = 1; axisSign = -1; break;
+			case FaceBack:  axis = 1; axisSign = 1; break;
+			case FaceUp:    axis = 2; axisSign = -1; break;
+			case FaceDown:  axis = 2; axisSign = 1; break;
 			}
 
 			int quarterTurn = ( bInverse ? 1 : -1 ) * axisSign;
 			return RotateAroundPositiveAxis(axis, quarterTurn, coord);
 		}
 
-		static CubieFace RotateFace(FaceDir dir, bool bInverse, CubieFace face)
+		static FaceDir RotateFace(FaceDir dir, bool bInverse, FaceDir face)
 		{
 			return GetFaceFromCoord(RotateCoord(dir, bInverse, GetFaceCoord(face)));
 		}
@@ -330,12 +332,12 @@ namespace Rubiks
 		{
 			switch ( dir )
 			{
-			case FaceFront: return coord.z == 1;
-			case FaceBack:  return coord.z == -1;
+			case FaceFront: return coord.y == 1;
+			case FaceBack:  return coord.y == -1;
 			case FaceRight: return coord.x == 1;
 			case FaceLeft:  return coord.x == -1;
-			case FaceUp:    return coord.y == 1;
-			case FaceDown:  return coord.y == -1;
+			case FaceUp:    return coord.z == 1;
+			case FaceDown:  return coord.z == -1;
 			default:        return false;
 			}
 		}
@@ -385,7 +387,7 @@ namespace Rubiks
 				if ( row == 1 && col == 0 ) return { 2, 0, false };
 				if ( row == 1 && col == 2 ) return { 0, 0, false };
 				if ( row == 2 && col == 0 ) return { 1, 0, true };
-				if ( row == 2 && col == 1 ) return { 0, 0, false };
+				if ( row == 2 && col == 1 ) return { 1, 0, false };
 				return { 0, 0, true };
 			case FaceFront:
 				if ( row == 0 && col == 0 ) return { 1, 1, true };
@@ -441,8 +443,8 @@ namespace Rubiks
 		{
 			static Coord const Data[8] =
 			{
-				{ 1, 1, 1 }, { -1, 1, 1 }, { -1, 1,-1 }, { 1, 1,-1 },
-				{ 1,-1, 1 }, { -1,-1, 1 }, { -1,-1,-1 }, { 1,-1,-1 },
+				{ 1, 1, 1 }, { -1, 1, 1 }, { -1,-1, 1 }, { 1,-1, 1 },
+				{ 1, 1,-1 }, { -1, 1,-1 }, { -1,-1,-1 }, { 1,-1,-1 },
 			};
 			return Data;
 		}
@@ -451,30 +453,30 @@ namespace Rubiks
 		{
 			static Coord const Data[12] =
 			{
-				{ 1, 1, 0 }, { 0, 1, 1 }, { -1, 1, 0 }, { 0, 1,-1 },
-				{ 1,-1, 0 }, { 0,-1, 1 }, { -1,-1, 0 }, { 0,-1,-1 },
-				{ 1, 0, 1 }, { -1, 0, 1 }, { -1, 0,-1 }, { 1, 0,-1 },
+				{ 1, 0, 1 }, { 0, 1, 1 }, { -1, 0, 1 }, { 0,-1, 1 },
+				{ 1, 0,-1 }, { 0, 1,-1 }, { -1, 0,-1 }, { 0,-1,-1 },
+				{ 1, 1, 0 }, { -1, 1, 0 }, { -1,-1, 0 }, { 1,-1, 0 },
 			};
 			return Data;
 		}
 
-		static CubieFace const (&GetCornerPieceFaces())[8][3]
+		static FaceDir const (&GetCornerPieceFaces())[8][3]
 		{
-			static CubieFace const Data[8][3] =
+			static FaceDir const Data[8][3] =
 			{
-				{ CF_U, CF_R, CF_F }, { CF_U, CF_F, CF_L }, { CF_U, CF_L, CF_B }, { CF_U, CF_B, CF_R },
-				{ CF_D, CF_F, CF_R }, { CF_D, CF_L, CF_F }, { CF_D, CF_B, CF_L }, { CF_D, CF_R, CF_B },
+				{ FaceUp, FaceRight, FaceFront }, { FaceUp, FaceFront, FaceLeft }, { FaceUp, FaceLeft, FaceBack }, { FaceUp, FaceBack, FaceRight },
+				{ FaceDown, FaceFront, FaceRight }, { FaceDown, FaceLeft, FaceFront }, { FaceDown, FaceBack, FaceLeft }, { FaceDown, FaceRight, FaceBack },
 			};
 			return Data;
 		}
 
-		static CubieFace const (&GetEdgePieceFaces())[12][2]
+		static FaceDir const (&GetEdgePieceFaces())[12][2]
 		{
-			static CubieFace const Data[12][2] =
+			static FaceDir const Data[12][2] =
 			{
-				{ CF_U, CF_R }, { CF_U, CF_F }, { CF_U, CF_L }, { CF_U, CF_B },
-				{ CF_D, CF_R }, { CF_D, CF_F }, { CF_D, CF_L }, { CF_D, CF_B },
-				{ CF_F, CF_R }, { CF_F, CF_L }, { CF_B, CF_L }, { CF_B, CF_R },
+				{ FaceUp, FaceRight }, { FaceUp, FaceFront }, { FaceUp, FaceLeft }, { FaceUp, FaceBack },
+				{ FaceDown, FaceRight }, { FaceDown, FaceFront }, { FaceDown, FaceLeft }, { FaceDown, FaceBack },
+				{ FaceFront, FaceRight }, { FaceFront, FaceLeft }, { FaceBack, FaceLeft }, { FaceBack, FaceRight },
 			};
 			return Data;
 		}
@@ -498,7 +500,7 @@ namespace Rubiks
 
 						for ( int ori = 0 ; ori < 3 ; ++ori )
 						{
-							CubieFace sourceOutwardFace = GetCornerPosFaces()[i][ori];
+							FaceDir sourceOutwardFace = GetCornerPosFaces()[i][ori];
 							if ( IsOnLayer(FaceDir(move), srcCoord) )
 								sourceOutwardFace = RotateFace(FaceDir(move), inv != 0, sourceOutwardFace);
 
@@ -525,7 +527,7 @@ namespace Rubiks
 
 						for ( int ori = 0 ; ori < 2 ; ++ori )
 						{
-							CubieFace sourceOutwardFace = GetEdgePosFaces()[i][ori];
+							FaceDir sourceOutwardFace = GetEdgePosFaces()[i][ori];
 							if ( IsOnLayer(FaceDir(move), srcCoord) )
 								sourceOutwardFace = RotateFace(FaceDir(move), inv != 0, sourceOutwardFace);
 
@@ -545,14 +547,275 @@ namespace Rubiks
 			}
 		}
 
-		static CubieFace const (&GetCornerPosFaces())[8][3]
+		static FaceDir const (&GetCornerPosFaces())[8][3]
 		{
 			return GetCornerPieceFaces();
 		}
 
-		static CubieFace const (&GetEdgePosFaces())[12][2]
+		static FaceDir const (&GetEdgePosFaces())[12][2]
 		{
 			return GetEdgePieceFaces();
+		}
+
+		static SymmetryCache& GetSymmetryCache()
+		{
+			static SymmetryCache cache;
+			if ( cache.bInitialized )
+				return cache;
+
+			auto const& cornerCoords = GetCornerCoords();
+			auto const& edgeCoords = GetEdgeCoords();
+			auto const& cornerPosFaces = GetCornerPosFaces();
+			auto const& edgePosFaces = GetEdgePosFaces();
+
+			for ( int transformIndex = 0 ; transformIndex < GetSymmetryTransformCount() ; ++transformIndex )
+			{
+				SymmetryTransform const& transform = GetSymmetryTransform(transformIndex);
+
+				for ( uint8 pos = 0 ; pos < 8 ; ++pos )
+				{
+					int destIndex = FindCornerPos(TransformCoord(transform, cornerCoords[pos]));
+					assert(destIndex != INDEX_NONE);
+					uint8 dest = uint8(destIndex);
+					cache.cornerDest[transformIndex][pos] = dest;
+
+					for ( uint8 piece = 0 ; piece < 8 ; ++piece )
+					{
+						for ( uint8 ori = 0 ; ori < 3 ; ++ori )
+						{
+							FaceDir colors[3] = { CountFace, CountFace, CountFace };
+							for ( uint8 slot = 0 ; slot < 3 ; ++slot )
+							{
+								FaceDir outwardFace = TransformFace(transform, cornerPosFaces[pos][slot]);
+								FaceDir colorFace = TransformFace(transform, GetCornerPieceFaces()[piece][Mod(slot - ori, 3)]);
+								for ( uint8 destSlot = 0 ; destSlot < 3 ; ++destSlot )
+								{
+									if ( cornerPosFaces[dest][destSlot] == outwardFace )
+									{
+										colors[destSlot] = colorFace;
+										break;
+									}
+								}
+							}
+
+							uint8 newPiece = 0;
+							uint8 newOri = 0;
+							FindCornerPieceFromColors(colors, newPiece, newOri);
+							cache.cornerValue[transformIndex][pos][piece][ori] = newPiece | (newOri << 3);
+						}
+					}
+				}
+
+				for ( uint8 pos = 0 ; pos < 12 ; ++pos )
+				{
+					int destIndex = FindEdgePos(TransformCoord(transform, edgeCoords[pos]));
+					assert(destIndex != INDEX_NONE);
+					uint8 dest = uint8(destIndex);
+					cache.edgeDest[transformIndex][pos] = dest;
+
+					for ( uint8 piece = 0 ; piece < 12 ; ++piece )
+					{
+						for ( uint8 ori = 0 ; ori < 2 ; ++ori )
+						{
+							FaceDir colors[2] = { CountFace, CountFace };
+							for ( uint8 slot = 0 ; slot < 2 ; ++slot )
+							{
+								FaceDir outwardFace = TransformFace(transform, edgePosFaces[pos][slot]);
+								FaceDir colorFace = TransformFace(transform, GetEdgePieceFaces()[piece][Mod(slot - ori, 2)]);
+								for ( uint8 destSlot = 0 ; destSlot < 2 ; ++destSlot )
+								{
+									if ( edgePosFaces[dest][destSlot] == outwardFace )
+									{
+										colors[destSlot] = colorFace;
+										break;
+									}
+								}
+							}
+
+							uint8 newPiece = 0;
+							uint8 newOri = 0;
+							FindEdgePieceFromColors(colors, newPiece, newOri);
+							cache.edgeValue[transformIndex][pos][piece][ori] = newPiece | (newOri << 4);
+						}
+					}
+				}
+			}
+
+			cache.bInitialized = true;
+			return cache;
+		}
+
+		void BuildSymmetryState(int transformIndex, CubeState& outState) const
+		{
+			SymmetryCache& cache = GetSymmetryCache();
+			outState.cornerKey = 0;
+			outState.edgeKey = 0;
+
+			for ( uint8 i = 0 ; i < 8 ; ++i )
+			{
+				uint8 piece;
+				uint8 ori;
+				getCorner(i, piece, ori);
+				uint8 dest = cache.cornerDest[transformIndex][i];
+				uint64 value = cache.cornerValue[transformIndex][i][piece][ori];
+				outState.cornerKey |= value << (5 * dest);
+			}
+
+			for ( uint8 i = 0 ; i < 12 ; ++i )
+			{
+				uint8 piece;
+				uint8 ori;
+				getEdge(i, piece, ori);
+				uint8 dest = cache.edgeDest[transformIndex][i];
+				uint64 value = cache.edgeValue[transformIndex][i][piece][ori];
+				outState.edgeKey |= value << (5 * dest);
+			}
+		}
+
+		void BuildSymmetryState(SymmetryTransform const& transform, CubeState& outState) const
+		{
+			outState.setEmptyState();
+
+			auto const& cornerCoords = GetCornerCoords();
+			auto const& edgeCoords = GetEdgeCoords();
+			auto const& cornerPosFaces = GetCornerPosFaces();
+			auto const& edgePosFaces = GetEdgePosFaces();
+
+			for ( uint8 i = 0 ; i < 8 ; ++i )
+			{
+				uint8 piece;
+				uint8 ori;
+				getCorner(i, piece, ori);
+
+				int dest = FindCornerPos(TransformCoord(transform, cornerCoords[i]));
+				assert(dest != INDEX_NONE);
+
+				FaceDir colors[3] = { CountFace, CountFace, CountFace };
+				for ( uint8 slot = 0 ; slot < 3 ; ++slot )
+				{
+					FaceDir outwardFace = TransformFace(transform, cornerPosFaces[i][slot]);
+					FaceDir colorFace = TransformFace(transform, GetCornerPieceFaces()[piece][Mod(slot - ori, 3)]);
+					for ( uint8 destSlot = 0 ; destSlot < 3 ; ++destSlot )
+					{
+						if ( cornerPosFaces[dest][destSlot] == outwardFace )
+						{
+							colors[destSlot] = colorFace;
+							break;
+						}
+					}
+				}
+
+				uint8 newPiece = 0;
+				uint8 newOri = 0;
+				FindCornerPieceFromColors(colors, newPiece, newOri);
+				outState.setCorner(dest, newPiece, newOri);
+			}
+
+			for ( uint8 i = 0 ; i < 12 ; ++i )
+			{
+				uint8 piece;
+				uint8 ori;
+				getEdge(i, piece, ori);
+
+				int dest = FindEdgePos(TransformCoord(transform, edgeCoords[i]));
+				assert(dest != INDEX_NONE);
+
+				FaceDir colors[2] = { CountFace, CountFace };
+				for ( uint8 slot = 0 ; slot < 2 ; ++slot )
+				{
+					FaceDir outwardFace = TransformFace(transform, edgePosFaces[i][slot]);
+					FaceDir colorFace = TransformFace(transform, GetEdgePieceFaces()[piece][Mod(slot - ori, 2)]);
+					for ( uint8 destSlot = 0 ; destSlot < 2 ; ++destSlot )
+					{
+						if ( edgePosFaces[dest][destSlot] == outwardFace )
+						{
+							colors[destSlot] = colorFace;
+							break;
+						}
+					}
+				}
+
+				uint8 newPiece = 0;
+				uint8 newOri = 0;
+				FindEdgePieceFromColors(colors, newPiece, newOri);
+				outState.setEdge(dest, newPiece, newOri);
+			}
+
+			outState.updateHash();
+		}
+
+		static void FindCornerPieceFromColors(FaceDir const colors[3], uint8& outPiece, uint8& outOri)
+		{
+			auto const& pieceFaces = GetCornerPieceFaces();
+			for ( uint8 piece = 0 ; piece < 8 ; ++piece )
+			{
+				for ( uint8 ori = 0 ; ori < 3 ; ++ori )
+				{
+					if ( pieceFaces[piece][Mod(0 - ori, 3)] == colors[0] &&
+					     pieceFaces[piece][Mod(1 - ori, 3)] == colors[1] &&
+					     pieceFaces[piece][Mod(2 - ori, 3)] == colors[2] )
+					{
+						outPiece = piece;
+						outOri = ori;
+						return;
+					}
+				}
+			}
+			assert(false);
+		}
+
+		static void FindEdgePieceFromColors(FaceDir const colors[2], uint8& outPiece, uint8& outOri)
+		{
+			auto const& pieceFaces = GetEdgePieceFaces();
+			for ( uint8 piece = 0 ; piece < 12 ; ++piece )
+			{
+				for ( uint8 ori = 0 ; ori < 2 ; ++ori )
+				{
+					if ( pieceFaces[piece][Mod(0 - ori, 2)] == colors[0] &&
+					     pieceFaces[piece][Mod(1 - ori, 2)] == colors[1] )
+					{
+						outPiece = piece;
+						outOri = ori;
+						return;
+					}
+				}
+			}
+			assert(false);
+		}
+
+		static int GetSymmetryTransformCount()
+		{
+			return 48;
+		}
+
+		static SymmetryTransform const& GetSymmetryTransform(int index)
+		{
+			static bool bInitialized = false;
+			static SymmetryTransform transforms[48];
+			if ( !bInitialized )
+			{
+				static int8 const Permutations[6][3] =
+				{
+					{ 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 },
+					{ 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 },
+				};
+
+				int outIndex = 0;
+				for ( int p = 0 ; p < 6 ; ++p )
+				{
+					for ( int signMask = 0 ; signMask < 8 ; ++signMask )
+					{
+						for ( int axis = 0 ; axis < 3 ; ++axis )
+						{
+							transforms[outIndex].axis[axis] = Permutations[p][axis];
+							transforms[outIndex].sign[axis] = (signMask & (1 << axis)) ? -1 : 1;
+						}
+						++outIndex;
+					}
+				}
+				bInitialized = true;
+			}
+			return transforms[index];
 		}
 	};
 
@@ -585,6 +848,11 @@ namespace Rubiks
 	class Solver
 	{
 	public:
+		Solver()
+			: mbRunning(false)
+			, mGoalTableDepth(-1)
+		{
+		}
 
 		void run();
 
@@ -611,15 +879,22 @@ namespace Rubiks
 		}
 
 		void cleanup();
+		void buildGoalDepthTable(int depth);
+		bool isInGoalDepthTable(CubeState const& canonicalState) const;
 
 		struct StateNode
 		{
 			StateNode* parent;
 			CubeState  state;
+			CubeState  canonicalState;
 			FaceDir    rotation;
 			bool       bInverse;
+			int        depth;
 		};
-		void generateNextNodes(StateNode* node , StateNode* nextNodes[]);
+		int generateNextNodes(StateNode* node , StateNode* nextNodes[]);
+		static bool ShouldPruneMove(StateNode const* node, FaceDir dir, bool bInverse);
+		static bool ShouldPruneMove(FaceDir prevDir, bool bPrevInverse, bool bHavePrevMove, FaceDir dir, bool bInverse);
+		static int GetFacePairOrder(FaceDir dir);
 
 
 		bool mbRunning;
@@ -629,7 +904,7 @@ namespace Rubiks
 		Mutex mUncheckMutex;
 		std::deque< StateNode* > mRequestFindNodes;
 		std::deque< StateNode* > mUncheckNodes;
-		std::vector< StateNode* > mAllocNodes;
+		TArray< StateNode* > mAllocNodes;
 		struct StateEqual
 		{
 			bool operator ()( CubeState const* a , CubeState const* b ) const
@@ -644,17 +919,134 @@ namespace Rubiks
 				return a->hashValue;
 			}
 		};
+		struct StateValueEqual
+		{
+			bool operator ()( CubeState const& a , CubeState const& b ) const
+			{
+				return a.isEqual(b);
+			}
+		};
+		struct StateValueHash
+		{
+			std::size_t operator()( CubeState const& a ) const
+			{
+				return a.hashValue;
+			}
+		};
 
 		typedef std::unordered_set< CubeState* , StateHash , StateEqual > StateSet;
+		typedef std::unordered_set< CubeState , StateValueHash , StateValueEqual > StateValueSet;
 		StateSet mCheckedStates;
+		StateValueSet mGoalDepthStates;
+		CubeState mGoalTableFinalCanonical;
+		int mGoalTableDepth;
 
 		CubeState mInitState;
 		CubeState mFinalState;
 	};
 
+	class FastSolver
+	{
+	public:
+		static int const COCount = 2187;
+		static int const EOCount = 2048;
+		static int const SliceCount = 495;
+		static int const Perm8Count = 40320;
+		static int const Perm4Count = 24;
+		static int const MoveCount = CountFace * 3;
+		static int const Phase2MoveCount = 10;
+
+		struct SearchNode
+		{
+			FaceDir  rotation;
+			uint8    power;
+		};
+		struct IDASearchContext
+		{
+			int nodeCount = 0;
+			TArray< SearchNode > path;
+		};
+		struct CoordState
+		{
+			uint16 co;
+			uint16 eo;
+			uint16 slice;
+			uint16 cp;
+			uint16 udEdgePerm;
+			uint16 slicePerm;
+		};
+
+		struct CoordMoveTables
+		{
+			uint16 co[COCount][MoveCount];
+			uint16 eo[EOCount][MoveCount];
+			uint16 slice[SliceCount][MoveCount];
+			uint16 cp[Perm8Count][Phase2MoveCount];
+			uint16 udEdgePerm[Perm8Count][Phase2MoveCount];
+			uint16 slicePerm[Perm4Count][Phase2MoveCount];
+			int phase2MoveToMove[Phase2MoveCount];
+		};
+		struct PruningTables
+		{
+			int8 cornerOri[COCount];
+			int8 edgeOri[EOCount];
+			int8 slice[SliceCount];
+			int8 cornerPerm[Perm8Count];
+			int8 udEdgePerm[Perm8Count];
+			int8 slicePerm[Perm4Count];
+		};
+
+		bool run();
+		bool runTwoPhase();
+		bool searchPhase1(CoordState const& state, int depth, int bound, FaceDir prevDir, bool bHavePrevMove, IDASearchContext& context);
+		bool searchPhase2(CoordState const& state, int depth, int bound, FaceDir prevDir, bool bHavePrevMove, IDASearchContext& context);
+
+		static int GetFacePairOrder(FaceDir dir);
+		static bool ShouldPruneMove(FaceDir prevDir, bool bHavePrevMove, FaceDir dir);
+		static bool IsPhase2Move(FaceDir dir, uint8 power);
+		static bool IsPhase1Goal(CoordState const& state);
+		static bool ApplyMove(CubeState const& state, FaceDir dir, uint8 power, CubeState& outState);
+		static PruningTables& GetPruningTables();
+		static CoordMoveTables& GetCoordMoveTables();
+		static CoordState MakeCoordState(CubeState const& state);
+		static CoordState ApplyCoordPhase2Move(CoordState const& state, int phase2MoveIndex);
+		static FaceDir GetMoveFace(int moveIndex);
+		static uint8 GetMovePower(int moveIndex);
+		static int GetMoveIndex(FaceDir dir, uint8 power);
+		static void BuildCoordPruningTable(int8* table, int tableSize, uint16 startCoord, uint16 const* moveTable, int moveStride, int numMoves);
+		static int CalcCornerOriCoord(CubeState const& state);
+		static int CalcEdgeOriCoord(CubeState const& state);
+		static int CalcSliceCoord(CubeState const& state);
+		static int CalcCornerPermCoord(CubeState const& state);
+		static int CalcUDEdgePermCoord(CubeState const& state);
+		static int CalcSlicePermCoord(CubeState const& state);
+		static int CalcCombinationRank(uint32 mask, int numBits, int chooseBits);
+		static int CalcPermutationRank(uint8 const* values, int numValues);
+		static void BuildPermutationFromRank(int rank, int numValues, uint8* outValues);
+		static uint32 BuildCombinationMaskFromRank(int rank, int numBits, int chooseBits);
+		static void BuildCornerOriState(int coord, CubeState& outState);
+		static void BuildEdgeOriState(int coord, CubeState& outState);
+		static void BuildSliceState(int coord, CubeState& outState);
+		static void BuildCornerPermState(int coord, CubeState& outState);
+		static void BuildUDEdgePermState(int coord, CubeState& outState);
+		static void BuildSlicePermState(int coord, CubeState& outState);
+		static int CalcPhase1Heuristic(CoordState const& state);
+		static int CalcPhase2Heuristic(CoordState const& state);
+
+		CubeState mInitState;
+		CubeState mFinalState;
+		TArray< SearchNode > mSolution;
+	};
+
 	static int BlockColor[] = 
 	{
-		EColor::Black , EColor::Red , EColor::White , EColor::Blue , EColor::Yellow , EColor::Green , EColor::Orange ,
+		EColor::Black ,
+		EColor::Red ,
+		EColor::Blue ,
+		EColor::White ,
+		EColor::Orange ,
+		EColor::Green ,
+		EColor::Yellow ,
 	};
 	int const FaceGridIndexMap[CubeBlockSize][CubeBlockSize] =
 	{
@@ -672,7 +1064,7 @@ namespace Rubiks
 	};
 	Vec2i const FaceOffset[] =
 	{
-		Vec2i(1,1) , Vec2i(1,0) , Vec2i(2,1) , Vec2i(1,2) , Vec2i(0,1) , Vec2i(3,1) ,
+		Vec2i(1,1) , Vec2i(2,1) , Vec2i(1,0) , Vec2i(3,1) , Vec2i(0,1) , Vec2i(1,2) ,
 	};
 
 	class TestStage : public StageBase
@@ -683,16 +1075,23 @@ namespace Rubiks
 		struct RotationAnim
 		{
 			bool    bPlaying;
-			FaceDir dir;
+			FaceDir stateDir;
+			FaceDir renderDir;
 			bool    bInverse;
 			float   time;
 			float   duration;
+		};
+		struct QueuedMove
+		{
+			FaceDir dir;
+			bool    bInverse;
 		};
 
 		TestStage(){}
 		virtual bool onInit()
 		{
 			::Global::GUI().cleanupWidget();
+			setupDevFrame();
 			restart();
 			return true;
 		}
@@ -722,11 +1121,20 @@ namespace Rubiks
 		{
 			bInvRotation = false;
 			idxCur = 0;
-			mState[0].setGlobalState();
-			mState[1].setGlobalState();
+			mState[0].setGoalState();
+			mState[1].setGoalState();
 			mAnim.bPlaying = false;
+			mAnim.stateDir = FaceFront;
+			mAnim.renderDir = FaceFront;
 			mAnim.time = 0;
 			mAnim.duration = 0.22f;
+			mCameraYaw = Math::DegToRad(42.0f);
+			mCameraPitch = Math::DegToRad(43.7f);
+			mCameraDistance = 11.9f;
+			mbDraggingCamera = false;
+			mLastMousePos = Vec2i(0, 0);
+			mSolutionMoves.clear();
+			mSolutionMoveIndex = 0;
 		}
 
 		virtual void onUpdate(GameTimeSpan deltaTime)
@@ -742,10 +1150,11 @@ namespace Rubiks
 
 					int idxNext = 1 - idxCur;
 					if ( mAnim.bInverse )
-						CubeOperator::RotateInv( mState[idxCur] , mAnim.dir , mState[idxNext] );
+						CubeOperator::RotateInv( mState[idxCur] , mAnim.stateDir , mState[idxNext] );
 					else
-						CubeOperator::Rotate( mState[idxCur] , mAnim.dir , mState[idxNext] );
+						CubeOperator::Rotate( mState[idxCur] , mAnim.stateDir , mState[idxNext] );
 					idxCur = idxNext;
+					playNextSolutionMove();
 				}
 			}
 		}
@@ -762,8 +1171,12 @@ namespace Rubiks
 			float aspect = float(screenSize.x) / screenSize.y;
 			Matrix4 projectionMatrix = PerspectiveMatrix(Math::DegToRad(42.0f), aspect, 0.01f, 100.0f);
 			Vector3 lookPos = Vector3(0, 0, 0);
-			Vector3 camPos = Vector3(-6.3f, -8.2f, 5.8f);
-			Matrix4 viewMatrix = LookAtMatrix(camPos, lookPos - camPos, Vector3(0, 1, 0));
+			float cosPitch = Math::Cos(mCameraPitch);
+			Vector3 camPos = lookPos + mCameraDistance * Vector3(
+				Math::Cos(mCameraYaw) * cosPitch,
+				Math::Sin(mCameraYaw) * cosPitch,
+				Math::Sin(mCameraPitch));
+			Matrix4 viewMatrix = LookAtMatrix(camPos, lookPos - camPos, Vector3(0, 0, 1));
 
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -782,6 +1195,30 @@ namespace Rubiks
 
 		MsgReply onMouse(MouseMsg const& msg) override
 		{
+			if ( msg.onRightDown() )
+			{
+				mbDraggingCamera = true;
+				mLastMousePos = msg.getPos();
+				return MsgReply::Handled();
+			}
+
+			if ( msg.onRightUp() )
+			{
+				mbDraggingCamera = false;
+				return MsgReply::Handled();
+			}
+
+			if ( mbDraggingCamera && msg.isRightDown() && msg.onMoving() )
+			{
+				Vec2i delta = msg.getPos() - mLastMousePos;
+				mLastMousePos = msg.getPos();
+
+				float constexpr RotateSpeed = 0.008f;
+				mCameraYaw -= delta.x * RotateSpeed;
+				mCameraPitch = Math::Clamp(mCameraPitch + delta.y * RotateSpeed, Math::DegToRad(-82.0f), Math::DegToRad(82.0f));
+				return MsgReply::Handled();
+			}
+
 			return BaseClass::onMouse(msg);
 		}
 
@@ -805,9 +1242,7 @@ namespace Rubiks
 				case EKeyCode::E: bInvRotation = !bInvRotation; break;
 				case EKeyCode::P:
 					{
-						solver.mInitState = mState[idxCur];
-						solver.mFinalState.setGlobalState();
-						solver.run();
+						solveCurrentCube();
 					}
 					break;
 				}
@@ -820,10 +1255,104 @@ namespace Rubiks
 			if ( mAnim.bPlaying )
 				return;
 
+			mSolutionMoves.clear();
+			mSolutionMoveIndex = 0;
+			startRotationAnim(dir, bInverse);
+		}
+
+		void startRotationAnim(FaceDir dir, bool bInverse)
+		{
 			mAnim.bPlaying = true;
-			mAnim.dir = dir;
+			mAnim.stateDir = dir;
+			mAnim.renderDir = dir;
 			mAnim.bInverse = bInverse;
 			mAnim.time = 0;
+		}
+
+		void setupDevFrame()
+		{
+			DevFrame* frame = WidgetUtility::CreateDevFrame();
+			frame->addButton("Scramble", [this](int event, GWidget*) -> bool
+			{
+				scrambleCurrentCube();
+				return false;
+			});
+			frame->addButton("Fast Solve", [this](int event, GWidget*) -> bool
+			{
+				solveCurrentCube();
+				return false;
+			});
+		}
+
+		void solveCurrentCube()
+		{
+			if ( mAnim.bPlaying )
+				return;
+
+			fastSolver.mInitState = mState[idxCur];
+			fastSolver.mFinalState.setGoalState();
+			if ( fastSolver.run() )
+				applySolution(fastSolver.mSolution);
+		}
+
+		void applySolution(TArray< FastSolver::SearchNode > const& solution)
+		{
+			mSolutionMoves.clear();
+			mSolutionMoveIndex = 0;
+
+			for ( FastSolver::SearchNode const& move : solution )
+			{
+				if ( move.power == 3 )
+				{
+					mSolutionMoves.push_back({ move.rotation, true });
+				}
+				else
+				{
+					for ( uint8 i = 0 ; i < move.power ; ++i )
+					{
+						mSolutionMoves.push_back({ move.rotation, false });
+					}
+				}
+			}
+
+			playNextSolutionMove();
+		}
+
+		void playNextSolutionMove()
+		{
+			if ( mAnim.bPlaying )
+				return;
+
+			if ( mSolutionMoveIndex >= mSolutionMoves.size() )
+				return;
+
+			QueuedMove const& move = mSolutionMoves[mSolutionMoveIndex++];
+			startRotationAnim(move.dir, move.bInverse);
+		}
+
+		void scrambleCurrentCube()
+		{
+			if ( mAnim.bPlaying )
+				return;
+
+			static int const ScrambleStepCount = 30;
+			FaceDir prevDir = CountFace;
+			for ( int i = 0 ; i < ScrambleStepCount ; ++i )
+			{
+				FaceDir dir = FaceDir(::Global::Random() % CountFace);
+				if ( dir == prevDir )
+					dir = FaceDir((uint32(dir) + 1 + ::Global::Random() % (CountFace - 1)) % CountFace);
+
+				bool bInverse = (::Global::Random() & 1) != 0;
+				int idxNext = 1 - idxCur;
+				if ( bInverse )
+					CubeOperator::RotateInv(mState[idxCur], dir, mState[idxNext]);
+				else
+					CubeOperator::Rotate(mState[idxCur], dir, mState[idxNext]);
+
+				idxCur = idxNext;
+				prevDir = dir;
+			}
 		}
 
 		void drawCube( IGraphics2D& g , Vec2i const& pos , CubeState const& state )
@@ -848,13 +1377,13 @@ namespace Rubiks
 		{
 			switch ( dir )
 			{
-			case FaceFront: return Vector3(0, 0, 1);
-			case FaceBack:  return Vector3(0, 0, -1);
-			case FaceRight: return Vector3(-1, 0, 0);
-			case FaceLeft:  return Vector3(1, 0, 0);
-			case FaceUp:    return Vector3(0, 1, 0);
-			case FaceDown:  return Vector3(0, -1, 0);
-			default:        return Vector3(0, 0, 1);
+			case FaceFront: return Vector3(0, 1, 0);
+			case FaceBack:  return Vector3(0, -1, 0);
+			case FaceRight: return Vector3(1, 0, 0);
+			case FaceLeft:  return Vector3(-1, 0, 0);
+			case FaceUp:    return Vector3(0, 0, 1);
+			case FaceDown:  return Vector3(0, 0, -1);
+			default:        return Vector3(0, 1, 0);
 			}
 		}
 
@@ -862,28 +1391,32 @@ namespace Rubiks
 		{
 			switch ( dir )
 			{
-			case FaceFront: return z == 2;
-			case FaceBack:  return z == 0;
-			case FaceRight: return x == 0;
-			case FaceLeft:  return x == 2;
-			case FaceUp:    return y == 2;
-			case FaceDown:  return y == 0;
+			case FaceFront: return y == 2;
+			case FaceBack:  return y == 0;
+			case FaceRight: return x == 2;
+			case FaceLeft:  return x == 0;
+			case FaceUp:    return z == 2;
+			case FaceDown:  return z == 0;
 			default:        return false;
 			}
 		}
 
 		static void GetFaceCellCoord(FaceDir dir, int row, int col, int& outX, int& outY, int& outZ)
 		{
-			switch ( dir )
+			CubeState::Coord coord;
+			if ( row == 1 && col == 1 )
 			{
-			case FaceFront: outX = 2 - col; outY = 2 - row; outZ = 2;       break;
-			case FaceBack:  outX = col;     outY = 2 - row; outZ = 0;       break;
-			case FaceRight: outX = 0;       outY = 2 - row; outZ = 2 - col; break;
-			case FaceLeft:  outX = 2;       outY = 2 - row; outZ = col;     break;
-			case FaceUp:    outX = 2 - col; outY = 2;       outZ = row;     break;
-			case FaceDown:  outX = 2 - col; outY = 0;       outZ = 2 - row; break;
-			default:        outX = 2 - col; outY = 2 - row; outZ = 2;       break;
+				coord = CubeState::GetFaceCoord(dir);
 			}
+			else
+			{
+				CubeState::FaceletDesc desc = CubeState::GetFaceletDesc(dir, row, col);
+				coord = desc.bCorner ? CubeState::GetCornerCoords()[desc.pos] : CubeState::GetEdgeCoords()[desc.pos];
+			}
+
+			outX = coord.x + 1;
+			outY = coord.y + 1;
+			outZ = coord.z + 1;
 		}
 
 		static LinearColor ToLinearColor(int colorId)
@@ -896,9 +1429,31 @@ namespace Rubiks
 		{
 			switch ( dir )
 			{
-			case FaceRight: return Vector3(1, 0, 0);
-			case FaceLeft:  return Vector3(-1, 0, 0);
-			default:        return GetFaceNormal(dir);
+			case FaceRight:
+			case FaceLeft:
+				return Vector3(1, 0, 0);
+			case FaceFront:
+			case FaceBack:
+				return Vector3(0, 1, 0);
+			case FaceUp:
+			case FaceDown:
+				return Vector3(0, 0, 1);
+			default:
+				return Vector3(0, 1, 0);
+			}
+		}
+
+		static int GetRotationAxisSign(FaceDir dir)
+		{
+			switch ( dir )
+			{
+			case FaceRight: return 1;
+			case FaceLeft:  return -1;
+			case FaceFront: return -1;
+			case FaceBack:  return 1;
+			case FaceUp:    return -1;
+			case FaceDown:  return 1;
+			default:        return 1;
 			}
 		}
 
@@ -907,14 +1462,14 @@ namespace Rubiks
 			return GetFaceNormal(dir) * CubeSpacing;
 		}
 
-		float GetAnimationAngle() const
+		float GetAnimationAngle(FaceDir dir) const
 		{
 			if ( !mAnim.bPlaying || mAnim.duration <= 0 )
 				return 0;
 
 			float alpha = Math::Clamp(mAnim.time / mAnim.duration, 0.0f, 1.0f);
 			alpha = alpha * alpha * (3.0f - 2.0f * alpha);
-			float sign = mAnim.bInverse ? 1.0f : -1.0f;
+			float sign = float(( mAnim.bInverse ? 1 : -1 ) * GetRotationAxisSign(dir));
 			return sign * alpha * 0.5f * Math::PI;
 		}
 
@@ -926,12 +1481,12 @@ namespace Rubiks
 
 		void SetupLayerRotation(int x, int y, int z)
 		{
-			if ( !( mAnim.bPlaying && IsLayerCubie(mAnim.dir, x, y, z) ) )
+			if ( !( mAnim.bPlaying && IsLayerCubie(mAnim.renderDir, x, y, z) ) )
 				return;
 
-			Vector3 pivot = GetLayerPivot(mAnim.dir);
+			Vector3 pivot = GetLayerPivot(mAnim.renderDir);
 			mStack.translate(pivot);
-			mStack.rotate(Quaternion::Rotate(GetRotationAxis(mAnim.dir), GetAnimationAngle()));
+			mStack.rotate(Quaternion::Rotate(GetRotationAxis(mAnim.renderDir), GetAnimationAngle(mAnim.renderDir)));
 			mStack.translate(-pivot);
 		}
 
@@ -963,28 +1518,28 @@ namespace Rubiks
 			switch ( dir )
 			{
 			case FaceFront:
-				stickerPos += Vector3(StickerInset, StickerInset, CubieSize + StickerLift);
-				stickerSize = Vector3(StickerExtent, StickerExtent, StickerThickness);
-				break;
-			case FaceBack:
-				stickerPos += Vector3(StickerInset, StickerInset, -StickerThickness - StickerLift);
-				stickerSize = Vector3(StickerExtent, StickerExtent, StickerThickness);
-				break;
-			case FaceRight:
-				stickerPos += Vector3(-StickerThickness - StickerLift, StickerInset, StickerInset);
-				stickerSize = Vector3(StickerThickness, StickerExtent, StickerExtent);
-				break;
-			case FaceLeft:
-				stickerPos += Vector3(CubieSize + StickerLift, StickerInset, StickerInset);
-				stickerSize = Vector3(StickerThickness, StickerExtent, StickerExtent);
-				break;
-			case FaceUp:
 				stickerPos += Vector3(StickerInset, CubieSize + StickerLift, StickerInset);
 				stickerSize = Vector3(StickerExtent, StickerThickness, StickerExtent);
 				break;
-			case FaceDown:
+			case FaceBack:
 				stickerPos += Vector3(StickerInset, -StickerThickness - StickerLift, StickerInset);
 				stickerSize = Vector3(StickerExtent, StickerThickness, StickerExtent);
+				break;
+			case FaceRight:
+				stickerPos += Vector3(CubieSize + StickerLift, StickerInset, StickerInset);
+				stickerSize = Vector3(StickerThickness, StickerExtent, StickerExtent);
+				break;
+			case FaceLeft:
+				stickerPos += Vector3(-StickerThickness - StickerLift, StickerInset, StickerInset);
+				stickerSize = Vector3(StickerThickness, StickerExtent, StickerExtent);
+				break;
+			case FaceUp:
+				stickerPos += Vector3(StickerInset, StickerInset, CubieSize + StickerLift);
+				stickerSize = Vector3(StickerExtent, StickerExtent, StickerThickness);
+				break;
+			case FaceDown:
+				stickerPos += Vector3(StickerInset, StickerInset, -StickerThickness - StickerLift);
+				stickerSize = Vector3(StickerExtent, StickerExtent, StickerThickness);
 				break;
 			default:
 				break;
@@ -1024,19 +1579,27 @@ namespace Rubiks
 			}
 		}
 
-		static float constexpr CubeSpacing = 1.02f;
-		static float constexpr CubieSize = 0.96f;
+		static float constexpr CubeSpacing = 1.0f;
+		static float constexpr CubieSize = 1.0f;
 		static float constexpr StickerInset = 0.10f;
 		static float constexpr StickerThickness = 0.02f;
-		static float constexpr StickerLift = 0.01f;
+		static float constexpr StickerLift = 0.002f;
 		static float constexpr StickerExtent = CubieSize - 2 * StickerInset;
 
 		Solver solver;
+		FastSolver fastSolver;
 
 		CubeState mState[2];
 		int  idxCur;
 		bool bInvRotation;
 		RotationAnim mAnim;
+		float mCameraYaw = Math::DegToRad(42.0f);
+		float mCameraPitch = Math::DegToRad(43.7f);
+		float mCameraDistance = 11.9f;
+		bool mbDraggingCamera = false;
+		Vec2i mLastMousePos;
+		TArray< QueuedMove > mSolutionMoves;
+		int mSolutionMoveIndex = 0;
 		Render::TTransformStack< true > mStack;
 		Render::Mesh mCube;
 	};

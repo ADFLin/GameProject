@@ -161,8 +161,10 @@ public:
 	DevFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
 	GButton*   addButton(char const* tile, int id = UI_ANY);
 	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
-	GCheckBox* addCheckBox(char const* title, int id = UI_ANY);
-	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
+	GButton*   addButton(char const* title, SimpleDelegate delegate);
+
+
+	GCheckBox* addCheckBox(char const* title, int id = UI_ANY);	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
 	GCheckBox* addCheckBox(char const* title, bool& value);
 
 	GSlider*   addSlider(int id = UI_ANY, bool bUseBroder = true);
@@ -184,6 +186,8 @@ private:
 	T* addWidget(LAMBDA Lambda, bool bUseBroder = true);
 	template< class T >
 	T* addWidget(char const* title, WidgetEventDelegate delegate);
+	template< class T >
+	T* addWidget(char const* title, SimpleDelegate delegate);
 	int mNextWidgetPosY;
 };
 

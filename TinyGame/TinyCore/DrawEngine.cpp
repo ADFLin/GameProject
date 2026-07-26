@@ -281,7 +281,7 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 		ERenderSystem nextSystem = renderSetup ? renderSetup->getDefaultRenderSystem() : ERenderSystem::None;
 		if (nextSystem == ERenderSystem::None)
 		{
-			if (renderSetup->isRenderSystemSupported(GDefaultRHIName))
+			if (renderSetup && renderSetup->isRenderSystemSupported(GDefaultRHIName))
 			{
 				nextSystem = GDefaultRHIName;
 			}

@@ -59,6 +59,7 @@ class WidgetRenderer;
 class GWidget;
 
 using WidgetEventDelegate = std::function< bool (int event, GWidget*) >;
+using SimpleDelegate = std::function< void() >;
 
 struct WidgetColor
 {
@@ -223,7 +224,7 @@ protected:
 	TINY_API void addTween(void* tween);
 	TINY_API void removeTween(void* tween);
 	void cleanupTweens();
-	std::vector<void*> mTweens;
+	TArray<void*> mTweens;
 
 	bool      mClipEnable;
 	int32     mRenderLayer;

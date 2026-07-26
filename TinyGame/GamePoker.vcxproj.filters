@@ -103,6 +103,9 @@
     <ClCompile Include="Poker\CardDraw.cpp" />
     <ClCompile Include="Poker\FreeCell.cpp" />
     <ClCompile Include="Poker\FreeCellStage.cpp" />
+    <ClCompile Include="Poker\FortuneFoundation.cpp" />
+    <ClCompile Include="Poker\FortuneFoundationSolver.cpp" />
+    <ClCompile Include="Poker\FortuneFoundationStage.cpp" />
     <ClCompile Include="Poker\Holdemlevel.cpp" />
     <ClCompile Include="Poker\HoldemScene.cpp" />
     <ClCompile Include="Poker\HoldemStage.cpp" />
@@ -299,6 +302,9 @@
     <ClInclude Include="Poker\FreeCell.h" />
     <ClInclude Include="Poker\FreeCellSolver.h" />
     <ClInclude Include="Poker\FreeCellStage.h" />
+    <ClInclude Include="Poker\FortuneFoundation.h" />
+    <ClInclude Include="Poker\FortuneFoundationSolver.h" />
+    <ClInclude Include="Poker\FortuneFoundationStage.h" />
     <ClInclude Include="Poker\HoldemLevel.h" />
     <ClInclude Include="Poker\HoldemScene.h" />
     <ClInclude Include="Poker\HoldemStage.h" />

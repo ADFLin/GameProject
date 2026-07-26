@@ -16,6 +16,7 @@ namespace Poker
 		RULE_Holdem ,
 		RULE_FreeCell ,
 		RULE_DouDizhu,
+		RULE_FortuneFoundation,
 
 		RULE_COUNT,
 	};
@@ -28,6 +29,7 @@ namespace Poker
 		case RULE_Holdem: return "Holdem";
 		case RULE_FreeCell: return "FreeCell";
 		case RULE_DouDizhu: return "Dou-Dizhu";
+		case RULE_FortuneFoundation: return "Fortune Foundation";
 		}
 
 		return "Unknown";

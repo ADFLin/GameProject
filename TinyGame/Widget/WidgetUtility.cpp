@@ -71,9 +71,27 @@ T* DevFrame::addWidget(char const* title, WidgetEventDelegate delegate)
 	});
 }
 
+
+template< class T >
+T* DevFrame::addWidget(char const* title, SimpleDelegate delegate)
+{
+	auto wrappedDelegate = [delegate](int event, GWidget*) -> bool
+	{
+		delegate();
+		return false;
+	};
+
+	return addWidget<T>(title, WidgetEventDelegate{ wrappedDelegate });
+}
+
 GButton* DevFrame::addButton(char const* title, WidgetEventDelegate delegate)
 {
 	return addWidget<GButton>( title , delegate );
+}
+
+GButton* DevFrame::addButton(char const* title, SimpleDelegate delegate)
+{
+	return addWidget<GButton>(title, delegate);
 }
 
 GCheckBox* DevFrame::addCheckBox(char const* title, WidgetEventDelegate delegate)

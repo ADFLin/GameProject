@@ -148,6 +148,24 @@ SingleDevEntry GSingleDev[] =
 #undef STAGE_INFO
 };
 
+ExecutionEntryInfo MakePokerRuleEntry(Poker::GameRule rule)
+{
+	return ExecutionEntryInfo(
+		Poker::ToRuleString(rule),
+		[rule](IGameExecutionContext& context)
+		{
+			Poker::GameModule* game = (Poker::GameModule*)Global::ModuleManager().changeGame(POKER_GAME_NAME);
+			if (game)
+			{
+				game->setRule(rule);
+				context.playSingleGame(POKER_GAME_NAME);
+			}
+		},
+		EExecGroup::Dev,
+		"Game|Card"
+	);
+}
+
 
 MainMenuStage::MainMenuStage()
 	: mNavigator()
@@ -196,6 +214,15 @@ bool MainMenuStage::onInit()
 		if (ExecutionRegisterCollection::Get().findExecutionByTitle(info.entry.title) == nullptr)
 		{
 			ExecutionRegisterCollection::Get().registerExecution(info.entry);
+		}
+	}
+
+	for (int i = 0; i < Poker::RULE_COUNT; ++i)
+	{
+		Poker::GameRule rule = (Poker::GameRule)i;
+		if (ExecutionRegisterCollection::Get().findExecutionByTitle(Poker::ToRuleString(rule)) == nullptr)
+		{
+			ExecutionRegisterCollection::Get().registerExecution(MakePokerRuleEntry(rule));
 		}
 	}
 
@@ -403,21 +430,11 @@ void MainMenuStage::refreshMainWorkspace()
 		for (int i = 0; i < RULE_COUNT; ++i)
 		{
 			GameRule rule = (GameRule)i;
-			ExecutionEntryInfo info(
-				ToRuleString(rule),
-				[this, rule](IGameExecutionContext& context){
-					Poker::GameModule* game = (Poker::GameModule*)Global::ModuleManager().changeGame(POKER_GAME_NAME);
-					if (game)
-					{
-						game->setRule(rule);
-						game->beginPlay(*getManager(), EGameMode::Single);
-					}
-				},
-				EExecGroup::Dev
-			);
+			ExecutionEntryInfo const* info = ExecutionRegisterCollection::Get().findExecutionByTitle(ToRuleString(rule));
+			ExecutionEntryInfo fallbackInfo = MakePokerRuleEntry(rule);
 			// Use special ID for custom cards
 			int cardId = UI_POKER_CARD_START + i;
-			items.push_back(ConvertToItem(info, cardId));
+			items.push_back(ConvertToItem(info ? *info : fallbackInfo, cardId));
 			idx++;
 		}
 	}
@@ -719,13 +736,17 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 	if (id >= UI_POKER_CARD_START && id < UI_POKER_CARD_START + Poker::RULE_COUNT)
 	{
-		// Sidebar poker buttons are disabled, this code might not be reached but keeping it safe
 		int ruleIdx = id - UI_POKER_CARD_START;
-		Poker::GameModule* game = (Poker::GameModule*)Global::ModuleManager().changeGame(POKER_GAME_NAME);
-		if (game)
+		Poker::GameRule rule = (Poker::GameRule)ruleIdx;
+		ExecutionEntryInfo const* info = ExecutionRegisterCollection::Get().findExecutionByTitle(Poker::ToRuleString(rule));
+		if (info)
 		{
-			game->setRule((Poker::GameRule)ruleIdx);
-			game->beginPlay(*getManager(), EGameMode::Single);
+			execEntry(*info);
+		}
+		else
+		{
+			ExecutionEntryInfo fallbackInfo = MakePokerRuleEntry(rule);
+			execEntry(fallbackInfo);
 		}
 		return false;
 	}

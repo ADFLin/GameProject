@@ -11,6 +11,7 @@
 #include "HoldemStage.h"
 #include "FreeCellStage.h"
 #include "DDStage.h"
+#include "FortuneFoundationStage.h"
 
 #include "GameSettingPanel.h"
 #include "Widget/GameRoomUI.h"
@@ -64,6 +65,12 @@ namespace Poker
 			if (id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME)
 			{
 				stage = new DouDizhu::LevelStage;
+			}
+			break;
+		case RULE_FortuneFoundation:
+			if (id == STAGE_SINGLE_GAME)
+			{
+				stage = new FortuneFoundation::LevelStage;
 			}
 			break;
 		}
@@ -157,8 +164,9 @@ namespace Poker
 		void setupBaseUI()
 		{
 			GChoice* choice = mSettingPanel->addChoice( UI_RULE_CHOICE , LOCTEXT("Game Rule") , MASK_BASE );
-			choice->addItem( LOCTEXT("Big2") );
-			choice->addItem( LOCTEXT("Holdem") );
+			choice->addItem(LOCTEXT("Big2"));
+			choice->addItem(LOCTEXT("Holdem"));
+			choice->addItem(LOCTEXT("Fortune Foundation"));
 			switch( mGame->getRule() )
 			{
 			case RULE_Big2:   
@@ -166,6 +174,9 @@ namespace Poker
 				break;
 			case RULE_Holdem: 
 				choice->setSelection(1); 
+				break;
+			case RULE_FortuneFoundation:
+				choice->setSelection(2);
 				break;
 			}
 		}
@@ -186,6 +197,10 @@ namespace Poker
 				case 1:
 					mGame->setRule( RULE_Holdem );
 					setupUI_Holdem();
+					break;
+				case 2:
+					mGame->setRule(RULE_FortuneFoundation);
+					break;
 				}
 				modifyCallback( getSettingPanel() );
 				return false;
